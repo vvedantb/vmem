@@ -1,0 +1,31 @@
+{
+  "name": "nextjs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "eslint": "^9.38.0",
+    "eslint-config-next": "16.0.0",
+    "eslint-plugin-react-compiler": "19.1.0-rc.2",
+    "next": "16.0.3",
+    "react": "19.2.0",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
