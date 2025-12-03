@@ -8,8 +8,8 @@ export default function MainLayout({
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       <Sidebar />
-      <main className="md:ml-[20%] min-h-screen">
-        <div className="px-8 py-16 md:px-16 md:py-20">{children}</div>
+      <main className="md:ml-[18%] min-h-screen">
+        <div className="px-8 py-16 md:px-12 md:py-16">{children}</div>
       </main>
     </div>
   );

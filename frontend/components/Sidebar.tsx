@@ -3,15 +3,44 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Switch } from "@heroui/react";
+import { Switch, Divider } from "@heroui/react";
 import { useThemeContext } from "./contexts/ThemeContext";
+import {
+  IconMessageCircle,
+  IconBrain,
+  IconLayoutDashboard,
+  IconKey,
+  IconFileText,
+  IconBell,
+  IconUser,
+  IconSettings,
+} from "@tabler/icons-react";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/memories", label: "Memories" },
-  { href: "/add-memory", label: "Add Memory" },
-  { href: "/api-keys", label: "API Keys" },
-  { href: "/settings", label: "Settings" },
+const navGroups = [
+  {
+    items: [
+      { href: "/chat", label: "Chat", icon: IconMessageCircle },
+      { href: "/memory", label: "Memory", icon: IconBrain },
+    ],
+  },
+  {
+    items: [
+      { href: "/dashboard", label: "Dashboard", icon: IconLayoutDashboard },
+    ],
+  },
+  {
+    items: [
+      { href: "/api-keys", label: "API Keys", icon: IconKey },
+      { href: "/api-logs", label: "API Logs", icon: IconFileText },
+    ],
+  },
+  {
+    items: [
+      { href: "/notifications", label: "Notifications", icon: IconBell },
+      { href: "/profile", label: "Profile", icon: IconUser },
+      { href: "/settings", label: "Settings", icon: IconSettings },
+    ],
+  },
 ];
 
 export default function Sidebar() {
@@ -62,7 +91,7 @@ export default function Sidebar() {
       <aside
         className={`
           fixed top-0 left-0 h-screen bg-white dark:bg-black border-r border-black/10 dark:border-white/10 z-40
-          w-[280px] md:w-[20%] md:max-w-[360px]
+          w-[280px] md:w-[18%] md:max-w-[360px]
           transform transition-transform duration-300 ease-out
           ${
             mobileMenuOpen
@@ -79,32 +108,42 @@ export default function Sidebar() {
           </div>
 
           <nav className="flex-1">
-            <ul className="space-y-2">
-              {navItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`
-                      block w-full px-4 py-3 rounded-xl text-base font-medium
-                      transition-all duration-200 ease-out
-                      ${
-                        isActive
-                          ? "bg-black text-white dark:bg-white dark:text-black"
-                          : "text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
-                      }
-                    `}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </ul>
+            {navGroups.map((group, groupIndex) => (
+              <div key={groupIndex}>
+                <ul className="space-y-1">
+                  {group.items.map((item) => {
+                    const isActive = pathname === item.href;
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`
+                          flex items-center gap-3 w-full px-4 py-3 rounded-xl text-base font-medium
+                          transition-all duration-200 ease-out
+                          ${
+                            isActive
+                              ? "bg-black text-white dark:bg-white dark:text-black"
+                              : "text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
+                          }
+                        `}
+                      >
+                        <Icon size={20} stroke={1.5} />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </ul>
+                {groupIndex < navGroups.length - 1 && (
+                  <Divider className="my-4 bg-black/10 dark:bg-white/10" />
+                )}
+              </div>
+            ))}
           </nav>
 
-          <div className="pt-8 border-t border-black/10 dark:border-white/10 space-y-4">
+          <Divider className="bg-black/10 dark:bg-white/10" />
+          <div className="pt-4 space-y-4">
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
                 {mounted ? (isDark ? "Dark Mode" : "Light Mode") : "Theme"}
