@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Input, Textarea, Button, Chip } from "@heroui/react";
 import { IconX } from "@tabler/icons-react";
 
 export default function AddMemoryForm() {
@@ -34,12 +35,17 @@ export default function AddMemoryForm() {
         <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
           Title
         </label>
-        <input
+        <Input
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onValueChange={setTitle}
           placeholder="Enter a title for your memory"
-          className="w-full px-6 py-4 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 text-black dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none focus:border-black/30 dark:focus:border-white/30 focus:bg-black/[0.04] dark:focus:bg-white/[0.04] transition-all"
+          size="lg"
+          classNames={{
+            inputWrapper:
+              "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
+            input: "text-black dark:text-white",
+          }}
         />
       </div>
 
@@ -47,12 +53,16 @@ export default function AddMemoryForm() {
         <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
           Content
         </label>
-        <textarea
+        <Textarea
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onValueChange={setContent}
           placeholder="Write your memory content here..."
-          rows={8}
-          className="w-full px-6 py-4 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 text-black dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none focus:border-black/30 dark:focus:border-white/30 focus:bg-black/[0.04] dark:focus:bg-white/[0.04] transition-all resize-none"
+          minRows={8}
+          classNames={{
+            inputWrapper:
+              "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
+            input: "text-black dark:text-white",
+          }}
         />
       </div>
 
@@ -60,42 +70,48 @@ export default function AddMemoryForm() {
         <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
           Tags
         </label>
-        <input
+        <Input
           type="text"
           value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
+          onValueChange={setTagInput}
           onKeyDown={handleAddTag}
           placeholder="Type a tag and press Enter"
-          className="w-full px-6 py-4 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 text-black dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none focus:border-black/30 dark:focus:border-white/30 focus:bg-black/[0.04] dark:focus:bg-white/[0.04] transition-all"
+          size="lg"
+          classNames={{
+            inputWrapper:
+              "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
+            input: "text-black dark:text-white",
+          }}
         />
         {tags.length > 0 && (
           <div className="flex gap-2 flex-wrap mt-4">
             {tags.map((tag) => (
-              <span
+              <Chip
                 key={tag}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-full bg-black/5 dark:bg-white/5 text-neutral-700 dark:text-neutral-300 border border-black/10 dark:border-white/10"
+                variant="flat"
+                onClose={() => removeTag(tag)}
+                classNames={{
+                  base: "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10",
+                  content: "text-neutral-700 dark:text-neutral-300",
+                  closeButton:
+                    "text-neutral-500 hover:text-black dark:hover:text-white",
+                }}
               >
                 {tag}
-                <button
-                  type="button"
-                  onClick={() => removeTag(tag)}
-                  className="text-neutral-500 hover:text-black dark:hover:text-white transition-colors"
-                >
-                  <IconX className="w-4 h-4" stroke={2} />
-                </button>
-              </span>
+              </Chip>
             ))}
           </div>
         )}
       </div>
 
       <div className="flex justify-center pt-6">
-        <button
+        <Button
           type="submit"
-          className="px-12 py-4 rounded-xl bg-black dark:bg-white text-white dark:text-black font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+          size="lg"
+          className="px-12 bg-black dark:bg-white text-white dark:text-black font-medium"
         >
           Save Memory
-        </button>
+        </Button>
       </div>
     </form>
   );
