@@ -21,10 +21,6 @@ const navGroups = [
     items: [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/memories", label: "Memories", icon: IconBrain },
-    ],
-  },
-  {
-    items: [
       { href: "/dashboard", label: "Dashboard", icon: IconLayoutDashboard },
     ],
   },
