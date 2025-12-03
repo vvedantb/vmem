@@ -83,14 +83,14 @@ export default function Sidebar() {
 
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-white/80 dark:bg-black/80 z-30 md:hidden"
+          className="fixed inset-0 bg-neutral-200/80 dark:bg-black/80 z-30 md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       <aside
         className={`
-          fixed top-0 left-0 h-screen bg-white dark:bg-black border-r border-black/10 dark:border-white/10 z-40
+          fixed top-0 left-0 h-screen bg-neutral-200 dark:bg-black z-40
           w-[280px] md:w-[18%] md:max-w-[360px]
           transform transition-transform duration-300 ease-out
           ${

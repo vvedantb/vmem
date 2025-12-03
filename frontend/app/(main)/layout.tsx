@@ -6,10 +6,12 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-white dark:bg-black">
+    <div className="min-h-screen bg-neutral-200 dark:bg-black">
       <Sidebar />
-      <main className="md:ml-[18%] min-h-screen">
-        <div className="px-8 py-16 md:px-12 md:py-16">{children}</div>
+      <main className="md:ml-[18%] min-h-screen p-3">
+        <div className="min-h-[calc(100vh-24px)] px-8 py-12 rounded-2xl bg-white dark:bg-neutral-900">
+          {children}
+        </div>
       </main>
     </div>
   );
