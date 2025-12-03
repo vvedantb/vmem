@@ -20,7 +20,7 @@ const navGroups = [
   {
     items: [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
-      { href: "/memory", label: "Memory", icon: IconBrain },
+      { href: "/memories", label: "Memories", icon: IconBrain },
     ],
   },
   {
