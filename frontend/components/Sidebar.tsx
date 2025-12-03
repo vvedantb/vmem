@@ -18,6 +18,8 @@ import {
   IconX,
   IconFiles,
   IconPlugConnected,
+  IconMoon,
+  IconSun,
 } from "@tabler/icons-react";
 
 const navGroups = [
@@ -95,10 +97,36 @@ export default function Sidebar() {
         `}
       >
         <div className="flex flex-col h-full p-4 md:py-8">
-          <div className="mb-8 px-2 hidden md:block">
+          <div className="mb-8 px-2 hidden md:flex flex-row justify-between items-center">
             <h1 className="text-2xl font-bold tracking-tight text-neutral-800 dark:text-neutral-200">
               vmem
             </h1>
+            <div className="flex flex-row justify-end items-center gap-2">
+              <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                {mounted ? (
+                  isDark ? (
+                    <IconMoon className="w-4 h-4" />
+                  ) : (
+                    <IconSun className="w-4 h-4" />
+                  )
+                ) : (
+                  "Theme"
+                )}
+              </span>
+              {mounted && (
+                <Switch
+                  isSelected={isDark}
+                  onValueChange={toggleTheme}
+                  size="sm"
+                  classNames={{
+                    wrapper:
+                      "bg-black/10 dark:bg-white/10 group-data-[selected=true]:bg-black dark:group-data-[selected=true]:bg-white",
+                    thumb:
+                      "bg-black dark:bg-white group-data-[selected=true]:bg-white dark:group-data-[selected=true]:bg-black",
+                  }}
+                />
+              )}
+            </div>
           </div>
 
           <nav className="flex-1 overflow-y-auto scrollbar-thin">
@@ -135,29 +163,9 @@ export default function Sidebar() {
               </div>
             ))}
           </nav>
-
-          <Divider className="bg-black/10 dark:bg-white/10" />
           <div className="pt-4 space-y-4">
-            <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-                {mounted ? (isDark ? "Dark Mode" : "Light Mode") : "Theme"}
-              </span>
-              {mounted && (
-                <Switch
-                  isSelected={isDark}
-                  onValueChange={toggleTheme}
-                  size="sm"
-                  classNames={{
-                    wrapper:
-                      "bg-black/10 dark:bg-white/10 group-data-[selected=true]:bg-black dark:group-data-[selected=true]:bg-white",
-                    thumb:
-                      "bg-black dark:bg-white group-data-[selected=true]:bg-white dark:group-data-[selected=true]:bg-black",
-                  }}
-                />
-              )}
-            </div>
             <p className="text-xs text-neutral-400 dark:text-neutral-600 px-4">
-              © 2025 vMemory
+              © 2025 vmem
             </p>
           </div>
         </div>
