@@ -1,3 +1,6 @@
+"use client";
+
+import { Button, Card, CardBody, Chip } from "@heroui/react";
 import {
   IconBrandGoogleDrive,
   IconBrandOnedrive,
@@ -69,61 +72,84 @@ export default function ConnectorsPage() {
         {connectors.map((connector) => {
           const Icon = connector.icon;
           return (
-            <div
+            <Card
               key={connector.id}
-              className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+              classNames={{
+                base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
+              }}
             >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
-                  <Icon
-                    size={24}
-                    stroke={1.5}
-                    className="text-neutral-700 dark:text-neutral-300"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-black dark:text-white">
-                      {connector.name}
-                    </h3>
-                    {connector.connected && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-black/5 dark:bg-white/10 text-neutral-600 dark:text-neutral-400">
-                        <IconCheck size={12} stroke={2} />
-                        Connected
-                      </span>
-                    )}
+              <CardBody className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
+                    <Icon
+                      size={24}
+                      stroke={1.5}
+                      className="text-neutral-700 dark:text-neutral-300"
+                    />
                   </div>
-                  <p className="text-sm text-neutral-500 mt-1">
-                    {connector.description}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-black dark:text-white">
+                        {connector.name}
+                      </h3>
+                      {connector.connected && (
+                        <Chip
+                          size="sm"
+                          variant="flat"
+                          startContent={<IconCheck size={12} stroke={2} />}
+                          classNames={{
+                            base: "bg-black/5 dark:bg-white/10",
+                            content:
+                              "text-neutral-600 dark:text-neutral-400 text-xs font-medium",
+                          }}
+                        >
+                          Connected
+                        </Chip>
+                      )}
+                    </div>
+                    <p className="text-sm text-neutral-500 mt-1">
+                      {connector.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="mt-4 flex justify-end">
-                {connector.connected ? (
-                  <button className="px-4 py-2 rounded-xl border border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                    Disconnect
-                  </button>
-                ) : (
-                  <button className="px-4 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors">
-                    Connect
-                  </button>
-                )}
-              </div>
-            </div>
+                <div className="mt-4 flex justify-end">
+                  {connector.connected ? (
+                    <Button
+                      variant="bordered"
+                      size="sm"
+                      className="border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400"
+                    >
+                      Disconnect
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="bg-black dark:bg-white text-white dark:text-black font-medium"
+                    >
+                      Connect
+                    </Button>
+                  )}
+                </div>
+              </CardBody>
+            </Card>
           );
         })}
       </div>
 
-      <div className="p-6 rounded-xl border border-dashed border-black/20 dark:border-white/20 bg-black/[0.01] dark:bg-white/[0.01]">
-        <div className="text-center">
+      <Card
+        classNames={{
+          base: "border border-dashed border-black/20 dark:border-white/20 bg-black/[0.01] dark:bg-white/[0.01] shadow-none",
+        }}
+      >
+        <CardBody className="p-6 text-center">
           <p className="text-neutral-500">
             More connectors coming soon. Have a request?
           </p>
-          <button className="mt-3 text-sm font-medium text-black dark:text-white hover:underline">
+          <Button variant="light" size="sm" className="mt-3 font-medium">
             Submit a request →
-          </button>
-        </div>
-      </div>
+          </Button>
+        </CardBody>
+      </Card>
     </div>
   );
 }

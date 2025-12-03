@@ -2,6 +2,20 @@
 
 import { useState } from "react";
 import {
+  Button,
+  Progress,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+} from "@heroui/react";
+import {
   IconUpload,
   IconFile,
   IconPhoto,
@@ -9,6 +23,9 @@ import {
   IconFileTypeDoc,
   IconFileTypeXls,
   IconDotsVertical,
+  IconDownload,
+  IconTrash,
+  IconEye,
 } from "@tabler/icons-react";
 
 const mockFiles = [
@@ -91,17 +108,21 @@ export default function FilesPage() {
                 {storageUsed} GB / {storageTotal} GB
               </span>
             </div>
-            <div className="h-2 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-black dark:bg-white rounded-full transition-all duration-500"
-                style={{ width: `${storagePercent}%` }}
-              />
-            </div>
+            <Progress
+              value={storagePercent}
+              size="sm"
+              classNames={{
+                track: "bg-black/10 dark:bg-white/10",
+                indicator: "bg-black dark:bg-white",
+              }}
+            />
           </div>
-          <button className="px-5 py-2.5 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors flex items-center gap-2">
-            <IconUpload size={18} stroke={1.5} />
+          <Button
+            startContent={<IconUpload size={18} stroke={1.5} />}
+            className="bg-black dark:bg-white text-white dark:text-black font-medium"
+          >
             Upload File
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -109,71 +130,93 @@ export default function FilesPage() {
         <h3 className="text-lg font-medium text-black dark:text-white mb-4">
           Your Files
         </h3>
-        <div className="border border-black/10 dark:border-white/10 rounded-xl overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
-                <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500 uppercase tracking-wider hidden md:table-cell">
-                  Size
-                </th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500 uppercase tracking-wider hidden md:table-cell">
-                  Uploaded
-                </th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500 uppercase tracking-wider w-16">
-                  <span className="sr-only">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockFiles.map((file) => {
-                const FileIcon = getFileIcon(file.type);
-                return (
-                  <tr
-                    key={file.id}
-                    className="border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors"
-                  >
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
-                          <FileIcon
-                            size={20}
-                            stroke={1.5}
-                            className="text-neutral-600 dark:text-neutral-400"
-                          />
-                        </div>
-                        <span className="text-neutral-800 dark:text-neutral-200 font-medium">
-                          {file.name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5 hidden md:table-cell">
-                      <span className="text-sm text-neutral-500">
-                        {file.size}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 hidden md:table-cell">
-                      <span className="text-sm text-neutral-500">
-                        {file.uploadedAt}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <button className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                        <IconDotsVertical
-                          size={18}
+        <Table
+          aria-label="Files table"
+          classNames={{
+            wrapper:
+              "border border-black/10 dark:border-white/10 rounded-xl shadow-none bg-transparent",
+            th: "bg-black/[0.02] dark:bg-white/[0.02] text-neutral-500 font-medium",
+            td: "py-4",
+          }}
+        >
+          <TableHeader>
+            <TableColumn>NAME</TableColumn>
+            <TableColumn className="hidden md:table-cell">SIZE</TableColumn>
+            <TableColumn className="hidden md:table-cell">UPLOADED</TableColumn>
+            <TableColumn width={60}>
+              <span className="sr-only">Actions</span>
+            </TableColumn>
+          </TableHeader>
+          <TableBody>
+            {mockFiles.map((file) => {
+              const FileIcon = getFileIcon(file.type);
+              return (
+                <TableRow key={file.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
+                        <FileIcon
+                          size={20}
                           stroke={1.5}
-                          className="text-neutral-500"
+                          className="text-neutral-600 dark:text-neutral-400"
                         />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </div>
+                      <span className="text-neutral-800 dark:text-neutral-200 font-medium">
+                        {file.name}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <span className="text-sm text-neutral-500">
+                      {file.size}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <span className="text-sm text-neutral-500">
+                      {file.uploadedAt}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Dropdown>
+                      <DropdownTrigger>
+                        <Button
+                          isIconOnly
+                          variant="light"
+                          size="sm"
+                          className="text-neutral-500"
+                        >
+                          <IconDotsVertical size={18} stroke={1.5} />
+                        </Button>
+                      </DropdownTrigger>
+                      <DropdownMenu aria-label="File actions">
+                        <DropdownItem
+                          key="view"
+                          startContent={<IconEye size={16} stroke={1.5} />}
+                        >
+                          View
+                        </DropdownItem>
+                        <DropdownItem
+                          key="download"
+                          startContent={<IconDownload size={16} stroke={1.5} />}
+                        >
+                          Download
+                        </DropdownItem>
+                        <DropdownItem
+                          key="delete"
+                          className="text-danger"
+                          color="danger"
+                          startContent={<IconTrash size={16} stroke={1.5} />}
+                        >
+                          Delete
+                        </DropdownItem>
+                      </DropdownMenu>
+                    </Dropdown>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
