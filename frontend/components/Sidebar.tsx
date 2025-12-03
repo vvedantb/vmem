@@ -101,7 +101,7 @@ export default function Sidebar() {
             </h1>
           </div>
 
-          <nav className="flex-1">
+          <nav className="flex-1 overflow-y-auto scrollbar-thin">
             {navGroups.map((group, groupIndex) => (
               <div key={groupIndex}>
                 <ul className="space-y-1">
