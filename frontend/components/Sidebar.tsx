@@ -16,6 +16,8 @@ import {
   IconSettings,
   IconMenu2,
   IconX,
+  IconFiles,
+  IconPlugConnected,
 } from "@tabler/icons-react";
 
 const navGroups = [
@@ -24,6 +26,12 @@ const navGroups = [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/memories", label: "Memories", icon: IconBrain },
       { href: "/dashboard", label: "Dashboard", icon: IconLayoutDashboard },
+    ],
+  },
+  {
+    items: [
+      { href: "/files", label: "Files", icon: IconFiles },
+      { href: "/connectors", label: "Connectors", icon: IconPlugConnected },
     ],
   },
   {
