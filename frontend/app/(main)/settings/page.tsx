@@ -1,17 +1,12 @@
 import SettingsToggles from "@/components/SettingsToggles";
+import PageContainer from "@/components/PageContainer";
 
 export default function SettingsPage() {
   return (
-    <div className="space-y-10">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-tight text-black dark:text-white">
-          Settings
-        </h2>
-        <p className="text-neutral-500 mt-2">
-          Configure your vMemory experience
-        </p>
-      </div>
-
+    <PageContainer
+      title="Settings"
+      description="Configure your vMemory experience"
+    >
       <div className="p-8 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
         <h3 className="text-lg font-medium mb-2 text-black dark:text-white">
           Profile
@@ -49,6 +44,6 @@ export default function SettingsPage() {
           Delete Account
         </button>
       </div>
-    </div>
+    </PageContainer>
   );
 }

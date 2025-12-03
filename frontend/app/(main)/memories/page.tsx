@@ -1,4 +1,5 @@
 import MemorySearch from "@/components/MemorySearch";
+import PageContainer from "@/components/PageContainer";
 
 const mockMemories = [
   {
@@ -35,17 +36,11 @@ const mockMemories = [
 
 export default function MemoriesPage() {
   return (
-    <div className="space-y-10">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-tight text-black dark:text-white">
-          Memories
-        </h2>
-        <p className="text-neutral-500 mt-2">
-          Browse and search your stored memories
-        </p>
-      </div>
-
+    <PageContainer
+      title="Memories"
+      description="Browse and search your stored memories"
+    >
       <MemorySearch memories={mockMemories} />
-    </div>
+    </PageContainer>
   );
 }

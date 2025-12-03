@@ -94,7 +94,7 @@ export default function Sidebar() {
           }
         `}
       >
-        <div className="flex flex-col h-full px-4 py-4 md:py-8">
+        <div className="flex flex-col h-full p-4 md:py-8">
           <div className="mb-8 px-2 hidden md:block">
             <h1 className="text-2xl font-bold tracking-tight text-neutral-800 dark:text-neutral-200">
               vmem

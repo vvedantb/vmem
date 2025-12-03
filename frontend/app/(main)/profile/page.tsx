@@ -1,15 +1,11 @@
+import PageContainer from "@/components/PageContainer";
+
 export default function ProfilePage() {
   return (
-    <div className="space-y-10">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-tight text-black dark:text-white">
-          Profile
-        </h2>
-        <p className="text-neutral-500 mt-2">
-          Manage your account information
-        </p>
-      </div>
-
+    <PageContainer
+      title="Profile"
+      description="Manage your account information"
+    >
       <div className="p-8 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
         <div className="flex flex-col md:flex-row md:items-center gap-6">
           <div className="w-24 h-24 rounded-2xl bg-black/10 dark:bg-white/10 border border-black/10 dark:border-white/10 flex items-center justify-center">
@@ -82,19 +78,24 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <p className="text-sm text-neutral-500">Total Memories</p>
-            <p className="text-2xl font-semibold text-black dark:text-white mt-1">128</p>
+            <p className="text-2xl font-semibold text-black dark:text-white mt-1">
+              128
+            </p>
           </div>
           <div>
             <p className="text-sm text-neutral-500">API Requests</p>
-            <p className="text-2xl font-semibold text-black dark:text-white mt-1">1,284</p>
+            <p className="text-2xl font-semibold text-black dark:text-white mt-1">
+              1,284
+            </p>
           </div>
           <div>
             <p className="text-sm text-neutral-500">Storage Used</p>
-            <p className="text-2xl font-semibold text-black dark:text-white mt-1">24.5 MB</p>
+            <p className="text-2xl font-semibold text-black dark:text-white mt-1">
+              24.5 MB
+            </p>
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
-

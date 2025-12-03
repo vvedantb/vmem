@@ -1,3 +1,5 @@
+import PageContainer from "@/components/PageContainer";
+
 const mockLogs = [
   {
     id: "1",
@@ -38,16 +40,10 @@ const mockLogs = [
 
 export default function ApiLogsPage() {
   return (
-    <div className="space-y-10">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-tight text-black dark:text-white">
-          API Logs
-        </h2>
-        <p className="text-neutral-500 mt-2">
-          Monitor your API usage and request history
-        </p>
-      </div>
-
+    <PageContainer
+      title="API Logs"
+      description="Monitor your API usage and request history"
+    >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
           <p className="text-sm text-neutral-500 uppercase tracking-wider">
@@ -110,17 +106,15 @@ export default function ApiLogsPage() {
                       log.status >= 200 && log.status < 300
                         ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                         : log.status >= 400
-                        ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                        : "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
+                          ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                          : "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
                     }`}
                   >
                     {log.status}
                   </span>
                 </td>
                 <td className="px-6 py-5 hidden md:table-cell">
-                  <span className="text-sm text-neutral-500">
-                    {log.duration}
-                  </span>
+                  <span className="text-sm text-neutral-500">{log.duration}</span>
                 </td>
                 <td className="px-6 py-5">
                   <span className="text-sm text-neutral-500">
@@ -132,6 +126,6 @@ export default function ApiLogsPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </PageContainer>
   );
 }

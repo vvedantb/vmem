@@ -1,4 +1,13 @@
-import { IconCheck, IconAlertTriangle, IconAlertCircle, IconInfoCircle } from "@tabler/icons-react";
+"use client";
+
+import { Button } from "@heroui/button";
+import {
+  IconCheck,
+  IconAlertTriangle,
+  IconAlertCircle,
+  IconInfoCircle,
+} from "@tabler/icons-react";
+import PageContainer from "@/components/PageContainer";
 
 const mockNotifications = [
   {
@@ -37,21 +46,18 @@ const mockNotifications = [
 
 export default function NotificationsPage() {
   return (
-    <div className="space-y-10">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-semibold tracking-tight text-black dark:text-white">
-            Notifications
-          </h2>
-          <p className="text-neutral-500 mt-2">
-            Stay updated on your account activity
-          </p>
-        </div>
-        <button className="px-4 py-2 text-sm text-neutral-500 hover:text-black dark:hover:text-white transition-colors">
+    <PageContainer
+      title="Notifications"
+      description="Stay updated on your account activity"
+      rightSection={
+        <Button
+          variant="light"
+          className="text-neutral-500 hover:text-black dark:hover:text-white"
+        >
           Mark all as read
-        </button>
-      </div>
-
+        </Button>
+      }
+    >
       <div className="space-y-3">
         {mockNotifications.map((notification) => (
           <div
@@ -68,28 +74,46 @@ export default function NotificationsPage() {
                   notification.type === "success"
                     ? "bg-green-100 dark:bg-green-900/30"
                     : notification.type === "warning"
-                      ? "bg-yellow-100 dark:bg-yellow-900/30"
-                      : notification.type === "error"
-                        ? "bg-red-100 dark:bg-red-900/30"
-                        : "bg-blue-100 dark:bg-blue-900/30"
+                    ? "bg-yellow-100 dark:bg-yellow-900/30"
+                    : notification.type === "error"
+                    ? "bg-red-100 dark:bg-red-900/30"
+                    : "bg-blue-100 dark:bg-blue-900/30"
                 }`}
               >
                 {notification.type === "success" && (
-                  <IconCheck className="w-5 h-5 text-green-600 dark:text-green-400" stroke={1.5} />
+                  <IconCheck
+                    className="w-5 h-5 text-green-600 dark:text-green-400"
+                    stroke={1.5}
+                  />
                 )}
                 {notification.type === "warning" && (
-                  <IconAlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" stroke={1.5} />
+                  <IconAlertTriangle
+                    className="w-5 h-5 text-yellow-600 dark:text-yellow-400"
+                    stroke={1.5}
+                  />
                 )}
                 {notification.type === "error" && (
-                  <IconAlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" stroke={1.5} />
+                  <IconAlertCircle
+                    className="w-5 h-5 text-red-600 dark:text-red-400"
+                    stroke={1.5}
+                  />
                 )}
                 {notification.type === "info" && (
-                  <IconInfoCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" stroke={1.5} />
+                  <IconInfoCircle
+                    className="w-5 h-5 text-blue-600 dark:text-blue-400"
+                    stroke={1.5}
+                  />
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-4">
-                  <h3 className={`font-medium ${notification.read ? "text-neutral-600 dark:text-neutral-400" : "text-black dark:text-white"}`}>
+                  <h3
+                    className={`font-medium ${
+                      notification.read
+                        ? "text-neutral-600 dark:text-neutral-400"
+                        : "text-black dark:text-white"
+                    }`}
+                  >
                     {notification.title}
                   </h3>
                   <span className="text-sm text-neutral-400 flex-shrink-0">
@@ -107,7 +131,6 @@ export default function NotificationsPage() {
           </div>
         ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }
-

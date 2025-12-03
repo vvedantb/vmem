@@ -11,6 +11,7 @@ import {
   TableCell,
 } from "@heroui/table";
 import { IconBolt } from "@tabler/icons-react";
+import PageContainer from "@/components/PageContainer";
 
 const mockApiKeys = [
   {
@@ -31,16 +32,10 @@ const mockApiKeys = [
 
 export default function ApiKeysPage() {
   return (
-    <div className="space-y-10">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-tight text-black dark:text-white">
-          API Keys
-        </h2>
-        <p className="text-neutral-500 mt-2">
-          Manage your API keys for programmatic access
-        </p>
-      </div>
-
+    <PageContainer
+      title="API Keys"
+      description="Manage your API keys for programmatic access"
+    >
       <Card
         classNames={{
           base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
@@ -123,6 +118,6 @@ export default function ApiKeysPage() {
           ))}
         </TableBody>
       </Table>
-    </div>
+    </PageContainer>
   );
 }

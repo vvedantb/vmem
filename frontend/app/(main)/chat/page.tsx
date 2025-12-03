@@ -1,21 +1,15 @@
+"use client";
+
 import { Card, CardBody } from "@heroui/card";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { IconMessage, IconSend } from "@tabler/icons-react";
+import PageContainer from "@/components/PageContainer";
 
 export default function ChatPage() {
   return (
-    <div className="space-y-10">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-tight text-black dark:text-white">
-          Chat
-        </h2>
-        <p className="text-neutral-500 mt-2">
-          Ask questions about your memories
-        </p>
-      </div>
-
-      <div className="flex flex-col h-[calc(100vh-280px)] min-h-[400px]">
+    <PageContainer title="Chat" description="Ask questions about your memories">
+      <div className="flex flex-col h-[calc(100%-2rem)] min-h-[400px]">
         <Card
           classNames={{
             base: "flex-1 border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none overflow-hidden",
@@ -55,6 +49,6 @@ export default function ChatPage() {
           </Button>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

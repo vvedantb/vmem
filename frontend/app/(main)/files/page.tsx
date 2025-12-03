@@ -27,6 +27,7 @@ import {
   IconTrash,
   IconEye,
 } from "@tabler/icons-react";
+import PageContainer from "@/components/PageContainer";
 
 const mockFiles = [
   {
@@ -87,16 +88,10 @@ export default function FilesPage() {
   const storagePercent = (storageUsed / storageTotal) * 100;
 
   return (
-    <div className="space-y-10">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-tight text-black dark:text-white">
-          Files
-        </h2>
-        <p className="text-neutral-500 mt-2">
-          Manage your uploaded files and documents
-        </p>
-      </div>
-
+    <PageContainer
+      title="Files"
+      description="Manage your uploaded files and documents"
+    >
       <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex-1">
@@ -218,6 +213,6 @@ export default function FilesPage() {
           </TableBody>
         </Table>
       </div>
-    </div>
+    </PageContainer>
   );
 }

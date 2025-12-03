@@ -10,6 +10,7 @@ import {
   IconBrandGithub,
   IconCheck,
 } from "@tabler/icons-react";
+import PageContainer from "@/components/PageContainer";
 
 const connectors = [
   {
@@ -58,16 +59,10 @@ const connectors = [
 
 export default function ConnectorsPage() {
   return (
-    <div className="space-y-10">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-tight text-black dark:text-white">
-          Connectors
-        </h2>
-        <p className="text-neutral-500 mt-2">
-          Connect external apps to import and sync your data
-        </p>
-      </div>
-
+    <PageContainer
+      title="Connectors"
+      description="Connect external apps to import and sync your data"
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {connectors.map((connector) => {
           const Icon = connector.icon;
@@ -150,6 +145,6 @@ export default function ConnectorsPage() {
           </Button>
         </CardBody>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

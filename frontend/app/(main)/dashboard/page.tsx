@@ -1,6 +1,7 @@
 import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
 import Link from "next/link";
+import PageContainer from "@/components/PageContainer";
 
 const stats = [
   { label: "Total Memories", value: "128" },
@@ -22,16 +23,10 @@ const quickActions = [
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-12">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-tight text-black dark:text-white">
-          Dashboard
-        </h2>
-        <p className="text-neutral-500 mt-2">
-          Welcome back to your memory vault
-        </p>
-      </div>
-
+    <PageContainer
+      title="Dashboard"
+      description="Welcome back to your memory vault"
+    >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat) => (
           <Card
@@ -107,6 +102,6 @@ export default function DashboardPage() {
           </CardBody>
         </Card>
       </div>
-    </div>
+    </PageContainer>
   );
 }
