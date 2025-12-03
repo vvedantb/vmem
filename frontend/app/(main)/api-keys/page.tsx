@@ -1,3 +1,5 @@
+import { IconBolt } from "@tabler/icons-react";
+
 const mockApiKeys = [
   {
     id: "1",
@@ -30,19 +32,10 @@ export default function ApiKeysPage() {
       <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
-            <svg
+            <IconBolt
               className="w-5 h-5 text-neutral-600 dark:text-neutral-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M13 10V3L4 14h7v7l9-11h-7z"
-              />
-            </svg>
+              stroke={1.5}
+            />
           </div>
           <div>
             <h3 className="font-medium text-black dark:text-white">

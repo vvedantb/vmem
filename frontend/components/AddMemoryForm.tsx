@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { IconX } from "@tabler/icons-react";
 
 export default function AddMemoryForm() {
   const [title, setTitle] = useState("");
@@ -80,19 +81,7 @@ export default function AddMemoryForm() {
                   onClick={() => removeTag(tag)}
                   className="text-neutral-500 hover:text-black dark:hover:text-white transition-colors"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <IconX className="w-4 h-4" stroke={2} />
                 </button>
               </span>
             ))}

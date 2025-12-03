@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { IconSearch } from "@tabler/icons-react";
 
 interface Memory {
   id: string;
@@ -34,19 +35,7 @@ export default function MemorySearch({ memories }: MemorySearchProps) {
           placeholder="Search memories semantically..."
           className="w-full px-6 py-4 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 text-black dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none focus:border-black/30 dark:focus:border-white/30 focus:bg-black/[0.04] dark:focus:bg-white/[0.04] transition-all"
         />
-        <svg
-          className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 dark:text-neutral-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
+        <IconSearch className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 dark:text-neutral-600" stroke={1.5} />
       </div>
 
       <div className="border border-black/10 dark:border-white/10 rounded-xl overflow-hidden">
