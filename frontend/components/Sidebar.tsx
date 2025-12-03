@@ -48,45 +48,50 @@ export default function Sidebar() {
 
   return (
     <>
-      <button
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="fixed top-6 left-6 z-50 md:hidden p-2 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10 transition-all"
-        aria-label="Toggle menu"
-      >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <header className="fixed top-0 left-0 right-0 h-16 bg-neutral-200 dark:bg-black z-50 md:hidden flex items-center justify-between px-6">
+        <h1 className="text-xl font-bold tracking-tight text-neutral-800 dark:text-neutral-200">
+          vmem
+        </h1>
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10 transition-all"
+          aria-label="Toggle menu"
         >
-          {mobileMenuOpen ? (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          ) : (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          )}
-        </svg>
-      </button>
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            {mobileMenuOpen ? (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            )}
+          </svg>
+        </button>
+      </header>
 
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-neutral-200/80 dark:bg-black/80 z-30 md:hidden"
+          className="fixed inset-0 top-16 bg-neutral-200/80 dark:bg-black/80 z-30 md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       <aside
         className={`
-          fixed top-0 left-0 h-screen bg-neutral-200 dark:bg-black z-40
+          fixed top-16 md:top-0 left-0 h-[calc(100vh-4rem)] md:h-screen bg-neutral-200 dark:bg-black z-40
           w-[280px] md:w-[18%] md:max-w-[360px]
           transform transition-transform duration-300 ease-out
           ${
@@ -96,8 +101,8 @@ export default function Sidebar() {
           }
         `}
       >
-        <div className="flex flex-col h-full px-4 py-8">
-          <div className="mb-8 px-2">
+        <div className="flex flex-col h-full px-4 py-4 md:py-8">
+          <div className="mb-8 px-2 hidden md:block">
             <h1 className="text-2xl font-bold tracking-tight text-neutral-800 dark:text-neutral-200">
               vmem
             </h1>
