@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Switch } from "@heroui/react";
+import { useThemeContext } from "./contexts/ThemeContext";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
@@ -15,24 +17,9 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const { theme, toggleTheme, mounted } = useThemeContext();
 
-  useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains("dark");
-    setIsDark(isDarkMode);
-  }, []);
-
-  const toggleTheme = () => {
-    const newIsDark = !isDark;
-    setIsDark(newIsDark);
-    if (newIsDark) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  };
+  const isDark = theme === "dark";
 
   return (
     <>
@@ -118,20 +105,24 @@ export default function Sidebar() {
           </nav>
 
           <div className="pt-8 border-t border-black/10 dark:border-white/10 space-y-4">
-            <button
-              onClick={toggleTheme}
-              className="flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
-            >
-              <span>{isDark ? "Dark Mode" : "Light Mode"}</span>
-              <div className="relative w-10 h-6 rounded-full bg-black/10 dark:bg-white/10">
-                <span
-                  className={`
-                    absolute top-1 w-4 h-4 rounded-full transition-all
-                    ${isDark ? "left-5 bg-white" : "left-1 bg-black"}
-                  `}
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                {mounted ? (isDark ? "Dark Mode" : "Light Mode") : "Theme"}
+              </span>
+              {mounted && (
+                <Switch
+                  isSelected={isDark}
+                  onValueChange={toggleTheme}
+                  size="sm"
+                  classNames={{
+                    wrapper:
+                      "bg-black/10 dark:bg-white/10 group-data-[selected=true]:bg-black dark:group-data-[selected=true]:bg-white",
+                    thumb:
+                      "bg-black dark:bg-white group-data-[selected=true]:bg-white dark:group-data-[selected=true]:bg-black",
+                  }}
                 />
-              </div>
-            </button>
+              )}
+            </div>
             <p className="text-xs text-neutral-400 dark:text-neutral-600 px-4">
               © 2025 vMemory
             </p>

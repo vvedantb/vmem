@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Switch } from "@heroui/react";
 
 interface ToggleSetting {
   id: string;
@@ -62,28 +63,17 @@ export default function SettingsToggles() {
               {setting.description}
             </p>
           </div>
-          <button
-            onClick={() => toggleSetting(setting.id)}
-            className={`
-              relative w-12 h-7 rounded-full transition-colors
-              ${
-                setting.enabled
-                  ? "bg-black dark:bg-white"
-                  : "bg-black/10 dark:bg-white/10"
-              }
-            `}
-          >
-            <span
-              className={`
-                absolute top-1 left-1 w-5 h-5 rounded-full transition-all
-                ${
-                  setting.enabled
-                    ? "translate-x-5 bg-white dark:bg-black"
-                    : "translate-x-0 bg-neutral-500"
-                }
-              `}
-            />
-          </button>
+          <Switch
+            isSelected={setting.enabled}
+            onValueChange={() => toggleSetting(setting.id)}
+            size="sm"
+            classNames={{
+              wrapper:
+                "bg-black/10 dark:bg-white/10 group-data-[selected=true]:bg-black dark:group-data-[selected=true]:bg-white",
+              thumb:
+                "bg-neutral-500 group-data-[selected=true]:bg-white dark:group-data-[selected=true]:bg-black",
+            }}
+          />
         </div>
       ))}
     </div>
