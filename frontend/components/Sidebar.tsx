@@ -29,11 +29,13 @@ const navGroups = [
     ],
   },
   {
-    items: [{ href: "/api/logs", label: "API", icon: IconKey }],
+    items: [
+      { href: "/api/logs", label: "API", icon: IconKey },
+      { href: "/connectors", label: "Connectors", icon: IconPlugConnected },
+    ],
   },
   {
     items: [
-      { href: "/connectors", label: "Connectors", icon: IconPlugConnected },
       { href: "/notifications", label: "Notifications", icon: IconBell },
       { href: "/profile", label: "Profile", icon: IconUser },
       { href: "/settings", label: "Settings", icon: IconSettings },
