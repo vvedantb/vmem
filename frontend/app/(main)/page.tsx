@@ -16,7 +16,6 @@ const recentMemories = [
 ];
 
 const quickActions = [
-  { label: "Add Memory", href: "/add-memory" },
   { label: "Search", href: "/memories" },
   { label: "API Keys", href: "/api-keys" },
 ];

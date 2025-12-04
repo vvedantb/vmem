@@ -1,3 +1,4 @@
+import AddMemoryModal from "@/components/AddMemoryModal";
 import MemorySearch from "@/components/MemorySearch";
 import PageContainer from "@/components/PageContainer";
 
@@ -39,6 +40,7 @@ export default function MemoriesPage() {
     <PageContainer
       title="Memories"
       description="Browse and search your stored memories"
+      rightSection={<AddMemoryModal />}
     >
       <MemorySearch memories={mockMemories} />
     </PageContainer>
