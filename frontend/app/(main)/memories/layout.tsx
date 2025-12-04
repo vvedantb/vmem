@@ -25,14 +25,7 @@ export default function MemoriesLayout({
       <Tabs
         selectedKey={currentTab}
         onSelectionChange={(key) => router.push(`/memories/${key}`)}
-        classNames={{
-          tabList:
-            "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 p-1 rounded-xl",
-          cursor: "bg-black dark:bg-white",
-          tab: "h-10 px-4",
-          tabContent:
-            "group-data-[selected=true]:text-white dark:group-data-[selected=true]:text-black text-neutral-500",
-        }}
+        variant="solid"
       >
         <Tab
           key="list"
