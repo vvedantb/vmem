@@ -25,7 +25,7 @@ export default function DashboardPage() {
   return (
     <PageContainer
       title="Dashboard"
-      description="Welcome back to your memory vault"
+      description="View your memories, tags, and more"
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat) => (

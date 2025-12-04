@@ -8,7 +8,6 @@ import { useThemeContext } from "./contexts/ThemeContext";
 import {
   IconMessageCircle,
   IconBrain,
-  IconLayoutDashboard,
   IconKey,
   IconFileText,
   IconBell,
@@ -27,13 +26,7 @@ const navGroups = [
     items: [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/memories", label: "Memories", icon: IconBrain },
-      { href: "/dashboard", label: "Dashboard", icon: IconLayoutDashboard },
-    ],
-  },
-  {
-    items: [
       { href: "/files", label: "Files", icon: IconFiles },
-      { href: "/connectors", label: "Connectors", icon: IconPlugConnected },
     ],
   },
   {
@@ -44,6 +37,7 @@ const navGroups = [
   },
   {
     items: [
+      { href: "/connectors", label: "Connectors", icon: IconPlugConnected },
       { href: "/notifications", label: "Notifications", icon: IconBell },
       { href: "/profile", label: "Profile", icon: IconUser },
       { href: "/settings", label: "Settings", icon: IconSettings },
@@ -61,9 +55,11 @@ export default function Sidebar() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 h-16 bg-neutral-200 dark:bg-black z-50 md:hidden flex items-center justify-between px-6">
-        <h1 className="text-xl font-bold tracking-tight text-neutral-800 dark:text-neutral-200">
-          vmem
-        </h1>
+        <Link href="/">
+          <h1 className="text-xl font-bold tracking-tight text-neutral-800 dark:text-neutral-200">
+            vmem
+          </h1>
+        </Link>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
@@ -79,7 +75,7 @@ export default function Sidebar() {
 
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 top-16 bg-neutral-200/80 dark:bg-black/80 z-30 md:hidden"
+          className="fixed inset-0 top-16 bg-black/20 z-30 md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -98,9 +94,11 @@ export default function Sidebar() {
       >
         <div className="flex flex-col h-full p-4 md:py-8">
           <div className="mb-8 px-2 hidden md:flex flex-row justify-between items-center">
-            <h1 className="text-2xl font-bold tracking-tight text-neutral-800 dark:text-neutral-200">
-              vmem
-            </h1>
+            <Link href="/">
+              <h1 className="text-2xl font-bold tracking-tight text-neutral-800 dark:text-neutral-200">
+                vmem
+              </h1>
+            </Link>
             <div className="flex flex-row justify-end items-center gap-2">
               <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
                 {mounted ? (
