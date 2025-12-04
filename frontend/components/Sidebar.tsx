@@ -53,7 +53,7 @@ export default function Sidebar() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 h-16 bg-neutral-200 dark:bg-black z-50 md:hidden flex items-center justify-between px-6">
-        <Link href="/">
+        <Link href="/" onClick={() => setMobileMenuOpen(false)}>
           <h1 className="text-xl font-bold tracking-tight text-neutral-800 dark:text-neutral-200">
             vmem
           </h1>
