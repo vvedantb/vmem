@@ -17,7 +17,10 @@ const recentMemories = [
 
 const quickActions = [
   { label: "Search", href: "/memories" },
-  { label: "API Keys", href: "/api-keys" },
+  { label: "Memories List", href: "/memories/list" },
+  { label: "Memories Graph", href: "/memories/graph" },
+  { label: "API Keys", href: "/api/keys" },
+  { label: "API Logs", href: "/api/logs" },
 ];
 
 export default function DashboardPage() {

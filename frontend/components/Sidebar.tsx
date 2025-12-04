@@ -9,7 +9,6 @@ import {
   IconMessageCircle,
   IconBrain,
   IconKey,
-  IconFileText,
   IconBell,
   IconUser,
   IconSettings,
@@ -25,15 +24,12 @@ const navGroups = [
   {
     items: [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
-      { href: "/memories", label: "Memories", icon: IconBrain },
+      { href: "/memories/list", label: "Memories", icon: IconBrain },
       { href: "/files", label: "Files", icon: IconFiles },
     ],
   },
   {
-    items: [
-      { href: "/api-keys", label: "API Keys", icon: IconKey },
-      { href: "/api-logs", label: "API Logs", icon: IconFileText },
-    ],
+    items: [{ href: "/api/logs", label: "API", icon: IconKey }],
   },
   {
     items: [
@@ -132,7 +128,9 @@ export default function Sidebar() {
               <div key={groupIndex}>
                 <ul className="space-y-1">
                   {group.items.map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive =
+                      pathname === item.href ||
+                      pathname.startsWith(item.href + "/");
                     const Icon = item.icon;
                     return (
                       <Link

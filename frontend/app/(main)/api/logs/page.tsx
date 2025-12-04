@@ -1,5 +1,3 @@
-import PageContainer from "@/components/PageContainer";
-
 const mockLogs = [
   {
     id: "1",
@@ -40,10 +38,7 @@ const mockLogs = [
 
 export default function ApiLogsPage() {
   return (
-    <PageContainer
-      title="API Logs"
-      description="Monitor your API usage and request history"
-    >
+    <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
           <p className="text-sm text-neutral-500 uppercase tracking-wider">
@@ -126,6 +121,7 @@ export default function ApiLogsPage() {
           </tbody>
         </table>
       </div>
-    </PageContainer>
+    </>
   );
 }
+
