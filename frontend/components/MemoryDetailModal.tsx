@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   Modal,
   ModalContent,
@@ -27,6 +27,11 @@ interface Memory {
   content: string;
   tags: string[];
   createdAt: string;
+}
+
+interface TagStats {
+  tag: string;
+  count: number;
 }
 
 interface MemoryDetailModalProps {
@@ -58,6 +63,38 @@ export default function MemoryDetailModal({
   const [editContent, setEditContent] = useState("");
   const [editTags, setEditTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
+
+  // Tag autocomplete state
+  const [allTags, setAllTags] = useState<TagStats[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const tagInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch all tags for autocomplete
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch("/api/memories/tags");
+        const data = await response.json();
+        if (data.success) {
+          setAllTags(data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch tags:", error);
+      }
+    };
+    if (isOpen) {
+      fetchTags();
+    }
+  }, [isOpen]);
+
+  // Filter suggestions based on input
+  const filteredSuggestions = useMemo(() => {
+    if (!newTag.trim()) return allTags.filter((t) => !editTags.includes(t.tag));
+    const input = newTag.toLowerCase();
+    return allTags.filter(
+      (t) => t.tag.includes(input) && !editTags.includes(t.tag)
+    );
+  }, [newTag, allTags, editTags]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -185,8 +222,18 @@ export default function MemoryDetailModal({
     if (tag && !editTags.includes(tag)) {
       setEditTags([...editTags, tag]);
       setNewTag("");
+      setShowSuggestions(false);
     }
   }, [newTag, editTags]);
+
+  const selectSuggestion = useCallback((tag: string) => {
+    if (!editTags.includes(tag)) {
+      setEditTags([...editTags, tag]);
+    }
+    setNewTag("");
+    setShowSuggestions(false);
+    tagInputRef.current?.focus();
+  }, [editTags]);
 
   const removeTag = useCallback((tagToRemove: string) => {
     setEditTags(editTags.filter((tag) => tag !== tagToRemove));
@@ -197,6 +244,8 @@ export default function MemoryDetailModal({
       if (e.key === "Enter") {
         e.preventDefault();
         addTag();
+      } else if (e.key === "Escape") {
+        setShowSuggestions(false);
       }
     },
     [addTag]
@@ -312,19 +361,49 @@ export default function MemoryDetailModal({
                         </Chip>
                       ))}
                     </div>
-                    <Input
-                      value={newTag}
-                      onValueChange={setNewTag}
-                      onKeyDown={handleTagKeyDown}
-                      placeholder="Add a tag and press Enter"
-                      size="sm"
-                      isDisabled={isSaving}
-                      classNames={{
-                        inputWrapper:
-                          "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
-                        input: "text-black dark:text-white",
-                      }}
-                    />
+                    <div className="relative">
+                      <Input
+                        ref={tagInputRef}
+                        value={newTag}
+                        onValueChange={(value) => {
+                          setNewTag(value);
+                          setShowSuggestions(true);
+                        }}
+                        onKeyDown={handleTagKeyDown}
+                        onFocus={() => setShowSuggestions(true)}
+                        onBlur={() => {
+                          setTimeout(() => setShowSuggestions(false), 200);
+                        }}
+                        placeholder="Add a tag and press Enter"
+                        size="sm"
+                        isDisabled={isSaving}
+                        classNames={{
+                          inputWrapper:
+                            "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
+                          input: "text-black dark:text-white",
+                        }}
+                      />
+                      {/* Tag Suggestions Dropdown */}
+                      {showSuggestions && filteredSuggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 max-h-32 overflow-y-auto rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg">
+                          {filteredSuggestions.slice(0, 5).map((item) => (
+                            <button
+                              key={item.tag}
+                              type="button"
+                              onClick={() => selectSuggestion(item.tag)}
+                              className="w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                            >
+                              <span className="text-sm text-neutral-800 dark:text-neutral-200">
+                                {item.tag}
+                              </span>
+                              <span className="text-xs text-neutral-500">
+                                {item.count}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="flex gap-2 flex-wrap">
