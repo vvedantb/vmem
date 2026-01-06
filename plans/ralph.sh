@@ -1,4 +1,4 @@
-set-e
+set -e
 if [ -z "$1" ]; then
 echo "Usage: $0 <iterations>"
 exit 1
@@ -17,7 +17,7 @@ Use this to leave a note for the next person working in the codebase. \
 ONLY WORK ON A SINGLE FEATURE. \
 If, while implementing the feature, you notice the PRD is complete, output <promise>COMPLETE</promise> ")
 echo "$result"
-if [[ "$result" == "<promise>COMPLETE</promise>"* ]]; then
+if [[ "$result" == *"<promise>COMPLETE</promise>"* ]]; then
 echo "PRD complete, exiting."
 tt notify "CVM PRD complete after $i iterations"
 exit 0
