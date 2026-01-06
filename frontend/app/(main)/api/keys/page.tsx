@@ -207,7 +207,10 @@ export default function ApiKeysPage() {
             </div>
           </div>
           {[1, 2, 3].map((i) => (
-            <div key={i} className="p-4 border-b border-black/5 dark:border-white/5">
+            <div
+              key={i}
+              className="p-4 border-b border-black/5 dark:border-white/5"
+            >
               <div className="flex items-center gap-4">
                 <Skeleton className="h-5 w-28 rounded" />
                 <Skeleton className="h-5 w-48 rounded" />
@@ -357,9 +360,7 @@ export default function ApiKeysPage() {
                       size="sm"
                       variant="light"
                       isIconOnly
-                      onPress={() =>
-                        handleCopyKey(apiKey.maskedKey, apiKey.id)
-                      }
+                      onPress={() => handleCopyKey(apiKey.maskedKey, apiKey.id)}
                       className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 min-w-6 w-6 h-6"
                     >
                       {copiedKeyId === apiKey.id ? (
@@ -427,10 +428,7 @@ export default function ApiKeysPage() {
           <ModalBody>
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                <IconAlertTriangle
-                  size={20}
-                  className="text-red-500"
-                />
+                <IconAlertTriangle size={20} className="text-red-500" />
               </div>
               <div>
                 <p className="text-neutral-800 dark:text-neutral-200">
