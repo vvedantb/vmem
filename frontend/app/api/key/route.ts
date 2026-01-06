@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiKeys, generateApiKey, maskApiKey, ApiKey } from "./store";
 
-// GET /api/keys - Fetch all API keys
 export async function GET() {
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 300));
@@ -24,7 +23,6 @@ export async function GET() {
   });
 }
 
-// POST /api/keys - Create a new API key
 export async function POST(request: NextRequest) {
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 500));
