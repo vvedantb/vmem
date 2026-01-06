@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm typecheck:*)",
+      "Bash(cat:*)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
