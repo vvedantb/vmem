@@ -93,7 +93,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Better memory management UX"
     },
     {

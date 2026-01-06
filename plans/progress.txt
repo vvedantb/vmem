@@ -1,3 +1,39 @@
+## 2026-01-06 - US-006
+
+- **What was implemented:**
+  - Created MemoryDetailModal component for viewing and managing individual memories
+  - Click on any memory row in the list table opens detail modal
+  - Shows full memory content, tags (as chips), and formatted created date
+  - Inline editing: Edit button toggles edit mode with Input/Textarea fields for title/content
+  - Tag editing: Add new tags with Enter key, remove tags with close button on chips
+  - Delete with confirmation: Delete button shows confirmation modal before deleting
+  - Related memories section: Shows memories that share tags with the current memory
+  - Clicking related memory navigates to that memory within the modal
+  - Created shared memory store (`store.ts`) for API routes to share data
+  - Added PUT /api/memories/[id] endpoint for updating memories
+  - Added DELETE /api/memories/[id] endpoint for deleting memories
+  - All async operations have proper loading states (spinner icons)
+  - Toast notifications for success/error on update and delete
+  - State updates propagate to both memories list and search results
+  - Dark/light mode support with consistent styling
+
+- **Files changed:**
+  - `frontend/components/MemoryDetailModal.tsx` (new) - Detail view modal with edit/delete functionality
+  - `frontend/components/MemorySearch.tsx` - Added row click handler, modal integration, related memories calculation
+  - `frontend/app/api/memories/store.ts` (new) - Shared in-memory store for mock data
+  - `frontend/app/api/memories/route.ts` - Updated to use shared store
+  - `frontend/app/api/memories/[id]/route.ts` (new) - GET, PUT, DELETE endpoints for single memory
+
+- **Learnings:**
+  - Next.js 16 dynamic route params use `params: Promise<{ id: string }>` and require await
+  - HeroUI Modal with `scrollBehavior="inside"` works well for long content
+  - Use separate state for edit form values to avoid mutating display data
+  - Nested modals (detail + delete confirm) work with conditional rendering based on state
+  - Use `useMemo` for derived state like related memories to avoid recalculation
+  - HeroUI Chip `onClose` prop enables removable chips for tag editing
+
+---
+
 ## Codebase Patterns
 
 - Frontend: Server components by default, extract interactive parts to client components
