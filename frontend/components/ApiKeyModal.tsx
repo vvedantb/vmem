@@ -72,7 +72,7 @@ export default function ApiKeyModal({
     setStep("loading");
 
     try {
-      const response = await fetch("/api/keys", {
+      const response = await fetch("/api/key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim() }),

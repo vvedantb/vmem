@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiKeys } from "../store";
 
-// DELETE /api/keys/[id] - Revoke an API key
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
