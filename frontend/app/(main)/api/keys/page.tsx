@@ -89,7 +89,7 @@ export default function ApiKeysPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/keys");
+      const response = await fetch("/api/key");
       const data = await response.json();
 
       if (!response.ok || !data.success) {
@@ -134,7 +134,7 @@ export default function ApiKeysPage() {
     setIsRevoking(true);
 
     try {
-      const response = await fetch(`/api/keys/${revokeKeyId}`, {
+      const response = await fetch(`/api/key/${revokeKeyId}`, {
         method: "DELETE",
       });
 
