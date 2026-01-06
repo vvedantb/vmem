@@ -161,10 +161,7 @@ export default function ApiKeyModal({
           {step === "create" && (
             <div className="space-y-4">
               <div className="flex items-center gap-3 p-4 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10">
-                <IconKey
-                  size={20}
-                  className="text-neutral-500 flex-shrink-0"
-                />
+                <IconKey size={20} className="text-neutral-500 flex-shrink-0" />
                 <p className="text-sm text-neutral-600 dark:text-neutral-400">
                   Create a new API key to access vMemory programmatically. You
                   can use this key with MCP clients and other integrations.
