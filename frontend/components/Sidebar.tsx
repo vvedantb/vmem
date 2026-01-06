@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Switch, Divider, Button, Skeleton } from "@heroui/react";
 import { useThemeContext } from "./contexts/ThemeContext";
 import { useAuth } from "./contexts/AuthContext";
+import { useNotifications } from "./contexts/NotificationContext";
 import {
   IconMessageCircle,
   IconBrain,
@@ -50,6 +51,7 @@ export default function Sidebar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme, mounted } = useThemeContext();
   const { user, isLoading: isAuthLoading, logout } = useAuth();
+  const { unreadCount } = useNotifications();
 
   const isDark = theme === "dark";
 
@@ -146,6 +148,8 @@ export default function Sidebar() {
                       pathname === item.href ||
                       pathname.startsWith(item.href + "/");
                     const Icon = item.icon;
+                    const isNotifications = item.href === "/notifications";
+                    const showBadge = isNotifications && unreadCount > 0;
                     return (
                       <Link
                         key={item.href}
@@ -162,7 +166,18 @@ export default function Sidebar() {
                         `}
                       >
                         <Icon size={20} stroke={1.5} />
-                        {item.label}
+                        <span className="flex-1">{item.label}</span>
+                        {showBadge && (
+                          <span
+                            className={`min-w-5 h-5 px-1.5 rounded-full text-xs font-medium flex items-center justify-center ${
+                              isActive
+                                ? "bg-white text-black dark:bg-black dark:text-white"
+                                : "bg-black text-white dark:bg-white dark:text-black"
+                            }`}
+                          >
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}
