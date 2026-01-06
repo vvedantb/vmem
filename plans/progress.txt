@@ -1,3 +1,45 @@
+## 2026-01-06 - US-015
+
+- **What was implemented:**
+  - Created GET /api/dashboard/stats endpoint that calculates real stats from memory store
+  - Stats include: total memories, memories this week, memories this month, total unique tags
+  - Growth data: daily memory counts for last 7 days with cumulative totals
+  - Created GET /api/dashboard/activity endpoint that aggregates activity from multiple sources
+  - Activity feed combines memory creation events and relevant notifications
+  - Each activity item has type, title, description, timestamp, and relative time
+  - Dashboard component fetches from both endpoints with loading skeleton
+  - Error state with retry button
+  - Stats cards: 4 cards with icons showing key metrics
+  - Memory growth chart: bar chart showing last 7 days
+  - Chart displays total memories (light bars) and new additions (solid bars) per day
+  - Interactive tooltips on hover showing exact counts
+  - X-axis shows day names, Y-axis shows counts
+  - Legend explains bar colors
+  - Recent activity feed: shows last 6 activities with icons based on type
+  - Activity types: memory_created, file_uploaded, sync_completed, api_key_created
+  - Each activity shows description, title, and relative timestamp
+  - Quick actions: 6 action cards in 2-column grid with icons and descriptions
+  - Actions: Add Memory, Search, Graph View, Chat, Files, API Keys
+  - Hover effects on cards
+  - Responsive design: 4 columns on large screens, 2 on medium, 1 on small
+  - Typecheck passes
+
+- **Files changed:**
+  - `frontend/app/api/dashboard/stats/route.ts` (new) - Stats endpoint with growth data
+  - `frontend/app/api/dashboard/activity/route.ts` (new) - Activity feed endpoint
+  - `frontend/components/Dashboard.tsx` (new) - Full dashboard component with chart
+  - `frontend/app/(main)/page.tsx` - Updated to use Dashboard component
+
+- **Learnings:**
+  - Calculate cumulative growth by starting from (total - thisWeek) and adding daily counts
+  - CSS bar chart: use flexbox with items-end, calculate heights as percentages of max
+  - Absolute positioned tooltip with group-hover:opacity-100 for hover effects
+  - Legend helps users understand dual-bar chart visualization
+  - Activity feed is more useful than "recent memories" - shows broader app activity
+  - Quick actions with icons and descriptions provide better UX than plain buttons
+
+---
+
 ## 2026-01-06 - US-014
 
 - **What was implemented:**
