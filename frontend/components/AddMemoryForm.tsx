@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Input, Textarea, Button, Chip } from "@heroui/react";
-import { IconX } from "@tabler/icons-react";
+import { Input, Textarea, Button, Chip, addToast } from "@heroui/react";
+import { IconLoader2 } from "@tabler/icons-react";
 
 export default function AddMemoryForm() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && tagInput.trim()) {
@@ -24,9 +25,73 @@ export default function AddMemoryForm() {
     setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setTitle("");
+    setContent("");
+    setTags([]);
+    setTagInput("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ title, content, tags });
+
+    // Client-side validation
+    if (!title.trim()) {
+      addToast({
+        title: "Validation Error",
+        description: "Please enter a title for your memory",
+        color: "danger",
+      });
+      return;
+    }
+
+    if (!content.trim()) {
+      addToast({
+        title: "Validation Error",
+        description: "Please enter content for your memory",
+        color: "danger",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/memories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          content: content.trim(),
+          tags,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to save memory");
+      }
+
+      addToast({
+        title: "Memory Saved",
+        description: "Your memory has been saved successfully",
+        color: "success",
+      });
+
+      resetForm();
+    } catch (error) {
+      addToast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to save memory",
+        color: "danger",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -41,6 +106,7 @@ export default function AddMemoryForm() {
           onValueChange={setTitle}
           placeholder="Enter a title for your memory"
           size="lg"
+          isDisabled={isSubmitting}
           classNames={{
             inputWrapper:
               "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
@@ -58,6 +124,7 @@ export default function AddMemoryForm() {
           onValueChange={setContent}
           placeholder="Write your memory content here..."
           minRows={8}
+          isDisabled={isSubmitting}
           classNames={{
             inputWrapper:
               "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
@@ -77,6 +144,7 @@ export default function AddMemoryForm() {
           onKeyDown={handleAddTag}
           placeholder="Type a tag and press Enter"
           size="lg"
+          isDisabled={isSubmitting}
           classNames={{
             inputWrapper:
               "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
@@ -108,9 +176,17 @@ export default function AddMemoryForm() {
         <Button
           type="submit"
           size="lg"
+          isDisabled={isSubmitting}
           className="px-12 bg-black dark:bg-white text-white dark:text-black font-medium"
         >
-          Save Memory
+          {isSubmitting ? (
+            <>
+              <IconLoader2 className="w-4 h-4 animate-spin mr-2" />
+              Saving...
+            </>
+          ) : (
+            "Save Memory"
+          )}
         </Button>
       </div>
     </form>
