@@ -1,0 +1,432 @@
+"use client";
+
+import { useState, useCallback, useRef } from "react";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Progress,
+  addToast,
+} from "@heroui/react";
+import {
+  IconUpload,
+  IconX,
+  IconFile,
+  IconPhoto,
+  IconFileTypePdf,
+  IconLoader2,
+  IconCheck,
+  IconTrash,
+} from "@tabler/icons-react";
+
+interface UploadedFile {
+  id: string;
+  name: string;
+  type: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
+  thumbnailUrl?: string;
+  previewContent?: string;
+}
+
+interface FileUploadModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onFileUploaded: (file: UploadedFile) => void;
+}
+
+interface QueuedFile {
+  file: File;
+  progress: number;
+  status: "pending" | "uploading" | "complete" | "error";
+  error?: string;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+function getFileIcon(mimeType: string) {
+  if (mimeType.startsWith("image/")) return IconPhoto;
+  if (mimeType === "application/pdf") return IconFileTypePdf;
+  return IconFile;
+}
+
+export default function FileUploadModal({
+  isOpen,
+  onClose,
+  onFileUploaded,
+}: FileUploadModalProps) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [queuedFiles, setQueuedFiles] = useState<QueuedFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const addFiles = useCallback((newFiles: FileList | File[]) => {
+    const filesArray = Array.from(newFiles);
+    const newQueuedFiles: QueuedFile[] = filesArray.map((file) => ({
+      file,
+      progress: 0,
+      status: "pending" as const,
+    }));
+    setQueuedFiles((prev) => [...prev, ...newQueuedFiles]);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      const { files } = e.dataTransfer;
+      if (files && files.length > 0) {
+        addFiles(files);
+      }
+    },
+    [addFiles]
+  );
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { files } = e.target;
+      if (files && files.length > 0) {
+        addFiles(files);
+      }
+      // Reset input so same file can be selected again
+      e.target.value = "";
+    },
+    [addFiles]
+  );
+
+  const removeQueuedFile = useCallback((index: number) => {
+    setQueuedFiles((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const uploadFile = useCallback(
+    async (queuedFile: QueuedFile, index: number): Promise<boolean> => {
+      // Update status to uploading
+      setQueuedFiles((prev) =>
+        prev.map((f, i) => (i === index ? { ...f, status: "uploading" as const } : f))
+      );
+
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setQueuedFiles((prev) =>
+          prev.map((f, i) =>
+            i === index && f.status === "uploading" && f.progress < 90
+              ? { ...f, progress: f.progress + 10 }
+              : f
+          )
+        );
+      }, 200);
+
+      try {
+        const formData = new FormData();
+        formData.append("file", queuedFile.file);
+
+        const response = await fetch("/api/files", {
+          method: "POST",
+          body: formData,
+        });
+
+        clearInterval(progressInterval);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Upload failed");
+        }
+
+        const data = await response.json();
+
+        // Update to complete
+        setQueuedFiles((prev) =>
+          prev.map((f, i) =>
+            i === index ? { ...f, progress: 100, status: "complete" as const } : f
+          )
+        );
+
+        // Notify parent
+        onFileUploaded(data.data);
+
+        return true;
+      } catch (error) {
+        clearInterval(progressInterval);
+        setQueuedFiles((prev) =>
+          prev.map((f, i) =>
+            i === index
+              ? {
+                  ...f,
+                  status: "error" as const,
+                  error: error instanceof Error ? error.message : "Upload failed",
+                }
+              : f
+          )
+        );
+        return false;
+      }
+    },
+    [onFileUploaded]
+  );
+
+  const handleUploadAll = useCallback(async () => {
+    const pendingFiles = queuedFiles.filter((f) => f.status === "pending");
+    if (pendingFiles.length === 0) return;
+
+    setIsUploading(true);
+
+    let successCount = 0;
+    for (let i = 0; i < queuedFiles.length; i++) {
+      if (queuedFiles[i].status === "pending") {
+        const success = await uploadFile(queuedFiles[i], i);
+        if (success) successCount++;
+      }
+    }
+
+    setIsUploading(false);
+
+    if (successCount > 0) {
+      addToast({
+        title: "Upload Complete",
+        description: `Successfully uploaded ${successCount} file${successCount !== 1 ? "s" : ""}`,
+        color: "success",
+      });
+    }
+  }, [queuedFiles, uploadFile]);
+
+  const handleClose = useCallback(() => {
+    if (!isUploading) {
+      setQueuedFiles([]);
+      setIsDragging(false);
+      onClose();
+    }
+  }, [isUploading, onClose]);
+
+  const pendingCount = queuedFiles.filter((f) => f.status === "pending").length;
+  const completeCount = queuedFiles.filter((f) => f.status === "complete").length;
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      size="xl"
+      isDismissable={!isUploading}
+      classNames={{
+        base: "bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10",
+        header: "border-b border-black/10 dark:border-white/10",
+        body: "py-6",
+        footer: "border-t border-black/10 dark:border-white/10",
+      }}
+    >
+      <ModalContent>
+        <ModalHeader className="flex items-center justify-between gap-4">
+          <span className="text-neutral-800 dark:text-neutral-200 text-lg font-semibold">
+            Upload Files
+          </span>
+          <Button
+            size="sm"
+            variant="light"
+            isIconOnly
+            onPress={handleClose}
+            isDisabled={isUploading}
+            className="text-neutral-500 flex-shrink-0"
+          >
+            <IconX size={18} />
+          </Button>
+        </ModalHeader>
+
+        <ModalBody>
+          <div className="space-y-4">
+            {/* Drop zone */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`
+                relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors
+                ${
+                  isDragging
+                    ? "border-black dark:border-white bg-black/5 dark:bg-white/5"
+                    : "border-black/20 dark:border-white/20 hover:border-black/40 dark:hover:border-white/40"
+                }
+              `}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={isUploading}
+              />
+              <div className="flex flex-col items-center gap-3">
+                <div
+                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
+                    isDragging
+                      ? "bg-black dark:bg-white"
+                      : "bg-black/10 dark:bg-white/10"
+                  }`}
+                >
+                  <IconUpload
+                    size={24}
+                    className={
+                      isDragging
+                        ? "text-white dark:text-black"
+                        : "text-neutral-600 dark:text-neutral-400"
+                    }
+                  />
+                </div>
+                <div>
+                  <p className="text-neutral-800 dark:text-neutral-200 font-medium">
+                    {isDragging ? "Drop files here" : "Drag and drop files here"}
+                  </p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                    or click to browse
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* File queue */}
+            {queuedFiles.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                  {pendingCount > 0
+                    ? `${pendingCount} file${pendingCount !== 1 ? "s" : ""} ready to upload`
+                    : completeCount > 0
+                      ? `${completeCount} file${completeCount !== 1 ? "s" : ""} uploaded`
+                      : "Files"}
+                </p>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {queuedFiles.map((queuedFile, index) => {
+                    const FileIcon = getFileIcon(queuedFile.file.type);
+                    return (
+                      <div
+                        key={`${queuedFile.file.name}-${index}`}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
+                          <FileIcon
+                            size={20}
+                            className="text-neutral-600 dark:text-neutral-400"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-neutral-800 dark:text-neutral-200 font-medium truncate">
+                            {queuedFile.file.name}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            {formatFileSize(queuedFile.file.size)}
+                          </p>
+                          {queuedFile.status === "uploading" && (
+                            <Progress
+                              value={queuedFile.progress}
+                              size="sm"
+                              className="mt-2"
+                              classNames={{
+                                track: "bg-black/10 dark:bg-white/10",
+                                indicator: "bg-black dark:bg-white",
+                              }}
+                            />
+                          )}
+                          {queuedFile.status === "error" && (
+                            <p className="text-xs text-red-500 mt-1">
+                              {queuedFile.error}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0">
+                          {queuedFile.status === "pending" && (
+                            <Button
+                              size="sm"
+                              variant="light"
+                              isIconOnly
+                              onPress={() => removeQueuedFile(index)}
+                              isDisabled={isUploading}
+                              className="text-neutral-500 hover:text-red-500"
+                            >
+                              <IconTrash size={16} />
+                            </Button>
+                          )}
+                          {queuedFile.status === "uploading" && (
+                            <IconLoader2
+                              size={20}
+                              className="text-neutral-400 animate-spin"
+                            />
+                          )}
+                          {queuedFile.status === "complete" && (
+                            <IconCheck size={20} className="text-green-500" />
+                          )}
+                          {queuedFile.status === "error" && (
+                            <Button
+                              size="sm"
+                              variant="light"
+                              isIconOnly
+                              onPress={() => removeQueuedFile(index)}
+                              className="text-red-500"
+                            >
+                              <IconX size={16} />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </ModalBody>
+
+        <ModalFooter>
+          <Button
+            variant="light"
+            onPress={handleClose}
+            isDisabled={isUploading}
+            className="text-neutral-600 dark:text-neutral-400"
+          >
+            {completeCount > 0 && pendingCount === 0 ? "Done" : "Cancel"}
+          </Button>
+          {pendingCount > 0 && (
+            <Button
+              onPress={handleUploadAll}
+              isDisabled={isUploading || pendingCount === 0}
+              className="bg-black dark:bg-white text-white dark:text-black"
+              startContent={
+                isUploading ? (
+                  <IconLoader2 size={16} className="animate-spin" />
+                ) : (
+                  <IconUpload size={16} />
+                )
+              }
+            >
+              {isUploading
+                ? "Uploading..."
+                : `Upload ${pendingCount} file${pendingCount !== 1 ? "s" : ""}`}
+            </Button>
+          )}
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+}
