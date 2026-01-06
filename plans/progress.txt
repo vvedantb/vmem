@@ -1,3 +1,46 @@
+## 2026-01-06 - US-013
+
+- **What was implemented:**
+  - Created GET /api/memories/tags mock endpoint that returns all unique tags with counts
+  - Created PUT /api/memories/tags endpoint for renaming tags across all memories
+  - Created DELETE /api/memories/tags endpoint for deleting tags from all memories
+  - Tag autocomplete/suggestions in AddMemoryForm when adding tags
+  - Tag autocomplete/suggestions in MemoryDetailModal when editing memory tags
+  - Suggestions dropdown shows tag name and count of memories using that tag
+  - Tag filtering in MemorySearch component with clickable tag chips
+  - Selected tags shown with inverted colors (black bg in light mode, white bg in dark mode)
+  - Clear button to reset all tag filters
+  - Filter works with both regular listing and search results
+  - TagCloud component with dynamic font sizing based on tag frequency
+  - Tags arranged randomly for visual variety
+  - Click on tag in cloud navigates to memories list filtered by that tag
+  - Tags management page at /memories/tags with:
+    - Statistics cards: total tags, tag uses, avg tags/memory
+    - Tag cloud visualization
+    - Table listing all tags with edit/delete actions
+    - Inline editing with save/cancel buttons
+    - Delete confirmation modal
+  - Typecheck passes
+
+- **Files changed:**
+  - `frontend/app/api/memories/tags/route.ts` (new) - GET/PUT/DELETE endpoints for tags
+  - `frontend/components/AddMemoryForm.tsx` - Added tag autocomplete with suggestions dropdown
+  - `frontend/components/MemoryDetailModal.tsx` - Added tag autocomplete when editing
+  - `frontend/components/MemorySearch.tsx` - Added tag filtering with clickable chips
+  - `frontend/components/TagCloud.tsx` (new) - Tag cloud visualization component
+  - `frontend/app/(main)/memories/tags/page.tsx` (new) - Tags management page
+
+- **Learnings:**
+  - Use Map to count occurrences efficiently when aggregating tags
+  - useMemo for filtered suggestions to avoid recalculation on every render
+  - setTimeout in onBlur handler to allow click on suggestion before hiding dropdown
+  - Toggle selected state visually with conditional classNames on Chip components
+  - For tag cloud, randomize order with sort(() => Math.random() - 0.5) for visual variety
+  - Calculate font size dynamically: sizeFactor = (count - min) / (max - min)
+  - Inline editing in tables with conditional rendering based on editingTag state
+
+---
+
 ## 2026-01-06 - US-012
 
 - **What was implemented:**

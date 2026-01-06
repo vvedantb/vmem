@@ -13,8 +13,13 @@ import {
   Skeleton,
   Spinner,
 } from "@heroui/react";
-import { IconSearch, IconAlertCircle, IconMoodEmpty } from "@tabler/icons-react";
+import { IconSearch, IconAlertCircle, IconMoodEmpty, IconX } from "@tabler/icons-react";
 import MemoryDetailModal from "./MemoryDetailModal";
+
+interface TagStats {
+  tag: string;
+  count: number;
+}
 
 interface Memory {
   id: string;
@@ -53,21 +58,33 @@ export default function MemorySearch() {
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
 
-  // Fetch all memories on mount
+  // Tag filtering state
+  const [allTags, setAllTags] = useState<TagStats[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Fetch all memories and tags on mount
   useEffect(() => {
-    const fetchMemories = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch("/api/memories");
-        const data: ApiResponse = await response.json();
+        const [memoriesRes, tagsRes] = await Promise.all([
+          fetch("/api/memories"),
+          fetch("/api/memories/tags"),
+        ]);
 
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to fetch memories");
+        const memoriesData: ApiResponse = await memoriesRes.json();
+        const tagsData = await tagsRes.json();
+
+        if (!memoriesRes.ok) {
+          throw new Error(memoriesData.error || "Failed to fetch memories");
         }
 
-        setMemories(data.data);
+        setMemories(memoriesData.data);
+        if (tagsData.success) {
+          setAllTags(tagsData.data);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch memories");
       } finally {
@@ -75,7 +92,7 @@ export default function MemorySearch() {
       }
     };
 
-    fetchMemories();
+    fetchData();
   }, []);
 
   // Semantic search with debounce
@@ -144,8 +161,34 @@ export default function MemorySearch() {
     };
   }, []);
 
-  // Determine which data to display
-  const displayData: (Memory | SearchResult)[] = searchResults ?? memories;
+  // Toggle tag selection
+  const toggleTag = useCallback((tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  }, []);
+
+  // Clear all tag filters
+  const clearTagFilters = useCallback(() => {
+    setSelectedTags([]);
+  }, []);
+
+  // Filter memories by selected tags
+  const filteredMemories = useMemo(() => {
+    if (selectedTags.length === 0) return memories;
+    return memories.filter((m) =>
+      selectedTags.every((tag) => m.tags.includes(tag))
+    );
+  }, [memories, selectedTags]);
+
+  // Determine which data to display (apply tag filter to both search and non-search results)
+  const displayData: (Memory | SearchResult)[] = searchResults
+    ? searchResults.filter(
+        (m) =>
+          selectedTags.length === 0 ||
+          selectedTags.every((tag) => m.tags.includes(tag))
+      )
+    : filteredMemories;
   const isShowingSearchResults = searchResults !== null;
 
   // Calculate related memories for the selected memory
@@ -293,6 +336,52 @@ export default function MemorySearch() {
           input: "text-black dark:text-white",
         }}
       />
+
+      {/* Tag filters */}
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-neutral-500 dark:text-neutral-400">
+            Filter by tags:
+          </span>
+          {allTags.map((item) => (
+            <Chip
+              key={item.tag}
+              size="sm"
+              variant="flat"
+              className="cursor-pointer transition-all"
+              onClick={() => toggleTag(item.tag)}
+              classNames={{
+                base: selectedTags.includes(item.tag)
+                  ? "bg-black dark:bg-white border border-transparent"
+                  : "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10",
+                content: selectedTags.includes(item.tag)
+                  ? "text-white dark:text-black text-xs font-medium"
+                  : "text-neutral-600 dark:text-neutral-400 text-xs",
+              }}
+            >
+              {item.tag}
+              <span
+                className={`ml-1 ${
+                  selectedTags.includes(item.tag)
+                    ? "text-white/70 dark:text-black/70"
+                    : "text-neutral-400 dark:text-neutral-500"
+                }`}
+              >
+                ({item.count})
+              </span>
+            </Chip>
+          ))}
+          {selectedTags.length > 0 && (
+            <button
+              onClick={clearTagFilters}
+              className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+            >
+              <IconX size={14} />
+              Clear
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Empty search results state */}
       {isShowingSearchResults && displayData.length === 0 && !isSearching && (
