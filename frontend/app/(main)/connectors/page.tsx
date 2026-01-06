@@ -1,134 +1,131 @@
 "use client";
 
-import { Button, Card, CardBody, Chip } from "@heroui/react";
-import {
-  IconBrandGoogleDrive,
-  IconBrandOnedrive,
-  IconBrandDropbox,
-  IconBrandNotion,
-  IconBrandSlack,
-  IconBrandGithub,
-  IconCheck,
-} from "@tabler/icons-react";
+import { useState, useEffect, useCallback } from "react";
+import { Button, Card, CardBody, Skeleton } from "@heroui/react";
+import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
-
-const connectors = [
-  {
-    id: "google-drive",
-    name: "Google Drive",
-    description: "Connect your Google Drive to import documents and files",
-    icon: IconBrandGoogleDrive,
-    connected: true,
-  },
-  {
-    id: "onedrive",
-    name: "OneDrive",
-    description: "Sync files from your Microsoft OneDrive account",
-    icon: IconBrandOnedrive,
-    connected: false,
-  },
-  {
-    id: "dropbox",
-    name: "Dropbox",
-    description: "Import files and folders from Dropbox",
-    icon: IconBrandDropbox,
-    connected: false,
-  },
-  {
-    id: "notion",
-    name: "Notion",
-    description: "Sync pages and databases from your Notion workspace",
-    icon: IconBrandNotion,
-    connected: false,
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    description: "Import messages and files from Slack channels",
-    icon: IconBrandSlack,
-    connected: false,
-  },
-  {
-    id: "github",
-    name: "GitHub",
-    description: "Connect repositories to index code and documentation",
-    icon: IconBrandGithub,
-    connected: true,
-  },
-];
+import ConnectorCard from "@/components/ConnectorCard";
+import type { Connector } from "@/app/api/connectors/store";
 
 export default function ConnectorsPage() {
-  return (
-    <PageContainer
-      title="Connectors"
-      description="Connect external apps to import and sync your data"
-    >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {connectors.map((connector) => {
-          const Icon = connector.icon;
-          return (
+  const [connectors, setConnectors] = useState<Connector[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchConnectors = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/connectors");
+      const data = await response.json();
+
+      if (data.success) {
+        setConnectors(data.data);
+      } else {
+        setError(data.error || "Failed to load connectors");
+      }
+    } catch {
+      setError("Failed to load connectors. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchConnectors();
+  }, [fetchConnectors]);
+
+  const handleConnectorUpdate = useCallback((updatedConnector: Connector) => {
+    setConnectors((prev) =>
+      prev.map((c) => (c.id === updatedConnector.id ? updatedConnector : c))
+    );
+  }, []);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <PageContainer
+        title="Connectors"
+        description="Connect external apps to import and sync your data"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card
-              key={connector.id}
+              key={i}
               classNames={{
                 base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
               }}
             >
               <CardBody className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
-                    <Icon
-                      size={24}
-                      stroke={1.5}
-                      className="text-neutral-700 dark:text-neutral-300"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-black dark:text-white">
-                        {connector.name}
-                      </h3>
-                      {connector.connected && (
-                        <Chip
-                          size="sm"
-                          variant="flat"
-                          startContent={<IconCheck size={12} stroke={2} />}
-                          classNames={{
-                            base: "bg-black/5 dark:bg-white/10",
-                            content:
-                              "text-neutral-600 dark:text-neutral-400 text-xs font-medium",
-                          }}
-                        >
-                          Connected
-                        </Chip>
-                      )}
-                    </div>
-                    <p className="text-sm text-neutral-500 mt-1">
-                      {connector.description}
-                    </p>
+                  <Skeleton className="w-12 h-12 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="w-32 h-5 rounded" />
+                    <Skeleton className="w-full h-4 rounded" />
                   </div>
                 </div>
                 <div className="mt-4 flex justify-end">
-                  {connector.connected ? (
-                    <Button
-                      variant="bordered"
-                      size="sm"
-                      className="border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400"
-                    >
-                      Disconnect
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      className="bg-black dark:bg-white text-white dark:text-black font-medium"
-                    >
-                      Connect
-                    </Button>
-                  )}
+                  <Skeleton className="w-24 h-8 rounded" />
                 </div>
               </CardBody>
             </Card>
-          );
-        })}
+          ))}
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageContainer
+        title="Connectors"
+        description="Connect external apps to import and sync your data"
+      >
+        <Card
+          classNames={{
+            base: "border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 shadow-none",
+          }}
+        >
+          <CardBody className="p-8 text-center">
+            <IconAlertCircle
+              size={48}
+              className="text-red-500 mx-auto mb-4"
+              stroke={1.5}
+            />
+            <p className="text-neutral-800 dark:text-neutral-200 font-medium mb-2">
+              Failed to load connectors
+            </p>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+              {error}
+            </p>
+            <Button
+              onPress={fetchConnectors}
+              variant="bordered"
+              className="border-red-300 dark:border-red-700 text-red-600 dark:text-red-400"
+              startContent={<IconRefresh size={16} />}
+            >
+              Try Again
+            </Button>
+          </CardBody>
+        </Card>
+      </PageContainer>
+    );
+  }
+
+  return (
+    <PageContainer
+      title="Connectors"
+      description="Connect external apps to import and sync your data"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {connectors.map((connector) => (
+          <ConnectorCard
+            key={connector.id}
+            connector={connector}
+            onUpdate={handleConnectorUpdate}
+          />
+        ))}
       </div>
 
       <Card

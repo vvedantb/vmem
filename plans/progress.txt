@@ -1,3 +1,36 @@
+## 2026-01-06 - US-008
+
+- **What was implemented:**
+  - Created GET /api/connectors mock endpoint with shared in-memory store
+  - Created POST /api/connectors/[id] endpoint with actions: connect, disconnect, sync
+  - Connectors page now fetches from API with loading skeleton and error states
+  - ConnectorCard component shows connection status chip (Connected/Syncing/Error)
+  - Connect button opens OAuth simulation modal with 3-step flow (Authorize → Connecting → Complete)
+  - Disconnect button with loading state and toast notification
+  - Sync Now button triggers background sync simulation with real-time progress polling
+  - Progress bar shows sync percentage during sync operations
+  - Last sync time displayed in relative format (e.g., "2h ago", "Yesterday")
+  - Items synced count shown for connected connectors
+  - Error message display for failed sync attempts
+  - All buttons properly disabled during async operations
+
+- **Files changed:**
+  - `frontend/app/api/connectors/store.ts` (new) - Connector types and mock data store
+  - `frontend/app/api/connectors/route.ts` (new) - GET endpoint for all connectors
+  - `frontend/app/api/connectors/[id]/route.ts` (new) - GET/POST endpoints for single connector actions
+  - `frontend/components/ConnectorCard.tsx` (new) - Individual connector card with actions
+  - `frontend/components/OAuthModal.tsx` (new) - OAuth flow simulation modal
+  - `frontend/app/(main)/connectors/page.tsx` - Updated to use API and components
+
+- **Learnings:**
+  - Use setInterval with Map storage to simulate background sync progress on server
+  - Poll connector status from client during sync to show real-time progress
+  - Clean up polling intervals in useEffect cleanup function
+  - Format relative time with simple logic (mins/hours/days ago)
+  - HeroUI Chip with startContent works well for status indicators
+
+---
+
 ## 2026-01-06 - US-007
 
 - **What was implemented:**
