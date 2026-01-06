@@ -142,7 +142,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "User authentication UI - can work with mock auth"
     },
     {
