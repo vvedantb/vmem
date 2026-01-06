@@ -1,3 +1,51 @@
+## 2026-01-06 - US-012
+
+- **What was implemented:**
+  - Created GET /api/files mock endpoint that returns all files with storage stats
+  - Created POST /api/files mock endpoint for uploading files with FormData
+  - Created DELETE /api/files/[id] endpoint for deleting files
+  - File store with types, mock data, and utility functions (getFileType, formatFileSize)
+  - FileUploadModal component with drag-and-drop file upload
+  - Multiple file queue with individual progress tracking per file
+  - Visual feedback: pending, uploading (with progress bar), complete (checkmark), error states
+  - Upload progress simulation based on file size
+  - FilePreviewModal component for viewing file details
+  - Image preview with thumbnail display
+  - PDF preview with document icon and description
+  - Other file types show text preview when available
+  - File details: size, type, uploaded date
+  - Download functionality (mock with blob download)
+  - Delete with confirmation modal
+  - Files page fetches from API with loading skeleton and error states
+  - Storage usage indicator with progress bar (shows GB used / limit)
+  - File list with thumbnails for images
+  - Table displays: name with icon/thumbnail, size, upload date
+  - Row click opens preview modal
+  - Dropdown menu for actions: View, Download, Delete
+  - Empty state with upload prompt
+  - All async operations have proper loading states and toast notifications
+  - Responsive design with hidden columns on mobile
+
+- **Files changed:**
+  - `frontend/app/api/files/store.ts` (new) - File types, mock data, utility functions
+  - `frontend/app/api/files/route.ts` (new) - GET/POST endpoints for files
+  - `frontend/app/api/files/[id]/route.ts` (new) - GET/DELETE endpoints for single file
+  - `frontend/components/FileUploadModal.tsx` (new) - Drag-and-drop upload modal with queue
+  - `frontend/components/FilePreviewModal.tsx` (new) - File preview with details and actions
+  - `frontend/app/(main)/files/page.tsx` - Updated to use API, added all functionality
+
+- **Learnings:**
+  - FormData with file.append("file", file) for file uploads
+  - Use FileList from e.dataTransfer.files for drag-and-drop
+  - Track upload progress with individual state per file in queue
+  - Different status states for queue items: pending, uploading, complete, error
+  - Preview different file types: images with thumbnailUrl, PDF with icon, text with content
+  - Mock thumbnails using SVG data URLs for consistent display
+  - URL.createObjectURL for client-side file downloads
+  - Click handler on table row, stopPropagation on action buttons
+
+---
+
 ## 2026-01-06 - US-011
 
 - **What was implemented:**
