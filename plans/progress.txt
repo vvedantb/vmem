@@ -12,6 +12,42 @@
 
 ---
 
+## 2026-01-06 - US-005
+
+- **What was implemented:**
+  - Created MemoryGraph component with custom canvas-based force-directed graph visualization
+  - Displays memories as interactive nodes with titles (truncated if too long)
+  - Shows relationships as edges based on shared tags between memories
+  - Click on node opens modal with full memory details (title, content, tags, created date)
+  - Modal shows related memories section with clickable links to navigate between connected nodes
+  - Support for zoom (scroll wheel or buttons) and pan (click and drag)
+  - Zoom controls: zoom in, zoom out, reset view buttons
+  - Shows stats: node count and connection count
+  - Hover tooltip shows memory title and preview
+  - Responsive design with container-based sizing
+  - Loading skeleton while fetching memories
+  - Error state with retry button
+  - Empty state when no memories exist
+  - Dark/light mode support (reads from ThemeContext)
+  - Force simulation: center gravity, node repulsion, edge attraction
+
+- **Files changed:**
+  - `frontend/components/MemoryGraph.tsx` (new) - Canvas-based force-directed graph visualization
+  - `frontend/app/(main)/memories/graph/page.tsx` - Updated to render MemoryGraph component
+  - `frontend/package.json` - Added typecheck script
+  - `package.json` - Added root typecheck script
+
+- **Learnings:**
+  - Canvas-based rendering is lightweight and doesn't require external graph libraries
+  - Use requestAnimationFrame for smooth force simulation and rendering
+  - useRef for mutable values (nodes, edges) that change during animation without causing re-renders
+  - Transform mouse coordinates accounting for pan and zoom: `(clientX - pan.x) / zoom`
+  - Force-directed layout: center gravity + node repulsion + edge attraction
+  - HeroUI Modal works well for detail views, use classNames prop for dark mode styling
+  - For canvas dark mode: read theme from ThemeContext and adjust colors accordingly
+
+---
+
 ## 2026-01-06 - US-004
 
 - **What was implemented:**
