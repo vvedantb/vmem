@@ -3,7 +3,10 @@
     "allow": [
       "Bash(pnpm typecheck:*)",
       "Bash(cat:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)"
     ]
   }
 }
