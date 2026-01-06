@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Switch, Divider } from "@heroui/react";
+import { Switch, Divider, Button, Skeleton } from "@heroui/react";
 import { useThemeContext } from "./contexts/ThemeContext";
+import { useAuth } from "./contexts/AuthContext";
 import {
   IconMessageCircle,
   IconBrain,
@@ -18,6 +19,7 @@ import {
   IconPlugConnected,
   IconMoon,
   IconSun,
+  IconLogout,
 } from "@tabler/icons-react";
 
 const navGroups = [
@@ -47,8 +49,18 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme, mounted } = useThemeContext();
+  const { user, isLoading: isAuthLoading, logout } = useAuth();
 
   const isDark = theme === "dark";
+
+  // Get user initials for avatar
+  const getUserInitials = (name: string) => {
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
   return (
     <>
@@ -162,6 +174,47 @@ export default function Sidebar() {
             ))}
           </nav>
           <div className="pt-4 space-y-4">
+            {/* User info section */}
+            {isAuthLoading ? (
+              <div className="px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-10 h-10 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-3 w-24 rounded" />
+                    <Skeleton className="h-2 w-32 rounded" />
+                  </div>
+                </div>
+              </div>
+            ) : user ? (
+              <div className="px-2">
+                <div className="flex items-center gap-3 p-2 rounded-xl bg-black/5 dark:bg-white/5">
+                  <div className="w-10 h-10 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black font-medium text-sm">
+                    {getUserInitials(user.name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-black dark:text-white truncate">
+                      {user.name}
+                    </p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                      {user.email}
+                    </p>
+                  </div>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    onPress={logout}
+                    className="text-neutral-500 hover:text-red-500 dark:text-neutral-400 dark:hover:text-red-400"
+                    aria-label="Logout"
+                  >
+                    <IconLogout size={18} />
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            <Divider className="bg-black/10 dark:bg-white/10" />
+
             <p className="text-xs text-neutral-400 dark:text-neutral-600 px-4">
               © 2025 vmem
             </p>
