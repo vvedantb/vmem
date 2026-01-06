@@ -44,7 +44,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Replace simple text filtering with proper search UI"
     },
     {

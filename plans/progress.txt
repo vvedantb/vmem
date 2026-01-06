@@ -12,6 +12,30 @@
 
 ---
 
+## 2026-01-06 - US-003
+
+- **What was implemented:**
+  - Replaced client-side text filtering with server-side semantic search via POST /api/memories/search
+  - Added debounced search input (300ms delay) to reduce API calls
+  - Displays relevance scores as progress bar + percentage when showing search results
+  - Added Spinner component in search input during search operations
+  - Added empty search results state with friendly message
+  - SCORE column dynamically shown/hidden based on whether user is searching
+  - Preserved existing behavior: shows all memories when search is empty
+
+- **Files changed:**
+  - `frontend/components/MemorySearch.tsx` - Added debounced search, relevance scores, loading states
+  - `frontend/app/api/memories/search/route.ts` - Already existed with mock semantic search
+
+- **Learnings:**
+  - Use `useRef<NodeJS.Timeout | null>` for storing debounce timeout IDs
+  - Use `useCallback` for functions passed to useEffect dependencies
+  - HeroUI Spinner component with `size="sm"` works well in Input endContent
+  - For conditional table columns in HeroUI, use className="hidden" instead of conditional rendering to keep column count consistent
+  - Use tabular-nums class for numbers that should align (like percentages)
+
+---
+
 ## 2026-01-06 - US-002
 
 - **What was implemented:**
