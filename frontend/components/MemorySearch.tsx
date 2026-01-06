@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Input,
   Table,
@@ -11,6 +11,7 @@ import {
   TableCell,
   Chip,
   Skeleton,
+  Spinner,
 } from "@heroui/react";
 import { IconSearch, IconAlertCircle, IconMoodEmpty } from "@tabler/icons-react";
 
@@ -22,6 +23,10 @@ interface Memory {
   createdAt: string;
 }
 
+interface SearchResult extends Memory {
+  relevanceScore: number;
+}
+
 interface ApiResponse {
   success: boolean;
   data: Memory[];
@@ -29,12 +34,24 @@ interface ApiResponse {
   error?: string;
 }
 
+interface SearchResponse {
+  success: boolean;
+  data: SearchResult[];
+  count: number;
+  query: string;
+  error?: string;
+}
+
 export default function MemorySearch() {
   const [searchQuery, setSearchQuery] = useState("");
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Fetch all memories on mount
   useEffect(() => {
     const fetchMemories = async () => {
       try {
@@ -59,13 +76,75 @@ export default function MemorySearch() {
     fetchMemories();
   }, []);
 
-  const filteredMemories = memories.filter(
-    (memory) =>
-      memory.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      memory.tags.some((tag) =>
-        tag.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-  );
+  // Semantic search with debounce
+  const performSearch = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      setError(null);
+
+      const response = await fetch("/api/memories/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: query.trim() }),
+      });
+
+      const data: SearchResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Search failed");
+      }
+
+      setSearchResults(data.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Search failed");
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Handle search input with debounce
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+
+    // Clear previous timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // If empty, clear results immediately
+    if (!value.trim()) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+
+    // Set searching state immediately for UI feedback
+    setIsSearching(true);
+
+    // Debounce the actual search
+    debounceTimeoutRef.current = setTimeout(() => {
+      performSearch(value);
+    }, 300);
+  }, [performSearch]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Determine which data to display
+  const displayData: (Memory | SearchResult)[] = searchResults ?? memories;
+  const isShowingSearchResults = searchResults !== null;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -151,15 +230,19 @@ export default function MemorySearch() {
       <Input
         type="text"
         value={searchQuery}
-        onValueChange={setSearchQuery}
+        onValueChange={handleSearchChange}
         placeholder="Search memories semantically..."
         size="lg"
         endContent={
-          <IconSearch
-            className="text-neutral-400 dark:text-neutral-600"
-            size={20}
-            stroke={1.5}
-          />
+          isSearching ? (
+            <Spinner size="sm" color="default" />
+          ) : (
+            <IconSearch
+              className="text-neutral-400 dark:text-neutral-600"
+              size={20}
+              stroke={1.5}
+            />
+          )
         }
         classNames={{
           inputWrapper:
@@ -168,56 +251,90 @@ export default function MemorySearch() {
         }}
       />
 
-      <Table
-        aria-label="Memories table"
-        classNames={{
-          wrapper:
-            "border border-black/10 dark:border-white/10 rounded-xl shadow-none bg-transparent",
-          th: "bg-black/[0.02] dark:bg-white/[0.02] text-neutral-500 font-medium",
-          td: "py-5",
-          tr: "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer",
-        }}
-      >
-        <TableHeader>
-          <TableColumn>TITLE</TableColumn>
-          <TableColumn className="hidden md:table-cell">TAGS</TableColumn>
-          <TableColumn>CREATED</TableColumn>
-        </TableHeader>
-        <TableBody emptyContent="No memories match your search">
-          {filteredMemories.map((memory) => (
-            <TableRow key={memory.id}>
-              <TableCell>
-                <span className="text-neutral-800 dark:text-neutral-200">
-                  {memory.title}
-                </span>
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <div className="flex gap-2 flex-wrap">
-                  {memory.tags.map((tag) => (
-                    <Chip
-                      key={tag}
-                      size="sm"
-                      variant="flat"
-                      classNames={{
-                        base: "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10",
-                        content:
-                          "text-neutral-600 dark:text-neutral-400 text-xs",
-                      }}
-                    >
-                      {tag}
-                    </Chip>
-                  ))}
-                </div>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-neutral-500">
-                  {formatDate(memory.createdAt)}
-                </span>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      {/* Empty search results state */}
+      {isShowingSearchResults && displayData.length === 0 && !isSearching && (
+        <div className="flex flex-col items-center justify-center py-12 text-center border border-black/10 dark:border-white/10 rounded-xl">
+          <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-3">
+            <IconSearch className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />
+          </div>
+          <h3 className="text-base font-medium text-neutral-800 dark:text-neutral-200 mb-1">
+            No results found
+          </h3>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            Try searching with different keywords
+          </p>
+        </div>
+      )}
+
+      {/* Results table */}
+      {(!isShowingSearchResults || displayData.length > 0) && (
+        <Table
+          aria-label="Memories table"
+          classNames={{
+            wrapper:
+              "border border-black/10 dark:border-white/10 rounded-xl shadow-none bg-transparent",
+            th: "bg-black/[0.02] dark:bg-white/[0.02] text-neutral-500 font-medium",
+            td: "py-5",
+            tr: "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer",
+          }}
+        >
+          <TableHeader>
+            <TableColumn>TITLE</TableColumn>
+            <TableColumn className={isShowingSearchResults ? "w-24" : "hidden"}>SCORE</TableColumn>
+            <TableColumn className="hidden md:table-cell">TAGS</TableColumn>
+            <TableColumn>CREATED</TableColumn>
+          </TableHeader>
+          <TableBody emptyContent="No memories yet">
+            {displayData.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  <span className="text-neutral-800 dark:text-neutral-200">
+                    {item.title}
+                  </span>
+                </TableCell>
+                <TableCell className={isShowingSearchResults ? "" : "hidden"}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-12 h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-black dark:bg-white rounded-full"
+                        style={{
+                          width: `${Math.round(("relevanceScore" in item ? item.relevanceScore : 0) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs text-neutral-500 tabular-nums">
+                      {Math.round(("relevanceScore" in item ? item.relevanceScore : 0) * 100)}%
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div className="flex gap-2 flex-wrap">
+                    {item.tags.map((tag) => (
+                      <Chip
+                        key={tag}
+                        size="sm"
+                        variant="flat"
+                        classNames={{
+                          base: "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10",
+                          content:
+                            "text-neutral-600 dark:text-neutral-400 text-xs",
+                        }}
+                      >
+                        {tag}
+                      </Chip>
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-neutral-500">
+                    {formatDate(item.createdAt)}
+                  </span>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </>
   );
 }
