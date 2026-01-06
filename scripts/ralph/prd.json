@@ -1,0 +1,242 @@
+{
+  "branchName": "ralph/feature",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Frontend: Connect memory form to API (mock)",
+      "acceptanceCriteria": [
+        "AddMemoryForm submits to POST /api/memories (mock endpoint)",
+        "Shows loading state during submission",
+        "Displays success/error messages using toast notifications",
+        "Resets form on success",
+        "Stores memory in local state/mock data",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Connect UI to mock API, ready for backend integration"
+    },
+    {
+      "id": "US-002",
+      "title": "Frontend: Fetch and display memories with loading states",
+      "acceptanceCriteria": [
+        "Memories list page fetches from GET /api/memories (mock)",
+        "Displays memories in table format",
+        "Shows loading skeleton/spinner while fetching",
+        "Handles empty state with helpful message",
+        "Handles error state",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Display real data flow with mock backend"
+    },
+    {
+      "id": "US-003",
+      "title": "Frontend: Implement semantic search UI with debounce",
+      "acceptanceCriteria": [
+        "MemorySearch component calls POST /api/memories/search (mock)",
+        "Search input triggers API call on debounce (300ms)",
+        "Displays search results in table",
+        "Shows loading indicator during search",
+        "Shows relevance scores if available",
+        "Handles empty search results",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Replace simple text filtering with proper search UI"
+    },
+    {
+      "id": "US-004",
+      "title": "Frontend: Voice input for memories",
+      "acceptanceCriteria": [
+        "Add voice recording button to AddMemoryForm",
+        "Record audio from browser microphone using Web Audio API",
+        "Show recording indicator (waveform or timer)",
+        "Stop/playback controls",
+        "Upload audio file to mock endpoint",
+        "Show transcription preview (mock for now)",
+        "Allow editing transcription before saving",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Voice input UI - MVP differentiator"
+    },
+    {
+      "id": "US-005",
+      "title": "Frontend: Memory graph visualization",
+      "acceptanceCriteria": [
+        "Implement graph view using library (react-force-graph or vis-network)",
+        "Display memories as nodes with titles",
+        "Show relationships as edges (mock relationships for now)",
+        "Allow node selection to view memory details in sidebar/modal",
+        "Support zoom and pan",
+        "Show node count and connection stats",
+        "Responsive design",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Obsidian-like graph view"
+    },
+    {
+      "id": "US-006",
+      "title": "Frontend: Memory detail view/modal",
+      "acceptanceCriteria": [
+        "Click memory in list opens detail view",
+        "Show full memory content, tags, created date",
+        "Edit memory inline",
+        "Delete memory with confirmation",
+        "Show related memories section",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Better memory management UX"
+    },
+    {
+      "id": "US-007",
+      "title": "Frontend: Data export UI",
+      "acceptanceCriteria": [
+        "Add export button to settings page",
+        "Show export modal with options (format: JSON/CSV, date range, filters)",
+        "Generate export file client-side from mock data",
+        "Download exported file",
+        "Show export progress",
+        "Success notification",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "User-facing export feature - avoid vendor lock-in"
+    },
+    {
+      "id": "US-008",
+      "title": "Frontend: Connect connectors page with mock data",
+      "acceptanceCriteria": [
+        "Fetch connectors from GET /api/connectors (mock)",
+        "Show connection status for each connector",
+        "Handle connect/disconnect button clicks",
+        "Show OAuth flow simulation (mock)",
+        "Display sync status and last sync time",
+        "Show sync progress indicator",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Connect UI to mock connector system"
+    },
+    {
+      "id": "US-009",
+      "title": "Frontend: Authentication UI",
+      "acceptanceCriteria": [
+        "Create login page with email/password fields",
+        "Create registration page",
+        "Form validation (email format, password strength)",
+        "Protected routes redirect to login",
+        "Store auth token in localStorage (mock for now)",
+        "Show user info in sidebar/profile",
+        "Logout functionality",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "User authentication UI - can work with mock auth"
+    },
+    {
+      "id": "US-010",
+      "title": "Frontend: Connect API keys page with mock data",
+      "acceptanceCriteria": [
+        "Fetch API keys from GET /api/keys (mock)",
+        "Create new API key via POST /api/keys (mock)",
+        "Show API key in modal after creation (with copy button)",
+        "Revoke API keys with confirmation",
+        "Display masked keys (vmem_sk_***)",
+        "Show usage statistics (mock data)",
+        "Copy to clipboard functionality",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Connect UI to mock API key system"
+    },
+    {
+      "id": "US-011",
+      "title": "Frontend: Chat interface with memory context",
+      "acceptanceCriteria": [
+        "Implement chat UI with message history",
+        "Send messages to mock chat endpoint",
+        "Display AI responses",
+        "Show relevant memories used in context",
+        "Streaming response simulation",
+        "Loading states",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Chat interface for querying memories"
+    },
+    {
+      "id": "US-012",
+      "title": "Frontend: File upload and management",
+      "acceptanceCriteria": [
+        "File upload component with drag-and-drop",
+        "Upload to mock endpoint",
+        "Show upload progress",
+        "Display file list with thumbnails",
+        "Preview files (PDF, images)",
+        "Delete files with confirmation",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "File management UI"
+    },
+    {
+      "id": "US-013",
+      "title": "Frontend: Memory tags management",
+      "acceptanceCriteria": [
+        "Tag autocomplete/suggestions when adding tags",
+        "Tag filtering in memories list",
+        "Tag cloud visualization",
+        "Edit/delete tags",
+        "Tag statistics (count per tag)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Enhanced tag management"
+    },
+    {
+      "id": "US-014",
+      "title": "Frontend: Notifications system",
+      "acceptanceCriteria": [
+        "Notification center UI",
+        "Show notification list",
+        "Mark as read/unread",
+        "Notification types (memory created, sync complete, etc.)",
+        "Notification badge in sidebar",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "User notifications UI"
+    },
+    {
+      "id": "US-015",
+      "title": "Frontend: Dashboard improvements",
+      "acceptanceCriteria": [
+        "Fetch real stats from mock endpoints",
+        "Show memory growth chart",
+        "Recent activity feed",
+        "Quick actions with better UX",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Enhanced dashboard"
+    }
+  ]
+}
