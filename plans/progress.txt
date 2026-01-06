@@ -1,3 +1,49 @@
+## 2026-01-06 - US-014
+
+- **What was implemented:**
+  - Created GET /api/notifications mock endpoint that returns all notifications with unread count
+  - Created PUT /api/notifications endpoint to mark all notifications as read
+  - Created GET /api/notifications/[id] endpoint to get a single notification
+  - Created PUT /api/notifications/[id] endpoint to mark individual notification as read/unread
+  - Created DELETE /api/notifications/[id] endpoint to delete a notification
+  - Notification store with types, mock data, and formatRelativeTime utility
+  - NotificationContext for global notification state management
+  - Notifications fetched on mount and state shared across components
+  - Notifications page fetches from API with loading skeleton and error states
+  - Notification list shows all notifications sorted by creation date (newest first)
+  - Each notification displays: type icon with color-coded background, title, description, timestamp
+  - Unread notifications highlighted with darker border and background
+  - Unread indicator dot shown next to unread notifications
+  - Mark as read/unread via dropdown menu on each notification
+  - Delete notification with confirmation via dropdown menu
+  - Mark all as read button in page header (only shown when unread count > 0)
+  - Notification types: success (green), warning (yellow), error (red), info (blue)
+  - Empty state with "No notifications" message
+  - Notification badge in sidebar shows unread count
+  - Badge inverts colors when nav item is active
+  - Badge shows "99+" when count exceeds 99
+  - Typecheck passes
+
+- **Files changed:**
+  - `frontend/app/api/notifications/store.ts` (new) - Notification types, mock data, formatRelativeTime
+  - `frontend/app/api/notifications/route.ts` (new) - GET/PUT endpoints for all notifications
+  - `frontend/app/api/notifications/[id]/route.ts` (new) - GET/PUT/DELETE for single notification
+  - `frontend/components/contexts/NotificationContext.tsx` (new) - Global notification state
+  - `frontend/components/providers/ClientProvider.tsx` - Added NotificationProvider
+  - `frontend/components/Sidebar.tsx` - Added notification badge with unread count
+  - `frontend/app/(main)/notifications/page.tsx` - Updated to use API and context
+
+- **Learnings:**
+  - Context providers nested inside each other share state across the app
+  - HeroUI Dropdown with DropdownItem onAction handles item clicks elegantly
+  - Conditional rendering in DropdownMenu items based on notification.read state
+  - Use flex-1 on label span to push badge to the right in nav items
+  - min-w-5 ensures badge has consistent minimum width for single-digit numbers
+  - Inverted badge colors (bg-white text-black) when nav item is active for contrast
+  - formatRelativeTime utility provides consistent timestamp formatting
+
+---
+
 ## 2026-01-06 - US-013
 
 - **What was implemented:**
