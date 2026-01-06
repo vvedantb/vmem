@@ -1,3 +1,40 @@
+## 2026-01-06 - US-011
+
+- **What was implemented:**
+  - Created POST /api/chat mock endpoint with Server-Sent Events (SSE) streaming
+  - Chat endpoint searches for relevant memories based on user message
+  - Generates contextual AI responses based on found memories
+  - Streaming simulation: sends response word-by-word with realistic typing delay
+  - Chat component with full message history
+  - Empty state with suggested prompts ("What do I know about React?", etc.)
+  - User messages appear on right, assistant messages on left with avatars
+  - Loading state: shows skeleton dots while waiting for response start
+  - Streaming cursor: blinking cursor while response is being streamed
+  - Relevant memories section: expandable panel showing memories used in context
+  - Each memory shows title, content preview, and tags
+  - Click to expand/collapse memory context for each message
+  - Timestamp shown for each message
+  - Input disabled during streaming, auto-focus after response completes
+  - Dark/light mode support with consistent styling
+  - Proper cleanup of abort controller on unmount
+
+- **Files changed:**
+  - `frontend/app/api/chat/route.ts` (new) - SSE streaming chat endpoint with memory search
+  - `frontend/components/Chat.tsx` (new) - Full chat UI component with streaming support
+  - `frontend/app/(main)/chat/page.tsx` - Updated to render Chat component
+
+- **Learnings:**
+  - Use Server-Sent Events (SSE) with ReadableStream for streaming responses
+  - Send different data types via SSE: `type: "memories"`, `type: "content"`, `type: "done"`
+  - Parse SSE data with `line.startsWith("data: ")` and `JSON.parse(line.slice(6))`
+  - Use AbortController to cancel ongoing requests
+  - useRef for mutable values that shouldn't trigger re-renders (abortController)
+  - Skeleton components with small circles work well for typing indicators
+  - Blinking cursor effect with `animate-pulse` on a small span
+  - Set component with toggle for expandable sections (expanded memories)
+
+---
+
 ## 2026-01-06 - US-010
 
 - **What was implemented:**
