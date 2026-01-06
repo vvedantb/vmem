@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Input,
   Table,
@@ -14,6 +14,7 @@ import {
   Spinner,
 } from "@heroui/react";
 import { IconSearch, IconAlertCircle, IconMoodEmpty } from "@tabler/icons-react";
+import MemoryDetailModal from "./MemoryDetailModal";
 
 interface Memory {
   id: string;
@@ -50,6 +51,7 @@ export default function MemorySearch() {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
 
   // Fetch all memories on mount
   useEffect(() => {
@@ -145,6 +147,47 @@ export default function MemorySearch() {
   // Determine which data to display
   const displayData: (Memory | SearchResult)[] = searchResults ?? memories;
   const isShowingSearchResults = searchResults !== null;
+
+  // Calculate related memories for the selected memory
+  const relatedMemories = useMemo(() => {
+    if (!selectedMemory) return [];
+    return memories.filter(
+      (m) =>
+        m.id !== selectedMemory.id &&
+        m.tags.some((tag) => selectedMemory.tags.includes(tag))
+    );
+  }, [selectedMemory, memories]);
+
+  // Handle memory update from modal
+  const handleMemoryUpdate = useCallback((updatedMemory: Memory) => {
+    setMemories((prev) =>
+      prev.map((m) => (m.id === updatedMemory.id ? updatedMemory : m))
+    );
+    setSelectedMemory(updatedMemory);
+    // Also update search results if they exist
+    setSearchResults((prev) =>
+      prev
+        ? prev.map((m) =>
+            m.id === updatedMemory.id
+              ? { ...updatedMemory, relevanceScore: m.relevanceScore }
+              : m
+          )
+        : null
+    );
+  }, []);
+
+  // Handle memory delete from modal
+  const handleMemoryDelete = useCallback((deletedId: string) => {
+    setMemories((prev) => prev.filter((m) => m.id !== deletedId));
+    setSearchResults((prev) =>
+      prev ? prev.filter((m) => m.id !== deletedId) : null
+    );
+  }, []);
+
+  // Handle clicking on a row to open detail modal
+  const handleRowClick = useCallback((memory: Memory) => {
+    setSelectedMemory(memory);
+  }, []);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -286,7 +329,7 @@ export default function MemorySearch() {
           </TableHeader>
           <TableBody emptyContent="No memories yet">
             {displayData.map((item) => (
-              <TableRow key={item.id}>
+              <TableRow key={item.id} onClick={() => handleRowClick(item)}>
                 <TableCell>
                   <span className="text-neutral-800 dark:text-neutral-200">
                     {item.title}
@@ -335,6 +378,17 @@ export default function MemorySearch() {
           </TableBody>
         </Table>
       )}
+
+      {/* Memory detail modal */}
+      <MemoryDetailModal
+        isOpen={!!selectedMemory}
+        memory={selectedMemory}
+        onClose={() => setSelectedMemory(null)}
+        onMemoryUpdate={handleMemoryUpdate}
+        onMemoryDelete={handleMemoryDelete}
+        relatedMemories={relatedMemories}
+        onSelectRelated={setSelectedMemory}
+      />
     </>
   );
 }
