@@ -109,7 +109,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "User-facing export feature - avoid vendor lock-in"
     },
     {
