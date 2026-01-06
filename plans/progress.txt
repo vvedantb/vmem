@@ -1,3 +1,44 @@
+## 2026-01-06 - US-009
+
+- **What was implemented:**
+  - Created AuthContext for managing authentication state across the application
+  - Created login page with email/password fields at `/login`
+  - Created registration page with name/email/password fields at `/register`
+  - Form validation: email format validation, password strength indicator with requirements
+  - Password strength shows: 8+ characters, uppercase, lowercase, number requirements
+  - Progress bar indicates password strength (Weak/Fair/Good/Strong)
+  - Confirm password field with match validation
+  - Protected routes: unauthenticated users redirected to login, authenticated users redirected from auth pages
+  - Mock auth API endpoints: POST /api/auth/login, POST /api/auth/register
+  - Auth token and user data stored in localStorage (vmem_auth_token, vmem_user)
+  - User info displayed in sidebar footer with avatar (initials), name, and email
+  - Logout button in sidebar clears localStorage and redirects to login
+  - Loading skeleton shown in sidebar while auth state is being checked
+  - Demo credentials hint on login page (test@example.com / password123)
+  - Toast notifications for login success, registration success, and errors
+
+- **Files changed:**
+  - `frontend/components/contexts/AuthContext.tsx` (new) - Auth state management with login/register/logout
+  - `frontend/app/api/auth/store.ts` (new) - Mock user store with test user
+  - `frontend/app/api/auth/login/route.ts` (new) - Login endpoint with validation
+  - `frontend/app/api/auth/register/route.ts` (new) - Registration endpoint with validation
+  - `frontend/app/(auth)/layout.tsx` (new) - Auth pages layout wrapper
+  - `frontend/app/(auth)/login/page.tsx` (new) - Login page with form validation
+  - `frontend/app/(auth)/register/page.tsx` (new) - Registration page with password strength
+  - `frontend/components/providers/ClientProvider.tsx` - Added AuthProvider to provider hierarchy
+  - `frontend/components/Sidebar.tsx` - Added user info section and logout button
+
+- **Learnings:**
+  - Use separate route groups `(auth)` and `(main)` for different layout needs
+  - AuthContext useEffect handles both initial auth check and route protection
+  - Password strength can be computed with useMemo for performance
+  - HeroUI Progress component accepts color prop for dynamic styling
+  - Use startContent prop on Input for icons
+  - Skeleton components work well for auth loading states
+  - Store both token and user data in localStorage for persistence
+
+---
+
 ## 2026-01-06 - US-008
 
 - **What was implemented:**
