@@ -1,3 +1,38 @@
+## 2026-01-06 - US-010
+
+- **What was implemented:**
+  - Created GET /api/keys mock endpoint that returns all API keys with masked values
+  - Created POST /api/keys mock endpoint for creating new API keys (returns full key only on creation)
+  - Created DELETE /api/keys/[id] endpoint for revoking API keys
+  - API keys page fetches from API with loading skeleton and error states
+  - ApiKeyModal component: multi-step modal (create → loading → success) for creating new keys
+  - Warning banner in success modal: "Make sure to copy your API key now. You won't be able to see it again!"
+  - Copy to clipboard functionality with visual feedback (checkmark icon on success)
+  - Revoke keys with confirmation modal showing warning about immediate access loss
+  - Masked key display format: vmem_sk_**********************a3f2
+  - Usage statistics: request count and last used time for each key
+  - Revoked keys shown with "Revoked" chip and disabled actions
+  - Empty state with helpful message when no keys exist
+  - All async operations have proper loading states and toast notifications
+  - Responsive design: hides some columns on smaller screens
+
+- **Files changed:**
+  - `frontend/app/api/keys/store.ts` (new) - API key types, mock data, key generation utilities
+  - `frontend/app/api/keys/route.ts` (new) - GET/POST endpoints for API keys
+  - `frontend/app/api/keys/[id]/route.ts` (new) - DELETE endpoint for revoking keys
+  - `frontend/components/ApiKeyModal.tsx` (new) - Multi-step modal for API key creation
+  - `frontend/app/(main)/api/keys/page.tsx` - Updated to use API, added all functionality
+
+- **Learnings:**
+  - Full API key should only be returned once on creation, never again
+  - Use maskApiKey utility to consistently mask keys for display
+  - Confirmation modals for destructive actions (revoke) improve UX
+  - amber color scheme for warning banners (copy key warning)
+  - HeroUI Chip with custom classNames for status indicators
+  - Use tabular-nums class for numbers that should align in tables
+
+---
+
 ## 2026-01-06 - US-009
 
 - **What was implemented:**
