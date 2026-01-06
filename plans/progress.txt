@@ -1,3 +1,33 @@
+## 2026-01-06 - US-007
+
+- **What was implemented:**
+  - Added Data Export section to Settings page with "Export Memories" button
+  - Created ExportModal component for exporting memories to JSON or CSV format
+  - Format selection: JSON (full structured data) or CSV (spreadsheet compatible)
+  - Date range filtering: All Time, Last 7 Days, Last 30 Days, Last Year
+  - Tag filtering: Clickable chips to filter memories by tags
+  - Preview shows count of memories that will be exported based on filters
+  - Progress bar shows export progress with status messages
+  - Client-side file generation using Blob and URL.createObjectURL
+  - Automatic file download with timestamped filename (vmemory-export-YYYY-MM-DD.json/csv)
+  - Toast notifications for success, errors, and empty result warnings
+  - All controls disabled during export to prevent interruption
+  - Proper CSV escaping for fields containing commas, quotes, or newlines
+
+- **Files changed:**
+  - `frontend/components/ExportModal.tsx` (new) - Export modal with format/date/tag options
+  - `frontend/components/ExportSection.tsx` (new) - Settings section with export button
+  - `frontend/app/(main)/settings/page.tsx` - Added ExportSection between Preferences and Danger Zone
+
+- **Learnings:**
+  - Use `URL.createObjectURL(blob)` for client-side file downloads
+  - Remember to call `URL.revokeObjectURL()` after download to free memory
+  - HeroUI Select uses `onSelectionChange` with a Set, need to extract value with `Array.from(keys)[0]`
+  - Use simulated progress intervals for better UX during async operations
+  - CSV escaping: wrap in quotes if contains comma/quote/newline, double any existing quotes
+
+---
+
 ## 2026-01-06 - US-006
 
 - **What was implemented:**

@@ -1,5 +1,6 @@
 import SettingsToggles from "@/components/SettingsToggles";
 import PageContainer from "@/components/PageContainer";
+import ExportSection from "@/components/ExportSection";
 
 export default function SettingsPage() {
   return (
@@ -32,6 +33,8 @@ export default function SettingsPage() {
         </h3>
         <SettingsToggles />
       </div>
+
+      <ExportSection />
 
       <div className="p-8 rounded-xl border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-950/10">
         <h3 className="text-lg font-medium text-red-600 dark:text-red-400 mb-2">
