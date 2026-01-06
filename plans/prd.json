@@ -28,7 +28,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Display real data flow with mock backend"
     },
     {
