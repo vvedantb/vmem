@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Input, Textarea, Button, Chip, addToast, Progress } from "@heroui/react";
 import {
   IconLoader2,
@@ -12,12 +12,22 @@ import {
   IconCheck,
 } from "@tabler/icons-react";
 
+interface TagStats {
+  tag: string;
+  count: number;
+}
+
 export default function AddMemoryForm() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Tag autocomplete state
+  const [allTags, setAllTags] = useState<TagStats[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const tagInputRef = useRef<HTMLInputElement>(null);
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -32,6 +42,31 @@ export default function AddMemoryForm() {
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Fetch all tags for autocomplete
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch("/api/memories/tags");
+        const data = await response.json();
+        if (data.success) {
+          setAllTags(data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch tags:", error);
+      }
+    };
+    fetchTags();
+  }, []);
+
+  // Filter suggestions based on input
+  const filteredSuggestions = useMemo(() => {
+    if (!tagInput.trim()) return allTags.filter((t) => !tags.includes(t.tag));
+    const input = tagInput.toLowerCase();
+    return allTags.filter(
+      (t) => t.tag.includes(input) && !tags.includes(t.tag)
+    );
+  }, [tagInput, allTags, tags]);
 
   // Cleanup audio URL on unmount
   useEffect(() => {
@@ -195,7 +230,19 @@ export default function AddMemoryForm() {
         setTags([...tags, tagInput.trim().toLowerCase()]);
       }
       setTagInput("");
+      setShowSuggestions(false);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
     }
+  };
+
+  const selectSuggestion = (tag: string) => {
+    if (!tags.includes(tag)) {
+      setTags([...tags, tag]);
+    }
+    setTagInput("");
+    setShowSuggestions(false);
+    tagInputRef.current?.focus();
   };
 
   const removeTag = (tagToRemove: string) => {
@@ -470,20 +517,51 @@ export default function AddMemoryForm() {
         <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
           Tags
         </label>
-        <Input
-          type="text"
-          value={tagInput}
-          onValueChange={setTagInput}
-          onKeyDown={handleAddTag}
-          placeholder="Type a tag and press Enter"
-          size="lg"
-          isDisabled={isSubmitting}
-          classNames={{
-            inputWrapper:
-              "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
-            input: "text-black dark:text-white",
-          }}
-        />
+        <div className="relative">
+          <Input
+            ref={tagInputRef}
+            type="text"
+            value={tagInput}
+            onValueChange={(value) => {
+              setTagInput(value);
+              setShowSuggestions(true);
+            }}
+            onKeyDown={handleAddTag}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => {
+              // Delay hiding to allow click on suggestions
+              setTimeout(() => setShowSuggestions(false), 200);
+            }}
+            placeholder="Type a tag and press Enter"
+            size="lg"
+            isDisabled={isSubmitting}
+            classNames={{
+              inputWrapper:
+                "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
+              input: "text-black dark:text-white",
+            }}
+          />
+          {/* Tag Suggestions Dropdown */}
+          {showSuggestions && filteredSuggestions.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg">
+              {filteredSuggestions.map((item) => (
+                <button
+                  key={item.tag}
+                  type="button"
+                  onClick={() => selectSuggestion(item.tag)}
+                  className="w-full px-4 py-2 text-left flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                >
+                  <span className="text-sm text-neutral-800 dark:text-neutral-200">
+                    {item.tag}
+                  </span>
+                  <span className="text-xs text-neutral-500">
+                    {item.count} {item.count === 1 ? "memory" : "memories"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {tags.length > 0 && (
           <div className="flex gap-2 flex-wrap mt-4">
             {tags.map((tag) => (
