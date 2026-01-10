@@ -6,7 +6,8 @@
       "Bash(npx tsc:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(git -C \"C:/Vedant/Personal/GitHub/vmem\" status)"
     ]
   }
 }
