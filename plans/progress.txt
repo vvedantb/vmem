@@ -1,0 +1,538 @@
+## 2026-01-06 - US-015
+
+- **What was implemented:**
+  - Created GET /api/dashboard/stats endpoint that calculates real stats from memory store
+  - Stats include: total memories, memories this week, memories this month, total unique tags
+  - Growth data: daily memory counts for last 7 days with cumulative totals
+  - Created GET /api/dashboard/activity endpoint that aggregates activity from multiple sources
+  - Activity feed combines memory creation events and relevant notifications
+  - Each activity item has type, title, description, timestamp, and relative time
+  - Dashboard component fetches from both endpoints with loading skeleton
+  - Error state with retry button
+  - Stats cards: 4 cards with icons showing key metrics
+  - Memory growth chart: bar chart showing last 7 days
+  - Chart displays total memories (light bars) and new additions (solid bars) per day
+  - Interactive tooltips on hover showing exact counts
+  - X-axis shows day names, Y-axis shows counts
+  - Legend explains bar colors
+  - Recent activity feed: shows last 6 activities with icons based on type
+  - Activity types: memory_created, file_uploaded, sync_completed, api_key_created
+  - Each activity shows description, title, and relative timestamp
+  - Quick actions: 6 action cards in 2-column grid with icons and descriptions
+  - Actions: Add Memory, Search, Graph View, Chat, Files, API Keys
+  - Hover effects on cards
+  - Responsive design: 4 columns on large screens, 2 on medium, 1 on small
+  - Typecheck passes
+
+- **Files changed:**
+  - `frontend/app/api/dashboard/stats/route.ts` (new) - Stats endpoint with growth data
+  - `frontend/app/api/dashboard/activity/route.ts` (new) - Activity feed endpoint
+  - `frontend/components/Dashboard.tsx` (new) - Full dashboard component with chart
+  - `frontend/app/(main)/page.tsx` - Updated to use Dashboard component
+
+- **Learnings:**
+  - Calculate cumulative growth by starting from (total - thisWeek) and adding daily counts
+  - CSS bar chart: use flexbox with items-end, calculate heights as percentages of max
+  - Absolute positioned tooltip with group-hover:opacity-100 for hover effects
+  - Legend helps users understand dual-bar chart visualization
+  - Activity feed is more useful than "recent memories" - shows broader app activity
+  - Quick actions with icons and descriptions provide better UX than plain buttons
+
+---
+
+## 2026-01-06 - US-014
+
+- **What was implemented:**
+  - Created GET /api/notifications mock endpoint that returns all notifications with unread count
+  - Created PUT /api/notifications endpoint to mark all notifications as read
+  - Created GET /api/notifications/[id] endpoint to get a single notification
+  - Created PUT /api/notifications/[id] endpoint to mark individual notification as read/unread
+  - Created DELETE /api/notifications/[id] endpoint to delete a notification
+  - Notification store with types, mock data, and formatRelativeTime utility
+  - NotificationContext for global notification state management
+  - Notifications fetched on mount and state shared across components
+  - Notifications page fetches from API with loading skeleton and error states
+  - Notification list shows all notifications sorted by creation date (newest first)
+  - Each notification displays: type icon with color-coded background, title, description, timestamp
+  - Unread notifications highlighted with darker border and background
+  - Unread indicator dot shown next to unread notifications
+  - Mark as read/unread via dropdown menu on each notification
+  - Delete notification with confirmation via dropdown menu
+  - Mark all as read button in page header (only shown when unread count > 0)
+  - Notification types: success (green), warning (yellow), error (red), info (blue)
+  - Empty state with "No notifications" message
+  - Notification badge in sidebar shows unread count
+  - Badge inverts colors when nav item is active
+  - Badge shows "99+" when count exceeds 99
+  - Typecheck passes
+
+- **Files changed:**
+  - `frontend/app/api/notifications/store.ts` (new) - Notification types, mock data, formatRelativeTime
+  - `frontend/app/api/notifications/route.ts` (new) - GET/PUT endpoints for all notifications
+  - `frontend/app/api/notifications/[id]/route.ts` (new) - GET/PUT/DELETE for single notification
+  - `frontend/components/contexts/NotificationContext.tsx` (new) - Global notification state
+  - `frontend/components/providers/ClientProvider.tsx` - Added NotificationProvider
+  - `frontend/components/Sidebar.tsx` - Added notification badge with unread count
+  - `frontend/app/(main)/notifications/page.tsx` - Updated to use API and context
+
+- **Learnings:**
+  - Context providers nested inside each other share state across the app
+  - HeroUI Dropdown with DropdownItem onAction handles item clicks elegantly
+  - Conditional rendering in DropdownMenu items based on notification.read state
+  - Use flex-1 on label span to push badge to the right in nav items
+  - min-w-5 ensures badge has consistent minimum width for single-digit numbers
+  - Inverted badge colors (bg-white text-black) when nav item is active for contrast
+  - formatRelativeTime utility provides consistent timestamp formatting
+
+---
+
+## 2026-01-06 - US-013
+
+- **What was implemented:**
+  - Created GET /api/memories/tags mock endpoint that returns all unique tags with counts
+  - Created PUT /api/memories/tags endpoint for renaming tags across all memories
+  - Created DELETE /api/memories/tags endpoint for deleting tags from all memories
+  - Tag autocomplete/suggestions in AddMemoryForm when adding tags
+  - Tag autocomplete/suggestions in MemoryDetailModal when editing memory tags
+  - Suggestions dropdown shows tag name and count of memories using that tag
+  - Tag filtering in MemorySearch component with clickable tag chips
+  - Selected tags shown with inverted colors (black bg in light mode, white bg in dark mode)
+  - Clear button to reset all tag filters
+  - Filter works with both regular listing and search results
+  - TagCloud component with dynamic font sizing based on tag frequency
+  - Tags arranged randomly for visual variety
+  - Click on tag in cloud navigates to memories list filtered by that tag
+  - Tags management page at /memories/tags with:
+    - Statistics cards: total tags, tag uses, avg tags/memory
+    - Tag cloud visualization
+    - Table listing all tags with edit/delete actions
+    - Inline editing with save/cancel buttons
+    - Delete confirmation modal
+  - Typecheck passes
+
+- **Files changed:**
+  - `frontend/app/api/memories/tags/route.ts` (new) - GET/PUT/DELETE endpoints for tags
+  - `frontend/components/AddMemoryForm.tsx` - Added tag autocomplete with suggestions dropdown
+  - `frontend/components/MemoryDetailModal.tsx` - Added tag autocomplete when editing
+  - `frontend/components/MemorySearch.tsx` - Added tag filtering with clickable chips
+  - `frontend/components/TagCloud.tsx` (new) - Tag cloud visualization component
+  - `frontend/app/(main)/memories/tags/page.tsx` (new) - Tags management page
+
+- **Learnings:**
+  - Use Map to count occurrences efficiently when aggregating tags
+  - useMemo for filtered suggestions to avoid recalculation on every render
+  - setTimeout in onBlur handler to allow click on suggestion before hiding dropdown
+  - Toggle selected state visually with conditional classNames on Chip components
+  - For tag cloud, randomize order with sort(() => Math.random() - 0.5) for visual variety
+  - Calculate font size dynamically: sizeFactor = (count - min) / (max - min)
+  - Inline editing in tables with conditional rendering based on editingTag state
+
+---
+
+## 2026-01-06 - US-012
+
+- **What was implemented:**
+  - Created GET /api/files mock endpoint that returns all files with storage stats
+  - Created POST /api/files mock endpoint for uploading files with FormData
+  - Created DELETE /api/files/[id] endpoint for deleting files
+  - File store with types, mock data, and utility functions (getFileType, formatFileSize)
+  - FileUploadModal component with drag-and-drop file upload
+  - Multiple file queue with individual progress tracking per file
+  - Visual feedback: pending, uploading (with progress bar), complete (checkmark), error states
+  - Upload progress simulation based on file size
+  - FilePreviewModal component for viewing file details
+  - Image preview with thumbnail display
+  - PDF preview with document icon and description
+  - Other file types show text preview when available
+  - File details: size, type, uploaded date
+  - Download functionality (mock with blob download)
+  - Delete with confirmation modal
+  - Files page fetches from API with loading skeleton and error states
+  - Storage usage indicator with progress bar (shows GB used / limit)
+  - File list with thumbnails for images
+  - Table displays: name with icon/thumbnail, size, upload date
+  - Row click opens preview modal
+  - Dropdown menu for actions: View, Download, Delete
+  - Empty state with upload prompt
+  - All async operations have proper loading states and toast notifications
+  - Responsive design with hidden columns on mobile
+
+- **Files changed:**
+  - `frontend/app/api/files/store.ts` (new) - File types, mock data, utility functions
+  - `frontend/app/api/files/route.ts` (new) - GET/POST endpoints for files
+  - `frontend/app/api/files/[id]/route.ts` (new) - GET/DELETE endpoints for single file
+  - `frontend/components/FileUploadModal.tsx` (new) - Drag-and-drop upload modal with queue
+  - `frontend/components/FilePreviewModal.tsx` (new) - File preview with details and actions
+  - `frontend/app/(main)/files/page.tsx` - Updated to use API, added all functionality
+
+- **Learnings:**
+  - FormData with file.append("file", file) for file uploads
+  - Use FileList from e.dataTransfer.files for drag-and-drop
+  - Track upload progress with individual state per file in queue
+  - Different status states for queue items: pending, uploading, complete, error
+  - Preview different file types: images with thumbnailUrl, PDF with icon, text with content
+  - Mock thumbnails using SVG data URLs for consistent display
+  - URL.createObjectURL for client-side file downloads
+  - Click handler on table row, stopPropagation on action buttons
+
+---
+
+## 2026-01-06 - US-011
+
+- **What was implemented:**
+  - Created POST /api/chat mock endpoint with Server-Sent Events (SSE) streaming
+  - Chat endpoint searches for relevant memories based on user message
+  - Generates contextual AI responses based on found memories
+  - Streaming simulation: sends response word-by-word with realistic typing delay
+  - Chat component with full message history
+  - Empty state with suggested prompts ("What do I know about React?", etc.)
+  - User messages appear on right, assistant messages on left with avatars
+  - Loading state: shows skeleton dots while waiting for response start
+  - Streaming cursor: blinking cursor while response is being streamed
+  - Relevant memories section: expandable panel showing memories used in context
+  - Each memory shows title, content preview, and tags
+  - Click to expand/collapse memory context for each message
+  - Timestamp shown for each message
+  - Input disabled during streaming, auto-focus after response completes
+  - Dark/light mode support with consistent styling
+  - Proper cleanup of abort controller on unmount
+
+- **Files changed:**
+  - `frontend/app/api/chat/route.ts` (new) - SSE streaming chat endpoint with memory search
+  - `frontend/components/Chat.tsx` (new) - Full chat UI component with streaming support
+  - `frontend/app/(main)/chat/page.tsx` - Updated to render Chat component
+
+- **Learnings:**
+  - Use Server-Sent Events (SSE) with ReadableStream for streaming responses
+  - Send different data types via SSE: `type: "memories"`, `type: "content"`, `type: "done"`
+  - Parse SSE data with `line.startsWith("data: ")` and `JSON.parse(line.slice(6))`
+  - Use AbortController to cancel ongoing requests
+  - useRef for mutable values that shouldn't trigger re-renders (abortController)
+  - Skeleton components with small circles work well for typing indicators
+  - Blinking cursor effect with `animate-pulse` on a small span
+  - Set component with toggle for expandable sections (expanded memories)
+
+---
+
+## 2026-01-06 - US-010
+
+- **What was implemented:**
+  - Created GET /api/keys mock endpoint that returns all API keys with masked values
+  - Created POST /api/keys mock endpoint for creating new API keys (returns full key only on creation)
+  - Created DELETE /api/keys/[id] endpoint for revoking API keys
+  - API keys page fetches from API with loading skeleton and error states
+  - ApiKeyModal component: multi-step modal (create → loading → success) for creating new keys
+  - Warning banner in success modal: "Make sure to copy your API key now. You won't be able to see it again!"
+  - Copy to clipboard functionality with visual feedback (checkmark icon on success)
+  - Revoke keys with confirmation modal showing warning about immediate access loss
+  - Masked key display format: vmem_sk_**********************a3f2
+  - Usage statistics: request count and last used time for each key
+  - Revoked keys shown with "Revoked" chip and disabled actions
+  - Empty state with helpful message when no keys exist
+  - All async operations have proper loading states and toast notifications
+  - Responsive design: hides some columns on smaller screens
+
+- **Files changed:**
+  - `frontend/app/api/keys/store.ts` (new) - API key types, mock data, key generation utilities
+  - `frontend/app/api/keys/route.ts` (new) - GET/POST endpoints for API keys
+  - `frontend/app/api/keys/[id]/route.ts` (new) - DELETE endpoint for revoking keys
+  - `frontend/components/ApiKeyModal.tsx` (new) - Multi-step modal for API key creation
+  - `frontend/app/(main)/api/keys/page.tsx` - Updated to use API, added all functionality
+
+- **Learnings:**
+  - Full API key should only be returned once on creation, never again
+  - Use maskApiKey utility to consistently mask keys for display
+  - Confirmation modals for destructive actions (revoke) improve UX
+  - amber color scheme for warning banners (copy key warning)
+  - HeroUI Chip with custom classNames for status indicators
+  - Use tabular-nums class for numbers that should align in tables
+
+---
+
+## 2026-01-06 - US-009
+
+- **What was implemented:**
+  - Created AuthContext for managing authentication state across the application
+  - Created login page with email/password fields at `/login`
+  - Created registration page with name/email/password fields at `/register`
+  - Form validation: email format validation, password strength indicator with requirements
+  - Password strength shows: 8+ characters, uppercase, lowercase, number requirements
+  - Progress bar indicates password strength (Weak/Fair/Good/Strong)
+  - Confirm password field with match validation
+  - Protected routes: unauthenticated users redirected to login, authenticated users redirected from auth pages
+  - Mock auth API endpoints: POST /api/auth/login, POST /api/auth/register
+  - Auth token and user data stored in localStorage (vmem_auth_token, vmem_user)
+  - User info displayed in sidebar footer with avatar (initials), name, and email
+  - Logout button in sidebar clears localStorage and redirects to login
+  - Loading skeleton shown in sidebar while auth state is being checked
+  - Demo credentials hint on login page (test@example.com / password123)
+  - Toast notifications for login success, registration success, and errors
+
+- **Files changed:**
+  - `frontend/components/contexts/AuthContext.tsx` (new) - Auth state management with login/register/logout
+  - `frontend/app/api/auth/store.ts` (new) - Mock user store with test user
+  - `frontend/app/api/auth/login/route.ts` (new) - Login endpoint with validation
+  - `frontend/app/api/auth/register/route.ts` (new) - Registration endpoint with validation
+  - `frontend/app/(auth)/layout.tsx` (new) - Auth pages layout wrapper
+  - `frontend/app/(auth)/login/page.tsx` (new) - Login page with form validation
+  - `frontend/app/(auth)/register/page.tsx` (new) - Registration page with password strength
+  - `frontend/components/providers/ClientProvider.tsx` - Added AuthProvider to provider hierarchy
+  - `frontend/components/Sidebar.tsx` - Added user info section and logout button
+
+- **Learnings:**
+  - Use separate route groups `(auth)` and `(main)` for different layout needs
+  - AuthContext useEffect handles both initial auth check and route protection
+  - Password strength can be computed with useMemo for performance
+  - HeroUI Progress component accepts color prop for dynamic styling
+  - Use startContent prop on Input for icons
+  - Skeleton components work well for auth loading states
+  - Store both token and user data in localStorage for persistence
+
+---
+
+## 2026-01-06 - US-008
+
+- **What was implemented:**
+  - Created GET /api/connectors mock endpoint with shared in-memory store
+  - Created POST /api/connectors/[id] endpoint with actions: connect, disconnect, sync
+  - Connectors page now fetches from API with loading skeleton and error states
+  - ConnectorCard component shows connection status chip (Connected/Syncing/Error)
+  - Connect button opens OAuth simulation modal with 3-step flow (Authorize → Connecting → Complete)
+  - Disconnect button with loading state and toast notification
+  - Sync Now button triggers background sync simulation with real-time progress polling
+  - Progress bar shows sync percentage during sync operations
+  - Last sync time displayed in relative format (e.g., "2h ago", "Yesterday")
+  - Items synced count shown for connected connectors
+  - Error message display for failed sync attempts
+  - All buttons properly disabled during async operations
+
+- **Files changed:**
+  - `frontend/app/api/connectors/store.ts` (new) - Connector types and mock data store
+  - `frontend/app/api/connectors/route.ts` (new) - GET endpoint for all connectors
+  - `frontend/app/api/connectors/[id]/route.ts` (new) - GET/POST endpoints for single connector actions
+  - `frontend/components/ConnectorCard.tsx` (new) - Individual connector card with actions
+  - `frontend/components/OAuthModal.tsx` (new) - OAuth flow simulation modal
+  - `frontend/app/(main)/connectors/page.tsx` - Updated to use API and components
+
+- **Learnings:**
+  - Use setInterval with Map storage to simulate background sync progress on server
+  - Poll connector status from client during sync to show real-time progress
+  - Clean up polling intervals in useEffect cleanup function
+  - Format relative time with simple logic (mins/hours/days ago)
+  - HeroUI Chip with startContent works well for status indicators
+
+---
+
+## 2026-01-06 - US-007
+
+- **What was implemented:**
+  - Added Data Export section to Settings page with "Export Memories" button
+  - Created ExportModal component for exporting memories to JSON or CSV format
+  - Format selection: JSON (full structured data) or CSV (spreadsheet compatible)
+  - Date range filtering: All Time, Last 7 Days, Last 30 Days, Last Year
+  - Tag filtering: Clickable chips to filter memories by tags
+  - Preview shows count of memories that will be exported based on filters
+  - Progress bar shows export progress with status messages
+  - Client-side file generation using Blob and URL.createObjectURL
+  - Automatic file download with timestamped filename (vmemory-export-YYYY-MM-DD.json/csv)
+  - Toast notifications for success, errors, and empty result warnings
+  - All controls disabled during export to prevent interruption
+  - Proper CSV escaping for fields containing commas, quotes, or newlines
+
+- **Files changed:**
+  - `frontend/components/ExportModal.tsx` (new) - Export modal with format/date/tag options
+  - `frontend/components/ExportSection.tsx` (new) - Settings section with export button
+  - `frontend/app/(main)/settings/page.tsx` - Added ExportSection between Preferences and Danger Zone
+
+- **Learnings:**
+  - Use `URL.createObjectURL(blob)` for client-side file downloads
+  - Remember to call `URL.revokeObjectURL()` after download to free memory
+  - HeroUI Select uses `onSelectionChange` with a Set, need to extract value with `Array.from(keys)[0]`
+  - Use simulated progress intervals for better UX during async operations
+  - CSV escaping: wrap in quotes if contains comma/quote/newline, double any existing quotes
+
+---
+
+## 2026-01-06 - US-006
+
+- **What was implemented:**
+  - Created MemoryDetailModal component for viewing and managing individual memories
+  - Click on any memory row in the list table opens detail modal
+  - Shows full memory content, tags (as chips), and formatted created date
+  - Inline editing: Edit button toggles edit mode with Input/Textarea fields for title/content
+  - Tag editing: Add new tags with Enter key, remove tags with close button on chips
+  - Delete with confirmation: Delete button shows confirmation modal before deleting
+  - Related memories section: Shows memories that share tags with the current memory
+  - Clicking related memory navigates to that memory within the modal
+  - Created shared memory store (`store.ts`) for API routes to share data
+  - Added PUT /api/memories/[id] endpoint for updating memories
+  - Added DELETE /api/memories/[id] endpoint for deleting memories
+  - All async operations have proper loading states (spinner icons)
+  - Toast notifications for success/error on update and delete
+  - State updates propagate to both memories list and search results
+  - Dark/light mode support with consistent styling
+
+- **Files changed:**
+  - `frontend/components/MemoryDetailModal.tsx` (new) - Detail view modal with edit/delete functionality
+  - `frontend/components/MemorySearch.tsx` - Added row click handler, modal integration, related memories calculation
+  - `frontend/app/api/memories/store.ts` (new) - Shared in-memory store for mock data
+  - `frontend/app/api/memories/route.ts` - Updated to use shared store
+  - `frontend/app/api/memories/[id]/route.ts` (new) - GET, PUT, DELETE endpoints for single memory
+
+- **Learnings:**
+  - Next.js 16 dynamic route params use `params: Promise<{ id: string }>` and require await
+  - HeroUI Modal with `scrollBehavior="inside"` works well for long content
+  - Use separate state for edit form values to avoid mutating display data
+  - Nested modals (detail + delete confirm) work with conditional rendering based on state
+  - Use `useMemo` for derived state like related memories to avoid recalculation
+  - HeroUI Chip `onClose` prop enables removable chips for tag editing
+
+---
+
+## Codebase Patterns
+
+- Frontend: Server components by default, extract interactive parts to client components
+- Frontend: Use HeroUI components, Tabler icons
+- Frontend: Follow black/white minimal design system
+- Frontend: Mock APIs in `app/api/` directory using Next.js route handlers
+- Frontend: Use HeroUI ToastProvider for notifications (addToast from @heroui/react)
+- Frontend: Handle loading/error/empty states in all data-fetching components
+- Frontend: Use `isDisabled` prop on HeroUI components during loading states
+- API Routes: Use NextRequest/NextResponse from next/server
+- API Routes: Add simulated delays with setTimeout for realistic network behavior
+
+---
+
+## 2026-01-06 - US-005
+
+- **What was implemented:**
+  - Created MemoryGraph component with custom canvas-based force-directed graph visualization
+  - Displays memories as interactive nodes with titles (truncated if too long)
+  - Shows relationships as edges based on shared tags between memories
+  - Click on node opens modal with full memory details (title, content, tags, created date)
+  - Modal shows related memories section with clickable links to navigate between connected nodes
+  - Support for zoom (scroll wheel or buttons) and pan (click and drag)
+  - Zoom controls: zoom in, zoom out, reset view buttons
+  - Shows stats: node count and connection count
+  - Hover tooltip shows memory title and preview
+  - Responsive design with container-based sizing
+  - Loading skeleton while fetching memories
+  - Error state with retry button
+  - Empty state when no memories exist
+  - Dark/light mode support (reads from ThemeContext)
+  - Force simulation: center gravity, node repulsion, edge attraction
+
+- **Files changed:**
+  - `frontend/components/MemoryGraph.tsx` (new) - Canvas-based force-directed graph visualization
+  - `frontend/app/(main)/memories/graph/page.tsx` - Updated to render MemoryGraph component
+  - `frontend/package.json` - Added typecheck script
+  - `package.json` - Added root typecheck script
+
+- **Learnings:**
+  - Canvas-based rendering is lightweight and doesn't require external graph libraries
+  - Use requestAnimationFrame for smooth force simulation and rendering
+  - useRef for mutable values (nodes, edges) that change during animation without causing re-renders
+  - Transform mouse coordinates accounting for pan and zoom: `(clientX - pan.x) / zoom`
+  - Force-directed layout: center gravity + node repulsion + edge attraction
+  - HeroUI Modal works well for detail views, use classNames prop for dark mode styling
+  - For canvas dark mode: read theme from ThemeContext and adjust colors accordingly
+
+---
+
+## 2026-01-06 - US-004
+
+- **What was implemented:**
+  - Added voice recording functionality to AddMemoryForm using MediaRecorder API
+  - Recording button starts/stops audio capture from browser microphone
+  - Shows recording timer (MM:SS format) with pulsing red indicator
+  - Progress bar indicates recording is in progress
+  - Playback controls: play/pause recorded audio, delete recording
+  - "Transcribe" button uploads audio to mock POST /api/transcribe endpoint
+  - Mock transcription returns random pre-defined text responses (simulates AI transcription)
+  - Transcription preview is editable - user can modify text before applying
+  - "Apply to Content" button appends transcription to memory content field
+  - All states properly disabled during recording/transcribing/submitting
+  - Toast notifications for recording start, transcription complete, and errors
+
+- **Files changed:**
+  - `frontend/components/AddMemoryForm.tsx` - Added voice recording UI and logic
+  - `frontend/app/api/transcribe/route.ts` (new) - Mock transcription endpoint
+
+- **Learnings:**
+  - Use MediaRecorder API with getUserMedia for browser audio recording
+  - Store audio chunks in ref, not state, to avoid stale closures
+  - Use URL.createObjectURL for local playback of recorded Blob
+  - Always call stream.getTracks().forEach(track => track.stop()) to release microphone
+  - HeroUI Progress component with isIndeterminate works well for recording indicator
+  - FormData.append() for file uploads to API endpoints
+
+---
+
+## 2026-01-06 - US-003
+
+- **What was implemented:**
+  - Replaced client-side text filtering with server-side semantic search via POST /api/memories/search
+  - Added debounced search input (300ms delay) to reduce API calls
+  - Displays relevance scores as progress bar + percentage when showing search results
+  - Added Spinner component in search input during search operations
+  - Added empty search results state with friendly message
+  - SCORE column dynamically shown/hidden based on whether user is searching
+  - Preserved existing behavior: shows all memories when search is empty
+
+- **Files changed:**
+  - `frontend/components/MemorySearch.tsx` - Added debounced search, relevance scores, loading states
+  - `frontend/app/api/memories/search/route.ts` - Already existed with mock semantic search
+
+- **Learnings:**
+  - Use `useRef<NodeJS.Timeout | null>` for storing debounce timeout IDs
+  - Use `useCallback` for functions passed to useEffect dependencies
+  - HeroUI Spinner component with `size="sm"` works well in Input endContent
+  - For conditional table columns in HeroUI, use className="hidden" instead of conditional rendering to keep column count consistent
+  - Use tabular-nums class for numbers that should align (like percentages)
+
+---
+
+## 2026-01-06 - US-002
+
+- **What was implemented:**
+  - Updated MemorySearch component to fetch memories from GET /api/memories
+  - Added useEffect hook to fetch data on component mount
+  - Added loading skeleton that mimics table structure (search box + table header + 5 rows)
+  - Added error state with red alert icon, error message, and "Try again" button
+  - Added empty state with friendly icon and message "No memories yet"
+  - Removed hardcoded mock data from page.tsx, now fetches from API
+  - Added date formatting helper for readable dates
+
+- **Files changed:**
+  - `frontend/components/MemorySearch.tsx` - Added API fetching, loading/error/empty states
+  - `frontend/app/(main)/memories/list/page.tsx` - Removed mock data, simplified to just render MemorySearch
+
+- **Learnings:**
+  - HeroUI Skeleton component works well for loading states
+  - Use consistent styling between skeleton and actual content for smooth transitions
+  - window.location.reload() is simple for error retry when component doesn't have refresh callback
+
+---
+
+## 2026-01-06 - US-001
+
+- **What was implemented:**
+  - Created POST /api/memories mock endpoint with in-memory storage
+  - Updated AddMemoryForm to submit to the API endpoint
+  - Added loading state with spinner during form submission
+  - Added toast notifications for success/error/validation
+  - Form resets on successful submission
+  - All form inputs disabled during submission
+
+- **Files changed:**
+  - `frontend/app/api/memories/route.ts` (new) - Mock API endpoint with GET/POST handlers
+  - `frontend/components/AddMemoryForm.tsx` - Connected to API with loading states and toasts
+
+- **Learnings:**
+  - HeroUI uses `addToast()` function imported from `@heroui/react` (not a hook)
+  - Toast config uses `color: "danger"` for errors, `color: "success"` for success
+  - Next.js API routes go in `app/api/` directory (not inside route groups like `(main)`)
+  - Use `isDisabled={isSubmitting}` on HeroUI Input/Textarea/Button components
+  - IconLoader2 from Tabler icons works well with `animate-spin` for loading spinners
+
+---
