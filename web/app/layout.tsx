@@ -22,6 +22,9 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: "vmem",
   description: "vmem",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({
