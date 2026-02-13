@@ -12,13 +12,13 @@ vmem provides a centralised memory server accessible via REST API and MCP (Model
 
 ## Project Structure
 
-| Folder | Description | Stack |
-|---|---|---|
-| [`web/`](./web) | Web dashboard for browsing, editing, and visualising memories | Next.js 16, React 19, TypeScript, Tailwind CSS, HeroUI |
-| [`backend/`](./backend) | Memory API server with vector search and MCP integration | Java, Spring Boot (planned) |
-| [`mobile/`](./mobile) | Mobile companion app | Planned |
-| [`chrome-extension/`](./chrome-extension) | Browser extension for capturing and recalling memories | Planned |
-| `internal/` | Project documentation and planning | Markdown |
+| Folder                                    | Description                                                   | Stack                                                  |
+| ----------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------ |
+| [`web/`](./web)                           | Web dashboard for browsing, editing, and visualising memories | Next.js 16, React 19, TypeScript, Tailwind CSS, HeroUI |
+| [`backend/`](./backend)                   | Memory API server with vector search and MCP integration      |
+| [`mobile/`](./mobile)                     | Mobile companion app                                          | Planned                                                |
+| [`chrome-extension/`](./chrome-extension) | Browser extension for capturing and recalling memories        | Planned                                                |
+| `internal/`                               | Project documentation and planning                            | Markdown                                               |
 
 ## Getting Started
 
