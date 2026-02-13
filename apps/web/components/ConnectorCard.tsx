@@ -170,29 +170,25 @@ export default function ConnectorCard({
 
   return (
     <>
-      <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+      <Card className="border border-border bg-muted/50 shadow-none">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
-              <Icon
-                size={24}
-                stroke={1.5}
-                className="text-neutral-700 dark:text-neutral-300"
-              />
+            <div className="w-12 h-12 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0">
+              <Icon size={24} stroke={1.5} className="text-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-medium text-black dark:text-white">
+                <h3 className="font-medium text-foreground">
                   {connector.name}
                 </h3>
                 {isConnected && (
-                  <Badge className="bg-black/5 dark:bg-white/10 text-neutral-600 dark:text-neutral-400 gap-1">
+                  <Badge className="bg-primary/5 dark:bg-card/10 text-muted-foreground gap-1">
                     <IconCheck size={12} stroke={2} />
                     Connected
                   </Badge>
                 )}
                 {isSyncing && (
-                  <Badge className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 gap-1">
+                  <Badge className="bg-info/10 text-info gap-1">
                     <IconLoader2
                       size={12}
                       stroke={2}
@@ -202,18 +198,18 @@ export default function ConnectorCard({
                   </Badge>
                 )}
                 {connector.syncStatus === "error" && (
-                  <Badge className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 gap-1">
+                  <Badge className="bg-destructive/10 text-destructive gap-1">
                     <IconAlertCircle size={12} stroke={2} />
                     Error
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-neutral-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {connector.description}
               </p>
 
               {isConnected && (
-                <div className="flex items-center gap-4 mt-3 text-xs text-neutral-500">
+                <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <IconClock size={14} />
                     Last sync: {formatRelativeTime(connector.lastSyncAt)}
@@ -228,16 +224,16 @@ export default function ConnectorCard({
                 <div className="mt-3 space-y-1">
                   <Progress
                     value={connector.syncProgress}
-                    className="h-1.5 bg-black/10 dark:bg-white/10 [&>div]:bg-black [&>div]:dark:bg-white"
+                    className="h-1.5 bg-muted [&>div]:bg-primary [&>div]:dark:bg-card"
                   />
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-muted-foreground">
                     {connector.syncProgress}% complete
                   </p>
                 </div>
               )}
 
               {connector.errorMessage && (
-                <p className="text-xs text-red-500 mt-2">
+                <p className="text-xs text-destructive mt-2">
                   {connector.errorMessage}
                 </p>
               )}
@@ -252,7 +248,7 @@ export default function ConnectorCard({
                   size="sm"
                   onClick={handleSync}
                   disabled={isSyncing || isDisconnecting}
-                  className="border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400"
+                  className="border-border text-muted-foreground"
                 >
                   {isSyncing ? (
                     <IconLoader2 size={14} className="animate-spin" />
@@ -266,7 +262,7 @@ export default function ConnectorCard({
                   size="sm"
                   onClick={handleDisconnect}
                   disabled={isSyncing || isDisconnecting}
-                  className="border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400"
+                  className="border-border text-muted-foreground"
                 >
                   {isDisconnecting && (
                     <IconLoader2 size={14} className="animate-spin" />
@@ -279,7 +275,7 @@ export default function ConnectorCard({
                 size="sm"
                 onClick={handleConnect}
                 disabled={isConnecting}
-                className="bg-black dark:bg-white text-white dark:text-black font-medium"
+                className="bg-primary text-primary-foreground font-medium"
               >
                 {isConnecting && (
                   <IconLoader2 size={14} className="animate-spin" />

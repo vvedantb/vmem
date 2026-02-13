@@ -94,7 +94,10 @@ export default function Sidebar() {
             v <span className="italic">mem</span>
           </h1>
         </Link>
-        <button
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
           className="text-foreground"
@@ -104,12 +107,12 @@ export default function Sidebar() {
           ) : (
             <IconMenu2 className="w-6 h-6" />
           )}
-        </button>
+        </Button>
       </header>
 
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 top-16 bg-black/20 z-30 md:hidden"
+          className="fixed inset-0 top-16 bg-primary/20 z-30 md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}

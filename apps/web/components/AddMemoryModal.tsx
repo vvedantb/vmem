@@ -60,25 +60,25 @@ export default function AddMemoryModal() {
       }}
     >
       <DialogTrigger asChild>
-        <Button className="bg-black dark:bg-white text-white dark:text-black font-medium">
+        <Button className="bg-primary text-primary-foreground font-medium">
           <IconPlus size={18} />
           Add Memory
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-2xl bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10">
-        <DialogHeader className="border-b border-black/10 dark:border-white/10 pb-4">
-          <DialogTitle className="text-xl font-semibold text-black dark:text-white">
+      <DialogContent className="max-w-2xl bg-card border border-border">
+        <DialogHeader className="border-b border-border pb-4">
+          <DialogTitle className="text-xl font-semibold text-foreground">
             Add Memory
           </DialogTitle>
-          <DialogDescription className="text-sm text-neutral-500">
+          <DialogDescription className="text-sm text-muted-foreground">
             Store a new memory in your vault
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 py-2">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
+            <label className="block text-sm font-medium text-muted-foreground">
               Title
             </label>
             <Input
@@ -86,12 +86,12 @@ export default function AddMemoryModal() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter a title for your memory"
-              className="h-10 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
+              className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
+            <label className="block text-sm font-medium text-muted-foreground">
               Content
             </label>
             <Textarea
@@ -99,12 +99,12 @@ export default function AddMemoryModal() {
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write your memory content here..."
               rows={6}
-              className="bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
+              className="bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
+            <label className="block text-sm font-medium text-muted-foreground">
               Tags
             </label>
             <Input
@@ -113,7 +113,7 @@ export default function AddMemoryModal() {
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleAddTag}
               placeholder="Type a tag and press Enter"
-              className="h-10 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
+              className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
             />
             {tags.length > 0 && (
               <div className="flex gap-2 flex-wrap mt-3">
@@ -121,16 +121,18 @@ export default function AddMemoryModal() {
                   <Badge
                     key={tag}
                     variant="outline"
-                    className="bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-neutral-700 dark:text-neutral-300 gap-1 pr-1"
+                    className="bg-muted border-border text-foreground gap-1 pr-1"
                   >
                     {tag}
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon-xs"
                       onClick={() => removeTag(tag)}
-                      className="text-neutral-500 hover:text-black dark:hover:text-white"
+                      className="h-auto w-auto p-0 text-muted-foreground hover:text-foreground"
                     >
                       <IconX size={14} />
-                    </button>
+                    </Button>
                   </Badge>
                 ))}
               </div>
@@ -142,14 +144,14 @@ export default function AddMemoryModal() {
               <Button
                 type="button"
                 variant="ghost"
-                className="bg-black/5 dark:bg-white/5 text-neutral-700 dark:text-neutral-300"
+                className="bg-muted text-foreground"
               >
                 Cancel
               </Button>
             </DialogClose>
             <Button
               type="submit"
-              className="bg-black dark:bg-white text-white dark:text-black font-medium"
+              className="bg-primary text-primary-foreground font-medium"
             >
               Save Memory
             </Button>

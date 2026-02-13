@@ -240,18 +240,34 @@ export default function MemoryGraph() {
     const render = () => {
       const nodes = nodesRef.current;
       const edges = edgesRef.current;
-      const isDark = theme === "dark";
+      const rootStyles = getComputedStyle(document.documentElement);
+      const readColor = (token: string, alpha?: number) => {
+        const fallbackValue =
+          rootStyles.getPropertyValue("--foreground").trim() || "0 0 0";
+        const value =
+          rootStyles.getPropertyValue(`--${token}`).trim() || fallbackValue;
+        return alpha === undefined
+          ? `oklch(${value})`
+          : `oklch(${value} / ${alpha})`;
+      };
+      const colors = {
+        background: readColor("background"),
+        edge: readColor("border", 0.65),
+        nodeDefault: readColor("muted-foreground", 0.45),
+        nodeHover: readColor("foreground", 0.7),
+        nodeSelected: readColor("primary"),
+        nodeStroke: readColor("border", 0.9),
+        label: readColor("foreground"),
+      };
 
-      ctx.fillStyle = isDark ? "#0a0a0a" : "#fafafa";
+      ctx.fillStyle = colors.background;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.save();
       ctx.translate(pan.x, pan.y);
       ctx.scale(zoom, zoom);
 
-      ctx.strokeStyle = isDark
-        ? "rgba(255, 255, 255, 0.1)"
-        : "rgba(0, 0, 0, 0.1)";
+      ctx.strokeStyle = colors.edge;
       ctx.lineWidth = 1 / zoom;
 
       for (const edge of edges) {
@@ -274,24 +290,22 @@ export default function MemoryGraph() {
         ctx.arc(node.x, node.y, radius / zoom, 0, Math.PI * 2);
 
         if (isSelected) {
-          ctx.fillStyle = isDark ? "#ffffff" : "#000000";
+          ctx.fillStyle = colors.nodeSelected;
         } else if (isHovered) {
-          ctx.fillStyle = isDark ? "#a3a3a3" : "#404040";
+          ctx.fillStyle = colors.nodeHover;
         } else {
-          ctx.fillStyle = isDark ? "#404040" : "#e5e5e5";
+          ctx.fillStyle = colors.nodeDefault;
         }
         ctx.fill();
 
-        ctx.strokeStyle = isDark
-          ? "rgba(255, 255, 255, 0.2)"
-          : "rgba(0, 0, 0, 0.2)";
+        ctx.strokeStyle = colors.nodeStroke;
         ctx.lineWidth = 2 / zoom;
         ctx.stroke();
 
         ctx.font = `${12 / zoom}px system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
-        ctx.fillStyle = isDark ? "#f5f5f5" : "#0a0a0a";
+        ctx.fillStyle = colors.label;
 
         const maxWidth = 100 / zoom;
         let title = node.title;
@@ -436,12 +450,13 @@ export default function MemoryGraph() {
           Failed to load graph
         </h3>
         <p className="text-sm text-muted-foreground mb-4">{error}</p>
-        <button
+        <Button
+          type="button"
           onClick={() => window.location.reload()}
-          className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+          className="px-4 py-2 h-auto text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
         >
           Try again
-        </button>
+        </Button>
       </div>
     );
   }
@@ -605,10 +620,13 @@ export default function MemoryGraph() {
                           );
                           if (!relatedNode) return null;
                           return (
-                            <button
+                            <Button
                               key={relatedId}
+                              type="button"
+                              variant="ghost"
+                              size="sm"
                               onClick={() => setSelectedNode(relatedNode)}
-                              className="w-full text-left p-3 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors"
+                              className="w-full h-auto p-3 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors justify-start items-start flex-col"
                             >
                               <p className="text-sm font-medium text-foreground">
                                 {relatedNode.title}
@@ -617,7 +635,7 @@ export default function MemoryGraph() {
                                 {edge.weight} shared tag
                                 {edge.weight > 1 ? "s" : ""}
                               </p>
-                            </button>
+                            </Button>
                           );
                         })}
                       {graphData.edges.filter(

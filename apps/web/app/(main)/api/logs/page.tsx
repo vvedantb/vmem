@@ -40,58 +40,49 @@ export default function ApiLogsPage() {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
-          <p className="text-sm text-neutral-500 uppercase tracking-wider">
+        <div className="p-6 rounded-xl border border-border bg-muted/50">
+          <p className="text-sm text-muted-foreground uppercase tracking-wider">
             Total Requests
           </p>
-          <p className="text-3xl font-semibold mt-2 text-black dark:text-white">
-            1,284
-          </p>
+          <p className="text-3xl font-semibold mt-2 text-foreground">1,284</p>
         </div>
-        <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
-          <p className="text-sm text-neutral-500 uppercase tracking-wider">
+        <div className="p-6 rounded-xl border border-border bg-muted/50">
+          <p className="text-sm text-muted-foreground uppercase tracking-wider">
             Success Rate
           </p>
-          <p className="text-3xl font-semibold mt-2 text-green-600 dark:text-green-400">
-            99.2%
-          </p>
+          <p className="text-3xl font-semibold mt-2 text-success">99.2%</p>
         </div>
-        <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
-          <p className="text-sm text-neutral-500 uppercase tracking-wider">
+        <div className="p-6 rounded-xl border border-border bg-muted/50">
+          <p className="text-sm text-muted-foreground uppercase tracking-wider">
             Avg Response
           </p>
-          <p className="text-3xl font-semibold mt-2 text-black dark:text-white">
-            156ms
-          </p>
+          <p className="text-3xl font-semibold mt-2 text-foreground">156ms</p>
         </div>
       </div>
 
-      <div className="border border-black/10 dark:border-white/10 rounded-xl overflow-hidden">
+      <div className="border border-border rounded-xl overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
-              <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500 uppercase tracking-wider">
+            <tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 Endpoint
               </th>
-              <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500 uppercase tracking-wider">
+              <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 Status
               </th>
-              <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500 uppercase tracking-wider hidden md:table-cell">
+              <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
                 Duration
               </th>
-              <th className="text-left px-6 py-4 text-sm font-medium text-neutral-500 uppercase tracking-wider">
+              <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 Time
               </th>
             </tr>
           </thead>
           <tbody>
             {mockLogs.map((log) => (
-              <tr
-                key={log.id}
-                className="border-b border-black/5 dark:border-white/5 last:border-0"
-              >
+              <tr key={log.id} className="border-b border-border last:border-0">
                 <td className="px-6 py-5">
-                  <code className="text-sm text-neutral-800 dark:text-neutral-200 font-mono">
+                  <code className="text-sm text-foreground font-mono">
                     {log.endpoint}
                   </code>
                 </td>
@@ -99,20 +90,22 @@ export default function ApiLogsPage() {
                   <span
                     className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-medium ${
                       log.status >= 200 && log.status < 300
-                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                        ? "bg-success/10 text-success"
                         : log.status >= 400
-                          ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                          : "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-warning/10 text-warning"
                     }`}
                   >
                     {log.status}
                   </span>
                 </td>
                 <td className="px-6 py-5 hidden md:table-cell">
-                  <span className="text-sm text-neutral-500">{log.duration}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {log.duration}
+                  </span>
                 </td>
                 <td className="px-6 py-5">
-                  <span className="text-sm text-neutral-500">
+                  <span className="text-sm text-muted-foreground">
                     {log.timestamp}
                   </span>
                 </td>
@@ -124,4 +117,3 @@ export default function ApiLogsPage() {
     </>
   );
 }
-
