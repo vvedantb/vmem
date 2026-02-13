@@ -429,18 +429,16 @@ export default function MemoryGraph() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
-          <IconAlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+          <IconAlertCircle className="w-6 h-6 text-destructive" />
         </div>
-        <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
+        <h3 className="text-lg font-medium text-foreground mb-2">
           Failed to load graph
         </h3>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
-          {error}
-        </p>
+        <p className="text-sm text-muted-foreground mb-4">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 text-sm font-medium bg-black dark:bg-white text-white dark:text-black rounded-lg hover:opacity-90 transition-opacity"
+          className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
         >
           Try again
         </button>
@@ -451,13 +449,13 @@ export default function MemoryGraph() {
   if (!graphData || graphData.nodes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-4">
-          <IconMoodEmpty className="w-6 h-6 text-neutral-400 dark:text-neutral-500" />
+        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+          <IconMoodEmpty className="w-6 h-6 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
+        <h3 className="text-lg font-medium text-foreground mb-2">
           No memories to visualize
         </h3>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="text-sm text-muted-foreground">
           Add some memories to see them in the graph
         </p>
       </div>
@@ -471,7 +469,7 @@ export default function MemoryGraph() {
     <>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div className="flex gap-4 text-sm text-neutral-500 dark:text-neutral-400">
+          <div className="flex gap-4 text-sm text-muted-foreground">
             <span>{nodeCount} memories</span>
             <span>{connectionCount} connections</span>
           </div>
@@ -480,7 +478,7 @@ export default function MemoryGraph() {
               size="icon-sm"
               variant="secondary"
               onClick={() => setZoom((z) => Math.min(3, z * 1.2))}
-              className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
+              className="bg-muted border border-border"
             >
               <IconZoomIn size={16} />
             </Button>
@@ -488,7 +486,7 @@ export default function MemoryGraph() {
               size="icon-sm"
               variant="secondary"
               onClick={() => setZoom((z) => Math.max(0.5, z * 0.8))}
-              className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
+              className="bg-muted border border-border"
             >
               <IconZoomOut size={16} />
             </Button>
@@ -496,7 +494,7 @@ export default function MemoryGraph() {
               size="icon-sm"
               variant="secondary"
               onClick={resetView}
-              className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
+              className="bg-muted border border-border"
             >
               <IconFocus2 size={16} />
             </Button>
@@ -505,7 +503,7 @@ export default function MemoryGraph() {
 
         <div
           ref={containerRef}
-          className="relative border border-black/10 dark:border-white/10 rounded-xl overflow-hidden"
+          className="relative border border-border rounded-xl overflow-hidden"
           style={{ height: "500px" }}
         >
           <canvas
@@ -521,17 +519,17 @@ export default function MemoryGraph() {
           />
 
           {hoveredNode && !selectedNode && (
-            <div className="absolute top-4 left-4 bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 rounded-lg p-3 shadow-lg max-w-xs">
-              <p className="font-medium text-neutral-800 dark:text-neutral-200 mb-1">
+            <div className="absolute top-4 left-4 bg-card border border-border rounded-lg p-3 shadow-lg max-w-xs">
+              <p className="font-medium text-foreground mb-1">
                 {hoveredNode.title}
               </p>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2">
+              <p className="text-xs text-muted-foreground line-clamp-2">
                 {hoveredNode.content}
               </p>
             </div>
           )}
 
-          <div className="absolute bottom-4 left-4 text-xs text-neutral-400 dark:text-neutral-600">
+          <div className="absolute bottom-4 left-4 text-xs text-muted-foreground">
             Click node to view details &bull; Drag to pan &bull; Scroll to zoom
           </div>
         </div>
@@ -543,26 +541,24 @@ export default function MemoryGraph() {
           if (!open) setSelectedNode(null);
         }}
       >
-        <DialogContent className="bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10">
+        <DialogContent className="bg-card border border-border">
           {selectedNode && (
             <>
-              <DialogHeader className="border-b border-black/10 dark:border-white/10 pb-4">
-                <DialogTitle className="text-neutral-800 dark:text-neutral-200">
+              <DialogHeader className="border-b border-border pb-4">
+                <DialogTitle className="text-foreground">
                   {selectedNode.title}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
                 <div>
-                  <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">
                     Content
                   </h4>
-                  <p className="text-neutral-800 dark:text-neutral-200">
-                    {selectedNode.content}
-                  </p>
+                  <p className="text-foreground">{selectedNode.content}</p>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">
                     Tags
                   </h4>
                   <div className="flex gap-2 flex-wrap">
@@ -570,7 +566,7 @@ export default function MemoryGraph() {
                       <Badge
                         key={tag}
                         variant="outline"
-                        className="bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400 text-xs"
+                        className="bg-muted border-border text-muted-foreground text-xs"
                       >
                         {tag}
                       </Badge>
@@ -579,17 +575,17 @@ export default function MemoryGraph() {
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">
                     Created
                   </h4>
-                  <p className="text-neutral-600 dark:text-neutral-400">
+                  <p className="text-muted-foreground">
                     {formatDate(selectedNode.createdAt)}
                   </p>
                 </div>
 
                 {graphData && (
                   <div>
-                    <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">
                       Related Memories
                     </h4>
                     <div className="space-y-2">
@@ -612,12 +608,12 @@ export default function MemoryGraph() {
                             <button
                               key={relatedId}
                               onClick={() => setSelectedNode(relatedNode)}
-                              className="w-full text-left p-3 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+                              className="w-full text-left p-3 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors"
                             >
-                              <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                              <p className="text-sm font-medium text-foreground">
                                 {relatedNode.title}
                               </p>
-                              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                              <p className="text-xs text-muted-foreground mt-1">
                                 {edge.weight} shared tag
                                 {edge.weight > 1 ? "s" : ""}
                               </p>
@@ -629,7 +625,7 @@ export default function MemoryGraph() {
                           e.source === selectedNode.id ||
                           e.target === selectedNode.id,
                       ).length === 0 && (
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                        <p className="text-sm text-muted-foreground">
                           No related memories found
                         </p>
                       )}
