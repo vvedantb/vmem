@@ -1,30 +1,44 @@
 "use client";
 
 import { useState, useRef, useCallback, type FormEvent } from "react";
-import { Badge, Button } from "@vmem/ui";
+import { Badge } from "@vmem/ui";
 import {
+  Action,
+  Actions,
+  ChainOfThought,
+  ChainOfThoughtContent,
+  ChainOfThoughtTrigger,
   Conversation,
   ConversationContent,
   ConversationEmptyState,
   ConversationScrollButton,
+  InlineCitation,
   Message,
   MessageContent,
   MessageResponse,
-  MessageToolbar,
-  MessageAction,
+  Plan,
+  PlanHeader,
+  PlanItem,
+  PlanList,
   PromptInput,
   PromptInputTextarea,
   PromptInputFooter,
   PromptInputSubmit,
+  Sources,
+  SourcesContent,
+  SourcesTrigger,
+  Suggestion,
+  Suggestions,
+  Task,
+  Tool,
+  ToolInput,
+  ToolOutput,
   type PromptInputMessage,
 } from "@vmem/ui/ai";
 import {
   IconMessage,
   IconRobot,
   IconUser,
-  IconBrain,
-  IconChevronDown,
-  IconChevronUp,
   IconCopy,
   IconCheck,
 } from "@tabler/icons-react";
@@ -44,6 +58,14 @@ interface ChatMessage {
   content: string;
   timestamp: string;
   relevantMemories?: Memory[];
+  reasoning?: string;
+  plan?: string[];
+  tool?: {
+    name: string;
+    state: "input-available" | "running" | "output-available" | "output-error";
+    input?: unknown;
+    output?: unknown;
+  };
   isStreaming?: boolean;
 }
 
@@ -57,14 +79,20 @@ export default function Chat() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const toggleMemoryExpansion = useCallback((messageId: string) => {
-    setExpandedMemories((prev) => {
-      const next = new Set(prev);
-      if (next.has(messageId)) next.delete(messageId);
-      else next.add(messageId);
-      return next;
-    });
-  }, []);
+  const toggleMemoryExpansion = useCallback(
+    (messageId: string, nextOpen?: boolean) => {
+      setExpandedMemories((prev) => {
+        const next = new Set(prev);
+        if (typeof nextOpen === "boolean") {
+          if (nextOpen) next.add(messageId);
+          else next.delete(messageId);
+        } else if (next.has(messageId)) next.delete(messageId);
+        else next.add(messageId);
+        return next;
+      });
+    },
+    [],
+  );
 
   const handleCopy = useCallback((messageId: string, content: string) => {
     navigator.clipboard.writeText(content);
@@ -147,6 +175,36 @@ export default function Chat() {
                         : m,
                     ),
                   );
+                } else if (data.type === "reasoning") {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMessageId
+                        ? { ...m, reasoning: data.data }
+                        : m,
+                    ),
+                  );
+                } else if (data.type === "plan") {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMessageId
+                        ? { ...m, plan: data.data }
+                        : m,
+                    ),
+                  );
+                } else if (data.type === "tool") {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMessageId
+                        ? {
+                            ...m,
+                            tool: {
+                              ...m.tool,
+                              ...data.data,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
                 } else if (data.type === "content") {
                   setMessages((prev) =>
                     prev.map((m) =>
@@ -208,24 +266,20 @@ export default function Chat() {
               title="Start a conversation"
               description="Ask anything about your stored memories. The AI will search and reference relevant information."
             >
-              <div className="flex flex-wrap gap-2 justify-center max-w-md">
+              <Suggestions className="max-w-md">
                 {[
                   "What do I know about React?",
                   "Tell me about Docker",
                   "Summarize my TypeScript notes",
                 ].map((suggestion) => (
-                  <Button
+                  <Suggestion
                     key={suggestion}
-                    type="button"
-                    variant="outline"
-                    size="sm"
                     onClick={() => setInput(suggestion)}
-                    className="px-3 py-1.5 h-auto text-sm border-border rounded-full hover:bg-accent transition-colors text-muted-foreground"
                   >
                     {suggestion}
-                  </Button>
+                  </Suggestion>
                 ))}
-              </div>
+              </Suggestions>
             </ConversationEmptyState>
           )}
 
@@ -243,33 +297,90 @@ export default function Chat() {
               <div
                 className={`flex flex-col max-w-[80%] ${message.role === "user" ? "items-end" : "items-start"}`}
               >
+                {message.role === "assistant" && message.reasoning && (
+                  <div className="mb-2 w-full">
+                    <ChainOfThought isStreaming={message.isStreaming}>
+                      <ChainOfThoughtTrigger />
+                      <ChainOfThoughtContent>
+                        {message.reasoning}
+                      </ChainOfThoughtContent>
+                    </ChainOfThought>
+                  </div>
+                )}
+
+                {message.role === "assistant" && message.tool && (
+                  <div className="mb-2 w-full space-y-2">
+                    <Task
+                      status={
+                        message.tool.state === "output-available"
+                          ? "completed"
+                          : message.tool.state === "output-error"
+                            ? "failed"
+                            : "running"
+                      }
+                    >
+                      Tool: {message.tool.name}
+                    </Task>
+                    <Tool name={message.tool.name} state={message.tool.state}>
+                      <div className="space-y-2">
+                        {message.tool.input !== undefined && (
+                          <ToolInput input={message.tool.input} />
+                        )}
+                        {message.tool.output !== undefined && (
+                          <ToolOutput output={message.tool.output} />
+                        )}
+                      </div>
+                    </Tool>
+                  </div>
+                )}
+
+                {message.role === "assistant" &&
+                  message.plan &&
+                  message.plan.length > 0 && (
+                    <div className="mb-2 w-full">
+                      <Plan>
+                        <PlanHeader>Execution plan</PlanHeader>
+                        <PlanList>
+                          {message.plan.map((step, idx) => {
+                            const isLast = idx === message.plan!.length - 1;
+                            const status = message.isStreaming
+                              ? isLast
+                                ? "in_progress"
+                                : "completed"
+                              : "completed";
+                            return (
+                              <PlanItem
+                                key={`${message.id}-plan-${idx}`}
+                                status={status}
+                              >
+                                {step}
+                              </PlanItem>
+                            );
+                          })}
+                        </PlanList>
+                      </Plan>
+                    </div>
+                  )}
+
                 {message.role === "assistant" &&
                   message.relevantMemories &&
                   message.relevantMemories.length > 0 && (
                     <div className="mb-2 w-full">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleMemoryExpansion(message.id)}
-                        className="h-auto px-0 py-0 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      <Sources
+                        open={expandedMemories.has(message.id)}
+                        onOpenChange={(open) =>
+                          toggleMemoryExpansion(message.id, open)
+                        }
                       >
-                        <IconBrain size={14} stroke={1.5} />
-                        <span>
-                          {message.relevantMemories.length} relevant{" "}
-                          {message.relevantMemories.length === 1
-                            ? "memory"
-                            : "memories"}
-                        </span>
-                        {expandedMemories.has(message.id) ? (
-                          <IconChevronUp size={14} />
-                        ) : (
-                          <IconChevronDown size={14} />
-                        )}
-                      </Button>
-
-                      {expandedMemories.has(message.id) && (
-                        <div className="mt-2 space-y-2">
+                        <SourcesTrigger
+                          count={message.relevantMemories.length}
+                          label={
+                            message.relevantMemories.length === 1
+                              ? "relevant memory"
+                              : "relevant memories"
+                          }
+                        />
+                        <SourcesContent>
                           {message.relevantMemories.map((memory) => (
                             <div
                               key={memory.id}
@@ -294,8 +405,8 @@ export default function Chat() {
                               </div>
                             </div>
                           ))}
-                        </div>
-                      )}
+                        </SourcesContent>
+                      </Sources>
                     </div>
                   )}
 
@@ -316,11 +427,32 @@ export default function Chat() {
                 </MessageContent>
 
                 {message.role === "assistant" &&
+                  message.relevantMemories &&
+                  message.relevantMemories.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {message.relevantMemories.map((memory, idx) => (
+                        <InlineCitation
+                          key={`${message.id}-citation-${memory.id}`}
+                          index={idx + 1}
+                          href={
+                            memory.tags[0]
+                              ? `/memories/list?tag=${encodeURIComponent(memory.tags[0])}`
+                              : "/memories/list"
+                          }
+                        >
+                          [{idx + 1}] {memory.title}
+                        </InlineCitation>
+                      ))}
+                    </div>
+                  )}
+
+                {message.role === "assistant" &&
                   !message.isStreaming &&
                   message.content && (
-                    <MessageToolbar>
-                      <MessageAction
+                    <Actions className="mt-1">
+                      <Action
                         tooltip="Copy"
+                        label="Copy response"
                         onClick={() => handleCopy(message.id, message.content)}
                       >
                         {copiedId === message.id ? (
@@ -328,8 +460,8 @@ export default function Chat() {
                         ) : (
                           <IconCopy className="size-3.5" stroke={1.5} />
                         )}
-                      </MessageAction>
-                    </MessageToolbar>
+                      </Action>
+                    </Actions>
                   )}
               </div>
 
