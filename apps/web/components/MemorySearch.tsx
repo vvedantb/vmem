@@ -5,15 +5,20 @@ import {
   Input,
   Table,
   TableHeader,
-  TableColumn,
+  TableHead,
   TableBody,
   TableRow,
   TableCell,
-  Chip,
+  Badge,
   Skeleton,
   Spinner,
-} from "@heroui/react";
-import { IconSearch, IconAlertCircle, IconMoodEmpty, IconX } from "@tabler/icons-react";
+} from "@vmem/ui";
+import {
+  IconSearch,
+  IconAlertCircle,
+  IconMoodEmpty,
+  IconX,
+} from "@tabler/icons-react";
 import MemoryDetailModal from "./MemoryDetailModal";
 
 interface TagStats {
@@ -51,18 +56,18 @@ interface SearchResponse {
 export default function MemorySearch() {
   const [searchQuery, setSearchQuery] = useState("");
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
 
-  // Tag filtering state
   const [allTags, setAllTags] = useState<TagStats[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  // Fetch all memories and tags on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -86,7 +91,9 @@ export default function MemorySearch() {
           setAllTags(tagsData.data);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch memories");
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch memories",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -95,7 +102,6 @@ export default function MemorySearch() {
     fetchData();
   }, []);
 
-  // Semantic search with debounce
   const performSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults(null);
@@ -127,32 +133,29 @@ export default function MemorySearch() {
     }
   }, []);
 
-  // Handle search input with debounce
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchQuery(value);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchQuery(value);
 
-    // Clear previous timeout
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
 
-    // If empty, clear results immediately
-    if (!value.trim()) {
-      setSearchResults(null);
-      setIsSearching(false);
-      return;
-    }
+      if (!value.trim()) {
+        setSearchResults(null);
+        setIsSearching(false);
+        return;
+      }
 
-    // Set searching state immediately for UI feedback
-    setIsSearching(true);
+      setIsSearching(true);
 
-    // Debounce the actual search
-    debounceTimeoutRef.current = setTimeout(() => {
-      performSearch(value);
-    }, 300);
-  }, [performSearch]);
+      debounceTimeoutRef.current = setTimeout(() => {
+        performSearch(value);
+      }, 300);
+    },
+    [performSearch],
+  );
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
@@ -161,73 +164,64 @@ export default function MemorySearch() {
     };
   }, []);
 
-  // Toggle tag selection
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
   }, []);
 
-  // Clear all tag filters
   const clearTagFilters = useCallback(() => {
     setSelectedTags([]);
   }, []);
 
-  // Filter memories by selected tags
   const filteredMemories = useMemo(() => {
     if (selectedTags.length === 0) return memories;
     return memories.filter((m) =>
-      selectedTags.every((tag) => m.tags.includes(tag))
+      selectedTags.every((tag) => m.tags.includes(tag)),
     );
   }, [memories, selectedTags]);
 
-  // Determine which data to display (apply tag filter to both search and non-search results)
   const displayData: (Memory | SearchResult)[] = searchResults
     ? searchResults.filter(
         (m) =>
           selectedTags.length === 0 ||
-          selectedTags.every((tag) => m.tags.includes(tag))
+          selectedTags.every((tag) => m.tags.includes(tag)),
       )
     : filteredMemories;
   const isShowingSearchResults = searchResults !== null;
 
-  // Calculate related memories for the selected memory
   const relatedMemories = useMemo(() => {
     if (!selectedMemory) return [];
     return memories.filter(
       (m) =>
         m.id !== selectedMemory.id &&
-        m.tags.some((tag) => selectedMemory.tags.includes(tag))
+        m.tags.some((tag) => selectedMemory.tags.includes(tag)),
     );
   }, [selectedMemory, memories]);
 
-  // Handle memory update from modal
   const handleMemoryUpdate = useCallback((updatedMemory: Memory) => {
     setMemories((prev) =>
-      prev.map((m) => (m.id === updatedMemory.id ? updatedMemory : m))
+      prev.map((m) => (m.id === updatedMemory.id ? updatedMemory : m)),
     );
     setSelectedMemory(updatedMemory);
-    // Also update search results if they exist
     setSearchResults((prev) =>
       prev
         ? prev.map((m) =>
             m.id === updatedMemory.id
               ? { ...updatedMemory, relevanceScore: m.relevanceScore }
-              : m
+              : m,
           )
-        : null
+        : null,
     );
   }, []);
 
-  // Handle memory delete from modal
   const handleMemoryDelete = useCallback((deletedId: string) => {
     setMemories((prev) => prev.filter((m) => m.id !== deletedId));
     setSearchResults((prev) =>
-      prev ? prev.filter((m) => m.id !== deletedId) : null
+      prev ? prev.filter((m) => m.id !== deletedId) : null,
     );
   }, []);
 
-  // Handle clicking on a row to open detail modal
   const handleRowClick = useCallback((memory: Memory) => {
     setSelectedMemory(memory);
   }, []);
@@ -241,7 +235,6 @@ export default function MemorySearch() {
     });
   };
 
-  // Loading skeleton
   if (isLoading) {
     return (
       <>
@@ -255,7 +248,10 @@ export default function MemorySearch() {
             </div>
           </div>
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="p-4 border-t border-black/10 dark:border-white/10">
+            <div
+              key={i}
+              className="p-4 border-t border-black/10 dark:border-white/10"
+            >
               <div className="flex items-center gap-8">
                 <Skeleton className="h-4 w-48 rounded" />
                 <div className="hidden md:flex gap-2">
@@ -271,7 +267,6 @@ export default function MemorySearch() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -294,7 +289,6 @@ export default function MemorySearch() {
     );
   }
 
-  // Empty state (no memories at all)
   if (memories.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -313,51 +307,41 @@ export default function MemorySearch() {
 
   return (
     <>
-      <Input
-        type="text"
-        value={searchQuery}
-        onValueChange={handleSearchChange}
-        placeholder="Search memories semantically..."
-        size="lg"
-        endContent={
-          isSearching ? (
-            <Spinner size="sm" color="default" />
+      <div className="relative">
+        <Input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="Search memories semantically..."
+          className="h-12 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 pr-10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          {isSearching ? (
+            <Spinner size="sm" className="text-neutral-400" />
           ) : (
             <IconSearch
               className="text-neutral-400 dark:text-neutral-600"
               size={20}
               stroke={1.5}
             />
-          )
-        }
-        classNames={{
-          inputWrapper:
-            "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
-          input: "text-black dark:text-white",
-        }}
-      />
+          )}
+        </div>
+      </div>
 
-      {/* Tag filters */}
       {allTags.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-neutral-500 dark:text-neutral-400">
             Filter by tags:
           </span>
           {allTags.map((item) => (
-            <Chip
+            <Badge
               key={item.tag}
-              size="sm"
-              variant="flat"
-              className="cursor-pointer transition-all"
+              className={`cursor-pointer transition-all ${
+                selectedTags.includes(item.tag)
+                  ? "bg-black dark:bg-white text-white dark:text-black border border-transparent"
+                  : "bg-black/5 dark:bg-white/5 text-neutral-600 dark:text-neutral-400 border border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10"
+              }`}
               onClick={() => toggleTag(item.tag)}
-              classNames={{
-                base: selectedTags.includes(item.tag)
-                  ? "bg-black dark:bg-white border border-transparent"
-                  : "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10",
-                content: selectedTags.includes(item.tag)
-                  ? "text-white dark:text-black text-xs font-medium"
-                  : "text-neutral-600 dark:text-neutral-400 text-xs",
-              }}
             >
               {item.tag}
               <span
@@ -369,7 +353,7 @@ export default function MemorySearch() {
               >
                 ({item.count})
               </span>
-            </Chip>
+            </Badge>
           ))}
           {selectedTags.length > 0 && (
             <button
@@ -383,7 +367,6 @@ export default function MemorySearch() {
         </div>
       )}
 
-      {/* Empty search results state */}
       {isShowingSearchResults && displayData.length === 0 && !isSearching && (
         <div className="flex flex-col items-center justify-center py-12 text-center border border-black/10 dark:border-white/10 rounded-xl">
           <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-3">
@@ -398,77 +381,84 @@ export default function MemorySearch() {
         </div>
       )}
 
-      {/* Results table */}
       {(!isShowingSearchResults || displayData.length > 0) && (
-        <Table
-          aria-label="Memories table"
-          classNames={{
-            wrapper:
-              "border border-black/10 dark:border-white/10 rounded-xl shadow-none bg-transparent",
-            th: "bg-black/[0.02] dark:bg-white/[0.02] text-neutral-500 font-medium",
-            td: "py-5",
-            tr: "hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer",
-          }}
-        >
-          <TableHeader>
-            <TableColumn>TITLE</TableColumn>
-            <TableColumn className={isShowingSearchResults ? "w-24" : "hidden"}>SCORE</TableColumn>
-            <TableColumn className="hidden md:table-cell">TAGS</TableColumn>
-            <TableColumn>CREATED</TableColumn>
-          </TableHeader>
-          <TableBody emptyContent="No memories yet">
-            {displayData.map((item) => (
-              <TableRow key={item.id} onClick={() => handleRowClick(item)}>
-                <TableCell>
-                  <span className="text-neutral-800 dark:text-neutral-200">
-                    {item.title}
-                  </span>
-                </TableCell>
-                <TableCell className={isShowingSearchResults ? "" : "hidden"}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-12 h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-black dark:bg-white rounded-full"
-                        style={{
-                          width: `${Math.round(("relevanceScore" in item ? item.relevanceScore : 0) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-xs text-neutral-500 tabular-nums">
-                      {Math.round(("relevanceScore" in item ? item.relevanceScore : 0) * 100)}%
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  <div className="flex gap-2 flex-wrap">
-                    {item.tags.map((tag) => (
-                      <Chip
-                        key={tag}
-                        size="sm"
-                        variant="flat"
-                        classNames={{
-                          base: "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10",
-                          content:
-                            "text-neutral-600 dark:text-neutral-400 text-xs",
-                        }}
-                      >
-                        {tag}
-                      </Chip>
-                    ))}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm text-neutral-500">
-                    {formatDate(item.createdAt)}
-                  </span>
-                </TableCell>
+        <div className="border border-black/10 dark:border-white/10 rounded-xl overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+                <TableHead className="text-neutral-500 font-medium">
+                  TITLE
+                </TableHead>
+                <TableHead
+                  className={`text-neutral-500 font-medium w-24 ${isShowingSearchResults ? "" : "hidden"}`}
+                >
+                  SCORE
+                </TableHead>
+                <TableHead className="text-neutral-500 font-medium hidden md:table-cell">
+                  TAGS
+                </TableHead>
+                <TableHead className="text-neutral-500 font-medium">
+                  CREATED
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {displayData.map((item) => (
+                <TableRow
+                  key={item.id}
+                  onClick={() => handleRowClick(item)}
+                  className="cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                >
+                  <TableCell className="py-5">
+                    <span className="text-neutral-800 dark:text-neutral-200">
+                      {item.title}
+                    </span>
+                  </TableCell>
+                  <TableCell
+                    className={`py-5 ${isShowingSearchResults ? "" : "hidden"}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-12 h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-black dark:bg-white rounded-full"
+                          style={{
+                            width: `${Math.round(("relevanceScore" in item ? item.relevanceScore : 0) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs text-neutral-500 tabular-nums">
+                        {Math.round(
+                          ("relevanceScore" in item ? item.relevanceScore : 0) *
+                            100,
+                        )}
+                        %
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-5 hidden md:table-cell">
+                    <div className="flex gap-2 flex-wrap">
+                      {item.tags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          className="bg-black/5 dark:bg-white/5 text-neutral-600 dark:text-neutral-400 border border-black/10 dark:border-white/10 text-xs"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-5">
+                    <span className="text-sm text-neutral-500">
+                      {formatDate(item.createdAt)}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
-      {/* Memory detail modal */}
       <MemoryDetailModal
         isOpen={!!selectedMemory}
         memory={selectedMemory}

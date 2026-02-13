@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Switch } from "@heroui/react";
+import { Switch } from "@vmem/ui";
 
 interface ToggleSetting {
   id: string;
@@ -43,8 +43,8 @@ export default function SettingsToggles() {
   const toggleSetting = (id: string) => {
     setSettings(
       settings.map((setting) =>
-        setting.id === id ? { ...setting, enabled: !setting.enabled } : setting
-      )
+        setting.id === id ? { ...setting, enabled: !setting.enabled } : setting,
+      ),
     );
   };
 
@@ -64,15 +64,8 @@ export default function SettingsToggles() {
             </p>
           </div>
           <Switch
-            isSelected={setting.enabled}
-            onValueChange={() => toggleSetting(setting.id)}
-            size="sm"
-            classNames={{
-              wrapper:
-                "bg-black/10 dark:bg-white/10 group-data-[selected=true]:bg-black dark:group-data-[selected=true]:bg-white",
-              thumb:
-                "bg-neutral-500 group-data-[selected=true]:bg-white dark:group-data-[selected=true]:bg-black",
-            }}
+            checked={setting.enabled}
+            onCheckedChange={() => toggleSetting(setting.id)}
           />
         </div>
       ))}

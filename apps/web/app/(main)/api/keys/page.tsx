@@ -1,26 +1,26 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardBody } from "@heroui/card";
-import { Button } from "@heroui/button";
 import {
+  Card,
+  CardContent,
+  Button,
   Table,
   TableHeader,
-  TableColumn,
+  TableHead,
   TableBody,
   TableRow,
   TableCell,
-} from "@heroui/table";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Chip,
+  Badge,
   Skeleton,
-  addToast,
-} from "@heroui/react";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@vmem/ui";
+import { toast } from "sonner";
 import {
   IconBolt,
   IconLoader2,
@@ -41,7 +41,6 @@ interface ApiKey {
   status: "active" | "revoked";
 }
 
-// Format relative time (e.g., "2 hours ago", "Yesterday")
 function formatRelativeTime(dateString: string | null): string {
   if (!dateString) return "Never";
 
@@ -61,7 +60,6 @@ function formatRelativeTime(dateString: string | null): string {
   return date.toLocaleDateString();
 }
 
-// Format date for display
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString("en-US", {
     month: "short",
@@ -70,7 +68,6 @@ function formatDate(dateString: string): string {
   });
 }
 
-// Format number with commas
 function formatNumber(num: number): string {
   return num.toLocaleString();
 }
@@ -87,7 +84,7 @@ export default function ApiKeysPage() {
   const fetchApiKeys = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    // test
+
     try {
       const response = await fetch("/api/key");
       const data = await response.json();
@@ -112,19 +109,10 @@ export default function ApiKeysPage() {
     try {
       await navigator.clipboard.writeText(maskedKey);
       setCopiedKeyId(keyId);
-      addToast({
-        title: "Copied!",
-        description: "Masked key copied to clipboard",
-        color: "success",
-      });
-
+      toast.success("Masked key copied to clipboard");
       setTimeout(() => setCopiedKeyId(null), 2000);
     } catch {
-      addToast({
-        title: "Error",
-        description: "Failed to copy to clipboard",
-        color: "danger",
-      });
+      toast.error("Failed to copy to clipboard");
     }
   };
 
@@ -144,27 +132,18 @@ export default function ApiKeysPage() {
         throw new Error(data.error || "Failed to revoke API key");
       }
 
-      // Update local state
       setApiKeys((prev) =>
         prev.map((key) =>
-          key.id === revokeKeyId ? { ...key, status: "revoked" as const } : key
-        )
+          key.id === revokeKeyId ? { ...key, status: "revoked" as const } : key,
+        ),
       );
 
-      addToast({
-        title: "Key Revoked",
-        description: "The API key has been revoked successfully",
-        color: "success",
-      });
-
+      toast.success("The API key has been revoked successfully");
       setRevokeKeyId(null);
     } catch (err) {
-      addToast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "Failed to revoke API key",
-        color: "danger",
-      });
+      toast.error(
+        err instanceof Error ? err.message : "Failed to revoke API key",
+      );
     } finally {
       setIsRevoking(false);
     }
@@ -172,16 +151,11 @@ export default function ApiKeysPage() {
 
   const keyToRevoke = apiKeys.find((key) => key.id === revokeKeyId);
 
-  // Loading skeleton
   if (isLoading) {
     return (
       <>
-        <Card
-          classNames={{
-            base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
-          }}
-        >
-          <CardBody className="p-6">
+        <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+          <CardContent className="p-6">
             <div className="flex items-start gap-4">
               <Skeleton className="w-10 h-10 rounded-lg" />
               <div className="flex-1 space-y-2">
@@ -189,7 +163,7 @@ export default function ApiKeysPage() {
                 <Skeleton className="h-4 w-full rounded" />
               </div>
             </div>
-          </CardBody>
+          </CardContent>
         </Card>
 
         <div className="flex justify-between items-center">
@@ -225,7 +199,6 @@ export default function ApiKeysPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="py-16 text-center">
@@ -239,7 +212,7 @@ export default function ApiKeysPage() {
         </h3>
         <p className="text-neutral-500 mb-6">{error}</p>
         <Button
-          onPress={fetchApiKeys}
+          onClick={fetchApiKeys}
           className="bg-black dark:bg-white text-white dark:text-black"
         >
           Try again
@@ -250,12 +223,8 @@ export default function ApiKeysPage() {
 
   return (
     <>
-      <Card
-        classNames={{
-          base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
-        }}
-      >
-        <CardBody className="p-6">
+      <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+        <CardContent className="p-6">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
               <IconBolt
@@ -274,7 +243,7 @@ export default function ApiKeysPage() {
               </p>
             </div>
           </div>
-        </CardBody>
+        </CardContent>
       </Card>
 
       <div className="flex justify-between items-center">
@@ -282,7 +251,7 @@ export default function ApiKeysPage() {
           Your API Keys
         </h3>
         <Button
-          onPress={() => setIsCreateModalOpen(true)}
+          onClick={() => setIsCreateModalOpen(true)}
           className="bg-black dark:bg-white text-white dark:text-black font-medium"
         >
           Create New Key
@@ -303,65 +272,61 @@ export default function ApiKeysPage() {
             Create your first API key to start using vMemory programmatically.
           </p>
           <Button
-            onPress={() => setIsCreateModalOpen(true)}
+            onClick={() => setIsCreateModalOpen(true)}
             className="bg-black dark:bg-white text-white dark:text-black"
           >
             Create New Key
           </Button>
         </div>
       ) : (
-        <Table
-          aria-label="API Keys table"
-          classNames={{
-            wrapper:
-              "border border-black/10 dark:border-white/10 rounded-xl shadow-none bg-transparent",
-            th: "bg-black/[0.02] dark:bg-white/[0.02] text-neutral-500 font-medium",
-            td: "py-4",
-          }}
-        >
+        <Table className="border border-black/10 dark:border-white/10 rounded-xl">
           <TableHeader>
-            <TableColumn>NAME</TableColumn>
-            <TableColumn className="hidden md:table-cell">KEY</TableColumn>
-            <TableColumn className="hidden lg:table-cell">REQUESTS</TableColumn>
-            <TableColumn>LAST USED</TableColumn>
-            <TableColumn>ACTIONS</TableColumn>
+            <TableRow className="bg-black/[0.02] dark:bg-white/[0.02]">
+              <TableHead className="text-neutral-500 font-medium">
+                NAME
+              </TableHead>
+              <TableHead className="hidden md:table-cell text-neutral-500 font-medium">
+                KEY
+              </TableHead>
+              <TableHead className="hidden lg:table-cell text-neutral-500 font-medium">
+                REQUESTS
+              </TableHead>
+              <TableHead className="text-neutral-500 font-medium">
+                LAST USED
+              </TableHead>
+              <TableHead className="text-neutral-500 font-medium">
+                ACTIONS
+              </TableHead>
+            </TableRow>
           </TableHeader>
           <TableBody>
             {apiKeys.map((apiKey) => (
               <TableRow key={apiKey.id}>
-                <TableCell>
+                <TableCell className="py-4">
                   <div className="flex items-center gap-2">
                     <span className="text-neutral-800 dark:text-neutral-200">
                       {apiKey.name}
                     </span>
                     {apiKey.status === "revoked" && (
-                      <Chip
-                        size="sm"
-                        variant="flat"
-                        classNames={{
-                          base: "bg-red-100 dark:bg-red-900/30",
-                          content: "text-red-600 dark:text-red-400 text-xs",
-                        }}
-                      >
+                      <Badge className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs">
                         Revoked
-                      </Chip>
+                      </Badge>
                     )}
                   </div>
                   <p className="text-xs text-neutral-400 mt-0.5 md:hidden">
                     {formatDate(apiKey.createdAt)}
                   </p>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className="hidden md:table-cell py-4">
                   <div className="flex items-center gap-2">
                     <code className="text-sm text-neutral-500 font-mono">
                       {apiKey.maskedKey}
                     </code>
                     <Button
-                      size="sm"
-                      variant="light"
-                      isIconOnly
-                      onPress={() => handleCopyKey(apiKey.maskedKey, apiKey.id)}
-                      className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 min-w-6 w-6 h-6"
+                      size="icon-xs"
+                      variant="ghost"
+                      onClick={() => handleCopyKey(apiKey.maskedKey, apiKey.id)}
+                      className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
                     >
                       {copiedKeyId === apiKey.id ? (
                         <IconCheck size={14} />
@@ -371,28 +336,28 @@ export default function ApiKeysPage() {
                     </Button>
                   </div>
                 </TableCell>
-                <TableCell className="hidden lg:table-cell">
+                <TableCell className="hidden lg:table-cell py-4">
                   <span className="text-sm text-neutral-500 tabular-nums">
                     {formatNumber(apiKey.requestCount)}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-4">
                   <span className="text-sm text-neutral-500">
                     {formatRelativeTime(apiKey.lastUsedAt)}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-4">
                   {apiKey.status === "active" ? (
                     <Button
-                      variant="light"
+                      variant="ghost"
                       size="sm"
-                      onPress={() => setRevokeKeyId(apiKey.id)}
+                      onClick={() => setRevokeKeyId(apiKey.id)}
                       className="text-red-500 hover:text-red-600 dark:hover:text-red-400"
                     >
                       Revoke
                     </Button>
                   ) : (
-                    <span className="text-sm text-neutral-400">—</span>
+                    <span className="text-sm text-neutral-400">&mdash;</span>
                   )}
                 </TableCell>
               </TableRow>
@@ -401,71 +366,68 @@ export default function ApiKeysPage() {
         </Table>
       )}
 
-      {/* Create API Key Modal */}
       <ApiKeyModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onKeyCreated={fetchApiKeys}
       />
 
-      {/* Revoke Confirmation Modal */}
-      <Modal
-        isOpen={!!revokeKeyId}
-        onClose={() => !isRevoking && setRevokeKeyId(null)}
-        size="sm"
-        isDismissable={!isRevoking}
-        classNames={{
-          base: "bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10",
-          header: "border-b border-black/10 dark:border-white/10",
-          body: "py-6",
-          footer: "border-t border-black/10 dark:border-white/10",
+      <Dialog
+        open={!!revokeKeyId}
+        onOpenChange={(open) => {
+          if (!open && !isRevoking) setRevokeKeyId(null);
         }}
       >
-        <ModalContent>
-          <ModalHeader className="text-neutral-800 dark:text-neutral-200">
-            Revoke API Key
-          </ModalHeader>
-          <ModalBody>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                <IconAlertTriangle size={20} className="text-red-500" />
-              </div>
-              <div>
-                <p className="text-neutral-800 dark:text-neutral-200">
-                  Are you sure you want to revoke{" "}
-                  <span className="font-medium">{keyToRevoke?.name}</span>?
-                </p>
-                <p className="text-sm text-neutral-500 mt-1">
-                  This action cannot be undone. Any applications using this key
-                  will immediately lose access.
-                </p>
-              </div>
+        <DialogContent className="sm:max-w-sm bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-neutral-800 dark:text-neutral-200">
+              Revoke API Key
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Confirm revoking an API key
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-start gap-3 py-4">
+            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+              <IconAlertTriangle size={20} className="text-red-500" />
             </div>
-          </ModalBody>
-          <ModalFooter>
+            <div>
+              <p className="text-neutral-800 dark:text-neutral-200">
+                Are you sure you want to revoke{" "}
+                <span className="font-medium">{keyToRevoke?.name}</span>?
+              </p>
+              <p className="text-sm text-neutral-500 mt-1">
+                This action cannot be undone. Any applications using this key
+                will immediately lose access.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
             <Button
-              variant="light"
-              onPress={() => setRevokeKeyId(null)}
-              isDisabled={isRevoking}
+              variant="ghost"
+              onClick={() => setRevokeKeyId(null)}
+              disabled={isRevoking}
               className="text-neutral-600 dark:text-neutral-400"
             >
               Cancel
             </Button>
             <Button
-              onPress={handleRevoke}
-              isDisabled={isRevoking}
+              onClick={handleRevoke}
+              disabled={isRevoking}
               className="bg-red-500 text-white"
-              startContent={
-                isRevoking ? (
-                  <IconLoader2 size={16} className="animate-spin" />
-                ) : null
-              }
             >
-              {isRevoking ? "Revoking..." : "Revoke Key"}
+              {isRevoking ? (
+                <>
+                  <IconLoader2 size={16} className="animate-spin" />
+                  Revoking...
+                </>
+              ) : (
+                "Revoke Key"
+              )}
             </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

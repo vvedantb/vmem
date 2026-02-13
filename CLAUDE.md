@@ -12,7 +12,8 @@ vmem is a universal, model-agnostic memory layer for AI systems — a Final Year
 - `apps/web/` — Next.js 16 dashboard (primary, actively developed)
 - `apps/chrome-extension/` — browser extension (planned)
 - `apps/mobile/` — mobile app (planned)
-- `packages/backend/` — backend API (in progress)
+- `packages/backend/` — Convex backend (schema, auth, validators)
+- `packages/ui/` — shared UI component library (shadcn/Radix pattern, Nova neutral theme)
 - `internal/` — changelog, project plan, proposal, competitors analysis
 
 ## Commands
@@ -37,10 +38,13 @@ Pre-commit hook (husky) runs `lint-staged` → Prettier on staged files.
 ## Tech Stack (Frontend — apps/web)
 
 - **Next.js 16** (App Router, Turbopack) + **React 19** + **TypeScript** (strict)
-- **HeroUI** — component library (buttons, modals, tables, tabs, etc.)
-- **Tailwind CSS 3** — styling with `darkMode: "class"`, HeroUI theme plugin
+- **@vmem/ui** — shared component library (shadcn pattern: Radix UI primitives + CVA + cn utility)
+- **Tailwind CSS 3** — styling with `darkMode: "class"`, OKLCH CSS variables (Nova neutral theme)
 - **Tabler Icons** (`@tabler/icons-react`) — all iconography
 - **next-themes** — dark/light mode switching
+- **sonner** — toast notifications (imperative `toast()` API)
+- **Convex** — reactive database with `@vmem/backend` package
+- **Clerk** — authentication (`@clerk/nextjs` + `ConvexProviderWithClerk`)
 - **React Compiler** enabled via babel plugin
 
 ## Tech Stack (Backend — planned)
@@ -61,8 +65,9 @@ Pre-commit hook (husky) runs `lint-staged` → Prettier on staged files.
 **Component patterns:**
 
 - Server Components by default for pages/layouts
-- Client Components (`"use client"`) only for pieces needing hooks, event handlers, browser APIs, HeroUI, or context consumers
-- Context providers: AuthContext, ThemeContext, NotificationContext — wrapped via `components/providers/ClientProvider.tsx`
+- Client Components (`"use client"`) only for pieces needing hooks, event handlers, browser APIs, or context consumers
+- Context providers: ThemeContext, NotificationContext — wrapped via `components/providers/ClientProvider.tsx`
+- Auth: Clerk (`ClerkProvider` in root layout) + `EnsureUser` component creates Convex user on first sign-in
 
 **Path alias:** `@/*` maps to the web app root (e.g., `@/components/Sidebar`)
 
@@ -70,8 +75,8 @@ Pre-commit hook (husky) runs `lint-staged` → Prettier on staged files.
 
 ## Styling Conventions
 
-- Tailwind-first; custom theme colors defined in `tailwind.config.ts` via HeroUI plugin
-- Neutral color palette (light: neutral-50 bg, dark: neutral-950 bg)
+- Tailwind-first; design tokens via OKLCH CSS variables in `globals.css`, theme extension in `lib/tailwind-theme.ts`
+- Nova neutral color palette (OKLCH), semantic tokens: primary, secondary, muted, accent, destructive, success, warning
 - Custom animations: `aurora`, `fade-in-up`
 - Fonts: Instrument Sans (400-700), Instrument Serif (400)
 - Mobile-first responsive using `xs`, `sm`, `md`, `lg`, `xl`, `2xl` breakpoints

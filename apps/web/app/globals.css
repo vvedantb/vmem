@@ -2,14 +2,79 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --background: 0.985 0 0;
+    --foreground: 0.145 0 0;
+    --card: 1 0 0;
+    --card-foreground: 0.145 0 0;
+    --popover: 1 0 0;
+    --popover-foreground: 0.145 0 0;
+    --primary: 0.205 0 0;
+    --primary-foreground: 0.985 0 0;
+    --secondary: 0.964 0 0;
+    --secondary-foreground: 0.205 0 0;
+    --muted: 0.97 0 0;
+    --muted-foreground: 0.556 0 0;
+    --accent: 0.964 0 0;
+    --accent-foreground: 0.205 0 0;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+    --success: 0.627 0.196 144.899;
+    --success-foreground: 0.985 0 0;
+    --warning: 0.666 0.168 64.247;
+    --warning-foreground: 0.985 0 0;
+    --border: 0.922 0 0;
+    --input: 0.922 0 0;
+    --ring: 0.205 0 0;
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 0.145 0 0;
+    --foreground: 0.985 0 0;
+    --card: 0.205 0 0;
+    --card-foreground: 0.985 0 0;
+    --popover: 0.205 0 0;
+    --popover-foreground: 0.985 0 0;
+    --primary: 0.922 0 0;
+    --primary-foreground: 0.145 0 0;
+    --secondary: 0.269 0 0;
+    --secondary-foreground: 0.985 0 0;
+    --muted: 0.269 0 0;
+    --muted-foreground: 0.708 0 0;
+    --accent: 0.269 0 0;
+    --accent-foreground: 0.985 0 0;
+    --destructive: 0.704 0.191 22.216;
+    --destructive-foreground: 0.985 0 0;
+    --success: 0.8 0.207 147.325;
+    --success-foreground: 0.145 0 0;
+    --warning: 0.837 0.193 90.151;
+    --warning-foreground: 0.145 0 0;
+    --border: 0.309 0 0;
+    --input: 0.309 0 0;
+    --ring: 0.922 0 0;
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+    scrollbar-color: oklch(var(--muted-foreground) / 0.3) transparent;
   }
 
-  .dark .scrollbar-thin {
-    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  .scrollbar-thin:hover {
+    scrollbar-color: oklch(var(--muted-foreground) / 0.5) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
@@ -21,20 +86,12 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: oklch(var(--muted-foreground) / 0.3);
     border-radius: 3px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.2);
-  }
-
-  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: oklch(var(--muted-foreground) / 0.5);
   }
 }
 
@@ -70,7 +127,6 @@
     animation: gradient-move 6s ease infinite;
   }
 
-  /* Blob animation for background elements */
   .animate-blob {
     animation: blob 7s infinite;
   }
@@ -98,7 +154,6 @@
     }
   }
 
-  /* Shimmer animation for streaming content */
   @keyframes shimmer {
     0% {
       transform: translateX(-100%);
@@ -108,17 +163,6 @@
     }
   }
 
-  /* Typewriter effect */
-  @keyframes typewriter {
-    from {
-      width: 0;
-    }
-    to {
-      width: 100%;
-    }
-  }
-
-  /* Gentle fade in for new content */
   @keyframes fadeInUp {
     from {
       opacity: 0;
@@ -130,18 +174,16 @@
     }
   }
 
-  /* Pulse glow effect */
   @keyframes pulseGlow {
     0%,
     100% {
-      box-shadow: 0 0 5px rgba(168, 162, 158, 0.3);
+      box-shadow: 0 0 5px oklch(var(--muted-foreground) / 0.3);
     }
     50% {
-      box-shadow: 0 0 20px rgba(168, 162, 158, 0.6);
+      box-shadow: 0 0 20px oklch(var(--muted-foreground) / 0.6);
     }
   }
 
-  /* Smooth text reveal */
   @keyframes textReveal {
     0% {
       opacity: 0;
@@ -157,10 +199,6 @@
     animation: shimmer 2s infinite;
   }
 
-  .animate-typewriter {
-    animation: typewriter 2s steps(40, end);
-  }
-
   .animate-fade-in-up {
     animation: fadeInUp 0.6s ease-out;
   }
@@ -173,40 +211,18 @@
     animation: textReveal 0.8s ease-out;
   }
 
-  /* Smooth typing input styles - Gemini-style steady caret */
   .smooth-typing-input {
-    caret-color: #3b82f6; /* Tailwind blue-500 */
+    caret-color: oklch(var(--primary));
     transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Dark mode caret */
-  .dark .smooth-typing-input {
-    caret-color: #60a5fa; /* Tailwind blue-400 */
-  }
-
-  /* Remove default blinking on all browsers */
-  .smooth-typing-input {
     caret-shape: bar;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Force steady caret (no blink) */
   @supports (caret-animation: none) {
     .smooth-typing-input {
       caret-animation: none;
     }
-  }
-
-  /* Webkit/Blink browsers - override default blink */
-  @media screen {
-    .smooth-typing-input {
-      animation: none !important;
-    }
-  }
-
-  /* Smooth text rendering while typing */
-  .smooth-typing-input {
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
 }

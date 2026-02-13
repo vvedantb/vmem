@@ -1,14 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import {
-  Card,
-  CardBody,
-  Button,
-  Chip,
-  Progress,
-  addToast,
-} from "@heroui/react";
+import { Card, CardContent, Button, Badge, Progress } from "@vmem/ui";
+import { toast } from "sonner";
 import {
   IconBrandGoogleDrive,
   IconBrandOnedrive,
@@ -25,7 +19,10 @@ import {
 import OAuthModal from "./OAuthModal";
 import type { Connector } from "@/app/api/connectors/store";
 
-const iconMap: Record<string, React.ComponentType<{ size?: number; stroke?: number; className?: string }>> = {
+const iconMap: Record<
+  string,
+  React.ComponentType<{ size?: number; stroke?: number; className?: string }>
+> = {
   IconBrandGoogleDrive,
   IconBrandOnedrive,
   IconBrandDropbox,
@@ -71,7 +68,6 @@ export default function ConnectorCard({
   const isConnected = connector.connectionStatus === "connected";
   const isSyncing = connector.syncStatus === "syncing";
 
-  // Poll for sync progress when syncing
   useEffect(() => {
     if (isSyncing) {
       pollIntervalRef.current = setInterval(async () => {
@@ -87,9 +83,7 @@ export default function ConnectorCard({
               }
             }
           }
-        } catch {
-          // Ignore polling errors
-        }
+        } catch {}
       }, 500);
     }
 
@@ -118,24 +112,12 @@ export default function ConnectorCard({
 
       if (data.success) {
         onUpdate(data.data);
-        addToast({
-          title: "Connected",
-          description: `Successfully connected to ${connector.name}`,
-          color: "success",
-        });
+        toast.success(`Successfully connected to ${connector.name}`);
       } else {
-        addToast({
-          title: "Connection Failed",
-          description: data.error || "Failed to connect",
-          color: "danger",
-        });
+        toast.error(data.error || "Failed to connect");
       }
     } catch {
-      addToast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        color: "danger",
-      });
+      toast.error("An unexpected error occurred");
     } finally {
       setIsConnecting(false);
     }
@@ -154,24 +136,12 @@ export default function ConnectorCard({
 
       if (data.success) {
         onUpdate(data.data);
-        addToast({
-          title: "Disconnected",
-          description: `Disconnected from ${connector.name}`,
-          color: "default",
-        });
+        toast(`Disconnected from ${connector.name}`);
       } else {
-        addToast({
-          title: "Error",
-          description: data.error || "Failed to disconnect",
-          color: "danger",
-        });
+        toast.error(data.error || "Failed to disconnect");
       }
     } catch {
-      addToast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        color: "danger",
-      });
+      toast.error("An unexpected error occurred");
     } finally {
       setIsDisconnecting(false);
     }
@@ -189,35 +159,19 @@ export default function ConnectorCard({
 
       if (data.success) {
         onUpdate(data.data);
-        addToast({
-          title: "Sync Started",
-          description: `Syncing ${connector.name}...`,
-          color: "default",
-        });
+        toast(`Syncing ${connector.name}...`);
       } else {
-        addToast({
-          title: "Sync Failed",
-          description: data.error || "Failed to start sync",
-          color: "danger",
-        });
+        toast.error(data.error || "Failed to start sync");
       }
     } catch {
-      addToast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        color: "danger",
-      });
+      toast.error("An unexpected error occurred");
     }
   };
 
   return (
     <>
-      <Card
-        classNames={{
-          base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
-        }}
-      >
-        <CardBody className="p-6">
+      <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+        <CardContent className="p-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
               <Icon
@@ -232,53 +186,32 @@ export default function ConnectorCard({
                   {connector.name}
                 </h3>
                 {isConnected && (
-                  <Chip
-                    size="sm"
-                    variant="flat"
-                    startContent={<IconCheck size={12} stroke={2} />}
-                    classNames={{
-                      base: "bg-black/5 dark:bg-white/10",
-                      content:
-                        "text-neutral-600 dark:text-neutral-400 text-xs font-medium",
-                    }}
-                  >
+                  <Badge className="bg-black/5 dark:bg-white/10 text-neutral-600 dark:text-neutral-400 gap-1">
+                    <IconCheck size={12} stroke={2} />
                     Connected
-                  </Chip>
+                  </Badge>
                 )}
                 {isSyncing && (
-                  <Chip
-                    size="sm"
-                    variant="flat"
-                    startContent={
-                      <IconLoader2 size={12} stroke={2} className="animate-spin" />
-                    }
-                    classNames={{
-                      base: "bg-blue-50 dark:bg-blue-900/20",
-                      content: "text-blue-600 dark:text-blue-400 text-xs font-medium",
-                    }}
-                  >
+                  <Badge className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 gap-1">
+                    <IconLoader2
+                      size={12}
+                      stroke={2}
+                      className="animate-spin"
+                    />
                     Syncing
-                  </Chip>
+                  </Badge>
                 )}
                 {connector.syncStatus === "error" && (
-                  <Chip
-                    size="sm"
-                    variant="flat"
-                    startContent={<IconAlertCircle size={12} stroke={2} />}
-                    classNames={{
-                      base: "bg-red-50 dark:bg-red-900/20",
-                      content: "text-red-600 dark:text-red-400 text-xs font-medium",
-                    }}
-                  >
+                  <Badge className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 gap-1">
+                    <IconAlertCircle size={12} stroke={2} />
                     Error
-                  </Chip>
+                  </Badge>
                 )}
               </div>
               <p className="text-sm text-neutral-500 mt-1">
                 {connector.description}
               </p>
 
-              {/* Connection stats */}
               {isConnected && (
                 <div className="flex items-center gap-4 mt-3 text-xs text-neutral-500">
                   <span className="flex items-center gap-1">
@@ -291,16 +224,11 @@ export default function ConnectorCard({
                 </div>
               )}
 
-              {/* Sync progress */}
               {isSyncing && (
                 <div className="mt-3 space-y-1">
                   <Progress
                     value={connector.syncProgress}
-                    size="sm"
-                    classNames={{
-                      track: "bg-black/10 dark:bg-white/10",
-                      indicator: "bg-black dark:bg-white",
-                    }}
+                    className="h-1.5 bg-black/10 dark:bg-white/10 [&>div]:bg-black [&>div]:dark:bg-white"
                   />
                   <p className="text-xs text-neutral-500">
                     {connector.syncProgress}% complete
@@ -308,7 +236,6 @@ export default function ConnectorCard({
                 </div>
               )}
 
-              {/* Error message */}
               {connector.errorMessage && (
                 <p className="text-xs text-red-500 mt-2">
                   {connector.errorMessage}
@@ -321,53 +248,47 @@ export default function ConnectorCard({
             {isConnected ? (
               <>
                 <Button
-                  variant="bordered"
+                  variant="outline"
                   size="sm"
-                  onPress={handleSync}
-                  isDisabled={isSyncing || isDisconnecting}
+                  onClick={handleSync}
+                  disabled={isSyncing || isDisconnecting}
                   className="border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400"
-                  startContent={
-                    isSyncing ? (
-                      <IconLoader2 size={14} className="animate-spin" />
-                    ) : (
-                      <IconRefresh size={14} />
-                    )
-                  }
                 >
+                  {isSyncing ? (
+                    <IconLoader2 size={14} className="animate-spin" />
+                  ) : (
+                    <IconRefresh size={14} />
+                  )}
                   {isSyncing ? "Syncing..." : "Sync Now"}
                 </Button>
                 <Button
-                  variant="bordered"
+                  variant="outline"
                   size="sm"
-                  onPress={handleDisconnect}
-                  isDisabled={isSyncing || isDisconnecting}
+                  onClick={handleDisconnect}
+                  disabled={isSyncing || isDisconnecting}
                   className="border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400"
-                  startContent={
-                    isDisconnecting && (
-                      <IconLoader2 size={14} className="animate-spin" />
-                    )
-                  }
                 >
+                  {isDisconnecting && (
+                    <IconLoader2 size={14} className="animate-spin" />
+                  )}
                   {isDisconnecting ? "Disconnecting..." : "Disconnect"}
                 </Button>
               </>
             ) : (
               <Button
                 size="sm"
-                onPress={handleConnect}
-                isDisabled={isConnecting}
+                onClick={handleConnect}
+                disabled={isConnecting}
                 className="bg-black dark:bg-white text-white dark:text-black font-medium"
-                startContent={
-                  isConnecting && (
-                    <IconLoader2 size={14} className="animate-spin" />
-                  )
-                }
               >
+                {isConnecting && (
+                  <IconLoader2 size={14} className="animate-spin" />
+                )}
                 {isConnecting ? "Connecting..." : "Connect"}
               </Button>
             )}
           </div>
-        </CardBody>
+        </CardContent>
       </Card>
 
       <OAuthModal
