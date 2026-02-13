@@ -189,7 +189,7 @@ export default function FilesPage() {
         title="Files"
         description="Manage your uploaded files and documents"
       >
-        <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
+        <div className="p-6 rounded-xl border border-border bg-muted/50">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex-1">
               <Skeleton className="h-4 w-32 mb-2 rounded" />
@@ -201,8 +201,8 @@ export default function FilesPage() {
 
         <div>
           <Skeleton className="h-6 w-24 mb-4 rounded" />
-          <div className="border border-black/10 dark:border-white/10 rounded-xl overflow-hidden">
-            <div className="bg-black/[0.02] dark:bg-white/[0.02] px-4 py-3 border-b border-black/10 dark:border-white/10">
+          <div className="border border-border rounded-xl overflow-hidden">
+            <div className="bg-muted/50 px-4 py-3 border-b border-border">
               <div className="flex gap-4">
                 <Skeleton className="h-4 w-24 rounded" />
                 <Skeleton className="h-4 w-16 rounded hidden md:block" />
@@ -212,7 +212,7 @@ export default function FilesPage() {
             {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className="px-4 py-4 border-b border-black/10 dark:border-white/10 last:border-b-0"
+                className="px-4 py-4 border-b border-border last:border-b-0"
               >
                 <div className="flex items-center gap-3">
                   <Skeleton className="h-10 w-10 rounded-lg" />
@@ -233,21 +233,16 @@ export default function FilesPage() {
         description="Manage your uploaded files and documents"
       >
         <div className="flex flex-col items-center justify-center py-16 px-4">
-          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
-            <IconAlertCircle
-              size={32}
-              className="text-red-500 dark:text-red-400"
-            />
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+            <IconAlertCircle size={32} className="text-destructive" />
           </div>
-          <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
+          <h3 className="text-lg font-medium text-foreground mb-2">
             Failed to load files
           </h3>
-          <p className="text-neutral-500 dark:text-neutral-400 text-center mb-4">
-            {error}
-          </p>
+          <p className="text-muted-foreground text-center mb-4">{error}</p>
           <Button
             onClick={fetchFiles}
-            className="bg-black dark:bg-white text-white dark:text-black"
+            className="bg-primary text-primary-foreground"
           >
             <IconRefresh size={18} />
             Try again
@@ -262,25 +257,22 @@ export default function FilesPage() {
       title="Files"
       description="Manage your uploaded files and documents"
     >
-      <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
+      <div className="p-6 rounded-xl border border-border bg-muted/50">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              <span className="text-sm font-medium text-muted-foreground">
                 Storage Usage
               </span>
-              <span className="text-sm text-neutral-500">
+              <span className="text-sm text-muted-foreground">
                 {storageUsedGB.toFixed(2)} GB / {storageLimitGB} GB
               </span>
             </div>
-            <Progress
-              value={storagePercent}
-              className="h-2 bg-black/10 dark:bg-white/10"
-            />
+            <Progress value={storagePercent} className="h-2 bg-muted" />
           </div>
           <Button
             onClick={() => setIsUploadModalOpen(true)}
-            className="bg-black dark:bg-white text-white dark:text-black font-medium"
+            className="bg-primary text-primary-foreground font-medium"
           >
             <IconUpload size={18} stroke={1.5} />
             Upload File
@@ -289,19 +281,19 @@ export default function FilesPage() {
       </div>
 
       {files.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 px-4 border border-black/10 dark:border-white/10 rounded-xl bg-black/[0.02] dark:bg-white/[0.02]">
-          <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mb-4">
-            <IconFile size={32} className="text-neutral-400" />
+        <div className="flex flex-col items-center justify-center py-16 px-4 border border-border rounded-xl bg-muted/50">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            <IconFile size={32} className="text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
+          <h3 className="text-lg font-medium text-foreground mb-2">
             No files yet
           </h3>
-          <p className="text-neutral-500 dark:text-neutral-400 text-center mb-4">
+          <p className="text-muted-foreground text-center mb-4">
             Upload your first file to get started
           </p>
           <Button
             onClick={() => setIsUploadModalOpen(true)}
-            className="bg-black dark:bg-white text-white dark:text-black"
+            className="bg-primary text-primary-foreground"
           >
             <IconUpload size={18} />
             Upload File
@@ -309,20 +301,20 @@ export default function FilesPage() {
         </div>
       ) : (
         <div>
-          <h3 className="text-lg font-medium text-black dark:text-white mb-4">
+          <h3 className="text-lg font-medium text-foreground mb-4">
             Your Files ({files.length})
           </h3>
-          <div className="border border-black/10 dark:border-white/10 rounded-xl overflow-hidden">
+          <div className="border border-border rounded-xl overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="bg-black/[0.02] dark:bg-white/[0.02]">
-                  <TableHead className="text-neutral-500 font-medium">
+                <TableRow className="bg-muted/50">
+                  <TableHead className="text-muted-foreground font-medium">
                     NAME
                   </TableHead>
-                  <TableHead className="hidden md:table-cell text-neutral-500 font-medium">
+                  <TableHead className="hidden md:table-cell text-muted-foreground font-medium">
                     SIZE
                   </TableHead>
-                  <TableHead className="hidden md:table-cell text-neutral-500 font-medium">
+                  <TableHead className="hidden md:table-cell text-muted-foreground font-medium">
                     UPLOADED
                   </TableHead>
                   <TableHead className="w-[60px]">
@@ -337,12 +329,12 @@ export default function FilesPage() {
                   return (
                     <TableRow
                       key={file.id}
-                      className="cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                      className="cursor-pointer hover:bg-accent"
                       onClick={() => handleViewFile(file)}
                     >
                       <TableCell className="py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center flex-shrink-0 overflow-hidden">
                             {file.type === "image" && file.thumbnailUrl ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
@@ -354,22 +346,22 @@ export default function FilesPage() {
                               <FileIcon
                                 size={20}
                                 stroke={1.5}
-                                className="text-neutral-600 dark:text-neutral-400"
+                                className="text-muted-foreground"
                               />
                             )}
                           </div>
-                          <span className="text-neutral-800 dark:text-neutral-200 font-medium">
+                          <span className="text-foreground font-medium">
                             {file.name}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell py-4">
-                        <span className="text-sm text-neutral-500 tabular-nums">
+                        <span className="text-sm text-muted-foreground tabular-nums">
                           {formatFileSize(file.size)}
                         </span>
                       </TableCell>
                       <TableCell className="hidden md:table-cell py-4">
-                        <span className="text-sm text-neutral-500">
+                        <span className="text-sm text-muted-foreground">
                           {formatDate(file.uploadedAt)}
                         </span>
                       </TableCell>
@@ -379,7 +371,7 @@ export default function FilesPage() {
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              className="text-neutral-500"
+                              className="text-muted-foreground"
                               onClick={(e) => e.stopPropagation()}
                               disabled={isDeleting}
                             >

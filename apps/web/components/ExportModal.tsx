@@ -262,22 +262,23 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
         onEscapeKeyDown={(e) => {
           if (isExporting) e.preventDefault();
         }}
-        className="bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10"
+        className="bg-card border border-border"
       >
-        <DialogHeader className="border-b border-black/10 dark:border-white/10 pb-4">
-          <DialogTitle className="text-neutral-800 dark:text-neutral-200">
-            Export Memories
-          </DialogTitle>
+        <DialogHeader className="border-b border-border pb-4">
+          <DialogTitle className="text-foreground">Export Memories</DialogTitle>
         </DialogHeader>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <IconLoader2 size={24} className="animate-spin text-neutral-400" />
+            <IconLoader2
+              size={24}
+              className="animate-spin text-muted-foreground"
+            />
           </div>
         ) : (
           <div className="space-y-6 py-2">
             <div>
-              <label className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2 block">
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
                 Export Format
               </label>
               <Select
@@ -289,12 +290,12 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
                 }
                 disabled={isExporting}
               >
-                <SelectTrigger className="bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none hover:bg-black/[0.04] dark:hover:bg-white/[0.04] text-neutral-800 dark:text-neutral-200">
+                <SelectTrigger className="bg-muted/50 border border-border shadow-none hover:bg-accent text-foreground">
                   <div className="flex items-center gap-2">
                     {format === "json" ? (
-                      <IconFile size={18} className="text-neutral-500" />
+                      <IconFile size={18} className="text-muted-foreground" />
                     ) : (
-                      <IconTable size={18} className="text-neutral-500" />
+                      <IconTable size={18} className="text-muted-foreground" />
                     )}
                     <SelectValue />
                   </div>
@@ -317,7 +318,7 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2 block">
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
                 Date Range
               </label>
               <Select
@@ -334,7 +335,7 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
                 }
                 disabled={isExporting}
               >
-                <SelectTrigger className="bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none hover:bg-black/[0.04] dark:hover:bg-white/[0.04] text-neutral-800 dark:text-neutral-200">
+                <SelectTrigger className="bg-muted/50 border border-border shadow-none hover:bg-accent text-foreground">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -347,7 +348,7 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2 block">
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
                 Filter by Tags (optional)
               </label>
               {availableTags.length > 0 ? (
@@ -357,8 +358,8 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
                       key={tag}
                       className={`cursor-pointer transition-colors ${
                         selectedTags.includes(tag)
-                          ? "bg-black dark:bg-white text-white dark:text-black"
-                          : "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted border border-border text-muted-foreground"
                       }`}
                       onClick={() => !isExporting && toggleTag(tag)}
                     >
@@ -367,15 +368,15 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-neutral-400 dark:text-neutral-500">
+                <p className="text-sm text-muted-foreground">
                   No tags available
                 </p>
               )}
             </div>
 
-            <div className="p-4 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10">
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                <span className="font-medium text-neutral-800 dark:text-neutral-200">
+            <div className="p-4 rounded-lg bg-muted/50 border border-border">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">
                   {filteredCount}
                 </span>{" "}
                 {filteredCount === 1 ? "memory" : "memories"} will be exported
@@ -384,11 +385,8 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
 
             {isExporting && (
               <div className="space-y-2">
-                <Progress
-                  value={exportProgress}
-                  className="h-1.5 bg-black/10 dark:bg-white/10"
-                />
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center">
+                <Progress value={exportProgress} className="h-1.5 bg-muted" />
+                <p className="text-sm text-muted-foreground text-center">
                   {exportProgress < 100
                     ? "Generating export file..."
                     : "Export complete!"}
@@ -398,19 +396,19 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
           </div>
         )}
 
-        <DialogFooter className="border-t border-black/10 dark:border-white/10 pt-4">
+        <DialogFooter className="border-t border-border pt-4">
           <Button
             variant="ghost"
             onClick={handleClose}
             disabled={isExporting}
-            className="text-neutral-600 dark:text-neutral-400"
+            className="text-muted-foreground"
           >
             Cancel
           </Button>
           <Button
             onClick={handleExport}
             disabled={isExporting || isLoading || filteredCount === 0}
-            className="bg-black dark:bg-white text-white dark:text-black"
+            className="bg-primary text-primary-foreground"
           >
             {isExporting ? (
               exportProgress === 100 ? (

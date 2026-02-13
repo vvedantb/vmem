@@ -156,19 +156,16 @@ export default function FilePreviewModal({
         onOpenChange={handleOpenChange}
       >
         <DialogContent
-          className="max-w-2xl bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10"
+          className="max-w-2xl bg-card border border-border"
           hideCloseButton
         >
-          <DialogHeader className="border-b border-black/10 dark:border-white/10 pb-4">
+          <DialogHeader className="border-b border-border pb-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
-                  <FileIcon
-                    size={20}
-                    className="text-neutral-600 dark:text-neutral-400"
-                  />
+                <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center flex-shrink-0">
+                  <FileIcon size={20} className="text-muted-foreground" />
                 </div>
-                <DialogTitle className="text-neutral-800 dark:text-neutral-200 text-lg font-semibold truncate">
+                <DialogTitle className="text-foreground text-lg font-semibold truncate">
                   {file.name}
                 </DialogTitle>
               </div>
@@ -176,7 +173,7 @@ export default function FilePreviewModal({
                 size="icon-sm"
                 variant="ghost"
                 onClick={handleClose}
-                className="text-neutral-500 flex-shrink-0"
+                className="text-muted-foreground flex-shrink-0"
               >
                 <IconX size={18} />
               </Button>
@@ -184,7 +181,7 @@ export default function FilePreviewModal({
           </DialogHeader>
 
           <div className="space-y-6 py-2">
-            <div className="rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 overflow-hidden">
+            <div className="rounded-lg bg-muted/50 border border-border overflow-hidden">
               {file.type === "image" && file.thumbnailUrl ? (
                 <div className="flex items-center justify-center min-h-[300px] p-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -196,15 +193,10 @@ export default function FilePreviewModal({
                 </div>
               ) : file.type === "pdf" ? (
                 <div className="flex flex-col items-center justify-center min-h-[300px] p-8 gap-4">
-                  <IconFileTypePdf
-                    size={64}
-                    className="text-red-500 dark:text-red-400"
-                  />
+                  <IconFileTypePdf size={64} className="text-destructive" />
                   <div className="text-center">
-                    <p className="text-neutral-800 dark:text-neutral-200 font-medium">
-                      PDF Document
-                    </p>
-                    <p className="text-sm text-neutral-500 mt-1">
+                    <p className="text-foreground font-medium">PDF Document</p>
+                    <p className="text-sm text-muted-foreground mt-1">
                       {file.previewContent ||
                         "PDF preview not available in mock mode"}
                     </p>
@@ -212,18 +204,18 @@ export default function FilePreviewModal({
                 </div>
               ) : (
                 <div className="p-4">
-                  <div className="flex items-center gap-2 mb-4 pb-3 border-b border-black/10 dark:border-white/10">
-                    <FileIcon size={18} className="text-neutral-500" />
-                    <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                  <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border">
+                    <FileIcon size={18} className="text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">
                       File Preview
                     </span>
                   </div>
                   {file.previewContent ? (
-                    <pre className="text-sm text-neutral-700 dark:text-neutral-300 whitespace-pre-wrap font-mono">
+                    <pre className="text-sm text-foreground whitespace-pre-wrap font-mono">
                       {file.previewContent}
                     </pre>
                   ) : (
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center py-8">
+                    <p className="text-sm text-muted-foreground text-center py-8">
                       Preview not available for this file type
                     </p>
                   )}
@@ -233,44 +225,38 @@ export default function FilePreviewModal({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-muted-foreground mb-1">
                   File Size
                 </p>
-                <p className="text-neutral-800 dark:text-neutral-200">
-                  {formatFileSize(file.size)}
-                </p>
+                <p className="text-foreground">{formatFileSize(file.size)}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-muted-foreground mb-1">
                   Type
                 </p>
-                <p className="text-neutral-800 dark:text-neutral-200">
-                  {file.mimeType}
-                </p>
+                <p className="text-foreground">{file.mimeType}</p>
               </div>
               <div className="col-span-2">
-                <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-muted-foreground mb-1">
                   Uploaded
                 </p>
-                <p className="text-neutral-800 dark:text-neutral-200">
-                  {formatDate(file.uploadedAt)}
-                </p>
+                <p className="text-foreground">{formatDate(file.uploadedAt)}</p>
               </div>
             </div>
           </div>
 
-          <DialogFooter className="border-t border-black/10 dark:border-white/10 pt-4 flex justify-between sm:justify-between">
+          <DialogFooter className="border-t border-border pt-4 flex justify-between sm:justify-between">
             <Button
               variant="ghost"
               onClick={() => setShowDeleteConfirm(true)}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <IconTrash size={16} />
               Delete
             </Button>
             <Button
               onClick={handleDownload}
-              className="bg-black dark:bg-white text-white dark:text-black"
+              className="bg-primary text-primary-foreground"
             >
               <IconDownload size={16} />
               Download
@@ -284,28 +270,26 @@ export default function FilePreviewModal({
         onOpenChange={handleDeleteConfirmOpenChange}
       >
         <DialogContent
-          className="max-w-sm bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10"
+          className="max-w-sm bg-card border border-border"
           hideCloseButton
         >
-          <DialogHeader className="border-b border-black/10 dark:border-white/10 pb-4">
-            <DialogTitle className="text-neutral-800 dark:text-neutral-200">
-              Delete File
-            </DialogTitle>
+          <DialogHeader className="border-b border-border pb-4">
+            <DialogTitle className="text-foreground">Delete File</DialogTitle>
           </DialogHeader>
 
           <div className="py-2">
-            <p className="text-neutral-600 dark:text-neutral-400">
+            <p className="text-muted-foreground">
               Are you sure you want to delete &quot;{file.name}&quot;? This
               action cannot be undone.
             </p>
           </div>
 
-          <DialogFooter className="border-t border-black/10 dark:border-white/10 pt-4">
+          <DialogFooter className="border-t border-border pt-4">
             <Button
               variant="ghost"
               onClick={() => setShowDeleteConfirm(false)}
               disabled={isDeleting}
-              className="text-neutral-600 dark:text-neutral-400"
+              className="text-muted-foreground"
             >
               Cancel
             </Button>

@@ -154,7 +154,7 @@ export default function ApiKeysPage() {
   if (isLoading) {
     return (
       <>
-        <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+        <Card className="border border-border bg-muted/50 shadow-none">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
               <Skeleton className="w-10 h-10 rounded-lg" />
@@ -171,8 +171,8 @@ export default function ApiKeysPage() {
           <Skeleton className="h-10 w-32 rounded-lg" />
         </div>
 
-        <div className="border border-black/10 dark:border-white/10 rounded-xl overflow-hidden">
-          <div className="bg-black/[0.02] dark:bg-white/[0.02] p-4 border-b border-black/10 dark:border-white/10">
+        <div className="border border-border rounded-xl overflow-hidden">
+          <div className="bg-muted/50 p-4 border-b border-border">
             <div className="flex gap-4">
               <Skeleton className="h-4 w-20 rounded" />
               <Skeleton className="h-4 w-40 rounded" />
@@ -181,10 +181,7 @@ export default function ApiKeysPage() {
             </div>
           </div>
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="p-4 border-b border-black/5 dark:border-white/5"
-            >
+            <div key={i} className="p-4 border-b border-border">
               <div className="flex items-center gap-4">
                 <Skeleton className="h-5 w-28 rounded" />
                 <Skeleton className="h-5 w-48 rounded" />
@@ -204,16 +201,16 @@ export default function ApiKeysPage() {
       <div className="py-16 text-center">
         <IconAlertCircle
           size={48}
-          className="mx-auto text-red-500 mb-4"
+          className="mx-auto text-destructive mb-4"
           stroke={1.5}
         />
-        <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
+        <h3 className="text-lg font-medium text-foreground mb-2">
           Failed to load API keys
         </h3>
-        <p className="text-neutral-500 mb-6">{error}</p>
+        <p className="text-muted-foreground mb-6">{error}</p>
         <Button
           onClick={fetchApiKeys}
-          className="bg-black dark:bg-white text-white dark:text-black"
+          className="bg-primary text-primary-foreground"
         >
           Try again
         </Button>
@@ -223,20 +220,18 @@ export default function ApiKeysPage() {
 
   return (
     <>
-      <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+      <Card className="border border-border bg-muted/50 shadow-none">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center flex-shrink-0">
               <IconBolt
-                className="w-5 h-5 text-neutral-600 dark:text-neutral-400"
+                className="w-5 h-5 text-muted-foreground"
                 stroke={1.5}
               />
             </div>
             <div>
-              <h3 className="font-medium text-black dark:text-white">
-                MCP Integration
-              </h3>
-              <p className="text-sm text-neutral-500 mt-1">
+              <h3 className="font-medium text-foreground">MCP Integration</h3>
+              <p className="text-sm text-muted-foreground mt-1">
                 Use your API key to connect vMemory with MCP-compatible clients.
                 Your memories will be accessible through the Model Context
                 Protocol.
@@ -247,54 +242,52 @@ export default function ApiKeysPage() {
       </Card>
 
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-black dark:text-white">
-          Your API Keys
-        </h3>
+        <h3 className="text-lg font-medium text-foreground">Your API Keys</h3>
         <Button
           onClick={() => setIsCreateModalOpen(true)}
-          className="bg-black dark:bg-white text-white dark:text-black font-medium"
+          className="bg-primary text-primary-foreground font-medium"
         >
           Create New Key
         </Button>
       </div>
 
       {apiKeys.length === 0 ? (
-        <div className="py-16 text-center border border-black/10 dark:border-white/10 rounded-xl">
+        <div className="py-16 text-center border border-border rounded-xl">
           <IconBolt
             size={48}
-            className="mx-auto text-neutral-300 dark:text-neutral-600 mb-4"
+            className="mx-auto text-muted-foreground mb-4"
             stroke={1.5}
           />
-          <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
+          <h3 className="text-lg font-medium text-foreground mb-2">
             No API keys yet
           </h3>
-          <p className="text-neutral-500 mb-6">
+          <p className="text-muted-foreground mb-6">
             Create your first API key to start using vMemory programmatically.
           </p>
           <Button
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-black dark:bg-white text-white dark:text-black"
+            className="bg-primary text-primary-foreground"
           >
             Create New Key
           </Button>
         </div>
       ) : (
-        <Table className="border border-black/10 dark:border-white/10 rounded-xl">
+        <Table className="border border-border rounded-xl">
           <TableHeader>
-            <TableRow className="bg-black/[0.02] dark:bg-white/[0.02]">
-              <TableHead className="text-neutral-500 font-medium">
+            <TableRow className="bg-muted/50">
+              <TableHead className="text-muted-foreground font-medium">
                 NAME
               </TableHead>
-              <TableHead className="hidden md:table-cell text-neutral-500 font-medium">
+              <TableHead className="hidden md:table-cell text-muted-foreground font-medium">
                 KEY
               </TableHead>
-              <TableHead className="hidden lg:table-cell text-neutral-500 font-medium">
+              <TableHead className="hidden lg:table-cell text-muted-foreground font-medium">
                 REQUESTS
               </TableHead>
-              <TableHead className="text-neutral-500 font-medium">
+              <TableHead className="text-muted-foreground font-medium">
                 LAST USED
               </TableHead>
-              <TableHead className="text-neutral-500 font-medium">
+              <TableHead className="text-muted-foreground font-medium">
                 ACTIONS
               </TableHead>
             </TableRow>
@@ -304,29 +297,27 @@ export default function ApiKeysPage() {
               <TableRow key={apiKey.id}>
                 <TableCell className="py-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-neutral-800 dark:text-neutral-200">
-                      {apiKey.name}
-                    </span>
+                    <span className="text-foreground">{apiKey.name}</span>
                     {apiKey.status === "revoked" && (
-                      <Badge className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs">
+                      <Badge className="bg-destructive/10 text-destructive text-xs">
                         Revoked
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-neutral-400 mt-0.5 md:hidden">
+                  <p className="text-xs text-muted-foreground mt-0.5 md:hidden">
                     {formatDate(apiKey.createdAt)}
                   </p>
                 </TableCell>
                 <TableCell className="hidden md:table-cell py-4">
                   <div className="flex items-center gap-2">
-                    <code className="text-sm text-neutral-500 font-mono">
+                    <code className="text-sm text-muted-foreground font-mono">
                       {apiKey.maskedKey}
                     </code>
                     <Button
                       size="icon-xs"
                       variant="ghost"
                       onClick={() => handleCopyKey(apiKey.maskedKey, apiKey.id)}
-                      className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                      className="text-muted-foreground hover:text-foreground"
                     >
                       {copiedKeyId === apiKey.id ? (
                         <IconCheck size={14} />
@@ -337,12 +328,12 @@ export default function ApiKeysPage() {
                   </div>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell py-4">
-                  <span className="text-sm text-neutral-500 tabular-nums">
+                  <span className="text-sm text-muted-foreground tabular-nums">
                     {formatNumber(apiKey.requestCount)}
                   </span>
                 </TableCell>
                 <TableCell className="py-4">
-                  <span className="text-sm text-neutral-500">
+                  <span className="text-sm text-muted-foreground">
                     {formatRelativeTime(apiKey.lastUsedAt)}
                   </span>
                 </TableCell>
@@ -352,12 +343,14 @@ export default function ApiKeysPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setRevokeKeyId(apiKey.id)}
-                      className="text-red-500 hover:text-red-600 dark:hover:text-red-400"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
                       Revoke
                     </Button>
                   ) : (
-                    <span className="text-sm text-neutral-400">&mdash;</span>
+                    <span className="text-sm text-muted-foreground">
+                      &mdash;
+                    </span>
                   )}
                 </TableCell>
               </TableRow>
@@ -378,9 +371,9 @@ export default function ApiKeysPage() {
           if (!open && !isRevoking) setRevokeKeyId(null);
         }}
       >
-        <DialogContent className="sm:max-w-sm bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10">
+        <DialogContent className="sm:max-w-sm bg-card border border-border">
           <DialogHeader>
-            <DialogTitle className="text-neutral-800 dark:text-neutral-200">
+            <DialogTitle className="text-foreground">
               Revoke API Key
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -388,15 +381,15 @@ export default function ApiKeysPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-start gap-3 py-4">
-            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-              <IconAlertTriangle size={20} className="text-red-500" />
+            <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+              <IconAlertTriangle size={20} className="text-destructive" />
             </div>
             <div>
-              <p className="text-neutral-800 dark:text-neutral-200">
+              <p className="text-foreground">
                 Are you sure you want to revoke{" "}
                 <span className="font-medium">{keyToRevoke?.name}</span>?
               </p>
-              <p className="text-sm text-neutral-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 This action cannot be undone. Any applications using this key
                 will immediately lose access.
               </p>
@@ -407,14 +400,14 @@ export default function ApiKeysPage() {
               variant="ghost"
               onClick={() => setRevokeKeyId(null)}
               disabled={isRevoking}
-              className="text-neutral-600 dark:text-neutral-400"
+              className="text-muted-foreground"
             >
               Cancel
             </Button>
             <Button
               onClick={handleRevoke}
               disabled={isRevoking}
-              className="bg-red-500 text-white"
+              className="bg-destructive text-primary-foreground"
             >
               {isRevoking ? (
                 <>

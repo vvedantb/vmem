@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { Button } from "@vmem/ui";
 
 interface TagStats {
   tag: string;
@@ -32,8 +33,7 @@ export default function TagCloud({
       tagsWithSize: shuffled.map((t) => ({
         ...t,
         // Calculate size factor (0-1 range)
-        sizeFactor:
-          max === min ? 0.5 : (t.count - min) / (max - min),
+        sizeFactor: max === min ? 0.5 : (t.count - min) / (max - min),
       })),
       maxCount: max,
       minCount: min,
@@ -57,7 +57,7 @@ export default function TagCloud({
   if (tags.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="text-sm text-muted-foreground">
           No tags yet. Add tags to your memories to see them here.
         </p>
       </div>
@@ -65,21 +65,24 @@ export default function TagCloud({
   }
 
   return (
-    <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.01] dark:bg-white/[0.01]">
+    <div className="p-6 rounded-xl border border-border bg-muted/50">
       <div className="flex flex-wrap items-center justify-center gap-4">
         {tagsWithSize.map((item) => (
-          <button
+          <Button
             key={item.tag}
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => onTagClick?.(item.tag)}
-            className={`${getSizeClass(item.sizeFactor)} text-neutral-800 dark:text-neutral-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer`}
+            className={`${getSizeClass(item.sizeFactor)} h-auto px-0 py-0 text-foreground hover:text-foreground hover:bg-transparent transition-colors cursor-pointer`}
             style={{ opacity: getOpacity(item.sizeFactor) }}
             title={`${item.tag}: ${item.count} ${item.count === 1 ? "memory" : "memories"}`}
           >
             {item.tag}
-          </button>
+          </Button>
         ))}
       </div>
-      <div className="mt-6 pt-4 border-t border-black/10 dark:border-white/10 flex items-center justify-between text-xs text-neutral-500">
+      <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <span>
           {tags.length} {tags.length === 1 ? "tag" : "tags"} total
         </span>

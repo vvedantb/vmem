@@ -51,7 +51,7 @@ export default function ConnectorsPage() {
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card
               key={i}
-              className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none"
+              className="border border-border bg-muted/50 shadow-none"
             >
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
@@ -78,23 +78,21 @@ export default function ConnectorsPage() {
         title="Connectors"
         description="Connect external apps to import and sync your data"
       >
-        <Card className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 shadow-none">
+        <Card className="border border-destructive/30 bg-destructive/10 shadow-none">
           <CardContent className="p-8 text-center">
             <IconAlertCircle
               size={48}
-              className="text-red-500 mx-auto mb-4"
+              className="text-destructive mx-auto mb-4"
               stroke={1.5}
             />
-            <p className="text-neutral-800 dark:text-neutral-200 font-medium mb-2">
+            <p className="text-foreground font-medium mb-2">
               Failed to load connectors
             </p>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-              {error}
-            </p>
+            <p className="text-sm text-muted-foreground mb-4">{error}</p>
             <Button
               onClick={fetchConnectors}
               variant="outline"
-              className="border-red-300 dark:border-red-700 text-red-600 dark:text-red-400"
+              className="border-destructive/30 text-destructive"
             >
               <IconRefresh size={16} />
               Try Again
@@ -120,9 +118,9 @@ export default function ConnectorsPage() {
         ))}
       </div>
 
-      <Card className="border border-dashed border-black/20 dark:border-white/20 bg-black/[0.01] dark:bg-white/[0.01] shadow-none">
+      <Card className="border border-dashed border-border/80 bg-muted/50 shadow-none">
         <CardContent className="p-6 text-center">
-          <p className="text-neutral-500">
+          <p className="text-muted-foreground">
             More connectors coming soon. Have a request?
           </p>
           <Button variant="ghost" size="sm" className="mt-3 font-medium">

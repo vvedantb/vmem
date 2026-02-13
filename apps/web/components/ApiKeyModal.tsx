@@ -119,42 +119,45 @@ export default function ApiKeyModal({
       }}
     >
       <DialogContent
-        className="max-w-md bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10"
+        className="max-w-md bg-card border border-border"
         hideCloseButton={step === "loading"}
         onInteractOutside={(e) => {
           if (step === "loading") e.preventDefault();
         }}
       >
-        <DialogHeader className="border-b border-black/10 dark:border-white/10 pb-4">
-          <DialogTitle className="text-neutral-800 dark:text-neutral-200">
+        <DialogHeader className="border-b border-border pb-4">
+          <DialogTitle className="text-foreground">
             {step === "success" ? "API Key Created" : "Create New API Key"}
           </DialogTitle>
         </DialogHeader>
 
         {step === "create" && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10">
-              <IconKey size={20} className="text-neutral-500 flex-shrink-0" />
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 border border-border">
+              <IconKey
+                size={20}
+                className="text-muted-foreground flex-shrink-0"
+              />
+              <p className="text-sm text-muted-foreground">
                 Create a new API key to access vMemory programmatically. You can
                 use this key with MCP clients and other integrations.
               </p>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              <label className="block text-sm font-medium text-muted-foreground">
                 Key Name
               </label>
               <Input
                 placeholder="e.g., Production App, Development"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="border-black/10 dark:border-white/10 bg-transparent"
+                className="border-border bg-transparent"
               />
               {nameError ? (
-                <p className="text-sm text-red-500">{nameError}</p>
+                <p className="text-sm text-destructive">{nameError}</p>
               ) : (
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted-foreground">
                   Choose a descriptive name to identify this key
                 </p>
               )}
@@ -166,13 +169,11 @@ export default function ApiKeyModal({
           <div className="py-8 space-y-4 text-center">
             <IconLoader2
               size={32}
-              className="animate-spin text-neutral-400 mx-auto"
+              className="animate-spin text-muted-foreground mx-auto"
             />
             <div className="space-y-2">
-              <p className="text-neutral-800 dark:text-neutral-200 font-medium">
-                Creating API Key...
-              </p>
-              <p className="text-sm text-neutral-500">
+              <p className="text-foreground font-medium">Creating API Key...</p>
+              <p className="text-sm text-muted-foreground">
                 Please wait while we generate your key
               </p>
             </div>
@@ -181,49 +182,45 @@ export default function ApiKeyModal({
 
         {step === "success" && createdKey && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
               <IconAlertTriangle
                 size={20}
-                className="text-amber-600 dark:text-amber-400 flex-shrink-0"
+                className="text-warning flex-shrink-0"
               />
-              <p className="text-sm text-amber-800 dark:text-amber-200">
+              <p className="text-sm text-warning">
                 Make sure to copy your API key now. You won&apos;t be able to
                 see it again!
               </p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+              <label className="text-sm font-medium text-foreground">
                 Your API Key
               </label>
               <div className="flex gap-2">
                 <Input
                   value={createdKey.key}
                   readOnly
-                  className="font-mono text-sm border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]"
+                  className="font-mono text-sm border-border bg-muted/50"
                 />
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleCopy}
-                  className={
-                    copied
-                      ? "bg-green-100 dark:bg-green-900/30 text-green-600"
-                      : "bg-black/5 dark:bg-white/5"
-                  }
+                  className={copied ? "bg-success/10 text-success" : "bg-muted"}
                 >
                   {copied ? <IconCheck size={18} /> : <IconCopy size={18} />}
                 </Button>
               </div>
             </div>
 
-            <div className="pt-2 space-y-1 text-sm text-neutral-600 dark:text-neutral-400">
+            <div className="pt-2 space-y-1 text-sm text-muted-foreground">
               <p>
                 <span className="font-medium">Name:</span> {createdKey.name}
               </p>
               <p>
                 <span className="font-medium">Masked Key:</span>{" "}
-                <code className="font-mono text-xs bg-black/5 dark:bg-white/5 px-1 py-0.5 rounded">
+                <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">
                   {createdKey.maskedKey}
                 </code>
               </p>
@@ -231,19 +228,19 @@ export default function ApiKeyModal({
           </div>
         )}
 
-        <DialogFooter className="border-t border-black/10 dark:border-white/10 pt-4">
+        <DialogFooter className="border-t border-border pt-4">
           {step === "create" && (
             <>
               <Button
                 variant="ghost"
                 onClick={handleClose}
-                className="text-neutral-600 dark:text-neutral-400"
+                className="text-muted-foreground"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleCreate}
-                className="bg-black dark:bg-white text-white dark:text-black"
+                className="bg-primary text-primary-foreground"
               >
                 Create Key
               </Button>
@@ -251,7 +248,7 @@ export default function ApiKeyModal({
           )}
 
           {step === "loading" && (
-            <p className="text-sm text-neutral-500 w-full text-center">
+            <p className="text-sm text-muted-foreground w-full text-center">
               Do not close this window
             </p>
           )}
@@ -259,7 +256,7 @@ export default function ApiKeyModal({
           {step === "success" && (
             <Button
               onClick={handleClose}
-              className="bg-black dark:bg-white text-white dark:text-black"
+              className="bg-primary text-primary-foreground"
             >
               Done
             </Button>
