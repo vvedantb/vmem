@@ -22,6 +22,7 @@ import {
   IconSun,
   IconLogout,
 } from "@tabler/icons-react";
+import Image from "next/image";
 
 const navGroups = [
   {
@@ -68,9 +69,29 @@ export default function Sidebar() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 h-16 bg-neutral-200 dark:bg-black z-50 md:hidden flex items-center justify-between px-6">
-        <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-          <h1 className="text-2xl font-instrumentSerif tracking-tight text-neutral-800 dark:text-neutral-200">
-            v<span className="italic">mem</span>
+        <Link
+          href="/"
+          onClick={() => setMobileMenuOpen(false)}
+          className="flex flex-row items-center gap-1.5"
+        >
+          <Image
+            unoptimized
+            width={18}
+            height={18}
+            alt="vmem icon"
+            src="/icon-dark.svg"
+            className="mt-1 block dark:hidden"
+          />
+          <Image
+            unoptimized
+            width={18}
+            height={18}
+            src="/icon-light.svg"
+            alt="vmem icon"
+            className="mt-1 dark:block hidden"
+          />
+          <h1 className="text-2xl font-instrumentSerif text-neutral-800 dark:text-neutral-200">
+            v <span className="italic">mem</span>
           </h1>
         </Link>
         <button
@@ -107,8 +128,24 @@ export default function Sidebar() {
       >
         <div className="flex flex-col h-full p-4 md:py-8">
           <div className="mb-8 px-2 hidden md:flex flex-row justify-between items-center">
-            <Link href="/">
-              <h1 className="text-3xl font-instrumentSerif tracking-tight text-neutral-800 dark:text-neutral-200">
+            <Link href="/" className="flex flex-row items-center gap-1.5">
+              <Image
+                unoptimized
+                width={21}
+                height={21}
+                alt="vmem icon"
+                src="/icon-dark.svg"
+                className="mt-1 block dark:hidden"
+              />
+              <Image
+                unoptimized
+                width={21}
+                height={21}
+                src="/icon-light.svg"
+                alt="vmem icon"
+                className="mt-1 dark:block hidden"
+              />
+              <h1 className="text-3xl font-instrumentSerif text-neutral-800 dark:text-neutral-200">
                 v<span className="italic">mem</span>
               </h1>
             </Link>
@@ -183,6 +220,8 @@ export default function Sidebar() {
               </div>
             ))}
           </nav>
+          <Separator className="bg-black/10 dark:bg-white/10" />
+
           <div className="pt-4 space-y-4">
             {isAuthLoading ? (
               <div className="px-4 py-3">
@@ -221,11 +260,9 @@ export default function Sidebar() {
               </div>
             ) : null}
 
-            <Separator className="bg-black/10 dark:bg-white/10" />
-
-            <p className="text-xs text-neutral-400 dark:text-neutral-600 px-4">
+            {/* <p className="text-xs text-neutral-400 dark:text-neutral-600 px-4">
               &copy; 2025 vmem
-            </p>
+            </p> */}
           </div>
         </div>
       </aside>
