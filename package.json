@@ -9,6 +9,8 @@
     "start": "pnpm --filter web start",
     "lint": "pnpm --filter web lint",
     "typecheck": "pnpm --filter web typecheck",
+    "convex": "pnpm --filter @vmem/backend dev",
+    "convex:deploy": "pnpm --filter @vmem/backend deploy",
     "prepare": "husky"
   },
   "lint-staged": {

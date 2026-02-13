@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
 import { ClientProvider } from "@/components/providers/ClientProvider";
 
 const instrumentSans = Instrument_Sans({
@@ -37,7 +38,9 @@ export default function RootLayout({
       <body
         className={`${instrumentSans.variable} font-instrumentSans ${instrumentSerif.variable} antialiased`}
       >
-        <ClientProvider>{children}</ClientProvider>
+        <ClerkProvider>
+          <ClientProvider>{children}</ClientProvider>
+        </ClerkProvider>
       </body>
     </html>
   );
