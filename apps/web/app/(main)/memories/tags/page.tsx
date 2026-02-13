@@ -4,20 +4,21 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Table,
   TableHeader,
-  TableColumn,
+  TableHead,
   TableBody,
   TableRow,
   TableCell,
   Button,
   Input,
   Skeleton,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  addToast,
-} from "@heroui/react";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "@vmem/ui";
+import { toast } from "sonner";
 import {
   IconAlertCircle,
   IconEdit,
@@ -40,16 +41,13 @@ export default function TagsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Edit state
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Delete state
   const [deleteTag, setDeleteTag] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch tags
   const fetchTags = useCallback(async () => {
     try {
       setError(null);
@@ -72,28 +70,23 @@ export default function TagsPage() {
     fetchTags();
   }, [fetchTags]);
 
-  // Handle tag click in cloud - navigate to memories filtered by tag
   const handleTagClick = useCallback(
     (tag: string) => {
-      // Navigate to memories list - the filter will be applied through URL or state
       router.push(`/memories/list?tag=${encodeURIComponent(tag)}`);
     },
-    [router]
+    [router],
   );
 
-  // Start editing a tag
   const startEditing = useCallback((tag: string) => {
     setEditingTag(tag);
     setNewTagName(tag);
   }, []);
 
-  // Cancel editing
   const cancelEditing = useCallback(() => {
     setEditingTag(null);
     setNewTagName("");
   }, []);
 
-  // Save edited tag
   const handleSaveTag = useCallback(async () => {
     if (!editingTag || !newTagName.trim()) return;
 
@@ -103,13 +96,8 @@ export default function TagsPage() {
       return;
     }
 
-    // Check if new tag name already exists
     if (tags.some((t) => t.tag === normalizedNew)) {
-      addToast({
-        title: "Error",
-        description: `Tag "${normalizedNew}" already exists`,
-        color: "danger",
-      });
+      toast.error(`Tag "${normalizedNew}" already exists`);
       return;
     }
 
@@ -127,27 +115,16 @@ export default function TagsPage() {
         throw new Error(data.error || "Failed to rename tag");
       }
 
-      addToast({
-        title: "Success",
-        description: `Tag renamed to "${normalizedNew}"`,
-        color: "success",
-      });
-
-      // Refresh tags
+      toast.success(`Tag renamed to "${normalizedNew}"`);
       await fetchTags();
       cancelEditing();
     } catch (err) {
-      addToast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to rename tag",
-        color: "danger",
-      });
+      toast.error(err instanceof Error ? err.message : "Failed to rename tag");
     } finally {
       setIsSaving(false);
     }
   }, [editingTag, newTagName, tags, fetchTags, cancelEditing]);
 
-  // Handle delete tag
   const handleDeleteTag = useCallback(async () => {
     if (!deleteTag) return;
 
@@ -165,27 +142,16 @@ export default function TagsPage() {
         throw new Error(data.error || "Failed to delete tag");
       }
 
-      addToast({
-        title: "Success",
-        description: `Tag "${deleteTag}" deleted from all memories`,
-        color: "success",
-      });
-
-      // Refresh tags
+      toast.success(`Tag "${deleteTag}" deleted from all memories`);
       await fetchTags();
       setDeleteTag(null);
     } catch (err) {
-      addToast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to delete tag",
-        color: "danger",
-      });
+      toast.error(err instanceof Error ? err.message : "Failed to delete tag");
     } finally {
       setIsDeleting(false);
     }
   }, [deleteTag, fetchTags]);
 
-  // Loading skeleton
   if (isLoading) {
     return (
       <div className="space-y-8">
@@ -199,7 +165,6 @@ export default function TagsPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -229,7 +194,6 @@ export default function TagsPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200">
           Tag Management
@@ -239,7 +203,6 @@ export default function TagsPage() {
         </p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.01] dark:bg-white/[0.01]">
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -269,7 +232,6 @@ export default function TagsPage() {
         </div>
       </div>
 
-      {/* Tag Cloud */}
       <div>
         <h2 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-4">
           Tag Cloud
@@ -277,7 +239,6 @@ export default function TagsPage() {
         <TagCloud tags={tags} onTagClick={handleTagClick} />
       </div>
 
-      {/* Tag Table */}
       <div>
         <h2 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-4">
           All Tags
@@ -289,161 +250,137 @@ export default function TagsPage() {
             </p>
           </div>
         ) : (
-          <Table
-            aria-label="Tags table"
-            classNames={{
-              wrapper:
-                "border border-black/10 dark:border-white/10 rounded-xl shadow-none bg-transparent",
-              th: "bg-black/[0.02] dark:bg-white/[0.02] text-neutral-500 font-medium",
-              td: "py-4",
-              tr: "hover:bg-black/[0.02] dark:hover:bg-white/[0.02]",
-            }}
-          >
-            <TableHeader>
-              <TableColumn>TAG</TableColumn>
-              <TableColumn className="w-32">MEMORIES</TableColumn>
-              <TableColumn className="w-48 text-right">ACTIONS</TableColumn>
-            </TableHeader>
-            <TableBody>
-              {tags.map((item) => (
-                <TableRow key={item.tag}>
-                  <TableCell>
-                    {editingTag === item.tag ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={newTagName}
-                          onValueChange={setNewTagName}
-                          size="sm"
-                          isDisabled={isSaving}
-                          classNames={{
-                            inputWrapper:
-                              "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none",
-                            input: "text-black dark:text-white",
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSaveTag();
-                            if (e.key === "Escape") cancelEditing();
-                          }}
-                          autoFocus
-                        />
-                        <Button
-                          size="sm"
-                          isIconOnly
-                          variant="light"
-                          onPress={handleSaveTag}
-                          isDisabled={isSaving}
-                          className="text-green-600 dark:text-green-400"
-                        >
-                          {isSaving ? (
-                            <IconLoader2 size={16} className="animate-spin" />
-                          ) : (
-                            <IconCheck size={16} />
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          isIconOnly
-                          variant="light"
-                          onPress={cancelEditing}
-                          isDisabled={isSaving}
-                          className="text-neutral-500"
-                        >
-                          <IconX size={16} />
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-neutral-800 dark:text-neutral-200">
-                        {item.tag}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-neutral-600 dark:text-neutral-400 tabular-nums">
-                      {item.count}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {editingTag !== item.tag && (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="light"
-                          onPress={() => startEditing(item.tag)}
-                          startContent={<IconEdit size={14} />}
-                          className="text-neutral-600 dark:text-neutral-400"
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="light"
-                          onPress={() => setDeleteTag(item.tag)}
-                          startContent={<IconTrash size={14} />}
-                          className="text-red-600 dark:text-red-400"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    )}
-                  </TableCell>
+          <div className="border border-black/10 dark:border-white/10 rounded-xl">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>TAG</TableHead>
+                  <TableHead className="w-32">MEMORIES</TableHead>
+                  <TableHead className="w-48 text-right">ACTIONS</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {tags.map((item) => (
+                  <TableRow key={item.tag}>
+                    <TableCell>
+                      {editingTag === item.tag ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={newTagName}
+                            onChange={(e) => setNewTagName(e.target.value)}
+                            disabled={isSaving}
+                            className="h-8 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSaveTag();
+                              if (e.key === "Escape") cancelEditing();
+                            }}
+                            autoFocus
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={handleSaveTag}
+                            disabled={isSaving}
+                            className="text-green-600 dark:text-green-400"
+                          >
+                            {isSaving ? (
+                              <IconLoader2 size={16} className="animate-spin" />
+                            ) : (
+                              <IconCheck size={16} />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={cancelEditing}
+                            disabled={isSaving}
+                            className="text-neutral-500"
+                          >
+                            <IconX size={16} />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-neutral-800 dark:text-neutral-200">
+                          {item.tag}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-neutral-600 dark:text-neutral-400 tabular-nums">
+                        {item.count}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {editingTag !== item.tag && (
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEditing(item.tag)}
+                            className="text-neutral-600 dark:text-neutral-400"
+                          >
+                            <IconEdit size={14} />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteTag(item.tag)}
+                            className="text-red-600 dark:text-red-400"
+                          >
+                            <IconTrash size={14} />
+                            Delete
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 
-      {/* Delete confirmation modal */}
-      <Modal
-        isOpen={!!deleteTag}
-        onClose={() => setDeleteTag(null)}
-        size="sm"
-        classNames={{
-          base: "bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10",
-          header: "border-b border-black/10 dark:border-white/10",
-          body: "py-6",
-          footer: "border-t border-black/10 dark:border-white/10",
-        }}
+      <Dialog
+        open={!!deleteTag}
+        onOpenChange={(open) => !open && setDeleteTag(null)}
       >
-        <ModalContent>
-          <ModalHeader>
-            <span className="text-neutral-800 dark:text-neutral-200">
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-neutral-800 dark:text-neutral-200">
               Delete Tag
-            </span>
-          </ModalHeader>
-          <ModalBody>
-            <p className="text-neutral-600 dark:text-neutral-400">
+            </DialogTitle>
+            <DialogDescription className="text-neutral-600 dark:text-neutral-400">
               Are you sure you want to delete the tag &quot;{deleteTag}&quot;?
               This will remove it from all memories. The memories themselves
               will not be deleted.
-            </p>
-          </ModalBody>
-          <ModalFooter>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
             <Button
-              variant="light"
-              onPress={() => setDeleteTag(null)}
-              isDisabled={isDeleting}
+              variant="ghost"
+              onClick={() => setDeleteTag(null)}
+              disabled={isDeleting}
               className="text-neutral-600 dark:text-neutral-400"
             >
               Cancel
             </Button>
             <Button
-              color="danger"
-              onPress={handleDeleteTag}
-              isDisabled={isDeleting}
-              startContent={
-                isDeleting ? (
-                  <IconLoader2 size={16} className="animate-spin" />
-                ) : (
-                  <IconTrash size={16} />
-                )
-              }
+              variant="destructive"
+              onClick={handleDeleteTag}
+              disabled={isDeleting}
             >
+              {isDeleting ? (
+                <IconLoader2 size={16} className="animate-spin" />
+              ) : (
+                <IconTrash size={16} />
+              )}
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

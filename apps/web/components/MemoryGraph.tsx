@@ -1,8 +1,22 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Skeleton, Modal, ModalContent, ModalHeader, ModalBody, Chip, Button } from "@heroui/react";
-import { IconAlertCircle, IconMoodEmpty, IconX, IconZoomIn, IconZoomOut, IconFocus2 } from "@tabler/icons-react";
+import {
+  Skeleton,
+  Button,
+  Badge,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@vmem/ui";
+import {
+  IconAlertCircle,
+  IconMoodEmpty,
+  IconZoomIn,
+  IconZoomOut,
+  IconFocus2,
+} from "@tabler/icons-react";
 import { useThemeContext } from "./contexts/ThemeContext";
 
 interface Memory {
@@ -54,7 +68,6 @@ export default function MemoryGraph() {
   const nodesRef = useRef<GraphNode[]>([]);
   const edgesRef = useRef<GraphEdge[]>([]);
 
-  // Fetch memories and build graph
   useEffect(() => {
     const fetchAndBuildGraph = async () => {
       try {
@@ -69,12 +82,18 @@ export default function MemoryGraph() {
         }
 
         const memories: Memory[] = data.data;
-        const graph = buildGraphData(memories, dimensions.width, dimensions.height);
+        const graph = buildGraphData(
+          memories,
+          dimensions.width,
+          dimensions.height,
+        );
         setGraphData(graph);
         nodesRef.current = graph.nodes;
         edgesRef.current = graph.edges;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch memories");
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch memories",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -83,13 +102,15 @@ export default function MemoryGraph() {
     fetchAndBuildGraph();
   }, [dimensions.width, dimensions.height]);
 
-  // Build graph from memories (nodes = memories, edges = shared tags)
-  const buildGraphData = (memories: Memory[], width: number, height: number): GraphData => {
+  const buildGraphData = (
+    memories: Memory[],
+    width: number,
+    height: number,
+  ): GraphData => {
     const centerX = width / 2;
     const centerY = height / 2;
     const radius = Math.min(width, height) * 0.35;
 
-    // Create nodes with initial positions in a circle
     const nodes: GraphNode[] = memories.map((memory, index) => {
       const angle = (index / memories.length) * Math.PI * 2;
       return {
@@ -105,11 +126,12 @@ export default function MemoryGraph() {
       };
     });
 
-    // Create edges based on shared tags
     const edges: GraphEdge[] = [];
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        const sharedTags = nodes[i].tags.filter((tag) => nodes[j].tags.includes(tag));
+        const sharedTags = nodes[i].tags.filter((tag) =>
+          nodes[j].tags.includes(tag),
+        );
         if (sharedTags.length > 0) {
           edges.push({
             source: nodes[i].id,
@@ -123,12 +145,14 @@ export default function MemoryGraph() {
     return { nodes, edges };
   };
 
-  // Handle window resize
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        setDimensions({ width: rect.width, height: Math.max(rect.height, 500) });
+        setDimensions({
+          width: rect.width,
+          height: Math.max(rect.height, 500),
+        });
       }
     };
 
@@ -137,7 +161,6 @@ export default function MemoryGraph() {
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
-  // Force simulation
   useEffect(() => {
     if (!graphData || graphData.nodes.length === 0) return;
 
@@ -147,13 +170,10 @@ export default function MemoryGraph() {
       const centerX = dimensions.width / 2;
       const centerY = dimensions.height / 2;
 
-      // Apply forces
       for (const node of nodes) {
-        // Center gravity
         node.vx += (centerX - node.x) * 0.001;
         node.vy += (centerY - node.y) * 0.001;
 
-        // Repulsion between nodes
         for (const other of nodes) {
           if (node.id === other.id) continue;
           const dx = node.x - other.x;
@@ -165,7 +185,6 @@ export default function MemoryGraph() {
         }
       }
 
-      // Attraction along edges
       for (const edge of edges) {
         const source = nodes.find((n) => n.id === edge.source);
         const target = nodes.find((n) => n.id === edge.target);
@@ -182,17 +201,21 @@ export default function MemoryGraph() {
         target.vy -= (dy / dist) * force;
       }
 
-      // Apply velocity with damping
       for (const node of nodes) {
         node.vx *= 0.9;
         node.vy *= 0.9;
         node.x += node.vx;
         node.y += node.vy;
 
-        // Keep within bounds
         const padding = 50;
-        node.x = Math.max(padding, Math.min(dimensions.width - padding, node.x));
-        node.y = Math.max(padding, Math.min(dimensions.height - padding, node.y));
+        node.x = Math.max(
+          padding,
+          Math.min(dimensions.width - padding, node.x),
+        );
+        node.y = Math.max(
+          padding,
+          Math.min(dimensions.height - padding, node.y),
+        );
       }
 
       animationRef.current = requestAnimationFrame(simulate);
@@ -207,7 +230,6 @@ export default function MemoryGraph() {
     };
   }, [graphData, dimensions]);
 
-  // Render graph
   useEffect(() => {
     if (!canvasRef.current || !graphData) return;
 
@@ -220,7 +242,6 @@ export default function MemoryGraph() {
       const edges = edgesRef.current;
       const isDark = theme === "dark";
 
-      // Clear canvas
       ctx.fillStyle = isDark ? "#0a0a0a" : "#fafafa";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -228,8 +249,9 @@ export default function MemoryGraph() {
       ctx.translate(pan.x, pan.y);
       ctx.scale(zoom, zoom);
 
-      // Draw edges
-      ctx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)";
+      ctx.strokeStyle = isDark
+        ? "rgba(255, 255, 255, 0.1)"
+        : "rgba(0, 0, 0, 0.1)";
       ctx.lineWidth = 1 / zoom;
 
       for (const edge of edges) {
@@ -243,13 +265,11 @@ export default function MemoryGraph() {
         ctx.stroke();
       }
 
-      // Draw nodes
       for (const node of nodes) {
         const isHovered = hoveredNode?.id === node.id;
         const isSelected = selectedNode?.id === node.id;
         const radius = isHovered || isSelected ? 24 : 20;
 
-        // Node circle
         ctx.beginPath();
         ctx.arc(node.x, node.y, radius / zoom, 0, Math.PI * 2);
 
@@ -262,22 +282,24 @@ export default function MemoryGraph() {
         }
         ctx.fill();
 
-        // Border
-        ctx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)";
+        ctx.strokeStyle = isDark
+          ? "rgba(255, 255, 255, 0.2)"
+          : "rgba(0, 0, 0, 0.2)";
         ctx.lineWidth = 2 / zoom;
         ctx.stroke();
 
-        // Node label
         ctx.font = `${12 / zoom}px system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         ctx.fillStyle = isDark ? "#f5f5f5" : "#0a0a0a";
 
-        // Truncate title if too long
         const maxWidth = 100 / zoom;
         let title = node.title;
         if (ctx.measureText(title).width > maxWidth) {
-          while (ctx.measureText(title + "...").width > maxWidth && title.length > 0) {
+          while (
+            ctx.measureText(title + "...").width > maxWidth &&
+            title.length > 0
+          ) {
             title = title.slice(0, -1);
           }
           title += "...";
@@ -293,7 +315,6 @@ export default function MemoryGraph() {
     return () => cancelAnimationFrame(frameId);
   }, [graphData, theme, zoom, pan, hoveredNode, selectedNode]);
 
-  // Mouse event handlers
   const getMousePos = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
@@ -304,7 +325,7 @@ export default function MemoryGraph() {
         y: (e.clientY - rect.top - pan.y) / zoom,
       };
     },
-    [pan, zoom]
+    [pan, zoom],
   );
 
   const findNodeAtPosition = useCallback(
@@ -320,7 +341,7 @@ export default function MemoryGraph() {
       }
       return null;
     },
-    []
+    [],
   );
 
   const handleMouseMove = useCallback(
@@ -341,7 +362,7 @@ export default function MemoryGraph() {
         canvasRef.current.style.cursor = node ? "pointer" : "grab";
       }
     },
-    [isDragging, getMousePos, findNodeAtPosition, pan]
+    [isDragging, getMousePos, findNodeAtPosition, pan],
   );
 
   const handleMouseDown = useCallback(
@@ -359,7 +380,7 @@ export default function MemoryGraph() {
         }
       }
     },
-    [getMousePos, findNodeAtPosition, pan]
+    [getMousePos, findNodeAtPosition, pan],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -389,7 +410,6 @@ export default function MemoryGraph() {
     });
   };
 
-  // Loading skeleton
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4">
@@ -406,7 +426,6 @@ export default function MemoryGraph() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -416,7 +435,9 @@ export default function MemoryGraph() {
         <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
           Failed to load graph
         </h3>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">{error}</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+          {error}
+        </p>
         <button
           onClick={() => window.location.reload()}
           className="px-4 py-2 text-sm font-medium bg-black dark:bg-white text-white dark:text-black rounded-lg hover:opacity-90 transition-opacity"
@@ -427,7 +448,6 @@ export default function MemoryGraph() {
     );
   }
 
-  // Empty state
   if (!graphData || graphData.nodes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -450,7 +470,6 @@ export default function MemoryGraph() {
   return (
     <>
       <div className="flex flex-col gap-4">
-        {/* Stats and controls */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="flex gap-4 text-sm text-neutral-500 dark:text-neutral-400">
             <span>{nodeCount} memories</span>
@@ -458,28 +477,25 @@ export default function MemoryGraph() {
           </div>
           <div className="flex gap-2">
             <Button
-              size="sm"
-              variant="flat"
-              isIconOnly
-              onPress={() => setZoom((z) => Math.min(3, z * 1.2))}
+              size="icon-sm"
+              variant="secondary"
+              onClick={() => setZoom((z) => Math.min(3, z * 1.2))}
               className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
             >
               <IconZoomIn size={16} />
             </Button>
             <Button
-              size="sm"
-              variant="flat"
-              isIconOnly
-              onPress={() => setZoom((z) => Math.max(0.5, z * 0.8))}
+              size="icon-sm"
+              variant="secondary"
+              onClick={() => setZoom((z) => Math.max(0.5, z * 0.8))}
               className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
             >
               <IconZoomOut size={16} />
             </Button>
             <Button
-              size="sm"
-              variant="flat"
-              isIconOnly
-              onPress={resetView}
+              size="icon-sm"
+              variant="secondary"
+              onClick={resetView}
               className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
             >
               <IconFocus2 size={16} />
@@ -487,7 +503,6 @@ export default function MemoryGraph() {
           </div>
         </div>
 
-        {/* Graph canvas */}
         <div
           ref={containerRef}
           className="relative border border-black/10 dark:border-white/10 rounded-xl overflow-hidden"
@@ -505,7 +520,6 @@ export default function MemoryGraph() {
             style={{ cursor: "grab" }}
           />
 
-          {/* Hover tooltip */}
           {hoveredNode && !selectedNode && (
             <div className="absolute top-4 left-4 bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 rounded-lg p-3 shadow-lg max-w-xs">
               <p className="font-medium text-neutral-800 dark:text-neutral-200 mb-1">
@@ -517,133 +531,116 @@ export default function MemoryGraph() {
             </div>
           )}
 
-          {/* Instructions */}
           <div className="absolute bottom-4 left-4 text-xs text-neutral-400 dark:text-neutral-600">
             Click node to view details &bull; Drag to pan &bull; Scroll to zoom
           </div>
         </div>
       </div>
 
-      {/* Memory detail modal */}
-      <Modal
-        isOpen={!!selectedNode}
-        onClose={() => setSelectedNode(null)}
-        size="lg"
-        classNames={{
-          base: "bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10",
-          header: "border-b border-black/10 dark:border-white/10",
-          body: "py-6",
+      <Dialog
+        open={!!selectedNode}
+        onOpenChange={(open) => {
+          if (!open) setSelectedNode(null);
         }}
       >
-        <ModalContent>
+        <DialogContent className="bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10">
           {selectedNode && (
             <>
-              <ModalHeader className="flex items-center justify-between">
-                <span className="text-neutral-800 dark:text-neutral-200">
+              <DialogHeader className="border-b border-black/10 dark:border-white/10 pb-4">
+                <DialogTitle className="text-neutral-800 dark:text-neutral-200">
                   {selectedNode.title}
-                </span>
-                <Button
-                  size="sm"
-                  variant="light"
-                  isIconOnly
-                  onPress={() => setSelectedNode(null)}
-                  className="text-neutral-500"
-                >
-                  <IconX size={18} />
-                </Button>
-              </ModalHeader>
-              <ModalBody>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
-                      Content
-                    </h4>
-                    <p className="text-neutral-800 dark:text-neutral-200">
-                      {selectedNode.content}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
-                      Tags
-                    </h4>
-                    <div className="flex gap-2 flex-wrap">
-                      {selectedNode.tags.map((tag) => (
-                        <Chip
-                          key={tag}
-                          size="sm"
-                          variant="flat"
-                          classNames={{
-                            base: "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10",
-                            content: "text-neutral-600 dark:text-neutral-400 text-xs",
-                          }}
-                        >
-                          {tag}
-                        </Chip>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
-                      Created
-                    </h4>
-                    <p className="text-neutral-600 dark:text-neutral-400">
-                      {formatDate(selectedNode.createdAt)}
-                    </p>
-                  </div>
-
-                  {/* Related memories */}
-                  {graphData && (
-                    <div>
-                      <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
-                        Related Memories
-                      </h4>
-                      <div className="space-y-2">
-                        {graphData.edges
-                          .filter(
-                            (e) =>
-                              e.source === selectedNode.id || e.target === selectedNode.id
-                          )
-                          .map((edge) => {
-                            const relatedId =
-                              edge.source === selectedNode.id ? edge.target : edge.source;
-                            const relatedNode = graphData.nodes.find(
-                              (n) => n.id === relatedId
-                            );
-                            if (!relatedNode) return null;
-                            return (
-                              <button
-                                key={relatedId}
-                                onClick={() => setSelectedNode(relatedNode)}
-                                className="w-full text-left p-3 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
-                              >
-                                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                                  {relatedNode.title}
-                                </p>
-                                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                                  {edge.weight} shared tag{edge.weight > 1 ? "s" : ""}
-                                </p>
-                              </button>
-                            );
-                          })}
-                        {graphData.edges.filter(
-                          (e) =>
-                            e.source === selectedNode.id || e.target === selectedNode.id
-                        ).length === 0 && (
-                          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                            No related memories found
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div>
+                  <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                    Content
+                  </h4>
+                  <p className="text-neutral-800 dark:text-neutral-200">
+                    {selectedNode.content}
+                  </p>
                 </div>
-              </ModalBody>
+
+                <div>
+                  <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                    Tags
+                  </h4>
+                  <div className="flex gap-2 flex-wrap">
+                    {selectedNode.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="outline"
+                        className="bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400 text-xs"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                    Created
+                  </h4>
+                  <p className="text-neutral-600 dark:text-neutral-400">
+                    {formatDate(selectedNode.createdAt)}
+                  </p>
+                </div>
+
+                {graphData && (
+                  <div>
+                    <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                      Related Memories
+                    </h4>
+                    <div className="space-y-2">
+                      {graphData.edges
+                        .filter(
+                          (e) =>
+                            e.source === selectedNode.id ||
+                            e.target === selectedNode.id,
+                        )
+                        .map((edge) => {
+                          const relatedId =
+                            edge.source === selectedNode.id
+                              ? edge.target
+                              : edge.source;
+                          const relatedNode = graphData.nodes.find(
+                            (n) => n.id === relatedId,
+                          );
+                          if (!relatedNode) return null;
+                          return (
+                            <button
+                              key={relatedId}
+                              onClick={() => setSelectedNode(relatedNode)}
+                              className="w-full text-left p-3 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+                            >
+                              <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                                {relatedNode.title}
+                              </p>
+                              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                                {edge.weight} shared tag
+                                {edge.weight > 1 ? "s" : ""}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      {graphData.edges.filter(
+                        (e) =>
+                          e.source === selectedNode.id ||
+                          e.target === selectedNode.id,
+                      ).length === 0 && (
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                          No related memories found
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           )}
-        </ModalContent>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

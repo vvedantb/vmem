@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardBody, Skeleton, Button } from "@heroui/react";
+import { Card, CardContent, Skeleton, Button } from "@vmem/ui";
 import Link from "next/link";
 import {
   IconBrain,
@@ -132,47 +132,33 @@ export default function Dashboard() {
     fetchData();
   }, [fetchData]);
 
-  // Loading skeleton
   if (isLoading) {
     return (
       <div className="flex flex-col gap-8">
-        {/* Stats skeleton */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <Card
               key={i}
-              classNames={{
-                base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
-              }}
+              className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none"
             >
-              <CardBody className="p-6">
+              <CardContent className="p-6">
                 <Skeleton className="h-4 w-24 rounded mb-3" />
                 <Skeleton className="h-10 w-16 rounded" />
-              </CardBody>
+              </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Chart skeleton */}
-        <Card
-          classNames={{
-            base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
-          }}
-        >
-          <CardBody className="p-6">
+        <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+          <CardContent className="p-6">
             <Skeleton className="h-5 w-40 rounded mb-6" />
             <Skeleton className="h-48 w-full rounded" />
-          </CardBody>
+          </CardContent>
         </Card>
 
-        {/* Bottom section skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card
-            classNames={{
-              base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
-            }}
-          >
-            <CardBody className="p-6">
+          <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+            <CardContent className="p-6">
               <Skeleton className="h-5 w-32 rounded mb-6" />
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="flex items-center gap-3 mb-4">
@@ -183,28 +169,23 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
-            </CardBody>
+            </CardContent>
           </Card>
-          <Card
-            classNames={{
-              base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
-            }}
-          >
-            <CardBody className="p-6">
+          <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+            <CardContent className="p-6">
               <Skeleton className="h-5 w-28 rounded mb-6" />
               <div className="grid grid-cols-2 gap-3">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <Skeleton key={i} className="h-20 rounded-lg" />
                 ))}
               </div>
-            </CardBody>
+            </CardContent>
           </Card>
         </div>
       </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -218,10 +199,10 @@ export default function Dashboard() {
           {error}
         </p>
         <Button
-          onPress={fetchData}
+          onClick={fetchData}
           className="bg-black dark:bg-white text-white dark:text-black"
-          startContent={<IconRefresh size={18} />}
         >
+          <IconRefresh size={18} />
           Try again
         </Button>
       </div>
@@ -251,23 +232,19 @@ export default function Dashboard() {
     },
   ];
 
-  // Calculate chart dimensions
   const chartData = stats?.growthData ?? [];
   const maxTotal = Math.max(...chartData.map((d) => d.total), 1);
   const chartHeight = 180;
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statsCards.map((stat) => (
           <Card
             key={stat.label}
-            classNames={{
-              base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors",
-            }}
+            className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
           >
-            <CardBody className="p-6">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-neutral-500 uppercase tracking-wider">
@@ -284,32 +261,24 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
-            </CardBody>
+            </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Memory growth chart */}
-      <Card
-        classNames={{
-          base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
-        }}
-      >
-        <CardBody className="p-6">
+      <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+        <CardContent className="p-6">
           <h3 className="text-lg font-medium mb-6 text-black dark:text-white">
             Memory Growth (Last 7 Days)
           </h3>
           <div className="relative" style={{ height: chartHeight + 40 }}>
-            {/* Y-axis labels */}
             <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-neutral-400 pr-2">
               <span className="tabular-nums">{maxTotal}</span>
               <span className="tabular-nums">{Math.round(maxTotal / 2)}</span>
               <span className="tabular-nums">0</span>
             </div>
 
-            {/* Chart area */}
             <div className="ml-8 h-full relative">
-              {/* Grid lines */}
               <div className="absolute inset-0 flex flex-col justify-between">
                 {[0, 1, 2].map((i) => (
                   <div
@@ -319,7 +288,6 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Bars */}
               <div
                 className="flex items-end justify-between gap-2 h-full pt-2 pb-6"
                 style={{ height: chartHeight }}
@@ -337,18 +305,15 @@ export default function Dashboard() {
                         className="w-full max-w-12 relative group"
                         style={{ height: chartHeight - 30 }}
                       >
-                        {/* Tooltip */}
                         <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black dark:bg-white text-white dark:text-black text-xs px-2 py-1 rounded whitespace-nowrap z-10 pointer-events-none">
                           {day.total} total (+{day.new})
                         </div>
 
-                        {/* Total bar */}
                         <div
                           className="absolute bottom-0 w-full bg-black/10 dark:bg-white/10 rounded-t transition-all"
                           style={{ height: barHeight }}
                         />
 
-                        {/* New additions highlight */}
                         <div
                           className="absolute bottom-0 w-full bg-black dark:bg-white rounded-t transition-all"
                           style={{
@@ -362,7 +327,6 @@ export default function Dashboard() {
                 })}
               </div>
 
-              {/* X-axis labels */}
               <div className="flex justify-between mt-2">
                 {chartData.map((day, index) => (
                   <div
@@ -376,7 +340,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Legend */}
           <div className="flex items-center gap-6 mt-4 ml-8">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-black/10 dark:bg-white/10" />
@@ -387,18 +350,12 @@ export default function Dashboard() {
               <span className="text-xs text-neutral-500">New that day</span>
             </div>
           </div>
-        </CardBody>
+        </CardContent>
       </Card>
 
-      {/* Activity and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Activity */}
-        <Card
-          classNames={{
-            base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
-          }}
-        >
-          <CardBody className="p-6">
+        <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+          <CardContent className="p-6">
             <h3 className="text-lg font-medium mb-6 text-black dark:text-white">
               Recent Activity
             </h3>
@@ -434,16 +391,11 @@ export default function Dashboard() {
                 })}
               </ul>
             )}
-          </CardBody>
+          </CardContent>
         </Card>
 
-        {/* Quick Actions */}
-        <Card
-          classNames={{
-            base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
-          }}
-        >
-          <CardBody className="p-6">
+        <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+          <CardContent className="p-6">
             <h3 className="text-lg font-medium mb-6 text-black dark:text-white">
               Quick Actions
             </h3>
@@ -469,7 +421,7 @@ export default function Dashboard() {
                 </Link>
               ))}
             </div>
-          </CardBody>
+          </CardContent>
         </Card>
       </div>
     </div>

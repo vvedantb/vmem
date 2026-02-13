@@ -1,6 +1,6 @@
 "use client";
 
-import { Tabs, Tab } from "@heroui/react";
+import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
 import { usePathname, useRouter } from "next/navigation";
 import PageContainer from "@/components/PageContainer";
 import AddMemoryModal from "@/components/AddMemoryModal";
@@ -23,28 +23,23 @@ export default function MemoriesLayout({
       rightSection={<AddMemoryModal />}
     >
       <Tabs
-        selectedKey={currentTab}
-        onSelectionChange={(key) => router.push(`/memories/${key}`)}
-        variant="solid"
+        value={currentTab}
+        onValueChange={(value) => router.push(`/memories/${value}`)}
       >
-        <Tab
-          key="list"
-          title={
+        <TabsList>
+          <TabsTrigger value="list">
             <div className="flex items-center gap-2">
               <IconList size={18} stroke={1.5} />
               <span>List</span>
             </div>
-          }
-        />
-        <Tab
-          key="graph"
-          title={
+          </TabsTrigger>
+          <TabsTrigger value="graph">
             <div className="flex items-center gap-2">
               <IconShare3 size={18} stroke={1.5} />
               <span>Graph</span>
             </div>
-          }
-        />
+          </TabsTrigger>
+        </TabsList>
       </Tabs>
 
       {children}
