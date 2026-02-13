@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@heroui/react";
+import { Button } from "@vmem/ui";
 import { IconDownload } from "@tabler/icons-react";
 import ExportModal from "./ExportModal";
 
@@ -18,10 +18,10 @@ export default function ExportSection() {
           Export your memories to JSON or CSV format for backup or migration.
         </p>
         <Button
-          onPress={() => setIsModalOpen(true)}
+          onClick={() => setIsModalOpen(true)}
           className="bg-black dark:bg-white text-white dark:text-black"
-          startContent={<IconDownload size={18} />}
         >
+          <IconDownload size={18} />
           Export Memories
         </Button>
       </div>

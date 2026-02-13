@@ -2,21 +2,23 @@
 
 import { useState, useCallback, useEffect } from "react";
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
   Button,
   Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
   SelectItem,
   Progress,
-  Chip,
-  addToast,
-} from "@heroui/react";
+  Badge,
+} from "@vmem/ui";
+import { toast } from "sonner";
 import {
   IconDownload,
-  IconX,
   IconLoader2,
   IconCheck,
   IconFile,
@@ -49,7 +51,6 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch memories to get available tags and data
   useEffect(() => {
     if (isOpen) {
       fetchMemories();
@@ -63,7 +64,6 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
       const data = await response.json();
       if (data.data) {
         setMemories(data.data);
-        // Extract unique tags
         const tags = new Set<string>();
         data.data.forEach((memory: Memory) => {
           memory.tags.forEach((tag: string) => tags.add(tag));
@@ -71,11 +71,7 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
         setAvailableTags(Array.from(tags).sort());
       }
     } catch {
-      addToast({
-        title: "Error",
-        description: "Failed to load memories",
-        color: "danger",
-      });
+      toast.error("Failed to load memories");
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +80,6 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
   const filterMemories = useCallback(() => {
     let filtered = [...memories];
 
-    // Filter by date range
     if (dateRange !== "all") {
       const now = new Date();
       let cutoff: Date;
@@ -102,14 +97,13 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
           cutoff = new Date(0);
       }
       filtered = filtered.filter(
-        (memory) => new Date(memory.createdAt) >= cutoff
+        (memory) => new Date(memory.createdAt) >= cutoff,
       );
     }
 
-    // Filter by tags
     if (selectedTags.length > 0) {
       filtered = filtered.filter((memory) =>
-        selectedTags.some((tag) => memory.tags.includes(tag))
+        selectedTags.some((tag) => memory.tags.includes(tag)),
       );
     }
 
@@ -124,7 +118,7 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
         memories: data,
       },
       null,
-      2
+      2,
     );
   }, []);
 
@@ -160,7 +154,7 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     },
-    []
+    [],
   );
 
   const handleExport = useCallback(async () => {
@@ -168,7 +162,6 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
     setExportProgress(0);
 
     try {
-      // Simulate export progress
       const progressInterval = setInterval(() => {
         setExportProgress((prev) => {
           if (prev >= 90) {
@@ -179,28 +172,21 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
         });
       }, 100);
 
-      // Filter memories based on options
       const filteredMemories = filterMemories();
 
       if (filteredMemories.length === 0) {
         clearInterval(progressInterval);
         setIsExporting(false);
         setExportProgress(0);
-        addToast({
-          title: "No Data",
-          description: "No memories match the selected filters",
-          color: "warning",
-        });
+        toast.warning("No memories match the selected filters");
         return;
       }
 
-      // Simulate processing delay
       await new Promise((resolve) => setTimeout(resolve, 800));
 
       clearInterval(progressInterval);
       setExportProgress(100);
 
-      // Generate file content
       const timestamp = new Date().toISOString().split("T")[0];
       let content: string;
       let filename: string;
@@ -216,17 +202,12 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
         mimeType = "text/csv";
       }
 
-      // Download file
       downloadFile(content, filename, mimeType);
 
-      // Show success
-      addToast({
-        title: "Export Complete",
-        description: `Successfully exported ${filteredMemories.length} memories`,
-        color: "success",
-      });
+      toast.success(
+        `Successfully exported ${filteredMemories.length} memories`,
+      );
 
-      // Reset and close
       setTimeout(() => {
         setIsExporting(false);
         setExportProgress(0);
@@ -235,12 +216,9 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
     } catch (err) {
       setIsExporting(false);
       setExportProgress(0);
-      addToast({
-        title: "Export Failed",
-        description:
-          err instanceof Error ? err.message : "Failed to export memories",
-        color: "danger",
-      });
+      toast.error(
+        err instanceof Error ? err.message : "Failed to export memories",
+      );
     }
   }, [
     format,
@@ -263,216 +241,194 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
 
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
   }, []);
 
   const filteredCount = filterMemories().length;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      size="lg"
-      isDismissable={!isExporting}
-      classNames={{
-        base: "bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10",
-        header: "border-b border-black/10 dark:border-white/10",
-        body: "py-6",
-        footer: "border-t border-black/10 dark:border-white/10",
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
       }}
     >
-      <ModalContent>
-        <ModalHeader className="flex items-center justify-between gap-4">
-          <span className="text-neutral-800 dark:text-neutral-200 text-lg font-semibold">
+      <DialogContent
+        hideCloseButton={isExporting}
+        onInteractOutside={(e) => {
+          if (isExporting) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (isExporting) e.preventDefault();
+        }}
+        className="bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10"
+      >
+        <DialogHeader className="border-b border-black/10 dark:border-white/10 pb-4">
+          <DialogTitle className="text-neutral-800 dark:text-neutral-200">
             Export Memories
-          </span>
-          <Button
-            size="sm"
-            variant="light"
-            isIconOnly
-            onPress={handleClose}
-            isDisabled={isExporting}
-            className="text-neutral-500 flex-shrink-0"
-          >
-            <IconX size={18} />
-          </Button>
-        </ModalHeader>
+          </DialogTitle>
+        </DialogHeader>
 
-        <ModalBody>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <IconLoader2 size={24} className="animate-spin text-neutral-400" />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Format selection */}
-              <div>
-                <label className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2 block">
-                  Export Format
-                </label>
-                <Select
-                  selectedKeys={[format]}
-                  onSelectionChange={(keys) => {
-                    const selected = Array.from(keys)[0];
-                    if (selected) setFormat(selected as ExportFormat);
-                  }}
-                  isDisabled={isExporting}
-                  classNames={{
-                    trigger:
-                      "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04]",
-                    value: "text-neutral-800 dark:text-neutral-200",
-                    popoverContent:
-                      "bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10",
-                  }}
-                  startContent={
-                    format === "json" ? (
-                      <IconFile
-                        size={18}
-                        className="text-neutral-500"
-                      />
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <IconLoader2 size={24} className="animate-spin text-neutral-400" />
+          </div>
+        ) : (
+          <div className="space-y-6 py-2">
+            <div>
+              <label className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2 block">
+                Export Format
+              </label>
+              <Select
+                value={format}
+                onValueChange={(value: string) =>
+                  setFormat(
+                    value === "json" || value === "csv" ? value : "json",
+                  )
+                }
+                disabled={isExporting}
+              >
+                <SelectTrigger className="bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none hover:bg-black/[0.04] dark:hover:bg-white/[0.04] text-neutral-800 dark:text-neutral-200">
+                  <div className="flex items-center gap-2">
+                    {format === "json" ? (
+                      <IconFile size={18} className="text-neutral-500" />
                     ) : (
                       <IconTable size={18} className="text-neutral-500" />
-                    )
-                  }
-                >
-                  <SelectItem key="json" textValue="JSON">
+                    )}
+                    <SelectValue />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="json">
                     <div className="flex items-center gap-2">
                       <IconFile size={18} />
                       <span>JSON - Full data with structure</span>
                     </div>
                   </SelectItem>
-                  <SelectItem key="csv" textValue="CSV">
+                  <SelectItem value="csv">
                     <div className="flex items-center gap-2">
                       <IconTable size={18} />
                       <span>CSV - Spreadsheet compatible</span>
                     </div>
                   </SelectItem>
-                </Select>
-              </div>
+                </SelectContent>
+              </Select>
+            </div>
 
-              {/* Date range selection */}
-              <div>
-                <label className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2 block">
-                  Date Range
-                </label>
-                <Select
-                  selectedKeys={[dateRange]}
-                  onSelectionChange={(keys) => {
-                    const selected = Array.from(keys)[0];
-                    if (selected) setDateRange(selected as DateRange);
-                  }}
-                  isDisabled={isExporting}
-                  classNames={{
-                    trigger:
-                      "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04]",
-                    value: "text-neutral-800 dark:text-neutral-200",
-                    popoverContent:
-                      "bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10",
-                  }}
-                >
-                  <SelectItem key="all">All Time</SelectItem>
-                  <SelectItem key="week">Last 7 Days</SelectItem>
-                  <SelectItem key="month">Last 30 Days</SelectItem>
-                  <SelectItem key="year">Last Year</SelectItem>
-                </Select>
-              </div>
+            <div>
+              <label className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2 block">
+                Date Range
+              </label>
+              <Select
+                value={dateRange}
+                onValueChange={(value: string) =>
+                  setDateRange(
+                    value === "all" ||
+                      value === "week" ||
+                      value === "month" ||
+                      value === "year"
+                      ? value
+                      : "all",
+                  )
+                }
+                disabled={isExporting}
+              >
+                <SelectTrigger className="bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none hover:bg-black/[0.04] dark:hover:bg-white/[0.04] text-neutral-800 dark:text-neutral-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="week">Last 7 Days</SelectItem>
+                  <SelectItem value="month">Last 30 Days</SelectItem>
+                  <SelectItem value="year">Last Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              {/* Tag filter */}
-              <div>
-                <label className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2 block">
-                  Filter by Tags (optional)
-                </label>
-                {availableTags.length > 0 ? (
-                  <div className="flex gap-2 flex-wrap">
-                    {availableTags.map((tag) => (
-                      <Chip
-                        key={tag}
-                        size="sm"
-                        variant={selectedTags.includes(tag) ? "solid" : "flat"}
-                        className={`cursor-pointer transition-colors ${
-                          selectedTags.includes(tag)
-                            ? "bg-black dark:bg-white text-white dark:text-black"
-                            : "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400"
-                        }`}
-                        onClick={() => !isExporting && toggleTag(tag)}
-                      >
-                        {tag}
-                      </Chip>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-neutral-400 dark:text-neutral-500">
-                    No tags available
-                  </p>
-                )}
-              </div>
-
-              {/* Export preview */}
-              <div className="p-4 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10">
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  <span className="font-medium text-neutral-800 dark:text-neutral-200">
-                    {filteredCount}
-                  </span>{" "}
-                  {filteredCount === 1 ? "memory" : "memories"} will be exported
-                </p>
-              </div>
-
-              {/* Export progress */}
-              {isExporting && (
-                <div className="space-y-2">
-                  <Progress
-                    value={exportProgress}
-                    size="sm"
-                    classNames={{
-                      track: "bg-black/10 dark:bg-white/10",
-                      indicator: "bg-black dark:bg-white",
-                    }}
-                  />
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center">
-                    {exportProgress < 100
-                      ? "Generating export file..."
-                      : "Export complete!"}
-                  </p>
+            <div>
+              <label className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2 block">
+                Filter by Tags (optional)
+              </label>
+              {availableTags.length > 0 ? (
+                <div className="flex gap-2 flex-wrap">
+                  {availableTags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      className={`cursor-pointer transition-colors ${
+                        selectedTags.includes(tag)
+                          ? "bg-black dark:bg-white text-white dark:text-black"
+                          : "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400"
+                      }`}
+                      onClick={() => !isExporting && toggleTag(tag)}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
                 </div>
+              ) : (
+                <p className="text-sm text-neutral-400 dark:text-neutral-500">
+                  No tags available
+                </p>
               )}
             </div>
-          )}
-        </ModalBody>
 
-        <ModalFooter>
+            <div className="p-4 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                <span className="font-medium text-neutral-800 dark:text-neutral-200">
+                  {filteredCount}
+                </span>{" "}
+                {filteredCount === 1 ? "memory" : "memories"} will be exported
+              </p>
+            </div>
+
+            {isExporting && (
+              <div className="space-y-2">
+                <Progress
+                  value={exportProgress}
+                  className="h-1.5 bg-black/10 dark:bg-white/10"
+                />
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center">
+                  {exportProgress < 100
+                    ? "Generating export file..."
+                    : "Export complete!"}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <DialogFooter className="border-t border-black/10 dark:border-white/10 pt-4">
           <Button
-            variant="light"
-            onPress={handleClose}
-            isDisabled={isExporting}
+            variant="ghost"
+            onClick={handleClose}
+            disabled={isExporting}
             className="text-neutral-600 dark:text-neutral-400"
           >
             Cancel
           </Button>
           <Button
-            onPress={handleExport}
-            isDisabled={isExporting || isLoading || filteredCount === 0}
+            onClick={handleExport}
+            disabled={isExporting || isLoading || filteredCount === 0}
             className="bg-black dark:bg-white text-white dark:text-black"
-            startContent={
-              isExporting ? (
-                exportProgress === 100 ? (
-                  <IconCheck size={16} />
-                ) : (
-                  <IconLoader2 size={16} className="animate-spin" />
-                )
-              ) : (
-                <IconDownload size={16} />
-              )
-            }
           >
+            {isExporting ? (
+              exportProgress === 100 ? (
+                <IconCheck size={16} />
+              ) : (
+                <IconLoader2 size={16} className="animate-spin" />
+              )
+            ) : (
+              <IconDownload size={16} />
+            )}
             {isExporting
               ? exportProgress === 100
                 ? "Done!"
                 : "Exporting..."
               : "Export"}
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

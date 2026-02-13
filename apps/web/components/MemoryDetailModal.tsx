@@ -2,17 +2,17 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
   Button,
   Input,
   Textarea,
-  Chip,
-  addToast,
-} from "@heroui/react";
+  Badge,
+} from "@vmem/ui";
+import { toast } from "sonner";
 import {
   IconEdit,
   IconTrash,
@@ -58,18 +58,15 @@ export default function MemoryDetailModal({
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Edit form state
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editTags, setEditTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
 
-  // Tag autocomplete state
   const [allTags, setAllTags] = useState<TagStats[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch all tags for autocomplete
   useEffect(() => {
     const fetchTags = async () => {
       try {
@@ -87,12 +84,11 @@ export default function MemoryDetailModal({
     }
   }, [isOpen]);
 
-  // Filter suggestions based on input
   const filteredSuggestions = useMemo(() => {
     if (!newTag.trim()) return allTags.filter((t) => !editTags.includes(t.tag));
     const input = newTag.toLowerCase();
     return allTags.filter(
-      (t) => t.tag.includes(input) && !editTags.includes(t.tag)
+      (t) => t.tag.includes(input) && !editTags.includes(t.tag),
     );
   }, [newTag, allTags, editTags]);
 
@@ -128,20 +124,12 @@ export default function MemoryDetailModal({
     if (!memory) return;
 
     if (!editTitle.trim()) {
-      addToast({
-        title: "Validation Error",
-        description: "Title cannot be empty",
-        color: "danger",
-      });
+      toast.error("Title cannot be empty");
       return;
     }
 
     if (!editContent.trim()) {
-      addToast({
-        title: "Validation Error",
-        description: "Content cannot be empty",
-        color: "danger",
-      });
+      toast.error("Content cannot be empty");
       return;
     }
 
@@ -166,17 +154,11 @@ export default function MemoryDetailModal({
 
       onMemoryUpdate(data.data);
       setIsEditing(false);
-      addToast({
-        title: "Success",
-        description: "Memory updated successfully",
-        color: "success",
-      });
+      toast.success("Memory updated successfully");
     } catch (err) {
-      addToast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to update memory",
-        color: "danger",
-      });
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update memory",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -201,17 +183,11 @@ export default function MemoryDetailModal({
       onMemoryDelete(memory.id);
       setShowDeleteConfirm(false);
       onClose();
-      addToast({
-        title: "Success",
-        description: "Memory deleted successfully",
-        color: "success",
-      });
+      toast.success("Memory deleted successfully");
     } catch (err) {
-      addToast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to delete memory",
-        color: "danger",
-      });
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete memory",
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -226,18 +202,24 @@ export default function MemoryDetailModal({
     }
   }, [newTag, editTags]);
 
-  const selectSuggestion = useCallback((tag: string) => {
-    if (!editTags.includes(tag)) {
-      setEditTags([...editTags, tag]);
-    }
-    setNewTag("");
-    setShowSuggestions(false);
-    tagInputRef.current?.focus();
-  }, [editTags]);
+  const selectSuggestion = useCallback(
+    (tag: string) => {
+      if (!editTags.includes(tag)) {
+        setEditTags([...editTags, tag]);
+      }
+      setNewTag("");
+      setShowSuggestions(false);
+      tagInputRef.current?.focus();
+    },
+    [editTags],
+  );
 
-  const removeTag = useCallback((tagToRemove: string) => {
-    setEditTags(editTags.filter((tag) => tag !== tagToRemove));
-  }, [editTags]);
+  const removeTag = useCallback(
+    (tagToRemove: string) => {
+      setEditTags(editTags.filter((tag) => tag !== tagToRemove));
+    },
+    [editTags],
+  );
 
   const handleTagKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -248,7 +230,7 @@ export default function MemoryDetailModal({
         setShowSuggestions(false);
       }
     },
-    [addTag]
+    [addTag],
   );
 
   const handleClose = useCallback(() => {
@@ -265,319 +247,280 @@ export default function MemoryDetailModal({
 
   return (
     <>
-      {/* Main detail modal */}
-      <Modal
-        isOpen={isOpen && !showDeleteConfirm}
-        onClose={handleClose}
-        size="2xl"
-        scrollBehavior="inside"
-        classNames={{
-          base: "bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10",
-          header: "border-b border-black/10 dark:border-white/10",
-          body: "py-6",
-          footer: "border-t border-black/10 dark:border-white/10",
+      <Dialog
+        open={isOpen && !showDeleteConfirm}
+        onOpenChange={(value) => {
+          if (!value) handleClose();
         }}
       >
-        <ModalContent>
-          <ModalHeader className="flex items-center justify-between gap-4">
+        <DialogContent
+          hideCloseButton
+          className="max-w-2xl max-h-[85vh] overflow-y-auto bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10"
+        >
+          <DialogHeader className="flex flex-row items-center justify-between gap-4 border-b border-black/10 dark:border-white/10 pb-4">
             {isEditing ? (
-              <Input
-                value={editTitle}
-                onValueChange={setEditTitle}
-                placeholder="Memory title"
-                size="lg"
-                isDisabled={isSaving}
-                classNames={{
-                  inputWrapper:
-                    "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
-                  input: "text-black dark:text-white text-lg font-semibold",
-                }}
-              />
+              <DialogTitle className="flex-1">
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Memory title"
+                  disabled={isSaving}
+                  className="h-10 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white text-lg font-semibold hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
+                />
+              </DialogTitle>
             ) : (
-              <span className="text-neutral-800 dark:text-neutral-200 text-lg font-semibold">
+              <DialogTitle className="text-neutral-800 dark:text-neutral-200 text-lg font-semibold">
                 {memory.title}
-              </span>
+              </DialogTitle>
             )}
             <Button
-              size="sm"
-              variant="light"
-              isIconOnly
-              onPress={handleClose}
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleClose}
               className="text-neutral-500 flex-shrink-0"
             >
               <IconX size={18} />
             </Button>
-          </ModalHeader>
+          </DialogHeader>
 
-          <ModalBody>
-            <div className="space-y-6">
-              {/* Content */}
-              <div>
-                <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
-                  Content
-                </h4>
-                {isEditing ? (
-                  <Textarea
-                    value={editContent}
-                    onValueChange={setEditContent}
-                    placeholder="Memory content"
-                    minRows={4}
-                    maxRows={10}
-                    isDisabled={isSaving}
-                    classNames={{
-                      inputWrapper:
-                        "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
-                      input: "text-black dark:text-white",
-                    }}
-                  />
-                ) : (
-                  <p className="text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap">
-                    {memory.content}
-                  </p>
-                )}
-              </div>
+          <div className="space-y-6 py-2">
+            <div>
+              <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                Content
+              </h4>
+              {isEditing ? (
+                <Textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  placeholder="Memory content"
+                  rows={6}
+                  disabled={isSaving}
+                  className="bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
+                />
+              ) : (
+                <p className="text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap">
+                  {memory.content}
+                </p>
+              )}
+            </div>
 
-              {/* Tags */}
-              <div>
-                <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
-                  Tags
-                </h4>
-                {isEditing ? (
-                  <div className="space-y-3">
-                    <div className="flex gap-2 flex-wrap">
-                      {editTags.map((tag) => (
-                        <Chip
-                          key={tag}
-                          size="sm"
-                          variant="flat"
-                          onClose={() => removeTag(tag)}
-                          classNames={{
-                            base: "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10",
-                            content: "text-neutral-600 dark:text-neutral-400 text-xs",
-                            closeButton: "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300",
-                          }}
-                        >
-                          {tag}
-                        </Chip>
-                      ))}
-                    </div>
-                    <div className="relative">
-                      <Input
-                        ref={tagInputRef}
-                        value={newTag}
-                        onValueChange={(value) => {
-                          setNewTag(value);
-                          setShowSuggestions(true);
-                        }}
-                        onKeyDown={handleTagKeyDown}
-                        onFocus={() => setShowSuggestions(true)}
-                        onBlur={() => {
-                          setTimeout(() => setShowSuggestions(false), 200);
-                        }}
-                        placeholder="Add a tag and press Enter"
-                        size="sm"
-                        isDisabled={isSaving}
-                        classNames={{
-                          inputWrapper:
-                            "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
-                          input: "text-black dark:text-white",
-                        }}
-                      />
-                      {/* Tag Suggestions Dropdown */}
-                      {showSuggestions && filteredSuggestions.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 max-h-32 overflow-y-auto rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg">
-                          {filteredSuggestions.slice(0, 5).map((item) => (
-                            <button
-                              key={item.tag}
-                              type="button"
-                              onClick={() => selectSuggestion(item.tag)}
-                              className="w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                            >
-                              <span className="text-sm text-neutral-800 dark:text-neutral-200">
-                                {item.tag}
-                              </span>
-                              <span className="text-xs text-neutral-500">
-                                {item.count}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
+            <div>
+              <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                Tags
+              </h4>
+              {isEditing ? (
+                <div className="space-y-3">
                   <div className="flex gap-2 flex-wrap">
-                    {memory.tags.length > 0 ? (
-                      memory.tags.map((tag) => (
-                        <Chip
-                          key={tag}
-                          size="sm"
-                          variant="flat"
-                          classNames={{
-                            base: "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10",
-                            content: "text-neutral-600 dark:text-neutral-400 text-xs",
-                          }}
+                    {editTags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="outline"
+                        className="bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400 text-xs gap-1 pr-1"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
                         >
-                          {tag}
-                        </Chip>
-                      ))
-                    ) : (
-                      <span className="text-sm text-neutral-400 dark:text-neutral-500">
-                        No tags
-                      </span>
+                          <IconX size={14} />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="relative">
+                    <Input
+                      ref={tagInputRef}
+                      value={newTag}
+                      onChange={(e) => {
+                        setNewTag(e.target.value);
+                        setShowSuggestions(true);
+                      }}
+                      onKeyDown={handleTagKeyDown}
+                      onFocus={() => setShowSuggestions(true)}
+                      onBlur={() => {
+                        setTimeout(() => setShowSuggestions(false), 200);
+                      }}
+                      placeholder="Add a tag and press Enter"
+                      disabled={isSaving}
+                      className="h-8 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
+                    />
+                    {showSuggestions && filteredSuggestions.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 max-h-32 overflow-y-auto rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg">
+                        {filteredSuggestions.slice(0, 5).map((item) => (
+                          <button
+                            key={item.tag}
+                            type="button"
+                            onClick={() => selectSuggestion(item.tag)}
+                            className="w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                          >
+                            <span className="text-sm text-neutral-800 dark:text-neutral-200">
+                              {item.tag}
+                            </span>
+                            <span className="text-xs text-neutral-500">
+                              {item.count}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-
-              {/* Created date */}
-              <div>
-                <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
-                  Created
-                </h4>
-                <p className="text-neutral-600 dark:text-neutral-400">
-                  {formatDate(memory.createdAt)}
-                </p>
-              </div>
-
-              {/* Related memories */}
-              {!isEditing && (
-                <div>
-                  <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
-                    Related Memories
-                  </h4>
-                  {relatedMemories.length > 0 ? (
-                    <div className="space-y-2">
-                      {relatedMemories.map((related) => {
-                        const sharedTags = related.tags.filter((tag) =>
-                          memory.tags.includes(tag)
-                        );
-                        return (
-                          <button
-                            key={related.id}
-                            onClick={() => onSelectRelated(related)}
-                            className="w-full text-left p-3 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
-                          >
-                            <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                              {related.title}
-                            </p>
-                            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                              {sharedTags.length} shared tag
-                              {sharedTags.length !== 1 ? "s" : ""}: {sharedTags.join(", ")}
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
+                </div>
+              ) : (
+                <div className="flex gap-2 flex-wrap">
+                  {memory.tags.length > 0 ? (
+                    memory.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="outline"
+                        className="bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-neutral-600 dark:text-neutral-400 text-xs"
+                      >
+                        {tag}
+                      </Badge>
+                    ))
                   ) : (
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                      No related memories found
-                    </p>
+                    <span className="text-sm text-neutral-400 dark:text-neutral-500">
+                      No tags
+                    </span>
                   )}
                 </div>
               )}
             </div>
-          </ModalBody>
 
-          <ModalFooter className="flex justify-between">
+            <div>
+              <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                Created
+              </h4>
+              <p className="text-neutral-600 dark:text-neutral-400">
+                {formatDate(memory.createdAt)}
+              </p>
+            </div>
+
+            {!isEditing && (
+              <div>
+                <h4 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                  Related Memories
+                </h4>
+                {relatedMemories.length > 0 ? (
+                  <div className="space-y-2">
+                    {relatedMemories.map((related) => {
+                      const sharedTags = related.tags.filter((tag) =>
+                        memory.tags.includes(tag),
+                      );
+                      return (
+                        <button
+                          key={related.id}
+                          onClick={() => onSelectRelated(related)}
+                          className="w-full text-left p-3 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+                        >
+                          <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                            {related.title}
+                          </p>
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                            {sharedTags.length} shared tag
+                            {sharedTags.length !== 1 ? "s" : ""}:{" "}
+                            {sharedTags.join(", ")}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    No related memories found
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex justify-between border-t border-black/10 dark:border-white/10 pt-4">
             {isEditing ? (
               <>
                 <Button
-                  variant="light"
-                  onPress={cancelEditing}
-                  isDisabled={isSaving}
+                  variant="ghost"
+                  onClick={cancelEditing}
+                  disabled={isSaving}
                   className="text-neutral-600 dark:text-neutral-400"
                 >
                   Cancel
                 </Button>
                 <Button
-                  onPress={handleSave}
-                  isDisabled={isSaving}
+                  onClick={handleSave}
+                  disabled={isSaving}
                   className="bg-black dark:bg-white text-white dark:text-black"
-                  startContent={
-                    isSaving ? (
-                      <IconLoader2 size={16} className="animate-spin" />
-                    ) : (
-                      <IconCheck size={16} />
-                    )
-                  }
                 >
+                  {isSaving ? (
+                    <IconLoader2 size={16} className="animate-spin" />
+                  ) : (
+                    <IconCheck size={16} />
+                  )}
                   {isSaving ? "Saving..." : "Save Changes"}
                 </Button>
               </>
             ) : (
               <>
                 <Button
-                  variant="light"
-                  color="danger"
-                  onPress={() => setShowDeleteConfirm(true)}
-                  startContent={<IconTrash size={16} />}
+                  variant="ghost"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                 >
+                  <IconTrash size={16} />
                   Delete
                 </Button>
                 <Button
-                  onPress={startEditing}
+                  onClick={startEditing}
                   className="bg-black dark:bg-white text-white dark:text-black"
-                  startContent={<IconEdit size={16} />}
                 >
+                  <IconEdit size={16} />
                   Edit
                 </Button>
               </>
             )}
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Delete confirmation modal */}
-      <Modal
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        size="sm"
-        classNames={{
-          base: "bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10",
-          header: "border-b border-black/10 dark:border-white/10",
-          body: "py-6",
-          footer: "border-t border-black/10 dark:border-white/10",
+      <Dialog
+        open={showDeleteConfirm}
+        onOpenChange={(value) => {
+          if (!value) setShowDeleteConfirm(false);
         }}
       >
-        <ModalContent>
-          <ModalHeader>
-            <span className="text-neutral-800 dark:text-neutral-200">
+        <DialogContent className="max-w-sm bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10">
+          <DialogHeader className="border-b border-black/10 dark:border-white/10 pb-4">
+            <DialogTitle className="text-neutral-800 dark:text-neutral-200">
               Delete Memory
-            </span>
-          </ModalHeader>
-          <ModalBody>
-            <p className="text-neutral-600 dark:text-neutral-400">
-              Are you sure you want to delete &quot;{memory.title}&quot;? This action
-              cannot be undone.
-            </p>
-          </ModalBody>
-          <ModalFooter>
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-neutral-600 dark:text-neutral-400 py-2">
+            Are you sure you want to delete &quot;{memory.title}&quot;? This
+            action cannot be undone.
+          </p>
+          <DialogFooter className="border-t border-black/10 dark:border-white/10 pt-4">
             <Button
-              variant="light"
-              onPress={() => setShowDeleteConfirm(false)}
-              isDisabled={isDeleting}
+              variant="ghost"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
               className="text-neutral-600 dark:text-neutral-400"
             >
               Cancel
             </Button>
             <Button
-              color="danger"
-              onPress={handleDelete}
-              isDisabled={isDeleting}
-              startContent={
-                isDeleting ? (
-                  <IconLoader2 size={16} className="animate-spin" />
-                ) : (
-                  <IconTrash size={16} />
-                )
-              }
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
             >
+              {isDeleting ? (
+                <IconLoader2 size={16} className="animate-spin" />
+              ) : (
+                <IconTrash size={16} />
+              )}
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

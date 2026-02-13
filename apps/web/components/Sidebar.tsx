@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Switch, Divider, Button, Skeleton } from "@heroui/react";
+import { Switch, Separator, Button, Skeleton } from "@vmem/ui";
 import { useThemeContext } from "./contexts/ThemeContext";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { useNotifications } from "./contexts/NotificationContext";
@@ -57,7 +57,6 @@ export default function Sidebar() {
 
   const isDark = theme === "dark";
 
-  // Get user initials for avatar
   const getUserInitials = (name: string) => {
     const parts = name.trim().split(" ");
     if (parts.length >= 2) {
@@ -127,15 +126,9 @@ export default function Sidebar() {
               </span>
               {mounted && (
                 <Switch
-                  isSelected={isDark}
-                  onValueChange={toggleTheme}
-                  size="sm"
-                  classNames={{
-                    wrapper:
-                      "bg-black/10 dark:bg-white/10 group-data-[selected=true]:bg-black dark:group-data-[selected=true]:bg-white",
-                    thumb:
-                      "bg-black dark:bg-white group-data-[selected=true]:bg-white dark:group-data-[selected=true]:bg-black",
-                  }}
+                  checked={isDark}
+                  onCheckedChange={toggleTheme}
+                  className="scale-75"
                 />
               )}
             </div>
@@ -185,13 +178,12 @@ export default function Sidebar() {
                   })}
                 </ul>
                 {groupIndex < navGroups.length - 1 && (
-                  <Divider className="my-4 bg-black/10 dark:bg-white/10" />
+                  <Separator className="my-4 bg-black/10 dark:bg-white/10" />
                 )}
               </div>
             ))}
           </nav>
           <div className="pt-4 space-y-4">
-            {/* User info section */}
             {isAuthLoading ? (
               <div className="px-4 py-3">
                 <div className="flex items-center gap-3">
@@ -217,10 +209,9 @@ export default function Sidebar() {
                     </p>
                   </div>
                   <Button
-                    isIconOnly
-                    size="sm"
-                    variant="light"
-                    onPress={() => signOut()}
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => signOut()}
                     className="text-neutral-500 hover:text-red-500 dark:text-neutral-400 dark:hover:text-red-400"
                     aria-label="Logout"
                   >
@@ -230,10 +221,10 @@ export default function Sidebar() {
               </div>
             ) : null}
 
-            <Divider className="bg-black/10 dark:bg-white/10" />
+            <Separator className="bg-black/10 dark:bg-white/10" />
 
             <p className="text-xs text-neutral-400 dark:text-neutral-600 px-4">
-              © 2025 vmem
+              &copy; 2025 vmem
             </p>
           </div>
         </div>

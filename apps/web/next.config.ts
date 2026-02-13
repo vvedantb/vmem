@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   experimental: {
     turbopackFileSystemCacheForDev: true,
   },
-  transpilePackages: ["@vmem/backend"],
+  transpilePackages: ["@vmem/backend", "@vmem/ui"],
 };
 
 export default nextConfig;

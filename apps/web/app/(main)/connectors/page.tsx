@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Button, Card, CardBody, Skeleton } from "@heroui/react";
+import { Button, Card, CardContent, Skeleton } from "@vmem/ui";
 import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import ConnectorCard from "@/components/ConnectorCard";
@@ -37,11 +37,10 @@ export default function ConnectorsPage() {
 
   const handleConnectorUpdate = useCallback((updatedConnector: Connector) => {
     setConnectors((prev) =>
-      prev.map((c) => (c.id === updatedConnector.id ? updatedConnector : c))
+      prev.map((c) => (c.id === updatedConnector.id ? updatedConnector : c)),
     );
   }, []);
 
-  // Loading state
   if (isLoading) {
     return (
       <PageContainer
@@ -52,11 +51,9 @@ export default function ConnectorsPage() {
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card
               key={i}
-              classNames={{
-                base: "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none",
-              }}
+              className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none"
             >
-              <CardBody className="p-6">
+              <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <Skeleton className="w-12 h-12 rounded-xl" />
                   <div className="flex-1 space-y-2">
@@ -67,7 +64,7 @@ export default function ConnectorsPage() {
                 <div className="mt-4 flex justify-end">
                   <Skeleton className="w-24 h-8 rounded" />
                 </div>
-              </CardBody>
+              </CardContent>
             </Card>
           ))}
         </div>
@@ -75,19 +72,14 @@ export default function ConnectorsPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <PageContainer
         title="Connectors"
         description="Connect external apps to import and sync your data"
       >
-        <Card
-          classNames={{
-            base: "border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 shadow-none",
-          }}
-        >
-          <CardBody className="p-8 text-center">
+        <Card className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 shadow-none">
+          <CardContent className="p-8 text-center">
             <IconAlertCircle
               size={48}
               className="text-red-500 mx-auto mb-4"
@@ -100,14 +92,14 @@ export default function ConnectorsPage() {
               {error}
             </p>
             <Button
-              onPress={fetchConnectors}
-              variant="bordered"
+              onClick={fetchConnectors}
+              variant="outline"
               className="border-red-300 dark:border-red-700 text-red-600 dark:text-red-400"
-              startContent={<IconRefresh size={16} />}
             >
+              <IconRefresh size={16} />
               Try Again
             </Button>
-          </CardBody>
+          </CardContent>
         </Card>
       </PageContainer>
     );
@@ -128,19 +120,15 @@ export default function ConnectorsPage() {
         ))}
       </div>
 
-      <Card
-        classNames={{
-          base: "border border-dashed border-black/20 dark:border-white/20 bg-black/[0.01] dark:bg-white/[0.01] shadow-none",
-        }}
-      >
-        <CardBody className="p-6 text-center">
+      <Card className="border border-dashed border-black/20 dark:border-white/20 bg-black/[0.01] dark:bg-white/[0.01] shadow-none">
+        <CardContent className="p-6 text-center">
           <p className="text-neutral-500">
             More connectors coming soon. Have a request?
           </p>
-          <Button variant="light" size="sm" className="mt-3 font-medium">
-            Submit a request →
+          <Button variant="ghost" size="sm" className="mt-3 font-medium">
+            Submit a request &rarr;
           </Button>
-        </CardBody>
+        </CardContent>
       </Card>
     </PageContainer>
   );

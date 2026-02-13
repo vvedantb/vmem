@@ -1,6 +1,13 @@
 "use client";
 
-import { Button, Skeleton, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
+import {
+  Button,
+  Skeleton,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@vmem/ui";
 import {
   IconCheck,
   IconAlertTriangle,
@@ -122,15 +129,18 @@ export default function NotificationsPage() {
       >
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
-            <IconAlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" stroke={1.5} />
+            <IconAlertCircle
+              className="w-8 h-8 text-red-600 dark:text-red-400"
+              stroke={1.5}
+            />
           </div>
           <h3 className="text-lg font-medium text-black dark:text-white mb-1">
             Something went wrong
           </h3>
           <p className="text-sm text-neutral-500 mb-4">{error}</p>
           <Button
-            variant="flat"
-            onPress={fetchNotifications}
+            variant="secondary"
+            onClick={fetchNotifications}
             className="bg-black/5 dark:bg-white/5"
           >
             Try again
@@ -147,9 +157,9 @@ export default function NotificationsPage() {
       rightSection={
         unreadCount > 0 ? (
           <Button
-            variant="light"
+            variant="ghost"
             className="text-neutral-500 hover:text-black dark:hover:text-white"
-            onPress={markAllAsRead}
+            onClick={markAllAsRead}
           >
             Mark all as read
           </Button>
@@ -174,7 +184,7 @@ export default function NotificationsPage() {
               <div className="flex items-start gap-4">
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${getIconBackground(
-                    notification.type
+                    notification.type,
                   )}`}
                 >
                   <NotificationIcon type={notification.type} />
@@ -202,50 +212,41 @@ export default function NotificationsPage() {
                   {!notification.read && (
                     <div className="w-2 h-2 rounded-full bg-black dark:bg-white flex-shrink-0" />
                   )}
-                  <Dropdown>
-                    <DropdownTrigger>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                       <Button
-                        isIconOnly
-                        variant="light"
-                        size="sm"
+                        variant="ghost"
+                        size="icon-sm"
                         className="text-neutral-400 hover:text-black dark:hover:text-white"
                       >
                         <IconDotsVertical size={18} stroke={1.5} />
                       </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu
-                      aria-label="Notification actions"
-                      onAction={(key) => {
-                        if (key === "read") markAsRead(notification.id);
-                        if (key === "unread") markAsUnread(notification.id);
-                        if (key === "delete") deleteNotification(notification.id);
-                      }}
-                    >
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
                       {notification.read ? (
-                        <DropdownItem
-                          key="unread"
-                          startContent={<IconEyeOff size={16} stroke={1.5} />}
+                        <DropdownMenuItem
+                          onClick={() => markAsUnread(notification.id)}
                         >
+                          <IconEyeOff size={16} stroke={1.5} />
                           Mark as unread
-                        </DropdownItem>
+                        </DropdownMenuItem>
                       ) : (
-                        <DropdownItem
-                          key="read"
-                          startContent={<IconEye size={16} stroke={1.5} />}
+                        <DropdownMenuItem
+                          onClick={() => markAsRead(notification.id)}
                         >
+                          <IconEye size={16} stroke={1.5} />
                           Mark as read
-                        </DropdownItem>
+                        </DropdownMenuItem>
                       )}
-                      <DropdownItem
-                        key="delete"
-                        className="text-danger"
-                        color="danger"
-                        startContent={<IconTrash size={16} stroke={1.5} />}
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => deleteNotification(notification.id)}
                       >
+                        <IconTrash size={16} stroke={1.5} />
                         Delete
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>

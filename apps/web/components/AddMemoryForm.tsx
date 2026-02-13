@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { Input, Textarea, Button, Chip, addToast, Progress } from "@heroui/react";
+import { Input, Textarea, Button, Badge } from "@vmem/ui";
+import { toast } from "sonner";
 import {
   IconLoader2,
   IconMicrophone,
@@ -10,6 +11,7 @@ import {
   IconPlayerPause,
   IconTrash,
   IconCheck,
+  IconX,
 } from "@tabler/icons-react";
 
 interface TagStats {
@@ -24,12 +26,10 @@ export default function AddMemoryForm() {
   const [tags, setTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Tag autocomplete state
   const [allTags, setAllTags] = useState<TagStats[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
-  // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -43,7 +43,6 @@ export default function AddMemoryForm() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Fetch all tags for autocomplete
   useEffect(() => {
     const fetchTags = async () => {
       try {
@@ -59,16 +58,14 @@ export default function AddMemoryForm() {
     fetchTags();
   }, []);
 
-  // Filter suggestions based on input
   const filteredSuggestions = useMemo(() => {
     if (!tagInput.trim()) return allTags.filter((t) => !tags.includes(t.tag));
     const input = tagInput.toLowerCase();
     return allTags.filter(
-      (t) => t.tag.includes(input) && !tags.includes(t.tag)
+      (t) => t.tag.includes(input) && !tags.includes(t.tag),
     );
   }, [tagInput, allTags, tags]);
 
-  // Cleanup audio URL on unmount
   useEffect(() => {
     return () => {
       if (audioUrl) {
@@ -77,7 +74,6 @@ export default function AddMemoryForm() {
     };
   }, [audioUrl]);
 
-  // Format recording time as MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -102,7 +98,6 @@ export default function AddMemoryForm() {
         setAudioBlob(blob);
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
-        // Stop all tracks
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -110,22 +105,17 @@ export default function AddMemoryForm() {
       setIsRecording(true);
       setRecordingTime(0);
 
-      // Start timer
       timerRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
 
-      addToast({
-        title: "Recording Started",
+      toast("Recording Started", {
         description: "Speak clearly into your microphone",
-        color: "default",
       });
     } catch (error) {
       console.error("Error starting recording:", error);
-      addToast({
-        title: "Microphone Access Denied",
+      toast.error("Microphone Access Denied", {
         description: "Please allow microphone access to use voice input",
-        color: "danger",
       });
     }
   }, []);
@@ -193,18 +183,14 @@ export default function AddMemoryForm() {
       }
 
       setTranscription(data.data.text);
-      addToast({
-        title: "Transcription Complete",
+      toast.success("Transcription Complete", {
         description: "Review and edit the text before applying",
-        color: "success",
       });
     } catch (error) {
       console.error("Transcription error:", error);
-      addToast({
-        title: "Transcription Failed",
+      toast.error("Transcription Failed", {
         description:
           error instanceof Error ? error.message : "Failed to transcribe audio",
-        color: "danger",
       });
     } finally {
       setIsTranscribing(false);
@@ -213,12 +199,12 @@ export default function AddMemoryForm() {
 
   const applyTranscription = useCallback(() => {
     if (transcription) {
-      setContent((prev) => (prev ? prev + "\n\n" + transcription : transcription));
+      setContent((prev) =>
+        prev ? prev + "\n\n" + transcription : transcription,
+      );
       discardRecording();
-      addToast({
-        title: "Transcription Applied",
+      toast.success("Transcription Applied", {
         description: "Text has been added to your memory content",
-        color: "success",
       });
     }
   }, [transcription, discardRecording]);
@@ -260,21 +246,16 @@ export default function AddMemoryForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Client-side validation
     if (!title.trim()) {
-      addToast({
-        title: "Validation Error",
+      toast.error("Validation Error", {
         description: "Please enter a title for your memory",
-        color: "danger",
       });
       return;
     }
 
     if (!content.trim()) {
-      addToast({
-        title: "Validation Error",
+      toast.error("Validation Error", {
         description: "Please enter content for your memory",
-        color: "danger",
       });
       return;
     }
@@ -300,19 +281,15 @@ export default function AddMemoryForm() {
         throw new Error(data.error || "Failed to save memory");
       }
 
-      addToast({
-        title: "Memory Saved",
+      toast.success("Memory Saved", {
         description: "Your memory has been saved successfully",
-        color: "success",
       });
 
       resetForm();
     } catch (error) {
-      addToast({
-        title: "Error",
+      toast.error("Error", {
         description:
           error instanceof Error ? error.message : "Failed to save memory",
-        color: "danger",
       });
     } finally {
       setIsSubmitting(false);
@@ -328,15 +305,10 @@ export default function AddMemoryForm() {
         <Input
           type="text"
           value={title}
-          onValueChange={setTitle}
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter a title for your memory"
-          size="lg"
-          isDisabled={isSubmitting}
-          classNames={{
-            inputWrapper:
-              "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
-            input: "text-black dark:text-white",
-          }}
+          disabled={isSubmitting}
+          className="h-10 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
         />
       </div>
 
@@ -346,33 +318,27 @@ export default function AddMemoryForm() {
         </label>
         <Textarea
           value={content}
-          onValueChange={setContent}
+          onChange={(e) => setContent(e.target.value)}
           placeholder="Write your memory content here..."
-          minRows={8}
-          isDisabled={isSubmitting || isRecording}
-          classNames={{
-            inputWrapper:
-              "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
-            input: "text-black dark:text-white",
-          }}
+          rows={8}
+          disabled={isSubmitting || isRecording}
+          className="bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
         />
       </div>
 
-      {/* Voice Recording Section */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
           Voice Input
         </label>
         <div className="p-4 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10">
-          {/* Recording Controls */}
           {!audioBlob && !isRecording && (
             <div className="flex items-center gap-4">
               <Button
                 type="button"
                 size="sm"
-                variant="flat"
-                onPress={startRecording}
-                isDisabled={isSubmitting}
+                variant="secondary"
+                onClick={startRecording}
+                disabled={isSubmitting}
                 className="bg-black/5 dark:bg-white/5"
               >
                 <IconMicrophone className="w-4 h-4 mr-2" />
@@ -384,14 +350,13 @@ export default function AddMemoryForm() {
             </div>
           )}
 
-          {/* Active Recording */}
           {isRecording && (
             <div className="flex items-center gap-4">
               <Button
                 type="button"
                 size="sm"
-                variant="flat"
-                onPress={stopRecording}
+                variant="secondary"
+                onClick={stopRecording}
                 className="bg-red-500/10 text-red-600 dark:text-red-400"
               >
                 <IconPlayerStop className="w-4 h-4 mr-2" />
@@ -404,29 +369,22 @@ export default function AddMemoryForm() {
                     {formatTime(recordingTime)}
                   </span>
                 </div>
-                <Progress
-                  size="sm"
-                  isIndeterminate
-                  classNames={{
-                    base: "w-24",
-                    indicator: "bg-red-500",
-                  }}
-                  aria-label="Recording in progress"
-                />
+                <div className="relative h-2 w-24 overflow-hidden rounded-full bg-red-500/20">
+                  <div className="absolute h-full w-1/3 rounded-full bg-red-500 animate-[indeterminate_1.5s_ease-in-out_infinite]" />
+                </div>
               </div>
             </div>
           )}
 
-          {/* Recorded Audio Playback */}
           {audioBlob && !isRecording && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Button
                   type="button"
                   size="sm"
-                  variant="flat"
-                  onPress={togglePlayback}
-                  isDisabled={isTranscribing}
+                  variant="secondary"
+                  onClick={togglePlayback}
+                  disabled={isTranscribing}
                   className="bg-black/5 dark:bg-white/5"
                 >
                   {isPlaying ? (
@@ -441,9 +399,9 @@ export default function AddMemoryForm() {
                 <Button
                   type="button"
                   size="sm"
-                  variant="flat"
-                  onPress={discardRecording}
-                  isDisabled={isTranscribing}
+                  variant="secondary"
+                  onClick={discardRecording}
+                  disabled={isTranscribing}
                   className="bg-black/5 dark:bg-white/5 text-red-600 dark:text-red-400"
                 >
                   <IconTrash className="w-4 h-4" />
@@ -452,9 +410,9 @@ export default function AddMemoryForm() {
                   <Button
                     type="button"
                     size="sm"
-                    variant="flat"
-                    onPress={transcribeAudio}
-                    isDisabled={isTranscribing}
+                    variant="secondary"
+                    onClick={transcribeAudio}
+                    disabled={isTranscribing}
                     className="bg-black/5 dark:bg-white/5 ml-auto"
                   >
                     {isTranscribing ? (
@@ -469,28 +427,23 @@ export default function AddMemoryForm() {
                 )}
               </div>
 
-              {/* Transcription Preview */}
               {transcription && (
                 <div className="space-y-3">
                   <div className="p-3 rounded-md bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10">
                     <Textarea
                       value={transcription}
-                      onValueChange={setTranscription}
-                      minRows={3}
+                      onChange={(e) => setTranscription(e.target.value)}
+                      rows={3}
                       placeholder="Transcription preview..."
-                      classNames={{
-                        inputWrapper:
-                          "bg-transparent border-none shadow-none",
-                        input: "text-black dark:text-white text-sm",
-                      }}
+                      className="border-none bg-transparent shadow-none text-black dark:text-white text-sm focus-visible:ring-0"
                     />
                   </div>
                   <div className="flex gap-2">
                     <Button
                       type="button"
                       size="sm"
-                      variant="flat"
-                      onPress={applyTranscription}
+                      variant="secondary"
+                      onClick={applyTranscription}
                       className="bg-black dark:bg-white text-white dark:text-black"
                     >
                       <IconCheck className="w-4 h-4 mr-2" />
@@ -499,8 +452,8 @@ export default function AddMemoryForm() {
                     <Button
                       type="button"
                       size="sm"
-                      variant="flat"
-                      onPress={discardRecording}
+                      variant="secondary"
+                      onClick={discardRecording}
                       className="bg-black/5 dark:bg-white/5"
                     >
                       Discard
@@ -522,26 +475,19 @@ export default function AddMemoryForm() {
             ref={tagInputRef}
             type="text"
             value={tagInput}
-            onValueChange={(value) => {
-              setTagInput(value);
+            onChange={(e) => {
+              setTagInput(e.target.value);
               setShowSuggestions(true);
             }}
             onKeyDown={handleAddTag}
             onFocus={() => setShowSuggestions(true)}
             onBlur={() => {
-              // Delay hiding to allow click on suggestions
               setTimeout(() => setShowSuggestions(false), 200);
             }}
             placeholder="Type a tag and press Enter"
-            size="lg"
-            isDisabled={isSubmitting}
-            classNames={{
-              inputWrapper:
-                "bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-none data-[hover=true]:bg-black/[0.04] dark:data-[hover=true]:bg-white/[0.04] data-[focus=true]:border-black/30 dark:data-[focus=true]:border-white/30",
-              input: "text-black dark:text-white",
-            }}
+            disabled={isSubmitting}
+            className="h-10 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
           />
-          {/* Tag Suggestions Dropdown */}
           {showSuggestions && filteredSuggestions.length > 0 && (
             <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg">
               {filteredSuggestions.map((item) => (
@@ -565,19 +511,20 @@ export default function AddMemoryForm() {
         {tags.length > 0 && (
           <div className="flex gap-2 flex-wrap mt-4">
             {tags.map((tag) => (
-              <Chip
+              <Badge
                 key={tag}
-                variant="flat"
-                onClose={() => removeTag(tag)}
-                classNames={{
-                  base: "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10",
-                  content: "text-neutral-700 dark:text-neutral-300",
-                  closeButton:
-                    "text-neutral-500 hover:text-black dark:hover:text-white",
-                }}
+                variant="secondary"
+                className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-neutral-700 dark:text-neutral-300 gap-1"
               >
                 {tag}
-              </Chip>
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="ml-1 text-neutral-500 hover:text-black dark:hover:text-white"
+                >
+                  <IconX className="w-3 h-3" />
+                </button>
+              </Badge>
             ))}
           </div>
         )}
@@ -587,7 +534,7 @@ export default function AddMemoryForm() {
         <Button
           type="submit"
           size="lg"
-          isDisabled={isSubmitting}
+          disabled={isSubmitting}
           className="px-12 bg-black dark:bg-white text-white dark:text-black font-medium"
         >
           {isSubmitting ? (

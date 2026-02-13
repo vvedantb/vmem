@@ -2,23 +2,22 @@
 
 import { useState, useEffect } from "react";
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
   Button,
   Input,
-  addToast,
-} from "@heroui/react";
+} from "@vmem/ui";
 import {
-  IconX,
   IconLoader2,
   IconCheck,
   IconCopy,
   IconKey,
   IconAlertTriangle,
 } from "@tabler/icons-react";
+import { toast } from "sonner";
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -46,7 +45,6 @@ export default function ApiKeyModal({
   const [createdKey, setCreatedKey] = useState<CreatedKey | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setStep("create");
@@ -58,7 +56,6 @@ export default function ApiKeyModal({
   }, [isOpen]);
 
   const handleCreate = async () => {
-    // Validate name
     if (!name.trim()) {
       setNameError("Please enter a name for your API key");
       return;
@@ -89,12 +86,9 @@ export default function ApiKeyModal({
       onKeyCreated();
     } catch (err) {
       setStep("create");
-      addToast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "Failed to create API key",
-        color: "danger",
-      });
+      toast.error(
+        err instanceof Error ? err.message : "Failed to create API key",
+      );
     }
   };
 
@@ -104,20 +98,10 @@ export default function ApiKeyModal({
     try {
       await navigator.clipboard.writeText(createdKey.key);
       setCopied(true);
-      addToast({
-        title: "Copied!",
-        description: "API key copied to clipboard",
-        color: "success",
-      });
-
-      // Reset copied state after 2 seconds
+      toast.success("API key copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      addToast({
-        title: "Error",
-        description: "Failed to copy to clipboard",
-        color: "danger",
-      });
+      toast.error("Failed to copy to clipboard");
     }
   };
 
@@ -128,148 +112,137 @@ export default function ApiKeyModal({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      size="md"
-      isDismissable={step !== "loading"}
-      classNames={{
-        base: "bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10",
-        header: "border-b border-black/10 dark:border-white/10",
-        body: "py-6",
-        footer: "border-t border-black/10 dark:border-white/10",
+    <Dialog
+      open={isOpen}
+      onOpenChange={(value) => {
+        if (!value) handleClose();
       }}
     >
-      <ModalContent>
-        <ModalHeader className="flex items-center justify-between gap-4">
-          <span className="text-neutral-800 dark:text-neutral-200 text-lg font-semibold">
+      <DialogContent
+        className="max-w-md bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10"
+        hideCloseButton={step === "loading"}
+        onInteractOutside={(e) => {
+          if (step === "loading") e.preventDefault();
+        }}
+      >
+        <DialogHeader className="border-b border-black/10 dark:border-white/10 pb-4">
+          <DialogTitle className="text-neutral-800 dark:text-neutral-200">
             {step === "success" ? "API Key Created" : "Create New API Key"}
-          </span>
-          <Button
-            size="sm"
-            variant="light"
-            isIconOnly
-            onPress={handleClose}
-            isDisabled={step === "loading"}
-            className="text-neutral-500 flex-shrink-0"
-          >
-            <IconX size={18} />
-          </Button>
-        </ModalHeader>
+          </DialogTitle>
+        </DialogHeader>
 
-        <ModalBody>
-          {step === "create" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10">
-                <IconKey size={20} className="text-neutral-500 flex-shrink-0" />
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  Create a new API key to access vMemory programmatically. You
-                  can use this key with MCP clients and other integrations.
-                </p>
-              </div>
+        {step === "create" && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10">
+              <IconKey size={20} className="text-neutral-500 flex-shrink-0" />
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                Create a new API key to access vMemory programmatically. You can
+                use this key with MCP clients and other integrations.
+              </p>
+            </div>
 
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                Key Name
+              </label>
               <Input
-                label="Key Name"
                 placeholder="e.g., Production App, Development"
                 value={name}
-                onValueChange={setName}
-                isInvalid={!!nameError}
-                errorMessage={nameError}
-                description="Choose a descriptive name to identify this key"
-                classNames={{
-                  inputWrapper:
-                    "border border-black/10 dark:border-white/10 bg-transparent",
-                }}
+                onChange={(e) => setName(e.target.value)}
+                className="border-black/10 dark:border-white/10 bg-transparent"
               />
-            </div>
-          )}
-
-          {step === "loading" && (
-            <div className="py-8 space-y-4 text-center">
-              <IconLoader2
-                size={32}
-                className="animate-spin text-neutral-400 mx-auto"
-              />
-              <div className="space-y-2">
-                <p className="text-neutral-800 dark:text-neutral-200 font-medium">
-                  Creating API Key...
-                </p>
+              {nameError ? (
+                <p className="text-sm text-red-500">{nameError}</p>
+              ) : (
                 <p className="text-sm text-neutral-500">
-                  Please wait while we generate your key
+                  Choose a descriptive name to identify this key
                 </p>
-              </div>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
-          {step === "success" && createdKey && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                <IconAlertTriangle
-                  size={20}
-                  className="text-amber-600 dark:text-amber-400 flex-shrink-0"
+        {step === "loading" && (
+          <div className="py-8 space-y-4 text-center">
+            <IconLoader2
+              size={32}
+              className="animate-spin text-neutral-400 mx-auto"
+            />
+            <div className="space-y-2">
+              <p className="text-neutral-800 dark:text-neutral-200 font-medium">
+                Creating API Key...
+              </p>
+              <p className="text-sm text-neutral-500">
+                Please wait while we generate your key
+              </p>
+            </div>
+          </div>
+        )}
+
+        {step === "success" && createdKey && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+              <IconAlertTriangle
+                size={20}
+                className="text-amber-600 dark:text-amber-400 flex-shrink-0"
+              />
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                Make sure to copy your API key now. You won&apos;t be able to
+                see it again!
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                Your API Key
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={createdKey.key}
+                  readOnly
+                  className="font-mono text-sm border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]"
                 />
-                <p className="text-sm text-amber-800 dark:text-amber-200">
-                  Make sure to copy your API key now. You won&apos;t be able to
-                  see it again!
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Your API Key
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    value={createdKey.key}
-                    isReadOnly
-                    classNames={{
-                      input: "font-mono text-sm",
-                      inputWrapper:
-                        "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]",
-                    }}
-                  />
-                  <Button
-                    isIconOnly
-                    variant="flat"
-                    onPress={handleCopy}
-                    className={
-                      copied
-                        ? "bg-green-100 dark:bg-green-900/30 text-green-600"
-                        : "bg-black/5 dark:bg-white/5"
-                    }
-                  >
-                    {copied ? <IconCheck size={18} /> : <IconCopy size={18} />}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="pt-2 space-y-1 text-sm text-neutral-600 dark:text-neutral-400">
-                <p>
-                  <span className="font-medium">Name:</span> {createdKey.name}
-                </p>
-                <p>
-                  <span className="font-medium">Masked Key:</span>{" "}
-                  <code className="font-mono text-xs bg-black/5 dark:bg-white/5 px-1 py-0.5 rounded">
-                    {createdKey.maskedKey}
-                  </code>
-                </p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCopy}
+                  className={
+                    copied
+                      ? "bg-green-100 dark:bg-green-900/30 text-green-600"
+                      : "bg-black/5 dark:bg-white/5"
+                  }
+                >
+                  {copied ? <IconCheck size={18} /> : <IconCopy size={18} />}
+                </Button>
               </div>
             </div>
-          )}
-        </ModalBody>
 
-        <ModalFooter>
+            <div className="pt-2 space-y-1 text-sm text-neutral-600 dark:text-neutral-400">
+              <p>
+                <span className="font-medium">Name:</span> {createdKey.name}
+              </p>
+              <p>
+                <span className="font-medium">Masked Key:</span>{" "}
+                <code className="font-mono text-xs bg-black/5 dark:bg-white/5 px-1 py-0.5 rounded">
+                  {createdKey.maskedKey}
+                </code>
+              </p>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter className="border-t border-black/10 dark:border-white/10 pt-4">
           {step === "create" && (
             <>
               <Button
-                variant="light"
-                onPress={handleClose}
+                variant="ghost"
+                onClick={handleClose}
                 className="text-neutral-600 dark:text-neutral-400"
               >
                 Cancel
               </Button>
               <Button
-                onPress={handleCreate}
+                onClick={handleCreate}
                 className="bg-black dark:bg-white text-white dark:text-black"
               >
                 Create Key
@@ -285,14 +258,14 @@ export default function ApiKeyModal({
 
           {step === "success" && (
             <Button
-              onPress={handleClose}
+              onClick={handleClose}
               className="bg-black dark:bg-white text-white dark:text-black"
             >
               Done
             </Button>
           )}
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

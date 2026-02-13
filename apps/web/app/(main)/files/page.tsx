@@ -6,17 +6,17 @@ import {
   Progress,
   Table,
   TableHeader,
-  TableColumn,
+  TableHead,
   TableBody,
   TableRow,
   TableCell,
-  Dropdown,
-  DropdownTrigger,
   DropdownMenu,
-  DropdownItem,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
   Skeleton,
-  addToast,
-} from "@heroui/react";
+} from "@vmem/ui";
+import { toast } from "sonner";
 import {
   IconUpload,
   IconFile,
@@ -150,27 +150,19 @@ export default function FilesPage() {
         }
 
         handleFileDeleted(file.id);
-        addToast({
-          title: "Success",
-          description: "File deleted successfully",
-          color: "success",
-        });
+        toast.success("File deleted successfully");
       } catch (err) {
-        addToast({
-          title: "Error",
-          description:
-            err instanceof Error ? err.message : "Failed to delete file",
-          color: "danger",
-        });
+        toast.error(
+          err instanceof Error ? err.message : "Failed to delete file",
+        );
       } finally {
         setDeletingFileId(null);
       }
     },
-    [handleFileDeleted]
+    [handleFileDeleted],
   );
 
   const handleDownloadFile = useCallback((file: UploadedFile) => {
-    // Mock download
     const content =
       file.previewContent ||
       `Mock content for ${file.name}\n\nThis is a simulated download.`;
@@ -184,25 +176,19 @@ export default function FilesPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    addToast({
-      title: "Download Started",
-      description: `Downloading ${file.name}`,
-      color: "success",
-    });
+    toast.success(`Downloading ${file.name}`);
   }, []);
 
   const storageUsedGB = totalBytes / (1024 * 1024 * 1024);
   const storageLimitGB = storageLimit / (1024 * 1024 * 1024);
   const storagePercent = (totalBytes / storageLimit) * 100;
 
-  // Loading state
   if (isLoading) {
     return (
       <PageContainer
         title="Files"
         description="Manage your uploaded files and documents"
       >
-        {/* Storage skeleton */}
         <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex-1">
@@ -213,7 +199,6 @@ export default function FilesPage() {
           </div>
         </div>
 
-        {/* Table skeleton */}
         <div>
           <Skeleton className="h-6 w-24 mb-4 rounded" />
           <div className="border border-black/10 dark:border-white/10 rounded-xl overflow-hidden">
@@ -241,7 +226,6 @@ export default function FilesPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <PageContainer
@@ -262,10 +246,10 @@ export default function FilesPage() {
             {error}
           </p>
           <Button
-            onPress={fetchFiles}
+            onClick={fetchFiles}
             className="bg-black dark:bg-white text-white dark:text-black"
-            startContent={<IconRefresh size={18} />}
           >
+            <IconRefresh size={18} />
             Try again
           </Button>
         </div>
@@ -278,7 +262,6 @@ export default function FilesPage() {
       title="Files"
       description="Manage your uploaded files and documents"
     >
-      {/* Storage info */}
       <div className="p-6 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex-1">
@@ -292,24 +275,19 @@ export default function FilesPage() {
             </div>
             <Progress
               value={storagePercent}
-              size="sm"
-              classNames={{
-                track: "bg-black/10 dark:bg-white/10",
-                indicator: "bg-black dark:bg-white",
-              }}
+              className="h-2 bg-black/10 dark:bg-white/10"
             />
           </div>
           <Button
-            onPress={() => setIsUploadModalOpen(true)}
-            startContent={<IconUpload size={18} stroke={1.5} />}
+            onClick={() => setIsUploadModalOpen(true)}
             className="bg-black dark:bg-white text-white dark:text-black font-medium"
           >
+            <IconUpload size={18} stroke={1.5} />
             Upload File
           </Button>
         </div>
       </div>
 
-      {/* Files table or empty state */}
       {files.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 px-4 border border-black/10 dark:border-white/10 rounded-xl bg-black/[0.02] dark:bg-white/[0.02]">
           <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mb-4">
@@ -322,10 +300,10 @@ export default function FilesPage() {
             Upload your first file to get started
           </p>
           <Button
-            onPress={() => setIsUploadModalOpen(true)}
+            onClick={() => setIsUploadModalOpen(true)}
             className="bg-black dark:bg-white text-white dark:text-black"
-            startContent={<IconUpload size={18} />}
           >
+            <IconUpload size={18} />
             Upload File
           </Button>
         </div>
@@ -334,139 +312,126 @@ export default function FilesPage() {
           <h3 className="text-lg font-medium text-black dark:text-white mb-4">
             Your Files ({files.length})
           </h3>
-          <Table
-            aria-label="Files table"
-            classNames={{
-              wrapper:
-                "border border-black/10 dark:border-white/10 rounded-xl shadow-none bg-transparent",
-              th: "bg-black/[0.02] dark:bg-white/[0.02] text-neutral-500 font-medium",
-              td: "py-4",
-              tr: "cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors",
-            }}
-          >
-            <TableHeader>
-              <TableColumn>NAME</TableColumn>
-              <TableColumn className="hidden md:table-cell">SIZE</TableColumn>
-              <TableColumn className="hidden md:table-cell">
-                UPLOADED
-              </TableColumn>
-              <TableColumn width={60}>
-                <span className="sr-only">Actions</span>
-              </TableColumn>
-            </TableHeader>
-            <TableBody>
-              {files.map((file) => {
-                const FileIcon = getFileIcon(file.type);
-                const isDeleting = deletingFileId === file.id;
-                return (
-                  <TableRow
-                    key={file.id}
-                    onClick={() => handleViewFile(file)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                          {file.type === "image" && file.thumbnailUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={file.thumbnailUrl}
-                              alt={file.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <FileIcon
-                              size={20}
-                              stroke={1.5}
-                              className="text-neutral-600 dark:text-neutral-400"
-                            />
-                          )}
-                        </div>
-                        <span className="text-neutral-800 dark:text-neutral-200 font-medium">
-                          {file.name}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <span className="text-sm text-neutral-500 tabular-nums">
-                        {formatFileSize(file.size)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <span className="text-sm text-neutral-500">
-                        {formatDate(file.uploadedAt)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Dropdown>
-                        <DropdownTrigger>
-                          <Button
-                            isIconOnly
-                            variant="light"
-                            size="sm"
-                            className="text-neutral-500"
-                            onClick={(e) => e.stopPropagation()}
-                            isDisabled={isDeleting}
-                          >
-                            {isDeleting ? (
-                              <IconLoader2
-                                size={18}
-                                stroke={1.5}
-                                className="animate-spin"
+          <div className="border border-black/10 dark:border-white/10 rounded-xl overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-black/[0.02] dark:bg-white/[0.02]">
+                  <TableHead className="text-neutral-500 font-medium">
+                    NAME
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell text-neutral-500 font-medium">
+                    SIZE
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell text-neutral-500 font-medium">
+                    UPLOADED
+                  </TableHead>
+                  <TableHead className="w-[60px]">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {files.map((file) => {
+                  const FileIcon = getFileIcon(file.type);
+                  const isDeleting = deletingFileId === file.id;
+                  return (
+                    <TableRow
+                      key={file.id}
+                      className="cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                      onClick={() => handleViewFile(file)}
+                    >
+                      <TableCell className="py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {file.type === "image" && file.thumbnailUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={file.thumbnailUrl}
+                                alt={file.name}
+                                className="w-full h-full object-cover"
                               />
                             ) : (
-                              <IconDotsVertical size={18} stroke={1.5} />
+                              <FileIcon
+                                size={20}
+                                stroke={1.5}
+                                className="text-neutral-600 dark:text-neutral-400"
+                              />
                             )}
-                          </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu
-                          aria-label="File actions"
-                          onAction={(key) => {
-                            if (key === "view") handleViewFile(file);
-                            if (key === "download") handleDownloadFile(file);
-                            if (key === "delete") handleDeleteFile(file);
-                          }}
-                        >
-                          <DropdownItem
-                            key="view"
-                            startContent={<IconEye size={16} stroke={1.5} />}
-                          >
-                            View
-                          </DropdownItem>
-                          <DropdownItem
-                            key="download"
-                            startContent={
+                          </div>
+                          <span className="text-neutral-800 dark:text-neutral-200 font-medium">
+                            {file.name}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell py-4">
+                        <span className="text-sm text-neutral-500 tabular-nums">
+                          {formatFileSize(file.size)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell py-4">
+                        <span className="text-sm text-neutral-500">
+                          {formatDate(file.uploadedAt)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-neutral-500"
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={isDeleting}
+                            >
+                              {isDeleting ? (
+                                <IconLoader2
+                                  size={18}
+                                  stroke={1.5}
+                                  className="animate-spin"
+                                />
+                              ) : (
+                                <IconDotsVertical size={18} stroke={1.5} />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleViewFile(file)}
+                            >
+                              <IconEye size={16} stroke={1.5} />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDownloadFile(file)}
+                            >
                               <IconDownload size={16} stroke={1.5} />
-                            }
-                          >
-                            Download
-                          </DropdownItem>
-                          <DropdownItem
-                            key="delete"
-                            className="text-danger"
-                            color="danger"
-                            startContent={<IconTrash size={16} stroke={1.5} />}
-                          >
-                            Delete
-                          </DropdownItem>
+                              Download
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteFile(file)}
+                            >
+                              <IconTrash size={16} stroke={1.5} />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
                         </DropdownMenu>
-                      </Dropdown>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
-      {/* Upload modal */}
       <FileUploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onFileUploaded={handleFileUploaded}
       />
 
-      {/* Preview modal */}
       <FilePreviewModal
         isOpen={isPreviewModalOpen}
         file={selectedFile}
