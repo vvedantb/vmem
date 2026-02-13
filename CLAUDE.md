@@ -39,10 +39,15 @@ Pre-commit hook (husky) runs `lint-staged` → Prettier on staged files.
 
 - **Next.js 16** (App Router, Turbopack) + **React 19** + **TypeScript** (strict)
 - **@vmem/ui** — shared component library (shadcn pattern: Radix UI primitives + CVA + cn utility)
+- **@vmem/ui/ai** — AI chat elements (Conversation, Message, PromptInput, Reasoning, Shimmer, CodeBlock)
 - **Tailwind CSS 3** — styling with `darkMode: "class"`, OKLCH CSS variables (Nova neutral theme)
 - **Tabler Icons** (`@tabler/icons-react`) — all iconography
 - **next-themes** — dark/light mode switching
 - **sonner** — toast notifications (imperative `toast()` API)
+- **Vercel AI SDK** (`ai`) — chat types (UIMessage, ChatStatus)
+- **streamdown** + plugins — streaming markdown rendering with code, math, mermaid, CJK support
+- **use-stick-to-bottom** — auto-scroll for chat conversations
+- **motion** — animations (shimmer effects in Reasoning component)
 - **Convex** — reactive database with `@vmem/backend` package
 - **Clerk** — authentication (`@clerk/nextjs` + `ConvexProviderWithClerk`)
 - **React Compiler** enabled via babel plugin
