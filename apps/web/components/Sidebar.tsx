@@ -69,8 +69,8 @@ export default function Sidebar() {
     <>
       <header className="fixed top-0 left-0 right-0 h-16 bg-neutral-200 dark:bg-black z-50 md:hidden flex items-center justify-between px-6">
         <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-          <h1 className="text-xl font-bold tracking-tight text-neutral-800 dark:text-neutral-200">
-            vmem
+          <h1 className="text-2xl font-instrumentSerif tracking-tight text-neutral-800 dark:text-neutral-200">
+            v<span className="italic">mem</span>
           </h1>
         </Link>
         <button
@@ -108,8 +108,8 @@ export default function Sidebar() {
         <div className="flex flex-col h-full p-4 md:py-8">
           <div className="mb-8 px-2 hidden md:flex flex-row justify-between items-center">
             <Link href="/">
-              <h1 className="text-2xl font-bold tracking-tight text-neutral-800 dark:text-neutral-200">
-                vmem
+              <h1 className="text-3xl font-instrumentSerif tracking-tight text-neutral-800 dark:text-neutral-200">
+                v<span className="italic">mem</span>
               </h1>
             </Link>
             <div className="flex flex-row justify-end items-center gap-2">
