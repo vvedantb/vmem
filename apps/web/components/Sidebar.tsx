@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Switch, Divider, Button, Skeleton } from "@heroui/react";
 import { useThemeContext } from "./contexts/ThemeContext";
-import { useAuth } from "./contexts/AuthContext";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { useNotifications } from "./contexts/NotificationContext";
 import {
   IconMessageCircle,
@@ -50,7 +50,9 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme, mounted } = useThemeContext();
-  const { user, isLoading: isAuthLoading, logout } = useAuth();
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
+  const isAuthLoading = !isLoaded;
   const { unreadCount } = useNotifications();
 
   const isDark = theme === "dark";
@@ -204,21 +206,21 @@ export default function Sidebar() {
               <div className="px-2">
                 <div className="flex items-center gap-3 p-2 rounded-xl bg-black/5 dark:bg-white/5">
                   <div className="w-10 h-10 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black font-medium text-sm">
-                    {getUserInitials(user.name)}
+                    {getUserInitials(user.fullName || user.firstName || "U")}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-black dark:text-white truncate">
-                      {user.name}
+                      {user.fullName || user.firstName}
                     </p>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                      {user.email}
+                      {user.primaryEmailAddress?.emailAddress}
                     </p>
                   </div>
                   <Button
                     isIconOnly
                     size="sm"
                     variant="light"
-                    onPress={logout}
+                    onPress={() => signOut()}
                     className="text-neutral-500 hover:text-red-500 dark:text-neutral-400 dark:hover:text-red-400"
                     aria-label="Logout"
                   >

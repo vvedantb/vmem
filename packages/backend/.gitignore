@@ -1,4 +1,0 @@
-.env.local
-node_modules
-.claude
-eval/locomo/.cache/
