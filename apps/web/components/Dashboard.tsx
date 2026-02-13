@@ -139,7 +139,7 @@ export default function Dashboard() {
           {[1, 2, 3, 4].map((i) => (
             <Card
               key={i}
-              className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none"
+              className="border border-border bg-muted/50 shadow-none"
             >
               <CardContent className="p-6">
                 <Skeleton className="h-4 w-24 rounded mb-3" />
@@ -149,7 +149,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+        <Card className="border border-border bg-muted/50 shadow-none">
           <CardContent className="p-6">
             <Skeleton className="h-5 w-40 rounded mb-6" />
             <Skeleton className="h-48 w-full rounded" />
@@ -157,7 +157,7 @@ export default function Dashboard() {
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+          <Card className="border border-border bg-muted/50 shadow-none">
             <CardContent className="p-6">
               <Skeleton className="h-5 w-32 rounded mb-6" />
               {[1, 2, 3, 4].map((i) => (
@@ -171,7 +171,7 @@ export default function Dashboard() {
               ))}
             </CardContent>
           </Card>
-          <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+          <Card className="border border-border bg-muted/50 shadow-none">
             <CardContent className="p-6">
               <Skeleton className="h-5 w-28 rounded mb-6" />
               <div className="grid grid-cols-2 gap-3">
@@ -189,18 +189,16 @@ export default function Dashboard() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
-          <IconAlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+          <IconAlertCircle className="w-6 h-6 text-destructive" />
         </div>
-        <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
+        <h3 className="text-lg font-medium text-foreground mb-2">
           Failed to load dashboard
         </h3>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
-          {error}
-        </p>
+        <p className="text-sm text-muted-foreground mb-4">{error}</p>
         <Button
           onClick={fetchData}
-          className="bg-black dark:bg-white text-white dark:text-black"
+          className="bg-primary text-primary-foreground"
         >
           <IconRefresh size={18} />
           Try again
@@ -242,23 +240,20 @@ export default function Dashboard() {
         {statsCards.map((stat) => (
           <Card
             key={stat.label}
-            className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+            className="border border-border bg-muted/50 shadow-none hover:bg-accent transition-colors"
           >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-neutral-500 uppercase tracking-wider">
+                  <p className="text-sm text-muted-foreground uppercase tracking-wider">
                     {stat.label}
                   </p>
-                  <p className="text-3xl font-semibold mt-2 text-black dark:text-white tabular-nums">
+                  <p className="text-3xl font-semibold mt-2 text-foreground tabular-nums">
                     {stat.value}
                   </p>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center">
-                  <stat.icon
-                    size={20}
-                    className="text-neutral-600 dark:text-neutral-400"
-                  />
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                  <stat.icon size={20} className="text-muted-foreground" />
                 </div>
               </div>
             </CardContent>
@@ -266,13 +261,13 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+      <Card className="border border-border bg-muted/50 shadow-none">
         <CardContent className="p-6">
-          <h3 className="text-lg font-medium mb-6 text-black dark:text-white">
+          <h3 className="text-lg font-medium mb-6 text-foreground">
             Memory Growth (Last 7 Days)
           </h3>
           <div className="relative" style={{ height: chartHeight + 40 }}>
-            <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-neutral-400 pr-2">
+            <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-muted-foreground pr-2">
               <span className="tabular-nums">{maxTotal}</span>
               <span className="tabular-nums">{Math.round(maxTotal / 2)}</span>
               <span className="tabular-nums">0</span>
@@ -281,10 +276,7 @@ export default function Dashboard() {
             <div className="ml-8 h-full relative">
               <div className="absolute inset-0 flex flex-col justify-between">
                 {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="border-t border-black/5 dark:border-white/5 w-full"
-                  />
+                  <div key={i} className="border-t border-border w-full" />
                 ))}
               </div>
 
@@ -305,17 +297,17 @@ export default function Dashboard() {
                         className="w-full max-w-12 relative group"
                         style={{ height: chartHeight - 30 }}
                       >
-                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black dark:bg-white text-white dark:text-black text-xs px-2 py-1 rounded whitespace-nowrap z-10 pointer-events-none">
+                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-xs px-2 py-1 rounded whitespace-nowrap z-10 pointer-events-none">
                           {day.total} total (+{day.new})
                         </div>
 
                         <div
-                          className="absolute bottom-0 w-full bg-black/10 dark:bg-white/10 rounded-t transition-all"
+                          className="absolute bottom-0 w-full bg-muted rounded-t transition-all"
                           style={{ height: barHeight }}
                         />
 
                         <div
-                          className="absolute bottom-0 w-full bg-black dark:bg-white rounded-t transition-all"
+                          className="absolute bottom-0 w-full bg-foreground rounded-t transition-all"
                           style={{
                             height: newHeight,
                             opacity: day.new > 0 ? 1 : 0,
@@ -331,7 +323,7 @@ export default function Dashboard() {
                 {chartData.map((day, index) => (
                   <div
                     key={index}
-                    className="flex-1 text-center text-xs text-neutral-500"
+                    className="flex-1 text-center text-xs text-muted-foreground"
                   >
                     {day.date}
                   </div>
@@ -342,25 +334,29 @@ export default function Dashboard() {
 
           <div className="flex items-center gap-6 mt-4 ml-8">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-black/10 dark:bg-white/10" />
-              <span className="text-xs text-neutral-500">Total memories</span>
+              <div className="w-3 h-3 rounded bg-muted" />
+              <span className="text-xs text-muted-foreground">
+                Total memories
+              </span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-black dark:bg-white" />
-              <span className="text-xs text-neutral-500">New that day</span>
+              <div className="w-3 h-3 rounded bg-foreground" />
+              <span className="text-xs text-muted-foreground">
+                New that day
+              </span>
             </div>
           </div>
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+        <Card className="border border-border bg-muted/50 shadow-none">
           <CardContent className="p-6">
-            <h3 className="text-lg font-medium mb-6 text-black dark:text-white">
+            <h3 className="text-lg font-medium mb-6 text-foreground">
               Recent Activity
             </h3>
             {activity.length === 0 ? (
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center py-8">
+              <p className="text-sm text-muted-foreground text-center py-8">
                 No recent activity
               </p>
             ) : (
@@ -370,19 +366,16 @@ export default function Dashboard() {
                   return (
                     <li
                       key={item.id}
-                      className="flex items-start gap-3 py-2 border-b border-black/5 dark:border-white/5 last:border-0"
+                      className="flex items-start gap-3 py-2 border-b border-border last:border-0"
                     >
-                      <div className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center flex-shrink-0">
-                        <Icon
-                          size={16}
-                          className="text-neutral-600 dark:text-neutral-400"
-                        />
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <Icon size={16} className="text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-neutral-800 dark:text-neutral-200 truncate">
+                        <p className="text-sm text-foreground truncate">
                           {item.description}
                         </p>
-                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                        <p className="text-xs text-muted-foreground">
                           {item.title} &middot; {item.relativeTime}
                         </p>
                       </div>
@@ -394,27 +387,27 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] shadow-none">
+        <Card className="border border-border bg-muted/50 shadow-none">
           <CardContent className="p-6">
-            <h3 className="text-lg font-medium mb-6 text-black dark:text-white">
+            <h3 className="text-lg font-medium mb-6 text-foreground">
               Quick Actions
             </h3>
             <div className="grid grid-cols-2 gap-3">
               {quickActions.map((action) => (
                 <Link href={action.href} key={action.label}>
-                  <div className="p-4 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors group cursor-pointer">
+                  <div className="p-4 rounded-lg border border-border hover:bg-accent transition-colors group cursor-pointer">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-black/10 dark:group-hover:bg-white/10 transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center group-hover:bg-accent transition-colors">
                         <action.icon
                           size={16}
-                          className="text-neutral-600 dark:text-neutral-400"
+                          className="text-muted-foreground"
                         />
                       </div>
-                      <span className="font-medium text-sm text-neutral-800 dark:text-neutral-200">
+                      <span className="font-medium text-sm text-foreground">
                         {action.label}
                       </span>
                     </div>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400 pl-11">
+                    <p className="text-xs text-muted-foreground pl-11">
                       {action.description}
                     </p>
                   </div>

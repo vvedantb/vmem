@@ -24,6 +24,8 @@ export const themeExtend = {
     accent: { DEFAULT: c("accent"), foreground: c("accent-foreground") },
     popover: { DEFAULT: c("popover"), foreground: c("popover-foreground") },
     card: { DEFAULT: c("card"), foreground: c("card-foreground") },
+    sidebar: { DEFAULT: c("sidebar"), foreground: c("sidebar-foreground") },
+    info: { DEFAULT: c("info"), foreground: c("info-foreground") },
   },
   borderRadius: {
     xl: "calc(var(--radius) + 4px)",

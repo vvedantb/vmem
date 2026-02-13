@@ -239,8 +239,8 @@ export default function MemorySearch() {
     return (
       <>
         <Skeleton className="h-12 w-full rounded-xl" />
-        <div className="border border-black/10 dark:border-white/10 rounded-xl overflow-hidden">
-          <div className="bg-black/[0.02] dark:bg-white/[0.02] p-4">
+        <div className="border border-border rounded-xl overflow-hidden">
+          <div className="bg-muted/50 p-4">
             <div className="flex gap-8">
               <Skeleton className="h-4 w-20 rounded" />
               <Skeleton className="h-4 w-16 rounded hidden md:block" />
@@ -248,10 +248,7 @@ export default function MemorySearch() {
             </div>
           </div>
           {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className="p-4 border-t border-black/10 dark:border-white/10"
-            >
+            <div key={i} className="p-4 border-t border-border">
               <div className="flex items-center gap-8">
                 <Skeleton className="h-4 w-48 rounded" />
                 <div className="hidden md:flex gap-2">
@@ -270,18 +267,16 @@ export default function MemorySearch() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
-          <IconAlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+          <IconAlertCircle className="w-6 h-6 text-destructive" />
         </div>
-        <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
+        <h3 className="text-lg font-medium text-foreground mb-2">
           Failed to load memories
         </h3>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
-          {error}
-        </p>
+        <p className="text-sm text-muted-foreground mb-4">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 text-sm font-medium bg-black dark:bg-white text-white dark:text-black rounded-lg hover:opacity-90 transition-opacity"
+          className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
         >
           Try again
         </button>
@@ -292,13 +287,13 @@ export default function MemorySearch() {
   if (memories.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-4">
-          <IconMoodEmpty className="w-6 h-6 text-neutral-400 dark:text-neutral-500" />
+        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+          <IconMoodEmpty className="w-6 h-6 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
+        <h3 className="text-lg font-medium text-foreground mb-2">
           No memories yet
         </h3>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="text-sm text-muted-foreground">
           Start by adding your first memory
         </p>
       </div>
@@ -313,14 +308,14 @@ export default function MemorySearch() {
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search memories semantically..."
-          className="h-12 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 pr-10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
+          className="h-12 bg-muted/50 border-border pr-10 text-foreground hover:bg-accent focus-visible:border-ring"
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
           {isSearching ? (
-            <Spinner size="sm" className="text-neutral-400" />
+            <Spinner size="sm" className="text-muted-foreground" />
           ) : (
             <IconSearch
-              className="text-neutral-400 dark:text-neutral-600"
+              className="text-muted-foreground"
               size={20}
               stroke={1.5}
             />
@@ -330,16 +325,14 @@ export default function MemorySearch() {
 
       {allTags.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-neutral-500 dark:text-neutral-400">
-            Filter by tags:
-          </span>
+          <span className="text-sm text-muted-foreground">Filter by tags:</span>
           {allTags.map((item) => (
             <Badge
               key={item.tag}
               className={`cursor-pointer transition-all ${
                 selectedTags.includes(item.tag)
-                  ? "bg-black dark:bg-white text-white dark:text-black border border-transparent"
-                  : "bg-black/5 dark:bg-white/5 text-neutral-600 dark:text-neutral-400 border border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10"
+                  ? "bg-primary text-primary-foreground border border-transparent"
+                  : "bg-muted text-muted-foreground border border-border hover:bg-accent"
               }`}
               onClick={() => toggleTag(item.tag)}
             >
@@ -347,8 +340,8 @@ export default function MemorySearch() {
               <span
                 className={`ml-1 ${
                   selectedTags.includes(item.tag)
-                    ? "text-white/70 dark:text-black/70"
-                    : "text-neutral-400 dark:text-neutral-500"
+                    ? "text-primary-foreground/70"
+                    : "text-muted-foreground"
                 }`}
               >
                 ({item.count})
@@ -358,7 +351,7 @@ export default function MemorySearch() {
           {selectedTags.length > 0 && (
             <button
               onClick={clearTagFilters}
-              className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <IconX size={14} />
               Clear
@@ -368,36 +361,36 @@ export default function MemorySearch() {
       )}
 
       {isShowingSearchResults && displayData.length === 0 && !isSearching && (
-        <div className="flex flex-col items-center justify-center py-12 text-center border border-black/10 dark:border-white/10 rounded-xl">
-          <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-3">
-            <IconSearch className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />
+        <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-xl">
+          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+            <IconSearch className="w-5 h-5 text-muted-foreground" />
           </div>
-          <h3 className="text-base font-medium text-neutral-800 dark:text-neutral-200 mb-1">
+          <h3 className="text-base font-medium text-foreground mb-1">
             No results found
           </h3>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+          <p className="text-sm text-muted-foreground">
             Try searching with different keywords
           </p>
         </div>
       )}
 
       {(!isShowingSearchResults || displayData.length > 0) && (
-        <div className="border border-black/10 dark:border-white/10 rounded-xl overflow-hidden">
+        <div className="border border-border rounded-xl overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-                <TableHead className="text-neutral-500 font-medium">
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="text-muted-foreground font-medium">
                   TITLE
                 </TableHead>
                 <TableHead
-                  className={`text-neutral-500 font-medium w-24 ${isShowingSearchResults ? "" : "hidden"}`}
+                  className={`text-muted-foreground font-medium w-24 ${isShowingSearchResults ? "" : "hidden"}`}
                 >
                   SCORE
                 </TableHead>
-                <TableHead className="text-neutral-500 font-medium hidden md:table-cell">
+                <TableHead className="text-muted-foreground font-medium hidden md:table-cell">
                   TAGS
                 </TableHead>
-                <TableHead className="text-neutral-500 font-medium">
+                <TableHead className="text-muted-foreground font-medium">
                   CREATED
                 </TableHead>
               </TableRow>
@@ -407,26 +400,24 @@ export default function MemorySearch() {
                 <TableRow
                   key={item.id}
                   onClick={() => handleRowClick(item)}
-                  className="cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                  className="cursor-pointer hover:bg-accent"
                 >
                   <TableCell className="py-5">
-                    <span className="text-neutral-800 dark:text-neutral-200">
-                      {item.title}
-                    </span>
+                    <span className="text-foreground">{item.title}</span>
                   </TableCell>
                   <TableCell
                     className={`py-5 ${isShowingSearchResults ? "" : "hidden"}`}
                   >
                     <div className="flex items-center gap-2">
-                      <div className="w-12 h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+                      <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-black dark:bg-white rounded-full"
+                          className="h-full bg-primary rounded-full"
                           style={{
                             width: `${Math.round(("relevanceScore" in item ? item.relevanceScore : 0) * 100)}%`,
                           }}
                         />
                       </div>
-                      <span className="text-xs text-neutral-500 tabular-nums">
+                      <span className="text-xs text-muted-foreground tabular-nums">
                         {Math.round(
                           ("relevanceScore" in item ? item.relevanceScore : 0) *
                             100,
@@ -440,7 +431,7 @@ export default function MemorySearch() {
                       {item.tags.map((tag) => (
                         <Badge
                           key={tag}
-                          className="bg-black/5 dark:bg-white/5 text-neutral-600 dark:text-neutral-400 border border-black/10 dark:border-white/10 text-xs"
+                          className="bg-muted text-muted-foreground border border-border text-xs"
                         >
                           {tag}
                         </Badge>
@@ -448,7 +439,7 @@ export default function MemorySearch() {
                     </div>
                   </TableCell>
                   <TableCell className="py-5">
-                    <span className="text-sm text-neutral-500">
+                    <span className="text-sm text-muted-foreground">
                       {formatDate(item.createdAt)}
                     </span>
                   </TableCell>
