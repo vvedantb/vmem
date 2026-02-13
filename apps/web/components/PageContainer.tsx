@@ -17,10 +17,10 @@ export default function PageContainer({
     <div className="flex flex-col h-full min-h-0">
       <div className="flex items-start justify-between gap-4 mb-8 flex-shrink-0">
         <div>
-          <h2 className="text-3xl font-instrumentSerif text-black dark:text-white">
+          <h2 className="text-3xl font-instrumentSerif text-foreground">
             {title}
           </h2>
-          {/* <p className="text-neutral-500 mt-2">{description}</p> */}
+          {/* <p className="text-muted-foreground mt-2">{description}</p> */}
         </div>
         {rightSection && <div className="flex-shrink-0">{rightSection}</div>}
       </div>

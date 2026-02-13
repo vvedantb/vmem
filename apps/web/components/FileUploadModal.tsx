@@ -234,7 +234,7 @@ export default function FileUploadModal({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-w-xl bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10"
+        className="max-w-xl bg-card border border-border"
         hideCloseButton
         onInteractOutside={(e) => {
           if (isUploading) e.preventDefault();
@@ -243,17 +243,15 @@ export default function FileUploadModal({
           if (isUploading) e.preventDefault();
         }}
       >
-        <DialogHeader className="border-b border-black/10 dark:border-white/10 pb-4">
+        <DialogHeader className="border-b border-border pb-4">
           <div className="flex items-center justify-between gap-4">
-            <DialogTitle className="text-neutral-800 dark:text-neutral-200">
-              Upload Files
-            </DialogTitle>
+            <DialogTitle className="text-foreground">Upload Files</DialogTitle>
             <Button
               size="icon-sm"
               variant="ghost"
               onClick={handleClose}
               disabled={isUploading}
-              className="text-neutral-500 flex-shrink-0"
+              className="text-muted-foreground flex-shrink-0"
             >
               <IconX size={18} />
             </Button>
@@ -270,8 +268,8 @@ export default function FileUploadModal({
               relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors
               ${
                 isDragging
-                  ? "border-black dark:border-white bg-black/5 dark:bg-white/5"
-                  : "border-black/20 dark:border-white/20 hover:border-black/40 dark:hover:border-white/40"
+                  ? "border-primary bg-muted"
+                  : "border-border/80 hover:border-ring"
               }
             `}
           >
@@ -286,25 +284,23 @@ export default function FileUploadModal({
             <div className="flex flex-col items-center gap-3">
               <div
                 className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
-                  isDragging
-                    ? "bg-black dark:bg-white"
-                    : "bg-black/10 dark:bg-white/10"
+                  isDragging ? "bg-primary" : "bg-muted"
                 }`}
               >
                 <IconUpload
                   size={24}
                   className={
                     isDragging
-                      ? "text-white dark:text-black"
-                      : "text-neutral-600 dark:text-neutral-400"
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground"
                   }
                 />
               </div>
               <div>
-                <p className="text-neutral-800 dark:text-neutral-200 font-medium">
+                <p className="text-foreground font-medium">
                   {isDragging ? "Drop files here" : "Drag and drop files here"}
                 </p>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   or click to browse
                 </p>
               </div>
@@ -313,7 +309,7 @@ export default function FileUploadModal({
 
           {queuedFiles.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 {pendingCount > 0
                   ? `${pendingCount} file${pendingCount !== 1 ? "s" : ""} ready to upload`
                   : completeCount > 0
@@ -326,29 +322,26 @@ export default function FileUploadModal({
                   return (
                     <div
                       key={`${queuedFile.file.name}-${index}`}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10"
+                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center flex-shrink-0">
-                        <FileIcon
-                          size={20}
-                          className="text-neutral-600 dark:text-neutral-400"
-                        />
+                      <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center flex-shrink-0">
+                        <FileIcon size={20} className="text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-neutral-800 dark:text-neutral-200 font-medium truncate">
+                        <p className="text-sm text-foreground font-medium truncate">
                           {queuedFile.file.name}
                         </p>
-                        <p className="text-xs text-neutral-500">
+                        <p className="text-xs text-muted-foreground">
                           {formatFileSize(queuedFile.file.size)}
                         </p>
                         {queuedFile.status === "uploading" && (
                           <Progress
                             value={queuedFile.progress}
-                            className="mt-2 h-1.5 bg-black/10 dark:bg-white/10"
+                            className="mt-2 h-1.5 bg-muted"
                           />
                         )}
                         {queuedFile.status === "error" && (
-                          <p className="text-xs text-red-500 mt-1">
+                          <p className="text-xs text-destructive mt-1">
                             {queuedFile.error}
                           </p>
                         )}
@@ -360,7 +353,7 @@ export default function FileUploadModal({
                             variant="ghost"
                             onClick={() => removeQueuedFile(index)}
                             disabled={isUploading}
-                            className="text-neutral-500 hover:text-red-500"
+                            className="text-muted-foreground hover:text-destructive"
                           >
                             <IconTrash size={16} />
                           </Button>
@@ -368,18 +361,18 @@ export default function FileUploadModal({
                         {queuedFile.status === "uploading" && (
                           <IconLoader2
                             size={20}
-                            className="text-neutral-400 animate-spin"
+                            className="text-muted-foreground animate-spin"
                           />
                         )}
                         {queuedFile.status === "complete" && (
-                          <IconCheck size={20} className="text-green-500" />
+                          <IconCheck size={20} className="text-success" />
                         )}
                         {queuedFile.status === "error" && (
                           <Button
                             size="icon-sm"
                             variant="ghost"
                             onClick={() => removeQueuedFile(index)}
-                            className="text-red-500"
+                            className="text-destructive"
                           >
                             <IconX size={16} />
                           </Button>
@@ -393,12 +386,12 @@ export default function FileUploadModal({
           )}
         </div>
 
-        <DialogFooter className="border-t border-black/10 dark:border-white/10 pt-4">
+        <DialogFooter className="border-t border-border pt-4">
           <Button
             variant="ghost"
             onClick={handleClose}
             disabled={isUploading}
-            className="text-neutral-600 dark:text-neutral-400"
+            className="text-muted-foreground"
           >
             {completeCount > 0 && pendingCount === 0 ? "Done" : "Cancel"}
           </Button>
@@ -406,7 +399,7 @@ export default function FileUploadModal({
             <Button
               onClick={handleUploadAll}
               disabled={isUploading || pendingCount === 0}
-              className="bg-black dark:bg-white text-white dark:text-black"
+              className="bg-primary text-primary-foreground"
             >
               {isUploading ? (
                 <IconLoader2 size={16} className="animate-spin" />

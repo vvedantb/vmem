@@ -168,24 +168,22 @@ export default function TagsPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
-          <IconAlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+          <IconAlertCircle className="w-6 h-6 text-destructive" />
         </div>
-        <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
+        <h3 className="text-lg font-medium text-foreground mb-2">
           Failed to load tags
         </h3>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
-          {error}
-        </p>
-        <button
+        <p className="text-sm text-muted-foreground mb-4">{error}</p>
+        <Button
           onClick={() => {
             setIsLoading(true);
             fetchTags();
           }}
-          className="px-4 py-2 text-sm font-medium bg-black dark:bg-white text-white dark:text-black rounded-lg hover:opacity-90 transition-opacity"
+          className="px-4 py-2 h-auto text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
         >
           Try again
-        </button>
+        </Button>
       </div>
     );
   }
@@ -195,36 +193,30 @@ export default function TagsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200">
+        <h1 className="text-2xl font-semibold text-foreground">
           Tag Management
         </h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           View, edit, and manage your memory tags
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.01] dark:bg-white/[0.01]">
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Total Tags
-          </p>
-          <p className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200 mt-1">
+        <div className="p-4 rounded-xl border border-border bg-muted/50">
+          <p className="text-sm text-muted-foreground">Total Tags</p>
+          <p className="text-2xl font-semibold text-foreground mt-1">
             {tags.length}
           </p>
         </div>
-        <div className="p-4 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.01] dark:bg-white/[0.01]">
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Tag Uses
-          </p>
-          <p className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200 mt-1">
+        <div className="p-4 rounded-xl border border-border bg-muted/50">
+          <p className="text-sm text-muted-foreground">Tag Uses</p>
+          <p className="text-2xl font-semibold text-foreground mt-1">
             {totalMemoriesWithTags}
           </p>
         </div>
-        <div className="p-4 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.01] dark:bg-white/[0.01]">
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Avg Tags/Memory
-          </p>
-          <p className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200 mt-1">
+        <div className="p-4 rounded-xl border border-border bg-muted/50">
+          <p className="text-sm text-muted-foreground">Avg Tags/Memory</p>
+          <p className="text-2xl font-semibold text-foreground mt-1">
             {tags.length > 0
               ? (totalMemoriesWithTags / tags.length).toFixed(1)
               : "0"}
@@ -233,24 +225,20 @@ export default function TagsPage() {
       </div>
 
       <div>
-        <h2 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-4">
-          Tag Cloud
-        </h2>
+        <h2 className="text-lg font-medium text-foreground mb-4">Tag Cloud</h2>
         <TagCloud tags={tags} onTagClick={handleTagClick} />
       </div>
 
       <div>
-        <h2 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-4">
-          All Tags
-        </h2>
+        <h2 className="text-lg font-medium text-foreground mb-4">All Tags</h2>
         {tags.length === 0 ? (
-          <div className="p-8 text-center border border-black/10 dark:border-white/10 rounded-xl">
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+          <div className="p-8 text-center border border-border rounded-xl">
+            <p className="text-sm text-muted-foreground">
               No tags found. Add tags to your memories to manage them here.
             </p>
           </div>
         ) : (
-          <div className="border border-black/10 dark:border-white/10 rounded-xl">
+          <div className="border border-border rounded-xl">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -269,7 +257,7 @@ export default function TagsPage() {
                             value={newTagName}
                             onChange={(e) => setNewTagName(e.target.value)}
                             disabled={isSaving}
-                            className="h-8 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white"
+                            className="h-8 bg-muted/50 border-border text-foreground"
                             onKeyDown={(e) => {
                               if (e.key === "Enter") handleSaveTag();
                               if (e.key === "Escape") cancelEditing();
@@ -281,7 +269,7 @@ export default function TagsPage() {
                             size="icon-sm"
                             onClick={handleSaveTag}
                             disabled={isSaving}
-                            className="text-green-600 dark:text-green-400"
+                            className="text-success"
                           >
                             {isSaving ? (
                               <IconLoader2 size={16} className="animate-spin" />
@@ -294,19 +282,17 @@ export default function TagsPage() {
                             size="icon-sm"
                             onClick={cancelEditing}
                             disabled={isSaving}
-                            className="text-neutral-500"
+                            className="text-muted-foreground"
                           >
                             <IconX size={16} />
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-neutral-800 dark:text-neutral-200">
-                          {item.tag}
-                        </span>
+                        <span className="text-foreground">{item.tag}</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="text-neutral-600 dark:text-neutral-400 tabular-nums">
+                      <span className="text-muted-foreground tabular-nums">
                         {item.count}
                       </span>
                     </TableCell>
@@ -317,7 +303,7 @@ export default function TagsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => startEditing(item.tag)}
-                            className="text-neutral-600 dark:text-neutral-400"
+                            className="text-muted-foreground"
                           >
                             <IconEdit size={14} />
                             Edit
@@ -326,7 +312,7 @@ export default function TagsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setDeleteTag(item.tag)}
-                            className="text-red-600 dark:text-red-400"
+                            className="text-destructive"
                           >
                             <IconTrash size={14} />
                             Delete
@@ -348,10 +334,8 @@ export default function TagsPage() {
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-neutral-800 dark:text-neutral-200">
-              Delete Tag
-            </DialogTitle>
-            <DialogDescription className="text-neutral-600 dark:text-neutral-400">
+            <DialogTitle className="text-foreground">Delete Tag</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Are you sure you want to delete the tag &quot;{deleteTag}&quot;?
               This will remove it from all memories. The memories themselves
               will not be deleted.
@@ -362,7 +346,7 @@ export default function TagsPage() {
               variant="ghost"
               onClick={() => setDeleteTag(null)}
               disabled={isDeleting}
-              className="text-neutral-600 dark:text-neutral-400"
+              className="text-muted-foreground"
             >
               Cancel
             </Button>

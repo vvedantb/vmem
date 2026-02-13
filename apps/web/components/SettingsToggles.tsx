@@ -53,13 +53,11 @@ export default function SettingsToggles() {
       {settings.map((setting) => (
         <div
           key={setting.id}
-          className="flex items-center justify-between py-4 border-b border-black/5 dark:border-white/5 last:border-0"
+          className="flex items-center justify-between py-4 border-b border-border last:border-0"
         >
           <div>
-            <p className="font-medium text-neutral-800 dark:text-neutral-200">
-              {setting.label}
-            </p>
-            <p className="text-sm text-neutral-500 mt-1">
+            <p className="font-medium text-foreground">{setting.label}</p>
+            <p className="text-sm text-muted-foreground mt-1">
               {setting.description}
             </p>
           </div>

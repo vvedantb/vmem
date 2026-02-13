@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
+  Button,
   Input,
   Table,
   TableHeader,
@@ -274,12 +275,13 @@ export default function MemorySearch() {
           Failed to load memories
         </h3>
         <p className="text-sm text-muted-foreground mb-4">{error}</p>
-        <button
+        <Button
+          type="button"
           onClick={() => window.location.reload()}
-          className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+          className="px-4 py-2 h-auto text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
         >
           Try again
-        </button>
+        </Button>
       </div>
     );
   }
@@ -349,13 +351,16 @@ export default function MemorySearch() {
             </Badge>
           ))}
           {selectedTags.length > 0 && (
-            <button
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={clearTagFilters}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="h-auto px-1.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <IconX size={14} />
               Clear
-            </button>
+            </Button>
           )}
         </div>
       )}

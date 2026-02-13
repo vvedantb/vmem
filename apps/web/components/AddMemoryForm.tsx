@@ -299,7 +299,7 @@ export default function AddMemoryForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
+        <label className="block text-sm font-medium text-muted-foreground">
           Title
         </label>
         <Input
@@ -308,12 +308,12 @@ export default function AddMemoryForm() {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter a title for your memory"
           disabled={isSubmitting}
-          className="h-10 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
+          className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
         />
       </div>
 
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
+        <label className="block text-sm font-medium text-muted-foreground">
           Content
         </label>
         <Textarea
@@ -322,15 +322,15 @@ export default function AddMemoryForm() {
           placeholder="Write your memory content here..."
           rows={8}
           disabled={isSubmitting || isRecording}
-          className="bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
+          className="bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
         />
       </div>
 
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
+        <label className="block text-sm font-medium text-muted-foreground">
           Voice Input
         </label>
-        <div className="p-4 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10">
+        <div className="p-4 rounded-lg bg-muted/50 border border-border">
           {!audioBlob && !isRecording && (
             <div className="flex items-center gap-4">
               <Button
@@ -339,12 +339,12 @@ export default function AddMemoryForm() {
                 variant="secondary"
                 onClick={startRecording}
                 disabled={isSubmitting}
-                className="bg-black/5 dark:bg-white/5"
+                className="bg-muted"
               >
                 <IconMicrophone className="w-4 h-4 mr-2" />
                 Start Recording
               </Button>
-              <span className="text-sm text-neutral-500">
+              <span className="text-sm text-muted-foreground">
                 Record audio to transcribe into text
               </span>
             </div>
@@ -357,20 +357,20 @@ export default function AddMemoryForm() {
                 size="sm"
                 variant="secondary"
                 onClick={stopRecording}
-                className="bg-red-500/10 text-red-600 dark:text-red-400"
+                className="bg-destructive/10 text-destructive"
               >
                 <IconPlayerStop className="w-4 h-4 mr-2" />
                 Stop
               </Button>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                  <span className="text-sm font-mono tabular-nums text-neutral-700 dark:text-neutral-300">
+                  <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                  <span className="text-sm font-mono tabular-nums text-foreground">
                     {formatTime(recordingTime)}
                   </span>
                 </div>
-                <div className="relative h-2 w-24 overflow-hidden rounded-full bg-red-500/20">
-                  <div className="absolute h-full w-1/3 rounded-full bg-red-500 animate-[indeterminate_1.5s_ease-in-out_infinite]" />
+                <div className="relative h-2 w-24 overflow-hidden rounded-full bg-destructive/20">
+                  <div className="absolute h-full w-1/3 rounded-full bg-destructive animate-[indeterminate_1.5s_ease-in-out_infinite]" />
                 </div>
               </div>
             </div>
@@ -385,7 +385,7 @@ export default function AddMemoryForm() {
                   variant="secondary"
                   onClick={togglePlayback}
                   disabled={isTranscribing}
-                  className="bg-black/5 dark:bg-white/5"
+                  className="bg-muted"
                 >
                   {isPlaying ? (
                     <IconPlayerPause className="w-4 h-4" />
@@ -393,7 +393,7 @@ export default function AddMemoryForm() {
                     <IconPlayerPlay className="w-4 h-4" />
                   )}
                 </Button>
-                <span className="text-sm font-mono tabular-nums text-neutral-600 dark:text-neutral-400">
+                <span className="text-sm font-mono tabular-nums text-muted-foreground">
                   {formatTime(recordingTime)}
                 </span>
                 <Button
@@ -402,7 +402,7 @@ export default function AddMemoryForm() {
                   variant="secondary"
                   onClick={discardRecording}
                   disabled={isTranscribing}
-                  className="bg-black/5 dark:bg-white/5 text-red-600 dark:text-red-400"
+                  className="bg-muted text-destructive"
                 >
                   <IconTrash className="w-4 h-4" />
                 </Button>
@@ -413,7 +413,7 @@ export default function AddMemoryForm() {
                     variant="secondary"
                     onClick={transcribeAudio}
                     disabled={isTranscribing}
-                    className="bg-black/5 dark:bg-white/5 ml-auto"
+                    className="bg-muted ml-auto"
                   >
                     {isTranscribing ? (
                       <>
@@ -429,13 +429,13 @@ export default function AddMemoryForm() {
 
               {transcription && (
                 <div className="space-y-3">
-                  <div className="p-3 rounded-md bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10">
+                  <div className="p-3 rounded-md bg-muted/50 border border-border">
                     <Textarea
                       value={transcription}
                       onChange={(e) => setTranscription(e.target.value)}
                       rows={3}
                       placeholder="Transcription preview..."
-                      className="border-none bg-transparent shadow-none text-black dark:text-white text-sm focus-visible:ring-0"
+                      className="border-none bg-transparent shadow-none text-foreground text-sm focus-visible:ring-0"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -444,7 +444,7 @@ export default function AddMemoryForm() {
                       size="sm"
                       variant="secondary"
                       onClick={applyTranscription}
-                      className="bg-black dark:bg-white text-white dark:text-black"
+                      className="bg-primary text-primary-foreground"
                     >
                       <IconCheck className="w-4 h-4 mr-2" />
                       Apply to Content
@@ -454,7 +454,7 @@ export default function AddMemoryForm() {
                       size="sm"
                       variant="secondary"
                       onClick={discardRecording}
-                      className="bg-black/5 dark:bg-white/5"
+                      className="bg-muted"
                     >
                       Discard
                     </Button>
@@ -467,7 +467,7 @@ export default function AddMemoryForm() {
       </div>
 
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400">
+        <label className="block text-sm font-medium text-muted-foreground">
           Tags
         </label>
         <div className="relative">
@@ -486,24 +486,24 @@ export default function AddMemoryForm() {
             }}
             placeholder="Type a tag and press Enter"
             disabled={isSubmitting}
-            className="h-10 bg-black/[0.02] dark:bg-white/[0.02] border-black/10 dark:border-white/10 text-black dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] focus-visible:border-black/30 dark:focus-visible:border-white/30"
+            className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
           />
           {showSuggestions && filteredSuggestions.length > 0 && (
-            <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg">
+            <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
               {filteredSuggestions.map((item) => (
-                <button
+                <Button
                   key={item.tag}
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => selectSuggestion(item.tag)}
-                  className="w-full px-4 py-2 text-left flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  className="w-full h-auto px-4 py-2 text-left flex items-center justify-between hover:bg-accent transition-colors"
                 >
-                  <span className="text-sm text-neutral-800 dark:text-neutral-200">
-                    {item.tag}
-                  </span>
-                  <span className="text-xs text-neutral-500">
+                  <span className="text-sm text-foreground">{item.tag}</span>
+                  <span className="text-xs text-muted-foreground">
                     {item.count} {item.count === 1 ? "memory" : "memories"}
                   </span>
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -514,16 +514,18 @@ export default function AddMemoryForm() {
               <Badge
                 key={tag}
                 variant="secondary"
-                className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-neutral-700 dark:text-neutral-300 gap-1"
+                className="bg-muted border border-border text-foreground gap-1"
               >
                 {tag}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-xs"
                   onClick={() => removeTag(tag)}
-                  className="ml-1 text-neutral-500 hover:text-black dark:hover:text-white"
+                  className="ml-1 h-auto w-auto p-0 text-muted-foreground hover:text-foreground"
                 >
                   <IconX className="w-3 h-3" />
-                </button>
+                </Button>
               </Badge>
             ))}
           </div>
@@ -535,7 +537,7 @@ export default function AddMemoryForm() {
           type="submit"
           size="lg"
           disabled={isSubmitting}
-          className="px-12 bg-black dark:bg-white text-white dark:text-black font-medium"
+          className="px-12 bg-primary text-primary-foreground font-medium"
         >
           {isSubmitting ? (
             <>

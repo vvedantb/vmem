@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, type FormEvent } from "react";
-import { Badge } from "@vmem/ui";
+import { Badge, Button } from "@vmem/ui";
 import {
   Conversation,
   ConversationContent,
@@ -214,13 +214,16 @@ export default function Chat() {
                   "Tell me about Docker",
                   "Summarize my TypeScript notes",
                 ].map((suggestion) => (
-                  <button
+                  <Button
                     key={suggestion}
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setInput(suggestion)}
-                    className="px-3 py-1.5 text-sm border border-border rounded-full hover:bg-accent transition-colors text-muted-foreground"
+                    className="px-3 py-1.5 h-auto text-sm border-border rounded-full hover:bg-accent transition-colors text-muted-foreground"
                   >
                     {suggestion}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </ConversationEmptyState>
@@ -244,9 +247,12 @@ export default function Chat() {
                   message.relevantMemories &&
                   message.relevantMemories.length > 0 && (
                     <div className="mb-2 w-full">
-                      <button
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => toggleMemoryExpansion(message.id)}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        className="h-auto px-0 py-0 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                       >
                         <IconBrain size={14} stroke={1.5} />
                         <span>
@@ -260,7 +266,7 @@ export default function Chat() {
                         ) : (
                           <IconChevronDown size={14} />
                         )}
-                      </button>
+                      </Button>
 
                       {expandedMemories.has(message.id) && (
                         <div className="mt-2 space-y-2">
