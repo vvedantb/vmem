@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   title: "vmem",
   description: "vmem",
   icons: {
-    icon: "/icon.png",
+    icon: "/favicon.png",
   },
 };
 
