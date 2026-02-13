@@ -14,6 +14,13 @@ interface ChatRequest {
   history?: { role: "user" | "assistant"; content: string }[];
 }
 
+interface ToolEventData {
+  name: string;
+  state: "input-available" | "running" | "output-available" | "output-error";
+  input?: unknown;
+  output?: unknown;
+}
+
 // Simple mock "semantic" search that simulates relevance scoring
 function calculateRelevanceScore(memory: Memory, query: string): number {
   const queryLower = query.toLowerCase();
@@ -70,6 +77,48 @@ function findRelevantMemories(message: string, limit: number = 3): Memory[] {
   return scored.map((item) => item.memory);
 }
 
+function generateReasoning(
+  message: string,
+  relevantMemories: Memory[],
+): string {
+  const steps = [
+    `Analyzing the user query: "${message}".`,
+    "Scanning stored memories by title, content, and tags with weighted relevance.",
+  ];
+
+  if (relevantMemories.length > 0) {
+    steps.push(
+      `Found ${relevantMemories.length} relevant ${relevantMemories.length === 1 ? "memory" : "memories"} with confidence above threshold.`,
+    );
+    steps.push(
+      `Prioritizing "${relevantMemories[0].title}" as the strongest match for response grounding.`,
+    );
+  } else {
+    steps.push(
+      "No memories crossed the confidence threshold; fallback response will be used.",
+    );
+  }
+
+  return steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
+}
+
+function generatePlan(relevantMemories: Memory[]): string[] {
+  const plan = [
+    "Parse and classify user intent",
+    "Search memory store for relevant entries",
+    "Rank results by relevance score",
+  ];
+
+  if (relevantMemories.length > 0) {
+    plan.push("Ground final response in top ranked memory context");
+  } else {
+    plan.push("Return guidance to add or refine memories");
+  }
+
+  plan.push("Stream final response to client");
+  return plan;
+}
+
 // Generate a mock AI response based on the user's message and relevant memories
 function generateResponse(message: string, relevantMemories: Memory[]): string {
   const messageLower = message.toLowerCase();
@@ -103,7 +152,10 @@ function generateResponse(message: string, relevantMemories: Memory[]): string {
       return `Yes! I found ${relevantMemories.length} relevant ${relevantMemories.length === 1 ? "memory" : "memories"} about that:\n\n${memoryContext}\n\nIs there anything specific you'd like to know more about?`;
     }
 
-    if (messageLower.includes("summary") || messageLower.includes("summarize")) {
+    if (
+      messageLower.includes("summary") ||
+      messageLower.includes("summarize")
+    ) {
       const tags = [...new Set(relevantMemories.flatMap((m) => m.tags))];
       return `Here's a summary from ${relevantMemories.length} related ${relevantMemories.length === 1 ? "memory" : "memories"}:\n\n${relevantMemories.map((m) => `• **${m.title}**: ${m.content.slice(0, 100)}...`).join("\n")}\n\nKey topics covered: ${tags.join(", ")}.`;
     }
@@ -120,7 +172,9 @@ function generateResponse(message: string, relevantMemories: Memory[]): string {
     "I searched through your memories but didn't find anything matching that query. Your memories cover topics like learning, development tools, and programming concepts.",
   ];
 
-  return noContextResponses[Math.floor(Math.random() * noContextResponses.length)];
+  return noContextResponses[
+    Math.floor(Math.random() * noContextResponses.length)
+  ];
 }
 
 // POST /api/chat - Send a message and get a streamed response
@@ -132,7 +186,7 @@ export async function POST(request: NextRequest) {
     if (!body.message?.trim()) {
       return new Response(
         JSON.stringify({ success: false, error: "Message is required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -140,6 +194,8 @@ export async function POST(request: NextRequest) {
 
     // Find relevant memories
     const relevantMemories = findRelevantMemories(userMessage);
+    const reasoning = generateReasoning(userMessage, relevantMemories);
+    const plan = generatePlan(relevantMemories);
 
     // Generate the full response
     const fullResponse = generateResponse(userMessage, relevantMemories);
@@ -148,12 +204,49 @@ export async function POST(request: NextRequest) {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
+        const toolInput: ToolEventData = {
+          name: "memory_search",
+          state: "input-available",
+          input: { query: userMessage, limit: 3 },
+        };
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ type: "tool", data: toolInput })}\n\n`,
+          ),
+        );
+
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ type: "reasoning", data: reasoning })}\n\n`,
+          ),
+        );
+
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ type: "plan", data: plan })}\n\n`,
+          ),
+        );
+
         // Send relevant memories first as a JSON chunk
         const memoriesData = JSON.stringify({
           type: "memories",
           data: relevantMemories,
         });
         controller.enqueue(encoder.encode(`data: ${memoriesData}\n\n`));
+
+        const toolOutput: ToolEventData = {
+          name: "memory_search",
+          state: "output-available",
+          output: {
+            count: relevantMemories.length,
+            memoryIds: relevantMemories.map((m) => m.id),
+          },
+        };
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ type: "tool", data: toolOutput })}\n\n`,
+          ),
+        );
 
         // Simulate streaming by sending the response word by word
         const words = fullResponse.split(" ");
@@ -164,7 +257,7 @@ export async function POST(request: NextRequest) {
 
           // Random delay between 20-80ms per word to simulate typing
           await new Promise((resolve) =>
-            setTimeout(resolve, 20 + Math.random() * 60)
+            setTimeout(resolve, 20 + Math.random() * 60),
           );
 
           const chunk = JSON.stringify({
@@ -192,7 +285,7 @@ export async function POST(request: NextRequest) {
   } catch {
     return new Response(
       JSON.stringify({ success: false, error: "Invalid request body" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
 }
