@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { memories } from "../store";
+import { requireApiUser } from "@/lib/api-auth";
+import { convexMutation, convexQuery } from "@/lib/convex-server";
 
 interface UpdateMemoryRequest {
   title?: string;
@@ -7,112 +8,152 @@ interface UpdateMemoryRequest {
   tags?: string[];
 }
 
+interface MemoryResponse {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+}
+
 // GET /api/memories/[id] - Fetch a single memory
 export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
-  const { id } = await params;
-  const memory = memories.find((m) => m.id === id);
-
-  if (!memory) {
-    return NextResponse.json(
-      { success: false, error: "Memory not found" },
-      { status: 404 }
-    );
+  const session = await requireApiUser();
+  if (session instanceof NextResponse) {
+    return session;
   }
 
-  return NextResponse.json({
-    success: true,
-    data: memory,
-  });
+  const { id } = await params;
+
+  void request;
+  void session;
+
+  try {
+    const memory = await convexQuery<MemoryResponse | null>(
+      "memories:getMyById",
+      { id },
+    );
+
+    if (!memory) {
+      return NextResponse.json(
+        { success: false, error: "Memory not found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: memory,
+    });
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch memory" },
+      { status: 500 },
+    );
+  }
 }
 
 // PUT /api/memories/[id] - Update a memory
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await requireApiUser();
+  if (session instanceof NextResponse) {
+    return session;
+  }
+
+  const { id } = await params;
+
   try {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 400));
-
-    const { id } = await params;
-    const memoryIndex = memories.findIndex((m) => m.id === id);
-
-    if (memoryIndex === -1) {
-      return NextResponse.json(
-        { success: false, error: "Memory not found" },
-        { status: 404 }
-      );
-    }
-
     const body: UpdateMemoryRequest = await request.json();
 
-    // Validation
     if (body.title !== undefined && !body.title.trim()) {
       return NextResponse.json(
         { success: false, error: "Title cannot be empty" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (body.content !== undefined && !body.content.trim()) {
       return NextResponse.json(
         { success: false, error: "Content cannot be empty" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Update the memory
-    const updatedMemory = {
-      ...memories[memoryIndex],
-      ...(body.title !== undefined && { title: body.title.trim() }),
-      ...(body.content !== undefined && { content: body.content.trim() }),
-      ...(body.tags !== undefined && { tags: body.tags }),
-    };
+    const updatedMemory = await convexMutation<MemoryResponse | null>(
+      "memories:updateMy",
+      {
+        id,
+        ...(body.title !== undefined ? { title: body.title.trim() } : {}),
+        ...(body.content !== undefined ? { content: body.content.trim() } : {}),
+        ...(body.tags !== undefined ? { tags: body.tags } : {}),
+      },
+    );
 
-    memories[memoryIndex] = updatedMemory;
+    if (!updatedMemory) {
+      return NextResponse.json(
+        { success: false, error: "Memory not found" },
+        { status: 404 },
+      );
+    }
 
     return NextResponse.json({
       success: true,
       data: updatedMemory,
       message: "Memory updated successfully",
     });
-  } catch {
-    return NextResponse.json(
-      { success: false, error: "Invalid request body" },
-      { status: 400 }
-    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to update memory";
+    const status =
+      message.includes("No updates") ||
+      message.includes("cannot be empty") ||
+      message.includes("required")
+        ? 400
+        : 500;
+
+    return NextResponse.json({ success: false, error: message }, { status });
   }
 }
 
 // DELETE /api/memories/[id] - Delete a memory
 export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  const { id } = await params;
-  const memoryIndex = memories.findIndex((m) => m.id === id);
-
-  if (memoryIndex === -1) {
-    return NextResponse.json(
-      { success: false, error: "Memory not found" },
-      { status: 404 }
-    );
+  const session = await requireApiUser();
+  if (session instanceof NextResponse) {
+    return session;
   }
 
-  // Remove the memory
-  memories.splice(memoryIndex, 1);
+  const { id } = await params;
 
-  return NextResponse.json({
-    success: true,
-    message: "Memory deleted successfully",
-  });
+  void request;
+  void session;
+
+  try {
+    const deleted = await convexMutation<boolean>("memories:deleteMy", { id });
+
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, error: "Memory not found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Memory deleted successfully",
+    });
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Failed to delete memory" },
+      { status: 500 },
+    );
+  }
 }
