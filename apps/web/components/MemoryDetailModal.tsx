@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@vmem/backend";
 import {
   Dialog,
   DialogContent,
@@ -20,19 +22,7 @@ import {
   IconCheck,
   IconLoader2,
 } from "@tabler/icons-react";
-
-interface Memory {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: string;
-}
-
-interface TagStats {
-  tag: string;
-  count: number;
-}
+import { buildTagStats, type Memory } from "@/lib/memories";
 
 interface MemoryDetailModalProps {
   isOpen: boolean;
@@ -62,27 +52,12 @@ export default function MemoryDetailModal({
   const [editContent, setEditContent] = useState("");
   const [editTags, setEditTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
-
-  const [allTags, setAllTags] = useState<TagStats[]>([]);
+  const memories = useQuery(api.memories.listMy, {});
+  const updateMemory = useMutation(api.memories.updateMy);
+  const deleteMemoryMutation = useMutation(api.memories.deleteMy);
+  const allTags = useMemo(() => buildTagStats(memories ?? []), [memories]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        const response = await fetch("/api/memories/tags");
-        const data = await response.json();
-        if (data.success) {
-          setAllTags(data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch tags:", error);
-      }
-    };
-    if (isOpen) {
-      fetchTags();
-    }
-  }, [isOpen]);
 
   const filteredSuggestions = useMemo(() => {
     if (!newTag.trim()) return allTags.filter((t) => !editTags.includes(t.tag));
@@ -136,23 +111,18 @@ export default function MemoryDetailModal({
     setIsSaving(true);
 
     try {
-      const response = await fetch(`/api/memories/${memory.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: editTitle.trim(),
-          content: editContent.trim(),
-          tags: editTags,
-        }),
+      const updated = await updateMemory({
+        id: memory.id,
+        title: editTitle.trim(),
+        content: editContent.trim(),
+        tags: editTags,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to update memory");
+      if (!updated) {
+        throw new Error("Memory not found");
       }
 
-      onMemoryUpdate(data.data);
+      onMemoryUpdate(updated);
       setIsEditing(false);
       toast.success("Memory updated successfully");
     } catch (err) {
@@ -162,7 +132,7 @@ export default function MemoryDetailModal({
     } finally {
       setIsSaving(false);
     }
-  }, [memory, editTitle, editContent, editTags, onMemoryUpdate]);
+  }, [memory, editTitle, editContent, editTags, onMemoryUpdate, updateMemory]);
 
   const handleDelete = useCallback(async () => {
     if (!memory) return;
@@ -170,14 +140,9 @@ export default function MemoryDetailModal({
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`/api/memories/${memory.id}`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to delete memory");
+      const deleted = await deleteMemoryMutation({ id: memory.id });
+      if (!deleted) {
+        throw new Error("Memory not found");
       }
 
       onMemoryDelete(memory.id);
@@ -191,7 +156,7 @@ export default function MemoryDetailModal({
     } finally {
       setIsDeleting(false);
     }
-  }, [memory, onMemoryDelete, onClose]);
+  }, [memory, onMemoryDelete, onClose, deleteMemoryMutation]);
 
   const addTag = useCallback(() => {
     const tag = newTag.trim().toLowerCase();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,8 @@ import {
   Badge,
 } from "@vmem/ui";
 import { toast } from "sonner";
+import { useQuery } from "convex/react";
+import { api } from "@vmem/backend";
 import {
   IconDownload,
   IconLoader2,
@@ -24,14 +26,7 @@ import {
   IconFile,
   IconTable,
 } from "@tabler/icons-react";
-
-interface Memory {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: string;
-}
+import { type Memory } from "@/lib/memories";
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -42,43 +37,25 @@ type ExportFormat = "json" | "csv";
 type DateRange = "all" | "week" | "month" | "year";
 
 export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
+  const memories = useQuery(api.memories.listMy, {});
+  const isLoading = memories === undefined;
   const [format, setFormat] = useState<ExportFormat>("json");
   const [dateRange, setDateRange] = useState<DateRange>("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
-  const [memories, setMemories] = useState<Memory[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchMemories();
-    }
-  }, [isOpen]);
-
-  const fetchMemories = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/memories");
-      const data = await response.json();
-      if (data.data) {
-        setMemories(data.data);
-        const tags = new Set<string>();
-        data.data.forEach((memory: Memory) => {
-          memory.tags.forEach((tag: string) => tags.add(tag));
-        });
-        setAvailableTags(Array.from(tags).sort());
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>();
+    for (const memory of memories ?? []) {
+      for (const tag of memory.tags) {
+        tags.add(tag);
       }
-    } catch {
-      toast.error("Failed to load memories");
-    } finally {
-      setIsLoading(false);
     }
-  };
+    return Array.from(tags).sort();
+  }, [memories]);
 
   const filterMemories = useCallback(() => {
-    let filtered = [...memories];
+    let filtered = [...(memories ?? [])];
 
     if (dateRange !== "all") {
       const now = new Date();
