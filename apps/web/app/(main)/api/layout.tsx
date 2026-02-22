@@ -11,24 +11,26 @@ export default function ApiLayout({ children }: { children: React.ReactNode }) {
 
   const currentTab = pathname.includes("/api/keys") ? "keys" : "logs";
 
-  return (
-    <PageContainer title="API">
-      <Tabs
-        value={currentTab}
-        onValueChange={(value) => router.push(`/api/${value}`)}
-      >
-        <TabsList>
-          <TabsTrigger value="logs">
-            <IconFileText size={18} stroke={1.5} />
-            <span>Logs</span>
-          </TabsTrigger>
-          <TabsTrigger value="keys">
-            <IconKey size={18} stroke={1.5} />
-            <span>Keys</span>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+  const tabs = (
+    <Tabs
+      value={currentTab}
+      onValueChange={(value) => router.push(`/api/${value}`)}
+    >
+      <TabsList>
+        <TabsTrigger value="logs">
+          <IconFileText size={18} stroke={1.5} />
+          <span>Logs</span>
+        </TabsTrigger>
+        <TabsTrigger value="keys">
+          <IconKey size={18} stroke={1.5} />
+          <span>Keys</span>
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
+  );
 
+  return (
+    <PageContainer title="API" centerSection={tabs}>
       {children}
     </PageContainer>
   );
