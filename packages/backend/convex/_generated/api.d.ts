@@ -9,7 +9,6 @@
  */
 
 import type * as apiKeys from "../apiKeys.js";
-import type * as apiKeysNode from "../apiKeysNode.js";
 import type * as apiLogs from "../apiLogs.js";
 import type * as auth from "../auth.js";
 
@@ -21,7 +20,6 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
-  apiKeysNode: typeof apiKeysNode;
   apiLogs: typeof apiLogs;
   auth: typeof auth;
 }>;
