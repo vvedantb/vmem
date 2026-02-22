@@ -3,8 +3,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Input, Textarea, Button, Badge } from "@vmem/ui";
 import { toast } from "sonner";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@vmem/backend";
 import {
   IconLoader2,
   IconMicrophone,
@@ -16,6 +14,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
+import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
 export default function AddMemoryForm() {
   const [title, setTitle] = useState("");
@@ -23,8 +22,7 @@ export default function AddMemoryForm() {
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const memories = useQuery(api.memories.listMy, {});
-  const createMemory = useMutation(api.memories.createMy);
+  const { memories, createMemory } = useMemoryContext();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 

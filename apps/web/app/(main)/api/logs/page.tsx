@@ -1,14 +1,14 @@
 const mockLogs = [
   {
     id: "1",
-    endpoint: "Convex mutation memories.createMy",
+    endpoint: "Mock memory store createMemory",
     status: 201,
     duration: "124ms",
     timestamp: "2 minutes ago",
   },
   {
     id: "2",
-    endpoint: "Convex query memories.listMy",
+    endpoint: "Mock memory store listMemories",
     status: 200,
     duration: "45ms",
     timestamp: "15 minutes ago",
@@ -22,16 +22,16 @@ const mockLogs = [
   },
   {
     id: "4",
-    endpoint: "Convex mutation memories.deleteMy",
-    status: 404,
-    duration: "12ms",
+    endpoint: "Mock memory store deleteMemory",
+    status: 200,
+    duration: "9ms",
     timestamp: "2 hours ago",
   },
   {
     id: "5",
-    endpoint: "Convex query memories.getMyById",
+    endpoint: "Mock memory store updateMemory",
     status: 200,
-    duration: "234ms",
+    duration: "17ms",
     timestamp: "3 hours ago",
   },
 ];

@@ -16,12 +16,11 @@ import {
   Badge,
 } from "@vmem/ui";
 import { IconLoader2, IconPlus, IconX } from "@tabler/icons-react";
-import { useMutation } from "convex/react";
-import { api } from "@vmem/backend";
 import { toast } from "sonner";
+import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
 export default function AddMemoryModal() {
-  const createMemory = useMutation(api.memories.createMy);
+  const { createMemory } = useMemoryContext();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
