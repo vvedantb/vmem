@@ -7,10 +7,13 @@
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
     "start": "pnpm --filter web start",
+    "mcp:dev": "pnpm --filter mcp dev",
+    "mcp:build": "pnpm --filter mcp build",
+    "mcp:start": "pnpm --filter mcp start",
     "lint": "pnpm --filter web lint",
     "typecheck": "pnpm --filter web typecheck",
     "convex": "pnpm --filter @vmem/backend dev",
-    "convex:deploy": "pnpm --filter @vmem/backend deploy",
+    "convex:deploy": "pnpm --filter @vmem/backend run deploy",
     "prepare": "husky"
   },
   "lint-staged": {
