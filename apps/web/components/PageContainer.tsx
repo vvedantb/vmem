@@ -20,7 +20,7 @@ export default function PageContainer({
           <h2 className="text-3xl font-instrumentSerif text-foreground">
             {title}
           </h2>
-          {/* <p className="text-muted-foreground mt-2">{description}</p> */}
+          <p className="text-muted-foreground mt-2">{description}</p>
         </div>
         {rightSection && <div className="flex-shrink-0">{rightSection}</div>}
       </div>

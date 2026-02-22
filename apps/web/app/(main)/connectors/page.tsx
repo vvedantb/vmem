@@ -5,7 +5,7 @@ import { Button, Card, CardContent, Skeleton } from "@vmem/ui";
 import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import ConnectorCard from "@/components/ConnectorCard";
-import type { Connector } from "@/app/api/connectors/store";
+import type { Connector } from "@/lib/connectors";
 
 export default function ConnectorsPage() {
   const [connectors, setConnectors] = useState<Connector[]>([]);
