@@ -90,7 +90,7 @@
   [role="button"] {
     transition-property:
       background-color, border-color, color, box-shadow, transform, opacity;
-    transition-duration: 180ms;
+    transition-duration: 240ms;
     transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
