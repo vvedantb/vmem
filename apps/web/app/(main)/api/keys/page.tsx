@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import {
   Card,
   CardContent,
@@ -24,22 +26,13 @@ import { toast } from "sonner";
 import {
   IconBolt,
   IconLoader2,
-  IconAlertCircle,
   IconCopy,
   IconCheck,
   IconAlertTriangle,
 } from "@tabler/icons-react";
 import ApiKeyModal from "@/components/ApiKeyModal";
-
-interface ApiKey {
-  id: string;
-  name: string;
-  maskedKey: string;
-  createdAt: string;
-  lastUsedAt: string | null;
-  requestCount: number;
-  status: "active" | "revoked";
-}
+import { api } from "@vmem/backend";
+type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
 
 function formatRelativeTime(dateString: string | null): string {
   if (!dateString) return "Never";
@@ -73,37 +66,15 @@ function formatNumber(num: number): string {
 }
 
 export default function ApiKeysPage() {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const apiKeys = useQuery(api.apiKeys.listMy, {});
+  const revokeApiKey = useMutation(api.apiKeys.revokeMy);
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [revokeKeyId, setRevokeKeyId] = useState<string | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
-
-  const fetchApiKeys = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/key");
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to fetch API keys");
-      }
-
-      setApiKeys(data.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load API keys");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchApiKeys();
-  }, [fetchApiKeys]);
+  const isLoading = apiKeys === undefined;
+  const apiKeyList: ApiKey[] = apiKeys ?? [];
 
   const handleCopyKey = async (maskedKey: string, keyId: string) => {
     try {
@@ -122,21 +93,10 @@ export default function ApiKeysPage() {
     setIsRevoking(true);
 
     try {
-      const response = await fetch(`/api/key/${revokeKeyId}`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to revoke API key");
+      const revoked = await revokeApiKey({ id: revokeKeyId });
+      if (!revoked) {
+        throw new Error("Failed to revoke API key");
       }
-
-      setApiKeys((prev) =>
-        prev.map((key) =>
-          key.id === revokeKeyId ? { ...key, status: "revoked" as const } : key,
-        ),
-      );
 
       toast.success("The API key has been revoked successfully");
       setRevokeKeyId(null);
@@ -149,7 +109,7 @@ export default function ApiKeysPage() {
     }
   };
 
-  const keyToRevoke = apiKeys.find((key) => key.id === revokeKeyId);
+  const keyToRevoke = apiKeyList.find((key) => key.id === revokeKeyId);
 
   if (isLoading) {
     return (
@@ -196,28 +156,6 @@ export default function ApiKeysPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="py-16 text-center">
-        <IconAlertCircle
-          size={48}
-          className="mx-auto text-destructive mb-4"
-          stroke={1.5}
-        />
-        <h3 className="text-lg font-medium text-foreground mb-2">
-          Failed to load API keys
-        </h3>
-        <p className="text-muted-foreground mb-6">{error}</p>
-        <Button
-          onClick={fetchApiKeys}
-          className="bg-primary text-primary-foreground"
-        >
-          Try again
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <>
       <Card className="border border-border bg-muted/50 shadow-none">
@@ -251,7 +189,7 @@ export default function ApiKeysPage() {
         </Button>
       </div>
 
-      {apiKeys.length === 0 ? (
+      {apiKeyList.length === 0 ? (
         <div className="py-16 text-center border border-border rounded-xl">
           <IconBolt
             size={48}
@@ -293,7 +231,7 @@ export default function ApiKeysPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {apiKeys.map((apiKey) => (
+            {apiKeyList.map((apiKey) => (
               <TableRow key={apiKey.id}>
                 <TableCell className="py-4">
                   <div className="flex items-center gap-2">
@@ -362,7 +300,7 @@ export default function ApiKeysPage() {
       <ApiKeyModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onKeyCreated={fetchApiKeys}
+        onKeyCreated={() => {}}
       />
 
       <Dialog

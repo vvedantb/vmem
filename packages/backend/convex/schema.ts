@@ -11,6 +11,42 @@ const schema = defineSchema({
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
+
+  memories: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    content: v.string(),
+    tags: v.array(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  apiKeys: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    maskedKey: v.string(),
+    keyHash: v.string(),
+    encryptedKey: v.string(),
+    status: v.union(v.literal("active"), v.literal("revoked")),
+    requestCount: v.number(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_key_hash", ["keyHash"]),
+
+  apiRequestLogs: defineTable({
+    userId: v.id("users"),
+    apiKeyId: v.id("apiKeys"),
+    endpoint: v.string(),
+    method: v.string(),
+    status: v.number(),
+    durationMs: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_key_created", ["apiKeyId", "createdAt"]),
 });
 
 export default schema;
