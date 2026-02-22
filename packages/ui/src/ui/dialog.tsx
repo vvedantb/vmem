@@ -105,6 +105,8 @@ const DialogDescription = React.forwardRef<
 ));
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
+const DialogRawContent = DialogPrimitive.Content;
+
 export {
   Dialog,
   DialogPortal,
@@ -112,6 +114,7 @@ export {
   DialogTrigger,
   DialogClose,
   DialogContent,
+  DialogRawContent,
   DialogHeader,
   DialogFooter,
   DialogTitle,
