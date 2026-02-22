@@ -20,6 +20,7 @@
     "*.{ts,tsx,js,jsx,json,css,md}": "prettier --write"
   },
   "devDependencies": {
+    "baseline-browser-mapping": "^2.9.19",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1"

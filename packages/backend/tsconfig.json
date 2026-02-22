@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "strict": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "noEmit": true,
+    "target": "ESNext",
+    "types": ["node"]
+  },
+  "include": ["./**/*"],
+  "exclude": ["_generated"]
+}

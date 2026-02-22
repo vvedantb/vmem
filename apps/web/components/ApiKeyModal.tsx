@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAction } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +20,7 @@ import {
   IconAlertTriangle,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { api } from "@vmem/backend";
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -26,19 +29,14 @@ interface ApiKeyModalProps {
 }
 
 type ModalStep = "create" | "loading" | "success";
-
-interface CreatedKey {
-  id: string;
-  name: string;
-  key: string;
-  maskedKey: string;
-}
+type CreatedKey = FunctionReturnType<typeof api.apiKeys.createMy>;
 
 export default function ApiKeyModal({
   isOpen,
   onClose,
   onKeyCreated,
 }: ApiKeyModalProps) {
+  const createApiKey = useAction(api.apiKeys.createMy);
   const [step, setStep] = useState<ModalStep>("create");
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState("");
@@ -69,19 +67,8 @@ export default function ApiKeyModal({
     setStep("loading");
 
     try {
-      const response = await fetch("/api/key", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to create API key");
-      }
-
-      setCreatedKey(data.data);
+      const created = await createApiKey({ name: name.trim() });
+      setCreatedKey(created);
       setStep("success");
       onKeyCreated();
     } catch (err) {
