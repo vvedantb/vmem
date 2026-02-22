@@ -17,7 +17,7 @@ import {
   IconClock,
 } from "@tabler/icons-react";
 import OAuthModal from "./OAuthModal";
-import type { Connector } from "@/app/api/connectors/store";
+import type { Connector } from "@/lib/connectors";
 
 const iconMap: Record<
   string,

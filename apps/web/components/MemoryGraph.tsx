@@ -61,7 +61,6 @@ export default function MemoryGraph() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const { theme } = useThemeContext();
   const animationRef = useRef<number | null>(null);
@@ -388,13 +387,12 @@ export default function MemoryGraph() {
         setSelectedNode(node);
       } else {
         setIsDragging(true);
-        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
         if (canvasRef.current) {
           canvasRef.current.style.cursor = "grabbing";
         }
       }
     },
-    [getMousePos, findNodeAtPosition, pan],
+    [getMousePos, findNodeAtPosition],
   );
 
   const handleMouseUp = useCallback(() => {
