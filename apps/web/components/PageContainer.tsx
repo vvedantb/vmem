@@ -30,8 +30,8 @@ export default function PageContainer({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="mb-5 flex-shrink-0">
-        <div className="flex items-center justify-between gap-4 md:relative">
+      <div className="mb-5 flex-shrink-0 min-h-10">
+        <div className="flex h-10 items-center justify-between gap-4 md:grid md:grid-cols-[1fr_auto_1fr]">
           <motion.h2
             className="text-2xl leading-tight font-instrumentSerif text-foreground"
             initial={{ opacity: 0, y: 6 }}
@@ -40,26 +40,29 @@ export default function PageContainer({
           >
             {title}
           </motion.h2>
-          {centerSection && (
-            <motion.div
-              className="absolute left-1/2 hidden -translate-x-1/2 md:block"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...childTransition, delay: 0.06 }}
-            >
-              {centerSection}
-            </motion.div>
-          )}
-          {rightSection && (
-            <motion.div
-              className="flex-shrink-0"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...childTransition, delay: 0.1 }}
-            >
-              {rightSection}
-            </motion.div>
-          )}
+          <div className="hidden md:flex md:justify-center">
+            {centerSection && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...childTransition, delay: 0.06 }}
+              >
+                {centerSection}
+              </motion.div>
+            )}
+          </div>
+          <div className="md:flex md:justify-end">
+            {rightSection && (
+              <motion.div
+                className="flex-shrink-0"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...childTransition, delay: 0.1 }}
+              >
+                {rightSection}
+              </motion.div>
+            )}
+          </div>
         </div>
         {centerSection && (
           <motion.div
