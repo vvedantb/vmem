@@ -3,10 +3,7 @@ import Dashboard from "@/components/Dashboard";
 
 export default function DashboardPage() {
   return (
-    <PageContainer
-      title="Dashboard"
-      description="View your memories, tags, and more"
-    >
+    <PageContainer title="Dashboard">
       <Dashboard />
     </PageContainer>
   );

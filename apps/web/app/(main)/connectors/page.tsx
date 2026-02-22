@@ -43,10 +43,7 @@ export default function ConnectorsPage() {
 
   if (isLoading) {
     return (
-      <PageContainer
-        title="Connectors"
-        description="Connect external apps to import and sync your data"
-      >
+      <PageContainer title="Connectors">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card
@@ -74,10 +71,7 @@ export default function ConnectorsPage() {
 
   if (error) {
     return (
-      <PageContainer
-        title="Connectors"
-        description="Connect external apps to import and sync your data"
-      >
+      <PageContainer title="Connectors">
         <Card className="border border-destructive/30 bg-destructive/10 shadow-none">
           <CardContent className="p-8 text-center">
             <IconAlertCircle
@@ -104,10 +98,7 @@ export default function ConnectorsPage() {
   }
 
   return (
-    <PageContainer
-      title="Connectors"
-      description="Connect external apps to import and sync your data"
-    >
+    <PageContainer title="Connectors">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {connectors.map((connector) => (
           <ConnectorCard

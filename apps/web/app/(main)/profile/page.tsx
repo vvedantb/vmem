@@ -3,10 +3,7 @@ import PageContainer from "@/components/PageContainer";
 
 export default function ProfilePage() {
   return (
-    <PageContainer
-      title="Profile"
-      description="Manage your account information"
-    >
+    <PageContainer title="Profile">
       <div className="p-8 rounded-xl border border-border bg-muted/50">
         <div className="flex flex-col md:flex-row md:items-center gap-6">
           <div className="w-24 h-24 rounded-2xl bg-muted border border-border flex items-center justify-center">

@@ -5,7 +5,7 @@ import Chat from "@/components/Chat";
 
 export default function ChatPage() {
   return (
-    <PageContainer title="Chat" description="Ask questions about your memories">
+    <PageContainer title="Chat">
       <div className="h-full min-h-96">
         <Chat />
       </div>

@@ -185,10 +185,7 @@ export default function FilesPage() {
 
   if (isLoading) {
     return (
-      <PageContainer
-        title="Files"
-        description="Manage your uploaded files and documents"
-      >
+      <PageContainer title="Files">
         <div className="p-6 rounded-xl border border-border bg-muted/50">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex-1">
@@ -228,10 +225,7 @@ export default function FilesPage() {
 
   if (error) {
     return (
-      <PageContainer
-        title="Files"
-        description="Manage your uploaded files and documents"
-      >
+      <PageContainer title="Files">
         <div className="flex flex-col items-center justify-center py-16 px-4">
           <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
             <IconAlertCircle size={32} className="text-destructive" />
@@ -253,10 +247,7 @@ export default function FilesPage() {
   }
 
   return (
-    <PageContainer
-      title="Files"
-      description="Manage your uploaded files and documents"
-    >
+    <PageContainer title="Files">
       <div className="p-6 rounded-xl border border-border bg-muted/50">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex-1">

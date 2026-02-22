@@ -12,10 +12,7 @@ export default function ApiLayout({ children }: { children: React.ReactNode }) {
   const currentTab = pathname.includes("/api/keys") ? "keys" : "logs";
 
   return (
-    <PageContainer
-      title="API"
-      description="Manage your API keys and monitor request logs"
-    >
+    <PageContainer title="API">
       <Tabs
         value={currentTab}
         onValueChange={(value) => router.push(`/api/${value}`)}
