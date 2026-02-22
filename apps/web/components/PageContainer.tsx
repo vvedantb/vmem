@@ -2,12 +2,7 @@
 
 import { ReactNode } from "react";
 import { motion } from "motion/react";
-import {
-  motionDuration,
-  motionEase,
-  staggerContainer,
-  staggerItem,
-} from "@vmem/ui";
+import { motionDuration, motionEase, motionDistance } from "@vmem/ui";
 
 interface PageContainerProps {
   title: string;
@@ -22,31 +17,46 @@ export default function PageContainer({
   rightSection,
   children,
 }: PageContainerProps) {
+  const childTransition = {
+    duration: motionDuration.fast,
+    ease: motionEase,
+  } as const;
+
+  const contentTransition = {
+    duration: motionDuration.base,
+    ease: motionEase,
+    delay: 0.12,
+  } as const;
+
   return (
-    <motion.div
-      className="flex h-full min-h-0 flex-col"
-      variants={staggerContainer(0.05, 0.03)}
-      initial="hidden"
-      animate="show"
-    >
-      <motion.div className="mb-5 flex-shrink-0" variants={staggerItem}>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="mb-5 flex-shrink-0">
         <div className="flex items-center justify-between gap-4 md:relative">
           <motion.h2
             className="text-2xl leading-tight font-instrumentSerif text-foreground"
-            variants={staggerItem}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={childTransition}
           >
             {title}
           </motion.h2>
           {centerSection && (
             <motion.div
               className="absolute left-1/2 hidden -translate-x-1/2 md:block"
-              variants={staggerItem}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...childTransition, delay: 0.06 }}
             >
               {centerSection}
             </motion.div>
           )}
           {rightSection && (
-            <motion.div className="flex-shrink-0" variants={staggerItem}>
+            <motion.div
+              className="flex-shrink-0"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...childTransition, delay: 0.1 }}
+            >
               {rightSection}
             </motion.div>
           )}
@@ -54,25 +64,22 @@ export default function PageContainer({
         {centerSection && (
           <motion.div
             className="mt-3 flex justify-center md:hidden"
-            variants={staggerItem}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...childTransition, delay: 0.06 }}
           >
             {centerSection}
           </motion.div>
         )}
-      </motion.div>
+      </div>
       <motion.div
         className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-thin"
-        variants={staggerItem}
+        initial={{ opacity: 0, y: motionDistance.pageY }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={contentTransition}
       >
-        <motion.div
-          className="space-y-8 pb-6"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: motionDuration.slow, ease: motionEase }}
-        >
-          {children}
-        </motion.div>
+        <div className="space-y-8 pb-6">{children}</div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 }

@@ -10,7 +10,7 @@ import {
   type ComponentType,
   type MouseEventHandler,
 } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, type Variants } from "motion/react";
 import {
   Separator,
   Button,
@@ -22,8 +22,10 @@ import {
   DialogClose,
   DialogTitle,
   cn,
+  motionDistance,
   motionDuration,
   motionEase,
+  motionTiming,
   staggerContainer,
   staggerItem,
 } from "@vmem/ui";
@@ -107,7 +109,16 @@ function SidebarNavigation({
   onNavigate,
 }: SidebarNavigationProps) {
   const isIconOnly = !isMobile && isCollapsed;
-  const navVariants = staggerContainer(isMobile ? 0.04 : 0.03, 0.01);
+  const navVariants: Variants = {
+    hidden: {},
+    show: {
+      transition: {
+        when: "beforeChildren",
+        delayChildren: 0.01,
+        staggerChildren: motionTiming.stagger,
+      },
+    },
+  };
 
   return (
     <motion.nav
@@ -120,8 +131,11 @@ function SidebarNavigation({
       animate="show"
     >
       {navGroups.map((group, groupIndex) => (
-        <motion.div key={group.title} className="px-1" variants={staggerItem}>
-          <motion.ul className="space-y-1.5" variants={staggerContainer(0.025)}>
+        <motion.div key={group.title} className="px-1">
+          <motion.ul
+            className="space-y-1.5"
+            variants={staggerContainer(motionTiming.stagger)}
+          >
             {group.items.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(item.href + "/");
@@ -130,7 +144,7 @@ function SidebarNavigation({
               const showBadge = isNotifications && unreadCount > 0;
 
               return (
-                <motion.li key={item.href} variants={staggerItem} layout>
+                <motion.li key={item.href} variants={staggerItem}>
                   <Link
                     href={item.href}
                     onClick={onNavigate}
@@ -154,9 +168,9 @@ function SidebarNavigation({
                         <motion.span
                           key={`${item.href}-label`}
                           className="flex-1"
-                          initial={{ opacity: 0, x: -4 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -4 }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
                           transition={{
                             duration: motionDuration.fast,
                             ease: motionEase,
@@ -380,9 +394,9 @@ export default function Sidebar({
 
             <motion.div
               className="flex min-h-0 flex-1 flex-col p-4"
-              initial={{ opacity: 0, x: -12 }}
+              initial={{ opacity: 0, x: -motionDistance.routeX }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: motionDuration.base, ease: motionEase }}
+              transition={{ duration: motionTiming.sidebar, ease: motionEase }}
             >
               <div className="mb-4 flex items-center justify-between pl-4 pr-2 py-2">
                 <Link
@@ -443,13 +457,12 @@ export default function Sidebar({
       </Dialog>
 
       <motion.aside
-        className="fixed left-0 top-0 z-40 hidden h-screen bg-sidebar md:block"
+        className="fixed left-0 top-0 z-40 hidden h-screen overflow-hidden bg-sidebar md:block"
         animate={{ width: isCollapsed ? 96 : 320 }}
-        transition={{ duration: motionDuration.base, ease: motionEase }}
+        transition={{ duration: motionTiming.sidebar, ease: motionEase }}
       >
-        <motion.div layout className="flex h-full flex-col p-4 pt-7">
-          <motion.div
-            layout
+        <div className="flex h-full flex-col p-4 pt-7">
+          <div
             className={cn(
               "mb-6 flex",
               isCollapsed
@@ -485,9 +498,9 @@ export default function Sidebar({
                   <motion.h1
                     key="desktop-logo"
                     className="text-xl font-instrumentSerif text-foreground"
-                    initial={{ opacity: 0, x: -4 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -4 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
                     transition={{
                       duration: motionDuration.fast,
                       ease: motionEase,
@@ -519,7 +532,7 @@ export default function Sidebar({
                 )}
               </Button>
             </div>
-          </motion.div>
+          </div>
 
           <SidebarNavigation
             pathname={pathname}
@@ -536,7 +549,7 @@ export default function Sidebar({
             toggleTheme={toggleTheme}
             isAuthLoading={isAuthLoading}
           />
-        </motion.div>
+        </div>
       </motion.aside>
     </>
   );
