@@ -1,15 +1,6 @@
-import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { getCurrentUserId } from "./auth";
-
-async function requireUserId(ctx: Parameters<typeof getCurrentUserId>[0]) {
-  const userId = await getCurrentUserId(ctx);
-  if (!userId) {
-    throw new Error("Not authenticated");
-  }
-  return userId;
-}
+import { authMutation, authQuery } from "./auth";
 
 function normalizeTags(tags: string[]): string[] {
   return Array.from(
@@ -47,13 +38,12 @@ async function getOwnedMemoryById(
   }
 }
 
-export const listMy = query({
+export const listMy = authQuery({
   args: {},
   handler: async (ctx) => {
-    const userId = await requireUserId(ctx);
     const memories = await ctx.db
       .query("memories")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .collect();
 
     memories.sort((a, b) => b.createdAt - a.createdAt);
@@ -61,14 +51,13 @@ export const listMy = query({
   },
 });
 
-export const createMy = mutation({
+export const createMy = authMutation({
   args: {
     title: v.string(),
     content: v.string(),
     tags: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
     const title = args.title.trim();
     const content = args.content.trim();
 
@@ -81,7 +70,7 @@ export const createMy = mutation({
 
     const now = Date.now();
     const memoryId = await ctx.db.insert("memories", {
-      userId,
+      userId: ctx.userId,
       title,
       content,
       tags: normalizeTags(args.tags ?? []),
@@ -98,16 +87,15 @@ export const createMy = mutation({
   },
 });
 
-export const getMyById = query({
+export const getMyById = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
-    const memory = await getOwnedMemoryById(ctx, userId, args.id);
+    const memory = await getOwnedMemoryById(ctx, ctx.userId, args.id);
     return memory ? toMemoryResponse(memory) : null;
   },
 });
 
-export const updateMy = mutation({
+export const updateMy = authMutation({
   args: {
     id: v.string(),
     title: v.optional(v.string()),
@@ -115,8 +103,7 @@ export const updateMy = mutation({
     tags: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
-    const existing = await getOwnedMemoryById(ctx, userId, args.id);
+    const existing = await getOwnedMemoryById(ctx, ctx.userId, args.id);
     if (!existing) {
       return null;
     }
@@ -164,11 +151,10 @@ export const updateMy = mutation({
   },
 });
 
-export const deleteMy = mutation({
+export const deleteMy = authMutation({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
-    const existing = await getOwnedMemoryById(ctx, userId, args.id);
+    const existing = await getOwnedMemoryById(ctx, ctx.userId, args.id);
     if (!existing) {
       return false;
     }
