@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Input, Textarea, Button, Badge } from "@vmem/ui";
 import { toast } from "sonner";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@vmem/backend";
 import {
   IconLoader2,
   IconMicrophone,
@@ -13,11 +15,7 @@ import {
   IconCheck,
   IconX,
 } from "@tabler/icons-react";
-
-interface TagStats {
-  tag: string;
-  count: number;
-}
+import { buildTagStats } from "@/lib/memories";
 
 export default function AddMemoryForm() {
   const [title, setTitle] = useState("");
@@ -25,8 +23,8 @@ export default function AddMemoryForm() {
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [allTags, setAllTags] = useState<TagStats[]>([]);
+  const memories = useQuery(api.memories.listMy, {});
+  const createMemory = useMutation(api.memories.createMy);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,20 +41,7 @@ export default function AddMemoryForm() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        const response = await fetch("/api/memories/tags");
-        const data = await response.json();
-        if (data.success) {
-          setAllTags(data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch tags:", error);
-      }
-    };
-    fetchTags();
-  }, []);
+  const allTags = useMemo(() => buildTagStats(memories ?? []), [memories]);
 
   const filteredSuggestions = useMemo(() => {
     if (!tagInput.trim()) return allTags.filter((t) => !tags.includes(t.tag));
@@ -263,23 +248,11 @@ export default function AddMemoryForm() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/memories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: title.trim(),
-          content: content.trim(),
-          tags,
-        }),
+      await createMemory({
+        title: title.trim(),
+        content: content.trim(),
+        tags,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to save memory");
-      }
 
       toast.success("Memory Saved", {
         description: "Your memory has been saved successfully",
@@ -289,7 +262,7 @@ export default function AddMemoryForm() {
     } catch (error) {
       toast.error("Error", {
         description:
-          error instanceof Error ? error.message : "Failed to save memory",
+          error instanceof Error ? error.message : "Failed to create memory",
       });
     } finally {
       setIsSubmitting(false);

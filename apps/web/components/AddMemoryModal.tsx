@@ -15,14 +15,19 @@ import {
   Textarea,
   Badge,
 } from "@vmem/ui";
-import { IconPlus, IconX } from "@tabler/icons-react";
+import { IconLoader2, IconPlus, IconX } from "@tabler/icons-react";
+import { useMutation } from "convex/react";
+import { api } from "@vmem/backend";
+import { toast } from "sonner";
 
 export default function AddMemoryModal() {
+  const createMemory = useMutation(api.memories.createMy);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && tagInput.trim()) {
@@ -45,10 +50,37 @@ export default function AddMemoryModal() {
     setTags([]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ title, content, tags });
-    setOpen(false);
+
+    if (!title.trim()) {
+      toast.error("Please enter a title");
+      return;
+    }
+
+    if (!content.trim()) {
+      toast.error("Please enter content");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await createMemory({
+        title: title.trim(),
+        content: content.trim(),
+        tags,
+      });
+      toast.success("Memory saved");
+      resetForm();
+      setOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save memory",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -86,6 +118,7 @@ export default function AddMemoryModal() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter a title for your memory"
+              disabled={isSubmitting}
               className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
             />
           </div>
@@ -99,6 +132,7 @@ export default function AddMemoryModal() {
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write your memory content here..."
               rows={6}
+              disabled={isSubmitting}
               className="bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
             />
           </div>
@@ -113,6 +147,7 @@ export default function AddMemoryModal() {
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleAddTag}
               placeholder="Type a tag and press Enter"
+              disabled={isSubmitting}
               className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
             />
             {tags.length > 0 && (
@@ -145,15 +180,24 @@ export default function AddMemoryModal() {
                 type="button"
                 variant="ghost"
                 className="bg-muted text-foreground"
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
             </DialogClose>
             <Button
               type="submit"
+              disabled={isSubmitting}
               className="bg-primary text-primary-foreground font-medium"
             >
-              Save Memory
+              {isSubmitting ? (
+                <>
+                  <IconLoader2 size={16} className="animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Memory"
+              )}
             </Button>
           </DialogFooter>
         </form>

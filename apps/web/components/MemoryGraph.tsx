@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@vmem/backend";
 import {
   Skeleton,
   Button,
@@ -11,21 +13,13 @@ import {
   DialogTitle,
 } from "@vmem/ui";
 import {
-  IconAlertCircle,
   IconMoodEmpty,
   IconZoomIn,
   IconZoomOut,
   IconFocus2,
 } from "@tabler/icons-react";
 import { useThemeContext } from "./contexts/ThemeContext";
-
-interface Memory {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: string;
-}
+import { type Memory } from "@/lib/memories";
 
 interface GraphNode {
   id: string;
@@ -53,9 +47,8 @@ interface GraphData {
 export default function MemoryGraph() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const memories = useQuery(api.memories.listMy, {});
   const [graphData, setGraphData] = useState<GraphData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -68,38 +61,13 @@ export default function MemoryGraph() {
   const edgesRef = useRef<GraphEdge[]>([]);
 
   useEffect(() => {
-    const fetchAndBuildGraph = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    if (memories === undefined) return;
 
-        const response = await fetch("/api/memories");
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to fetch memories");
-        }
-
-        const memories: Memory[] = data.data;
-        const graph = buildGraphData(
-          memories,
-          dimensions.width,
-          dimensions.height,
-        );
-        setGraphData(graph);
-        nodesRef.current = graph.nodes;
-        edgesRef.current = graph.edges;
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch memories",
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAndBuildGraph();
-  }, [dimensions.width, dimensions.height]);
+    const graph = buildGraphData(memories, dimensions.width, dimensions.height);
+    setGraphData(graph);
+    nodesRef.current = graph.nodes;
+    edgesRef.current = graph.edges;
+  }, [memories, dimensions.width, dimensions.height]);
 
   const buildGraphData = (
     memories: Memory[],
@@ -422,7 +390,7 @@ export default function MemoryGraph() {
     });
   };
 
-  if (isLoading) {
+  if (memories === undefined) {
     return (
       <div className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
@@ -434,27 +402,6 @@ export default function MemoryGraph() {
           </div>
         </div>
         <Skeleton className="h-[500px] w-full rounded-xl" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
-          <IconAlertCircle className="w-6 h-6 text-destructive" />
-        </div>
-        <h3 className="text-lg font-medium text-foreground mb-2">
-          Failed to load graph
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">{error}</p>
-        <Button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 h-auto text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-        >
-          Try again
-        </Button>
       </div>
     );
   }
