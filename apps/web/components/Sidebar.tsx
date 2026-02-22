@@ -38,8 +38,8 @@ import {
   IconPlugConnected,
   IconMoon,
   IconSun,
-  IconChevronLeft,
-  IconChevronRight,
+  IconLayoutSidebarLeftCollapse,
+  IconLayoutSidebarLeftExpandFilled,
 } from "@tabler/icons-react";
 
 const navGroups = [
@@ -174,56 +174,28 @@ function SidebarFooter({
 
   return (
     <div className={cn("space-y-4 pt-3", isMobile && "pb-3")}>
-      {mounted && (
-        <div className={cn(isMobile ? "px-1" : "px-2")}>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={toggleTheme}
-            title={
-              isIconOnly
-                ? isDark
-                  ? "Switch to light theme"
-                  : "Switch to dark theme"
-                : undefined
-            }
-            aria-label={
-              isDark ? "Switch to light theme" : "Switch to dark theme"
-            }
-            className={cn(
-              "w-full rounded-xl text-muted-foreground hover:bg-card/60 hover:text-foreground",
-              isIconOnly
-                ? "h-9 justify-center px-0"
-                : "h-11 justify-start gap-2.5 px-3",
-            )}
-          >
-            {isDark ? (
-              <IconMoon className="h-4 w-4" />
-            ) : (
-              <IconSun className="h-4 w-4" />
-            )}
-            {!isIconOnly && (
-              <span className="text-sm font-medium">
-                {isDark ? "Dark mode" : "Light mode"}
-              </span>
-            )}
-          </Button>
-        </div>
-      )}
-
       <Separator className="bg-border/45" />
 
-      <div className={cn("space-y-4", isMobile ? "px-1" : "")}>
+      <div className={cn(isMobile ? "px-1" : "px-2")}>
         {isAuthLoading ? (
           <div
             className={cn(
-              isIconOnly ? "flex justify-center px-2 py-3" : "px-4 py-3",
+              isIconOnly
+                ? "flex flex-col items-center gap-2 py-1"
+                : "flex items-center justify-between",
             )}
           >
             <Skeleton className="h-10 w-10 rounded-full" />
+            {mounted && <Skeleton className="h-8 w-8 rounded-lg" />}
           </div>
         ) : (
-          <div className="px-2">
+          <div
+            className={cn(
+              isIconOnly
+                ? "flex flex-col items-center gap-2"
+                : "flex items-center justify-between gap-2",
+            )}
+          >
             <UserButton
               showName={!isIconOnly}
               appearance={{
@@ -246,6 +218,27 @@ function SidebarFooter({
                 },
               }}
             />
+            {mounted && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={toggleTheme}
+                title={
+                  isDark ? "Switch to light theme" : "Switch to dark theme"
+                }
+                aria-label={
+                  isDark ? "Switch to light theme" : "Switch to dark theme"
+                }
+                className="shrink-0 rounded-lg text-muted-foreground hover:bg-card/60 hover:text-foreground"
+              >
+                {isDark ? (
+                  <IconMoon className="h-4 w-4" />
+                ) : (
+                  <IconSun className="h-4 w-4" />
+                )}
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -462,9 +455,9 @@ export default function Sidebar({
                 className="rounded-lg text-muted-foreground hover:bg-accent/70 hover:text-foreground"
               >
                 {isCollapsed ? (
-                  <IconChevronRight className="h-4 w-4" />
+                  <IconLayoutSidebarLeftExpandFilled className="h-4 w-4" />
                 ) : (
-                  <IconChevronLeft className="h-4 w-4" />
+                  <IconLayoutSidebarLeftCollapse className="h-4 w-4" />
                 )}
               </Button>
             </div>
