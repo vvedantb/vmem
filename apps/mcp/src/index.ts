@@ -13,15 +13,15 @@ import {
   extractBearerToken,
 } from "./auth.js";
 import { registerTools } from "./tools.js";
-import type { ConvexCredentials } from "./auth.js";
+import type { AuthenticatedUser } from "./auth.js";
 import type { Request, Response } from "express";
 
-function createMcpServer(credentials: ConvexCredentials): McpServer {
+function createMcpServer(user: AuthenticatedUser): McpServer {
   const server = new McpServer({
-    name: "convex-mcp",
+    name: "vmem-mcp",
     version: "1.0.0",
   });
-  registerTools(server, credentials);
+  registerTools(server, user);
   return server;
 }
 
@@ -57,7 +57,7 @@ function queryToStringRecord(req: Request): Record<string, string> {
 const app = express();
 
 app.use((req: Request, _res: Response, next) => {
-  console.log(`→ ${req.method} ${req.path}`);
+  console.log(`-> ${req.method} ${req.path}`);
   next();
 });
 
@@ -135,8 +135,8 @@ async function handleMcpPost(req: Request, res: Response) {
     return;
   }
 
-  const credentials = await verifyToken(token);
-  if (!credentials) {
+  const user = await verifyToken(token);
+  if (!user) {
     res.setHeader(
       "WWW-Authenticate",
       `Bearer resource_metadata="${resourceMetadataUrl}"`,
@@ -147,7 +147,7 @@ async function handleMcpPost(req: Request, res: Response) {
 
   try {
     console.log("  MCP: authenticated, handling request");
-    const server = createMcpServer(credentials);
+    const server = createMcpServer(user);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
@@ -181,7 +181,7 @@ app.get("/health", (_req: Request, res: Response) => {
 
 const port = parseInt(process.env.PORT ?? "3001", 10);
 app.listen(port, () => {
-  console.log(`Convex MCP server listening on port ${port}`);
+  console.log(`vmem MCP server listening on port ${port}`);
   console.log(
     `OAuth metadata: ${getBaseUrl()}/.well-known/oauth-authorization-server`,
   );
