@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
   Card,
@@ -29,6 +29,8 @@ import {
   IconCopy,
   IconCheck,
   IconAlertTriangle,
+  IconEye,
+  IconEyeOff,
 } from "@tabler/icons-react";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import { api } from "@vmem/backend";
@@ -68,22 +70,69 @@ function formatNumber(num: number): string {
 export default function ApiKeysPage() {
   const apiKeys = useQuery(api.apiKeys.listMy, {});
   const revokeApiKey = useMutation(api.apiKeys.revokeMy);
+  const revealApiKey = useAction(api.apiKeys.revealMy);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [revokeKeyId, setRevokeKeyId] = useState<string | null>(null);
+  const [revokeKeyId, setRevokeKeyId] = useState<ApiKey["id"] | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
+  const [copyingKeyId, setCopyingKeyId] = useState<string | null>(null);
+  const [revealedKeys, setRevealedKeys] = useState<
+    Partial<Record<string, string>>
+  >({});
+  const [revealingKeyId, setRevealingKeyId] = useState<string | null>(null);
   const isLoading = apiKeys === undefined;
   const apiKeyList: ApiKey[] = apiKeys ?? [];
 
-  const handleCopyKey = async (maskedKey: string, keyId: string) => {
+  const handleCopyKey = async (apiKeyId: ApiKey["id"]) => {
+    const existing = revealedKeys[apiKeyId];
+    const keyToCopy =
+      existing ??
+      (await (async () => {
+        setCopyingKeyId(apiKeyId);
+        try {
+          return await revealApiKey({ id: apiKeyId });
+        } catch {
+          toast.error("Failed to retrieve API key");
+          return null;
+        } finally {
+          setCopyingKeyId(null);
+        }
+      })());
+
+    if (!keyToCopy) return;
     try {
-      await navigator.clipboard.writeText(maskedKey);
-      setCopiedKeyId(keyId);
-      toast.success("Masked key copied to clipboard");
+      await navigator.clipboard.writeText(keyToCopy);
+      setCopiedKeyId(apiKeyId);
+      toast.success("API key copied to clipboard");
       setTimeout(() => setCopiedKeyId(null), 2000);
     } catch {
       toast.error("Failed to copy to clipboard");
+    }
+  };
+
+  const handleToggleReveal = async (apiKeyId: ApiKey["id"]) => {
+    if (revealedKeys[apiKeyId]) {
+      setRevealedKeys((prev) => {
+        const next = { ...prev };
+        delete next[apiKeyId];
+        return next;
+      });
+      return;
+    }
+
+    setRevealingKeyId(apiKeyId);
+    try {
+      const rawKey = await revealApiKey({ id: apiKeyId });
+      if (!rawKey) {
+        toast.error("Could not reveal API key");
+        return;
+      }
+      setRevealedKeys((prev) => ({ ...prev, [apiKeyId]: rawKey }));
+    } catch {
+      toast.error("Failed to reveal API key");
+    } finally {
+      setRevealingKeyId(null);
     }
   };
 
@@ -249,20 +298,42 @@ export default function ApiKeysPage() {
                 <TableCell className="hidden md:table-cell py-4">
                   <div className="flex items-center gap-2">
                     <code className="text-sm text-muted-foreground font-mono">
-                      {apiKey.maskedKey}
+                      {revealedKeys[apiKey.id] ?? "vmem_sk_••••••••••••••••"}
                     </code>
-                    <Button
-                      size="icon-xs"
-                      variant="ghost"
-                      onClick={() => handleCopyKey(apiKey.maskedKey, apiKey.id)}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      {copiedKeyId === apiKey.id ? (
-                        <IconCheck size={14} />
-                      ) : (
-                        <IconCopy size={14} />
-                      )}
-                    </Button>
+                    {apiKey.status === "active" && (
+                      <Button
+                        size="icon-xs"
+                        variant="ghost"
+                        onClick={() => handleToggleReveal(apiKey.id)}
+                        disabled={revealingKeyId === apiKey.id}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        {revealingKeyId === apiKey.id ? (
+                          <IconLoader2 size={14} className="animate-spin" />
+                        ) : revealedKeys[apiKey.id] ? (
+                          <IconEyeOff size={14} />
+                        ) : (
+                          <IconEye size={14} />
+                        )}
+                      </Button>
+                    )}
+                    {apiKey.status === "active" && (
+                      <Button
+                        size="icon-xs"
+                        variant="ghost"
+                        onClick={() => handleCopyKey(apiKey.id)}
+                        disabled={copyingKeyId === apiKey.id}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        {copyingKeyId === apiKey.id ? (
+                          <IconLoader2 size={14} className="animate-spin" />
+                        ) : copiedKeyId === apiKey.id ? (
+                          <IconCheck size={14} />
+                        ) : (
+                          <IconCopy size={14} />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell py-4">
