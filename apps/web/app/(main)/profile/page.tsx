@@ -62,7 +62,7 @@ export default function ProfilePage() {
             <Textarea
               rows={3}
               placeholder="Tell us about yourself..."
-              className="w-full min-h-[unset] px-4 py-3 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/20 transition-all resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/20 transition-all resize-none"
             />
           </div>
         </div>

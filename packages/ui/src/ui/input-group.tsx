@@ -13,11 +13,13 @@ const InputGroup = React.forwardRef<
 >(({ className, error, ...props }, ref) => (
   <div
     ref={ref}
+    data-input-group=""
     className={cn(
-      "flex flex-wrap rounded-lg border border-input bg-background text-sm transition-colors",
-      "has-[textarea]:h-auto h-9",
-      "has-[:focus]:outline-none has-[:focus]:ring-1 has-[:focus]:ring-ring",
-      error && "border-destructive has-[:focus]:ring-destructive",
+      "flex h-10 flex-wrap rounded-xl border border-input bg-card/90 text-sm shadow-insetSoft transition-all duration-200 ease-smooth",
+      "has-[textarea]:h-auto",
+      "has-[:focus-visible]:border-ring/70 has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/30",
+      error &&
+        "border-destructive/70 has-[:focus-visible]:border-destructive has-[:focus-visible]:ring-destructive/25",
       className,
     )}
     {...props}
@@ -28,10 +30,10 @@ InputGroup.displayName = "InputGroup";
 const inputGroupAddonVariants = cva("flex items-center", {
   variants: {
     align: {
-      "inline-start": "flex-row ps-2",
-      "inline-end": "flex-row pe-2",
-      "block-start": "w-full flex-row border-b border-input px-2 py-1.5",
-      "block-end": "w-full flex-row border-t border-input px-2 py-1.5",
+      "inline-start": "flex-row ps-3",
+      "inline-end": "flex-row pe-3",
+      "block-start": "w-full flex-row border-b border-input px-3 py-2",
+      "block-end": "w-full flex-row border-t border-input px-3 py-2",
     },
   },
   defaultVariants: {
@@ -54,8 +56,8 @@ const InputGroupAddon = React.forwardRef<
         return;
       }
       const group = (e.currentTarget as HTMLElement).closest(
-        "[class*=InputGroup]",
-      )?.parentElement;
+        "[data-input-group]",
+      );
       const input = group?.querySelector("textarea, input");
       if (input instanceof HTMLElement) input.focus();
     }}
@@ -67,10 +69,10 @@ InputGroupAddon.displayName = "InputGroupAddon";
 const inputGroupButtonVariants = cva("shrink-0 shadow-none", {
   variants: {
     size: {
-      xs: "h-6 px-2 text-xs rounded-md",
-      sm: "h-7 px-2.5 text-xs rounded-md",
-      "icon-xs": "h-6 w-6 rounded-md",
-      "icon-sm": "h-7 w-7 rounded-md",
+      xs: "h-7 rounded-lg px-2 text-xs",
+      sm: "h-8 rounded-lg px-2.5 text-xs",
+      "icon-xs": "h-7 w-7 rounded-lg",
+      "icon-sm": "h-8 w-8 rounded-lg",
     },
   },
   defaultVariants: {
@@ -98,7 +100,7 @@ function InputGroupText({
   return (
     <span
       className={cn(
-        "flex items-center text-sm text-muted-foreground",
+        "flex items-center text-sm text-muted-foreground/95",
         className,
       )}
       {...props}
@@ -113,7 +115,7 @@ const InputGroupInput = React.forwardRef<
   <Input
     ref={ref}
     className={cn(
-      "flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0",
+      "h-full flex-1 border-0 bg-transparent px-3 py-2 shadow-none focus-visible:border-0 focus-visible:ring-0",
       className,
     )}
     {...props}
@@ -128,7 +130,7 @@ const InputGroupTextarea = React.forwardRef<
   <Textarea
     ref={ref}
     className={cn(
-      "flex-1 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 [field-sizing:content]",
+      "flex-1 resize-none border-0 bg-transparent px-3 py-2.5 shadow-none focus-visible:border-0 focus-visible:ring-0 [field-sizing:content]",
       className,
     )}
     {...props}

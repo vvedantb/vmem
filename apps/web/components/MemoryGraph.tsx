@@ -117,7 +117,7 @@ export default function MemoryGraph() {
         const rect = containerRef.current.getBoundingClientRect();
         setDimensions({
           width: rect.width,
-          height: Math.max(rect.height, 500),
+          height: Math.max(rect.height, 384),
         });
       }
     };
@@ -400,7 +400,7 @@ export default function MemoryGraph() {
             <Skeleton className="h-8 w-8 rounded-lg" />
           </div>
         </div>
-        <Skeleton className="h-[500px] w-full rounded-xl" />
+        <Skeleton className="h-96 w-full rounded-xl" />
       </div>
     );
   }
@@ -462,8 +462,7 @@ export default function MemoryGraph() {
 
         <div
           ref={containerRef}
-          className="relative border border-border rounded-xl overflow-hidden"
-          style={{ height: "500px" }}
+          className="relative h-96 overflow-hidden rounded-xl border border-border"
         >
           <canvas
             ref={canvasRef}

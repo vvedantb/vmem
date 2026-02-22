@@ -76,7 +76,7 @@ type ToolInputProps = ComponentProps<"div"> & {
 function ToolInput({ input, className, ...props }: ToolInputProps) {
   return (
     <div className={cn("space-y-1.5", className)} {...props}>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Input
       </p>
       <CodeBlock
@@ -96,7 +96,7 @@ type ToolOutputProps = ComponentProps<"div"> & {
 function ToolOutput({ output, className, ...props }: ToolOutputProps) {
   return (
     <div className={cn("space-y-1.5", className)} {...props}>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Output
       </p>
       <CodeBlock

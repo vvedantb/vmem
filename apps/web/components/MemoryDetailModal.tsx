@@ -217,7 +217,7 @@ export default function MemoryDetailModal({
       >
         <DialogContent
           hideCloseButton
-          className="max-w-2xl max-h-[85vh] overflow-y-auto bg-card border border-border"
+          className="max-h-screen max-w-2xl overflow-y-auto border border-border bg-card"
         >
           <DialogHeader className="flex flex-row items-center justify-between gap-4 border-b border-border pb-4">
             {isEditing ? (
