@@ -292,26 +292,26 @@ export default function Sidebar({
             onClick={() => setMobileMenuOpen(false)}
             className="flex flex-row items-center gap-1.5"
           >
-            <div className="relative mt-1 flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
+            <div className="relative mt-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
               <Image
                 unoptimized
-                width={18}
-                height={18}
+                width={22}
+                height={22}
                 alt="vmem icon"
                 src="/icon-dark.svg"
                 className="block dark:hidden"
               />
               <Image
                 unoptimized
-                width={18}
-                height={18}
+                width={22}
+                height={22}
                 src="/icon-light.svg"
                 alt="vmem icon"
                 className="hidden dark:block"
               />
               <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/10 ring-inset dark:ring-white/15" />
             </div>
-            <h1 className="text-3xl leading-none font-instrumentSerif text-foreground">
+            <h1 className="text-xl leading-none font-instrumentSerif text-foreground">
               v<span className="italic">mem</span>
             </h1>
           </Link>
@@ -345,26 +345,26 @@ export default function Sidebar({
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex flex-row items-center gap-1.5"
                 >
-                  <div className="relative mt-1 flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
+                  <div className="relative mt-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
                     <Image
                       unoptimized
-                      width={18}
-                      height={18}
+                      width={22}
+                      height={22}
                       alt="vmem icon"
                       src="/icon-dark.svg"
                       className="block dark:hidden"
                     />
                     <Image
                       unoptimized
-                      width={18}
-                      height={18}
+                      width={22}
+                      height={22}
                       src="/icon-light.svg"
                       alt="vmem icon"
                       className="hidden dark:block"
                     />
                     <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/10 ring-inset dark:ring-white/15" />
                   </div>
-                  <h1 className="text-3xl leading-none font-instrumentSerif text-foreground">
+                  <h1 className="text-xl leading-none font-instrumentSerif text-foreground">
                     v<span className="italic">mem</span>
                   </h1>
                 </Link>
@@ -422,19 +422,19 @@ export default function Sidebar({
                 !isCollapsed && "gap-1.5",
               )}
             >
-              <div className="relative mt-1 flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
+              <div className="relative mt-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
                 <Image
                   unoptimized
-                  width={18}
-                  height={18}
+                  width={22}
+                  height={22}
                   alt="vmem icon"
                   src="/icon-dark.svg"
                   className="block dark:hidden"
                 />
                 <Image
                   unoptimized
-                  width={18}
-                  height={18}
+                  width={22}
+                  height={22}
                   src="/icon-light.svg"
                   alt="vmem icon"
                   className="hidden dark:block"
@@ -442,7 +442,7 @@ export default function Sidebar({
                 <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/10 ring-inset dark:ring-white/15" />
               </div>
               {!isCollapsed && (
-                <h1 className="text-3xl font-instrumentSerif text-foreground">
+                <h1 className="text-xl font-instrumentSerif text-foreground">
                   v<span className="italic">mem</span>
                 </h1>
               )}

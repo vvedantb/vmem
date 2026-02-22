@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import MemorySearch from "@/components/MemorySearch";
 
 export default function MemoriesListPage() {
-  return <MemorySearch />;
+  return (
+    <Suspense>
+      <MemorySearch />
+    </Suspense>
+  );
 }
