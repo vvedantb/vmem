@@ -5,8 +5,7 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 
-type ApiLogsData = FunctionReturnType<typeof api.apiLogs.listMy>;
-type ApiLogItem = ApiLogsData["logs"][number];
+type ApiLogItem = FunctionReturnType<typeof api.apiLogs.listMy>["logs"][number];
 
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
@@ -73,9 +72,8 @@ export default function ApiLogsPage() {
     );
   }
 
-  const logsData = data as ApiLogsData;
-  const summary = logsData.summary;
-  const logs = logsData.logs;
+  const summary = data.summary;
+  const logs = data.logs;
 
   return (
     <>
