@@ -16,28 +16,34 @@ export default function MemoriesLayout({
 
   const currentTab = pathname.includes("/memories/graph") ? "graph" : "list";
 
-  return (
-    <PageContainer title="Memories" rightSection={<AddMemoryModal />}>
-      <Tabs
-        value={currentTab}
-        onValueChange={(value) => router.push(`/memories/${value}`)}
-      >
-        <TabsList>
-          <TabsTrigger value="list">
-            <div className="flex items-center gap-2">
-              <IconList size={18} stroke={1.5} />
-              <span>List</span>
-            </div>
-          </TabsTrigger>
-          <TabsTrigger value="graph">
-            <div className="flex items-center gap-2">
-              <IconShare3 size={18} stroke={1.5} />
-              <span>Graph</span>
-            </div>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+  const tabs = (
+    <Tabs
+      value={currentTab}
+      onValueChange={(value) => router.push(`/memories/${value}`)}
+    >
+      <TabsList>
+        <TabsTrigger value="list">
+          <div className="flex items-center gap-2">
+            <IconList size={18} stroke={1.5} />
+            <span>List</span>
+          </div>
+        </TabsTrigger>
+        <TabsTrigger value="graph">
+          <div className="flex items-center gap-2">
+            <IconShare3 size={18} stroke={1.5} />
+            <span>Graph</span>
+          </div>
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
+  );
 
+  return (
+    <PageContainer
+      title="Memories"
+      centerSection={tabs}
+      rightSection={<AddMemoryModal />}
+    >
       {children}
     </PageContainer>
   );
