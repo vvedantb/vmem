@@ -254,3 +254,32 @@
     }
   }
 }
+
+/* @layer utilities {
+  @media (prefers-reduced-motion: reduce) {
+    html:focus-within {
+      scroll-behavior: auto;
+    }
+
+    .animate-pulse-slow,
+    .animate-gradient-move,
+    .animate-blob,
+    .animate-shimmer,
+    .animate-fade-in-up,
+    .animate-pulse-glow,
+    .animate-text-reveal,
+    .animate-spin,
+    .animate-indeterminate {
+      animation: none !important;
+    }
+
+    button,
+    a,
+    input,
+    textarea,
+    [role="button"] {
+      transition-duration: 0ms !important;
+      transition-delay: 0ms !important;
+    }
+  }
+} */
