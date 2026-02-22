@@ -1,4 +1,5 @@
 export { cn } from "./utils/cn";
+export * from "./motion/presets";
 
 export * from "./ui/badge";
 export * from "./ui/button";
