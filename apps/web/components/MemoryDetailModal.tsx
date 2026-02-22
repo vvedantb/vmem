@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +24,7 @@ import {
 } from "@tabler/icons-react";
 import { buildTagStats, type Memory } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
+import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 
 interface MemoryDetailModalProps {
   isOpen: boolean;
@@ -44,17 +47,27 @@ export default function MemoryDetailModal({
 }: MemoryDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  const [editTitle, setEditTitle] = useState("");
-  const [editContent, setEditContent] = useState("");
-  const [editTags, setEditTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
-  const { memories, updateMemory, deleteMemory } = useMemoryContext();
-  const allTags = useMemo(() => buildTagStats(memories), [memories]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
+
+  const { memories, updateMemory, deleteMemory } = useMemoryContext();
+  const allTags = useMemo(() => buildTagStats(memories), [memories]);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<MemoryFormValues>({
+    resolver: zodResolver(memorySchema),
+    defaultValues: { title: "", content: "", tags: [] },
+  });
+
+  const editTags = watch("tags");
 
   const filteredSuggestions = useMemo(() => {
     if (!newTag.trim()) return allTags.filter((t) => !editTags.includes(t.tag));
@@ -77,42 +90,30 @@ export default function MemoryDetailModal({
 
   const startEditing = useCallback(() => {
     if (memory) {
-      setEditTitle(memory.title);
-      setEditContent(memory.content);
-      setEditTags([...memory.tags]);
+      reset({
+        title: memory.title,
+        content: memory.content,
+        tags: [...memory.tags],
+      });
       setIsEditing(true);
     }
-  }, [memory]);
+  }, [memory, reset]);
 
   const cancelEditing = useCallback(() => {
     setIsEditing(false);
-    setEditTitle("");
-    setEditContent("");
-    setEditTags([]);
     setNewTag("");
-  }, []);
+    reset();
+  }, [reset]);
 
-  const handleSave = useCallback(async () => {
+  const onSave = async (data: MemoryFormValues) => {
     if (!memory) return;
-
-    if (!editTitle.trim()) {
-      toast.error("Title cannot be empty");
-      return;
-    }
-
-    if (!editContent.trim()) {
-      toast.error("Content cannot be empty");
-      return;
-    }
-
-    setIsSaving(true);
 
     try {
       const updated = await updateMemory({
         id: memory.id,
-        title: editTitle.trim(),
-        content: editContent.trim(),
-        tags: editTags,
+        title: data.title,
+        content: data.content,
+        tags: data.tags,
       });
 
       if (!updated) {
@@ -126,10 +127,8 @@ export default function MemoryDetailModal({
       toast.error(
         err instanceof Error ? err.message : "Failed to update memory",
       );
-    } finally {
-      setIsSaving(false);
     }
-  }, [memory, editTitle, editContent, editTags, onMemoryUpdate, updateMemory]);
+  };
 
   const handleDelete = useCallback(async () => {
     if (!memory) return;
@@ -155,55 +154,49 @@ export default function MemoryDetailModal({
     }
   }, [memory, onMemoryDelete, onClose, deleteMemory]);
 
-  const addTag = useCallback(() => {
-    const tag = newTag.trim().toLowerCase();
-    if (tag && !editTags.includes(tag)) {
-      setEditTags([...editTags, tag]);
-      setNewTag("");
-      setShowSuggestions(false);
-    }
-  }, [newTag, editTags]);
-
-  const selectSuggestion = useCallback(
-    (tag: string) => {
-      if (!editTags.includes(tag)) {
-        setEditTags([...editTags, tag]);
-      }
-      setNewTag("");
-      setShowSuggestions(false);
-      tagInputRef.current?.focus();
-    },
-    [editTags],
-  );
-
-  const removeTag = useCallback(
-    (tagToRemove: string) => {
-      setEditTags(editTags.filter((tag) => tag !== tagToRemove));
-    },
-    [editTags],
-  );
-
-  const handleTagKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        addTag();
-      } else if (e.key === "Escape") {
+  const handleTagKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    onChange: (tags: string[]) => void,
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const tag = newTag.trim().toLowerCase();
+      if (tag && !editTags.includes(tag)) {
+        onChange([...editTags, tag]);
+        setNewTag("");
         setShowSuggestions(false);
       }
-    },
-    [addTag],
-  );
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectSuggestion = (
+    tag: string,
+    onChange: (tags: string[]) => void,
+  ) => {
+    if (!editTags.includes(tag)) {
+      onChange([...editTags, tag]);
+    }
+    setNewTag("");
+    setShowSuggestions(false);
+    tagInputRef.current?.focus();
+  };
+
+  const removeTag = (
+    tagToRemove: string,
+    onChange: (tags: string[]) => void,
+  ) => {
+    onChange(editTags.filter((tag) => tag !== tagToRemove));
+  };
 
   const handleClose = useCallback(() => {
     setIsEditing(false);
     setShowDeleteConfirm(false);
-    setEditTitle("");
-    setEditContent("");
-    setEditTags([]);
     setNewTag("");
+    reset();
     onClose();
-  }, [onClose]);
+  }, [onClose, reset]);
 
   if (!memory) return null;
 
@@ -223,10 +216,9 @@ export default function MemoryDetailModal({
             {isEditing ? (
               <DialogTitle className="flex-1">
                 <Input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
+                  {...register("title")}
                   placeholder="Memory title"
-                  disabled={isSaving}
+                  disabled={isSubmitting}
                   className="h-10 bg-muted/50 border-border text-foreground text-lg font-semibold hover:bg-accent focus-visible:border-ring"
                 />
               </DialogTitle>
@@ -251,14 +243,20 @@ export default function MemoryDetailModal({
                 Content
               </h4>
               {isEditing ? (
-                <Textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  placeholder="Memory content"
-                  rows={6}
-                  disabled={isSaving}
-                  className="bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
-                />
+                <>
+                  <Textarea
+                    {...register("content")}
+                    placeholder="Memory content"
+                    rows={6}
+                    disabled={isSubmitting}
+                    className="bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
+                  />
+                  {errors.content && (
+                    <p className="text-sm text-destructive mt-1">
+                      {errors.content.message}
+                    </p>
+                  )}
+                </>
               ) : (
                 <p className="text-foreground whitespace-pre-wrap">
                   {memory.content}
@@ -271,67 +269,75 @@ export default function MemoryDetailModal({
                 Tags
               </h4>
               {isEditing ? (
-                <div className="space-y-3">
-                  <div className="flex gap-2 flex-wrap">
-                    {editTags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="outline"
-                        className="bg-muted border-border text-muted-foreground text-xs gap-1 pr-1"
-                      >
-                        {tag}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => removeTag(tag)}
-                          className="h-auto w-auto p-0 text-muted-foreground hover:text-foreground"
-                        >
-                          <IconX size={14} />
-                        </Button>
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="relative">
-                    <Input
-                      ref={tagInputRef}
-                      value={newTag}
-                      onChange={(e) => {
-                        setNewTag(e.target.value);
-                        setShowSuggestions(true);
-                      }}
-                      onKeyDown={handleTagKeyDown}
-                      onFocus={() => setShowSuggestions(true)}
-                      onBlur={() => {
-                        setTimeout(() => setShowSuggestions(false), 200);
-                      }}
-                      placeholder="Add a tag and press Enter"
-                      disabled={isSaving}
-                      className="h-8 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
-                    />
-                    {showSuggestions && filteredSuggestions.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 max-h-32 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
-                        {filteredSuggestions.slice(0, 5).map((item) => (
-                          <Button
-                            key={item.tag}
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => selectSuggestion(item.tag)}
-                            className="w-full h-auto px-3 py-1.5 text-left flex items-center justify-between hover:bg-accent transition-colors"
+                <Controller
+                  name="tags"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="space-y-3">
+                      <div className="flex gap-2 flex-wrap">
+                        {field.value.map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant="outline"
+                            className="bg-muted border-border text-muted-foreground text-xs gap-1 pr-1"
                           >
-                            <span className="text-sm text-foreground">
-                              {item.tag}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {item.count}
-                            </span>
-                          </Button>
+                            {tag}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-xs"
+                              onClick={() => removeTag(tag, field.onChange)}
+                              className="h-auto w-auto p-0 text-muted-foreground hover:text-foreground"
+                            >
+                              <IconX size={14} />
+                            </Button>
+                          </Badge>
                         ))}
                       </div>
-                    )}
-                  </div>
-                </div>
+                      <div className="relative">
+                        <Input
+                          ref={tagInputRef}
+                          value={newTag}
+                          onChange={(e) => {
+                            setNewTag(e.target.value);
+                            setShowSuggestions(true);
+                          }}
+                          onKeyDown={(e) => handleTagKeyDown(e, field.onChange)}
+                          onFocus={() => setShowSuggestions(true)}
+                          onBlur={() => {
+                            setTimeout(() => setShowSuggestions(false), 200);
+                          }}
+                          placeholder="Add a tag and press Enter"
+                          disabled={isSubmitting}
+                          className="h-8 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
+                        />
+                        {showSuggestions && filteredSuggestions.length > 0 && (
+                          <div className="absolute z-50 w-full mt-1 max-h-32 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+                            {filteredSuggestions.slice(0, 5).map((item) => (
+                              <Button
+                                key={item.tag}
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  selectSuggestion(item.tag, field.onChange)
+                                }
+                                className="w-full h-auto px-3 py-1.5 text-left flex items-center justify-between hover:bg-accent transition-colors"
+                              >
+                                <span className="text-sm text-foreground">
+                                  {item.tag}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {item.count}
+                                </span>
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                />
               ) : (
                 <div className="flex gap-2 flex-wrap">
                   {memory.tags.length > 0 ? (
@@ -409,22 +415,22 @@ export default function MemoryDetailModal({
                 <Button
                   variant="ghost"
                   onClick={cancelEditing}
-                  disabled={isSaving}
+                  disabled={isSubmitting}
                   className="text-muted-foreground"
                 >
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleSave}
-                  disabled={isSaving}
+                  onClick={handleSubmit(onSave)}
+                  disabled={isSubmitting}
                   className="bg-primary text-primary-foreground"
                 >
-                  {isSaving ? (
+                  {isSubmitting ? (
                     <IconLoader2 size={16} className="animate-spin" />
                   ) : (
                     <IconCheck size={16} />
                   )}
-                  {isSaving ? "Saving..." : "Save Changes"}
+                  {isSubmitting ? "Saving..." : "Save Changes"}
                 </Button>
               </>
             ) : (
