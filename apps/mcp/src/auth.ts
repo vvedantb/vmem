@@ -3,13 +3,13 @@ import { verifyToken as verifyClerkToken } from "@clerk/backend";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 
-export interface ConvexCredentials {
-  convexUrl: string;
-  deployKey: string;
+export interface AuthenticatedUser {
+  clerkUserId: string;
 }
 
 interface AuthCodeEntry {
   clerkUserId: string;
+  clientId: string;
   codeChallenge: string;
   redirectUri: string;
   expiresAt: number;
@@ -52,17 +52,6 @@ function getClerkSecretKey(): string {
   return key;
 }
 
-function getVmemCredentials(): ConvexCredentials {
-  const convexUrl = process.env.VMEM_CONVEX_URL;
-  const deployKey = process.env.VMEM_DEPLOY_KEY;
-  if (!convexUrl || !deployKey) {
-    throw new Error(
-      "VMEM_CONVEX_URL and VMEM_DEPLOY_KEY environment variables are required",
-    );
-  }
-  return { convexUrl: convexUrl.replace(/\/$/, ""), deployKey };
-}
-
 export function getOAuthMetadata(baseUrl: string) {
   return {
     issuer: baseUrl,
@@ -102,7 +91,7 @@ const authorizeQuerySchema = z.object({
   redirect_uri: z.string(),
   state: z.string(),
   code_challenge: z.string(),
-  code_challenge_method: z.string(),
+  code_challenge_method: z.literal("S256"),
 });
 
 function escapeHtml(str: string): string {
@@ -278,7 +267,7 @@ const clerkAuthBodySchema = z.object({
   redirect_uri: z.string(),
   state: z.string(),
   code_challenge: z.string(),
-  code_challenge_method: z.string(),
+  code_challenge_method: z.literal("S256"),
 });
 
 export async function processClerkAuth(
@@ -304,6 +293,7 @@ export async function processClerkAuth(
   const code = crypto.randomBytes(32).toString("hex");
   authCodeStore.set(code, {
     clerkUserId,
+    clientId: params.client_id,
     codeChallenge: params.code_challenge,
     redirectUri: params.redirect_uri,
     expiresAt: Date.now() + CODE_TTL_MS,
@@ -378,6 +368,15 @@ export async function exchangeToken(
       },
     };
   }
+  if (entry.clientId !== params.client_id) {
+    return {
+      ok: false,
+      error: {
+        error: "invalid_grant",
+        error_description: "Client ID mismatch",
+      },
+    };
+  }
 
   const expectedChallenge = crypto
     .createHash("sha256")
@@ -417,12 +416,12 @@ const mcpTokenPayloadSchema = z.object({ sub: z.string() });
 
 export async function verifyToken(
   token: string,
-): Promise<ConvexCredentials | null> {
+): Promise<AuthenticatedUser | null> {
   try {
     const decoded = jwt.verify(token, getJwtSecret());
     const payload = mcpTokenPayloadSchema.safeParse(decoded);
     if (!payload.success) return null;
-    return getVmemCredentials();
+    return { clerkUserId: payload.data.sub };
   } catch {
     return null;
   }
