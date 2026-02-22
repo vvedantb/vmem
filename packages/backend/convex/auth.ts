@@ -1,23 +1,96 @@
-import { mutation, query, QueryCtx, MutationCtx } from "./_generated/server";
+import {
+  action,
+  internalAction,
+  mutation,
+  query,
+  ActionCtx,
+  MutationCtx,
+  QueryCtx,
+} from "./_generated/server";
+import {
+  customAction,
+  customMutation,
+  customQuery,
+} from "convex-helpers/server/customFunctions";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 
 export async function getCurrentUserId(
   ctx: QueryCtx | MutationCtx,
-): Promise<Id<"users"> | null> {
+): Promise<Id<"users">> {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) return null;
-
+  if (!identity) throw new Error("Not authenticated");
   const clerkUserId = identity.subject;
-  if (!clerkUserId) return null;
+  if (!clerkUserId) throw new Error("Not authenticated");
 
   const user = await ctx.db
     .query("users")
     .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkUserId))
     .first();
+  if (!user) throw new Error("Not authenticated");
 
-  return user?._id ?? null;
+  return user._id;
 }
+
+async function requireCurrentUserIdFromAction(
+  ctx: ActionCtx,
+): Promise<Id<"users">> {
+  const userId = await ctx.runQuery(api.auth.me, {});
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+  return userId;
+}
+
+const authQueryBuilder = customQuery(query, {
+  args: {},
+  input: async (ctx, args) => {
+    const userId = await getCurrentUserId(ctx);
+    return {
+      ctx: { ...ctx, userId },
+      args,
+    };
+  },
+});
+
+const authMutationBuilder = customMutation(mutation, {
+  args: {},
+  input: async (ctx, args) => {
+    const userId = await getCurrentUserId(ctx);
+    return {
+      ctx: { ...ctx, userId },
+      args,
+    };
+  },
+});
+
+const authActionBuilder = customAction(action, {
+  args: {},
+  input: async (ctx, args) => {
+    const userId = await requireCurrentUserIdFromAction(ctx);
+    return {
+      ctx: { ...ctx, userId },
+      args,
+    };
+  },
+});
+
+const authInternalActionBuilder = customAction(internalAction, {
+  args: {},
+  input: async (ctx, args) => {
+    const userId = await requireCurrentUserIdFromAction(ctx);
+    return {
+      ctx: { ...ctx, userId },
+      args,
+    };
+  },
+});
+
+export const authQuery = authQueryBuilder;
+export const authMutation = authMutationBuilder;
+export const authAction = authActionBuilder;
+export const authInternalAction = authInternalActionBuilder;
 
 export const ensureUserExists = mutation({
   args: {},
