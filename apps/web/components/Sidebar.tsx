@@ -171,10 +171,10 @@ function SidebarFooter({
   const isIconOnly = !isMobile && isCollapsed;
 
   return (
-    <div className={cn("space-y-4 pt-3", isMobile && "pb-3")}>
+    <div className={cn("space-y-4 pt-3")}>
       <Separator className="bg-border/45" />
 
-      <div className={cn(isMobile ? "px-1" : "px-2")}>
+      <div className={cn(isMobile ? "" : "px-2")}>
         {isAuthLoading ? (
           <div
             className={cn(
@@ -326,8 +326,8 @@ export default function Sidebar({
           >
             <DialogTitle className="sr-only">Navigation menu</DialogTitle>
 
-            <div className="flex min-h-0 flex-1 flex-col px-3 pt-4">
-              <div className="mb-4 flex items-center justify-between px-1">
+            <div className="flex min-h-0 flex-1 flex-col p-4">
+              <div className="mb-4 flex items-center justify-between pl-4 pr-2 py-2">
                 <Link
                   href="/"
                   onClick={() => setMobileMenuOpen(false)}
@@ -397,7 +397,7 @@ export default function Sidebar({
               "mb-6 flex",
               isCollapsed
                 ? "flex-col items-center gap-3"
-                : "flex-row items-center justify-between px-2 pl-4",
+                : "flex-row items-center justify-between px-2 pb-4 pl-4",
             )}
           >
             <Link
