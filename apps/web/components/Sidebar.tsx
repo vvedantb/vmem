@@ -174,7 +174,7 @@ function SidebarFooter({
     <div className={cn("space-y-4 pt-3")}>
       <Separator className="bg-border/45" />
 
-      <div className={cn(isMobile ? "" : "px-2")}>
+      <div className={cn(isMobile ? "pr-2" : "px-2")}>
         {isAuthLoading ? (
           <div
             className={cn(
