@@ -11,6 +11,7 @@
 import type * as apiKeys from "../apiKeys.js";
 import type * as apiLogs from "../apiLogs.js";
 import type * as auth from "../auth.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -22,6 +23,7 @@ declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
   apiLogs: typeof apiLogs;
   auth: typeof auth;
+  users: typeof users;
 }>;
 
 /**
