@@ -399,7 +399,7 @@ export default function Sidebar({
           isCollapsed ? "w-24" : "w-80",
         )}
       >
-        <div className="flex h-full flex-col p-4 py-5">
+        <div className="flex h-full flex-col p-4 pt-6">
           <div
             className={cn(
               "mb-6 flex",
