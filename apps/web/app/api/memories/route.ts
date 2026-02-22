@@ -1,33 +1,35 @@
+import { auth } from "@clerk/nextjs/server";
+import { api } from "@vmem/backend";
+import { fetchMutation, fetchQuery } from "convex/nextjs";
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiUser } from "@/lib/api-auth";
-import { convexMutation, convexQuery } from "@/lib/convex-server";
 
-interface CreateMemoryRequest {
-  title: string;
-  content: string;
-  tags: string[];
+async function getConvexToken(): Promise<string | null> {
+  const session = await auth();
+
+  if (!session.userId) {
+    return null;
+  }
+
+  return await session.getToken({ template: "convex" });
 }
 
-interface MemoryResponse {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: string;
+async function ensureConvexUser(token: string): Promise<void> {
+  await fetchMutation(api.auth.ensureUserExists, {}, { token });
 }
 
 // GET /api/memories - Fetch all memories
-export async function GET(request: NextRequest) {
-  const session = await requireApiUser();
-  if (session instanceof NextResponse) {
-    return session;
+export async function GET() {
+  const token = await getConvexToken();
+  if (!token) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
-  void request;
-  void session;
-
   try {
-    const data = await convexQuery<MemoryResponse[]>("memories:listMy");
+    await ensureConvexUser(token);
+    const data = await fetchQuery(api.memories.listMy, {}, { token });
 
     return NextResponse.json({
       success: true,
@@ -44,33 +46,48 @@ export async function GET(request: NextRequest) {
 
 // POST /api/memories - Create a new memory
 export async function POST(request: NextRequest) {
-  const session = await requireApiUser();
-  if (session instanceof NextResponse) {
-    return session;
+  const token = await getConvexToken();
+  if (!token) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   try {
-    const body: CreateMemoryRequest = await request.json();
+    await ensureConvexUser(token);
 
-    if (!body.title?.trim()) {
+    const body = await request.json();
+    const title = typeof body?.title === "string" ? body.title.trim() : "";
+    const content =
+      typeof body?.content === "string" ? body.content.trim() : "";
+    const tags = Array.isArray(body?.tags)
+      ? body.tags.filter((tag: unknown) => typeof tag === "string")
+      : [];
+
+    if (!title) {
       return NextResponse.json(
         { success: false, error: "Title is required" },
         { status: 400 },
       );
     }
 
-    if (!body.content?.trim()) {
+    if (!content) {
       return NextResponse.json(
         { success: false, error: "Content is required" },
         { status: 400 },
       );
     }
 
-    const created = await convexMutation<MemoryResponse>("memories:createMy", {
-      title: body.title.trim(),
-      content: body.content.trim(),
-      tags: body.tags ?? [],
-    });
+    const created = await fetchMutation(
+      api.memories.createMy,
+      {
+        title,
+        content,
+        tags,
+      },
+      { token },
+    );
 
     return NextResponse.json(
       {

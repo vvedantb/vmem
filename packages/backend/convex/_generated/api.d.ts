@@ -9,7 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
-import type * as validators from "../validators.js";
+import type * as memories from "../memories.js";
 
 import type {
   ApiFromModules,
@@ -19,7 +19,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
-  validators: typeof validators;
+  memories: typeof memories;
 }>;
 
 /**

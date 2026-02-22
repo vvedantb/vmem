@@ -14,6 +14,14 @@ interface TagCloudProps {
   maxTags?: number;
 }
 
+function stableHash(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
 export default function TagCloud({
   tags,
   onTagClick,
@@ -26,8 +34,10 @@ export default function TagCloud({
     const max = Math.max(...counts, 1);
     const min = Math.min(...counts, 1);
 
-    // Shuffle for random layout appearance
-    const shuffled = [...sortedTags].sort(() => Math.random() - 0.5);
+    // Use deterministic ordering to keep render pure and stable.
+    const shuffled = [...sortedTags].sort((a, b) => {
+      return stableHash(a.tag) - stableHash(b.tag);
+    });
 
     return {
       tagsWithSize: shuffled.map((t) => ({

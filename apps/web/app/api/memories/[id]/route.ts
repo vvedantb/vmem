@@ -1,19 +1,20 @@
+import { auth } from "@clerk/nextjs/server";
+import { api } from "@vmem/backend";
+import { fetchMutation, fetchQuery } from "convex/nextjs";
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiUser } from "@/lib/api-auth";
-import { convexMutation, convexQuery } from "@/lib/convex-server";
 
-interface UpdateMemoryRequest {
-  title?: string;
-  content?: string;
-  tags?: string[];
+async function getConvexToken(): Promise<string | null> {
+  const session = await auth();
+
+  if (!session.userId) {
+    return null;
+  }
+
+  return await session.getToken({ template: "convex" });
 }
 
-interface MemoryResponse {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: string;
+async function ensureConvexUser(token: string): Promise<void> {
+  await fetchMutation(api.auth.ensureUserExists, {}, { token });
 }
 
 // GET /api/memories/[id] - Fetch a single memory
@@ -21,21 +22,21 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await requireApiUser();
-  if (session instanceof NextResponse) {
-    return session;
+  const token = await getConvexToken();
+  if (!token) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   const { id } = await params;
 
   void request;
-  void session;
 
   try {
-    const memory = await convexQuery<MemoryResponse | null>(
-      "memories:getMyById",
-      { id },
-    );
+    await ensureConvexUser(token);
+    const memory = await fetchQuery(api.memories.getMyById, { id }, { token });
 
     if (!memory) {
       return NextResponse.json(
@@ -61,38 +62,67 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await requireApiUser();
-  if (session instanceof NextResponse) {
-    return session;
+  const token = await getConvexToken();
+  if (!token) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   const { id } = await params;
 
   try {
-    const body: UpdateMemoryRequest = await request.json();
+    await ensureConvexUser(token);
 
-    if (body.title !== undefined && !body.title.trim()) {
+    const body = await request.json();
+    const hasTitle = body?.title !== undefined;
+    const hasContent = body?.content !== undefined;
+    const hasTags = body?.tags !== undefined;
+
+    const title =
+      hasTitle && typeof body.title === "string"
+        ? body.title.trim()
+        : undefined;
+    const content =
+      hasContent && typeof body.content === "string"
+        ? body.content.trim()
+        : undefined;
+    const tags =
+      hasTags && Array.isArray(body.tags)
+        ? body.tags.filter((tag: unknown) => typeof tag === "string")
+        : undefined;
+
+    if (hasTitle && !title) {
       return NextResponse.json(
         { success: false, error: "Title cannot be empty" },
         { status: 400 },
       );
     }
 
-    if (body.content !== undefined && !body.content.trim()) {
+    if (hasContent && !content) {
       return NextResponse.json(
         { success: false, error: "Content cannot be empty" },
         { status: 400 },
       );
     }
 
-    const updatedMemory = await convexMutation<MemoryResponse | null>(
-      "memories:updateMy",
+    if (!hasTitle && !hasContent && !hasTags) {
+      return NextResponse.json(
+        { success: false, error: "No updates provided" },
+        { status: 400 },
+      );
+    }
+
+    const updatedMemory = await fetchMutation(
+      api.memories.updateMy,
       {
         id,
-        ...(body.title !== undefined ? { title: body.title.trim() } : {}),
-        ...(body.content !== undefined ? { content: body.content.trim() } : {}),
-        ...(body.tags !== undefined ? { tags: body.tags } : {}),
+        ...(hasTitle ? { title } : {}),
+        ...(hasContent ? { content } : {}),
+        ...(hasTags ? { tags } : {}),
       },
+      { token },
     );
 
     if (!updatedMemory) {
@@ -126,18 +156,25 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await requireApiUser();
-  if (session instanceof NextResponse) {
-    return session;
+  const token = await getConvexToken();
+  if (!token) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   const { id } = await params;
 
   void request;
-  void session;
 
   try {
-    const deleted = await convexMutation<boolean>("memories:deleteMy", { id });
+    await ensureConvexUser(token);
+    const deleted = await fetchMutation(
+      api.memories.deleteMy,
+      { id },
+      { token },
+    );
 
     if (!deleted) {
       return NextResponse.json(
