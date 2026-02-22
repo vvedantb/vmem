@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef } from "react";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@vmem/backend";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +21,7 @@ import {
   IconLoader2,
 } from "@tabler/icons-react";
 import { buildTagStats, type Memory } from "@/lib/memories";
+import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
 interface MemoryDetailModalProps {
   isOpen: boolean;
@@ -52,10 +51,8 @@ export default function MemoryDetailModal({
   const [editContent, setEditContent] = useState("");
   const [editTags, setEditTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
-  const memories = useQuery(api.memories.listMy, {});
-  const updateMemory = useMutation(api.memories.updateMy);
-  const deleteMemoryMutation = useMutation(api.memories.deleteMy);
-  const allTags = useMemo(() => buildTagStats(memories ?? []), [memories]);
+  const { memories, updateMemory, deleteMemory } = useMemoryContext();
+  const allTags = useMemo(() => buildTagStats(memories), [memories]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
@@ -140,7 +137,7 @@ export default function MemoryDetailModal({
     setIsDeleting(true);
 
     try {
-      const deleted = await deleteMemoryMutation({ id: memory.id });
+      const deleted = await deleteMemory(memory.id);
       if (!deleted) {
         throw new Error("Memory not found");
       }
@@ -156,7 +153,7 @@ export default function MemoryDetailModal({
     } finally {
       setIsDeleting(false);
     }
-  }, [memory, onMemoryDelete, onClose, deleteMemoryMutation]);
+  }, [memory, onMemoryDelete, onClose, deleteMemory]);
 
   const addTag = useCallback(() => {
     const tag = newTag.trim().toLowerCase();

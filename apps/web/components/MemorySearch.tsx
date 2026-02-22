@@ -14,8 +14,6 @@ import {
   Skeleton,
 } from "@vmem/ui";
 import { IconSearch, IconMoodEmpty, IconX } from "@tabler/icons-react";
-import { useQuery } from "convex/react";
-import { api } from "@vmem/backend";
 import { useSearchParams } from "next/navigation";
 import MemoryDetailModal from "./MemoryDetailModal";
 import {
@@ -24,10 +22,11 @@ import {
   type Memory,
   type SearchResult,
 } from "@/lib/memories";
+import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
 export default function MemorySearch() {
   const searchParams = useSearchParams();
-  const memories = useQuery(api.memories.listMy, {});
+  const { memories: allMemories, isLoading } = useMemoryContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
@@ -47,7 +46,6 @@ export default function MemorySearch() {
     );
   }, [searchParams]);
 
-  const allMemories = memories ?? [];
   const allTags = useMemo(() => buildTagStats(allMemories), [allMemories]);
 
   const filteredMemories = useMemo(() => {
@@ -136,7 +134,7 @@ export default function MemorySearch() {
     });
   };
 
-  if (memories === undefined) {
+  if (isLoading) {
     return (
       <>
         <Skeleton className="h-12 w-full rounded-xl" />

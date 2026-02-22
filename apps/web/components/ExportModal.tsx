@@ -17,8 +17,6 @@ import {
   Badge,
 } from "@vmem/ui";
 import { toast } from "sonner";
-import { useQuery } from "convex/react";
-import { api } from "@vmem/backend";
 import {
   IconDownload,
   IconLoader2,
@@ -27,6 +25,7 @@ import {
   IconTable,
 } from "@tabler/icons-react";
 import { type Memory } from "@/lib/memories";
+import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -37,8 +36,7 @@ type ExportFormat = "json" | "csv";
 type DateRange = "all" | "week" | "month" | "year";
 
 export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
-  const memories = useQuery(api.memories.listMy, {});
-  const isLoading = memories === undefined;
+  const { memories, isLoading } = useMemoryContext();
   const [format, setFormat] = useState<ExportFormat>("json");
   const [dateRange, setDateRange] = useState<DateRange>("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -46,7 +44,7 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
   const [exportProgress, setExportProgress] = useState(0);
   const availableTags = useMemo(() => {
     const tags = new Set<string>();
-    for (const memory of memories ?? []) {
+    for (const memory of memories) {
       for (const tag of memory.tags) {
         tags.add(tag);
       }
@@ -55,7 +53,7 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
   }, [memories]);
 
   const filterMemories = useCallback(() => {
-    let filtered = [...(memories ?? [])];
+    let filtered = [...memories];
 
     if (dateRange !== "all") {
       const now = new Date();

@@ -28,16 +28,13 @@ import {
 } from "@tabler/icons-react";
 import TagCloud from "@/components/TagCloud";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@vmem/backend";
 import { buildTagStats } from "@/lib/memories";
+import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
 export default function TagsPage() {
   const router = useRouter();
-  const memories = useQuery(api.memories.listMy, {});
-  const updateMemory = useMutation(api.memories.updateMy);
-  const tags = useMemo(() => buildTagStats(memories ?? []), [memories]);
-  const isLoading = memories === undefined;
+  const { memories, isLoading, updateMemory } = useMemoryContext();
+  const tags = useMemo(() => buildTagStats(memories), [memories]);
 
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
@@ -64,7 +61,7 @@ export default function TagsPage() {
   }, []);
 
   const handleSaveTag = useCallback(async () => {
-    if (!editingTag || !newTagName.trim() || !memories) return;
+    if (!editingTag || !newTagName.trim()) return;
 
     const normalizedNew = newTagName.trim().toLowerCase();
     if (normalizedNew === editingTag) {
@@ -109,7 +106,7 @@ export default function TagsPage() {
   }, [editingTag, newTagName, memories, tags, updateMemory, cancelEditing]);
 
   const handleDeleteTag = useCallback(async () => {
-    if (!deleteTag || !memories) return;
+    if (!deleteTag) return;
 
     const affectedMemories = memories.filter((memory) =>
       memory.tags.includes(deleteTag),
