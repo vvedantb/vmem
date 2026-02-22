@@ -207,27 +207,6 @@ export default function ApiKeysPage() {
 
   return (
     <>
-      <Card className="border border-border bg-muted/50 shadow-none">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center flex-shrink-0">
-              <IconBolt
-                className="w-5 h-5 text-muted-foreground"
-                stroke={1.5}
-              />
-            </div>
-            <div>
-              <h3 className="font-medium text-foreground">MCP Integration</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Use your API key to connect vMemory with MCP-compatible clients.
-                Your memories will be accessible through the Model Context
-                Protocol.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium text-foreground">Your API Keys</h3>
         <Button
