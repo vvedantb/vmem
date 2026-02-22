@@ -10,6 +10,7 @@ import {
   type ComponentType,
   type MouseEventHandler,
 } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   Separator,
   Button,
@@ -21,6 +22,10 @@ import {
   DialogClose,
   DialogTitle,
   cn,
+  motionDuration,
+  motionEase,
+  staggerContainer,
+  staggerItem,
 } from "@vmem/ui";
 import { useThemeContext } from "./contexts/ThemeContext";
 import { UserButton, useUser } from "@clerk/nextjs";
@@ -102,17 +107,21 @@ function SidebarNavigation({
   onNavigate,
 }: SidebarNavigationProps) {
   const isIconOnly = !isMobile && isCollapsed;
+  const navVariants = staggerContainer(isMobile ? 0.04 : 0.03, 0.01);
 
   return (
-    <nav
+    <motion.nav
       className={cn(
         "flex-1 overflow-y-auto scrollbar-thin",
         isMobile ? "pb-2" : "pr-1",
       )}
+      variants={navVariants}
+      initial="hidden"
+      animate="show"
     >
       {navGroups.map((group, groupIndex) => (
-        <div key={group.title} className="px-1">
-          <ul className="space-y-1.5">
+        <motion.div key={group.title} className="px-1" variants={staggerItem}>
+          <motion.ul className="space-y-1.5" variants={staggerContainer(0.025)}>
             {group.items.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(item.href + "/");
@@ -121,42 +130,85 @@ function SidebarNavigation({
               const showBadge = isNotifications && unreadCount > 0;
 
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onNavigate}
-                  title={isIconOnly ? item.label : undefined}
-                  className={cn(
-                    "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-all duration-200 ease-smooth",
-                    isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
-                    isMobile ? "py-3.5" : "py-2.5",
-                    isActive
-                      ? "bg-card/75 text-foreground shadow-insetSoft"
-                      : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
-                  )}
-                >
-                  <span className="flex h-5 w-5 items-center justify-center text-current">
-                    <Icon size={18} stroke={1.7} />
-                  </span>
-                  {!isIconOnly && <span className="flex-1">{item.label}</span>}
-                  {showBadge && !isIconOnly && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
-                      {unreadCount > 99 ? "99+" : unreadCount}
+                <motion.li key={item.href} variants={staggerItem} layout>
+                  <Link
+                    href={item.href}
+                    onClick={onNavigate}
+                    title={isIconOnly ? item.label : undefined}
+                    className={cn(
+                      "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-all duration-200 ease-smooth",
+                      isIconOnly
+                        ? "justify-center px-2 py-2.5"
+                        : "gap-3 px-3.5",
+                      isMobile ? "py-3.5" : "py-2.5",
+                      isActive
+                        ? "bg-card/75 text-foreground shadow-insetSoft"
+                        : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
+                    )}
+                  >
+                    <span className="flex h-5 w-5 items-center justify-center text-current">
+                      <Icon size={18} stroke={1.7} />
                     </span>
-                  )}
-                  {showBadge && isIconOnly && (
-                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
-                  )}
-                </Link>
+                    <AnimatePresence initial={false}>
+                      {!isIconOnly ? (
+                        <motion.span
+                          key={`${item.href}-label`}
+                          className="flex-1"
+                          initial={{ opacity: 0, x: -4 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -4 }}
+                          transition={{
+                            duration: motionDuration.fast,
+                            ease: motionEase,
+                          }}
+                        >
+                          {item.label}
+                        </motion.span>
+                      ) : null}
+                    </AnimatePresence>
+                    <AnimatePresence initial={false}>
+                      {showBadge && !isIconOnly ? (
+                        <motion.span
+                          key={`${item.href}-badge`}
+                          className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground"
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{
+                            duration: motionDuration.fast,
+                            ease: motionEase,
+                          }}
+                        >
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </motion.span>
+                      ) : null}
+                    </AnimatePresence>
+                    <AnimatePresence initial={false}>
+                      {showBadge && isIconOnly ? (
+                        <motion.span
+                          key={`${item.href}-dot`}
+                          className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{
+                            duration: motionDuration.fast,
+                            ease: motionEase,
+                          }}
+                        />
+                      ) : null}
+                    </AnimatePresence>
+                  </Link>
+                </motion.li>
               );
             })}
-          </ul>
+          </motion.ul>
           {groupIndex < navGroups.length - 1 && (
             <Separator className="my-4 bg-border/45" />
           )}
-        </div>
+        </motion.div>
       ))}
-    </nav>
+    </motion.nav>
   );
 }
 
@@ -322,11 +374,16 @@ export default function Sidebar({
           <DialogRawContent
             id={mobileMenuId}
             aria-label="Navigation menu"
-            className="fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden rounded-3xl border border-border/70 bg-sidebar text-foreground shadow-panel outline-none md:hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-300 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left"
+            className="fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden rounded-3xl border border-border/70 bg-sidebar text-foreground shadow-panel outline-none md:hidden"
           >
             <DialogTitle className="sr-only">Navigation menu</DialogTitle>
 
-            <div className="flex min-h-0 flex-1 flex-col p-4">
+            <motion.div
+              className="flex min-h-0 flex-1 flex-col p-4"
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: motionDuration.base, ease: motionEase }}
+            >
               <div className="mb-4 flex items-center justify-between pl-4 pr-2 py-2">
                 <Link
                   href="/"
@@ -380,19 +437,19 @@ export default function Sidebar({
                 toggleTheme={toggleTheme}
                 isAuthLoading={isAuthLoading}
               />
-            </div>
+            </motion.div>
           </DialogRawContent>
         </DialogPortal>
       </Dialog>
 
-      <aside
-        className={cn(
-          "fixed left-0 top-0 z-40 hidden h-screen bg-sidebar md:block",
-          isCollapsed ? "w-24" : "w-80",
-        )}
+      <motion.aside
+        className="fixed left-0 top-0 z-40 hidden h-screen bg-sidebar md:block"
+        animate={{ width: isCollapsed ? 96 : 320 }}
+        transition={{ duration: motionDuration.base, ease: motionEase }}
       >
-        <div className="flex h-full flex-col p-4 pt-7">
-          <div
+        <motion.div layout className="flex h-full flex-col p-4 pt-7">
+          <motion.div
+            layout
             className={cn(
               "mb-6 flex",
               isCollapsed
@@ -423,11 +480,23 @@ export default function Sidebar({
                 alt="vmem icon"
                 className="mt-1 hidden dark:block"
               />
-              {!isCollapsed && (
-                <h1 className="text-xl font-instrumentSerif text-foreground">
-                  v<span className="italic">mem</span>
-                </h1>
-              )}
+              <AnimatePresence initial={false}>
+                {!isCollapsed ? (
+                  <motion.h1
+                    key="desktop-logo"
+                    className="text-xl font-instrumentSerif text-foreground"
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -4 }}
+                    transition={{
+                      duration: motionDuration.fast,
+                      ease: motionEase,
+                    }}
+                  >
+                    v<span className="italic">mem</span>
+                  </motion.h1>
+                ) : null}
+              </AnimatePresence>
             </Link>
             <div
               className={cn(
@@ -450,7 +519,7 @@ export default function Sidebar({
                 )}
               </Button>
             </div>
-          </div>
+          </motion.div>
 
           <SidebarNavigation
             pathname={pathname}
@@ -467,8 +536,8 @@ export default function Sidebar({
             toggleTheme={toggleTheme}
             isAuthLoading={isAuthLoading}
           />
-        </div>
-      </aside>
+        </motion.div>
+      </motion.aside>
     </>
   );
 }
