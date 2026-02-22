@@ -134,13 +134,10 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="flex flex-col gap-7">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <Card
-              key={i}
-              className="border border-border bg-muted/50 shadow-none"
-            >
+            <Card key={i} className="border-border/70 bg-card">
               <CardContent className="p-6">
                 <Skeleton className="h-4 w-24 rounded mb-3" />
                 <Skeleton className="h-10 w-16 rounded" />
@@ -149,15 +146,15 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <Card className="border border-border bg-muted/50 shadow-none">
+        <Card className="border-border/70 bg-card">
           <CardContent className="p-6">
             <Skeleton className="h-5 w-40 rounded mb-6" />
             <Skeleton className="h-48 w-full rounded" />
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="border border-border bg-muted/50 shadow-none">
+        <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+          <Card className="border-border/70 bg-card">
             <CardContent className="p-6">
               <Skeleton className="h-5 w-32 rounded mb-6" />
               {[1, 2, 3, 4].map((i) => (
@@ -171,7 +168,7 @@ export default function Dashboard() {
               ))}
             </CardContent>
           </Card>
-          <Card className="border border-border bg-muted/50 shadow-none">
+          <Card className="border-border/70 bg-card">
             <CardContent className="p-6">
               <Skeleton className="h-5 w-28 rounded mb-6" />
               <div className="grid grid-cols-2 gap-3">
@@ -189,17 +186,14 @@ export default function Dashboard() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-destructive/20 bg-destructive/10">
           <IconAlertCircle className="w-6 h-6 text-destructive" />
         </div>
-        <h3 className="text-lg font-medium text-foreground mb-2">
+        <h3 className="mb-2 text-lg font-medium text-foreground">
           Failed to load dashboard
         </h3>
-        <p className="text-sm text-muted-foreground mb-4">{error}</p>
-        <Button
-          onClick={fetchData}
-          className="bg-primary text-primary-foreground"
-        >
+        <p className="mb-4 text-sm text-muted-foreground">{error}</p>
+        <Button onClick={fetchData}>
           <IconRefresh size={18} />
           Try again
         </Button>
@@ -235,24 +229,24 @@ export default function Dashboard() {
   const chartHeight = 180;
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="flex flex-col gap-7">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statsCards.map((stat) => (
           <Card
             key={stat.label}
-            className="border border-border bg-muted/50 shadow-none hover:bg-accent transition-colors"
+            className="border-border/70 bg-card transition-all duration-200 ease-smooth hover:-translate-y-0.5 hover:border-border hover:shadow-panel"
           >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground uppercase tracking-wider">
+                  <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                     {stat.label}
                   </p>
-                  <p className="text-3xl font-semibold mt-2 text-foreground tabular-nums">
+                  <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
                     {stat.value}
                   </p>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/60 bg-secondary">
                   <stat.icon size={20} className="text-muted-foreground" />
                 </div>
               </div>
@@ -261,27 +255,27 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <Card className="border border-border bg-muted/50 shadow-none">
+      <Card className="border-border/70 bg-card">
         <CardContent className="p-6">
           <h3 className="text-lg font-medium mb-6 text-foreground">
             Memory Growth (Last 7 Days)
           </h3>
           <div className="relative" style={{ height: chartHeight + 40 }}>
-            <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-muted-foreground pr-2">
+            <div className="absolute left-0 top-0 flex h-full flex-col justify-between pr-2 text-xs text-muted-foreground">
               <span className="tabular-nums">{maxTotal}</span>
               <span className="tabular-nums">{Math.round(maxTotal / 2)}</span>
               <span className="tabular-nums">0</span>
             </div>
 
-            <div className="ml-8 h-full relative">
+            <div className="relative ml-8 h-full">
               <div className="absolute inset-0 flex flex-col justify-between">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="border-t border-border w-full" />
+                  <div key={i} className="w-full border-t border-border/65" />
                 ))}
               </div>
 
               <div
-                className="flex items-end justify-between gap-2 h-full pt-2 pb-6"
+                className="flex h-full items-end justify-between gap-2 pb-6 pt-2"
                 style={{ height: chartHeight }}
               >
                 {chartData.map((day, index) => {
@@ -291,23 +285,23 @@ export default function Dashboard() {
                   return (
                     <div
                       key={index}
-                      className="flex-1 flex flex-col items-center gap-1"
+                      className="flex flex-1 flex-col items-center gap-1"
                     >
                       <div
-                        className="w-full max-w-12 relative group"
+                        className="group relative w-full max-w-12"
                         style={{ height: chartHeight - 30 }}
                       >
-                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-xs px-2 py-1 rounded whitespace-nowrap z-10 pointer-events-none">
+                        <div className="pointer-events-none absolute -top-9 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-border/70 bg-card px-2 py-1 text-xs text-foreground opacity-0 shadow-soft transition-opacity group-hover:opacity-100">
                           {day.total} total (+{day.new})
                         </div>
 
                         <div
-                          className="absolute bottom-0 w-full bg-muted rounded-t transition-all"
+                          className="absolute bottom-0 w-full rounded-t-[12px] bg-secondary transition-all"
                           style={{ height: barHeight }}
                         />
 
                         <div
-                          className="absolute bottom-0 w-full bg-foreground rounded-t transition-all"
+                          className="absolute bottom-0 w-full rounded-t-[12px] bg-primary transition-all"
                           style={{
                             height: newHeight,
                             opacity: day.new > 0 ? 1 : 0,
@@ -319,7 +313,7 @@ export default function Dashboard() {
                 })}
               </div>
 
-              <div className="flex justify-between mt-2">
+              <div className="mt-2 flex justify-between">
                 {chartData.map((day, index) => (
                   <div
                     key={index}
@@ -332,15 +326,15 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-6 mt-4 ml-8">
+          <div className="ml-8 mt-4 flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-muted" />
+              <div className="h-3 w-3 rounded bg-secondary" />
               <span className="text-xs text-muted-foreground">
                 Total memories
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-foreground" />
+              <div className="h-3 w-3 rounded bg-primary" />
               <span className="text-xs text-muted-foreground">
                 New that day
               </span>
@@ -349,8 +343,8 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="border border-border bg-muted/50 shadow-none">
+      <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+        <Card className="border-border/70 bg-card">
           <CardContent className="p-6">
             <h3 className="text-lg font-medium mb-6 text-foreground">
               Recent Activity
@@ -360,15 +354,15 @@ export default function Dashboard() {
                 No recent activity
               </p>
             ) : (
-              <ul className="space-y-4">
+              <ul className="space-y-2">
                 {activity.slice(0, 6).map((item) => {
                   const Icon = getActivityIcon(item.type);
                   return (
                     <li
                       key={item.id}
-                      className="flex items-start gap-3 py-2 border-b border-border last:border-0"
+                      className="flex items-start gap-3 rounded-xl border border-border/65 bg-secondary/55 px-3 py-2.5"
                     >
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-border/60 bg-card">
                         <Icon size={16} className="text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -387,7 +381,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border border-border bg-muted/50 shadow-none">
+        <Card className="border-border/70 bg-card">
           <CardContent className="p-6">
             <h3 className="text-lg font-medium mb-6 text-foreground">
               Quick Actions
@@ -395,19 +389,19 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-3">
               {quickActions.map((action) => (
                 <Link href={action.href} key={action.label}>
-                  <div className="p-4 rounded-lg border border-border hover:bg-accent transition-colors group cursor-pointer">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center group-hover:bg-accent transition-colors">
+                  <div className="group cursor-pointer rounded-2xl border border-border/65 bg-secondary/55 p-4 transition-all duration-200 ease-smooth hover:-translate-y-0.5 hover:border-border hover:bg-card">
+                    <div className="mb-2 flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-card transition-colors group-hover:bg-secondary">
                         <action.icon
                           size={16}
                           className="text-muted-foreground"
                         />
                       </div>
-                      <span className="font-medium text-sm text-foreground">
+                      <span className="text-sm font-medium text-foreground">
                         {action.label}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground pl-11">
+                    <p className="pl-11 text-xs text-muted-foreground">
                       {action.description}
                     </p>
                   </div>

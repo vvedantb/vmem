@@ -68,13 +68,13 @@ export default function Sidebar({
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 h-16 bg-sidebar/95 backdrop-blur-sm border-b border-border/60 z-50 md:hidden flex items-center justify-between px-4">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between border-b border-border/70 bg-sidebar px-4 shadow-[0_1px_0_rgba(255,255,255,0.55)] md:hidden">
         <Link
           href="/"
           onClick={() => setMobileMenuOpen(false)}
           className="flex flex-row items-center gap-1.5"
         >
-          <div className="relative mt-1 flex h-[28px] w-[28px] items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
+          <div className="relative mt-1 flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
             <Image
               unoptimized
               width={18}
@@ -93,7 +93,7 @@ export default function Sidebar({
             />
             <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/10 ring-inset dark:ring-white/15" />
           </div>
-          <h1 className="text-2xl font-instrumentSerif text-foreground">
+          <h1 className="text-[2rem] leading-none font-instrumentSerif text-foreground">
             v<span className="italic">mem</span>
           </h1>
         </Link>
@@ -103,7 +103,7 @@ export default function Sidebar({
           size="icon"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
-          className="text-foreground rounded-xl border border-border/60 bg-muted/50 hover:bg-accent/70"
+          className="rounded-full text-foreground hover:bg-card/70"
         >
           {mobileMenuOpen ? (
             <IconX className="w-6 h-6" />
@@ -115,37 +115,38 @@ export default function Sidebar({
 
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 top-16 bg-black/30 backdrop-blur-[2px] z-30 md:hidden"
+          className="fixed inset-0 top-16 z-30 bg-foreground/15 md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       <aside
         className={`
-          fixed top-[4.5rem] md:top-0 left-2 md:left-0 right-2 md:right-auto h-[calc(100vh-5rem)] md:h-screen bg-sidebar/95 backdrop-blur-sm border border-border/60 md:border-r-0 md:border-t-0 md:border-b-0 md:border-l-0 rounded-2xl md:rounded-none shadow-xl md:shadow-none z-40
-          w-[min(86vw,320px)] md:w-auto ${isCollapsed ? "md:w-[92px] md:max-w-[92px]" : "md:w-[280px] md:max-w-[280px]"}
-          transform transition-transform duration-300 ease-out
+          fixed left-2 right-2 top-[4.5rem] z-40 h-[calc(100vh-5rem)] rounded-[1.65rem] bg-sidebar shadow-panel
+          md:left-0 md:right-auto md:top-0 md:h-screen md:rounded-none md:bg-sidebar md:shadow-none
+          w-[90vw] max-w-sm md:w-auto ${isCollapsed ? "md:w-24" : "md:w-80"}
+          transform transition-all duration-300 ease-smooth
           ${
             mobileMenuOpen
               ? "translate-x-0"
-              : "-translate-x-full md:translate-x-0"
+              : "-translate-x-[110%] md:translate-x-0"
           }
         `}
       >
-        <div className="flex flex-col h-full p-3 md:p-4 md:py-8">
+        <div className="flex h-full flex-col p-3 md:p-4 md:py-5">
           <div className="px-3 pb-3 pt-1 md:hidden">
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground/90">
               Navigation
             </p>
           </div>
           <div
-            className={`mb-6 hidden md:flex ${isCollapsed ? "flex-col items-center gap-3" : "px-2 flex-row justify-between items-center"}`}
+            className={`mb-6 hidden md:flex ${isCollapsed ? "flex-col items-center gap-3" : "flex-row items-center justify-between px-2"}`}
           >
             <Link
               href="/"
               className={`flex flex-row items-center ${isCollapsed ? "" : "gap-1.5"}`}
             >
-              <div className="relative mt-1 flex h-[28px] w-[28px] items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
+              <div className="relative mt-1 flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
                 <Image
                   unoptimized
                   width={18}
@@ -190,10 +191,10 @@ export default function Sidebar({
             </div>
           </div>
 
-          <nav className="flex-1 overflow-y-auto scrollbar-thin pr-1">
+          <nav className="flex-1 overflow-y-auto pr-1 scrollbar-thin">
             {navGroups.map((group, groupIndex) => (
               <div key={groupIndex} className="px-1 md:px-1">
-                <ul className="space-y-1">
+                <ul className="space-y-1.5">
                   {group.items.map((item) => {
                     const isActive =
                       pathname === item.href ||
@@ -208,26 +209,17 @@ export default function Sidebar({
                         onClick={() => setMobileMenuOpen(false)}
                         title={isCollapsed ? item.label : undefined}
                         className={`
-                          group relative flex items-center w-full py-3 md:py-2.5 rounded-xl text-[15px] font-medium
-                          transition-all duration-200 ease-out
-                          ${isCollapsed ? "justify-center px-2" : "gap-3 px-4"}
+                          group relative flex w-full items-center rounded-xl py-3 text-[15px] font-medium tracking-[-0.01em]
+                          transition-all duration-200 ease-smooth md:py-2.5
+                          ${isCollapsed ? "justify-center px-2" : "gap-3 px-3.5"}
                           ${
                             isActive
-                              ? "bg-primary text-primary-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground hover:bg-accent/70"
+                              ? "bg-card/65 text-foreground"
+                              : "text-muted-foreground hover:bg-card/45 hover:text-foreground"
                           }
                         `}
                       >
-                        {isActive && !isCollapsed && (
-                          <span className="absolute left-1 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-primary-foreground/90" />
-                        )}
-                        <span
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                            isActive
-                              ? "bg-primary-foreground/15"
-                              : "bg-muted/50 group-hover:bg-muted"
-                          }`}
-                        >
+                        <span className="flex h-5 w-5 items-center justify-center text-current">
                           <Icon size={18} stroke={1.7} />
                         </span>
                         {!isCollapsed && (
@@ -235,9 +227,9 @@ export default function Sidebar({
                         )}
                         {showBadge && !isCollapsed && (
                           <span
-                            className={`min-w-5 h-5 px-1.5 rounded-full text-xs font-medium flex items-center justify-center ${
+                            className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium ${
                               isActive
-                                ? "bg-primary-foreground text-primary"
+                                ? "bg-primary text-primary-foreground"
                                 : "bg-primary text-primary-foreground"
                             }`}
                           >
@@ -252,7 +244,7 @@ export default function Sidebar({
                   })}
                 </ul>
                 {groupIndex < navGroups.length - 1 && (
-                  <Separator className="my-4 bg-border/70" />
+                  <Separator className="my-4 bg-border/45" />
                 )}
               </div>
             ))}
@@ -274,10 +266,10 @@ export default function Sidebar({
                 aria-label={
                   isDark ? "Switch to light theme" : "Switch to dark theme"
                 }
-                className={`w-full rounded-xl border border-border/60 bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-accent/70 ${
+                className={`w-full rounded-xl text-muted-foreground hover:bg-card/60 hover:text-foreground ${
                   isCollapsed
                     ? "h-9 justify-center px-0"
-                    : "h-10 justify-start gap-2 px-3"
+                    : "h-10 justify-start gap-2.5 px-3"
                 }`}
               >
                 {isDark ? (
@@ -294,14 +286,14 @@ export default function Sidebar({
             </div>
           )}
 
-          <Separator className="bg-border/70" />
+          <Separator className="bg-border/45" />
 
           <div className="pt-4 space-y-4">
             {isAuthLoading ? (
               <div
-                className={`${isCollapsed ? "px-2 py-3 flex justify-center" : "px-4 py-3"}`}
+                className={`${isCollapsed ? "flex justify-center px-2 py-3" : "px-4 py-3"}`}
               >
-                <Skeleton className="h-9 w-9 rounded-full" />
+                <Skeleton className="h-10 w-10 rounded-full" />
               </div>
             ) : (
               <div className="px-2">
@@ -312,16 +304,16 @@ export default function Sidebar({
                       userButtonBox: isCollapsed
                         ? "flex justify-center"
                         : "flex w-full",
-                      userButtonTrigger: `rounded-xl border border-border/60 bg-muted/70 shadow-sm transition-colors hover:bg-accent/70 focus:shadow-none ${
+                      userButtonTrigger: `rounded-xl bg-transparent transition-colors hover:bg-card/60 focus:shadow-none ${
                         isCollapsed
                           ? "h-10 w-10 p-0"
-                          : "h-10 w-full justify-start gap-2 px-2"
+                          : "h-11 w-full justify-start gap-2.5 px-2.5"
                       }`,
                       userButtonAvatarBox: "h-8 w-8",
                       userButtonOuterIdentifier:
-                        "text-sm font-medium text-foreground truncate",
+                        "truncate text-sm font-medium text-foreground",
                       userButtonPopoverCard:
-                        "border border-border/70 bg-popover text-popover-foreground shadow-xl",
+                        "border border-border/70 bg-popover text-popover-foreground shadow-panel",
                       userButtonPopoverActionButton:
                         "rounded-lg hover:bg-accent hover:text-accent-foreground",
                     },
