@@ -5,10 +5,7 @@ import { Button } from "@vmem/ui";
 
 export default function SettingsPage() {
   return (
-    <PageContainer
-      title="Settings"
-      description="Configure your vMemory experience"
-    >
+    <PageContainer title="Settings">
       <div className="p-8 rounded-xl border border-border bg-muted/50">
         <h3 className="text-lg font-medium mb-2 text-foreground">Profile</h3>
         <div className="flex items-center gap-6 mt-6">

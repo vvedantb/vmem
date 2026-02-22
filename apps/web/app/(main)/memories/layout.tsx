@@ -17,11 +17,7 @@ export default function MemoriesLayout({
   const currentTab = pathname.includes("/memories/graph") ? "graph" : "list";
 
   return (
-    <PageContainer
-      title="Memories"
-      description="Browse and search your stored memories"
-      rightSection={<AddMemoryModal />}
-    >
+    <PageContainer title="Memories" rightSection={<AddMemoryModal />}>
       <Tabs
         value={currentTab}
         onValueChange={(value) => router.push(`/memories/${value}`)}
