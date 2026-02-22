@@ -10,23 +10,34 @@ LLMs lack persistent long-term memory. Users repeat themselves across sessions, 
 
 vmem provides a centralised memory server accessible via REST API and MCP (Model Context Protocol), enabling any LLM to read/write user memories with semantic search, metadata tagging, and a graph-based UI for browsing and managing stored knowledge.
 
-## Project Structure
+## Monorepo Layout
 
-| Folder                                    | Description                                                   | Stack                                                  |
-| ----------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------ |
-| [`web/`](./web)                           | Web dashboard for browsing, editing, and visualising memories | Next.js 16, React 19, TypeScript, Tailwind CSS, HeroUI |
-| [`backend/`](./backend)                   | Memory API server with vector search and MCP integration      |
-| [`mobile/`](./mobile)                     | Mobile companion app                                          | Planned                                                |
-| [`chrome-extension/`](./chrome-extension) | Browser extension for capturing and recalling memories        | Planned                                                |
-| `internal/`                               | Project documentation and planning                            | Markdown                                               |
+| Path               | Purpose                                                            |
+| ------------------ | ------------------------------------------------------------------ |
+| `apps/web`         | Next.js frontend — auth, memory management UI, API key management  |
+| `packages/backend` | Convex schema + functions (auth, memories, API keys, request logs) |
+| `packages/ui`      | Shared shadcn/ui component library (`@vmem/ui`)                    |
 
-## Getting Started
+## What is implemented
+
+- Clerk auth + Convex user bootstrap (`auth.ensureUserExists`)
+- API key management — create, reveal, copy, revoke (AES-GCM encrypted at rest)
+- API request logging per key
+- Frontend memory CRUD (currently client-side mock; Convex `memories` table ready)
+- Responsive sidebar with collapsible desktop + mobile drawer
+
+## Run
 
 ```bash
-# Web app
-cd web
 pnpm install
-pnpm dev
+pnpm convex   # deploy/sync Convex functions
+pnpm dev      # starts web app + Convex dev server concurrently
 ```
 
-See each subfolder's README for more details.
+## Environment
+
+```
+NEXT_PUBLIC_CONVEX_URL
+CLERK_*                  # standard Clerk environment variables
+ENCRYPTION_KEY           # base64-encoded AES-256 key for API key encryption (Convex env)
+```

@@ -1,24 +1,36 @@
-# vmem — Backend
+# @vmem/backend
 
-The memory API server powering vmem. Handles storage, retrieval, semantic search, and MCP integration for cross-model memory access.
+Convex backend for vmem.
 
-## Planned Stack
+## Schema
 
-- **Language:** TypeScript
-- **Runtime:** Node.js
-- **Database:** PostgreSQL + pgvector for vector embeddings
-- **Embeddings:** OpenAI embedding models
-- **Protocol:** REST API + MCP (Model Context Protocol)
+| Table            | Description                                                                 |
+| ---------------- | --------------------------------------------------------------------------- |
+| `users`          | Clerk-linked user records, indexed by `clerkId` and `email`                 |
+| `memories`       | User memories with `title`, `content`, `tags[]`, timestamps                 |
+| `apiKeys`        | API keys — AES-GCM encrypted at rest, hashed for lookup, masked for display |
+| `apiRequestLogs` | Per-key request logs with endpoint, method, HTTP status, duration           |
 
-## Planned Features
+## Modules
 
-- CRUD APIs for memory records
-- Vector embedding pipeline for semantic search
-- MCP connector for cross-model consumption (Claude, ChatGPT, etc.)
-- User authentication and access control
-- Metadata support (timestamps, tags, relational context)
-- Memory update rules to handle stale/conflicting information
+- `auth.ts` — `ensureUserExists`, `me`, and custom auth builders (`authQuery`, `authMutation`, `authAction`) that inject `ctx.userId`
+- `apiKeys.ts` — create, list, revoke, reveal (decrypt) API keys; internal mutation for usage recording
+- `apiLogs.ts` — query API request logs per user/key
 
-## Status
+## Auth Builders
 
-Not yet implemented — currently in planning phase.
+All protected functions use builders from `auth.ts` rather than raw `query`/`mutation`/`action`. These verify the Clerk identity and inject `ctx.userId` as a Convex `Id<"users">`.
+
+```ts
+import { authQuery, authMutation, authAction } from "./auth";
+```
+
+## Environment
+
+`ENCRYPTION_KEY` — base64-encoded AES-256 key, set in Convex environment variables (not `.env`).
+
+## Run
+
+```bash
+pnpm --filter @vmem/backend dev
+```
