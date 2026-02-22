@@ -1,38 +1,54 @@
-# vmem — Web
+# apps/web
 
-The main web dashboard for vmem. Users can browse, search, edit, and visualise their stored memories through a graph-based UI.
+Next.js frontend for vmem.
 
-## Tech Stack
+## Stack
 
-- **Framework:** Next.js 16 (App Router, Turbopack)
-- **UI:** React 19, Tailwind CSS 3, HeroUI 2
-- **Language:** TypeScript (strict mode)
-- **Fonts:** Instrument Sans & Instrument Serif
+- Next.js 15 (App Router)
+- React 19 + TypeScript
+- Clerk auth (`@clerk/nextjs`)
+- Convex live queries + mutations (`convex/react`)
+- `@vmem/ui` shared component library
+- Tailwind CSS v4
+- Framer Motion, sonner (toasts), `next-themes`
 
-## Key Routes
+## Route Structure
 
-| Route | Description |
-|---|---|
-| `/dashboard` | Overview stats |
-| `/memories/list` | Searchable memory list |
-| `/memories/graph` | Graph visualisation |
-| `/memories/tags` | Tag cloud |
-| `/api/keys` | API key management |
-| `/api/logs` | API request logs |
-| `/chat` | Chat interface |
-| `/connectors` | External integrations |
-| `/files` | File management |
-| `/settings` | User preferences |
-
-## Setup
-
-```bash
-pnpm install
-pnpm dev
+```
+app/
+  (auth)/           # Clerk sign-in + sign-up pages
+  (main)/           # Authenticated area — wrapped in EnsureUser + MainShell
+    page.tsx        # Dashboard
+    memories/       # List, tags, graph views
+    api/            # API keys + request logs
+    chat/
+    files/
+    connectors/
+    notifications/
+    profile/
+    settings/
 ```
 
-## Architecture
+## Key Architecture Notes
 
-- Server Components by default; Client Components only for interactive pieces (`"use client"`)
-- Floating panel design with light/dark mode support
-- Path alias: `@/*` maps to project root
+- `app/layout.tsx` — root layout: `ClerkProvider` > `ClientProvider`
+- `ClientProvider` — sets up Convex, next-themes, ThemeContext, NotificationContext, MemoryProvider
+- `EnsureUser` — bootstraps the Convex user record on first sign-in
+- `MainShell` — collapsible sidebar + scrollable content pane
+- Memory data is **currently client-side mock** (`MemoryContext` + `lib/mock-memories.ts`). The Convex `memories` table is defined but not yet wired to the UI.
+
+## Environment
+
+```
+NEXT_PUBLIC_CONVEX_URL
+CLERK_SECRET_KEY
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/register
+```
+
+## Run
+
+```bash
+pnpm --filter web dev
+```
