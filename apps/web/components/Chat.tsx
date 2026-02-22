@@ -37,12 +37,12 @@ import {
 } from "@vmem/ui/ai";
 import {
   IconMessage,
-  IconRobot,
   IconUser,
   IconCopy,
   IconCheck,
 } from "@tabler/icons-react";
 import type { ChatStatus } from "ai";
+import Image from "next/image";
 
 interface Memory {
   id: string;
@@ -286,11 +286,24 @@ export default function Chat() {
           {messages.map((message) => (
             <Message key={message.id} from={message.role}>
               {message.role === "assistant" && (
-                <div className="flex size-8 items-center justify-center rounded-full bg-muted/50 border border-border shrink-0">
-                  <IconRobot
-                    className="size-4 text-muted-foreground"
-                    stroke={1.5}
+                <div className="relative flex size-8 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black shrink-0 animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_10px_rgba(0,0,0,0.2)] dark:shadow-[0_0_14px_rgba(255,255,255,0.1)]">
+                  <Image
+                    unoptimized
+                    width={18}
+                    height={18}
+                    alt="vmem icon"
+                    src="/icon-dark.svg"
+                    className="block dark:hidden"
                   />
+                  <Image
+                    unoptimized
+                    width={18}
+                    height={18}
+                    src="/icon-light.svg"
+                    alt="vmem icon"
+                    className="hidden dark:block"
+                  />
+                  <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/10 ring-inset dark:ring-white/15" />
                 </div>
               )}
 
