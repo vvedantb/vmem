@@ -1,58 +1,69 @@
 # CLAUDE.md
 
-This file provides repository guidance for coding agents.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## Project
 
-`vmem` is a universal, model-agnostic memory layer for AI systems. The repository is a Final Year Project (BSc Computer Science, City University of London).
+vmem is a universal, model-agnostic LLM memory layer. Users can store, retrieve, and manage memories across AI sessions. It exposes a REST API and MCP server.
 
 ## Monorepo Structure
 
-- `apps/web` - Next.js 16 dashboard + API proxy routes
-- `apps/api` - Fastify TypeScript memory engine (Postgres + pgvector)
-- `packages/backend` - Convex package for non-vector account data
-- `packages/ui` - shared UI components
-- `packages/types` - shared TypeScript interfaces/contracts
-- `packages/mcp` - MCP server package
-- `internal` - planning, changelog, proposal, ADRs, contracts
-
-## Data Architecture
-
-- Convex handles user/account-style non-vector data.
-- Postgres + pgvector handles memory/search/chat/API-key data.
-- Frontend preserves `/api/*` paths and proxies selected routes to `apps/api` through feature flags.
+- `apps/web` — Next.js 15 frontend with Clerk auth and Convex live queries
+- `packages/backend` — Convex schema, functions, and auth helpers
+- `packages/ui` — Shared shadcn/ui component library (`@vmem/ui`)
 
 ## Commands
 
 ```bash
-pnpm dev                 # web dev server
-pnpm build               # web build
-pnpm lint                # web lint
-pnpm typecheck           # web typecheck
-pnpm api:dev             # memory engine dev
-pnpm api:migrate         # memory engine migrations
-pnpm mcp:dev             # mcp server dev
+# Root (runs all packages concurrently)
+pnpm dev
+pnpm build
+pnpm lint
+pnpm typecheck
+
+# Convex backend only
+pnpm convex
 ```
 
-## Frontend Stack (`apps/web`)
+## Data Model (Convex schema)
 
-- Next.js 16 App Router + React 19 + TypeScript (strict)
-- Clerk authentication
-- Convex provider integration
-- Tailwind CSS 3 + `@vmem/ui`
-- Vercel AI SDK component primitives from `@vmem/ui/ai`
+Tables: `users`, `memories`, `apiKeys`, `apiRequestLogs`
 
-## Backend Stack (`apps/api`)
+- `users` — Clerk-linked via `clerkId`, indexed by `by_clerk_id` and `by_email`
+- `memories` — Owned by `userId`, has `title`, `content`, `tags[]`, `createdAt`/`updatedAt`
+- `apiKeys` — AES-GCM encrypted (`encryptedKey`), hashed (`keyHash`), masked (`maskedKey`); status: `active | revoked`
+- `apiRequestLogs` — Logs per API key usage with endpoint, method, status, durationMs
 
-- Fastify + TypeScript
-- PostgreSQL + pgvector
-- OpenRouter-backed chat + embeddings
-- SSE endpoint for chat streaming (`/v1/chat`)
+## Auth Pattern
 
-## Key Rules
+All Convex functions use custom builders from `packages/backend/convex/auth.ts`:
 
-- Avoid `any`.
-- Keep Server Components as default in web app.
-- Preserve frozen `/api/*` response contracts when changing route behavior.
-- Prefer adding medium/large updates to `internal/changelog.md`.
-- Run `pnpm typecheck` and `pnpm lint` before finalizing substantial changes.
+- `authQuery` / `authMutation` / `authAction` — inject `ctx.userId` after verifying Clerk identity
+- `EnsureUser` component (`apps/web/components/providers/EnsureUser.tsx`) — calls `auth.ensureUserExists` on first sign-in to bootstrap the Convex user record
+
+## Frontend Architecture
+
+- `app/layout.tsx` — Root: wraps everything in `ClerkProvider` > `ClientProvider`
+- `ClientProvider` — Sets up `ConvexProviderWithClerk`, `NextThemesProvider`, `ThemeProvider`, `NotificationProvider`, `MemoryProvider`
+- `app/(auth)/` — Clerk sign-in/sign-up pages
+- `app/(main)/` — Authenticated area; layout wraps children in `EnsureUser` > `MainShell`
+- `MainShell` — Client component: sidebar + scrollable content area
+- `Sidebar` — Desktop collapsible + mobile dialog; nav groups: Workspace, Integrations, Account
+
+**Memory data is currently mock** — `MemoryContext` seeds from `lib/mock-memories.ts` and holds state in client memory. Convex `memories` table exists but is not yet wired to the frontend.
+
+## Key Conventions
+
+- Import backend API refs as `import { api } from "@vmem/backend"` — never use relative paths across packages
+- Derive types from Convex: `FunctionReturnType<typeof api.fn>`, `Doc<"table">`, `Id<"table">`
+- Icons come from `@tabler/icons-react`
+- Toast notifications via `sonner` (imported from `@vmem/ui` or `sonner` directly)
+- Font: `Instrument Sans` (variable `--font-instrument-sans`), `Instrument Serif` (logo/headings)
+
+## Environment Variables
+
+```
+NEXT_PUBLIC_CONVEX_URL
+CLERK_* (standard Clerk env vars)
+ENCRYPTION_KEY (base64 AES-256 key for API key encryption, used in Convex)
+```
