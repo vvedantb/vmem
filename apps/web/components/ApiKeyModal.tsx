@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
@@ -21,6 +23,7 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
+import { apiKeySchema, type ApiKeyFormValues } from "@/lib/schemas";
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -28,7 +31,7 @@ interface ApiKeyModalProps {
   onKeyCreated: () => void;
 }
 
-type ModalStep = "create" | "loading" | "success";
+type ModalStep = "create" | "success";
 type CreatedKey = FunctionReturnType<typeof api.apiKeys.createMy>;
 
 export default function ApiKeyModal({
@@ -38,41 +41,35 @@ export default function ApiKeyModal({
 }: ApiKeyModalProps) {
   const createApiKey = useAction(api.apiKeys.createMy);
   const [step, setStep] = useState<ModalStep>("create");
-  const [name, setName] = useState("");
-  const [nameError, setNameError] = useState("");
   const [createdKey, setCreatedKey] = useState<CreatedKey | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ApiKeyFormValues>({
+    resolver: zodResolver(apiKeySchema),
+    defaultValues: { name: "" },
+  });
 
   useEffect(() => {
     if (isOpen) {
       setStep("create");
-      setName("");
-      setNameError("");
       setCreatedKey(null);
       setCopied(false);
+      reset();
     }
-  }, [isOpen]);
+  }, [isOpen, reset]);
 
-  const handleCreate = async () => {
-    if (!name.trim()) {
-      setNameError("Please enter a name for your API key");
-      return;
-    }
-    if (name.length > 50) {
-      setNameError("Name must be 50 characters or less");
-      return;
-    }
-
-    setNameError("");
-    setStep("loading");
-
+  const onSubmit = async ({ name }: ApiKeyFormValues) => {
     try {
       const created = await createApiKey({ name: name.trim() });
       setCreatedKey(created);
       setStep("success");
       onKeyCreated();
     } catch (err) {
-      setStep("create");
       toast.error(
         err instanceof Error ? err.message : "Failed to create API key",
       );
@@ -93,7 +90,7 @@ export default function ApiKeyModal({
   };
 
   const handleClose = () => {
-    if (step !== "loading") {
+    if (!isSubmitting) {
       onClose();
     }
   };
@@ -107,9 +104,9 @@ export default function ApiKeyModal({
     >
       <DialogContent
         className="max-w-md bg-card border border-border"
-        hideCloseButton={step === "loading"}
+        hideCloseButton={isSubmitting}
         onInteractOutside={(e) => {
-          if (step === "loading") e.preventDefault();
+          if (isSubmitting) e.preventDefault();
         }}
       >
         <DialogHeader className="border-b border-border pb-4">
@@ -118,7 +115,7 @@ export default function ApiKeyModal({
           </DialogTitle>
         </DialogHeader>
 
-        {step === "create" && (
+        {step === "create" && !isSubmitting && (
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 border border-border">
               <IconKey
@@ -137,12 +134,13 @@ export default function ApiKeyModal({
               </label>
               <Input
                 placeholder="e.g., Production App, Development"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                {...register("name")}
                 className="border-border bg-transparent"
               />
-              {nameError ? (
-                <p className="text-sm text-destructive">{nameError}</p>
+              {errors.name ? (
+                <p className="text-sm text-destructive">
+                  {errors.name.message}
+                </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Choose a descriptive name to identify this key
@@ -152,7 +150,7 @@ export default function ApiKeyModal({
           </div>
         )}
 
-        {step === "loading" && (
+        {isSubmitting && (
           <div className="py-8 space-y-4 text-center">
             <IconLoader2
               size={32}
@@ -216,17 +214,19 @@ export default function ApiKeyModal({
         )}
 
         <DialogFooter className="border-t border-border pt-4">
-          {step === "create" && (
+          {step === "create" && !isSubmitting && (
             <>
               <Button
                 variant="ghost"
                 onClick={handleClose}
+                disabled={isSubmitting}
                 className="text-muted-foreground"
               >
                 Cancel
               </Button>
               <Button
-                onClick={handleCreate}
+                onClick={handleSubmit(onSubmit)}
+                disabled={isSubmitting}
                 className="bg-primary text-primary-foreground"
               >
                 Create Key
@@ -234,7 +234,7 @@ export default function ApiKeyModal({
             </>
           )}
 
-          {step === "loading" && (
+          {isSubmitting && (
             <p className="text-sm text-muted-foreground w-full text-center">
               Do not close this window
             </p>

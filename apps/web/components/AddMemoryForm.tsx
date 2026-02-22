@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Input, Textarea, Button, Badge } from "@vmem/ui";
 import { toast } from "sonner";
 import {
@@ -15,14 +17,25 @@ import {
 } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
+import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 
 export default function AddMemoryForm() {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { memories, createMemory } = useMemoryContext();
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<MemoryFormValues>({
+    resolver: zodResolver(memorySchema),
+    defaultValues: { title: "", content: "", tags: [] },
+  });
+
+  const [tagInput, setTagInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
@@ -39,15 +52,17 @@ export default function AddMemoryForm() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const currentTags = watch("tags");
   const allTags = useMemo(() => buildTagStats(memories ?? []), [memories]);
 
   const filteredSuggestions = useMemo(() => {
-    if (!tagInput.trim()) return allTags.filter((t) => !tags.includes(t.tag));
+    if (!tagInput.trim())
+      return allTags.filter((t) => !currentTags.includes(t.tag));
     const input = tagInput.toLowerCase();
     return allTags.filter(
-      (t) => t.tag.includes(input) && !tags.includes(t.tag),
+      (t) => t.tag.includes(input) && !currentTags.includes(t.tag),
     );
-  }, [tagInput, allTags, tags]);
+  }, [tagInput, allTags, currentTags]);
 
   useEffect(() => {
     return () => {
@@ -182,21 +197,26 @@ export default function AddMemoryForm() {
 
   const applyTranscription = useCallback(() => {
     if (transcription) {
-      setContent((prev) =>
-        prev ? prev + "\n\n" + transcription : transcription,
+      const current = watch("content");
+      setValue(
+        "content",
+        current ? current + "\n\n" + transcription : transcription,
       );
       discardRecording();
       toast.success("Transcription Applied", {
         description: "Text has been added to your memory content",
       });
     }
-  }, [transcription, discardRecording]);
+  }, [transcription, discardRecording, setValue, watch]);
 
-  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleAddTag = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    onChange: (tags: string[]) => void,
+  ) => {
     if (e.key === "Enter" && tagInput.trim()) {
       e.preventDefault();
-      if (!tags.includes(tagInput.trim().toLowerCase())) {
-        setTags([...tags, tagInput.trim().toLowerCase()]);
+      if (!currentTags.includes(tagInput.trim().toLowerCase())) {
+        onChange([...currentTags, tagInput.trim().toLowerCase()]);
       }
       setTagInput("");
       setShowSuggestions(false);
@@ -205,82 +225,57 @@ export default function AddMemoryForm() {
     }
   };
 
-  const selectSuggestion = (tag: string) => {
-    if (!tags.includes(tag)) {
-      setTags([...tags, tag]);
+  const selectSuggestion = (
+    tag: string,
+    onChange: (tags: string[]) => void,
+  ) => {
+    if (!currentTags.includes(tag)) {
+      onChange([...currentTags, tag]);
     }
     setTagInput("");
     setShowSuggestions(false);
     tagInputRef.current?.focus();
   };
 
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
+  const removeTag = (
+    tagToRemove: string,
+    onChange: (tags: string[]) => void,
+  ) => {
+    onChange(currentTags.filter((tag) => tag !== tagToRemove));
   };
 
-  const resetForm = () => {
-    setTitle("");
-    setContent("");
-    setTags([]);
-    setTagInput("");
-    discardRecording();
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!title.trim()) {
-      toast.error("Validation Error", {
-        description: "Please enter a title for your memory",
-      });
-      return;
-    }
-
-    if (!content.trim()) {
-      toast.error("Validation Error", {
-        description: "Please enter content for your memory",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: MemoryFormValues) => {
     try {
-      await createMemory({
-        title: title.trim(),
-        content: content.trim(),
-        tags,
-      });
-
+      await createMemory(data);
       toast.success("Memory Saved", {
         description: "Your memory has been saved successfully",
       });
-
-      resetForm();
+      reset();
+      discardRecording();
     } catch (error) {
       toast.error("Error", {
         description:
           error instanceof Error ? error.message : "Failed to create memory",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="space-y-3">
         <label className="block text-sm font-medium text-muted-foreground">
           Title
         </label>
         <Input
           type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          {...register("title")}
           placeholder="Enter a title for your memory"
           disabled={isSubmitting}
           className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
         />
+        {errors.title && (
+          <p className="text-sm text-destructive">{errors.title.message}</p>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -288,13 +283,15 @@ export default function AddMemoryForm() {
           Content
         </label>
         <Textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
+          {...register("content")}
           placeholder="Write your memory content here..."
           rows={8}
           disabled={isSubmitting || isRecording}
           className="bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
         />
+        {errors.content && (
+          <p className="text-sm text-destructive">{errors.content.message}</p>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -437,71 +434,79 @@ export default function AddMemoryForm() {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-muted-foreground">
-          Tags
-        </label>
-        <div className="relative">
-          <Input
-            ref={tagInputRef}
-            type="text"
-            value={tagInput}
-            onChange={(e) => {
-              setTagInput(e.target.value);
-              setShowSuggestions(true);
-            }}
-            onKeyDown={handleAddTag}
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => {
-              setTimeout(() => setShowSuggestions(false), 200);
-            }}
-            placeholder="Type a tag and press Enter"
-            disabled={isSubmitting}
-            className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
-          />
-          {showSuggestions && filteredSuggestions.length > 0 && (
-            <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
-              {filteredSuggestions.map((item) => (
-                <Button
-                  key={item.tag}
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => selectSuggestion(item.tag)}
-                  className="w-full h-auto px-4 py-2 text-left flex items-center justify-between hover:bg-accent transition-colors"
-                >
-                  <span className="text-sm text-foreground">{item.tag}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {item.count} {item.count === 1 ? "memory" : "memories"}
-                  </span>
-                </Button>
-              ))}
+      <Controller
+        name="tags"
+        control={control}
+        render={({ field }) => (
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-muted-foreground">
+              Tags
+            </label>
+            <div className="relative">
+              <Input
+                ref={tagInputRef}
+                type="text"
+                value={tagInput}
+                onChange={(e) => {
+                  setTagInput(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onKeyDown={(e) => handleAddTag(e, field.onChange)}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => {
+                  setTimeout(() => setShowSuggestions(false), 200);
+                }}
+                placeholder="Type a tag and press Enter"
+                disabled={isSubmitting}
+                className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
+              />
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+                  {filteredSuggestions.map((item) => (
+                    <Button
+                      key={item.tag}
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => selectSuggestion(item.tag, field.onChange)}
+                      className="w-full h-auto px-4 py-2 text-left flex items-center justify-between hover:bg-accent transition-colors"
+                    >
+                      <span className="text-sm text-foreground">
+                        {item.tag}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {item.count} {item.count === 1 ? "memory" : "memories"}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        {tags.length > 0 && (
-          <div className="flex gap-2 flex-wrap mt-4">
-            {tags.map((tag) => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="bg-muted border border-border text-foreground gap-1"
-              >
-                {tag}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => removeTag(tag)}
-                  className="ml-1 h-auto w-auto p-0 text-muted-foreground hover:text-foreground"
-                >
-                  <IconX className="w-3 h-3" />
-                </Button>
-              </Badge>
-            ))}
+            {field.value.length > 0 && (
+              <div className="flex gap-2 flex-wrap mt-4">
+                {field.value.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="bg-muted border border-border text-foreground gap-1"
+                  >
+                    {tag}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => removeTag(tag, field.onChange)}
+                      className="ml-1 h-auto w-auto p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      <IconX className="w-3 h-3" />
+                    </Button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         )}
-      </div>
+      />
 
       <div className="flex justify-center pt-6">
         <Button
