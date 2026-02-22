@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Switch, Separator, Button, Skeleton } from "@vmem/ui";
+import { Separator, Button, Skeleton } from "@vmem/ui";
 import { useThemeContext } from "./contexts/ThemeContext";
-import { useUser, useClerk } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { useNotifications } from "./contexts/NotificationContext";
 import {
   IconMessageCircle,
@@ -20,7 +20,6 @@ import {
   IconPlugConnected,
   IconMoon,
   IconSun,
-  IconLogout,
   IconChevronLeft,
   IconChevronRight,
 } from "@tabler/icons-react";
@@ -61,20 +60,11 @@ export default function Sidebar({
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme, mounted } = useThemeContext();
-  const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
+  const { isLoaded } = useUser();
   const isAuthLoading = !isLoaded;
   const { unreadCount } = useNotifications();
 
   const isDark = theme === "dark";
-
-  const getUserInitials = (name: string) => {
-    const parts = name.trim().split(" ");
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
 
   return (
     <>
@@ -133,7 +123,7 @@ export default function Sidebar({
       <aside
         className={`
           fixed top-[4.5rem] md:top-0 left-2 md:left-0 right-2 md:right-auto h-[calc(100vh-5rem)] md:h-screen bg-sidebar/95 backdrop-blur-sm border border-border/60 md:border-r-0 md:border-t-0 md:border-b-0 md:border-l-0 rounded-2xl md:rounded-none shadow-xl md:shadow-none z-40
-          w-[min(86vw,320px)] md:w-auto ${isCollapsed ? "md:w-[92px] md:max-w-[92px]" : "md:w-[clamp(260px,18vw,360px)] md:max-w-none"}
+          w-[min(86vw,320px)] md:w-auto ${isCollapsed ? "md:w-[92px] md:max-w-[92px]" : "md:w-[280px] md:max-w-[280px]"}
           transform transition-transform duration-300 ease-out
           ${
             mobileMenuOpen
@@ -267,85 +257,78 @@ export default function Sidebar({
               </div>
             ))}
           </nav>
+
+          {mounted && (
+            <div className="px-2 pt-3 pb-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={toggleTheme}
+                title={
+                  isCollapsed
+                    ? isDark
+                      ? "Switch to light theme"
+                      : "Switch to dark theme"
+                    : undefined
+                }
+                aria-label={
+                  isDark ? "Switch to light theme" : "Switch to dark theme"
+                }
+                className={`w-full rounded-xl border border-border/60 bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-accent/70 ${
+                  isCollapsed
+                    ? "h-9 justify-center px-0"
+                    : "h-10 justify-start gap-2 px-3"
+                }`}
+              >
+                {isDark ? (
+                  <IconMoon className="w-4 h-4" />
+                ) : (
+                  <IconSun className="w-4 h-4" />
+                )}
+                {!isCollapsed && (
+                  <span className="text-sm font-medium">
+                    {isDark ? "Dark mode" : "Light mode"}
+                  </span>
+                )}
+              </Button>
+            </div>
+          )}
+
           <Separator className="bg-border/70" />
 
           <div className="pt-4 space-y-4">
             {isAuthLoading ? (
-              <div className={`${isCollapsed ? "px-2 py-3" : "px-4 py-3"}`}>
-                <div className="flex items-center gap-3">
-                  <Skeleton className="w-10 h-10 rounded-full" />
-                  {!isCollapsed && (
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-3 w-24 rounded" />
-                      <Skeleton className="h-2 w-32 rounded" />
-                    </div>
-                  )}
-                </div>
+              <div
+                className={`${isCollapsed ? "px-2 py-3 flex justify-center" : "px-4 py-3"}`}
+              >
+                <Skeleton className="h-9 w-9 rounded-full" />
               </div>
-            ) : user ? (
+            ) : (
               <div className="px-2">
-                <div
-                  className={`flex items-center p-2 rounded-2xl bg-muted/70 border border-border/60 shadow-sm ${
-                    isCollapsed ? "justify-center" : "gap-3"
-                  }`}
-                >
-                  <div className="w-10 h-10 rounded-full bg-primary ring-1 ring-primary/20 flex items-center justify-center text-primary-foreground font-medium text-sm">
-                    {getUserInitials(user.fullName || user.firstName || "U")}
-                  </div>
-                  {!isCollapsed && (
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {user.fullName || user.firstName}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {user.primaryEmailAddress?.emailAddress}
-                      </p>
-                    </div>
-                  )}
-                  {mounted && !isCollapsed && (
-                    <div className="flex items-center gap-1 rounded-lg border border-border/60 bg-background/60 px-1.5 py-1">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {isDark ? (
-                          <IconMoon className="w-4 h-4" />
-                        ) : (
-                          <IconSun className="w-4 h-4" />
-                        )}
-                      </span>
-                      <Switch
-                        checked={isDark}
-                        onCheckedChange={toggleTheme}
-                        className="scale-75"
-                      />
-                    </div>
-                  )}
-                  {mounted && isCollapsed && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={toggleTheme}
-                      aria-label="Toggle theme"
-                      className="text-muted-foreground hover:text-foreground hover:bg-accent/70 rounded-lg"
-                    >
-                      {isDark ? (
-                        <IconMoon className="w-4 h-4" />
-                      ) : (
-                        <IconSun className="w-4 h-4" />
-                      )}
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => signOut()}
-                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                    aria-label="Logout"
-                  >
-                    <IconLogout size={18} />
-                  </Button>
-                </div>
+                <UserButton
+                  showName={!isCollapsed}
+                  appearance={{
+                    elements: {
+                      userButtonBox: isCollapsed
+                        ? "flex justify-center"
+                        : "flex w-full",
+                      userButtonTrigger: `rounded-xl border border-border/60 bg-muted/70 shadow-sm transition-colors hover:bg-accent/70 focus:shadow-none ${
+                        isCollapsed
+                          ? "h-10 w-10 p-0"
+                          : "h-10 w-full justify-start gap-2 px-2"
+                      }`,
+                      userButtonAvatarBox: "h-8 w-8",
+                      userButtonOuterIdentifier:
+                        "text-sm font-medium text-foreground truncate",
+                      userButtonPopoverCard:
+                        "border border-border/70 bg-popover text-popover-foreground shadow-xl",
+                      userButtonPopoverActionButton:
+                        "rounded-lg hover:bg-accent hover:text-accent-foreground",
+                    },
+                  }}
+                />
               </div>
-            ) : null}
+            )}
 
             {/* <p className="text-xs text-muted-foreground px-4">
               &copy; 2025 vmem
