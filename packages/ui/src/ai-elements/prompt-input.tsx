@@ -134,7 +134,7 @@ function PromptInputTextarea({
       onKeyDown={handleKeyDown}
       disabled={status === "streaming" || status === "submitted"}
       rows={1}
-      className={cn("min-h-[44px] py-3 px-3", className)}
+      className={cn("min-h-11 px-3 py-3", className)}
       {...props}
     />
   );

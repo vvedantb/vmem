@@ -130,7 +130,7 @@ export default function OAuthModal({
               </p>
             </div>
             <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full w-1/3 rounded-full bg-primary animate-[indeterminate_1.5s_ease-in-out_infinite]" />
+              <div className="h-full w-1/3 rounded-full bg-primary animate-indeterminate" />
             </div>
           </div>
         )}

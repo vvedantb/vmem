@@ -341,7 +341,7 @@ export default function AddMemoryForm() {
                   </span>
                 </div>
                 <div className="relative h-2 w-24 overflow-hidden rounded-full bg-destructive/20">
-                  <div className="absolute h-full w-1/3 rounded-full bg-destructive animate-[indeterminate_1.5s_ease-in-out_infinite]" />
+                  <div className="absolute h-full w-1/3 rounded-full bg-destructive animate-indeterminate" />
                 </div>
               </div>
             </div>

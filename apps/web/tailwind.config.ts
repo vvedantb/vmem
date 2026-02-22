@@ -60,6 +60,7 @@ const config: Config = {
       animation: {
         aurora: "aurora 8s ease-in-out infinite alternate",
         "fade-in-up": "fade-in-up 0.4s ease-out forwards",
+        indeterminate: "indeterminate 1.5s ease-in-out infinite",
       },
     },
   },

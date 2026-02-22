@@ -239,7 +239,7 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground">
                     {stat.label}
                   </p>
                   <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
@@ -296,12 +296,12 @@ export default function Dashboard() {
                         </div>
 
                         <div
-                          className="absolute bottom-0 w-full rounded-t-[12px] bg-secondary transition-all"
+                          className="absolute bottom-0 w-full rounded-t-xl bg-secondary transition-all"
                           style={{ height: barHeight }}
                         />
 
                         <div
-                          className="absolute bottom-0 w-full rounded-t-[12px] bg-primary transition-all"
+                          className="absolute bottom-0 w-full rounded-t-xl bg-primary transition-all"
                           style={{
                             height: newHeight,
                             opacity: day.new > 0 ? 1 : 0,

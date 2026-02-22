@@ -286,7 +286,7 @@ export default function Chat() {
           {messages.map((message) => (
             <Message key={message.id} from={message.role}>
               {message.role === "assistant" && (
-                <div className="relative flex size-8 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black shrink-0 animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_10px_rgba(0,0,0,0.2)] dark:shadow-[0_0_14px_rgba(255,255,255,0.1)]">
+                <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-soft animate-pulse-slow dark:bg-black dark:shadow-soft">
                   <Image
                     unoptimized
                     width={18}
@@ -308,7 +308,7 @@ export default function Chat() {
               )}
 
               <div
-                className={`flex flex-col max-w-[80%] ${message.role === "user" ? "items-end" : "items-start"}`}
+                className={`flex w-fit max-w-4xl flex-col ${message.role === "user" ? "items-end" : "items-start"}`}
               >
                 {message.role === "assistant" && message.reasoning && (
                   <div className="mb-2 w-full">
@@ -410,7 +410,7 @@ export default function Chat() {
                                   <Badge
                                     key={tag}
                                     variant="outline"
-                                    className="bg-muted/50 text-muted-foreground text-[10px] px-1 h-5"
+                                    className="h-5 bg-muted/50 px-1 text-xs text-muted-foreground"
                                   >
                                     {tag}
                                   </Badge>
@@ -427,8 +427,8 @@ export default function Chat() {
                   {message.isStreaming && !message.content ? (
                     <div className="flex gap-1.5 py-1">
                       <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse" />
-                      <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:150ms]" />
-                      <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:300ms]" />
+                      <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse" />
+                      <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse" />
                     </div>
                   ) : message.role === "assistant" ? (
                     <MessageResponse>{message.content}</MessageResponse>
