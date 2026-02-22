@@ -30,7 +30,6 @@ import {
   IconBrain,
   IconKey,
   IconBell,
-  IconUser,
   IconSettings,
   IconMenu2,
   IconX,
@@ -62,7 +61,6 @@ const navGroups = [
     title: "Account",
     items: [
       { href: "/notifications", label: "Notifications", icon: IconBell },
-      { href: "/profile", label: "Profile", icon: IconUser },
       { href: "/settings", label: "Settings", icon: IconSettings },
     ],
   },
