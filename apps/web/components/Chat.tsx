@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, type FormEvent } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Badge } from "@vmem/ui";
 import {
   Action,
@@ -110,7 +110,7 @@ export default function Chat() {
   }, []);
 
   const handleSubmit = useCallback(
-    async ({ text }: PromptInputMessage, _e: FormEvent) => {
+    async ({ text }: PromptInputMessage) => {
       if (!text || status !== "ready") return;
 
       const userMessage: ChatMessage = {

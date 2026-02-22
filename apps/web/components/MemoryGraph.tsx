@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@vmem/backend";
 import {
   Skeleton,
   Button,
@@ -20,6 +18,7 @@ import {
 } from "@tabler/icons-react";
 import { useThemeContext } from "./contexts/ThemeContext";
 import { type Memory } from "@/lib/memories";
+import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
 interface GraphNode {
   id: string;
@@ -47,7 +46,7 @@ interface GraphData {
 export default function MemoryGraph() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const memories = useQuery(api.memories.listMy, {});
+  const { memories, isLoading } = useMemoryContext();
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
@@ -61,13 +60,13 @@ export default function MemoryGraph() {
   const edgesRef = useRef<GraphEdge[]>([]);
 
   useEffect(() => {
-    if (memories === undefined) return;
+    if (isLoading) return;
 
     const graph = buildGraphData(memories, dimensions.width, dimensions.height);
     setGraphData(graph);
     nodesRef.current = graph.nodes;
     edgesRef.current = graph.edges;
-  }, [memories, dimensions.width, dimensions.height]);
+  }, [memories, isLoading, dimensions.width, dimensions.height]);
 
   const buildGraphData = (
     memories: Memory[],
@@ -390,7 +389,7 @@ export default function MemoryGraph() {
     });
   };
 
-  if (memories === undefined) {
+  if (isLoading) {
     return (
       <div className="flex flex-col gap-4">
         <div className="flex justify-between items-center">

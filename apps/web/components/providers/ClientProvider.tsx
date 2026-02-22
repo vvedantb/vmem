@@ -7,6 +7,7 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { NotificationProvider } from "../contexts/NotificationContext";
+import { MemoryProvider } from "../contexts/MemoryContext";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -25,7 +26,9 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         <ThemeProvider>
-          <NotificationProvider>{children}</NotificationProvider>
+          <NotificationProvider>
+            <MemoryProvider>{children}</MemoryProvider>
+          </NotificationProvider>
           <Toaster position="top-center" />
         </ThemeProvider>
       </NextThemesProvider>
