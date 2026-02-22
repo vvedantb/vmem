@@ -279,31 +279,28 @@ export default function Sidebar({
   return (
     <>
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b border-border/70 bg-sidebar px-4 shadow-sm md:hidden">
+        <header className="fixed inset-x-0 top-0 z-40 flex h-12 items-center justify-between border-b border-border/70 bg-sidebar px-4 shadow-sm md:hidden">
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex flex-row items-center gap-1.5"
+            className="flex flex-row items-center gap-2"
           >
-            <div className="relative mt-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
-              <Image
-                unoptimized
-                width={22}
-                height={22}
-                alt="vmem icon"
-                src="/icon-dark.svg"
-                className="block dark:hidden"
-              />
-              <Image
-                unoptimized
-                width={22}
-                height={22}
-                src="/icon-light.svg"
-                alt="vmem icon"
-                className="hidden dark:block"
-              />
-              <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/10 ring-inset dark:ring-white/15" />
-            </div>
+            <Image
+              unoptimized
+              width={22}
+              height={22}
+              alt="vmem icon"
+              src="/icon-dark.svg"
+              className="block dark:hidden"
+            />
+            <Image
+              unoptimized
+              width={22}
+              height={22}
+              src="/icon-light.svg"
+              alt="vmem icon"
+              className="hidden dark:block"
+            />
             <h1 className="text-xl leading-none font-instrumentSerif text-foreground">
               v<span className="italic">mem</span>
             </h1>
@@ -336,27 +333,24 @@ export default function Sidebar({
                 <Link
                   href="/"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex flex-row items-center gap-1.5"
+                  className="flex flex-row items-center gap-2"
                 >
-                  <div className="relative mt-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
-                    <Image
-                      unoptimized
-                      width={22}
-                      height={22}
-                      alt="vmem icon"
-                      src="/icon-dark.svg"
-                      className="block dark:hidden"
-                    />
-                    <Image
-                      unoptimized
-                      width={22}
-                      height={22}
-                      src="/icon-light.svg"
-                      alt="vmem icon"
-                      className="hidden dark:block"
-                    />
-                    <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/10 ring-inset dark:ring-white/15" />
-                  </div>
+                  <Image
+                    unoptimized
+                    width={22}
+                    height={22}
+                    alt="vmem icon"
+                    src="/icon-dark.svg"
+                    className="block dark:hidden"
+                  />
+                  <Image
+                    unoptimized
+                    width={22}
+                    height={22}
+                    src="/icon-light.svg"
+                    alt="vmem icon"
+                    className="hidden dark:block"
+                  />
                   <h1 className="text-xl leading-none font-instrumentSerif text-foreground">
                     v<span className="italic">mem</span>
                   </h1>
@@ -399,41 +393,38 @@ export default function Sidebar({
           isCollapsed ? "w-24" : "w-80",
         )}
       >
-        <div className="flex h-full flex-col p-4 pt-6">
+        <div className="flex h-full flex-col p-4 pt-7">
           <div
             className={cn(
               "mb-6 flex",
               isCollapsed
                 ? "flex-col items-center gap-3"
-                : "flex-row items-center justify-between px-2",
+                : "flex-row items-center justify-between px-2 pl-4",
             )}
           >
             <Link
               href="/"
               className={cn(
                 "flex flex-row items-center",
-                !isCollapsed && "gap-1.5",
+                !isCollapsed && "gap-2",
               )}
             >
-              <div className="relative mt-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
-                <Image
-                  unoptimized
-                  width={22}
-                  height={22}
-                  alt="vmem icon"
-                  src="/icon-dark.svg"
-                  className="block dark:hidden"
-                />
-                <Image
-                  unoptimized
-                  width={22}
-                  height={22}
-                  src="/icon-light.svg"
-                  alt="vmem icon"
-                  className="hidden dark:block"
-                />
-                <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/10 ring-inset dark:ring-white/15" />
-              </div>
+              <Image
+                unoptimized
+                width={22}
+                height={22}
+                alt="vmem icon"
+                src="/icon-dark.svg"
+                className="mt-1 block dark:hidden"
+              />
+              <Image
+                unoptimized
+                width={22}
+                height={22}
+                src="/icon-light.svg"
+                alt="vmem icon"
+                className="mt-1 hidden dark:block"
+              />
               {!isCollapsed && (
                 <h1 className="text-xl font-instrumentSerif text-foreground">
                   v<span className="italic">mem</span>
