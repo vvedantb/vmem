@@ -183,16 +183,16 @@ export default function FilePreviewModal({
           <div className="space-y-6 py-2">
             <div className="rounded-lg bg-muted/50 border border-border overflow-hidden">
               {file.type === "image" && file.thumbnailUrl ? (
-                <div className="flex items-center justify-center min-h-[300px] p-4">
+                <div className="flex min-h-72 items-center justify-center p-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={file.thumbnailUrl}
                     alt={file.name}
-                    className="max-w-full max-h-[400px] object-contain rounded"
+                    className="max-h-96 max-w-full rounded object-contain"
                   />
                 </div>
               ) : file.type === "pdf" ? (
-                <div className="flex flex-col items-center justify-center min-h-[300px] p-8 gap-4">
+                <div className="flex min-h-72 flex-col items-center justify-center gap-4 p-8">
                   <IconFileTypePdf size={64} className="text-destructive" />
                   <div className="text-center">
                     <p className="text-foreground font-medium">PDF Document</p>

@@ -317,7 +317,7 @@ export default function FilesPage() {
                   <TableHead className="hidden md:table-cell text-muted-foreground font-medium">
                     UPLOADED
                   </TableHead>
-                  <TableHead className="w-[60px]">
+                  <TableHead className="w-16">
                     <span className="sr-only">Actions</span>
                   </TableHead>
                 </TableRow>
