@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Table,
   TableHeader,
@@ -20,7 +20,6 @@ import {
 } from "@vmem/ui";
 import { toast } from "sonner";
 import {
-  IconAlertCircle,
   IconEdit,
   IconTrash,
   IconLoader2,
@@ -29,17 +28,16 @@ import {
 } from "@tabler/icons-react";
 import TagCloud from "@/components/TagCloud";
 import { useRouter } from "next/navigation";
-
-interface TagStats {
-  tag: string;
-  count: number;
-}
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@vmem/backend";
+import { buildTagStats } from "@/lib/memories";
 
 export default function TagsPage() {
   const router = useRouter();
-  const [tags, setTags] = useState<TagStats[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const memories = useQuery(api.memories.listMy, {});
+  const updateMemory = useMutation(api.memories.updateMy);
+  const tags = useMemo(() => buildTagStats(memories ?? []), [memories]);
+  const isLoading = memories === undefined;
 
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
@@ -47,28 +45,6 @@ export default function TagsPage() {
 
   const [deleteTag, setDeleteTag] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const fetchTags = useCallback(async () => {
-    try {
-      setError(null);
-      const response = await fetch("/api/memories/tags");
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch tags");
-      }
-
-      setTags(data.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch tags");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchTags();
-  }, [fetchTags]);
 
   const handleTagClick = useCallback(
     (tag: string) => {
@@ -88,7 +64,7 @@ export default function TagsPage() {
   }, []);
 
   const handleSaveTag = useCallback(async () => {
-    if (!editingTag || !newTagName.trim()) return;
+    if (!editingTag || !newTagName.trim() || !memories) return;
 
     const normalizedNew = newTagName.trim().toLowerCase();
     if (normalizedNew === editingTag) {
@@ -96,61 +72,72 @@ export default function TagsPage() {
       return;
     }
 
-    if (tags.some((t) => t.tag === normalizedNew)) {
+    if (tags.some((tag) => tag.tag === normalizedNew)) {
       toast.error(`Tag "${normalizedNew}" already exists`);
+      return;
+    }
+
+    const affectedMemories = memories.filter((memory) =>
+      memory.tags.includes(editingTag),
+    );
+    if (affectedMemories.length === 0) {
+      cancelEditing();
       return;
     }
 
     setIsSaving(true);
     try {
-      const response = await fetch("/api/memories/tags", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ oldTag: editingTag, newTag: normalizedNew }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to rename tag");
-      }
+      await Promise.all(
+        affectedMemories.map((memory) => {
+          const renamed = memory.tags.map((tag) =>
+            tag === editingTag ? normalizedNew : tag,
+          );
+          return updateMemory({
+            id: memory.id,
+            tags: Array.from(new Set(renamed)),
+          });
+        }),
+      );
 
       toast.success(`Tag renamed to "${normalizedNew}"`);
-      await fetchTags();
       cancelEditing();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to rename tag");
     } finally {
       setIsSaving(false);
     }
-  }, [editingTag, newTagName, tags, fetchTags, cancelEditing]);
+  }, [editingTag, newTagName, memories, tags, updateMemory, cancelEditing]);
 
   const handleDeleteTag = useCallback(async () => {
-    if (!deleteTag) return;
+    if (!deleteTag || !memories) return;
+
+    const affectedMemories = memories.filter((memory) =>
+      memory.tags.includes(deleteTag),
+    );
+    if (affectedMemories.length === 0) {
+      setDeleteTag(null);
+      return;
+    }
 
     setIsDeleting(true);
     try {
-      const response = await fetch("/api/memories/tags", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag: deleteTag }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to delete tag");
-      }
+      await Promise.all(
+        affectedMemories.map((memory) =>
+          updateMemory({
+            id: memory.id,
+            tags: memory.tags.filter((tag) => tag !== deleteTag),
+          }),
+        ),
+      );
 
       toast.success(`Tag "${deleteTag}" deleted from all memories`);
-      await fetchTags();
       setDeleteTag(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete tag");
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteTag, fetchTags]);
+  }, [deleteTag, memories, updateMemory]);
 
   if (isLoading) {
     return (
@@ -165,30 +152,7 @@ export default function TagsPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
-          <IconAlertCircle className="w-6 h-6 text-destructive" />
-        </div>
-        <h3 className="text-lg font-medium text-foreground mb-2">
-          Failed to load tags
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">{error}</p>
-        <Button
-          onClick={() => {
-            setIsLoading(true);
-            fetchTags();
-          }}
-          className="px-4 py-2 h-auto text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-        >
-          Try again
-        </Button>
-      </div>
-    );
-  }
-
-  const totalMemoriesWithTags = tags.reduce((sum, t) => sum + t.count, 0);
+  const totalMemoriesWithTags = tags.reduce((sum, tag) => sum + tag.count, 0);
 
   return (
     <div className="space-y-8">

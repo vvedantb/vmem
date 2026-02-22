@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Button,
   Input,
@@ -12,158 +12,84 @@ import {
   TableCell,
   Badge,
   Skeleton,
-  Spinner,
 } from "@vmem/ui";
-import {
-  IconSearch,
-  IconAlertCircle,
-  IconMoodEmpty,
-  IconX,
-} from "@tabler/icons-react";
+import { IconSearch, IconMoodEmpty, IconX } from "@tabler/icons-react";
+import { useQuery } from "convex/react";
+import { api } from "@vmem/backend";
+import { useSearchParams } from "next/navigation";
 import MemoryDetailModal from "./MemoryDetailModal";
-
-interface TagStats {
-  tag: string;
-  count: number;
-}
-
-interface Memory {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: string;
-}
-
-interface SearchResult extends Memory {
-  relevanceScore: number;
-}
-
-interface ApiResponse {
-  success: boolean;
-  data: Memory[];
-  count: number;
-  error?: string;
-}
-
-interface SearchResponse {
-  success: boolean;
-  data: SearchResult[];
-  count: number;
-  query: string;
-  error?: string;
-}
+import {
+  buildTagStats,
+  searchMemories,
+  type Memory,
+  type SearchResult,
+} from "@/lib/memories";
 
 export default function MemorySearch() {
+  const searchParams = useSearchParams();
+  const memories = useQuery(api.memories.listMy, {});
   const [searchQuery, setSearchQuery] = useState("");
-  const [memories, setMemories] = useState<Memory[]>([]);
-  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(
-    null,
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
-
-  const [allTags, setAllTags] = useState<TagStats[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    const initialTags = searchParams
+      .getAll("tag")
+      .map((tag) => tag.trim().toLowerCase())
+      .filter((tag) => tag.length > 0);
 
-        const [memoriesRes, tagsRes] = await Promise.all([
-          fetch("/api/memories"),
-          fetch("/api/memories/tags"),
-        ]);
-
-        const memoriesData: ApiResponse = await memoriesRes.json();
-        const tagsData = await tagsRes.json();
-
-        if (!memoriesRes.ok) {
-          throw new Error(memoriesData.error || "Failed to fetch memories");
-        }
-
-        setMemories(memoriesData.data);
-        if (tagsData.success) {
-          setAllTags(tagsData.data);
-        }
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch memories",
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const performSearch = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults(null);
-      setIsSearching(false);
+    if (initialTags.length === 0) {
       return;
     }
 
-    try {
-      setIsSearching(true);
-      setError(null);
+    setSelectedTags((current) =>
+      current.length > 0 ? current : Array.from(new Set(initialTags)),
+    );
+  }, [searchParams]);
 
-      const response = await fetch("/api/memories/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query.trim() }),
-      });
+  const allMemories = memories ?? [];
+  const allTags = useMemo(() => buildTagStats(allMemories), [allMemories]);
 
-      const data: SearchResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Search failed");
-      }
-
-      setSearchResults(data.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Search failed");
-    } finally {
-      setIsSearching(false);
+  const filteredMemories = useMemo(() => {
+    if (selectedTags.length === 0) {
+      return allMemories;
     }
-  }, []);
 
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setSearchQuery(value);
+    return allMemories.filter((memory) =>
+      selectedTags.every((tag) => memory.tags.includes(tag)),
+    );
+  }, [allMemories, selectedTags]);
 
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
+  const normalizedQuery = searchQuery.trim();
+  const searchResults = useMemo(() => {
+    if (!normalizedQuery) {
+      return null;
+    }
 
-      if (!value.trim()) {
-        setSearchResults(null);
-        setIsSearching(false);
-        return;
-      }
+    return searchMemories(filteredMemories, normalizedQuery);
+  }, [filteredMemories, normalizedQuery]);
 
-      setIsSearching(true);
+  const displayData: (Memory | SearchResult)[] =
+    searchResults ?? filteredMemories;
+  const isShowingSearchResults = searchResults !== null;
 
-      debounceTimeoutRef.current = setTimeout(() => {
-        performSearch(value);
-      }, 300);
-    },
-    [performSearch],
-  );
+  const selectedMemory = useMemo(() => {
+    if (!selectedMemoryId) {
+      return null;
+    }
+
+    return allMemories.find((memory) => memory.id === selectedMemoryId) ?? null;
+  }, [allMemories, selectedMemoryId]);
 
   useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
-  }, []);
+    if (!selectedMemoryId) {
+      return;
+    }
+
+    if (!allMemories.some((memory) => memory.id === selectedMemoryId)) {
+      setSelectedMemoryId(null);
+    }
+  }, [allMemories, selectedMemoryId]);
 
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags((prev) =>
@@ -175,56 +101,30 @@ export default function MemorySearch() {
     setSelectedTags([]);
   }, []);
 
-  const filteredMemories = useMemo(() => {
-    if (selectedTags.length === 0) return memories;
-    return memories.filter((m) =>
-      selectedTags.every((tag) => m.tags.includes(tag)),
-    );
-  }, [memories, selectedTags]);
-
-  const displayData: (Memory | SearchResult)[] = searchResults
-    ? searchResults.filter(
-        (m) =>
-          selectedTags.length === 0 ||
-          selectedTags.every((tag) => m.tags.includes(tag)),
-      )
-    : filteredMemories;
-  const isShowingSearchResults = searchResults !== null;
-
   const relatedMemories = useMemo(() => {
     if (!selectedMemory) return [];
-    return memories.filter(
-      (m) =>
-        m.id !== selectedMemory.id &&
-        m.tags.some((tag) => selectedMemory.tags.includes(tag)),
+    return allMemories.filter(
+      (memory) =>
+        memory.id !== selectedMemory.id &&
+        memory.tags.some((tag) => selectedMemory.tags.includes(tag)),
     );
-  }, [selectedMemory, memories]);
+  }, [selectedMemory, allMemories]);
 
   const handleMemoryUpdate = useCallback((updatedMemory: Memory) => {
-    setMemories((prev) =>
-      prev.map((m) => (m.id === updatedMemory.id ? updatedMemory : m)),
-    );
-    setSelectedMemory(updatedMemory);
-    setSearchResults((prev) =>
-      prev
-        ? prev.map((m) =>
-            m.id === updatedMemory.id
-              ? { ...updatedMemory, relevanceScore: m.relevanceScore }
-              : m,
-          )
-        : null,
-    );
+    setSelectedMemoryId(updatedMemory.id);
   }, []);
 
-  const handleMemoryDelete = useCallback((deletedId: string) => {
-    setMemories((prev) => prev.filter((m) => m.id !== deletedId));
-    setSearchResults((prev) =>
-      prev ? prev.filter((m) => m.id !== deletedId) : null,
-    );
-  }, []);
+  const handleMemoryDelete = useCallback(
+    (deletedId: string) => {
+      if (selectedMemoryId === deletedId) {
+        setSelectedMemoryId(null);
+      }
+    },
+    [selectedMemoryId],
+  );
 
   const handleRowClick = useCallback((memory: Memory) => {
-    setSelectedMemory(memory);
+    setSelectedMemoryId(memory.id);
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -236,7 +136,7 @@ export default function MemorySearch() {
     });
   };
 
-  if (isLoading) {
+  if (memories === undefined) {
     return (
       <>
         <Skeleton className="h-12 w-full rounded-xl" />
@@ -265,28 +165,7 @@ export default function MemorySearch() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
-          <IconAlertCircle className="w-6 h-6 text-destructive" />
-        </div>
-        <h3 className="text-lg font-medium text-foreground mb-2">
-          Failed to load memories
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">{error}</p>
-        <Button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 h-auto text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-        >
-          Try again
-        </Button>
-      </div>
-    );
-  }
-
-  if (memories.length === 0) {
+  if (allMemories.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -308,20 +187,16 @@ export default function MemorySearch() {
         <Input
           type="text"
           value={searchQuery}
-          onChange={(e) => handleSearchChange(e.target.value)}
+          onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search memories semantically..."
           className="h-12 bg-muted/50 border-border pr-10 text-foreground hover:bg-accent focus-visible:border-ring"
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          {isSearching ? (
-            <Spinner size="sm" className="text-muted-foreground" />
-          ) : (
-            <IconSearch
-              className="text-muted-foreground"
-              size={20}
-              stroke={1.5}
-            />
-          )}
+          <IconSearch
+            className="text-muted-foreground"
+            size={20}
+            stroke={1.5}
+          />
         </div>
       </div>
 
@@ -365,7 +240,7 @@ export default function MemorySearch() {
         </div>
       )}
 
-      {isShowingSearchResults && displayData.length === 0 && !isSearching && (
+      {isShowingSearchResults && displayData.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-xl">
           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
             <IconSearch className="w-5 h-5 text-muted-foreground" />
@@ -458,11 +333,11 @@ export default function MemorySearch() {
       <MemoryDetailModal
         isOpen={!!selectedMemory}
         memory={selectedMemory}
-        onClose={() => setSelectedMemory(null)}
+        onClose={() => setSelectedMemoryId(null)}
         onMemoryUpdate={handleMemoryUpdate}
         onMemoryDelete={handleMemoryDelete}
         relatedMemories={relatedMemories}
-        onSelectRelated={setSelectedMemory}
+        onSelectRelated={(memory) => setSelectedMemoryId(memory.id)}
       />
     </>
   );
