@@ -477,7 +477,7 @@ export default function MemoryGraph() {
           />
 
           {hoveredNode && !selectedNode && (
-            <div className="absolute top-4 left-4 bg-card border border-border rounded-lg p-3 shadow-lg max-w-xs">
+            <div className="absolute top-4 left-4 glass-panel rounded-lg p-3 max-w-xs">
               <p className="font-medium text-foreground mb-1">
                 {hoveredNode.title}
               </p>
@@ -499,7 +499,7 @@ export default function MemoryGraph() {
           if (!open) setSelectedNode(null);
         }}
       >
-        <DialogContent className="bg-card border border-border">
+        <DialogContent>
           {selectedNode && (
             <>
               <DialogHeader className="border-b border-border pb-4">
