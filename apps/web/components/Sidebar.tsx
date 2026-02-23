@@ -294,7 +294,7 @@ function SidebarFooter({
                 aria-label={
                   isDark ? "Switch to light theme" : "Switch to dark theme"
                 }
-                className="shrink-0 rounded-lg text-muted-foreground hover:bg-card/60 hover:text-foreground"
+                className="glass-interactive shrink-0 rounded-lg text-muted-foreground hover:text-foreground"
               >
                 {isDark ? (
                   <IconMoon className="h-4 w-4" />
@@ -377,7 +377,7 @@ export default function Sidebar({
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls={mobileMenuId}
-            className="rounded-full text-foreground hover:bg-card/70"
+            className="glass-interactive rounded-full text-foreground"
           >
             <IconMenu2 className="h-6 w-6" />
           </Button>
@@ -430,7 +430,7 @@ export default function Sidebar({
                     variant="ghost"
                     size="icon-sm"
                     aria-label="Close navigation menu"
-                    className="rounded-full text-muted-foreground hover:bg-card/70 hover:text-foreground"
+                    className="glass-interactive rounded-full text-muted-foreground hover:text-foreground"
                   >
                     <IconX className="h-5 w-5" />
                   </Button>
@@ -523,7 +523,7 @@ export default function Sidebar({
                 size="icon-sm"
                 onClick={onToggleCollapse}
                 aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                className="rounded-lg text-muted-foreground hover:bg-accent/70 hover:text-foreground"
+                className="glass-interactive rounded-lg text-muted-foreground hover:text-foreground"
               >
                 {isCollapsed ? (
                   <IconLayoutSidebarLeftExpandFilled className="h-4 w-4" />
