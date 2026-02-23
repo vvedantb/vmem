@@ -9,7 +9,7 @@ function SonnerToaster(props: React.ComponentProps<typeof Toaster>) {
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:rounded-xl group-[.toaster]:border-border/70 group-[.toaster]:bg-card group-[.toaster]:text-foreground group-[.toaster]:shadow-panel",
+            "group toast glass-panel-strong group-[.toaster]:rounded-xl group-[.toaster]:text-foreground",
           description: "group-[.toast]:text-muted-foreground/95",
           actionButton:
             "group-[.toast]:rounded-lg group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",

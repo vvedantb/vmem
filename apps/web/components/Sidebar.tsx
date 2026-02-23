@@ -156,7 +156,7 @@ function SidebarNavigation({
                         : "gap-3 px-3.5",
                       isMobile ? "py-3.5" : "py-2.5",
                       isActive
-                        ? "bg-card/75 text-foreground shadow-insetSoft"
+                        ? "glass-interactive text-foreground"
                         : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
                     )}
                   >
