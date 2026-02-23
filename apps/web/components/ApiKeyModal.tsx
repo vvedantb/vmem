@@ -103,7 +103,7 @@ export default function ApiKeyModal({
       }}
     >
       <DialogContent
-        className="max-w-md bg-card border border-border"
+        className="max-w-md"
         hideCloseButton={isSubmitting}
         onInteractOutside={(e) => {
           if (isSubmitting) e.preventDefault();

@@ -234,7 +234,7 @@ export default function FileUploadModal({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-w-xl bg-card border border-border"
+        className="max-w-xl"
         hideCloseButton
         onInteractOutside={(e) => {
           if (isUploading) e.preventDefault();

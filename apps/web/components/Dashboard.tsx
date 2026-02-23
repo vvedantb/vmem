@@ -291,7 +291,7 @@ export default function Dashboard() {
                         className="group relative w-full max-w-12"
                         style={{ height: chartHeight - 30 }}
                       >
-                        <div className="pointer-events-none absolute -top-9 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-border/70 bg-card px-2 py-1 text-xs text-foreground opacity-0 shadow-soft transition-opacity group-hover:opacity-100">
+                        <div className="pointer-events-none absolute -top-9 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap glass-panel rounded-full px-2 py-1 text-xs text-foreground opacity-0 transition-opacity group-hover:opacity-100">
                           {day.total} total (+{day.new})
                         </div>
 

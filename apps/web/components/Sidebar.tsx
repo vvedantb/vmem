@@ -276,7 +276,7 @@ function SidebarFooter({
                   userButtonOuterIdentifier:
                     "truncate text-sm font-medium text-foreground",
                   userButtonPopoverCard:
-                    "border border-border/70 bg-popover text-popover-foreground shadow-panel",
+                    "glass-panel-strong text-popover-foreground",
                   userButtonPopoverActionButton:
                     "rounded-lg hover:bg-accent hover:text-accent-foreground",
                 },
@@ -388,7 +388,7 @@ export default function Sidebar({
           <DialogRawContent
             id={mobileMenuId}
             aria-label="Navigation menu"
-            className="fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden rounded-3xl border border-border/70 bg-sidebar text-foreground shadow-panel outline-none md:hidden"
+            className="glass-panel-strong fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden rounded-3xl text-foreground outline-none md:hidden"
           >
             <DialogTitle className="sr-only">Navigation menu</DialogTitle>
 

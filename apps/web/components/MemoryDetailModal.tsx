@@ -210,7 +210,7 @@ export default function MemoryDetailModal({
       >
         <DialogContent
           hideCloseButton
-          className="max-h-screen max-w-2xl overflow-y-auto border border-border bg-card"
+          className="max-h-screen max-w-2xl overflow-y-auto"
         >
           <DialogHeader className="flex flex-row items-center justify-between gap-4 border-b border-border pb-4">
             {isEditing ? (
@@ -462,7 +462,7 @@ export default function MemoryDetailModal({
           if (!value) setShowDeleteConfirm(false);
         }}
       >
-        <DialogContent className="max-w-sm bg-card border border-border">
+        <DialogContent className="max-w-sm">
           <DialogHeader className="border-b border-border pb-4">
             <DialogTitle className="text-foreground">Delete Memory</DialogTitle>
           </DialogHeader>
