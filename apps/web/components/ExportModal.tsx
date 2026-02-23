@@ -237,7 +237,6 @@ export default function ExportModal({ isOpen, onClose }: ExportModalProps) {
         onEscapeKeyDown={(e) => {
           if (isExporting) e.preventDefault();
         }}
-        className="bg-card border border-border"
       >
         <DialogHeader className="border-b border-border pb-4">
           <DialogTitle className="text-foreground">Export Memories</DialogTitle>

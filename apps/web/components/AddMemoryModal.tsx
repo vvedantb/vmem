@@ -95,7 +95,7 @@ export default function AddMemoryModal() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-2xl bg-card border border-border">
+      <DialogContent className="max-w-2xl">
         <DialogHeader className="border-b border-border pb-4">
           <DialogTitle className="text-xl font-semibold text-foreground">
             Add Memory

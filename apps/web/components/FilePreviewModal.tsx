@@ -155,10 +155,7 @@ export default function FilePreviewModal({
         open={isOpen && !showDeleteConfirm}
         onOpenChange={handleOpenChange}
       >
-        <DialogContent
-          className="max-w-2xl bg-card border border-border"
-          hideCloseButton
-        >
+        <DialogContent className="max-w-2xl" hideCloseButton>
           <DialogHeader className="border-b border-border pb-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
@@ -269,10 +266,7 @@ export default function FilePreviewModal({
         open={showDeleteConfirm}
         onOpenChange={handleDeleteConfirmOpenChange}
       >
-        <DialogContent
-          className="max-w-sm bg-card border border-border"
-          hideCloseButton
-        >
+        <DialogContent className="max-w-sm" hideCloseButton>
           <DialogHeader className="border-b border-border pb-4">
             <DialogTitle className="text-foreground">Delete File</DialogTitle>
           </DialogHeader>
