@@ -41,6 +41,7 @@ import {
   IconMenu2,
   IconX,
   IconFiles,
+  IconDatabase,
   IconPlugConnected,
   IconMoon,
   IconSun,
@@ -55,6 +56,7 @@ const navGroups = [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/memories/list", label: "Memories", icon: IconBrain },
       { href: "/files", label: "Files", icon: IconFiles },
+      { href: "/index", label: "Index", icon: IconDatabase },
     ],
   },
   {
