@@ -8,6 +8,7 @@ import { logger } from "hono/logger";
 import { memories } from "./routes/memories";
 import { proposedUpdates } from "./routes/proposed-updates";
 import { getDriver, closeDriver } from "./db/neo4j";
+import { setupDatabase } from "./db/setup";
 
 const app = new Hono().basePath("/v1");
 
@@ -36,6 +37,7 @@ const shutdown = async () => {
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
-serve({ fetch: app.fetch, port }, () => {
+serve({ fetch: app.fetch, port }, async () => {
   console.log(`vmem api running on http://localhost:${port}`);
+  await setupDatabase(getDriver());
 });
