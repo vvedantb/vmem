@@ -1,21 +1,45 @@
 import { Hono } from "hono";
+import { z } from "zod/v4";
+import { MemoryService } from "../db/memory-service";
+import { getDriver } from "../db/neo4j";
+
+const resolveSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+});
+
+function getService(): MemoryService {
+  return new MemoryService(getDriver());
+}
 
 const proposedUpdates = new Hono();
 
-proposedUpdates.get("/", (c) => {
-  return c.json({ message: "GET /proposed-updates" });
+proposedUpdates.get("/", async (c) => {
+  const userId = c.req.query("userId");
+  if (!userId) {
+    return c.json({ error: "userId query param required" }, 400);
+  }
+
+  const service = getService();
+  const proposals = await service.listProposedUpdates(userId);
+  return c.json({ proposals });
 });
 
-proposedUpdates.post("/:id/approve", (c) => {
-  return c.json({
-    message: `POST /proposed-updates/${c.req.param("id")}/approve`,
-  });
+proposedUpdates.post("/:id/approve", async (c) => {
+  const service = getService();
+  const result = await service.resolveProposal(c.req.param("id"), "approve");
+  if (!result) {
+    return c.json({ error: "Proposal not found" }, 404);
+  }
+  return c.json(result);
 });
 
-proposedUpdates.post("/:id/reject", (c) => {
-  return c.json({
-    message: `POST /proposed-updates/${c.req.param("id")}/reject`,
-  });
+proposedUpdates.post("/:id/reject", async (c) => {
+  const service = getService();
+  const result = await service.resolveProposal(c.req.param("id"), "reject");
+  if (!result) {
+    return c.json({ error: "Proposal not found" }, 404);
+  }
+  return c.json(result);
 });
 
 export { proposedUpdates };
