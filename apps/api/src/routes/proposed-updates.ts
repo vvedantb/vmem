@@ -19,27 +19,42 @@ proposedUpdates.get("/", async (c) => {
     return c.json({ error: "userId query param required" }, 400);
   }
 
-  const service = getService();
-  const proposals = await service.listProposedUpdates(userId);
-  return c.json({ proposals });
+  try {
+    const service = getService();
+    const proposals = await service.listProposedUpdates(userId);
+    return c.json({ proposals });
+  } catch (err) {
+    console.error("Failed to list proposed updates:", err);
+    return c.json({ error: "Failed to list proposed updates" }, 500);
+  }
 });
 
 proposedUpdates.post("/:id/approve", async (c) => {
-  const service = getService();
-  const result = await service.resolveProposal(c.req.param("id"), "approve");
-  if (!result) {
-    return c.json({ error: "Proposal not found" }, 404);
+  try {
+    const service = getService();
+    const result = await service.resolveProposal(c.req.param("id"), "approve");
+    if (!result) {
+      return c.json({ error: "Proposal not found" }, 404);
+    }
+    return c.json(result);
+  } catch (err) {
+    console.error("Failed to approve proposal:", err);
+    return c.json({ error: "Failed to approve proposal" }, 500);
   }
-  return c.json(result);
 });
 
 proposedUpdates.post("/:id/reject", async (c) => {
-  const service = getService();
-  const result = await service.resolveProposal(c.req.param("id"), "reject");
-  if (!result) {
-    return c.json({ error: "Proposal not found" }, 404);
+  try {
+    const service = getService();
+    const result = await service.resolveProposal(c.req.param("id"), "reject");
+    if (!result) {
+      return c.json({ error: "Proposal not found" }, 404);
+    }
+    return c.json(result);
+  } catch (err) {
+    console.error("Failed to reject proposal:", err);
+    return c.json({ error: "Failed to reject proposal" }, 500);
   }
-  return c.json(result);
 });
 
 export { proposedUpdates };
