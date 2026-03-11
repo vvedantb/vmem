@@ -10,8 +10,9 @@ import {
 } from "react";
 import { useAuth } from "@clerk/nextjs";
 import type { Memory } from "@/lib/memories";
+import { clientEnv } from "@/env/client";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
 
 interface CreateMemoryInput {
   title: string;
