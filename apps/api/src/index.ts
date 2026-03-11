@@ -13,14 +13,7 @@ import { setupDatabase } from "./db/setup";
 const app = new Hono().basePath("/v1");
 
 app.use("*", logger());
-app.use(
-  "*",
-  cors({
-    origin: (process.env.ALLOWED_ORIGINS ?? "http://localhost:3000")
-      .split(",")
-      .map((o) => o.trim()),
-  }),
-);
+app.use("*", cors());
 
 app.route("/memories", memories);
 app.route("/proposed-updates", proposedUpdates);
