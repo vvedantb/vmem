@@ -15,6 +15,8 @@ export default function GraphNodeTooltip({
 }: GraphNodeTooltipProps) {
   return (
     <div
+      role="tooltip"
+      aria-live="polite"
       className="absolute glass-panel rounded-lg p-3 max-w-xs pointer-events-none z-10"
       style={{ left: x + 12, top: y - 10 }}
     >
