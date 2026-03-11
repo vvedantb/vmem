@@ -68,12 +68,15 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const { getToken } = useAuth();
+
   const fetchMemories = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
-    const res = await fetch(
-      `${API_URL}/v1/memories?userId=${encodeURIComponent(userId)}`,
-    );
+    const token = await getToken();
+    const res = await fetch(`${API_URL}/v1/memories`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     if (res.ok) {
       const data = (await res.json()) as {
         memories: ApiMemory[];
@@ -82,7 +85,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       setMemories(data.memories.map(apiToMemory));
     }
     setIsLoading(false);
-  }, [userId]);
+  }, [userId, getToken]);
 
   useEffect(() => {
     fetchMemories();
@@ -92,11 +95,14 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     async (input: CreateMemoryInput): Promise<Memory> => {
       if (!userId) throw new Error("Not authenticated");
 
+      const token = await getToken();
       const res = await fetch(`${API_URL}/v1/memories`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          userId,
           title: input.title.trim(),
           content: input.content.trim(),
           type: "knowledge",
@@ -116,25 +122,26 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       setMemories((prev) => [memory, ...prev]);
       return memory;
     },
-    [userId],
+    [userId, getToken],
   );
 
   const updateMemory = useCallback(
     async (input: UpdateMemoryInput): Promise<Memory | null> => {
       if (!userId) throw new Error("Not authenticated");
 
-      const res = await fetch(
-        `${API_URL}/v1/memories/${input.id}?userId=${encodeURIComponent(userId)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: input.title,
-            content: input.content,
-            tags: input.tags,
-          }),
+      const token = await getToken();
+      const res = await fetch(`${API_URL}/v1/memories/${input.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          title: input.title,
+          content: input.content,
+          tags: input.tags,
+        }),
+      });
 
       if (!res.ok) return null;
 
@@ -143,24 +150,25 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       setMemories((prev) => prev.map((m) => (m.id === input.id ? memory : m)));
       return memory;
     },
-    [userId],
+    [userId, getToken],
   );
 
   const deleteMemory = useCallback(
     async (id: string): Promise<boolean> => {
       if (!userId) throw new Error("Not authenticated");
 
-      const res = await fetch(
-        `${API_URL}/v1/memories/${id}?userId=${encodeURIComponent(userId)}`,
-        { method: "DELETE" },
-      );
+      const token = await getToken();
+      const res = await fetch(`${API_URL}/v1/memories/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (!res.ok) return false;
 
       setMemories((prev) => prev.filter((m) => m.id !== id));
       return true;
     },
-    [userId],
+    [userId, getToken],
   );
 
   const value = useMemo(
