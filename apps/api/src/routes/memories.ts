@@ -61,14 +61,9 @@ memories.post("/", async (c) => {
     return c.json({ error: parsed.error.issues }, 400);
   }
 
-  try {
-    const service = getService();
-    const memory = await service.createMemory(parsed.data);
-    return c.json(memory, 201);
-  } catch (err) {
-    console.error("Failed to create memory:", err);
-    return c.json({ error: "Failed to create memory" }, 500);
-  }
+  const service = getService();
+  const memory = await service.createMemory(parsed.data);
+  return c.json(memory, 201);
 });
 
 memories.get("/", async (c) => {
@@ -77,28 +72,23 @@ memories.get("/", async (c) => {
     return c.json({ error: "userId query param required" }, 400);
   }
 
-  try {
-    const service = getService();
-    const result = await service.listMemories({
-      userId,
-      type:
-        (c.req.query("type") as "profile" | "episodic" | "knowledge") ??
-        undefined,
-      status:
-        (c.req.query("status") as
-          | "active"
-          | "pinned"
-          | "suppressed"
-          | "expired") ?? undefined,
-      limit: Number(c.req.query("limit") ?? "20"),
-      offset: Number(c.req.query("offset") ?? "0"),
-    });
+  const service = getService();
+  const result = await service.listMemories({
+    userId,
+    type:
+      (c.req.query("type") as "profile" | "episodic" | "knowledge") ??
+      undefined,
+    status:
+      (c.req.query("status") as
+        | "active"
+        | "pinned"
+        | "suppressed"
+        | "expired") ?? undefined,
+    limit: Number(c.req.query("limit") ?? "20"),
+    offset: Number(c.req.query("offset") ?? "0"),
+  });
 
-    return c.json(result);
-  } catch (err) {
-    console.error("Failed to list memories:", err);
-    return c.json({ error: "Failed to list memories" }, 500);
-  }
+  return c.json(result);
 });
 
 memories.get("/:id", async (c) => {
@@ -107,18 +97,13 @@ memories.get("/:id", async (c) => {
     return c.json({ error: "userId query param required" }, 400);
   }
 
-  try {
-    const service = getService();
-    const memory = await service.getMemory(userId, c.req.param("id"));
-    if (!memory) {
-      return c.json({ error: "Memory not found" }, 404);
-    }
-
-    return c.json(memory);
-  } catch (err) {
-    console.error("Failed to get memory:", err);
-    return c.json({ error: "Failed to get memory" }, 500);
+  const service = getService();
+  const memory = await service.getMemory(userId, c.req.param("id"));
+  if (!memory) {
+    return c.json({ error: "Memory not found" }, 404);
   }
+
+  return c.json(memory);
 });
 
 memories.patch("/:id", async (c) => {
@@ -133,22 +118,17 @@ memories.patch("/:id", async (c) => {
     return c.json({ error: parsed.error.issues }, 400);
   }
 
-  try {
-    const service = getService();
-    const memory = await service.updateMemory(
-      userId,
-      c.req.param("id"),
-      parsed.data,
-    );
-    if (!memory) {
-      return c.json({ error: "Memory not found" }, 404);
-    }
-
-    return c.json(memory);
-  } catch (err) {
-    console.error("Failed to update memory:", err);
-    return c.json({ error: "Failed to update memory" }, 500);
+  const service = getService();
+  const memory = await service.updateMemory(
+    userId,
+    c.req.param("id"),
+    parsed.data,
+  );
+  if (!memory) {
+    return c.json({ error: "Memory not found" }, 404);
   }
+
+  return c.json(memory);
 });
 
 memories.delete("/:id", async (c) => {
@@ -157,18 +137,13 @@ memories.delete("/:id", async (c) => {
     return c.json({ error: "userId query param required" }, 400);
   }
 
-  try {
-    const service = getService();
-    const deleted = await service.deleteMemory(userId, c.req.param("id"));
-    if (!deleted) {
-      return c.json({ error: "Memory not found" }, 404);
-    }
-
-    return c.json({ status: "deleted" });
-  } catch (err) {
-    console.error("Failed to delete memory:", err);
-    return c.json({ error: "Failed to delete memory" }, 500);
+  const service = getService();
+  const deleted = await service.deleteMemory(userId, c.req.param("id"));
+  if (!deleted) {
+    return c.json({ error: "Memory not found" }, 404);
   }
+
+  return c.json({ status: "deleted" });
 });
 
 memories.post("/search", async (c) => {
@@ -182,18 +157,13 @@ memories.post("/search", async (c) => {
     return c.json({ error: "userId required" }, 400);
   }
 
-  try {
-    const service = getService();
-    const result = await service.searchMemories({
-      ...parsed.data,
-      userId: body.userId,
-    });
+  const service = getService();
+  const result = await service.searchMemories({
+    ...parsed.data,
+    userId: body.userId,
+  });
 
-    return c.json(result);
-  } catch (err) {
-    console.error("Failed to search memories:", err);
-    return c.json({ error: "Failed to search memories" }, 500);
-  }
+  return c.json(result);
 });
 
 memories.post("/retrieve", async (c) => {
@@ -207,18 +177,13 @@ memories.post("/retrieve", async (c) => {
     return c.json({ error: "userId required" }, 400);
   }
 
-  try {
-    const service = getService();
-    const candidates = await service.retrieveMemories({
-      ...parsed.data,
-      userId: body.userId,
-    });
+  const service = getService();
+  const candidates = await service.retrieveMemories({
+    ...parsed.data,
+    userId: body.userId,
+  });
 
-    return c.json({ memories: candidates });
-  } catch (err) {
-    console.error("Failed to retrieve memories:", err);
-    return c.json({ error: "Failed to retrieve memories" }, 500);
-  }
+  return c.json({ memories: candidates });
 });
 
 memories.get("/:id/events", async (c) => {
@@ -227,14 +192,9 @@ memories.get("/:id/events", async (c) => {
     return c.json({ error: "userId query param required" }, 400);
   }
 
-  try {
-    const service = getService();
-    const events = await service.getMemoryEvents(userId, c.req.param("id"));
-    return c.json({ events });
-  } catch (err) {
-    console.error("Failed to get memory events:", err);
-    return c.json({ error: "Failed to get memory events" }, 500);
-  }
+  const service = getService();
+  const events = await service.getMemoryEvents(userId, c.req.param("id"));
+  return c.json({ events });
 });
 
 export { memories };
