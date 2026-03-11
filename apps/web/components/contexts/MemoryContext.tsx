@@ -71,28 +71,17 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const fetchMemories = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
-    try {
-      const res = await fetch(
-        `${API_URL}/v1/memories?userId=${encodeURIComponent(userId)}`,
-      );
-      if (res.ok) {
-        const data = (await res.json()) as {
-          memories: ApiMemory[];
-          total: number;
-        };
-        setMemories(data.memories.map(apiToMemory));
-      } else {
-        console.error(
-          "fetchMemories: server error",
-          res.status,
-          res.statusText,
-        );
-      }
-    } catch (err) {
-      console.error("fetchMemories: network failure", err);
-    } finally {
-      setIsLoading(false);
+    const res = await fetch(
+      `${API_URL}/v1/memories?userId=${encodeURIComponent(userId)}`,
+    );
+    if (res.ok) {
+      const data = (await res.json()) as {
+        memories: ApiMemory[];
+        total: number;
+      };
+      setMemories(data.memories.map(apiToMemory));
     }
+    setIsLoading(false);
   }, [userId]);
 
   useEffect(() => {
@@ -147,10 +136,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         },
       );
 
-      if (!res.ok) {
-        console.error("updateMemory: server error", res.status, res.statusText);
-        return null;
-      }
+      if (!res.ok) return null;
 
       const apiMemory = (await res.json()) as ApiMemory;
       const memory = apiToMemory(apiMemory);
