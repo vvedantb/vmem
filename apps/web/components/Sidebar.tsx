@@ -46,21 +46,52 @@ import {
   IconSun,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpandFilled,
+  IconList,
+  IconShare3,
+  IconFileText,
 } from "@tabler/icons-react";
 
-const navGroups = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: ComponentType<{ className?: string; size?: number; stroke?: number }>;
+  children?: NavItem[];
+}
+
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
   {
     title: "Workspace",
     items: [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
-      { href: "/memories/list", label: "Memories", icon: IconBrain },
+      {
+        href: "/memories",
+        label: "Memories",
+        icon: IconBrain,
+        children: [
+          { href: "/memories/list", label: "List", icon: IconList },
+          { href: "/memories/graph", label: "Graph", icon: IconShare3 },
+        ],
+      },
       { href: "/files", label: "Files", icon: IconFiles },
     ],
   },
   {
     title: "Integrations",
     items: [
-      { href: "/api/logs", label: "API", icon: IconKey },
+      {
+        href: "/api",
+        label: "API",
+        icon: IconKey,
+        children: [
+          { href: "/api/logs", label: "Logs", icon: IconFileText },
+          { href: "/api/keys", label: "Keys", icon: IconKey },
+        ],
+      },
       { href: "/connectors", label: "Connectors", icon: IconPlugConnected },
     ],
   },
@@ -101,6 +132,104 @@ type NavIcon = ComponentType<{
   stroke?: number;
 }>;
 
+function NavLink({
+  item,
+  pathname,
+  isIconOnly,
+  isMobile,
+  unreadCount,
+  onNavigate,
+  indent,
+}: {
+  item: NavItem;
+  pathname: string;
+  isIconOnly: boolean;
+  isMobile: boolean;
+  unreadCount: number;
+  onNavigate?: MouseEventHandler<HTMLAnchorElement>;
+  indent?: boolean;
+}) {
+  const isActive = item.children
+    ? pathname.startsWith(item.href)
+    : pathname === item.href || pathname.startsWith(item.href + "/");
+  const Icon = item.icon as NavIcon;
+  const isNotifications = item.href === "/notifications";
+  const showBadge = isNotifications && unreadCount > 0;
+  const href = item.children ? item.children[0].href : item.href;
+
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      title={isIconOnly ? item.label : undefined}
+      className={cn(
+        "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-all duration-200 ease-smooth",
+        isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
+        isMobile ? "py-3.5" : "py-2.5",
+        indent && !isIconOnly && "pl-9",
+        isActive
+          ? item.children
+            ? "text-foreground"
+            : "glass-interactive text-foreground"
+          : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
+      )}
+    >
+      <span className="flex h-5 w-5 items-center justify-center text-current">
+        <Icon size={indent ? 16 : 18} stroke={1.7} />
+      </span>
+      <AnimatePresence initial={false}>
+        {!isIconOnly ? (
+          <motion.span
+            key={`${item.href}-label`}
+            className="flex-1"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: motionDuration.fast,
+              ease: motionEase,
+            }}
+          >
+            {item.label}
+          </motion.span>
+        ) : null}
+      </AnimatePresence>
+      <AnimatePresence initial={false}>
+        {showBadge && !isIconOnly ? (
+          <motion.span
+            key={`${item.href}-badge`}
+            className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{
+              duration: motionDuration.fast,
+              ease: motionEase,
+            }}
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </motion.span>
+        ) : null}
+      </AnimatePresence>
+      <AnimatePresence initial={false}>
+        {showBadge && isIconOnly ? (
+          <motion.span
+            key={`${item.href}-dot`}
+            className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{
+              duration: motionDuration.fast,
+              ease: motionEase,
+            }}
+          />
+        ) : null}
+      </AnimatePresence>
+    </Link>
+  );
+}
+
 function SidebarNavigation({
   pathname,
   unreadCount,
@@ -133,86 +262,50 @@ function SidebarNavigation({
       {navGroups.map((group, groupIndex) => (
         <motion.div key={group.title} className="px-1">
           <motion.ul
-            className="space-y-1.5"
+            className="space-y-1"
             variants={staggerContainer(motionTiming.stagger)}
           >
             {group.items.map((item) => {
-              const isActive =
-                pathname === item.href || pathname.startsWith(item.href + "/");
-              const Icon = item.icon as NavIcon;
-              const isNotifications = item.href === "/notifications";
-              const showBadge = isNotifications && unreadCount > 0;
+              const sectionActive = pathname.startsWith(item.href);
 
               return (
                 <motion.li key={item.href} variants={staggerItem}>
-                  <Link
-                    href={item.href}
-                    onClick={onNavigate}
-                    title={isIconOnly ? item.label : undefined}
-                    className={cn(
-                      "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-all duration-200 ease-smooth",
-                      isIconOnly
-                        ? "justify-center px-2 py-2.5"
-                        : "gap-3 px-3.5",
-                      isMobile ? "py-3.5" : "py-2.5",
-                      isActive
-                        ? "glass-interactive text-foreground"
-                        : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
-                    )}
-                  >
-                    <span className="flex h-5 w-5 items-center justify-center text-current">
-                      <Icon size={18} stroke={1.7} />
-                    </span>
-                    <AnimatePresence initial={false}>
-                      {!isIconOnly ? (
-                        <motion.span
-                          key={`${item.href}-label`}
-                          className="flex-1"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{
-                            duration: motionDuration.fast,
-                            ease: motionEase,
-                          }}
-                        >
-                          {item.label}
-                        </motion.span>
-                      ) : null}
-                    </AnimatePresence>
-                    <AnimatePresence initial={false}>
-                      {showBadge && !isIconOnly ? (
-                        <motion.span
-                          key={`${item.href}-badge`}
-                          className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{
-                            duration: motionDuration.fast,
-                            ease: motionEase,
-                          }}
-                        >
-                          {unreadCount > 99 ? "99+" : unreadCount}
-                        </motion.span>
-                      ) : null}
-                    </AnimatePresence>
-                    <AnimatePresence initial={false}>
-                      {showBadge && isIconOnly ? (
-                        <motion.span
-                          key={`${item.href}-dot`}
-                          className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary"
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          transition={{
-                            duration: motionDuration.fast,
-                            ease: motionEase,
-                          }}
-                        />
-                      ) : null}
-                    </AnimatePresence>
-                  </Link>
+                  <NavLink
+                    item={item}
+                    pathname={pathname}
+                    isIconOnly={isIconOnly}
+                    isMobile={isMobile}
+                    unreadCount={unreadCount}
+                    onNavigate={onNavigate}
+                  />
+                  <AnimatePresence initial={false}>
+                    {item.children && sectionActive && !isIconOnly ? (
+                      <motion.ul
+                        className="space-y-0.5 mt-0.5"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{
+                          duration: motionDuration.fast,
+                          ease: motionEase,
+                        }}
+                      >
+                        {item.children.map((child) => (
+                          <li key={child.href}>
+                            <NavLink
+                              item={child}
+                              pathname={pathname}
+                              isIconOnly={isIconOnly}
+                              isMobile={isMobile}
+                              unreadCount={unreadCount}
+                              onNavigate={onNavigate}
+                              indent
+                            />
+                          </li>
+                        ))}
+                      </motion.ul>
+                    ) : null}
+                  </AnimatePresence>
                 </motion.li>
               );
             })}
