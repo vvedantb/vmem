@@ -8,9 +8,6 @@ import type { FunctionReturnType } from "convex/server";
 
 type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
 
-// Revealed keys are cleared after 30 seconds to limit exposure of sensitive data in state
-const REVEAL_TIMEOUT_MS = 30_000;
-
 export function useApiKeyActions() {
   const revokeApiKey = useMutation(api.apiKeys.revokeMy);
   const revealApiKey = useAction(api.apiKeys.revealMy);
@@ -25,15 +22,10 @@ export function useApiKeyActions() {
   const [revealingKeyId, setRevealingKeyId] = useState<string | null>(null);
 
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // Auto-clear timers to avoid long-lived sensitive key data in state
-  const revealTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
-    {},
-  );
 
   useEffect(() => {
     return () => {
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-      Object.values(revealTimersRef.current).forEach(clearTimeout);
     };
   }, []);
 
@@ -71,10 +63,6 @@ export function useApiKeyActions() {
   const handleToggleReveal = useCallback(
     async (apiKeyId: ApiKey["id"]) => {
       if (revealedKeys[apiKeyId]) {
-        if (revealTimersRef.current[apiKeyId]) {
-          clearTimeout(revealTimersRef.current[apiKeyId]);
-          delete revealTimersRef.current[apiKeyId];
-        }
         setRevealedKeys((prev) => {
           const next = { ...prev };
           delete next[apiKeyId];
@@ -91,15 +79,6 @@ export function useApiKeyActions() {
           return;
         }
         setRevealedKeys((prev) => ({ ...prev, [apiKeyId]: rawKey }));
-        // Auto-clear revealed key after timeout to limit sensitive data exposure
-        revealTimersRef.current[apiKeyId] = setTimeout(() => {
-          setRevealedKeys((prev) => {
-            const next = { ...prev };
-            delete next[apiKeyId];
-            return next;
-          });
-          delete revealTimersRef.current[apiKeyId];
-        }, REVEAL_TIMEOUT_MS);
       } catch {
         toast.error("Failed to reveal API key");
       } finally {

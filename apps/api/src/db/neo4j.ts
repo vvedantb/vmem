@@ -13,18 +13,6 @@ export function getDriver(): Driver {
   return driver;
 }
 
-export async function verifyConnectivity(): Promise<void> {
-  const d = getDriver();
-  try {
-    await d.verifyConnectivity();
-  } catch (err) {
-    driver = null;
-    throw new Error(
-      `Neo4j connection failed: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
-}
-
 export async function closeDriver(): Promise<void> {
   if (driver) {
     await driver.close();
