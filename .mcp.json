@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "eva": {
+      "url": "https://eva-mcp-staging.up.railway.app/mcp",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzM1anV4VWlBNkE5aDJKYlc3VEVEazM5ajN5byIsImlzcyI6ImV2YSIsImF1ZCI6Im1jcC1pbnRlcm5hbCIsInJlcG9JZCI6Im1oNzI5ZXdxbm1hejNxY2pqcjRoZzZtZTg1ODIzNnllIiwiaWF0IjoxNzczMjU5ODE3LCJleHAiOjE3NzMyODg2MTd9.z87_sv8c615LcsjGXeH_ksosBDMsfkj2D1Xtx4HL7zg"
+      }
+    }
+  }
+}
