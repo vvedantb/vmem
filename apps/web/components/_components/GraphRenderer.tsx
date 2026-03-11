@@ -43,7 +43,9 @@ export default function GraphRenderer({
         defaultEdgeColor: themeColors.edgeColor,
         defaultNodeColor: themeColors.defaultNodeColor,
         labelColor: { color: themeColors.labelColor },
-        labelFont: "system-ui, sans-serif",
+        labelFont:
+          getComputedStyle(containerRef.current).fontFamily ||
+          "system-ui, sans-serif",
         labelSize: 12,
         labelRenderedSizeThreshold: 6,
         minCameraRatio: 0.08,
