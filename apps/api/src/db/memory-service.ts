@@ -55,9 +55,16 @@ interface ProposedUpdateNode {
 }
 
 function toMemoryWithTags(record: Record<string, unknown>): MemoryWithTags {
-  const m = record.m as Record<string, unknown>;
-  const props = (m as { properties: Record<string, unknown> }).properties;
-  const tags = record.tags as string[];
+  const m = record.m;
+  if (!m || typeof m !== "object") {
+    throw new Error("Invalid Neo4j record: missing memory node");
+  }
+  const node = m as { properties?: Record<string, unknown> };
+  if (!node.properties || typeof node.properties !== "object") {
+    throw new Error("Invalid Neo4j record: missing memory node properties");
+  }
+  const props = node.properties;
+  const tags = Array.isArray(record.tags) ? (record.tags as string[]) : [];
   return {
     id: props.id as string,
     userId: props.userId as string,
@@ -133,6 +140,8 @@ export class MemoryService {
 
       await this.logEvent(session, id, "created", params.source, {
         type: params.type,
+      }).catch((err: unknown) => {
+        console.error("Failed to log memory creation event:", err);
       });
 
       const record = result.records[0];
@@ -538,6 +547,7 @@ export class MemoryService {
   async resolveProposal(
     proposalId: string,
     action: "approve" | "reject",
+    userId: string,
   ): Promise<{ status: string; memoryId: string } | null> {
     const session = this.driver.session();
     try {
@@ -545,11 +555,11 @@ export class MemoryService {
 
       if (action === "approve") {
         const result = await session.run(
-          `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
+          `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory {userId: $userId})
            SET p.status = 'approved', p.resolvedAt = $now,
                m.content = p.proposedContent, m.updatedAt = $now
            RETURN p.status AS status, m.id AS memoryId`,
-          { proposalId, now },
+          { proposalId, userId, now },
         );
 
         if (result.records.length === 0) return null;
@@ -561,10 +571,10 @@ export class MemoryService {
       }
 
       const result = await session.run(
-        `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
+        `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory {userId: $userId})
          SET p.status = 'rejected', p.resolvedAt = $now
          RETURN p.status AS status, m.id AS memoryId`,
-        { proposalId, now },
+        { proposalId, userId, now },
       );
 
       if (result.records.length === 0) return null;
