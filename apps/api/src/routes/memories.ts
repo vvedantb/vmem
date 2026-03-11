@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { z } from "zod/v4";
 import { MemoryService } from "../db/memory-service";
 import { getDriver } from "../db/neo4j";
-import { clerkAuth } from "../middleware/auth";
 
 const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
 const memoryStatusSchema = z.enum([
@@ -53,15 +52,11 @@ function getService(): MemoryService {
   return new MemoryService(getDriver());
 }
 
-const memories = new Hono<{ Variables: { userId: string } }>();
-
-// All memory routes require a verified Clerk JWT; userId is derived from the token.
-memories.use("*", clerkAuth);
+const memories = new Hono();
 
 memories.post("/", async (c) => {
-  const userId = c.get("userId");
   const body = await c.req.json();
-  const parsed = createMemorySchema.safeParse({ ...body, userId });
+  const parsed = createMemorySchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: parsed.error.issues }, 400);
   }
@@ -72,7 +67,10 @@ memories.post("/", async (c) => {
 });
 
 memories.get("/", async (c) => {
-  const userId = c.get("userId");
+  const userId = c.req.query("userId");
+  if (!userId) {
+    return c.json({ error: "userId query param required" }, 400);
+  }
 
   const service = getService();
   const result = await service.listMemories({
@@ -94,7 +92,10 @@ memories.get("/", async (c) => {
 });
 
 memories.get("/:id", async (c) => {
-  const userId = c.get("userId");
+  const userId = c.req.query("userId");
+  if (!userId) {
+    return c.json({ error: "userId query param required" }, 400);
+  }
 
   const service = getService();
   const memory = await service.getMemory(userId, c.req.param("id"));
@@ -106,7 +107,10 @@ memories.get("/:id", async (c) => {
 });
 
 memories.patch("/:id", async (c) => {
-  const userId = c.get("userId");
+  const userId = c.req.query("userId");
+  if (!userId) {
+    return c.json({ error: "userId query param required" }, 400);
+  }
 
   const body = await c.req.json();
   const parsed = updateMemorySchema.safeParse(body);
@@ -128,7 +132,10 @@ memories.patch("/:id", async (c) => {
 });
 
 memories.delete("/:id", async (c) => {
-  const userId = c.get("userId");
+  const userId = c.req.query("userId");
+  if (!userId) {
+    return c.json({ error: "userId query param required" }, 400);
+  }
 
   const service = getService();
   const deleted = await service.deleteMemory(userId, c.req.param("id"));
@@ -140,41 +147,50 @@ memories.delete("/:id", async (c) => {
 });
 
 memories.post("/search", async (c) => {
-  const userId = c.get("userId");
   const body = await c.req.json();
   const parsed = searchSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: parsed.error.issues }, 400);
   }
 
+  if (!body.userId) {
+    return c.json({ error: "userId required" }, 400);
+  }
+
   const service = getService();
   const result = await service.searchMemories({
     ...parsed.data,
-    userId,
+    userId: body.userId,
   });
 
   return c.json(result);
 });
 
 memories.post("/retrieve", async (c) => {
-  const userId = c.get("userId");
   const body = await c.req.json();
   const parsed = retrieveSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: parsed.error.issues }, 400);
   }
 
+  if (!body.userId) {
+    return c.json({ error: "userId required" }, 400);
+  }
+
   const service = getService();
   const candidates = await service.retrieveMemories({
     ...parsed.data,
-    userId,
+    userId: body.userId,
   });
 
   return c.json({ memories: candidates });
 });
 
 memories.get("/:id/events", async (c) => {
-  const userId = c.get("userId");
+  const userId = c.req.query("userId");
+  if (!userId) {
+    return c.json({ error: "userId query param required" }, 400);
+  }
 
   const service = getService();
   const events = await service.getMemoryEvents(userId, c.req.param("id"));
