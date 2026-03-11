@@ -13,6 +13,7 @@ const memoryStatusSchema = z.enum([
 
 const createMemorySchema = z.object({
   userId: z.string(),
+  title: z.string().min(1),
   content: z.string().min(1),
   type: memoryTypeSchema,
   source: z.string().min(1),
@@ -22,6 +23,7 @@ const createMemorySchema = z.object({
 });
 
 const updateMemorySchema = z.object({
+  title: z.string().min(1).optional(),
   content: z.string().min(1).optional(),
   type: memoryTypeSchema.optional(),
   status: memoryStatusSchema.optional(),

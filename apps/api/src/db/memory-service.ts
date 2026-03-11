@@ -7,6 +7,7 @@ type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
 interface MemoryNode {
   id: string;
   userId: string;
+  title: string;
   content: string;
   type: MemoryType;
   source: string;
@@ -60,6 +61,7 @@ function toMemoryWithTags(record: Record<string, unknown>): MemoryWithTags {
   return {
     id: props.id as string,
     userId: props.userId as string,
+    title: props.title as string,
     content: props.content as string,
     type: props.type as MemoryType,
     source: props.source as string,
@@ -77,6 +79,7 @@ export class MemoryService {
 
   async createMemory(params: {
     userId: string;
+    title: string;
     content: string;
     type: MemoryType;
     source: string;
@@ -93,6 +96,7 @@ export class MemoryService {
         `CREATE (m:Memory {
           id: $id,
           userId: $userId,
+          title: $title,
           content: $content,
           type: $type,
           source: $source,
@@ -115,6 +119,7 @@ export class MemoryService {
         {
           id,
           userId: params.userId,
+          title: params.title,
           content: params.content,
           type: params.type,
           source: params.source,
@@ -222,6 +227,7 @@ export class MemoryService {
     userId: string,
     memoryId: string,
     updates: {
+      title?: string;
       content?: string;
       type?: MemoryType;
       status?: MemoryStatus;
@@ -239,6 +245,10 @@ export class MemoryService {
         now: new Date().toISOString(),
       };
 
+      if (updates.title !== undefined) {
+        setClauses.push("m.title = $title");
+        queryParams.title = updates.title;
+      }
       if (updates.content !== undefined) {
         setClauses.push("m.content = $content");
         queryParams.content = updates.content;

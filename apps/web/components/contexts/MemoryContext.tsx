@@ -8,8 +8,10 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useAuth } from "@clerk/nextjs";
 import type { Memory } from "@/lib/memories";
-import { MOCK_MEMORIES } from "@/lib/mock-memories";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 interface CreateMemoryInput {
   title: string;
@@ -30,137 +32,134 @@ interface MemoryContextType {
   createMemory: (input: CreateMemoryInput) => Promise<Memory>;
   updateMemory: (input: UpdateMemoryInput) => Promise<Memory | null>;
   deleteMemory: (id: string) => Promise<boolean>;
+  refreshMemories: () => Promise<void>;
 }
 
 const MemoryContext = createContext<MemoryContextType | null>(null);
 
-function normalizeTags(tags: string[]): string[] {
-  return Array.from(
-    new Set(
-      tags
-        .map((tag) => tag.trim().toLowerCase())
-        .filter((tag) => tag.length > 0),
-    ),
-  );
+interface ApiMemory {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  type: string;
+  source: string;
+  confidence: number;
+  status: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string | null;
 }
 
-function sortByNewest(memories: Memory[]): Memory[] {
-  return [...memories].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
-}
-
-function cloneSeedMemories(): Memory[] {
-  return sortByNewest(
-    MOCK_MEMORIES.map((memory) => ({
-      ...memory,
-      tags: [...memory.tags],
-    })),
-  );
-}
-
-function createMemoryId(): string {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-
-  return `mock-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+function apiToMemory(m: ApiMemory): Memory {
+  return {
+    id: m.id,
+    title: m.title,
+    content: m.content,
+    tags: m.tags,
+    createdAt: m.createdAt,
+  };
 }
 
 export function MemoryProvider({ children }: { children: React.ReactNode }) {
+  const { userId } = useAuth();
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    setMemories(cloneSeedMemories());
+  const fetchMemories = useCallback(async () => {
+    if (!userId) return;
+    setIsLoading(true);
+    const res = await fetch(
+      `${API_URL}/v1/memories?userId=${encodeURIComponent(userId)}`,
+    );
+    if (res.ok) {
+      const data = (await res.json()) as {
+        memories: ApiMemory[];
+        total: number;
+      };
+      setMemories(data.memories.map(apiToMemory));
+    }
     setIsLoading(false);
-  }, []);
+  }, [userId]);
+
+  useEffect(() => {
+    fetchMemories();
+  }, [fetchMemories]);
 
   const createMemory = useCallback(
     async (input: CreateMemoryInput): Promise<Memory> => {
-      const title = input.title.trim();
-      const content = input.content.trim();
+      if (!userId) throw new Error("Not authenticated");
 
-      if (!title) {
-        throw new Error("Title is required");
+      const res = await fetch(`${API_URL}/v1/memories`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          title: input.title.trim(),
+          content: input.content.trim(),
+          type: "knowledge",
+          source: "web",
+          tags: input.tags ?? [],
+          confidence: 1.0,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = (await res.json()) as { error: string };
+        throw new Error(err.error);
       }
 
-      if (!content) {
-        throw new Error("Content is required");
-      }
-
-      const memory: Memory = {
-        id: createMemoryId(),
-        title,
-        content,
-        tags: normalizeTags(input.tags ?? []),
-        createdAt: new Date().toISOString(),
-      };
-
-      setMemories((prev) => sortByNewest([memory, ...prev]));
+      const apiMemory = (await res.json()) as ApiMemory;
+      const memory = apiToMemory(apiMemory);
+      setMemories((prev) => [memory, ...prev]);
       return memory;
     },
-    [],
+    [userId],
   );
 
   const updateMemory = useCallback(
     async (input: UpdateMemoryInput): Promise<Memory | null> => {
-      const existing = memories.find((memory) => memory.id === input.id);
-      if (!existing) {
-        return null;
-      }
+      if (!userId) throw new Error("Not authenticated");
 
-      const hasTitle = input.title !== undefined;
-      const hasContent = input.content !== undefined;
-      const hasTags = input.tags !== undefined;
-
-      if (!hasTitle && !hasContent && !hasTags) {
-        throw new Error("No updates provided");
-      }
-
-      const nextTitle = hasTitle ? input.title!.trim() : existing.title;
-      const nextContent = hasContent ? input.content!.trim() : existing.content;
-
-      if (!nextTitle) {
-        throw new Error("Title cannot be empty");
-      }
-
-      if (!nextContent) {
-        throw new Error("Content cannot be empty");
-      }
-
-      const updated: Memory = {
-        ...existing,
-        title: nextTitle,
-        content: nextContent,
-        tags: hasTags ? normalizeTags(input.tags ?? []) : existing.tags,
-      };
-
-      setMemories((prev) =>
-        sortByNewest(
-          prev.map((memory) => (memory.id === input.id ? updated : memory)),
-        ),
+      const res = await fetch(
+        `${API_URL}/v1/memories/${input.id}?userId=${encodeURIComponent(userId)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: input.title,
+            content: input.content,
+            tags: input.tags,
+          }),
+        },
       );
 
-      return updated;
+      if (!res.ok) return null;
+
+      const apiMemory = (await res.json()) as ApiMemory;
+      const memory = apiToMemory(apiMemory);
+      setMemories((prev) => prev.map((m) => (m.id === input.id ? memory : m)));
+      return memory;
     },
-    [memories],
+    [userId],
   );
 
   const deleteMemory = useCallback(
     async (id: string): Promise<boolean> => {
-      const exists = memories.some((memory) => memory.id === id);
-      if (!exists) {
-        return false;
-      }
+      if (!userId) throw new Error("Not authenticated");
 
-      setMemories((prev) => prev.filter((memory) => memory.id !== id));
+      const res = await fetch(
+        `${API_URL}/v1/memories/${id}?userId=${encodeURIComponent(userId)}`,
+        { method: "DELETE" },
+      );
+
+      if (!res.ok) return false;
+
+      setMemories((prev) => prev.filter((m) => m.id !== id));
       return true;
     },
-    [memories],
+    [userId],
   );
 
   const value = useMemo(
@@ -170,8 +169,16 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       createMemory,
       updateMemory,
       deleteMemory,
+      refreshMemories: fetchMemories,
     }),
-    [memories, isLoading, createMemory, updateMemory, deleteMemory],
+    [
+      memories,
+      isLoading,
+      createMemory,
+      updateMemory,
+      deleteMemory,
+      fetchMemories,
+    ],
   );
 
   return (
