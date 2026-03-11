@@ -144,6 +144,10 @@ export class MemoryService {
 
       const record = result.records[0];
       return toMemoryWithTags(record.toObject());
+    } catch (err) {
+      throw new Error(
+        `Database error in createMemory: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       await session.close();
     }
@@ -164,6 +168,10 @@ export class MemoryService {
 
       if (result.records.length === 0) return null;
       return toMemoryWithTags(result.records[0].toObject());
+    } catch (err) {
+      throw new Error(
+        `Database error in getMemory: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       await session.close();
     }
@@ -226,6 +234,10 @@ export class MemoryService {
         toMemoryWithTags(r.toObject()),
       );
       return { memories, total };
+    } catch (err) {
+      throw new Error(
+        `Database error in listMemories: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       await session.close();
     }
@@ -306,6 +318,10 @@ export class MemoryService {
       await this.logEvent(session, memoryId, "updated", "api", {});
 
       return toMemoryWithTags(result.records[0].toObject());
+    } catch (err) {
+      throw new Error(
+        `Database error in updateMemory: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       await session.close();
     }
@@ -325,6 +341,10 @@ export class MemoryService {
         result.records[0].get("deleted") as { toNumber: () => number }
       ).toNumber();
       return deleted > 0;
+    } catch (err) {
+      throw new Error(
+        `Database error in deleteMemory: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       await session.close();
     }
@@ -365,6 +385,10 @@ export class MemoryService {
       }
 
       return this.listMemories(params);
+    } catch (err) {
+      throw new Error(
+        `Database error in searchMemories: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       await session.close();
     }
@@ -435,6 +459,10 @@ export class MemoryService {
           },
         };
       });
+    } catch (err) {
+      throw new Error(
+        `Database error in retrieveMemories: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       await session.close();
     }
@@ -463,6 +491,10 @@ export class MemoryService {
           createdAt: props.createdAt,
         };
       });
+    } catch (err) {
+      throw new Error(
+        `Database error in getMemoryEvents: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       await session.close();
     }
@@ -510,6 +542,10 @@ export class MemoryService {
         createdAt: props.createdAt,
         resolvedAt: null,
       };
+    } catch (err) {
+      throw new Error(
+        `Database error in createProposedUpdate: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       await session.close();
     }
@@ -537,6 +573,10 @@ export class MemoryService {
           resolvedAt: props.resolvedAt ?? null,
         };
       });
+    } catch (err) {
+      throw new Error(
+        `Database error in listProposedUpdates: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       await session.close();
     }
@@ -581,6 +621,10 @@ export class MemoryService {
         status: record.get("status"),
         memoryId: record.get("memoryId"),
       };
+    } catch (err) {
+      throw new Error(
+        `Database error in resolveProposal: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       await session.close();
     }
