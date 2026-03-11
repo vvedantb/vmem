@@ -32,11 +32,6 @@ export default function GraphRenderer({
   const containerRef = useRef<HTMLDivElement>(null);
   const sigmaRef = useRef<Sigma<NodeAttributes, EdgeAttributes> | null>(null);
 
-  const onHoverNodeRef = useRef(onHoverNode);
-  onHoverNodeRef.current = onHoverNode;
-  const onClickNodeRef = useRef(onClickNode);
-  onClickNodeRef.current = onClickNode;
-
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -62,7 +57,7 @@ export default function GraphRenderer({
       const displayData = renderer.getNodeDisplayData(node);
       if (!displayData) return;
       const attrs = graph.getNodeAttributes(node);
-      onHoverNodeRef.current({
+      onHoverNode({
         id: node,
         title: attrs.label,
         content: attrs.content,
@@ -72,18 +67,18 @@ export default function GraphRenderer({
     });
 
     renderer.on("leaveNode", () => {
-      onHoverNodeRef.current(null);
+      onHoverNode(null);
     });
 
     renderer.on("clickNode", ({ node }) => {
-      onClickNodeRef.current(node);
+      onClickNode(node);
     });
 
     return () => {
       renderer.kill();
       sigmaRef.current = null;
     };
-  }, [graph, themeColors]);
+  }, [graph, themeColors, onHoverNode, onClickNode]);
 
   const zoomIn = useCallback(() => {
     sigmaRef.current?.getCamera().animatedZoom({ duration: 300 });
