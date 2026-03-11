@@ -20,27 +20,39 @@ export default function SettingsPage() {
     <PageContainer title="Settings">
       <div className="flex gap-8">
         <nav className="w-56 shrink-0">
-          <ul className="space-y-1">
+          <div
+            role="tablist"
+            aria-label="Settings sections"
+            className="space-y-1"
+          >
             {tabs.map((tab) => (
-              <li key={tab.id}>
-                <button
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-foreground/10 text-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              </li>
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`tabpanel-${tab.id}`}
+                id={`tab-${tab.id}`}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? "bg-foreground/10 text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                }`}
+              >
+                {tab.label}
+              </button>
             ))}
-          </ul>
+          </div>
         </nav>
 
         <div className="flex-1 min-w-0 space-y-8">
           {activeTab === "preferences" && (
-            <>
+            <div
+              role="tabpanel"
+              id="tabpanel-preferences"
+              aria-labelledby="tab-preferences"
+              className="space-y-8"
+            >
               <div className="p-8 rounded-xl border border-border bg-muted/50">
                 <h3 className="text-lg font-medium mb-2 text-foreground">
                   Profile
@@ -66,11 +78,16 @@ export default function SettingsPage() {
                 </h3>
                 <SettingsToggles />
               </div>
-            </>
+            </div>
           )}
 
           {activeTab === "data-controls" && (
-            <>
+            <div
+              role="tabpanel"
+              id="tabpanel-data-controls"
+              aria-labelledby="tab-data-controls"
+              className="space-y-8"
+            >
               <ExportSection />
 
               <div className="p-8 rounded-xl border border-destructive/30 bg-destructive/10">
@@ -87,7 +104,7 @@ export default function SettingsPage() {
                   Delete Account
                 </Button>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>

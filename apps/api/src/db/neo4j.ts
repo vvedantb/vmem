@@ -5,7 +5,12 @@ let driver: Driver | null = null;
 export function getDriver(): Driver {
   if (driver) return driver;
 
-  const uri = process.env.NEO4J_URI ?? "";
+  const uri = process.env.NEO4J_URI;
+  if (!uri) {
+    throw new Error(
+      "NEO4J_URI environment variable is required but not set. Please configure it before starting the server.",
+    );
+  }
   const user = process.env.NEO4J_USERNAME ?? "neo4j";
   const password = process.env.NEO4J_PASSWORD ?? "";
 

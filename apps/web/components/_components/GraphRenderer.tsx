@@ -11,6 +11,7 @@ import type {
   HoveredNodeInfo,
   GraphThemeColors,
 } from "./graph-types";
+import type { KeyboardEvent } from "react";
 
 interface GraphRendererProps {
   graph: Graph<NodeAttributes, EdgeAttributes>;
@@ -31,6 +32,7 @@ export default function GraphRenderer({
 }: GraphRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sigmaRef = useRef<Sigma<NodeAttributes, EdgeAttributes> | null>(null);
+  const keyboardIndexRef = useRef<number>(-1);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -94,8 +96,58 @@ export default function GraphRenderer({
     sigmaRef.current?.getCamera().animatedReset({ duration: 300 });
   }, []);
 
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      const nodeIds = graph.nodes();
+      if (nodeIds.length === 0) return;
+
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        keyboardIndexRef.current =
+          (keyboardIndexRef.current + 1) % nodeIds.length;
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        keyboardIndexRef.current =
+          (keyboardIndexRef.current - 1 + nodeIds.length) % nodeIds.length;
+      } else if (e.key === "Enter" && keyboardIndexRef.current >= 0) {
+        e.preventDefault();
+        onClickNode(nodeIds[keyboardIndexRef.current]);
+        return;
+      } else if (e.key === "Escape") {
+        keyboardIndexRef.current = -1;
+        onHoverNode(null);
+        return;
+      } else {
+        return;
+      }
+
+      const nodeId = nodeIds[keyboardIndexRef.current];
+      const attrs = graph.getNodeAttributes(nodeId);
+      const displayData = sigmaRef.current?.getNodeDisplayData(nodeId);
+      if (displayData) {
+        sigmaRef.current
+          ?.getCamera()
+          .animate({ x: displayData.x, y: displayData.y }, { duration: 200 });
+        onHoverNode({
+          id: nodeId,
+          title: attrs.label,
+          content: attrs.content,
+          viewportX: displayData.x,
+          viewportY: displayData.y,
+        });
+      }
+    },
+    [graph, onHoverNode, onClickNode],
+  );
+
   return (
-    <div className="relative h-full min-h-0 overflow-hidden rounded-xl border border-border">
+    <div
+      className="relative h-full min-h-0 overflow-hidden rounded-xl border border-border"
+      tabIndex={0}
+      role="application"
+      aria-label="Memory graph. Use arrow keys to navigate nodes, Enter to select, Escape to clear."
+      onKeyDown={handleKeyDown}
+    >
       <div ref={containerRef} className="w-full h-full bg-background" />
 
       <div className="absolute top-4 left-4 flex gap-3 text-xs text-muted-foreground pointer-events-none">
@@ -108,6 +160,7 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={zoomIn}
+          aria-label="Zoom in"
           className="bg-background/80 border border-border"
         >
           <IconZoomIn size={16} />
@@ -116,6 +169,7 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={zoomOut}
+          aria-label="Zoom out"
           className="bg-background/80 border border-border"
         >
           <IconZoomOut size={16} />
@@ -124,6 +178,7 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={resetCamera}
+          aria-label="Reset view"
           className="bg-background/80 border border-border"
         >
           <IconFocus2 size={16} />
@@ -132,6 +187,7 @@ export default function GraphRenderer({
 
       <div className="absolute bottom-4 left-4 text-xs text-muted-foreground pointer-events-none">
         Click node to view details &bull; Drag to pan &bull; Scroll to zoom
+        &bull; Arrow keys to navigate
       </div>
     </div>
   );
