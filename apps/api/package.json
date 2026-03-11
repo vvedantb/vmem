@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "npx kill-port 3001 && tsx watch src/index.ts",
     "build": "tsc",
-    "start": "tsx src/index.ts"
+    "start": "tsx src/index.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.11",
@@ -17,7 +18,9 @@
   },
   "devDependencies": {
     "@types/node": "^25.4.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "kill-port": "^2.0.1",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
   }
 }

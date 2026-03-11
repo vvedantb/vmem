@@ -7,7 +7,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { memories } from "./routes/memories";
 import { proposedUpdates } from "./routes/proposed-updates";
-import { getDriver, closeDriver } from "./db/neo4j";
+import { getDriver, closeDriver, verifyConnectivity } from "./db/neo4j";
 import { setupDatabase } from "./db/setup";
 
 const app = new Hono().basePath("/v1");
@@ -39,5 +39,12 @@ process.on("SIGTERM", shutdown);
 
 serve({ fetch: app.fetch, port }, async () => {
   console.log(`vmem api running on http://localhost:${port}`);
+  try {
+    await verifyConnectivity();
+    console.log("Neo4j connectivity verified");
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
   await setupDatabase(getDriver());
 });
