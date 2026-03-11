@@ -76,12 +76,12 @@ export default function PageContainer({
         )}
       </div>
       <motion.div
-        className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-thin"
+        className="min-h-0 flex-1 flex flex-col overflow-y-auto pr-1 scrollbar-thin"
         initial={{ opacity: 0, y: motionDistance.pageY }}
         animate={{ opacity: 1, y: 0 }}
         transition={contentTransition}
       >
-        <div className="space-y-8 pb-6">{children}</div>
+        <div className="space-y-8 pb-6 flex-1">{children}</div>
       </motion.div>
     </div>
   );
