@@ -3,7 +3,7 @@
     "eva": {
       "url": "https://eva-mcp-staging.up.railway.app/mcp",
       "headers": {
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzM1anV4VWlBNkE5aDJKYlc3VEVEazM5ajN5byIsImlzcyI6ImV2YSIsImF1ZCI6Im1jcC1pbnRlcm5hbCIsInJlcG9JZCI6Im1oNzI5ZXdxbm1hejNxY2pqcjRoZzZtZTg1ODIzNnllIiwiaWF0IjoxNzczMjU5ODE2LCJleHAiOjE3NzMyODg2MTZ9.aXm1lyaT6199Ljg3zL4Pc5Hv9Q084m-RANNJARFfBpo"
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzM1anV4VWlBNkE5aDJKYlc3VEVEazM5ajN5byIsImlzcyI6ImV2YSIsImF1ZCI6Im1jcC1pbnRlcm5hbCIsInJlcG9JZCI6Im1oNzI5ZXdxbm1hejNxY2pqcjRoZzZtZTg1ODIzNnllIiwiaWF0IjoxNzczMjU5ODI1LCJleHAiOjE3NzMyODg2MjV9.ozN917eNFlOQ-yW4gVmijII14KR4FVZl9uBW2Wn3EU8"
       }
     }
   }
