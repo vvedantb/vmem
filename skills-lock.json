@@ -1,6 +1,16 @@
 {
   "version": 1,
   "skills": {
+    "neo4j-cypher-guide": {
+      "source": "tomasonjo/blogs",
+      "sourceType": "github",
+      "computedHash": "0b7de2834714bd87eae154edbfd8400ea059da4fd4d6604451dd16a4fb669a68"
+    },
+    "neo4j-cypher-skill": {
+      "source": "neo4j-contrib/neo4j-skills",
+      "sourceType": "github",
+      "computedHash": "1e542e7bcf93f64a97df707b807c0020bb32731f06d26916f7ca36598979c4ea"
+    },
     "neon-postgres": {
       "source": "neondatabase/agent-skills",
       "sourceType": "github",
