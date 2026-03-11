@@ -1,0 +1,23 @@
+{
+  "name": "@vmem/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx kill-port 3001 && tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.11",
+    "dotenv": "^17.3.1",
+    "hono": "^4.7.0",
+    "neo4j-driver": "^5.27.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.4.0",
+    "kill-port": "^2.0.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0"
+  }
+}
