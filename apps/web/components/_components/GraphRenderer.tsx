@@ -108,7 +108,7 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={zoomIn}
-          className="bg-background/80 backdrop-blur-sm border border-border"
+          className="bg-background/80 border border-border"
         >
           <IconZoomIn size={16} />
         </Button>
@@ -116,7 +116,7 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={zoomOut}
-          className="bg-background/80 backdrop-blur-sm border border-border"
+          className="bg-background/80 border border-border"
         >
           <IconZoomOut size={16} />
         </Button>
@@ -124,7 +124,7 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={resetCamera}
-          className="bg-background/80 backdrop-blur-sm border border-border"
+          className="bg-background/80 border border-border"
         >
           <IconFocus2 size={16} />
         </Button>
