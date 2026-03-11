@@ -55,16 +55,9 @@ interface ProposedUpdateNode {
 }
 
 function toMemoryWithTags(record: Record<string, unknown>): MemoryWithTags {
-  const m = record.m;
-  if (m === null || typeof m !== "object") {
-    throw new Error("Invalid memory record: missing node");
-  }
-  const node = m as { properties?: Record<string, unknown> };
-  if (!node.properties || typeof node.properties !== "object") {
-    throw new Error("Invalid memory record: missing properties");
-  }
-  const props = node.properties;
-  const tags = Array.isArray(record.tags) ? (record.tags as string[]) : [];
+  const m = record.m as Record<string, unknown>;
+  const props = (m as { properties: Record<string, unknown> }).properties;
+  const tags = record.tags as string[];
   return {
     id: props.id as string,
     userId: props.userId as string,
