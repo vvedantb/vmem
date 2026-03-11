@@ -538,6 +538,7 @@ export class MemoryService {
   async resolveProposal(
     proposalId: string,
     action: "approve" | "reject",
+    userId: string,
   ): Promise<{ status: string; memoryId: string } | null> {
     const session = this.driver.session();
     try {
@@ -545,11 +546,11 @@ export class MemoryService {
 
       if (action === "approve") {
         const result = await session.run(
-          `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
+          `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory {userId: $userId})
            SET p.status = 'approved', p.resolvedAt = $now,
                m.content = p.proposedContent, m.updatedAt = $now
            RETURN p.status AS status, m.id AS memoryId`,
-          { proposalId, now },
+          { proposalId, userId, now },
         );
 
         if (result.records.length === 0) return null;
@@ -561,10 +562,10 @@ export class MemoryService {
       }
 
       const result = await session.run(
-        `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
+        `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory {userId: $userId})
          SET p.status = 'rejected', p.resolvedAt = $now
          RETURN p.status AS status, m.id AS memoryId`,
-        { proposalId, now },
+        { proposalId, userId, now },
       );
 
       if (result.records.length === 0) return null;
