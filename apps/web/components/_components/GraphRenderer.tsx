@@ -95,45 +95,43 @@ export default function GraphRenderer({
   }, []);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
-      <div className="flex flex-shrink-0 flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div className="flex gap-4 text-sm text-muted-foreground">
-          <span>{nodeCount} memories</span>
-          <span>{connectionCount} connections</span>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            size="icon-sm"
-            variant="secondary"
-            onClick={zoomIn}
-            className="bg-muted border border-border"
-          >
-            <IconZoomIn size={16} />
-          </Button>
-          <Button
-            size="icon-sm"
-            variant="secondary"
-            onClick={zoomOut}
-            className="bg-muted border border-border"
-          >
-            <IconZoomOut size={16} />
-          </Button>
-          <Button
-            size="icon-sm"
-            variant="secondary"
-            onClick={resetCamera}
-            className="bg-muted border border-border"
-          >
-            <IconFocus2 size={16} />
-          </Button>
-        </div>
+    <div className="relative h-full min-h-0 overflow-hidden rounded-xl border border-border">
+      <div ref={containerRef} className="w-full h-full bg-background" />
+
+      <div className="absolute top-4 left-4 flex gap-3 text-xs text-muted-foreground pointer-events-none">
+        <span>{nodeCount} memories</span>
+        <span>{connectionCount} connections</span>
       </div>
 
-      <div className="relative flex-1 min-h-0 overflow-hidden rounded-xl border border-border">
-        <div ref={containerRef} className="w-full h-full bg-background" />
-        <div className="absolute bottom-4 left-4 text-xs text-muted-foreground pointer-events-none">
-          Click node to view details &bull; Drag to pan &bull; Scroll to zoom
-        </div>
+      <div className="absolute top-4 right-4 flex gap-1.5">
+        <Button
+          size="icon-sm"
+          variant="secondary"
+          onClick={zoomIn}
+          className="bg-background/80 backdrop-blur-sm border border-border"
+        >
+          <IconZoomIn size={16} />
+        </Button>
+        <Button
+          size="icon-sm"
+          variant="secondary"
+          onClick={zoomOut}
+          className="bg-background/80 backdrop-blur-sm border border-border"
+        >
+          <IconZoomOut size={16} />
+        </Button>
+        <Button
+          size="icon-sm"
+          variant="secondary"
+          onClick={resetCamera}
+          className="bg-background/80 backdrop-blur-sm border border-border"
+        >
+          <IconFocus2 size={16} />
+        </Button>
+      </div>
+
+      <div className="absolute bottom-4 left-4 text-xs text-muted-foreground pointer-events-none">
+        Click node to view details &bull; Drag to pan &bull; Scroll to zoom
       </div>
     </div>
   );
