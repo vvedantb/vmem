@@ -81,7 +81,7 @@ export default function PageContainer({
         animate={{ opacity: 1, y: 0 }}
         transition={contentTransition}
       >
-        <div className="space-y-8 pb-6">{children}</div>
+        <div className="space-y-8 pb-6 min-h-full">{children}</div>
       </motion.div>
     </div>
   );
