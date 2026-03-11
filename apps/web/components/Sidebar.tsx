@@ -41,6 +41,7 @@ import {
   IconMenu2,
   IconX,
   IconFiles,
+  IconDatabase,
   IconPlugConnected,
   IconMoon,
   IconSun,
@@ -78,6 +79,7 @@ const navGroups: NavGroup[] = [
         ],
       },
       { href: "/files", label: "Files", icon: IconFiles },
+      { href: "/index", label: "Index", icon: IconDatabase },
     ],
   },
   {
