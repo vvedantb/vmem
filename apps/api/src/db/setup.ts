@@ -26,7 +26,7 @@ export async function setupDatabase(driver: Driver): Promise<void> {
     );
     await session.run(
       `CREATE FULLTEXT INDEX memory_content IF NOT EXISTS
-       FOR (m:Memory) ON EACH [m.content]`,
+       FOR (m:Memory) ON EACH [m.title, m.content]`,
     );
     console.log("neo4j indexes and constraints ready");
   } finally {
