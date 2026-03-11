@@ -122,20 +122,12 @@
     isolation: isolate;
     border: 1px solid oklch(var(--border) / 0.5);
     background: oklch(var(--glass-bg-soft) / 0.82);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow:
-      0 1px 3px oklch(var(--glass-shadow) / 0.06),
-      0 6px 20px -2px oklch(var(--glass-shadow) / 0.09),
-      inset 0 1px 0 oklch(var(--glass-highlight) / 0.5);
   }
 
   .glass-panel-strong {
     @apply glass-panel;
     border-color: oklch(var(--border) / 0.62);
     background: oklch(var(--glass-bg) / 0.88);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
     box-shadow:
       0 2px 6px oklch(var(--glass-shadow) / 0.08),
       0 12px 32px -4px oklch(var(--glass-shadow) / 0.12),
@@ -146,8 +138,6 @@
     @apply glass-panel;
     border-color: oklch(var(--border) / 0.38);
     background: oklch(var(--glass-bg-soft) / 0.65);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     box-shadow:
       0 1px 2px oklch(var(--glass-shadow) / 0.04),
       0 4px 12px -2px oklch(var(--glass-shadow) / 0.07),
