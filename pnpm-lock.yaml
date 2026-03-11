@@ -35,6 +35,9 @@ importers:
       neo4j-driver:
         specifier: ^5.27.0
         version: 5.28.3
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -45,9 +48,6 @@ importers:
       kill-port:
         specifier: ^2.0.1
         version: 2.0.1
-      tsx:
-        specifier: ^4.21.0
-        version: 4.21.0
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
