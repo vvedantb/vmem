@@ -5,6 +5,7 @@ import {
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@vmem/ui";
@@ -47,6 +48,9 @@ export default function GraphNodeDetailDialog({
       <DialogContent>
         <DialogHeader className="border-b border-border pb-4">
           <DialogTitle className="text-foreground">{attrs.label}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Memory node details including content, tags, and related memories
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div>
