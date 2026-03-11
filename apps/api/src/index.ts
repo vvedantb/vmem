@@ -5,10 +5,10 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { memories } from "./routes/memories";
-import { proposedUpdates } from "./routes/proposed-updates";
-import { getDriver, closeDriver } from "./db/neo4j";
-import { setupDatabase } from "./db/setup";
+import { memories } from "./routes/memories.js";
+import { proposedUpdates } from "./routes/proposed-updates.js";
+import { getDriver, closeDriver } from "./db/neo4j.js";
+import { setupDatabase } from "./db/setup.js";
 
 const app = new Hono().basePath("/v1");
 
