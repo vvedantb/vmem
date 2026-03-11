@@ -9,13 +9,14 @@ import type {
   NodeAttributes,
   EdgeAttributes,
   HoveredNodeInfo,
+  GraphThemeColors,
 } from "./graph-types";
 
 interface GraphRendererProps {
   graph: Graph<NodeAttributes, EdgeAttributes>;
   onHoverNode: (info: HoveredNodeInfo | null) => void;
   onClickNode: (nodeId: string) => void;
-  defaultEdgeColor: string;
+  themeColors: GraphThemeColors;
   nodeCount: number;
   connectionCount: number;
 }
@@ -24,7 +25,7 @@ export default function GraphRenderer({
   graph,
   onHoverNode,
   onClickNode,
-  defaultEdgeColor,
+  themeColors,
   nodeCount,
   connectionCount,
 }: GraphRendererProps) {
@@ -44,7 +45,9 @@ export default function GraphRenderer({
       containerRef.current,
       {
         renderEdgeLabels: false,
-        defaultEdgeColor,
+        defaultEdgeColor: themeColors.edgeColor,
+        defaultNodeColor: themeColors.defaultNodeColor,
+        labelColor: { color: themeColors.labelColor },
         labelFont: "system-ui, sans-serif",
         labelSize: 12,
         labelRenderedSizeThreshold: 6,
@@ -80,7 +83,7 @@ export default function GraphRenderer({
       renderer.kill();
       sigmaRef.current = null;
     };
-  }, [graph, defaultEdgeColor]);
+  }, [graph, themeColors]);
 
   const zoomIn = useCallback(() => {
     sigmaRef.current?.getCamera().animatedZoom({ duration: 300 });
@@ -130,7 +133,7 @@ export default function GraphRenderer({
       </div>
 
       <div className="relative flex-1 min-h-0 overflow-hidden rounded-xl border border-border">
-        <div ref={containerRef} className="w-full h-full" />
+        <div ref={containerRef} className="w-full h-full bg-background" />
         <div className="absolute bottom-4 left-4 text-xs text-muted-foreground pointer-events-none">
           Click node to view details &bull; Drag to pan &bull; Scroll to zoom
         </div>

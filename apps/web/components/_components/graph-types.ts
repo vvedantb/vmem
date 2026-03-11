@@ -21,3 +21,9 @@ export interface HoveredNodeInfo {
   viewportX: number;
   viewportY: number;
 }
+
+export interface GraphThemeColors {
+  labelColor: string;
+  edgeColor: string;
+  defaultNodeColor: string;
+}
