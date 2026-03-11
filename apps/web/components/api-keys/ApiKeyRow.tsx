@@ -63,6 +63,7 @@ export function ApiKeyRow({
               variant="ghost"
               onClick={() => onToggleReveal(apiKey.id)}
               disabled={revealingKeyId === apiKey.id}
+              aria-label={revealedKey ? "Hide API key" : "Reveal API key"}
               className="text-muted-foreground hover:text-foreground"
             >
               {revealingKeyId === apiKey.id ? (
@@ -80,6 +81,7 @@ export function ApiKeyRow({
               variant="ghost"
               onClick={() => onCopy(apiKey.id)}
               disabled={copyingKeyId === apiKey.id}
+              aria-label="Copy API key"
               className="text-muted-foreground hover:text-foreground"
             >
               {copyingKeyId === apiKey.id ? (

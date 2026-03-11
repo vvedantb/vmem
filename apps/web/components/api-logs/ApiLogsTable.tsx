@@ -22,16 +22,28 @@ export function ApiLogsTable({ logs }: ApiLogsTableProps) {
       <table className="w-full">
         <thead>
           <tr className="border-b border-border bg-muted/50">
-            <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            <th
+              scope="col"
+              className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider"
+            >
               Endpoint
             </th>
-            <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            <th
+              scope="col"
+              className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider"
+            >
               Status
             </th>
-            <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
+            <th
+              scope="col"
+              className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell"
+            >
               Duration
             </th>
-            <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            <th
+              scope="col"
+              className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider"
+            >
               Time
             </th>
           </tr>
