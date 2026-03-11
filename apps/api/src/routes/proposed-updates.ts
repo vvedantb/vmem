@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod/v4";
-import { MemoryService } from "../db/memory-service.js";
-import { getDriver } from "../db/neo4j.js";
+import { MemoryService } from "../db/memory-service";
+import { getDriver } from "../db/neo4j";
 
 const resolveSchema = z.object({
   action: z.enum(["approve", "reject"]),
