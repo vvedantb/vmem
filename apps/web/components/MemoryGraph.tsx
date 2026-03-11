@@ -7,10 +7,12 @@ import forceAtlas2 from "graphology-layout-forceatlas2";
 import { Skeleton } from "@vmem/ui";
 import { IconMoodEmpty } from "@tabler/icons-react";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
+import { useThemeContext } from "@/components/contexts/ThemeContext";
 import type {
   NodeAttributes,
   EdgeAttributes,
   HoveredNodeInfo,
+  GraphThemeColors,
 } from "./_components/graph-types";
 import GraphNodeTooltip from "./_components/GraphNodeTooltip";
 import GraphNodeDetailDialog from "./_components/GraphNodeDetailDialog";
@@ -19,17 +21,12 @@ const GraphRenderer = dynamic(() => import("./_components/GraphRenderer"), {
   ssr: false,
 });
 
-function tagToHex(tag: string): string {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = ((hash % 360) + 360) % 360;
-  const s = 0.55;
-  const l = 0.55;
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100;
+  l /= 100;
   const a = s * Math.min(l, 1 - l);
   const f = (n: number) => {
-    const k = (n + hue / 30) % 12;
+    const k = (n + h / 30) % 12;
     const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
     return Math.round(255 * color)
       .toString(16)
@@ -38,10 +35,42 @@ function tagToHex(tag: string): string {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
+function tagToHue(tag: string): number {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return ((hash % 360) + 360) % 360;
+}
+
+function tagToHex(tag: string, isDark: boolean): string {
+  const hue = tagToHue(tag);
+  return isDark ? hslToHex(hue, 60, 65) : hslToHex(hue, 55, 50);
+}
+
 export default function MemoryGraph() {
   const { memories, isLoading } = useMemoryContext();
+  const { theme } = useThemeContext();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
+
+  const isDark = theme === "dark";
+
+  const themeColors = useMemo<GraphThemeColors>(
+    () =>
+      isDark
+        ? {
+            labelColor: "#e8e8ec",
+            edgeColor: "#ffffff22",
+            defaultNodeColor: "#888888",
+          }
+        : {
+            labelColor: "#333338",
+            edgeColor: "#00000018",
+            defaultNodeColor: "#888888",
+          },
+    [isDark],
+  );
 
   const { graph, nodeCount, edgeCount } = useMemo(() => {
     if (memories.length === 0) {
@@ -52,9 +81,11 @@ export default function MemoryGraph() {
       type: "undirected",
     });
 
+    const edgeColor = isDark ? "#ffffff18" : "#00000014";
+
     for (const memory of memories) {
       const color =
-        memory.tags.length > 0 ? tagToHex(memory.tags[0]) : "#888888";
+        memory.tags.length > 0 ? tagToHex(memory.tags[0], isDark) : "#888888";
       g.addNode(memory.id, {
         label: memory.title,
         content: memory.content,
@@ -75,7 +106,7 @@ export default function MemoryGraph() {
         if (sharedTags.length > 0) {
           g.addEdge(memories[i].id, memories[j].id, {
             weight: sharedTags.length,
-            color: "#88888844",
+            color: edgeColor,
           });
         }
       }
@@ -98,7 +129,7 @@ export default function MemoryGraph() {
     }
 
     return { graph: g, nodeCount: g.order, edgeCount: g.size };
-  }, [memories]);
+  }, [memories, isDark]);
 
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
@@ -156,7 +187,7 @@ export default function MemoryGraph() {
           graph={graph}
           onHoverNode={handleHoverNode}
           onClickNode={handleClickNode}
-          defaultEdgeColor="#88888844"
+          themeColors={themeColors}
           nodeCount={nodeCount}
           connectionCount={edgeCount}
         />
