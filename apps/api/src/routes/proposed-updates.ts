@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod/v4";
 import { MemoryService } from "../db/memory-service";
 import { getDriver } from "../db/neo4j";
+import { clerkAuth } from "../middleware/auth";
 
 const resolveSchema = z.object({
   action: z.enum(["approve", "reject"]),
@@ -11,13 +12,12 @@ function getService(): MemoryService {
   return new MemoryService(getDriver());
 }
 
-const proposedUpdates = new Hono();
+const proposedUpdates = new Hono<{ Variables: { userId: string } }>();
+
+proposedUpdates.use("*", clerkAuth);
 
 proposedUpdates.get("/", async (c) => {
-  const userId = c.req.query("userId");
-  if (!userId) {
-    return c.json({ error: "userId query param required" }, 400);
-  }
+  const userId = c.get("userId");
 
   const service = getService();
   const proposals = await service.listProposedUpdates(userId);

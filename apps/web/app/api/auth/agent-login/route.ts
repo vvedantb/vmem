@@ -30,7 +30,9 @@ export async function GET(request: NextRequest) {
     expiresInSeconds: 60,
   });
 
-  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  const rawProto = request.headers.get("x-forwarded-proto") ?? "https";
+  const proto =
+    rawProto === "http" || rawProto === "https" ? rawProto : "https";
   const host =
     request.headers.get("x-forwarded-host") ??
     request.headers.get("host") ??
