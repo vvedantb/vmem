@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import Sigma from "sigma";
 import type Graph from "graphology";
 import { Button } from "@vmem/ui";
@@ -31,53 +31,75 @@ export default function GraphRenderer({
 }: GraphRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sigmaRef = useRef<Sigma<NodeAttributes, EdgeAttributes> | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
+    setInitError(null);
 
-    const renderer = new Sigma<NodeAttributes, EdgeAttributes>(
-      graph,
-      containerRef.current,
-      {
-        renderEdgeLabels: false,
-        defaultEdgeColor: themeColors.edgeColor,
-        defaultNodeColor: themeColors.defaultNodeColor,
-        labelColor: { color: themeColors.labelColor },
-        labelFont:
-          getComputedStyle(containerRef.current).fontFamily ||
-          "system-ui, sans-serif",
-        labelSize: 12,
-        labelRenderedSizeThreshold: 6,
-        minCameraRatio: 0.08,
-        maxCameraRatio: 3,
-      },
-    );
+    let renderer: Sigma<NodeAttributes, EdgeAttributes> | null = null;
+    try {
+      renderer = new Sigma<NodeAttributes, EdgeAttributes>(
+        graph,
+        containerRef.current,
+        {
+          renderEdgeLabels: false,
+          defaultEdgeColor: themeColors.edgeColor,
+          defaultNodeColor: themeColors.defaultNodeColor,
+          labelColor: { color: themeColors.labelColor },
+          labelFont:
+            getComputedStyle(containerRef.current).fontFamily ||
+            "system-ui, sans-serif",
+          labelSize: 12,
+          labelRenderedSizeThreshold: 6,
+          minCameraRatio: 0.08,
+          maxCameraRatio: 3,
+        },
+      );
 
-    sigmaRef.current = renderer;
+      sigmaRef.current = renderer;
 
-    renderer.on("enterNode", ({ node }) => {
-      const displayData = renderer.getNodeDisplayData(node);
-      if (!displayData) return;
-      const attrs = graph.getNodeAttributes(node);
-      onHoverNode({
-        id: node,
-        title: attrs.label,
-        content: attrs.content,
-        viewportX: displayData.x,
-        viewportY: displayData.y,
+      renderer.on("enterNode", ({ node }) => {
+        try {
+          const displayData = renderer!.getNodeDisplayData(node);
+          if (!displayData) return;
+          const attrs = graph.getNodeAttributes(node);
+          onHoverNode({
+            id: node,
+            title: attrs.label,
+            content: attrs.content,
+            viewportX: displayData.x,
+            viewportY: displayData.y,
+          });
+        } catch (e) {
+          console.error("GraphRenderer: enterNode handler error", e);
+        }
       });
-    });
 
-    renderer.on("leaveNode", () => {
-      onHoverNode(null);
-    });
+      renderer.on("leaveNode", () => {
+        onHoverNode(null);
+      });
 
-    renderer.on("clickNode", ({ node }) => {
-      onClickNode(node);
-    });
+      renderer.on("clickNode", ({ node }) => {
+        try {
+          onClickNode(node);
+        } catch (e) {
+          console.error("GraphRenderer: clickNode handler error", e);
+        }
+      });
+    } catch (e) {
+      console.error("GraphRenderer: failed to initialize Sigma.js", e);
+      setInitError(
+        e instanceof Error ? e.message : "Failed to initialize graph renderer",
+      );
+    }
 
     return () => {
-      renderer.kill();
+      try {
+        renderer?.kill();
+      } catch (e) {
+        console.error("GraphRenderer: error during cleanup", e);
+      }
       sigmaRef.current = null;
     };
   }, [graph, themeColors, onHoverNode, onClickNode]);
@@ -94,9 +116,44 @@ export default function GraphRenderer({
     sigmaRef.current?.getCamera().animatedReset({ duration: 300 });
   }, []);
 
+  if (initError) {
+    return (
+      <div
+        role="alert"
+        className="relative h-full min-h-0 overflow-hidden rounded-xl border border-border flex items-center justify-center"
+      >
+        <p className="text-sm text-muted-foreground">
+          Graph rendering unavailable: {initError}
+        </p>
+      </div>
+    );
+  }
+
+  // Accessible node list for screen readers (visually hidden)
+  const nodeList = graph.nodes().map((nodeId) => {
+    const attrs = graph.getNodeAttributes(nodeId);
+    return { id: nodeId, label: attrs.label, content: attrs.content };
+  });
+
   return (
     <div className="relative h-full min-h-0 overflow-hidden rounded-xl border border-border">
-      <div ref={containerRef} className="w-full h-full bg-background" />
+      {/* Screen reader accessible node list */}
+      <ul className="sr-only" aria-label="Memory graph nodes">
+        {nodeList.map((node) => (
+          <li key={node.id}>
+            <button type="button" onClick={() => onClickNode(node.id)}>
+              {node.label}: {node.content}
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div
+        ref={containerRef}
+        className="w-full h-full bg-background"
+        role="img"
+        aria-label={`Memory graph with ${nodeCount} memories and ${connectionCount} connections`}
+      />
 
       <div className="absolute top-4 left-4 flex gap-3 text-xs text-muted-foreground pointer-events-none">
         <span>{nodeCount} memories</span>
@@ -108,6 +165,7 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={zoomIn}
+          aria-label="Zoom in"
           className="bg-background/80 border border-border"
         >
           <IconZoomIn size={16} />
@@ -116,6 +174,7 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={zoomOut}
+          aria-label="Zoom out"
           className="bg-background/80 border border-border"
         >
           <IconZoomOut size={16} />
@@ -124,6 +183,7 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={resetCamera}
+          aria-label="Reset camera"
           className="bg-background/80 border border-border"
         >
           <IconFocus2 size={16} />
