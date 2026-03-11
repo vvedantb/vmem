@@ -1,21 +1,11 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Button,
-  Input,
-  Table,
-  TableHeader,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  Badge,
-  Skeleton,
-} from "@vmem/ui";
+import { Button, Input, Badge, Card, Skeleton, cn } from "@vmem/ui";
 import { IconSearch, IconMoodEmpty, IconX } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
-import MemoryDetailModal from "./MemoryDetailModal";
+import { AnimatePresence, motion } from "motion/react";
+import MemoryDetailPanel from "./MemoryDetailPanel";
 import {
   buildTagStats,
   searchMemories,
@@ -121,42 +111,20 @@ export default function MemorySearch() {
     [selectedMemoryId],
   );
 
-  const handleRowClick = useCallback((memory: Memory) => {
-    setSelectedMemoryId(memory.id);
-  }, []);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
+  const handleCardClick = useCallback(
+    (memory: Memory) => {
+      setSelectedMemoryId(selectedMemoryId === memory.id ? null : memory.id);
+    },
+    [selectedMemoryId],
+  );
 
   if (isLoading) {
     return (
       <>
         <Skeleton className="h-12 w-full rounded-xl" />
-        <div className="border border-border rounded-xl overflow-hidden">
-          <div className="bg-muted/50 p-4">
-            <div className="flex gap-8">
-              <Skeleton className="h-4 w-20 rounded" />
-              <Skeleton className="h-4 w-16 rounded hidden md:block" />
-              <Skeleton className="h-4 w-24 rounded" />
-            </div>
-          </div>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="p-4 border-t border-border">
-              <div className="flex items-center gap-8">
-                <Skeleton className="h-4 w-48 rounded" />
-                <div className="hidden md:flex gap-2">
-                  <Skeleton className="h-6 w-16 rounded-full" />
-                  <Skeleton className="h-6 w-20 rounded-full" />
-                </div>
-                <Skeleton className="h-4 w-24 rounded" />
-              </div>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
         </div>
       </>
@@ -253,90 +221,97 @@ export default function MemorySearch() {
       )}
 
       {(!isShowingSearchResults || displayData.length > 0) && (
-        <div className="border border-border rounded-xl overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="text-muted-foreground font-medium">
-                  TITLE
-                </TableHead>
-                <TableHead
-                  className={`text-muted-foreground font-medium w-24 ${isShowingSearchResults ? "" : "hidden"}`}
-                >
-                  SCORE
-                </TableHead>
-                <TableHead className="text-muted-foreground font-medium hidden md:table-cell">
-                  TAGS
-                </TableHead>
-                <TableHead className="text-muted-foreground font-medium">
-                  CREATED
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {displayData.map((item) => (
-                <TableRow
-                  key={item.id}
-                  onClick={() => handleRowClick(item)}
-                  className="cursor-pointer hover:bg-accent"
-                >
-                  <TableCell className="py-5">
-                    <span className="text-foreground">{item.title}</span>
-                  </TableCell>
-                  <TableCell
-                    className={`py-5 ${isShowingSearchResults ? "" : "hidden"}`}
+        <div
+          className={cn(
+            "flex gap-4",
+            selectedMemory ? "flex-col lg:flex-row" : "",
+          )}
+        >
+          <div
+            className={cn(
+              "flex-1 min-w-0",
+              selectedMemory
+                ? "lg:max-h-[calc(100vh-16rem)] lg:overflow-y-auto lg:pr-1"
+                : "",
+            )}
+          >
+            <div
+              className={cn(
+                "grid gap-3",
+                selectedMemory
+                  ? "grid-cols-1"
+                  : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+              )}
+            >
+              <AnimatePresence mode="popLayout">
+                {displayData.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full"
-                          style={{
-                            width: `${Math.round(("relevanceScore" in item ? item.relevanceScore : 0) * 100)}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {Math.round(
-                          ("relevanceScore" in item ? item.relevanceScore : 0) *
-                            100,
+                    <Card
+                      className={cn(
+                        "cursor-pointer transition-all hover:bg-accent/50 p-4",
+                        selectedMemoryId === item.id &&
+                          "ring-2 ring-primary bg-accent/50",
+                      )}
+                      onClick={() => handleCardClick(item)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {item.title}
+                        </span>
+                        {isShowingSearchResults && "relevanceScore" in item && (
+                          <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
+                            {Math.round(item.relevanceScore * 100)}%
+                          </span>
                         )}
-                        %
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-5 hidden md:table-cell">
-                    <div className="flex gap-2 flex-wrap">
-                      {item.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          className="bg-muted text-muted-foreground border border-border text-xs"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-5">
-                    <span className="text-sm text-muted-foreground">
-                      {formatDate(item.createdAt)}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                      </div>
+                      {item.tags.length > 0 && (
+                        <div className="flex gap-1.5 flex-wrap mt-2">
+                          {item.tags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              className="bg-muted text-muted-foreground border border-border text-xs"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {selectedMemory && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+                className="lg:w-[420px] lg:flex-shrink-0"
+              >
+                <MemoryDetailPanel
+                  memory={selectedMemory}
+                  onClose={() => setSelectedMemoryId(null)}
+                  onMemoryUpdate={handleMemoryUpdate}
+                  onMemoryDelete={handleMemoryDelete}
+                  relatedMemories={relatedMemories}
+                  onSelectRelated={(memory) => setSelectedMemoryId(memory.id)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
-
-      <MemoryDetailModal
-        isOpen={!!selectedMemory}
-        memory={selectedMemory}
-        onClose={() => setSelectedMemoryId(null)}
-        onMemoryUpdate={handleMemoryUpdate}
-        onMemoryDelete={handleMemoryDelete}
-        relatedMemories={relatedMemories}
-        onSelectRelated={(memory) => setSelectedMemoryId(memory.id)}
-      />
     </>
   );
 }
