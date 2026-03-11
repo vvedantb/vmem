@@ -4,10 +4,15 @@ import { Separator, Button, Skeleton, cn } from "@vmem/ui";
 import { UserButton } from "@clerk/nextjs";
 import { IconMoon, IconSun } from "@tabler/icons-react";
 
-function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
-  const memoriesAdded = 12;
-  const memoriesRetrieved = 47;
-
+function StatsCard({
+  isIconOnly,
+  memoriesAdded,
+  memoriesRetrieved,
+}: {
+  isIconOnly: boolean;
+  memoriesAdded: number;
+  memoriesRetrieved: number;
+}) {
   if (isIconOnly) {
     return (
       <div className="mx-auto flex w-fit flex-col items-center gap-1.5 rounded-xl bg-card/40 px-2 py-2.5 ring-1 ring-border/30">
@@ -53,6 +58,8 @@ export type SidebarFooterProps = {
   isDark: boolean;
   toggleTheme: () => void;
   isAuthLoading: boolean;
+  memoriesAdded?: number;
+  memoriesRetrieved?: number;
 };
 
 export function SidebarFooter({
@@ -62,12 +69,18 @@ export function SidebarFooter({
   isDark,
   toggleTheme,
   isAuthLoading,
+  memoriesAdded = 0,
+  memoriesRetrieved = 0,
 }: SidebarFooterProps) {
   const isIconOnly = !isMobile && isCollapsed;
 
   return (
     <div className={cn("space-y-4 pt-3")}>
-      <StatsCard isIconOnly={isIconOnly} />
+      <StatsCard
+        isIconOnly={isIconOnly}
+        memoriesAdded={memoriesAdded}
+        memoriesRetrieved={memoriesRetrieved}
+      />
       <Separator className="bg-border/45" />
 
       <div className={cn(isMobile ? "pr-2" : "px-2")}>
