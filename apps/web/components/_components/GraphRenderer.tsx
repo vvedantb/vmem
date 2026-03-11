@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import Sigma from "sigma";
 import type Graph from "graphology";
 import { Button } from "@vmem/ui";
@@ -31,38 +31,27 @@ export default function GraphRenderer({
 }: GraphRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sigmaRef = useRef<Sigma<NodeAttributes, EdgeAttributes> | null>(null);
-  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    let renderer: Sigma<NodeAttributes, EdgeAttributes>;
-    try {
-      renderer = new Sigma<NodeAttributes, EdgeAttributes>(
-        graph,
-        containerRef.current,
-        {
-          renderEdgeLabels: false,
-          defaultEdgeColor: themeColors.edgeColor,
-          defaultNodeColor: themeColors.defaultNodeColor,
-          labelColor: { color: themeColors.labelColor },
-          labelFont:
-            getComputedStyle(containerRef.current).fontFamily ||
-            "system-ui, sans-serif",
-          labelSize: 12,
-          labelRenderedSizeThreshold: 6,
-          minCameraRatio: 0.08,
-          maxCameraRatio: 3,
-        },
-      );
-    } catch (err) {
-      setInitError(
-        err instanceof Error
-          ? err.message
-          : "Failed to initialize graph renderer",
-      );
-      return;
-    }
+    const renderer = new Sigma<NodeAttributes, EdgeAttributes>(
+      graph,
+      containerRef.current,
+      {
+        renderEdgeLabels: false,
+        defaultEdgeColor: themeColors.edgeColor,
+        defaultNodeColor: themeColors.defaultNodeColor,
+        labelColor: { color: themeColors.labelColor },
+        labelFont:
+          getComputedStyle(containerRef.current).fontFamily ||
+          "system-ui, sans-serif",
+        labelSize: 12,
+        labelRenderedSizeThreshold: 6,
+        minCameraRatio: 0.08,
+        maxCameraRatio: 3,
+      },
+    );
 
     sigmaRef.current = renderer;
 
@@ -105,16 +94,6 @@ export default function GraphRenderer({
     sigmaRef.current?.getCamera().animatedReset({ duration: 300 });
   }, []);
 
-  if (initError) {
-    return (
-      <div className="relative h-full min-h-0 overflow-hidden rounded-xl border border-border flex items-center justify-center">
-        <p className="text-sm text-destructive">
-          Failed to load graph: {initError}
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="relative h-full min-h-0 overflow-hidden rounded-xl border border-border">
       <div ref={containerRef} className="w-full h-full bg-background" />
@@ -129,7 +108,6 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={zoomIn}
-          aria-label="Zoom in"
           className="bg-background/80 border border-border"
         >
           <IconZoomIn size={16} />
@@ -138,7 +116,6 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={zoomOut}
-          aria-label="Zoom out"
           className="bg-background/80 border border-border"
         >
           <IconZoomOut size={16} />
@@ -147,7 +124,6 @@ export default function GraphRenderer({
           size="icon-sm"
           variant="secondary"
           onClick={resetCamera}
-          aria-label="Reset camera"
           className="bg-background/80 border border-border"
         >
           <IconFocus2 size={16} />

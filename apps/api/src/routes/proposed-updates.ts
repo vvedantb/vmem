@@ -25,17 +25,8 @@ proposedUpdates.get("/", async (c) => {
 });
 
 proposedUpdates.post("/:id/approve", async (c) => {
-  const userId = c.req.query("userId");
-  if (!userId) {
-    return c.json({ error: "userId query param required" }, 400);
-  }
-
   const service = getService();
-  const result = await service.resolveProposal(
-    c.req.param("id"),
-    "approve",
-    userId,
-  );
+  const result = await service.resolveProposal(c.req.param("id"), "approve");
   if (!result) {
     return c.json({ error: "Proposal not found" }, 404);
   }
@@ -43,17 +34,8 @@ proposedUpdates.post("/:id/approve", async (c) => {
 });
 
 proposedUpdates.post("/:id/reject", async (c) => {
-  const userId = c.req.query("userId");
-  if (!userId) {
-    return c.json({ error: "userId query param required" }, 400);
-  }
-
   const service = getService();
-  const result = await service.resolveProposal(
-    c.req.param("id"),
-    "reject",
-    userId,
-  );
+  const result = await service.resolveProposal(c.req.param("id"), "reject");
   if (!result) {
     return c.json({ error: "Proposal not found" }, 404);
   }
