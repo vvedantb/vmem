@@ -110,9 +110,10 @@ export class MemoryService {
         MERGE (s:Source {name: $source})
         CREATE (m)-[:FROM_SOURCE]->(s)
         WITH m
-        UNWIND $tags AS tagName
-        MERGE (t:Tag {name: tagName})
-        MERGE (m)-[:TAGGED_WITH]->(t)
+        FOREACH (tagName IN $tags |
+          MERGE (t:Tag {name: tagName})
+          MERGE (m)-[:TAGGED_WITH]->(t)
+        )
         WITH m
         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
         RETURN m, collect(DISTINCT t.name) AS tags`,
