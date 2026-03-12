@@ -11,6 +11,7 @@
 import type * as apiKeys from "../apiKeys.js";
 import type * as apiLogs from "../apiLogs.js";
 import type * as auth from "../auth.js";
+import type * as notifications from "../notifications.js";
 import type * as users from "../users.js";
 
 import type {
@@ -23,6 +24,7 @@ declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
   apiLogs: typeof apiLogs;
   auth: typeof auth;
+  notifications: typeof notifications;
   users: typeof users;
 }>;
 
