@@ -1,8 +1,4 @@
-internal/
 node_modules
-.claude/
-CLAUDE.md
-AGENTS.md
 .agents/
 .env.local
 .mcp.json
