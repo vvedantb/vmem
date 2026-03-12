@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
+import { useMutation } from "convex/react";
 import { Card, CardContent, Button, Badge, Progress } from "@vmem/ui";
 import { toast } from "sonner";
 import {
@@ -16,8 +17,8 @@ import {
   IconAlertCircle,
   IconClock,
 } from "@tabler/icons-react";
+import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
-import type { Connector } from "@/lib/connectors";
 
 const iconMap: Record<
   string,
@@ -32,16 +33,14 @@ const iconMap: Record<
 };
 
 interface ConnectorCardProps {
-  connector: Connector;
-  onUpdate: (connector: Connector) => void;
+  connector: Doc<"connectors">;
 }
 
-function formatRelativeTime(dateString: string | null): string {
-  if (!dateString) return "Never";
+function formatRelativeTime(timestamp: number | undefined): string {
+  if (!timestamp) return "Never";
 
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  const now = Date.now();
+  const diffMs = now - timestamp;
   const diffMins = Math.floor(diffMs / (1000 * 60));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -52,48 +51,21 @@ function formatRelativeTime(dateString: string | null): string {
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return `${diffDays}d ago`;
 
-  return date.toLocaleDateString();
+  return new Date(timestamp).toLocaleDateString();
 }
 
-export default function ConnectorCard({
-  connector,
-  onUpdate,
-}: ConnectorCardProps) {
+export default function ConnectorCard({ connector }: ConnectorCardProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showOAuthModal, setShowOAuthModal] = useState(false);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const connectMutation = useMutation(api.connectors.connect);
+  const disconnectMutation = useMutation(api.connectors.disconnect);
+  const syncMutation = useMutation(api.connectors.sync);
 
   const Icon = iconMap[connector.icon] || IconBrandGoogleDrive;
   const isConnected = connector.connectionStatus === "connected";
   const isSyncing = connector.syncStatus === "syncing";
-
-  useEffect(() => {
-    if (isSyncing) {
-      pollIntervalRef.current = setInterval(async () => {
-        try {
-          const response = await fetch(`/api/connectors/${connector.id}`);
-          const data = await response.json();
-          if (data.success && data.data) {
-            onUpdate(data.data);
-            if (data.data.syncStatus !== "syncing") {
-              if (pollIntervalRef.current) {
-                clearInterval(pollIntervalRef.current);
-                pollIntervalRef.current = null;
-              }
-            }
-          }
-        } catch {}
-      }, 500);
-    }
-
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-      }
-    };
-  }, [isSyncing, connector.id, onUpdate]);
 
   const handleConnect = () => {
     setShowOAuthModal(true);
@@ -102,22 +74,10 @@ export default function ConnectorCard({
   const handleOAuthComplete = async () => {
     setIsConnecting(true);
     try {
-      const response = await fetch(`/api/connectors/${connector.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "connect" }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        onUpdate(data.data);
-        toast.success(`Successfully connected to ${connector.name}`);
-      } else {
-        toast.error(data.error || "Failed to connect");
-      }
+      await connectMutation({ id: connector._id });
+      toast.success(`Successfully connected to ${connector.name}`);
     } catch {
-      toast.error("An unexpected error occurred");
+      toast.error("Failed to connect");
     } finally {
       setIsConnecting(false);
     }
@@ -126,22 +86,10 @@ export default function ConnectorCard({
   const handleDisconnect = async () => {
     setIsDisconnecting(true);
     try {
-      const response = await fetch(`/api/connectors/${connector.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "disconnect" }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        onUpdate(data.data);
-        toast(`Disconnected from ${connector.name}`);
-      } else {
-        toast.error(data.error || "Failed to disconnect");
-      }
+      await disconnectMutation({ id: connector._id });
+      toast(`Disconnected from ${connector.name}`);
     } catch {
-      toast.error("An unexpected error occurred");
+      toast.error("Failed to disconnect");
     } finally {
       setIsDisconnecting(false);
     }
@@ -149,22 +97,10 @@ export default function ConnectorCard({
 
   const handleSync = async () => {
     try {
-      const response = await fetch(`/api/connectors/${connector.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "sync" }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        onUpdate(data.data);
-        toast(`Syncing ${connector.name}...`);
-      } else {
-        toast.error(data.error || "Failed to start sync");
-      }
+      await syncMutation({ id: connector._id });
+      toast(`Syncing ${connector.name}...`);
     } catch {
-      toast.error("An unexpected error occurred");
+      toast.error("Failed to start sync");
     }
   };
 

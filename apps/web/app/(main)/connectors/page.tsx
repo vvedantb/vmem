@@ -1,47 +1,24 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Button, Card, CardContent, Skeleton } from "@vmem/ui";
+import { useEffect } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { Card, CardContent, Skeleton, Button } from "@vmem/ui";
 import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";
+import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
 import ConnectorCard from "@/components/ConnectorCard";
-import type { Connector } from "@/lib/connectors";
 
 export default function ConnectorsPage() {
-  const [connectors, setConnectors] = useState<Connector[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchConnectors = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/connectors");
-      const data = await response.json();
-
-      if (data.success) {
-        setConnectors(data.data);
-      } else {
-        setError(data.error || "Failed to load connectors");
-      }
-    } catch {
-      setError("Failed to load connectors. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const connectors = useQuery(api.connectors.listMy);
+  const seedDefaults = useMutation(api.connectors.seedDefaults);
 
   useEffect(() => {
-    fetchConnectors();
-  }, [fetchConnectors]);
+    if (connectors && connectors.length === 0) {
+      seedDefaults();
+    }
+  }, [connectors, seedDefaults]);
 
-  const handleConnectorUpdate = useCallback((updatedConnector: Connector) => {
-    setConnectors((prev) =>
-      prev.map((c) => (c.id === updatedConnector.id ? updatedConnector : c)),
-    );
-  }, []);
-
-  if (isLoading) {
+  if (connectors === undefined) {
     return (
       <PageContainer title="Connectors">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -69,43 +46,11 @@ export default function ConnectorsPage() {
     );
   }
 
-  if (error) {
-    return (
-      <PageContainer title="Connectors">
-        <Card className="border border-destructive/30 bg-destructive/10 shadow-none">
-          <CardContent className="p-8 text-center">
-            <IconAlertCircle
-              size={48}
-              className="text-destructive mx-auto mb-4"
-              stroke={1.5}
-            />
-            <p className="text-foreground font-medium mb-2">
-              Failed to load connectors
-            </p>
-            <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button
-              onClick={fetchConnectors}
-              variant="outline"
-              className="border-destructive/30 text-destructive"
-            >
-              <IconRefresh size={16} />
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
-      </PageContainer>
-    );
-  }
-
   return (
     <PageContainer title="Connectors">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {connectors.map((connector) => (
-          <ConnectorCard
-            key={connector.id}
-            connector={connector}
-            onUpdate={handleConnectorUpdate}
-          />
+          <ConnectorCard key={connector._id} connector={connector} />
         ))}
       </div>
 
