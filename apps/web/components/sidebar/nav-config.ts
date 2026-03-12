@@ -1,6 +1,5 @@
 import {
   IconMessageCircle,
-  IconBrain,
   IconKey,
   IconBell,
   IconSettings,
@@ -13,8 +12,10 @@ import {
   IconStack2,
   IconPlug,
   IconUserCircle,
+  IconAdjustments,
+  IconShieldLock,
 } from "@tabler/icons-react";
-import type { NavGroup } from "./types";
+import type { NavGroup, SettingsNavItem } from "./types";
 
 export const navGroups: NavGroup[] = [
   {
@@ -22,32 +23,18 @@ export const navGroups: NavGroup[] = [
     icon: IconStack2,
     items: [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
-      {
-        href: "/memories",
-        label: "Memories",
-        icon: IconBrain,
-        children: [
-          { href: "/memories/list", label: "List", icon: IconList },
-          { href: "/memories/graph", label: "Graph", icon: IconShare3 },
-        ],
-      },
+      { href: "/memories/list", label: "Memory List", icon: IconList },
+      { href: "/memories/graph", label: "Memory Graph", icon: IconShare3 },
       { href: "/files", label: "Files", icon: IconFiles },
       { href: "/index", label: "Index", icon: IconDatabase },
     ],
   },
   {
-    title: "Integrations",
+    title: "API",
     icon: IconPlug,
     items: [
-      {
-        href: "/api",
-        label: "API Keys",
-        icon: IconKey,
-        children: [
-          { href: "/api/logs", label: "Usage", icon: IconFileText },
-          { href: "/api/keys", label: "Keys", icon: IconKey },
-        ],
-      },
+      { href: "/api/keys", label: "API Keys", icon: IconKey },
+      { href: "/api/logs", label: "Usage", icon: IconFileText },
       { href: "/connectors", label: "Connectors", icon: IconPlugConnected },
     ],
   },
@@ -58,5 +45,18 @@ export const navGroups: NavGroup[] = [
       { href: "/notifications", label: "Notifications", icon: IconBell },
       { href: "/settings", label: "Settings", icon: IconSettings },
     ],
+  },
+];
+
+export const settingsNavItems: SettingsNavItem[] = [
+  {
+    href: "/settings/preferences",
+    label: "Preferences",
+    icon: IconAdjustments,
+  },
+  {
+    href: "/settings/data-controls",
+    label: "Data Controls",
+    icon: IconShieldLock,
   },
 ];

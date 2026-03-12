@@ -13,7 +13,6 @@ export function NavLink({
   isMobile,
   unreadCount,
   onNavigate,
-  indent,
 }: {
   item: NavItem;
   pathname: string;
@@ -21,35 +20,29 @@ export function NavLink({
   isMobile: boolean;
   unreadCount: number;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
-  indent?: boolean;
 }) {
-  const isActive = item.children
-    ? pathname.startsWith(item.href)
-    : pathname === item.href || pathname.startsWith(item.href + "/");
+  const isActive =
+    pathname === item.href || pathname.startsWith(item.href + "/");
   const Icon = item.icon as NavIcon;
   const isNotifications = item.href === "/notifications";
   const showBadge = isNotifications && unreadCount > 0;
-  const href = item.children ? item.children[0].href : item.href;
 
   return (
     <Link
-      href={href}
+      href={item.href}
       onClick={onNavigate}
       title={isIconOnly ? item.label : undefined}
       className={cn(
         "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-all duration-200 ease-smooth",
         isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
         isMobile ? "py-3.5" : "py-2.5",
-        indent && !isIconOnly && "pl-9",
         isActive
-          ? item.children
-            ? "text-foreground"
-            : "glass-interactive text-foreground"
+          ? "glass-interactive text-foreground"
           : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
       )}
     >
       <span className="flex h-5 w-5 items-center justify-center text-current">
-        <Icon size={indent ? 16 : 18} stroke={1.7} />
+        <Icon size={18} stroke={1.7} />
       </span>
       <AnimatePresence initial={false}>
         {!isIconOnly ? (
