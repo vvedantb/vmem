@@ -37,6 +37,16 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_key_hash", ["keyHash"]),
 
+  userSettings: defineTable({
+    userId: v.id("users"),
+    theme: v.optional(
+      v.union(v.literal("light"), v.literal("dark"), v.literal("system")),
+    ),
+    language: v.optional(v.string()),
+    memoryAutoTag: v.optional(v.boolean()),
+    notificationsEnabled: v.optional(v.boolean()),
+  }).index("by_user", ["userId"]),
+
   apiRequestLogs: defineTable({
     userId: v.id("users"),
     apiKeyId: v.id("apiKeys"),
