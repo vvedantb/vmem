@@ -37,6 +37,26 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_key_hash", ["keyHash"]),
 
+  connectors: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    description: v.string(),
+    icon: v.string(),
+    connectionStatus: v.union(
+      v.literal("connected"),
+      v.literal("disconnected"),
+    ),
+    syncStatus: v.union(
+      v.literal("idle"),
+      v.literal("syncing"),
+      v.literal("error"),
+    ),
+    lastSyncAt: v.optional(v.number()),
+    syncProgress: v.number(),
+    itemsSynced: v.number(),
+    errorMessage: v.optional(v.string()),
+  }).index("by_user", ["userId"]),
+
   apiRequestLogs: defineTable({
     userId: v.id("users"),
     apiKeyId: v.id("apiKeys"),
