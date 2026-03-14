@@ -76,6 +76,22 @@ const schema = defineSchema({
   })
     .index("by_user_created", ["userId", "createdAt"])
     .index("by_key_created", ["apiKeyId", "createdAt"]),
+
+  notifications: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    description: v.string(),
+    type: v.union(
+      v.literal("success"),
+      v.literal("warning"),
+      v.literal("error"),
+      v.literal("info"),
+    ),
+    read: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_read", ["userId", "read"]),
 });
 
 export default schema;
