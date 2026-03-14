@@ -2,7 +2,18 @@ import { Agent } from "@convex-dev/agent";
 import { components } from "./_generated/api";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
-const openrouter = createOpenRouter();
+const apiKey = process.env.OPENROUTER_API_KEY;
+if (!apiKey) {
+  throw new Error("OPENROUTER_API_KEY environment variable is not set");
+}
+
+export const openrouter = createOpenRouter({
+  apiKey,
+  headers: {
+    "HTTP-Referer": "https://vmem.vedantb.com",
+    "X-Title": "vmem",
+  },
+});
 
 export const vmemAgent = new Agent(components.agent, {
   name: "vmem",
