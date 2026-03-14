@@ -13,6 +13,7 @@ import type * as apiKeys from "../apiKeys.js";
 import type * as apiLogs from "../apiLogs.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
+import type * as connectors from "../connectors.js";
 import type * as notifications from "../notifications.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
@@ -29,6 +30,7 @@ declare const fullApi: ApiFromModules<{
   apiLogs: typeof apiLogs;
   auth: typeof auth;
   chat: typeof chat;
+  connectors: typeof connectors;
   notifications: typeof notifications;
   userSettings: typeof userSettings;
   users: typeof users;
