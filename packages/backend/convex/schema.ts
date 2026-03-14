@@ -37,6 +37,36 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_key_hash", ["keyHash"]),
 
+  connectors: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    description: v.string(),
+    icon: v.string(),
+    connectionStatus: v.union(
+      v.literal("connected"),
+      v.literal("disconnected"),
+    ),
+    syncStatus: v.union(
+      v.literal("idle"),
+      v.literal("syncing"),
+      v.literal("error"),
+    ),
+    lastSyncAt: v.optional(v.number()),
+    syncProgress: v.number(),
+    itemsSynced: v.number(),
+    errorMessage: v.optional(v.string()),
+  }).index("by_user", ["userId"]),
+
+  userSettings: defineTable({
+    userId: v.id("users"),
+    theme: v.optional(
+      v.union(v.literal("light"), v.literal("dark"), v.literal("system")),
+    ),
+    language: v.optional(v.string()),
+    memoryAutoTag: v.optional(v.boolean()),
+    notificationsEnabled: v.optional(v.boolean()),
+  }).index("by_user", ["userId"]),
+
   apiRequestLogs: defineTable({
     userId: v.id("users"),
     apiKeyId: v.id("apiKeys"),
@@ -48,6 +78,22 @@ const schema = defineSchema({
   })
     .index("by_user_created", ["userId", "createdAt"])
     .index("by_key_created", ["apiKeyId", "createdAt"]),
+
+  notifications: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    description: v.string(),
+    type: v.union(
+      v.literal("success"),
+      v.literal("warning"),
+      v.literal("error"),
+      v.literal("info"),
+    ),
+    read: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_read", ["userId", "read"]),
 });
 
 export default schema;
