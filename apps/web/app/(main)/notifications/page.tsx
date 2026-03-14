@@ -23,6 +23,21 @@ import PageContainer from "@/components/PageContainer";
 import { useNotifications } from "@/components/contexts/NotificationContext";
 import type { NotificationType } from "@/components/contexts/NotificationContext";
 
+function formatTimestamp(createdAt: number): string {
+  const now = Date.now();
+  const diffMs = now - createdAt;
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return new Date(createdAt).toLocaleDateString();
+}
+
 function NotificationIcon({ type }: { type: NotificationType }) {
   switch (type) {
     case "success":
@@ -94,39 +109,11 @@ export default function NotificationsPage() {
     notifications,
     unreadCount,
     isLoading,
-    error,
     markAsRead,
     markAsUnread,
     markAllAsRead,
     deleteNotification,
-    fetchNotifications,
   } = useNotifications();
-
-  if (error) {
-    return (
-      <PageContainer title="Notifications">
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
-            <IconAlertCircle
-              className="w-8 h-8 text-destructive"
-              stroke={1.5}
-            />
-          </div>
-          <h3 className="text-lg font-medium text-foreground mb-1">
-            Something went wrong
-          </h3>
-          <p className="text-sm text-muted-foreground mb-4">{error}</p>
-          <Button
-            variant="secondary"
-            onClick={fetchNotifications}
-            className="bg-muted"
-          >
-            Try again
-          </Button>
-        </div>
-      </PageContainer>
-    );
-  }
 
   return (
     <PageContainer
@@ -151,7 +138,7 @@ export default function NotificationsPage() {
         <div className="space-y-3">
           {notifications.map((notification) => (
             <div
-              key={notification.id}
+              key={notification._id}
               className={`p-6 rounded-xl border transition-colors ${
                 notification.read
                   ? "border-border bg-muted/50"
@@ -178,7 +165,7 @@ export default function NotificationsPage() {
                       {notification.title}
                     </h3>
                     <span className="text-sm text-muted-foreground flex-shrink-0">
-                      {notification.timestamp}
+                      {formatTimestamp(notification.createdAt)}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -202,14 +189,14 @@ export default function NotificationsPage() {
                     <DropdownMenuContent align="end">
                       {notification.read ? (
                         <DropdownMenuItem
-                          onClick={() => markAsUnread(notification.id)}
+                          onClick={() => markAsUnread(notification._id)}
                         >
                           <IconEyeOff size={16} stroke={1.5} />
                           Mark as unread
                         </DropdownMenuItem>
                       ) : (
                         <DropdownMenuItem
-                          onClick={() => markAsRead(notification.id)}
+                          onClick={() => markAsRead(notification._id)}
                         >
                           <IconEye size={16} stroke={1.5} />
                           Mark as read
@@ -217,7 +204,7 @@ export default function NotificationsPage() {
                       )}
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
-                        onClick={() => deleteNotification(notification.id)}
+                        onClick={() => deleteNotification(notification._id)}
                       >
                         <IconTrash size={16} stroke={1.5} />
                         Delete
