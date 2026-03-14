@@ -55,6 +55,14 @@ const schema = defineSchema({
     syncProgress: v.number(),
     itemsSynced: v.number(),
     errorMessage: v.optional(v.string()),
+  userSettings: defineTable({
+    userId: v.id("users"),
+    theme: v.optional(
+      v.union(v.literal("light"), v.literal("dark"), v.literal("system")),
+    ),
+    language: v.optional(v.string()),
+    memoryAutoTag: v.optional(v.boolean()),
+    notificationsEnabled: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
 
   apiRequestLogs: defineTable({
