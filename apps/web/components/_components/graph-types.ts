@@ -1,17 +1,21 @@
-export interface NodeAttributes {
+export interface SimNode {
+  id: string;
   label: string;
   content: string;
   tags: string[];
   createdAt: string;
-  size: number;
-  color: string;
   x: number;
   y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  color: string;
 }
 
-export interface EdgeAttributes {
+export interface SimEdge {
+  sourceIndex: number;
+  targetIndex: number;
   weight: number;
-  color: string;
 }
 
 export interface HoveredNodeInfo {
@@ -20,10 +24,4 @@ export interface HoveredNodeInfo {
   content: string;
   viewportX: number;
   viewportY: number;
-}
-
-export interface GraphThemeColors {
-  labelColor: string;
-  edgeColor: string;
-  defaultNodeColor: string;
 }
