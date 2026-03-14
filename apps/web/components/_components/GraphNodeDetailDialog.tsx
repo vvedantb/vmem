@@ -8,12 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@vmem/ui";
-import type Graph from "graphology";
-import type { NodeAttributes, EdgeAttributes } from "./graph-types";
+import type { SimNode, SimEdge } from "./graph-types";
 
 interface GraphNodeDetailDialogProps {
   nodeId: string | null;
-  graph: Graph<NodeAttributes, EdgeAttributes> | null;
+  nodes: SimNode[];
+  edges: SimEdge[];
   onClose: () => void;
   onNavigate: (nodeId: string) => void;
 }
@@ -28,14 +28,32 @@ function formatDate(dateString: string) {
 
 export default function GraphNodeDetailDialog({
   nodeId,
-  graph,
+  nodes,
+  edges,
   onClose,
   onNavigate,
 }: GraphNodeDetailDialogProps) {
-  if (!nodeId || !graph || !graph.hasNode(nodeId)) return null;
+  if (!nodeId) return null;
 
-  const attrs = graph.getNodeAttributes(nodeId);
-  const neighbors = graph.neighbors(nodeId);
+  const nodeIndex = nodes.findIndex((n) => n.id === nodeId);
+  if (nodeIndex === -1) return null;
+
+  const node = nodes[nodeIndex];
+
+  const neighbors: Array<{ node: SimNode; weight: number }> = [];
+  for (const edge of edges) {
+    if (edge.sourceIndex === nodeIndex) {
+      neighbors.push({
+        node: nodes[edge.targetIndex],
+        weight: edge.weight,
+      });
+    } else if (edge.targetIndex === nodeIndex) {
+      neighbors.push({
+        node: nodes[edge.sourceIndex],
+        weight: edge.weight,
+      });
+    }
+  }
 
   return (
     <Dialog
@@ -46,14 +64,14 @@ export default function GraphNodeDetailDialog({
     >
       <DialogContent>
         <DialogHeader className="border-b border-border pb-4">
-          <DialogTitle className="text-foreground">{attrs.label}</DialogTitle>
+          <DialogTitle className="text-foreground">{node.label}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-2">
               Content
             </h4>
-            <p className="text-foreground">{attrs.content}</p>
+            <p className="text-foreground">{node.content}</p>
           </div>
 
           <div>
@@ -61,7 +79,7 @@ export default function GraphNodeDetailDialog({
               Tags
             </h4>
             <div className="flex gap-2 flex-wrap">
-              {attrs.tags.map((tag) => (
+              {node.tags.map((tag) => (
                 <Badge
                   key={tag}
                   variant="outline"
@@ -78,7 +96,7 @@ export default function GraphNodeDetailDialog({
               Created
             </h4>
             <p className="text-muted-foreground">
-              {formatDate(attrs.createdAt)}
+              {formatDate(node.createdAt)}
             </p>
           </div>
 
@@ -92,32 +110,24 @@ export default function GraphNodeDetailDialog({
                   No related memories found
                 </p>
               )}
-              {neighbors.map((neighborId) => {
-                const neighborAttrs = graph.getNodeAttributes(neighborId);
-                const edgeKey =
-                  graph.edge(nodeId, neighborId) ??
-                  graph.edge(neighborId, nodeId);
-                const weight = edgeKey
-                  ? graph.getEdgeAttribute(edgeKey, "weight")
-                  : 0;
-                return (
-                  <Button
-                    key={neighborId}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onNavigate(neighborId)}
-                    className="w-full h-auto p-3 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors justify-start items-start flex-col"
-                  >
-                    <p className="text-sm font-medium text-foreground">
-                      {neighborAttrs.label}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {weight} shared tag{weight > 1 ? "s" : ""}
-                    </p>
-                  </Button>
-                );
-              })}
+              {neighbors.map((neighbor) => (
+                <Button
+                  key={neighbor.node.id}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onNavigate(neighbor.node.id)}
+                  className="w-full h-auto p-3 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors justify-start items-start flex-col"
+                >
+                  <p className="text-sm font-medium text-foreground">
+                    {neighbor.node.label}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {neighbor.weight} shared tag
+                    {neighbor.weight > 1 ? "s" : ""}
+                  </p>
+                </Button>
+              ))}
             </div>
           </div>
         </div>
