@@ -98,31 +98,38 @@ function getActivityIcon(type: string) {
 }
 
 export default function Dashboard() {
+  const { userId } = useAuth();
   const [stats, setStats] = useState<StatsData | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
+    if (!userId) return;
     try {
       setIsLoading(true);
       setError(null);
 
+      const params = `userId=${encodeURIComponent(userId)}`;
       const [statsRes, activityRes] = await Promise.all([
-        fetch("/api/dashboard/stats"),
-        fetch("/api/dashboard/activity"),
+        fetch(`${API_URL}/v1/dashboard/stats?${params}`),
+        fetch(`${API_URL}/v1/dashboard/activity?${params}`),
       ]);
 
-      const statsData = await statsRes.json();
-      const activityData = await activityRes.json();
-
       if (!statsRes.ok) {
-        throw new Error(statsData.error || "Failed to fetch stats");
+        const statsErr = (await statsRes.json()) as { error: string };
+        throw new Error(statsErr.error || "Failed to fetch stats");
       }
 
       if (!activityRes.ok) {
-        throw new Error(activityData.error || "Failed to fetch activity");
+        const activityErr = (await activityRes.json()) as { error: string };
+        throw new Error(activityErr.error || "Failed to fetch activity");
       }
+
+      const statsData = (await statsRes.json()) as { data: StatsData };
+      const activityData = (await activityRes.json()) as {
+        data: ActivityItem[];
+      };
 
       setStats(statsData.data);
       setActivity(activityData.data);
@@ -131,7 +138,7 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     fetchData();
