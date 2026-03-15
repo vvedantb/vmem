@@ -135,16 +135,16 @@ export function renderGraph(
 
     if (isDark) {
       ctx.strokeStyle = dimmed
-        ? "rgba(255,255,255,0.015)"
+        ? "rgba(255,255,255,0.03)"
         : connected
-          ? "rgba(255,255,255,0.14)"
-          : "rgba(255,255,255,0.04)";
+          ? "rgba(255,255,255,0.25)"
+          : "rgba(255,255,255,0.12)";
     } else {
       ctx.strokeStyle = dimmed
-        ? "rgba(0,0,0,0.015)"
+        ? "rgba(0,0,0,0.03)"
         : connected
-          ? "rgba(0,0,0,0.14)"
-          : "rgba(0,0,0,0.06)";
+          ? "rgba(0,0,0,0.25)"
+          : "rgba(0,0,0,0.15)";
     }
     ctx.lineWidth = (connected ? 1.2 : 0.5) * invZoom;
     ctx.stroke();
@@ -179,33 +179,38 @@ export function renderGraph(
     ctx.shadowColor = "transparent";
   }
 
+  const maxLabelLen = 20;
+  const truncate = (s: string) =>
+    s.length > maxLabelLen ? s.slice(0, maxLabelLen - 1) + "…" : s;
+
   if (hasHover) {
-    const fontSize = Math.max(10, 12 * invZoom);
-    ctx.font = `500 ${fontSize}px system-ui, -apple-system, sans-serif`;
+    const fontSize = 14 * invZoom;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
+
+    const hovNode = nodes[hoveredIndex];
+    ctx.font = `600 ${fontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = isDark ? "#ffffff" : "#111111";
+    const hovOffset = (hovNode.radius + 6) * invZoom;
+    ctx.fillText(truncate(hovNode.label), hovNode.x, hovNode.y + hovOffset);
+
+    ctx.font = `400 ${fontSize * 0.9}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)";
     for (const idx of connectedSet) {
+      if (idx === hoveredIndex) continue;
       const node = nodes[idx];
-      const isHov = idx === hoveredIndex;
-      ctx.fillStyle = isDark
-        ? isHov
-          ? "#ffffff"
-          : "rgba(255,255,255,0.6)"
-        : isHov
-          ? "#111111"
-          : "rgba(0,0,0,0.5)";
-      const offset = (node.radius + 6) * invZoom;
-      ctx.fillText(node.label, node.x, node.y + offset);
+      const offset = (node.radius + 5) * invZoom;
+      ctx.fillText(truncate(node.label), node.x, node.y + offset);
     }
   } else if (camera.zoom > 1.8) {
-    const fontSize = Math.max(9, 10 * invZoom);
+    const fontSize = 12 * invZoom;
     ctx.font = `400 ${fontSize}px system-ui, -apple-system, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillStyle = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)";
     for (const node of nodes) {
       const offset = (node.radius + 5) * invZoom;
-      ctx.fillText(node.label, node.x, node.y + offset);
+      ctx.fillText(truncate(node.label), node.x, node.y + offset);
     }
   }
 

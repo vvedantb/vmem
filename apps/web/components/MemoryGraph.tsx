@@ -156,8 +156,6 @@ export default function MemoryGraph() {
           <GraphNodeTooltip
             title={hoveredNode.title}
             content={hoveredNode.content}
-            x={hoveredNode.viewportX}
-            y={hoveredNode.viewportY}
           />
         )}
       </div>
