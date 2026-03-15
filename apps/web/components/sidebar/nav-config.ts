@@ -14,6 +14,7 @@ import {
   IconUserCircle,
   IconAdjustments,
   IconShieldLock,
+  IconLayoutDashboard,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -22,6 +23,11 @@ export const navGroups: NavGroup[] = [
     title: "Workspace",
     icon: IconStack2,
     items: [
+      {
+        href: "/dashboard",
+        label: "Dashboard",
+        icon: IconLayoutDashboard,
+      },
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/memories/list", label: "Memory List", icon: IconList },
       {
