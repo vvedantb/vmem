@@ -20,7 +20,7 @@ import {
   Suggestions,
   type PromptInputMessage,
 } from "@vmem/ui/ai";
-import { IconMessage } from "@tabler/icons-react";
+import Image from "next/image";
 import ChatMessageItem from "@/app/(main)/chat/_components/ChatMessageItem";
 
 export default function Chat() {
@@ -70,14 +70,28 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-full">
       <Conversation className="flex-1 min-h-0">
-        <ConversationContent className="pb-4">
+        <ConversationContent className="pb-4 max-w-4xl mx-auto w-full">
           {messages.length === 0 && (
             <ConversationEmptyState
               icon={
-                <IconMessage
-                  className="size-8 text-muted-foreground"
-                  stroke={1.5}
-                />
+                <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
+                  <Image
+                    unoptimized
+                    width={22}
+                    height={22}
+                    alt="vmem"
+                    src="/icon-dark.svg"
+                    className="block dark:hidden"
+                  />
+                  <Image
+                    unoptimized
+                    width={22}
+                    height={22}
+                    alt="vmem"
+                    src="/icon-light.svg"
+                    className="hidden dark:block"
+                  />
+                </div>
               }
               title="Start a conversation"
               description="Ask anything about your stored memories. The AI will search and reference relevant information."
@@ -106,7 +120,7 @@ export default function Chat() {
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="mt-4 flex-shrink-0 max-w-2xl mx-auto w-full">
+      <div className="mt-4 flex-shrink-0 max-w-3xl mx-auto w-full">
         <PromptInput onSubmit={handleSubmit} status={promptStatus}>
           <PromptInputTextarea placeholder="Ask about your memories..." />
           <PromptInputFooter>

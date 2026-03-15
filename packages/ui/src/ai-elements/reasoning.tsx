@@ -13,7 +13,7 @@ import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
-import { IconBrain, IconChevronDown } from "@tabler/icons-react";
+import { IconChevronDown } from "@tabler/icons-react";
 import { cn } from "../utils/cn";
 import {
   Collapsible,
@@ -137,7 +137,18 @@ function ReasoningTrigger({
       )}
       {...props}
     >
-      <IconBrain className="size-4" stroke={1.5} />
+      <span className="flex size-6 items-center justify-center rounded-full bg-muted">
+        <img
+          src="/icon-dark.svg"
+          alt="vmem"
+          className="size-3.5 block dark:hidden"
+        />
+        <img
+          src="/icon-light.svg"
+          alt="vmem"
+          className="size-3.5 hidden dark:block"
+        />
+      </span>
       {children ??
         (isStreaming ? (
           <Shimmer duration={1.5}>{thinkingText}</Shimmer>
