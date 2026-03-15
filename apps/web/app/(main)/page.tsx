@@ -1,10 +1,5 @@
-import PageContainer from "@/components/PageContainer";
-import Dashboard from "@/components/Dashboard";
+import { redirect } from "next/navigation";
 
-export default function DashboardPage() {
-  return (
-    <PageContainer title="Dashboard">
-      <Dashboard />
-    </PageContainer>
-  );
+export default function RootPage() {
+  redirect("/dashboard");
 }
