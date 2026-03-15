@@ -97,15 +97,17 @@ export default function FilesPage() {
     try {
       const response = await fetch("/api/files");
       if (!response.ok) {
-        throw new Error("Failed to fetch files");
+        setFiles([]);
+        setIsLoading(false);
+        return;
       }
 
       const data = await response.json();
       setFiles(data.data);
       setTotalBytes(data.totalBytes);
       setStorageLimit(data.storageLimit);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load files");
+    } catch {
+      setFiles([]);
     } finally {
       setIsLoading(false);
     }
@@ -272,7 +274,7 @@ export default function FilesPage() {
       </div>
 
       {files.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 px-4 border border-border rounded-xl bg-muted/50">
+        <div className="flex flex-col items-center justify-center py-16 px-4">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <IconFile size={32} className="text-muted-foreground" />
           </div>

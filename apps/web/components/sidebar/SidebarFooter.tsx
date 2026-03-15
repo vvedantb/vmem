@@ -10,37 +10,36 @@ function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
 
   if (isIconOnly) {
     return (
-      <div className="mx-auto flex w-fit flex-col items-center gap-1.5 rounded-xl bg-card/40 px-2 py-2.5 ring-1 ring-border/30">
-        <span className="text-sm font-semibold text-foreground">
+      <div className="mx-auto flex w-fit flex-col items-center gap-0.5 px-2 py-1">
+        <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
           {memoriesAdded}
         </span>
-        <Separator className="w-4 bg-border/40" />
-        <span className="text-sm font-semibold text-foreground">
+        <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
+          add
+        </span>
+        <span className="mt-1 text-xl font-instrumentSerif tabular-nums text-foreground">
           {memoriesRetrieved}
+        </span>
+        <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
+          ret
         </span>
       </div>
     );
   }
 
   return (
-    <div className="mx-2 rounded-xl bg-card/40 px-3.5 py-3 ring-1 ring-border/30">
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-        {"Today\u2019s Stats"}
-      </p>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex flex-col">
-          <span className="text-lg font-semibold leading-tight text-foreground">
-            {memoriesAdded}
-          </span>
-          <span className="text-[11px] text-muted-foreground">Added</span>
-        </div>
-        <Separator orientation="vertical" className="h-8 bg-border/40" />
-        <div className="flex flex-col">
-          <span className="text-lg font-semibold leading-tight text-foreground">
-            {memoriesRetrieved}
-          </span>
-          <span className="text-[11px] text-muted-foreground">Retrieved</span>
-        </div>
+    <div className="mx-2 flex items-baseline justify-between px-2">
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
+          {memoriesAdded}
+        </span>
+        <span className="text-[11px] text-muted-foreground/70">added</span>
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
+          {memoriesRetrieved}
+        </span>
+        <span className="text-[11px] text-muted-foreground/70">retrieved</span>
       </div>
     </div>
   );
