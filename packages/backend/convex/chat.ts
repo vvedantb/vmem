@@ -7,10 +7,21 @@ import { internalAction } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
 import { vmemAgent } from "./agent";
 
-export const createNewThread = authMutation({
+export const getOrCreateThread = authMutation({
   args: {},
   handler: async (ctx) => {
-    const threadId = await vmemAgent.createThread(ctx, {
+    const existing = await ctx.runQuery(
+      components.agent.threads.listThreadsByUserId,
+      {
+        userId: ctx.userId,
+        paginationOpts: { cursor: null, numItems: 1 },
+        order: "desc",
+      },
+    );
+    if (existing.page.length > 0) {
+      return existing.page[0]._id;
+    }
+    const { threadId } = await vmemAgent.createThread(ctx, {
       userId: ctx.userId,
     });
     return threadId;
@@ -70,18 +81,5 @@ export const listThreadMessages = authQuery({
       paginationOpts: args.paginationOpts,
     });
     return { ...paginated, streams };
-  },
-});
-
-export const listThreads = authQuery({
-  args: {
-    paginationOpts: paginationOptsValidator,
-  },
-  handler: async (ctx, args) => {
-    return await ctx.runQuery(components.agent.threads.listThreadsByUserId, {
-      userId: ctx.userId,
-      paginationOpts: args.paginationOpts,
-      order: "desc",
-    });
   },
 });
