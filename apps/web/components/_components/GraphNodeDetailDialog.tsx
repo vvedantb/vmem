@@ -8,12 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@vmem/ui";
-import type Graph from "graphology";
-import type { NodeAttributes, EdgeAttributes } from "./graph-types";
+import type { SimNode, SimEdge } from "./graph-types";
 
 interface GraphNodeDetailDialogProps {
   nodeId: string | null;
-  graph: Graph<NodeAttributes, EdgeAttributes> | null;
+  nodes: SimNode[];
+  edges: SimEdge[];
   onClose: () => void;
   onNavigate: (nodeId: string) => void;
 }
@@ -28,14 +28,32 @@ function formatDate(dateString: string) {
 
 export default function GraphNodeDetailDialog({
   nodeId,
-  graph,
+  nodes,
+  edges,
   onClose,
   onNavigate,
 }: GraphNodeDetailDialogProps) {
-  if (!nodeId || !graph || !graph.hasNode(nodeId)) return null;
+  if (!nodeId) return null;
 
-  const attrs = graph.getNodeAttributes(nodeId);
-  const neighbors = graph.neighbors(nodeId);
+  const nodeIndex = nodes.findIndex((n) => n.id === nodeId);
+  if (nodeIndex === -1) return null;
+
+  const node = nodes[nodeIndex];
+
+  const neighbors: Array<{ node: SimNode; weight: number }> = [];
+  for (const edge of edges) {
+    if (edge.sourceIndex === nodeIndex) {
+      neighbors.push({
+        node: nodes[edge.targetIndex],
+        weight: edge.weight,
+      });
+    } else if (edge.targetIndex === nodeIndex) {
+      neighbors.push({
+        node: nodes[edge.sourceIndex],
+        weight: edge.weight,
+      });
+    }
+  }
 
   return (
     <Dialog
@@ -44,80 +62,74 @@ export default function GraphNodeDetailDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent>
+      <DialogContent className="max-w-4xl">
         <DialogHeader className="border-b border-border pb-4">
-          <DialogTitle className="text-foreground">{attrs.label}</DialogTitle>
+          <DialogTitle className="text-foreground">{node.label}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">
-              Content
-            </h4>
-            <p className="text-foreground">{attrs.content}</p>
-          </div>
+        <div className="grid grid-cols-[1fr_auto] gap-6 py-2">
+          <div className="space-y-4 min-w-0">
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                Content
+              </h4>
+              <p className="text-foreground">{node.content}</p>
+            </div>
 
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">
-              Tags
-            </h4>
-            <div className="flex gap-2 flex-wrap">
-              {attrs.tags.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="bg-muted border-border text-muted-foreground text-xs"
-                >
-                  {tag}
-                </Badge>
-              ))}
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                Tags
+              </h4>
+              <div className="flex gap-2 flex-wrap">
+                {node.tags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="bg-muted border-border text-muted-foreground text-xs"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                Created
+              </h4>
+              <p className="text-muted-foreground">
+                {formatDate(node.createdAt)}
+              </p>
             </div>
           </div>
 
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">
-              Created
-            </h4>
-            <p className="text-muted-foreground">
-              {formatDate(attrs.createdAt)}
-            </p>
-          </div>
-
-          <div>
+          <div className="w-96 border-l border-border pl-6">
             <h4 className="text-sm font-medium text-muted-foreground mb-2">
               Related Memories
             </h4>
-            <div className="space-y-2">
+            <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
               {neighbors.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                   No related memories found
                 </p>
               )}
-              {neighbors.map((neighborId) => {
-                const neighborAttrs = graph.getNodeAttributes(neighborId);
-                const edgeKey =
-                  graph.edge(nodeId, neighborId) ??
-                  graph.edge(neighborId, nodeId);
-                const weight = edgeKey
-                  ? graph.getEdgeAttribute(edgeKey, "weight")
-                  : 0;
-                return (
-                  <Button
-                    key={neighborId}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onNavigate(neighborId)}
-                    className="w-full h-auto p-3 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors justify-start items-start flex-col"
-                  >
-                    <p className="text-sm font-medium text-foreground">
-                      {neighborAttrs.label}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {weight} shared tag{weight > 1 ? "s" : ""}
-                    </p>
-                  </Button>
-                );
-              })}
+              {neighbors.map((neighbor) => (
+                <Button
+                  key={neighbor.node.id}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onNavigate(neighbor.node.id)}
+                  className="w-full h-auto p-3 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors justify-start items-start flex-col"
+                >
+                  <p className="text-sm font-medium text-foreground truncate w-full text-left">
+                    {neighbor.node.label}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {neighbor.weight} shared tag
+                    {neighbor.weight > 1 ? "s" : ""}
+                  </p>
+                </Button>
+              ))}
             </div>
           </div>
         </div>

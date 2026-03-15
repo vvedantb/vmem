@@ -71,15 +71,19 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const fetchMemories = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
-    const res = await fetch(
-      `${API_URL}/v1/memories?userId=${encodeURIComponent(userId)}`,
-    );
-    if (res.ok) {
-      const data = (await res.json()) as {
-        memories: ApiMemory[];
-        total: number;
-      };
-      setMemories(data.memories.map(apiToMemory));
+    try {
+      const res = await fetch(
+        `${API_URL}/v1/memories?userId=${encodeURIComponent(userId)}`,
+      );
+      if (res.ok) {
+        const data = (await res.json()) as {
+          memories: ApiMemory[];
+          total: number;
+        };
+        setMemories(data.memories.map(apiToMemory));
+      }
+    } catch {
+      console.error("Failed to fetch memories — is the API server running?");
     }
     setIsLoading(false);
   }, [userId]);
