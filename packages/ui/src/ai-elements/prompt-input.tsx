@@ -218,7 +218,7 @@ function PromptInputSubmit({
     return (
       <Button
         type="button"
-        variant="outline"
+        variant="destructive"
         size="icon-xs"
         className={className}
         onClick={onStop}
