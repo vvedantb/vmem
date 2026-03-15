@@ -150,20 +150,20 @@ export default function MemorySearch() {
   return (
     <>
       <div className="relative">
-        <Input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search memories semantically..."
-          className="h-12 bg-muted/50 border-border pr-10 text-foreground hover:bg-accent focus-visible:border-ring"
-        />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2">
           <IconSearch
             className="text-muted-foreground"
             size={20}
             stroke={1.5}
           />
         </div>
+        <Input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search memories semantically..."
+          className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
+        />
       </div>
 
       {allTags.length > 0 && (

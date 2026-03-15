@@ -24,7 +24,7 @@ type SuggestionProps = ComponentProps<typeof Button>;
 
 function Suggestion({
   className,
-  variant = "outline",
+  variant = "ghost",
   size = "sm",
   ...props
 }: SuggestionProps) {
@@ -34,7 +34,7 @@ function Suggestion({
       variant={variant}
       size={size}
       className={cn(
-        "h-auto rounded-full border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent",
+        "h-auto rounded-full px-3 py-1.5 text-sm text-muted-foreground bg-muted hover:bg-accent",
         className,
       )}
       {...props}

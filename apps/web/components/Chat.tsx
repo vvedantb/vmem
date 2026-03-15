@@ -106,7 +106,7 @@ export default function Chat() {
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="mt-4 flex-shrink-0">
+      <div className="mt-4 flex-shrink-0 max-w-2xl mx-auto w-full">
         <PromptInput onSubmit={handleSubmit} status={promptStatus}>
           <PromptInputTextarea placeholder="Ask about your memories..." />
           <PromptInputFooter>

@@ -15,7 +15,7 @@ const InputGroup = React.forwardRef<
     ref={ref}
     data-input-group=""
     className={cn(
-      "flex h-10 flex-wrap rounded-xl border border-input bg-card/90 text-sm shadow-insetSoft transition-all duration-200 ease-smooth",
+      "flex h-10 flex-wrap rounded-xl border border-input bg-muted text-sm transition-all duration-200 ease-smooth",
       "has-[textarea]:h-auto",
       "has-[:focus-visible]:border-ring/70 has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/30",
       error &&
@@ -33,7 +33,7 @@ const inputGroupAddonVariants = cva("flex items-center", {
       "inline-start": "flex-row ps-3",
       "inline-end": "flex-row pe-3",
       "block-start": "w-full flex-row border-b border-input px-3 py-2",
-      "block-end": "w-full flex-row border-t border-input px-3 py-2",
+      "block-end": "w-full flex-row px-3 py-2",
     },
   },
   defaultVariants: {
