@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-03-15
+
+### Chrome Extension — Full Implementation
+
+- Built Chrome extension (MV3) at `apps/chrome-extension/` with all core features: save page, export to vmem (ChatGPT/Claude), use vmem context injection, import bookmarks, import browsing history
+- Architecture: background service worker handles all API calls (API key never leaves background scope), popup for settings/quick save/imports, content scripts injected into ChatGPT + Claude for export/use vmem buttons
+- Export flow uses MCP — extension injects a prompt into the LLM's input telling it to save the conversation via vmem MCP tools (no direct API call for export)
+- "Use vmem" retrieves memories from the API and prepends them as context above the user's message in the textarea
+- Build: Vite multi-entry with separate builds (popup=React+Tailwind, background=ES module, content scripts=IIFE) — no CRXJS due to MV3 service worker flakiness
+- Content scripts handle React-controlled textareas (ChatGPT) and contenteditable divs (Claude) with native setter dispatch for state updates
+- All DOM selectors isolated in per-site `selectors.ts` files for easy maintenance when sites update their DOM
+
 ## 2026-03-11
 
 ### Rewrite Memory Graph with Graphology + Sigma.js (WebGL)
@@ -8,7 +20,7 @@
 - Old implementation had manual force simulation running on every requestAnimationFrame, manual pan/zoom/hit-testing — wouldn't scale past ~100 nodes
 - New implementation: Graphology builds typed graph model, ForceAtlas2 computes layout once (50 iterations synchronously), Sigma handles all rendering via WebGL
 - Extracted into 4 files: `MemoryGraph.tsx` (orchestrator, ~150 lines), `GraphRenderer.tsx` (Sigma mount + camera controls), `GraphNodeTooltip.tsx` (hover overlay), `GraphNodeDetailDialog.tsx` (click detail dialog), `graph-types.ts` (shared types)
-- Node sizing is now degree-based (5 + degree * 2), node color is hashed from first tag
+- Node sizing is now degree-based (5 + degree \* 2), node color is hashed from first tag
 - Should handle 1000+ nodes smoothly vs old ~100 node ceiling
 - Added deps: graphology, sigma, graphology-layout-forceatlas2, graphology-types
 
@@ -54,9 +66,6 @@
 - Created `packages/backend/convex/users.ts` with a `getMe` query (returns full user doc or null for unauthenticated users) and a `setTheme` mutation
 - Updated `ThemeContext` to sync the stored theme from Convex on first load (applied once via a `hasSynced` ref to avoid repeated overrides), and to persist any theme change back to Convex — theme preference now survives across sessions and devices
 
-
-
-
 ### Migrate Form State from useState to React Hook Form + Zod
 
 - Installed `react-hook-form`, `zod`, `@hookform/resolvers` in `apps/web`
@@ -65,8 +74,6 @@
 - Removed manual `e.preventDefault()`, manual error state, and manual `isSubmitting` flags — these are now handled by RHF internals (`formState.isSubmitting`, `handleSubmit`, `reset`)
 - Tag chip inputs (dynamic `string[]` arrays) are managed via RHF `Controller`; the ephemeral tag text input and suggestion dropdown state remain as regular `useState` since they are transient UI state, not form values
 - Audio recording state and modal flow state (`step`, `isEditing`, etc.) kept as `useState` — correct for non-form concerns
-
-
 
 ### Simplify API Key Encryption to Single File + One Env Var
 
