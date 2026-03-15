@@ -120,8 +120,6 @@ export default function ChatMessageItem({ message }: ChatMessageItemProps) {
 
   return (
     <Message from={message.role}>
-      {isAssistant && <AssistantAvatar />}
-
       <div
         className={`flex w-fit max-w-4xl flex-col ${
           isAssistant ? "items-start" : "items-end"
@@ -220,8 +218,6 @@ export default function ChatMessageItem({ message }: ChatMessageItemProps) {
           </Actions>
         )}
       </div>
-
-      {!isAssistant && <UserAvatar />}
     </Message>
   );
 }

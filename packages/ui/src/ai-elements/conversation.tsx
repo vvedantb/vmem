@@ -59,11 +59,7 @@ function ConversationEmptyState({
       )}
       {...props}
     >
-      {icon && (
-        <div className="flex size-16 items-center justify-center rounded-2xl bg-muted/50 border border-border">
-          {icon}
-        </div>
-      )}
+      {icon}
       {title && (
         <h3 className="text-lg font-medium text-foreground">{title}</h3>
       )}
