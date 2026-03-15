@@ -70,7 +70,7 @@ const quickActions = [
   },
   {
     label: "API Keys",
-    href: "/api/keys",
+    href: "/api-keys",
     icon: IconKey,
     description: "Manage access",
   },
@@ -275,7 +275,7 @@ export default function Dashboard() {
               </div>
 
               <div
-                className="flex h-full items-end justify-between gap-2 pb-6 pt-2"
+                className="flex h-full items-end justify-between gap-2"
                 style={{ height: chartHeight }}
               >
                 {chartData.map((day, index) => {
