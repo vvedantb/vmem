@@ -1,3 +1,4 @@
+- mcp should use neo4j mcp under the hood, just get their clerk id after they sign in and do it like that
 
 - look into vector db/graph db implementation
 - cache for fast lookup
