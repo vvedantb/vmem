@@ -93,7 +93,7 @@ export function renderGraph(
   isDark: boolean,
 ): void {
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = isDark ? "#08080c" : "#ffffff";
+  ctx.fillStyle = isDark ? "#1e1e1e" : "#ffffff";
   ctx.fillRect(0, 0, width, height);
 
   const grad = ctx.createRadialGradient(
@@ -189,12 +189,12 @@ export function renderGraph(
     ctx.textBaseline = "top";
 
     const hovNode = nodes[hoveredIndex];
-    ctx.font = `600 ${fontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.font = `600 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.fillStyle = isDark ? "#ffffff" : "#111111";
     const hovOffset = (hovNode.radius + 6) * invZoom;
     ctx.fillText(truncate(hovNode.label), hovNode.x, hovNode.y + hovOffset);
 
-    ctx.font = `400 ${fontSize * 0.9}px system-ui, -apple-system, sans-serif`;
+    ctx.font = `400 ${fontSize * 0.9}px "Instrument Sans", system-ui, sans-serif`;
     ctx.fillStyle = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)";
     for (const idx of connectedSet) {
       if (idx === hoveredIndex) continue;
@@ -204,7 +204,7 @@ export function renderGraph(
     }
   } else if (camera.zoom > 1.8) {
     const fontSize = 12 * invZoom;
-    ctx.font = `400 ${fontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillStyle = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)";
