@@ -263,13 +263,10 @@ export default function AddMemoryForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-muted-foreground">
-          Title
-        </label>
         <Input
           type="text"
           {...register("title")}
-          placeholder="Enter a title for your memory"
+          placeholder="Title"
           disabled={isSubmitting}
           className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
         />
@@ -279,12 +276,9 @@ export default function AddMemoryForm() {
       </div>
 
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-muted-foreground">
-          Content
-        </label>
         <Textarea
           {...register("content")}
-          placeholder="Write your memory content here..."
+          placeholder="Content"
           rows={8}
           disabled={isSubmitting || isRecording}
           className="bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
@@ -295,9 +289,6 @@ export default function AddMemoryForm() {
       </div>
 
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-muted-foreground">
-          Voice Input
-        </label>
         <div className="p-4 rounded-lg bg-muted/50 border border-border">
           {!audioBlob && !isRecording && (
             <div className="flex items-center gap-4">
@@ -439,9 +430,6 @@ export default function AddMemoryForm() {
         control={control}
         render={({ field }) => (
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-muted-foreground">
-              Tags
-            </label>
             <div className="relative">
               <Input
                 ref={tagInputRef}
@@ -456,7 +444,7 @@ export default function AddMemoryForm() {
                 onBlur={() => {
                   setTimeout(() => setShowSuggestions(false), 200);
                 }}
-                placeholder="Type a tag and press Enter"
+                placeholder="Tags (press Enter to add)"
                 disabled={isSubmitting}
                 className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
               />

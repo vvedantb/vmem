@@ -129,11 +129,8 @@ export default function ApiKeyModal({
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-muted-foreground">
-                Key Name
-              </label>
               <Input
-                placeholder="e.g., Production App, Development"
+                placeholder="Key name (e.g., Production App)"
                 {...register("name")}
                 className="border-border bg-transparent"
               />

@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
   DialogClose,
   Button,
@@ -96,24 +95,18 @@ export default function AddMemoryModal() {
       </DialogTrigger>
 
       <DialogContent className="max-w-2xl">
-        <DialogHeader className="border-b border-border pb-4">
+        <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-foreground">
             Add Memory
           </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            Store a new memory in your vault
-          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-2">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-muted-foreground">
-              Title
-            </label>
             <Input
               type="text"
               {...register("title")}
-              placeholder="Enter a title for your memory"
+              placeholder="Title"
               disabled={isSubmitting}
               className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
             />
@@ -123,12 +116,9 @@ export default function AddMemoryModal() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-muted-foreground">
-              Content
-            </label>
             <Textarea
               {...register("content")}
-              placeholder="Write your memory content here..."
+              placeholder="Content"
               rows={6}
               disabled={isSubmitting}
               className="bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
@@ -145,15 +135,12 @@ export default function AddMemoryModal() {
             control={control}
             render={({ field }) => (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-muted-foreground">
-                  Tags
-                </label>
                 <Input
                   type="text"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => handleAddTag(e, field.onChange)}
-                  placeholder="Type a tag and press Enter"
+                  placeholder="Tags (press Enter to add)"
                   disabled={isSubmitting}
                   className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
                 />
