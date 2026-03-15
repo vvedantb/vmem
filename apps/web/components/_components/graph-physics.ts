@@ -93,7 +93,7 @@ export function renderGraph(
   isDark: boolean,
 ): void {
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = isDark ? "#08080c" : "#f5f5f8";
+  ctx.fillStyle = isDark ? "#08080c" : "#ffffff";
   ctx.fillRect(0, 0, width, height);
 
   const grad = ctx.createRadialGradient(

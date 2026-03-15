@@ -7,7 +7,7 @@ import {
   IconDatabase,
   IconPlugConnected,
   IconList,
-  IconShare3,
+  IconTopologyStar3,
   IconChartBar,
   IconStack2,
   IconPlug,
@@ -24,7 +24,11 @@ export const navGroups: NavGroup[] = [
     items: [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/memories/list", label: "Memory List", icon: IconList },
-      { href: "/memories/graph", label: "Memory Graph", icon: IconShare3 },
+      {
+        href: "/memories/graph",
+        label: "Memory Graph",
+        icon: IconTopologyStar3,
+      },
       { href: "/files", label: "Files", icon: IconFiles },
       { href: "/index", label: "Index", icon: IconDatabase },
     ],

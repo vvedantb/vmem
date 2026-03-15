@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Skeleton } from "@vmem/ui";
-import { IconMoodEmpty } from "@tabler/icons-react";
+import { IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import type {
@@ -119,8 +118,8 @@ export default function MemoryGraph() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-4">
-        <Skeleton className="flex-1 min-h-0 w-full rounded-xl" />
+      <div className="flex h-full min-h-0 items-center justify-center">
+        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
