@@ -95,10 +95,12 @@ export default function ForceGraph({
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const cbRef = useRef({ onHoverNode, onClickNode });
+  const isDarkRef = useRef(isDark);
 
   nodesRef.current = nodes;
   edgesRef.current = edges;
   cbRef.current = { onHoverNode, onClickNode };
+  isDarkRef.current = isDark;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -150,7 +152,7 @@ export default function ForceGraph({
       const dpr = window.devicePixelRatio || 1;
       ctx.save();
       ctx.scale(dpr, dpr);
-      renderGraph(ctx, n, e, w, h, cam, hIdx, connectedSet, isDark);
+      renderGraph(ctx, n, e, w, h, cam, hIdx, connectedSet, isDarkRef.current);
       ctx.restore();
 
       animRef.current = requestAnimationFrame(loop);
@@ -177,7 +179,7 @@ export default function ForceGraph({
       ro.disconnect();
       canvas.removeEventListener("wheel", onWheel);
     };
-  }, [isDark]);
+  }, []);
 
   const getPos = useCallback((e: React.MouseEvent): [number, number] => {
     const rect = canvasRef.current?.getBoundingClientRect();

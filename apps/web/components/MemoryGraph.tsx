@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
@@ -87,17 +87,23 @@ export default function MemoryGraph() {
         vx: 0,
         vy: 0,
         radius: 3.5 + degree * 1.5,
-        color:
-          m.tags.length > 0
-            ? tagToColor(m.tags[0], isDark)
-            : isDark
-              ? "#555566"
-              : "#999999",
+        color: m.tags.length > 0 ? tagToColor(m.tags[0], false) : "#999999",
       };
     });
 
     return { nodes: simNodes, edges: simEdges };
-  }, [memories, isDark]);
+  }, [memories]);
+
+  useEffect(() => {
+    for (const node of nodes) {
+      const memory = memories.find((m) => m.id === node.id);
+      if (memory && memory.tags.length > 0) {
+        node.color = tagToColor(memory.tags[0], isDark);
+      } else {
+        node.color = isDark ? "#555566" : "#999999";
+      }
+    }
+  }, [isDark, nodes, memories]);
 
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
