@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  Skeleton,
 } from "@vmem/ui";
 import { toast } from "sonner";
 import {
@@ -188,38 +187,8 @@ export default function FilesPage() {
   if (isLoading) {
     return (
       <PageContainer title="Files">
-        <div className="p-6 rounded-xl border border-border bg-muted/50">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex-1">
-              <Skeleton className="h-4 w-32 mb-2 rounded" />
-              <Skeleton className="h-2 w-full rounded" />
-            </div>
-            <Skeleton className="h-10 w-28 rounded-lg" />
-          </div>
-        </div>
-
-        <div>
-          <Skeleton className="h-6 w-24 mb-4 rounded" />
-          <div className="border border-border rounded-xl overflow-hidden">
-            <div className="bg-muted/50 px-4 py-3 border-b border-border">
-              <div className="flex gap-4">
-                <Skeleton className="h-4 w-24 rounded" />
-                <Skeleton className="h-4 w-16 rounded hidden md:block" />
-                <Skeleton className="h-4 w-20 rounded hidden md:block" />
-              </div>
-            </div>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="px-4 py-4 border-b border-border last:border-b-0"
-              >
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-10 w-10 rounded-lg" />
-                  <Skeleton className="h-4 w-48 rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="flex h-full min-h-0 items-center justify-center">
+          <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       </PageContainer>
     );

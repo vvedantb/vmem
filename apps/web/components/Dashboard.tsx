@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, Skeleton, Button } from "@vmem/ui";
+import { Card, CardContent, Button } from "@vmem/ui";
 import Link from "next/link";
+import { useAuth } from "@clerk/nextjs";
 import {
   IconBrain,
   IconCalendarWeek,
@@ -18,7 +19,11 @@ import {
   IconUpload,
   IconPlugConnected,
   IconCheck,
+  IconLoader2,
 } from "@tabler/icons-react";
+import { clientEnv } from "@/env/client";
+
+const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
 
 interface StatsData {
   totalMemories: number;
@@ -134,51 +139,8 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-7">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="border-border/70 bg-card">
-              <CardContent className="p-6">
-                <Skeleton className="h-4 w-24 rounded mb-3" />
-                <Skeleton className="h-10 w-16 rounded" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <Card className="border-border/70 bg-card">
-          <CardContent className="p-6">
-            <Skeleton className="h-5 w-40 rounded mb-6" />
-            <Skeleton className="h-48 w-full rounded" />
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
-          <Card className="border-border/70 bg-card">
-            <CardContent className="p-6">
-              <Skeleton className="h-5 w-32 rounded mb-6" />
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center gap-3 mb-4">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-32 rounded mb-2" />
-                    <Skeleton className="h-3 w-24 rounded" />
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-          <Card className="border-border/70 bg-card">
-            <CardContent className="p-6">
-              <Skeleton className="h-5 w-28 rounded mb-6" />
-              <div className="grid grid-cols-2 gap-3">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Skeleton key={i} className="h-20 rounded-lg" />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="flex h-full min-h-0 items-center justify-center">
+        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
