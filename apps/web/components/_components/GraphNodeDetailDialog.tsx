@@ -62,49 +62,51 @@ export default function GraphNodeDetailDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent>
+      <DialogContent className="max-w-4xl">
         <DialogHeader className="border-b border-border pb-4">
           <DialogTitle className="text-foreground">{node.label}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">
-              Content
-            </h4>
-            <p className="text-foreground">{node.content}</p>
-          </div>
+        <div className="grid grid-cols-[1fr_auto] gap-6 py-2">
+          <div className="space-y-4 min-w-0">
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                Content
+              </h4>
+              <p className="text-foreground">{node.content}</p>
+            </div>
 
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">
-              Tags
-            </h4>
-            <div className="flex gap-2 flex-wrap">
-              {node.tags.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="bg-muted border-border text-muted-foreground text-xs"
-                >
-                  {tag}
-                </Badge>
-              ))}
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                Tags
+              </h4>
+              <div className="flex gap-2 flex-wrap">
+                {node.tags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="bg-muted border-border text-muted-foreground text-xs"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                Created
+              </h4>
+              <p className="text-muted-foreground">
+                {formatDate(node.createdAt)}
+              </p>
             </div>
           </div>
 
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">
-              Created
-            </h4>
-            <p className="text-muted-foreground">
-              {formatDate(node.createdAt)}
-            </p>
-          </div>
-
-          <div>
+          <div className="w-96 border-l border-border pl-6">
             <h4 className="text-sm font-medium text-muted-foreground mb-2">
               Related Memories
             </h4>
-            <div className="space-y-2">
+            <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
               {neighbors.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                   No related memories found
@@ -119,7 +121,7 @@ export default function GraphNodeDetailDialog({
                   onClick={() => onNavigate(neighbor.node.id)}
                   className="w-full h-auto p-3 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors justify-start items-start flex-col"
                 >
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-sm font-medium text-foreground truncate w-full text-left">
                     {neighbor.node.label}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
