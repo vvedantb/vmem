@@ -69,32 +69,7 @@ export default function Sidebar({
   return (
     <>
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-border/50 bg-sidebar/95 px-5 backdrop-blur-md md:hidden">
-          <Link
-            href="/"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex flex-row items-center gap-2.5"
-          >
-            <Image
-              unoptimized
-              width={24}
-              height={24}
-              alt="vmem icon"
-              src="/icon-dark.svg"
-              className="block dark:hidden"
-            />
-            <Image
-              unoptimized
-              width={24}
-              height={24}
-              src="/icon-light.svg"
-              alt="vmem icon"
-              className="hidden dark:block"
-            />
-            <h1 className="text-xl leading-none font-instrumentSerif text-foreground">
-              v<span className="italic">mem</span>
-            </h1>
-          </Link>
+        <header className="fixed inset-x-3 top-3 z-40 flex h-12 items-center justify-between glass-panel-subtle rounded-2xl px-3 md:hidden">
           <Button
             type="button"
             variant="ghost"
@@ -103,10 +78,36 @@ export default function Sidebar({
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls={mobileMenuId}
-            className="h-9 w-9 rounded-xl text-muted-foreground transition-colors hover:bg-card/60 hover:text-foreground"
+            className="h-9 w-9 rounded-xl text-muted-foreground transition-colors hover:text-foreground"
           >
             <IconMenu2 className="h-5 w-5" />
           </Button>
+          <Link
+            href="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-row items-center gap-2"
+          >
+            <Image
+              unoptimized
+              width={22}
+              height={22}
+              alt="vmem icon"
+              src="/icon-dark.svg"
+              className="block dark:hidden"
+            />
+            <Image
+              unoptimized
+              width={22}
+              height={22}
+              src="/icon-light.svg"
+              alt="vmem icon"
+              className="hidden dark:block"
+            />
+            <h1 className="text-xl leading-none font-instrumentSerif text-foreground">
+              v<span className="italic">mem</span>
+            </h1>
+          </Link>
+          <div className="w-9" />
         </header>
 
         <DialogPortal>

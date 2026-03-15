@@ -17,6 +17,7 @@ import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
 import { ApiKeysLoadingSkeleton } from "@/components/api-keys/ApiKeysLoadingSkeleton";
 import { RevokeKeyDialog } from "@/components/api-keys/RevokeKeyDialog";
 import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
+import PageContainer from "@/components/PageContainer";
 import { api } from "@vmem/backend";
 
 type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
@@ -43,21 +44,25 @@ export default function ApiKeysPage() {
   const keyToRevoke = apiKeyList.find((key) => key.id === revokeKeyId);
 
   if (isLoading) {
-    return <ApiKeysLoadingSkeleton />;
+    return (
+      <PageContainer title="API Keys">
+        <ApiKeysLoadingSkeleton />
+      </PageContainer>
+    );
   }
 
   return (
-    <>
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-foreground">Your API Keys</h3>
+    <PageContainer
+      title="API Keys"
+      rightSection={
         <Button
           onClick={() => setIsCreateModalOpen(true)}
           className="bg-primary text-primary-foreground font-medium"
         >
           Create New Key
         </Button>
-      </div>
-
+      }
+    >
       {apiKeyList.length === 0 ? (
         <div className="py-16 text-center border border-border rounded-xl">
           <IconBolt
@@ -130,6 +135,6 @@ export default function ApiKeysPage() {
         onConfirm={handleRevoke}
         onCancel={() => setRevokeKeyId(null)}
       />
-    </>
+    </PageContainer>
   );
 }
