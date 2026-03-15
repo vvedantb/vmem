@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useMutation } from "convex/react";
 import {
   useUIMessages,
@@ -26,14 +26,18 @@ import ChatMessageItem from "@/app/(main)/chat/_components/ChatMessageItem";
 export default function Chat() {
   const [threadId, setThreadId] = useState<string | null>(null);
 
-  const createThread = useMutation(api.chat.createNewThread);
+  const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
   const sendMessage = useMutation(
     api.chat.initiateStreaming,
   ).withOptimisticUpdate((store, args) => {
     optimisticallySendMessage(api.chat.listThreadMessages)(store, args);
   });
 
-  const { results: messages, status: paginationStatus } = useUIMessages(
+  useEffect(() => {
+    getOrCreateThread().then((id) => setThreadId(id));
+  }, [getOrCreateThread]);
+
+  const { results: messages } = useUIMessages(
     api.chat.listThreadMessages,
     threadId ? { threadId } : "skip",
     { initialNumItems: 50, stream: true },
@@ -46,18 +50,10 @@ export default function Chat() {
 
   const handleSubmit = useCallback(
     async ({ text }: PromptInputMessage) => {
-      if (!text) return;
-
-      let activeThreadId = threadId;
-      if (!activeThreadId) {
-        const result = await createThread();
-        activeThreadId = result.threadId;
-        setThreadId(activeThreadId);
-      }
-
-      await sendMessage({ prompt: text, threadId: activeThreadId });
+      if (!text || !threadId) return;
+      await sendMessage({ prompt: text, threadId });
     },
-    [threadId, createThread, sendMessage],
+    [threadId, sendMessage],
   );
 
   const handleSuggestionClick = useCallback(
