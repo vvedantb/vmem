@@ -578,6 +578,180 @@ export class MemoryService {
     }
   }
 
+  async getStats(userId: string): Promise<{
+    totalMemories: number;
+    memoriesThisWeek: number;
+    memoriesThisMonth: number;
+    totalTags: number;
+    growthData: { date: string; total: number; new: number }[];
+  }> {
+    const session = this.driver.session();
+    try {
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WITH collect(m) AS allMems
+         UNWIND allMems AS m
+         WITH allMems,
+              count(m) AS total,
+              count(CASE WHEN m.createdAt >= $weekAgo THEN 1 END) AS thisWeek,
+              count(CASE WHEN m.createdAt >= $monthAgo THEN 1 END) AS thisMonth
+         WITH total, thisWeek, thisMonth
+         OPTIONAL MATCH (t:Tag)<-[:TAGGED_WITH]-(:Memory {userId: $userId})
+         WITH total, thisWeek, thisMonth, count(DISTINCT t) AS tagCount
+         RETURN total, thisWeek, thisMonth, tagCount`,
+        {
+          userId,
+          weekAgo: weekAgo.toISOString(),
+          monthAgo: monthAgo.toISOString(),
+        },
+      );
+
+      let totalMemories = 0;
+      let memoriesThisWeek = 0;
+      let memoriesThisMonth = 0;
+      let totalTags = 0;
+
+      if (result.records.length > 0) {
+        const record = result.records[0];
+        totalMemories = (record.get("total") as { toNumber?: () => number })
+          .toNumber
+          ? (record.get("total") as { toNumber: () => number }).toNumber()
+          : (record.get("total") as number);
+        memoriesThisWeek = (
+          record.get("thisWeek") as { toNumber?: () => number }
+        ).toNumber
+          ? (record.get("thisWeek") as { toNumber: () => number }).toNumber()
+          : (record.get("thisWeek") as number);
+        memoriesThisMonth = (
+          record.get("thisMonth") as { toNumber?: () => number }
+        ).toNumber
+          ? (record.get("thisMonth") as { toNumber: () => number }).toNumber()
+          : (record.get("thisMonth") as number);
+        totalTags = (record.get("tagCount") as { toNumber?: () => number })
+          .toNumber
+          ? (record.get("tagCount") as { toNumber: () => number }).toNumber()
+          : (record.get("tagCount") as number);
+      }
+
+      const growthResult = await session.run(
+        `WITH range(0, 6) AS days
+         UNWIND days AS dayOffset
+         WITH date() - duration({days: dayOffset}) AS d
+         OPTIONAL MATCH (m:Memory {userId: $userId})
+           WHERE date(datetime(m.createdAt)) <= d
+         WITH d, count(m) AS total
+         OPTIONAL MATCH (m2:Memory {userId: $userId})
+           WHERE date(datetime(m2.createdAt)) = d
+         WITH d, total, count(m2) AS newCount
+         RETURN toString(d) AS date, total, newCount
+         ORDER BY d ASC`,
+        { userId },
+      );
+
+      const growthData = growthResult.records.map((r) => {
+        const dateStr = r.get("date") as string;
+        const d = new Date(dateStr);
+        const label = d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+        const t = r.get("total");
+        const n = r.get("newCount");
+        return {
+          date: label,
+          total:
+            typeof t === "number"
+              ? t
+              : (t as { toNumber: () => number }).toNumber(),
+          new:
+            typeof n === "number"
+              ? n
+              : (n as { toNumber: () => number }).toNumber(),
+        };
+      });
+
+      return {
+        totalMemories,
+        memoriesThisWeek,
+        memoriesThisMonth,
+        totalTags,
+        growthData,
+      };
+    } finally {
+      await session.close();
+    }
+  }
+
+  async getRecentActivity(
+    userId: string,
+    limit = 10,
+  ): Promise<
+    {
+      id: string;
+      type: string;
+      title: string;
+      description: string;
+      timestamp: string;
+      relativeTime: string;
+    }[]
+  > {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
+         RETURN e, m.title AS memoryTitle
+         ORDER BY e.createdAt DESC
+         LIMIT $limit`,
+        { userId, limit: neo4j.int(limit) },
+      );
+
+      const now = Date.now();
+      return result.records.map((record) => {
+        const props = record.get("e").properties;
+        const memoryTitle = record.get("memoryTitle") as string;
+        const action = props.action as string;
+        const createdAt = props.createdAt as string;
+        const diffMs = now - new Date(createdAt).getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        let relativeTime: string;
+        if (diffMins < 1) relativeTime = "just now";
+        else if (diffMins < 60) relativeTime = `${diffMins}m ago`;
+        else if (diffHours < 24) relativeTime = `${diffHours}h ago`;
+        else relativeTime = `${diffDays}d ago`;
+
+        const typeMap: Record<string, string> = {
+          created: "memory_created",
+          updated: "memory_updated",
+          deleted: "memory_deleted",
+        };
+
+        const descMap: Record<string, string> = {
+          created: `Created "${memoryTitle}"`,
+          updated: `Updated "${memoryTitle}"`,
+          deleted: `Deleted "${memoryTitle}"`,
+        };
+
+        return {
+          id: props.id as string,
+          type: typeMap[action] ?? action,
+          title: "Memory",
+          description: descMap[action] ?? `${action} "${memoryTitle}"`,
+          timestamp: createdAt,
+          relativeTime,
+        };
+      });
+    } finally {
+      await session.close();
+    }
+  }
+
   private async logEvent(
     session: ReturnType<Driver["session"]>,
     memoryId: string,
