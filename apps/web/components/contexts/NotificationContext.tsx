@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useCallback, ReactNode } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 
@@ -20,8 +20,15 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const notifications = useQuery(api.notifications.listMy);
-  const unreadCountResult = useQuery(api.notifications.unreadCount);
+  const { isAuthenticated } = useConvexAuth();
+  const notifications = useQuery(
+    api.notifications.listMy,
+    isAuthenticated ? {} : "skip",
+  );
+  const unreadCountResult = useQuery(
+    api.notifications.unreadCount,
+    isAuthenticated ? {} : "skip",
+  );
   const markAsReadMutation = useMutation(api.notifications.markAsRead);
   const markAsUnreadMutation = useMutation(api.notifications.markAsUnread);
   const markAllAsReadMutation = useMutation(api.notifications.markAllAsRead);
