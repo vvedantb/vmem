@@ -1,0 +1,48 @@
+import { build } from "vite";
+import { cpSync, rmSync, mkdirSync, existsSync } from "fs";
+import { resolve } from "path";
+import {
+  createPopupConfig,
+  createBackgroundConfig,
+  createContentScriptConfig,
+} from "../vite.config.js";
+
+const root = resolve(import.meta.dirname, "..");
+const dist = resolve(root, "dist");
+const mode = process.argv.includes("--watch") ? "development" : "production";
+
+rmSync(dist, { recursive: true, force: true });
+mkdirSync(dist, { recursive: true });
+
+cpSync(resolve(root, "manifest.json"), resolve(dist, "manifest.json"));
+
+const publicDir = resolve(root, "public");
+if (existsSync(publicDir)) {
+  cpSync(publicDir, dist, { recursive: true });
+}
+
+console.log("Building popup...");
+await build(createPopupConfig(mode));
+
+console.log("Building background service worker...");
+await build(createBackgroundConfig(mode));
+
+console.log("Building ChatGPT content script...");
+await build(
+  createContentScriptConfig(
+    "content-chatgpt",
+    "src/content/chatgpt/index.ts",
+    mode,
+  ),
+);
+
+console.log("Building Claude content script...");
+await build(
+  createContentScriptConfig(
+    "content-claude",
+    "src/content/claude/index.ts",
+    mode,
+  ),
+);
+
+console.log("Build complete → dist/");
