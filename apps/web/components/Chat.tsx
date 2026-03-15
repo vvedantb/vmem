@@ -64,7 +64,7 @@ export default function Chat() {
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       <Conversation className="flex-1 min-h-0">
         <ConversationContent className="pb-4 max-w-4xl mx-auto w-full">
           {messages.length === 0 && (
@@ -116,7 +116,7 @@ export default function Chat() {
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="mt-4 flex-shrink-0 max-w-3xl mx-auto w-full">
+      <div className="flex-shrink-0 max-w-3xl mx-auto w-full">
         <PromptInput onSubmit={handleSubmit} status={promptStatus}>
           <PromptInputTextarea placeholder="Ask about your memories..." />
           <PromptInputFooter>
