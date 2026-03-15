@@ -7,7 +7,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
-    <div className="relative h-screen overflow-hidden bg-sidebar">
+    <div className="relative h-screen overflow-hidden bg-[#ffffff] dark:bg-[#222222] md:bg-sidebar md:dark:bg-sidebar">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
