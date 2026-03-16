@@ -1,5 +1,6 @@
+import { createClerkClient } from "@clerk/chrome-extension/client";
 import { getStorage } from "@/lib/storage";
-import { API_VERSION } from "@/lib/constants";
+import { API_VERSION, CLERK_PUBLISHABLE_KEY } from "@/lib/constants";
 import type {
   CreateMemoryParams,
   MemoryWithTags,
@@ -11,21 +12,40 @@ async function getBaseUrl(): Promise<string> {
   return `${apiUrl}/${API_VERSION}`;
 }
 
-async function getUserId(): Promise<string> {
-  const { userId } = await getStorage();
-  return userId;
+async function getAuthToken(): Promise<string | null> {
+  const clerk = await createClerkClient({
+    publishableKey: CLERK_PUBLISHABLE_KEY,
+    background: true,
+  });
+
+  if (!clerk.session) {
+    return null;
+  }
+
+  return clerk.session.getToken();
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await getAuthToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
 }
 
 export async function createMemory(
-  params: Omit<CreateMemoryParams, "userId">,
+  params: CreateMemoryParams,
 ): Promise<MemoryWithTags> {
   const baseUrl = await getBaseUrl();
-  const userId = await getUserId();
+  const headers = await authHeaders();
 
   const response = await fetch(`${baseUrl}/memories`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...params, userId }),
+    headers,
+    body: JSON.stringify(params),
   });
 
   if (!response.ok) {
@@ -41,12 +61,12 @@ export async function retrieveMemories(
   limit = 5,
 ): Promise<MemoryCandidate[]> {
   const baseUrl = await getBaseUrl();
-  const userId = await getUserId();
+  const headers = await authHeaders();
 
   const response = await fetch(`${baseUrl}/memories/retrieve`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, query, limit }),
+    headers,
+    body: JSON.stringify({ query, limit }),
   });
 
   if (!response.ok) {
@@ -60,11 +80,9 @@ export async function retrieveMemories(
 
 export async function testConnection(): Promise<boolean> {
   const baseUrl = await getBaseUrl();
-  const userId = await getUserId();
+  const headers = await authHeaders();
 
-  const response = await fetch(
-    `${baseUrl}/memories?userId=${encodeURIComponent(userId)}&limit=1`,
-  );
+  const response = await fetch(`${baseUrl}/memories?limit=1`, { headers });
 
   return response.ok;
 }

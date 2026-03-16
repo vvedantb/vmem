@@ -9,7 +9,8 @@
     "activeTab",
     "bookmarks",
     "history",
-    "scripting"
+    "scripting",
+    "identity"
   ],
   "host_permissions": [
     "https://chat.openai.com/*",

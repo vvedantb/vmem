@@ -64,17 +64,27 @@ function apiToMemory(m: ApiMemory): Memory {
 }
 
 export function MemoryProvider({ children }: { children: React.ReactNode }) {
-  const { userId } = useAuth();
+  const { userId, getToken } = useAuth();
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const authFetch = useCallback(
+    async (url: string, init?: RequestInit): Promise<Response> => {
+      const token = await getToken();
+      const headers = new Headers(init?.headers);
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      return fetch(url, { ...init, headers });
+    },
+    [getToken],
+  );
 
   const fetchMemories = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
     try {
-      const res = await fetch(
-        `${API_URL}/v1/memories?userId=${encodeURIComponent(userId)}`,
-      );
+      const res = await authFetch(`${API_URL}/v1/memories`);
       if (res.ok) {
         const data = (await res.json()) as {
           memories: ApiMemory[];
@@ -86,7 +96,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       console.error("Failed to fetch memories — is the API server running?");
     }
     setIsLoading(false);
-  }, [userId]);
+  }, [userId, authFetch]);
 
   useEffect(() => {
     fetchMemories();
@@ -96,11 +106,10 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     async (input: CreateMemoryInput): Promise<Memory> => {
       if (!userId) throw new Error("Not authenticated");
 
-      const res = await fetch(`${API_URL}/v1/memories`, {
+      const res = await authFetch(`${API_URL}/v1/memories`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId,
           title: input.title.trim(),
           content: input.content.trim(),
           type: "knowledge",
@@ -120,25 +129,22 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       setMemories((prev) => [memory, ...prev]);
       return memory;
     },
-    [userId],
+    [userId, authFetch],
   );
 
   const updateMemory = useCallback(
     async (input: UpdateMemoryInput): Promise<Memory | null> => {
       if (!userId) throw new Error("Not authenticated");
 
-      const res = await fetch(
-        `${API_URL}/v1/memories/${input.id}?userId=${encodeURIComponent(userId)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: input.title,
-            content: input.content,
-            tags: input.tags,
-          }),
-        },
-      );
+      const res = await authFetch(`${API_URL}/v1/memories/${input.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: input.title,
+          content: input.content,
+          tags: input.tags,
+        }),
+      });
 
       if (!res.ok) return null;
 
@@ -147,24 +153,23 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       setMemories((prev) => prev.map((m) => (m.id === input.id ? memory : m)));
       return memory;
     },
-    [userId],
+    [userId, authFetch],
   );
 
   const deleteMemory = useCallback(
     async (id: string): Promise<boolean> => {
       if (!userId) throw new Error("Not authenticated");
 
-      const res = await fetch(
-        `${API_URL}/v1/memories/${id}?userId=${encodeURIComponent(userId)}`,
-        { method: "DELETE" },
-      );
+      const res = await authFetch(`${API_URL}/v1/memories/${id}`, {
+        method: "DELETE",
+      });
 
       if (!res.ok) return false;
 
       setMemories((prev) => prev.filter((m) => m.id !== id));
       return true;
     },
-    [userId],
+    [userId, authFetch],
   );
 
   const value = useMemo(
