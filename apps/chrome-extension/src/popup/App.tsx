@@ -1,10 +1,21 @@
 import { useState, useEffect } from "react";
+import {
+  IconDeviceFloppy,
+  IconDownload,
+  IconSettings,
+} from "@tabler/icons-react";
 import { SettingsForm } from "./_components/SettingsForm";
 import { QuickSave } from "./_components/QuickSave";
 import { ImportPanel } from "./_components/ImportPanel";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 
 type Tab = "save" | "import" | "settings";
+
+const TABS: { key: Tab; label: string; icon: typeof IconDeviceFloppy }[] = [
+  { key: "save", label: "Save", icon: IconDeviceFloppy },
+  { key: "import", label: "Import", icon: IconDownload },
+  { key: "settings", label: "Settings", icon: IconSettings },
+];
 
 export function App() {
   const [activeTab, setActiveTab] = useState<Tab>("save");
@@ -22,15 +33,9 @@ export function App() {
     );
   }, []);
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "save", label: "Save" },
-    { key: "import", label: "Import" },
-    { key: "settings", label: "Settings" },
-  ];
-
   return (
-    <div className="bg-background text-foreground min-h-[500px] flex flex-col">
-      <header className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+    <div className="glass-panel text-foreground min-h-[500px] flex flex-col">
+      <header className="flex items-center justify-between px-5 py-3.5 border-b border-border/30">
         <div className="flex items-center gap-2.5">
           <span className="text-lg font-serif tracking-tight">
             v<span className="italic">mem</span>
@@ -47,21 +52,25 @@ export function App() {
         </div>
       </header>
 
-      <nav className="flex gap-1 px-3 pt-2">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-2 text-sm font-medium rounded-lg ${
-              activeTab === tab.key
-                ? "glass-interactive text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <nav className="flex gap-1 px-3 pt-3">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-xl ${
+                activeTab === tab.key
+                  ? "glass-interactive text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon size={16} stroke={1.8} />
+              {tab.label}
+            </button>
+          );
+        })}
       </nav>
 
       <main className="flex-1 p-5">
