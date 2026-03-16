@@ -183,16 +183,18 @@ export default function PlaygroundClient() {
 
       popup?.close();
 
+      const tokenBody = new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+        code_verifier: codeVerifier,
+        client_id: clientId,
+      });
+
       const tokenRes = await fetch(meta.token_endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: redirectUri,
-          code_verifier: codeVerifier,
-          client_id: clientId,
-        }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: tokenBody.toString(),
       });
 
       if (!tokenRes.ok) {
