@@ -1,0 +1,54 @@
+---
+title: "Context Trace"
+description: "Transparent retrieval scoring — know why every memory matched"
+---
+
+## What is Context Trace?
+
+When you retrieve memories from vmem, every result comes with a **context trace** — a breakdown of exactly why that memory was returned and how it scored.
+
+No black boxes. No mystery rankings.
+
+## Why It Matters
+
+Most memory systems return results ranked by a single similarity score. You have no way to know:
+- Was this memory returned because it's recent or because it's semantically relevant?
+- Is a pinned memory being boosted over something more contextually appropriate?
+- Why was one memory ranked higher than another?
+
+Context trace answers all of these questions.
+
+## How Retrieval Works
+
+When you call the retrieve endpoint, vmem scores each candidate memory across multiple signals:
+
+1. **Semantic similarity** — How closely the memory's embedding matches the query
+2. **Recency** — How recently the memory was created or updated
+3. **Status boost** — Pinned memories receive a ranking boost
+4. **Tag relevance** — Whether the memory's tags align with the query context
+
+Each signal contributes to a final composite score, and the trace shows the contribution of each.
+
+## Using Context Trace
+
+Call the retrieve endpoint:
+
+```bash
+POST /v1/memories/retrieve
+```
+
+```json
+{
+  "userId": "user_123",
+  "query": "What tech stack does the user prefer?"
+}
+```
+
+The response includes memories with scoring details, letting you understand and audit every retrieval decision.
+
+## Use Cases
+
+- **Debugging retrieval** — understand why the wrong memory surfaced
+- **Tuning** — adjust scoring weights based on trace analysis
+- **Transparency** — show end users why certain context was used
+- **Audit** — maintain a record of what informed each LLM response

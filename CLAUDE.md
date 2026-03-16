@@ -41,6 +41,11 @@ Convex:
 - Schema migration chicken-egg problem: When changing a field type with existing data, use v.union(oldType, newType) temporarily → deploy → run migration → change to only newType
 - Single source of truth for table fields: Define table fields as exported `const xxxFields = { ... }` in `validators.ts`. Use in both `schema.ts` (`defineTable(xxxFields)`) and return validators (`v.object({ _id: v.id("table"), _creationTime: v.number(), ...xxxFields })`). Never duplicate field definitions between schema and return validators.
 
+UI Style:
+
+- Empty states should be clean and minimal — no card wrappers, borders, or background fills. Just icon + text + optional CTA.
+- Prefer flat UI over glass/card effects unless explicitly asked.
+
 Component Structure:
 
 - Max ~250 lines per client component

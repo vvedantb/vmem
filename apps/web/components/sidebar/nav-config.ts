@@ -7,13 +7,14 @@ import {
   IconDatabase,
   IconPlugConnected,
   IconList,
-  IconShare3,
-  IconFileText,
+  IconTopologyStar3,
+  IconChartBar,
   IconStack2,
   IconPlug,
   IconUserCircle,
   IconAdjustments,
   IconShieldLock,
+  IconLayoutDashboard,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -22,9 +23,18 @@ export const navGroups: NavGroup[] = [
     title: "Workspace",
     icon: IconStack2,
     items: [
+      {
+        href: "/dashboard",
+        label: "Dashboard",
+        icon: IconLayoutDashboard,
+      },
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/memories/list", label: "Memory List", icon: IconList },
-      { href: "/memories/graph", label: "Memory Graph", icon: IconShare3 },
+      {
+        href: "/memories/graph",
+        label: "Memory Graph",
+        icon: IconTopologyStar3,
+      },
       { href: "/files", label: "Files", icon: IconFiles },
       { href: "/index", label: "Index", icon: IconDatabase },
     ],
@@ -33,8 +43,8 @@ export const navGroups: NavGroup[] = [
     title: "API",
     icon: IconPlug,
     items: [
-      { href: "/api/keys", label: "API Keys", icon: IconKey },
-      { href: "/api/logs", label: "Usage", icon: IconFileText },
+      { href: "/api-keys", label: "API Keys", icon: IconKey },
+      { href: "/usage", label: "Usage", icon: IconChartBar },
       { href: "/connectors", label: "Connectors", icon: IconPlugConnected },
     ],
   },

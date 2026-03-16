@@ -11,6 +11,8 @@
     "mcp:dev": "pnpm --filter mcp dev",
     "mcp:build": "pnpm --filter mcp build",
     "mcp:start": "pnpm --filter mcp start",
+    "ext:dev": "pnpm --filter @vmem/chrome-extension dev",
+    "ext:build": "pnpm --filter @vmem/chrome-extension build",
     "lint": "pnpm --filter web lint",
     "typecheck": "pnpm --filter web typecheck",
     "convex": "pnpm --filter @vmem/backend dev",

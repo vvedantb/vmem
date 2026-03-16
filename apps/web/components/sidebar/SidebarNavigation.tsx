@@ -178,23 +178,6 @@ function SettingsNav({
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
       <div className="px-1 mb-4">
-        {!isIconOnly ? (
-          <div className="flex items-center gap-2 px-3.5 mb-2">
-            <IconSettings
-              size={14}
-              stroke={1.8}
-              className="shrink-0 text-muted-foreground/70"
-            />
-            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-              Settings
-            </span>
-            <Separator className="flex-1 bg-border/40" />
-          </div>
-        ) : (
-          <div className="flex justify-center mb-2">
-            <Separator className="w-6 bg-border/40" />
-          </div>
-        )}
         <ul className="space-y-1">
           <li>
             <button

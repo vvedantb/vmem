@@ -1,0 +1,64 @@
+---
+title: "Dashboard"
+description: "Memory statistics and activity data"
+---
+
+These endpoints power the vmem web dashboard.
+
+## Get Stats
+
+Returns aggregate statistics for a user's memory collection.
+
+```bash
+GET /v1/dashboard/stats?userId=user_123
+```
+
+<ParamField query="userId" type="string" required />
+
+**Response:**
+
+```json
+{
+  "data": {
+    "totalMemories": 142,
+    "byType": {
+      "profile": 28,
+      "episodic": 89,
+      "knowledge": 25
+    },
+    "byStatus": {
+      "active": 120,
+      "pinned": 12,
+      "suppressed": 5,
+      "expired": 5
+    }
+  }
+}
+```
+
+---
+
+## Get Activity
+
+Returns recent memory activity for a user.
+
+```bash
+GET /v1/dashboard/activity?userId=user_123
+```
+
+<ParamField query="userId" type="string" required />
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "type": "created",
+      "memoryId": "mem_456",
+      "title": "New project context",
+      "timestamp": "2026-03-15T09:30:00Z"
+    }
+  ]
+}
+```
