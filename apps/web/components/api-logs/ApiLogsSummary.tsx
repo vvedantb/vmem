@@ -78,11 +78,13 @@ function SummaryCard({
   chartFillColor: string;
 }) {
   return (
-    <div className="p-8 rounded-xl border border-border bg-muted/50 flex flex-col gap-4">
-      <p className="text-sm text-muted-foreground uppercase tracking-wider">
+    <div className="p-4 sm:p-8 rounded-xl border border-border bg-muted/50 flex flex-col gap-3 sm:gap-4">
+      <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider">
         {label}
       </p>
-      <p className={`text-4xl font-bold ${className ?? "text-foreground"}`}>
+      <p
+        className={`text-2xl sm:text-4xl font-bold ${className ?? "text-foreground"}`}
+      >
         {value}
       </p>
       <div className="mt-auto">

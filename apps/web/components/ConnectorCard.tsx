@@ -176,7 +176,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
             </div>
           </div>
 
-          <div className="mt-4 flex justify-end gap-2">
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
             {isConnected ? (
               <>
                 <Button

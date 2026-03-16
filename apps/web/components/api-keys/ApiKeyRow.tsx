@@ -98,7 +98,7 @@ export function ApiKeyRow({
           {formatNumber(apiKey.requestCount)}
         </span>
       </TableCell>
-      <TableCell className="py-4">
+      <TableCell className="hidden sm:table-cell py-4">
         <span className="text-sm text-muted-foreground">
           {formatRelativeTime(apiKey.lastUsedAt)}
         </span>

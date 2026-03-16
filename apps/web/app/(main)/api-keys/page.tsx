@@ -96,10 +96,10 @@ export default function ApiKeysPage() {
               <TableHead className="hidden lg:table-cell text-muted-foreground font-medium">
                 REQUESTS
               </TableHead>
-              <TableHead className="text-muted-foreground font-medium">
+              <TableHead className="hidden sm:table-cell text-muted-foreground font-medium">
                 LAST USED
               </TableHead>
-              <TableHead className="text-muted-foreground font-medium">
+              <TableHead className="text-muted-foreground font-medium w-20 sm:w-auto">
                 ACTIONS
               </TableHead>
             </TableRow>

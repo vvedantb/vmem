@@ -18,20 +18,20 @@ interface ApiLogsTableProps {
 
 export function ApiLogsTable({ logs }: ApiLogsTableProps) {
   return (
-    <div className="border border-border rounded-xl overflow-hidden">
-      <table className="w-full">
+    <div className="border border-border rounded-xl overflow-x-auto">
+      <table className="w-full min-w-0">
         <thead>
           <tr className="border-b border-border bg-muted/50">
-            <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="text-left px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider">
               Endpoint
             </th>
-            <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="text-left px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider">
               Status
             </th>
-            <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
+            <th className="text-left px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
               Duration
             </th>
-            <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="text-left px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">
               Time
             </th>
           </tr>
@@ -49,24 +49,24 @@ export function ApiLogsTable({ logs }: ApiLogsTableProps) {
           ) : (
             logs.map((log: ApiLogItem) => (
               <tr key={log.id} className="border-b border-border last:border-0">
-                <td className="px-6 py-5">
-                  <code className="text-sm text-foreground font-mono">
+                <td className="px-3 sm:px-6 py-3 sm:py-5">
+                  <code className="text-xs sm:text-sm text-foreground font-mono break-all sm:break-normal">
                     {log.endpoint}
                   </code>
                 </td>
-                <td className="px-6 py-5">
+                <td className="px-3 sm:px-6 py-3 sm:py-5">
                   <span
-                    className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-medium ${getStatusClassName(log.status)}`}
+                    className={`inline-flex px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-medium ${getStatusClassName(log.status)}`}
                   >
                     {log.status}
                   </span>
                 </td>
-                <td className="px-6 py-5 hidden md:table-cell">
+                <td className="px-3 sm:px-6 py-3 sm:py-5 hidden md:table-cell">
                   <span className="text-sm text-muted-foreground">
                     {formatDuration(log.durationMs)}
                   </span>
                 </td>
-                <td className="px-6 py-5">
+                <td className="px-3 sm:px-6 py-3 sm:py-5 hidden sm:table-cell">
                   <span className="text-sm text-muted-foreground">
                     {formatRelativeTime(log.timestamp)}
                   </span>

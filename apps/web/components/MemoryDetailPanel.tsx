@@ -185,7 +185,7 @@ export default function MemoryDetailPanel({
 
   return (
     <>
-      <Card className="p-5 space-y-5 lg:sticky lg:top-4">
+      <Card className="p-4 sm:p-5 space-y-4 sm:space-y-5 lg:sticky lg:top-4">
         <div className="flex items-start justify-between gap-3">
           {isEditing ? (
             <Input

@@ -139,24 +139,24 @@ export default function NotificationsPage() {
           {notifications.map((notification) => (
             <div
               key={notification._id}
-              className={`p-6 rounded-xl border transition-colors ${
+              className={`p-3 sm:p-6 rounded-xl border transition-colors ${
                 notification.read
                   ? "border-border bg-muted/50"
                   : "border-border/80 bg-accent"
               }`}
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3 sm:gap-4">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${getIconBackground(
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 ${getIconBackground(
                     notification.type,
                   )}`}
                 >
                   <NotificationIcon type={notification.type} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-4">
                     <h3
-                      className={`font-medium ${
+                      className={`font-medium text-sm sm:text-base ${
                         notification.read
                           ? "text-muted-foreground"
                           : "text-foreground"
@@ -164,15 +164,15 @@ export default function NotificationsPage() {
                     >
                       {notification.title}
                     </h3>
-                    <span className="text-sm text-muted-foreground flex-shrink-0">
+                    <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">
                       {formatTimestamp(notification.createdAt)}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     {notification.description}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   {!notification.read && (
                     <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
                   )}

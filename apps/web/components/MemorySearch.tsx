@@ -231,7 +231,7 @@ export default function MemorySearch() {
             className={cn(
               "flex-1 min-w-0",
               selectedMemory
-                ? "lg:max-h-[calc(100vh-16rem)] lg:overflow-y-auto lg:pr-1"
+                ? "hidden sm:block lg:max-h-[calc(100vh-16rem)] lg:overflow-y-auto lg:pr-1"
                 : "",
             )}
           >
@@ -297,7 +297,7 @@ export default function MemorySearch() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.2 }}
-                className="lg:w-[420px] lg:flex-shrink-0"
+                className="w-full lg:w-[420px] lg:flex-shrink-0"
               >
                 <MemoryDetailPanel
                   memory={selectedMemory}

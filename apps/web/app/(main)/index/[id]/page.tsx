@@ -105,10 +105,10 @@ export default function CodebaseDetailPage({
       }
     >
       <Card className="border border-border bg-muted/50 shadow-none">
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex items-start justify-between gap-3 sm:gap-4">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                 <IconDatabase size={24} className="text-primary" />
               </div>
               <div>
@@ -198,19 +198,19 @@ export default function CodebaseDetailPage({
               {codebase.files.map((file) => (
                 <div
                   key={file.path}
-                  className="flex items-center justify-between gap-4 px-4 py-3"
+                  className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-2.5 sm:py-3"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <IconFile
                       size={16}
                       className="text-muted-foreground shrink-0"
                     />
-                    <span className="text-sm text-foreground font-mono truncate">
+                    <span className="text-xs sm:text-sm text-foreground font-mono truncate">
                       {file.path}
                     </span>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground shrink-0">
-                    <span>{file.language}</span>
+                  <div className="flex items-center gap-2 sm:gap-4 text-xs text-muted-foreground shrink-0">
+                    <span className="hidden sm:inline">{file.language}</span>
                     <span>{file.size}</span>
                   </div>
                 </div>

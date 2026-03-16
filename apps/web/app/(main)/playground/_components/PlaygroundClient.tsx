@@ -437,7 +437,7 @@ export default function PlaygroundClient() {
             )}
           </div>
 
-          <div className="min-h-[300px]">
+          <div className="min-h-[200px] sm:min-h-[300px]">
             <label className="text-sm font-medium text-foreground block mb-1.5">
               Result
             </label>
@@ -452,7 +452,7 @@ export default function PlaygroundClient() {
               </pre>
             )}
             {!state.error && !state.result && (
-              <div className="rounded-md border border-border bg-muted/30 p-4 h-[300px] flex items-center justify-center">
+              <div className="rounded-md border border-border bg-muted/30 p-4 h-[200px] sm:h-[300px] flex items-center justify-center">
                 <p className="text-sm text-muted-foreground">
                   Select a tool and run it to see results here.
                 </p>
