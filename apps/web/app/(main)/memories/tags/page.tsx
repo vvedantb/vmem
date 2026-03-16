@@ -162,7 +162,7 @@ export default function TagsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="p-4 rounded-xl border border-border bg-muted/50">
           <p className="text-sm text-muted-foreground">Total Tags</p>
           <p className="text-2xl font-semibold text-foreground mt-1">
@@ -204,8 +204,12 @@ export default function TagsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>TAG</TableHead>
-                  <TableHead className="w-32">MEMORIES</TableHead>
-                  <TableHead className="w-48 text-right">ACTIONS</TableHead>
+                  <TableHead className="hidden sm:table-cell w-32">
+                    MEMORIES
+                  </TableHead>
+                  <TableHead className="w-12 sm:w-48 text-right">
+                    ACTIONS
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -249,22 +253,45 @@ export default function TagsPage() {
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-foreground">{item.tag}</span>
+                        <div>
+                          <span className="text-foreground">{item.tag}</span>
+                          <span className="text-xs text-muted-foreground sm:hidden ml-2">
+                            ({item.count})
+                          </span>
+                        </div>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <span className="text-muted-foreground tabular-nums">
                         {item.count}
                       </span>
                     </TableCell>
                     <TableCell>
                       {editingTag !== item.tag && (
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1 sm:gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => startEditing(item.tag)}
+                            className="text-muted-foreground sm:hidden"
+                            aria-label="Edit tag"
+                          >
+                            <IconEdit size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setDeleteTag(item.tag)}
+                            className="text-destructive sm:hidden"
+                            aria-label="Delete tag"
+                          >
+                            <IconTrash size={14} />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => startEditing(item.tag)}
-                            className="text-muted-foreground"
+                            className="text-muted-foreground hidden sm:inline-flex"
                           >
                             <IconEdit size={14} />
                             Edit
@@ -273,7 +300,7 @@ export default function TagsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setDeleteTag(item.tag)}
-                            className="text-destructive"
+                            className="text-destructive hidden sm:inline-flex"
                           >
                             <IconTrash size={14} />
                             Delete
