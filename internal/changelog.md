@@ -2,6 +2,15 @@
 
 ## 2026-03-16
 
+### MCP Playground Page
+
+- Added `/playground` page to web dashboard — connects to MCP server via full OAuth PKCE flow from the browser
+- Implements complete OAuth dance: metadata discovery → dynamic client registration → PKCE challenge → Clerk sign-in popup → token exchange → MCP connection
+- After connecting, lists all available MCP tools. Users can select a tool, fill in parameters via dynamic form, execute it, and see raw JSON results
+- Added CORS middleware to MCP server to allow browser requests from the web app
+- Added `NEXT_PUBLIC_MCP_URL` env var to web app config
+- Why: Can't test MCP via Claude.ai (Teams restriction) or MCP Inspector (Node version mismatch). This provides a first-party testing surface
+
 ### Wire MCP Server to vmem API
 
 - Connected MCP server's stub tools to the live Hono API — MCP can now search, retrieve, add, update, and delete memories via Claude.ai/ChatGPT
