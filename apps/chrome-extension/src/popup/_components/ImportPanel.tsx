@@ -1,4 +1,13 @@
 import { useState, useEffect } from "react";
+import {
+  Button,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  Progress,
+} from "@vmem/ui";
 import type {
   ContentMessage,
   BackgroundResponse,
@@ -8,7 +17,7 @@ import type {
 type ImportStatus = "idle" | "importing" | "done" | "error" | "cancelled";
 
 export function ImportPanel() {
-  const [historyDays, setHistoryDays] = useState(7);
+  const [historyDays, setHistoryDays] = useState("7");
   const [bookmarkStatus, setBookmarkStatus] = useState<ImportStatus>("idle");
   const [historyStatus, setHistoryStatus] = useState<ImportStatus>("idle");
   const [progress, setProgress] = useState<{
@@ -59,7 +68,7 @@ export function ImportPanel() {
 
     const message: ContentMessage = {
       type: "IMPORT_HISTORY",
-      days: historyDays,
+      days: Number(historyDays),
     };
     chrome.runtime.sendMessage(
       message,
@@ -98,16 +107,16 @@ export function ImportPanel() {
     <div className="space-y-6">
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-muted-foreground">Bookmarks</h3>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          className="w-full"
           onClick={handleImportBookmarks}
           disabled={isImporting}
-          className="w-full glass-interactive text-foreground disabled:opacity-50 rounded-xl py-2.5 text-sm font-medium"
         >
           {bookmarkStatus === "importing"
             ? "Importing..."
             : "Import All Bookmarks"}
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-3">
@@ -115,24 +124,28 @@ export function ImportPanel() {
           Browsing History
         </h3>
         <div className="flex gap-2">
-          <select
+          <Select
             value={historyDays}
-            onChange={(e) => setHistoryDays(Number(e.target.value))}
+            onValueChange={setHistoryDays}
             disabled={isImporting}
-            className="bg-card border border-border/50 rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-muted-foreground"
           >
-            <option value={7}>Last 7 days</option>
-            <option value={30}>Last 30 days</option>
-            <option value={90}>Last 90 days</option>
-          </select>
-          <button
-            type="button"
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            className="flex-1"
             onClick={handleImportHistory}
             disabled={isImporting}
-            className="flex-1 glass-interactive text-foreground disabled:opacity-50 rounded-xl py-2.5 text-sm font-medium"
           >
             {historyStatus === "importing" ? "Importing..." : "Import History"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -144,25 +157,14 @@ export function ImportPanel() {
               {progress.current} / {progress.total}
             </span>
           </div>
-          <div className="w-full bg-muted rounded-full h-1.5">
-            <div
-              className="bg-primary h-1.5 rounded-full transition-all"
-              style={{
-                width: `${(progress.current / progress.total) * 100}%`,
-              }}
-            />
-          </div>
+          <Progress value={(progress.current / progress.total) * 100} />
         </div>
       )}
 
       {isImporting && (
-        <button
-          type="button"
-          onClick={handleCancel}
-          className="w-full border border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-xl py-2.5 text-sm font-medium"
-        >
+        <Button variant="destructive" className="w-full" onClick={handleCancel}>
           Cancel Import
-        </button>
+        </Button>
       )}
 
       {resultMessage && (

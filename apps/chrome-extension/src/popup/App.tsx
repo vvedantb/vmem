@@ -4,21 +4,13 @@ import {
   IconDownload,
   IconSettings,
 } from "@tabler/icons-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@vmem/ui";
 import { SettingsForm } from "./_components/SettingsForm";
 import { QuickSave } from "./_components/QuickSave";
 import { ImportPanel } from "./_components/ImportPanel";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 
-type Tab = "save" | "import" | "settings";
-
-const TABS: { key: Tab; label: string; icon: typeof IconDeviceFloppy }[] = [
-  { key: "save", label: "Save", icon: IconDeviceFloppy },
-  { key: "import", label: "Import", icon: IconDownload },
-  { key: "settings", label: "Settings", icon: IconSettings },
-];
-
 export function App() {
-  const [activeTab, setActiveTab] = useState<Tab>("save");
   const [connected, setConnected] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -52,34 +44,32 @@ export function App() {
         </div>
       </header>
 
-      <nav className="flex gap-1 px-3 pt-3">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-xl ${
-                activeTab === tab.key
-                  ? "glass-interactive text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon size={16} stroke={1.8} />
-              {tab.label}
-            </button>
-          );
-        })}
-      </nav>
+      <Tabs defaultValue="save" className="flex flex-1 flex-col">
+        <TabsList className="mx-3 mt-3 w-auto">
+          <TabsTrigger value="save" className="flex-1 gap-1.5">
+            <IconDeviceFloppy size={16} stroke={1.8} />
+            Save
+          </TabsTrigger>
+          <TabsTrigger value="import" className="flex-1 gap-1.5">
+            <IconDownload size={16} stroke={1.8} />
+            Import
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex-1 gap-1.5">
+            <IconSettings size={16} stroke={1.8} />
+            Settings
+          </TabsTrigger>
+        </TabsList>
 
-      <main className="flex-1 p-5">
-        {activeTab === "save" && <QuickSave />}
-        {activeTab === "import" && <ImportPanel />}
-        {activeTab === "settings" && (
+        <TabsContent value="save" className="flex-1 p-5">
+          <QuickSave />
+        </TabsContent>
+        <TabsContent value="import" className="flex-1 p-5">
+          <ImportPanel />
+        </TabsContent>
+        <TabsContent value="settings" className="flex-1 p-5">
           <SettingsForm onConnectionChange={setConnected} />
-        )}
-      </main>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -10,9 +10,17 @@
   },
   "dependencies": {
     "@mozilla/readability": "^0.5.0",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tabs": "^1.1.13",
     "@tabler/icons-react": "^3.35.0",
+    "@vmem/ui": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",
