@@ -1,0 +1,57 @@
+---
+title: "Proposed Updates"
+description: "How vmem handles conflicting information without silent overwrites"
+---
+
+## The Problem
+
+Imagine a user tells an AI assistant: "I prefer Python." A week later, they say: "Actually, I've switched to TypeScript." What should the memory system do?
+
+Most systems silently overwrite. The old memory is gone — no record of what changed or why.
+
+## How vmem Handles Conflicts
+
+When vmem detects that new information conflicts with an existing memory, it creates a **proposed update** instead of overwriting. The original memory remains unchanged until you explicitly approve the change.
+
+```
+New memory extracted: "User prefers TypeScript"
+  → vmem detects conflict with: "User prefers Python"
+  → Creates a proposed update (pending)
+  → User reviews and approves/rejects via API or dashboard
+```
+
+## Why This Matters
+
+- **No silent data loss** — the original memory is preserved until you decide
+- **Audit trail** — every proposal records what was proposed, when, and what happened
+- **User control** — you decide what your AI remembers, not the system
+
+## Proposed Update Lifecycle
+
+```
+pending → approved (memory updated)
+        → rejected (original preserved)
+```
+
+## Managing Proposals
+
+### Via API
+
+List pending proposals:
+```bash
+GET /v1/proposed-updates?userId=user_123
+```
+
+Approve:
+```bash
+POST /v1/proposed-updates/:id/approve
+```
+
+Reject:
+```bash
+POST /v1/proposed-updates/:id/reject
+```
+
+### Via Dashboard
+
+The vmem web dashboard shows pending proposals with a side-by-side diff of the original and proposed content, with approve/reject buttons.
