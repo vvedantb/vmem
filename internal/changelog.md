@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-03-16
+
+### Clerk Auth + JWT Middleware — Extension & API
+
+- Added Clerk authentication to Chrome extension popup using `@clerk/chrome-extension` — users sign in via modal, no more manual API key or user ID entry
+- Added Convex integration to extension via `ConvexProviderWithClerk` — runs `ensureUserExists` on login, same flow as web dashboard
+- Background service worker uses `createClerkClient({ background: true })` to get fresh session tokens for API calls without popup being open
+- Created Hono JWT middleware (`apps/api/src/middleware/auth.ts`) using `@clerk/backend.verifyToken` — all `/v1/*` routes now require valid Clerk JWT in Authorization header
+- Removed `userId` from all API request bodies/query params — server extracts it from JWT `sub` claim (Clerk user ID)
+- Updated web dashboard (`MemoryContext`, `Dashboard`) to also send Bearer token with API requests, removing userId from query params
+- Settings form simplified to just API URL + sign out; auth is fully automatic
+
 ## 2026-03-15
 
 ### Mintlify Documentation Scaffold

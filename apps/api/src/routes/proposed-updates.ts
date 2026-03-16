@@ -11,14 +11,10 @@ function getService(): MemoryService {
   return new MemoryService(getDriver());
 }
 
-const proposedUpdates = new Hono();
+const proposedUpdates = new Hono<{ Variables: { userId: string } }>();
 
 proposedUpdates.get("/", async (c) => {
-  const userId = c.req.query("userId");
-  if (!userId) {
-    return c.json({ error: "userId query param required" }, 400);
-  }
-
+  const userId = c.get("userId");
   const service = getService();
   const proposals = await service.listProposedUpdates(userId);
   return c.json({ proposals });

@@ -1,5 +1,13 @@
 export const API_VERSION = "v1";
 
+export const CLERK_PUBLISHABLE_KEY =
+  "pk_test_ZmxleGlibGUtZHVja2xpbmctNzQuY2xlcmsuYWNjb3VudHMuZGV2JA";
+
+export const CONVEX_URL =
+  "https://outgoing-reindeer-268.eu-west-1.convex.cloud";
+
+export const DEFAULT_API_URL = "https://vmem-api.up.railway.app";
+
 export const EXPORT_PROMPT = `Please save a comprehensive summary of our entire conversation to vmem. Include:
 - All key decisions made
 - Important facts and context discussed

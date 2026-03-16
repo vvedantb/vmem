@@ -1,11 +1,9 @@
+import { DEFAULT_API_URL } from "@/lib/constants";
+
 export interface ExtensionStorage {
   apiUrl: string;
-  apiKey: string;
-  userId: string;
 }
 
 export const STORAGE_DEFAULTS: ExtensionStorage = {
-  apiUrl: "http://localhost:3001",
-  apiKey: "",
-  userId: "",
+  apiUrl: DEFAULT_API_URL,
 };
