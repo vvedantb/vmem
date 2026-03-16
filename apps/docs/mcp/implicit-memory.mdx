@@ -1,0 +1,61 @@
+---
+title: "Implicit Memory"
+description: "How vmem injects context without tool calls"
+---
+
+## The Core Principle
+
+Memory should be implicit, not explicit. The LLM should never have to "decide" to remember — relevant context should already be present when it responds.
+
+## How It Works
+
+```
+User sends message to Claude/Cursor/ChatGPT
+  → MCP client asks vmem: "what's relevant for this user?"
+  → vmem returns top memories as Resources
+  → LLM sees them as part of system prompt — no tool call
+  → LLM responds with full memory context
+```
+
+The user and the LLM never explicitly "fetch" memories. They're just there.
+
+## Reading vs Writing
+
+| Operation | Mode | How |
+| --- | --- | --- |
+| **Reading** | Implicit | Memories auto-injected via MCP Resources |
+| **Writing (deliberate)** | Explicit | LLM calls `memory_write` tool |
+| **Writing (automatic)** | Background | Observer process extracts memories from conversations |
+
+Reading should **always** be implicit. Writing can be either intentional or automatic.
+
+## Why This Matters
+
+### Competitors: Tool-Only Approach
+
+Mem0 and Supermemory require the LLM to explicitly call `mem0.search()` or `memory.retrieve()` to get context. This has two problems:
+
+1. **The LLM can forget to check memory** — it's an optional step that may be skipped
+2. **Token overhead** — every retrieval costs a tool call round-trip
+
+### vmem: Resource-Based Approach
+
+vmem injects memory via MCP Resources before the LLM even starts generating. The model always has relevant context. No tool call overhead. No "forgetting to remember."
+
+## MCP Resources in Detail
+
+### `user://memories/relevant`
+
+Returns the top N memories most relevant to the current conversation context. Ranking uses:
+- Semantic similarity to the current message
+- Recency weighting
+- Memory status (pinned memories are boosted)
+- Tag relevance
+
+### `user://profile`
+
+Returns stable user facts — preferences, role, tools, recurring context. This is always injected regardless of the conversation topic.
+
+### `user://project/{name}`
+
+Returns context specific to an active project — goals, decisions, constraints. Useful when the user is working within a known project scope.

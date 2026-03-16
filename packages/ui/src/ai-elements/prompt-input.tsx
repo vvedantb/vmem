@@ -12,7 +12,7 @@ import {
   type HTMLAttributes,
 } from "react";
 import type { ChatStatus } from "ai";
-import { IconSend, IconSquare } from "@tabler/icons-react";
+import { IconArrowUp, IconSquare } from "@tabler/icons-react";
 import { cn } from "../utils/cn";
 import {
   InputGroup,
@@ -218,7 +218,7 @@ function PromptInputSubmit({
     return (
       <Button
         type="button"
-        variant="outline"
+        variant="destructive"
         size="icon-xs"
         className={className}
         onClick={onStop}
@@ -238,7 +238,7 @@ function PromptInputSubmit({
       className={className}
       {...props}
     >
-      <IconSend className="size-3.5" stroke={1.5} />
+      <IconArrowUp className="size-3.5" stroke={1.5} />
     </Button>
   );
 }

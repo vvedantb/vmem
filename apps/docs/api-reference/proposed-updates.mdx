@@ -1,0 +1,56 @@
+---
+title: "Proposed Updates"
+description: "Review and resolve conflicting memory updates"
+---
+
+When vmem detects that new information conflicts with an existing memory, it creates a **proposed update** instead of silently overwriting. This preserves data integrity and gives you control over what changes.
+
+## List Proposed Updates
+
+```bash
+GET /v1/proposed-updates?userId=user_123
+```
+
+<ParamField query="userId" type="string" required />
+
+**Response:**
+
+```json
+{
+  "proposals": [
+    {
+      "id": "proposal_abc",
+      "memoryId": "mem_123",
+      "originalContent": "User prefers Python",
+      "proposedContent": "User prefers TypeScript",
+      "reason": "Conflicting preference detected",
+      "status": "pending",
+      "createdAt": "2026-03-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## Approve Proposed Update
+
+Applies the proposed change to the original memory.
+
+```bash
+POST /v1/proposed-updates/:id/approve
+```
+
+**Response:** The updated proposal with `status: "approved"`, or `404` if not found.
+
+---
+
+## Reject Proposed Update
+
+Discards the proposed change. The original memory remains unchanged.
+
+```bash
+POST /v1/proposed-updates/:id/reject
+```
+
+**Response:** The updated proposal with `status: "rejected"`, or `404` if not found.

@@ -1,0 +1,79 @@
+---
+title: "Quickstart"
+description: "Get vmem running and store your first memory"
+---
+
+## Prerequisites
+
+- Node.js 20+
+- A Neo4j Aura instance (or local Neo4j)
+- An OpenRouter API key (for embeddings)
+
+## 1. Clone the Repository
+
+```bash
+git clone https://github.com/vedantbhopatrao/vmem.git
+cd vmem
+pnpm install
+```
+
+## 2. Configure Environment
+
+Create `apps/api/.env`:
+
+```env
+NEO4J_URI=neo4j+s://your-instance.neo4j.io
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your-password
+OPENROUTER_API_KEY=your-key
+```
+
+## 3. Start the API
+
+```bash
+pnpm api:dev
+```
+
+The memory engine runs at `http://localhost:3000`.
+
+## 4. Store Your First Memory
+
+```bash
+curl -X POST http://localhost:3000/v1/memories \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user_123",
+    "title": "Favourite language",
+    "content": "The user prefers TypeScript over JavaScript",
+    "type": "profile",
+    "source": "manual",
+    "tags": ["preferences"]
+  }'
+```
+
+## 5. Retrieve Relevant Memories
+
+```bash
+curl -X POST http://localhost:3000/v1/memories/retrieve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user_123",
+    "query": "What programming language does the user like?"
+  }'
+```
+
+The response includes a **context trace** showing why each memory matched and its relevance score.
+
+## 6. Start the Dashboard
+
+```bash
+pnpm dev
+```
+
+Open `http://localhost:3000` to browse, edit, and manage memories through the web UI.
+
+## Next Steps
+
+- Learn about [memory types](/concepts/types-of-memory) and how they're classified
+- Explore the full [API reference](/api-reference/overview)
+- Set up [MCP integration](/mcp/overview) for implicit memory in Claude, Cursor, etc.

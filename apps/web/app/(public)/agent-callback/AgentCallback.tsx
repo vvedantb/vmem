@@ -20,7 +20,7 @@ export function AgentCallback() {
       .then((result) => {
         if (result.createdSessionId) {
           return setActive({ session: result.createdSessionId }).then(() => {
-            router.replace("/home");
+            router.replace("/");
           });
         }
       })

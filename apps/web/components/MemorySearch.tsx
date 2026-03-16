@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Button, Input, Badge, Card, Skeleton, cn } from "@vmem/ui";
-import { IconSearch, IconMoodEmpty, IconX } from "@tabler/icons-react";
+import { Button, Input, Badge, Card, cn } from "@vmem/ui";
+import {
+  IconSearch,
+  IconMoodEmpty,
+  IconX,
+  IconLoader2,
+} from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import MemoryDetailPanel from "./MemoryDetailPanel";
@@ -120,14 +125,9 @@ export default function MemorySearch() {
 
   if (isLoading) {
     return (
-      <>
-        <Skeleton className="h-12 w-full rounded-xl" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-24 rounded-2xl" />
-          ))}
-        </div>
-      </>
+      <div className="flex h-full min-h-0 items-center justify-center">
+        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
@@ -150,20 +150,20 @@ export default function MemorySearch() {
   return (
     <>
       <div className="relative">
-        <Input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search memories semantically..."
-          className="h-12 bg-muted/50 border-border pr-10 text-foreground hover:bg-accent focus-visible:border-ring"
-        />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2">
           <IconSearch
             className="text-muted-foreground"
             size={20}
             stroke={1.5}
           />
         </div>
+        <Input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search memories semantically..."
+          className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
+        />
       </div>
 
       {allTags.length > 0 && (

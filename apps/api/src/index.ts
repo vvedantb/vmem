@@ -7,6 +7,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { memories } from "./routes/memories";
 import { proposedUpdates } from "./routes/proposed-updates";
+import { dashboard } from "./routes/dashboard";
 import { getDriver, closeDriver } from "./db/neo4j";
 import { setupDatabase } from "./db/setup";
 
@@ -17,6 +18,7 @@ app.use("*", cors());
 
 app.route("/memories", memories);
 app.route("/proposed-updates", proposedUpdates);
+app.route("/dashboard", dashboard);
 
 app.get("/health", async (c) => {
   const driver = getDriver();

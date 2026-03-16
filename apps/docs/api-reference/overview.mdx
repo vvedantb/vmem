@@ -1,0 +1,68 @@
+---
+title: "API Overview"
+description: "REST API for the vmem memory engine"
+---
+
+## Base URL
+
+```
+http://localhost:3000/v1
+```
+
+All endpoints are prefixed with `/v1`.
+
+## Authentication
+
+All requests require a `userId` parameter (query string for GET/DELETE, request body for POST/PATCH). API key authentication is planned for production.
+
+## Health Check
+
+```
+GET /health
+```
+
+Returns server status with Neo4j connection info and timestamp.
+
+## Route Groups
+
+| Group | Base Path | Description |
+| --- | --- | --- |
+| [Memories](/api-reference/memories) | `/v1/memories` | CRUD, search, and retrieval of memories |
+| [Proposed Updates](/api-reference/proposed-updates) | `/v1/proposed-updates` | Review and resolve memory conflicts |
+| [Dashboard](/api-reference/dashboard) | `/v1/dashboard` | Statistics and activity data |
+
+## Common Patterns
+
+### Pagination
+
+List endpoints accept `limit` (default: 20) and `offset` (default: 0) parameters.
+
+### Memory Types
+
+Memories are classified as one of:
+- `profile` — stable user facts and preferences
+- `episodic` — session-specific or temporal events
+- `knowledge` — learned information and skills
+
+### Memory Status
+
+- `active` — normal state
+- `pinned` — protected from expiry
+- `suppressed` — hidden from retrieval but not deleted
+- `expired` — past its expiry date
+
+### Error Responses
+
+All errors follow this shape:
+
+```json
+{
+  "error": "Description of what went wrong"
+}
+```
+
+| Status | Meaning |
+| --- | --- |
+| 400 | Missing or invalid parameters |
+| 404 | Memory or resource not found |
+| 500 | Internal server error |
