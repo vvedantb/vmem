@@ -41,7 +41,7 @@ function tagToColor(tag: string, isDark: boolean): string {
 }
 
 export default function MemoryGraph() {
-  const { memories, isLoading } = useMemoryContext();
+  const { memories, isLoading, deleteMemory } = useMemoryContext();
   const { theme } = useThemeContext();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
@@ -171,6 +171,7 @@ export default function MemoryGraph() {
         edges={edges}
         onClose={handleCloseDialog}
         onNavigate={handleNavigateNode}
+        onDelete={deleteMemory}
       />
     </>
   );
