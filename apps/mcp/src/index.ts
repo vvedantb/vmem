@@ -62,7 +62,7 @@ app.use((req: Request, res: Response, next) => {
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Authorization, Content-Type",
+      "Authorization, Content-Type, mcp-protocol-version",
     );
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }
