@@ -1,4 +1,5 @@
 import { createMemory } from "./api-client";
+import { isCancelled, resetCancel } from "./import-cancel";
 
 const SKIP_PREFIXES = ["chrome://", "chrome-extension://", "about:", "edge://"];
 
@@ -7,6 +8,7 @@ function delay(ms: number): Promise<void> {
 }
 
 export async function importHistory(days: number): Promise<number> {
+  resetCancel();
   const startTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
   const entries = await chrome.history.search({
@@ -30,6 +32,7 @@ export async function importHistory(days: number): Promise<number> {
   let imported = 0;
 
   for (const entry of deduplicated) {
+    if (isCancelled()) break;
     if (!entry.url) continue;
 
     try {

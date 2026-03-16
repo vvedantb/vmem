@@ -13,6 +13,7 @@
     "mcp:start": "pnpm --filter mcp start",
     "ext:dev": "pnpm --filter @vmem/chrome-extension dev",
     "ext:build": "pnpm --filter @vmem/chrome-extension build",
+    "docs:dev": "pnpm --filter docs exec mint dev --port 3001",
     "lint": "pnpm --filter web lint",
     "typecheck": "pnpm --filter web typecheck",
     "convex": "pnpm --filter @vmem/backend dev",
