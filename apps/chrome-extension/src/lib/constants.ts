@@ -8,6 +8,8 @@ export const CONVEX_URL =
 
 export const DEFAULT_API_URL = "https://vmem-api.up.railway.app";
 
+export const CLERK_SYNC_HOST = "http://localhost:3000";
+
 export const EXPORT_PROMPT = `Please save a comprehensive summary of our entire conversation to vmem. Include:
 - All key decisions made
 - Important facts and context discussed
