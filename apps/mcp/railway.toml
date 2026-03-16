@@ -1,6 +1,6 @@
 [build]
 builder = "railpack"
-buildCommand = "npm install && npm run build"
+buildCommand = "npm install"
 
 [deploy]
-startCommand = "node dist/index.js"
+startCommand = "npx tsx src/index.ts"

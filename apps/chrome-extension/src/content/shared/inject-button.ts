@@ -1,5 +1,18 @@
 import { VMEM_BUTTON_STYLES } from "@/lib/constants";
 
+let fontInjected = false;
+
+function injectInstrumentSansFont(): void {
+  if (fontInjected) return;
+  fontInjected = true;
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href =
+    "https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap";
+  document.head.appendChild(link);
+}
+
 export function createVmemButton(
   text: string,
   onClick: () => void,
@@ -9,6 +22,7 @@ export function createVmemButton(
   button.type = "button";
   button.setAttribute("data-vmem", "true");
 
+  injectInstrumentSansFont();
   Object.assign(button.style, VMEM_BUTTON_STYLES);
 
   button.addEventListener("mouseenter", () => {

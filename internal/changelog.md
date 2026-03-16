@@ -2,6 +2,15 @@
 
 ## 2026-03-16
 
+### Wire MCP Server to vmem API
+
+- Connected MCP server's stub tools to the live Hono API — MCP can now search, retrieve, add, update, and delete memories via Claude.ai/ChatGPT
+- Added dual-auth middleware to API: tries Clerk session token first (web dashboard), falls back to MCP JWT verification (MCP server). Both paths extract the same clerkUserId.
+- Created typed API client in MCP (`api-client.ts`) that forwards the user's MCP JWT as a Bearer token to the API
+- Implemented 5 MCP tools: `memory_search`, `memory_retrieve` (with Context Trace scoring), `memory_add`, `memory_update`, `memory_delete`
+- Fixed Railway build for MCP — was using `npm install` in a pnpm monorepo, now uses `pnpm --filter mcp...`
+- Added `jsonwebtoken` to API for MCP JWT verification
+
 ### Clerk Auth + JWT Middleware — Extension & API
 
 - Added Clerk authentication to Chrome extension popup using `@clerk/chrome-extension` — users sign in via modal, no more manual API key or user ID entry
