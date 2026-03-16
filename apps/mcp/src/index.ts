@@ -56,7 +56,21 @@ function queryToStringRecord(req: Request): Record<string, string> {
 
 const app = express();
 
-app.use((req: Request, _res: Response, next) => {
+app.use((req: Request, res: Response, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Authorization, Content-Type",
+    );
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
   console.log(`-> ${req.method} ${req.path}`);
   next();
 });

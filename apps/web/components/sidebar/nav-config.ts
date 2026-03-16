@@ -15,6 +15,7 @@ import {
   IconAdjustments,
   IconShieldLock,
   IconLayoutDashboard,
+  IconTerminal2,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -46,6 +47,7 @@ export const navGroups: NavGroup[] = [
       { href: "/api-keys", label: "API Keys", icon: IconKey },
       { href: "/usage", label: "Usage", icon: IconChartBar },
       { href: "/connectors", label: "Connectors", icon: IconPlugConnected },
+      { href: "/playground", label: "Playground", icon: IconTerminal2 },
     ],
   },
   {
