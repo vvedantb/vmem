@@ -163,6 +163,7 @@ async function handleMcpPost(req: Request, res: Response) {
     const server = createMcpServer(user);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
+      enableJsonResponse: true,
     });
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
