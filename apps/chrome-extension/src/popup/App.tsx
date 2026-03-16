@@ -29,31 +29,34 @@ export function App() {
   ];
 
   return (
-    <div className="bg-zinc-950 text-zinc-100 min-h-[500px] flex flex-col">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-        <div className="flex items-center gap-2">
-          <span className="text-lg font-semibold">vmem</span>
+    <div className="bg-background text-foreground min-h-[500px] flex flex-col">
+      <header className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+        <div className="flex items-center gap-2.5">
+          <span className="text-lg font-serif tracking-tight">
+            v<span className="italic">mem</span>
+          </span>
           <span
             className={`w-2 h-2 rounded-full ${
               connected === null
-                ? "bg-zinc-600"
+                ? "bg-muted-foreground/40"
                 : connected
-                  ? "bg-emerald-500"
-                  : "bg-red-500"
+                  ? "bg-success"
+                  : "bg-destructive"
             }`}
           />
         </div>
       </header>
 
-      <nav className="flex border-b border-zinc-800">
+      <nav className="flex gap-1 px-3 pt-2">
         {tabs.map((tab) => (
           <button
             key={tab.key}
+            type="button"
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+            className={`flex-1 py-2 text-sm font-medium rounded-lg ${
               activeTab === tab.key
-                ? "text-indigo-400 border-b-2 border-indigo-400"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "glass-interactive text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.label}
@@ -61,7 +64,7 @@ export function App() {
         ))}
       </nav>
 
-      <main className="flex-1 p-4">
+      <main className="flex-1 p-5">
         {activeTab === "save" && <QuickSave />}
         {activeTab === "import" && <ImportPanel />}
         {activeTab === "settings" && (

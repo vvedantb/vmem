@@ -57,22 +57,23 @@ export function QuickSave() {
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-zinc-400">
+    <div className="space-y-5">
+      <p className="text-sm text-muted-foreground">
         Save the current page as a memory in vmem.
       </p>
 
       <button
+        type="button"
         onClick={handleSave}
         disabled={saving}
-        className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg py-3 text-sm font-medium transition-colors"
+        className="w-full glass-interactive text-foreground disabled:opacity-50 rounded-xl py-3 text-sm font-medium"
       >
         {saving ? "Saving..." : "Save Current Page"}
       </button>
 
       {result && (
         <p
-          className={`text-sm ${result.success ? "text-emerald-400" : "text-red-400"}`}
+          className={`text-sm ${result.success ? "text-success" : "text-destructive"}`}
         >
           {result.message}
         </p>
