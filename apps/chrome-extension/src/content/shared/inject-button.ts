@@ -6,6 +6,7 @@ export function createVmemButton(
 ): HTMLButtonElement {
   const button = document.createElement("button");
   button.textContent = text;
+  button.type = "button";
   button.setAttribute("data-vmem", "true");
 
   Object.assign(button.style, VMEM_BUTTON_STYLES);
@@ -16,7 +17,11 @@ export function createVmemButton(
   button.addEventListener("mouseleave", () => {
     button.style.opacity = "1";
   });
-  button.addEventListener("click", onClick);
+  button.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClick();
+  });
 
   return button;
 }
