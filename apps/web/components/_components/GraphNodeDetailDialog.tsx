@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { IconTrash, IconLoader2 } from "@tabler/icons-react";
 import {
   Badge,
   Button,
@@ -16,6 +18,7 @@ interface GraphNodeDetailDialogProps {
   edges: SimEdge[];
   onClose: () => void;
   onNavigate: (nodeId: string) => void;
+  onDelete: (nodeId: string) => Promise<boolean>;
 }
 
 function formatDate(dateString: string) {
@@ -32,7 +35,11 @@ export default function GraphNodeDetailDialog({
   edges,
   onClose,
   onNavigate,
+  onDelete,
 }: GraphNodeDetailDialogProps) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   if (!nodeId) return null;
 
   const nodeIndex = nodes.findIndex((n) => n.id === nodeId);
@@ -62,24 +69,19 @@ export default function GraphNodeDetailDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="max-w-4xl">
-        <DialogHeader className="border-b border-border pb-4">
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
           <DialogTitle className="text-foreground">{node.label}</DialogTitle>
+          <p className="text-xs text-muted-foreground">
+            {formatDate(node.createdAt)}
+          </p>
         </DialogHeader>
-        <div className="grid grid-cols-[1fr_auto] gap-6 py-2">
+        <div className="grid grid-cols-[1fr_auto] gap-6">
           <div className="space-y-4 min-w-0">
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                Content
-              </h4>
-              <p className="text-foreground">{node.content}</p>
-            </div>
+            <p className="text-foreground break-words">{node.content}</p>
 
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                Tags
-              </h4>
-              <div className="flex gap-2 flex-wrap">
+            {node.tags.length > 0 && (
+              <div className="flex gap-1.5 flex-wrap">
                 {node.tags.map((tag) => (
                   <Badge
                     key={tag}
@@ -90,48 +92,82 @@ export default function GraphNodeDetailDialog({
                   </Badge>
                 ))}
               </div>
-            </div>
+            )}
 
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                Created
-              </h4>
-              <p className="text-muted-foreground">
-                {formatDate(node.createdAt)}
-              </p>
-            </div>
-          </div>
-
-          <div className="w-96 border-l border-border pl-6">
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">
-              Related Memories
-            </h4>
-            <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-              {neighbors.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No related memories found
-                </p>
-              )}
-              {neighbors.map((neighbor) => (
+            <div className="pt-2">
+              {confirmingDelete ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={isDeleting}
+                    onClick={async () => {
+                      setIsDeleting(true);
+                      const deleted = await onDelete(node.id);
+                      setIsDeleting(false);
+                      if (deleted) {
+                        setConfirmingDelete(false);
+                        onClose();
+                      }
+                    }}
+                  >
+                    {isDeleting ? (
+                      <IconLoader2 size={14} className="animate-spin" />
+                    ) : (
+                      <IconTrash size={14} />
+                    )}
+                    {isDeleting ? "Deleting..." : "Confirm"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={isDeleting}
+                    onClick={() => setConfirmingDelete(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
                 <Button
-                  key={neighbor.node.id}
-                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => onNavigate(neighbor.node.id)}
-                  className="w-full h-auto p-3 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors justify-start items-start flex-col"
+                  onClick={() => setConfirmingDelete(true)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
-                  <p className="text-sm font-medium text-foreground truncate w-full text-left">
-                    {neighbor.node.label}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {neighbor.weight} shared tag
-                    {neighbor.weight > 1 ? "s" : ""}
-                  </p>
+                  <IconTrash size={14} />
+                  Delete
                 </Button>
-              ))}
+              )}
             </div>
           </div>
+
+          {neighbors.length > 0 && (
+            <div className="w-72 border-l border-border pl-6">
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                Related
+              </p>
+              <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+                {neighbors.map((neighbor) => (
+                  <Button
+                    key={neighbor.node.id}
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onNavigate(neighbor.node.id)}
+                    className="w-full h-auto p-2.5 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors justify-start items-start flex-col"
+                  >
+                    <p className="text-sm font-medium text-foreground truncate w-full text-left">
+                      {neighbor.node.label}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {neighbor.weight} shared tag
+                      {neighbor.weight > 1 ? "s" : ""}
+                    </p>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
