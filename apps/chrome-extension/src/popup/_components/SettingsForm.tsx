@@ -48,8 +48,8 @@ export function SettingsForm({ onConnectionChange }: SettingsFormProps) {
   }
 
   const inputClass =
-    "w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500";
-  const labelClass = "block text-sm font-medium text-zinc-400 mb-1";
+    "w-full bg-card border border-border/50 rounded-xl px-3.5 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-muted-foreground";
+  const labelClass = "block text-sm font-medium text-muted-foreground mb-1.5";
 
   return (
     <div className="space-y-4">
@@ -87,16 +87,17 @@ export function SettingsForm({ onConnectionChange }: SettingsFormProps) {
       </div>
 
       <button
+        type="button"
         onClick={handleTestConnection}
         disabled={testing}
-        className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg py-2 text-sm font-medium transition-colors"
+        className="w-full glass-interactive text-foreground disabled:opacity-50 rounded-xl py-2.5 text-sm font-medium"
       >
         {testing ? "Testing..." : "Test Connection"}
       </button>
 
       {testResult && (
         <p
-          className={`text-sm ${testResult === "Connected" ? "text-emerald-400" : "text-red-400"}`}
+          className={`text-sm ${testResult === "Connected" ? "text-success" : "text-destructive"}`}
         >
           {testResult}
         </p>

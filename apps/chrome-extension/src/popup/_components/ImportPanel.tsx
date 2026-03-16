@@ -97,11 +97,12 @@ export function ImportPanel() {
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-zinc-300">Bookmarks</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">Bookmarks</h3>
         <button
+          type="button"
           onClick={handleImportBookmarks}
           disabled={isImporting}
-          className="w-full bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-100 rounded-lg py-2.5 text-sm font-medium transition-colors border border-zinc-700"
+          className="w-full glass-interactive text-foreground disabled:opacity-50 rounded-xl py-2.5 text-sm font-medium"
         >
           {bookmarkStatus === "importing"
             ? "Importing..."
@@ -110,22 +111,25 @@ export function ImportPanel() {
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-zinc-300">Browsing History</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">
+          Browsing History
+        </h3>
         <div className="flex gap-2">
           <select
             value={historyDays}
             onChange={(e) => setHistoryDays(Number(e.target.value))}
             disabled={isImporting}
-            className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500"
+            className="bg-card border border-border/50 rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-muted-foreground"
           >
             <option value={7}>Last 7 days</option>
             <option value={30}>Last 30 days</option>
             <option value={90}>Last 90 days</option>
           </select>
           <button
+            type="button"
             onClick={handleImportHistory}
             disabled={isImporting}
-            className="flex-1 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-100 rounded-lg py-2 text-sm font-medium transition-colors border border-zinc-700"
+            className="flex-1 glass-interactive text-foreground disabled:opacity-50 rounded-xl py-2.5 text-sm font-medium"
           >
             {historyStatus === "importing" ? "Importing..." : "Import History"}
           </button>
@@ -134,15 +138,15 @@ export function ImportPanel() {
 
       {progress && (
         <div className="space-y-2">
-          <div className="flex justify-between text-xs text-zinc-500">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Progress</span>
             <span>
               {progress.current} / {progress.total}
             </span>
           </div>
-          <div className="w-full bg-zinc-800 rounded-full h-1.5">
+          <div className="w-full bg-muted rounded-full h-1.5">
             <div
-              className="bg-indigo-500 h-1.5 rounded-full transition-all"
+              className="bg-primary h-1.5 rounded-full transition-all"
               style={{
                 width: `${(progress.current / progress.total) * 100}%`,
               }}
@@ -153,8 +157,9 @@ export function ImportPanel() {
 
       {isImporting && (
         <button
+          type="button"
           onClick={handleCancel}
-          className="w-full bg-red-900/50 hover:bg-red-900/70 text-red-300 rounded-lg py-2 text-sm font-medium transition-colors border border-red-800/50"
+          className="w-full border border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-xl py-2.5 text-sm font-medium"
         >
           Cancel Import
         </button>
@@ -164,10 +169,10 @@ export function ImportPanel() {
         <p
           className={`text-sm ${
             bookmarkStatus === "error" || historyStatus === "error"
-              ? "text-red-400"
+              ? "text-destructive"
               : bookmarkStatus === "cancelled" || historyStatus === "cancelled"
-                ? "text-amber-400"
-                : "text-emerald-400"
+                ? "text-warning"
+                : "text-success"
           }`}
         >
           {resultMessage}
