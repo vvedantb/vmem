@@ -12,29 +12,24 @@ function formatMemoriesContext(memories: MemoryCandidate[]): string {
   return `[Context from vmem]\n${lines.join("\n")}\n\n`;
 }
 
-function setTextareaValue(textarea: HTMLTextAreaElement, value: string): void {
-  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-    HTMLTextAreaElement.prototype,
-    "value",
-  )?.set;
-  if (nativeInputValueSetter) {
-    nativeInputValueSetter.call(textarea, value);
-  }
-  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+function setInputValue(element: HTMLElement, value: string): void {
+  element.focus();
+  element.textContent = value;
+  element.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 export async function injectUseVmemButton(): Promise<void> {
-  const textareaContainer = await waitForElement(SELECTORS.textarea);
-  if (!textareaContainer) return;
+  const inputField = await waitForElement(SELECTORS.inputField);
+  if (!inputField) return;
 
-  const parent = textareaContainer.parentElement;
+  const parent = inputField.parentElement;
   if (!parent || parent.querySelector("[data-vmem]")) return;
 
   const button = createVmemButton("Use vmem", () => {
-    const textarea = document.querySelector(SELECTORS.textarea);
-    if (!(textarea instanceof HTMLTextAreaElement)) return;
+    const input = document.querySelector(SELECTORS.inputField);
+    if (!(input instanceof HTMLElement)) return;
 
-    const currentText = textarea.value.trim();
+    const currentText = (input.textContent ?? "").trim();
     if (!currentText) {
       button.textContent = "Type a message first";
       setTimeout(() => {
@@ -62,8 +57,7 @@ export async function injectUseVmemButton(): Promise<void> {
           response.memories.length > 0
         ) {
           const context = formatMemoriesContext(response.memories);
-          setTextareaValue(textarea, context + currentText);
-          textarea.focus();
+          setInputValue(input, context + currentText);
         } else {
           button.textContent = "No memories found";
           setTimeout(() => {

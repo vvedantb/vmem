@@ -5,7 +5,8 @@ export type ContentMessage =
   | { type: "SAVE_PAGE"; url: string; title: string; content: string }
   | { type: "IMPORT_BOOKMARKS" }
   | { type: "IMPORT_HISTORY"; days: number }
-  | { type: "TEST_CONNECTION" };
+  | { type: "TEST_CONNECTION" }
+  | { type: "CANCEL_IMPORT" };
 
 export type BackgroundResponse =
   | { type: "RETRIEVE_RESULT"; memories: MemoryCandidate[] }
@@ -16,7 +17,8 @@ export type BackgroundResponse =
       count: number;
       error?: string;
     }
-  | { type: "CONNECTION_RESULT"; connected: boolean; error?: string };
+  | { type: "CONNECTION_RESULT"; connected: boolean; error?: string }
+  | { type: "CANCEL_RESULT"; success: boolean };
 
 export type ProgressMessage = {
   type: "IMPORT_PROGRESS";
