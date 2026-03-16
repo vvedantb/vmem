@@ -50,7 +50,7 @@ export default function IndexPage() {
           return (
             <Link key={codebase.id} href={`/index/${codebase.id}`}>
               <Card className="border border-border bg-muted/50 shadow-none hover:bg-muted/80 transition-colors cursor-pointer">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -81,7 +81,7 @@ export default function IndexPage() {
                     </Badge>
                   </div>
 
-                  <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="mt-3 sm:mt-4 flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground flex-wrap">
                     <span className="flex items-center gap-1">
                       <IconGitBranch size={14} />
                       {codebase.branch}
