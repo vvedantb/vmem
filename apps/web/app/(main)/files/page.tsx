@@ -219,7 +219,7 @@ export default function FilesPage() {
 
   return (
     <PageContainer title="Files">
-      <div className="p-6 rounded-xl border border-border bg-muted/50">
+      <div className="p-4 sm:p-6 rounded-xl border border-border bg-muted/50">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
@@ -266,7 +266,7 @@ export default function FilesPage() {
           <h3 className="text-lg font-medium text-foreground mb-4">
             Your Files ({files.length})
           </h3>
-          <div className="border border-border rounded-xl overflow-hidden">
+          <div className="border border-border rounded-xl overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
@@ -312,7 +312,7 @@ export default function FilesPage() {
                               />
                             )}
                           </div>
-                          <span className="text-foreground font-medium">
+                          <span className="text-foreground font-medium truncate max-w-[150px] sm:max-w-none inline-block align-middle">
                             {file.name}
                           </span>
                         </div>
