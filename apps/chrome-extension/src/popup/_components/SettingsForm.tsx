@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Button, Input, Label } from "@vmem/ui";
 import { getStorage, setStorage } from "@/lib/storage";
 import type { ExtensionStorage } from "@/types/storage";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
@@ -47,53 +48,46 @@ export function SettingsForm({ onConnectionChange }: SettingsFormProps) {
     );
   }
 
-  const inputClass =
-    "w-full bg-card border border-border/50 rounded-xl px-3.5 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-muted-foreground";
-  const labelClass = "block text-sm font-medium text-muted-foreground mb-1.5";
-
   return (
     <div className="space-y-4">
-      <div>
-        <label className={labelClass}>API URL</label>
-        <input
+      <div className="space-y-1.5">
+        <Label>API URL</Label>
+        <Input
           type="url"
-          className={inputClass}
           value={settings.apiUrl}
           onChange={(e) => handleChange("apiUrl", e.target.value)}
           placeholder="http://localhost:3001"
         />
       </div>
 
-      <div>
-        <label className={labelClass}>API Key</label>
-        <input
+      <div className="space-y-1.5">
+        <Label>API Key</Label>
+        <Input
           type="password"
-          className={inputClass}
           value={settings.apiKey}
           onChange={(e) => handleChange("apiKey", e.target.value)}
           placeholder="vmem_sk_..."
         />
       </div>
 
-      <div>
-        <label className={labelClass}>User ID</label>
-        <input
+      <div className="space-y-1.5">
+        <Label>User ID</Label>
+        <Input
           type="text"
-          className={inputClass}
           value={settings.userId}
           onChange={(e) => handleChange("userId", e.target.value)}
           placeholder="Your user ID from the dashboard"
         />
       </div>
 
-      <button
-        type="button"
+      <Button
+        variant="outline"
+        className="w-full"
         onClick={handleTestConnection}
         disabled={testing}
-        className="w-full glass-interactive text-foreground disabled:opacity-50 rounded-xl py-2.5 text-sm font-medium"
       >
         {testing ? "Testing..." : "Test Connection"}
-      </button>
+      </Button>
 
       {testResult && (
         <p

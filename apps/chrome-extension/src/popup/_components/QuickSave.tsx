@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@vmem/ui";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 
 export function QuickSave() {
@@ -62,14 +63,14 @@ export function QuickSave() {
         Save the current page as a memory in vmem.
       </p>
 
-      <button
-        type="button"
+      <Button
+        variant="outline"
+        className="w-full"
         onClick={handleSave}
         disabled={saving}
-        className="w-full glass-interactive text-foreground disabled:opacity-50 rounded-xl py-3 text-sm font-medium"
       >
         {saving ? "Saving..." : "Save Current Page"}
-      </button>
+      </Button>
 
       {result && (
         <p
