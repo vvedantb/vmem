@@ -1,0 +1,63 @@
+---
+title: "MCP Overview"
+description: "Connect vmem to any MCP-compatible AI client"
+---
+
+## What is MCP?
+
+The Model Context Protocol (MCP) is a standard for connecting AI models to external data and tools. vmem uses MCP to provide memory capabilities to any compatible client — Claude, Cursor, Windsurf, and more.
+
+## How vmem Uses MCP
+
+vmem uses all three MCP primitives differently:
+
+| Primitive | Standard Usage | vmem Usage |
+| --- | --- | --- |
+| **Resources** | Context injected before LLM responds | Relevant memories auto-loaded into context |
+| **Tools** | LLM explicitly calls them | `memory_write`, `memory_search` — intentional actions |
+| **Prompts** | System prompt templates | User profile, preferences, active project context |
+
+The key insight: **reading memories is implicit, writing is explicit.**
+
+## MCP Tools
+
+These are actions the LLM can explicitly invoke:
+
+| Tool | Description |
+| --- | --- |
+| `memory_write` | Store a new memory |
+| `memory_search` | Direct search (for dashboard/human use) |
+| `memory_update_proposal_review` | Approve or reject a conflicting update |
+
+## MCP Resources
+
+These are injected automatically — no tool call required:
+
+| Resource URI | Description |
+| --- | --- |
+| `user://memories/relevant` | Top N memories for current context |
+| `user://profile` | Stable user facts and preferences |
+| `user://project/{name}` | Active project context |
+
+## Setup
+
+Add vmem as an MCP server in your client's configuration:
+
+```json
+{
+  "mcpServers": {
+    "vmem": {
+      "command": "node",
+      "args": ["path/to/vmem/apps/mcp/dist/index.js"],
+      "env": {
+        "VMEM_API_URL": "http://localhost:3000",
+        "VMEM_USER_ID": "your-user-id"
+      }
+    }
+  }
+}
+```
+
+## Next Steps
+
+Learn about [implicit memory](/mcp/implicit-memory) — the core pattern that makes vmem different from other memory solutions.

@@ -2,6 +2,16 @@
 
 ## 2026-03-15
 
+### Mintlify Documentation Scaffold
+
+- Set up Mintlify docs at `apps/docs/` with `docs.json` config and 11 MDX pages
+- Four sections: Getting Started (intro + quickstart), API Reference (all 14 endpoints across memories, proposed updates, dashboard), MCP Integration (overview + implicit memory pattern), Concepts (memory types, context trace, proposed updates)
+- Content pulled from internal docs and actual API route definitions to keep docs accurate
+- Added `pnpm docs` script to root for local preview on port 3001
+- Mintlify web editor available via dashboard once GitHub repo is connected
+
+## 2026-03-15
+
 ### Chrome Extension — Full Implementation
 
 - Built Chrome extension (MV3) at `apps/chrome-extension/` with all core features: save page, export to vmem (ChatGPT/Claude), use vmem context injection, import bookmarks, import browsing history

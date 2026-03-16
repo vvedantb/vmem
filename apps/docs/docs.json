@@ -1,0 +1,68 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "vmem",
+  "logo": {
+    "light": "/logo/icon-light.svg",
+    "dark": "/logo/icon-dark.svg"
+  },
+  "favicon": "/favicon.ico",
+  "colors": {
+    "primary": "#171717",
+    "light": "#737373",
+    "dark": "#fafafa"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/types-of-memory",
+              "concepts/context-trace",
+              "concepts/proposed-updates"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["api-reference/overview"]
+          },
+          {
+            "group": "Memories",
+            "pages": ["api-reference/memories"]
+          },
+          {
+            "group": "Proposed Updates",
+            "pages": ["api-reference/proposed-updates"]
+          },
+          {
+            "group": "Dashboard",
+            "pages": ["api-reference/dashboard"]
+          }
+        ]
+      },
+      {
+        "tab": "MCP",
+        "groups": [
+          {
+            "group": "MCP Integration",
+            "pages": ["mcp/overview", "mcp/implicit-memory"]
+          }
+        ]
+      }
+    ]
+  },
+  "footerSocials": {
+    "github": "https://github.com/vedantbhopatrao/vmem"
+  }
+}

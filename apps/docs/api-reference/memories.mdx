@@ -1,0 +1,157 @@
+---
+title: "Memories"
+description: "Create, read, update, delete, search, and retrieve memories"
+---
+
+## Create Memory
+
+<ParamField body="userId" type="string" required>
+  The user ID to associate the memory with
+</ParamField>
+<ParamField body="title" type="string" required>
+  Short title for the memory
+</ParamField>
+<ParamField body="content" type="string" required>
+  The memory content
+</ParamField>
+<ParamField body="type" type="string" required>
+  One of: `profile`, `episodic`, `knowledge`
+</ParamField>
+<ParamField body="source" type="string">
+  Where the memory originated (e.g., `manual`, `mcp`, `api`)
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Tags for categorisation
+</ParamField>
+<ParamField body="confidence" type="number">
+  Confidence score between 0 and 1
+</ParamField>
+<ParamField body="expiresAt" type="string">
+  ISO 8601 expiry date
+</ParamField>
+
+```bash
+POST /v1/memories
+```
+
+```json
+{
+  "userId": "user_123",
+  "title": "Preferred stack",
+  "content": "User prefers Next.js with Convex backend",
+  "type": "profile",
+  "source": "manual",
+  "tags": ["tech", "preferences"],
+  "confidence": 0.95
+}
+```
+
+**Response:** `201 Created` with the full memory object.
+
+---
+
+## List Memories
+
+```bash
+GET /v1/memories?userId=user_123&type=profile&limit=20&offset=0
+```
+
+<ParamField query="userId" type="string" required />
+<ParamField query="type" type="string">
+  Filter by memory type
+</ParamField>
+<ParamField query="status" type="string">
+  Filter by status
+</ParamField>
+<ParamField query="limit" type="number" default="20" />
+<ParamField query="offset" type="number" default="0" />
+
+---
+
+## Get Memory
+
+```bash
+GET /v1/memories/:id?userId=user_123
+```
+
+Returns a single memory by its ID, or `404` if not found.
+
+---
+
+## Update Memory
+
+```bash
+PATCH /v1/memories/:id?userId=user_123
+```
+
+<ParamField body="title" type="string" />
+<ParamField body="content" type="string" />
+<ParamField body="type" type="string" />
+<ParamField body="status" type="string">
+  One of: `active`, `pinned`, `suppressed`, `expired`
+</ParamField>
+<ParamField body="tags" type="string[]" />
+<ParamField body="confidence" type="number" />
+<ParamField body="expiresAt" type="string" />
+
+---
+
+## Delete Memory
+
+```bash
+DELETE /v1/memories/:id?userId=user_123
+```
+
+**Response:** `{ "status": "deleted" }` or `404`.
+
+---
+
+## Search Memories
+
+Full-text search across memories.
+
+```bash
+POST /v1/memories/search
+```
+
+<ParamField body="userId" type="string" required />
+<ParamField body="query" type="string">
+  Search query text
+</ParamField>
+<ParamField body="type" type="string" />
+<ParamField body="tags" type="string[]" />
+<ParamField body="source" type="string" />
+<ParamField body="limit" type="number" default="20" />
+<ParamField body="offset" type="number" default="0" />
+
+---
+
+## Retrieve Memories
+
+Semantic retrieval with context trace scoring.
+
+```bash
+POST /v1/memories/retrieve
+```
+
+<ParamField body="userId" type="string" required />
+<ParamField body="query" type="string" required>
+  Natural language query
+</ParamField>
+<ParamField body="type" type="string" />
+<ParamField body="tags" type="string[]" />
+<ParamField body="limit" type="number" default="5" />
+
+Returns memories ranked by relevance with a **context trace** explaining why each memory matched.
+
+---
+
+## Get Memory Events
+
+Audit trail for a specific memory.
+
+```bash
+GET /v1/memories/:id/events?userId=user_123
+```
+
+Returns `{ "events": [...] }` — the full history of creates, updates, and status changes.
