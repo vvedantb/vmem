@@ -24,6 +24,7 @@ import { api } from "@vmem/backend";
 import { SettingsForm } from "./_components/SettingsForm";
 import { QuickSave } from "./_components/QuickSave";
 import { ImportPanel } from "./_components/ImportPanel";
+import { TokenSync } from "./_components/TokenSync";
 
 function EnsureUser() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -42,6 +43,7 @@ function SignedInContent() {
   return (
     <>
       <EnsureUser />
+      <TokenSync />
       <Tabs defaultValue="save" className="flex flex-1 flex-col">
         <TabsList className="mx-3 mt-3 w-auto">
           <TabsTrigger value="save" className="flex-1 gap-1.5">

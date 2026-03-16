@@ -1,6 +1,5 @@
-import { createClerkClient } from "@clerk/chrome-extension/client";
 import { getStorage } from "@/lib/storage";
-import { API_VERSION, CLERK_PUBLISHABLE_KEY } from "@/lib/constants";
+import { API_VERSION } from "@/lib/constants";
 import type {
   CreateMemoryParams,
   MemoryWithTags,
@@ -12,26 +11,13 @@ async function getBaseUrl(): Promise<string> {
   return `${apiUrl}/${API_VERSION}`;
 }
 
-async function getAuthToken(): Promise<string | null> {
-  const clerk = await createClerkClient({
-    publishableKey: CLERK_PUBLISHABLE_KEY,
-    background: true,
-  });
-
-  if (!clerk.session) {
-    return null;
-  }
-
-  return clerk.session.getToken();
-}
-
 async function authHeaders(): Promise<Record<string, string>> {
-  const token = await getAuthToken();
+  const { authToken } = await getStorage();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
   }
   return headers;
 }
