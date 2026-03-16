@@ -98,7 +98,7 @@ function getActivityIcon(type: string) {
 }
 
 export default function Dashboard() {
-  const { userId } = useAuth();
+  const { userId, getToken } = useAuth();
   const [stats, setStats] = useState<StatsData | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,10 +110,13 @@ export default function Dashboard() {
       setIsLoading(true);
       setError(null);
 
-      const params = `userId=${encodeURIComponent(userId)}`;
+      const token = await getToken();
+      const headers: HeadersInit = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
       const [statsRes, activityRes] = await Promise.all([
-        fetch(`${API_URL}/v1/dashboard/stats?${params}`),
-        fetch(`${API_URL}/v1/dashboard/activity?${params}`),
+        fetch(`${API_URL}/v1/dashboard/stats`, { headers }),
+        fetch(`${API_URL}/v1/dashboard/activity`, { headers }),
       ]);
 
       if (!statsRes.ok) {

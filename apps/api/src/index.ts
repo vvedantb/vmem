@@ -8,6 +8,7 @@ import { logger } from "hono/logger";
 import { memories } from "./routes/memories";
 import { proposedUpdates } from "./routes/proposed-updates";
 import { dashboard } from "./routes/dashboard";
+import { authMiddleware } from "./middleware/auth";
 import { getDriver, closeDriver } from "./db/neo4j";
 import { setupDatabase } from "./db/setup";
 
@@ -15,6 +16,10 @@ const app = new Hono().basePath("/v1");
 
 app.use("*", logger());
 app.use("*", cors());
+
+app.use("/memories/*", authMiddleware);
+app.use("/proposed-updates/*", authMiddleware);
+app.use("/dashboard/*", authMiddleware);
 
 app.route("/memories", memories);
 app.route("/proposed-updates", proposedUpdates);

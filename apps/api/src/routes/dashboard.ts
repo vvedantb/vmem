@@ -6,25 +6,17 @@ function getService(): MemoryService {
   return new MemoryService(getDriver());
 }
 
-const dashboard = new Hono();
+const dashboard = new Hono<{ Variables: { userId: string } }>();
 
 dashboard.get("/stats", async (c) => {
-  const userId = c.req.query("userId");
-  if (!userId) {
-    return c.json({ error: "userId query param required" }, 400);
-  }
-
+  const userId = c.get("userId");
   const service = getService();
   const stats = await service.getStats(userId);
   return c.json({ data: stats });
 });
 
 dashboard.get("/activity", async (c) => {
-  const userId = c.req.query("userId");
-  if (!userId) {
-    return c.json({ error: "userId query param required" }, 400);
-  }
-
+  const userId = c.get("userId");
   const service = getService();
   const activity = await service.getRecentActivity(userId);
   return c.json({ data: activity });
