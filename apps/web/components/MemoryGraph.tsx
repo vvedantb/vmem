@@ -85,7 +85,7 @@ export default function MemoryGraph() {
     }
 
     const groupKeys = [...tagGroups.keys()];
-    const ringRadius = 300;
+    const ringRadius = 150;
     const groupPositions = new Map<string, { cx: number; cy: number }>();
     for (let g = 0; g < groupKeys.length; g++) {
       const angle = (g / groupKeys.length) * Math.PI * 2;
