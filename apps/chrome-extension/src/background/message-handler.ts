@@ -3,6 +3,7 @@ import { createMemory, retrieveMemories, testConnection } from "./api-client";
 import { savePageFromTab } from "./context-menu";
 import { importBookmarks } from "./import-bookmarks";
 import { importHistory } from "./import-history";
+import { cancelImport } from "./import-cancel";
 
 export function registerMessageHandler(): void {
   chrome.runtime.onMessage.addListener(
@@ -75,6 +76,11 @@ async function handleMessage(
         const error = err instanceof Error ? err.message : "Unknown error";
         return { type: "CONNECTION_RESULT", connected: false, error };
       }
+    }
+
+    case "CANCEL_IMPORT": {
+      cancelImport();
+      return { type: "CANCEL_RESULT", success: true };
     }
   }
 }

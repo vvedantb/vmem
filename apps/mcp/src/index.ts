@@ -5,7 +5,6 @@ import {
   getOAuthMetadata,
   getProtectedResourceMetadata,
   renderAuthPage,
-  renderRedirectPage,
   processClerkAuth,
   exchangeToken,
   handleClientRegistration,
@@ -56,7 +55,21 @@ function queryToStringRecord(req: Request): Record<string, string> {
 
 const app = express();
 
-app.use((req: Request, _res: Response, next) => {
+app.use((req: Request, res: Response, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Authorization, Content-Type, mcp-protocol-version",
+    );
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
   console.log(`-> ${req.method} ${req.path}`);
   next();
 });
@@ -100,7 +113,7 @@ app.post("/oauth/authorize", async (req: Request, res: Response) => {
   try {
     const body = bodyToStringRecord(req);
     const redirectUrl = await processClerkAuth(body);
-    res.type("html").send(renderRedirectPage(redirectUrl));
+    res.redirect(redirectUrl);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid request";
     res.status(400).send(message);
@@ -150,6 +163,7 @@ async function handleMcpPost(req: Request, res: Response) {
     const server = createMcpServer(user);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
+      enableJsonResponse: true,
     });
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);

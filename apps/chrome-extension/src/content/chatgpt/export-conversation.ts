@@ -3,15 +3,10 @@ import { waitForElement } from "@/content/shared/dom-utils";
 import { createVmemButton } from "@/content/shared/inject-button";
 import { SELECTORS } from "./selectors";
 
-function setTextareaValue(textarea: HTMLTextAreaElement, value: string): void {
-  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-    HTMLTextAreaElement.prototype,
-    "value",
-  )?.set;
-  if (nativeInputValueSetter) {
-    nativeInputValueSetter.call(textarea, value);
-  }
-  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+function setInputValue(element: HTMLElement, value: string): void {
+  element.focus();
+  element.textContent = value;
+  element.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 export async function injectExportButton(): Promise<void> {
@@ -21,10 +16,9 @@ export async function injectExportButton(): Promise<void> {
   if (header.querySelector("[data-vmem]")) return;
 
   const button = createVmemButton("Export to vmem", () => {
-    const textarea = document.querySelector(SELECTORS.textarea);
-    if (textarea instanceof HTMLTextAreaElement) {
-      setTextareaValue(textarea, EXPORT_PROMPT);
-      textarea.focus();
+    const input = document.querySelector(SELECTORS.inputField);
+    if (input instanceof HTMLElement) {
+      setInputValue(input, EXPORT_PROMPT);
     }
   });
 
