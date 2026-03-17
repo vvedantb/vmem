@@ -25,3 +25,17 @@ export interface HoveredNodeInfo {
   viewportX: number;
   viewportY: number;
 }
+
+export interface GraphSettings {
+  scalingRatio: number;
+  gravity: number;
+  driftSpeed: number;
+  driftAmplitude: number;
+}
+
+export const DEFAULT_GRAPH_SETTINGS: GraphSettings = {
+  scalingRatio: 4,
+  gravity: 2,
+  driftSpeed: 0.0006,
+  driftAmplitude: 4,
+};
