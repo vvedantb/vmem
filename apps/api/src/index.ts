@@ -8,6 +8,7 @@ import { logger } from "hono/logger";
 import { memories } from "./routes/memories";
 import { proposedUpdates } from "./routes/proposed-updates";
 import { dashboard } from "./routes/dashboard";
+import { timeline } from "./routes/timeline";
 import { authMiddleware } from "./middleware/auth";
 import { getDriver, closeDriver } from "./db/neo4j";
 import { setupDatabase } from "./db/setup";
@@ -20,10 +21,12 @@ app.use("*", cors());
 app.use("/memories/*", authMiddleware);
 app.use("/proposed-updates/*", authMiddleware);
 app.use("/dashboard/*", authMiddleware);
+app.use("/timeline/*", authMiddleware);
 
 app.route("/memories", memories);
 app.route("/proposed-updates", proposedUpdates);
 app.route("/dashboard", dashboard);
+app.route("/timeline", timeline);
 
 app.get("/health", async (c) => {
   const driver = getDriver();
