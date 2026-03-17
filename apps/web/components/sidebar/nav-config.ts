@@ -16,6 +16,7 @@ import {
   IconShieldLock,
   IconLayoutDashboard,
   IconTerminal2,
+  IconHistory,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -35,6 +36,11 @@ export const navGroups: NavGroup[] = [
         href: "/memories/graph",
         label: "Memory Graph",
         icon: IconTopologyStar3,
+      },
+      {
+        href: "/memories/timeline",
+        label: "Timeline",
+        icon: IconHistory,
       },
       { href: "/files", label: "Files", icon: IconFiles },
       { href: "/index", label: "Index", icon: IconDatabase },
