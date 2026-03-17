@@ -78,14 +78,32 @@ Every task prompt includes:
 - Constraints from CLAUDE.md (no `any`, no `as`, no comments, etc.)
 - Skills to invoke if applicable
 
-### 6. Create Task
+### 6. Create Tasks
 
-Call `mcp__claude_ai_Eva__create_task` with:
+**Two modes — choose based on whether tasks are related:**
 
-- `title`: Short descriptive title
-- `description`: The full self-contained task prompt
-- `repoName`: Resolved at session start
-- `app`: If monorepo, determined at session start
+**Related tasks (same feature/initiative):** Use `mcp__claude_ai_Eva__create_tasks_batch` with:
+
+- `projectTitle`: Groups tasks under a named project — **ask the user first** whether they want a project and what to call it
+- `dependsOn`: Array of 0-based indices for task dependencies
+- `tasks`: Array of `{ title, description, dependsOn? }`
+
+```
+mcp__claude_ai_Eva__create_tasks_batch({
+  repoName: "...",
+  app: "...",
+  baseBranch: "...",
+  projectTitle: "Project Name",  // only if user confirms
+  tasks: [
+    { title: "...", description: "..." },
+    { title: "...", description: "...", dependsOn: [0] },
+  ]
+})
+```
+
+**Unrelated tasks (separate issues):** Use `mcp__claude_ai_Eva__create_task` individually as each issue is confirmed. No project grouping needed.
+
+**When to prompt the user:** If the session produces 2+ tasks that share a theme (same feature, same area of the app, dependencies between them), ask: "These tasks are related — want me to group them under a project? If so, what should I call it?" Do NOT assume — let the user decide.
 
 ### 7. Report + Next
 
@@ -94,9 +112,9 @@ Print: **"Task [N] created: [title]. What's next?"**
 If user says done / no more / that's it → print session summary:
 
 ```
-Session complete. [N] tasks queued:
+Session complete. Project "[name]" created with [N] tasks:
 1. [title]
-2. [title]
+2. [title] (depends on #1)
 ...
 Ready for overnight execution.
 ```
@@ -108,3 +126,7 @@ Ready for overnight execution.
 - Reuse codebase context across all issues — don't re-explore unless user mentions a part of the codebase not covered
 - Keep the conversation natural — this is a chat, not a rigid form
 - Adapt plan depth to complexity — don't over-specify simple tasks
+- Use `create_tasks_batch` with `projectTitle` only when the user confirms they want a project grouping
+- Use individual `create_task` for unrelated standalone issues
+- Always prompt the user before grouping tasks into a project
+- Set `dependsOn` for tasks that require prior tasks to complete first

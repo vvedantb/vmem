@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-03-17
+
+### Memory Graph: ForceAtlas2 Layout
+
+- Replaced custom force-directed physics with ForceAtlas2 (graphology) to fix node clumping/overlap
+- LinLog mode creates organic "brain-like" clusters with clear separation between tag groups
+- Tag-cluster ring layout for initial node positions — groups memories by primary tag around a circle before simulation
+- Barnes-Hut optimization reduces per-frame complexity from O(n²) to O(n log n)
+- Canvas renderer and all interactions (hover, drag, zoom, pan) unchanged
+
 ## 2026-03-16
 
 ### MCP Playground Page

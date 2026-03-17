@@ -74,16 +74,51 @@ export default function MemoryGraph() {
       }
     }
 
+    const tagGroups = new Map<string, number[]>();
+    for (let i = 0; i < memories.length; i++) {
+      const primaryTag = memories[i].tags[0];
+      if (primaryTag) {
+        const group = tagGroups.get(primaryTag);
+        if (group) group.push(i);
+        else tagGroups.set(primaryTag, [i]);
+      }
+    }
+
+    const groupKeys = [...tagGroups.keys()];
+    const ringRadius = 300;
+    const groupPositions = new Map<string, { cx: number; cy: number }>();
+    for (let g = 0; g < groupKeys.length; g++) {
+      const angle = (g / groupKeys.length) * Math.PI * 2;
+      groupPositions.set(groupKeys[g], {
+        cx: Math.cos(angle) * ringRadius,
+        cy: Math.sin(angle) * ringRadius,
+      });
+    }
+
     const simNodes: SimNode[] = memories.map((m, i) => {
       const degree = degreeCount.get(i) ?? 0;
+      const primaryTag = m.tags[0];
+      let x: number;
+      let y: number;
+
+      const pos = primaryTag ? groupPositions.get(primaryTag) : undefined;
+      if (pos) {
+        const jitter = 40;
+        x = pos.cx + (Math.random() - 0.5) * jitter;
+        y = pos.cy + (Math.random() - 0.5) * jitter;
+      } else {
+        x = (Math.random() - 0.5) * 80;
+        y = (Math.random() - 0.5) * 80;
+      }
+
       return {
         id: m.id,
         label: m.title,
         content: m.content,
         tags: m.tags,
         createdAt: m.createdAt,
-        x: (Math.random() - 0.5) * 300,
-        y: (Math.random() - 0.5) * 300,
+        x,
+        y,
         vx: 0,
         vy: 0,
         radius: 3.5 + degree * 1.5,
