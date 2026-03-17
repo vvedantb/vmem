@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-03-17 — Daily Digest
+
+**Date range:** 2026-03-16 18:00 → 2026-03-17 18:00 UTC
+
+- **Timeline feature shipped (PR #24 → main):** Full Phase 1 landed across 5 commits — backend snapshot storage on MemoryEvent nodes, timeline query methods + `/timeline` route, frontend NuqsAdapter/URL state/types, timeline page with DiffDisplay/MemorySelector/TagSelector/TimelineView components, and sidebar nav + detail panel history entry points. ~1,100 lines added across `apps/api` and `apps/web`.
+
+- **Mobile app scaffolded (PR #29):** New `apps/mobile` Expo project with Clerk auth, Convex integration, React Native Reusables, and a chat screen replicating the web chat with streaming support. Two-task sequence: scaffold + auth (task-1, ~16k lockfile churn), then chat UI with ChatInput/EmptyState/MessageBubble components (task-2).
+
+- **SpeechInput component added (PR #28):** New `packages/ui/src/ai-elements/speech-input.tsx` (254 lines) wired into the web chat. Also includes a minor sidebar nav indentation tweak.
+
+- **Sidebar padding fix (PR #27):** Single-line CSS change adding left padding to sidebar nav item labels.
+
+- **Claude tooling infra:** Added 9 slash commands (`changelog`, `create-eva-tasks`, `create-task`, `plan-tasks`, `push`, `run-task`, `ship`, `stage`, `standup`) and 8 skill definitions (Convex rules, Neo4j Cypher, Neon Postgres, Vercel composition patterns, code structure, etc.).
+
+### Watchlist
+
+1. **Mobile app lockfile churn:** The Expo scaffold commit touched ~16k lines of `pnpm-lock.yaml` — verify no unintended dependency resolution changes leaked into web/api packages.
+2. **Timeline has no tests:** All 5 timeline commits are pure feature code with zero test coverage. Backend query methods (`memory-service.ts`) and the new `/timeline` route should get integration tests before further iteration.
+3. **SpeechInput browser API surface:** The 254-line speech component likely uses the Web Speech API which has inconsistent browser support — confirm graceful degradation or feature detection is in place.
+
 ## 2026-03-16
 
 ### MCP Playground Page
