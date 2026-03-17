@@ -1,78 +1,77 @@
+import Graph from "graphology";
+import forceAtlas2 from "graphology-layout-forceatlas2";
 import type { SimNode, SimEdge } from "./graph-types";
 
-export interface SimParams {
-  repulsion: number;
-  attraction: number;
-  springLength: number;
-  damping: number;
-  centerGravity: number;
-  maxSpeed: number;
-}
-
-export const defaultParams: SimParams = {
-  repulsion: 1200,
-  attraction: 0.008,
-  springLength: 100,
-  damping: 0.82,
-  centerGravity: 0.03,
-  maxSpeed: 8,
+const FA2_SETTINGS = {
+  linLogMode: true,
+  outboundAttractionDistribution: true,
+  adjustSizes: false,
+  edgeWeightInfluence: 1,
+  scalingRatio: 10,
+  strongGravityMode: false,
+  gravity: 0.5,
+  slowDown: 2,
+  barnesHutOptimize: true,
+  barnesHutTheta: 0.5,
 };
 
-export function simulationTick(
-  nodes: SimNode[],
-  edges: SimEdge[],
-  params: SimParams,
-  pinnedIndex: number | null,
-): void {
-  const len = nodes.length;
+const INITIAL_ITERATIONS = 50;
 
-  for (let i = 0; i < len; i++) {
-    for (let j = i + 1; j < len; j++) {
-      const dx = nodes[j].x - nodes[i].x;
-      const dy = nodes[j].y - nodes[i].y;
-      const distSq = dx * dx + dy * dy + 1;
-      const force = params.repulsion / distSq;
-      const dist = Math.sqrt(distSq);
-      const fx = (dx / dist) * force;
-      const fy = (dy / dist) * force;
-      nodes[i].vx -= fx;
-      nodes[i].vy -= fy;
-      nodes[j].vx += fx;
-      nodes[j].vy += fy;
-    }
+export function createLayoutGraph(nodes: SimNode[], edges: SimEdge[]): Graph {
+  const graph = new Graph();
+
+  for (let i = 0; i < nodes.length; i++) {
+    graph.addNode(String(i), { x: nodes[i].x, y: nodes[i].y });
   }
 
   for (const edge of edges) {
-    const s = nodes[edge.sourceIndex];
-    const t = nodes[edge.targetIndex];
-    const dx = t.x - s.x;
-    const dy = t.y - s.y;
-    const dist = Math.sqrt(dx * dx + dy * dy) + 0.1;
-    const displacement = dist - params.springLength;
-    const force = params.attraction * displacement * edge.weight;
-    const fx = (dx / dist) * force;
-    const fy = (dy / dist) * force;
-    s.vx += fx;
-    s.vy += fy;
-    t.vx -= fx;
-    t.vy -= fy;
+    graph.addEdge(String(edge.sourceIndex), String(edge.targetIndex), {
+      weight: edge.weight,
+    });
   }
 
-  for (let i = 0; i < len; i++) {
-    if (i === pinnedIndex) continue;
-    const node = nodes[i];
-    node.vx -= node.x * params.centerGravity;
-    node.vy -= node.y * params.centerGravity;
-    node.vx *= params.damping;
-    node.vy *= params.damping;
-    const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
-    if (speed > params.maxSpeed) {
-      node.vx = (node.vx / speed) * params.maxSpeed;
-      node.vy = (node.vy / speed) * params.maxSpeed;
-    }
-    node.x += node.vx;
-    node.y += node.vy;
+  return graph;
+}
+
+function readPositions(
+  graph: Graph,
+  nodes: SimNode[],
+  skip: number | null,
+): void {
+  for (let i = 0; i < nodes.length; i++) {
+    if (i === skip) continue;
+    const attrs = graph.getNodeAttributes(String(i));
+    nodes[i].x = Number(attrs.x);
+    nodes[i].y = Number(attrs.y);
   }
+}
+
+export function runInitialLayout(graph: Graph, nodes: SimNode[]): void {
+  forceAtlas2.assign(graph, {
+    iterations: INITIAL_ITERATIONS,
+    settings: FA2_SETTINGS,
+  });
+
+  readPositions(graph, nodes, null);
+}
+
+export function layoutTick(
+  graph: Graph,
+  nodes: SimNode[],
+  pinnedIndex: number | null,
+): void {
+  if (pinnedIndex !== null) {
+    const key = String(pinnedIndex);
+    graph.setNodeAttribute(key, "x", nodes[pinnedIndex].x);
+    graph.setNodeAttribute(key, "y", nodes[pinnedIndex].y);
+  }
+
+  forceAtlas2.assign(graph, {
+    iterations: 1,
+    settings: FA2_SETTINGS,
+  });
+
+  readPositions(graph, nodes, pinnedIndex);
 }
 
 interface Camera {

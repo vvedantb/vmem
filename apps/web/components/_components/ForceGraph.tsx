@@ -3,8 +3,14 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Button } from "@vmem/ui";
 import { IconZoomIn, IconZoomOut, IconFocus2 } from "@tabler/icons-react";
+import type Graph from "graphology";
 import type { SimNode, SimEdge, HoveredNodeInfo } from "./graph-types";
-import { simulationTick, defaultParams, renderGraph } from "./graph-physics";
+import {
+  createLayoutGraph,
+  runInitialLayout,
+  layoutTick,
+  renderGraph,
+} from "./graph-physics";
 
 interface ForceGraphProps {
   nodes: SimNode[];
@@ -92,6 +98,7 @@ export default function ForceGraph({
   const dragRef = useRef<DragState>({ ...emptyDrag });
   const hoveredRef = useRef<number | null>(null);
   const sizeRef = useRef({ w: 0, h: 0 });
+  const graphRef = useRef<Graph | null>(null);
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const cbRef = useRef({ onHoverNode, onClickNode });
@@ -137,7 +144,10 @@ export default function ForceGraph({
         n[drag.nodeIndex].vy = 0;
       }
 
-      simulationTick(n, e, defaultParams, drag.nodeIndex);
+      const g = graphRef.current;
+      if (g && g.order > 0) {
+        layoutTick(g, n, drag.nodeIndex);
+      }
 
       const connectedSet = new Set<number>();
       const hIdx = hoveredRef.current;
@@ -180,6 +190,16 @@ export default function ForceGraph({
       canvas.removeEventListener("wheel", onWheel);
     };
   }, []);
+
+  useEffect(() => {
+    if (nodes.length === 0) {
+      graphRef.current = null;
+      return;
+    }
+    const graph = createLayoutGraph(nodes, edges);
+    runInitialLayout(graph, nodes);
+    graphRef.current = graph;
+  }, [nodes, edges]);
 
   const getPos = useCallback((e: React.MouseEvent): [number, number] => {
     const rect = canvasRef.current?.getBoundingClientRect();

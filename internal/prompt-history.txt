@@ -3,6 +3,7 @@
 - look into vector db/graph db implementation
 - cache for fast lookup
 - long term memory, short term memory
+- Memory timeline + graph, You could replay how ideas evolved.
   
 - need to figure our core differntiator vs supermemory/mem0
 - focus on voice?
@@ -14,7 +15,7 @@
 - dream mode, it processes memories and gives you insights next day
 - forecast, predictions, like astrology but based on real data
 - work/personal profiles, just like that show Severance, split memories
-- i want a timeline of memories, from past events, to future events, like a tree, predicting what i will do and the paths that it will lead me onto
+[x] i want a timeline of memories, from past events, to future events, like a tree, predicting what i will do and the paths that it will lead me onto
 
  Convex  → users, preferences, API keys, auth (what you have now)    
 
@@ -31,7 +32,7 @@ kv for cache
 [] if memory has changed, add prompt to prompt the user asking to confirm this and then update memory
 
 docs
-[] install mintlify
+[x] install mintlify
 [] install just-bash for docs support
 
 voice
@@ -47,13 +48,13 @@ mobile
 [] test with running qwen model with like 10k context window and comparing it with something that has 200k context window
 
 chrome extension
-[] adds export to chatgpt, claude websites
-[] adds button in chatgpt, claude to use vmem
-[] import bookmarks
-[] import browsing history
-[] save page to vmem, save to vmem
-[] add onboarding overflow to get user to add the connector
-[] add overflow to see memory processed for the message
+[x] adds export to chatgpt, claude websites
+[x] adds button in chatgpt, claude to use vmem
+[x] import bookmarks
+[x] import browsing history
+[x] save page to vmem, save to vmem
+[x] add onboarding overflow to get user to add the connector
+[x] add overflow to see memory processed for the message
 
 [x] can you place to get rid of the usestate for forms and instead think of a better way? e.g. if using convex we dont need local state since convex is reactive/live by default. if not using convex then this should be replaced with react hook form and zod
 [x] in the convex folder, don't check for user for every query and mutation, instead we can create a custom authQuery etc inside auth.ts using the convex-helpers package, "convex-helpers/server/customFunctions" and then make those helper functions like authQuery, authMutation, authAction, authInternalAction etc and then use those functions across memories.ts, etc

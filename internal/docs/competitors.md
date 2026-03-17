@@ -11,3 +11,6 @@ assistant that records, transcribes, and makes searchable everything you have se
 memgraph - https://memgraph.com/knowledge-graph
 
 vector db- https://www.pinecone.io/product/
+
+letta code - store memories
+convexmem component
