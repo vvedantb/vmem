@@ -1,5 +1,6 @@
 "use client";
 
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { useAuth } from "@clerk/nextjs";
@@ -19,22 +20,24 @@ const convex = new ConvexReactClient(convexUrl);
 
 export function ClientProvider({ children }: { children: React.ReactNode }) {
   return (
-    <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-      <NextThemesProvider
-        attribute="class"
-        defaultTheme="light"
-        enableSystem
-        disableTransitionOnChange
-      >
-        <MotionProvider>
-          <ThemeProvider>
-            <NotificationProvider>
-              <MemoryProvider>{children}</MemoryProvider>
-            </NotificationProvider>
-            <Toaster position="top-center" />
-          </ThemeProvider>
-        </MotionProvider>
-      </NextThemesProvider>
-    </ConvexProviderWithClerk>
+    <NuqsAdapter>
+      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        <NextThemesProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <MotionProvider>
+            <ThemeProvider>
+              <NotificationProvider>
+                <MemoryProvider>{children}</MemoryProvider>
+              </NotificationProvider>
+              <Toaster position="top-center" />
+            </ThemeProvider>
+          </MotionProvider>
+        </NextThemesProvider>
+      </ConvexProviderWithClerk>
+    </NuqsAdapter>
   );
 }
