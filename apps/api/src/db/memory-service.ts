@@ -22,12 +22,21 @@ interface MemoryWithTags extends MemoryNode {
   tags: string[];
 }
 
+interface MemorySnapshot {
+  title: string;
+  content: string;
+  type: string;
+  status: string;
+  confidence: number;
+  tags: string[];
+}
+
 interface MemoryEvent {
   id: string;
   action: string;
   actor: string;
   details: Record<string, string> | null;
-  snapshot: Record<string, string> | null;
+  snapshot: MemorySnapshot | null;
   createdAt: string;
 }
 
@@ -58,6 +67,24 @@ interface ProposedUpdateNode {
   status: "pending" | "approved" | "rejected";
   createdAt: string;
   resolvedAt: string | null;
+}
+
+function parseJsonField<T>(val: unknown): T | null {
+  if (typeof val !== "string") return null;
+  return JSON.parse(val);
+}
+
+function toEventFromNode(props: Record<string, unknown>): MemoryEvent {
+  const snapshot = parseJsonField<MemorySnapshot>(props.snapshot);
+  const details = parseJsonField<Record<string, string>>(props.details);
+  return {
+    id: String(props.id ?? ""),
+    action: String(props.action ?? ""),
+    actor: String(props.actor ?? ""),
+    createdAt: String(props.createdAt ?? ""),
+    snapshot,
+    details,
+  };
 }
 
 function toMemoryWithTags(record: Record<string, unknown>): MemoryWithTags {
@@ -479,19 +506,9 @@ export class MemoryService {
         { memoryId, userId },
       );
 
-      return result.records.map((record) => {
-        const props = record.get("e").properties;
-        const rawSnapshot = props.snapshot as string | null;
-        const rawDetails = props.details as string | null;
-        return {
-          id: props.id as string,
-          action: props.action as string,
-          actor: props.actor as string,
-          details: rawDetails ? JSON.parse(rawDetails) : null,
-          snapshot: rawSnapshot ? JSON.parse(rawSnapshot) : null,
-          createdAt: props.createdAt as string,
-        };
-      });
+      return result.records.map((record) =>
+        toEventFromNode(record.get("e").properties),
+      );
     } finally {
       await session.close();
     }
@@ -824,29 +841,21 @@ export class MemoryService {
   async getMemoryTimeline(
     userId: string,
     memoryId: string,
-  ): Promise<MemoryEvent[]> {
+  ): Promise<TimelineEvent[]> {
     const session = this.driver.session();
     try {
       const result = await session.run(
         `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {id: $memoryId, userId: $userId})
-         RETURN e
+         RETURN e, m.id AS memoryId, m.title AS memoryTitle
          ORDER BY e.createdAt ASC`,
         { memoryId, userId },
       );
 
-      return result.records.map((record) => {
-        const props = record.get("e").properties;
-        const rawSnapshot = props.snapshot as string | null;
-        const rawDetails = props.details as string | null;
-        return {
-          id: props.id as string,
-          action: props.action as string,
-          actor: props.actor as string,
-          createdAt: props.createdAt as string,
-          snapshot: rawSnapshot ? JSON.parse(rawSnapshot) : null,
-          details: rawDetails ? JSON.parse(rawDetails) : null,
-        };
-      });
+      return result.records.map((record) => ({
+        ...toEventFromNode(record.get("e").properties),
+        memoryId: String(record.get("memoryId") ?? ""),
+        memoryTitle: String(record.get("memoryTitle") ?? ""),
+      }));
     } finally {
       await session.close();
     }
@@ -874,21 +883,11 @@ export class MemoryService {
         },
       );
 
-      return result.records.map((record) => {
-        const props = record.get("e").properties;
-        const rawSnapshot = props.snapshot as string | null;
-        const rawDetails = props.details as string | null;
-        return {
-          id: props.id as string,
-          action: props.action as string,
-          actor: props.actor as string,
-          createdAt: props.createdAt as string,
-          snapshot: rawSnapshot ? JSON.parse(rawSnapshot) : null,
-          details: rawDetails ? JSON.parse(rawDetails) : null,
-          memoryId: record.get("memoryId") as string,
-          memoryTitle: record.get("memoryTitle") as string,
-        };
-      });
+      return result.records.map((record) => ({
+        ...toEventFromNode(record.get("e").properties),
+        memoryId: String(record.get("memoryId") ?? ""),
+        memoryTitle: String(record.get("memoryTitle") ?? ""),
+      }));
     } finally {
       await session.close();
     }
@@ -918,21 +917,11 @@ export class MemoryService {
         },
       );
 
-      return result.records.map((record) => {
-        const props = record.get("e").properties;
-        const rawSnapshot = props.snapshot as string | null;
-        const rawDetails = props.details as string | null;
-        return {
-          id: props.id as string,
-          action: props.action as string,
-          actor: props.actor as string,
-          createdAt: props.createdAt as string,
-          snapshot: rawSnapshot ? JSON.parse(rawSnapshot) : null,
-          details: rawDetails ? JSON.parse(rawDetails) : null,
-          memoryId: record.get("memoryId") as string,
-          memoryTitle: record.get("memoryTitle") as string,
-        };
-      });
+      return result.records.map((record) => ({
+        ...toEventFromNode(record.get("e").properties),
+        memoryId: String(record.get("memoryId") ?? ""),
+        memoryTitle: String(record.get("memoryTitle") ?? ""),
+      }));
     } finally {
       await session.close();
     }
