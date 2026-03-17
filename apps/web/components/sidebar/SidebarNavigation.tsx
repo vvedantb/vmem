@@ -84,7 +84,7 @@ function MainNav({
               </div>
             )}
             <motion.ul
-              className="space-y-1"
+              className={cn("space-y-1", !isIconOnly && "pl-1.5")}
               variants={staggerContainer(motionTiming.stagger)}
             >
               {group.items.map((item) => {
