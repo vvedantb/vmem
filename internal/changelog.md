@@ -1,5 +1,13 @@
 # Changelog
 
+## Timeline / Memory Replay — 2026-03-17
+
+- Added snapshot storage on MemoryEvent nodes — each create, update, and proposal resolution now captures the full memory state (title, content, type, status, confidence, tags) as a JSON snapshot, enabling point-in-time replay
+- Added three backend timeline query methods: per-memory history, tag-based topic trail, and fulltext search trail — each returns events with memory context for the frontend
+- Built frontend timeline page with two modes: Memory History (side-by-side word-level diffs between snapshots) and Topic Trail (tag/search-based event stream across memories)
+- URL-based state management via nuqs — timeline mode, selected memory, tag, and search query are all encoded in the URL for shareability
+- Added sidebar nav entry and history button on memory detail panel as entry points
+
 ## Memory Graph: Organic Brain-Like Layout — 2026-03-17
 
 - Replaced custom force-directed physics with ForceAtlas2 (graphology) to fix node clumping/overlap — LinLog mode produces natural cluster separation
