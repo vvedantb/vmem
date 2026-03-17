@@ -7,9 +7,9 @@ const FA2_SETTINGS = {
   outboundAttractionDistribution: true,
   adjustSizes: false,
   edgeWeightInfluence: 1,
-  scalingRatio: 10,
+  scalingRatio: 4,
   strongGravityMode: false,
-  gravity: 0.5,
+  gravity: 2,
   slowDown: 2,
   barnesHutOptimize: true,
   barnesHutTheta: 0.5,
@@ -53,10 +53,15 @@ export function runInitialLayout(graph: Graph, nodes: SimNode[]): void {
   });
 
   readPositions(graph, nodes, null);
+
+  for (let i = 0; i < nodes.length; i++) {
+    nodes[i].vx = nodes[i].x;
+    nodes[i].vy = nodes[i].y;
+  }
 }
 
-const DRIFT_SPEED = 0.0003;
-const DRIFT_AMPLITUDE = 0.4;
+const DRIFT_SPEED = 0.0006;
+const DRIFT_AMPLITUDE = 4;
 
 export function applyDrift(
   nodes: SimNode[],
@@ -66,8 +71,10 @@ export function applyDrift(
   for (let i = 0; i < nodes.length; i++) {
     if (i === pinnedIndex) continue;
     const phase = i * 2.39996;
-    nodes[i].x += Math.sin(time * DRIFT_SPEED + phase) * DRIFT_AMPLITUDE;
-    nodes[i].y +=
+    nodes[i].x =
+      nodes[i].vx + Math.sin(time * DRIFT_SPEED + phase) * DRIFT_AMPLITUDE;
+    nodes[i].y =
+      nodes[i].vy +
       Math.cos(time * DRIFT_SPEED * 0.7 + phase * 1.3) * DRIFT_AMPLITUDE;
   }
 }
