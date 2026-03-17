@@ -8,10 +8,13 @@ import type {
   SimNode,
   SimEdge,
   HoveredNodeInfo,
+  GraphSettings,
 } from "./_components/graph-types";
 import GraphNodeTooltip from "./_components/GraphNodeTooltip";
 import GraphNodeDetailDialog from "./_components/GraphNodeDetailDialog";
+import GraphSettingsPopover from "./_components/GraphSettingsPopover";
 import ForceGraph from "./_components/ForceGraph";
+import { getGraphSettings, setGraphSettings } from "@/lib/graph-cookies";
 
 function tagToHue(tag: string): number {
   let hash = 0;
@@ -45,6 +48,13 @@ export default function MemoryGraph() {
   const { theme } = useThemeContext();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
+  const [graphSettings, setGraphSettingsState] =
+    useState<GraphSettings>(getGraphSettings);
+
+  const handleSettingsChange = useCallback((next: GraphSettings) => {
+    setGraphSettingsState(next);
+    setGraphSettings(next);
+  }, []);
 
   const isDark = theme === "dark";
 
@@ -188,9 +198,17 @@ export default function MemoryGraph() {
           nodes={nodes}
           edges={edges}
           isDark={isDark}
+          settings={graphSettings}
           onHoverNode={handleHoverNode}
           onClickNode={handleClickNode}
         />
+
+        <div className="absolute top-3 right-14 z-10">
+          <GraphSettingsPopover
+            settings={graphSettings}
+            onChange={handleSettingsChange}
+          />
+        </div>
 
         {hoveredNode && !selectedNodeId && (
           <GraphNodeTooltip
