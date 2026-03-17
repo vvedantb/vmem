@@ -4,7 +4,12 @@ import { useEffect, useRef, useCallback } from "react";
 import { Button } from "@vmem/ui";
 import { IconZoomIn, IconZoomOut, IconFocus2 } from "@tabler/icons-react";
 import type Graph from "graphology";
-import type { SimNode, SimEdge, HoveredNodeInfo } from "./graph-types";
+import type {
+  SimNode,
+  SimEdge,
+  HoveredNodeInfo,
+  GraphSettings,
+} from "./graph-types";
 import {
   createLayoutGraph,
   runInitialLayout,
@@ -16,6 +21,7 @@ interface ForceGraphProps {
   nodes: SimNode[];
   edges: SimEdge[];
   isDark: boolean;
+  settings: GraphSettings;
   onHoverNode: (info: HoveredNodeInfo | null) => void;
   onClickNode: (nodeId: string) => void;
 }
@@ -88,6 +94,7 @@ export default function ForceGraph({
   nodes,
   edges,
   isDark,
+  settings,
   onHoverNode,
   onClickNode,
 }: ForceGraphProps) {
@@ -103,11 +110,13 @@ export default function ForceGraph({
   const edgesRef = useRef(edges);
   const cbRef = useRef({ onHoverNode, onClickNode });
   const isDarkRef = useRef(isDark);
+  const settingsRef = useRef(settings);
 
   nodesRef.current = nodes;
   edgesRef.current = edges;
   cbRef.current = { onHoverNode, onClickNode };
   isDarkRef.current = isDark;
+  settingsRef.current = settings;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -144,7 +153,7 @@ export default function ForceGraph({
         n[drag.nodeIndex].vy = 0;
       }
 
-      applyDrift(n, performance.now(), drag.nodeIndex);
+      applyDrift(n, performance.now(), drag.nodeIndex, settingsRef.current);
 
       const connectedSet = new Set<number>();
       const hIdx = hoveredRef.current;
@@ -194,9 +203,9 @@ export default function ForceGraph({
       return;
     }
     const graph = createLayoutGraph(nodes, edges);
-    runInitialLayout(graph, nodes);
+    runInitialLayout(graph, nodes, settings);
     graphRef.current = graph;
-  }, [nodes, edges]);
+  }, [nodes, edges, settings]);
 
   const getPos = useCallback((e: React.MouseEvent): [number, number] => {
     const rect = canvasRef.current?.getBoundingClientRect();

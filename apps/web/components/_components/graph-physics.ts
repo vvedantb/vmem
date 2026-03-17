@@ -1,21 +1,23 @@
 import Graph from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
-import type { SimNode, SimEdge } from "./graph-types";
-
-const FA2_SETTINGS = {
-  linLogMode: true,
-  outboundAttractionDistribution: true,
-  adjustSizes: false,
-  edgeWeightInfluence: 1,
-  scalingRatio: 4,
-  strongGravityMode: false,
-  gravity: 2,
-  slowDown: 2,
-  barnesHutOptimize: true,
-  barnesHutTheta: 0.5,
-};
+import type { SimNode, SimEdge, GraphSettings } from "./graph-types";
 
 const INITIAL_ITERATIONS = 50;
+
+function buildFA2Settings(settings: GraphSettings) {
+  return {
+    linLogMode: true,
+    outboundAttractionDistribution: true,
+    adjustSizes: false,
+    edgeWeightInfluence: 1,
+    scalingRatio: settings.scalingRatio,
+    strongGravityMode: false,
+    gravity: settings.gravity,
+    slowDown: 2,
+    barnesHutOptimize: true,
+    barnesHutTheta: 0.5,
+  };
+}
 
 export function createLayoutGraph(nodes: SimNode[], edges: SimEdge[]): Graph {
   const graph = new Graph();
@@ -46,10 +48,14 @@ function readPositions(
   }
 }
 
-export function runInitialLayout(graph: Graph, nodes: SimNode[]): void {
+export function runInitialLayout(
+  graph: Graph,
+  nodes: SimNode[],
+  settings: GraphSettings,
+): void {
   forceAtlas2.assign(graph, {
     iterations: INITIAL_ITERATIONS,
-    settings: FA2_SETTINGS,
+    settings: buildFA2Settings(settings),
   });
 
   readPositions(graph, nodes, null);
@@ -60,22 +66,22 @@ export function runInitialLayout(graph: Graph, nodes: SimNode[]): void {
   }
 }
 
-const DRIFT_SPEED = 0.0006;
-const DRIFT_AMPLITUDE = 4;
-
 export function applyDrift(
   nodes: SimNode[],
   time: number,
   pinnedIndex: number | null,
+  settings: GraphSettings,
 ): void {
   for (let i = 0; i < nodes.length; i++) {
     if (i === pinnedIndex) continue;
     const phase = i * 2.39996;
     nodes[i].x =
-      nodes[i].vx + Math.sin(time * DRIFT_SPEED + phase) * DRIFT_AMPLITUDE;
+      nodes[i].vx +
+      Math.sin(time * settings.driftSpeed + phase) * settings.driftAmplitude;
     nodes[i].y =
       nodes[i].vy +
-      Math.cos(time * DRIFT_SPEED * 0.7 + phase * 1.3) * DRIFT_AMPLITUDE;
+      Math.cos(time * settings.driftSpeed * 0.7 + phase * 1.3) *
+        settings.driftAmplitude;
   }
 }
 
