@@ -27,6 +27,7 @@ interface MemoryEvent {
   action: string;
   actor: string;
   details: Record<string, string> | null;
+  snapshot: string | null;
   createdAt: string;
 }
 
@@ -131,9 +132,25 @@ export class MemoryService {
         },
       );
 
-      await this.logEvent(session, id, "created", params.source, {
+      const snapshot = JSON.stringify({
+        title: params.title,
+        content: params.content,
         type: params.type,
+        status: "active",
+        confidence: params.confidence,
+        tags: params.tags,
       });
+
+      await this.logEvent(
+        session,
+        id,
+        "created",
+        params.source,
+        {
+          type: params.type,
+        },
+        snapshot,
+      );
 
       const record = result.records[0];
       return toMemoryWithTags(record.toObject());
@@ -296,9 +313,20 @@ export class MemoryService {
 
       if (result.records.length === 0) return null;
 
-      await this.logEvent(session, memoryId, "updated", "api", {});
+      const updated = toMemoryWithTags(result.records[0].toObject());
 
-      return toMemoryWithTags(result.records[0].toObject());
+      const snapshot = JSON.stringify({
+        title: updated.title,
+        content: updated.content,
+        type: updated.type,
+        status: updated.status,
+        confidence: updated.confidence,
+        tags: updated.tags,
+      });
+
+      await this.logEvent(session, memoryId, "updated", "api", {}, snapshot);
+
+      return updated;
     } finally {
       await session.close();
     }
@@ -453,6 +481,7 @@ export class MemoryService {
           action: props.action,
           actor: props.actor,
           details: props.details ? JSON.parse(props.details) : null,
+          snapshot: (props.snapshot as string) ?? null,
           createdAt: props.createdAt,
         };
       });
@@ -548,15 +577,37 @@ export class MemoryService {
           `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
            SET p.status = 'approved', p.resolvedAt = $now,
                m.content = p.proposedContent, m.updatedAt = $now
-           RETURN p.status AS status, m.id AS memoryId`,
+           WITH p, m
+           OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+           RETURN p.status AS status, m, collect(t.name) AS tags`,
           { proposalId, now },
         );
 
         if (result.records.length === 0) return null;
         const record = result.records[0];
+        const memory = toMemoryWithTags(record.toObject());
+
+        const snapshot = JSON.stringify({
+          title: memory.title,
+          content: memory.content,
+          type: memory.type,
+          status: memory.status,
+          confidence: memory.confidence,
+          tags: memory.tags,
+        });
+
+        await this.logEvent(
+          session,
+          memory.id,
+          "proposal_approved",
+          "api",
+          {},
+          snapshot,
+        );
+
         return {
           status: record.get("status"),
-          memoryId: record.get("memoryId"),
+          memoryId: memory.id,
         };
       }
 
@@ -569,9 +620,20 @@ export class MemoryService {
 
       if (result.records.length === 0) return null;
       const record = result.records[0];
+      const memoryId = record.get("memoryId") as string;
+
+      await this.logEvent(
+        session,
+        memoryId,
+        "proposal_rejected",
+        "api",
+        {},
+        null,
+      );
+
       return {
         status: record.get("status"),
-        memoryId: record.get("memoryId"),
+        memoryId,
       };
     } finally {
       await session.close();
@@ -758,6 +820,7 @@ export class MemoryService {
     action: string,
     actor: string,
     details: Record<string, string>,
+    snapshot: string | null = null,
   ): Promise<void> {
     await session.run(
       `MATCH (m:Memory {id: $memoryId})
@@ -766,6 +829,7 @@ export class MemoryService {
          action: $action,
          actor: $actor,
          details: $details,
+         snapshot: $snapshot,
          createdAt: $now
        })
        CREATE (e)-[:EVENT_FOR]->(m)`,
@@ -774,6 +838,7 @@ export class MemoryService {
         action,
         actor,
         details: JSON.stringify(details),
+        snapshot,
         now: new Date().toISOString(),
       },
     );
