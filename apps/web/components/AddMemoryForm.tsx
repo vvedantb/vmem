@@ -291,7 +291,7 @@ export default function AddMemoryForm() {
       <div className="space-y-3">
         <div className="p-4 rounded-lg bg-muted/50 border border-border">
           {!audioBlob && !isRecording && (
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
               <Button
                 type="button"
                 size="sm"
@@ -337,7 +337,7 @@ export default function AddMemoryForm() {
 
           {audioBlob && !isRecording && (
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 <Button
                   type="button"
                   size="sm"

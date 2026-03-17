@@ -34,7 +34,6 @@ export interface MemoryCandidate extends MemoryWithTags {
 }
 
 export interface CreateMemoryParams {
-  userId: string;
   title: string;
   content: string;
   type: MemoryType;
@@ -45,7 +44,6 @@ export interface CreateMemoryParams {
 }
 
 export interface RetrieveParams {
-  userId: string;
   query: string;
   type?: MemoryType;
   tags?: string[];

@@ -39,7 +39,7 @@ jobs:
           RUN mkdir -p /home/eva/.claude/plugins/marketplaces
           RUN git clone --depth 1 https://github.com/anthropics/claude-plugins-official.git /home/eva/.claude/plugins/marketplaces/claude-plugins-official
           RUN git clone --depth 1 https://github.com/Dammyjay93/interface-design.git /home/eva/.claude/plugins/marketplaces/Dammyjay93
-          RUN echo '{"enabledPlugins":{"frontend-design@claude-plugins-official":true,"interface-design@Dammyjay93":true}}' > /home/eva/.claude/settings.json
+          RUN echo '{"enabledPlugins":{"frontend-design@claude-plugins-official":true,"interface-design@Dammyjay93":true,"superpowers@claude-plugins-official":true}}' > /home/eva/.claude/settings.json
 
           ENV PNPM_HOME=/home/eva/.pnpm
           ENV NODE_PATH=/usr/lib/node_modules

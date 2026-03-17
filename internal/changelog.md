@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-03-16
+
+### MCP Playground Page
+
+- Added `/playground` page to web dashboard — connects to MCP server via full OAuth PKCE flow from the browser
+- Implements complete OAuth dance: metadata discovery → dynamic client registration → PKCE challenge → Clerk sign-in popup → token exchange → MCP connection
+- After connecting, lists all available MCP tools. Users can select a tool, fill in parameters via dynamic form, execute it, and see raw JSON results
+- Added CORS middleware to MCP server to allow browser requests from the web app
+- Added `NEXT_PUBLIC_MCP_URL` env var to web app config
+- Why: Can't test MCP via Claude.ai (Teams restriction) or MCP Inspector (Node version mismatch). This provides a first-party testing surface
+
+### Wire MCP Server to vmem API
+
+- Connected MCP server's stub tools to the live Hono API — MCP can now search, retrieve, add, update, and delete memories via Claude.ai/ChatGPT
+- Added dual-auth middleware to API: tries Clerk session token first (web dashboard), falls back to MCP JWT verification (MCP server). Both paths extract the same clerkUserId.
+- Created typed API client in MCP (`api-client.ts`) that forwards the user's MCP JWT as a Bearer token to the API
+- Implemented 5 MCP tools: `memory_search`, `memory_retrieve` (with Context Trace scoring), `memory_add`, `memory_update`, `memory_delete`
+- Fixed Railway build for MCP — was using `npm install` in a pnpm monorepo, now uses `pnpm --filter mcp...`
+- Added `jsonwebtoken` to API for MCP JWT verification
+
+### Clerk Auth + JWT Middleware — Extension & API
+
+- Added Clerk authentication to Chrome extension popup using `@clerk/chrome-extension` — users sign in via modal, no more manual API key or user ID entry
+- Added Convex integration to extension via `ConvexProviderWithClerk` — runs `ensureUserExists` on login, same flow as web dashboard
+- Background service worker uses `createClerkClient({ background: true })` to get fresh session tokens for API calls without popup being open
+- Created Hono JWT middleware (`apps/api/src/middleware/auth.ts`) using `@clerk/backend.verifyToken` — all `/v1/*` routes now require valid Clerk JWT in Authorization header
+- Removed `userId` from all API request bodies/query params — server extracts it from JWT `sub` claim (Clerk user ID)
+- Updated web dashboard (`MemoryContext`, `Dashboard`) to also send Bearer token with API requests, removing userId from query params
+- Settings form simplified to just API URL + sign out; auth is fully automatic
+
 ## 2026-03-15
 
 ### Mintlify Documentation Scaffold

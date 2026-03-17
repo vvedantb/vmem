@@ -1,4 +1,5 @@
 import { createMemory } from "./api-client";
+import { isCancelled, resetCancel } from "./import-cancel";
 
 interface FlatBookmark {
   title: string;
@@ -30,11 +31,14 @@ function delay(ms: number): Promise<void> {
 }
 
 export async function importBookmarks(): Promise<number> {
+  resetCancel();
   const tree = await chrome.bookmarks.getTree();
   const bookmarks = flattenBookmarks(tree);
   let imported = 0;
 
   for (const bookmark of bookmarks) {
+    if (isCancelled()) break;
+
     try {
       await createMemory({
         title: bookmark.title || bookmark.url,

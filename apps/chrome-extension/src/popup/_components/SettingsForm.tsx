@@ -1,106 +1,56 @@
 import { useState, useEffect } from "react";
+import { useUser, useClerk } from "@clerk/chrome-extension";
+import { Button, Input, Label } from "@vmem/ui";
 import { getStorage, setStorage } from "@/lib/storage";
-import type { ExtensionStorage } from "@/types/storage";
-import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 
-interface SettingsFormProps {
-  onConnectionChange: (connected: boolean) => void;
-}
-
-export function SettingsForm({ onConnectionChange }: SettingsFormProps) {
-  const [settings, setSettings] = useState<ExtensionStorage>({
-    apiUrl: "http://localhost:3001",
-    apiKey: "",
-    userId: "",
-  });
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<string | null>(null);
+export function SettingsForm() {
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const [apiUrl, setApiUrl] = useState("");
 
   useEffect(() => {
-    getStorage().then(setSettings);
+    getStorage().then((s) => setApiUrl(s.apiUrl));
   }, []);
 
-  function handleChange(field: keyof ExtensionStorage, value: string) {
-    const updated = { ...settings, [field]: value };
-    setSettings(updated);
-    setStorage({ [field]: value });
+  function handleApiUrlChange(value: string) {
+    setApiUrl(value);
+    setStorage({ apiUrl: value });
   }
-
-  function handleTestConnection() {
-    setTesting(true);
-    setTestResult(null);
-
-    const message: ContentMessage = { type: "TEST_CONNECTION" };
-    chrome.runtime.sendMessage(
-      message,
-      (response: BackgroundResponse | undefined) => {
-        setTesting(false);
-        if (response?.type === "CONNECTION_RESULT") {
-          onConnectionChange(response.connected);
-          setTestResult(
-            response.connected
-              ? "Connected"
-              : `Failed: ${response.error || "Could not reach API"}`,
-          );
-        }
-      },
-    );
-  }
-
-  const inputClass =
-    "w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500";
-  const labelClass = "block text-sm font-medium text-zinc-400 mb-1";
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className={labelClass}>API URL</label>
-        <input
-          type="url"
-          className={inputClass}
-          value={settings.apiUrl}
-          onChange={(e) => handleChange("apiUrl", e.target.value)}
-          placeholder="http://localhost:3001"
-        />
-      </div>
-
-      <div>
-        <label className={labelClass}>API Key</label>
-        <input
-          type="password"
-          className={inputClass}
-          value={settings.apiKey}
-          onChange={(e) => handleChange("apiKey", e.target.value)}
-          placeholder="vmem_sk_..."
-        />
-      </div>
-
-      <div>
-        <label className={labelClass}>User ID</label>
-        <input
-          type="text"
-          className={inputClass}
-          value={settings.userId}
-          onChange={(e) => handleChange("userId", e.target.value)}
-          placeholder="Your user ID from the dashboard"
-        />
-      </div>
-
-      <button
-        onClick={handleTestConnection}
-        disabled={testing}
-        className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg py-2 text-sm font-medium transition-colors"
-      >
-        {testing ? "Testing..." : "Test Connection"}
-      </button>
-
-      {testResult && (
-        <p
-          className={`text-sm ${testResult === "Connected" ? "text-emerald-400" : "text-red-400"}`}
-        >
-          {testResult}
-        </p>
+    <div className="space-y-5">
+      {user && (
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-foreground truncate">
+              {user.fullName ?? user.primaryEmailAddress?.emailAddress}
+            </p>
+            {user.fullName && (
+              <p className="text-xs text-muted-foreground truncate">
+                {user.primaryEmailAddress?.emailAddress}
+              </p>
+            )}
+          </div>
+        </div>
       )}
+
+      <div className="space-y-1.5">
+        <Label>API URL</Label>
+        <Input
+          type="url"
+          value={apiUrl}
+          onChange={(e) => handleApiUrlChange(e.target.value)}
+          placeholder="https://vmem-api.up.railway.app"
+        />
+      </div>
+
+      <Button
+        variant="ghost"
+        className="w-full text-destructive hover:text-destructive"
+        onClick={() => signOut()}
+      >
+        Sign Out
+      </Button>
     </div>
   );
 }

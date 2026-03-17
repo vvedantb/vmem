@@ -5,6 +5,7 @@ import { z } from "zod";
 
 export interface AuthenticatedUser {
   clerkUserId: string;
+  token: string;
 }
 
 interface AuthCodeEntry {
@@ -421,7 +422,7 @@ export async function verifyToken(
     const decoded = jwt.verify(token, getJwtSecret());
     const payload = mcpTokenPayloadSchema.safeParse(decoded);
     if (!payload.success) return null;
-    return { clerkUserId: payload.data.sub };
+    return { clerkUserId: payload.data.sub, token };
   } catch {
     return null;
   }

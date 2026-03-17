@@ -13,6 +13,9 @@ const sharedResolve = {
 
 export function createPopupConfig(mode: string): UserConfig {
   return {
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(mode),
+    },
     plugins: [react(), tailwindcss()],
     resolve: sharedResolve,
     root: resolve(root, "src/popup"),
@@ -36,6 +39,9 @@ export function createPopupConfig(mode: string): UserConfig {
 
 export function createBackgroundConfig(mode: string): UserConfig {
   return {
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(mode),
+    },
     resolve: sharedResolve,
     build: {
       outDir: "dist",

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@vmem/ui";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 
 export function QuickSave() {
@@ -57,22 +58,23 @@ export function QuickSave() {
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-zinc-400">
+    <div className="space-y-5">
+      <p className="text-sm text-muted-foreground">
         Save the current page as a memory in vmem.
       </p>
 
-      <button
+      <Button
+        variant="outline"
+        className="w-full"
         onClick={handleSave}
         disabled={saving}
-        className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg py-3 text-sm font-medium transition-colors"
       >
         {saving ? "Saving..." : "Save Current Page"}
-      </button>
+      </Button>
 
       {result && (
         <p
-          className={`text-sm ${result.success ? "text-emerald-400" : "text-red-400"}`}
+          className={`text-sm ${result.success ? "text-success" : "text-destructive"}`}
         >
           {result.message}
         </p>

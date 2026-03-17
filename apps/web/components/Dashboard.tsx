@@ -98,7 +98,7 @@ function getActivityIcon(type: string) {
 }
 
 export default function Dashboard() {
-  const { userId } = useAuth();
+  const { userId, getToken } = useAuth();
   const [stats, setStats] = useState<StatsData | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,10 +110,13 @@ export default function Dashboard() {
       setIsLoading(true);
       setError(null);
 
-      const params = `userId=${encodeURIComponent(userId)}`;
+      const token = await getToken();
+      const headers: HeadersInit = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
       const [statsRes, activityRes] = await Promise.all([
-        fetch(`${API_URL}/v1/dashboard/stats?${params}`),
-        fetch(`${API_URL}/v1/dashboard/activity?${params}`),
+        fetch(`${API_URL}/v1/dashboard/stats`, { headers }),
+        fetch(`${API_URL}/v1/dashboard/activity`, { headers }),
       ]);
 
       if (!statsRes.ok) {
@@ -205,17 +208,17 @@ export default function Dashboard() {
             key={stat.label}
             className="border-border/70 bg-card transition-all duration-200 ease-smooth hover:-translate-y-0.5 hover:border-border hover:shadow-panel"
           >
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-widest text-muted-foreground">
                     {stat.label}
                   </p>
-                  <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
+                  <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-semibold tabular-nums text-foreground">
                     {stat.value}
                   </p>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/60 bg-secondary">
+                <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-border/60 bg-secondary">
                   <stat.icon size={20} className="text-muted-foreground" />
                 </div>
               </div>
@@ -225,8 +228,8 @@ export default function Dashboard() {
       </div>
 
       <Card className="border-border/70 bg-card">
-        <CardContent className="p-6">
-          <h3 className="text-lg font-medium mb-6 text-foreground">
+        <CardContent className="p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground">
             Memory Growth (Last 7 Days)
           </h3>
           <div className="relative" style={{ height: chartHeight + 40 }}>
@@ -295,7 +298,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="ml-8 mt-4 flex items-center gap-6">
+          <div className="ml-8 mt-3 sm:mt-4 flex items-center gap-4 sm:gap-6 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded bg-secondary" />
               <span className="text-xs text-muted-foreground">
@@ -312,10 +315,10 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:gap-7 lg:grid-cols-2">
         <Card className="border-border/70 bg-card">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-medium mb-6 text-foreground">
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground">
               Recent Activity
             </h3>
             {activity.length === 0 ? (
@@ -351,11 +354,11 @@ export default function Dashboard() {
         </Card>
 
         <Card className="border-border/70 bg-card">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-medium mb-6 text-foreground">
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground">
               Quick Actions
             </h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
               {quickActions.map((action) => (
                 <Link href={action.href} key={action.label}>
                   <div className="group cursor-pointer rounded-2xl border border-border/65 bg-secondary/55 p-4 transition-all duration-200 ease-smooth hover:-translate-y-0.5 hover:border-border hover:bg-card">
