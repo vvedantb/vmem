@@ -8,7 +8,7 @@ import type { SimNode, SimEdge, HoveredNodeInfo } from "./graph-types";
 import {
   createLayoutGraph,
   runInitialLayout,
-  layoutTick,
+  applyDrift,
   renderGraph,
 } from "./graph-physics";
 
@@ -144,10 +144,7 @@ export default function ForceGraph({
         n[drag.nodeIndex].vy = 0;
       }
 
-      const g = graphRef.current;
-      if (g && g.order > 0) {
-        layoutTick(g, n, drag.nodeIndex);
-      }
+      applyDrift(n, performance.now(), drag.nodeIndex);
 
       const connectedSet = new Set<number>();
       const hIdx = hoveredRef.current;

@@ -55,23 +55,21 @@ export function runInitialLayout(graph: Graph, nodes: SimNode[]): void {
   readPositions(graph, nodes, null);
 }
 
-export function layoutTick(
-  graph: Graph,
+const DRIFT_SPEED = 0.0003;
+const DRIFT_AMPLITUDE = 0.4;
+
+export function applyDrift(
   nodes: SimNode[],
+  time: number,
   pinnedIndex: number | null,
 ): void {
-  if (pinnedIndex !== null) {
-    const key = String(pinnedIndex);
-    graph.setNodeAttribute(key, "x", nodes[pinnedIndex].x);
-    graph.setNodeAttribute(key, "y", nodes[pinnedIndex].y);
+  for (let i = 0; i < nodes.length; i++) {
+    if (i === pinnedIndex) continue;
+    const phase = i * 2.39996;
+    nodes[i].x += Math.sin(time * DRIFT_SPEED + phase) * DRIFT_AMPLITUDE;
+    nodes[i].y +=
+      Math.cos(time * DRIFT_SPEED * 0.7 + phase * 1.3) * DRIFT_AMPLITUDE;
   }
-
-  forceAtlas2.assign(graph, {
-    iterations: 1,
-    settings: FA2_SETTINGS,
-  });
-
-  readPositions(graph, nodes, pinnedIndex);
 }
 
 interface Camera {
