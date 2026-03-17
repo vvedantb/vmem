@@ -9,6 +9,7 @@ export * from "./prompt-input";
 export * from "./reasoning";
 export * from "./shimmer";
 export * from "./sources";
+export * from "./speech-input";
 export * from "./suggestion";
 export * from "./task";
 export * from "./tool";
