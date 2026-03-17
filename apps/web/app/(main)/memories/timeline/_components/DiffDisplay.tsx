@@ -1,5 +1,3 @@
-"use client";
-
 import { diffWords } from "diff";
 import type { Change } from "diff";
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { Badge, cn } from "@vmem/ui";
 import { IconClockHour4 } from "@tabler/icons-react";
 import type { TimelineEvent, TimelineMode } from "@/lib/timeline";

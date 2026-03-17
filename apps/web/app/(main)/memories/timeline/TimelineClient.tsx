@@ -16,8 +16,8 @@ import TagSelector from "./_components/TagSelector";
 
 const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
 
-interface TimelineApiResponse {
-  events: TimelineEvent[];
+function isTimelineMode(value: string): value is TimelineMode {
+  return value === "history" || value === "trail";
 }
 
 export default function TimelineClient() {
@@ -39,94 +39,44 @@ export default function TimelineClient() {
     [getToken],
   );
 
-  const fetchMemoryTimeline = useCallback(
-    async (memoryId: string) => {
-      if (!memoryId) return;
+  const fetchTimeline = useCallback(
+    async (url: string) => {
       setLoading(true);
       try {
-        const res = await authFetch(
-          `${API_URL}/v1/timeline/memory/${memoryId}`,
-        );
+        const res = await authFetch(url);
         if (res.ok) {
-          const data = (await res.json()) as TimelineApiResponse;
-          setEvents(data.events);
+          const json: { data: TimelineEvent[] } = await res.json();
+          setEvents(json.data);
         } else {
           setEvents([]);
         }
       } catch {
         setEvents([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    },
-    [authFetch],
-  );
-
-  const fetchTopicTimeline = useCallback(
-    async (tag: string) => {
-      if (!tag) return;
-      setLoading(true);
-      try {
-        const res = await authFetch(
-          `${API_URL}/v1/timeline/topic?tag=${encodeURIComponent(tag)}`,
-        );
-        if (res.ok) {
-          const data = (await res.json()) as TimelineApiResponse;
-          setEvents(data.events);
-        } else {
-          setEvents([]);
-        }
-      } catch {
-        setEvents([]);
-      }
-      setLoading(false);
-    },
-    [authFetch],
-  );
-
-  const fetchSearchTimeline = useCallback(
-    async (query: string) => {
-      if (!query) return;
-      setLoading(true);
-      try {
-        const res = await authFetch(
-          `${API_URL}/v1/timeline/search?q=${encodeURIComponent(query)}`,
-        );
-        if (res.ok) {
-          const data = (await res.json()) as TimelineApiResponse;
-          setEvents(data.events);
-        } else {
-          setEvents([]);
-        }
-      } catch {
-        setEvents([]);
-      }
-      setLoading(false);
     },
     [authFetch],
   );
 
   useEffect(() => {
     if (params.mode === "history" && params.memoryId) {
-      fetchMemoryTimeline(params.memoryId);
+      fetchTimeline(`${API_URL}/v1/timeline/memory/${params.memoryId}`);
+    } else if (params.mode === "trail" && params.tag) {
+      fetchTimeline(
+        `${API_URL}/v1/timeline/topic?tag=${encodeURIComponent(params.tag)}`,
+      );
+    } else if (params.mode === "trail" && params.query) {
+      fetchTimeline(
+        `${API_URL}/v1/timeline/search?q=${encodeURIComponent(params.query)}`,
+      );
     }
-  }, [params.mode, params.memoryId, fetchMemoryTimeline]);
-
-  useEffect(() => {
-    if (params.mode === "trail" && params.tag) {
-      fetchTopicTimeline(params.tag);
-    }
-  }, [params.mode, params.tag, fetchTopicTimeline]);
-
-  useEffect(() => {
-    if (params.mode === "trail" && params.query && !params.tag) {
-      fetchSearchTimeline(params.query);
-    }
-  }, [params.mode, params.query, params.tag, fetchSearchTimeline]);
+  }, [params.mode, params.memoryId, params.tag, params.query, fetchTimeline]);
 
   const handleModeChange = useCallback(
     (value: string) => {
-      const mode = value as TimelineMode;
-      setParams({ mode, memoryId: "", tag: "", query: "" });
+      if (!isTimelineMode(value)) return;
+      setParams({ mode: value, memoryId: "", tag: "", query: "" });
       setEvents([]);
     },
     [setParams],
