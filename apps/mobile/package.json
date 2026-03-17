@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@clerk/clerk-expo": "^2.4.4",
+    "@convex-dev/agent": "0.3.2",
     "@vmem/backend": "workspace:*",
     "convex": "^1.31.7",
     "expo": "~52.0.46",
