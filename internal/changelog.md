@@ -1,14 +1,11 @@
 # Changelog
 
-## 2026-03-17
+## Memory Graph: Organic Brain-Like Layout — 2026-03-17
 
-### Memory Graph: ForceAtlas2 Layout
-
-- Replaced custom force-directed physics with ForceAtlas2 (graphology) to fix node clumping/overlap
-- LinLog mode creates organic "brain-like" clusters with clear separation between tag groups
-- Tag-cluster ring layout for initial node positions — groups memories by primary tag around a circle before simulation
-- Barnes-Hut optimization reduces per-frame complexity from O(n²) to O(n log n)
-- Canvas renderer and all interactions (hover, drag, zoom, pan) unchanged
+- Replaced custom force-directed physics with ForceAtlas2 (graphology) to fix node clumping/overlap — LinLog mode produces natural cluster separation
+- Tag-cluster ring layout for initial positions gives the algorithm a better starting topology
+- Replaced continuous FA2 ticks (caused directional drift) with gentle sine-wave drift per node — each node floats independently using unique phase offsets for an organic "alive" feel
+- Canvas renderer and all interactions unchanged
 
 ## 2026-03-16
 
