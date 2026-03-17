@@ -31,16 +31,16 @@ export default function PageContainer({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="mb-5 flex-shrink-0 min-h-10">
-        <div className="flex h-10 items-center justify-between gap-4 md:grid md:grid-cols-[1fr_auto_1fr]">
+        <div className="flex h-10 items-center justify-between gap-4">
           <motion.h2
-            className="text-2xl leading-tight font-instrumentSerif text-foreground"
+            className="text-2xl leading-tight font-instrumentSerif text-foreground md:hidden"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={childTransition}
           >
             {title}
           </motion.h2>
-          <div className="hidden md:flex md:justify-center">
+          <div className="hidden md:flex md:flex-1 md:justify-center">
             {centerSection && (
               <motion.div
                 initial={{ opacity: 0, y: 6 }}
@@ -51,18 +51,16 @@ export default function PageContainer({
               </motion.div>
             )}
           </div>
-          <div className="md:flex md:justify-end">
-            {rightSection && (
-              <motion.div
-                className="flex-shrink-0"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ ...childTransition, delay: 0.1 }}
-              >
-                {rightSection}
-              </motion.div>
-            )}
-          </div>
+          {rightSection && (
+            <motion.div
+              className="flex-shrink-0 ml-auto"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...childTransition, delay: 0.1 }}
+            >
+              {rightSection}
+            </motion.div>
+          )}
         </div>
         {centerSection && (
           <motion.div
