@@ -16,12 +16,33 @@ import {
   PromptInputTextarea,
   PromptInputFooter,
   PromptInputSubmit,
+  SpeechInput,
   Suggestion,
   Suggestions,
+  usePromptInput,
   type PromptInputMessage,
 } from "@vmem/ui/ai";
 import Image from "next/image";
 import ChatMessageItem from "@/app/(main)/chat/_components/ChatMessageItem";
+
+function ChatSpeechInput() {
+  const { input, setInput } = usePromptInput();
+  const handleTranscription = useCallback(
+    (text: string) => {
+      const separator = input.trim() ? " " : "";
+      setInput(input + separator + text);
+    },
+    [input, setInput],
+  );
+
+  return (
+    <SpeechInput
+      onTranscriptionChange={handleTranscription}
+      size="icon-xs"
+      variant="ghost"
+    />
+  );
+}
 
 export default function Chat() {
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -120,6 +141,7 @@ export default function Chat() {
         <PromptInput onSubmit={handleSubmit} status={promptStatus}>
           <PromptInputTextarea placeholder="Ask about your memories..." />
           <PromptInputFooter>
+            <ChatSpeechInput />
             <PromptInputSubmit />
           </PromptInputFooter>
         </PromptInput>
