@@ -27,8 +27,13 @@ interface MemoryEvent {
   action: string;
   actor: string;
   details: Record<string, string> | null;
-  snapshot: string | null;
+  snapshot: Record<string, string> | null;
   createdAt: string;
+}
+
+interface TimelineEvent extends MemoryEvent {
+  memoryId: string;
+  memoryTitle: string;
 }
 
 interface ScoreBreakdown {
@@ -476,13 +481,15 @@ export class MemoryService {
 
       return result.records.map((record) => {
         const props = record.get("e").properties;
+        const rawSnapshot = props.snapshot as string | null;
+        const rawDetails = props.details as string | null;
         return {
-          id: props.id,
-          action: props.action,
-          actor: props.actor,
-          details: props.details ? JSON.parse(props.details) : null,
-          snapshot: (props.snapshot as string) ?? null,
-          createdAt: props.createdAt,
+          id: props.id as string,
+          action: props.action as string,
+          actor: props.actor as string,
+          details: rawDetails ? JSON.parse(rawDetails) : null,
+          snapshot: rawSnapshot ? JSON.parse(rawSnapshot) : null,
+          createdAt: props.createdAt as string,
         };
       });
     } finally {
@@ -807,6 +814,123 @@ export class MemoryService {
           description: descMap[action] ?? `${action} "${memoryTitle}"`,
           timestamp: createdAt,
           relativeTime,
+        };
+      });
+    } finally {
+      await session.close();
+    }
+  }
+
+  async getMemoryTimeline(
+    userId: string,
+    memoryId: string,
+  ): Promise<MemoryEvent[]> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {id: $memoryId, userId: $userId})
+         RETURN e
+         ORDER BY e.createdAt ASC`,
+        { memoryId, userId },
+      );
+
+      return result.records.map((record) => {
+        const props = record.get("e").properties;
+        const rawSnapshot = props.snapshot as string | null;
+        const rawDetails = props.details as string | null;
+        return {
+          id: props.id as string,
+          action: props.action as string,
+          actor: props.actor as string,
+          createdAt: props.createdAt as string,
+          snapshot: rawSnapshot ? JSON.parse(rawSnapshot) : null,
+          details: rawDetails ? JSON.parse(rawDetails) : null,
+        };
+      });
+    } finally {
+      await session.close();
+    }
+  }
+
+  async getTopicTimeline(
+    userId: string,
+    tag: string,
+    limit: number,
+    offset: number,
+  ): Promise<TimelineEvent[]> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag {name: $tag})
+         MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m)
+         RETURN e, m.id AS memoryId, m.title AS memoryTitle
+         ORDER BY e.createdAt ASC
+         SKIP $offset LIMIT $limit`,
+        {
+          userId,
+          tag,
+          offset: neo4j.int(offset),
+          limit: neo4j.int(limit),
+        },
+      );
+
+      return result.records.map((record) => {
+        const props = record.get("e").properties;
+        const rawSnapshot = props.snapshot as string | null;
+        const rawDetails = props.details as string | null;
+        return {
+          id: props.id as string,
+          action: props.action as string,
+          actor: props.actor as string,
+          createdAt: props.createdAt as string,
+          snapshot: rawSnapshot ? JSON.parse(rawSnapshot) : null,
+          details: rawDetails ? JSON.parse(rawDetails) : null,
+          memoryId: record.get("memoryId") as string,
+          memoryTitle: record.get("memoryTitle") as string,
+        };
+      });
+    } finally {
+      await session.close();
+    }
+  }
+
+  async getSearchTimeline(
+    userId: string,
+    query: string,
+    limit: number,
+    offset: number,
+  ): Promise<TimelineEvent[]> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `CALL db.index.fulltext.queryNodes('memory_content', $query)
+         YIELD node AS m, score
+         WHERE m.userId = $userId
+         MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m)
+         RETURN e, m.id AS memoryId, m.title AS memoryTitle
+         ORDER BY e.createdAt ASC
+         SKIP $offset LIMIT $limit`,
+        {
+          query,
+          userId,
+          offset: neo4j.int(offset),
+          limit: neo4j.int(limit),
+        },
+      );
+
+      return result.records.map((record) => {
+        const props = record.get("e").properties;
+        const rawSnapshot = props.snapshot as string | null;
+        const rawDetails = props.details as string | null;
+        return {
+          id: props.id as string,
+          action: props.action as string,
+          actor: props.actor as string,
+          createdAt: props.createdAt as string,
+          snapshot: rawSnapshot ? JSON.parse(rawSnapshot) : null,
+          details: rawDetails ? JSON.parse(rawDetails) : null,
+          memoryId: record.get("memoryId") as string,
+          memoryTitle: record.get("memoryTitle") as string,
         };
       });
     } finally {
