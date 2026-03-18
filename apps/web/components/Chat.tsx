@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { IconLoader2 } from "@tabler/icons-react";
 import { useMutation } from "convex/react";
 import {
   useUIMessages,
@@ -83,6 +84,14 @@ export default function Chat() {
     },
     [handleSubmit],
   );
+
+  if (!threadId) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full min-h-0">
