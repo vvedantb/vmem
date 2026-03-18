@@ -9,6 +9,7 @@ import { memories } from "./routes/memories";
 import { proposedUpdates } from "./routes/proposed-updates";
 import { dashboard } from "./routes/dashboard";
 import { timeline } from "./routes/timeline";
+import { relationships } from "./routes/relationships";
 import { authMiddleware } from "./middleware/auth";
 import { getDriver, closeDriver } from "./db/neo4j";
 import { setupDatabase } from "./db/setup";
@@ -22,11 +23,13 @@ app.use("/memories/*", authMiddleware);
 app.use("/proposed-updates/*", authMiddleware);
 app.use("/dashboard/*", authMiddleware);
 app.use("/timeline/*", authMiddleware);
+app.use("/relationships/*", authMiddleware);
 
 app.route("/memories", memories);
 app.route("/proposed-updates", proposedUpdates);
 app.route("/dashboard", dashboard);
 app.route("/timeline", timeline);
+app.route("/relationships", relationships);
 
 app.get("/health", async (c) => {
   const driver = getDriver();

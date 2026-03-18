@@ -184,6 +184,19 @@ export class MemoryService {
         snapshot,
       );
 
+      const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      await session.run(
+        `MATCH (m:Memory {id: $id}), (m2:Memory {userId: $userId, source: $source})
+         WHERE m2.id <> $id AND m2.createdAt > $cutoff
+         MERGE (m2)-[:RELATES_TO {reason: 'same session'}]->(m)`,
+        {
+          id,
+          userId: params.userId,
+          source: params.source,
+          cutoff,
+        },
+      );
+
       const record = result.records[0];
       return toMemoryWithTags(record.toObject());
     } finally {
@@ -922,6 +935,84 @@ export class MemoryService {
         memoryId: String(record.get("memoryId") ?? ""),
         memoryTitle: String(record.get("memoryTitle") ?? ""),
       }));
+    } finally {
+      await session.close();
+    }
+  }
+
+  async linkMemories(
+    userId: string,
+    memoryIdA: string,
+    memoryIdB: string,
+    reason: string,
+  ): Promise<boolean> {
+    if (memoryIdA === memoryIdB) return false;
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (a:Memory {id: $memoryIdA, userId: $userId}), (b:Memory {id: $memoryIdB, userId: $userId})
+         MERGE (a)-[:RELATES_TO {reason: $reason}]->(b)
+         RETURN a, b`,
+        { memoryIdA, memoryIdB, userId, reason },
+      );
+      return result.records.length > 0;
+    } finally {
+      await session.close();
+    }
+  }
+
+  async unlinkMemories(
+    userId: string,
+    memoryIdA: string,
+    memoryIdB: string,
+  ): Promise<boolean> {
+    const session = this.driver.session();
+    try {
+      await session.run(
+        `MATCH (a:Memory {id: $memoryIdA, userId: $userId})-[r:RELATES_TO]-(b:Memory {id: $memoryIdB, userId: $userId})
+         DELETE r`,
+        { memoryIdA, memoryIdB, userId },
+      );
+      return true;
+    } finally {
+      await session.close();
+    }
+  }
+
+  async getRelatedMemories(
+    userId: string,
+    memoryId: string,
+  ): Promise<{ memory: MemoryWithTags; reason: string }[]> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})-[r:RELATES_TO]-(related:Memory)
+         OPTIONAL MATCH (related)-[:TAGGED_WITH]->(t:Tag)
+         RETURN related { .id, .title, .content, .type, .status, .createdAt, .updatedAt, .expiresAt, .userId, .source, .confidence, tags: collect(DISTINCT t.name) } AS memory, r.reason AS reason`,
+        { memoryId, userId },
+      );
+      return result.records.map((record) => {
+        const obj = record.toObject();
+        const mem = obj.memory as Record<string, unknown>;
+        const tags = mem.tags as string[];
+        return {
+          memory: {
+            id: mem.id as string,
+            userId: mem.userId as string,
+            title: mem.title as string,
+            content: mem.content as string,
+            type: mem.type as MemoryType,
+            source: mem.source as string,
+            confidence: mem.confidence as number,
+            status: mem.status as MemoryStatus,
+            createdAt: mem.createdAt as string,
+            updatedAt: mem.updatedAt as string,
+            expiresAt: (mem.expiresAt as string) ?? null,
+            tags,
+          },
+          reason: obj.reason as string,
+        };
+      });
     } finally {
       await session.close();
     }
