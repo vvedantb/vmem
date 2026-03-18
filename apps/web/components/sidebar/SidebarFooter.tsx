@@ -1,8 +1,16 @@
 "use client";
 
-import { Separator, Button, Skeleton, cn } from "@vmem/ui";
+import {
+  Separator,
+  Button,
+  Skeleton,
+  cn,
+  HoverCard,
+  HoverCardTrigger,
+  HoverCardContent,
+} from "@vmem/ui";
 import { UserButton } from "@clerk/nextjs";
-import { IconMoon, IconSun } from "@tabler/icons-react";
+import { IconMoon, IconSun, IconChartBar } from "@tabler/icons-react";
 
 function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
   const memoriesAdded = 12;
@@ -10,19 +18,34 @@ function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
 
   if (isIconOnly) {
     return (
-      <div className="mx-auto flex w-fit flex-col items-center gap-0.5 px-2 py-1">
-        <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
-          {memoriesAdded}
-        </span>
-        <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
-          add
-        </span>
-        <span className="mt-1 text-xl font-instrumentSerif tabular-nums text-foreground">
-          {memoriesRetrieved}
-        </span>
-        <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
-          ret
-        </span>
+      <div className="flex justify-center">
+        <HoverCard openDelay={200} closeDelay={100}>
+          <HoverCardTrigger asChild>
+            <div className="glass-interactive flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground cursor-default">
+              <IconChartBar className="h-4 w-4" />
+            </div>
+          </HoverCardTrigger>
+          <HoverCardContent side="right" align="center" className="w-auto p-3">
+            <div className="flex items-baseline gap-4">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
+                  {memoriesAdded}
+                </span>
+                <span className="text-[11px] text-muted-foreground/70">
+                  added
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
+                  {memoriesRetrieved}
+                </span>
+                <span className="text-[11px] text-muted-foreground/70">
+                  retrieved
+                </span>
+              </div>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
       </div>
     );
   }
