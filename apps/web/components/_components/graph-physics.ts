@@ -1,6 +1,7 @@
 import Graph from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import type { SimNode, SimEdge, GraphSettings } from "./graph-types";
+import type { GraphViewTheme } from "./graph-view-themes";
 
 const INITIAL_ITERATIONS = 80;
 const SPRING_LENGTH = 200;
@@ -140,32 +141,57 @@ export function renderGraph(
   camera: Camera,
   hoveredIndex: number | null,
   connectedSet: Set<number>,
-  isDark: boolean,
+  theme: GraphViewTheme,
 ): void {
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = isDark ? "#1e1e1e" : "#ffffff";
+  ctx.fillStyle = theme.background;
   ctx.fillRect(0, 0, width, height);
 
-  const grad = ctx.createRadialGradient(
-    width / 2,
-    height / 2,
-    0,
-    width / 2,
-    height / 2,
-    Math.max(width, height) * 0.5,
-  );
-  grad.addColorStop(
-    0,
-    isDark ? "rgba(80, 70, 180, 0.04)" : "rgba(80, 80, 180, 0.03)",
-  );
-  grad.addColorStop(1, "transparent");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, width, height);
+  if (theme.gradientCenter) {
+    const grad = ctx.createRadialGradient(
+      width / 2,
+      height / 2,
+      0,
+      width / 2,
+      height / 2,
+      Math.max(width, height) * 0.5,
+    );
+    grad.addColorStop(0, theme.gradientCenter);
+    grad.addColorStop(1, "transparent");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  }
 
   ctx.save();
   ctx.translate(width / 2, height / 2);
   ctx.scale(camera.zoom, camera.zoom);
   ctx.translate(-camera.x, -camera.y);
+
+  if (theme.grid) {
+    const invZ = 1 / camera.zoom;
+    const halfW = (width / 2) * invZ;
+    const halfH = (height / 2) * invZ;
+    const left = camera.x - halfW;
+    const right = camera.x + halfW;
+    const top = camera.y - halfH;
+    const bottom = camera.y + halfH;
+    const sp = theme.grid.spacing;
+
+    ctx.strokeStyle = theme.grid.color;
+    ctx.lineWidth = 0.5 * invZ;
+    ctx.beginPath();
+    const startX = Math.floor(left / sp) * sp;
+    const startY = Math.floor(top / sp) * sp;
+    for (let x = startX; x <= right; x += sp) {
+      ctx.moveTo(x, top);
+      ctx.lineTo(x, bottom);
+    }
+    for (let y = startY; y <= bottom; y += sp) {
+      ctx.moveTo(left, y);
+      ctx.lineTo(right, y);
+    }
+    ctx.stroke();
+  }
 
   const hasHover = hoveredIndex !== null;
   const invZoom = 1 / camera.zoom;
@@ -182,21 +208,13 @@ export function renderGraph(
     ctx.beginPath();
     ctx.moveTo(s.x, s.y);
     ctx.lineTo(t.x, t.y);
-
-    if (isDark) {
-      ctx.strokeStyle = dimmed
-        ? "rgba(255,255,255,0.03)"
-        : connected
-          ? "rgba(255,255,255,0.25)"
-          : "rgba(255,255,255,0.12)";
-    } else {
-      ctx.strokeStyle = dimmed
-        ? "rgba(0,0,0,0.03)"
-        : connected
-          ? "rgba(0,0,0,0.25)"
-          : "rgba(0,0,0,0.15)";
-    }
-    ctx.lineWidth = (connected ? 1.2 : 0.5) * invZoom;
+    ctx.strokeStyle = dimmed
+      ? theme.edge.dimmed
+      : connected
+        ? theme.edge.connected
+        : theme.edge.normal;
+    ctx.lineWidth =
+      (connected ? theme.edge.connectedWidth : theme.edge.width) * invZoom;
     ctx.stroke();
   }
 
@@ -207,11 +225,13 @@ export function renderGraph(
     const dimmed = hasHover && !isConnected;
     const r = (isHovered ? node.radius * 1.5 : node.radius) * invZoom;
 
-    ctx.globalAlpha = dimmed ? 0.08 : 1;
+    ctx.globalAlpha = dimmed ? theme.dimAlpha : 1;
 
-    if (isDark && !dimmed) {
-      const glowRadius = r * 6;
-      const intensity = isHovered ? 0.4 : 0.2;
+    if (theme.glow.enabled && !dimmed) {
+      const glowRadius = r * theme.glow.radiusMultiplier;
+      const intensity = isHovered
+        ? theme.glow.hoveredIntensity
+        : theme.glow.intensity;
       const glow = ctx.createRadialGradient(
         node.x,
         node.y,
@@ -236,9 +256,15 @@ export function renderGraph(
     ctx.fillStyle = node.color;
     ctx.fill();
 
-    if (!isDark && !dimmed) {
-      ctx.strokeStyle = isHovered ? node.color : "rgba(0,0,0,0.12)";
-      ctx.lineWidth = (isHovered ? 1.5 : 0.5) * invZoom;
+    if (theme.outline.enabled && !dimmed) {
+      const hovColor =
+        theme.outline.hoveredColor === "node"
+          ? node.color
+          : theme.outline.hoveredColor;
+      ctx.strokeStyle = isHovered ? hovColor : theme.outline.color;
+      ctx.lineWidth =
+        (isHovered ? theme.outline.hoveredWidth : theme.outline.width) *
+        invZoom;
       ctx.stroke();
     }
 
@@ -256,12 +282,12 @@ export function renderGraph(
 
     const hovNode = nodes[hoveredIndex];
     ctx.font = `600 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
-    ctx.fillStyle = isDark ? "#ffffff" : "#111111";
+    ctx.fillStyle = theme.label.color;
     const hovOffset = (hovNode.radius + 6) * invZoom;
     ctx.fillText(truncate(hovNode.label), hovNode.x, hovNode.y + hovOffset);
 
     ctx.font = `400 ${fontSize * 0.9}px "Instrument Sans", system-ui, sans-serif`;
-    ctx.fillStyle = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)";
+    ctx.fillStyle = theme.label.secondary;
     for (const idx of connectedSet) {
       if (idx === hoveredIndex) continue;
       const node = nodes[idx];
@@ -273,7 +299,7 @@ export function renderGraph(
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillStyle = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)";
+    ctx.fillStyle = theme.label.secondary;
     for (const node of nodes) {
       const offset = (node.radius + 5) * invZoom;
       ctx.fillText(truncate(node.label), node.x, node.y + offset);

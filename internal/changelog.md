@@ -1,5 +1,13 @@
 # Changelog
 
+## Graph View Modes — 2026-03-18
+
+- Added 5 switchable view modes for the memory graph: Default, Satellite, Constellation, Blueprint, and Minimal
+- Each mode has a distinct visual identity — Satellite renders cities-from-space glow, Constellation emphasizes edges like star maps, Blueprint adds a grid with monochrome nodes, Minimal strips all effects
+- Extracted all hardcoded render colors into a `GraphViewTheme` config object so renderGraph is fully data-driven
+- View mode persists across page reloads via cookie, same pattern as graph physics settings
+- Satellite/Constellation force dark canvas appearance, Blueprint forces light, regardless of system theme
+
 ## Timeline / Memory Replay — 2026-03-17
 
 - Added snapshot storage on MemoryEvent nodes — each create, update, and proposal resolution now captures the full memory state (title, content, type, status, confidence, tags) as a JSON snapshot, enabling point-in-time replay
