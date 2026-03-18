@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,6 +36,9 @@ interface MemoryDetailPanelProps {
   onMemoryDelete: (id: string) => void;
   relatedMemories: Memory[];
   onSelectRelated: (memory: Memory) => void;
+  startInEditMode?: boolean;
+  startWithDelete?: boolean;
+  onConsumeAction?: () => void;
 }
 
 export default function MemoryDetailPanel({
@@ -45,6 +48,9 @@ export default function MemoryDetailPanel({
   onMemoryDelete,
   relatedMemories,
   onSelectRelated,
+  startInEditMode = false,
+  startWithDelete = false,
+  onConsumeAction,
 }: MemoryDetailPanelProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -98,6 +104,16 @@ export default function MemoryDetailPanel({
     });
     setIsEditing(true);
   }, [memory, reset]);
+
+  useEffect(() => {
+    if (startInEditMode) {
+      startEditing();
+      onConsumeAction?.();
+    } else if (startWithDelete) {
+      setShowDeleteConfirm(true);
+      onConsumeAction?.();
+    }
+  }, [startInEditMode, startWithDelete, startEditing, onConsumeAction]);
 
   const cancelEditing = useCallback(() => {
     setIsEditing(false);
