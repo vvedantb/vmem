@@ -3,13 +3,26 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Button } from "@vmem/ui";
 import { IconZoomIn, IconZoomOut, IconFocus2 } from "@tabler/icons-react";
-import type { SimNode, SimEdge, HoveredNodeInfo } from "./graph-types";
-import { simulationTick, defaultParams, renderGraph } from "./graph-physics";
+import type Graph from "graphology";
+import type {
+  SimNode,
+  SimEdge,
+  HoveredNodeInfo,
+  GraphSettings,
+} from "./graph-types";
+import type { GraphViewTheme } from "./graph-view-themes";
+import {
+  createLayoutGraph,
+  runInitialLayout,
+  simulationTick,
+  renderGraph,
+} from "./graph-physics";
 
 interface ForceGraphProps {
   nodes: SimNode[];
   edges: SimEdge[];
-  isDark: boolean;
+  viewTheme: GraphViewTheme;
+  settings: GraphSettings;
   onHoverNode: (info: HoveredNodeInfo | null) => void;
   onClickNode: (nodeId: string) => void;
 }
@@ -81,7 +94,8 @@ const emptyDrag: DragState = {
 export default function ForceGraph({
   nodes,
   edges,
-  isDark,
+  viewTheme,
+  settings,
   onHoverNode,
   onClickNode,
 }: ForceGraphProps) {
@@ -92,15 +106,18 @@ export default function ForceGraph({
   const dragRef = useRef<DragState>({ ...emptyDrag });
   const hoveredRef = useRef<number | null>(null);
   const sizeRef = useRef({ w: 0, h: 0 });
+  const graphRef = useRef<Graph | null>(null);
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const cbRef = useRef({ onHoverNode, onClickNode });
-  const isDarkRef = useRef(isDark);
+  const viewThemeRef = useRef(viewTheme);
+  const settingsRef = useRef(settings);
 
   nodesRef.current = nodes;
   edgesRef.current = edges;
   cbRef.current = { onHoverNode, onClickNode };
-  isDarkRef.current = isDark;
+  viewThemeRef.current = viewTheme;
+  settingsRef.current = settings;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -137,7 +154,7 @@ export default function ForceGraph({
         n[drag.nodeIndex].vy = 0;
       }
 
-      simulationTick(n, e, defaultParams, drag.nodeIndex);
+      simulationTick(n, e, settingsRef.current, drag.nodeIndex);
 
       const connectedSet = new Set<number>();
       const hIdx = hoveredRef.current;
@@ -152,7 +169,17 @@ export default function ForceGraph({
       const dpr = window.devicePixelRatio || 1;
       ctx.save();
       ctx.scale(dpr, dpr);
-      renderGraph(ctx, n, e, w, h, cam, hIdx, connectedSet, isDarkRef.current);
+      renderGraph(
+        ctx,
+        n,
+        e,
+        w,
+        h,
+        cam,
+        hIdx,
+        connectedSet,
+        viewThemeRef.current,
+      );
       ctx.restore();
 
       animRef.current = requestAnimationFrame(loop);
@@ -180,6 +207,16 @@ export default function ForceGraph({
       canvas.removeEventListener("wheel", onWheel);
     };
   }, []);
+
+  useEffect(() => {
+    if (nodes.length === 0) {
+      graphRef.current = null;
+      return;
+    }
+    const graph = createLayoutGraph(nodes, edges);
+    runInitialLayout(graph, nodes, settings);
+    graphRef.current = graph;
+  }, [nodes, edges, settings]);
 
   const getPos = useCallback((e: React.MouseEvent): [number, number] => {
     const rect = canvasRef.current?.getBoundingClientRect();

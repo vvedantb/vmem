@@ -1,5 +1,28 @@
 # Changelog
 
+## Graph View Modes — 2026-03-18
+
+- Added 5 switchable view modes for the memory graph: Default, Satellite, Constellation, Blueprint, and Minimal
+- Each mode has a distinct visual identity — Satellite renders cities-from-space glow, Constellation emphasizes edges like star maps, Blueprint adds a grid with monochrome nodes, Minimal strips all effects
+- Extracted all hardcoded render colors into a `GraphViewTheme` config object so renderGraph is fully data-driven
+- View mode persists across page reloads via cookie, same pattern as graph physics settings
+- Satellite/Constellation force dark canvas appearance, Blueprint forces light, regardless of system theme
+
+## Timeline / Memory Replay — 2026-03-17
+
+- Added snapshot storage on MemoryEvent nodes — each create, update, and proposal resolution now captures the full memory state (title, content, type, status, confidence, tags) as a JSON snapshot, enabling point-in-time replay
+- Added three backend timeline query methods: per-memory history, tag-based topic trail, and fulltext search trail — each returns events with memory context for the frontend
+- Built frontend timeline page with two modes: Memory History (side-by-side word-level diffs between snapshots) and Topic Trail (tag/search-based event stream across memories)
+- URL-based state management via nuqs — timeline mode, selected memory, tag, and search query are all encoded in the URL for shareability
+- Added sidebar nav entry and history button on memory detail panel as entry points
+
+## Memory Graph: Organic Brain-Like Layout — 2026-03-17
+
+- Replaced custom force-directed physics with ForceAtlas2 (graphology) to fix node clumping/overlap — LinLog mode produces natural cluster separation
+- Tag-cluster ring layout for initial positions gives the algorithm a better starting topology
+- Replaced continuous FA2 ticks (caused directional drift) with gentle sine-wave drift per node — each node floats independently using unique phase offsets for an organic "alive" feel
+- Canvas renderer and all interactions unchanged
+
 ## 2026-03-16
 
 ### MCP Playground Page

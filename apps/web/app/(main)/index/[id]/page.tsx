@@ -95,7 +95,7 @@ export default function CodebaseDetailPage({
   return (
     <PageContainer
       title={codebase.name}
-      rightSection={
+      leftSection={
         <Link href="/index">
           <Button variant="outline" size="sm">
             <IconArrowLeft size={16} />

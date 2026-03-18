@@ -1,12 +1,24 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Button, Input, Badge, Card, cn } from "@vmem/ui";
+import {
+  Button,
+  Input,
+  Badge,
+  Card,
+  cn,
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+} from "@vmem/ui";
 import {
   IconSearch,
   IconMoodEmpty,
   IconX,
   IconLoader2,
+  IconEdit,
+  IconTrash,
 } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
@@ -19,12 +31,26 @@ import {
 } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
-export default function MemorySearch() {
+interface MemorySearchProps {
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+}
+
+export default function MemorySearch({
+  searchQuery: externalQuery,
+  onSearchChange,
+}: MemorySearchProps = {}) {
   const searchParams = useSearchParams();
   const { memories: allMemories, isLoading } = useMemoryContext();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [internalQuery, setInternalQuery] = useState("");
+  const searchQuery = externalQuery ?? internalQuery;
+  const setSearchQuery = onSearchChange ?? setInternalQuery;
+  const isExternalSearch = externalQuery !== undefined;
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
+  const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
+    null,
+  );
 
   useEffect(() => {
     const initialTags = searchParams
@@ -118,10 +144,25 @@ export default function MemorySearch() {
 
   const handleCardClick = useCallback(
     (memory: Memory) => {
+      setPanelAction(null);
       setSelectedMemoryId(selectedMemoryId === memory.id ? null : memory.id);
     },
     [selectedMemoryId],
   );
+
+  const handleContextEdit = useCallback((memory: Memory) => {
+    setSelectedMemoryId(memory.id);
+    setPanelAction("edit");
+  }, []);
+
+  const handleContextDelete = useCallback((memory: Memory) => {
+    setSelectedMemoryId(memory.id);
+    setPanelAction("delete");
+  }, []);
+
+  const handleConsumeAction = useCallback(() => {
+    setPanelAction(null);
+  }, []);
 
   if (isLoading) {
     return (
@@ -149,22 +190,24 @@ export default function MemorySearch() {
 
   return (
     <>
-      <div className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2">
-          <IconSearch
-            className="text-muted-foreground"
-            size={20}
-            stroke={1.5}
+      {!isExternalSearch && (
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2">
+            <IconSearch
+              className="text-muted-foreground"
+              size={20}
+              stroke={1.5}
+            />
+          </div>
+          <Input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search memories semantically..."
+            className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
           />
         </div>
-        <Input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search memories semantically..."
-          className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
-        />
-      </div>
+      )}
 
       {allTags.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
@@ -253,37 +296,57 @@ export default function MemorySearch() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <Card
-                      className={cn(
-                        "cursor-pointer transition-all hover:bg-accent/50 p-4",
-                        selectedMemoryId === item.id &&
-                          "ring-2 ring-primary bg-accent/50",
-                      )}
-                      onClick={() => handleCardClick(item)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground truncate">
-                          {item.title}
-                        </span>
-                        {isShowingSearchResults && "relevanceScore" in item && (
-                          <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
-                            {Math.round(item.relevanceScore * 100)}%
-                          </span>
-                        )}
-                      </div>
-                      {item.tags.length > 0 && (
-                        <div className="flex gap-1.5 flex-wrap mt-2">
-                          {item.tags.map((tag) => (
-                            <Badge
-                              key={tag}
-                              className="bg-muted text-muted-foreground border border-border text-xs"
-                            >
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </Card>
+                    <ContextMenu>
+                      <ContextMenuTrigger asChild>
+                        <Card
+                          className={cn(
+                            "cursor-pointer transition-all hover:bg-accent/50 p-4",
+                            selectedMemoryId === item.id &&
+                              "ring-2 ring-primary bg-accent/50",
+                          )}
+                          onClick={() => handleCardClick(item)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground truncate">
+                              {item.title}
+                            </span>
+                            {isShowingSearchResults &&
+                              "relevanceScore" in item && (
+                                <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
+                                  {Math.round(item.relevanceScore * 100)}%
+                                </span>
+                              )}
+                          </div>
+                          {item.tags.length > 0 && (
+                            <div className="flex gap-1.5 flex-wrap mt-2">
+                              {item.tags.map((tag) => (
+                                <Badge
+                                  key={tag}
+                                  className="bg-muted text-muted-foreground border border-border text-xs"
+                                >
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </Card>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem
+                          onClick={() => handleContextEdit(item)}
+                        >
+                          <IconEdit size={16} stroke={1.5} />
+                          Edit
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleContextDelete(item)}
+                        >
+                          <IconTrash size={16} stroke={1.5} />
+                          Delete
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -306,6 +369,9 @@ export default function MemorySearch() {
                   onMemoryDelete={handleMemoryDelete}
                   relatedMemories={relatedMemories}
                   onSelectRelated={(memory) => setSelectedMemoryId(memory.id)}
+                  startInEditMode={panelAction === "edit"}
+                  startWithDelete={panelAction === "delete"}
+                  onConsumeAction={handleConsumeAction}
                 />
               </motion.div>
             )}

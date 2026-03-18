@@ -8,10 +8,21 @@ import type {
   SimNode,
   SimEdge,
   HoveredNodeInfo,
+  GraphSettings,
 } from "./_components/graph-types";
+import type { ViewMode } from "./_components/graph-view-themes";
+import { getViewTheme } from "./_components/graph-view-themes";
 import GraphNodeTooltip from "./_components/GraphNodeTooltip";
 import GraphNodeDetailDialog from "./_components/GraphNodeDetailDialog";
+import GraphSettingsPopover from "./_components/GraphSettingsPopover";
+import ViewModeSwitcher from "./_components/ViewModeSwitcher";
 import ForceGraph from "./_components/ForceGraph";
+import {
+  getGraphSettings,
+  setGraphSettings,
+  getGraphViewMode,
+  setGraphViewMode,
+} from "@/lib/graph-cookies";
 
 function tagToHue(tag: string): number {
   let hash = 0;
@@ -45,8 +56,25 @@ export default function MemoryGraph() {
   const { theme } = useThemeContext();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
+  const [graphSettings, setGraphSettingsState] =
+    useState<GraphSettings>(getGraphSettings);
+  const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
+
+  const handleSettingsChange = useCallback((next: GraphSettings) => {
+    setGraphSettingsState(next);
+    setGraphSettings(next);
+  }, []);
+
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewModeState(mode);
+    setGraphViewMode(mode);
+  }, []);
 
   const isDark = theme === "dark";
+  const viewTheme = useMemo(
+    () => getViewTheme(viewMode, isDark),
+    [viewMode, isDark],
+  );
 
   const { nodes, edges } = useMemo((): {
     nodes: SimNode[];
@@ -74,16 +102,51 @@ export default function MemoryGraph() {
       }
     }
 
+    const tagGroups = new Map<string, number[]>();
+    for (let i = 0; i < memories.length; i++) {
+      const primaryTag = memories[i].tags[0];
+      if (primaryTag) {
+        const group = tagGroups.get(primaryTag);
+        if (group) group.push(i);
+        else tagGroups.set(primaryTag, [i]);
+      }
+    }
+
+    const groupKeys = [...tagGroups.keys()];
+    const ringRadius = 150;
+    const groupPositions = new Map<string, { cx: number; cy: number }>();
+    for (let g = 0; g < groupKeys.length; g++) {
+      const angle = (g / groupKeys.length) * Math.PI * 2;
+      groupPositions.set(groupKeys[g], {
+        cx: Math.cos(angle) * ringRadius,
+        cy: Math.sin(angle) * ringRadius,
+      });
+    }
+
     const simNodes: SimNode[] = memories.map((m, i) => {
       const degree = degreeCount.get(i) ?? 0;
+      const primaryTag = m.tags[0];
+      let x: number;
+      let y: number;
+
+      const pos = primaryTag ? groupPositions.get(primaryTag) : undefined;
+      if (pos) {
+        const jitter = 40;
+        x = pos.cx + (Math.random() - 0.5) * jitter;
+        y = pos.cy + (Math.random() - 0.5) * jitter;
+      } else {
+        x = (Math.random() - 0.5) * 80;
+        y = (Math.random() - 0.5) * 80;
+      }
+
       return {
         id: m.id,
         label: m.title,
         content: m.content,
         tags: m.tags,
         createdAt: m.createdAt,
-        x: (Math.random() - 0.5) * 300,
-        y: (Math.random() - 0.5) * 300,
+        x,
+        y,
         vx: 0,
         vy: 0,
         radius: 3.5 + degree * 1.5,
@@ -96,14 +159,18 @@ export default function MemoryGraph() {
 
   useEffect(() => {
     for (const node of nodes) {
+      if (viewTheme.nodeColorOverride) {
+        node.color = viewTheme.nodeColorOverride;
+        continue;
+      }
       const memory = memories.find((m) => m.id === node.id);
       if (memory && memory.tags.length > 0) {
-        node.color = tagToColor(memory.tags[0], isDark);
+        node.color = tagToColor(memory.tags[0], viewTheme.isDarkCanvas);
       } else {
-        node.color = isDark ? "#555566" : "#999999";
+        node.color = viewTheme.isDarkCanvas ? "#555566" : "#999999";
       }
     }
-  }, [isDark, nodes, memories]);
+  }, [viewTheme, nodes, memories]);
 
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
@@ -152,10 +219,25 @@ export default function MemoryGraph() {
         <ForceGraph
           nodes={nodes}
           edges={edges}
-          isDark={isDark}
+          viewTheme={viewTheme}
+          settings={graphSettings}
           onHoverNode={handleHoverNode}
           onClickNode={handleClickNode}
         />
+
+        <div className="absolute top-3 right-14 z-10">
+          <GraphSettingsPopover
+            settings={graphSettings}
+            onChange={handleSettingsChange}
+          />
+        </div>
+
+        <div className="absolute bottom-3 right-3 z-10">
+          <ViewModeSwitcher
+            activeMode={viewMode}
+            onChange={handleViewModeChange}
+          />
+        </div>
 
         {hoveredNode && !selectedNodeId && (
           <GraphNodeTooltip
