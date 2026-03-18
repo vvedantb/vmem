@@ -111,24 +111,28 @@ export default function TimelineClient() {
     return params.tag.length > 0 || params.query.length > 0;
   }, [params.mode, params.memoryId, params.tag, params.query]);
 
+  const tabsList = (
+    <TabsList>
+      <TabsTrigger value="history">Memory History</TabsTrigger>
+      <TabsTrigger value="trail">Topic Trail</TabsTrigger>
+    </TabsList>
+  );
+
   if (memoriesLoading) {
     return (
-      <PageContainer title="Timeline">
-        <div className="flex items-center justify-center py-16">
-          <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      </PageContainer>
+      <Tabs value={params.mode} onValueChange={handleModeChange}>
+        <PageContainer title="Memories" centerSection={tabsList}>
+          <div className="flex items-center justify-center py-16">
+            <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </PageContainer>
+      </Tabs>
     );
   }
 
   return (
-    <PageContainer title="Timeline">
-      <Tabs value={params.mode} onValueChange={handleModeChange}>
-        <TabsList>
-          <TabsTrigger value="history">Memory History</TabsTrigger>
-          <TabsTrigger value="trail">Topic Trail</TabsTrigger>
-        </TabsList>
-
+    <Tabs value={params.mode} onValueChange={handleModeChange}>
+      <PageContainer title="Memories" centerSection={tabsList}>
         <TabsContent value="history" className="space-y-4">
           <MemorySelector
             value={params.memoryId}
@@ -189,7 +193,7 @@ export default function TimelineClient() {
             </div>
           )}
         </TabsContent>
-      </Tabs>
-    </PageContainer>
+      </PageContainer>
+    </Tabs>
   );
 }
