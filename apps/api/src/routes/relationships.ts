@@ -55,6 +55,15 @@ relationships.delete("/link", async (c) => {
   return c.json({ success });
 });
 
+relationships.get("/all", async (c) => {
+  const userId = c.get("userId");
+  const limitParam = c.req.query("limit");
+  const limit = limitParam ? parseInt(limitParam, 10) : 500;
+  const service = getService();
+  const results = await service.getAllRelationships(userId, limit);
+  return c.json({ data: results });
+});
+
 relationships.get("/memory/:id", async (c) => {
   const userId = c.get("userId");
   const service = getService();

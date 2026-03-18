@@ -40,9 +40,12 @@ interface MemoryEvent {
   createdAt: string;
 }
 
+type ConnectionType = "tag" | "related";
+
 interface TimelineEvent extends MemoryEvent {
   memoryId: string;
   memoryTitle: string;
+  connectionType?: ConnectionType;
 }
 
 interface ScoreBreakdown {
@@ -883,9 +886,18 @@ export class MemoryService {
     const session = this.driver.session();
     try {
       const result = await session.run(
-        `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag {name: $tag})
-         MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m)
-         RETURN e, m.id AS memoryId, m.title AS memoryTitle
+        `MATCH (tagMatched:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag {name: $tag})
+         WITH collect(DISTINCT tagMatched) AS tagMemories
+         UNWIND tagMemories AS tm
+         OPTIONAL MATCH (tm)-[:RELATES_TO]-(related:Memory {userId: $userId})
+         WITH tagMemories, collect(DISTINCT related) AS relatedMemories
+         WITH tagMemories, [r IN relatedMemories WHERE r IS NOT NULL AND NOT r IN tagMemories] AS onlyRelated
+         WITH tagMemories + onlyRelated AS allMemories, tagMemories
+         UNWIND allMemories AS mem
+         WITH DISTINCT mem, mem IN tagMemories AS isTagMatch
+         MATCH (e:MemoryEvent)-[:EVENT_FOR]->(mem)
+         RETURN e, mem.id AS memoryId, mem.title AS memoryTitle,
+                CASE WHEN isTagMatch THEN 'tag' ELSE 'related' END AS connectionType
          ORDER BY e.createdAt ASC
          SKIP $offset LIMIT $limit`,
         {
@@ -900,6 +912,7 @@ export class MemoryService {
         ...toEventFromNode(record.get("e").properties),
         memoryId: String(record.get("memoryId") ?? ""),
         memoryTitle: String(record.get("memoryTitle") ?? ""),
+        connectionType: record.get("connectionType") as ConnectionType,
       }));
     } finally {
       await session.close();
@@ -1013,6 +1026,29 @@ export class MemoryService {
           reason: obj.reason as string,
         };
       });
+    } finally {
+      await session.close();
+    }
+  }
+
+  async getAllRelationships(
+    userId: string,
+    limit = 500,
+  ): Promise<{ source: string; target: string; reason: string }[]> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory)
+         RETURN a.id AS source, b.id AS target, r.reason AS reason
+         LIMIT $limit`,
+        { userId, limit: neo4j.int(limit) },
+      );
+
+      return result.records.map((record) => ({
+        source: record.get("source") as string,
+        target: record.get("target") as string,
+        reason: record.get("reason") as string,
+      }));
     } finally {
       await session.close();
     }
