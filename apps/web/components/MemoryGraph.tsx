@@ -10,11 +10,19 @@ import type {
   HoveredNodeInfo,
   GraphSettings,
 } from "./_components/graph-types";
+import type { ViewMode } from "./_components/graph-view-themes";
+import { getViewTheme } from "./_components/graph-view-themes";
 import GraphNodeTooltip from "./_components/GraphNodeTooltip";
 import GraphNodeDetailDialog from "./_components/GraphNodeDetailDialog";
 import GraphSettingsPopover from "./_components/GraphSettingsPopover";
+import ViewModeSwitcher from "./_components/ViewModeSwitcher";
 import ForceGraph from "./_components/ForceGraph";
-import { getGraphSettings, setGraphSettings } from "@/lib/graph-cookies";
+import {
+  getGraphSettings,
+  setGraphSettings,
+  getGraphViewMode,
+  setGraphViewMode,
+} from "@/lib/graph-cookies";
 
 function tagToHue(tag: string): number {
   let hash = 0;
@@ -50,13 +58,23 @@ export default function MemoryGraph() {
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
+  const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
 
   const handleSettingsChange = useCallback((next: GraphSettings) => {
     setGraphSettingsState(next);
     setGraphSettings(next);
   }, []);
 
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewModeState(mode);
+    setGraphViewMode(mode);
+  }, []);
+
   const isDark = theme === "dark";
+  const viewTheme = useMemo(
+    () => getViewTheme(viewMode, isDark),
+    [viewMode, isDark],
+  );
 
   const { nodes, edges } = useMemo((): {
     nodes: SimNode[];
@@ -141,14 +159,18 @@ export default function MemoryGraph() {
 
   useEffect(() => {
     for (const node of nodes) {
+      if (viewTheme.nodeColorOverride) {
+        node.color = viewTheme.nodeColorOverride;
+        continue;
+      }
       const memory = memories.find((m) => m.id === node.id);
       if (memory && memory.tags.length > 0) {
-        node.color = tagToColor(memory.tags[0], isDark);
+        node.color = tagToColor(memory.tags[0], viewTheme.isDarkCanvas);
       } else {
-        node.color = isDark ? "#555566" : "#999999";
+        node.color = viewTheme.isDarkCanvas ? "#555566" : "#999999";
       }
     }
-  }, [isDark, nodes, memories]);
+  }, [viewTheme, nodes, memories]);
 
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
@@ -197,7 +219,7 @@ export default function MemoryGraph() {
         <ForceGraph
           nodes={nodes}
           edges={edges}
-          isDark={isDark}
+          viewTheme={viewTheme}
           settings={graphSettings}
           onHoverNode={handleHoverNode}
           onClickNode={handleClickNode}
@@ -207,6 +229,13 @@ export default function MemoryGraph() {
           <GraphSettingsPopover
             settings={graphSettings}
             onChange={handleSettingsChange}
+          />
+        </div>
+
+        <div className="absolute bottom-3 right-3 z-10">
+          <ViewModeSwitcher
+            activeMode={viewMode}
+            onChange={handleViewModeChange}
           />
         </div>
 

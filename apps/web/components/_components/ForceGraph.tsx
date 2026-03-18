@@ -10,6 +10,7 @@ import type {
   HoveredNodeInfo,
   GraphSettings,
 } from "./graph-types";
+import type { GraphViewTheme } from "./graph-view-themes";
 import {
   createLayoutGraph,
   runInitialLayout,
@@ -20,7 +21,7 @@ import {
 interface ForceGraphProps {
   nodes: SimNode[];
   edges: SimEdge[];
-  isDark: boolean;
+  viewTheme: GraphViewTheme;
   settings: GraphSettings;
   onHoverNode: (info: HoveredNodeInfo | null) => void;
   onClickNode: (nodeId: string) => void;
@@ -93,7 +94,7 @@ const emptyDrag: DragState = {
 export default function ForceGraph({
   nodes,
   edges,
-  isDark,
+  viewTheme,
   settings,
   onHoverNode,
   onClickNode,
@@ -109,13 +110,13 @@ export default function ForceGraph({
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const cbRef = useRef({ onHoverNode, onClickNode });
-  const isDarkRef = useRef(isDark);
+  const viewThemeRef = useRef(viewTheme);
   const settingsRef = useRef(settings);
 
   nodesRef.current = nodes;
   edgesRef.current = edges;
   cbRef.current = { onHoverNode, onClickNode };
-  isDarkRef.current = isDark;
+  viewThemeRef.current = viewTheme;
   settingsRef.current = settings;
 
   useEffect(() => {
@@ -168,7 +169,17 @@ export default function ForceGraph({
       const dpr = window.devicePixelRatio || 1;
       ctx.save();
       ctx.scale(dpr, dpr);
-      renderGraph(ctx, n, e, w, h, cam, hIdx, connectedSet, isDarkRef.current);
+      renderGraph(
+        ctx,
+        n,
+        e,
+        w,
+        h,
+        cam,
+        hIdx,
+        connectedSet,
+        viewThemeRef.current,
+      );
       ctx.restore();
 
       animRef.current = requestAnimationFrame(loop);
