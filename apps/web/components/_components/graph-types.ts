@@ -29,13 +29,13 @@ export interface HoveredNodeInfo {
 export interface GraphSettings {
   scalingRatio: number;
   gravity: number;
-  driftSpeed: number;
-  driftAmplitude: number;
+  repulsion: number;
+  damping: number;
 }
 
 export const DEFAULT_GRAPH_SETTINGS: GraphSettings = {
   scalingRatio: 4,
   gravity: 2,
-  driftSpeed: 0.0006,
-  driftAmplitude: 4,
+  repulsion: 5000,
+  damping: 0.92,
 };
