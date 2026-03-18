@@ -166,7 +166,7 @@
   }
 
   .glass-tab-trigger[data-state="active"] {
-    background: oklch(var(--muted));
+    background: oklch(var(--accent));
   }
 }
 
