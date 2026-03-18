@@ -31,10 +31,21 @@ import {
 } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
-export default function MemorySearch() {
+interface MemorySearchProps {
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+}
+
+export default function MemorySearch({
+  searchQuery: externalQuery,
+  onSearchChange,
+}: MemorySearchProps = {}) {
   const searchParams = useSearchParams();
   const { memories: allMemories, isLoading } = useMemoryContext();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [internalQuery, setInternalQuery] = useState("");
+  const searchQuery = externalQuery ?? internalQuery;
+  const setSearchQuery = onSearchChange ?? setInternalQuery;
+  const isExternalSearch = externalQuery !== undefined;
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
@@ -179,22 +190,24 @@ export default function MemorySearch() {
 
   return (
     <>
-      <div className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2">
-          <IconSearch
-            className="text-muted-foreground"
-            size={20}
-            stroke={1.5}
+      {!isExternalSearch && (
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2">
+            <IconSearch
+              className="text-muted-foreground"
+              size={20}
+              stroke={1.5}
+            />
+          </div>
+          <Input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search memories semantically..."
+            className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
           />
         </div>
-        <Input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search memories semantically..."
-          className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
-        />
-      </div>
+      )}
 
       {allTags.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
