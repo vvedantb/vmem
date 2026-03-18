@@ -6,6 +6,7 @@ import { motionDuration, motionEase, motionDistance } from "@vmem/ui";
 
 interface PageContainerProps {
   title?: string;
+  leftSection?: ReactNode;
   centerSection?: ReactNode;
   rightSection?: ReactNode;
   children: ReactNode;
@@ -13,12 +14,13 @@ interface PageContainerProps {
 
 export default function PageContainer({
   title,
+  leftSection,
   centerSection,
   rightSection,
   children,
 }: PageContainerProps) {
-  const hasHeader = title || centerSection || rightSection;
-  const hasDesktopHeader = centerSection || rightSection;
+  const hasHeader = title || leftSection || centerSection || rightSection;
+  const hasDesktopHeader = leftSection || centerSection || rightSection;
   const childTransition = {
     duration: motionDuration.fast,
     ease: motionEase,
@@ -47,6 +49,16 @@ export default function PageContainer({
                 : "flex h-10 items-center justify-between gap-4 md:hidden"
             }
           >
+            {leftSection && (
+              <motion.div
+                className="flex-shrink-0 mr-auto"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={childTransition}
+              >
+                {leftSection}
+              </motion.div>
+            )}
             {title && (
               <motion.h2
                 className="text-2xl leading-tight font-instrumentSerif text-foreground md:hidden"
