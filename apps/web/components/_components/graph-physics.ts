@@ -125,6 +125,12 @@ interface Camera {
   zoom: number;
 }
 
+function hexAlpha(a: number): string {
+  return Math.round(Math.max(0, Math.min(1, a)) * 255)
+    .toString(16)
+    .padStart(2, "0");
+}
+
 export function renderGraph(
   ctx: CanvasRenderingContext2D,
   nodes: SimNode[],
@@ -201,12 +207,30 @@ export function renderGraph(
     const dimmed = hasHover && !isConnected;
     const r = (isHovered ? node.radius * 1.5 : node.radius) * invZoom;
 
+    ctx.globalAlpha = dimmed ? 0.08 : 1;
+
     if (isDark && !dimmed) {
-      ctx.shadowBlur = (isHovered ? 24 : 10) * invZoom;
-      ctx.shadowColor = node.color;
+      const glowRadius = r * 6;
+      const intensity = isHovered ? 0.4 : 0.2;
+      const glow = ctx.createRadialGradient(
+        node.x,
+        node.y,
+        0,
+        node.x,
+        node.y,
+        glowRadius,
+      );
+      glow.addColorStop(0, node.color + hexAlpha(intensity));
+      glow.addColorStop(0.08, node.color + hexAlpha(intensity * 0.7));
+      glow.addColorStop(0.25, node.color + hexAlpha(intensity * 0.2));
+      glow.addColorStop(0.5, node.color + hexAlpha(intensity * 0.05));
+      glow.addColorStop(1, node.color + "00");
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
     }
 
-    ctx.globalAlpha = dimmed ? 0.08 : 1;
     ctx.beginPath();
     ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
     ctx.fillStyle = node.color;
@@ -219,8 +243,6 @@ export function renderGraph(
     }
 
     ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = "transparent";
   }
 
   const maxLabelLen = 20;
