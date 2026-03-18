@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { IconLoader2 } from "@tabler/icons-react";
 import { useMutation } from "convex/react";
 import {
   useUIMessages,
@@ -16,12 +17,33 @@ import {
   PromptInputTextarea,
   PromptInputFooter,
   PromptInputSubmit,
+  SpeechInput,
   Suggestion,
   Suggestions,
+  usePromptInput,
   type PromptInputMessage,
 } from "@vmem/ui/ai";
 import Image from "next/image";
 import ChatMessageItem from "@/app/(main)/chat/_components/ChatMessageItem";
+
+function ChatSpeechInput() {
+  const { input, setInput } = usePromptInput();
+  const handleTranscription = useCallback(
+    (text: string) => {
+      const separator = input.trim() ? " " : "";
+      setInput(input + separator + text);
+    },
+    [input, setInput],
+  );
+
+  return (
+    <SpeechInput
+      onTranscriptionChange={handleTranscription}
+      size="icon-xs"
+      variant="ghost"
+    />
+  );
+}
 
 export default function Chat() {
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -62,6 +84,14 @@ export default function Chat() {
     },
     [handleSubmit],
   );
+
+  if (!threadId) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -120,6 +150,7 @@ export default function Chat() {
         <PromptInput onSubmit={handleSubmit} status={promptStatus}>
           <PromptInputTextarea placeholder="Ask about your memories..." />
           <PromptInputFooter>
+            <ChatSpeechInput />
             <PromptInputSubmit />
           </PromptInputFooter>
         </PromptInput>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -22,6 +23,7 @@ import {
   IconX,
   IconCheck,
   IconLoader2,
+  IconHistory,
 } from "@tabler/icons-react";
 import { buildTagStats, type Memory } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
@@ -34,6 +36,9 @@ interface MemoryDetailPanelProps {
   onMemoryDelete: (id: string) => void;
   relatedMemories: Memory[];
   onSelectRelated: (memory: Memory) => void;
+  startInEditMode?: boolean;
+  startWithDelete?: boolean;
+  onConsumeAction?: () => void;
 }
 
 export default function MemoryDetailPanel({
@@ -43,6 +48,9 @@ export default function MemoryDetailPanel({
   onMemoryDelete,
   relatedMemories,
   onSelectRelated,
+  startInEditMode = false,
+  startWithDelete = false,
+  onConsumeAction,
 }: MemoryDetailPanelProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -51,6 +59,7 @@ export default function MemoryDetailPanel({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
+  const router = useRouter();
   const { memories, updateMemory, deleteMemory } = useMemoryContext();
   const allTags = useMemo(() => buildTagStats(memories), [memories]);
 
@@ -95,6 +104,16 @@ export default function MemoryDetailPanel({
     });
     setIsEditing(true);
   }, [memory, reset]);
+
+  useEffect(() => {
+    if (startInEditMode) {
+      startEditing();
+      onConsumeAction?.();
+    } else if (startWithDelete) {
+      setShowDeleteConfirm(true);
+      onConsumeAction?.();
+    }
+  }, [startInEditMode, startWithDelete, startEditing, onConsumeAction]);
 
   const cancelEditing = useCallback(() => {
     setIsEditing(false);
@@ -405,13 +424,27 @@ export default function MemoryDetailPanel({
                 <IconTrash size={16} />
                 Delete
               </Button>
-              <Button
-                onClick={startEditing}
-                className="bg-primary text-primary-foreground"
-              >
-                <IconEdit size={16} />
-                Edit
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    router.push(
+                      `/memories/timeline?mode=history&memoryId=${memory.id}`,
+                    )
+                  }
+                  className="text-muted-foreground"
+                >
+                  <IconHistory size={16} />
+                </Button>
+                <Button
+                  onClick={startEditing}
+                  className="bg-primary text-primary-foreground"
+                >
+                  <IconEdit size={16} />
+                  Edit
+                </Button>
+              </div>
             </>
           )}
         </div>

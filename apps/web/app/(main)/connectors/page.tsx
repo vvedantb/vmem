@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { Card, CardContent, Skeleton, Button } from "@vmem/ui";
-import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";
+import { IconPlug, IconPlus } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
 import ConnectorCard from "@/components/ConnectorCard";
+import BrowseConnectorsModal from "./_components/BrowseConnectorsModal";
 
 export default function ConnectorsPage() {
   const connectors = useQuery(api.connectors.listMy);
   const seedDefaults = useMutation(api.connectors.seedDefaults);
+  const [showBrowse, setShowBrowse] = useState(false);
 
   useEffect(() => {
     if (connectors && connectors.length === 0) {
@@ -18,11 +20,16 @@ export default function ConnectorsPage() {
     }
   }, [connectors, seedDefaults]);
 
+  const connectedConnectors = useMemo(
+    () => connectors?.filter((c) => c.connectionStatus === "connected") ?? [],
+    [connectors],
+  );
+
   if (connectors === undefined) {
     return (
       <PageContainer title="Connectors">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {[1, 2].map((i) => (
             <Card
               key={i}
               className="border border-border bg-muted/50 shadow-none"
@@ -47,23 +54,51 @@ export default function ConnectorsPage() {
   }
 
   return (
-    <PageContainer title="Connectors">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {connectors.map((connector) => (
-          <ConnectorCard key={connector._id} connector={connector} />
-        ))}
-      </div>
-
-      <Card className="border border-dashed border-border/80 bg-muted/50 shadow-none">
-        <CardContent className="p-6 text-center">
-          <p className="text-muted-foreground">
-            More connectors coming soon. Have a request?
-          </p>
-          <Button variant="ghost" size="sm" className="mt-3 font-medium">
-            Submit a request &rarr;
+    <>
+      <PageContainer
+        title="Connectors"
+        rightSection={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowBrowse(true)}
+          >
+            <IconPlus size={16} />
+            Browse Connectors
           </Button>
-        </CardContent>
-      </Card>
-    </PageContainer>
+        }
+      >
+        {connectedConnectors.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <IconPlug
+              size={40}
+              stroke={1.5}
+              className="text-muted-foreground mb-3"
+            />
+            <p className="text-sm text-muted-foreground mb-4">
+              No connectors linked yet
+            </p>
+            <Button size="sm" onClick={() => setShowBrowse(true)}>
+              <IconPlus size={16} />
+              Browse Connectors
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {connectedConnectors.map((connector) => (
+              <ConnectorCard key={connector._id} connector={connector} />
+            ))}
+          </div>
+        )}
+      </PageContainer>
+
+      {connectors && (
+        <BrowseConnectorsModal
+          isOpen={showBrowse}
+          onClose={() => setShowBrowse(false)}
+          connectors={connectors}
+        />
+      )}
+    </>
   );
 }
