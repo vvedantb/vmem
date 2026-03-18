@@ -2,7 +2,11 @@ import Graph from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import type { SimNode, SimEdge, GraphSettings } from "./graph-types";
 
-const INITIAL_ITERATIONS = 50;
+const INITIAL_ITERATIONS = 80;
+const SPRING_LENGTH = 200;
+const SPRING_STRENGTH = 0.0004;
+const CENTER_GRAVITY = 0.002;
+const MAX_SPEED = 2;
 
 function buildFA2Settings(settings: GraphSettings) {
   return {
@@ -35,16 +39,13 @@ export function createLayoutGraph(nodes: SimNode[], edges: SimEdge[]): Graph {
   return graph;
 }
 
-function readPositions(
-  graph: Graph,
-  nodes: SimNode[],
-  skip: number | null,
-): void {
+function readPositions(graph: Graph, nodes: SimNode[]): void {
   for (let i = 0; i < nodes.length; i++) {
-    if (i === skip) continue;
     const attrs = graph.getNodeAttributes(String(i));
     nodes[i].x = Number(attrs.x);
     nodes[i].y = Number(attrs.y);
+    nodes[i].vx = 0;
+    nodes[i].vy = 0;
   }
 }
 
@@ -58,30 +59,63 @@ export function runInitialLayout(
     settings: buildFA2Settings(settings),
   });
 
-  readPositions(graph, nodes, null);
-
-  for (let i = 0; i < nodes.length; i++) {
-    nodes[i].vx = nodes[i].x;
-    nodes[i].vy = nodes[i].y;
-  }
+  readPositions(graph, nodes);
 }
 
-export function applyDrift(
+export function simulationTick(
   nodes: SimNode[],
-  time: number,
-  pinnedIndex: number | null,
+  edges: SimEdge[],
   settings: GraphSettings,
+  pinnedIndex: number | null,
 ): void {
-  for (let i = 0; i < nodes.length; i++) {
+  const len = nodes.length;
+
+  for (let i = 0; i < len; i++) {
+    for (let j = i + 1; j < len; j++) {
+      const dx = nodes[j].x - nodes[i].x;
+      const dy = nodes[j].y - nodes[i].y;
+      const distSq = dx * dx + dy * dy + 1;
+      const dist = Math.sqrt(distSq);
+      const force = settings.repulsion / distSq;
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+      nodes[i].vx -= fx;
+      nodes[i].vy -= fy;
+      nodes[j].vx += fx;
+      nodes[j].vy += fy;
+    }
+  }
+
+  for (const edge of edges) {
+    const s = nodes[edge.sourceIndex];
+    const t = nodes[edge.targetIndex];
+    const dx = t.x - s.x;
+    const dy = t.y - s.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) + 0.1;
+    const displacement = dist - SPRING_LENGTH;
+    const force = SPRING_STRENGTH * displacement * edge.weight;
+    const fx = (dx / dist) * force;
+    const fy = (dy / dist) * force;
+    s.vx += fx;
+    s.vy += fy;
+    t.vx -= fx;
+    t.vy -= fy;
+  }
+
+  for (let i = 0; i < len; i++) {
     if (i === pinnedIndex) continue;
-    const phase = i * 2.39996;
-    nodes[i].x =
-      nodes[i].vx +
-      Math.sin(time * settings.driftSpeed + phase) * settings.driftAmplitude;
-    nodes[i].y =
-      nodes[i].vy +
-      Math.cos(time * settings.driftSpeed * 0.7 + phase * 1.3) *
-        settings.driftAmplitude;
+    const node = nodes[i];
+    node.vx -= node.x * CENTER_GRAVITY;
+    node.vy -= node.y * CENTER_GRAVITY;
+    node.vx *= settings.damping;
+    node.vy *= settings.damping;
+    const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
+    if (speed > MAX_SPEED) {
+      node.vx = (node.vx / speed) * MAX_SPEED;
+      node.vy = (node.vy / speed) * MAX_SPEED;
+    }
+    node.x += node.vx;
+    node.y += node.vy;
   }
 }
 

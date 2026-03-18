@@ -13,7 +13,7 @@ import type {
 import {
   createLayoutGraph,
   runInitialLayout,
-  applyDrift,
+  simulationTick,
   renderGraph,
 } from "./graph-physics";
 
@@ -153,7 +153,7 @@ export default function ForceGraph({
         n[drag.nodeIndex].vy = 0;
       }
 
-      applyDrift(n, performance.now(), drag.nodeIndex, settingsRef.current);
+      simulationTick(n, e, settingsRef.current, drag.nodeIndex);
 
       const connectedSet = new Set<number>();
       const hIdx = hoveredRef.current;
