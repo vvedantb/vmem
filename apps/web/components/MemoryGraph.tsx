@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
+import { clientEnv } from "@/env/client";
 import type {
   SimNode,
   SimEdge,
@@ -51,14 +53,24 @@ function tagToColor(tag: string, isDark: boolean): string {
   return isDark ? hslToHex(hue, 65, 65) : hslToHex(hue, 55, 48);
 }
 
+const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
+
+interface RelationshipEdge {
+  source: string;
+  target: string;
+  reason: string;
+}
+
 export default function MemoryGraph() {
   const { memories, isLoading, deleteMemory } = useMemoryContext();
   const { theme } = useThemeContext();
+  const { getToken } = useAuth();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
   const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
+  const [relatesToEdges, setRelatesToEdges] = useState<RelationshipEdge[]>([]);
 
   const handleSettingsChange = useCallback((next: GraphSettings) => {
     setGraphSettingsState(next);
@@ -69,6 +81,24 @@ export default function MemoryGraph() {
     setViewModeState(mode);
     setGraphViewMode(mode);
   }, []);
+
+  const fetchAllRelationships = useCallback(async () => {
+    const token = await getToken();
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    const res = await fetch(`${API_URL}/v1/relationships/all`, { headers });
+    if (res.ok) {
+      const json = (await res.json()) as { data: RelationshipEdge[] };
+      setRelatesToEdges(json.data);
+    }
+  }, [getToken]);
+
+  useEffect(() => {
+    if (memories.length === 0) return;
+    fetchAllRelationships().catch(() => {});
+  }, [memories.length, fetchAllRelationships]);
 
   const isDark = theme === "dark";
   const viewTheme = useMemo(
@@ -95,10 +125,32 @@ export default function MemoryGraph() {
             sourceIndex: i,
             targetIndex: j,
             weight: shared.length,
+            edgeType: "tag",
           });
           degreeCount.set(i, (degreeCount.get(i) ?? 0) + 1);
           degreeCount.set(j, (degreeCount.get(j) ?? 0) + 1);
         }
+      }
+    }
+
+    const idToIndex = new Map<string, number>();
+    for (let i = 0; i < memories.length; i++) {
+      idToIndex.set(memories[i].id, i);
+    }
+
+    for (const rel of relatesToEdges) {
+      const si = idToIndex.get(rel.source);
+      const ti = idToIndex.get(rel.target);
+      if (si !== undefined && ti !== undefined) {
+        simEdges.push({
+          sourceIndex: si,
+          targetIndex: ti,
+          weight: 1,
+          edgeType: "relates_to",
+          reason: rel.reason,
+        });
+        degreeCount.set(si, (degreeCount.get(si) ?? 0) + 1);
+        degreeCount.set(ti, (degreeCount.get(ti) ?? 0) + 1);
       }
     }
 
@@ -155,7 +207,7 @@ export default function MemoryGraph() {
     });
 
     return { nodes: simNodes, edges: simEdges };
-  }, [memories]);
+  }, [memories, relatesToEdges]);
 
   useEffect(() => {
     for (const node of nodes) {
@@ -188,6 +240,31 @@ export default function MemoryGraph() {
   const handleNavigateNode = useCallback((nodeId: string) => {
     setSelectedNodeId(nodeId);
   }, []);
+
+  const handleLinkNodes = useCallback(
+    async (sourceId: string, targetId: string) => {
+      const token = await getToken();
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${API_URL}/v1/relationships/link`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          memoryIdA: sourceId,
+          memoryIdB: targetId,
+          reason: "user linked",
+        }),
+      });
+      if (res.ok) {
+        await fetchAllRelationships();
+      }
+    },
+    [getToken, fetchAllRelationships],
+  );
 
   if (isLoading) {
     return (
@@ -223,6 +300,7 @@ export default function MemoryGraph() {
           settings={graphSettings}
           onHoverNode={handleHoverNode}
           onClickNode={handleClickNode}
+          onLinkNodes={handleLinkNodes}
         />
 
         <div className="absolute top-3 right-14 z-10">
