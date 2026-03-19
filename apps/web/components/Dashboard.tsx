@@ -75,7 +75,7 @@ const quickActions = [
   },
   {
     label: "API Keys",
-    href: "/api-keys",
+    href: "/settings/api-keys",
     icon: IconKey,
     description: "Manage access",
   },
