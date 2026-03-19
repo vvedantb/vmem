@@ -49,12 +49,7 @@ export const navGroups: NavGroup[] = [
   {
     title: "API",
     icon: IconPlug,
-    items: [
-      { href: "/api-keys", label: "API Keys", icon: IconKey },
-      { href: "/usage", label: "Usage", icon: IconChartBar },
-      { href: "/connectors", label: "Connectors", icon: IconPlugConnected },
-      { href: "/playground", label: "Playground", icon: IconTerminal2 },
-    ],
+    items: [{ href: "/usage", label: "Usage", icon: IconChartBar }],
   },
   {
     title: "Account",
@@ -76,5 +71,20 @@ export const settingsNavItems: SettingsNavItem[] = [
     href: "/settings/data-controls",
     label: "Data Controls",
     icon: IconShieldLock,
+  },
+  {
+    href: "/settings/api-keys",
+    label: "API Keys",
+    icon: IconKey,
+  },
+  {
+    href: "/settings/connectors",
+    label: "Connectors",
+    icon: IconPlugConnected,
+  },
+  {
+    href: "/settings/playground",
+    label: "Playground",
+    icon: IconTerminal2,
   },
 ];
