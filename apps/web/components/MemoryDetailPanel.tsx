@@ -28,13 +28,13 @@ import {
 import { buildTagStats, type Memory } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
+import RelatedMemories from "@/components/_components/RelatedMemories";
 
 interface MemoryDetailPanelProps {
   memory: Memory;
   onClose: () => void;
   onMemoryUpdate: (memory: Memory) => void;
   onMemoryDelete: (id: string) => void;
-  relatedMemories: Memory[];
   onSelectRelated: (memory: Memory) => void;
   startInEditMode?: boolean;
   startWithDelete?: boolean;
@@ -46,7 +46,6 @@ export default function MemoryDetailPanel({
   onClose,
   onMemoryUpdate,
   onMemoryDelete,
-  relatedMemories,
   onSelectRelated,
   startInEditMode = false,
   startWithDelete = false,
@@ -356,38 +355,11 @@ export default function MemoryDetailPanel({
           </p>
         </div>
 
-        {!isEditing && relatedMemories.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">
-              Related Memories
-            </h4>
-            <div className="space-y-2">
-              {relatedMemories.map((related) => {
-                const sharedTags = related.tags.filter((tag) =>
-                  memory.tags.includes(tag),
-                );
-                return (
-                  <Button
-                    key={related.id}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onSelectRelated(related)}
-                    className="w-full h-auto text-left p-3 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors justify-start items-start flex-col"
-                  >
-                    <p className="text-sm font-medium text-foreground">
-                      {related.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {sharedTags.length} shared tag
-                      {sharedTags.length !== 1 ? "s" : ""}:{" "}
-                      {sharedTags.join(", ")}
-                    </p>
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
+        {!isEditing && (
+          <RelatedMemories
+            memoryId={memory.id}
+            onSelectRelated={onSelectRelated}
+          />
         )}
 
         <div className="flex justify-between border-t border-border pt-4">

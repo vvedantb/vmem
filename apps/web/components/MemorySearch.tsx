@@ -120,15 +120,6 @@ export default function MemorySearch({
     setSelectedTags([]);
   }, []);
 
-  const relatedMemories = useMemo(() => {
-    if (!selectedMemory) return [];
-    return allMemories.filter(
-      (memory) =>
-        memory.id !== selectedMemory.id &&
-        memory.tags.some((tag) => selectedMemory.tags.includes(tag)),
-    );
-  }, [selectedMemory, allMemories]);
-
   const handleMemoryUpdate = useCallback((updatedMemory: Memory) => {
     setSelectedMemoryId(updatedMemory.id);
   }, []);
@@ -367,7 +358,6 @@ export default function MemorySearch({
                   onClose={() => setSelectedMemoryId(null)}
                   onMemoryUpdate={handleMemoryUpdate}
                   onMemoryDelete={handleMemoryDelete}
-                  relatedMemories={relatedMemories}
                   onSelectRelated={(memory) => setSelectedMemoryId(memory.id)}
                   startInEditMode={panelAction === "edit"}
                   startWithDelete={panelAction === "delete"}
