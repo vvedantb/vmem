@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
-import { serverEnv } from "@/env/server";
 
 export async function GET(request: NextRequest) {
   if (process.env.NODE_ENV !== "development") {
@@ -10,18 +9,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const secret = request.nextUrl.searchParams.get("secret");
-  const { AGENT_AUTH_SECRET, AGENT_CLERK_USER_ID } = serverEnv;
+  const AGENT_CLERK_USER_ID = process.env.AGENT_CLERK_USER_ID;
 
-  if (!AGENT_AUTH_SECRET || !AGENT_CLERK_USER_ID) {
+  if (!AGENT_CLERK_USER_ID) {
     return NextResponse.json(
-      { error: "AGENT_AUTH_SECRET and AGENT_CLERK_USER_ID must be configured" },
+      { error: "AGENT_CLERK_USER_ID must be configured" },
       { status: 500 },
     );
-  }
-
-  if (!secret || secret !== AGENT_AUTH_SECRET) {
-    return NextResponse.json({ error: "Invalid secret" }, { status: 403 });
   }
 
   const clerk = await clerkClient();

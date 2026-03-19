@@ -28,6 +28,7 @@ import {
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpandFilled,
   IconLayoutDashboard,
+  IconHome,
 } from "@tabler/icons-react";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarFooter } from "./sidebar/SidebarFooter";
@@ -246,16 +247,16 @@ export default function Sidebar({
               )}
             >
               <Link
-                href="/dashboard"
-                aria-label="Dashboard"
+                href="/home"
+                aria-label="Home"
                 className={cn(
                   "inline-flex items-center justify-center rounded-lg transition-all duration-200 ease-smooth h-7 w-7",
-                  pathname.startsWith("/dashboard")
+                  pathname.startsWith("/home")
                     ? "glass-interactive text-foreground"
                     : "glass-interactive text-muted-foreground hover:text-foreground",
                 )}
               >
-                <IconLayoutDashboard className="h-4 w-4" />
+                <IconHome className="h-4 w-4" />
               </Link>
               <Button
                 type="button"
