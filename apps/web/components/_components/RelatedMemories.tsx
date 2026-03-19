@@ -15,7 +15,9 @@ interface RelatedMemoryEntry {
   memory: {
     id: string;
     title: string;
+    content: string;
     tags: string[];
+    createdAt: string;
   };
   reason: string;
 }
@@ -54,7 +56,7 @@ export default function RelatedMemories({
         `${API_URL}/v1/relationships/memory/${memoryId}`,
       );
       if (res.ok) {
-        const json = (await res.json()) as { data: RelatedMemoryEntry[] };
+        const json: { data: RelatedMemoryEntry[] } = await res.json();
         setEntries(json.data);
       }
     } catch {
@@ -149,9 +151,9 @@ export default function RelatedMemories({
                   onSelectRelated({
                     id: entry.memory.id,
                     title: entry.memory.title,
-                    content: "",
+                    content: entry.memory.content,
                     tags: entry.memory.tags,
-                    createdAt: "",
+                    createdAt: entry.memory.createdAt,
                   })
                 }
                 className="flex-1 text-left min-w-0"

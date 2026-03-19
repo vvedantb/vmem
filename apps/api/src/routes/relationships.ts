@@ -58,7 +58,8 @@ relationships.delete("/link", async (c) => {
 relationships.get("/all", async (c) => {
   const userId = c.get("userId");
   const limitParam = c.req.query("limit");
-  const limit = limitParam ? parseInt(limitParam, 10) : 500;
+  const parsed = limitParam ? parseInt(limitParam, 10) : 500;
+  const limit = Number.isFinite(parsed) && parsed > 0 ? parsed : 500;
   const service = getService();
   const results = await service.getAllRelationships(userId, limit);
   return c.json({ data: results });

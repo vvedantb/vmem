@@ -191,7 +191,8 @@ export class MemoryService {
       await session.run(
         `MATCH (m:Memory {id: $id}), (m2:Memory {userId: $userId, source: $source})
          WHERE m2.id <> $id AND m2.createdAt > $cutoff
-         MERGE (m2)-[:RELATES_TO {reason: 'same session'}]->(m)`,
+         MERGE (m2)-[r:RELATES_TO]->(m)
+         ON CREATE SET r.reason = 'same session'`,
         {
           id,
           userId: params.userId,
@@ -912,7 +913,10 @@ export class MemoryService {
         ...toEventFromNode(record.get("e").properties),
         memoryId: String(record.get("memoryId") ?? ""),
         memoryTitle: String(record.get("memoryTitle") ?? ""),
-        connectionType: record.get("connectionType") as ConnectionType,
+        connectionType:
+          String(record.get("connectionType") ?? "") === "related"
+            ? "related"
+            : "tag",
       }));
     } finally {
       await session.close();
@@ -964,7 +968,8 @@ export class MemoryService {
     try {
       const result = await session.run(
         `MATCH (a:Memory {id: $memoryIdA, userId: $userId}), (b:Memory {id: $memoryIdB, userId: $userId})
-         MERGE (a)-[:RELATES_TO {reason: $reason}]->(b)
+         MERGE (a)-[r:RELATES_TO]->(b)
+         SET r.reason = $reason
          RETURN a, b`,
         { memoryIdA, memoryIdB, userId, reason },
       );
@@ -1001,31 +1006,13 @@ export class MemoryService {
       const result = await session.run(
         `MATCH (m:Memory {id: $memoryId, userId: $userId})-[r:RELATES_TO]-(related:Memory)
          OPTIONAL MATCH (related)-[:TAGGED_WITH]->(t:Tag)
-         RETURN related { .id, .title, .content, .type, .status, .createdAt, .updatedAt, .expiresAt, .userId, .source, .confidence, tags: collect(DISTINCT t.name) } AS memory, r.reason AS reason`,
+         RETURN related AS m, collect(DISTINCT t.name) AS tags, r.reason AS reason`,
         { memoryId, userId },
       );
-      return result.records.map((record) => {
-        const obj = record.toObject();
-        const mem = obj.memory as Record<string, unknown>;
-        const tags = mem.tags as string[];
-        return {
-          memory: {
-            id: mem.id as string,
-            userId: mem.userId as string,
-            title: mem.title as string,
-            content: mem.content as string,
-            type: mem.type as MemoryType,
-            source: mem.source as string,
-            confidence: mem.confidence as number,
-            status: mem.status as MemoryStatus,
-            createdAt: mem.createdAt as string,
-            updatedAt: mem.updatedAt as string,
-            expiresAt: (mem.expiresAt as string) ?? null,
-            tags,
-          },
-          reason: obj.reason as string,
-        };
-      });
+      return result.records.map((record) => ({
+        memory: toMemoryWithTags(record.toObject()),
+        reason: String(record.get("reason") ?? ""),
+      }));
     } finally {
       await session.close();
     }
@@ -1045,9 +1032,9 @@ export class MemoryService {
       );
 
       return result.records.map((record) => ({
-        source: record.get("source") as string,
-        target: record.get("target") as string,
-        reason: record.get("reason") as string,
+        source: String(record.get("source") ?? ""),
+        target: String(record.get("target") ?? ""),
+        reason: String(record.get("reason") ?? ""),
       }));
     } finally {
       await session.close();

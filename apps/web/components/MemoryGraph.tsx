@@ -90,7 +90,7 @@ export default function MemoryGraph() {
     }
     const res = await fetch(`${API_URL}/v1/relationships/all`, { headers });
     if (res.ok) {
-      const json = (await res.json()) as { data: RelationshipEdge[] };
+      const json: { data: RelationshipEdge[] } = await res.json();
       setRelatesToEdges(json.data);
     }
   }, [getToken]);
