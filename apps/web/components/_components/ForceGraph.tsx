@@ -25,6 +25,7 @@ interface ForceGraphProps {
   settings: GraphSettings;
   onHoverNode: (info: HoveredNodeInfo | null) => void;
   onClickNode: (nodeId: string) => void;
+  onLinkNodes: (sourceId: string, targetId: string) => void;
 }
 
 interface Camera {
@@ -41,6 +42,13 @@ interface DragState {
   lastX: number;
   lastY: number;
   moved: boolean;
+}
+
+interface LinkDragState {
+  sourceIndex: number | null;
+  cursorX: number;
+  cursorY: number;
+  targetIndex: number | null;
 }
 
 function worldToScreen(
@@ -91,6 +99,13 @@ const emptyDrag: DragState = {
   moved: false,
 };
 
+const emptyLinkDrag: LinkDragState = {
+  sourceIndex: null,
+  cursorX: 0,
+  cursorY: 0,
+  targetIndex: null,
+};
+
 export default function ForceGraph({
   nodes,
   edges,
@@ -98,24 +113,26 @@ export default function ForceGraph({
   settings,
   onHoverNode,
   onClickNode,
+  onLinkNodes,
 }: ForceGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef(0);
   const cameraRef = useRef<Camera>({ x: 0, y: 0, zoom: 1 });
   const dragRef = useRef<DragState>({ ...emptyDrag });
+  const linkDragRef = useRef<LinkDragState>({ ...emptyLinkDrag });
   const hoveredRef = useRef<number | null>(null);
   const sizeRef = useRef({ w: 0, h: 0 });
   const graphRef = useRef<Graph | null>(null);
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
-  const cbRef = useRef({ onHoverNode, onClickNode });
+  const cbRef = useRef({ onHoverNode, onClickNode, onLinkNodes });
   const viewThemeRef = useRef(viewTheme);
   const settingsRef = useRef(settings);
 
   nodesRef.current = nodes;
   edgesRef.current = edges;
-  cbRef.current = { onHoverNode, onClickNode };
+  cbRef.current = { onHoverNode, onClickNode, onLinkNodes };
   viewThemeRef.current = viewTheme;
   settingsRef.current = settings;
 
@@ -180,6 +197,42 @@ export default function ForceGraph({
         connectedSet,
         viewThemeRef.current,
       );
+
+      const ld = linkDragRef.current;
+      if (ld.sourceIndex !== null) {
+        const srcNode = n[ld.sourceIndex];
+        const [sx, sy] = [
+          (srcNode.x - cam.x) * cam.zoom + w / 2,
+          (srcNode.y - cam.y) * cam.zoom + h / 2,
+        ];
+        ctx.save();
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = ld.targetIndex !== null ? "#a78bfa" : "#8b5cf6";
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(ld.cursorX, ld.cursorY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        if (ld.targetIndex !== null) {
+          const tgtNode = n[ld.targetIndex];
+          const [tx, ty] = [
+            (tgtNode.x - cam.x) * cam.zoom + w / 2,
+            (tgtNode.y - cam.y) * cam.zoom + h / 2,
+          ];
+          const highlightR = Math.max(tgtNode.radius * 2, 10) * cam.zoom;
+          ctx.beginPath();
+          ctx.arc(tx, ty, highlightR, 0, Math.PI * 2);
+          ctx.strokeStyle = "#a78bfa";
+          ctx.lineWidth = 2;
+          ctx.globalAlpha = 0.6;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
       ctx.restore();
 
       animRef.current = requestAnimationFrame(loop);
@@ -252,6 +305,19 @@ export default function ForceGraph({
       const cam = cameraRef.current;
       const { w, h } = sizeRef.current;
       const idx = findNodeAtScreen(nodesRef.current, sx, sy, cam, w, h);
+
+      if (e.shiftKey && idx !== null) {
+        linkDragRef.current = {
+          sourceIndex: idx,
+          cursorX: sx,
+          cursorY: sy,
+          targetIndex: null,
+        };
+        const canvas = canvasRef.current;
+        if (canvas) canvas.style.cursor = "crosshair";
+        return;
+      }
+
       dragRef.current = {
         nodeIndex: idx,
         panning: idx === null,
@@ -270,8 +336,21 @@ export default function ForceGraph({
   const onMouseMove = useCallback(
     (e: React.MouseEvent) => {
       const [sx, sy] = getPos(e);
-      const drag = dragRef.current;
+      const ld = linkDragRef.current;
       const cam = cameraRef.current;
+      const { w, h } = sizeRef.current;
+
+      if (ld.sourceIndex !== null) {
+        ld.cursorX = sx;
+        ld.cursorY = sy;
+        const idx = findNodeAtScreen(nodesRef.current, sx, sy, cam, w, h);
+        ld.targetIndex = idx !== null && idx !== ld.sourceIndex ? idx : null;
+        const canvas = canvasRef.current;
+        if (canvas) canvas.style.cursor = "crosshair";
+        return;
+      }
+
+      const drag = dragRef.current;
 
       if (drag.nodeIndex !== null || drag.panning) {
         if (Math.abs(sx - drag.startX) > 3 || Math.abs(sy - drag.startY) > 3) {
@@ -302,6 +381,22 @@ export default function ForceGraph({
   );
 
   const onMouseUp = useCallback(() => {
+    const ld = linkDragRef.current;
+    if (ld.sourceIndex !== null) {
+      if (ld.targetIndex !== null) {
+        const srcId = nodesRef.current[ld.sourceIndex].id;
+        const tgtId = nodesRef.current[ld.targetIndex].id;
+        cbRef.current.onLinkNodes(srcId, tgtId);
+      }
+      linkDragRef.current = { ...emptyLinkDrag };
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.style.cursor =
+          hoveredRef.current !== null ? "pointer" : "default";
+      }
+      return;
+    }
+
     const drag = dragRef.current;
     if (!drag.moved && drag.nodeIndex !== null) {
       cbRef.current.onClickNode(nodesRef.current[drag.nodeIndex].id);
@@ -315,6 +410,7 @@ export default function ForceGraph({
 
   const onMouseLeave = useCallback(() => {
     dragRef.current = { ...emptyDrag };
+    linkDragRef.current = { ...emptyLinkDrag };
     hoveredRef.current = null;
     cbRef.current.onHoverNode(null);
     const canvas = canvasRef.current;
@@ -373,7 +469,8 @@ export default function ForceGraph({
       </div>
 
       <div className="absolute bottom-3 left-3 text-[11px] text-muted-foreground/40 pointer-events-none select-none">
-        {nodes.length} nodes &middot; {edges.length} edges
+        {nodes.length} nodes &middot; {edges.length} edges &middot; Shift+drag
+        to link
       </div>
     </div>
   );

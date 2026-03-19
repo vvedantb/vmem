@@ -100,12 +100,18 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                 <div
                   className={cn(
                     "h-3 w-3 rounded-full border-2 border-background",
-                    event.action === "created" && "bg-green-500",
-                    event.action === "updated" && "bg-blue-500",
-                    event.action === "deleted" && "bg-red-500",
-                    event.action === "proposal_approved" && "bg-purple-500",
-                    event.action === "proposal_rejected" && "bg-orange-500",
-                    !ACTION_STYLES[event.action] && "bg-muted-foreground",
+                    event.connectionType === "related"
+                      ? "bg-violet-500"
+                      : cn(
+                          event.action === "created" && "bg-green-500",
+                          event.action === "updated" && "bg-blue-500",
+                          event.action === "deleted" && "bg-red-500",
+                          event.action === "proposal_approved" &&
+                            "bg-purple-500",
+                          event.action === "proposal_rejected" &&
+                            "bg-orange-500",
+                          !ACTION_STYLES[event.action] && "bg-muted-foreground",
+                        ),
                   )}
                 />
               </div>
@@ -124,10 +130,25 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                 </div>
 
                 {mode === "trail" && (
-                  <div className="space-y-1">
+                  <div
+                    className={cn(
+                      "space-y-1 border-l-2 pl-3",
+                      event.connectionType === "related"
+                        ? "border-violet-400 dark:border-violet-600"
+                        : "border-primary/40",
+                    )}
+                  >
                     <p className="text-sm font-medium text-foreground">
                       {event.memoryTitle}
                     </p>
+                    {event.connectionType === "related" && event.reason && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs text-muted-foreground"
+                      >
+                        Connected via: {event.reason}
+                      </Badge>
+                    )}
                     {event.snapshot !== null && (
                       <>
                         <p className="text-sm text-muted-foreground line-clamp-3">

@@ -204,18 +204,38 @@ export function renderGraph(
       connectedSet.has(edge.sourceIndex) &&
       connectedSet.has(edge.targetIndex);
     const dimmed = hasHover && !connected;
+    const isRelatesTo = edge.edgeType === "relates_to";
+
+    if (isRelatesTo) {
+      ctx.setLineDash([5 * invZoom, 5 * invZoom]);
+    }
 
     ctx.beginPath();
     ctx.moveTo(s.x, s.y);
     ctx.lineTo(t.x, t.y);
-    ctx.strokeStyle = dimmed
-      ? theme.edge.dimmed
-      : connected
-        ? theme.edge.connected
-        : theme.edge.normal;
+
+    if (isRelatesTo) {
+      const relatesToColor = dimmed
+        ? theme.edge.dimmed
+        : connected
+          ? "#c4b5fd"
+          : "#8b5cf6";
+      ctx.strokeStyle = relatesToColor;
+    } else {
+      ctx.strokeStyle = dimmed
+        ? theme.edge.dimmed
+        : connected
+          ? theme.edge.connected
+          : theme.edge.normal;
+    }
+
     ctx.lineWidth =
       (connected ? theme.edge.connectedWidth : theme.edge.width) * invZoom;
     ctx.stroke();
+
+    if (isRelatesTo) {
+      ctx.setLineDash([]);
+    }
   }
 
   for (let i = 0; i < nodes.length; i++) {

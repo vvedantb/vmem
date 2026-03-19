@@ -16,6 +16,8 @@ export interface SimEdge {
   sourceIndex: number;
   targetIndex: number;
   weight: number;
+  edgeType: "tag" | "relates_to";
+  reason?: string;
 }
 
 export interface HoveredNodeInfo {
