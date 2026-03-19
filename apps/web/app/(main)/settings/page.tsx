@@ -1,5 +1,5 @@
-import PageContainer from "@/components/PageContainer";
+import { redirect } from "next/navigation";
 
 export default function SettingsPage() {
-  return <PageContainer title="Settings">{null}</PageContainer>;
+  redirect("/settings/preferences");
 }
