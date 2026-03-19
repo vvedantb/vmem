@@ -10,14 +10,18 @@ const isPublicRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
 
-  if (
-    req.nextUrl.pathname === "/" &&
-    !userId &&
-    req.nextUrl.searchParams.has("agent") &&
-    process.env.AGENT_CLERK_USER_ID
-  ) {
-    const loginUrl = new URL("/api/auth/agent-login", req.url);
-    return NextResponse.redirect(loginUrl);
+  if (req.nextUrl.pathname === "/" && !userId) {
+    if (
+      req.nextUrl.searchParams.has("agent") &&
+      process.env.AGENT_CLERK_USER_ID
+    ) {
+      const loginUrl = new URL("/api/auth/agent-login", req.url);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  if (req.nextUrl.pathname === "/" && userId) {
+    return NextResponse.redirect(new URL("/home", req.url));
   }
 
   if (!isPublicRoute(req)) {
