@@ -173,6 +173,12 @@ export default function ForceGraph({
 
       simulationTick(n, e, settingsRef.current, drag.nodeIndex);
 
+      for (const node of n) {
+        if (node.opacity < 1) {
+          node.opacity = Math.min(1, node.opacity + 0.03);
+        }
+      }
+
       const connectedSet = new Set<number>();
       const hIdx = hoveredRef.current;
       if (hIdx !== null) {
@@ -261,14 +267,19 @@ export default function ForceGraph({
     };
   }, []);
 
+  const initialLayoutDoneRef = useRef(false);
+
   useEffect(() => {
     if (nodes.length === 0) {
       graphRef.current = null;
+      initialLayoutDoneRef.current = false;
       return;
     }
+    if (initialLayoutDoneRef.current) return;
     const graph = createLayoutGraph(nodes, edges);
     runInitialLayout(graph, nodes, settings);
     graphRef.current = graph;
+    initialLayoutDoneRef.current = true;
   }, [nodes, edges, settings]);
 
   const getPos = useCallback((e: React.MouseEvent): [number, number] => {

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod/v4";
 import { MemoryService } from "../db/memory-service";
 import { getDriver } from "../db/neo4j";
+import { pushMemoryEvent } from "../lib/convex";
 
 const linkSchema = z.object({
   memoryIdA: z.string().min(1),
@@ -35,6 +36,13 @@ relationships.post("/link", async (c) => {
     parsed.data.memoryIdB,
     parsed.data.reason,
   );
+  if (success) {
+    pushMemoryEvent(userId, "relationship_created", parsed.data.memoryIdA, {
+      source: parsed.data.memoryIdA,
+      target: parsed.data.memoryIdB,
+      reason: parsed.data.reason,
+    });
+  }
   return c.json({ success });
 });
 
@@ -52,6 +60,12 @@ relationships.delete("/link", async (c) => {
     parsed.data.memoryIdA,
     parsed.data.memoryIdB,
   );
+  if (success) {
+    pushMemoryEvent(userId, "relationship_deleted", parsed.data.memoryIdA, {
+      source: parsed.data.memoryIdA,
+      target: parsed.data.memoryIdB,
+    });
+  }
   return c.json({ success });
 });
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## Live Graph + TanStack Query + Convex Event Bus — 2026-03-19
+
+- Made graph view live-updating — new memory nodes fade in, deleted nodes disappear, and relationship edges appear/disappear in real-time across tabs without page refresh
+- Added Convex `memoryEvents` table as a lightweight event bus between the Hono API and the frontend — Hono fires events on every memory/relationship CRUD operation, frontend subscribes via Convex live query
+- Migrated `MemoryContext` from raw fetch + useState to TanStack Query — gives automatic refetch-on-window-focus, optimistic updates, and cache invalidation when Convex events arrive
+- Graph now preserves node positions on incremental updates — existing nodes keep their physics positions when new nodes arrive, instead of rebuilding the entire layout from scratch
+- New nodes animate in with an opacity fade (0 → 1 over ~0.5s at 60fps), rendered per-frame in the Canvas loop
+- Secured event bus with a shared secret (`CONVEX_EVENT_SECRET`) validated inside the Convex mutation — Hono API passes it on every push
+- Removed unused `memories` table from Convex schema (Neo4j is the source of truth for memories)
+- Added `convex` dependency to Hono API with `ConvexHttpClient` for server-to-Convex communication
+
 ## Graph View Modes — 2026-03-18
 
 - Added 5 switchable view modes for the memory graph: Default, Satellite, Constellation, Blueprint, and Minimal

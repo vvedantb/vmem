@@ -199,12 +199,16 @@ export function renderGraph(
   for (const edge of edges) {
     const s = nodes[edge.sourceIndex];
     const t = nodes[edge.targetIndex];
+    const edgeOpacity = Math.min(s.opacity, t.opacity);
+    if (edgeOpacity <= 0) continue;
     const connected =
       hasHover &&
       connectedSet.has(edge.sourceIndex) &&
       connectedSet.has(edge.targetIndex);
     const dimmed = hasHover && !connected;
     const isRelatesTo = edge.edgeType === "relates_to";
+
+    ctx.globalAlpha = edgeOpacity;
 
     if (isRelatesTo) {
       ctx.setLineDash([5 * invZoom, 5 * invZoom]);
@@ -236,16 +240,18 @@ export function renderGraph(
     if (isRelatesTo) {
       ctx.setLineDash([]);
     }
+    ctx.globalAlpha = 1;
   }
 
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
+    if (node.opacity <= 0) continue;
     const isHovered = i === hoveredIndex;
     const isConnected = connectedSet.has(i);
     const dimmed = hasHover && !isConnected;
     const r = (isHovered ? node.radius * 1.5 : node.radius) * invZoom;
 
-    ctx.globalAlpha = dimmed ? theme.dimAlpha : 1;
+    ctx.globalAlpha = (dimmed ? theme.dimAlpha : 1) * node.opacity;
 
     if (theme.glow.enabled && !dimmed) {
       const glowRadius = r * theme.glow.radiusMultiplier;
