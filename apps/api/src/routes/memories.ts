@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod/v4";
 import { MemoryService } from "../db/memory-service";
 import { getDriver } from "../db/neo4j";
+import { pushMemoryEvent } from "../lib/convex";
 
 const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
 const memoryStatusSchema = z.enum([
@@ -63,6 +64,13 @@ memories.post("/", async (c) => {
 
   const service = getService();
   const memory = await service.createMemory({ ...parsed.data, userId });
+  pushMemoryEvent(userId, "memory_created", memory.id, {
+    id: memory.id,
+    title: memory.title,
+    content: memory.content,
+    tags: memory.tags,
+    createdAt: memory.createdAt,
+  });
   return c.json(memory, 201);
 });
 
@@ -116,17 +124,25 @@ memories.patch("/:id", async (c) => {
     return c.json({ error: "Memory not found" }, 404);
   }
 
+  pushMemoryEvent(userId, "memory_updated", memory.id, {
+    id: memory.id,
+    title: memory.title,
+    content: memory.content,
+    tags: memory.tags,
+  });
   return c.json(memory);
 });
 
 memories.delete("/:id", async (c) => {
   const userId = c.get("userId");
+  const memoryId = c.req.param("id");
   const service = getService();
-  const deleted = await service.deleteMemory(userId, c.req.param("id"));
+  const deleted = await service.deleteMemory(userId, memoryId);
   if (!deleted) {
     return c.json({ error: "Memory not found" }, 404);
   }
 
+  pushMemoryEvent(userId, "memory_deleted", memoryId, { id: memoryId });
   return c.json({ status: "deleted" });
 });
 

@@ -10,6 +10,7 @@ import { ThemeProvider } from "../contexts/ThemeContext";
 import { NotificationProvider } from "../contexts/NotificationContext";
 import { MemoryProvider } from "../contexts/MemoryContext";
 import { MotionProvider } from "./MotionProvider";
+import { QueryProvider } from "./QueryProvider";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -29,12 +30,14 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
           disableTransitionOnChange
         >
           <MotionProvider>
-            <ThemeProvider>
-              <NotificationProvider>
-                <MemoryProvider>{children}</MemoryProvider>
-              </NotificationProvider>
-              <Toaster position="top-center" />
-            </ThemeProvider>
+            <QueryProvider>
+              <ThemeProvider>
+                <NotificationProvider>
+                  <MemoryProvider>{children}</MemoryProvider>
+                </NotificationProvider>
+                <Toaster position="top-center" />
+              </ThemeProvider>
+            </QueryProvider>
           </MotionProvider>
         </NextThemesProvider>
       </ConvexProviderWithClerk>

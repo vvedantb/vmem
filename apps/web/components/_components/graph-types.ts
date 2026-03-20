@@ -10,6 +10,7 @@ export interface SimNode {
   vy: number;
   radius: number;
   color: string;
+  opacity: number;
 }
 
 export interface SimEdge {

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
+import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { clientEnv } from "@/env/client";
 import type {
   SimNode,
@@ -71,6 +72,40 @@ export default function MemoryGraph() {
     useState<GraphSettings>(getGraphSettings);
   const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
   const [relatesToEdges, setRelatesToEdges] = useState<RelationshipEdge[]>([]);
+
+  const currentNodesRef = useRef<SimNode[]>([]);
+  const isFirstGraphRef = useRef(true);
+
+  const handleRelationshipEvent = useCallback(
+    (event: {
+      eventType: "relationship_created" | "relationship_deleted";
+      source: string;
+      target: string;
+      reason?: string;
+    }) => {
+      if (event.eventType === "relationship_created") {
+        setRelatesToEdges((prev) => [
+          ...prev,
+          {
+            source: event.source,
+            target: event.target,
+            reason: event.reason ?? "linked",
+          },
+        ]);
+      } else {
+        setRelatesToEdges((prev) =>
+          prev.filter(
+            (e) =>
+              !(e.source === event.source && e.target === event.target) &&
+              !(e.source === event.target && e.target === event.source),
+          ),
+        );
+      }
+    },
+    [],
+  );
+
+  useMemoryEvents(handleRelationshipEvent);
 
   const handleSettingsChange = useCallback((next: GraphSettings) => {
     setGraphSettingsState(next);
@@ -175,20 +210,41 @@ export default function MemoryGraph() {
       });
     }
 
+    const prevNodes = currentNodesRef.current;
+    const prevById = new Map<string, SimNode>();
+    for (const n of prevNodes) {
+      prevById.set(n.id, n);
+    }
+    const isFirstRender = isFirstGraphRef.current;
+
     const simNodes: SimNode[] = memories.map((m, i) => {
       const degree = degreeCount.get(i) ?? 0;
       const primaryTag = m.tags[0];
+      const prevNode = prevById.get(m.id);
+
       let x: number;
       let y: number;
+      let vx = 0;
+      let vy = 0;
+      let opacity = 1;
 
-      const pos = primaryTag ? groupPositions.get(primaryTag) : undefined;
-      if (pos) {
-        const jitter = 40;
-        x = pos.cx + (Math.random() - 0.5) * jitter;
-        y = pos.cy + (Math.random() - 0.5) * jitter;
+      if (prevNode) {
+        x = prevNode.x;
+        y = prevNode.y;
+        vx = prevNode.vx;
+        vy = prevNode.vy;
+        opacity = prevNode.opacity;
       } else {
-        x = (Math.random() - 0.5) * 80;
-        y = (Math.random() - 0.5) * 80;
+        const pos = primaryTag ? groupPositions.get(primaryTag) : undefined;
+        if (pos) {
+          const jitter = 40;
+          x = pos.cx + (Math.random() - 0.5) * jitter;
+          y = pos.cy + (Math.random() - 0.5) * jitter;
+        } else {
+          x = (Math.random() - 0.5) * 80;
+          y = (Math.random() - 0.5) * 80;
+        }
+        opacity = isFirstRender ? 1 : 0;
       }
 
       return {
@@ -199,15 +255,23 @@ export default function MemoryGraph() {
         createdAt: m.createdAt,
         x,
         y,
-        vx: 0,
-        vy: 0,
+        vx,
+        vy,
         radius: 3.5 + degree * 1.5,
         color: m.tags.length > 0 ? tagToColor(m.tags[0], false) : "#999999",
+        opacity,
       };
     });
 
     return { nodes: simNodes, edges: simEdges };
   }, [memories, relatesToEdges]);
+
+  useEffect(() => {
+    currentNodesRef.current = nodes;
+    if (nodes.length > 0) {
+      isFirstGraphRef.current = false;
+    }
+  }, [nodes]);
 
   useEffect(() => {
     for (const node of nodes) {
