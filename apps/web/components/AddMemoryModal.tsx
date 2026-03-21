@@ -21,7 +21,11 @@ import { toast } from "sonner";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 
-export default function AddMemoryModal() {
+export default function AddMemoryModal({
+  trigger,
+}: {
+  trigger?: React.ReactNode;
+}) {
   const { createMemory } = useMemoryContext();
   const [open, setOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
@@ -88,10 +92,12 @@ export default function AddMemoryModal() {
       }}
     >
       <DialogTrigger asChild>
-        <Button className="bg-primary text-primary-foreground font-medium">
-          <IconPlus size={18} />
-          Add Memory
-        </Button>
+        {trigger ?? (
+          <Button className="bg-primary text-primary-foreground font-medium">
+            <IconPlus size={18} />
+            Add Memory
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="max-w-2xl">
