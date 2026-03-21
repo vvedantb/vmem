@@ -4,10 +4,10 @@ import type { SimNode, SimEdge, GraphSettings } from "./graph-types";
 import type { GraphViewTheme } from "./graph-view-themes";
 
 const INITIAL_ITERATIONS = 80;
-const SPRING_LENGTH = 200;
-const SPRING_STRENGTH = 0.0004;
-const CENTER_GRAVITY = 0.002;
-const MAX_SPEED = 2;
+const SPRING_LENGTH = 140;
+const SPRING_STRENGTH = 0.0006;
+const CENTER_GRAVITY = 0.004;
+const MAX_SPEED = 1.5;
 
 function buildFA2Settings(settings: GraphSettings) {
   return {
@@ -233,40 +233,22 @@ export function renderGraph(
       connectedSet.has(edge.sourceIndex) &&
       connectedSet.has(edge.targetIndex);
     const dimmed = hasHover && !connected;
-    const isRelatesTo = edge.edgeType === "relates_to";
-
     ctx.globalAlpha = edgeOpacity;
-
-    if (isRelatesTo) {
-      ctx.setLineDash([5 * invZoom, 5 * invZoom]);
-    }
 
     ctx.beginPath();
     ctx.moveTo(s.x, s.y);
     ctx.lineTo(t.x, t.y);
 
-    if (isRelatesTo) {
-      const relatesToColor = dimmed
-        ? theme.edge.dimmed
-        : connected
-          ? "#c4b5fd"
-          : "#8b5cf6";
-      ctx.strokeStyle = relatesToColor;
-    } else {
-      ctx.strokeStyle = dimmed
-        ? theme.edge.dimmed
-        : connected
-          ? theme.edge.connected
-          : theme.edge.normal;
-    }
+    ctx.strokeStyle = dimmed
+      ? theme.edge.dimmed
+      : connected
+        ? theme.edge.connected
+        : theme.edge.normal;
 
     ctx.lineWidth =
       (connected ? theme.edge.connectedWidth : theme.edge.width) * invZoom;
     ctx.stroke();
 
-    if (isRelatesTo) {
-      ctx.setLineDash([]);
-    }
     ctx.globalAlpha = 1;
   }
 
@@ -347,7 +329,7 @@ export function renderGraph(
       const offset = (node.radius + 5) * invZoom;
       ctx.fillText(truncate(node.label), node.x, node.y + offset);
     }
-  } else if (camera.zoom > 1.8) {
+  } else if (camera.zoom > 2.5) {
     const fontSize = 12 * invZoom;
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";
