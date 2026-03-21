@@ -1057,11 +1057,13 @@ export class MemoryService {
       const result = await session.run(
         `MATCH (m:Memory {userId: $userId})
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-         WITH m.id AS id, m.title AS title, left(m.content, 200) AS content, m.createdAt AS createdAt, collect(t.name) AS tags
-         WITH collect({ id: id, title: title, content: content, tags: tags, createdAt: createdAt }) AS nodes
-         OPTIONAL MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
-         WITH nodes, collect({ source: a.id, target: b.id, reason: r.reason }) AS edges
-         RETURN nodes, edges`,
+         WITH m, collect(t.name) AS tags
+         WITH collect({ id: m.id, title: m.title, content: left(m.content, 200), tags: tags, createdAt: m.createdAt }) AS nodes,
+              collect(m) AS mems
+         UNWIND mems AS a
+         OPTIONAL MATCH (a)-[r:RELATES_TO]->(b:Memory {userId: $userId})
+         WITH nodes, collect(CASE WHEN b IS NOT NULL THEN { source: a.id, target: b.id, reason: r.reason } END) AS rawEdges
+         RETURN nodes, [e IN rawEdges WHERE e IS NOT NULL] AS edges`,
         { userId },
       );
 
