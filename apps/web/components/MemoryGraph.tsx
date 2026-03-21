@@ -150,22 +150,39 @@ export default function MemoryGraph() {
     const degreeCount = new Map<number, number>();
     const simEdges: SimEdge[] = [];
 
+    const tagToIndices = new Map<string, number[]>();
     for (let i = 0; i < memories.length; i++) {
-      for (let j = i + 1; j < memories.length; j++) {
-        const shared = memories[i].tags.filter((t) =>
-          memories[j].tags.includes(t),
-        );
-        if (shared.length > 0) {
-          simEdges.push({
-            sourceIndex: i,
-            targetIndex: j,
-            weight: shared.length,
-            edgeType: "tag",
-          });
-          degreeCount.set(i, (degreeCount.get(i) ?? 0) + 1);
-          degreeCount.set(j, (degreeCount.get(j) ?? 0) + 1);
+      for (const tag of memories[i].tags) {
+        const indices = tagToIndices.get(tag);
+        if (indices) indices.push(i);
+        else tagToIndices.set(tag, [i]);
+      }
+    }
+
+    const edgeWeights = new Map<string, number>();
+    for (const [, indices] of tagToIndices) {
+      for (let a = 0; a < indices.length; a++) {
+        for (let b = a + 1; b < indices.length; b++) {
+          const lo = indices[a];
+          const hi = indices[b];
+          const key = `${lo}-${hi}`;
+          edgeWeights.set(key, (edgeWeights.get(key) ?? 0) + 1);
         }
       }
+    }
+
+    for (const [key, weight] of edgeWeights) {
+      const dash = key.indexOf("-");
+      const i = Number(key.slice(0, dash));
+      const j = Number(key.slice(dash + 1));
+      simEdges.push({
+        sourceIndex: i,
+        targetIndex: j,
+        weight,
+        edgeType: "tag",
+      });
+      degreeCount.set(i, (degreeCount.get(i) ?? 0) + 1);
+      degreeCount.set(j, (degreeCount.get(j) ?? 0) + 1);
     }
 
     const idToIndex = new Map<string, number>();

@@ -25,6 +25,9 @@ export async function setupDatabase(driver: Driver): Promise<void> {
       "CREATE INDEX memory_status IF NOT EXISTS FOR (m:Memory) ON (m.status)",
     );
     await session.run(
+      "CREATE INDEX memory_user_created IF NOT EXISTS FOR (m:Memory) ON (m.userId, m.createdAt)",
+    );
+    await session.run(
       `CREATE FULLTEXT INDEX memory_content IF NOT EXISTS
        FOR (m:Memory) ON EACH [m.title, m.content]`,
     );
