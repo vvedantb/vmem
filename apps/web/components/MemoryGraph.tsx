@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
@@ -56,25 +57,57 @@ function tagToColor(tag: string, isDark: boolean): string {
 
 const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
 
+interface GraphNode {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+}
+
 interface RelationshipEdge {
   source: string;
   target: string;
   reason: string;
 }
 
+interface GraphResponse {
+  nodes: GraphNode[];
+  edges: RelationshipEdge[];
+}
+
 export default function MemoryGraph() {
-  const { memories, isLoading, deleteMemory } = useMemoryContext();
+  const { deleteMemory } = useMemoryContext();
   const { theme } = useThemeContext();
-  const { getToken } = useAuth();
+  const { getToken, userId } = useAuth();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
   const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
-  const [relatesToEdges, setRelatesToEdges] = useState<RelationshipEdge[]>([]);
+  const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<
+    RelationshipEdge[]
+  >([]);
 
   const currentNodesRef = useRef<SimNode[]>([]);
   const isFirstGraphRef = useRef(true);
+
+  const graphQuery = useTanstackQuery({
+    queryKey: ["graph"],
+    queryFn: async (): Promise<GraphResponse> => {
+      const token = await getToken();
+      const headers: HeadersInit = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${API_URL}/v1/graph`, { headers });
+      if (!res.ok) return { nodes: [], edges: [] };
+      return res.json() as Promise<GraphResponse>;
+    },
+    enabled: !!userId,
+  });
+
+  const graphData = graphQuery.data;
 
   const handleRelationshipEvent = useCallback(
     (event: {
@@ -84,7 +117,7 @@ export default function MemoryGraph() {
       reason?: string;
     }) => {
       if (event.eventType === "relationship_created") {
-        setRelatesToEdges((prev) => [
+        setLiveRelatesToEdges((prev) => [
           ...prev,
           {
             source: event.source,
@@ -93,7 +126,7 @@ export default function MemoryGraph() {
           },
         ]);
       } else {
-        setRelatesToEdges((prev) =>
+        setLiveRelatesToEdges((prev) =>
           prev.filter(
             (e) =>
               !(e.source === event.source && e.target === event.target) &&
@@ -117,42 +150,31 @@ export default function MemoryGraph() {
     setGraphViewMode(mode);
   }, []);
 
-  const fetchAllRelationships = useCallback(async () => {
-    const token = await getToken();
-    const headers: HeadersInit = {};
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-    const res = await fetch(`${API_URL}/v1/relationships/all`, { headers });
-    if (res.ok) {
-      const json: { data: RelationshipEdge[] } = await res.json();
-      setRelatesToEdges(json.data);
-    }
-  }, [getToken]);
-
-  useEffect(() => {
-    if (memories.length === 0) return;
-    fetchAllRelationships().catch(() => {});
-  }, [memories.length, fetchAllRelationships]);
-
   const isDark = theme === "dark";
   const viewTheme = useMemo(
     () => getViewTheme(viewMode, isDark),
     [viewMode, isDark],
   );
 
+  const allRelatesToEdges = useMemo(() => {
+    const apiEdges = graphData?.edges ?? [];
+    return [...apiEdges, ...liveRelatesToEdges];
+  }, [graphData?.edges, liveRelatesToEdges]);
+
+  const graphNodes = graphData?.nodes ?? [];
+
   const { nodes, edges } = useMemo((): {
     nodes: SimNode[];
     edges: SimEdge[];
   } => {
-    if (memories.length === 0) return { nodes: [], edges: [] };
+    if (graphNodes.length === 0) return { nodes: [], edges: [] };
 
     const degreeCount = new Map<number, number>();
     const simEdges: SimEdge[] = [];
 
     const tagToIndices = new Map<string, number[]>();
-    for (let i = 0; i < memories.length; i++) {
-      for (const tag of memories[i].tags) {
+    for (let i = 0; i < graphNodes.length; i++) {
+      for (const tag of graphNodes[i].tags) {
         const indices = tagToIndices.get(tag);
         if (indices) indices.push(i);
         else tagToIndices.set(tag, [i]);
@@ -186,11 +208,11 @@ export default function MemoryGraph() {
     }
 
     const idToIndex = new Map<string, number>();
-    for (let i = 0; i < memories.length; i++) {
-      idToIndex.set(memories[i].id, i);
+    for (let i = 0; i < graphNodes.length; i++) {
+      idToIndex.set(graphNodes[i].id, i);
     }
 
-    for (const rel of relatesToEdges) {
+    for (const rel of allRelatesToEdges) {
       const si = idToIndex.get(rel.source);
       const ti = idToIndex.get(rel.target);
       if (si !== undefined && ti !== undefined) {
@@ -207,8 +229,8 @@ export default function MemoryGraph() {
     }
 
     const tagGroups = new Map<string, number[]>();
-    for (let i = 0; i < memories.length; i++) {
-      const primaryTag = memories[i].tags[0];
+    for (let i = 0; i < graphNodes.length; i++) {
+      const primaryTag = graphNodes[i].tags[0];
       if (primaryTag) {
         const group = tagGroups.get(primaryTag);
         if (group) group.push(i);
@@ -234,7 +256,7 @@ export default function MemoryGraph() {
     }
     const isFirstRender = isFirstGraphRef.current;
 
-    const simNodes: SimNode[] = memories.map((m, i) => {
+    const simNodes: SimNode[] = graphNodes.map((m, i) => {
       const degree = degreeCount.get(i) ?? 0;
       const primaryTag = m.tags[0];
       const prevNode = prevById.get(m.id);
@@ -281,7 +303,7 @@ export default function MemoryGraph() {
     });
 
     return { nodes: simNodes, edges: simEdges };
-  }, [memories, relatesToEdges]);
+  }, [graphNodes, allRelatesToEdges]);
 
   useEffect(() => {
     currentNodesRef.current = nodes;
@@ -296,14 +318,14 @@ export default function MemoryGraph() {
         node.color = viewTheme.nodeColorOverride;
         continue;
       }
-      const memory = memories.find((m) => m.id === node.id);
-      if (memory && memory.tags.length > 0) {
-        node.color = tagToColor(memory.tags[0], viewTheme.isDarkCanvas);
+      const gNode = graphNodes.find((m) => m.id === node.id);
+      if (gNode && gNode.tags.length > 0) {
+        node.color = tagToColor(gNode.tags[0], viewTheme.isDarkCanvas);
       } else {
         node.color = viewTheme.isDarkCanvas ? "#555566" : "#999999";
       }
     }
-  }, [viewTheme, nodes, memories]);
+  }, [viewTheme, nodes, graphNodes]);
 
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
@@ -331,7 +353,7 @@ export default function MemoryGraph() {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch(`${API_URL}/v1/relationships/link`, {
+      await fetch(`${API_URL}/v1/relationships/link`, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -340,14 +362,11 @@ export default function MemoryGraph() {
           reason: "user linked",
         }),
       });
-      if (res.ok) {
-        await fetchAllRelationships();
-      }
     },
-    [getToken, fetchAllRelationships],
+    [getToken],
   );
 
-  if (isLoading) {
+  if (graphQuery.isLoading) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
         <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
