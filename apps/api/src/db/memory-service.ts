@@ -263,25 +263,24 @@ export class MemoryService {
         queryParams.filterTags = params.tags;
       }
 
-      const [countResult, result] = await Promise.all([
-        session.run(
-          `MATCH (m:Memory) WHERE ${where} ${tagMatch} RETURN count(m) AS total`,
-          queryParams,
-        ),
-        session.run(
-          `MATCH (m:Memory) WHERE ${where}
-           ${tagMatch}
-           WITH m ORDER BY m.createdAt DESC
-           SKIP $offset LIMIT $limit
-           OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-           RETURN m, collect(t.name) AS tags`,
-          queryParams,
-        ),
-      ]);
+      const countResult = await session.run(
+        `MATCH (m:Memory) WHERE ${where} ${tagMatch} RETURN count(m) AS total`,
+        queryParams,
+      );
 
       const total = (
         countResult.records[0].get("total") as { toNumber: () => number }
       ).toNumber();
+
+      const result = await session.run(
+        `MATCH (m:Memory) WHERE ${where}
+         ${tagMatch}
+         WITH m ORDER BY m.createdAt DESC
+         SKIP $offset LIMIT $limit
+         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+         RETURN m, collect(t.name) AS tags`,
+        queryParams,
+      );
 
       const memories = result.records.map((r) =>
         toMemoryWithTags(r.toObject()),
