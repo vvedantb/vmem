@@ -1,5 +1,13 @@
 # Changelog
 
+## Dedicated Graph Endpoint — 2026-03-21
+
+- Added `GET /v1/graph` endpoint that returns both nodes and relationships in a single Neo4j query — eliminates the waterfall where frontend had to fetch memories first, then relationships second
+- Graph endpoint returns only the fields the graph needs (id, title, content preview, tags, createdAt) instead of full memory objects — cuts payload size significantly for 650+ memories
+- Single Cypher query fetches Memory nodes with tags via OPTIONAL MATCH, then RELATES_TO edges, returning both in one response — no count query needed since graph doesn't paginate
+- MemoryGraph component now uses its own TanStack query to `/v1/graph` instead of depending on MemoryContext (which fetches full objects for the list view)
+- Reverted Promise.all on single Neo4j session (caused 500 errors) — sessions don't support concurrent queries
+
 ## Graph Performance Optimization — 2026-03-21
 
 - Fixed graph only showing 20 nodes despite 629 memories — MemoryContext was fetching `/v1/memories` without a limit param, backend defaulted to 20
