@@ -39,6 +39,6 @@ export interface GraphSettings {
 export const DEFAULT_GRAPH_SETTINGS: GraphSettings = {
   scalingRatio: 4,
   gravity: 2,
-  repulsion: 5000,
-  damping: 0.92,
+  repulsion: 3000,
+  damping: 0.88,
 };

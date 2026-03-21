@@ -45,21 +45,21 @@ export interface GraphViewTheme {
 
 const DEFAULT_DARK: GraphViewTheme = {
   isDarkCanvas: true,
-  background: "#1e1e1e",
-  gradientCenter: "rgba(80, 70, 180, 0.04)",
+  background: "#111111",
+  gradientCenter: null,
   grid: null,
   edge: {
-    normal: "rgba(255,255,255,0.12)",
-    connected: "rgba(255,255,255,0.25)",
-    dimmed: "rgba(255,255,255,0.03)",
-    width: 0.5,
+    normal: "rgba(255,255,255,0.06)",
+    connected: "rgba(255,255,255,0.35)",
+    dimmed: "rgba(255,255,255,0.015)",
+    width: 0.4,
     connectedWidth: 1.2,
   },
   glow: {
     enabled: true,
-    radiusMultiplier: 4,
-    intensity: 0.2,
-    hoveredIntensity: 0.4,
+    radiusMultiplier: 2.5,
+    intensity: 0.15,
+    hoveredIntensity: 0.35,
   },
   outline: {
     enabled: false,
@@ -68,8 +68,8 @@ const DEFAULT_DARK: GraphViewTheme = {
     width: 0.5,
     hoveredWidth: 1.5,
   },
-  label: { color: "#ffffff", secondary: "rgba(255,255,255,0.45)" },
-  dimAlpha: 0.08,
+  label: { color: "rgba(255,255,255,0.9)", secondary: "rgba(255,255,255,0.4)" },
+  dimAlpha: 0.05,
   nodeColorOverride: null,
 };
 
