@@ -3,7 +3,9 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
-import { IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
+import { IconMoodEmpty, IconLoader2, IconPlus } from "@tabler/icons-react";
+import { Button } from "@vmem/ui";
+import AddMemoryModal from "@/components/AddMemoryModal";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
@@ -419,7 +421,18 @@ export default function MemoryGraph() {
           onLinkNodes={handleLinkNodes}
         />
 
-        <div className="absolute top-3 right-14 z-10">
+        <div className="absolute top-3 right-12 z-10 flex items-center gap-1.5">
+          <AddMemoryModal
+            trigger={
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+              >
+                <IconPlus size={16} />
+              </Button>
+            }
+          />
           <GraphSettingsPopover
             settings={graphSettings}
             onChange={handleSettingsChange}
