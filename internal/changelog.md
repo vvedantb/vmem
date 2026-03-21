@@ -1,5 +1,20 @@
 # Changelog
 
+## Graph Response Caching — 2026-03-21
+
+- Added 30s in-memory server-side cache per user on `/v1/graph` — first load hits Neo4j, subsequent loads within 30s skip the query entirely
+- Added `staleTime: 30_000` to TanStack Query on the frontend — navigating away and back reuses cached data without refetching
+- Added timing logs to graph endpoint — logs Neo4j query duration + node/edge counts to isolate network latency from query time
+
+## Obsidian-Style Graph Overhaul — 2026-03-21
+
+- Redesigned DEFAULT_DARK theme to match Obsidian's knowledge graph aesthetic — near-black background, ultra-thin low-opacity edges, subtle tight glow, dramatic hover dimming
+- Tuned physics for calmer, more settled feel — tighter spring length (200→140), stronger springs, higher center gravity, lower max speed, faster damping
+- Reduced node size range (max 12→8) and desaturated colors (HSL 65/65→50/72) for soft pastel dot appearance
+- Unified edge rendering — removed dashed line distinction for relates_to edges, all edges now solid
+- Raised label zoom threshold (1.8→2.5) so labels only appear when zoomed in close
+- Lowered default repulsion (5000→3000) and damping (0.92→0.88) for tighter, calmer clusters
+
 ## Dedicated Graph Endpoint — 2026-03-21
 
 - Added `GET /v1/graph` endpoint that returns both nodes and relationships in a single Neo4j query — eliminates the waterfall where frontend had to fetch memories first, then relationships second

@@ -52,7 +52,21 @@ function hslToHex(h: number, s: number, l: number): string {
 
 function tagToColor(tag: string, isDark: boolean): string {
   const hue = tagToHue(tag);
-  return isDark ? hslToHex(hue, 65, 65) : hslToHex(hue, 55, 48);
+  return isDark ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
+}
+
+function idToJitter(id: string): { dx: number; dy: number } {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x811c9dc5;
+  for (let i = 0; i < id.length; i++) {
+    const c = id.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193);
+    h2 = Math.imul(h2 ^ c, 0x01000193) + i;
+  }
+  return {
+    dx: (h1 >>> 0) / 0xffffffff - 0.5,
+    dy: (h2 >>> 0) / 0xffffffff - 0.5,
+  };
 }
 
 const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
@@ -105,6 +119,7 @@ export default function MemoryGraph() {
       return res.json() as Promise<GraphResponse>;
     },
     enabled: !!userId,
+    staleTime: 30_000,
   });
 
   const graphData = graphQuery.data;
@@ -274,14 +289,15 @@ export default function MemoryGraph() {
         vy = prevNode.vy;
         opacity = prevNode.opacity;
       } else {
+        const hash = idToJitter(m.id);
         const pos = primaryTag ? groupPositions.get(primaryTag) : undefined;
         if (pos) {
           const jitter = 40;
-          x = pos.cx + (Math.random() - 0.5) * jitter;
-          y = pos.cy + (Math.random() - 0.5) * jitter;
+          x = pos.cx + hash.dx * jitter;
+          y = pos.cy + hash.dy * jitter;
         } else {
-          x = (Math.random() - 0.5) * 80;
-          y = (Math.random() - 0.5) * 80;
+          x = hash.dx * 80;
+          y = hash.dy * 80;
         }
         opacity = isFirstRender ? 1 : 0;
       }
@@ -296,7 +312,7 @@ export default function MemoryGraph() {
         y,
         vx,
         vy,
-        radius: Math.min(3.5 + degree * 1.5, 12),
+        radius: Math.min(3 + degree * 1, 8),
         color: m.tags.length > 0 ? tagToColor(m.tags[0], false) : "#999999",
         opacity,
       };
