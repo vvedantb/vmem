@@ -1042,6 +1042,69 @@ export class MemoryService {
     }
   }
 
+  async getGraphData(userId: string): Promise<{
+    nodes: {
+      id: string;
+      title: string;
+      content: string;
+      tags: string[];
+      createdAt: string;
+    }[];
+    edges: { source: string; target: string; reason: string }[];
+  }> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+         WITH m.id AS id, m.title AS title, left(m.content, 200) AS content, m.createdAt AS createdAt, collect(t.name) AS tags
+         WITH collect({ id: id, title: title, content: content, tags: tags, createdAt: createdAt }) AS nodes
+         OPTIONAL MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
+         WITH nodes, collect({ source: a.id, target: b.id, reason: r.reason }) AS edges
+         RETURN nodes, edges`,
+        { userId },
+      );
+
+      if (result.records.length === 0) {
+        return { nodes: [], edges: [] };
+      }
+
+      const record = result.records[0];
+      const rawNodes = record.get("nodes") as {
+        id: string;
+        title: string;
+        content: string;
+        tags: string[];
+        createdAt: string;
+      }[];
+      const rawEdges = record.get("edges") as {
+        source: string;
+        target: string;
+        reason: string;
+      }[];
+
+      const nodes = rawNodes.map((n) => ({
+        id: String(n.id),
+        title: String(n.title),
+        content: String(n.content ?? ""),
+        tags: (n.tags ?? []).map(String),
+        createdAt: String(n.createdAt),
+      }));
+
+      const edges = rawEdges
+        .filter((e) => e.source && e.target)
+        .map((e) => ({
+          source: String(e.source),
+          target: String(e.target),
+          reason: String(e.reason ?? ""),
+        }));
+
+      return { nodes, edges };
+    } finally {
+      await session.close();
+    }
+  }
+
   private async logEvent(
     session: ReturnType<Driver["session"]>,
     memoryId: string,
