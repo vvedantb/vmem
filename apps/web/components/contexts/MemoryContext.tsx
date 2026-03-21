@@ -80,7 +80,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const memoriesQuery = useTanstackQuery({
     queryKey: ["memories"],
     queryFn: async (): Promise<Memory[]> => {
-      const res = await authFetch(`${API_URL}/v1/memories`);
+      const res = await authFetch(`${API_URL}/v1/memories?limit=1000`);
       if (!res.ok) return [];
       const data = (await res.json()) as {
         memories: ApiMemory[];

@@ -63,6 +63,8 @@ export function runInitialLayout(
   readPositions(graph, nodes);
 }
 
+const GRID_CELL_SIZE = 200;
+
 export function simulationTick(
   nodes: SimNode[],
   edges: SimEdge[],
@@ -71,32 +73,57 @@ export function simulationTick(
 ): void {
   const len = nodes.length;
 
+  const grid = new Map<number, number[]>();
+  const cellXs = new Int32Array(len);
+  const cellYs = new Int32Array(len);
+
   for (let i = 0; i < len; i++) {
-    for (let j = i + 1; j < len; j++) {
-      const dx = nodes[j].x - nodes[i].x;
-      const dy = nodes[j].y - nodes[i].y;
-      const distSq = dx * dx + dy * dy + 1;
-      const dist = Math.sqrt(distSq);
-      const force = settings.repulsion / distSq;
-      const fx = (dx / dist) * force;
-      const fy = (dy / dist) * force;
-      nodes[i].vx -= fx;
-      nodes[i].vy -= fy;
-      nodes[j].vx += fx;
-      nodes[j].vy += fy;
+    const cx = Math.floor(nodes[i].x / GRID_CELL_SIZE);
+    const cy = Math.floor(nodes[i].y / GRID_CELL_SIZE);
+    cellXs[i] = cx;
+    cellYs[i] = cy;
+    const key = cx * 73856093 + cy * 19349663;
+    const cell = grid.get(key);
+    if (cell) cell.push(i);
+    else grid.set(key, [i]);
+  }
+
+  for (let i = 0; i < len; i++) {
+    const cx = cellXs[i];
+    const cy = cellYs[i];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const key = (cx + dx) * 73856093 + (cy + dy) * 19349663;
+        const cell = grid.get(key);
+        if (!cell) continue;
+        for (const j of cell) {
+          if (j <= i) continue;
+          const ddx = nodes[j].x - nodes[i].x;
+          const ddy = nodes[j].y - nodes[i].y;
+          const distSq = ddx * ddx + ddy * ddy + 1;
+          const dist = Math.sqrt(distSq);
+          const force = settings.repulsion / distSq;
+          const fx = (ddx / dist) * force;
+          const fy = (ddy / dist) * force;
+          nodes[i].vx -= fx;
+          nodes[i].vy -= fy;
+          nodes[j].vx += fx;
+          nodes[j].vy += fy;
+        }
+      }
     }
   }
 
   for (const edge of edges) {
     const s = nodes[edge.sourceIndex];
     const t = nodes[edge.targetIndex];
-    const dx = t.x - s.x;
-    const dy = t.y - s.y;
-    const dist = Math.sqrt(dx * dx + dy * dy) + 0.1;
+    const ddx = t.x - s.x;
+    const ddy = t.y - s.y;
+    const dist = Math.sqrt(ddx * ddx + ddy * ddy) + 0.1;
     const displacement = dist - SPRING_LENGTH;
     const force = SPRING_STRENGTH * displacement * edge.weight;
-    const fx = (dx / dist) * force;
-    const fy = (dy / dist) * force;
+    const fx = (ddx / dist) * force;
+    const fy = (ddy / dist) * force;
     s.vx += fx;
     s.vy += fy;
     t.vx -= fx;

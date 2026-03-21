@@ -1,5 +1,13 @@
 # Changelog
 
+## Graph Performance Optimization — 2026-03-21
+
+- Fixed graph only showing 20 nodes despite 629 memories — MemoryContext was fetching `/v1/memories` without a limit param, backend defaulted to 20
+- Replaced O(n²) tag-matching loop with inverted index approach — builds tag→indices map then iterates per-tag groups, reducing 6M+ string comparisons to proportional-to-actual-shared-tags
+- Added spatial grid to physics simulation — repulsion now only computed between nodes in adjacent grid cells instead of all-pairs, cutting per-frame work from ~200k to ~10k distance calculations
+- Parallelized Neo4j count + fetch queries with Promise.all, and reordered Cypher to SKIP/LIMIT before OPTIONAL MATCH so tag collection only runs on the result page, not all 629 memories
+- Added composite index on (userId, createdAt) for the primary list query sort
+
 ## Live Graph + TanStack Query + Convex Event Bus — 2026-03-19
 
 - Made graph view live-updating — new memory nodes fade in, deleted nodes disappear, and relationship edges appear/disappear in real-time across tabs without page refresh
