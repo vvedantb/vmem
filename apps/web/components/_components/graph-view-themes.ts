@@ -57,7 +57,7 @@ const DEFAULT_DARK: GraphViewTheme = {
   },
   glow: {
     enabled: true,
-    radiusMultiplier: 6,
+    radiusMultiplier: 4,
     intensity: 0.2,
     hoveredIntensity: 0.4,
   },
@@ -87,7 +87,7 @@ const DEFAULT_LIGHT: GraphViewTheme = {
   },
   glow: {
     enabled: false,
-    radiusMultiplier: 6,
+    radiusMultiplier: 4,
     intensity: 0,
     hoveredIntensity: 0,
   },
@@ -117,9 +117,9 @@ const SATELLITE: GraphViewTheme = {
   },
   glow: {
     enabled: true,
-    radiusMultiplier: 10,
-    intensity: 0.35,
-    hoveredIntensity: 0.55,
+    radiusMultiplier: 4,
+    intensity: 0.25,
+    hoveredIntensity: 0.45,
   },
   outline: {
     enabled: false,

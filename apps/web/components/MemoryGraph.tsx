@@ -257,7 +257,7 @@ export default function MemoryGraph() {
         y,
         vx,
         vy,
-        radius: 3.5 + degree * 1.5,
+        radius: Math.min(3.5 + degree * 1.5, 12),
         color: m.tags.length > 0 ? tagToColor(m.tags[0], false) : "#999999",
         opacity,
       };
