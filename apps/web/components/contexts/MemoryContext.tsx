@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
 import {
   useQuery as useTanstackQuery,
   useMutation,
@@ -64,6 +65,8 @@ function apiToMemory(m: ApiMemory): Memory {
 export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const { userId, getToken } = useAuth();
   const queryClient = useQueryClient();
+  const pathname = usePathname();
+  const needsList = !pathname.startsWith("/memories/graph");
 
   const authFetch = useCallback(
     async (url: string, init?: RequestInit): Promise<Response> => {
@@ -88,7 +91,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       };
       return data.memories.map(apiToMemory);
     },
-    enabled: !!userId,
+    enabled: !!userId && needsList,
   });
 
   const createMutation = useMutation({
