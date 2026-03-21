@@ -226,7 +226,7 @@ export default function Sidebar({
                 {!isCollapsed ? (
                   <motion.h1
                     key="desktop-logo"
-                    className="text-xl font-instrumentSerif text-foreground"
+                    className="mt-0.5 text-xl font-instrumentSerif text-foreground"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
