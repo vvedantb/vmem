@@ -127,14 +127,16 @@ export default function PlaygroundClient() {
         body: JSON.stringify({
           grant_types: ["authorization_code"],
           response_types: ["code"],
-          redirect_uris: [`${window.location.origin}/playground/callback`],
+          redirect_uris: [
+            `${window.location.origin}/settings/playground/callback`,
+          ],
           token_endpoint_auth_method: "none",
         }),
       });
       const regData = await regRes.json();
       const clientId = regData.client_id as string;
 
-      const redirectUri = `${window.location.origin}/playground/callback`;
+      const redirectUri = `${window.location.origin}/settings/playground/callback`;
       const authUrl = new URL(meta.authorization_endpoint);
       authUrl.searchParams.set("client_id", clientId);
       authUrl.searchParams.set("redirect_uri", redirectUri);

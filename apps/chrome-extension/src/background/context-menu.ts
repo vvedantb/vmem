@@ -32,16 +32,21 @@ export async function savePageFromTab(
     }
 
     const hostname = new URL(url).hostname;
-    const memory = await createMemory({
+    const result = await createMemory({
       title: extraction.title || fallbackTitle,
       content: truncate(extraction.content, 10000),
       type: "knowledge",
       source: "browser-extension",
       tags: [hostname],
       confidence: 1.0,
+      url,
     });
 
-    return { success: true, memoryId: memory.id };
+    if (result.status === "duplicate") {
+      return { success: false, error: "Already saved" };
+    }
+
+    return { success: true, memoryId: result.memory.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: message };

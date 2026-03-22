@@ -1,9 +1,9 @@
 import { View, Text, TouchableOpacity } from "react-native";
 
 const SUGGESTIONS = [
-  "What can you help me with?",
-  "Search my memories",
-  "Tell me about yourself",
+  "What do I know about React?",
+  "Tell me about Docker",
+  "Summarize my TypeScript notes",
 ];
 
 interface EmptyStateProps {
@@ -18,7 +18,8 @@ export default function EmptyState({ onSuggestionTap }: EmptyStateProps) {
           Start a conversation
         </Text>
         <Text className="text-gray-500 dark:text-gray-400 text-center text-sm">
-          Ask anything about your stored memories
+          Ask anything about your stored memories. The AI will search and
+          reference relevant information.
         </Text>
       </View>
       <View className="w-full max-w-xs gap-3">

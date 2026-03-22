@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
+import { IconMoodEmpty, IconLoader2, IconPlus } from "@tabler/icons-react";
+import { Button } from "@vmem/ui";
+import AddMemoryModal from "@/components/AddMemoryModal";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
+import { useMemoryEvents } from "@/hooks/useMemoryEvents";
+import { clientEnv } from "@/env/client";
 import type {
   SimNode,
   SimEdge,
@@ -48,17 +54,108 @@ function hslToHex(h: number, s: number, l: number): string {
 
 function tagToColor(tag: string, isDark: boolean): string {
   const hue = tagToHue(tag);
-  return isDark ? hslToHex(hue, 65, 65) : hslToHex(hue, 55, 48);
+  return isDark ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
+}
+
+function idToJitter(id: string): { dx: number; dy: number } {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x811c9dc5;
+  for (let i = 0; i < id.length; i++) {
+    const c = id.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193);
+    h2 = Math.imul(h2 ^ c, 0x01000193) + i;
+  }
+  return {
+    dx: (h1 >>> 0) / 0xffffffff - 0.5,
+    dy: (h2 >>> 0) / 0xffffffff - 0.5,
+  };
+}
+
+const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
+
+interface GraphNode {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+}
+
+interface RelationshipEdge {
+  source: string;
+  target: string;
+  reason: string;
+}
+
+interface GraphResponse {
+  nodes: GraphNode[];
+  edges: RelationshipEdge[];
 }
 
 export default function MemoryGraph() {
-  const { memories, isLoading, deleteMemory } = useMemoryContext();
+  const { deleteMemory } = useMemoryContext();
   const { theme } = useThemeContext();
+  const { getToken, userId } = useAuth();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
   const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
+  const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<
+    RelationshipEdge[]
+  >([]);
+
+  const currentNodesRef = useRef<SimNode[]>([]);
+  const isFirstGraphRef = useRef(true);
+
+  const graphQuery = useTanstackQuery({
+    queryKey: ["graph"],
+    queryFn: async (): Promise<GraphResponse> => {
+      const token = await getToken();
+      const headers: HeadersInit = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${API_URL}/v1/graph`, { headers });
+      if (!res.ok) return { nodes: [], edges: [] };
+      return res.json() as Promise<GraphResponse>;
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
+  const graphData = graphQuery.data;
+
+  const handleRelationshipEvent = useCallback(
+    (event: {
+      eventType: "relationship_created" | "relationship_deleted";
+      source: string;
+      target: string;
+      reason?: string;
+    }) => {
+      if (event.eventType === "relationship_created") {
+        setLiveRelatesToEdges((prev) => [
+          ...prev,
+          {
+            source: event.source,
+            target: event.target,
+            reason: event.reason ?? "linked",
+          },
+        ]);
+      } else {
+        setLiveRelatesToEdges((prev) =>
+          prev.filter(
+            (e) =>
+              !(e.source === event.source && e.target === event.target) &&
+              !(e.source === event.target && e.target === event.source),
+          ),
+        );
+      }
+    },
+    [],
+  );
+
+  useMemoryEvents(handleRelationshipEvent);
 
   const handleSettingsChange = useCallback((next: GraphSettings) => {
     setGraphSettingsState(next);
@@ -76,35 +173,81 @@ export default function MemoryGraph() {
     [viewMode, isDark],
   );
 
+  const allRelatesToEdges = useMemo(() => {
+    const apiEdges = graphData?.edges ?? [];
+    return [...apiEdges, ...liveRelatesToEdges];
+  }, [graphData?.edges, liveRelatesToEdges]);
+
+  const graphNodes = graphData?.nodes ?? [];
+
   const { nodes, edges } = useMemo((): {
     nodes: SimNode[];
     edges: SimEdge[];
   } => {
-    if (memories.length === 0) return { nodes: [], edges: [] };
+    if (graphNodes.length === 0) return { nodes: [], edges: [] };
 
     const degreeCount = new Map<number, number>();
     const simEdges: SimEdge[] = [];
 
-    for (let i = 0; i < memories.length; i++) {
-      for (let j = i + 1; j < memories.length; j++) {
-        const shared = memories[i].tags.filter((t) =>
-          memories[j].tags.includes(t),
-        );
-        if (shared.length > 0) {
-          simEdges.push({
-            sourceIndex: i,
-            targetIndex: j,
-            weight: shared.length,
-          });
-          degreeCount.set(i, (degreeCount.get(i) ?? 0) + 1);
-          degreeCount.set(j, (degreeCount.get(j) ?? 0) + 1);
+    const tagToIndices = new Map<string, number[]>();
+    for (let i = 0; i < graphNodes.length; i++) {
+      for (const tag of graphNodes[i].tags) {
+        const indices = tagToIndices.get(tag);
+        if (indices) indices.push(i);
+        else tagToIndices.set(tag, [i]);
+      }
+    }
+
+    const edgeWeights = new Map<string, number>();
+    for (const [, indices] of tagToIndices) {
+      for (let a = 0; a < indices.length; a++) {
+        for (let b = a + 1; b < indices.length; b++) {
+          const lo = indices[a];
+          const hi = indices[b];
+          const key = `${lo}-${hi}`;
+          edgeWeights.set(key, (edgeWeights.get(key) ?? 0) + 1);
         }
       }
     }
 
+    for (const [key, weight] of edgeWeights) {
+      const dash = key.indexOf("-");
+      const i = Number(key.slice(0, dash));
+      const j = Number(key.slice(dash + 1));
+      simEdges.push({
+        sourceIndex: i,
+        targetIndex: j,
+        weight,
+        edgeType: "tag",
+      });
+      degreeCount.set(i, (degreeCount.get(i) ?? 0) + 1);
+      degreeCount.set(j, (degreeCount.get(j) ?? 0) + 1);
+    }
+
+    const idToIndex = new Map<string, number>();
+    for (let i = 0; i < graphNodes.length; i++) {
+      idToIndex.set(graphNodes[i].id, i);
+    }
+
+    for (const rel of allRelatesToEdges) {
+      const si = idToIndex.get(rel.source);
+      const ti = idToIndex.get(rel.target);
+      if (si !== undefined && ti !== undefined) {
+        simEdges.push({
+          sourceIndex: si,
+          targetIndex: ti,
+          weight: 1,
+          edgeType: "relates_to",
+          reason: rel.reason,
+        });
+        degreeCount.set(si, (degreeCount.get(si) ?? 0) + 1);
+        degreeCount.set(ti, (degreeCount.get(ti) ?? 0) + 1);
+      }
+    }
+
     const tagGroups = new Map<string, number[]>();
-    for (let i = 0; i < memories.length; i++) {
-      const primaryTag = memories[i].tags[0];
+    for (let i = 0; i < graphNodes.length; i++) {
+      const primaryTag = graphNodes[i].tags[0];
       if (primaryTag) {
         const group = tagGroups.get(primaryTag);
         if (group) group.push(i);
@@ -123,20 +266,42 @@ export default function MemoryGraph() {
       });
     }
 
-    const simNodes: SimNode[] = memories.map((m, i) => {
+    const prevNodes = currentNodesRef.current;
+    const prevById = new Map<string, SimNode>();
+    for (const n of prevNodes) {
+      prevById.set(n.id, n);
+    }
+    const isFirstRender = isFirstGraphRef.current;
+
+    const simNodes: SimNode[] = graphNodes.map((m, i) => {
       const degree = degreeCount.get(i) ?? 0;
       const primaryTag = m.tags[0];
+      const prevNode = prevById.get(m.id);
+
       let x: number;
       let y: number;
+      let vx = 0;
+      let vy = 0;
+      let opacity = 1;
 
-      const pos = primaryTag ? groupPositions.get(primaryTag) : undefined;
-      if (pos) {
-        const jitter = 40;
-        x = pos.cx + (Math.random() - 0.5) * jitter;
-        y = pos.cy + (Math.random() - 0.5) * jitter;
+      if (prevNode) {
+        x = prevNode.x;
+        y = prevNode.y;
+        vx = prevNode.vx;
+        vy = prevNode.vy;
+        opacity = prevNode.opacity;
       } else {
-        x = (Math.random() - 0.5) * 80;
-        y = (Math.random() - 0.5) * 80;
+        const hash = idToJitter(m.id);
+        const pos = primaryTag ? groupPositions.get(primaryTag) : undefined;
+        if (pos) {
+          const jitter = 40;
+          x = pos.cx + hash.dx * jitter;
+          y = pos.cy + hash.dy * jitter;
+        } else {
+          x = hash.dx * 80;
+          y = hash.dy * 80;
+        }
+        opacity = isFirstRender ? 1 : 0;
       }
 
       return {
@@ -147,15 +312,23 @@ export default function MemoryGraph() {
         createdAt: m.createdAt,
         x,
         y,
-        vx: 0,
-        vy: 0,
-        radius: 3.5 + degree * 1.5,
+        vx,
+        vy,
+        radius: Math.min(3 + degree * 1, 8),
         color: m.tags.length > 0 ? tagToColor(m.tags[0], false) : "#999999",
+        opacity,
       };
     });
 
     return { nodes: simNodes, edges: simEdges };
-  }, [memories]);
+  }, [graphNodes, allRelatesToEdges]);
+
+  useEffect(() => {
+    currentNodesRef.current = nodes;
+    if (nodes.length > 0) {
+      isFirstGraphRef.current = false;
+    }
+  }, [nodes]);
 
   useEffect(() => {
     for (const node of nodes) {
@@ -163,14 +336,14 @@ export default function MemoryGraph() {
         node.color = viewTheme.nodeColorOverride;
         continue;
       }
-      const memory = memories.find((m) => m.id === node.id);
-      if (memory && memory.tags.length > 0) {
-        node.color = tagToColor(memory.tags[0], viewTheme.isDarkCanvas);
+      const gNode = graphNodes.find((m) => m.id === node.id);
+      if (gNode && gNode.tags.length > 0) {
+        node.color = tagToColor(gNode.tags[0], viewTheme.isDarkCanvas);
       } else {
         node.color = viewTheme.isDarkCanvas ? "#555566" : "#999999";
       }
     }
-  }, [viewTheme, nodes, memories]);
+  }, [viewTheme, nodes, graphNodes]);
 
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
@@ -189,7 +362,29 @@ export default function MemoryGraph() {
     setSelectedNodeId(nodeId);
   }, []);
 
-  if (isLoading) {
+  const handleLinkNodes = useCallback(
+    async (sourceId: string, targetId: string) => {
+      const token = await getToken();
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      await fetch(`${API_URL}/v1/relationships/link`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          memoryIdA: sourceId,
+          memoryIdB: targetId,
+          reason: "user linked",
+        }),
+      });
+    },
+    [getToken],
+  );
+
+  if (graphQuery.isLoading) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
         <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -223,9 +418,21 @@ export default function MemoryGraph() {
           settings={graphSettings}
           onHoverNode={handleHoverNode}
           onClickNode={handleClickNode}
+          onLinkNodes={handleLinkNodes}
         />
 
-        <div className="absolute top-3 right-14 z-10">
+        <div className="absolute top-3 right-12 z-10 flex items-center gap-1.5">
+          <AddMemoryModal
+            trigger={
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+              >
+                <IconPlus size={16} />
+              </Button>
+            }
+          />
           <GraphSettingsPopover
             settings={graphSettings}
             onChange={handleSettingsChange}

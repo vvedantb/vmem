@@ -1,14 +1,13 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
+import {
+  useQuery as useTanstackQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { Memory } from "@/lib/memories";
 import { clientEnv } from "@/env/client";
 
@@ -65,8 +64,9 @@ function apiToMemory(m: ApiMemory): Memory {
 
 export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const { userId, getToken } = useAuth();
-  const [memories, setMemories] = useState<Memory[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const pathname = usePathname();
+  const needsList = !pathname.startsWith("/memories/graph");
 
   const authFetch = useCallback(
     async (url: string, init?: RequestInit): Promise<Response> => {
@@ -80,32 +80,22 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     [getToken],
   );
 
-  const fetchMemories = useCallback(async () => {
-    if (!userId) return;
-    setIsLoading(true);
-    try {
-      const res = await authFetch(`${API_URL}/v1/memories`);
-      if (res.ok) {
-        const data = (await res.json()) as {
-          memories: ApiMemory[];
-          total: number;
-        };
-        setMemories(data.memories.map(apiToMemory));
-      }
-    } catch {
-      console.error("Failed to fetch memories — is the API server running?");
-    }
-    setIsLoading(false);
-  }, [userId, authFetch]);
+  const memoriesQuery = useTanstackQuery({
+    queryKey: ["memories"],
+    queryFn: async (): Promise<Memory[]> => {
+      const res = await authFetch(`${API_URL}/v1/memories?limit=1000`);
+      if (!res.ok) return [];
+      const data = (await res.json()) as {
+        memories: ApiMemory[];
+        total: number;
+      };
+      return data.memories.map(apiToMemory);
+    },
+    enabled: !!userId && needsList,
+  });
 
-  useEffect(() => {
-    fetchMemories();
-  }, [fetchMemories]);
-
-  const createMemory = useCallback(
-    async (input: CreateMemoryInput): Promise<Memory> => {
-      if (!userId) throw new Error("Not authenticated");
-
+  const createMutation = useMutation({
+    mutationFn: async (input: CreateMemoryInput): Promise<Memory> => {
       const res = await authFetch(`${API_URL}/v1/memories`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -125,17 +115,37 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       }
 
       const apiMemory = (await res.json()) as ApiMemory;
-      const memory = apiToMemory(apiMemory);
-      setMemories((prev) => [memory, ...prev]);
-      return memory;
+      return apiToMemory(apiMemory);
     },
-    [userId, authFetch],
-  );
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: ["memories"] });
+      const previous = queryClient.getQueryData<Memory[]>(["memories"]);
+      const optimistic: Memory = {
+        id: `temp-${Date.now()}`,
+        title: input.title.trim(),
+        content: input.content.trim(),
+        tags: input.tags ?? [],
+        createdAt: new Date().toISOString(),
+      };
+      queryClient.setQueryData<Memory[]>(["memories"], (old) =>
+        old ? [optimistic, ...old] : [optimistic],
+      );
+      return { previous };
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["memories"], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["memories"] });
+    },
+  });
 
-  const updateMemory = useCallback(
-    async (input: UpdateMemoryInput): Promise<Memory | null> => {
-      if (!userId) throw new Error("Not authenticated");
-
+  const updateMutation = useMutation({
+    mutationFn: async (
+      input: UpdateMemoryInput,
+    ): Promise<{ memory: Memory; id: string }> => {
       const res = await authFetch(`${API_URL}/v1/memories/${input.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -146,48 +156,124 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         }),
       });
 
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error("Update failed");
 
       const apiMemory = (await res.json()) as ApiMemory;
-      const memory = apiToMemory(apiMemory);
-      setMemories((prev) => prev.map((m) => (m.id === input.id ? memory : m)));
-      return memory;
+      return { memory: apiToMemory(apiMemory), id: input.id };
     },
-    [userId, authFetch],
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: ["memories"] });
+      const previous = queryClient.getQueryData<Memory[]>(["memories"]);
+      queryClient.setQueryData<Memory[]>(["memories"], (old) =>
+        old
+          ? old.map((m) =>
+              m.id === input.id
+                ? {
+                    ...m,
+                    ...(input.title !== undefined
+                      ? { title: input.title }
+                      : {}),
+                    ...(input.content !== undefined
+                      ? { content: input.content }
+                      : {}),
+                    ...(input.tags !== undefined ? { tags: input.tags } : {}),
+                  }
+                : m,
+            )
+          : [],
+      );
+      return { previous };
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["memories"], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["memories"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string): Promise<string> => {
+      const res = await authFetch(`${API_URL}/v1/memories/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      return id;
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["memories"] });
+      const previous = queryClient.getQueryData<Memory[]>(["memories"]);
+      queryClient.setQueryData<Memory[]>(["memories"], (old) =>
+        old ? old.filter((m) => m.id !== id) : [],
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["memories"], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["memories"] });
+    },
+  });
+
+  const createMemory = useCallback(
+    async (input: CreateMemoryInput): Promise<Memory> => {
+      if (!userId) throw new Error("Not authenticated");
+      return createMutation.mutateAsync(input);
+    },
+    [userId, createMutation],
+  );
+
+  const updateMemory = useCallback(
+    async (input: UpdateMemoryInput): Promise<Memory | null> => {
+      if (!userId) throw new Error("Not authenticated");
+      try {
+        const result = await updateMutation.mutateAsync(input);
+        return result.memory;
+      } catch {
+        return null;
+      }
+    },
+    [userId, updateMutation],
   );
 
   const deleteMemory = useCallback(
     async (id: string): Promise<boolean> => {
       if (!userId) throw new Error("Not authenticated");
-
-      const res = await authFetch(`${API_URL}/v1/memories/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) return false;
-
-      setMemories((prev) => prev.filter((m) => m.id !== id));
-      return true;
+      try {
+        await deleteMutation.mutateAsync(id);
+        return true;
+      } catch {
+        return false;
+      }
     },
-    [userId, authFetch],
+    [userId, deleteMutation],
   );
+
+  const refreshMemories = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["memories"] });
+  }, [queryClient]);
 
   const value = useMemo(
     () => ({
-      memories,
-      isLoading,
+      memories: memoriesQuery.data ?? [],
+      isLoading: memoriesQuery.isLoading,
       createMemory,
       updateMemory,
       deleteMemory,
-      refreshMemories: fetchMemories,
+      refreshMemories,
     }),
     [
-      memories,
-      isLoading,
+      memoriesQuery.data,
+      memoriesQuery.isLoading,
       createMemory,
       updateMemory,
       deleteMemory,
-      fetchMemories,
+      refreshMemories,
     ],
   );
 

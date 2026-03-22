@@ -4,10 +4,10 @@ import type { SimNode, SimEdge, GraphSettings } from "./graph-types";
 import type { GraphViewTheme } from "./graph-view-themes";
 
 const INITIAL_ITERATIONS = 80;
-const SPRING_LENGTH = 200;
-const SPRING_STRENGTH = 0.0004;
-const CENTER_GRAVITY = 0.002;
-const MAX_SPEED = 2;
+const SPRING_LENGTH = 140;
+const SPRING_STRENGTH = 0.0006;
+const CENTER_GRAVITY = 0.004;
+const MAX_SPEED = 1.5;
 
 function buildFA2Settings(settings: GraphSettings) {
   return {
@@ -63,6 +63,8 @@ export function runInitialLayout(
   readPositions(graph, nodes);
 }
 
+const GRID_CELL_SIZE = 200;
+
 export function simulationTick(
   nodes: SimNode[],
   edges: SimEdge[],
@@ -71,32 +73,57 @@ export function simulationTick(
 ): void {
   const len = nodes.length;
 
+  const grid = new Map<number, number[]>();
+  const cellXs = new Int32Array(len);
+  const cellYs = new Int32Array(len);
+
   for (let i = 0; i < len; i++) {
-    for (let j = i + 1; j < len; j++) {
-      const dx = nodes[j].x - nodes[i].x;
-      const dy = nodes[j].y - nodes[i].y;
-      const distSq = dx * dx + dy * dy + 1;
-      const dist = Math.sqrt(distSq);
-      const force = settings.repulsion / distSq;
-      const fx = (dx / dist) * force;
-      const fy = (dy / dist) * force;
-      nodes[i].vx -= fx;
-      nodes[i].vy -= fy;
-      nodes[j].vx += fx;
-      nodes[j].vy += fy;
+    const cx = Math.floor(nodes[i].x / GRID_CELL_SIZE);
+    const cy = Math.floor(nodes[i].y / GRID_CELL_SIZE);
+    cellXs[i] = cx;
+    cellYs[i] = cy;
+    const key = cx * 73856093 + cy * 19349663;
+    const cell = grid.get(key);
+    if (cell) cell.push(i);
+    else grid.set(key, [i]);
+  }
+
+  for (let i = 0; i < len; i++) {
+    const cx = cellXs[i];
+    const cy = cellYs[i];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const key = (cx + dx) * 73856093 + (cy + dy) * 19349663;
+        const cell = grid.get(key);
+        if (!cell) continue;
+        for (const j of cell) {
+          if (j <= i) continue;
+          const ddx = nodes[j].x - nodes[i].x;
+          const ddy = nodes[j].y - nodes[i].y;
+          const distSq = ddx * ddx + ddy * ddy + 1;
+          const dist = Math.sqrt(distSq);
+          const force = settings.repulsion / distSq;
+          const fx = (ddx / dist) * force;
+          const fy = (ddy / dist) * force;
+          nodes[i].vx -= fx;
+          nodes[i].vy -= fy;
+          nodes[j].vx += fx;
+          nodes[j].vy += fy;
+        }
+      }
     }
   }
 
   for (const edge of edges) {
     const s = nodes[edge.sourceIndex];
     const t = nodes[edge.targetIndex];
-    const dx = t.x - s.x;
-    const dy = t.y - s.y;
-    const dist = Math.sqrt(dx * dx + dy * dy) + 0.1;
+    const ddx = t.x - s.x;
+    const ddy = t.y - s.y;
+    const dist = Math.sqrt(ddx * ddx + ddy * ddy) + 0.1;
     const displacement = dist - SPRING_LENGTH;
     const force = SPRING_STRENGTH * displacement * edge.weight;
-    const fx = (dx / dist) * force;
-    const fy = (dy / dist) * force;
+    const fx = (ddx / dist) * force;
+    const fy = (ddy / dist) * force;
     s.vx += fx;
     s.vy += fy;
     t.vx -= fx;
@@ -199,33 +226,41 @@ export function renderGraph(
   for (const edge of edges) {
     const s = nodes[edge.sourceIndex];
     const t = nodes[edge.targetIndex];
+    const edgeOpacity = Math.min(s.opacity, t.opacity);
+    if (edgeOpacity <= 0) continue;
     const connected =
       hasHover &&
       connectedSet.has(edge.sourceIndex) &&
       connectedSet.has(edge.targetIndex);
     const dimmed = hasHover && !connected;
+    ctx.globalAlpha = edgeOpacity;
 
     ctx.beginPath();
     ctx.moveTo(s.x, s.y);
     ctx.lineTo(t.x, t.y);
+
     ctx.strokeStyle = dimmed
       ? theme.edge.dimmed
       : connected
         ? theme.edge.connected
         : theme.edge.normal;
+
     ctx.lineWidth =
       (connected ? theme.edge.connectedWidth : theme.edge.width) * invZoom;
     ctx.stroke();
+
+    ctx.globalAlpha = 1;
   }
 
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
+    if (node.opacity <= 0) continue;
     const isHovered = i === hoveredIndex;
     const isConnected = connectedSet.has(i);
     const dimmed = hasHover && !isConnected;
     const r = (isHovered ? node.radius * 1.5 : node.radius) * invZoom;
 
-    ctx.globalAlpha = dimmed ? theme.dimAlpha : 1;
+    ctx.globalAlpha = (dimmed ? theme.dimAlpha : 1) * node.opacity;
 
     if (theme.glow.enabled && !dimmed) {
       const glowRadius = r * theme.glow.radiusMultiplier;
@@ -294,7 +329,7 @@ export function renderGraph(
       const offset = (node.radius + 5) * invZoom;
       ctx.fillText(truncate(node.label), node.x, node.y + offset);
     }
-  } else if (camera.zoom > 1.8) {
+  } else if (camera.zoom > 2.5) {
     const fontSize = 12 * invZoom;
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";

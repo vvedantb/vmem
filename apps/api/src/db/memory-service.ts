@@ -40,9 +40,12 @@ interface MemoryEvent {
   createdAt: string;
 }
 
+type ConnectionType = "tag" | "related";
+
 interface TimelineEvent extends MemoryEvent {
   memoryId: string;
   memoryTitle: string;
+  connectionType?: ConnectionType;
 }
 
 interface ScoreBreakdown {
@@ -119,6 +122,7 @@ export class MemoryService {
     tags: string[];
     confidence: number;
     expiresAt?: string;
+    url?: string;
   }): Promise<MemoryWithTags> {
     const session = this.driver.session();
     try {
@@ -137,7 +141,8 @@ export class MemoryService {
           status: 'active',
           createdAt: $now,
           updatedAt: $now,
-          expiresAt: $expiresAt
+          expiresAt: $expiresAt,
+          url: $url
         })
         WITH m
         MERGE (s:Source {name: $source})
@@ -161,6 +166,7 @@ export class MemoryService {
           tags: params.tags,
           now,
           expiresAt: params.expiresAt ?? null,
+          url: params.url ?? null,
         },
       );
 
@@ -184,8 +190,47 @@ export class MemoryService {
         snapshot,
       );
 
+      const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      await session.run(
+        `MATCH (m:Memory {id: $id}), (m2:Memory {userId: $userId, source: $source})
+         WHERE m2.id <> $id AND m2.createdAt > $cutoff
+         MERGE (m2)-[r:RELATES_TO]->(m)
+         ON CREATE SET r.reason = 'same session'`,
+        {
+          id,
+          userId: params.userId,
+          source: params.source,
+          cutoff,
+        },
+      );
+
       const record = result.records[0];
       return toMemoryWithTags(record.toObject());
+    } finally {
+      await session.close();
+    }
+  }
+
+  async findMemoryByUrl(
+    userId: string,
+    url: string,
+  ): Promise<{ id: string; title: string; updatedAt: string } | null> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId, url: $url})
+         WHERE m.status IN ['active', 'pinned']
+         RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
+         LIMIT 1`,
+        { userId, url },
+      );
+      if (result.records.length === 0) return null;
+      const r = result.records[0];
+      return {
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        updatedAt: String(r.get("updatedAt")),
+      };
     } finally {
       await session.close();
     }
@@ -250,6 +295,7 @@ export class MemoryService {
         `MATCH (m:Memory) WHERE ${where} ${tagMatch} RETURN count(m) AS total`,
         queryParams,
       );
+
       const total = (
         countResult.records[0].get("total") as { toNumber: () => number }
       ).toNumber();
@@ -257,10 +303,10 @@ export class MemoryService {
       const result = await session.run(
         `MATCH (m:Memory) WHERE ${where}
          ${tagMatch}
+         WITH m ORDER BY m.createdAt DESC
+         SKIP $offset LIMIT $limit
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-         RETURN m, collect(t.name) AS tags
-         ORDER BY m.createdAt DESC
-         SKIP $offset LIMIT $limit`,
+         RETURN m, collect(t.name) AS tags`,
         queryParams,
       );
 
@@ -870,9 +916,18 @@ export class MemoryService {
     const session = this.driver.session();
     try {
       const result = await session.run(
-        `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag {name: $tag})
-         MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m)
-         RETURN e, m.id AS memoryId, m.title AS memoryTitle
+        `MATCH (tagMatched:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag {name: $tag})
+         WITH collect(DISTINCT tagMatched) AS tagMemories
+         UNWIND tagMemories AS tm
+         OPTIONAL MATCH (tm)-[:RELATES_TO]-(related:Memory {userId: $userId})
+         WITH tagMemories, collect(DISTINCT related) AS relatedMemories
+         WITH tagMemories, [r IN relatedMemories WHERE r IS NOT NULL AND NOT r IN tagMemories] AS onlyRelated
+         WITH tagMemories + onlyRelated AS allMemories, tagMemories
+         UNWIND allMemories AS mem
+         WITH DISTINCT mem, mem IN tagMemories AS isTagMatch
+         MATCH (e:MemoryEvent)-[:EVENT_FOR]->(mem)
+         RETURN e, mem.id AS memoryId, mem.title AS memoryTitle,
+                CASE WHEN isTagMatch THEN 'tag' ELSE 'related' END AS connectionType
          ORDER BY e.createdAt ASC
          SKIP $offset LIMIT $limit`,
         {
@@ -887,6 +942,10 @@ export class MemoryService {
         ...toEventFromNode(record.get("e").properties),
         memoryId: String(record.get("memoryId") ?? ""),
         memoryTitle: String(record.get("memoryTitle") ?? ""),
+        connectionType:
+          String(record.get("connectionType") ?? "") === "related"
+            ? "related"
+            : "tag",
       }));
     } finally {
       await session.close();
@@ -922,6 +981,234 @@ export class MemoryService {
         memoryId: String(record.get("memoryId") ?? ""),
         memoryTitle: String(record.get("memoryTitle") ?? ""),
       }));
+    } finally {
+      await session.close();
+    }
+  }
+
+  async linkMemories(
+    userId: string,
+    memoryIdA: string,
+    memoryIdB: string,
+    reason: string,
+  ): Promise<boolean> {
+    if (memoryIdA === memoryIdB) return false;
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (a:Memory {id: $memoryIdA, userId: $userId}), (b:Memory {id: $memoryIdB, userId: $userId})
+         MERGE (a)-[r:RELATES_TO]->(b)
+         SET r.reason = $reason
+         RETURN a, b`,
+        { memoryIdA, memoryIdB, userId, reason },
+      );
+      return result.records.length > 0;
+    } finally {
+      await session.close();
+    }
+  }
+
+  async unlinkMemories(
+    userId: string,
+    memoryIdA: string,
+    memoryIdB: string,
+  ): Promise<boolean> {
+    const session = this.driver.session();
+    try {
+      await session.run(
+        `MATCH (a:Memory {id: $memoryIdA, userId: $userId})-[r:RELATES_TO]-(b:Memory {id: $memoryIdB, userId: $userId})
+         DELETE r`,
+        { memoryIdA, memoryIdB, userId },
+      );
+      return true;
+    } finally {
+      await session.close();
+    }
+  }
+
+  async getRelatedMemories(
+    userId: string,
+    memoryId: string,
+  ): Promise<{ memory: MemoryWithTags; reason: string }[]> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})-[r:RELATES_TO]-(related:Memory)
+         OPTIONAL MATCH (related)-[:TAGGED_WITH]->(t:Tag)
+         RETURN related AS m, collect(DISTINCT t.name) AS tags, r.reason AS reason`,
+        { memoryId, userId },
+      );
+      return result.records.map((record) => ({
+        memory: toMemoryWithTags(record.toObject()),
+        reason: String(record.get("reason") ?? ""),
+      }));
+    } finally {
+      await session.close();
+    }
+  }
+
+  async getAllRelationships(
+    userId: string,
+    limit = 500,
+  ): Promise<{ source: string; target: string; reason: string }[]> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory)
+         RETURN a.id AS source, b.id AS target, r.reason AS reason
+         LIMIT $limit`,
+        { userId, limit: neo4j.int(limit) },
+      );
+
+      return result.records.map((record) => ({
+        source: String(record.get("source") ?? ""),
+        target: String(record.get("target") ?? ""),
+        reason: String(record.get("reason") ?? ""),
+      }));
+    } finally {
+      await session.close();
+    }
+  }
+
+  async getGraphData(userId: string): Promise<{
+    nodes: {
+      id: string;
+      title: string;
+      content: string;
+      tags: string[];
+      createdAt: string;
+    }[];
+    edges: { source: string; target: string; reason: string }[];
+  }> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+         WITH m, collect(t.name) AS tags
+         WITH collect({ id: m.id, title: m.title, content: left(m.content, 200), tags: tags, createdAt: m.createdAt }) AS nodes,
+              collect(m) AS mems
+         UNWIND mems AS a
+         OPTIONAL MATCH (a)-[r:RELATES_TO]->(b:Memory {userId: $userId})
+         WITH nodes, collect(CASE WHEN b IS NOT NULL THEN { source: a.id, target: b.id, reason: r.reason } END) AS rawEdges
+         RETURN nodes, [e IN rawEdges WHERE e IS NOT NULL] AS edges`,
+        { userId },
+      );
+
+      if (result.records.length === 0) {
+        return { nodes: [], edges: [] };
+      }
+
+      const record = result.records[0];
+      const rawNodes = record.get("nodes") as {
+        id: string;
+        title: string;
+        content: string;
+        tags: string[];
+        createdAt: string;
+      }[];
+      const rawEdges = record.get("edges") as {
+        source: string;
+        target: string;
+        reason: string;
+      }[];
+
+      const nodes = rawNodes.map((n) => ({
+        id: String(n.id),
+        title: String(n.title),
+        content: String(n.content ?? ""),
+        tags: (n.tags ?? []).map(String),
+        createdAt: String(n.createdAt),
+      }));
+
+      const edges = rawEdges
+        .filter((e) => e.source && e.target)
+        .map((e) => ({
+          source: String(e.source),
+          target: String(e.target),
+          reason: String(e.reason ?? ""),
+        }));
+
+      return { nodes, edges };
+    } finally {
+      await session.close();
+    }
+  }
+
+  async getRecentMemoryTitles(
+    userId: string,
+    excludeId: string,
+    limit = 30,
+  ): Promise<Array<{ id: string; title: string }>> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE m.id <> $excludeId AND m.status IN ['active', 'pinned']
+         RETURN m.id AS id, m.title AS title
+         ORDER BY m.updatedAt DESC
+         LIMIT $limit`,
+        { userId, excludeId, limit: Number(limit) },
+      );
+      return result.records.map((r) => ({
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+      }));
+    } finally {
+      await session.close();
+    }
+  }
+
+  async applyEnrichment(
+    memoryId: string,
+    userId: string,
+    tags: string[],
+    relatedIds: string[],
+  ): Promise<void> {
+    const session = this.driver.session();
+    const tx = session.beginTransaction();
+    try {
+      await tx.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})
+         OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
+         DELETE r`,
+        { memoryId, userId },
+      );
+
+      if (tags.length > 0) {
+        await tx.run(
+          `MATCH (m:Memory {id: $memoryId, userId: $userId})
+           FOREACH (tagName IN $tags |
+             MERGE (t:Tag {name: tagName})
+             MERGE (m)-[:TAGGED_WITH]->(t)
+           )`,
+          { memoryId, userId, tags },
+        );
+      }
+
+      await tx.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})
+         OPTIONAL MATCH (m)-[r:RELATES_TO]-()
+         WHERE r.reason = 'content similarity'
+         DELETE r`,
+        { memoryId, userId },
+      );
+
+      if (relatedIds.length > 0) {
+        await tx.run(
+          `MATCH (m:Memory {id: $memoryId, userId: $userId})
+           UNWIND $relatedIds AS relId
+           MATCH (m2:Memory {id: relId, userId: $userId})
+           MERGE (m)-[r:RELATES_TO]->(m2)
+           ON CREATE SET r.reason = 'content similarity'`,
+          { memoryId, userId, relatedIds },
+        );
+      }
+
+      await tx.commit();
+    } catch (err) {
+      await tx.rollback();
+      throw err;
     } finally {
       await session.close();
     }
