@@ -12,7 +12,7 @@ import { timeline } from "./routes/timeline";
 import { relationships } from "./routes/relationships";
 import { graph } from "./routes/graph";
 import { authMiddleware } from "./middleware/auth";
-import { getDriver, closeDriver } from "./db/neo4j";
+import { getDriver, closeDriver, ensureIndexes } from "./db/neo4j";
 import { setupDatabase } from "./db/setup";
 
 const app = new Hono().basePath("/v1");
@@ -56,4 +56,5 @@ process.on("SIGTERM", shutdown);
 serve({ fetch: app.fetch, port }, async () => {
   console.log(`vmem api running on http://localhost:${port}`);
   await setupDatabase(getDriver());
+  await ensureIndexes();
 });

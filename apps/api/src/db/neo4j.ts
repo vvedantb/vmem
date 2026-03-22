@@ -13,6 +13,19 @@ export function getDriver(): Driver {
   return driver;
 }
 
+export async function ensureIndexes(): Promise<void> {
+  const d = getDriver();
+  const session = d.session();
+  try {
+    await session.run(
+      `CREATE INDEX memory_user_url IF NOT EXISTS
+       FOR (m:Memory) ON (m.userId, m.url)`,
+    );
+  } finally {
+    await session.close();
+  }
+}
+
 export async function closeDriver(): Promise<void> {
   if (driver) {
     await driver.close();
