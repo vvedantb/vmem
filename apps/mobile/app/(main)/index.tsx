@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { FlatList, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  View,
+  ActivityIndicator,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMutation } from "convex/react";
 import {
@@ -47,6 +53,14 @@ export default function ChatScreen() {
     [threadId, isStreaming, sendMessage],
   );
 
+  if (!threadId) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white dark:bg-black">
+        <ActivityIndicator size="large" color="#9ca3af" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black">
       <KeyboardAvoidingView
@@ -77,7 +91,7 @@ export default function ChatScreen() {
           value={inputText}
           onChangeText={setInputText}
           onSend={() => handleSend(inputText)}
-          disabled={isStreaming || !threadId}
+          disabled={isStreaming}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
