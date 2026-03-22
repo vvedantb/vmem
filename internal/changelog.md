@@ -1,5 +1,15 @@
 # Changelog
 
+## Extension Dedup + Smart Tags + Auto-Linking — 2026-03-21
+
+- Added URL-based memory deduplication — API returns 409 when saving a page that already exists, extension shows "Already saved — update?" confirmation
+- URL normalization strips tracking params, hash fragments, trailing slashes before comparison
+- LLM-powered enrichment replaces hostname-only tags with 3-5 semantic topic tags via OpenRouter (google/gemini-2.0-flash)
+- Same LLM call identifies related memories from user's recent 30 for auto-linking via RELATES_TO edges
+- Enrichment runs async after create/update — memory saves instantly, tags arrive shortly after
+- Bulk imports (bookmarks/history) silently skip duplicates instead of prompting per-item
+- New files: `apps/api/src/lib/url.ts` (normalization), `apps/api/src/services/memory-enrichment.ts` (LLM enrichment)
+
 ## Graph Response Caching — 2026-03-21
 
 - Added 30s in-memory server-side cache per user on `/v1/graph` — first load hits Neo4j, subsequent loads within 30s skip the query entirely

@@ -1,0 +1,146 @@
+import { z } from "zod/v4";
+import { MemoryService } from "../db/memory-service";
+import { getDriver } from "../db/neo4j";
+import { pushMemoryEvent } from "../lib/convex";
+
+const ENRICHMENT_MODEL =
+  process.env.ENRICHMENT_MODEL ?? "google/gemini-2.0-flash";
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? "";
+const MAX_CONTENT_LENGTH = 2000;
+
+const enrichmentResponseSchema = z.object({
+  tags: z.array(z.string()),
+  relatedMemoryIds: z.array(z.string()),
+});
+
+function truncateAtWord(text: string, maxLen: number): string {
+  if (text.length <= maxLen) return text;
+  const cut = text.lastIndexOf(" ", maxLen);
+  return text.slice(0, cut > 0 ? cut : maxLen);
+}
+
+function sanitizeTag(tag: string): string {
+  return tag
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-z0-9\-]/g, "")
+    .slice(0, 50);
+}
+
+const openRouterResponseSchema = z.object({
+  choices: z.array(z.object({ message: z.object({ content: z.string() }) })),
+});
+
+async function callOpenRouter(
+  title: string,
+  content: string,
+  existingMemories: Array<{ id: string; title: string }>,
+): Promise<{ tags: string[]; relatedMemoryIds: string[] } | null> {
+  if (!OPENROUTER_API_KEY) {
+    console.warn("[enrichment] OPENROUTER_API_KEY not set, skipping");
+    return null;
+  }
+
+  const memoryList = existingMemories
+    .map((m) => `${m.id}: ${m.title}`)
+    .join("\n");
+
+  const prompt = `You are a memory tagging system. Given a memory and a list of existing memories:
+
+1. Generate 3-5 semantic topic tags for this memory. Tags should be lowercase, specific, and reusable (e.g. "react", "authentication", "graph-algorithms", "typescript"). Avoid generic tags like "programming" or "article".
+
+2. From the provided list, identify any memories that are semantically related to this one. Only include strong relationships — shared topic, continuation of the same work, or direct reference.
+
+Memory:
+Title: ${title}
+Content: ${truncateAtWord(content, MAX_CONTENT_LENGTH)}
+
+Existing memories:
+${memoryList || "(none)"}
+
+Respond in JSON only:
+{"tags": ["tag1", "tag2"], "relatedMemoryIds": ["id1"]}`;
+
+  try {
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://vmem.vedantb.com",
+        },
+        body: JSON.stringify({
+          model: ENRICHMENT_MODEL,
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      console.error(`[enrichment] OpenRouter returned ${response.status}`);
+      return null;
+    }
+
+    const json: unknown = await response.json();
+    const data = openRouterResponseSchema.safeParse(json);
+    if (!data.success) return null;
+
+    const raw = data.data.choices[0]?.message?.content;
+    if (!raw) return null;
+
+    const parsed = enrichmentResponseSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) {
+      console.error("[enrichment] Invalid LLM response shape");
+      return null;
+    }
+
+    return parsed.data;
+  } catch (err) {
+    console.error("[enrichment] LLM call failed:", err);
+    return null;
+  }
+}
+
+export function enrichMemory(
+  memoryId: string,
+  userId: string,
+  title: string,
+  content: string,
+): void {
+  const run = async () => {
+    const service = new MemoryService(getDriver());
+    const existing = await service.getRecentMemoryTitles(userId, memoryId);
+
+    const validIds = new Set<string>();
+    for (const m of existing) validIds.add(m.id);
+
+    const result = await callOpenRouter(title, content, existing);
+    if (!result) return;
+
+    const tags = result.tags
+      .map(sanitizeTag)
+      .filter((t) => t.length > 0)
+      .slice(0, 5);
+
+    const relatedIds = result.relatedMemoryIds.filter((id) => validIds.has(id));
+
+    if (tags.length === 0) return;
+
+    await service.applyEnrichment(memoryId, userId, tags, relatedIds);
+
+    pushMemoryEvent(userId, "memory_updated", memoryId, {
+      tags,
+    });
+
+    console.log(
+      `[enrichment] ${memoryId}: ${tags.length} tags, ${relatedIds.length} links`,
+    );
+  };
+
+  run().catch((err) => {
+    console.error(`[enrichment] failed for ${memoryId}:`, err);
+  });
+}

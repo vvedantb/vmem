@@ -122,6 +122,7 @@ export class MemoryService {
     tags: string[];
     confidence: number;
     expiresAt?: string;
+    url?: string;
   }): Promise<MemoryWithTags> {
     const session = this.driver.session();
     try {
@@ -140,7 +141,8 @@ export class MemoryService {
           status: 'active',
           createdAt: $now,
           updatedAt: $now,
-          expiresAt: $expiresAt
+          expiresAt: $expiresAt,
+          url: $url
         })
         WITH m
         MERGE (s:Source {name: $source})
@@ -164,6 +166,7 @@ export class MemoryService {
           tags: params.tags,
           now,
           expiresAt: params.expiresAt ?? null,
+          url: params.url ?? null,
         },
       );
 
@@ -203,6 +206,31 @@ export class MemoryService {
 
       const record = result.records[0];
       return toMemoryWithTags(record.toObject());
+    } finally {
+      await session.close();
+    }
+  }
+
+  async findMemoryByUrl(
+    userId: string,
+    url: string,
+  ): Promise<{ id: string; title: string; updatedAt: string } | null> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId, url: $url})
+         WHERE m.status IN ['active', 'pinned']
+         RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
+         LIMIT 1`,
+        { userId, url },
+      );
+      if (result.records.length === 0) return null;
+      const r = result.records[0];
+      return {
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        updatedAt: String(r.get("updatedAt")),
+      };
     } finally {
       await session.close();
     }
@@ -1102,6 +1130,85 @@ export class MemoryService {
         }));
 
       return { nodes, edges };
+    } finally {
+      await session.close();
+    }
+  }
+
+  async getRecentMemoryTitles(
+    userId: string,
+    excludeId: string,
+    limit = 30,
+  ): Promise<Array<{ id: string; title: string }>> {
+    const session = this.driver.session();
+    try {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE m.id <> $excludeId AND m.status IN ['active', 'pinned']
+         RETURN m.id AS id, m.title AS title
+         ORDER BY m.updatedAt DESC
+         LIMIT $limit`,
+        { userId, excludeId, limit: Number(limit) },
+      );
+      return result.records.map((r) => ({
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+      }));
+    } finally {
+      await session.close();
+    }
+  }
+
+  async applyEnrichment(
+    memoryId: string,
+    userId: string,
+    tags: string[],
+    relatedIds: string[],
+  ): Promise<void> {
+    const session = this.driver.session();
+    const tx = session.beginTransaction();
+    try {
+      await tx.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})
+         OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
+         DELETE r`,
+        { memoryId, userId },
+      );
+
+      if (tags.length > 0) {
+        await tx.run(
+          `MATCH (m:Memory {id: $memoryId, userId: $userId})
+           FOREACH (tagName IN $tags |
+             MERGE (t:Tag {name: tagName})
+             MERGE (m)-[:TAGGED_WITH]->(t)
+           )`,
+          { memoryId, userId, tags },
+        );
+      }
+
+      await tx.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})
+         OPTIONAL MATCH (m)-[r:RELATES_TO]-()
+         WHERE r.reason = 'content similarity'
+         DELETE r`,
+        { memoryId, userId },
+      );
+
+      if (relatedIds.length > 0) {
+        await tx.run(
+          `MATCH (m:Memory {id: $memoryId, userId: $userId})
+           UNWIND $relatedIds AS relId
+           MATCH (m2:Memory {id: relId, userId: $userId})
+           MERGE (m)-[r:RELATES_TO]->(m2)
+           ON CREATE SET r.reason = 'content similarity'`,
+          { memoryId, userId, relatedIds },
+        );
+      }
+
+      await tx.commit();
+    } catch (err) {
+      await tx.rollback();
+      throw err;
     } finally {
       await session.close();
     }
