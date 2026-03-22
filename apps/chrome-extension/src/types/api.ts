@@ -41,6 +41,7 @@ export interface CreateMemoryParams {
   tags: string[];
   confidence: number;
   expiresAt?: string;
+  url?: string;
 }
 
 export interface RetrieveParams {

@@ -22,9 +22,19 @@ async function authHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
+export interface DuplicateInfo {
+  id: string;
+  title: string;
+  updatedAt: string;
+}
+
+export type CreateResult =
+  | { status: "created"; memory: MemoryWithTags }
+  | { status: "duplicate"; existingMemory: DuplicateInfo };
+
 export async function createMemory(
   params: CreateMemoryParams,
-): Promise<MemoryWithTags> {
+): Promise<CreateResult> {
   const baseUrl = await getBaseUrl();
   const headers = await authHeaders();
 
@@ -34,12 +44,40 @@ export async function createMemory(
     body: JSON.stringify(params),
   });
 
+  if (response.status === 409) {
+    const data: { existingMemory: DuplicateInfo } = await response.json();
+    return { status: "duplicate", existingMemory: data.existingMemory };
+  }
+
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`Failed to create memory: ${error}`);
   }
 
-  return response.json() as Promise<MemoryWithTags>;
+  const memory: MemoryWithTags = await response.json();
+  return { status: "created", memory };
+}
+
+export async function updateMemory(
+  memoryId: string,
+  params: { title?: string; content?: string; tags?: string[] },
+): Promise<MemoryWithTags> {
+  const baseUrl = await getBaseUrl();
+  const headers = await authHeaders();
+
+  const response = await fetch(`${baseUrl}/memories/${memoryId}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to update memory: ${error}`);
+  }
+
+  const memory: MemoryWithTags = await response.json();
+  return memory;
 }
 
 export async function retrieveMemories(
@@ -60,7 +98,7 @@ export async function retrieveMemories(
     throw new Error(`Failed to retrieve memories: ${error}`);
   }
 
-  const data = (await response.json()) as { memories: MemoryCandidate[] };
+  const data: { memories: MemoryCandidate[] } = await response.json();
   return data.memories;
 }
 

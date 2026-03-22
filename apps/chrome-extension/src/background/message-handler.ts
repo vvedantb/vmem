@@ -33,15 +33,26 @@ async function handleMessage(
 
     case "SAVE_PAGE": {
       try {
-        const memory = await createMemory({
+        const result = await createMemory({
           title: message.title,
           content: message.content.slice(0, 10000),
           type: "knowledge",
           source: "browser-extension",
           tags: [new URL(message.url).hostname],
           confidence: 1.0,
+          url: message.url,
         });
-        return { type: "SAVE_RESULT", success: true, memoryId: memory.id };
+        if (result.status === "duplicate") {
+          return {
+            type: "SAVE_DUPLICATE",
+            existingMemory: result.existingMemory,
+          };
+        }
+        return {
+          type: "SAVE_RESULT",
+          success: true,
+          memoryId: result.memory.id,
+        };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";
         return { type: "SAVE_RESULT", success: false, error };
