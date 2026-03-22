@@ -27,6 +27,8 @@ import {
   IconX,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpandFilled,
+  IconLayoutDashboard,
+  IconHome,
 } from "@tabler/icons-react";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarFooter } from "./sidebar/SidebarFooter";
@@ -224,7 +226,7 @@ export default function Sidebar({
                 {!isCollapsed ? (
                   <motion.h1
                     key="desktop-logo"
-                    className="text-xl font-instrumentSerif text-foreground"
+                    className="mt-0.5 text-xl font-instrumentSerif text-foreground"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -244,6 +246,18 @@ export default function Sidebar({
                 isCollapsed ? "flex-col gap-2" : "flex-row justify-end gap-2",
               )}
             >
+              <Link
+                href="/home"
+                aria-label="Home"
+                className={cn(
+                  "inline-flex items-center justify-center rounded-lg transition-all duration-200 ease-smooth h-7 w-7",
+                  pathname.startsWith("/home")
+                    ? "glass-interactive text-foreground"
+                    : "glass-interactive text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <IconHome className="h-4 w-4" />
+              </Link>
               <Button
                 type="button"
                 variant="ghost"

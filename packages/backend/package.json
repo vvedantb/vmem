@@ -10,6 +10,7 @@
     "deploy": "npx convex deploy"
   },
   "dependencies": {
+    "@ai-sdk/provider-utils": "3.0.22",
     "@convex-dev/agent": "0.3.2",
     "@openrouter/ai-sdk-provider": "^1.5.4",
     "ai": "^5.0.153",

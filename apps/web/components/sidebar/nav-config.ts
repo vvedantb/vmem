@@ -25,11 +25,6 @@ export const navGroups: NavGroup[] = [
     title: "Workspace",
     icon: IconStack2,
     items: [
-      {
-        href: "/dashboard",
-        label: "Dashboard",
-        icon: IconLayoutDashboard,
-      },
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/memories/list", label: "Memory List", icon: IconList },
       {
@@ -42,18 +37,15 @@ export const navGroups: NavGroup[] = [
         label: "Timeline",
         icon: IconHistory,
       },
-      { href: "/files", label: "Files", icon: IconFiles },
-      { href: "/index", label: "Index", icon: IconDatabase },
     ],
   },
   {
-    title: "API",
+    title: "Data",
     icon: IconPlug,
     items: [
-      { href: "/api-keys", label: "API Keys", icon: IconKey },
+      { href: "/files", label: "Files", icon: IconFiles },
+      { href: "/index", label: "Index", icon: IconDatabase },
       { href: "/usage", label: "Usage", icon: IconChartBar },
-      { href: "/connectors", label: "Connectors", icon: IconPlugConnected },
-      { href: "/playground", label: "Playground", icon: IconTerminal2 },
     ],
   },
   {
@@ -76,5 +68,20 @@ export const settingsNavItems: SettingsNavItem[] = [
     href: "/settings/data-controls",
     label: "Data Controls",
     icon: IconShieldLock,
+  },
+  {
+    href: "/settings/api-keys",
+    label: "API Keys",
+    icon: IconKey,
+  },
+  {
+    href: "/settings/connectors",
+    label: "Connectors",
+    icon: IconPlugConnected,
+  },
+  {
+    href: "/settings/playground",
+    label: "Playground",
+    icon: IconTerminal2,
   },
 ];

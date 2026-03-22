@@ -1,13 +1,30 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { serverEnv } from "./env/server";
 
 const isPublicRoute = createRouteMatcher([
-  "/login(.*)",
-  "/register(.*)",
+  "/",
+  "/api(.*)",
   "/agent-callback(.*)",
-  "/api/auth/agent-login(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
+  const { userId } = await auth();
+
+  if (req.nextUrl.pathname === "/" && !userId) {
+    if (
+      req.nextUrl.searchParams.has("agent") &&
+      serverEnv.AGENT_CLERK_USER_ID
+    ) {
+      const loginUrl = new URL("/api/auth/agent-login", req.url);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  if (req.nextUrl.pathname === "/" && userId) {
+    return NextResponse.redirect(new URL("/home", req.url));
+  }
+
   if (!isPublicRoute(req)) {
     await auth.protect();
   }

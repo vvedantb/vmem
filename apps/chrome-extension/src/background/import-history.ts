@@ -30,6 +30,7 @@ export async function importHistory(days: number): Promise<number> {
   });
 
   let imported = 0;
+  let processed = 0;
 
   for (const entry of deduplicated) {
     if (isCancelled()) break;
@@ -37,19 +38,24 @@ export async function importHistory(days: number): Promise<number> {
 
     try {
       const hostname = new URL(entry.url).hostname;
-      await createMemory({
+      const result = await createMemory({
         title: entry.title || entry.url,
         content: `${entry.title || ""}\n${entry.url}\nVisited ${entry.visitCount ?? 1} times`,
         type: "episodic",
         source: "browsing-history",
         tags: [hostname],
         confidence: 0.6,
+        url: entry.url,
       });
-      imported++;
+
+      processed++;
+      if (result.status === "created") {
+        imported++;
+      }
 
       chrome.runtime.sendMessage({
         type: "IMPORT_PROGRESS",
-        current: imported,
+        current: processed,
         total: deduplicated.length,
       });
     } catch {

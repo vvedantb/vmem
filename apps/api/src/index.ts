@@ -9,8 +9,10 @@ import { memories } from "./routes/memories";
 import { proposedUpdates } from "./routes/proposed-updates";
 import { dashboard } from "./routes/dashboard";
 import { timeline } from "./routes/timeline";
+import { relationships } from "./routes/relationships";
+import { graph } from "./routes/graph";
 import { authMiddleware } from "./middleware/auth";
-import { getDriver, closeDriver } from "./db/neo4j";
+import { getDriver, closeDriver, ensureIndexes } from "./db/neo4j";
 import { setupDatabase } from "./db/setup";
 
 const app = new Hono().basePath("/v1");
@@ -22,11 +24,15 @@ app.use("/memories/*", authMiddleware);
 app.use("/proposed-updates/*", authMiddleware);
 app.use("/dashboard/*", authMiddleware);
 app.use("/timeline/*", authMiddleware);
+app.use("/relationships/*", authMiddleware);
+app.use("/graph/*", authMiddleware);
 
 app.route("/memories", memories);
 app.route("/proposed-updates", proposedUpdates);
 app.route("/dashboard", dashboard);
 app.route("/timeline", timeline);
+app.route("/relationships", relationships);
+app.route("/graph", graph);
 
 app.get("/health", async (c) => {
   const driver = getDriver();
@@ -50,4 +56,5 @@ process.on("SIGTERM", shutdown);
 serve({ fetch: app.fetch, port }, async () => {
   console.log(`vmem api running on http://localhost:${port}`);
   await setupDatabase(getDriver());
+  await ensureIndexes();
 });

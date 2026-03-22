@@ -35,24 +35,30 @@ export async function importBookmarks(): Promise<number> {
   const tree = await chrome.bookmarks.getTree();
   const bookmarks = flattenBookmarks(tree);
   let imported = 0;
+  let processed = 0;
 
   for (const bookmark of bookmarks) {
     if (isCancelled()) break;
 
     try {
-      await createMemory({
+      const result = await createMemory({
         title: bookmark.title || bookmark.url,
         content: `${bookmark.title}\n${bookmark.url}`,
         type: "knowledge",
         source: "bookmarks",
         tags: bookmark.folderPath,
         confidence: 0.8,
+        url: bookmark.url,
       });
-      imported++;
+
+      processed++;
+      if (result.status === "created") {
+        imported++;
+      }
 
       chrome.runtime.sendMessage({
         type: "IMPORT_PROGRESS",
-        current: imported,
+        current: processed,
         total: bookmarks.length,
       });
     } catch {

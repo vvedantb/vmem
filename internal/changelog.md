@@ -1,5 +1,57 @@
 # Changelog
 
+## Extension Dedup + Smart Tags + Auto-Linking — 2026-03-21
+
+- Added URL-based memory deduplication — API returns 409 when saving a page that already exists, extension shows "Already saved — update?" confirmation
+- URL normalization strips tracking params, hash fragments, trailing slashes before comparison
+- LLM-powered enrichment replaces hostname-only tags with 3-5 semantic topic tags via OpenRouter (google/gemini-2.0-flash)
+- Same LLM call identifies related memories from user's recent 30 for auto-linking via RELATES_TO edges
+- Enrichment runs async after create/update — memory saves instantly, tags arrive shortly after
+- Bulk imports (bookmarks/history) silently skip duplicates instead of prompting per-item
+- New files: `apps/api/src/lib/url.ts` (normalization), `apps/api/src/services/memory-enrichment.ts` (LLM enrichment)
+
+## Graph Response Caching — 2026-03-21
+
+- Added 30s in-memory server-side cache per user on `/v1/graph` — first load hits Neo4j, subsequent loads within 30s skip the query entirely
+- Added `staleTime: 30_000` to TanStack Query on the frontend — navigating away and back reuses cached data without refetching
+- Added timing logs to graph endpoint — logs Neo4j query duration + node/edge counts to isolate network latency from query time
+
+## Obsidian-Style Graph Overhaul — 2026-03-21
+
+- Redesigned DEFAULT_DARK theme to match Obsidian's knowledge graph aesthetic — near-black background, ultra-thin low-opacity edges, subtle tight glow, dramatic hover dimming
+- Tuned physics for calmer, more settled feel — tighter spring length (200→140), stronger springs, higher center gravity, lower max speed, faster damping
+- Reduced node size range (max 12→8) and desaturated colors (HSL 65/65→50/72) for soft pastel dot appearance
+- Unified edge rendering — removed dashed line distinction for relates_to edges, all edges now solid
+- Raised label zoom threshold (1.8→2.5) so labels only appear when zoomed in close
+- Lowered default repulsion (5000→3000) and damping (0.92→0.88) for tighter, calmer clusters
+
+## Dedicated Graph Endpoint — 2026-03-21
+
+- Added `GET /v1/graph` endpoint that returns both nodes and relationships in a single Neo4j query — eliminates the waterfall where frontend had to fetch memories first, then relationships second
+- Graph endpoint returns only the fields the graph needs (id, title, content preview, tags, createdAt) instead of full memory objects — cuts payload size significantly for 650+ memories
+- Single Cypher query fetches Memory nodes with tags via OPTIONAL MATCH, then RELATES_TO edges, returning both in one response — no count query needed since graph doesn't paginate
+- MemoryGraph component now uses its own TanStack query to `/v1/graph` instead of depending on MemoryContext (which fetches full objects for the list view)
+- Reverted Promise.all on single Neo4j session (caused 500 errors) — sessions don't support concurrent queries
+
+## Graph Performance Optimization — 2026-03-21
+
+- Fixed graph only showing 20 nodes despite 629 memories — MemoryContext was fetching `/v1/memories` without a limit param, backend defaulted to 20
+- Replaced O(n²) tag-matching loop with inverted index approach — builds tag→indices map then iterates per-tag groups, reducing 6M+ string comparisons to proportional-to-actual-shared-tags
+- Added spatial grid to physics simulation — repulsion now only computed between nodes in adjacent grid cells instead of all-pairs, cutting per-frame work from ~200k to ~10k distance calculations
+- Parallelized Neo4j count + fetch queries with Promise.all, and reordered Cypher to SKIP/LIMIT before OPTIONAL MATCH so tag collection only runs on the result page, not all 629 memories
+- Added composite index on (userId, createdAt) for the primary list query sort
+
+## Live Graph + TanStack Query + Convex Event Bus — 2026-03-19
+
+- Made graph view live-updating — new memory nodes fade in, deleted nodes disappear, and relationship edges appear/disappear in real-time across tabs without page refresh
+- Added Convex `memoryEvents` table as a lightweight event bus between the Hono API and the frontend — Hono fires events on every memory/relationship CRUD operation, frontend subscribes via Convex live query
+- Migrated `MemoryContext` from raw fetch + useState to TanStack Query — gives automatic refetch-on-window-focus, optimistic updates, and cache invalidation when Convex events arrive
+- Graph now preserves node positions on incremental updates — existing nodes keep their physics positions when new nodes arrive, instead of rebuilding the entire layout from scratch
+- New nodes animate in with an opacity fade (0 → 1 over ~0.5s at 60fps), rendered per-frame in the Canvas loop
+- Secured event bus with a shared secret (`CONVEX_EVENT_SECRET`) validated inside the Convex mutation — Hono API passes it on every push
+- Removed unused `memories` table from Convex schema (Neo4j is the source of truth for memories)
+- Added `convex` dependency to Hono API with `ConvexHttpClient` for server-to-Convex communication
+
 ## Graph View Modes — 2026-03-18
 
 - Added 5 switchable view modes for the memory graph: Default, Satellite, Constellation, Blueprint, and Minimal

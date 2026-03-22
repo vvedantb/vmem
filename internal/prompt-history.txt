@@ -1,23 +1,26 @@
+[] local llm for mobile app
+- graph view live/reactive
 - mcp should use neo4j mcp under the hood, just get their clerk id after they sign in and do it like that
+- prompt
 
 - look into vector db/graph db implementation
 - cache for fast lookup
 - long term memory, short term memory
 - Memory timeline + graph, You could replay how ideas evolved.
-  
+
 - need to figure our core differntiator vs supermemory/mem0
 - focus on voice?
 - focus on code context?
 - focus on commits as history?
 - focus on code chats and build up chat history from there?
 - open source, self hostable
-- memory debugger 
+- memory debugger
 - dream mode, it processes memories and gives you insights next day
 - forecast, predictions, like astrology but based on real data
 - work/personal profiles, just like that show Severance, split memories
 [x] i want a timeline of memories, from past events, to future events, like a tree, predicting what i will do and the paths that it will lead me onto
 
- Convex  → users, preferences, API keys, auth (what you have now)    
+ Convex  → users, preferences, API keys, auth (what you have now)
 
   Memory DB → everything else (memories, embeddings, relationships, graph)
 

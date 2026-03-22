@@ -16,6 +16,8 @@ export interface TimelineEvent {
   details: Record<string, string> | null;
   memoryId: string;
   memoryTitle: string;
+  connectionType?: "tag" | "related";
+  reason?: string;
 }
 
 export type TimelineMode = "history" | "trail";

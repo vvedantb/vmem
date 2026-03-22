@@ -13,14 +13,18 @@ const schema = defineSchema({
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
 
-  memories: defineTable({
-    userId: v.id("users"),
-    title: v.string(),
-    content: v.string(),
-    tags: v.array(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }).index("by_user", ["userId"]),
+  memoryEvents: defineTable({
+    clerkId: v.string(),
+    eventType: v.union(
+      v.literal("memory_created"),
+      v.literal("memory_updated"),
+      v.literal("memory_deleted"),
+      v.literal("relationship_created"),
+      v.literal("relationship_deleted"),
+    ),
+    memoryId: v.string(),
+    payload: v.string(),
+  }).index("by_clerk", ["clerkId"]),
 
   apiKeys: defineTable({
     userId: v.id("users"),

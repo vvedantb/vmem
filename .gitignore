@@ -2,3 +2,10 @@ node_modules
 .agents/
 .env.local
 .mcp.json
+.next
+.turbo
+dist
+out
+build
+.eslintcache
+*.tsbuildinfo
