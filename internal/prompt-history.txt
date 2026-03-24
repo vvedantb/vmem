@@ -1,4 +1,10 @@
+[] add app like excalidraw mcp to claude
+[] use localllm on web app too
+[] chrome ext should sync automatically, daily cron job
+[] add contradicts relationships, derived_from relationship
+[] add files upload and vector search
 [] local llm for mobile app
+[] manage chat context in chat page
 - graph view live/reactive
 - mcp should use neo4j mcp under the hood, just get their clerk id after they sign in and do it like that
 - prompt
