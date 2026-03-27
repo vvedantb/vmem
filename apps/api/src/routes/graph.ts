@@ -36,16 +36,21 @@ graph.get("/", async (c) => {
     return c.json(cached);
   }
 
-  const service = getService();
-  const t0 = performance.now();
-  const data = await service.getGraphData(userId);
-  const ms = (performance.now() - t0).toFixed(1);
-  console.log(
-    `[graph] neo4j query took ${ms}ms — ${data.nodes.length} nodes, ${data.edges.length} edges`,
-  );
+  try {
+    const service = getService();
+    const t0 = performance.now();
+    const data = await service.getGraphData(userId);
+    const ms = (performance.now() - t0).toFixed(1);
+    console.log(
+      `[graph] neo4j query took ${ms}ms — ${data.nodes.length} nodes, ${data.edges.length} edges`,
+    );
 
-  setCache(userId, data);
-  return c.json(data);
+    setCache(userId, data);
+    return c.json(data);
+  } catch (err) {
+    console.error("[graph] failed to fetch graph data:", err);
+    return c.json({ error: "Failed to fetch graph data" }, 500);
+  }
 });
 
 export { graph };
