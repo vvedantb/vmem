@@ -260,7 +260,7 @@ export default function MemoryGraph() {
     }
 
     const groupKeys = [...tagGroups.keys()];
-    const ringRadius = 150;
+    const ringRadius = 250;
     const groupPositions = new Map<string, { cx: number; cy: number }>();
     for (let g = 0; g < groupKeys.length; g++) {
       const angle = (g / groupKeys.length) * Math.PI * 2;
@@ -298,7 +298,7 @@ export default function MemoryGraph() {
         const hash = idToJitter(m.id);
         const pos = primaryTag ? groupPositions.get(primaryTag) : undefined;
         if (pos) {
-          const jitter = 40;
+          const jitter = 60;
           x = pos.cx + hash.dx * jitter;
           y = pos.cy + hash.dy * jitter;
         } else {
@@ -318,7 +318,7 @@ export default function MemoryGraph() {
         y,
         vx,
         vy,
-        radius: Math.min(3 + degree * 1, 8),
+        radius: Math.min(3 + degree * 0.6, 6),
         color: m.tags.length > 0 ? tagToColor(m.tags[0], false) : "#999999",
         opacity,
       };
