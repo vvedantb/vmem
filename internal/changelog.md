@@ -1,5 +1,15 @@
 # Changelog
 
+## Obsidian Graph Physics Overhaul — 2026-03-27
+
+- Rewrote physics constants to match Obsidian's floaty, organic feel — much weaker center gravity (0.004→0.0008), higher damping (0.88→0.95), stronger repulsion (3000→5000), higher max speed (1.5→5)
+- Nodes now glide and settle smoothly instead of snapping or bouncing
+- Wider initial spread (ringRadius 150→250, springLength 140→180) so graph breathes more
+- Labels now appear at lower zoom threshold (2.5→1.5) like Obsidian
+- Slightly smaller, more uniform node sizing (max 8→6) for cleaner look
+- Gravity slider now goes lower (min 0.05) to allow the near-zero gravity Obsidian uses
+- Disabled linLogMode in ForceAtlas2 for more natural node repulsion distribution
+
 ## Extension Dedup + Smart Tags + Auto-Linking — 2026-03-21
 
 - Added URL-based memory deduplication — API returns 409 when saving a page that already exists, extension shows "Already saved — update?" confirmation

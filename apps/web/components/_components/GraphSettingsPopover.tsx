@@ -29,10 +29,10 @@ const FIELDS: {
   {
     key: "gravity",
     label: "Gravity",
-    min: 0.1,
+    min: 0.05,
     max: 5,
-    step: 0.1,
-    format: (v) => v.toFixed(1),
+    step: 0.05,
+    format: (v) => v.toFixed(2),
   },
   {
     key: "repulsion",
