@@ -55,6 +55,13 @@ process.on("SIGTERM", shutdown);
 
 serve({ fetch: app.fetch, port }, async () => {
   console.log(`vmem api running on http://localhost:${port}`);
-  await setupDatabase(getDriver());
-  await ensureIndexes();
+  try {
+    await setupDatabase(getDriver());
+    await ensureIndexes();
+  } catch (err) {
+    console.error(
+      "[startup] neo4j setup failed — API running without indexes:",
+      err,
+    );
+  }
 });
