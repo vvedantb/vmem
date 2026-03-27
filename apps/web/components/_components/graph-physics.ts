@@ -4,21 +4,21 @@ import type { SimNode, SimEdge, GraphSettings } from "./graph-types";
 import type { GraphViewTheme } from "./graph-view-themes";
 
 const INITIAL_ITERATIONS = 80;
-const SPRING_LENGTH = 140;
-const SPRING_STRENGTH = 0.0006;
-const CENTER_GRAVITY = 0.004;
-const MAX_SPEED = 1.5;
+const SPRING_LENGTH = 180;
+const SPRING_STRENGTH = 0.001;
+const CENTER_GRAVITY = 0.0008;
+const MAX_SPEED = 5;
 
 function buildFA2Settings(settings: GraphSettings) {
   return {
-    linLogMode: true,
+    linLogMode: false,
     outboundAttractionDistribution: true,
     adjustSizes: false,
     edgeWeightInfluence: 1,
     scalingRatio: settings.scalingRatio,
     strongGravityMode: false,
     gravity: settings.gravity,
-    slowDown: 2,
+    slowDown: 4,
     barnesHutOptimize: true,
     barnesHutTheta: 0.5,
   };
@@ -63,7 +63,7 @@ export function runInitialLayout(
   readPositions(graph, nodes);
 }
 
-const GRID_CELL_SIZE = 200;
+const GRID_CELL_SIZE = 300;
 
 export function simulationTick(
   nodes: SimNode[],
@@ -329,7 +329,7 @@ export function renderGraph(
       const offset = (node.radius + 5) * invZoom;
       ctx.fillText(truncate(node.label), node.x, node.y + offset);
     }
-  } else if (camera.zoom > 2.5) {
+  } else if (camera.zoom > 1.5) {
     const fontSize = 12 * invZoom;
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";

@@ -253,7 +253,7 @@ export default function ForceGraph({
       const cam = cameraRef.current;
       const { w, h } = sizeRef.current;
       const [wx, wy] = screenToWorld(sx, sy, cam, w, h);
-      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
       cam.zoom = Math.max(0.1, Math.min(10, cam.zoom * factor));
       cam.x = wx - (sx - w / 2) / cam.zoom;
       cam.y = wy - (sy - h / 2) / cam.zoom;
