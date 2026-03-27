@@ -117,7 +117,11 @@ export default function MemoryGraph() {
         headers["Authorization"] = `Bearer ${token}`;
       }
       const res = await fetch(`${API_URL}/v1/graph`, { headers });
-      if (!res.ok) return { nodes: [], edges: [] };
+      if (!res.ok) {
+        const text = await res.text();
+        console.error(`[graph] fetch failed ${res.status}:`, text);
+        return { nodes: [], edges: [] };
+      }
       return res.json() as Promise<GraphResponse>;
     },
     enabled: !!userId,

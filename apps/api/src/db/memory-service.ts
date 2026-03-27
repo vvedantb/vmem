@@ -1082,52 +1082,37 @@ export class MemoryService {
   }> {
     const session = this.driver.session();
     try {
-      const result = await session.run(
+      const nodesResult = await session.run(
         `MATCH (m:Memory {userId: $userId})
+         WHERE m.status IN ['active', 'pinned']
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-         WITH m, collect(t.name) AS tags
-         WITH collect({ id: m.id, title: m.title, content: left(m.content, 200), tags: tags, createdAt: m.createdAt }) AS nodes,
-              collect(m) AS mems
-         UNWIND mems AS a
-         OPTIONAL MATCH (a)-[r:RELATES_TO]->(b:Memory {userId: $userId})
-         WITH nodes, collect(CASE WHEN b IS NOT NULL THEN { source: a.id, target: b.id, reason: r.reason } END) AS rawEdges
-         RETURN nodes, [e IN rawEdges WHERE e IS NOT NULL] AS edges`,
+         RETURN m.id AS id, m.title AS title,
+                substring(m.content, 0, 200) AS content,
+                collect(t.name) AS tags,
+                m.createdAt AS createdAt`,
         { userId },
       );
 
-      if (result.records.length === 0) {
-        return { nodes: [], edges: [] };
-      }
-
-      const record = result.records[0];
-      const rawNodes = record.get("nodes") as {
-        id: string;
-        title: string;
-        content: string;
-        tags: string[];
-        createdAt: string;
-      }[];
-      const rawEdges = record.get("edges") as {
-        source: string;
-        target: string;
-        reason: string;
-      }[];
-
-      const nodes = rawNodes.map((n) => ({
-        id: String(n.id),
-        title: String(n.title),
-        content: String(n.content ?? ""),
-        tags: (n.tags ?? []).map(String),
-        createdAt: String(n.createdAt),
+      const nodes = nodesResult.records.map((r) => ({
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        content: String(r.get("content") ?? ""),
+        tags: (r.get("tags") as string[]).filter(Boolean).map(String),
+        createdAt: String(r.get("createdAt")),
       }));
 
-      const edges = rawEdges
-        .filter((e) => e.source && e.target)
-        .map((e) => ({
-          source: String(e.source),
-          target: String(e.target),
-          reason: String(e.reason ?? ""),
-        }));
+      const edgesResult = await session.run(
+        `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
+         WHERE a.status IN ['active', 'pinned'] AND b.status IN ['active', 'pinned']
+         RETURN a.id AS source, b.id AS target, r.reason AS reason`,
+        { userId },
+      );
+
+      const edges = edgesResult.records.map((r) => ({
+        source: String(r.get("source")),
+        target: String(r.get("target")),
+        reason: String(r.get("reason") ?? ""),
+      }));
 
       return { nodes, edges };
     } finally {
