@@ -44,7 +44,7 @@ export const navGroups: NavGroup[] = [
     icon: IconPlug,
     items: [
       { href: "/files", label: "Files", icon: IconFiles },
-      { href: "/index", label: "Index", icon: IconDatabase },
+      { href: "/codebases", label: "Codebases", icon: IconDatabase },
       { href: "/usage", label: "Usage", icon: IconChartBar },
     ],
   },
