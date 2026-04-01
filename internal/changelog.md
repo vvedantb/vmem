@@ -1,5 +1,33 @@
 # Changelog
 
+## Adopt @neo4j/cypher-builder for dynamic queries — 2026-04-01
+
+- Replaced string-concatenated WHERE/SET clauses in `listMemories` and `updateMemory` with `@neo4j/cypher-builder` for type-safe, composable query construction
+- Added `cypher-helpers.ts` with a `buildAndRun` helper to bridge the builder's `.build()` output to neo4j-driver sessions
+- Left the other ~37 static queries as raw parameterized Cypher — they have fixed structure and don't benefit from a builder
+- Reason: dynamic string concatenation for WHERE conditions and SET clauses was the only injection-prone pattern; the builder eliminates it while keeping the codebase simple
+
+## Fix Empty Memory Graph For Legacy Rows — 2026-04-01
+
+- Treated Neo4j memories with no `status` field as `active` in the graph query so older rows still appear in graph view
+- Stopped the graph client from turning failed `/v1/graph` requests into a fake empty state and now show the actual error instead
+- Reason: the list view did not require `status`, but the graph view filtered on it strictly, so legacy data looked like "No memories to visualize" even when memories existed
+
+## Fix Railway Deploys For API + MCP — 2026-04-01
+
+- Kept `apps/api` and `apps/mcp` on pnpm `catalog:` versions and aligned the deploy model around the monorepo root instead of per-app roots
+- Added root scripts for API build/start so Railway services can target `api` and `mcp` from the workspace root with explicit per-service commands
+- Removed the temporary standalone-app workaround because it broke the repo's single-source-of-truth dependency versioning
+- Reason: `catalog:` only resolves when Railway installs with access to `pnpm-workspace.yaml`, so the reliable fix is root-based workspace deploys
+
+## Harden Mobile Clerk + Convex Auth Handshake — 2026-04-01
+
+- Mobile routing now waits for Convex auth readiness, not just Clerk session state — this closes the gap where the app could navigate into authenticated screens before Convex had accepted the token
+- User bootstrap no longer swallows `ensureUserExists` failures — failed Convex registration now blocks entry and offers retry instead of silently continuing without a `users` row
+- Added Clerk captcha mount to the custom mobile sign-up flow so account creation matches Clerk's required Expo setup
+- Reworked the SSO callback to handle incomplete OAuth outcomes explicitly — missing profile fields can now be collected instead of leaving users on a permanent spinner
+- Added a signed-in-but-not-Convex-authenticated fallback screen so backend auth misconfiguration fails visibly and recoverably
+
 ## Monorepo Dependency Version Management — 2026-04-01
 
 - Added pnpm catalogs to centralize shared dependency versions across all 7 workspaces — single source of truth replaces scattered version strings
