@@ -1,5 +1,26 @@
 # Changelog
 
+## Monorepo Dependency Version Management — 2026-04-01
+
+- Added pnpm catalogs to centralize shared dependency versions across all 7 workspaces — single source of truth replaces scattered version strings
+- Named catalogs for intentional version splits: tailwind3 (web/mobile), tailwind4 (chrome-extension), zod4 (api), per-runtime @types/node
+- Replaced react/react-dom pnpm overrides with catalog declarations — overrides are a blunt resolution hammer, catalogs are a proper version declaration
+- Added syncpack (v14) as CI linter to catch version drift — catches anyone bypassing catalog: protocol or introducing mismatches
+- Added `lint:deps`, `fix:deps`, `check:expo` root scripts
+- Added `.github/workflows/lint-deps.yml` — runs syncpack + expo install --check on PRs touching package files
+- Added `packageManager: pnpm@10.15.1` to root package.json for version enforcement
+- Aligned drifting versions: convex (chrome-ext 1.33→1.34), @clerk/backend (mcp 2.29→2.30), @tabler/icons-react (web 3.31→3.35), typescript (all →^5.7.0)
+
+## Fix Mobile Auth Flow — 2026-04-01
+
+- Register flow now handles email verification — previously silently failed when Clerk required it (the default)
+- Login flow handles `needs_first_factor` status for unverified emails, shows clear error for MFA
+- New verify-email screen supports both sign-up and sign-in verification with 6-digit code input + resend
+- Added missing `expo-web-browser` dependency (was only available via transitive dep)
+- Clerk publishable key now fails fast at startup instead of silently creating broken instance
+- Replaced manual SecureStore token cache with `@clerk/clerk-expo/token-cache`
+- Simplified SSO callback — removed eager redirect, lets route guard handle navigation
+
 ## Obsidian Graph Physics Overhaul — 2026-03-27
 
 - Rewrote physics constants to match Obsidian's floaty, organic feel — much weaker center gravity (0.004→0.0008), higher damping (0.88→0.95), stronger repulsion (3000→5000), higher max speed (1.5→5)

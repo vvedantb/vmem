@@ -1,0 +1,64 @@
+{
+  "$schema": "https://unpkg.com/syncpack/dist/schema.json",
+  "versionGroups": [
+    {
+      "label": "Expo-pinned packages — managed by expo install, not syncpack",
+      "dependencies": [
+        "expo",
+        "expo-*",
+        "nativewind",
+        "react-native",
+        "react-native-*",
+        "@react-native-*",
+        "@react-native-community/*",
+        "@babel/core"
+      ],
+      "packages": ["mobile"],
+      "isIgnored": true
+    },
+    {
+      "label": "@types/node varies by runtime target",
+      "dependencies": ["@types/node"],
+      "isIgnored": true
+    },
+    {
+      "label": "zod 4 in api only",
+      "dependencies": ["zod"],
+      "packages": ["@vmem/api"],
+      "pinVersion": "catalog:zod4"
+    },
+    {
+      "label": "Tailwind 4 in chrome-extension",
+      "dependencies": ["tailwindcss", "@tailwindcss/*"],
+      "packages": ["@vmem/chrome-extension"],
+      "pinVersion": "catalog:tailwind4"
+    },
+    {
+      "label": "Tailwind 3 in web and mobile",
+      "dependencies": ["tailwindcss"],
+      "packages": ["web", "mobile"],
+      "pinVersion": "catalog:tailwind3"
+    },
+    {
+      "label": "Loose peer deps in @vmem/ui — intentionally wide ranges",
+      "dependencies": [
+        "react",
+        "react-dom",
+        "ai",
+        "motion",
+        "nanoid",
+        "streamdown",
+        "@streamdown/*",
+        "use-stick-to-bottom"
+      ],
+      "packages": ["@vmem/ui"],
+      "isIgnored": true
+    },
+    {
+      "label": "All other deps should use default catalog or highest semver",
+      "dependencies": ["**"],
+      "packages": ["**"],
+      "preferVersion": "highestSemver"
+    }
+  ]
+}
