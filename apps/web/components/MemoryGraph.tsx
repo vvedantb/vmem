@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { IconMoodEmpty, IconLoader2, IconPlus } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
+import { z } from "zod";
 import AddMemoryModal from "@/components/AddMemoryModal";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
@@ -92,6 +93,25 @@ interface GraphResponse {
   edges: RelationshipEdge[];
 }
 
+const graphResponseSchema = z.object({
+  nodes: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      content: z.string(),
+      tags: z.array(z.string()),
+      createdAt: z.string(),
+    }),
+  ),
+  edges: z.array(
+    z.object({
+      source: z.string(),
+      target: z.string(),
+      reason: z.string(),
+    }),
+  ),
+});
+
 export default function MemoryGraph() {
   const { deleteMemory } = useMemoryContext();
   const { theme } = useThemeContext();
@@ -119,10 +139,9 @@ export default function MemoryGraph() {
       const res = await fetch(`${API_URL}/v1/graph`, { headers });
       if (!res.ok) {
         const text = await res.text();
-        console.error(`[graph] fetch failed ${res.status}:`, text);
-        return { nodes: [], edges: [] };
+        throw new Error(text || `Graph request failed with ${res.status}`);
       }
-      return res.json() as Promise<GraphResponse>;
+      return graphResponseSchema.parse(await res.json());
     },
     enabled: !!userId,
     staleTime: 30_000,
@@ -392,6 +411,22 @@ export default function MemoryGraph() {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
         <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (graphQuery.isError) {
+    return (
+      <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
+        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+          <IconMoodEmpty className="w-6 h-6 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-medium text-foreground mb-2">
+          Failed to load graph
+        </h3>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          {graphQuery.error.message}
+        </p>
       </div>
     );
   }
