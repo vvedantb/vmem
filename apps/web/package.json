@@ -48,6 +48,7 @@
     "clsx": "catalog:",
     "cmdk": "catalog:",
     "convex": "catalog:",
+    "convex-helpers": "catalog:",
     "diff": "^8.0.3",
     "eslint": "^9.38.0",
     "eslint-config-next": "16.2.0",
