@@ -35,9 +35,9 @@ const statusConfig = {
   },
 };
 
-export default function IndexPage() {
+export default function CodebasesPage() {
   return (
-    <PageContainer title="Index">
+    <PageContainer title="Codebases">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {mockCodebases.map((codebase) => {
           const status = statusConfig[codebase.status];
@@ -48,7 +48,7 @@ export default function IndexPage() {
               : 0;
 
           return (
-            <Link key={codebase.id} href={`/index/${codebase.id}`}>
+            <Link key={codebase.id} href={`/codebases/${codebase.id}`}>
               <Card className="border border-border bg-muted/50 shadow-none hover:bg-muted/80 transition-colors cursor-pointer">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-start justify-between gap-3">

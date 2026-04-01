@@ -73,10 +73,10 @@ export default function CodebaseDetailPage({
               The codebase you are looking for does not exist or has been
               removed.
             </p>
-            <Link href="/index">
+            <Link href="/codebases">
               <Button variant="outline">
                 <IconArrowLeft size={16} />
-                Back to Index
+                Back to Codebases
               </Button>
             </Link>
           </CardContent>
@@ -96,7 +96,7 @@ export default function CodebaseDetailPage({
     <PageContainer
       title={codebase.name}
       leftSection={
-        <Link href="/index">
+        <Link href="/codebases">
           <Button variant="outline" size="sm">
             <IconArrowLeft size={16} />
             Back
