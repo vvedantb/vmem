@@ -4,6 +4,7 @@ import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { GoogleSignInButton } from "@/components/ui/GoogleSignInButton";
 
 export default function RegisterScreen() {
   const { signUp, setActive, isLoaded } = useSignUp();
@@ -84,6 +85,12 @@ export default function RegisterScreen() {
             disabled={loading}
           />
         </View>
+        <View className="flex-row items-center gap-3">
+          <View className="flex-1 h-px bg-gray-200" />
+          <Text className="text-gray-400 text-sm">or</Text>
+          <View className="flex-1 h-px bg-gray-200" />
+        </View>
+        <GoogleSignInButton label="Sign up with Google" />
         <View className="flex-row justify-center gap-1">
           <Text className="text-gray-500">Already have an account?</Text>
           <Link href="/(auth)/login">
