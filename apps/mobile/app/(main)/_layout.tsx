@@ -1,5 +1,9 @@
+import { useEffect } from "react";
 import { Tabs } from "expo-router";
-import { View, Text } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
+import { useUser } from "@clerk/clerk-expo";
+import { useMutation } from "convex/react";
+import { api } from "@vmem/backend";
 import { useIsOnline } from "@/providers/NetworkProvider";
 
 function ChatIcon({ color, size }: { color: string; size: number }) {
@@ -44,6 +48,24 @@ function OfflineBanner() {
 }
 
 export default function MainLayout() {
+  const { user, isLoaded } = useUser();
+  const ensureUserExists = useMutation(api.auth.ensureUserExists);
+
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+    void ensureUserExists({}).catch((error) => {
+      console.error("Failed to ensure user:", error);
+    });
+  }, [isLoaded, user, ensureUserExists]);
+
+  if (!isLoaded) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="#000000" />
+      </View>
+    );
+  }
+
   return (
     <>
       <OfflineBanner />
