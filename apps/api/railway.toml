@@ -1,5 +1,6 @@
 [build]
 builder = "railpack"
+buildCommand = "pnpm --filter @vmem/api build"
 watchPatterns = ["apps/api/**"]
 
 [deploy]
