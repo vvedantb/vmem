@@ -8,7 +8,7 @@ interface InputProps {
   secureTextEntry?: boolean;
   label?: string;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  keyboardType?: "default" | "email-address";
+  keyboardType?: "default" | "email-address" | "number-pad";
 }
 
 export function Input({
