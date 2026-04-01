@@ -15,6 +15,8 @@
     "ext:build": "pnpm --filter @vmem/chrome-extension build",
     "mobile": "pnpm --filter mobile start",
     "android": "pnpm --filter mobile android",
+    "prebuild:android": "pnpm --filter mobile prebuild:android",
+    "clean:android": "pnpm --filter mobile clean:android",
     "docs:dev": "pnpm --filter docs exec mint dev --port 3001",
     "lint": "pnpm --filter web lint",
     "typecheck": "pnpm --filter web typecheck",

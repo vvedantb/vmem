@@ -3,10 +3,10 @@ import "../src/global.css";
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
+import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Slot, useRouter, useSegments } from "expo-router";
-import * as SecureStore from "expo-secure-store";
 import { NetworkProvider } from "@/providers/NetworkProvider";
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
@@ -14,13 +14,14 @@ if (!convexUrl) {
   throw new Error("Missing EXPO_PUBLIC_CONVEX_URL environment variable");
 }
 
-const convex = new ConvexReactClient(convexUrl);
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+if (!publishableKey) {
+  throw new Error(
+    "Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable",
+  );
+}
 
-const tokenCache = {
-  getToken: (key: string) => SecureStore.getItemAsync(key),
-  saveToken: (key: string, value: string) =>
-    SecureStore.setItemAsync(key, value),
-};
+const convex = new ConvexReactClient(convexUrl);
 
 function RootLayoutNav() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -35,7 +36,7 @@ function RootLayoutNav() {
     } else if (!isSignedIn && !inAuthGroup) {
       router.replace("/(auth)/login");
     }
-  }, [isSignedIn, isLoaded, segments, router]);
+  }, [isSignedIn, isLoaded]);
 
   if (!isLoaded) {
     return (
@@ -49,8 +50,6 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
-
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>

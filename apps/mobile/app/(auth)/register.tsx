@@ -34,6 +34,11 @@ export default function RegisterScreen() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         router.replace("/(main)");
+      } else {
+        await signUp.prepareEmailAddressVerification({
+          strategy: "email_code",
+        });
+        router.push("/(auth)/verify-email");
       }
     } catch (err) {
       if (err instanceof Error) {

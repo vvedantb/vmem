@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { TouchableOpacity, Text, View, Image } from "react-native";
 import { useSSO } from "@clerk/clerk-expo";
+import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
 
@@ -16,9 +17,12 @@ export function GoogleSignInButton({ label = "Continue with Google" }) {
     setLoading(true);
     setError("");
     try {
+      const redirectUrl = Linking.createURL("/sso-callback");
       const { createdSessionId, setActive } = await startSSOFlow({
         strategy: "oauth_google",
+        redirectUrl,
       });
+
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
         router.replace("/(main)");
