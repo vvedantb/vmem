@@ -7,6 +7,7 @@ import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Slot, useRouter, useSegments } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { NetworkProvider } from "@/providers/NetworkProvider";
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -53,7 +54,9 @@ export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <RootLayoutNav />
+        <NetworkProvider>
+          <RootLayoutNav />
+        </NetworkProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>
   );

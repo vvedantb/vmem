@@ -1,16 +1,28 @@
 import { View, Text, TouchableOpacity } from "react-native";
 
-const SUGGESTIONS = [
+const ONLINE_SUGGESTIONS = [
   "What do I know about React?",
   "Tell me about Docker",
   "Summarize my TypeScript notes",
 ];
 
+const OFFLINE_SUGGESTIONS = [
+  "What is TypeScript?",
+  "Explain async/await",
+  "How does React rendering work?",
+];
+
 interface EmptyStateProps {
   onSuggestionTap: (text: string) => void;
+  isOffline?: boolean;
 }
 
-export default function EmptyState({ onSuggestionTap }: EmptyStateProps) {
+export default function EmptyState({
+  onSuggestionTap,
+  isOffline = false,
+}: EmptyStateProps) {
+  const suggestions = isOffline ? OFFLINE_SUGGESTIONS : ONLINE_SUGGESTIONS;
+
   return (
     <View className="flex-1 items-center justify-center px-6">
       <View className="items-center mb-8">
@@ -18,12 +30,13 @@ export default function EmptyState({ onSuggestionTap }: EmptyStateProps) {
           Start a conversation
         </Text>
         <Text className="text-gray-500 dark:text-gray-400 text-center text-sm">
-          Ask anything about your stored memories. The AI will search and
-          reference relevant information.
+          {isOffline
+            ? "You're offline. Chat with the local AI model — memory search is not available."
+            : "Ask anything about your stored memories. The AI will search and reference relevant information."}
         </Text>
       </View>
       <View className="w-full max-w-xs gap-3">
-        {SUGGESTIONS.map((suggestion) => (
+        {suggestions.map((suggestion) => (
           <TouchableOpacity
             key={suggestion}
             onPress={() => onSuggestionTap(suggestion)}
