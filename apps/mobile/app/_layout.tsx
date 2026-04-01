@@ -1,12 +1,11 @@
 import "../src/global.css";
 
-import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
-import { Slot, useRouter, useSegments } from "expo-router";
+import { Slot } from "expo-router";
 import { NetworkProvider } from "@/providers/NetworkProvider";
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
@@ -24,19 +23,7 @@ if (!publishableKey) {
 const convex = new ConvexReactClient(convexUrl);
 
 function RootLayoutNav() {
-  const { isSignedIn, isLoaded } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    const inAuthGroup = segments[0] === "(auth)";
-    if (isSignedIn && inAuthGroup) {
-      router.replace("/(main)");
-    } else if (!isSignedIn && !inAuthGroup) {
-      router.replace("/(auth)/login");
-    }
-  }, [isSignedIn, isLoaded]);
+  const { isLoaded } = useAuth();
 
   if (!isLoaded) {
     return (

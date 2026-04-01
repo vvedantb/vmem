@@ -1,6 +1,5 @@
 import { Tabs } from "expo-router";
 import { View, Text } from "react-native";
-import { EnsureUser } from "@/components/EnsureUser";
 import { useIsOnline } from "@/providers/NetworkProvider";
 
 function ChatIcon({ color, size }: { color: string; size: number }) {
@@ -46,7 +45,7 @@ function OfflineBanner() {
 
 export default function MainLayout() {
   return (
-    <EnsureUser>
+    <>
       <OfflineBanner />
       <Tabs
         screenOptions={{
@@ -74,6 +73,6 @@ export default function MainLayout() {
           }}
         />
       </Tabs>
-    </EnsureUser>
+    </>
   );
 }
