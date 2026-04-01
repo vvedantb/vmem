@@ -1,6 +1,7 @@
 [build]
-builder = "nixpacks"
-buildCommand = "pnpm build"
+builder = "railpack"
+buildCommand = "pnpm --filter mcp build"
+watchPatterns = ["apps/mcp/**"]
 
 [deploy]
-startCommand = "pnpm start"
+startCommand = "pnpm --filter mcp start"

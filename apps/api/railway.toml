@@ -1,5 +1,6 @@
 [build]
-builder = "nixpacks"
+builder = "railpack"
+watchPatterns = ["apps/api/**"]
 
 [deploy]
-startCommand = "pnpm start"
+startCommand = "pnpm --filter @vmem/api start"
