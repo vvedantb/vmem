@@ -7,9 +7,9 @@
     "start": "expo start",
     "android": "expo run:android",
     "prebuild:android": "expo prebuild --platform android --clean && expo run:android",
-    "clean:android": "expo prebuild --platform android --clean",
     "ios": "expo run:ios",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "clear": "expo start --clear"
   },
   "dependencies": {
     "@clerk/clerk-expo": "catalog:",
