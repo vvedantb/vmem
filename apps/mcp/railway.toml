@@ -1,6 +1,6 @@
 [build]
 builder = "railpack"
-buildCommand = "npm install"
+buildCommand = "corepack enable && pnpm install --frozen-lockfile && pnpm build"
 
 [deploy]
-startCommand = "npx tsx src/index.ts"
+startCommand = "pnpm start"
