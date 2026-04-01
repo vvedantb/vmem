@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { useMutation } from "convex/react";
 import { useAuth } from "@clerk/clerk-expo";
@@ -8,17 +8,14 @@ export function EnsureUser({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth();
   const ensureUserExists = useMutation(api.auth.ensureUserExists);
   const [ready, setReady] = useState(false);
-
-  const ensure = useCallback(async () => {
-    await ensureUserExists({});
-    setReady(true);
-  }, [ensureUserExists]);
+  const called = useRef(false);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      ensure();
+    if (isLoaded && isSignedIn && !called.current) {
+      called.current = true;
+      ensureUserExists({}).then(() => setReady(true));
     }
-  }, [isLoaded, isSignedIn, ensure]);
+  }, [isLoaded, isSignedIn]);
 
   if (!isLoaded || !isSignedIn || !ready) {
     return (

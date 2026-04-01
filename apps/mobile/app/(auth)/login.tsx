@@ -27,6 +27,25 @@ export default function LoginScreen() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         router.replace("/(main)");
+      } else if (result.status === "needs_first_factor") {
+        const emailFactor = result.supportedFirstFactors?.find(
+          (f) => f.strategy === "email_code",
+        );
+        if (emailFactor && "emailAddressId" in emailFactor) {
+          await signIn.prepareFirstFactor({
+            strategy: "email_code",
+            emailAddressId: emailFactor.emailAddressId,
+          });
+          router.push("/(auth)/verify-email");
+        } else {
+          setError(
+            "Email verification required but not available. Please contact support.",
+          );
+        }
+      } else if (result.status === "needs_second_factor") {
+        setError(
+          "Multi-factor authentication is not yet supported in this app.",
+        );
       }
     } catch (err) {
       if (err instanceof Error) {

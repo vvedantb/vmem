@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "vmem",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "platforms": ["ios", "android"],
     "ios": {
@@ -14,7 +15,8 @@
     "android": {
       "package": "com.vmem.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
       }
     },
     "plugins": [
