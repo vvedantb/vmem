@@ -4,11 +4,12 @@ import neo4j, {
   type Session,
   type Record as NeoRecord,
 } from "neo4j-driver";
+import Cypher from "@neo4j/cypher-builder";
 import crypto from "node:crypto";
+import { buildAndRun } from "./cypher-helpers.js";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
 type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
-type NeoParams = Record<string, string | number | string[] | null | Integer>;
 
 interface MemoryNode {
   id: string;
@@ -303,48 +304,67 @@ export class MemoryService {
     offset: number;
   }): Promise<{ memories: MemoryWithTags[]; total: number }> {
     return this.withSession(async (session) => {
-      const conditions = ["m.userId = $userId"];
-      const queryParams: NeoParams = {
-        userId: params.userId,
-        limit: neo4j.int(params.limit),
-        offset: neo4j.int(params.offset),
+      const m = new Cypher.Node();
+
+      const buildPredicates = (): Cypher.Predicate => {
+        const preds: Cypher.Predicate[] = [
+          Cypher.eq(m.property("userId"), new Cypher.Param(params.userId)),
+        ];
+        if (params.type) {
+          preds.push(
+            Cypher.eq(m.property("type"), new Cypher.Param(params.type)),
+          );
+        }
+        if (params.status) {
+          preds.push(
+            Cypher.eq(m.property("status"), new Cypher.Param(params.status)),
+          );
+        }
+        if (params.tags && params.tags.length > 0) {
+          const ft = new Cypher.Node();
+          const filterTagsParam = new Cypher.Param(params.tags);
+          const tagPattern = new Cypher.Pattern(m)
+            .related({ type: "TAGGED_WITH", direction: "right" })
+            .to(ft, { labels: ["Tag"] })
+            .where(Cypher.in(ft.property("name"), filterTagsParam));
+          preds.push(
+            Cypher.eq(
+              new Cypher.Count(tagPattern),
+              Cypher.size(filterTagsParam),
+            ),
+          );
+        }
+        const combined = Cypher.and(...preds);
+        if (!combined) throw new Error("Expected at least one predicate");
+        return combined;
       };
 
-      if (params.type) {
-        conditions.push("m.type = $type");
-        queryParams.type = params.type;
-      }
-      if (params.status) {
-        conditions.push("m.status = $status");
-        queryParams.status = params.status;
-      }
+      const countQuery = new Cypher.Match(
+        new Cypher.Pattern(m, { labels: ["Memory"] }),
+      )
+        .where(buildPredicates())
+        .return([Cypher.count(m), "total"]);
 
-      const where = conditions.join(" AND ");
-
-      let tagMatch = "";
-      if (params.tags && params.tags.length > 0) {
-        tagMatch =
-          "MATCH (m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags WITH m WHERE count { (m)-[:TAGGED_WITH]->(ft2:Tag) WHERE ft2.name IN $filterTags } = size($filterTags)";
-        queryParams.filterTags = params.tags;
-      }
-
-      const countResult = await session.run(
-        `MATCH (m:Memory) WHERE ${where} ${tagMatch} RETURN count(m) AS total`,
-        queryParams,
-      );
-
+      const countResult = await buildAndRun(session, countQuery);
       const total = toNeoInt(countResult.records[0].get("total"));
 
-      const result = await session.run(
-        `MATCH (m:Memory) WHERE ${where}
-         ${tagMatch}
-         WITH m ORDER BY m.createdAt DESC
-         SKIP $offset LIMIT $limit
-         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-         RETURN m, collect(t.name) AS tags`,
-        queryParams,
-      );
+      const t = new Cypher.Node();
+      const dataQuery = new Cypher.Match(
+        new Cypher.Pattern(m, { labels: ["Memory"] }),
+      )
+        .where(buildPredicates())
+        .with(m)
+        .orderBy([m.property("createdAt"), "DESC"])
+        .skip(new Cypher.Param(neo4j.int(params.offset)))
+        .limit(new Cypher.Param(neo4j.int(params.limit)))
+        .optionalMatch(
+          new Cypher.Pattern(m)
+            .related({ type: "TAGGED_WITH", direction: "right" })
+            .to(t, { labels: ["Tag"] }),
+        )
+        .return(m, [Cypher.collect(t.property("name")), "tags"]);
 
+      const result = await buildAndRun(session, dataQuery);
       const memories = result.records.map(toMemoryWithTags);
       return { memories, total };
     });
@@ -364,60 +384,77 @@ export class MemoryService {
     },
   ): Promise<MemoryWithTags | null> {
     return this.withSession(async (session) => {
-      const setClauses: string[] = ["m.updatedAt = $now"];
-      const queryParams: NeoParams = {
-        memoryId,
-        userId,
-        now: new Date().toISOString(),
-      };
+      const m = new Cypher.Node();
+      const t = new Cypher.Node();
 
+      const setParams: Cypher.SetParam[] = [
+        [m.property("updatedAt"), new Cypher.Param(new Date().toISOString())],
+      ];
       if (updates.title !== undefined) {
-        setClauses.push("m.title = $title");
-        queryParams.title = updates.title;
+        setParams.push([m.property("title"), new Cypher.Param(updates.title)]);
       }
       if (updates.content !== undefined) {
-        setClauses.push("m.content = $content");
-        queryParams.content = updates.content;
+        setParams.push([
+          m.property("content"),
+          new Cypher.Param(updates.content),
+        ]);
       }
       if (updates.type !== undefined) {
-        setClauses.push("m.type = $type");
-        queryParams.type = updates.type;
+        setParams.push([m.property("type"), new Cypher.Param(updates.type)]);
       }
       if (updates.status !== undefined) {
-        setClauses.push("m.status = $status");
-        queryParams.status = updates.status;
+        setParams.push([
+          m.property("status"),
+          new Cypher.Param(updates.status),
+        ]);
       }
       if (updates.confidence !== undefined) {
-        setClauses.push("m.confidence = $confidence");
-        queryParams.confidence = updates.confidence;
+        setParams.push([
+          m.property("confidence"),
+          new Cypher.Param(updates.confidence),
+        ]);
       }
       if (updates.expiresAt !== undefined) {
-        setClauses.push("m.expiresAt = $expiresAt");
-        queryParams.expiresAt = updates.expiresAt;
+        setParams.push([
+          m.property("expiresAt"),
+          new Cypher.Param(updates.expiresAt),
+        ]);
       }
 
-      let tagUpdate = "";
-      if (updates.tags !== undefined) {
-        tagUpdate = `
-          WITH m
-          OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
-          DELETE r
-          WITH m
-          UNWIND $newTags AS tagName
-          MERGE (t:Tag {name: tagName})
-          CREATE (m)-[:TAGGED_WITH]->(t)`;
-        queryParams.newTags = updates.tags;
-      }
+      const matchWithSet = new Cypher.Match(
+        new Cypher.Pattern(m, {
+          labels: ["Memory"],
+          properties: {
+            id: new Cypher.Param(memoryId),
+            userId: new Cypher.Param(userId),
+          },
+        }),
+      ).set(...setParams);
 
-      const result = await session.run(
-        `MATCH (m:Memory {id: $memoryId, userId: $userId})
-         SET ${setClauses.join(", ")}
-         ${tagUpdate}
-         WITH m
-         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-         RETURN m, collect(t.name) AS tags`,
-        queryParams,
-      );
+      const tagUpdate =
+        updates.tags !== undefined
+          ? new Cypher.Raw((ctx) => [
+              `WITH ${ctx.compile(m)}
+OPTIONAL MATCH (${ctx.compile(m)})-[r:TAGGED_WITH]->(:Tag)
+DELETE r
+WITH ${ctx.compile(m)}
+UNWIND $newTags AS tagName
+MERGE (tag:Tag {name: tagName})
+CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
+              { newTags: updates.tags },
+            ])
+          : undefined;
+
+      const returnPart = new Cypher.With(m)
+        .optionalMatch(
+          new Cypher.Pattern(m)
+            .related({ type: "TAGGED_WITH", direction: "right" })
+            .to(t, { labels: ["Tag"] }),
+        )
+        .return(m, [Cypher.collect(t.property("name")), "tags"]);
+
+      const query = Cypher.utils.concat(matchWithSet, tagUpdate, returnPart);
+      const result = await buildAndRun(session, query);
 
       if (result.records.length === 0) return null;
 
@@ -1006,7 +1043,7 @@ export class MemoryService {
       const [nodesResult, edgesResult] = await Promise.all([
         session.run(
           `MATCH (m:Memory {userId: $userId})
-           WHERE m.status IN ['active', 'pinned']
+           WHERE coalesce(m.status, 'active') IN ['active', 'pinned']
            OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
            RETURN m.id AS id, m.title AS title,
                   substring(m.content, 0, 200) AS content,
@@ -1016,7 +1053,8 @@ export class MemoryService {
         ),
         session.run(
           `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
-           WHERE a.status IN ['active', 'pinned'] AND b.status IN ['active', 'pinned']
+           WHERE coalesce(a.status, 'active') IN ['active', 'pinned']
+             AND coalesce(b.status, 'active') IN ['active', 'pinned']
            RETURN a.id AS source, b.id AS target, r.reason AS reason`,
           { userId },
         ),
