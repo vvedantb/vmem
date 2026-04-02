@@ -1,19 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { Redirect } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, Dimensions } from "react-native";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { useMutation } from "convex/react";
 import { useColorScheme } from "nativewind";
-import {
-  IconMessageCircle,
-  IconSettings,
-  IconMicrophone,
-} from "@tabler/icons-react-native";
 import { api } from "@vmem/backend";
 import { useIsOnline } from "@/providers/NetworkProvider";
 import { THEME_COLORS } from "@/lib/theme";
 import { Text } from "@/components/ui/text";
+import DrawerContent from "@/components/DrawerContent";
 
 function OfflineBanner() {
   const isOnline = useIsOnline();
@@ -27,6 +23,8 @@ function OfflineBanner() {
     </View>
   );
 }
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function MainLayout() {
   const { isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
@@ -74,46 +72,23 @@ export default function MainLayout() {
     <>
       <OfflineBanner />
       <Drawer
+        drawerContent={(props) => <DrawerContent {...props} />}
         screenOptions={{
           headerShown: false,
-          drawerActiveTintColor: theme.foreground,
-          drawerInactiveTintColor: theme.muted,
-          drawerLabelStyle: {
-            fontFamily: "InstrumentSans_500Medium",
-          },
+          drawerType: "front",
+          swipeEnabled: true,
+          swipeEdgeWidth: SCREEN_WIDTH * 0.15,
+          swipeMinDistance: 10,
           drawerStyle: {
             backgroundColor: theme.background,
+            width: 280,
           },
-          swipeEnabled: true,
+          overlayColor: "rgba(0,0,0,0.4)",
         }}
       >
-        <Drawer.Screen
-          name="index"
-          options={{
-            title: "Chat",
-            drawerIcon: ({ color, size }) => (
-              <IconMessageCircle size={size} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
-          name="record"
-          options={{
-            title: "Record",
-            drawerIcon: ({ color, size }) => (
-              <IconMicrophone size={size} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
-          name="settings"
-          options={{
-            title: "Settings",
-            drawerIcon: ({ color, size }) => (
-              <IconSettings size={size} color={color} />
-            ),
-          }}
-        />
+        <Drawer.Screen name="index" />
+        <Drawer.Screen name="record" />
+        <Drawer.Screen name="settings" />
       </Drawer>
     </>
   );
