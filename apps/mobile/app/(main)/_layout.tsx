@@ -69,27 +69,29 @@ export default function MainLayout() {
   }
 
   return (
-    <>
-      <OfflineBanner />
-      <Drawer
-        drawerContent={(props) => <DrawerContent {...props} />}
-        screenOptions={{
-          headerShown: false,
-          drawerType: "front",
-          swipeEnabled: true,
-          swipeEdgeWidth: SCREEN_WIDTH * 0.15,
-          swipeMinDistance: 10,
-          drawerStyle: {
-            backgroundColor: theme.background,
-            width: 280,
-          },
-          overlayColor: "rgba(0,0,0,0.4)",
-        }}
-      >
-        <Drawer.Screen name="index" />
-        <Drawer.Screen name="record" />
-        <Drawer.Screen name="settings" />
-      </Drawer>
-    </>
+    <Drawer
+      drawerContent={(props) => (
+        <>
+          <OfflineBanner />
+          <DrawerContent {...props} />
+        </>
+      )}
+      screenOptions={{
+        headerShown: false,
+        drawerType: "front",
+        swipeEnabled: true,
+        swipeEdgeWidth: SCREEN_WIDTH * 0.15,
+        swipeMinDistance: 10,
+        drawerStyle: {
+          backgroundColor: theme.background,
+          width: 280,
+        },
+        overlayColor: "rgba(0,0,0,0.4)",
+      }}
+    >
+      <Drawer.Screen name="index" />
+      <Drawer.Screen name="record" />
+      <Drawer.Screen name="settings" />
+    </Drawer>
   );
 }
