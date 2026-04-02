@@ -1,5 +1,5 @@
 import { View, Pressable } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { IconArrowUp } from "@tabler/icons-react-native";
 import { useColorScheme } from "nativewind";
 import { Input } from "@/components/ui/Input";
 import { THEME_COLORS } from "@/lib/theme";
@@ -41,8 +41,7 @@ export default function ChatInput({
           canSend ? "bg-primary" : "bg-muted"
         }`}
       >
-        <Ionicons
-          name="arrow-up"
+        <IconArrowUp
           size={20}
           color={canSend ? theme.background : theme.muted}
         />

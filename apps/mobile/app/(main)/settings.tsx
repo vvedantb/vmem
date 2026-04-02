@@ -85,7 +85,9 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <View className="px-6 pt-6 pb-4">
-        <Text className="text-2xl font-bold text-foreground">Settings</Text>
+        <Text className="text-2xl font-sans-bold text-foreground">
+          Settings
+        </Text>
       </View>
 
       <View className="px-6">
@@ -116,7 +118,7 @@ export default function SettingsScreen() {
               <View className="gap-3">
                 <View className="flex-row items-center gap-2">
                   <View className="w-2 h-2 rounded-full bg-success" />
-                  <Text className="text-sm text-success font-medium">
+                  <Text className="text-sm text-success font-sans-medium">
                     Ready for offline use
                   </Text>
                 </View>

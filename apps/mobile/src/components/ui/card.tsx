@@ -28,7 +28,10 @@ function CardTitle({
 }: ViewProps & { className?: string; children: string }) {
   return (
     <Text
-      className={cn("text-base font-semibold text-card-foreground", className)}
+      className={cn(
+        "text-base font-sans-semibold text-card-foreground",
+        className,
+      )}
       {...props}
     >
       {children}
