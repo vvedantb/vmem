@@ -6,7 +6,7 @@ import {
 } from "@react-native-ai/llama";
 import * as SecureStore from "expo-secure-store";
 
-const ACTIVE_MODEL_KEY = "vmem:active-model-id";
+const ACTIVE_MODEL_KEY = "vmemActiveModelId";
 
 export interface ModelInfo {
   id: string;
