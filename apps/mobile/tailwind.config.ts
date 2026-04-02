@@ -46,12 +46,10 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: [
-          "InstrumentSans_400Regular",
-          "InstrumentSans_500Medium",
-          "InstrumentSans_600SemiBold",
-          "InstrumentSans_700Bold",
-        ],
+        sans: ["InstrumentSans_400Regular"],
+        "sans-medium": ["InstrumentSans_500Medium"],
+        "sans-semibold": ["InstrumentSans_600SemiBold"],
+        "sans-bold": ["InstrumentSans_700Bold"],
         serif: ["InstrumentSerif_400Regular"],
       },
     },

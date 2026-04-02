@@ -1,5 +1,5 @@
 import { View, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { IconSparkles } from "@tabler/icons-react-native";
 import { useColorScheme } from "nativewind";
 import { Text } from "@/components/ui/text";
 import { THEME_COLORS } from "@/lib/theme";
@@ -32,13 +32,12 @@ export default function EmptyState({
   return (
     <View className="flex-1 items-center justify-center px-6">
       <View className="items-center mb-8">
-        <Ionicons
-          name="sparkles-outline"
+        <IconSparkles
           size={32}
           color={theme.muted}
           style={{ marginBottom: 12 }}
         />
-        <Text className="text-2xl font-semibold text-foreground mb-2">
+        <Text className="text-2xl font-sans-semibold text-foreground mb-2">
           Start a conversation
         </Text>
         <Text className="text-muted-foreground text-center text-sm">

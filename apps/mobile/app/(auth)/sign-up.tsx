@@ -11,7 +11,7 @@ import { useSignUp, useSSO } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
-import { AntDesign } from "@expo/vector-icons";
+import { IconBrandGoogle } from "@tabler/icons-react-native";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/text";
@@ -147,7 +147,7 @@ export default function SignUpScreen() {
         >
           <View className="gap-6">
             <View className="gap-2">
-              <Text className="text-3xl font-bold text-foreground">
+              <Text className="text-3xl font-sans-bold text-foreground">
                 Check your email
               </Text>
               <Text className="text-muted-foreground">
@@ -156,7 +156,7 @@ export default function SignUpScreen() {
             </View>
             <View className="gap-4">
               <View className="gap-1.5">
-                <Text className="text-sm font-medium text-foreground">
+                <Text className="text-sm font-sans-medium text-foreground">
                   Verification code
                 </Text>
                 <Input
@@ -192,7 +192,7 @@ export default function SignUpScreen() {
       >
         <View className="gap-6">
           <View className="gap-2">
-            <Text className="text-3xl font-bold text-foreground">
+            <Text className="text-3xl font-sans-bold text-foreground">
               Create account
             </Text>
             <Text className="text-muted-foreground">
@@ -201,7 +201,9 @@ export default function SignUpScreen() {
           </View>
           <View className="gap-4">
             <View className="gap-1.5">
-              <Text className="text-sm font-medium text-foreground">Email</Text>
+              <Text className="text-sm font-sans-medium text-foreground">
+                Email
+              </Text>
               <Input
                 value={email}
                 onChangeText={setEmail}
@@ -211,7 +213,7 @@ export default function SignUpScreen() {
               />
             </View>
             <View className="gap-1.5">
-              <Text className="text-sm font-medium text-foreground">
+              <Text className="text-sm font-sans-medium text-foreground">
                 Password
               </Text>
               <Input
@@ -237,8 +239,8 @@ export default function SignUpScreen() {
             onPress={handleGoogleSignUp}
             className="flex-row items-center justify-center gap-3 rounded-lg border border-border bg-background py-3 px-6"
           >
-            <AntDesign name="google" size={20} color="#4285F4" />
-            <Text className="text-base font-semibold text-foreground">
+            <IconBrandGoogle size={20} color="#4285F4" />
+            <Text className="text-base font-sans-semibold text-foreground">
               Sign up with Google
             </Text>
           </TouchableOpacity>
@@ -247,7 +249,9 @@ export default function SignUpScreen() {
               Already have an account?
             </Text>
             <Link href="/(auth)/sign-in">
-              <Text className="text-foreground font-semibold">Sign in</Text>
+              <Text className="text-foreground font-sans-semibold">
+                Sign in
+              </Text>
             </Link>
           </View>
           <View nativeID="clerk-captcha" />

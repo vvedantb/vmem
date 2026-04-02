@@ -4,7 +4,7 @@ import { View, ActivityIndicator } from "react-native";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { useMutation } from "convex/react";
 import { useColorScheme } from "nativewind";
-import { Ionicons } from "@expo/vector-icons";
+import { IconMessageCircle, IconSettings } from "@tabler/icons-react-native";
 import { api } from "@vmem/backend";
 import { useIsOnline } from "@/providers/NetworkProvider";
 import { THEME_COLORS } from "@/lib/theme";
@@ -16,7 +16,7 @@ function OfflineBanner() {
 
   return (
     <View className="bg-warning/10 px-4 py-2">
-      <Text className="text-warning text-xs text-center font-medium">
+      <Text className="text-warning text-xs text-center font-sans-medium">
         Offline mode — using local AI
       </Text>
     </View>
@@ -84,7 +84,7 @@ export default function MainLayout() {
           options={{
             title: "Chat",
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="chatbubble-outline" size={size} color={color} />
+              <IconMessageCircle size={size} color={color} />
             ),
           }}
         />
@@ -93,7 +93,7 @@ export default function MainLayout() {
           options={{
             title: "Settings",
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="settings-outline" size={size} color={color} />
+              <IconSettings size={size} color={color} />
             ),
           }}
         />
