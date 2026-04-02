@@ -10,6 +10,7 @@
   "dependencies": {
     "@clerk/backend": "catalog:",
     "@hono/node-server": "^1.19.11",
+    "@neo4j/cypher-builder": "^3.0.1",
     "convex": "catalog:",
     "dotenv": "^17.3.1",
     "hono": "^4.7.0",
