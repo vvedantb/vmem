@@ -13,7 +13,8 @@ export default function ChatInput({
   onSend,
   disabled,
 }: ChatInputProps) {
-  const canSend = !disabled && value.trim().length > 0;
+  const normalizedValue = typeof value === "string" ? value : "";
+  const canSend = !disabled && normalizedValue.trim().length > 0;
 
   return (
     <View className="border-t border-gray-100 dark:border-gray-800 px-4 py-3 flex-row items-end gap-3">
