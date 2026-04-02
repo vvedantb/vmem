@@ -237,7 +237,12 @@ export default function MemoryGraph() {
     }
 
     for (const rel of allRelatesToEdges) {
-      if (nodeSet.has(rel.source) && nodeSet.has(rel.target)) {
+      if (
+        nodeSet.has(rel.source) &&
+        nodeSet.has(rel.target) &&
+        !g.hasEdge(rel.source, rel.target) &&
+        !g.hasEdge(rel.target, rel.source)
+      ) {
         g.addEdge(rel.source, rel.target, {
           weight: 1,
           edgeType: "relates_to",
