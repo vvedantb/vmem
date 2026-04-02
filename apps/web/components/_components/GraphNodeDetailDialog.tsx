@@ -10,12 +10,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@vmem/ui";
-import type Graph from "graphology";
-import type { NodeAttributes, EdgeAttributes } from "./graph-types";
+import type { RelatedNode } from "./canvas/types";
+
+interface NodeData {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+}
 
 interface GraphNodeDetailDialogProps {
   nodeId: string | null;
-  graph: Graph<NodeAttributes, EdgeAttributes>;
+  nodeData: NodeData | null;
+  relatedNodes: RelatedNode[];
   onClose: () => void;
   onNavigate: (nodeId: string) => void;
   onDelete: (nodeId: string) => Promise<boolean>;
@@ -31,7 +39,8 @@ function formatDate(dateString: string) {
 
 export default function GraphNodeDetailDialog({
   nodeId,
-  graph,
+  nodeData,
+  relatedNodes,
   onClose,
   onNavigate,
   onDelete,
@@ -39,19 +48,7 @@ export default function GraphNodeDetailDialog({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  if (!nodeId || !graph.hasNode(nodeId)) return null;
-
-  const attrs = graph.getNodeAttributes(nodeId);
-
-  const neighborIds = graph.neighbors(nodeId);
-  const neighbors = neighborIds.map((nId) => {
-    const nAttrs = graph.getNodeAttributes(nId);
-    let totalWeight = 0;
-    graph.forEachEdge(nodeId, nId, (_edge, edgeAttrs) => {
-      totalWeight += edgeAttrs.weight;
-    });
-    return { id: nId, label: nAttrs.label, weight: totalWeight };
-  });
+  if (!nodeId || !nodeData) return null;
 
   return (
     <Dialog
@@ -62,18 +59,20 @@ export default function GraphNodeDetailDialog({
     >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-foreground">{attrs.label}</DialogTitle>
+          <DialogTitle className="text-foreground">
+            {nodeData.title}
+          </DialogTitle>
           <p className="text-xs text-muted-foreground">
-            {formatDate(attrs.createdAt)}
+            {formatDate(nodeData.createdAt)}
           </p>
         </DialogHeader>
         <div className="grid grid-cols-[1fr_auto] gap-6">
           <div className="space-y-4 min-w-0">
-            <p className="text-foreground break-words">{attrs.content}</p>
+            <p className="text-foreground break-words">{nodeData.content}</p>
 
-            {attrs.tags.length > 0 && (
+            {nodeData.tags.length > 0 && (
               <div className="flex gap-1.5 flex-wrap">
-                {attrs.tags.map((tag) => (
+                {nodeData.tags.map((tag) => (
                   <Badge
                     key={tag}
                     variant="outline"
@@ -132,13 +131,13 @@ export default function GraphNodeDetailDialog({
             </div>
           </div>
 
-          {neighbors.length > 0 && (
+          {relatedNodes.length > 0 && (
             <div className="w-72 border-l border-border pl-6">
               <p className="text-xs font-medium text-muted-foreground mb-2">
                 Related
               </p>
               <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
-                {neighbors.map((neighbor) => (
+                {relatedNodes.map((neighbor) => (
                   <Button
                     key={neighbor.id}
                     type="button"
@@ -148,7 +147,7 @@ export default function GraphNodeDetailDialog({
                     className="w-full h-auto p-2.5 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors justify-start items-start flex-col"
                   >
                     <p className="text-sm font-medium text-foreground truncate w-full text-left">
-                      {neighbor.label}
+                      {neighbor.title}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {neighbor.weight} shared tag
