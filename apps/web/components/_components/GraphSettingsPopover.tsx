@@ -29,25 +29,9 @@ const FIELDS: {
   {
     key: "gravity",
     label: "Gravity",
-    min: 0.1,
+    min: 0.05,
     max: 5,
-    step: 0.1,
-    format: (v) => v.toFixed(1),
-  },
-  {
-    key: "repulsion",
-    label: "Repulsion",
-    min: 1000,
-    max: 15000,
-    step: 500,
-    format: (v) => String(v),
-  },
-  {
-    key: "damping",
-    label: "Damping",
-    min: 0.8,
-    max: 0.99,
-    step: 0.01,
+    step: 0.05,
     format: (v) => v.toFixed(2),
   },
 ];

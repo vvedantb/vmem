@@ -5,6 +5,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "vmem",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
     "platforms": ["ios", "android"],
     "ios": {
       "supportsTablet": true,
@@ -13,7 +15,8 @@
     "android": {
       "package": "com.vmem.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
       }
     },
     "plugins": [
@@ -22,6 +25,13 @@
         "expo-secure-store",
         {
           "faceIDPermission": "Allow vmem to access your Face ID biometric data."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow vmem to use the microphone for voice input.",
+          "speechRecognitionPermission": "Allow vmem to use speech recognition for voice input."
         }
       ]
     ],

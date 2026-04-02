@@ -2,31 +2,47 @@
   "name": "vmem",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.15.1",
   "scripts": {
     "turbo": "pnpm --filter web turbo",
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
     "start": "pnpm --filter web start",
     "api:dev": "pnpm --filter @vmem/api dev",
+    "api:build": "pnpm --filter @vmem/api build",
+    "api:start": "pnpm --filter @vmem/api start",
     "mcp:dev": "pnpm --filter mcp dev",
     "mcp:build": "pnpm --filter mcp build",
     "mcp:start": "pnpm --filter mcp start",
     "ext:dev": "pnpm --filter @vmem/chrome-extension dev",
     "ext:build": "pnpm --filter @vmem/chrome-extension build",
+    "mobile": "pnpm --filter mobile start",
+    "mobile:clear": "pnpm --filter mobile clear",
+    "android": "pnpm --filter mobile android",
+    "prebuild:android": "pnpm --filter mobile prebuild:android",
     "docs:dev": "pnpm --filter docs exec mint dev --port 3001",
     "lint": "pnpm --filter web lint",
     "typecheck": "pnpm --filter web typecheck",
     "convex": "pnpm --filter @vmem/backend dev",
     "convex:deploy": "pnpm --filter @vmem/backend run deploy",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lint:deps": "syncpack lint",
+    "fix:deps": "syncpack fix-mismatches",
+    "check:expo": "pnpm --filter mobile exec expo install --check"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css,md}": "prettier --write"
+  },
+  "pnpm": {
+    "overrides": {
+      "react-native-worklets": "0.7.4"
+    }
   },
   "devDependencies": {
     "baseline-browser-mapping": "^2.9.19",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.1",
+    "syncpack": "^14.3.0"
   }
 }

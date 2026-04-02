@@ -1,28 +1,29 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { IconMoodEmpty, IconLoader2, IconPlus } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
+import { z } from "zod";
 import AddMemoryModal from "@/components/AddMemoryModal";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { clientEnv } from "@/env/client";
-import type {
-  SimNode,
-  SimEdge,
-  HoveredNodeInfo,
-  GraphSettings,
-} from "./_components/graph-types";
+import type { HoveredNodeInfo, GraphSettings } from "./_components/graph-types";
 import type { ViewMode } from "./_components/graph-view-themes";
 import { getViewTheme } from "./_components/graph-view-themes";
 import GraphNodeTooltip from "./_components/GraphNodeTooltip";
 import GraphNodeDetailDialog from "./_components/GraphNodeDetailDialog";
 import GraphSettingsPopover from "./_components/GraphSettingsPopover";
 import ViewModeSwitcher from "./_components/ViewModeSwitcher";
-import ForceGraph from "./_components/ForceGraph";
+import GraphCanvas from "./_components/GraphCanvas";
+import type {
+  GraphNode,
+  GraphEdge,
+  RelatedNode,
+} from "./_components/canvas/types";
 import {
   getGraphSettings,
   setGraphSettings,
@@ -30,67 +31,29 @@ import {
   setGraphViewMode,
 } from "@/lib/graph-cookies";
 
-function tagToHue(tag: string): number {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return ((hash % 360) + 360) % 360;
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  s /= 100;
-  l /= 100;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * color)
-      .toString(16)
-      .padStart(2, "0");
-  };
-  return `#${f(0)}${f(8)}${f(4)}`;
-}
-
-function tagToColor(tag: string, isDark: boolean): string {
-  const hue = tagToHue(tag);
-  return isDark ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
-}
-
-function idToJitter(id: string): { dx: number; dy: number } {
-  let h1 = 0x811c9dc5;
-  let h2 = 0x811c9dc5;
-  for (let i = 0; i < id.length; i++) {
-    const c = id.charCodeAt(i);
-    h1 = Math.imul(h1 ^ c, 0x01000193);
-    h2 = Math.imul(h2 ^ c, 0x01000193) + i;
-  }
-  return {
-    dx: (h1 >>> 0) / 0xffffffff - 0.5,
-    dy: (h2 >>> 0) / 0xffffffff - 0.5,
-  };
-}
-
 const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
 
-interface GraphNode {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: string;
-}
+const graphNodeSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+  tags: z.array(z.string()),
+  createdAt: z.string(),
+});
 
-interface RelationshipEdge {
-  source: string;
-  target: string;
-  reason: string;
-}
+const relationshipEdgeSchema = z.object({
+  source: z.string(),
+  target: z.string(),
+  reason: z.string(),
+});
 
-interface GraphResponse {
-  nodes: GraphNode[];
-  edges: RelationshipEdge[];
-}
+const graphResponseSchema = z.object({
+  nodes: z.array(graphNodeSchema),
+  edges: z.array(relationshipEdgeSchema),
+});
+
+type RelationshipEdge = z.infer<typeof relationshipEdgeSchema>;
+type GraphResponse = z.infer<typeof graphResponseSchema>;
 
 export default function MemoryGraph() {
   const { deleteMemory } = useMemoryContext();
@@ -105,9 +68,6 @@ export default function MemoryGraph() {
     RelationshipEdge[]
   >([]);
 
-  const currentNodesRef = useRef<SimNode[]>([]);
-  const isFirstGraphRef = useRef(true);
-
   const graphQuery = useTanstackQuery({
     queryKey: ["graph"],
     queryFn: async (): Promise<GraphResponse> => {
@@ -117,8 +77,11 @@ export default function MemoryGraph() {
         headers["Authorization"] = `Bearer ${token}`;
       }
       const res = await fetch(`${API_URL}/v1/graph`, { headers });
-      if (!res.ok) return { nodes: [], edges: [] };
-      return res.json() as Promise<GraphResponse>;
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Graph request failed with ${res.status}`);
+      }
+      return graphResponseSchema.parse(await res.json());
     },
     enabled: !!userId,
     staleTime: 30_000,
@@ -178,172 +141,134 @@ export default function MemoryGraph() {
     return [...apiEdges, ...liveRelatesToEdges];
   }, [graphData?.edges, liveRelatesToEdges]);
 
-  const graphNodes = graphData?.nodes ?? [];
+  const apiNodes = graphData?.nodes ?? [];
 
-  const { nodes, edges } = useMemo((): {
-    nodes: SimNode[];
-    edges: SimEdge[];
-  } => {
-    if (graphNodes.length === 0) return { nodes: [], edges: [] };
+  const { graphNodes, graphEdges } = useMemo(() => {
+    if (apiNodes.length === 0)
+      return { graphNodes: [] as GraphNode[], graphEdges: [] as GraphEdge[] };
 
-    const degreeCount = new Map<number, number>();
-    const simEdges: SimEdge[] = [];
-
-    const tagToIndices = new Map<string, number[]>();
-    for (let i = 0; i < graphNodes.length; i++) {
-      for (const tag of graphNodes[i].tags) {
-        const indices = tagToIndices.get(tag);
-        if (indices) indices.push(i);
-        else tagToIndices.set(tag, [i]);
+    const tagToNodeIds = new Map<string, string[]>();
+    for (const node of apiNodes) {
+      for (const tag of node.tags) {
+        const ids = tagToNodeIds.get(tag);
+        if (ids) ids.push(node.id);
+        else tagToNodeIds.set(tag, [node.id]);
       }
     }
 
     const edgeWeights = new Map<string, number>();
-    for (const [, indices] of tagToIndices) {
-      for (let a = 0; a < indices.length; a++) {
-        for (let b = a + 1; b < indices.length; b++) {
-          const lo = indices[a];
-          const hi = indices[b];
-          const key = `${lo}-${hi}`;
+    const edgeTags = new Map<string, string[]>();
+    for (const [tag, ids] of tagToNodeIds) {
+      for (let a = 0; a < ids.length; a++) {
+        for (let b = a + 1; b < ids.length; b++) {
+          const key =
+            ids[a] < ids[b] ? `${ids[a]}|${ids[b]}` : `${ids[b]}|${ids[a]}`;
           edgeWeights.set(key, (edgeWeights.get(key) ?? 0) + 1);
+          const tags = edgeTags.get(key);
+          if (tags) tags.push(tag);
+          else edgeTags.set(key, [tag]);
         }
       }
     }
 
-    for (const [key, weight] of edgeWeights) {
-      const dash = key.indexOf("-");
-      const i = Number(key.slice(0, dash));
-      const j = Number(key.slice(dash + 1));
-      simEdges.push({
-        sourceIndex: i,
-        targetIndex: j,
-        weight,
-        edgeType: "tag",
-      });
-      degreeCount.set(i, (degreeCount.get(i) ?? 0) + 1);
-      degreeCount.set(j, (degreeCount.get(j) ?? 0) + 1);
+    const degreeCount = new Map<string, number>();
+    for (const [key] of edgeWeights) {
+      const [a, b] = key.split("|");
+      degreeCount.set(a, (degreeCount.get(a) ?? 0) + 1);
+      degreeCount.set(b, (degreeCount.get(b) ?? 0) + 1);
     }
-
-    const idToIndex = new Map<string, number>();
-    for (let i = 0; i < graphNodes.length; i++) {
-      idToIndex.set(graphNodes[i].id, i);
-    }
-
     for (const rel of allRelatesToEdges) {
-      const si = idToIndex.get(rel.source);
-      const ti = idToIndex.get(rel.target);
-      if (si !== undefined && ti !== undefined) {
-        simEdges.push({
-          sourceIndex: si,
-          targetIndex: ti,
-          weight: 1,
-          edgeType: "relates_to",
-          reason: rel.reason,
-        });
-        degreeCount.set(si, (degreeCount.get(si) ?? 0) + 1);
-        degreeCount.set(ti, (degreeCount.get(ti) ?? 0) + 1);
-      }
+      degreeCount.set(rel.source, (degreeCount.get(rel.source) ?? 0) + 1);
+      degreeCount.set(rel.target, (degreeCount.get(rel.target) ?? 0) + 1);
     }
 
-    const tagGroups = new Map<string, number[]>();
-    for (let i = 0; i < graphNodes.length; i++) {
-      const primaryTag = graphNodes[i].tags[0];
-      if (primaryTag) {
-        const group = tagGroups.get(primaryTag);
-        if (group) group.push(i);
-        else tagGroups.set(primaryTag, [i]);
-      }
-    }
+    const nodeSet = new Set(apiNodes.map((n) => n.id));
 
-    const groupKeys = [...tagGroups.keys()];
-    const ringRadius = 150;
-    const groupPositions = new Map<string, { cx: number; cy: number }>();
-    for (let g = 0; g < groupKeys.length; g++) {
-      const angle = (g / groupKeys.length) * Math.PI * 2;
-      groupPositions.set(groupKeys[g], {
-        cx: Math.cos(angle) * ringRadius,
-        cy: Math.sin(angle) * ringRadius,
-      });
-    }
-
-    const prevNodes = currentNodesRef.current;
-    const prevById = new Map<string, SimNode>();
-    for (const n of prevNodes) {
-      prevById.set(n.id, n);
-    }
-    const isFirstRender = isFirstGraphRef.current;
-
-    const simNodes: SimNode[] = graphNodes.map((m, i) => {
-      const degree = degreeCount.get(i) ?? 0;
-      const primaryTag = m.tags[0];
-      const prevNode = prevById.get(m.id);
-
-      let x: number;
-      let y: number;
-      let vx = 0;
-      let vy = 0;
-      let opacity = 1;
-
-      if (prevNode) {
-        x = prevNode.x;
-        y = prevNode.y;
-        vx = prevNode.vx;
-        vy = prevNode.vy;
-        opacity = prevNode.opacity;
-      } else {
-        const hash = idToJitter(m.id);
-        const pos = primaryTag ? groupPositions.get(primaryTag) : undefined;
-        if (pos) {
-          const jitter = 40;
-          x = pos.cx + hash.dx * jitter;
-          y = pos.cy + hash.dy * jitter;
-        } else {
-          x = hash.dx * 80;
-          y = hash.dy * 80;
-        }
-        opacity = isFirstRender ? 1 : 0;
-      }
-
+    const gNodes: GraphNode[] = apiNodes.map((node) => {
+      const degree = degreeCount.get(node.id) ?? 0;
       return {
-        id: m.id,
-        label: m.title,
-        content: m.content,
-        tags: m.tags,
-        createdAt: m.createdAt,
-        x,
-        y,
-        vx,
-        vy,
-        radius: Math.min(3 + degree * 1, 8),
-        color: m.tags.length > 0 ? tagToColor(m.tags[0], false) : "#999999",
-        opacity,
+        id: node.id,
+        title: node.title,
+        content: node.content,
+        tags: node.tags,
+        createdAt: node.createdAt,
+        color: "",
+        size: Math.min(3 + degree * 0.6, 6),
       };
     });
 
-    return { nodes: simNodes, edges: simEdges };
-  }, [graphNodes, allRelatesToEdges]);
+    const gEdges: GraphEdge[] = [];
+    const addedPairs = new Set<string>();
 
-  useEffect(() => {
-    currentNodesRef.current = nodes;
-    if (nodes.length > 0) {
-      isFirstGraphRef.current = false;
-    }
-  }, [nodes]);
-
-  useEffect(() => {
-    for (const node of nodes) {
-      if (viewTheme.nodeColorOverride) {
-        node.color = viewTheme.nodeColorOverride;
-        continue;
-      }
-      const gNode = graphNodes.find((m) => m.id === node.id);
-      if (gNode && gNode.tags.length > 0) {
-        node.color = tagToColor(gNode.tags[0], viewTheme.isDarkCanvas);
-      } else {
-        node.color = viewTheme.isDarkCanvas ? "#555566" : "#999999";
+    for (const [key, weight] of edgeWeights) {
+      const [a, b] = key.split("|");
+      if (nodeSet.has(a) && nodeSet.has(b)) {
+        const sharedTags = edgeTags.get(key) ?? [];
+        gEdges.push({
+          source: a,
+          target: b,
+          weight,
+          edgeType: "tag",
+          reason: sharedTags.join(", "),
+        });
+        addedPairs.add(key);
       }
     }
-  }, [viewTheme, nodes, graphNodes]);
+
+    for (const rel of allRelatesToEdges) {
+      if (nodeSet.has(rel.source) && nodeSet.has(rel.target)) {
+        const pairKey =
+          rel.source < rel.target
+            ? `${rel.source}|${rel.target}`
+            : `${rel.target}|${rel.source}`;
+        if (!addedPairs.has(pairKey)) {
+          gEdges.push({
+            source: rel.source,
+            target: rel.target,
+            weight: 1,
+            edgeType: "relates_to",
+            reason: rel.reason,
+          });
+          addedPairs.add(pairKey);
+        }
+      }
+    }
+
+    return { graphNodes: gNodes, graphEdges: gEdges };
+  }, [apiNodes, allRelatesToEdges]);
+
+  const selectedNodeData = useMemo(() => {
+    if (!selectedNodeId) return null;
+    const node = graphNodes.find((n) => n.id === selectedNodeId);
+    if (!node) return null;
+    return {
+      id: node.id,
+      title: node.title,
+      content: node.content,
+      tags: node.tags,
+      createdAt: node.createdAt,
+    };
+  }, [selectedNodeId, graphNodes]);
+
+  const relatedNodes = useMemo((): RelatedNode[] => {
+    if (!selectedNodeId) return [];
+    const related = new Map<string, number>();
+    for (const edge of graphEdges) {
+      const sId =
+        typeof edge.source === "string" ? edge.source : edge.source.id;
+      const tId =
+        typeof edge.target === "string" ? edge.target : edge.target.id;
+      if (sId === selectedNodeId) {
+        related.set(tId, (related.get(tId) ?? 0) + edge.weight);
+      } else if (tId === selectedNodeId) {
+        related.set(sId, (related.get(sId) ?? 0) + edge.weight);
+      }
+    }
+    return Array.from(related.entries()).map(([id, weight]) => {
+      const node = graphNodes.find((n) => n.id === id);
+      return { id, title: node?.title ?? id, weight };
+    });
+  }, [selectedNodeId, graphEdges, graphNodes]);
 
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
@@ -392,7 +317,23 @@ export default function MemoryGraph() {
     );
   }
 
-  if (nodes.length === 0) {
+  if (graphQuery.isError) {
+    return (
+      <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
+        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+          <IconMoodEmpty className="w-6 h-6 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-medium text-foreground mb-2">
+          Failed to load graph
+        </h3>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          {graphQuery.error.message}
+        </p>
+      </div>
+    );
+  }
+
+  if (graphNodes.length === 0) {
     return (
       <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -411,9 +352,9 @@ export default function MemoryGraph() {
   return (
     <>
       <div className="relative h-full min-h-0">
-        <ForceGraph
-          nodes={nodes}
-          edges={edges}
+        <GraphCanvas
+          nodes={graphNodes}
+          edges={graphEdges}
           viewTheme={viewTheme}
           settings={graphSettings}
           onHoverNode={handleHoverNode}
@@ -421,7 +362,7 @@ export default function MemoryGraph() {
           onLinkNodes={handleLinkNodes}
         />
 
-        <div className="absolute top-3 right-12 z-10 flex items-center gap-1.5">
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
           <AddMemoryModal
             trigger={
               <Button
@@ -456,8 +397,8 @@ export default function MemoryGraph() {
 
       <GraphNodeDetailDialog
         nodeId={selectedNodeId}
-        nodes={nodes}
-        edges={edges}
+        nodeData={selectedNodeData}
+        relatedNodes={relatedNodes}
         onClose={handleCloseDialog}
         onNavigate={handleNavigateNode}
         onDelete={deleteMemory}

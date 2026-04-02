@@ -1,6 +1,7 @@
 [build]
 builder = "railpack"
-buildCommand = "npm install"
+buildCommand = "pnpm --filter mcp build"
+watchPatterns = ["apps/mcp/**"]
 
 [deploy]
-startCommand = "npx tsx src/index.ts"
+startCommand = "pnpm --filter mcp start"
