@@ -6,10 +6,23 @@ import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Slot } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import * as WebBrowser from "expo-web-browser";
+import { ThemeProvider } from "@react-navigation/native";
+import { useColorScheme } from "nativewind";
+import {
+  useFonts,
+  InstrumentSans_400Regular,
+  InstrumentSans_500Medium,
+  InstrumentSans_600SemiBold,
+  InstrumentSans_700Bold,
+} from "@expo-google-fonts/instrument-sans";
+import { InstrumentSerif_400Regular } from "@expo-google-fonts/instrument-serif";
+import { NAV_THEME } from "@/lib/theme";
 import { NetworkProvider } from "@/providers/NetworkProvider";
 
 WebBrowser.maybeCompleteAuthSession();
+SplashScreen.preventAutoHideAsync();
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -31,11 +44,17 @@ function useClerkAuth() {
 
 function RootLayoutNav() {
   const { isLoaded } = useClerkAuth();
+  const { colorScheme } = useColorScheme();
 
   if (!isLoaded) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#000000" />
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator
+          size="large"
+          color={
+            colorScheme === "dark" ? "hsl(260, 5%, 92%)" : "hsl(0, 0%, 13%)"
+          }
+        />
       </View>
     );
   }
@@ -44,13 +63,33 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const { colorScheme } = useColorScheme();
+
+  const [fontsLoaded] = useFonts({
+    InstrumentSans_400Regular,
+    InstrumentSans_500Medium,
+    InstrumentSans_600SemiBold,
+    InstrumentSans_700Bold,
+    InstrumentSerif_400Regular,
+  });
+
+  if (fontsLoaded) {
+    SplashScreen.hideAsync();
+  }
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
-        <NetworkProvider>
-          <RootLayoutNav />
-        </NetworkProvider>
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+    <ThemeProvider value={NAV_THEME[colorScheme === "dark" ? "dark" : "light"]}>
+      <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+        <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
+          <NetworkProvider>
+            <RootLayoutNav />
+          </NetworkProvider>
+        </ConvexProviderWithClerk>
+      </ClerkProvider>
+    </ThemeProvider>
   );
 }

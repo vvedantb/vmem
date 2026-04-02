@@ -1,33 +1,33 @@
 import { useState, useCallback } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { useSmoothText } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import * as Clipboard from "expo-clipboard";
+import { Text } from "@/components/ui/text";
+import { Badge } from "@/components/ui/badge";
 
 function StreamingDots() {
   return (
     <View className="flex-row gap-1 py-1">
-      <View className="w-2 h-2 rounded-full bg-gray-400 opacity-60" />
-      <View className="w-2 h-2 rounded-full bg-gray-400 opacity-60" />
-      <View className="w-2 h-2 rounded-full bg-gray-400 opacity-60" />
+      <View className="w-2 h-2 rounded-full bg-muted-foreground opacity-60" />
+      <View className="w-2 h-2 rounded-full bg-muted-foreground opacity-60" />
+      <View className="w-2 h-2 rounded-full bg-muted-foreground opacity-60" />
     </View>
   );
 }
 
 function ToolCallBadge({ name, status }: { name: string; status: string }) {
-  const statusColor =
+  const variant =
     status === "output-available"
-      ? "bg-green-100 dark:bg-green-900"
+      ? "success"
       : status === "output-error"
-        ? "bg-red-100 dark:bg-red-900"
-        : "bg-yellow-100 dark:bg-yellow-900";
+        ? "destructive"
+        : "warning";
 
   return (
-    <View className={`rounded-lg px-3 py-2 mb-2 ${statusColor}`}>
-      <Text className="text-xs font-medium text-gray-700 dark:text-gray-300">
-        Tool: {name}
-      </Text>
-    </View>
+    <Badge variant={variant} className="mb-2">
+      <Text>Tool: {name}</Text>
+    </Badge>
   );
 }
 
@@ -37,15 +37,13 @@ function ReasoningBlock({ text }: { text: string }) {
   return (
     <TouchableOpacity
       onPress={() => setExpanded((prev) => !prev)}
-      className="mb-2 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2"
+      className="mb-2 rounded-lg border border-border px-3 py-2"
     >
-      <Text className="text-xs font-medium text-gray-500 dark:text-gray-400">
+      <Text className="text-xs font-medium text-muted-foreground">
         {expanded ? "Hide reasoning" : "Show reasoning"}
       </Text>
       {expanded && (
-        <Text className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-          {text}
-        </Text>
+        <Text className="mt-1 text-xs text-muted-foreground">{text}</Text>
       )}
     </TouchableOpacity>
   );
@@ -73,7 +71,6 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   }, [message.text]);
 
   const reasoningParts = message.parts.filter((p) => p.type === "reasoning");
-
   const toolParts = message.parts.filter((p) => p.type === "tool-invocation");
 
   return (
@@ -82,9 +79,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
     >
       <View
         className={`max-w-xs rounded-2xl px-4 py-3 ${
-          isAssistant
-            ? "bg-gray-100 dark:bg-gray-800 rounded-tl-sm"
-            : "bg-black dark:bg-white rounded-tr-sm"
+          isAssistant ? "bg-card rounded-tl-sm" : "bg-primary rounded-tr-sm"
         }`}
         style={{ maxWidth: "80%" }}
       >
@@ -116,9 +111,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         ) : (
           <Text
             className={`text-base leading-relaxed ${
-              isAssistant
-                ? "text-gray-900 dark:text-white"
-                : "text-white dark:text-black"
+              isAssistant ? "text-card-foreground" : "text-primary-foreground"
             }`}
           >
             {displayText}
@@ -127,7 +120,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 
         {isAssistant && !isStreaming && displayText && (
           <TouchableOpacity onPress={handleCopy} className="mt-2 self-start">
-            <Text className="text-xs text-gray-400 dark:text-gray-500">
+            <Text className="text-xs text-muted-foreground">
               {copied ? "Copied" : "Copy"}
             </Text>
           </TouchableOpacity>

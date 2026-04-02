@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   View,
-  Text,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,6 +14,7 @@ import * as AuthSession from "expo-auth-session";
 import { AntDesign } from "@expo/vector-icons";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Text } from "@/components/ui/text";
 
 const useWarmUpBrowser = () => {
   useEffect(() => {
@@ -100,7 +100,7 @@ export default function SignInScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-white"
+      className="flex-1 bg-background"
     >
       <ScrollView
         className="flex-1"
@@ -110,54 +110,62 @@ export default function SignInScreen() {
       >
         <View className="gap-6">
           <View className="gap-2">
-            <Text className="text-3xl font-bold text-gray-900">
+            <Text className="text-3xl font-bold text-foreground">
               Welcome back
             </Text>
-            <Text className="text-gray-500">Sign in to your account</Text>
+            <Text className="text-muted-foreground">
+              Sign in to your account
+            </Text>
           </View>
           <View className="gap-4">
-            <Input
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-            <Input
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              secureTextEntry
-            />
+            <View className="gap-1.5">
+              <Text className="text-sm font-medium text-foreground">Email</Text>
+              <Input
+                value={email}
+                onChangeText={setEmail}
+                placeholder="you@example.com"
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+            </View>
+            <View className="gap-1.5">
+              <Text className="text-sm font-medium text-foreground">
+                Password
+              </Text>
+              <Input
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                secureTextEntry
+              />
+            </View>
             {error ? (
-              <Text className="text-red-500 text-sm">{error}</Text>
+              <Text className="text-destructive text-sm">{error}</Text>
             ) : null}
-            <Button
-              onPress={handleSignIn}
-              title={loading ? "Signing in..." : "Sign in"}
-              disabled={loading}
-            />
+            <Button onPress={handleSignIn} disabled={loading}>
+              <Text>{loading ? "Signing in..." : "Sign in"}</Text>
+            </Button>
           </View>
           <View className="flex-row items-center gap-3">
-            <View className="flex-1 h-px bg-gray-200" />
-            <Text className="text-gray-400 text-sm">or</Text>
-            <View className="flex-1 h-px bg-gray-200" />
+            <View className="flex-1 h-px bg-border" />
+            <Text className="text-muted-foreground text-sm">or</Text>
+            <View className="flex-1 h-px bg-border" />
           </View>
           <TouchableOpacity
             onPress={handleGoogleSignIn}
-            className="flex-row items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white py-3 px-6"
+            className="flex-row items-center justify-center gap-3 rounded-lg border border-border bg-background py-3 px-6"
           >
             <AntDesign name="google" size={20} color="#4285F4" />
-            <Text className="text-base font-semibold text-black">
+            <Text className="text-base font-semibold text-foreground">
               Sign in with Google
             </Text>
           </TouchableOpacity>
           <View className="flex-row justify-center gap-1">
-            <Text className="text-gray-500">Don't have an account?</Text>
+            <Text className="text-muted-foreground">
+              Don't have an account?
+            </Text>
             <Link href="/(auth)/sign-up">
-              <Text className="text-black font-semibold">Sign up</Text>
+              <Text className="text-foreground font-semibold">Sign up</Text>
             </Link>
           </View>
         </View>

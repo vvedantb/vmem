@@ -1,5 +1,18 @@
 # Changelog
 
+## Mobile App UI Overhaul — 2026-04-02
+
+- Ported web app's design system to mobile: HSL CSS variables in global.css, semantic Tailwind color tokens (background, foreground, primary, secondary, muted, accent, destructive, success, warning, border, card) with light/dark mode support
+- Installed react-native-reusables pattern: new Button (CVA variants + TextClassContext), Input, Text, Card, Badge components in src/components/ui/ replacing the previous basic implementations
+- Added Instrument Sans + Instrument Serif fonts via @expo-google-fonts packages, matching web's typography
+- Replaced placeholder tab icons (circle/square Views) with Ionicons (chatbubble-outline, settings-outline) from @expo/vector-icons
+- Themed tab bar background and tint colors using the new design tokens
+- Restyled all screens (chat, settings, sign-in, sign-up) to use semantic token classes instead of raw Tailwind gray values
+- Chat: EmptyState gets sparkle icon, MessageBubble uses card/primary tokens, ChatInput uses Ionicons arrow-up, Badge component for tool calls
+- Settings: Card component wraps offline model section, Button component for actions, ProgressBar uses primary/muted tokens
+- Added ThemeProvider from @react-navigation/native with NAV_THEME object for consistent navigation chrome
+- Reason: mobile app lacked design consistency with web, had no real icons, no design tokens, and no component library. This brings both platforms to the same visual language
+
 ## Migrate Force Graph to Sigma.js — 2026-04-02
 
 - Replaced ~856 lines of hand-rolled canvas force graph (ForceGraph.tsx, graph-physics.ts) with ~400 lines using @react-sigma/core + sigma.js WebGL renderer
