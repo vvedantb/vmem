@@ -96,6 +96,7 @@ export default function ChatScreen() {
           onChangeText={setInputText}
           onSend={() => handleSend(inputText)}
           disabled={isStreaming}
+          isStreaming={isStreaming}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
