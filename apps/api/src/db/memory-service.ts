@@ -4,7 +4,7 @@ import neo4j, {
   type Session,
   type Record as NeoRecord,
 } from "neo4j-driver";
-import Cypher from "@neo4j/cypher-builder";
+import Cypher, { type RawCypherContext } from "@neo4j/cypher-builder";
 import crypto from "node:crypto";
 import { buildAndRun } from "./cypher-helpers.js";
 
@@ -433,7 +433,7 @@ export class MemoryService {
 
       const tagUpdate =
         updates.tags !== undefined
-          ? new Cypher.Raw((ctx) => [
+          ? new Cypher.Raw((ctx: RawCypherContext) => [
               `WITH ${ctx.compile(m)}
 OPTIONAL MATCH (${ctx.compile(m)})-[r:TAGGED_WITH]->(:Tag)
 DELETE r
