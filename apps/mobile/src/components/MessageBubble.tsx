@@ -39,7 +39,7 @@ function ReasoningBlock({ text }: { text: string }) {
       onPress={() => setExpanded((prev) => !prev)}
       className="mb-2 rounded-lg border border-border px-3 py-2"
     >
-      <Text className="text-xs font-medium text-muted-foreground">
+      <Text className="text-xs font-sans-medium text-muted-foreground">
         {expanded ? "Hide reasoning" : "Show reasoning"}
       </Text>
       {expanded && (

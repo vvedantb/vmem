@@ -39,7 +39,7 @@ export default function ChatScreen() {
   if (mode === "offline_no_model") {
     return (
       <SafeAreaView className="flex-1 bg-background items-center justify-center px-6">
-        <Text className="text-lg font-semibold text-foreground mb-2 text-center">
+        <Text className="text-lg font-sans-semibold text-foreground mb-2 text-center">
           No offline model available
         </Text>
         <Text className="text-sm text-muted-foreground text-center">

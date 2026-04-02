@@ -11,7 +11,7 @@ import { useSignIn, useSSO } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
-import { AntDesign } from "@expo/vector-icons";
+import { IconBrandGoogle } from "@tabler/icons-react-native";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/text";
@@ -110,7 +110,7 @@ export default function SignInScreen() {
       >
         <View className="gap-6">
           <View className="gap-2">
-            <Text className="text-3xl font-bold text-foreground">
+            <Text className="text-3xl font-sans-bold text-foreground">
               Welcome back
             </Text>
             <Text className="text-muted-foreground">
@@ -119,7 +119,9 @@ export default function SignInScreen() {
           </View>
           <View className="gap-4">
             <View className="gap-1.5">
-              <Text className="text-sm font-medium text-foreground">Email</Text>
+              <Text className="text-sm font-sans-medium text-foreground">
+                Email
+              </Text>
               <Input
                 value={email}
                 onChangeText={setEmail}
@@ -129,7 +131,7 @@ export default function SignInScreen() {
               />
             </View>
             <View className="gap-1.5">
-              <Text className="text-sm font-medium text-foreground">
+              <Text className="text-sm font-sans-medium text-foreground">
                 Password
               </Text>
               <Input
@@ -155,8 +157,8 @@ export default function SignInScreen() {
             onPress={handleGoogleSignIn}
             className="flex-row items-center justify-center gap-3 rounded-lg border border-border bg-background py-3 px-6"
           >
-            <AntDesign name="google" size={20} color="#4285F4" />
-            <Text className="text-base font-semibold text-foreground">
+            <IconBrandGoogle size={20} color="#4285F4" />
+            <Text className="text-base font-sans-semibold text-foreground">
               Sign in with Google
             </Text>
           </TouchableOpacity>
@@ -165,7 +167,9 @@ export default function SignInScreen() {
               Don't have an account?
             </Text>
             <Link href="/(auth)/sign-up">
-              <Text className="text-foreground font-semibold">Sign up</Text>
+              <Text className="text-foreground font-sans-semibold">
+                Sign up
+              </Text>
             </Link>
           </View>
         </View>

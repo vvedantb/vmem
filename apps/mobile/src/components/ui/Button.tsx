@@ -27,7 +27,7 @@ const buttonVariants = cva("flex-row items-center justify-center rounded-lg", {
   },
 });
 
-const buttonTextVariants = cva("text-base font-semibold", {
+const buttonTextVariants = cva("text-base font-sans-semibold", {
   variants: {
     variant: {
       default: "text-primary-foreground",
