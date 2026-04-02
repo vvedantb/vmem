@@ -1039,9 +1039,11 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
     }[];
     edges: { source: string; target: string; reason: string }[];
   }> {
-    return this.withSession(async (session) => {
+    const nodesSession = this.driver.session();
+    const edgesSession = this.driver.session();
+    try {
       const [nodesResult, edgesResult] = await Promise.all([
-        session.run(
+        nodesSession.run(
           `MATCH (m:Memory {userId: $userId})
            WHERE coalesce(m.status, 'active') IN ['active', 'pinned']
            OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
@@ -1051,7 +1053,7 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
                   m.createdAt AS createdAt`,
           { userId },
         ),
-        session.run(
+        edgesSession.run(
           `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
            WHERE coalesce(a.status, 'active') IN ['active', 'pinned']
              AND coalesce(b.status, 'active') IN ['active', 'pinned']
@@ -1077,7 +1079,9 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
       }));
 
       return { nodes, edges };
-    });
+    } finally {
+      await Promise.all([nodesSession.close(), edgesSession.close()]);
+    }
   }
 
   async getRecentMemoryTitles(
