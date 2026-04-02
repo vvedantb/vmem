@@ -262,6 +262,46 @@ export function render(
     }
   }
 
+  // --- Edge labels (only on hovered node's edges) ---
+  if (!lowZoom && hasHover) {
+    const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
+    ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    for (const edge of edges) {
+      const sId = edge.source.id;
+      const tId = edge.target.id;
+      if (
+        sId !== interaction.hoveredNodeId &&
+        tId !== interaction.hoveredNodeId
+      )
+        continue;
+      if (!edge.reason) continue;
+
+      const mx = ((edge.source.x ?? 0) + (edge.target.x ?? 0)) / 2;
+      const my = ((edge.source.y ?? 0) + (edge.target.y ?? 0)) / 2;
+
+      const label =
+        edge.reason.length > 30
+          ? edge.reason.slice(0, 28) + "..."
+          : edge.reason;
+      const metrics = ctx.measureText(label);
+      const padX = 4;
+      const padY = 2;
+      const bgW = metrics.width + padX * 2;
+      const bgH = fontSize + padY * 2;
+
+      ctx.fillStyle = theme.background + "cc";
+      ctx.beginPath();
+      ctx.roundRect(mx - bgW / 2, my - bgH / 2, bgW, bgH, 3);
+      ctx.fill();
+
+      ctx.fillStyle = theme.label.secondary;
+      ctx.fillText(label, mx, my);
+    }
+  }
+
   // --- Labels ---
   if (!lowZoom) {
     ctx.textAlign = "center";

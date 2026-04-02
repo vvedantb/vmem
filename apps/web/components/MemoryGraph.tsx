@@ -157,12 +157,16 @@ export default function MemoryGraph() {
     }
 
     const edgeWeights = new Map<string, number>();
-    for (const [, ids] of tagToNodeIds) {
+    const edgeTags = new Map<string, string[]>();
+    for (const [tag, ids] of tagToNodeIds) {
       for (let a = 0; a < ids.length; a++) {
         for (let b = a + 1; b < ids.length; b++) {
           const key =
             ids[a] < ids[b] ? `${ids[a]}|${ids[b]}` : `${ids[b]}|${ids[a]}`;
           edgeWeights.set(key, (edgeWeights.get(key) ?? 0) + 1);
+          const tags = edgeTags.get(key);
+          if (tags) tags.push(tag);
+          else edgeTags.set(key, [tag]);
         }
       }
     }
@@ -199,7 +203,14 @@ export default function MemoryGraph() {
     for (const [key, weight] of edgeWeights) {
       const [a, b] = key.split("|");
       if (nodeSet.has(a) && nodeSet.has(b)) {
-        gEdges.push({ source: a, target: b, weight, edgeType: "tag" });
+        const sharedTags = edgeTags.get(key) ?? [];
+        gEdges.push({
+          source: a,
+          target: b,
+          weight,
+          edgeType: "tag",
+          reason: sharedTags.join(", "),
+        });
         addedPairs.add(key);
       }
     }
@@ -351,7 +362,7 @@ export default function MemoryGraph() {
           onLinkNodes={handleLinkNodes}
         />
 
-        <div className="absolute top-3 right-12 z-10 flex items-center gap-1.5">
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
           <AddMemoryModal
             trigger={
               <Button
