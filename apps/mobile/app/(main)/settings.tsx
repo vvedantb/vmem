@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { View, Alert, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, DrawerActions } from "@react-navigation/native";
-import { useAuth } from "@clerk/clerk-expo";
 import {
   MODELS,
   checkModelStatus,
@@ -23,7 +22,6 @@ import {
   IconCircle,
   IconDownload,
   IconTrash,
-  IconLogout,
   IconMenu2,
 } from "@tabler/icons-react-native";
 import { useColorScheme } from "nativewind";
@@ -142,7 +140,6 @@ export default function SettingsScreen() {
   const [states, setStates] = useState<Record<string, ModelState>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const isOnline = useIsOnline();
-  const { signOut } = useAuth();
   const navigation = useNavigation();
   const { colorScheme } = useColorScheme();
   const theme = colorScheme === "dark" ? THEME_COLORS.dark : THEME_COLORS.light;
@@ -279,19 +276,6 @@ export default function SettingsScreen() {
             onSelect={() => handleSelect(model.id)}
           />
         ))}
-
-        <View className="mt-6 pt-6 border-t border-border">
-          <Button
-            variant="outline"
-            onPress={() => signOut()}
-            className="flex-row gap-2"
-          >
-            <IconLogout size={16} color={theme.destructive} />
-            <Text className="text-destructive text-sm font-sans-medium">
-              Log out
-            </Text>
-          </Button>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

@@ -19,7 +19,10 @@ import {
   InstrumentSans_600SemiBold,
   InstrumentSans_700Bold,
 } from "@expo-google-fonts/instrument-sans";
-import { InstrumentSerif_400Regular } from "@expo-google-fonts/instrument-serif";
+import {
+  InstrumentSerif_400Regular,
+  InstrumentSerif_400Regular_Italic,
+} from "@expo-google-fonts/instrument-serif";
 import { NAV_THEME } from "@/lib/theme";
 import { NetworkProvider } from "@/providers/NetworkProvider";
 
@@ -73,6 +76,7 @@ export default function RootLayout() {
     InstrumentSans_600SemiBold,
     InstrumentSans_700Bold,
     InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
   });
 
   if (fontsLoaded) {
