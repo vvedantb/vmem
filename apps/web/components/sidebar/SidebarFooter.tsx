@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState, useCallback } from "react";
 import {
   Separator,
   Button,
@@ -9,12 +10,45 @@ import {
   HoverCardTrigger,
   HoverCardContent,
 } from "@vmem/ui";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useAuth } from "@clerk/nextjs";
 import { IconMoon, IconSun, IconChartBar } from "@tabler/icons-react";
+import { clientEnv } from "@/env/client";
+
+const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
+
+interface SidebarStats {
+  addedToday: number;
+  total: number;
+}
 
 function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
-  const memoriesAdded = 12;
-  const memoriesRetrieved = 47;
+  const { getToken, userId } = useAuth();
+  const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
+
+  const fetchStats = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const token = await getToken();
+      const headers: HeadersInit = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
+      const res = await fetch(`${API_URL}/v1/dashboard/stats`, { headers });
+      if (!res.ok) return;
+      const json = (await res.json()) as {
+        data: { memoriesAddedToday: number; totalMemories: number };
+      };
+      setStats({
+        addedToday: json.data.memoriesAddedToday,
+        total: json.data.totalMemories,
+      });
+    } catch {
+      // silently fail — sidebar stats are non-critical
+    }
+  }, [userId, getToken]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   if (isIconOnly) {
     return (
@@ -29,18 +63,18 @@ function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
             <div className="flex items-baseline gap-4">
               <div className="flex items-baseline gap-1.5">
                 <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
-                  {memoriesAdded}
+                  {stats.addedToday}
                 </span>
                 <span className="text-[11px] text-muted-foreground/70">
-                  added
+                  today
                 </span>
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
-                  {memoriesRetrieved}
+                  {stats.total}
                 </span>
                 <span className="text-[11px] text-muted-foreground/70">
-                  retrieved
+                  total
                 </span>
               </div>
             </div>
@@ -54,15 +88,15 @@ function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
     <div className="mx-2 flex items-baseline justify-between px-2">
       <div className="flex items-baseline gap-1.5">
         <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
-          {memoriesAdded}
+          {stats.addedToday}
         </span>
-        <span className="text-[11px] text-muted-foreground/70">added</span>
+        <span className="text-[11px] text-muted-foreground/70">today</span>
       </div>
       <div className="flex items-baseline gap-1.5">
         <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
-          {memoriesRetrieved}
+          {stats.total}
         </span>
-        <span className="text-[11px] text-muted-foreground/70">retrieved</span>
+        <span className="text-[11px] text-muted-foreground/70">total</span>
       </div>
     </div>
   );

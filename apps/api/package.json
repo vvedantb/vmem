@@ -5,23 +5,25 @@
   "scripts": {
     "dev": "npx kill-port 3001 && tsx watch src/index.ts",
     "build": "tsc",
-    "start": "tsx src/index.ts"
+    "start": "tsx src/index.ts",
+    "seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
-    "@clerk/backend": "^2.30.1",
+    "@clerk/backend": "catalog:",
     "@hono/node-server": "^1.19.11",
-    "convex": "^1.34.0",
+    "@neo4j/cypher-builder": "^3.0.1",
+    "convex": "catalog:",
     "dotenv": "^17.3.1",
     "hono": "^4.7.0",
-    "jsonwebtoken": "^9.0.0",
+    "jsonwebtoken": "catalog:",
     "neo4j-driver": "^5.27.0",
-    "tsx": "^4.21.0",
-    "zod": "^4.3.6"
+    "tsx": "catalog:",
+    "zod": "catalog:zod4"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.0",
-    "@types/node": "^25.4.0",
+    "@types/jsonwebtoken": "catalog:",
+    "@types/node": "catalog:node-types-25",
     "kill-port": "^2.0.1",
-    "typescript": "^5.7.0"
+    "typescript": "catalog:"
   }
 }

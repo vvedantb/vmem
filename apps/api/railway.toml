@@ -1,6 +1,7 @@
 [build]
 builder = "railpack"
-buildCommand = "npm install"
+buildCommand = "pnpm --filter @vmem/api build"
+watchPatterns = ["apps/api/**"]
 
 [deploy]
-startCommand = "npx tsx src/index.ts"
+startCommand = "pnpm --filter @vmem/api start"

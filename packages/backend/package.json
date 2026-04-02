@@ -10,15 +10,15 @@
     "deploy": "npx convex deploy"
   },
   "dependencies": {
-    "@ai-sdk/provider-utils": "3.0.22",
-    "@convex-dev/agent": "0.3.2",
-    "@openrouter/ai-sdk-provider": "^1.5.4",
-    "ai": "^5.0.153",
-    "convex": "^1.24.5",
-    "convex-helpers": "^0.1.112"
+    "@ai-sdk/provider-utils": "catalog:",
+    "@convex-dev/agent": "catalog:",
+    "@openrouter/ai-sdk-provider": "catalog:",
+    "ai": "catalog:",
+    "convex": "catalog:",
+    "convex-helpers": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^22.18.5",
-    "typescript": "^5"
+    "@types/node": "catalog:node-types-22",
+    "typescript": "catalog:"
   }
 }

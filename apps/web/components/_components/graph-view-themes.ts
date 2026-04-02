@@ -273,3 +273,28 @@ export function getViewTheme(
       return systemIsDark ? MINIMAL_DARK : MINIMAL_LIGHT;
   }
 }
+
+export function themeToCSSBackground(
+  theme: GraphViewTheme,
+): React.CSSProperties {
+  const layers: string[] = [];
+
+  if (theme.grid) {
+    const { color, spacing } = theme.grid;
+    layers.push(
+      `repeating-linear-gradient(0deg, ${color} 0px, ${color} 1px, transparent 1px, transparent ${spacing}px)`,
+      `repeating-linear-gradient(90deg, ${color} 0px, ${color} 1px, transparent 1px, transparent ${spacing}px)`,
+    );
+  }
+
+  if (theme.gradientCenter) {
+    layers.push(
+      `radial-gradient(circle at center, ${theme.gradientCenter}, transparent 50%)`,
+    );
+  }
+
+  return {
+    backgroundColor: theme.background,
+    ...(layers.length > 0 ? { backgroundImage: layers.join(", ") } : {}),
+  };
+}

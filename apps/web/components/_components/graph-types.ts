@@ -1,21 +1,15 @@
-export interface SimNode {
-  id: string;
+export interface NodeAttributes {
   label: string;
   content: string;
   tags: string[];
   createdAt: string;
+  color: string;
+  size: number;
   x: number;
   y: number;
-  vx: number;
-  vy: number;
-  radius: number;
-  color: string;
-  opacity: number;
 }
 
-export interface SimEdge {
-  sourceIndex: number;
-  targetIndex: number;
+export interface EdgeAttributes {
   weight: number;
   edgeType: "tag" | "relates_to";
   reason?: string;
@@ -32,13 +26,9 @@ export interface HoveredNodeInfo {
 export interface GraphSettings {
   scalingRatio: number;
   gravity: number;
-  repulsion: number;
-  damping: number;
 }
 
 export const DEFAULT_GRAPH_SETTINGS: GraphSettings = {
-  scalingRatio: 4,
-  gravity: 2,
-  repulsion: 3000,
-  damping: 0.88,
+  scalingRatio: 10,
+  gravity: 0.3,
 };

@@ -1,5 +1,146 @@
 # Changelog
 
+## Mobile Drawer Navigation, Logout, Record Tab — 2026-04-02
+
+- Replaced bottom tab bar with drawer navigation (swipe from left or tap hamburger menu button)
+- Added logout button to settings screen below the model list
+- Added Record route (placeholder) as a new drawer item
+- Each screen now has a header bar with menu icon for opening the drawer
+- Added react-native-gesture-handler and @react-navigation/drawer as dependencies
+- Reason: drawer navigation provides cleaner UX for 3+ routes vs cramped bottom tabs, and logout was missing entirely
+
+## Mobile Chat Redesign — 2026-04-02
+
+- Assistant messages: removed bubble background, made full-width to match web's MessageContent pattern
+- ReasoningBlock: added sparkle icon, duration tracking, auto-expand while streaming, auto-collapse after done, rotating chevron
+- ChatInput: redesigned as rounded container with borderless textarea, footer row with voice + send buttons
+- VoiceButton: new component using expo-speech-recognition with animated ping rings while listening
+- Settings: expanded from single model to 4-model selector (TinyLlama 1.1B, Llama 3.2 3B, Phi-3.5 Mini, Mistral 7B) with per-model download/delete/select
+- model-manager: refactored for multi-model support with SecureStore persistence of active model ID
+- Tab labels: applied Instrument Sans Medium font
+- Reason: mobile UI diverged significantly from web's polished design, needed feature parity for voice input and model variety
+
+## Graph Edge Labels, Sidebar Stats, Seed Data Overhaul — 2026-04-02
+
+- Edge labels now appear on hover showing WHY two memories are connected (shared tags or explicit relationship reason)
+- Sidebar stats ("12 added", "47 retrieved") were hardcoded — now fetches real data from `/v1/dashboard/stats`, showing "today" and "total" counts
+- Added `memoriesAddedToday` to dashboard stats API (Cypher counts memories created since midnight)
+- Rewrote all ~100 seed relationship reasons from generic ("both TypeScript patterns") to specific ("strict null checks catch the bugs useEffect cleanup prevents")
+- Seed now creates MemoryEvent nodes so dashboard Recent Activity section is populated
+- Seed dates now ensure ~15 memories in last 7 days and ~30 in last 30 days for realistic dashboard stats
+- Reason: graph edge labels are needed to understand WHY nodes are related, not just that they are. Sidebar stats were always fake. Seed data quality directly affects demo credibility for thesis
+
+## Mobile App UI Overhaul — 2026-04-02
+
+- Ported web app's design system to mobile: HSL CSS variables in global.css, semantic Tailwind color tokens (background, foreground, primary, secondary, muted, accent, destructive, success, warning, border, card) with light/dark mode support
+- Installed react-native-reusables pattern: new Button (CVA variants + TextClassContext), Input, Text, Card, Badge components in src/components/ui/ replacing the previous basic implementations
+- Added Instrument Sans + Instrument Serif fonts via @expo-google-fonts packages, matching web's typography
+- Replaced placeholder tab icons (circle/square Views) with Ionicons (chatbubble-outline, settings-outline) from @expo/vector-icons
+- Themed tab bar background and tint colors using the new design tokens
+- Restyled all screens (chat, settings, sign-in, sign-up) to use semantic token classes instead of raw Tailwind gray values
+- Chat: EmptyState gets sparkle icon, MessageBubble uses card/primary tokens, ChatInput uses Ionicons arrow-up, Badge component for tool calls
+- Settings: Card component wraps offline model section, Button component for actions, ProgressBar uses primary/muted tokens
+- Added ThemeProvider from @react-navigation/native with NAV_THEME object for consistent navigation chrome
+- Reason: mobile app lacked design consistency with web, had no real icons, no design tokens, and no component library. This brings both platforms to the same visual language
+
+## Migrate Force Graph to Sigma.js — 2026-04-02
+
+- Replaced ~856 lines of hand-rolled canvas force graph (ForceGraph.tsx, graph-physics.ts) with ~400 lines using @react-sigma/core + sigma.js WebGL renderer
+- Graph now runs ForceAtlas2 in a web worker via @react-sigma/layout-forceatlas2, eliminating main-thread physics jank
+- Simplified graph settings from 4 sliders (scalingRatio, gravity, repulsion, damping) to 2 (scalingRatio, gravity) since FA2 handles the rest
+- Custom WebGL node glow program preserves the radial glow effect from satellite/constellation themes
+- All interactions preserved: hover/dim, click detail dialog, node drag, shift+drag-to-link, zoom/pan, view theme switching
+- Reason: the custom canvas renderer was fragile, hard to maintain, and slower than WebGL for large graphs. Sigma is built on graphology which was already a dependency
+
+## Fix Mobile Chat Auth Bootstrap — 2026-04-02
+
+- Mobile chat now waits for `ensureUserExists` to finish before entering the main app, removing the race where chat tried to create a Convex thread before the authenticated `users` row existed
+- Hardened the mobile send path against undefined input so transient UI state cannot call `.trim()` on a missing value while chat is initializing
+- Updated the Convex agent config to use `embeddingModel`, matching the current `@convex-dev/agent` API and removing the deprecation warning
+- Reason: chat startup depended on auth, user bootstrap, and thread creation completing in the right order; making readiness explicit is simpler and more reliable than handling repeated server failures after mount
+
+## Fix Mobile OAuth Callback Route — 2026-04-02
+
+- Switched mobile Clerk SSO to `expo-auth-session` redirect URIs, matching the working pattern in `velth` instead of building the callback URL with `expo-linking`
+- Added an Expo Router `app/sso-callback.tsx` screen so the app can land on the Clerk OAuth deep link without throwing an unmatched route error
+- Reason: Google SSO was returning to `vmem://sso-callback`, but the app had no matching route and was not using the same native redirect URI pattern as the known-good mobile app
+
+## Keep Pending Clerk Sessions Signed In On Mobile — 2026-04-02
+
+- Updated mobile Clerk auth guards and the Convex auth bridge to use `treatPendingAsSignedOut: false`
+- Reason: after OAuth returns to the app, Clerk can briefly hold a pending session; treating that state as signed out caused the app to redirect users back to the sign-in screen immediately after successful auth
+
+## Finalize Mobile OAuth From The Callback Route — 2026-04-02
+
+- Moved `WebBrowser.maybeCompleteAuthSession()` to the mobile root layout so Clerk OAuth can finish even when the app reopens on `sso-callback`
+- Changed the callback screen to hold on a loading state briefly instead of immediately redirecting signed-out users back to sign-in
+- Reason: if the callback route renders before the auth session is finalized, redirecting immediately can abort the Clerk flow before a user or session is created
+
+## Handle Clerk OAuth Transfer + Missing Requirements — 2026-04-02
+
+- Replaced the mobile OAuth callback placeholder with Clerk's documented sign-in/sign-up finalize flow, including transferable sign-in and sign-up cases
+- Added a mobile `sso-continue` screen to collect missing first or last name fields when Clerk requires extra profile data before creating the user
+- Reason: Google OAuth can legitimately return without `createdSessionId`; that means the flow must be completed from the callback route instead of being treated like a hard failure
+
+## Adopt @neo4j/cypher-builder for dynamic queries — 2026-04-01
+
+- Replaced string-concatenated WHERE/SET clauses in `listMemories` and `updateMemory` with `@neo4j/cypher-builder` for type-safe, composable query construction
+- Added `cypher-helpers.ts` with a `buildAndRun` helper to bridge the builder's `.build()` output to neo4j-driver sessions
+- Left the other ~37 static queries as raw parameterized Cypher — they have fixed structure and don't benefit from a builder
+- Reason: dynamic string concatenation for WHERE conditions and SET clauses was the only injection-prone pattern; the builder eliminates it while keeping the codebase simple
+
+## Fix Empty Memory Graph For Legacy Rows — 2026-04-01
+
+- Treated Neo4j memories with no `status` field as `active` in the graph query so older rows still appear in graph view
+- Stopped the graph client from turning failed `/v1/graph` requests into a fake empty state and now show the actual error instead
+- Reason: the list view did not require `status`, but the graph view filtered on it strictly, so legacy data looked like "No memories to visualize" even when memories existed
+
+## Fix Railway Deploys For API + MCP — 2026-04-01
+
+- Kept `apps/api` and `apps/mcp` on pnpm `catalog:` versions and aligned the deploy model around the monorepo root instead of per-app roots
+- Added root scripts for API build/start so Railway services can target `api` and `mcp` from the workspace root with explicit per-service commands
+- Removed the temporary standalone-app workaround because it broke the repo's single-source-of-truth dependency versioning
+- Reason: `catalog:` only resolves when Railway installs with access to `pnpm-workspace.yaml`, so the reliable fix is root-based workspace deploys
+
+## Harden Mobile Clerk + Convex Auth Handshake — 2026-04-01
+
+- Mobile routing now waits for Convex auth readiness, not just Clerk session state — this closes the gap where the app could navigate into authenticated screens before Convex had accepted the token
+- User bootstrap no longer swallows `ensureUserExists` failures — failed Convex registration now blocks entry and offers retry instead of silently continuing without a `users` row
+- Added Clerk captcha mount to the custom mobile sign-up flow so account creation matches Clerk's required Expo setup
+- Reworked the SSO callback to handle incomplete OAuth outcomes explicitly — missing profile fields can now be collected instead of leaving users on a permanent spinner
+- Added a signed-in-but-not-Convex-authenticated fallback screen so backend auth misconfiguration fails visibly and recoverably
+
+## Monorepo Dependency Version Management — 2026-04-01
+
+- Added pnpm catalogs to centralize shared dependency versions across all 7 workspaces — single source of truth replaces scattered version strings
+- Named catalogs for intentional version splits: tailwind3 (web/mobile), tailwind4 (chrome-extension), zod4 (api), per-runtime @types/node
+- Replaced react/react-dom pnpm overrides with catalog declarations — overrides are a blunt resolution hammer, catalogs are a proper version declaration
+- Added syncpack (v14) as CI linter to catch version drift — catches anyone bypassing catalog: protocol or introducing mismatches
+- Added `lint:deps`, `fix:deps`, `check:expo` root scripts
+- Added `.github/workflows/lint-deps.yml` — runs syncpack + expo install --check on PRs touching package files
+- Added `packageManager: pnpm@10.15.1` to root package.json for version enforcement
+- Aligned drifting versions: convex (chrome-ext 1.33→1.34), @clerk/backend (mcp 2.29→2.30), @tabler/icons-react (web 3.31→3.35), typescript (all →^5.7.0)
+
+## Fix Mobile Auth Flow — 2026-04-01
+
+- Register flow now handles email verification — previously silently failed when Clerk required it (the default)
+- Login flow handles `needs_first_factor` status for unverified emails, shows clear error for MFA
+- New verify-email screen supports both sign-up and sign-in verification with 6-digit code input + resend
+- Added missing `expo-web-browser` dependency (was only available via transitive dep)
+- Clerk publishable key now fails fast at startup instead of silently creating broken instance
+- Replaced manual SecureStore token cache with `@clerk/clerk-expo/token-cache`
+- Simplified SSO callback — removed eager redirect, lets route guard handle navigation
+
+## Obsidian Graph Physics Overhaul — 2026-03-27
+
+- Rewrote physics constants to match Obsidian's floaty, organic feel — much weaker center gravity (0.004→0.0008), higher damping (0.88→0.95), stronger repulsion (3000→5000), higher max speed (1.5→5)
+- Nodes now glide and settle smoothly instead of snapping or bouncing
+- Wider initial spread (ringRadius 150→250, springLength 140→180) so graph breathes more
+- Labels now appear at lower zoom threshold (2.5→1.5) like Obsidian
+- Slightly smaller, more uniform node sizing (max 8→6) for cleaner look
+- Gravity slider now goes lower (min 0.05) to allow the near-zero gravity Obsidian uses
+- Disabled linLogMode in ForceAtlas2 for more natural node repulsion distribution
+
 ## Extension Dedup + Smart Tags + Auto-Linking — 2026-03-21
 
 - Added URL-based memory deduplication — API returns 409 when saving a page that already exists, extension shows "Already saved — update?" confirmation

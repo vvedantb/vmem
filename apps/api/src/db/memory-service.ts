@@ -1,5 +1,12 @@
-import neo4j, { Driver } from "neo4j-driver";
+import neo4j, {
+  Driver,
+  type Integer,
+  type Session,
+  type Record as NeoRecord,
+} from "neo4j-driver";
+import Cypher, { type RawCypherContext } from "@neo4j/cypher-builder";
 import crypto from "node:crypto";
+import { buildAndRun } from "./cypher-helpers.js";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
 type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
@@ -72,46 +79,90 @@ interface ProposedUpdateNode {
   resolvedAt: string | null;
 }
 
-function parseJsonField<T>(val: unknown): T | null {
-  if (typeof val !== "string") return null;
+function parseJsonField<T>(val: string | null): T | null {
+  if (val === null) return null;
   return JSON.parse(val);
 }
 
-function toEventFromNode(props: Record<string, unknown>): MemoryEvent {
-  const snapshot = parseJsonField<MemorySnapshot>(props.snapshot);
-  const details = parseJsonField<Record<string, string>>(props.details);
+function toNeoInt(val: number | { toNumber(): number }): number {
+  if (typeof val === "number") return val;
+  return val.toNumber();
+}
+
+function toSnapshot(
+  m: Pick<
+    MemoryWithTags,
+    "title" | "content" | "type" | "status" | "confidence" | "tags"
+  >,
+): string {
+  return JSON.stringify({
+    title: m.title,
+    content: m.content,
+    type: m.type,
+    status: m.status,
+    confidence: m.confidence,
+    tags: m.tags,
+  });
+}
+
+function toEventFromNode(props: {
+  id: string;
+  action: string;
+  actor: string;
+  createdAt: string;
+  snapshot: string | null;
+  details: string | null;
+}): MemoryEvent {
   return {
-    id: String(props.id ?? ""),
-    action: String(props.action ?? ""),
-    actor: String(props.actor ?? ""),
-    createdAt: String(props.createdAt ?? ""),
-    snapshot,
-    details,
+    id: props.id,
+    action: props.action,
+    actor: props.actor,
+    createdAt: props.createdAt,
+    snapshot: parseJsonField<MemorySnapshot>(props.snapshot),
+    details: parseJsonField<Record<string, string>>(props.details),
   };
 }
 
-function toMemoryWithTags(record: Record<string, unknown>): MemoryWithTags {
-  const m = record.m as Record<string, unknown>;
-  const props = (m as { properties: Record<string, unknown> }).properties;
-  const tags = record.tags as string[];
+function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
+  const obj = record.toObject();
+  const props = obj.m.properties;
   return {
-    id: props.id as string,
-    userId: props.userId as string,
-    title: props.title as string,
-    content: props.content as string,
-    type: props.type as MemoryType,
-    source: props.source as string,
-    confidence: props.confidence as number,
-    status: props.status as MemoryStatus,
-    createdAt: props.createdAt as string,
-    updatedAt: props.updatedAt as string,
-    expiresAt: (props.expiresAt as string) ?? null,
-    tags,
+    id: props.id,
+    userId: props.userId,
+    title: props.title,
+    content: props.content,
+    type: props.type,
+    source: props.source,
+    confidence: props.confidence,
+    status: props.status,
+    createdAt: props.createdAt,
+    updatedAt: props.updatedAt,
+    expiresAt: props.expiresAt ?? null,
+    tags: obj.tags ?? [],
+  };
+}
+
+function toTimelineEvent(record: NeoRecord): TimelineEvent {
+  return {
+    ...toEventFromNode(record.get("e").properties),
+    memoryId: String(record.get("memoryId") ?? ""),
+    memoryTitle: String(record.get("memoryTitle") ?? ""),
   };
 }
 
 export class MemoryService {
   constructor(private driver: Driver) {}
+
+  private async withSession<T>(
+    fn: (session: Session) => Promise<T>,
+  ): Promise<T> {
+    const session = this.driver.session();
+    try {
+      return await fn(session);
+    } finally {
+      await session.close();
+    }
+  }
 
   async createMemory(params: {
     userId: string;
@@ -124,8 +175,7 @@ export class MemoryService {
     expiresAt?: string;
     url?: string;
   }): Promise<MemoryWithTags> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const id = crypto.randomUUID();
       const now = new Date().toISOString();
 
@@ -170,7 +220,7 @@ export class MemoryService {
         },
       );
 
-      const snapshot = JSON.stringify({
+      const snapshot = toSnapshot({
         title: params.title,
         content: params.content,
         type: params.type,
@@ -184,9 +234,7 @@ export class MemoryService {
         id,
         "created",
         params.source,
-        {
-          type: params.type,
-        },
+        { type: params.type },
         snapshot,
       );
 
@@ -204,19 +252,15 @@ export class MemoryService {
         },
       );
 
-      const record = result.records[0];
-      return toMemoryWithTags(record.toObject());
-    } finally {
-      await session.close();
-    }
+      return toMemoryWithTags(result.records[0]);
+    });
   }
 
   async findMemoryByUrl(
     userId: string,
     url: string,
   ): Promise<{ id: string; title: string; updatedAt: string } | null> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (m:Memory {userId: $userId, url: $url})
          WHERE m.status IN ['active', 'pinned']
@@ -231,17 +275,14 @@ export class MemoryService {
         title: String(r.get("title")),
         updatedAt: String(r.get("updatedAt")),
       };
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async getMemory(
     userId: string,
     memoryId: string,
   ): Promise<MemoryWithTags | null> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (m:Memory {id: $memoryId, userId: $userId})
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
@@ -250,10 +291,8 @@ export class MemoryService {
       );
 
       if (result.records.length === 0) return null;
-      return toMemoryWithTags(result.records[0].toObject());
-    } finally {
-      await session.close();
-    }
+      return toMemoryWithTags(result.records[0]);
+    });
   }
 
   async listMemories(params: {
@@ -264,59 +303,48 @@ export class MemoryService {
     limit: number;
     offset: number;
   }): Promise<{ memories: MemoryWithTags[]; total: number }> {
-    const session = this.driver.session();
-    try {
-      const conditions = ["m.userId = $userId"];
-      const queryParams: Record<string, unknown> = {
-        userId: params.userId,
-        limit: neo4j.int(params.limit),
-        offset: neo4j.int(params.offset),
-      };
+    return this.withSession(async (session) => {
+      const whereClauses = ["m.userId = $userId"];
+      const queryParams: Record<string, string | number | Integer | string[]> =
+        {
+          userId: params.userId,
+          limit: neo4j.int(params.limit),
+          offset: neo4j.int(params.offset),
+        };
 
       if (params.type) {
-        conditions.push("m.type = $type");
+        whereClauses.push("m.type = $type");
         queryParams.type = params.type;
       }
       if (params.status) {
-        conditions.push("m.status = $status");
+        whereClauses.push("m.status = $status");
         queryParams.status = params.status;
       }
-
-      const where = conditions.join(" AND ");
-
-      let tagMatch = "";
       if (params.tags && params.tags.length > 0) {
-        tagMatch =
-          "MATCH (m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags WITH m WHERE count { (m)-[:TAGGED_WITH]->(ft2:Tag) WHERE ft2.name IN $filterTags } = size($filterTags)";
+        whereClauses.push(
+          `size([(m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags | ft]) = size($filterTags)`,
+        );
         queryParams.filterTags = params.tags;
       }
 
+      const where = whereClauses.join(" AND ");
+
       const countResult = await session.run(
-        `MATCH (m:Memory) WHERE ${where} ${tagMatch} RETURN count(m) AS total`,
+        `MATCH (m:Memory) WHERE ${where} RETURN count(m) AS total`,
         queryParams,
       );
-
-      const total = (
-        countResult.records[0].get("total") as { toNumber: () => number }
-      ).toNumber();
+      const total = toNeoInt(countResult.records[0].get("total"));
 
       const result = await session.run(
         `MATCH (m:Memory) WHERE ${where}
-         ${tagMatch}
-         WITH m ORDER BY m.createdAt DESC
-         SKIP $offset LIMIT $limit
+         WITH m ORDER BY m.createdAt DESC SKIP $offset LIMIT $limit
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          RETURN m, collect(t.name) AS tags`,
         queryParams,
       );
-
-      const memories = result.records.map((r) =>
-        toMemoryWithTags(r.toObject()),
-      );
+      const memories = result.records.map(toMemoryWithTags);
       return { memories, total };
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async updateMemory(
@@ -332,101 +360,104 @@ export class MemoryService {
       expiresAt?: string | null;
     },
   ): Promise<MemoryWithTags | null> {
-    const session = this.driver.session();
-    try {
-      const setClauses: string[] = ["m.updatedAt = $now"];
-      const queryParams: Record<string, unknown> = {
-        memoryId,
-        userId,
-        now: new Date().toISOString(),
-      };
+    return this.withSession(async (session) => {
+      const m = new Cypher.Node();
+      const t = new Cypher.Node();
 
+      const setParams: Cypher.SetParam[] = [
+        [m.property("updatedAt"), new Cypher.Param(new Date().toISOString())],
+      ];
       if (updates.title !== undefined) {
-        setClauses.push("m.title = $title");
-        queryParams.title = updates.title;
+        setParams.push([m.property("title"), new Cypher.Param(updates.title)]);
       }
       if (updates.content !== undefined) {
-        setClauses.push("m.content = $content");
-        queryParams.content = updates.content;
+        setParams.push([
+          m.property("content"),
+          new Cypher.Param(updates.content),
+        ]);
       }
       if (updates.type !== undefined) {
-        setClauses.push("m.type = $type");
-        queryParams.type = updates.type;
+        setParams.push([m.property("type"), new Cypher.Param(updates.type)]);
       }
       if (updates.status !== undefined) {
-        setClauses.push("m.status = $status");
-        queryParams.status = updates.status;
+        setParams.push([
+          m.property("status"),
+          new Cypher.Param(updates.status),
+        ]);
       }
       if (updates.confidence !== undefined) {
-        setClauses.push("m.confidence = $confidence");
-        queryParams.confidence = updates.confidence;
+        setParams.push([
+          m.property("confidence"),
+          new Cypher.Param(updates.confidence),
+        ]);
       }
       if (updates.expiresAt !== undefined) {
-        setClauses.push("m.expiresAt = $expiresAt");
-        queryParams.expiresAt = updates.expiresAt;
+        setParams.push([
+          m.property("expiresAt"),
+          new Cypher.Param(updates.expiresAt),
+        ]);
       }
 
-      let tagUpdate = "";
-      if (updates.tags !== undefined) {
-        tagUpdate = `
-          WITH m
-          OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
-          DELETE r
-          WITH m
-          UNWIND $newTags AS tagName
-          MERGE (t:Tag {name: tagName})
-          CREATE (m)-[:TAGGED_WITH]->(t)`;
-        queryParams.newTags = updates.tags;
-      }
+      const matchWithSet = new Cypher.Match(
+        new Cypher.Pattern(m, {
+          labels: ["Memory"],
+          properties: {
+            id: new Cypher.Param(memoryId),
+            userId: new Cypher.Param(userId),
+          },
+        }),
+      ).set(...setParams);
 
-      const result = await session.run(
-        `MATCH (m:Memory {id: $memoryId, userId: $userId})
-         SET ${setClauses.join(", ")}
-         ${tagUpdate}
-         WITH m
-         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-         RETURN m, collect(t.name) AS tags`,
-        queryParams,
-      );
+      const tagUpdate =
+        updates.tags !== undefined
+          ? new Cypher.Raw((ctx: RawCypherContext) => [
+              `WITH ${ctx.compile(m)}
+OPTIONAL MATCH (${ctx.compile(m)})-[r:TAGGED_WITH]->(:Tag)
+DELETE r
+WITH ${ctx.compile(m)}
+UNWIND $newTags AS tagName
+MERGE (tag:Tag {name: tagName})
+CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
+              { newTags: updates.tags },
+            ])
+          : undefined;
+
+      const returnPart = new Cypher.With(m)
+        .optionalMatch(
+          new Cypher.Pattern(m)
+            .related({ type: "TAGGED_WITH", direction: "right" })
+            .to(t, { labels: ["Tag"] }),
+        )
+        .return(m, [Cypher.collect(t.property("name")), "tags"]);
+
+      const query = Cypher.utils.concat(matchWithSet, tagUpdate, returnPart);
+      const result = await buildAndRun(session, query);
 
       if (result.records.length === 0) return null;
 
-      const updated = toMemoryWithTags(result.records[0].toObject());
-
-      const snapshot = JSON.stringify({
-        title: updated.title,
-        content: updated.content,
-        type: updated.type,
-        status: updated.status,
-        confidence: updated.confidence,
-        tags: updated.tags,
-      });
-
-      await this.logEvent(session, memoryId, "updated", "api", {}, snapshot);
-
+      const updated = toMemoryWithTags(result.records[0]);
+      await this.logEvent(
+        session,
+        memoryId,
+        "updated",
+        "api",
+        {},
+        toSnapshot(updated),
+      );
       return updated;
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async deleteMemory(userId: string, memoryId: string): Promise<boolean> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (m:Memory {id: $memoryId, userId: $userId})
          DETACH DELETE m
          RETURN count(m) AS deleted`,
         { memoryId, userId },
       );
-
-      const deleted = (
-        result.records[0].get("deleted") as { toNumber: () => number }
-      ).toNumber();
-      return deleted > 0;
-    } finally {
-      await session.close();
-    }
+      return toNeoInt(result.records[0].get("deleted")) > 0;
+    });
   }
 
   async searchMemories(params: {
@@ -438,35 +469,28 @@ export class MemoryService {
     limit: number;
     offset: number;
   }): Promise<{ memories: MemoryWithTags[]; total: number }> {
-    const session = this.driver.session();
-    try {
-      if (params.query) {
-        const result = await session.run(
-          `CALL db.index.fulltext.queryNodes('memory_content', $query)
-           YIELD node AS m, score
-           WHERE m.userId = $userId
-           OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-           RETURN m, collect(t.name) AS tags, score
-           ORDER BY score DESC
-           SKIP $offset LIMIT $limit`,
-          {
-            query: params.query,
-            userId: params.userId,
-            offset: neo4j.int(params.offset),
-            limit: neo4j.int(params.limit),
-          },
-        );
+    if (!params.query) return this.listMemories(params);
 
-        const memories = result.records.map((r) =>
-          toMemoryWithTags(r.toObject()),
-        );
-        return { memories, total: memories.length };
-      }
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `CALL db.index.fulltext.queryNodes('memory_content', $query)
+         YIELD node AS m, score
+         WHERE m.userId = $userId
+         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+         RETURN m, collect(t.name) AS tags, score
+         ORDER BY score DESC
+         SKIP $offset LIMIT $limit`,
+        {
+          query: params.query,
+          userId: params.userId,
+          offset: neo4j.int(params.offset),
+          limit: neo4j.int(params.limit),
+        },
+      );
 
-      return this.listMemories(params);
-    } finally {
-      await session.close();
-    }
+      const memories = result.records.map(toMemoryWithTags);
+      return { memories, total: memories.length };
+    });
   }
 
   async retrieveMemories(params: {
@@ -476,8 +500,7 @@ export class MemoryService {
     tags?: string[];
     limit: number;
   }): Promise<MemoryCandidate[]> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `CALL db.index.fulltext.queryNodes('memory_content', $query)
          YIELD node AS m, score AS fulltextScore
@@ -505,12 +528,11 @@ export class MemoryService {
       );
 
       return result.records.map((record) => {
-        const obj = record.toObject();
-        const memory = toMemoryWithTags(obj);
-        const fulltextScore = obj.fulltextScore as number;
-        const recencyScore = obj.recencyScore as number;
-        const confidenceScore = obj.confidenceScore as number;
-        const totalScore = obj.totalScore as number;
+        const memory = toMemoryWithTags(record);
+        const fulltextScore = Number(record.get("fulltextScore"));
+        const recencyScore = Number(record.get("recencyScore"));
+        const confidenceScore = Number(record.get("confidenceScore"));
+        const totalScore = Number(record.get("totalScore"));
 
         const reasons: string[] = [];
         if (fulltextScore > 0.5) reasons.push("strong content match");
@@ -534,17 +556,14 @@ export class MemoryService {
           },
         };
       });
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async getMemoryEvents(
     userId: string,
     memoryId: string,
   ): Promise<MemoryEvent[]> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (m:Memory {id: $memoryId, userId: $userId})<-[:EVENT_FOR]-(e:MemoryEvent)
          RETURN e
@@ -555,9 +574,7 @@ export class MemoryService {
       return result.records.map((record) =>
         toEventFromNode(record.get("e").properties),
       );
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async createProposedUpdate(params: {
@@ -565,8 +582,7 @@ export class MemoryService {
     proposedContent: string;
     reason: string;
   }): Promise<ProposedUpdateNode> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const id = crypto.randomUUID();
       const now = new Date().toISOString();
 
@@ -602,14 +618,11 @@ export class MemoryService {
         createdAt: props.createdAt,
         resolvedAt: null,
       };
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async listProposedUpdates(userId: string): Promise<ProposedUpdateNode[]> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (p:ProposedUpdate {status: 'pending'})-[:UPDATE_FOR]->(m:Memory {userId: $userId})
          RETURN p
@@ -629,17 +642,14 @@ export class MemoryService {
           resolvedAt: props.resolvedAt ?? null,
         };
       });
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async resolveProposal(
     proposalId: string,
     action: "approve" | "reject",
   ): Promise<{ status: string; memoryId: string } | null> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const now = new Date().toISOString();
 
       if (action === "approve") {
@@ -654,17 +664,7 @@ export class MemoryService {
         );
 
         if (result.records.length === 0) return null;
-        const record = result.records[0];
-        const memory = toMemoryWithTags(record.toObject());
-
-        const snapshot = JSON.stringify({
-          title: memory.title,
-          content: memory.content,
-          type: memory.type,
-          status: memory.status,
-          confidence: memory.confidence,
-          tags: memory.tags,
-        });
+        const memory = toMemoryWithTags(result.records[0]);
 
         await this.logEvent(
           session,
@@ -672,11 +672,11 @@ export class MemoryService {
           "proposal_approved",
           "api",
           {},
-          snapshot,
+          toSnapshot(memory),
         );
 
         return {
-          status: record.get("status"),
+          status: String(result.records[0].get("status")),
           memoryId: memory.id,
         };
       }
@@ -690,7 +690,7 @@ export class MemoryService {
 
       if (result.records.length === 0) return null;
       const record = result.records[0];
-      const memoryId = record.get("memoryId") as string;
+      const memoryId = String(record.get("memoryId"));
 
       await this.logEvent(
         session,
@@ -702,71 +702,60 @@ export class MemoryService {
       );
 
       return {
-        status: record.get("status"),
+        status: String(record.get("status")),
         memoryId,
       };
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async getStats(userId: string): Promise<{
     totalMemories: number;
     memoriesThisWeek: number;
     memoriesThisMonth: number;
+    memoriesAddedToday: number;
     totalTags: number;
     growthData: { date: string; total: number; new: number }[];
   }> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const todayStart = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      ).toISOString();
 
       const result = await session.run(
         `MATCH (m:Memory {userId: $userId})
-         WITH collect(m) AS allMems
-         UNWIND allMems AS m
-         WITH allMems,
-              count(m) AS total,
+         WITH count(m) AS total,
               count(CASE WHEN m.createdAt >= $weekAgo THEN 1 END) AS thisWeek,
-              count(CASE WHEN m.createdAt >= $monthAgo THEN 1 END) AS thisMonth
-         WITH total, thisWeek, thisMonth
+              count(CASE WHEN m.createdAt >= $monthAgo THEN 1 END) AS thisMonth,
+              count(CASE WHEN m.createdAt >= $todayStart THEN 1 END) AS today
          OPTIONAL MATCH (t:Tag)<-[:TAGGED_WITH]-(:Memory {userId: $userId})
-         WITH total, thisWeek, thisMonth, count(DISTINCT t) AS tagCount
-         RETURN total, thisWeek, thisMonth, tagCount`,
+         WITH total, thisWeek, thisMonth, today, count(DISTINCT t) AS tagCount
+         RETURN total, thisWeek, thisMonth, today, tagCount`,
         {
           userId,
           weekAgo: weekAgo.toISOString(),
           monthAgo: monthAgo.toISOString(),
+          todayStart,
         },
       );
 
       let totalMemories = 0;
       let memoriesThisWeek = 0;
       let memoriesThisMonth = 0;
+      let memoriesAddedToday = 0;
       let totalTags = 0;
 
       if (result.records.length > 0) {
         const record = result.records[0];
-        totalMemories = (record.get("total") as { toNumber?: () => number })
-          .toNumber
-          ? (record.get("total") as { toNumber: () => number }).toNumber()
-          : (record.get("total") as number);
-        memoriesThisWeek = (
-          record.get("thisWeek") as { toNumber?: () => number }
-        ).toNumber
-          ? (record.get("thisWeek") as { toNumber: () => number }).toNumber()
-          : (record.get("thisWeek") as number);
-        memoriesThisMonth = (
-          record.get("thisMonth") as { toNumber?: () => number }
-        ).toNumber
-          ? (record.get("thisMonth") as { toNumber: () => number }).toNumber()
-          : (record.get("thisMonth") as number);
-        totalTags = (record.get("tagCount") as { toNumber?: () => number })
-          .toNumber
-          ? (record.get("tagCount") as { toNumber: () => number }).toNumber()
-          : (record.get("tagCount") as number);
+        totalMemories = toNeoInt(record.get("total"));
+        memoriesThisWeek = toNeoInt(record.get("thisWeek"));
+        memoriesThisMonth = toNeoInt(record.get("thisMonth"));
+        memoriesAddedToday = toNeoInt(record.get("today"));
+        totalTags = toNeoInt(record.get("tagCount"));
       }
 
       const growthResult = await session.run(
@@ -785,24 +774,16 @@ export class MemoryService {
       );
 
       const growthData = growthResult.records.map((r) => {
-        const dateStr = r.get("date") as string;
+        const dateStr = String(r.get("date"));
         const d = new Date(dateStr);
         const label = d.toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         });
-        const t = r.get("total");
-        const n = r.get("newCount");
         return {
           date: label,
-          total:
-            typeof t === "number"
-              ? t
-              : (t as { toNumber: () => number }).toNumber(),
-          new:
-            typeof n === "number"
-              ? n
-              : (n as { toNumber: () => number }).toNumber(),
+          total: toNeoInt(r.get("total")),
+          new: toNeoInt(r.get("newCount")),
         };
       });
 
@@ -810,12 +791,11 @@ export class MemoryService {
         totalMemories,
         memoriesThisWeek,
         memoriesThisMonth,
+        memoriesAddedToday,
         totalTags,
         growthData,
       };
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async getRecentActivity(
@@ -831,8 +811,7 @@ export class MemoryService {
       relativeTime: string;
     }[]
   > {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
          RETURN e, m.title AS memoryTitle
@@ -844,9 +823,11 @@ export class MemoryService {
       const now = Date.now();
       return result.records.map((record) => {
         const props = record.get("e").properties;
-        const memoryTitle = record.get("memoryTitle") as string;
-        const action = props.action as string;
-        const createdAt = props.createdAt as string;
+        const memoryTitle = String(
+          props.memoryTitle ?? record.get("memoryTitle"),
+        );
+        const action = String(props.action);
+        const createdAt = String(props.createdAt);
         const diffMs = now - new Date(createdAt).getTime();
         const diffMins = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);
@@ -871,7 +852,7 @@ export class MemoryService {
         };
 
         return {
-          id: props.id as string,
+          id: String(props.id),
           type: typeMap[action] ?? action,
           title: "Memory",
           description: descMap[action] ?? `${action} "${memoryTitle}"`,
@@ -879,17 +860,14 @@ export class MemoryService {
           relativeTime,
         };
       });
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async getMemoryTimeline(
     userId: string,
     memoryId: string,
   ): Promise<TimelineEvent[]> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {id: $memoryId, userId: $userId})
          RETURN e, m.id AS memoryId, m.title AS memoryTitle
@@ -897,14 +875,8 @@ export class MemoryService {
         { memoryId, userId },
       );
 
-      return result.records.map((record) => ({
-        ...toEventFromNode(record.get("e").properties),
-        memoryId: String(record.get("memoryId") ?? ""),
-        memoryTitle: String(record.get("memoryTitle") ?? ""),
-      }));
-    } finally {
-      await session.close();
-    }
+      return result.records.map(toTimelineEvent);
+    });
   }
 
   async getTopicTimeline(
@@ -913,8 +885,7 @@ export class MemoryService {
     limit: number,
     offset: number,
   ): Promise<TimelineEvent[]> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (tagMatched:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag {name: $tag})
          WITH collect(DISTINCT tagMatched) AS tagMemories
@@ -938,18 +909,13 @@ export class MemoryService {
         },
       );
 
-      return result.records.map((record) => ({
-        ...toEventFromNode(record.get("e").properties),
-        memoryId: String(record.get("memoryId") ?? ""),
-        memoryTitle: String(record.get("memoryTitle") ?? ""),
-        connectionType:
-          String(record.get("connectionType") ?? "") === "related"
-            ? "related"
-            : "tag",
-      }));
-    } finally {
-      await session.close();
-    }
+      return result.records.map((record) => {
+        const connType = String(record.get("connectionType") ?? "");
+        const connectionType: ConnectionType =
+          connType === "related" ? "related" : "tag";
+        return { ...toTimelineEvent(record), connectionType };
+      });
+    });
   }
 
   async getSearchTimeline(
@@ -958,8 +924,7 @@ export class MemoryService {
     limit: number,
     offset: number,
   ): Promise<TimelineEvent[]> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `CALL db.index.fulltext.queryNodes('memory_content', $query)
          YIELD node AS m, score
@@ -976,14 +941,8 @@ export class MemoryService {
         },
       );
 
-      return result.records.map((record) => ({
-        ...toEventFromNode(record.get("e").properties),
-        memoryId: String(record.get("memoryId") ?? ""),
-        memoryTitle: String(record.get("memoryTitle") ?? ""),
-      }));
-    } finally {
-      await session.close();
-    }
+      return result.records.map(toTimelineEvent);
+    });
   }
 
   async linkMemories(
@@ -993,8 +952,7 @@ export class MemoryService {
     reason: string,
   ): Promise<boolean> {
     if (memoryIdA === memoryIdB) return false;
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (a:Memory {id: $memoryIdA, userId: $userId}), (b:Memory {id: $memoryIdB, userId: $userId})
          MERGE (a)-[r:RELATES_TO]->(b)
@@ -1003,9 +961,7 @@ export class MemoryService {
         { memoryIdA, memoryIdB, userId, reason },
       );
       return result.records.length > 0;
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async unlinkMemories(
@@ -1013,25 +969,21 @@ export class MemoryService {
     memoryIdA: string,
     memoryIdB: string,
   ): Promise<boolean> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       await session.run(
         `MATCH (a:Memory {id: $memoryIdA, userId: $userId})-[r:RELATES_TO]-(b:Memory {id: $memoryIdB, userId: $userId})
          DELETE r`,
         { memoryIdA, memoryIdB, userId },
       );
       return true;
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async getRelatedMemories(
     userId: string,
     memoryId: string,
   ): Promise<{ memory: MemoryWithTags; reason: string }[]> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (m:Memory {id: $memoryId, userId: $userId})-[r:RELATES_TO]-(related:Memory)
          OPTIONAL MATCH (related)-[:TAGGED_WITH]->(t:Tag)
@@ -1039,20 +991,17 @@ export class MemoryService {
         { memoryId, userId },
       );
       return result.records.map((record) => ({
-        memory: toMemoryWithTags(record.toObject()),
+        memory: toMemoryWithTags(record),
         reason: String(record.get("reason") ?? ""),
       }));
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async getAllRelationships(
     userId: string,
     limit = 500,
   ): Promise<{ source: string; target: string; reason: string }[]> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory)
          RETURN a.id AS source, b.id AS target, r.reason AS reason
@@ -1065,9 +1014,7 @@ export class MemoryService {
         target: String(record.get("target") ?? ""),
         reason: String(record.get("reason") ?? ""),
       }));
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async getGraphData(userId: string): Promise<{
@@ -1080,58 +1027,48 @@ export class MemoryService {
     }[];
     edges: { source: string; target: string; reason: string }[];
   }> {
-    const session = this.driver.session();
+    const nodesSession = this.driver.session();
+    const edgesSession = this.driver.session();
     try {
-      const result = await session.run(
-        `MATCH (m:Memory {userId: $userId})
-         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-         WITH m, collect(t.name) AS tags
-         WITH collect({ id: m.id, title: m.title, content: left(m.content, 200), tags: tags, createdAt: m.createdAt }) AS nodes,
-              collect(m) AS mems
-         UNWIND mems AS a
-         OPTIONAL MATCH (a)-[r:RELATES_TO]->(b:Memory {userId: $userId})
-         WITH nodes, collect(CASE WHEN b IS NOT NULL THEN { source: a.id, target: b.id, reason: r.reason } END) AS rawEdges
-         RETURN nodes, [e IN rawEdges WHERE e IS NOT NULL] AS edges`,
-        { userId },
-      );
+      const [nodesResult, edgesResult] = await Promise.all([
+        nodesSession.run(
+          `MATCH (m:Memory {userId: $userId})
+           WHERE coalesce(m.status, 'active') IN ['active', 'pinned']
+           OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+           RETURN m.id AS id, m.title AS title,
+                  substring(m.content, 0, 200) AS content,
+                  collect(t.name) AS tags,
+                  m.createdAt AS createdAt`,
+          { userId },
+        ),
+        edgesSession.run(
+          `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
+           WHERE coalesce(a.status, 'active') IN ['active', 'pinned']
+             AND coalesce(b.status, 'active') IN ['active', 'pinned']
+           RETURN a.id AS source, b.id AS target, r.reason AS reason`,
+          { userId },
+        ),
+      ]);
 
-      if (result.records.length === 0) {
-        return { nodes: [], edges: [] };
-      }
-
-      const record = result.records[0];
-      const rawNodes = record.get("nodes") as {
-        id: string;
-        title: string;
-        content: string;
-        tags: string[];
-        createdAt: string;
-      }[];
-      const rawEdges = record.get("edges") as {
-        source: string;
-        target: string;
-        reason: string;
-      }[];
-
-      const nodes = rawNodes.map((n) => ({
-        id: String(n.id),
-        title: String(n.title),
-        content: String(n.content ?? ""),
-        tags: (n.tags ?? []).map(String),
-        createdAt: String(n.createdAt),
+      const nodes = nodesResult.records.map((r) => ({
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        content: String(r.get("content") ?? ""),
+        tags: Array.isArray(r.get("tags"))
+          ? r.get("tags").filter(Boolean).map(String)
+          : [],
+        createdAt: String(r.get("createdAt")),
       }));
 
-      const edges = rawEdges
-        .filter((e) => e.source && e.target)
-        .map((e) => ({
-          source: String(e.source),
-          target: String(e.target),
-          reason: String(e.reason ?? ""),
-        }));
+      const edges = edgesResult.records.map((r) => ({
+        source: String(r.get("source")),
+        target: String(r.get("target")),
+        reason: String(r.get("reason") ?? ""),
+      }));
 
       return { nodes, edges };
     } finally {
-      await session.close();
+      await Promise.all([nodesSession.close(), edgesSession.close()]);
     }
   }
 
@@ -1140,23 +1077,20 @@ export class MemoryService {
     excludeId: string,
     limit = 30,
   ): Promise<Array<{ id: string; title: string }>> {
-    const session = this.driver.session();
-    try {
+    return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (m:Memory {userId: $userId})
          WHERE m.id <> $excludeId AND m.status IN ['active', 'pinned']
          RETURN m.id AS id, m.title AS title
          ORDER BY m.updatedAt DESC
          LIMIT $limit`,
-        { userId, excludeId, limit: Number(limit) },
+        { userId, excludeId, limit: neo4j.int(limit) },
       );
       return result.records.map((r) => ({
         id: String(r.get("id")),
         title: String(r.get("title")),
       }));
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   async applyEnrichment(
@@ -1165,57 +1099,50 @@ export class MemoryService {
     tags: string[],
     relatedIds: string[],
   ): Promise<void> {
-    const session = this.driver.session();
-    const tx = session.beginTransaction();
-    try {
-      await tx.run(
-        `MATCH (m:Memory {id: $memoryId, userId: $userId})
-         OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
-         DELETE r`,
-        { memoryId, userId },
-      );
-
-      if (tags.length > 0) {
+    return this.withSession(async (session) => {
+      const tx = session.beginTransaction();
+      try {
         await tx.run(
           `MATCH (m:Memory {id: $memoryId, userId: $userId})
+           OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
+           DELETE r
+           WITH m
            FOREACH (tagName IN $tags |
              MERGE (t:Tag {name: tagName})
              MERGE (m)-[:TAGGED_WITH]->(t)
            )`,
           { memoryId, userId, tags },
         );
-      }
 
-      await tx.run(
-        `MATCH (m:Memory {id: $memoryId, userId: $userId})
-         OPTIONAL MATCH (m)-[r:RELATES_TO]-()
-         WHERE r.reason = 'content similarity'
-         DELETE r`,
-        { memoryId, userId },
-      );
-
-      if (relatedIds.length > 0) {
         await tx.run(
           `MATCH (m:Memory {id: $memoryId, userId: $userId})
-           UNWIND $relatedIds AS relId
-           MATCH (m2:Memory {id: relId, userId: $userId})
-           MERGE (m)-[r:RELATES_TO]->(m2)
-           ON CREATE SET r.reason = 'content similarity'`,
-          { memoryId, userId, relatedIds },
+           OPTIONAL MATCH (m)-[r:RELATES_TO]-()
+           WHERE r.reason = 'content similarity'
+           DELETE r`,
+          { memoryId, userId },
         );
-      }
 
-      await tx.commit();
-    } catch (err) {
-      await tx.rollback();
-      throw err;
-    } finally {
-      await session.close();
-    }
+        if (relatedIds.length > 0) {
+          await tx.run(
+            `MATCH (m:Memory {id: $memoryId, userId: $userId})
+             UNWIND $relatedIds AS relId
+             MATCH (m2:Memory {id: relId, userId: $userId})
+             MERGE (m)-[r:RELATES_TO]->(m2)
+             ON CREATE SET r.reason = 'content similarity'`,
+            { memoryId, userId, relatedIds },
+          );
+        }
+
+        await tx.commit();
+      } catch (err) {
+        await tx.rollback();
+        throw err;
+      }
+    });
   }
 
   private async logEvent(
-    session: ReturnType<Driver["session"]>,
+    session: Session,
     memoryId: string,
     action: string,
     actor: string,

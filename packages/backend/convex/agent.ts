@@ -18,7 +18,7 @@ export const openrouter = createOpenRouter({
 export const vmemAgent = new Agent(components.agent, {
   name: "vmem",
   languageModel: openrouter.chat("openai/gpt-5-nano:nitro"),
-  textEmbeddingModel: openrouter.textEmbeddingModel(
+  embeddingModel: openrouter.textEmbeddingModel(
     "openai/text-embedding-3-small",
   ),
   instructions: [

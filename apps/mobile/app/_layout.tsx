@@ -1,45 +1,65 @@
 import "../src/global.css";
+import "react-native-gesture-handler";
 
-import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
+import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
-import { Slot, useRouter, useSegments } from "expo-router";
-import * as SecureStore from "expo-secure-store";
+import { Slot } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import * as WebBrowser from "expo-web-browser";
+import { ThemeProvider } from "@react-navigation/native";
+import { useColorScheme } from "nativewind";
+import {
+  useFonts,
+  InstrumentSans_400Regular,
+  InstrumentSans_500Medium,
+  InstrumentSans_600SemiBold,
+  InstrumentSans_700Bold,
+} from "@expo-google-fonts/instrument-sans";
+import {
+  InstrumentSerif_400Regular,
+  InstrumentSerif_400Regular_Italic,
+} from "@expo-google-fonts/instrument-serif";
+import { NAV_THEME } from "@/lib/theme";
+import { NetworkProvider } from "@/providers/NetworkProvider";
+
+WebBrowser.maybeCompleteAuthSession();
+SplashScreen.preventAutoHideAsync();
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
   throw new Error("Missing EXPO_PUBLIC_CONVEX_URL environment variable");
 }
 
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+if (!publishableKey) {
+  throw new Error(
+    "Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable",
+  );
+}
+
 const convex = new ConvexReactClient(convexUrl);
 
-const tokenCache = {
-  getToken: (key: string) => SecureStore.getItemAsync(key),
-  saveToken: (key: string, value: string) =>
-    SecureStore.setItemAsync(key, value),
-};
+function useClerkAuth() {
+  return useAuth({ treatPendingAsSignedOut: false });
+}
 
 function RootLayoutNav() {
-  const { isSignedIn, isLoaded } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    const inAuthGroup = segments[0] === "(auth)";
-    if (isSignedIn && inAuthGroup) {
-      router.replace("/(main)");
-    } else if (!isSignedIn && !inAuthGroup) {
-      router.replace("/(auth)/login");
-    }
-  }, [isSignedIn, isLoaded, segments, router]);
+  const { isLoaded } = useClerkAuth();
+  const { colorScheme } = useColorScheme();
 
   if (!isLoaded) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#000000" />
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator
+          size="large"
+          color={
+            colorScheme === "dark" ? "hsl(260, 5%, 92%)" : "hsl(0, 0%, 13%)"
+          }
+        />
       </View>
     );
   }
@@ -48,13 +68,38 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+  const { colorScheme } = useColorScheme();
+
+  const [fontsLoaded] = useFonts({
+    InstrumentSans_400Regular,
+    InstrumentSans_500Medium,
+    InstrumentSans_600SemiBold,
+    InstrumentSans_700Bold,
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
+  });
+
+  if (fontsLoaded) {
+    SplashScreen.hideAsync();
+  }
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <RootLayoutNav />
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider
+        value={NAV_THEME[colorScheme === "dark" ? "dark" : "light"]}
+      >
+        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+          <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
+            <NetworkProvider>
+              <RootLayoutNav />
+            </NetworkProvider>
+          </ConvexProviderWithClerk>
+        </ClerkProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
