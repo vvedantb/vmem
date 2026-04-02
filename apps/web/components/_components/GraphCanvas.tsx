@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import {
+  IconZoomIn,
+  IconZoomOut,
+  IconFocusCentered,
+} from "@tabler/icons-react";
 import type {
   GraphNode,
   GraphEdge,
@@ -10,7 +15,12 @@ import type {
 } from "./canvas/types";
 import type { SimulationController } from "./canvas/simulation";
 import { createSimulation } from "./canvas/simulation";
-import { createViewport, tickViewport, fitToNodes } from "./canvas/viewport";
+import {
+  createViewport,
+  tickViewport,
+  fitToNodes,
+  zoomAt,
+} from "./canvas/viewport";
 import { createSpatialIndex, rebuildIndex } from "./canvas/hit-test";
 import { render } from "./canvas/renderer";
 import { attachInputHandlers } from "./canvas/input-handler";
@@ -219,11 +229,73 @@ export default function GraphCanvas({
     };
   }, [nodes, edges]);
 
+  const handleZoomIn = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    zoomAt(
+      viewportRef.current,
+      canvas.clientWidth / 2,
+      canvas.clientHeight / 2,
+      canvas.clientWidth,
+      canvas.clientHeight,
+      1.3,
+    );
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    zoomAt(
+      viewportRef.current,
+      canvas.clientWidth / 2,
+      canvas.clientHeight / 2,
+      canvas.clientWidth,
+      canvas.clientHeight,
+      0.7,
+    );
+  }, []);
+
+  const handleFit = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    fitToNodes(
+      viewportRef.current,
+      nodesRef.current,
+      canvas.clientWidth,
+      canvas.clientHeight,
+    );
+  }, []);
+
   return (
-    <canvas
-      ref={canvasRef}
-      className="w-full h-full block"
-      style={{ touchAction: "none" }}
-    />
+    <div className="relative w-full h-full">
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full block"
+        style={{ touchAction: "none" }}
+      />
+      <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={handleZoomIn}
+          className="w-8 h-8 flex items-center justify-center rounded-md bg-background/50 backdrop-blur-sm border border-border/30 hover:bg-background/70 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <IconZoomIn size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={handleZoomOut}
+          className="w-8 h-8 flex items-center justify-center rounded-md bg-background/50 backdrop-blur-sm border border-border/30 hover:bg-background/70 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <IconZoomOut size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={handleFit}
+          className="w-8 h-8 flex items-center justify-center rounded-md bg-background/50 backdrop-blur-sm border border-border/30 hover:bg-background/70 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <IconFocusCentered size={16} />
+        </button>
+      </div>
+    </div>
   );
 }
