@@ -1,4 +1,8 @@
-import { View, TextInput, TouchableOpacity, Text } from "react-native";
+import { View, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme } from "nativewind";
+import { Input } from "@/components/ui/Input";
+import { THEME_COLORS } from "@/lib/theme";
 
 interface ChatInputProps {
   value: string;
@@ -15,36 +19,34 @@ export default function ChatInput({
 }: ChatInputProps) {
   const normalizedValue = typeof value === "string" ? value : "";
   const canSend = !disabled && normalizedValue.trim().length > 0;
+  const { colorScheme } = useColorScheme();
+  const theme = colorScheme === "dark" ? THEME_COLORS.dark : THEME_COLORS.light;
 
   return (
-    <View className="border-t border-gray-100 dark:border-gray-800 px-4 py-3 flex-row items-end gap-3">
-      <TextInput
+    <View className="border-t border-border px-4 py-3 flex-row items-end gap-3">
+      <Input
         value={value}
         onChangeText={onChangeText}
         placeholder="Ask about your memories..."
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={theme.muted}
         multiline
         maxLength={2000}
-        className="flex-1 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900"
+        className="flex-1 rounded-2xl px-4 py-3"
         style={{ maxHeight: 120 }}
       />
-      <TouchableOpacity
+      <Pressable
         onPress={onSend}
         disabled={!canSend}
         className={`w-10 h-10 rounded-full items-center justify-center ${
-          canSend ? "bg-black dark:bg-white" : "bg-gray-200 dark:bg-gray-700"
+          canSend ? "bg-primary" : "bg-muted"
         }`}
       >
-        <Text
-          className={`text-lg font-bold ${
-            canSend
-              ? "text-white dark:text-black"
-              : "text-gray-400 dark:text-gray-500"
-          }`}
-        >
-          ↑
-        </Text>
-      </TouchableOpacity>
+        <Ionicons
+          name="arrow-up"
+          size={20}
+          color={canSend ? theme.background : theme.muted}
+        />
+      </Pressable>
     </View>
   );
 }
