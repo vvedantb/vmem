@@ -9,10 +9,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { UIMessage } from "@convex-dev/agent/react";
-import MessageBubble from "./_components/MessageBubble";
-import EmptyState from "./_components/EmptyState";
-import ChatInput from "./_components/ChatInput";
+import MessageBubble from "../../src/components/MessageBubble";
+import EmptyState from "../../src/components/EmptyState";
+import ChatInput from "../../src/components/ChatInput";
 import { useChatProvider } from "@/hooks/useChatProvider";
+
+function normalizeChatInput(text: string | undefined): string {
+  return typeof text === "string" ? text.trim() : "";
+}
 
 export default function ChatScreen() {
   const [inputText, setInputText] = useState("");
@@ -20,10 +24,12 @@ export default function ChatScreen() {
   const { messages, sendMessage, isStreaming, isReady, mode } =
     useChatProvider();
 
-  const handleSend = async (text: string) => {
-    if (!text.trim() || isStreaming || !isReady) return;
+  const handleSend = async (text: string | undefined) => {
+    const prompt = normalizeChatInput(text);
+    if (!prompt || isStreaming || !isReady) return;
+
     setInputText("");
-    await sendMessage(text.trim());
+    await sendMessage(prompt);
   };
 
   if (mode === "offline_no_model") {

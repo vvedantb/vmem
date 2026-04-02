@@ -11,7 +11,7 @@ import {
 import { useSignIn, useSSO } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import * as Linking from "expo-linking";
+import * as AuthSession from "expo-auth-session";
 import { AntDesign } from "@expo/vector-icons";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -79,7 +79,10 @@ export default function SignInScreen() {
     try {
       const { createdSessionId, setActive } = await startSSOFlow({
         strategy: "oauth_google",
-        redirectUrl: Linking.createURL("/sso-callback"),
+        redirectUrl: AuthSession.makeRedirectUri({
+          scheme: "vmem",
+          path: "sso-callback",
+        }),
       });
 
       if (createdSessionId && setActive) {

@@ -1,7 +1,7 @@
-import { useEffect } from "react";
-import { Tabs } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { Redirect, Tabs } from "expo-router";
 import { View, Text, ActivityIndicator } from "react-native";
-import { useUser } from "@clerk/clerk-expo";
+import { useAuth, useUser } from "@clerk/clerk-expo";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import { useIsOnline } from "@/providers/NetworkProvider";
@@ -48,22 +48,42 @@ function OfflineBanner() {
 }
 
 export default function MainLayout() {
+  const { isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const { user, isLoaded } = useUser();
   const ensureUserExists = useMutation(api.auth.ensureUserExists);
+  const [isUserReady, setIsUserReady] = useState(false);
+
+  const ensureUser = useCallback(async () => {
+    await ensureUserExists({});
+    setIsUserReady(true);
+  }, [ensureUserExists]);
 
   useEffect(() => {
-    if (!isLoaded || !user) return;
-    void ensureUserExists({}).catch((error) => {
+    if (!isLoaded) {
+      return;
+    }
+
+    if (!user) {
+      setIsUserReady(false);
+      return;
+    }
+
+    setIsUserReady(false);
+    void ensureUser().catch((error) => {
       console.error("Failed to ensure user:", error);
     });
-  }, [isLoaded, user, ensureUserExists]);
+  }, [isLoaded, user, ensureUser]);
 
-  if (!isLoaded) {
+  if (!isLoaded || (user !== null && !isUserReady)) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator size="large" color="#000000" />
       </View>
     );
+  }
+
+  if (!isSignedIn) {
+    return <Redirect href="/(auth)/sign-in" />;
   }
 
   return (

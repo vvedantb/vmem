@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useMutation } from "convex/react";
+import { useUser } from "@clerk/clerk-expo";
 import {
   useUIMessages,
   optimisticallySendMessage,
@@ -12,6 +13,10 @@ import { getLocalModel } from "@/services/llm-context";
 import { checkModelStatus } from "@/services/model-manager";
 
 type ChatMode = "online" | "offline" | "offline_no_model";
+
+function normalizeChatInput(text: string | undefined): string {
+  return typeof text === "string" ? text.trim() : "";
+}
 
 function makeOfflineMessage(
   role: "user" | "assistant",
@@ -54,6 +59,7 @@ const SYSTEM_PROMPT = [
 ].join(" ");
 
 export function useChatProvider() {
+  const { user, isLoaded } = useUser();
   const isOnline = useIsOnline();
   const [mode, setMode] = useState<ChatMode>("online");
   const [offlineMessages, setOfflineMessages] = useState<UIMessage[]>([]);
@@ -70,10 +76,21 @@ export function useChatProvider() {
   });
 
   useEffect(() => {
-    if (isOnline) {
-      getOrCreateThread().then((id) => setThreadId(id));
+    if (!isOnline) {
+      setThreadId(null);
+      return;
     }
-  }, [isOnline, getOrCreateThread]);
+
+    if (!isLoaded || !user) {
+      return;
+    }
+
+    void getOrCreateThread()
+      .then((id) => setThreadId(id))
+      .catch((error) => {
+        console.error("Failed to load chat thread:", error);
+      });
+  }, [isOnline, isLoaded, user, getOrCreateThread]);
 
   useEffect(() => {
     if (isOnline) {
@@ -140,20 +157,22 @@ export function useChatProvider() {
           return;
         }
 
-        const conversationHistory = offlineMessages
-          .filter((m) => m.status === "success")
-          .map((m) => ({
-            role: m.role as "user" | "assistant",
-            content: m.text,
-          }));
+        const conversationHistory = offlineMessages.flatMap((message) => {
+          if (message.status !== "success") {
+            return [];
+          }
+
+          if (message.role !== "user" && message.role !== "assistant") {
+            return [];
+          }
+
+          return [{ role: message.role, content: message.text }];
+        });
 
         const { textStream } = streamText({
           model,
           system: SYSTEM_PROMPT,
-          messages: [
-            ...conversationHistory,
-            { role: "user" as const, content: text },
-          ],
+          messages: [...conversationHistory, { role: "user", content: text }],
         });
 
         let accumulated = "";
@@ -170,7 +189,7 @@ export function useChatProvider() {
         setOfflineMessages((prev) =>
           prev.map((m) =>
             m.key === assistantMsg.key
-              ? { ...m, status: "success" as const }
+              ? updateMessageText(m, accumulated, "success")
               : m,
           ),
         );
@@ -192,12 +211,14 @@ export function useChatProvider() {
   );
 
   const sendMessage = useCallback(
-    async (text: string) => {
-      if (!text.trim()) return;
+    async (text: string | undefined) => {
+      const prompt = normalizeChatInput(text);
+      if (!prompt) return;
+
       if (mode === "online" && threadId) {
-        await sendOnlineMessage({ prompt: text.trim(), threadId });
+        await sendOnlineMessage({ prompt, threadId });
       } else if (mode === "offline") {
-        await sendOfflineMessage(text.trim());
+        await sendOfflineMessage(prompt);
       }
     },
     [mode, threadId, sendOnlineMessage, sendOfflineMessage],
