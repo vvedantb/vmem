@@ -3,7 +3,9 @@ import { View, ActivityIndicator } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
 
 export default function AuthLayout() {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth({
+    treatPendingAsSignedOut: false,
+  });
 
   if (!isLoaded) {
     return (
