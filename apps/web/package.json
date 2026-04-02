@@ -52,11 +52,7 @@
     "eslint": "^9.38.0",
     "eslint-config-next": "16.2.0",
     "eslint-plugin-react-compiler": "19.1.0-rc.2",
-    "@react-sigma/core": "^5.0.6",
-    "@react-sigma/layout-forceatlas2": "^5.0.6",
-    "graphology": "^0.26.0",
-    "graphology-layout-forceatlas2": "^0.10.1",
-    "graphology-types": "^0.24.8",
+    "d3-force": "^3.0.0",
     "motion": "^12.34.0",
     "nanoid": "^5.1.6",
     "next": "^16.2.0",
@@ -65,7 +61,6 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-hook-form": "^7.71.2",
-    "sigma": "^3.0.2",
     "sonner": "catalog:",
     "streamdown": "^2.2.0",
     "tailwind-merge": "catalog:",
@@ -74,6 +69,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/d3-force": "^3.0.10",
     "@types/node": "catalog:node-types-20",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

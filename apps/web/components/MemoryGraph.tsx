@@ -6,25 +6,24 @@ import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { IconMoodEmpty, IconLoader2, IconPlus } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 import { z } from "zod";
-import Graph from "graphology";
 import AddMemoryModal from "@/components/AddMemoryModal";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { clientEnv } from "@/env/client";
-import type {
-  HoveredNodeInfo,
-  GraphSettings,
-  NodeAttributes,
-  EdgeAttributes,
-} from "./_components/graph-types";
+import type { HoveredNodeInfo, GraphSettings } from "./_components/graph-types";
 import type { ViewMode } from "./_components/graph-view-themes";
 import { getViewTheme } from "./_components/graph-view-themes";
 import GraphNodeTooltip from "./_components/GraphNodeTooltip";
 import GraphNodeDetailDialog from "./_components/GraphNodeDetailDialog";
 import GraphSettingsPopover from "./_components/GraphSettingsPopover";
 import ViewModeSwitcher from "./_components/ViewModeSwitcher";
-import SigmaGraph from "./_components/SigmaGraph";
+import GraphCanvas from "./_components/GraphCanvas";
+import type {
+  GraphNode,
+  GraphEdge,
+  RelatedNode,
+} from "./_components/canvas/types";
 import {
   getGraphSettings,
   setGraphSettings,
@@ -169,15 +168,14 @@ export default function MemoryGraph() {
     return [...apiEdges, ...liveRelatesToEdges];
   }, [graphData?.edges, liveRelatesToEdges]);
 
-  const graphNodes = graphData?.nodes ?? [];
+  const apiNodes = graphData?.nodes ?? [];
 
-  const graph = useMemo((): Graph<NodeAttributes, EdgeAttributes> | null => {
-    if (graphNodes.length === 0) return null;
-
-    const g = new Graph<NodeAttributes, EdgeAttributes>();
+  const { graphNodes, graphEdges } = useMemo(() => {
+    if (apiNodes.length === 0)
+      return { graphNodes: [] as GraphNode[], graphEdges: [] as GraphEdge[] };
 
     const tagToNodeIds = new Map<string, string[]>();
-    for (const node of graphNodes) {
+    for (const node of apiNodes) {
       for (const tag of node.tags) {
         const ids = tagToNodeIds.get(tag);
         if (ids) ids.push(node.id);
@@ -207,10 +205,13 @@ export default function MemoryGraph() {
       degreeCount.set(rel.target, (degreeCount.get(rel.target) ?? 0) + 1);
     }
 
-    for (const node of graphNodes) {
+    const nodeSet = new Set(apiNodes.map((n) => n.id));
+
+    const gNodes: GraphNode[] = apiNodes.map((node) => {
       const degree = degreeCount.get(node.id) ?? 0;
-      g.addNode(node.id, {
-        label: node.title,
+      return {
+        id: node.id,
+        title: node.title,
         content: node.content,
         tags: node.tags,
         createdAt: node.createdAt,
@@ -222,37 +223,74 @@ export default function MemoryGraph() {
               ? "#555566"
               : "#999999",
         size: Math.min(3 + degree * 0.6, 6),
-        x: Math.random() * 100 - 50,
-        y: Math.random() * 100 - 50,
-      });
-    }
+      };
+    });
 
-    const nodeSet = new Set(graphNodes.map((n) => n.id));
+    const gEdges: GraphEdge[] = [];
+    const addedPairs = new Set<string>();
 
     for (const [key, weight] of edgeWeights) {
       const [a, b] = key.split("|");
       if (nodeSet.has(a) && nodeSet.has(b)) {
-        g.addEdge(a, b, { weight, edgeType: "tag" });
+        gEdges.push({ source: a, target: b, weight, edgeType: "tag" });
+        addedPairs.add(key);
       }
     }
 
     for (const rel of allRelatesToEdges) {
-      if (
-        nodeSet.has(rel.source) &&
-        nodeSet.has(rel.target) &&
-        !g.hasEdge(rel.source, rel.target) &&
-        !g.hasEdge(rel.target, rel.source)
-      ) {
-        g.addEdge(rel.source, rel.target, {
-          weight: 1,
-          edgeType: "relates_to",
-          reason: rel.reason,
-        });
+      if (nodeSet.has(rel.source) && nodeSet.has(rel.target)) {
+        const pairKey =
+          rel.source < rel.target
+            ? `${rel.source}|${rel.target}`
+            : `${rel.target}|${rel.source}`;
+        if (!addedPairs.has(pairKey)) {
+          gEdges.push({
+            source: rel.source,
+            target: rel.target,
+            weight: 1,
+            edgeType: "relates_to",
+            reason: rel.reason,
+          });
+          addedPairs.add(pairKey);
+        }
       }
     }
 
-    return g;
-  }, [graphNodes, allRelatesToEdges, viewTheme]);
+    return { graphNodes: gNodes, graphEdges: gEdges };
+  }, [apiNodes, allRelatesToEdges, viewTheme]);
+
+  const selectedNodeData = useMemo(() => {
+    if (!selectedNodeId) return null;
+    const node = graphNodes.find((n) => n.id === selectedNodeId);
+    if (!node) return null;
+    return {
+      id: node.id,
+      title: node.title,
+      content: node.content,
+      tags: node.tags,
+      createdAt: node.createdAt,
+    };
+  }, [selectedNodeId, graphNodes]);
+
+  const relatedNodes = useMemo((): RelatedNode[] => {
+    if (!selectedNodeId) return [];
+    const related = new Map<string, number>();
+    for (const edge of graphEdges) {
+      const sId =
+        typeof edge.source === "string" ? edge.source : edge.source.id;
+      const tId =
+        typeof edge.target === "string" ? edge.target : edge.target.id;
+      if (sId === selectedNodeId) {
+        related.set(tId, (related.get(tId) ?? 0) + edge.weight);
+      } else if (tId === selectedNodeId) {
+        related.set(sId, (related.get(sId) ?? 0) + edge.weight);
+      }
+    }
+    return Array.from(related.entries()).map(([id, weight]) => {
+      const node = graphNodes.find((n) => n.id === id);
+      return { id, title: node?.title ?? id, weight };
+    });
+  }, [selectedNodeId, graphEdges, graphNodes]);
 
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
@@ -317,7 +355,7 @@ export default function MemoryGraph() {
     );
   }
 
-  if (!graph) {
+  if (graphNodes.length === 0) {
     return (
       <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -336,8 +374,9 @@ export default function MemoryGraph() {
   return (
     <>
       <div className="relative h-full min-h-0">
-        <SigmaGraph
-          graph={graph}
+        <GraphCanvas
+          nodes={graphNodes}
+          edges={graphEdges}
           viewTheme={viewTheme}
           settings={graphSettings}
           onHoverNode={handleHoverNode}
@@ -380,7 +419,8 @@ export default function MemoryGraph() {
 
       <GraphNodeDetailDialog
         nodeId={selectedNodeId}
-        graph={graph}
+        nodeData={selectedNodeData}
+        relatedNodes={relatedNodes}
         onClose={handleCloseDialog}
         onNavigate={handleNavigateNode}
         onDelete={deleteMemory}
