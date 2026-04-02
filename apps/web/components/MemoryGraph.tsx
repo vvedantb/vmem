@@ -31,33 +31,6 @@ import {
   setGraphViewMode,
 } from "@/lib/graph-cookies";
 
-function tagToHue(tag: string): number {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return ((hash % 360) + 360) % 360;
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  s /= 100;
-  l /= 100;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * color)
-      .toString(16)
-      .padStart(2, "0");
-  };
-  return `#${f(0)}${f(8)}${f(4)}`;
-}
-
-function tagToColor(tag: string, isDark: boolean): string {
-  const hue = tagToHue(tag);
-  return isDark ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
-}
-
 const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
 
 const graphNodeSchema = z.object({
@@ -215,13 +188,7 @@ export default function MemoryGraph() {
         content: node.content,
         tags: node.tags,
         createdAt: node.createdAt,
-        color: viewTheme.nodeColorOverride
-          ? viewTheme.nodeColorOverride
-          : node.tags.length > 0
-            ? tagToColor(node.tags[0], viewTheme.isDarkCanvas)
-            : viewTheme.isDarkCanvas
-              ? "#555566"
-              : "#999999",
+        color: "",
         size: Math.min(3 + degree * 0.6, 6),
       };
     });
@@ -257,7 +224,7 @@ export default function MemoryGraph() {
     }
 
     return { graphNodes: gNodes, graphEdges: gEdges };
-  }, [apiNodes, allRelatesToEdges, viewTheme]);
+  }, [apiNodes, allRelatesToEdges]);
 
   const selectedNodeData = useMemo(() => {
     if (!selectedNodeId) return null;

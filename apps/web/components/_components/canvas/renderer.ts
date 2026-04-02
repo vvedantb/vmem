@@ -8,6 +8,37 @@ import type { GraphViewTheme } from "../graph-view-themes";
 
 const TWO_PI = Math.PI * 2;
 
+function tagToHue(tag: string): number {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return ((hash % 360) + 360) % 360;
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100;
+  l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * c)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function nodeColor(node: GraphNode, theme: GraphViewTheme): string {
+  if (theme.nodeColorOverride) return theme.nodeColorOverride;
+  if (node.tags.length > 0) {
+    const hue = tagToHue(node.tags[0]);
+    return theme.isDarkCanvas ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
+  }
+  return theme.isDarkCanvas ? "#555566" : "#999999";
+}
+
 function isOnScreen(
   x: number,
   y: number,
@@ -39,6 +70,24 @@ export function render(
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, canvasW, canvasH);
+
+  ctx.fillStyle = theme.background;
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  if (theme.gradientCenter) {
+    const grad = ctx.createRadialGradient(
+      canvasW / 2,
+      canvasH / 2,
+      0,
+      canvasW / 2,
+      canvasH / 2,
+      canvasW / 2,
+    );
+    grad.addColorStop(0, theme.gradientCenter);
+    grad.addColorStop(1, "transparent");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvasW, canvasH);
+  }
 
   if (theme.grid) {
     const { color, spacing } = theme.grid;
@@ -153,7 +202,7 @@ export function render(
       ctx.globalAlpha = theme.dimAlpha;
     }
 
-    const color = theme.nodeColorOverride ?? node.color;
+    const color = nodeColor(node, theme);
 
     // Glow effect
     if (theme.glow.enabled && !isDimmed) {
