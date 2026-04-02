@@ -26,6 +26,13 @@
         {
           "faceIDPermission": "Allow vmem to access your Face ID biometric data."
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow vmem to use the microphone for voice input.",
+          "speechRecognitionPermission": "Allow vmem to use speech recognition for voice input."
+        }
       ]
     ],
     "experiments": {

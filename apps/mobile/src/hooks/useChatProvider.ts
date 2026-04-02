@@ -10,7 +10,10 @@ import { api } from "@vmem/backend";
 import { streamText } from "ai";
 import { useIsOnline } from "@/providers/NetworkProvider";
 import { getLocalModel } from "@/services/llm-context";
-import { checkModelStatus } from "@/services/model-manager";
+import {
+  checkModelStatus,
+  getActiveModelIdOrDefault,
+} from "@/services/model-manager";
 
 type ChatMode = "online" | "offline" | "offline_no_model";
 
@@ -97,16 +100,18 @@ export function useChatProvider() {
       setMode("online");
       return;
     }
-    checkModelStatus().then((status) => {
-      if (status.state === "ready") {
-        setMode("offline");
-        getLocalModel().then((model) => {
-          setOfflineReady(model !== null);
-        });
-      } else {
-        setMode("offline_no_model");
-      }
-    });
+    getActiveModelIdOrDefault()
+      .then((modelId) => checkModelStatus(modelId))
+      .then((status) => {
+        if (status.state === "ready") {
+          setMode("offline");
+          getLocalModel().then((model) => {
+            setOfflineReady(model !== null);
+          });
+        } else {
+          setMode("offline_no_model");
+        }
+      });
   }, [isOnline]);
 
   const { results: onlineMessages } = useUIMessages(
