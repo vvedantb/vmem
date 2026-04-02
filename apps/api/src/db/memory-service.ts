@@ -304,67 +304,44 @@ export class MemoryService {
     offset: number;
   }): Promise<{ memories: MemoryWithTags[]; total: number }> {
     return this.withSession(async (session) => {
-      const m = new Cypher.Node();
+      const whereClauses = ["m.userId = $userId"];
+      const queryParams: Record<string, string | number | Integer | string[]> =
+        {
+          userId: params.userId,
+          limit: neo4j.int(params.limit),
+          offset: neo4j.int(params.offset),
+        };
 
-      const buildPredicates = (): Cypher.Predicate => {
-        const preds: Cypher.Predicate[] = [
-          Cypher.eq(m.property("userId"), new Cypher.Param(params.userId)),
-        ];
-        if (params.type) {
-          preds.push(
-            Cypher.eq(m.property("type"), new Cypher.Param(params.type)),
-          );
-        }
-        if (params.status) {
-          preds.push(
-            Cypher.eq(m.property("status"), new Cypher.Param(params.status)),
-          );
-        }
-        if (params.tags && params.tags.length > 0) {
-          const ft = new Cypher.Node();
-          const filterTagsParam = new Cypher.Param(params.tags);
-          const tagPattern = new Cypher.Pattern(m)
-            .related({ type: "TAGGED_WITH", direction: "right" })
-            .to(ft, { labels: ["Tag"] })
-            .where(Cypher.in(ft.property("name"), filterTagsParam));
-          preds.push(
-            Cypher.eq(
-              new Cypher.Count(tagPattern),
-              Cypher.size(filterTagsParam),
-            ),
-          );
-        }
-        const combined = Cypher.and(...preds);
-        if (!combined) throw new Error("Expected at least one predicate");
-        return combined;
-      };
+      if (params.type) {
+        whereClauses.push("m.type = $type");
+        queryParams.type = params.type;
+      }
+      if (params.status) {
+        whereClauses.push("m.status = $status");
+        queryParams.status = params.status;
+      }
+      if (params.tags && params.tags.length > 0) {
+        whereClauses.push(
+          `size([(m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags | ft]) = size($filterTags)`,
+        );
+        queryParams.filterTags = params.tags;
+      }
 
-      const countQuery = new Cypher.Match(
-        new Cypher.Pattern(m, { labels: ["Memory"] }),
-      )
-        .where(buildPredicates())
-        .return([Cypher.count(m), "total"]);
+      const where = whereClauses.join(" AND ");
 
-      const countResult = await buildAndRun(session, countQuery);
+      const countResult = await session.run(
+        `MATCH (m:Memory) WHERE ${where} RETURN count(m) AS total`,
+        queryParams,
+      );
       const total = toNeoInt(countResult.records[0].get("total"));
 
-      const t = new Cypher.Node();
-      const dataQuery = new Cypher.Match(
-        new Cypher.Pattern(m, { labels: ["Memory"] }),
-      )
-        .where(buildPredicates())
-        .with(m)
-        .orderBy([m.property("createdAt"), "DESC"])
-        .skip(new Cypher.Param(neo4j.int(params.offset)))
-        .limit(new Cypher.Param(neo4j.int(params.limit)))
-        .optionalMatch(
-          new Cypher.Pattern(m)
-            .related({ type: "TAGGED_WITH", direction: "right" })
-            .to(t, { labels: ["Tag"] }),
-        )
-        .return(m, [Cypher.collect(t.property("name")), "tags"]);
-
-      const result = await buildAndRun(session, dataQuery);
+      const result = await session.run(
+        `MATCH (m:Memory) WHERE ${where}
+         WITH m ORDER BY m.createdAt DESC SKIP $offset LIMIT $limit
+         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+         RETURN m, collect(t.name) AS tags`,
+        queryParams,
+      );
       const memories = result.records.map(toMemoryWithTags);
       return { memories, total };
     });
