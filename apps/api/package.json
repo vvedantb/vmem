@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "npx kill-port 3001 && tsx watch src/index.ts",
     "build": "tsc",
-    "start": "tsx src/index.ts"
+    "start": "tsx src/index.ts",
+    "seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
     "@clerk/backend": "catalog:",
