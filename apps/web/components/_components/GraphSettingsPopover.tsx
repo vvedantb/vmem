@@ -34,22 +34,6 @@ const FIELDS: {
     step: 0.05,
     format: (v) => v.toFixed(2),
   },
-  {
-    key: "repulsion",
-    label: "Repulsion",
-    min: 1000,
-    max: 15000,
-    step: 500,
-    format: (v) => String(v),
-  },
-  {
-    key: "damping",
-    label: "Damping",
-    min: 0.8,
-    max: 0.99,
-    step: 0.01,
-    format: (v) => v.toFixed(2),
-  },
 ];
 
 export default function GraphSettingsPopover({

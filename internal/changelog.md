@@ -1,5 +1,44 @@
 # Changelog
 
+## Migrate Force Graph to Sigma.js — 2026-04-02
+
+- Replaced ~856 lines of hand-rolled canvas force graph (ForceGraph.tsx, graph-physics.ts) with ~400 lines using @react-sigma/core + sigma.js WebGL renderer
+- Graph now runs ForceAtlas2 in a web worker via @react-sigma/layout-forceatlas2, eliminating main-thread physics jank
+- Simplified graph settings from 4 sliders (scalingRatio, gravity, repulsion, damping) to 2 (scalingRatio, gravity) since FA2 handles the rest
+- Custom WebGL node glow program preserves the radial glow effect from satellite/constellation themes
+- All interactions preserved: hover/dim, click detail dialog, node drag, shift+drag-to-link, zoom/pan, view theme switching
+- Reason: the custom canvas renderer was fragile, hard to maintain, and slower than WebGL for large graphs. Sigma is built on graphology which was already a dependency
+
+## Fix Mobile Chat Auth Bootstrap — 2026-04-02
+
+- Mobile chat now waits for `ensureUserExists` to finish before entering the main app, removing the race where chat tried to create a Convex thread before the authenticated `users` row existed
+- Hardened the mobile send path against undefined input so transient UI state cannot call `.trim()` on a missing value while chat is initializing
+- Updated the Convex agent config to use `embeddingModel`, matching the current `@convex-dev/agent` API and removing the deprecation warning
+- Reason: chat startup depended on auth, user bootstrap, and thread creation completing in the right order; making readiness explicit is simpler and more reliable than handling repeated server failures after mount
+
+## Fix Mobile OAuth Callback Route — 2026-04-02
+
+- Switched mobile Clerk SSO to `expo-auth-session` redirect URIs, matching the working pattern in `velth` instead of building the callback URL with `expo-linking`
+- Added an Expo Router `app/sso-callback.tsx` screen so the app can land on the Clerk OAuth deep link without throwing an unmatched route error
+- Reason: Google SSO was returning to `vmem://sso-callback`, but the app had no matching route and was not using the same native redirect URI pattern as the known-good mobile app
+
+## Keep Pending Clerk Sessions Signed In On Mobile — 2026-04-02
+
+- Updated mobile Clerk auth guards and the Convex auth bridge to use `treatPendingAsSignedOut: false`
+- Reason: after OAuth returns to the app, Clerk can briefly hold a pending session; treating that state as signed out caused the app to redirect users back to the sign-in screen immediately after successful auth
+
+## Finalize Mobile OAuth From The Callback Route — 2026-04-02
+
+- Moved `WebBrowser.maybeCompleteAuthSession()` to the mobile root layout so Clerk OAuth can finish even when the app reopens on `sso-callback`
+- Changed the callback screen to hold on a loading state briefly instead of immediately redirecting signed-out users back to sign-in
+- Reason: if the callback route renders before the auth session is finalized, redirecting immediately can abort the Clerk flow before a user or session is created
+
+## Handle Clerk OAuth Transfer + Missing Requirements — 2026-04-02
+
+- Replaced the mobile OAuth callback placeholder with Clerk's documented sign-in/sign-up finalize flow, including transferable sign-in and sign-up cases
+- Added a mobile `sso-continue` screen to collect missing first or last name fields when Clerk requires extra profile data before creating the user
+- Reason: Google OAuth can legitimately return without `createdSessionId`; that means the flow must be completed from the callback route instead of being treated like a hard failure
+
 ## Adopt @neo4j/cypher-builder for dynamic queries — 2026-04-01
 
 - Replaced string-concatenated WHERE/SET clauses in `listMemories` and `updateMemory` with `@neo4j/cypher-builder` for type-safe, composable query construction

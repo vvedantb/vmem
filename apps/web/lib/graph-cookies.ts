@@ -38,8 +38,6 @@ export function getGraphSettings(): GraphSettings {
         DEFAULT_GRAPH_SETTINGS.scalingRatio,
       ),
       gravity: num(parsed.gravity, DEFAULT_GRAPH_SETTINGS.gravity),
-      repulsion: num(parsed.repulsion, DEFAULT_GRAPH_SETTINGS.repulsion),
-      damping: num(parsed.damping, DEFAULT_GRAPH_SETTINGS.damping),
     };
   } catch {
     return DEFAULT_GRAPH_SETTINGS;
