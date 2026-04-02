@@ -1,5 +1,15 @@
 # Changelog
 
+## Graph Edge Labels, Sidebar Stats, Seed Data Overhaul — 2026-04-02
+
+- Edge labels now appear on hover showing WHY two memories are connected (shared tags or explicit relationship reason)
+- Sidebar stats ("12 added", "47 retrieved") were hardcoded — now fetches real data from `/v1/dashboard/stats`, showing "today" and "total" counts
+- Added `memoriesAddedToday` to dashboard stats API (Cypher counts memories created since midnight)
+- Rewrote all ~100 seed relationship reasons from generic ("both TypeScript patterns") to specific ("strict null checks catch the bugs useEffect cleanup prevents")
+- Seed now creates MemoryEvent nodes so dashboard Recent Activity section is populated
+- Seed dates now ensure ~15 memories in last 7 days and ~30 in last 30 days for realistic dashboard stats
+- Reason: graph edge labels are needed to understand WHY nodes are related, not just that they are. Sidebar stats were always fake. Seed data quality directly affects demo credibility for thesis
+
 ## Mobile App UI Overhaul — 2026-04-02
 
 - Ported web app's design system to mobile: HSL CSS variables in global.css, semantic Tailwind color tokens (background, foreground, primary, secondary, muted, accent, destructive, success, warning, border, card) with light/dark mode support

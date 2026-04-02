@@ -15,7 +15,7 @@ const SOURCES = [
   "api-import",
   "email-digest",
   "cli",
-];
+] as const;
 
 function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -26,6 +26,13 @@ function randomDate(maxDaysAgo: number): string {
   return new Date(Date.now() - offset).toISOString();
 }
 
+function recentDate(maxDaysAgo: number): string {
+  const offset = Math.random() * maxDaysAgo * 86400000;
+  return new Date(Date.now() - offset).toISOString();
+}
+
+let memoryIndex = 0;
+
 function mem(
   title: string,
   content: string,
@@ -33,7 +40,17 @@ function mem(
   tags: string[],
   status: "active" | "pinned" = "active",
 ) {
-  const createdAt = randomDate(90);
+  const idx = memoryIndex++;
+
+  let createdAt: string;
+  if (idx < 15) {
+    createdAt = recentDate(7);
+  } else if (idx < 35) {
+    createdAt = recentDate(30);
+  } else {
+    createdAt = randomDate(90);
+  }
+
   const updatedAt = new Date(
     new Date(createdAt).getTime() + Math.random() * 7 * 86400000,
   ).toISOString();
@@ -54,7 +71,7 @@ function mem(
 }
 
 const memories = [
-  // === TECH / ENGINEERING (20) ===
+  // === TECH / ENGINEERING (20) === [indices 0-19]
   mem(
     "TypeScript strict mode benefits",
     "Catches null/undefined bugs at compile time. Always enable strictNullChecks and noUncheckedIndexedAccess.",
@@ -145,6 +162,7 @@ const memories = [
     "knowledge",
     ["react"],
   ),
+  // -- index 15+ → within 30 days --
   mem(
     "Node.js ESM gotchas",
     "Need .js extensions in imports even for .ts files when using ESM. __dirname not available, use import.meta.url.",
@@ -176,7 +194,7 @@ const memories = [
     ["infrastructure"],
   ),
 
-  // === WORK / MEETINGS (18) ===
+  // === WORK / MEETINGS (18) === [indices 20-37]
   mem(
     "Q1 sprint retrospective takeaways",
     "Team velocity dropped 20% due to context switching. Need to limit WIP to 3 items per person.",
@@ -267,6 +285,7 @@ const memories = [
     "episodic",
     ["meetings", "infrastructure"],
   ),
+  // -- index 35+ → spread across 90 days --
   mem(
     "Bug triage: graph rendering stutter",
     "Canvas approach drops to 10fps at 50+ nodes. Root cause: redrawing all edges every frame.",
@@ -286,7 +305,7 @@ const memories = [
     ["meetings", "project-management"],
   ),
 
-  // === PEOPLE / CONVERSATIONS (16) ===
+  // === PEOPLE / CONVERSATIONS (16) === [indices 38-53]
   mem(
     "Alex recommends Obsidian for notes",
     "Alex uses Obsidian with graph view. Similar concept to vmem but for personal notes, not AI memory.",
@@ -384,7 +403,7 @@ const memories = [
     ["people", "relationships"],
   ),
 
-  // === PERSONAL PREFERENCES (14) ===
+  // === PERSONAL PREFERENCES (14) === [indices 54-67]
   mem(
     "Prefers dark mode in all editors",
     "Strong preference for dark themes. Uses One Dark Pro in VS Code, dark mode in all terminals.",
@@ -470,7 +489,7 @@ const memories = [
     ["preferences", "habits"],
   ),
 
-  // === HEALTH / FITNESS (10) ===
+  // === HEALTH / FITNESS (10) === [indices 68-77]
   mem(
     "Started 5x5 deadlift program",
     "StrongLifts 5x5 for deadlifts and squats. Current working weight: 100kg deadlift.",
@@ -532,7 +551,7 @@ const memories = [
     ["health"],
   ),
 
-  // === TRAVEL / PLACES (12) ===
+  // === TRAVEL / PLACES (12) === [indices 78-89]
   mem(
     "Loved the ramen in Shibuya",
     "Fuunji near Shinjuku station has the best tsukemen. Go before 11am to avoid the queue.",
@@ -606,7 +625,7 @@ const memories = [
     ["travel", "geography"],
   ),
 
-  // === LEARNING NOTES — BRIDGES (15) ===
+  // === LEARNING NOTES — BRIDGES (15) === [indices 90-104]
   mem(
     "Learning Rust for systems programming",
     "Started The Rust Book. Ownership model is different from TypeScript's GC approach.",
@@ -640,7 +659,7 @@ const memories = [
   mem(
     "Completed React Advanced Patterns course",
     "Compound components, render props, and custom hooks. Applied compound pattern to graph settings.",
-    "episodic",
+    "knowledge",
     ["learning", "react"],
   ),
   mem(
@@ -698,7 +717,7 @@ const memories = [
     ["learning", "project-management"],
   ),
 
-  // === CAREER GOALS (8) ===
+  // === CAREER GOALS (8) === [indices 105-112]
   mem(
     "Goal: publish thesis by December",
     "Need to finalize vmem, run user study, write up results. Timeline is tight but doable.",
@@ -749,7 +768,6 @@ const memories = [
   ),
 ];
 
-// Build RELATES_TO relationships by referencing indices
 function rel(sourceIdx: number, targetIdx: number, reason: string) {
   return {
     sourceId: memories[sourceIdx].id,
@@ -759,113 +777,171 @@ function rel(sourceIdx: number, targetIdx: number, reason: string) {
 }
 
 const relationships = [
-  // --- Tech cluster (intra) ---
-  rel(0, 1, "both TypeScript patterns"),
-  rel(0, 5, "TypeScript + React intersection"),
-  rel(1, 5, "React component patterns"),
-  rel(1, 14, "React rendering lifecycle"),
-  rel(2, 6, "Neo4j query techniques"),
-  rel(2, 16, "Neo4j ecosystem tools"),
-  rel(3, 8, "build and deployment tooling"),
-  rel(3, 19, "Node.js runtime considerations"),
-  rel(4, 13, "TypeScript type system"),
-  rel(5, 9, "React ecosystem evolution"),
-  rel(6, 16, "Neo4j advanced features"),
-  rel(7, 15, "Node.js ESM and Hono"),
-  rel(10, 14, "React rendering techniques"),
-  rel(10, 18, "CSS and rendering"),
-  rel(11, 6, "database real-time patterns"),
-  rel(12, 3, "DevOps and version control"),
-  rel(13, 0, "TypeScript advanced features"),
-  rel(15, 7, "ESM import patterns"),
-  rel(17, 7, "backend middleware patterns"),
+  // --- Tech cluster ---
+  rel(0, 1, "strict null checks catch the bugs useEffect cleanup prevents"),
+  rel(0, 5, "RSCs can't use hooks — strict mode flags those violations"),
+  rel(1, 5, "RSCs remove need for useEffect data fetching patterns"),
+  rel(1, 14, "Suspense replaces manual loading states in useEffect"),
+  rel(2, 6, "UNWIND batch inserts power the Neo4j graph queries"),
+  rel(2, 16, "APOC extends the multi-hop traversals Neo4j excels at"),
+  rel(3, 8, "pnpm workspaces feed into Docker multi-stage build steps"),
+  rel(3, 19, "Bun startup speed matters most in Docker cold starts"),
+  rel(4, 13, "discriminated unions replace Zod v4 transform chains"),
+  rel(5, 9, "Tailwind v4 CSS-first approach pairs with RSC server rendering"),
+  rel(6, 16, "APOC batch ops complement UNWIND for bulk Neo4j writes"),
+  rel(7, 15, "Hono requires .js extensions in ESM import paths"),
+  rel(10, 14, "Suspense fallback shows while sigma.js WebGL initializes"),
+  rel(10, 18, "container queries resize sigma.js graph viewport"),
+  rel(11, 6, "Convex subscriptions trigger Neo4j UNWIND re-syncs"),
+  rel(12, 3, "rebase keeps Docker layer cache valid across merges"),
+  rel(13, 0, "discriminated unions are strict mode's type narrowing tool"),
+  rel(15, 7, "Hono middleware imports need ESM .js extension workaround"),
+  rel(17, 7, "Clerk webhook handler registers as Hono middleware"),
 
-  // --- Work cluster (intra) ---
-  rel(20, 21, "team productivity discussions"),
-  rel(20, 29, "sprint process improvements"),
-  rel(21, 27, "code quality feedback"),
-  rel(22, 28, "architecture and infrastructure"),
-  rel(23, 24, "memory engine planning"),
-  rel(24, 35, "graph visualization work"),
-  rel(25, 34, "deployment infrastructure"),
-  rel(26, 30, "thesis-related planning"),
-  rel(28, 36, "data architecture decisions"),
-  rel(29, 33, "sprint and backlog planning"),
-  rel(31, 32, "frontend architecture patterns"),
-  rel(33, 37, "project milestone tracking"),
-  rel(34, 22, "infrastructure decisions"),
+  // --- Work cluster ---
+  rel(20, 21, "Sarah's pairing idea directly addresses WIP overload"),
+  rel(20, 29, "retro's WIP limit became a backlog grooming priority"),
+  rel(21, 27, "Alex's type assertion feedback echoes Sarah's review ideas"),
+  rel(22, 28, "Clerk auth feeds into MCP OAuth integration decision"),
+  rel(23, 24, "Hono+Neo4j arch review scoped the sigma.js sprint"),
+  rel(24, 35, "sigma.js sprint replaced the canvas causing 10fps stutter"),
+  rel(25, 34, "Aura free tier limits shaped the fly.io deploy strategy"),
+  rel(26, 30, "thesis demo needs the retrieval benchmarks advisor wants"),
+  rel(28, 36, "MCP Resources endpoint needs Convex for user auth layer"),
+  rel(29, 33, "groomed backlog items feed directly into sprint review"),
+  rel(31, 32, "RSC-first frontend rule led to nuqs for URL state"),
+  rel(33, 37, "MCP sprint review triggered the documentation sprint"),
+  rel(34, 22, "Clerk pricing evaluation drove the deploy cost strategy"),
 
-  // --- People cluster (intra) ---
-  rel(38, 42, "Alex's technical opinions"),
-  rel(38, 51, "Alex's perspectives"),
-  rel(39, 43, "family relationships"),
-  rel(40, 31, "React community connections"),
-  rel(41, 44, "professor and academic"),
-  rel(43, 45, "family members"),
-  rel(46, 47, "roommate and social"),
-  rel(48, 53, "career mentorship"),
-  rel(49, 41, "academic community"),
-  rel(50, 48, "career networking"),
-  rel(52, 45, "family and learning"),
+  // --- People cluster ---
+  rel(
+    38,
+    42,
+    "Alex's Obsidian graph view inspired Sarah's data-first debugging",
+  ),
+  rel(
+    38,
+    49,
+    "Alex prefers raw queries — same philosophy as Obsidian's local-first",
+  ),
+  rel(
+    39,
+    43,
+    "Mom's kindle and Dad's Sunday calls — both need calendar reminders",
+  ),
+  rel(40, 31, "Jake from Vercel validated our RSC-first frontend decision"),
+  rel(41, 44, "Prof. Chen's GNN ideas connect to Emma's DDIA recommendation"),
+  rel(
+    43,
+    45,
+    "Dad's Sunday calls and Tom's allergy checks — roommate/family care",
+  ),
+  rel(46, 48, "Dr. Park's ship-fast advice shaped mentor-guided MVP scope"),
+  rel(48, 50, "Google recruiter wants the polished MVP Dr. Park recommended"),
+  rel(47, 49, "study group discusses the distributed systems Alex debates"),
+  rel(50, 52, "recruiter's TS focus motivates helping sister learn to code"),
+  rel(51, 53, "TechHub founders and team dinner — same networking circle"),
 
-  // --- Preferences cluster (intra) ---
-  rel(54, 55, "daily routine structure"),
-  rel(54, 63, "editor and IDE setup"),
-  rel(55, 67, "daily schedule management"),
-  rel(56, 61, "food and beverage preferences"),
-  rel(57, 63, "workspace hardware setup"),
-  rel(58, 62, "information processing style"),
-  rel(59, 60, "work style preferences"),
-  rel(64, 65, "sleep and health routines"),
+  // --- Preferences cluster ---
+  rel(54, 63, "dark mode in VS Code and Vim keybindings — same editor config"),
+  rel(55, 67, "morning deep work blocks are reserved for weekend vmem coding"),
+  rel(56, 61, "oat milk cortado fuels the lo-fi hip hop focus sessions"),
+  rel(57, 63, "Keychron Q1 pairs with Vim keybindings for typing speed"),
+  rel(58, 62, "print books and bullet notes — both physical info retention"),
+  rel(59, 60, "Pomodoro sit/stand timer syncs with PR review focus blocks"),
+  rel(64, 65, "batch Slack checks protect the 11pm-7am sleep window"),
 
-  // --- Health cluster (intra) ---
-  rel(68, 73, "exercise routine"),
-  rel(69, 47, "food allergies overlap"),
-  rel(70, 76, "daily health habits"),
-  rel(71, 75, "physical wellness"),
-  rel(73, 77, "fitness facility"),
+  // --- Health cluster ---
+  rel(68, 73, "5x5 deadlifts and 5K runs share the same morning gym slot"),
+  rel(69, 45, "shellfish allergy and Tom's — same EpiPen protocol at dinners"),
+  rel(
+    70,
+    76,
+    "3L water goal suffers on the same busy meeting days as caffeine",
+  ),
+  rel(71, 75, "neck stretches prevent the same RSI that caused wrist pain"),
+  rel(73, 77, "5K runs start at FitZone's 6am opening before crowds"),
 
-  // --- Travel cluster (intra) ---
-  rel(78, 80, "Japan travel tips"),
-  rel(79, 84, "remote work locations"),
-  rel(81, 91, "European city tips"),
-  rel(82, 85, "travel logistics"),
-  rel(83, 81, "coworking and travel"),
-  rel(86, 87, "Asian food experiences"),
-  rel(88, 89, "travel planning"),
+  // --- Travel cluster ---
+  rel(78, 80, "Fuunji ramen queue starts at Shinjuku — Suica card needed"),
+  rel(
+    79,
+    81,
+    "Berlin hot desk and Amsterdam bike lanes — EU remote work setup",
+  ),
+  rel(
+    82,
+    85,
+    "Amsterdam cycling and Singapore hawker — both cheap local transit",
+  ),
+  rel(83, 86, "Priority Pass lounge covers the long layover to conferences"),
+  rel(84, 87, "jet lag strategy applies to eastbound Singapore flights"),
+  rel(86, 88, "conference checklist includes the presentation clicker"),
+  rel(88, 89, "visa deadlines should be on the conference travel checklist"),
 
   // --- Cross-cluster bridges ---
-  rel(0, 66, "TypeScript preference and knowledge"),
-  rel(2, 46, "database discussion with Emma"),
-  rel(5, 40, "React connection through Jake"),
-  rel(10, 24, "sigma.js in sprint planning"),
-  rel(17, 22, "Clerk auth decision and implementation"),
-  rel(22, 34, "architecture to deployment pipeline"),
-  rel(26, 48, "thesis and mentor guidance"),
-  rel(30, 96, "thesis timeline and goals"),
-  rel(41, 100, "professor and career goals"),
-  rel(44, 92, "debugging approaches"),
-  rel(55, 71, "morning routine and stretching"),
-  rel(56, 78, "coffee preference and ramen love"),
-  rel(58, 62, "note-taking as a habit"),
-  rel(65, 76, "caffeine and sleep schedule"),
-  rel(68, 84, "jet lag and fitness"),
-  rel(73, 84, "running and travel health"),
-  rel(75, 71, "wrist pain and ergonomics"),
-  rel(80, 90, "Tokyo tips and Japanese learning"),
-  rel(85, 88, "travel planning checklists"),
-  rel(90, 80, "Japanese language and Tokyo travel"),
-  rel(91, 93, "graph theory and Neo4j"),
-  rel(93, 105, "graph algorithms and WebGL"),
-  rel(94, 34, "distributed systems and deployment"),
-  rel(95, 31, "React patterns applied to work"),
-  rel(97, 11, "vector embeddings and Convex"),
-  rel(99, 26, "Phoenix Project and thesis demo"),
-  rel(100, 97, "embeddings for memory retrieval"),
-  rel(101, 48, "public speaking and mentorship"),
-  rel(103, 41, "career and academics"),
-  rel(106, 99, "reading and career development"),
+  rel(0, 66, "TypeScript strict mode is why he prefers TS over JS"),
+  rel(2, 44, "Emma's DDIA recommendation covers Neo4j cluster patterns"),
+  rel(5, 40, "Jake from Vercel confirmed RSC mental model at the summit"),
+  rel(10, 24, "sigma.js sprint directly replaced the stuttering canvas"),
+  rel(17, 22, "Clerk webhook verification secures the Clerk auth migration"),
+  rel(22, 34, "Clerk pricing drove the all-free-tier deploy strategy"),
+  rel(26, 46, "Dr. Park's MVP advice shapes the thesis demo scope"),
+  rel(30, 105, "advisor benchmarks are a thesis publication prerequisite"),
+  rel(41, 105, "Prof. Chen's GNN ideas could strengthen the thesis"),
+  rel(42, 27, "Sarah debugs data-first, catching what Alex flagged in review"),
+  rel(55, 71, "morning deep work starts after the 5-min stretch routine"),
+  rel(56, 78, "cortado ritual mirrors the pre-11am ramen queue in Tokyo"),
+  rel(65, 76, "2pm caffeine cutoff protects the 11pm sleep target"),
+  rel(68, 84, "jet lag disrupts the 5x5 deadlift schedule abroad"),
+  rel(73, 84, "running pace drops after eastbound jet lag recovery"),
+  rel(75, 71, "wrist exercises and neck stretches — same physio protocol"),
+  rel(80, 92, "sumimasen was the first phrase needed for Tokyo metro"),
+  rel(85, 88, "visa timeline feeds into the conference travel checklist"),
+  rel(91, 93, "small-world network theory explains Neo4j's traversal speed"),
+  rel(93, 103, "WebGL shaders render the graph layouts GDS computes"),
+  rel(94, 34, "Raft consensus explains Convex internals in deploy strategy"),
+  rel(95, 31, "compound component pattern from course used in RSC frontend"),
+  rel(97, 11, "vector embeddings could augment Convex subscription search"),
+  rel(99, 26, "Phoenix Project's flow principles guide demo prep priorities"),
+  rel(100, 97, "vector similarity is the retrieval scoring mechanism"),
+  rel(101, 46, "Toastmasters pacing helps present Dr. Park's MVP pitch"),
+  rel(104, 98, "PARA method from Second Brain influenced UX card sorting"),
+  rel(106, 48, "Vercel/Anthropic targets align with Dr. Park's polish advice"),
 ];
+
+function buildEvents() {
+  const events: Array<{
+    eventId: string;
+    memoryId: string;
+    action: string;
+    createdAt: string;
+  }> = [];
+
+  for (const m of memories) {
+    events.push({
+      eventId: crypto.randomUUID(),
+      memoryId: m.id,
+      action: "created",
+      createdAt: m.createdAt,
+    });
+  }
+
+  const updatedIndices = [3, 10, 22, 27, 35, 48, 55, 68, 78, 95];
+  for (const idx of updatedIndices) {
+    const m = memories[idx];
+    const createdMs = new Date(m.createdAt).getTime();
+    const laterMs = createdMs + (1 + Math.random() * 5) * 86400000;
+    events.push({
+      eventId: crypto.randomUUID(),
+      memoryId: m.id,
+      action: "updated",
+      createdAt: new Date(laterMs).toISOString(),
+    });
+  }
+
+  return events;
+}
 
 async function seed() {
   console.log("connecting to Neo4j...");
@@ -910,9 +986,27 @@ async function seed() {
       { rels: relationships },
     );
 
+    const events = buildEvents();
+    console.log(`creating ${events.length} memory events...`);
+    await session.run(
+      `UNWIND $events AS evt
+       MATCH (m:Memory {id: evt.memoryId})
+       CREATE (e:MemoryEvent {
+         id: evt.eventId,
+         action: evt.action,
+         actor: 'system',
+         details: '{}',
+         snapshot: null,
+         createdAt: evt.createdAt
+       })
+       CREATE (e)-[:EVENT_FOR]->(m)`,
+      { events },
+    );
+
     console.log("done!");
     console.log(`  memories: ${memories.length}`);
     console.log(`  relationships: ${relationships.length}`);
+    console.log(`  events: ${events.length}`);
   } finally {
     await session.close();
     await closeDriver();

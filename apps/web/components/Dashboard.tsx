@@ -29,6 +29,7 @@ interface StatsData {
   totalMemories: number;
   memoriesThisWeek: number;
   memoriesThisMonth: number;
+  memoriesAddedToday: number;
   totalTags: number;
   growthData: { date: string; total: number; new: number }[];
 }
