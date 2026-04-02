@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { Redirect, Tabs } from "expo-router";
+import { Redirect } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 import { View, ActivityIndicator } from "react-native";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { useMutation } from "convex/react";
 import { useColorScheme } from "nativewind";
-import { IconMessageCircle, IconSettings } from "@tabler/icons-react-native";
+import {
+  IconMessageCircle,
+  IconSettings,
+  IconMicrophone,
+} from "@tabler/icons-react-native";
 import { api } from "@vmem/backend";
 import { useIsOnline } from "@/providers/NetworkProvider";
 import { THEME_COLORS } from "@/lib/theme";
@@ -68,39 +73,48 @@ export default function MainLayout() {
   return (
     <>
       <OfflineBanner />
-      <Tabs
+      <Drawer
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: theme.foreground,
-          tabBarInactiveTintColor: theme.muted,
-          tabBarLabelStyle: {
+          drawerActiveTintColor: theme.foreground,
+          drawerInactiveTintColor: theme.muted,
+          drawerLabelStyle: {
             fontFamily: "InstrumentSans_500Medium",
           },
-          tabBarStyle: {
+          drawerStyle: {
             backgroundColor: theme.background,
-            borderTopColor: theme.border,
           },
+          swipeEnabled: true,
         }}
       >
-        <Tabs.Screen
+        <Drawer.Screen
           name="index"
           options={{
             title: "Chat",
-            tabBarIcon: ({ color, size }) => (
+            drawerIcon: ({ color, size }) => (
               <IconMessageCircle size={size} color={color} />
             ),
           }}
         />
-        <Tabs.Screen
+        <Drawer.Screen
+          name="record"
+          options={{
+            title: "Record",
+            drawerIcon: ({ color, size }) => (
+              <IconMicrophone size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
           name="settings"
           options={{
             title: "Settings",
-            tabBarIcon: ({ color, size }) => (
+            drawerIcon: ({ color, size }) => (
               <IconSettings size={size} color={color} />
             ),
           }}
         />
-      </Tabs>
+      </Drawer>
     </>
   );
 }

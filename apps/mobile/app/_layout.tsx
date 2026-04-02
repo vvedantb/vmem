@@ -1,6 +1,8 @@
 import "../src/global.css";
+import "react-native-gesture-handler";
 
 import { View, ActivityIndicator } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { ConvexReactClient } from "convex/react";
@@ -82,14 +84,18 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={NAV_THEME[colorScheme === "dark" ? "dark" : "light"]}>
-      <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-        <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
-          <NetworkProvider>
-            <RootLayoutNav />
-          </NetworkProvider>
-        </ConvexProviderWithClerk>
-      </ClerkProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider
+        value={NAV_THEME[colorScheme === "dark" ? "dark" : "light"]}
+      >
+        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+          <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
+            <NetworkProvider>
+              <RootLayoutNav />
+            </NetworkProvider>
+          </ConvexProviderWithClerk>
+        </ClerkProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
