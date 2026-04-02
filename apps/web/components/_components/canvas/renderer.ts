@@ -7,24 +7,6 @@ import type {
 import type { GraphViewTheme } from "../graph-view-themes";
 
 const TWO_PI = Math.PI * 2;
-const HEX_ANGLE_OFFSET = Math.PI / 6;
-
-function drawHexagon(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  radius: number,
-): void {
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const angle = HEX_ANGLE_OFFSET + (TWO_PI / 6) * i;
-    const hx = x + radius * Math.cos(angle);
-    const hy = y + radius * Math.sin(angle);
-    if (i === 0) ctx.moveTo(hx, hy);
-    else ctx.lineTo(hx, hy);
-  }
-  ctx.closePath();
-}
 
 function isOnScreen(
   x: number,
@@ -57,24 +39,6 @@ export function render(
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, canvasW, canvasH);
-
-  ctx.fillStyle = theme.background;
-  ctx.fillRect(0, 0, canvasW, canvasH);
-
-  if (theme.gradientCenter) {
-    const grad = ctx.createRadialGradient(
-      canvasW / 2,
-      canvasH / 2,
-      0,
-      canvasW / 2,
-      canvasH / 2,
-      canvasW / 2,
-    );
-    grad.addColorStop(0, theme.gradientCenter);
-    grad.addColorStop(1, "transparent");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvasW, canvasH);
-  }
 
   if (theme.grid) {
     const { color, spacing } = theme.grid;
@@ -219,35 +183,29 @@ export function render(
       ctx.fill();
     }
 
-    // Node shape
-    if (lowZoom) {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(nx, ny, Math.max(2, baseRadius * 0.5), 0, TWO_PI);
-      ctx.fill();
-    } else {
-      // Hexagon
-      ctx.fillStyle = color;
-      drawHexagon(ctx, nx, ny, baseRadius);
-      ctx.fill();
+    // Node shape (circle)
+    const radius = lowZoom ? Math.max(2, baseRadius * 0.5) : baseRadius;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(nx, ny, radius, 0, TWO_PI);
+    ctx.fill();
 
-      // Outline
-      if (theme.outline.enabled || isHovered || isDragged) {
-        const outlineColor =
-          isHovered || isDragged
-            ? theme.outline.hoveredColor === "node"
-              ? color
-              : theme.outline.hoveredColor
-            : theme.outline.color;
-        const outlineWidth =
-          isHovered || isDragged
-            ? theme.outline.hoveredWidth
-            : theme.outline.width;
-        ctx.strokeStyle = outlineColor;
-        ctx.lineWidth = outlineWidth;
-        drawHexagon(ctx, nx, ny, baseRadius + outlineWidth);
-        ctx.stroke();
-      }
+    if (!lowZoom && (theme.outline.enabled || isHovered || isDragged)) {
+      const outlineColor =
+        isHovered || isDragged
+          ? theme.outline.hoveredColor === "node"
+            ? color
+            : theme.outline.hoveredColor
+          : theme.outline.color;
+      const outlineWidth =
+        isHovered || isDragged
+          ? theme.outline.hoveredWidth
+          : theme.outline.width;
+      ctx.strokeStyle = outlineColor;
+      ctx.lineWidth = outlineWidth;
+      ctx.beginPath();
+      ctx.arc(nx, ny, baseRadius + outlineWidth, 0, TWO_PI);
+      ctx.stroke();
     }
 
     if (isDimmed) {
