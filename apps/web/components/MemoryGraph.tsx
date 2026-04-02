@@ -1,21 +1,22 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { IconMoodEmpty, IconLoader2, IconPlus } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 import { z } from "zod";
+import Graph from "graphology";
 import AddMemoryModal from "@/components/AddMemoryModal";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { clientEnv } from "@/env/client";
 import type {
-  SimNode,
-  SimEdge,
   HoveredNodeInfo,
   GraphSettings,
+  NodeAttributes,
+  EdgeAttributes,
 } from "./_components/graph-types";
 import type { ViewMode } from "./_components/graph-view-themes";
 import { getViewTheme } from "./_components/graph-view-themes";
@@ -23,7 +24,7 @@ import GraphNodeTooltip from "./_components/GraphNodeTooltip";
 import GraphNodeDetailDialog from "./_components/GraphNodeDetailDialog";
 import GraphSettingsPopover from "./_components/GraphSettingsPopover";
 import ViewModeSwitcher from "./_components/ViewModeSwitcher";
-import ForceGraph from "./_components/ForceGraph";
+import SigmaGraph from "./_components/SigmaGraph";
 import {
   getGraphSettings,
   setGraphSettings,
@@ -58,59 +59,29 @@ function tagToColor(tag: string, isDark: boolean): string {
   return isDark ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
 }
 
-function idToJitter(id: string): { dx: number; dy: number } {
-  let h1 = 0x811c9dc5;
-  let h2 = 0x811c9dc5;
-  for (let i = 0; i < id.length; i++) {
-    const c = id.charCodeAt(i);
-    h1 = Math.imul(h1 ^ c, 0x01000193);
-    h2 = Math.imul(h2 ^ c, 0x01000193) + i;
-  }
-  return {
-    dx: (h1 >>> 0) / 0xffffffff - 0.5,
-    dy: (h2 >>> 0) / 0xffffffff - 0.5,
-  };
-}
-
 const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
 
-interface GraphNode {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: string;
-}
+const graphNodeSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+  tags: z.array(z.string()),
+  createdAt: z.string(),
+});
 
-interface RelationshipEdge {
-  source: string;
-  target: string;
-  reason: string;
-}
-
-interface GraphResponse {
-  nodes: GraphNode[];
-  edges: RelationshipEdge[];
-}
+const relationshipEdgeSchema = z.object({
+  source: z.string(),
+  target: z.string(),
+  reason: z.string(),
+});
 
 const graphResponseSchema = z.object({
-  nodes: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      content: z.string(),
-      tags: z.array(z.string()),
-      createdAt: z.string(),
-    }),
-  ),
-  edges: z.array(
-    z.object({
-      source: z.string(),
-      target: z.string(),
-      reason: z.string(),
-    }),
-  ),
+  nodes: z.array(graphNodeSchema),
+  edges: z.array(relationshipEdgeSchema),
 });
+
+type RelationshipEdge = z.infer<typeof relationshipEdgeSchema>;
+type GraphResponse = z.infer<typeof graphResponseSchema>;
 
 export default function MemoryGraph() {
   const { deleteMemory } = useMemoryContext();
@@ -124,9 +95,6 @@ export default function MemoryGraph() {
   const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<
     RelationshipEdge[]
   >([]);
-
-  const currentNodesRef = useRef<SimNode[]>([]);
-  const isFirstGraphRef = useRef(true);
 
   const graphQuery = useTanstackQuery({
     queryKey: ["graph"],
@@ -203,170 +171,83 @@ export default function MemoryGraph() {
 
   const graphNodes = graphData?.nodes ?? [];
 
-  const { nodes, edges } = useMemo((): {
-    nodes: SimNode[];
-    edges: SimEdge[];
-  } => {
-    if (graphNodes.length === 0) return { nodes: [], edges: [] };
+  const graph = useMemo((): Graph<NodeAttributes, EdgeAttributes> | null => {
+    if (graphNodes.length === 0) return null;
 
-    const degreeCount = new Map<number, number>();
-    const simEdges: SimEdge[] = [];
+    const g = new Graph<NodeAttributes, EdgeAttributes>();
 
-    const tagToIndices = new Map<string, number[]>();
-    for (let i = 0; i < graphNodes.length; i++) {
-      for (const tag of graphNodes[i].tags) {
-        const indices = tagToIndices.get(tag);
-        if (indices) indices.push(i);
-        else tagToIndices.set(tag, [i]);
+    const tagToNodeIds = new Map<string, string[]>();
+    for (const node of graphNodes) {
+      for (const tag of node.tags) {
+        const ids = tagToNodeIds.get(tag);
+        if (ids) ids.push(node.id);
+        else tagToNodeIds.set(tag, [node.id]);
       }
     }
 
     const edgeWeights = new Map<string, number>();
-    for (const [, indices] of tagToIndices) {
-      for (let a = 0; a < indices.length; a++) {
-        for (let b = a + 1; b < indices.length; b++) {
-          const lo = indices[a];
-          const hi = indices[b];
-          const key = `${lo}-${hi}`;
+    for (const [, ids] of tagToNodeIds) {
+      for (let a = 0; a < ids.length; a++) {
+        for (let b = a + 1; b < ids.length; b++) {
+          const key =
+            ids[a] < ids[b] ? `${ids[a]}|${ids[b]}` : `${ids[b]}|${ids[a]}`;
           edgeWeights.set(key, (edgeWeights.get(key) ?? 0) + 1);
         }
       }
     }
 
-    for (const [key, weight] of edgeWeights) {
-      const dash = key.indexOf("-");
-      const i = Number(key.slice(0, dash));
-      const j = Number(key.slice(dash + 1));
-      simEdges.push({
-        sourceIndex: i,
-        targetIndex: j,
-        weight,
-        edgeType: "tag",
-      });
-      degreeCount.set(i, (degreeCount.get(i) ?? 0) + 1);
-      degreeCount.set(j, (degreeCount.get(j) ?? 0) + 1);
+    const degreeCount = new Map<string, number>();
+    for (const [key] of edgeWeights) {
+      const [a, b] = key.split("|");
+      degreeCount.set(a, (degreeCount.get(a) ?? 0) + 1);
+      degreeCount.set(b, (degreeCount.get(b) ?? 0) + 1);
+    }
+    for (const rel of allRelatesToEdges) {
+      degreeCount.set(rel.source, (degreeCount.get(rel.source) ?? 0) + 1);
+      degreeCount.set(rel.target, (degreeCount.get(rel.target) ?? 0) + 1);
     }
 
-    const idToIndex = new Map<string, number>();
-    for (let i = 0; i < graphNodes.length; i++) {
-      idToIndex.set(graphNodes[i].id, i);
+    for (const node of graphNodes) {
+      const degree = degreeCount.get(node.id) ?? 0;
+      g.addNode(node.id, {
+        label: node.title,
+        content: node.content,
+        tags: node.tags,
+        createdAt: node.createdAt,
+        color: viewTheme.nodeColorOverride
+          ? viewTheme.nodeColorOverride
+          : node.tags.length > 0
+            ? tagToColor(node.tags[0], viewTheme.isDarkCanvas)
+            : viewTheme.isDarkCanvas
+              ? "#555566"
+              : "#999999",
+        size: Math.min(3 + degree * 0.6, 6),
+        x: Math.random() * 100 - 50,
+        y: Math.random() * 100 - 50,
+      });
+    }
+
+    const nodeSet = new Set(graphNodes.map((n) => n.id));
+
+    for (const [key, weight] of edgeWeights) {
+      const [a, b] = key.split("|");
+      if (nodeSet.has(a) && nodeSet.has(b)) {
+        g.addEdge(a, b, { weight, edgeType: "tag" });
+      }
     }
 
     for (const rel of allRelatesToEdges) {
-      const si = idToIndex.get(rel.source);
-      const ti = idToIndex.get(rel.target);
-      if (si !== undefined && ti !== undefined) {
-        simEdges.push({
-          sourceIndex: si,
-          targetIndex: ti,
+      if (nodeSet.has(rel.source) && nodeSet.has(rel.target)) {
+        g.addEdge(rel.source, rel.target, {
           weight: 1,
           edgeType: "relates_to",
           reason: rel.reason,
         });
-        degreeCount.set(si, (degreeCount.get(si) ?? 0) + 1);
-        degreeCount.set(ti, (degreeCount.get(ti) ?? 0) + 1);
       }
     }
 
-    const tagGroups = new Map<string, number[]>();
-    for (let i = 0; i < graphNodes.length; i++) {
-      const primaryTag = graphNodes[i].tags[0];
-      if (primaryTag) {
-        const group = tagGroups.get(primaryTag);
-        if (group) group.push(i);
-        else tagGroups.set(primaryTag, [i]);
-      }
-    }
-
-    const groupKeys = [...tagGroups.keys()];
-    const ringRadius = 250;
-    const groupPositions = new Map<string, { cx: number; cy: number }>();
-    for (let g = 0; g < groupKeys.length; g++) {
-      const angle = (g / groupKeys.length) * Math.PI * 2;
-      groupPositions.set(groupKeys[g], {
-        cx: Math.cos(angle) * ringRadius,
-        cy: Math.sin(angle) * ringRadius,
-      });
-    }
-
-    const prevNodes = currentNodesRef.current;
-    const prevById = new Map<string, SimNode>();
-    for (const n of prevNodes) {
-      prevById.set(n.id, n);
-    }
-    const isFirstRender = isFirstGraphRef.current;
-
-    const simNodes: SimNode[] = graphNodes.map((m, i) => {
-      const degree = degreeCount.get(i) ?? 0;
-      const primaryTag = m.tags[0];
-      const prevNode = prevById.get(m.id);
-
-      let x: number;
-      let y: number;
-      let vx = 0;
-      let vy = 0;
-      let opacity = 1;
-
-      if (prevNode) {
-        x = prevNode.x;
-        y = prevNode.y;
-        vx = prevNode.vx;
-        vy = prevNode.vy;
-        opacity = prevNode.opacity;
-      } else {
-        const hash = idToJitter(m.id);
-        const pos = primaryTag ? groupPositions.get(primaryTag) : undefined;
-        if (pos) {
-          const jitter = 60;
-          x = pos.cx + hash.dx * jitter;
-          y = pos.cy + hash.dy * jitter;
-        } else {
-          x = hash.dx * 80;
-          y = hash.dy * 80;
-        }
-        opacity = isFirstRender ? 1 : 0;
-      }
-
-      return {
-        id: m.id,
-        label: m.title,
-        content: m.content,
-        tags: m.tags,
-        createdAt: m.createdAt,
-        x,
-        y,
-        vx,
-        vy,
-        radius: Math.min(3 + degree * 0.6, 6),
-        color: m.tags.length > 0 ? tagToColor(m.tags[0], false) : "#999999",
-        opacity,
-      };
-    });
-
-    return { nodes: simNodes, edges: simEdges };
-  }, [graphNodes, allRelatesToEdges]);
-
-  useEffect(() => {
-    currentNodesRef.current = nodes;
-    if (nodes.length > 0) {
-      isFirstGraphRef.current = false;
-    }
-  }, [nodes]);
-
-  useEffect(() => {
-    for (const node of nodes) {
-      if (viewTheme.nodeColorOverride) {
-        node.color = viewTheme.nodeColorOverride;
-        continue;
-      }
-      const gNode = graphNodes.find((m) => m.id === node.id);
-      if (gNode && gNode.tags.length > 0) {
-        node.color = tagToColor(gNode.tags[0], viewTheme.isDarkCanvas);
-      } else {
-        node.color = viewTheme.isDarkCanvas ? "#555566" : "#999999";
-      }
-    }
-  }, [viewTheme, nodes, graphNodes]);
+    return g;
+  }, [graphNodes, allRelatesToEdges, viewTheme]);
 
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
@@ -431,7 +312,7 @@ export default function MemoryGraph() {
     );
   }
 
-  if (nodes.length === 0) {
+  if (!graph) {
     return (
       <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -450,9 +331,8 @@ export default function MemoryGraph() {
   return (
     <>
       <div className="relative h-full min-h-0">
-        <ForceGraph
-          nodes={nodes}
-          edges={edges}
+        <SigmaGraph
+          graph={graph}
           viewTheme={viewTheme}
           settings={graphSettings}
           onHoverNode={handleHoverNode}
@@ -495,8 +375,7 @@ export default function MemoryGraph() {
 
       <GraphNodeDetailDialog
         nodeId={selectedNodeId}
-        nodes={nodes}
-        edges={edges}
+        graph={graph}
         onClose={handleCloseDialog}
         onNavigate={handleNavigateNode}
         onDelete={deleteMemory}

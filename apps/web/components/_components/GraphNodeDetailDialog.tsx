@@ -10,12 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@vmem/ui";
-import type { SimNode, SimEdge } from "./graph-types";
+import type Graph from "graphology";
+import type { NodeAttributes, EdgeAttributes } from "./graph-types";
 
 interface GraphNodeDetailDialogProps {
   nodeId: string | null;
-  nodes: SimNode[];
-  edges: SimEdge[];
+  graph: Graph<NodeAttributes, EdgeAttributes>;
   onClose: () => void;
   onNavigate: (nodeId: string) => void;
   onDelete: (nodeId: string) => Promise<boolean>;
@@ -31,8 +31,7 @@ function formatDate(dateString: string) {
 
 export default function GraphNodeDetailDialog({
   nodeId,
-  nodes,
-  edges,
+  graph,
   onClose,
   onNavigate,
   onDelete,
@@ -40,27 +39,19 @@ export default function GraphNodeDetailDialog({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  if (!nodeId) return null;
+  if (!nodeId || !graph.hasNode(nodeId)) return null;
 
-  const nodeIndex = nodes.findIndex((n) => n.id === nodeId);
-  if (nodeIndex === -1) return null;
+  const attrs = graph.getNodeAttributes(nodeId);
 
-  const node = nodes[nodeIndex];
-
-  const neighbors: Array<{ node: SimNode; weight: number }> = [];
-  for (const edge of edges) {
-    if (edge.sourceIndex === nodeIndex) {
-      neighbors.push({
-        node: nodes[edge.targetIndex],
-        weight: edge.weight,
-      });
-    } else if (edge.targetIndex === nodeIndex) {
-      neighbors.push({
-        node: nodes[edge.sourceIndex],
-        weight: edge.weight,
-      });
-    }
-  }
+  const neighborIds = graph.neighbors(nodeId);
+  const neighbors = neighborIds.map((nId) => {
+    const nAttrs = graph.getNodeAttributes(nId);
+    let totalWeight = 0;
+    graph.forEachEdge(nodeId, nId, (_edge, edgeAttrs) => {
+      totalWeight += edgeAttrs.weight;
+    });
+    return { id: nId, label: nAttrs.label, weight: totalWeight };
+  });
 
   return (
     <Dialog
@@ -71,18 +62,18 @@ export default function GraphNodeDetailDialog({
     >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-foreground">{node.label}</DialogTitle>
+          <DialogTitle className="text-foreground">{attrs.label}</DialogTitle>
           <p className="text-xs text-muted-foreground">
-            {formatDate(node.createdAt)}
+            {formatDate(attrs.createdAt)}
           </p>
         </DialogHeader>
         <div className="grid grid-cols-[1fr_auto] gap-6">
           <div className="space-y-4 min-w-0">
-            <p className="text-foreground break-words">{node.content}</p>
+            <p className="text-foreground break-words">{attrs.content}</p>
 
-            {node.tags.length > 0 && (
+            {attrs.tags.length > 0 && (
               <div className="flex gap-1.5 flex-wrap">
-                {node.tags.map((tag) => (
+                {attrs.tags.map((tag) => (
                   <Badge
                     key={tag}
                     variant="outline"
@@ -103,7 +94,7 @@ export default function GraphNodeDetailDialog({
                     disabled={isDeleting}
                     onClick={async () => {
                       setIsDeleting(true);
-                      const deleted = await onDelete(node.id);
+                      const deleted = await onDelete(nodeId);
                       setIsDeleting(false);
                       if (deleted) {
                         setConfirmingDelete(false);
@@ -149,15 +140,15 @@ export default function GraphNodeDetailDialog({
               <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
                 {neighbors.map((neighbor) => (
                   <Button
-                    key={neighbor.node.id}
+                    key={neighbor.id}
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => onNavigate(neighbor.node.id)}
+                    onClick={() => onNavigate(neighbor.id)}
                     className="w-full h-auto p-2.5 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors justify-start items-start flex-col"
                   >
                     <p className="text-sm font-medium text-foreground truncate w-full text-left">
-                      {neighbor.node.label}
+                      {neighbor.label}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {neighbor.weight} shared tag
