@@ -73,6 +73,9 @@ export default function MainLayout() {
           headerShown: false,
           tabBarActiveTintColor: theme.foreground,
           tabBarInactiveTintColor: theme.muted,
+          tabBarLabelStyle: {
+            fontFamily: "InstrumentSans_500Medium",
+          },
           tabBarStyle: {
             backgroundColor: theme.background,
             borderTopColor: theme.border,
