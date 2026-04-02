@@ -3,11 +3,14 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   View,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation, DrawerActions } from "@react-navigation/native";
 import { useColorScheme } from "nativewind";
+import { IconMenu2 } from "@tabler/icons-react-native";
 import type { UIMessage } from "@convex-dev/agent/react";
 import MessageBubble from "../../src/components/MessageBubble";
 import EmptyState from "../../src/components/EmptyState";
@@ -23,6 +26,7 @@ function normalizeChatInput(text: string | undefined): string {
 export default function ChatScreen() {
   const [inputText, setInputText] = useState("");
   const flatListRef = useRef<FlatList<UIMessage>>(null);
+  const navigation = useNavigation();
   const { messages, sendMessage, isStreaming, isReady, mode } =
     useChatProvider();
   const { colorScheme } = useColorScheme();
@@ -64,6 +68,17 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      <View className="flex-row items-center px-4 py-3">
+        <Pressable
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          hitSlop={8}
+        >
+          <IconMenu2 size={24} color={theme.foreground} />
+        </Pressable>
+        <Text className="flex-1 text-center text-lg font-sans-semibold text-foreground mr-6">
+          Chat
+        </Text>
+      </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"

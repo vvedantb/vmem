@@ -1,5 +1,25 @@
 # Changelog
 
+## Mobile Drawer Navigation, Logout, Record Tab — 2026-04-02
+
+- Replaced bottom tab bar with drawer navigation (swipe from left or tap hamburger menu button)
+- Added logout button to settings screen below the model list
+- Added Record route (placeholder) as a new drawer item
+- Each screen now has a header bar with menu icon for opening the drawer
+- Added react-native-gesture-handler and @react-navigation/drawer as dependencies
+- Reason: drawer navigation provides cleaner UX for 3+ routes vs cramped bottom tabs, and logout was missing entirely
+
+## Mobile Chat Redesign — 2026-04-02
+
+- Assistant messages: removed bubble background, made full-width to match web's MessageContent pattern
+- ReasoningBlock: added sparkle icon, duration tracking, auto-expand while streaming, auto-collapse after done, rotating chevron
+- ChatInput: redesigned as rounded container with borderless textarea, footer row with voice + send buttons
+- VoiceButton: new component using expo-speech-recognition with animated ping rings while listening
+- Settings: expanded from single model to 4-model selector (TinyLlama 1.1B, Llama 3.2 3B, Phi-3.5 Mini, Mistral 7B) with per-model download/delete/select
+- model-manager: refactored for multi-model support with SecureStore persistence of active model ID
+- Tab labels: applied Instrument Sans Medium font
+- Reason: mobile UI diverged significantly from web's polished design, needed feature parity for voice input and model variety
+
 ## Graph Edge Labels, Sidebar Stats, Seed Data Overhaul — 2026-04-02
 
 - Edge labels now appear on hover showing WHY two memories are connected (shared tags or explicit relationship reason)
