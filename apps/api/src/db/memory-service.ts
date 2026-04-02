@@ -712,6 +712,7 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
     totalMemories: number;
     memoriesThisWeek: number;
     memoriesThisMonth: number;
+    memoriesAddedToday: number;
     totalTags: number;
     growthData: { date: string; total: number; new: number }[];
   }> {
@@ -719,25 +720,33 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const todayStart = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      ).toISOString();
 
       const result = await session.run(
         `MATCH (m:Memory {userId: $userId})
          WITH count(m) AS total,
               count(CASE WHEN m.createdAt >= $weekAgo THEN 1 END) AS thisWeek,
-              count(CASE WHEN m.createdAt >= $monthAgo THEN 1 END) AS thisMonth
+              count(CASE WHEN m.createdAt >= $monthAgo THEN 1 END) AS thisMonth,
+              count(CASE WHEN m.createdAt >= $todayStart THEN 1 END) AS today
          OPTIONAL MATCH (t:Tag)<-[:TAGGED_WITH]-(:Memory {userId: $userId})
-         WITH total, thisWeek, thisMonth, count(DISTINCT t) AS tagCount
-         RETURN total, thisWeek, thisMonth, tagCount`,
+         WITH total, thisWeek, thisMonth, today, count(DISTINCT t) AS tagCount
+         RETURN total, thisWeek, thisMonth, today, tagCount`,
         {
           userId,
           weekAgo: weekAgo.toISOString(),
           monthAgo: monthAgo.toISOString(),
+          todayStart,
         },
       );
 
       let totalMemories = 0;
       let memoriesThisWeek = 0;
       let memoriesThisMonth = 0;
+      let memoriesAddedToday = 0;
       let totalTags = 0;
 
       if (result.records.length > 0) {
@@ -745,6 +754,7 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
         totalMemories = toNeoInt(record.get("total"));
         memoriesThisWeek = toNeoInt(record.get("thisWeek"));
         memoriesThisMonth = toNeoInt(record.get("thisMonth"));
+        memoriesAddedToday = toNeoInt(record.get("today"));
         totalTags = toNeoInt(record.get("tagCount"));
       }
 
@@ -781,6 +791,7 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
         totalMemories,
         memoriesThisWeek,
         memoriesThisMonth,
+        memoriesAddedToday,
         totalTags,
         growthData,
       };
