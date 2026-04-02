@@ -12,10 +12,20 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.vmem.mobile"
     },
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
     "android": {
       "package": "com.vmem.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "splash": {
+        "image": "./assets/icon.png",
+        "resizeMode": "contain",
         "backgroundColor": "#000000"
       }
     },
