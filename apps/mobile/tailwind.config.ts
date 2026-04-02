@@ -51,6 +51,7 @@ const config: Config = {
         "sans-semibold": ["InstrumentSans_600SemiBold"],
         "sans-bold": ["InstrumentSans_700Bold"],
         serif: ["InstrumentSerif_400Regular"],
+        "serif-italic": ["InstrumentSerif_400Regular_Italic"],
       },
     },
   },
