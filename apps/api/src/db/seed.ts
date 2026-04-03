@@ -6,7 +6,10 @@ import { getDriver, ensureIndexes, closeDriver } from "./neo4j.js";
 import { setupDatabase } from "./setup.js";
 import crypto from "node:crypto";
 
-const USER_ID = "user_3BmJ4t48rN2ZkglhnxOTUJSMpLC";
+const USER_IDS = [
+  "user_39IXNJeQM9vlRyQ9IdCvKbsqsti",
+  "user_3BmJ4t48rN2ZkglhnxOTUJSMpLC",
+];
 
 const SOURCES = [
   "chrome-extension",
@@ -15,7 +18,7 @@ const SOURCES = [
   "api-import",
   "email-digest",
   "cli",
-] as const;
+];
 
 function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -56,7 +59,7 @@ function mem(
   ).toISOString();
   return {
     id: crypto.randomUUID(),
-    userId: USER_ID,
+    userId: "",
     title,
     content,
     type,
@@ -880,6 +883,12 @@ const relationships = [
   rel(88, 89, "visa deadlines should be on the conference travel checklist"),
 
   // --- Cross-cluster bridges ---
+  rel(107, 106, "portfolio projects showcase skills for target companies"),
+  rel(108, 50, "STAR stories from vmem for the Google recruiter interview"),
+  rel(109, 89, "visa sponsorship affects salary negotiation by country"),
+  rel(110, 67, "weekend vmem coding feeds the build-in-public tweets"),
+  rel(111, 90, "open source TS contributions build Rust comparison skills"),
+  rel(112, 26, "defense presentation rehearses the thesis demo content"),
   rel(0, 66, "TypeScript strict mode is why he prefers TS over JS"),
   rel(2, 44, "Emma's DDIA recommendation covers Neo4j cluster patterns"),
   rel(5, 40, "Jake from Vercel confirmed RSC mental model at the summit"),
@@ -908,9 +917,13 @@ const relationships = [
   rel(101, 46, "Toastmasters pacing helps present Dr. Park's MVP pitch"),
   rel(104, 98, "PARA method from Second Brain influenced UX card sorting"),
   rel(106, 48, "Vercel/Anthropic targets align with Dr. Park's polish advice"),
+  rel(96, 100, "attention scoring parallels vector embedding similarity"),
+  rel(91, 102, "System 1 heuristics mirror memory palace spatial recall"),
+  rel(110, 101, "build-in-public tweets practice public speaking skills"),
+  rel(59, 71, "standing desk Pomodoro timer doubles as stretch reminder"),
 ];
 
-function buildEvents() {
+function buildEvents(mems: typeof memories) {
   const events: Array<{
     eventId: string;
     memoryId: string;
@@ -918,7 +931,7 @@ function buildEvents() {
     createdAt: string;
   }> = [];
 
-  for (const m of memories) {
+  for (const m of mems) {
     events.push({
       eventId: crypto.randomUUID(),
       memoryId: m.id,
@@ -929,7 +942,8 @@ function buildEvents() {
 
   const updatedIndices = [3, 10, 22, 27, 35, 48, 55, 68, 78, 95];
   for (const idx of updatedIndices) {
-    const m = memories[idx];
+    const m = mems[idx];
+    if (!m) continue;
     const createdMs = new Date(m.createdAt).getTime();
     const laterMs = createdMs + (1 + Math.random() * 5) * 86400000;
     events.push({
@@ -941,6 +955,12 @@ function buildEvents() {
   }
 
   return events;
+}
+
+function remapId(idMap: Map<string, string>, oldId: string): string {
+  const newId = idMap.get(oldId);
+  if (newId === undefined) throw new Error(`unmapped id: ${oldId}`);
+  return newId;
 }
 
 async function seed() {
@@ -956,57 +976,84 @@ async function seed() {
     await setupDatabase(driver);
     await ensureIndexes();
 
-    console.log(`inserting ${memories.length} memories...`);
-    await session.run(
-      `UNWIND $memories AS mem
-       CREATE (m:Memory {
-         id: mem.id, userId: mem.userId, title: mem.title,
-         content: mem.content, type: mem.type, source: mem.source,
-         confidence: mem.confidence, status: mem.status,
-         createdAt: mem.createdAt, updatedAt: mem.updatedAt,
-         expiresAt: mem.expiresAt
-       })
-       WITH m, mem
-       MERGE (s:Source {name: mem.source})
-       CREATE (m)-[:FROM_SOURCE]->(s)
-       WITH m, mem
-       FOREACH (tagName IN mem.tags |
-         MERGE (t:Tag {name: tagName})
-         MERGE (m)-[:TAGGED_WITH]->(t)
-       )`,
-      { memories },
-    );
+    let totalMemories = 0;
+    let totalRelationships = 0;
+    let totalEvents = 0;
 
-    console.log(`creating ${relationships.length} relationships...`);
-    await session.run(
-      `UNWIND $rels AS rel
-       MATCH (a:Memory {id: rel.sourceId})
-       MATCH (b:Memory {id: rel.targetId})
-       CREATE (a)-[:RELATES_TO {reason: rel.reason}]->(b)`,
-      { rels: relationships },
-    );
+    for (const userId of USER_IDS) {
+      console.log(`\nseeding user: ${userId}`);
 
-    const events = buildEvents();
-    console.log(`creating ${events.length} memory events...`);
-    await session.run(
-      `UNWIND $events AS evt
-       MATCH (m:Memory {id: evt.memoryId})
-       CREATE (e:MemoryEvent {
-         id: evt.eventId,
-         action: evt.action,
-         actor: 'system',
-         details: '{}',
-         snapshot: null,
-         createdAt: evt.createdAt
-       })
-       CREATE (e)-[:EVENT_FOR]->(m)`,
-      { events },
-    );
+      const idMap = new Map<string, string>();
+      const userMemories = memories.map((m) => {
+        const newId = crypto.randomUUID();
+        idMap.set(m.id, newId);
+        return { ...m, id: newId, userId };
+      });
 
-    console.log("done!");
-    console.log(`  memories: ${memories.length}`);
-    console.log(`  relationships: ${relationships.length}`);
-    console.log(`  events: ${events.length}`);
+      const userRelationships = relationships.map((r) => ({
+        sourceId: remapId(idMap, r.sourceId),
+        targetId: remapId(idMap, r.targetId),
+        reason: r.reason,
+      }));
+
+      const userEvents = buildEvents(userMemories);
+
+      console.log(`  inserting ${userMemories.length} memories...`);
+      await session.run(
+        `UNWIND $memories AS mem
+         CREATE (m:Memory {
+           id: mem.id, userId: mem.userId, title: mem.title,
+           content: mem.content, type: mem.type, source: mem.source,
+           confidence: mem.confidence, status: mem.status,
+           createdAt: mem.createdAt, updatedAt: mem.updatedAt,
+           expiresAt: mem.expiresAt
+         })
+         WITH m, mem
+         MERGE (s:Source {name: mem.source})
+         CREATE (m)-[:FROM_SOURCE]->(s)
+         WITH m, mem
+         FOREACH (tagName IN mem.tags |
+           MERGE (t:Tag {name: tagName})
+           MERGE (m)-[:TAGGED_WITH]->(t)
+         )`,
+        { memories: userMemories },
+      );
+
+      console.log(`  creating ${userRelationships.length} relationships...`);
+      await session.run(
+        `UNWIND $rels AS rel
+         MATCH (a:Memory {id: rel.sourceId})
+         MATCH (b:Memory {id: rel.targetId})
+         CREATE (a)-[:RELATES_TO {reason: rel.reason}]->(b)`,
+        { rels: userRelationships },
+      );
+
+      console.log(`  creating ${userEvents.length} events...`);
+      await session.run(
+        `UNWIND $events AS evt
+         MATCH (m:Memory {id: evt.memoryId})
+         CREATE (e:MemoryEvent {
+           id: evt.eventId,
+           action: evt.action,
+           actor: 'system',
+           details: '{}',
+           snapshot: null,
+           createdAt: evt.createdAt
+         })
+         CREATE (e)-[:EVENT_FOR]->(m)`,
+        { events: userEvents },
+      );
+
+      totalMemories += userMemories.length;
+      totalRelationships += userRelationships.length;
+      totalEvents += userEvents.length;
+    }
+
+    console.log("\ndone!");
+    console.log(`  users: ${USER_IDS.length}`);
+    console.log(`  memories: ${totalMemories}`);
+    console.log(`  relationships: ${totalRelationships}`);
+    console.log(`  events: ${totalEvents}`);
   } finally {
     await session.close();
     await closeDriver();
