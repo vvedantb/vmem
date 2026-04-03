@@ -1,8 +1,9 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { motion } from "motion/react";
 import { motionDuration, motionEase, motionDistance } from "@vmem/ui";
+import { usePageTitle } from "./contexts/PageTitleContext";
 
 interface PageContainerProps {
   title?: string;
@@ -19,8 +20,14 @@ export default function PageContainer({
   rightSection,
   children,
 }: PageContainerProps) {
-  const hasHeader = title || leftSection || centerSection || rightSection;
-  const hasDesktopHeader = leftSection || centerSection || rightSection;
+  const { setPageTitle } = usePageTitle();
+
+  useEffect(() => {
+    setPageTitle(title ?? "");
+    return () => setPageTitle("");
+  }, [title, setPageTitle]);
+
+  const hasHeader = leftSection || centerSection || rightSection;
   const childTransition = {
     duration: motionDuration.fast,
     ease: motionEase,
@@ -35,20 +42,8 @@ export default function PageContainer({
   return (
     <div className="flex h-full min-h-0 flex-col">
       {hasHeader && (
-        <div
-          className={
-            hasDesktopHeader
-              ? "mb-5 flex-shrink-0 min-h-10"
-              : "mb-5 flex-shrink-0 min-h-10 md:mb-0 md:min-h-0"
-          }
-        >
-          <div
-            className={
-              hasDesktopHeader
-                ? "flex h-10 items-center justify-between gap-4"
-                : "flex h-10 items-center justify-between gap-4 md:hidden"
-            }
-          >
+        <div className="mb-5 flex-shrink-0 min-h-10">
+          <div className="flex h-10 items-center justify-between gap-4">
             {leftSection && (
               <motion.div
                 className="flex-shrink-0 mr-auto"
@@ -58,16 +53,6 @@ export default function PageContainer({
               >
                 {leftSection}
               </motion.div>
-            )}
-            {title && (
-              <motion.h2
-                className="text-2xl leading-tight font-instrumentSerif text-foreground md:hidden"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={childTransition}
-              >
-                {title}
-              </motion.h2>
             )}
             <div className="hidden md:flex md:flex-1 md:justify-center">
               {centerSection && (
