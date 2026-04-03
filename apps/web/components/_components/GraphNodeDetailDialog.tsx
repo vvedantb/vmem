@@ -66,7 +66,7 @@ export default function GraphNodeDetailDialog({
             {formatDate(nodeData.createdAt)}
           </p>
         </DialogHeader>
-        <div className="grid grid-cols-[1fr_auto] gap-6">
+        <div className="flex flex-col gap-6 md:grid md:grid-cols-[1fr_auto] md:gap-6">
           <div className="space-y-4 min-w-0">
             <p className="text-foreground break-words">{nodeData.content}</p>
 
@@ -132,7 +132,7 @@ export default function GraphNodeDetailDialog({
           </div>
 
           {relatedNodes.length > 0 && (
-            <div className="w-72 border-l border-border pl-6">
+            <div className="border-t border-border pt-4 md:w-72 md:border-l md:border-t-0 md:pl-6 md:pt-0">
               <p className="text-xs font-medium text-muted-foreground mb-2">
                 Related
               </p>
