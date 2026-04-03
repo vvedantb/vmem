@@ -27,11 +27,11 @@ import {
   IconX,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpandFilled,
-  IconLayoutDashboard,
   IconHome,
 } from "@tabler/icons-react";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarFooter } from "./sidebar/SidebarFooter";
+import { usePageTitle } from "./contexts/PageTitleContext";
 
 type SidebarProps = {
   isCollapsed: boolean;
@@ -49,6 +49,7 @@ export default function Sidebar({
   const { isLoaded } = useUser();
   const isAuthLoading = !isLoaded;
   const { unreadCount } = useNotifications();
+  const { pageTitle } = usePageTitle();
 
   const isDark = theme === "dark";
 
@@ -71,46 +72,23 @@ export default function Sidebar({
   return (
     <>
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <header className="fixed inset-x-3 top-3 z-40 flex h-12 items-center justify-between glass-panel-subtle rounded-2xl px-3 md:hidden">
-          <Button
+        <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 px-3 md:hidden">
+          <button
             type="button"
-            variant="ghost"
-            size="icon"
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls={mobileMenuId}
-            className="h-9 w-9 rounded-xl text-muted-foreground transition-colors hover:text-foreground"
+            className="flex h-9 w-9 items-center justify-center rounded-xl glass-interactive text-muted-foreground transition-colors hover:text-foreground"
           >
             <IconMenu2 className="h-5 w-5" />
-          </Button>
-          <Link
-            href="/"
-            onClick={() => setMobileMenuOpen(false)}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-row items-center gap-2"
-          >
-            <Image
-              unoptimized
-              width={22}
-              height={22}
-              alt="vmem icon"
-              src="/icon-dark.svg"
-              className="block dark:hidden"
-            />
-            <Image
-              unoptimized
-              width={22}
-              height={22}
-              src="/icon-light.svg"
-              alt="vmem icon"
-              className="hidden dark:block"
-            />
-            <h1 className="text-xl leading-none font-instrumentSerif text-foreground">
-              v<span className="italic">mem</span>
-            </h1>
-          </Link>
-          <div className="w-9" />
-        </header>
+          </button>
+          {pageTitle ? (
+            <span className="text-lg leading-none font-instrumentSerif text-foreground">
+              {pageTitle}
+            </span>
+          ) : null}
+        </div>
 
         <DialogPortal>
           <DialogOverlay className="bg-black/50 md:hidden" />
