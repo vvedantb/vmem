@@ -1,8 +1,7 @@
 "use client";
 
-import type { MouseEventHandler } from "react";
+import { type MouseEventHandler, useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, type Variants } from "motion/react";
 import {
   Separator,
@@ -269,26 +268,23 @@ export function SidebarNavigation({
   onNavigate,
 }: SidebarNavigationProps) {
   const isIconOnly = !isMobile && isCollapsed;
-  const isSettingsRoute = pathname.startsWith("/settings");
-  const router = useRouter();
+  const [showSettings, setShowSettings] = useState(
+    pathname.startsWith("/settings"),
+  );
 
-  const handleSettingsClick = () => {
-    router.push("/settings/preferences");
-  };
-
-  const handleBack = () => {
-    router.push("/chat");
-  };
+  useEffect(() => {
+    setShowSettings(pathname.startsWith("/settings"));
+  }, [pathname]);
 
   return (
     <AnimatePresence mode="wait" initial={false}>
-      {isSettingsRoute ? (
+      {showSettings ? (
         <SettingsNav
           key="settings"
           pathname={pathname}
           isIconOnly={isIconOnly}
           isMobile={isMobile}
-          onBack={handleBack}
+          onBack={() => setShowSettings(false)}
           onNavigate={onNavigate}
         />
       ) : (
@@ -299,7 +295,7 @@ export function SidebarNavigation({
           isIconOnly={isIconOnly}
           isMobile={isMobile}
           onNavigate={onNavigate}
-          onSettingsClick={handleSettingsClick}
+          onSettingsClick={() => setShowSettings(true)}
         />
       )}
     </AnimatePresence>
