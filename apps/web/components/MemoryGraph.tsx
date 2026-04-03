@@ -362,7 +362,7 @@ export default function MemoryGraph() {
           onLinkNodes={handleLinkNodes}
         />
 
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5">
           <AddMemoryModal
             trigger={
               <Button
@@ -380,7 +380,7 @@ export default function MemoryGraph() {
           />
         </div>
 
-        <div className="absolute bottom-3 right-3 z-10">
+        <div className="absolute bottom-2 right-2 z-10">
           <ViewModeSwitcher
             activeMode={viewMode}
             onChange={handleViewModeChange}

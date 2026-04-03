@@ -273,7 +273,7 @@ export default function GraphCanvas({
         className="w-full h-full block"
         style={{ touchAction: "none" }}
       />
-      <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-1">
+      <div className="absolute bottom-3 left-3 z-10 hidden md:flex flex-col gap-1">
         <button
           type="button"
           onClick={handleZoomIn}
