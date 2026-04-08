@@ -401,9 +401,7 @@ export default function MemoryDetailPanel({
                   variant="ghost"
                   size="icon"
                   onClick={() =>
-                    router.push(
-                      `/memories/timeline?mode=history&memoryId=${memory.id}`,
-                    )
+                    router.push(`/timeline?mode=history&memoryId=${memory.id}`)
                   }
                   className="text-muted-foreground"
                 >
