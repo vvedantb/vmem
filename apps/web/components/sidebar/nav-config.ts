@@ -26,7 +26,7 @@ export const navGroups: NavGroup[] = [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/memories", label: "Memories", icon: IconBrain },
       {
-        href: "/memories/timeline",
+        href: "/timeline",
         label: "Timeline",
         icon: IconHistory,
       },
