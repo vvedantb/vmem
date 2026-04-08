@@ -6,15 +6,13 @@ import {
   IconFiles,
   IconDatabase,
   IconPlugConnected,
-  IconList,
-  IconTopologyStar3,
+  IconBrain,
   IconChartBar,
   IconStack2,
   IconPlug,
   IconUserCircle,
   IconAdjustments,
   IconShieldLock,
-  IconLayoutDashboard,
   IconTerminal2,
   IconHistory,
 } from "@tabler/icons-react";
@@ -26,12 +24,7 @@ export const navGroups: NavGroup[] = [
     icon: IconStack2,
     items: [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
-      { href: "/memories/list", label: "Memory List", icon: IconList },
-      {
-        href: "/memories/graph",
-        label: "Memory Graph",
-        icon: IconTopologyStar3,
-      },
+      { href: "/memories", label: "Memories", icon: IconBrain },
       {
         href: "/memories/timeline",
         label: "Timeline",

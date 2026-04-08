@@ -46,7 +46,7 @@ export default function TagsPage() {
 
   const handleTagClick = useCallback(
     (tag: string) => {
-      router.push(`/memories/list?tag=${encodeURIComponent(tag)}`);
+      router.push(`/memories?view=list&tag=${encodeURIComponent(tag)}`);
     },
     [router],
   );
