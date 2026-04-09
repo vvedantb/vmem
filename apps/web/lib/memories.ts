@@ -1,7 +1,10 @@
+export type MemoryType = "profile" | "episodic" | "knowledge";
+
 export interface Memory {
   id: string;
   title: string;
   content: string;
+  type: MemoryType;
   tags: string[];
   createdAt: string;
 }
@@ -9,6 +12,7 @@ export interface Memory {
 export interface TagStats {
   tag: string;
   count: number;
+  latestCreatedAt: string;
 }
 
 export interface SearchResult extends Memory {
@@ -17,16 +21,45 @@ export interface SearchResult extends Memory {
 
 export function buildTagStats(memories: Memory[]): TagStats[] {
   const counts = new Map<string, number>();
+  const latest = new Map<string, string>();
 
   for (const memory of memories) {
     for (const tag of memory.tags) {
       counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      const current = latest.get(tag);
+      if (!current || memory.createdAt > current) {
+        latest.set(tag, memory.createdAt);
+      }
     }
   }
 
   return Array.from(counts.entries())
-    .map(([tag, count]) => ({ tag, count }))
-    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+    .map(([tag, count]) => ({
+      tag,
+      count,
+      latestCreatedAt: latest.get(tag) ?? "",
+    }))
+    .sort((a, b) => a.tag.localeCompare(b.tag));
+}
+
+export type TagSortMode = "a-z" | "most-used" | "most-recent";
+
+export function sortTagStats(tags: TagStats[], mode: TagSortMode): TagStats[] {
+  const sorted = [...tags];
+  switch (mode) {
+    case "a-z":
+      return sorted.sort((a, b) => a.tag.localeCompare(b.tag));
+    case "most-used":
+      return sorted.sort(
+        (a, b) => b.count - a.count || a.tag.localeCompare(b.tag),
+      );
+    case "most-recent":
+      return sorted.sort(
+        (a, b) =>
+          b.latestCreatedAt.localeCompare(a.latestCreatedAt) ||
+          a.tag.localeCompare(b.tag),
+      );
+  }
 }
 
 export function searchMemories(
