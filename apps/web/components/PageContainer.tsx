@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect } from "react";
 import { motion } from "motion/react";
-import { motionDuration, motionEase, motionDistance } from "@vmem/ui";
+import { cn, motionDuration, motionEase, motionDistance } from "@vmem/ui";
 import { usePageTitle } from "./contexts/PageTitleContext";
 
 interface PageContainerProps {
@@ -10,6 +10,7 @@ interface PageContainerProps {
   leftSection?: ReactNode;
   centerSection?: ReactNode;
   rightSection?: ReactNode;
+  noScroll?: boolean;
   children: ReactNode;
 }
 
@@ -18,6 +19,7 @@ export default function PageContainer({
   leftSection,
   centerSection,
   rightSection,
+  noScroll = false,
   children,
 }: PageContainerProps) {
   const { setPageTitle } = usePageTitle();
@@ -89,12 +91,17 @@ export default function PageContainer({
         </div>
       )}
       <motion.div
-        className="min-h-0 flex-1 flex flex-col overflow-y-auto pr-1 scrollbar-thin"
+        className={cn(
+          "min-h-0 flex-1 flex flex-col",
+          noScroll ? "overflow-hidden" : "overflow-y-auto pr-1 scrollbar-thin",
+        )}
         initial={{ opacity: 0, y: motionDistance.pageY }}
         animate={{ opacity: 1, y: 0 }}
         transition={contentTransition}
       >
-        <div className="space-y-8 flex-1">{children}</div>
+        <div className={cn(noScroll ? "flex-1 min-h-0" : "space-y-8 flex-1")}>
+          {children}
+        </div>
       </motion.div>
     </div>
   );
