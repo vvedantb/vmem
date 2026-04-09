@@ -51,11 +51,16 @@ interface ApiMemory {
   expiresAt: string | null;
 }
 
+function isMemoryType(value: string): value is Memory["type"] {
+  return value === "profile" || value === "episodic" || value === "knowledge";
+}
+
 function apiToMemory(m: ApiMemory): Memory {
   return {
     id: m.id,
     title: m.title,
     content: m.content,
+    type: isMemoryType(m.type) ? m.type : "knowledge",
     tags: m.tags,
     createdAt: m.createdAt,
   };
@@ -121,6 +126,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         id: `temp-${Date.now()}`,
         title: input.title.trim(),
         content: input.content.trim(),
+        type: "knowledge",
         tags: input.tags ?? [],
         createdAt: new Date().toISOString(),
       };
