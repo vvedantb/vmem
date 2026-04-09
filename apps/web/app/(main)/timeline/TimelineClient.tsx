@@ -4,7 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryStates } from "nuqs";
 import { useAuth } from "@clerk/nextjs";
 import { Tabs, TabsList, TabsTrigger, TabsContent, Input } from "@vmem/ui";
-import { IconLoader2, IconSearch, IconClockHour4 } from "@tabler/icons-react";
+import {
+  IconLoader2,
+  IconSearch,
+  IconClockHour4,
+  IconHistory,
+  IconRoute,
+} from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { clientEnv } from "@/env/client";
@@ -113,15 +119,21 @@ export default function TimelineClient() {
 
   const tabsList = (
     <TabsList>
-      <TabsTrigger value="history">Memory History</TabsTrigger>
-      <TabsTrigger value="trail">Topic Trail</TabsTrigger>
+      <TabsTrigger value="history">
+        <IconHistory size={16} className="mr-1.5" />
+        History
+      </TabsTrigger>
+      <TabsTrigger value="trail">
+        <IconRoute size={16} className="mr-1.5" />
+        Trail
+      </TabsTrigger>
     </TabsList>
   );
 
   if (memoriesLoading) {
     return (
       <Tabs value={params.mode} onValueChange={handleModeChange}>
-        <PageContainer title="Memories" centerSection={tabsList}>
+        <PageContainer title="Memories" leftSection={tabsList}>
           <div className="flex items-center justify-center py-16">
             <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
@@ -132,7 +144,7 @@ export default function TimelineClient() {
 
   return (
     <Tabs value={params.mode} onValueChange={handleModeChange}>
-      <PageContainer title="Memories" centerSection={tabsList}>
+      <PageContainer title="Memories" leftSection={tabsList}>
         <TabsContent value="history" className="space-y-4">
           <MemorySelector
             value={params.memoryId}
