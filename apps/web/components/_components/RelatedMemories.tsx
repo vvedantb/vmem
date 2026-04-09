@@ -66,7 +66,13 @@ export default function RelatedMemories({
       );
       if (res.ok) {
         const json: { data: RelatedMemoryEntry[] } = await res.json();
-        setEntries(json.data);
+        const seen = new Set<string>();
+        const unique = json.data.filter((entry) => {
+          if (seen.has(entry.memory.id)) return false;
+          seen.add(entry.memory.id);
+          return true;
+        });
+        setEntries(unique);
       }
     } catch {
       setEntries([]);
