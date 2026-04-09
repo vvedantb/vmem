@@ -85,13 +85,31 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const memoriesQuery = useTanstackQuery({
     queryKey: ["memories"],
     queryFn: async (): Promise<Memory[]> => {
-      const res = await authFetch(`${API_URL}/v1/memories?limit=1000`);
-      if (!res.ok) return [];
-      const data = (await res.json()) as {
-        memories: ApiMemory[];
-        total: number;
-      };
-      return data.memories.map(apiToMemory);
+      const PAGE_SIZE = 100;
+      const all: Memory[] = [];
+      let offset = 0;
+
+      for (;;) {
+        const res = await authFetch(
+          `${API_URL}/v1/memories?limit=${PAGE_SIZE}&offset=${offset}`,
+        );
+        if (!res.ok) return all;
+
+        const data = (await res.json()) as {
+          memories: ApiMemory[];
+          total: number;
+        };
+        for (const m of data.memories) {
+          all.push(apiToMemory(m));
+        }
+
+        if (all.length >= data.total || data.memories.length < PAGE_SIZE) {
+          break;
+        }
+        offset += PAGE_SIZE;
+      }
+
+      return all;
     },
     enabled: !!userId,
   });
