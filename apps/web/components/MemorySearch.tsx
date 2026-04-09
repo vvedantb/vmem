@@ -4,7 +4,6 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Button,
   Input,
-  Badge,
   Card,
   cn,
   ContextMenu,
@@ -18,12 +17,19 @@ import {
   IconLoader2,
   IconEdit,
   IconTrash,
+  IconFilter,
+  IconX,
 } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import MemoryDetailPanel from "./MemoryDetailPanel";
 import TagSidebar from "./_components/TagSidebar";
-import { searchMemories, type Memory, type SearchResult } from "@/lib/memories";
+import {
+  searchMemories,
+  timeAgo,
+  type Memory,
+  type SearchResult,
+} from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
 interface MemorySearchProps {
@@ -42,6 +48,7 @@ export default function MemorySearch({
   const setSearchQuery = onSearchChange ?? setInternalQuery;
   const isExternalSearch = externalQuery !== undefined;
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
     null,
@@ -92,6 +99,11 @@ export default function MemorySearch({
       setSelectedMemoryId(null);
     }
   }, [allMemories, selectedMemoryId]);
+
+  const handleSelectTag = useCallback((tag: string | null) => {
+    setSelectedTag(tag);
+    setMobileSidebarOpen(false);
+  }, []);
 
   const handleMemoryUpdate = useCallback((updatedMemory: Memory) => {
     setSelectedMemoryId(updatedMemory.id);
@@ -153,49 +165,90 @@ export default function MemorySearch({
   }
 
   return (
-    <div className="flex h-full min-h-0 gap-4">
-      <div className="w-56 flex-shrink-0 overflow-y-auto border-r border-border pr-3">
+    <div className="relative flex h-full min-h-0 gap-4">
+      <div className="hidden md:block w-56 flex-shrink-0 overflow-y-auto pr-6">
         <TagSidebar
           memories={allMemories}
           selectedTag={selectedTag}
-          onSelectTag={setSelectedTag}
+          onSelectTag={handleSelectTag}
         />
       </div>
 
-      <div className="flex flex-1 min-w-0 flex-col gap-4">
+      <AnimatePresence>
+        {mobileSidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="md:hidden fixed inset-0 z-40 bg-black/40"
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+            <motion.div
+              initial={{ x: -240, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -240, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden absolute inset-y-0 left-0 z-50 w-60 overflow-y-auto border-r border-border bg-background p-3 rounded-r-xl shadow-lg"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-foreground">
+                  Filter
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="text-muted-foreground"
+                >
+                  <IconX size={16} />
+                </Button>
+              </div>
+              <TagSidebar
+                memories={allMemories}
+                selectedTag={selectedTag}
+                onSelectTag={handleSelectTag}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div className="flex flex-1 min-w-0 min-h-0 flex-col">
         {!isExternalSearch && (
-          <div className="relative flex-shrink-0">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2">
-              <IconSearch
-                className="text-muted-foreground"
-                size={20}
-                stroke={1.5}
+          <div className="flex gap-2 flex-shrink-0 pb-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setMobileSidebarOpen(true)}
+              className={cn(
+                "md:hidden h-12 w-12 flex-shrink-0",
+                selectedTag && "border-primary text-primary",
+              )}
+            >
+              <IconFilter size={18} stroke={1.5} />
+            </Button>
+            <div className="relative flex-1">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                <IconSearch
+                  className="text-muted-foreground"
+                  size={20}
+                  stroke={1.5}
+                />
+              </div>
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={
+                  selectedTag
+                    ? `Search in "${selectedTag}"...`
+                    : "Search memories semantically..."
+                }
+                className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
               />
             </div>
-            <Input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={
-                selectedTag
-                  ? `Search in "${selectedTag}"...`
-                  : "Search memories semantically..."
-              }
-              className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
-            />
-          </div>
-        )}
-
-        {selectedTag && (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-sm text-muted-foreground">Showing:</span>
-            <Badge className="bg-primary text-primary-foreground border border-transparent">
-              {selectedTag}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              ({displayData.length}{" "}
-              {displayData.length === 1 ? "memory" : "memories"})
-            </span>
           </div>
         )}
 
@@ -222,7 +275,7 @@ export default function MemorySearch({
           >
             <div
               className={cn(
-                "flex-1 min-w-0 overflow-y-auto",
+                "flex-1 min-w-0 min-h-0 overflow-y-auto",
                 selectedMemory ? "hidden sm:block" : "",
               )}
             >
@@ -242,8 +295,7 @@ export default function MemorySearch({
                           <Card
                             className={cn(
                               "cursor-pointer transition-all hover:bg-accent/50 px-3 py-2.5",
-                              selectedMemoryId === item.id &&
-                                "ring-2 ring-primary bg-accent/50",
+                              selectedMemoryId === item.id && "bg-accent",
                             )}
                             onClick={() => handleCardClick(item)}
                           >
@@ -257,19 +309,10 @@ export default function MemorySearch({
                                     {Math.round(item.relevanceScore * 100)}%
                                   </span>
                                 )}
+                              <span className="ml-auto text-xs text-muted-foreground/50 tabular-nums flex-shrink-0">
+                                {timeAgo(item.createdAt)}
+                              </span>
                             </div>
-                            {item.tags.length > 0 && (
-                              <div className="flex gap-1.5 flex-wrap mt-1.5">
-                                {item.tags.map((tag) => (
-                                  <Badge
-                                    key={tag}
-                                    className="bg-muted text-muted-foreground border border-border text-xs"
-                                  >
-                                    {tag}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
                           </Card>
                         </ContextMenuTrigger>
                         <ContextMenuContent>
@@ -301,7 +344,7 @@ export default function MemorySearch({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
-                  className="w-full lg:w-[420px] lg:flex-shrink-0"
+                  className="w-full lg:w-[420px] lg:flex-shrink-0 min-h-0 overflow-y-auto"
                 >
                   <MemoryDetailPanel
                     memory={selectedMemory}

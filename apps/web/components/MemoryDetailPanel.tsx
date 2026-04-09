@@ -228,9 +228,6 @@ export default function MemoryDetailPanel({
         </div>
 
         <div>
-          <h4 className="text-sm font-medium text-muted-foreground mb-2">
-            Content
-          </h4>
           {isEditing ? (
             <>
               <Textarea
@@ -254,9 +251,6 @@ export default function MemoryDetailPanel({
         </div>
 
         <div>
-          <h4 className="text-sm font-medium text-muted-foreground mb-2">
-            Tags
-          </h4>
           {isEditing ? (
             <Controller
               name="tags"
@@ -346,14 +340,9 @@ export default function MemoryDetailPanel({
           )}
         </div>
 
-        <div>
-          <h4 className="text-sm font-medium text-muted-foreground mb-2">
-            Created
-          </h4>
-          <p className="text-sm text-muted-foreground">
-            {formatDate(memory.createdAt)}
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {formatDate(memory.createdAt)}
+        </p>
 
         {!isEditing && (
           <RelatedMemories

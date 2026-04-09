@@ -40,7 +40,7 @@ export default function TagSidebar({
   selectedTag,
   onSelectTag,
 }: TagSidebarProps) {
-  const [sortMode, setSortMode] = useState<TagSortMode>("a-z");
+  const [sortMode, setSortMode] = useState<TagSortMode>("most-used");
 
   const allTags = useMemo(() => buildTagStats(memories), [memories]);
   const sortedTags = useMemo(
@@ -62,7 +62,7 @@ export default function TagSidebar({
       >
         <IconLayersIntersect size={16} stroke={1.5} />
         <span className="truncate">All Memories</span>
-        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+        <span className="ml-auto text-xs text-muted-foreground/50 tabular-nums">
           {memories.length}
         </span>
       </Button>
@@ -109,7 +109,7 @@ export default function TagSidebar({
         >
           <IconTag size={14} stroke={1.5} className="flex-shrink-0" />
           <span className="truncate">{tagStat.tag}</span>
-          <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+          <span className="ml-auto text-xs text-muted-foreground/50 tabular-nums">
             {tagStat.count}
           </span>
         </Button>
