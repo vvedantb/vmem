@@ -6,16 +6,25 @@ import { Badge, Button } from "@vmem/ui";
 import { IconLink, IconLoader2, IconUnlink } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { clientEnv } from "@/env/client";
-import type { Memory } from "@/lib/memories";
+import type { Memory, MemoryType } from "@/lib/memories";
 import LinkMemoryModal from "@/components/LinkMemoryModal";
 
 const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
+
+function isMemoryType(value: string): value is MemoryType {
+  return value === "profile" || value === "episodic" || value === "knowledge";
+}
+
+function toMemoryType(value: string): MemoryType {
+  return isMemoryType(value) ? value : "knowledge";
+}
 
 interface RelatedMemoryEntry {
   memory: {
     id: string;
     title: string;
     content: string;
+    type: string;
     tags: string[];
     createdAt: string;
   };
@@ -152,6 +161,7 @@ export default function RelatedMemories({
                     id: entry.memory.id,
                     title: entry.memory.title,
                     content: entry.memory.content,
+                    type: toMemoryType(entry.memory.type),
                     tags: entry.memory.tags,
                     createdAt: entry.memory.createdAt,
                   })

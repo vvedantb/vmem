@@ -1,5 +1,15 @@
 # Changelog
 
+## Memories List View → File Browser Layout — 2026-04-10
+
+- Replaced the flat card grid + tag badge filter with a file browser layout: left sidebar for tag navigation, right panel for memory list
+- Flat tag list in sidebar with sort options: A–Z (default), Most used, Most recent
+- Single-select tag navigation (like folder browsing) instead of multi-select AND filter
+- Added `type` field to the frontend `Memory` interface (was already in the API but stripped during mapping)
+- Search bar is now contextual — shows "Search in [tag]..." when a tag is selected
+- Detail panel still slides out to the right when a memory is clicked
+- Reason: the old tag badge filter didn't scale well with many tags and didn't communicate the memory type hierarchy
+
 ## Mobile Drawer Navigation, Logout, Record Tab — 2026-04-02
 
 - Replaced bottom tab bar with drawer navigation (swipe from left or tap hamburger menu button)
