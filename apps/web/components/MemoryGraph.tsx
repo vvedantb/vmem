@@ -41,18 +41,26 @@ const graphNodeSchema = z.object({
   createdAt: z.string(),
 });
 
-const relationshipEdgeSchema = z.object({
+const relatesToEdgeSchema = z.object({
   source: z.string(),
   target: z.string(),
   reason: z.string(),
 });
 
-const graphResponseSchema = z.object({
-  nodes: z.array(graphNodeSchema),
-  edges: z.array(relationshipEdgeSchema),
+const tagEdgeSchema = z.object({
+  source: z.string(),
+  target: z.string(),
+  weight: z.number(),
+  sharedTags: z.array(z.string()),
 });
 
-type RelationshipEdge = z.infer<typeof relationshipEdgeSchema>;
+const graphResponseSchema = z.object({
+  nodes: z.array(graphNodeSchema),
+  relatesToEdges: z.array(relatesToEdgeSchema),
+  tagEdges: z.array(tagEdgeSchema),
+});
+
+type RelatesToEdge = z.infer<typeof relatesToEdgeSchema>;
 type GraphResponse = z.infer<typeof graphResponseSchema>;
 
 export default function MemoryGraph() {
@@ -64,9 +72,9 @@ export default function MemoryGraph() {
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
   const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
-  const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<
-    RelationshipEdge[]
-  >([]);
+  const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<RelatesToEdge[]>(
+    [],
+  );
 
   const graphQuery = useTanstackQuery({
     queryKey: ["graph"],
@@ -137,45 +145,23 @@ export default function MemoryGraph() {
   );
 
   const allRelatesToEdges = useMemo(() => {
-    const apiEdges = graphData?.edges ?? [];
+    const apiEdges = graphData?.relatesToEdges ?? [];
     return [...apiEdges, ...liveRelatesToEdges];
-  }, [graphData?.edges, liveRelatesToEdges]);
+  }, [graphData?.relatesToEdges, liveRelatesToEdges]);
 
   const apiNodes = graphData?.nodes ?? [];
+  const apiTagEdges = graphData?.tagEdges ?? [];
 
+  // O(n) mapping — tag-edge computation now happens server-side in Neo4j
   const { graphNodes, graphEdges } = useMemo(() => {
     if (apiNodes.length === 0)
       return { graphNodes: [] as GraphNode[], graphEdges: [] as GraphEdge[] };
 
-    const tagToNodeIds = new Map<string, string[]>();
-    for (const node of apiNodes) {
-      for (const tag of node.tags) {
-        const ids = tagToNodeIds.get(tag);
-        if (ids) ids.push(node.id);
-        else tagToNodeIds.set(tag, [node.id]);
-      }
-    }
-
-    const edgeWeights = new Map<string, number>();
-    const edgeTags = new Map<string, string[]>();
-    for (const [tag, ids] of tagToNodeIds) {
-      for (let a = 0; a < ids.length; a++) {
-        for (let b = a + 1; b < ids.length; b++) {
-          const key =
-            ids[a] < ids[b] ? `${ids[a]}|${ids[b]}` : `${ids[b]}|${ids[a]}`;
-          edgeWeights.set(key, (edgeWeights.get(key) ?? 0) + 1);
-          const tags = edgeTags.get(key);
-          if (tags) tags.push(tag);
-          else edgeTags.set(key, [tag]);
-        }
-      }
-    }
-
+    // Count degree per node from both edge types
     const degreeCount = new Map<string, number>();
-    for (const [key] of edgeWeights) {
-      const [a, b] = key.split("|");
-      degreeCount.set(a, (degreeCount.get(a) ?? 0) + 1);
-      degreeCount.set(b, (degreeCount.get(b) ?? 0) + 1);
+    for (const edge of apiTagEdges) {
+      degreeCount.set(edge.source, (degreeCount.get(edge.source) ?? 0) + 1);
+      degreeCount.set(edge.target, (degreeCount.get(edge.target) ?? 0) + 1);
     }
     for (const rel of allRelatesToEdges) {
       degreeCount.set(rel.source, (degreeCount.get(rel.source) ?? 0) + 1);
@@ -200,21 +186,22 @@ export default function MemoryGraph() {
     const gEdges: GraphEdge[] = [];
     const addedPairs = new Set<string>();
 
-    for (const [key, weight] of edgeWeights) {
-      const [a, b] = key.split("|");
-      if (nodeSet.has(a) && nodeSet.has(b)) {
-        const sharedTags = edgeTags.get(key) ?? [];
+    // Tag edges from server (already deduplicated, a.id < b.id guaranteed)
+    for (const edge of apiTagEdges) {
+      if (nodeSet.has(edge.source) && nodeSet.has(edge.target)) {
+        const pairKey = `${edge.source}|${edge.target}`;
         gEdges.push({
-          source: a,
-          target: b,
-          weight,
+          source: edge.source,
+          target: edge.target,
+          weight: edge.weight,
           edgeType: "tag",
-          reason: sharedTags.join(", "),
+          reason: edge.sharedTags.join(", "),
         });
-        addedPairs.add(key);
+        addedPairs.add(pairKey);
       }
     }
 
+    // Relates-to edges (skip if already covered by a tag edge for same pair)
     for (const rel of allRelatesToEdges) {
       if (nodeSet.has(rel.source) && nodeSet.has(rel.target)) {
         const pairKey =
@@ -235,7 +222,7 @@ export default function MemoryGraph() {
     }
 
     return { graphNodes: gNodes, graphEdges: gEdges };
-  }, [apiNodes, allRelatesToEdges]);
+  }, [apiNodes, apiTagEdges, allRelatesToEdges]);
 
   const selectedNodeData = useMemo(() => {
     if (!selectedNodeId) return null;
