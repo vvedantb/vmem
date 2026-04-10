@@ -42,7 +42,7 @@ graph.get("/", async (c) => {
     const data = await service.getGraphData(userId);
     const ms = (performance.now() - t0).toFixed(1);
     console.log(
-      `[graph] neo4j query took ${ms}ms — ${data.nodes.length} nodes, ${data.edges.length} edges`,
+      `[graph] neo4j query took ${ms}ms — ${data.nodes.length} nodes, ${data.relatesToEdges.length} relates_to, ${data.tagEdges.length} tag edges`,
     );
 
     setCache(userId, data);

@@ -5,6 +5,8 @@ const CELL_SIZE = 200;
 interface SpatialIndex {
   cells: Map<string, GraphNode[]>;
   lastHash: string;
+  /** When false, rebuildIndex skips the O(n) hash computation entirely */
+  dirty: boolean;
 }
 
 function cellKey(cx: number, cy: number): string {
@@ -23,12 +25,22 @@ function hashNodes(nodes: GraphNode[]): string {
 }
 
 export function createSpatialIndex(): SpatialIndex {
-  return { cells: new Map(), lastHash: "" };
+  return { cells: new Map(), lastHash: "", dirty: true };
+}
+
+/** Mark the index as needing a rebuild on next rebuildIndex call */
+export function markDirty(index: SpatialIndex): void {
+  index.dirty = true;
 }
 
 export function rebuildIndex(index: SpatialIndex, nodes: GraphNode[]): void {
+  if (!index.dirty) return;
+
   const hash = hashNodes(nodes);
-  if (hash === index.lastHash) return;
+  if (hash === index.lastHash) {
+    index.dirty = false;
+    return;
+  }
 
   index.cells.clear();
   for (const node of nodes) {
@@ -43,6 +55,7 @@ export function rebuildIndex(index: SpatialIndex, nodes: GraphNode[]): void {
     }
   }
   index.lastHash = hash;
+  index.dirty = false;
 }
 
 export function getNodeAt(
