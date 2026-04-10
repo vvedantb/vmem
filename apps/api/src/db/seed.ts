@@ -9,6 +9,7 @@ import crypto from "node:crypto";
 const USER_IDS = [
   "user_39IXNJeQM9vlRyQ9IdCvKbsqsti",
   "user_3BmJ4t48rN2ZkglhnxOTUJSMpLC",
+  "user_35juxUiA6A9h2JbW7TEDk39j3yo",
 ];
 
 const SOURCES = [
@@ -46,12 +47,14 @@ function mem(
   const idx = memoryIndex++;
 
   let createdAt: string;
-  if (idx < 15) {
+  if (idx < 20) {
     createdAt = recentDate(7);
-  } else if (idx < 35) {
+  } else if (idx < 60) {
     createdAt = recentDate(30);
-  } else {
+  } else if (idx < 150) {
     createdAt = randomDate(90);
+  } else {
+    createdAt = randomDate(180);
   }
 
   const updatedAt = new Date(
@@ -769,6 +772,890 @@ const memories = [
     "episodic",
     ["career", "learning"],
   ),
+
+  // === MORE TECH / ENGINEERING (30) === [indices 113-142]
+  mem(
+    "Turborepo remote caching setup",
+    "Enable remote caching with Vercel to share build artifacts across CI and local dev. Cuts build times by 70%.",
+    "knowledge",
+    ["infrastructure", "typescript"],
+  ),
+  mem(
+    "Vitest over Jest for monorepos",
+    "Vitest uses the same Vite config, no separate transform setup. Native ESM support without hacks.",
+    "knowledge",
+    ["typescript", "infrastructure"],
+  ),
+  mem(
+    "Edge runtime limitations",
+    "No Node.js APIs like fs or crypto.randomUUID. Must use Web Crypto API. Limited to 128KB code size on Cloudflare.",
+    "knowledge",
+    ["infrastructure"],
+  ),
+  mem(
+    "React compiler auto-memoization",
+    "React 19 compiler memoizes components and hooks automatically. Manual useMemo/useCallback mostly unnecessary now.",
+    "knowledge",
+    ["react", "typescript"],
+  ),
+  mem(
+    "OpenTelemetry tracing for Hono",
+    "Use @hono/otel middleware for distributed tracing. Sends spans to Jaeger or Grafana Tempo.",
+    "knowledge",
+    ["infrastructure", "databases"],
+  ),
+  mem(
+    "Drizzle ORM type inference",
+    "Drizzle infers types directly from schema. No codegen step needed unlike Prisma.",
+    "knowledge",
+    ["typescript", "databases"],
+  ),
+  mem(
+    "WebSocket vs SSE for real-time",
+    "SSE is simpler and works over HTTP/2. WebSocket for bidirectional. Convex uses WebSocket internally.",
+    "knowledge",
+    ["infrastructure", "react"],
+  ),
+  mem(
+    "Playwright for E2E testing",
+    "Playwright auto-waits for elements. Use page.getByRole over CSS selectors for resilient tests.",
+    "knowledge",
+    ["typescript", "infrastructure"],
+  ),
+  mem(
+    "CQRS pattern for memory engine",
+    "Separate read and write models. Writes go to Neo4j directly, reads can use a materialized view or cache.",
+    "knowledge",
+    ["databases", "infrastructure"],
+  ),
+  mem(
+    "Biome replacing ESLint and Prettier",
+    "Biome is a single tool for linting and formatting. 10x faster than ESLint. Written in Rust.",
+    "knowledge",
+    ["typescript", "infrastructure"],
+  ),
+  mem(
+    "Astro for documentation sites",
+    "Astro ships zero JS by default. Perfect for docs where interactivity is minimal.",
+    "knowledge",
+    ["react", "infrastructure"],
+  ),
+  mem(
+    "tRPC end-to-end type safety",
+    "tRPC infers types from backend to frontend without codegen. Works great in monorepos.",
+    "knowledge",
+    ["typescript"],
+  ),
+  mem(
+    "Rate limiting with sliding window",
+    "Redis-based sliding window counter. Better than fixed window for bursty traffic patterns.",
+    "knowledge",
+    ["infrastructure"],
+  ),
+  mem(
+    "React Native Expo SDK 52",
+    "New Architecture enabled by default. Fabric renderer and TurboModules for native performance.",
+    "knowledge",
+    ["react", "typescript"],
+  ),
+  mem(
+    "Neon Postgres branching workflow",
+    "Create a database branch per PR. Merge schema changes like code. Great for preview deployments.",
+    "knowledge",
+    ["databases", "infrastructure"],
+  ),
+  mem(
+    "OAuth 2.1 simplified",
+    "PKCE required for all clients. No implicit grant. Refresh token rotation mandatory.",
+    "knowledge",
+    ["infrastructure"],
+  ),
+  mem(
+    "Tanstack Query stale-while-revalidate",
+    "Set staleTime to control when data is considered stale. gcTime controls cache eviction.",
+    "knowledge",
+    ["react", "typescript"],
+  ),
+  mem(
+    "Monorepo dependency hoisting gotchas",
+    "Phantom dependencies when hoisted packages are used without declaring them. pnpm strict mode prevents this.",
+    "knowledge",
+    ["infrastructure"],
+  ),
+  mem(
+    "shadcn/ui component patterns",
+    "Copy components into your codebase. Customize freely. No version lock-in unlike traditional UI libraries.",
+    "knowledge",
+    ["react"],
+  ),
+  mem(
+    "Effect-TS for typed error handling",
+    "Effect provides typed errors, dependency injection, and concurrency. Steep learning curve but worth it.",
+    "knowledge",
+    ["typescript"],
+  ),
+  mem(
+    "Neo4j full-text search indexes",
+    "Create fulltext index for memory content. Supports Lucene query syntax for advanced text search.",
+    "knowledge",
+    ["databases"],
+  ),
+  mem(
+    "Vercel AI SDK streaming",
+    "useChat hook handles streaming responses. Works with OpenAI, Anthropic, and local models.",
+    "knowledge",
+    ["react", "infrastructure"],
+  ),
+  mem(
+    "GitHub Actions matrix strategy",
+    "Matrix builds run tests across Node versions and OS. Fail-fast: false to see all failures.",
+    "knowledge",
+    ["infrastructure"],
+  ),
+  mem(
+    "Zustand vs Jotai for state",
+    "Zustand for global store patterns. Jotai for atomic bottom-up state. Both lightweight alternatives to Redux.",
+    "knowledge",
+    ["react", "typescript"],
+  ),
+  mem(
+    "Content Security Policy headers",
+    "CSP prevents XSS by whitelisting script sources. Start with report-only mode to find violations.",
+    "knowledge",
+    ["infrastructure"],
+  ),
+  mem(
+    "Incremental Static Regeneration",
+    "ISR revalidates cached pages on a timer. Use on-demand revalidation for CMS webhook triggers.",
+    "knowledge",
+    ["react", "infrastructure"],
+  ),
+  mem(
+    "SQLite for embedded databases",
+    "Turso and Cloudflare D1 use SQLite at the edge. Great for per-user or per-tenant data.",
+    "knowledge",
+    ["databases"],
+  ),
+  mem(
+    "Dependabot grouping rules",
+    "Group minor and patch updates into a single PR. Major versions get individual PRs for review.",
+    "knowledge",
+    ["infrastructure"],
+  ),
+  mem(
+    "Motion (Framer Motion) layout animations",
+    "layout prop enables automatic FLIP animations. Use layoutId for shared element transitions.",
+    "knowledge",
+    ["react"],
+  ),
+  mem(
+    "Zod discriminated unions",
+    "z.discriminatedUnion checks a literal field first for fast validation. Better errors than z.union.",
+    "knowledge",
+    ["typescript"],
+  ),
+
+  // === MORE WORK / MEETINGS (20) === [indices 143-162]
+  mem(
+    "Platform team wants API versioning",
+    "They need v1/v2 support for memory endpoints. Suggested URL-based versioning over header-based.",
+    "episodic",
+    ["meetings", "infrastructure"],
+  ),
+  mem(
+    "Stakeholder demo went well",
+    "CTO liked the context trace feature. Asked about enterprise multi-tenant support for V2.",
+    "episodic",
+    ["meetings", "project-management"],
+  ),
+  mem(
+    "Incident post-mortem: memory duplication bug",
+    "Race condition in concurrent memory creates. Fixed with Neo4j MERGE instead of CREATE.",
+    "episodic",
+    ["meetings", "databases"],
+  ),
+  mem(
+    "Design review: proposed updates UI",
+    "Mocked up approve/reject flow for conflicting memories. Team preferred inline diff view.",
+    "episodic",
+    ["meetings", "react"],
+  ),
+  mem(
+    "API rate limit discussion",
+    "Agreed on 100 req/min for free tier, 1000 for pro. Redis sliding window implementation.",
+    "episodic",
+    ["meetings", "infrastructure"],
+  ),
+  mem(
+    "Decision: OpenRouter over direct API keys",
+    "OpenRouter provides fallback models and unified billing. Simpler than managing multiple API keys.",
+    "episodic",
+    ["project-management", "infrastructure"],
+  ),
+  mem(
+    "Sprint retro: testing gaps",
+    "Only 30% coverage on memory-service. Agreed to write integration tests before new features.",
+    "episodic",
+    ["meetings", "typescript"],
+  ),
+  mem(
+    "User study recruitment plan",
+    "Need 15 participants for thesis study. Recruiting from CS department and local dev meetups.",
+    "episodic",
+    ["project-management", "career"],
+  ),
+  mem(
+    "Discussion: memory expiration policy",
+    "Auto-expire memories after 1 year unless pinned. Grace period sends notification before deletion.",
+    "episodic",
+    ["meetings", "project-management"],
+  ),
+  mem(
+    "Mobile app feasibility check",
+    "React Native with Expo for mobile. Clerk supports Expo auth. Graph viz needs react-native-svg.",
+    "episodic",
+    ["meetings", "react"],
+  ),
+  mem(
+    "Security audit findings",
+    "JWT tokens not checked for expiry on API side. Added exp validation to auth middleware.",
+    "episodic",
+    ["meetings", "infrastructure"],
+  ),
+  mem(
+    "Decision: changelog in internal folder",
+    "Keep changelog in internal/changelog.md. Each entry: title, date, summary, reason for change.",
+    "episodic",
+    ["project-management"],
+  ),
+  mem(
+    "Accessibility review results",
+    "Missing aria-labels on graph nodes. Color contrast fails on muted text. Need keyboard navigation.",
+    "episodic",
+    ["meetings", "react"],
+  ),
+  mem(
+    "Database migration strategy agreed",
+    "Use union types in schema during migration. Deploy, run migration script, then clean up old types.",
+    "episodic",
+    ["meetings", "databases"],
+  ),
+  mem(
+    "Performance budget set",
+    "Max 200ms for memory retrieval. Max 1s for graph load with 500 nodes. Lighthouse score > 90.",
+    "episodic",
+    ["meetings", "infrastructure"],
+  ),
+  mem(
+    "Decided against GraphQL",
+    "REST is simpler for our use case. GraphQL adds complexity without benefit for single-client API.",
+    "episodic",
+    ["project-management", "infrastructure"],
+  ),
+  mem(
+    "Feature flag rollout plan",
+    "Use Convex document flags for now. PostHog feature flags for production experiments later.",
+    "episodic",
+    ["meetings", "project-management"],
+  ),
+  mem(
+    "Onboarding flow discussion",
+    "New users get 5 sample memories to demonstrate features. Import from Notion/Obsidian planned for V2.",
+    "episodic",
+    ["meetings", "project-management"],
+  ),
+  mem(
+    "CI pipeline optimization",
+    "Moved to GitHub Actions with Turborepo cache. Build time dropped from 8min to 2min.",
+    "episodic",
+    ["meetings", "infrastructure"],
+  ),
+  mem(
+    "Tag taxonomy discussion",
+    "Flat tags over hierarchical categories. Users can create any tag. No predefined taxonomy.",
+    "episodic",
+    ["meetings", "project-management"],
+  ),
+
+  // === MORE PEOPLE / CONVERSATIONS (15) === [indices 163-177]
+  mem(
+    "Ryan's take on microservices",
+    "Ryan argues monoliths are fine until you have 50+ engineers. We're at 3, so monolith is correct.",
+    "episodic",
+    ["people", "conversations", "infrastructure"],
+  ),
+  mem(
+    "Maya's design system philosophy",
+    "Maya says constraints breed creativity. Start with 4px grid, 3 font sizes, and 5 colors max.",
+    "episodic",
+    ["people", "conversations", "react"],
+  ),
+  mem(
+    "Cousin's wedding in August",
+    "Wedding is August 16 in Manchester. Need to book train tickets early for good prices.",
+    "profile",
+    ["people", "relationships"],
+  ),
+  mem(
+    "Ben's startup advice",
+    "Ben says solve one problem really well before expanding. Applied this thinking to vmem MVP scope.",
+    "episodic",
+    ["people", "conversations", "career"],
+  ),
+  mem(
+    "Dentist: Dr. Patel on High Street",
+    "Appointments book up 3 weeks out. Next checkup due in June. Prefers morning slots.",
+    "profile",
+    ["people", "health"],
+  ),
+  mem(
+    "Met Lisa at the TypeScript meetup",
+    "Lisa works on Deno. Gave great talk on JSR registry. Connected on LinkedIn.",
+    "episodic",
+    ["people", "conversations", "typescript"],
+  ),
+  mem(
+    "Neighbor's dog name: Biscuit",
+    "Golden retriever. Friendly but jumps. Owner's name is Martin, retired teacher.",
+    "profile",
+    ["people", "relationships"],
+  ),
+  mem(
+    "Debate with Alex on testing strategy",
+    "Alex prefers unit tests for everything. I think integration tests catch more real bugs with less mocking.",
+    "episodic",
+    ["people", "conversations", "typescript"],
+  ),
+  mem(
+    "Grandma's recipe for shepherd's pie",
+    "Mash needs butter and cream cheese. Lamb mince with Worcestershire sauce. 200C for 25 min.",
+    "profile",
+    ["people", "relationships"],
+  ),
+  mem(
+    "Chat with Omar about graph databases",
+    "Omar used Neo4j at his last company for fraud detection. Says Cypher is intuitive once you get it.",
+    "episodic",
+    ["people", "conversations", "databases"],
+  ),
+  mem(
+    "Flatmate's work schedule",
+    "Tom works from home Mon/Wed/Fri. In office Tue/Thu. Quiet hours important on WFH days.",
+    "profile",
+    ["people", "relationships"],
+  ),
+  mem(
+    "Hackathon team with Jamie and Priya",
+    "Won 2nd place at HackLondon with a recipe recommendation app. Good team dynamic.",
+    "episodic",
+    ["people", "conversations"],
+  ),
+  mem(
+    "Conversation with careers advisor",
+    "Suggested targeting companies that sponsor Tier 2 visas. Keep a list and apply early.",
+    "episodic",
+    ["people", "career"],
+  ),
+  mem(
+    "Sarah's birthday is November 2",
+    "She likes specialty coffee beans and art prints. Last year got her a V60 pour-over set.",
+    "profile",
+    ["people", "relationships"],
+  ),
+  mem(
+    "Book club with uni friends",
+    "Monthly on first Sundays. Currently reading Project Hail Mary. My turn to pick next month.",
+    "episodic",
+    ["people", "conversations", "learning"],
+  ),
+
+  // === MORE PERSONAL PREFERENCES (12) === [indices 178-189]
+  mem(
+    "Font preference: Inter for UI, JetBrains Mono for code",
+    "Inter at 14px for body text. JetBrains Mono with ligatures enabled for all editors.",
+    "profile",
+    ["preferences"],
+  ),
+  mem(
+    "Hates auto-playing videos",
+    "Immediately closes any site that auto-plays video with sound. Turn off autoplay in all browsers.",
+    "profile",
+    ["preferences", "habits"],
+  ),
+  mem(
+    "Task management: linear over kanban",
+    "Linear's list view beats Kanban boards for solo work. Kanban only useful with 3+ people.",
+    "profile",
+    ["preferences", "project-management"],
+  ),
+  mem(
+    "Podcast routine during commute",
+    "Syntax.fm for web dev, Lex Fridman for long-form, Huberman for health. Download before leaving.",
+    "profile",
+    ["preferences", "habits", "learning"],
+  ),
+  mem(
+    "Browser preference: Arc",
+    "Arc for daily use. Chrome only for testing cross-browser issues. Safari for battery life on travel.",
+    "profile",
+    ["preferences"],
+  ),
+  mem(
+    "Git commit style: conventional commits",
+    "feat:, fix:, refactor:, chore:, docs:. Lowercase, imperative mood. No period at end.",
+    "profile",
+    ["preferences", "infrastructure"],
+  ),
+  mem(
+    "Timezone: GMT/BST (London)",
+    "UTC+0 in winter, UTC+1 in summer. Prefer afternoon meetings when collaborating with US teams.",
+    "profile",
+    ["preferences"],
+  ),
+  mem(
+    "Desktop wallpaper: minimal dark gradients",
+    "Uses dark gradient wallpapers. No icons on desktop. Everything launched from spotlight/raycast.",
+    "profile",
+    ["preferences"],
+  ),
+  mem(
+    "Prefers async communication",
+    "Written messages over calls. Video calls only when discussion is complex or contentious.",
+    "profile",
+    ["preferences", "habits"],
+  ),
+  mem(
+    "Code review ritual: morning first thing",
+    "Reviews PRs before writing new code. Fresh eyes catch more issues.",
+    "profile",
+    ["preferences", "habits"],
+  ),
+  mem(
+    "Terminal: Warp with Starship prompt",
+    "Warp for AI features and blocks. Starship for minimal prompt showing git branch and Node version.",
+    "profile",
+    ["preferences"],
+  ),
+  mem(
+    "Note-taking app: Obsidian with daily notes",
+    "Daily note template with sections: Today's Plan, Notes, End of Day Reflection.",
+    "profile",
+    ["preferences", "habits"],
+  ),
+
+  // === MORE HEALTH / FITNESS (10) === [indices 190-199]
+  mem(
+    "Protein target: 140g per day",
+    "Chicken breast, Greek yogurt, protein shake post-workout. Track with MyFitnessPal.",
+    "profile",
+    ["health", "habits"],
+  ),
+  mem(
+    "Ankle sprain recovery exercises",
+    "Physio gave resistance band exercises. 3 sets of 15 each direction. Should be healed in 4 weeks.",
+    "episodic",
+    ["health"],
+  ),
+  mem(
+    "Sleep tracker: Oura Ring",
+    "Tracks sleep stages, HRV, and readiness score. Aim for 85+ readiness before heavy workout days.",
+    "profile",
+    ["health", "preferences"],
+  ),
+  mem(
+    "Vitamin D supplement in winter",
+    "GP recommended 4000 IU daily October through March. Blood test showed deficiency last winter.",
+    "profile",
+    ["health"],
+  ),
+  mem(
+    "Cold shower challenge: 30 days",
+    "Started with 30 seconds cold at end of shower. Now doing 2 minutes. Energy levels noticeably better.",
+    "episodic",
+    ["health", "habits"],
+  ),
+  mem(
+    "Dentist recommended electric toothbrush",
+    "Oral-B iO Series 9. Pressure sensor prevents gum damage. Replace heads every 3 months.",
+    "profile",
+    ["health"],
+  ),
+  mem(
+    "Yoga class Saturdays at 9am",
+    "Beginner vinyasa at the community center. Good for mobility after heavy lifting days.",
+    "episodic",
+    ["health", "habits"],
+  ),
+  mem(
+    "Headache triggers: dehydration and screen glare",
+    "Usually caused by forgetting to drink water or working without ambient lighting.",
+    "profile",
+    ["health"],
+  ),
+  mem(
+    "Blood type: O positive",
+    "Universal donor for red blood cells. Important to know for emergencies.",
+    "profile",
+    ["health"],
+  ),
+  mem(
+    "Foam rolling routine after runs",
+    "IT band, quads, calves. 60 seconds per muscle group. Prevents DOMS and knee pain.",
+    "profile",
+    ["health", "habits"],
+  ),
+
+  // === MORE TRAVEL / PLACES (12) === [indices 200-211]
+  mem(
+    "Barcelona: skip La Rambla, go to El Born",
+    "El Born has better tapas, fewer tourists. Picasso Museum is there. Go on a weekday morning.",
+    "episodic",
+    ["travel", "geography"],
+  ),
+  mem(
+    "Passport expires February 2027",
+    "Some countries require 6 months validity. Renew by August 2026 to be safe.",
+    "profile",
+    ["travel"],
+  ),
+  mem(
+    "Prague is cheap for digital nomads",
+    "Coworking spaces from €10/day. Great beer for €2. Public transit covers everywhere.",
+    "episodic",
+    ["travel", "geography"],
+  ),
+  mem(
+    "Best noise-cancelling for flights: AirPods Max",
+    "AirPods Max blocks more engine noise than Sony XM5. Worth the extra weight.",
+    "knowledge",
+    ["travel", "preferences"],
+  ),
+  mem(
+    "Airline preference: British Airways",
+    "Collect Avios points. Terminal 5 at Heathrow has best lounges. Use BA app for mobile boarding.",
+    "profile",
+    ["travel", "preferences"],
+  ),
+  mem(
+    "Kyoto temple etiquette",
+    "Remove shoes before entering. Bow slightly at torii gates. No photography in some inner halls.",
+    "knowledge",
+    ["travel", "geography"],
+  ),
+  mem(
+    "Global Entry for US trips",
+    "Apply 3 months before travel. Includes TSA PreCheck. Interview at US embassy in London.",
+    "knowledge",
+    ["travel"],
+  ),
+  mem(
+    "Istanbul's Grand Bazaar haggling tips",
+    "Start at 40% of asking price. Walk away once. Tea is offered as hospitality, accept it.",
+    "episodic",
+    ["travel", "geography"],
+  ),
+  mem(
+    "eSIM for international travel",
+    "Airalo eSIM works in 190+ countries. Buy before departure. Much cheaper than roaming.",
+    "knowledge",
+    ["travel"],
+  ),
+  mem(
+    "Edinburgh Fringe Festival in August",
+    "Book accommodation months ahead. Free shows are often the best. Royal Mile gets overcrowded.",
+    "episodic",
+    ["travel", "geography"],
+  ),
+  mem(
+    "Packing list: one bag travel",
+    "40L backpack max. Merino wool shirts, packable jacket, laptop sleeve. No checked luggage.",
+    "knowledge",
+    ["travel", "preferences"],
+  ),
+  mem(
+    "Favorite airport: Changi Singapore",
+    "Free movie theater, butterfly garden, swimming pool. Best layover airport in the world.",
+    "episodic",
+    ["travel", "geography"],
+  ),
+
+  // === MORE LEARNING NOTES (15) === [indices 212-226]
+  mem(
+    "Category theory basics for programmers",
+    "Functors map between categories. Monads are monoids in the category of endofunctors (actually useful for error handling).",
+    "knowledge",
+    ["learning", "typescript"],
+  ),
+  mem(
+    "Spaced repetition for retention",
+    "Anki with 20 new cards/day. Review takes 15 min. Retention rate: 90% after 6 months.",
+    "knowledge",
+    ["learning", "habits"],
+  ),
+  mem(
+    "Learned about CRDTs",
+    "Conflict-free Replicated Data Types for distributed state. LWW-Register and G-Counter are simplest.",
+    "knowledge",
+    ["learning", "databases"],
+  ),
+  mem(
+    "Feynman technique for understanding",
+    "Explain concept in simple terms. Identify gaps. Go back to source material. Simplify again.",
+    "knowledge",
+    ["learning"],
+  ),
+  mem(
+    "Watched 3Blue1Brown on neural networks",
+    "Visual explanation of backpropagation. Gradient descent as walking downhill in parameter space.",
+    "episodic",
+    ["learning"],
+  ),
+  mem(
+    "Completed Advent of Code 2025",
+    "Solved all 25 days in TypeScript. Day 18 (graph pathfinding) was hardest. Learned A* algorithm.",
+    "episodic",
+    ["learning", "typescript"],
+  ),
+  mem(
+    "Property-based testing with fast-check",
+    "Generate random inputs to find edge cases. Found 3 bugs in memory search scoring function.",
+    "knowledge",
+    ["learning", "typescript"],
+  ),
+  mem(
+    "Read The Pragmatic Programmer",
+    "DRY principle, rubber duck debugging, tracer bullets. Classic wisdom that still applies.",
+    "episodic",
+    ["learning"],
+  ),
+  mem(
+    "Studying information retrieval",
+    "TF-IDF for keyword relevance. BM25 improves on TF-IDF. Both useful for memory search scoring.",
+    "knowledge",
+    ["learning", "databases"],
+  ),
+  mem(
+    "Notes on Zettelkasten method",
+    "Atomic notes with unique IDs. Links between notes create emergent structure. Inspired vmem's approach.",
+    "knowledge",
+    ["learning", "project-management"],
+  ),
+  mem(
+    "Read Clean Architecture by Uncle Bob",
+    "Dependencies point inward. Business rules don't depend on frameworks. Applied to vmem's service layer.",
+    "episodic",
+    ["learning", "infrastructure"],
+  ),
+  mem(
+    "Studied PageRank algorithm",
+    "Iterative scoring based on incoming link quality. Could rank memories by relationship importance.",
+    "knowledge",
+    ["learning", "databases"],
+  ),
+  mem(
+    "Learned about event sourcing",
+    "Store events, not state. Rebuild state from event log. Our timeline feature is basically this.",
+    "knowledge",
+    ["learning", "databases"],
+  ),
+  mem(
+    "Exploring htmx for simple UIs",
+    "HTML-driven interactivity without JS framework. Great for admin panels and internal tools.",
+    "knowledge",
+    ["learning", "react"],
+  ),
+  mem(
+    "Read Staff Engineer by Will Larson",
+    "Technical leadership is about creating leverage. Write documents, build consensus, unblock teams.",
+    "episodic",
+    ["learning", "career"],
+  ),
+
+  // === FINANCE / ADMIN (10) === [indices 227-236]
+  mem(
+    "Student loan repayment starts April",
+    "Plan 2: repay when earning over £27,295. 9% of income above threshold.",
+    "profile",
+    ["finance"],
+  ),
+  mem(
+    "ISA contribution deadline: April 5",
+    "Max £20,000 per tax year. Using Vanguard S&P 500 index fund. Set up standing order.",
+    "profile",
+    ["finance", "habits"],
+  ),
+  mem(
+    "Council tax: Band C, 25% single discount",
+    "Pay by direct debit over 10 months. Annual bill around £1,400 after discount.",
+    "profile",
+    ["finance"],
+  ),
+  mem(
+    "Broadband contract renews in September",
+    "Currently on Virgin Media 350Mbps. Negotiate or switch to Hyperoptic if available.",
+    "profile",
+    ["finance"],
+  ),
+  mem(
+    "Emergency fund target: 3 months expenses",
+    "Currently at 2 months. Adding £300/month until target reached.",
+    "profile",
+    ["finance", "habits"],
+  ),
+  mem(
+    "HMRC self-assessment deadline: January 31",
+    "Need to declare freelance income from summer contract work. Keep all invoices.",
+    "profile",
+    ["finance"],
+  ),
+  mem(
+    "Phone plan: £15/month PAYG",
+    "Unlimited data, texts, calls on Three. Good international roaming in EU.",
+    "profile",
+    ["finance"],
+  ),
+  mem(
+    "Gym membership: £35/month",
+    "FitZone contract is rolling monthly. Cancel anytime with 30 days notice.",
+    "profile",
+    ["finance", "health"],
+  ),
+  mem(
+    "Renters insurance through Lemonade",
+    "Covers laptop, bike, and personal items. £12/month. Claim process is app-based.",
+    "profile",
+    ["finance"],
+  ),
+  mem(
+    "Subscriptions to audit quarterly",
+    "Spotify, iCloud, GitHub Pro, Notion, Linear, ChatGPT. Total: ~£65/month. Cut unused ones.",
+    "profile",
+    ["finance", "habits"],
+  ),
+
+  // === COOKING / RECIPES (10) === [indices 237-246]
+  mem(
+    "Quick weeknight pasta: aglio e olio",
+    "Garlic, chili flakes, olive oil, spaghetti, parsley. 15 minutes total. Cheap and satisfying.",
+    "knowledge",
+    ["cooking", "habits"],
+  ),
+  mem(
+    "Sourdough starter: feed every 12 hours",
+    "Equal parts flour and water by weight. Peak rise at 4-6 hours after feeding. Keep at room temp.",
+    "knowledge",
+    ["cooking"],
+  ),
+  mem(
+    "Best scrambled eggs technique",
+    "Low heat, constant stirring, remove from heat early. Add cream cheese at the end. Gordon Ramsay method.",
+    "knowledge",
+    ["cooking"],
+  ),
+  mem(
+    "Batch cooking: chicken tikka masala",
+    "Makes 6 portions. Freeze in individual containers. Reheat with extra splash of cream.",
+    "knowledge",
+    ["cooking", "habits"],
+  ),
+  mem(
+    "Knife skills: rock chop for herbs",
+    "Keep tip on board, rock blade through herbs. Sharp knife is safer than dull one.",
+    "knowledge",
+    ["cooking"],
+  ),
+  mem(
+    "Coffee brewing: V60 pour-over method",
+    "15g coffee, 250ml water at 93°C. Bloom 30 seconds. Total brew time: 3 minutes.",
+    "knowledge",
+    ["cooking", "preferences"],
+  ),
+  mem(
+    "Thai green curry from scratch",
+    "Make paste: green chilies, lemongrass, galangal, shrimp paste. Coconut milk, bamboo shoots, Thai basil.",
+    "knowledge",
+    ["cooking"],
+  ),
+  mem(
+    "Grocery shopping on Tuesday evenings",
+    "Tesco restocks Tuesday afternoon. Reduced section has best finds after 7pm.",
+    "profile",
+    ["cooking", "habits"],
+  ),
+  mem(
+    "Cast iron skillet maintenance",
+    "Season with flaxseed oil at 250°C for 1 hour. Never use soap. Dry immediately after washing.",
+    "knowledge",
+    ["cooking"],
+  ),
+  mem(
+    "Overnight oats recipe",
+    "Oats, milk, chia seeds, Greek yogurt, honey. Mix in jar, refrigerate overnight. Add berries in morning.",
+    "knowledge",
+    ["cooking", "health"],
+  ),
+
+  // === ENTERTAINMENT / MEDIA (10) === [indices 247-256]
+  mem(
+    "Currently watching: Severance S2",
+    "Apple TV+. Mind-bending workplace thriller. Best show since Mr. Robot. Weekly release schedule.",
+    "episodic",
+    ["entertainment"],
+  ),
+  mem(
+    "Game recommendation: Hades 2",
+    "Roguelike with incredible narrative design. Each death reveals more story. 30-min runs fit busy schedule.",
+    "episodic",
+    ["entertainment"],
+  ),
+  mem(
+    "Album on repeat: Igor by Tyler, the Creator",
+    "Genre-bending mix of soul, funk, and hip hop. Great for late-night coding sessions.",
+    "profile",
+    ["entertainment", "preferences"],
+  ),
+  mem(
+    "Documentary: The Social Dilemma",
+    "About addictive design in social media. Made me rethink notification patterns in vmem.",
+    "episodic",
+    ["entertainment", "learning"],
+  ),
+  mem(
+    "Favorite board game: Wingspan",
+    "Engine-building game about birds. Beautiful art. 45-min games. Great for game nights.",
+    "profile",
+    ["entertainment", "preferences"],
+  ),
+  mem(
+    "Reading list: fiction backlog",
+    "Klara and the Sun, Tomorrow and Tomorrow and Tomorrow, Piranesi. All recommended by friends.",
+    "profile",
+    ["entertainment", "learning"],
+  ),
+  mem(
+    "YouTube channels for tech",
+    "Fireship for quick overviews, Theo for React takes, ThePrimeagen for entertainment, Traversy for tutorials.",
+    "profile",
+    ["entertainment", "learning"],
+  ),
+  mem(
+    "Signed up for local film club",
+    "Monthly screening at the indie cinema. Next film: Everything Everywhere All at Once director's cut.",
+    "episodic",
+    ["entertainment", "people"],
+  ),
+  mem(
+    "Favorite comfort show: The Office UK",
+    "Re-watch when stressed. Only 2 seasons + Christmas specials. Perfect cringe comedy.",
+    "profile",
+    ["entertainment", "preferences"],
+  ),
+  mem(
+    "Concert: Bonobo at Printworks",
+    "March 22nd. Standing tickets. Amazing live electronic music with a full band.",
+    "episodic",
+    ["entertainment", "people"],
+  ),
 ];
 
 function rel(sourceIdx: number, targetIdx: number, reason: string) {
@@ -921,6 +1808,99 @@ const relationships = [
   rel(91, 102, "System 1 heuristics mirror memory palace spatial recall"),
   rel(110, 101, "build-in-public tweets practice public speaking skills"),
   rel(59, 71, "standing desk Pomodoro timer doubles as stretch reminder"),
+
+  // --- New tech cluster ---
+  rel(113, 8, "Turborepo remote caching requires pnpm workspace setup"),
+  rel(114, 0, "Vitest with TypeScript strict mode catches test type errors"),
+  rel(116, 5, "React compiler auto-memoization works best with RSCs"),
+  rel(117, 7, "OpenTelemetry middleware plugs into Hono middleware chain"),
+  rel(119, 11, "Drizzle type inference complements Convex subscription model"),
+  rel(121, 10, "Playwright E2E tests cover sigma.js graph interactions"),
+  rel(122, 2, "CQRS read model could cache Neo4j traversal results"),
+  rel(123, 8, "Biome replaces ESLint in pnpm workspace lint pipeline"),
+  rel(125, 4, "tRPC end-to-end types complement Zod v4 schema validation"),
+  rel(129, 130, "shadcn/ui components use Motion for layout animations"),
+  rel(130, 14, "layout animations enhance Suspense boundary transitions"),
+  rel(131, 13, "Zod discriminated unions complement TS discriminated unions"),
+  rel(126, 125, "rate limiting protects the tRPC endpoints from abuse"),
+  rel(127, 153, "React Native Expo needed for mobile app feasibility"),
+  rel(128, 2, "Neon Postgres branching vs Neo4j for graph data decisions"),
+  rel(133, 11, "Tanstack Query stale-while-revalidate for Convex fallback"),
+
+  // --- New work cluster ---
+  rel(143, 7, "API versioning applies to Hono route organization"),
+  rel(144, 26, "stakeholder demo built on thesis demo prep work"),
+  rel(145, 6, "duplication bug fixed using Neo4j MERGE vs UNWIND CREATE"),
+  rel(147, 126, "API rate limits use Redis sliding window implementation"),
+  rel(149, 114, "testing gaps addressed by Vitest integration tests"),
+  rel(150, 30, "user study recruitment builds on thesis advisor feedback"),
+  rel(152, 153, "mobile app accessibility needs keyboard graph navigation"),
+  rel(155, 34, "performance budget shapes the deployment strategy"),
+  rel(156, 125, "REST over GraphQL aligns with tRPC monorepo approach"),
+  rel(158, 29, "onboarding flow groomed alongside backlog items"),
+  rel(159, 113, "CI optimization leverages Turborepo remote caching"),
+
+  // --- New people cluster ---
+  rel(163, 23, "Ryan's monolith take validates Hono+Neo4j arch decision"),
+  rel(164, 130, "Maya's design constraints applied to Motion animations"),
+  rel(166, 46, "Ben's startup advice echoes Dr. Park's ship-fast mentality"),
+  rel(169, 40, "Lisa's Deno work connects to Jake's Next.js work at Vercel"),
+  rel(170, 49, "Alex testing debate continues from his hot take on ORMs"),
+  rel(173, 2, "Omar's fraud detection experience validates Neo4j choice"),
+  rel(177, 104, "book club reads connect to Second Brain PARA method"),
+
+  // --- New preferences cluster ---
+  rel(178, 54, "font and dark mode choices are part of same editor setup"),
+  rel(181, 61, "podcast routine plays during lo-fi hip hop focus breaks"),
+  rel(183, 12, "conventional commits style enforced by git hooks"),
+  rel(186, 64, "async communication preference maps to batch Slack checks"),
+  rel(187, 60, "morning PR review fits before the Pomodoro deep work block"),
+  rel(189, 38, "Obsidian daily notes complement Alex's recommendation"),
+
+  // --- New health cluster ---
+  rel(190, 74, "protein target supports the meal prep routine"),
+  rel(192, 65, "Oura Ring sleep tracking validates 11pm-7am target"),
+  rel(194, 68, "cold showers done after morning 5x5 lifting sessions"),
+  rel(196, 73, "yoga on Saturdays complements the 5K running schedule"),
+  rel(199, 73, "foam rolling after 5K runs prevents knee issues"),
+
+  // --- New travel cluster ---
+  rel(201, 89, "passport renewal deadline tied to visa timing advice"),
+  rel(203, 82, "noise-cancelling headphones for the Amsterdam flights"),
+  rel(205, 78, "Kyoto etiquette from the same Japan trip as Shibuya ramen"),
+  rel(208, 80, "eSIM replaces Suica for data needs in Japan"),
+  rel(210, 86, "one-bag packing works with Priority Pass carry-on focus"),
+  rel(211, 85, "Changi airport layover using Priority Pass lounge"),
+
+  // --- New learning cluster ---
+  rel(212, 131, "category theory functors map to Zod discriminated unions"),
+  rel(213, 102, "spaced repetition is algorithmic memory palace technique"),
+  rel(214, 11, "CRDTs could enable offline-first Convex sync"),
+  rel(217, 218, "fast-check property testing found bugs Advent of Code missed"),
+  rel(220, 100, "BM25 retrieval scoring parallels vector embedding search"),
+  rel(221, 104, "Zettelkasten method directly influenced Second Brain PARA"),
+  rel(223, 93, "PageRank could rank memory nodes in Neo4j graph"),
+  rel(
+    224,
+    37,
+    "event sourcing pattern powers our timeline documentation sprint",
+  ),
+  rel(226, 46, "Staff Engineer leverage aligns with Dr. Park's MVP advice"),
+
+  // --- Finance cross-links ---
+  rel(227, 109, "student loan repayment affects salary negotiation calculus"),
+  rel(232, 233, "HMRC self-assessment covers the gym and phone expenses"),
+  rel(236, 64, "subscription audit aligns with batch notification policy"),
+
+  // --- Cooking cross-links ---
+  rel(237, 74, "aglio e olio is a quick protein-light meal prep option"),
+  rel(242, 56, "V60 pour-over method for the oat milk cortado ritual"),
+  rel(246, 190, "overnight oats hit the protein target with Greek yogurt"),
+
+  // --- Entertainment cross-links ---
+  rel(250, 251, "Tyler's Igor album and Hades 2 both for late-night sessions"),
+  rel(253, 177, "board game nights overlap with book club friend group"),
+  rel(256, 165, "Bonobo concert same month as cousin's wedding planning"),
 ];
 
 function buildEvents(mems: typeof memories) {
@@ -940,7 +1920,10 @@ function buildEvents(mems: typeof memories) {
     });
   }
 
-  const updatedIndices = [3, 10, 22, 27, 35, 48, 55, 68, 78, 95];
+  const updatedIndices = [
+    3, 10, 22, 27, 35, 48, 55, 68, 78, 95, 116, 130, 145, 155, 178, 190, 201,
+    213, 237, 248,
+  ];
   for (const idx of updatedIndices) {
     const m = mems[idx];
     if (!m) continue;
