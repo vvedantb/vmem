@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Button } from "@vmem/ui";
 
@@ -49,6 +50,14 @@ export default function LandingPage() {
             </>
           )}
         </div>
+
+        {!isProduction && (
+          <Link href="/?agent">
+            <Button size="lg" variant="ghost">
+              Sign in anonymously
+            </Button>
+          </Link>
+        )}
 
         {isProduction && (
           <div className="max-w-sm rounded-lg bg-muted/40 px-4 py-3 text-center text-sm text-muted-foreground">

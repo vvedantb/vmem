@@ -4,7 +4,6 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Button,
   Input,
-  Badge,
   Card,
   cn,
   ContextMenu,
@@ -15,17 +14,19 @@ import {
 import {
   IconSearch,
   IconMoodEmpty,
-  IconX,
   IconLoader2,
   IconEdit,
   IconTrash,
+  IconFilter,
+  IconX,
 } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import MemoryDetailPanel from "./MemoryDetailPanel";
+import TagSidebar from "./_components/TagSidebar";
 import {
-  buildTagStats,
   searchMemories,
+  timeAgo,
   type Memory,
   type SearchResult,
 } from "@/lib/memories";
@@ -46,38 +47,27 @@ export default function MemorySearch({
   const searchQuery = externalQuery ?? internalQuery;
   const setSearchQuery = onSearchChange ?? setInternalQuery;
   const isExternalSearch = externalQuery !== undefined;
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
     null,
   );
 
   useEffect(() => {
-    const initialTags = searchParams
-      .getAll("tag")
-      .map((tag) => tag.trim().toLowerCase())
-      .filter((tag) => tag.length > 0);
-
-    if (initialTags.length === 0) {
-      return;
+    const initialTag = searchParams.get("tag");
+    if (initialTag && selectedTag === null) {
+      setSelectedTag(initialTag.trim().toLowerCase());
     }
-
-    setSelectedTags((current) =>
-      current.length > 0 ? current : Array.from(new Set(initialTags)),
-    );
-  }, [searchParams]);
-
-  const allTags = useMemo(() => buildTagStats(allMemories), [allMemories]);
+  }, [searchParams, selectedTag]);
 
   const filteredMemories = useMemo(() => {
-    if (selectedTags.length === 0) {
+    if (selectedTag === null) {
       return allMemories;
     }
 
-    return allMemories.filter((memory) =>
-      selectedTags.every((tag) => memory.tags.includes(tag)),
-    );
-  }, [allMemories, selectedTags]);
+    return allMemories.filter((memory) => memory.tags.includes(selectedTag));
+  }, [allMemories, selectedTag]);
 
   const normalizedQuery = searchQuery.trim();
   const searchResults = useMemo(() => {
@@ -110,14 +100,9 @@ export default function MemorySearch({
     }
   }, [allMemories, selectedMemoryId]);
 
-  const toggleTag = useCallback((tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
-  }, []);
-
-  const clearTagFilters = useCallback(() => {
-    setSelectedTags([]);
+  const handleSelectTag = useCallback((tag: string | null) => {
+    setSelectedTag(tag);
+    setMobileSidebarOpen(false);
   }, []);
 
   const handleMemoryUpdate = useCallback((updatedMemory: Memory) => {
@@ -180,194 +165,203 @@ export default function MemorySearch({
   }
 
   return (
-    <>
-      {!isExternalSearch && (
-        <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2">
-            <IconSearch
-              className="text-muted-foreground"
-              size={20}
-              stroke={1.5}
+    <div className="relative flex h-full min-h-0 gap-4">
+      <div className="hidden md:block w-56 flex-shrink-0 overflow-y-auto pr-6">
+        <TagSidebar
+          memories={allMemories}
+          selectedTag={selectedTag}
+          onSelectTag={handleSelectTag}
+        />
+      </div>
+
+      <AnimatePresence>
+        {mobileSidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="md:hidden fixed inset-0 z-40 bg-black/40"
+              onClick={() => setMobileSidebarOpen(false)}
             />
-          </div>
-          <Input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search memories semantically..."
-            className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
-          />
-        </div>
-      )}
-
-      {allTags.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground">Filter by tags:</span>
-          {allTags.map((item) => (
-            <Badge
-              key={item.tag}
-              className={`cursor-pointer transition-all ${
-                selectedTags.includes(item.tag)
-                  ? "bg-primary text-primary-foreground border border-transparent"
-                  : "bg-muted text-muted-foreground border border-border hover:bg-accent"
-              }`}
-              onClick={() => toggleTag(item.tag)}
+            <motion.div
+              initial={{ x: -240, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -240, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden absolute inset-y-0 left-0 z-50 w-60 overflow-y-auto border-r border-border bg-background p-3 rounded-r-xl shadow-lg"
             >
-              {item.tag}
-              <span
-                className={`ml-1 ${
-                  selectedTags.includes(item.tag)
-                    ? "text-primary-foreground/70"
-                    : "text-muted-foreground"
-                }`}
-              >
-                ({item.count})
-              </span>
-            </Badge>
-          ))}
-          {selectedTags.length > 0 && (
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-foreground">
+                  Filter
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="text-muted-foreground"
+                >
+                  <IconX size={16} />
+                </Button>
+              </div>
+              <TagSidebar
+                memories={allMemories}
+                selectedTag={selectedTag}
+                onSelectTag={handleSelectTag}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div className="flex flex-1 min-w-0 min-h-0 flex-col">
+        {!isExternalSearch && (
+          <div className="flex gap-2 flex-shrink-0 pb-4">
             <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={clearTagFilters}
-              className="h-auto px-1.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              variant="outline"
+              size="icon"
+              onClick={() => setMobileSidebarOpen(true)}
+              className={cn(
+                "md:hidden h-12 w-12 flex-shrink-0",
+                selectedTag && "border-primary text-primary",
+              )}
             >
-              <IconX size={14} />
-              Clear
+              <IconFilter size={18} stroke={1.5} />
             </Button>
-          )}
-        </div>
-      )}
-
-      {isShowingSearchResults && displayData.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-xl">
-          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
-            <IconSearch className="w-5 h-5 text-muted-foreground" />
+            <div className="relative flex-1">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                <IconSearch
+                  className="text-muted-foreground"
+                  size={20}
+                  stroke={1.5}
+                />
+              </div>
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={
+                  selectedTag
+                    ? `Search in "${selectedTag}"...`
+                    : "Search memories semantically..."
+                }
+                className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
+              />
+            </div>
           </div>
-          <h3 className="text-base font-medium text-foreground mb-1">
-            No results found
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Try searching with different keywords
-          </p>
-        </div>
-      )}
+        )}
 
-      {(!isShowingSearchResults || displayData.length > 0) && (
-        <div
-          className={cn(
-            "flex gap-4",
-            selectedMemory ? "flex-col lg:flex-row" : "",
-          )}
-        >
+        {isShowingSearchResults && displayData.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-xl">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+              <IconSearch className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <h3 className="text-base font-medium text-foreground mb-1">
+              No results found
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Try searching with different keywords
+            </p>
+          </div>
+        )}
+
+        {(!isShowingSearchResults || displayData.length > 0) && (
           <div
             className={cn(
-              "flex-1 min-w-0",
-              selectedMemory
-                ? "hidden sm:block lg:max-h-[calc(100vh-16rem)] lg:overflow-y-auto lg:pr-1"
-                : "",
+              "flex flex-1 min-h-0 gap-4",
+              selectedMemory ? "flex-col lg:flex-row" : "",
             )}
           >
             <div
               className={cn(
-                "grid gap-3",
-                selectedMemory
-                  ? "grid-cols-1"
-                  : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+                "flex-1 min-w-0 min-h-0 overflow-y-auto",
+                selectedMemory ? "hidden sm:block" : "",
               )}
             >
-              <AnimatePresence mode="popLayout">
-                {displayData.map((item) => (
-                  <motion.div
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ContextMenu>
-                      <ContextMenuTrigger asChild>
-                        <Card
-                          className={cn(
-                            "cursor-pointer transition-all hover:bg-accent/50 p-4",
-                            selectedMemoryId === item.id &&
-                              "ring-2 ring-primary bg-accent/50",
-                          )}
-                          onClick={() => handleCardClick(item)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-foreground truncate">
-                              {item.title}
-                            </span>
-                            {isShowingSearchResults &&
-                              "relevanceScore" in item && (
-                                <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
-                                  {Math.round(item.relevanceScore * 100)}%
-                                </span>
-                              )}
-                          </div>
-                          {item.tags.length > 0 && (
-                            <div className="flex gap-1.5 flex-wrap mt-2">
-                              {item.tags.map((tag) => (
-                                <Badge
-                                  key={tag}
-                                  className="bg-muted text-muted-foreground border border-border text-xs"
-                                >
-                                  {tag}
-                                </Badge>
-                              ))}
+              <div className="flex flex-col gap-1.5">
+                <AnimatePresence mode="popLayout">
+                  {displayData.map((item) => (
+                    <motion.div
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <ContextMenu>
+                        <ContextMenuTrigger asChild>
+                          <Card
+                            className={cn(
+                              "cursor-pointer transition-all hover:bg-accent/50 px-3 py-2.5",
+                              selectedMemoryId === item.id && "bg-accent",
+                            )}
+                            onClick={() => handleCardClick(item)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-foreground truncate">
+                                {item.title}
+                              </span>
+                              {isShowingSearchResults &&
+                                "relevanceScore" in item && (
+                                  <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
+                                    {Math.round(item.relevanceScore * 100)}%
+                                  </span>
+                                )}
+                              <span className="ml-auto text-xs text-muted-foreground/50 tabular-nums flex-shrink-0">
+                                {timeAgo(item.createdAt)}
+                              </span>
                             </div>
-                          )}
-                        </Card>
-                      </ContextMenuTrigger>
-                      <ContextMenuContent>
-                        <ContextMenuItem
-                          onClick={() => handleContextEdit(item)}
-                        >
-                          <IconEdit size={16} stroke={1.5} />
-                          Edit
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => handleContextDelete(item)}
-                        >
-                          <IconTrash size={16} stroke={1.5} />
-                          Delete
-                        </ContextMenuItem>
-                      </ContextMenuContent>
-                    </ContextMenu>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                          </Card>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                          <ContextMenuItem
+                            onClick={() => handleContextEdit(item)}
+                          >
+                            <IconEdit size={16} stroke={1.5} />
+                            Edit
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleContextDelete(item)}
+                          >
+                            <IconTrash size={16} stroke={1.5} />
+                            Delete
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
             </div>
-          </div>
 
-          <AnimatePresence>
-            {selectedMemory && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.2 }}
-                className="w-full lg:w-[420px] lg:flex-shrink-0"
-              >
-                <MemoryDetailPanel
-                  memory={selectedMemory}
-                  onClose={() => setSelectedMemoryId(null)}
-                  onMemoryUpdate={handleMemoryUpdate}
-                  onMemoryDelete={handleMemoryDelete}
-                  onSelectRelated={(memory) => setSelectedMemoryId(memory.id)}
-                  startInEditMode={panelAction === "edit"}
-                  startWithDelete={panelAction === "delete"}
-                  onConsumeAction={handleConsumeAction}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
-    </>
+            <AnimatePresence>
+              {selectedMemory && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-full lg:w-[420px] lg:flex-shrink-0 min-h-0 overflow-y-auto"
+                >
+                  <MemoryDetailPanel
+                    memory={selectedMemory}
+                    onClose={() => setSelectedMemoryId(null)}
+                    onMemoryUpdate={handleMemoryUpdate}
+                    onMemoryDelete={handleMemoryDelete}
+                    onSelectRelated={(memory) => setSelectedMemoryId(memory.id)}
+                    startInEditMode={panelAction === "edit"}
+                    startWithDelete={panelAction === "delete"}
+                    onConsumeAction={handleConsumeAction}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

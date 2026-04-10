@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useMemo } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { usePathname } from "next/navigation";
 import {
   useQuery as useTanstackQuery,
   useMutation,
@@ -52,11 +51,16 @@ interface ApiMemory {
   expiresAt: string | null;
 }
 
+function isMemoryType(value: string): value is Memory["type"] {
+  return value === "profile" || value === "episodic" || value === "knowledge";
+}
+
 function apiToMemory(m: ApiMemory): Memory {
   return {
     id: m.id,
     title: m.title,
     content: m.content,
+    type: isMemoryType(m.type) ? m.type : "knowledge",
     tags: m.tags,
     createdAt: m.createdAt,
   };
@@ -65,8 +69,6 @@ function apiToMemory(m: ApiMemory): Memory {
 export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const { userId, getToken } = useAuth();
   const queryClient = useQueryClient();
-  const pathname = usePathname();
-  const needsList = !pathname.startsWith("/memories/graph");
 
   const authFetch = useCallback(
     async (url: string, init?: RequestInit): Promise<Response> => {
@@ -83,15 +85,33 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const memoriesQuery = useTanstackQuery({
     queryKey: ["memories"],
     queryFn: async (): Promise<Memory[]> => {
-      const res = await authFetch(`${API_URL}/v1/memories?limit=1000`);
-      if (!res.ok) return [];
-      const data = (await res.json()) as {
-        memories: ApiMemory[];
-        total: number;
-      };
-      return data.memories.map(apiToMemory);
+      const PAGE_SIZE = 100;
+      const all: Memory[] = [];
+      let offset = 0;
+
+      for (;;) {
+        const res = await authFetch(
+          `${API_URL}/v1/memories?limit=${PAGE_SIZE}&offset=${offset}`,
+        );
+        if (!res.ok) return all;
+
+        const data = (await res.json()) as {
+          memories: ApiMemory[];
+          total: number;
+        };
+        for (const m of data.memories) {
+          all.push(apiToMemory(m));
+        }
+
+        if (all.length >= data.total || data.memories.length < PAGE_SIZE) {
+          break;
+        }
+        offset += PAGE_SIZE;
+      }
+
+      return all;
     },
-    enabled: !!userId && needsList,
+    enabled: !!userId,
   });
 
   const createMutation = useMutation({
@@ -124,6 +144,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         id: `temp-${Date.now()}`,
         title: input.title.trim(),
         content: input.content.trim(),
+        type: "knowledge",
         tags: input.tags ?? [],
         createdAt: new Date().toISOString(),
       };
