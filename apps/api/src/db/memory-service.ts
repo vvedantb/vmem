@@ -1025,12 +1025,19 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
       tags: string[];
       createdAt: string;
     }[];
-    edges: { source: string; target: string; reason: string }[];
+    relatesToEdges: { source: string; target: string; reason: string }[];
+    tagEdges: {
+      source: string;
+      target: string;
+      weight: number;
+      sharedTags: string[];
+    }[];
   }> {
     const nodesSession = this.driver.session();
-    const edgesSession = this.driver.session();
+    const relatesToSession = this.driver.session();
+    const tagEdgesSession = this.driver.session();
     try {
-      const [nodesResult, edgesResult] = await Promise.all([
+      const [nodesResult, relatesToResult, tagEdgesResult] = await Promise.all([
         nodesSession.run(
           `MATCH (m:Memory {userId: $userId})
            WHERE coalesce(m.status, 'active') IN ['active', 'pinned']
@@ -1041,11 +1048,21 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
                   m.createdAt AS createdAt`,
           { userId },
         ),
-        edgesSession.run(
+        relatesToSession.run(
           `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
            WHERE coalesce(a.status, 'active') IN ['active', 'pinned']
              AND coalesce(b.status, 'active') IN ['active', 'pinned']
            RETURN a.id AS source, b.id AS target, r.reason AS reason`,
+          { userId },
+        ),
+        // Compute tag co-occurrence edges server-side to avoid O(n^2) client computation
+        tagEdgesSession.run(
+          `MATCH (a:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(b:Memory {userId: $userId})
+           WHERE a.id < b.id
+             AND coalesce(a.status, 'active') IN ['active', 'pinned']
+             AND coalesce(b.status, 'active') IN ['active', 'pinned']
+           RETURN a.id AS source, b.id AS target,
+                  count(t) AS weight, collect(t.name)[0..5] AS sharedTags`,
           { userId },
         ),
       ]);
@@ -1060,15 +1077,28 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
         createdAt: String(r.get("createdAt")),
       }));
 
-      const edges = edgesResult.records.map((r) => ({
+      const relatesToEdges = relatesToResult.records.map((r) => ({
         source: String(r.get("source")),
         target: String(r.get("target")),
         reason: String(r.get("reason") ?? ""),
       }));
 
-      return { nodes, edges };
+      const tagEdges = tagEdgesResult.records.map((r) => ({
+        source: String(r.get("source")),
+        target: String(r.get("target")),
+        weight: Number(r.get("weight")),
+        sharedTags: Array.isArray(r.get("sharedTags"))
+          ? r.get("sharedTags").filter(Boolean).map(String)
+          : [],
+      }));
+
+      return { nodes, relatesToEdges, tagEdges };
     } finally {
-      await Promise.all([nodesSession.close(), edgesSession.close()]);
+      await Promise.all([
+        nodesSession.close(),
+        relatesToSession.close(),
+        tagEdgesSession.close(),
+      ]);
     }
   }
 
