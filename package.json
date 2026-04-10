@@ -11,6 +11,7 @@
     "api:dev": "pnpm --filter @vmem/api dev",
     "api:build": "pnpm --filter @vmem/api build",
     "api:start": "pnpm --filter @vmem/api start",
+    "api:seed": "pnpm --filter @vmem/api seed",
     "mcp:dev": "pnpm --filter mcp dev",
     "mcp:build": "pnpm --filter mcp build",
     "mcp:start": "pnpm --filter mcp start",

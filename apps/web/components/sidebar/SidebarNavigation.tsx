@@ -1,18 +1,9 @@
 "use client";
 
-import type { MouseEventHandler } from "react";
+import { type MouseEventHandler, useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { AnimatePresence, motion, type Variants } from "motion/react";
-import {
-  Separator,
-  cn,
-  motionDuration,
-  motionEase,
-  motionTiming,
-  staggerContainer,
-  staggerItem,
-} from "@vmem/ui";
+import { AnimatePresence, motion } from "motion/react";
+import { Separator, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconArrowLeft, IconSettings } from "@tabler/icons-react";
 import type { NavIcon } from "./types";
 import { navGroups, settingsNavItems } from "./nav-config";
@@ -41,31 +32,21 @@ function MainNav({
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
   onSettingsClick: () => void;
 }) {
-  const navVariants: Variants = {
-    hidden: {},
-    show: {
-      transition: {
-        when: "beforeChildren",
-        delayChildren: 0.01,
-        staggerChildren: motionTiming.stagger,
-      },
-    },
-  };
-
   return (
     <motion.nav
       className={cn(
         "flex-1 overflow-y-auto scrollbar-thin",
         isMobile ? "pb-2" : "pr-1",
       )}
-      variants={navVariants}
-      initial="hidden"
-      animate="show"
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -12 }}
+      transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
       {navGroups.map((group) => {
         const GroupIcon = group.icon as NavIcon;
         return (
-          <motion.div key={group.title} className="px-1 mb-4">
+          <div key={group.title} className="px-1 mb-4">
             {!isIconOnly ? (
               <div className="flex items-center gap-2 px-3.5 mb-2">
                 <GroupIcon
@@ -83,16 +64,13 @@ function MainNav({
                 <Separator className="w-6 bg-border/40" />
               </div>
             )}
-            <motion.ul
-              className={cn("space-y-1", !isIconOnly && "pl-3")}
-              variants={staggerContainer(motionTiming.stagger)}
-            >
+            <ul className={cn("space-y-1", !isIconOnly && "pl-3")}>
               {group.items.map((item) => {
                 if (item.href === "/settings") {
                   const isActive = pathname.startsWith("/settings");
                   const Icon = item.icon as NavIcon;
                   return (
-                    <motion.li key={item.href} variants={staggerItem}>
+                    <li key={item.href}>
                       <button
                         type="button"
                         onClick={onSettingsClick}
@@ -129,11 +107,11 @@ function MainNav({
                           ) : null}
                         </AnimatePresence>
                       </button>
-                    </motion.li>
+                    </li>
                   );
                 }
                 return (
-                  <motion.li key={item.href} variants={staggerItem}>
+                  <li key={item.href}>
                     <NavLink
                       item={item}
                       pathname={pathname}
@@ -142,11 +120,11 @@ function MainNav({
                       unreadCount={unreadCount}
                       onNavigate={onNavigate}
                     />
-                  </motion.li>
+                  </li>
                 );
               })}
-            </motion.ul>
-          </motion.div>
+            </ul>
+          </div>
         );
       })}
     </motion.nav>
@@ -269,26 +247,23 @@ export function SidebarNavigation({
   onNavigate,
 }: SidebarNavigationProps) {
   const isIconOnly = !isMobile && isCollapsed;
-  const isSettingsRoute = pathname.startsWith("/settings");
-  const router = useRouter();
+  const [showSettings, setShowSettings] = useState(
+    pathname.startsWith("/settings"),
+  );
 
-  const handleSettingsClick = () => {
-    router.push("/settings/preferences");
-  };
-
-  const handleBack = () => {
-    router.push("/chat");
-  };
+  useEffect(() => {
+    setShowSettings(pathname.startsWith("/settings"));
+  }, [pathname]);
 
   return (
     <AnimatePresence mode="wait" initial={false}>
-      {isSettingsRoute ? (
+      {showSettings ? (
         <SettingsNav
           key="settings"
           pathname={pathname}
           isIconOnly={isIconOnly}
           isMobile={isMobile}
-          onBack={handleBack}
+          onBack={() => setShowSettings(false)}
           onNavigate={onNavigate}
         />
       ) : (
@@ -299,7 +274,7 @@ export function SidebarNavigation({
           isIconOnly={isIconOnly}
           isMobile={isMobile}
           onNavigate={onNavigate}
-          onSettingsClick={handleSettingsClick}
+          onSettingsClick={() => setShowSettings(true)}
         />
       )}
     </AnimatePresence>
