@@ -150,6 +150,74 @@ function toTimelineEvent(record: NeoRecord): TimelineEvent {
   };
 }
 
+interface TagEdge {
+  source: string;
+  target: string;
+  weight: number;
+  sharedTags: string[];
+}
+
+/**
+ * Computes tag co-occurrence edges from an in-memory node list.
+ * This replaces the Cypher cross-join query which blows Neo4j's
+ * transaction memory limit with large datasets (10k+ memories).
+ */
+function computeTagEdges(
+  nodes: ReadonlyArray<{ id: string; tags: string[] }>,
+  limit: number,
+): TagEdge[] {
+  // Build inverted index: tag → list of memory ids
+  const tagIndex = new Map<string, string[]>();
+  for (const node of nodes) {
+    for (const tag of node.tags) {
+      let ids = tagIndex.get(tag);
+      if (!ids) {
+        ids = [];
+        tagIndex.set(tag, ids);
+      }
+      ids.push(node.id);
+    }
+  }
+
+  // Accumulate co-occurrence counts per memory pair
+  const edgeMap = new Map<string, { weight: number; sharedTags: string[] }>();
+  for (const [tag, ids] of tagIndex) {
+    // Skip hyper-popular tags to avoid quadratic blowup in JS too
+    if (ids.length > 500) continue;
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = ids[i];
+        const b = ids[j];
+        const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+        let entry = edgeMap.get(key);
+        if (!entry) {
+          entry = { weight: 0, sharedTags: [] };
+          edgeMap.set(key, entry);
+        }
+        entry.weight++;
+        if (entry.sharedTags.length < 5) {
+          entry.sharedTags.push(tag);
+        }
+      }
+    }
+  }
+
+  // Filter to meaningful connections (≥2 shared tags), sort by strength
+  const edges: TagEdge[] = [];
+  for (const [key, data] of edgeMap) {
+    if (data.weight < 2) continue;
+    const sep = key.indexOf("|");
+    edges.push({
+      source: key.slice(0, sep),
+      target: key.slice(sep + 1),
+      weight: data.weight,
+      sharedTags: data.sharedTags,
+    });
+  }
+  edges.sort((a, b) => b.weight - a.weight);
+  return edges.slice(0, limit);
+}
+
 export class MemoryService {
   constructor(private driver: Driver) {}
 
@@ -1035,9 +1103,8 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
   }> {
     const nodesSession = this.driver.session();
     const relatesToSession = this.driver.session();
-    const tagEdgesSession = this.driver.session();
     try {
-      const [nodesResult, relatesToResult, tagEdgesResult] = await Promise.all([
+      const [nodesResult, relatesToResult] = await Promise.all([
         nodesSession.run(
           `MATCH (m:Memory {userId: $userId})
            WHERE coalesce(m.status, 'active') IN ['active', 'pinned']
@@ -1053,21 +1120,6 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
            WHERE coalesce(a.status, 'active') IN ['active', 'pinned']
              AND coalesce(b.status, 'active') IN ['active', 'pinned']
            RETURN a.id AS source, b.id AS target, r.reason AS reason`,
-          { userId },
-        ),
-        // Compute tag co-occurrence edges server-side.
-        // Uses aggregation + filter to avoid exploding result sets with large datasets.
-        tagEdgesSession.run(
-          `MATCH (a:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(b:Memory {userId: $userId})
-           WHERE a.id < b.id
-             AND coalesce(a.status, 'active') IN ['active', 'pinned']
-             AND coalesce(b.status, 'active') IN ['active', 'pinned']
-           WITH a.id AS source, b.id AS target,
-                count(t) AS weight, collect(t.name)[0..5] AS sharedTags
-           WHERE weight >= 2
-           RETURN source, target, weight, sharedTags
-           ORDER BY weight DESC
-           LIMIT 5000`,
           { userId },
         ),
       ]);
@@ -1088,22 +1140,13 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
         reason: String(r.get("reason") ?? ""),
       }));
 
-      const tagEdges = tagEdgesResult.records.map((r) => ({
-        source: String(r.get("source")),
-        target: String(r.get("target")),
-        weight: Number(r.get("weight")),
-        sharedTags: Array.isArray(r.get("sharedTags"))
-          ? r.get("sharedTags").filter(Boolean).map(String)
-          : [],
-      }));
+      // Compute tag co-occurrence in JS — the equivalent Cypher cross-join
+      // blows Neo4j's memory limit with large datasets (10k+ memories).
+      const tagEdges = computeTagEdges(nodes, 5000);
 
       return { nodes, relatesToEdges, tagEdges };
     } finally {
-      await Promise.all([
-        nodesSession.close(),
-        relatesToSession.close(),
-        tagEdgesSession.close(),
-      ]);
+      await Promise.all([nodesSession.close(), relatesToSession.close()]);
     }
   }
 
@@ -1162,29 +1205,15 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
       return { nodes: [], relatesToEdges: [], tagEdges: [] };
     }
 
-    // Step B: get edges within the subgraph (parallel queries)
+    // Step B: get RELATES_TO edges within the subgraph
     const relatesToSession = this.driver.session();
-    const tagEdgesSession = this.driver.session();
     try {
-      const [relatesToResult, tagEdgesResult] = await Promise.all([
-        relatesToSession.run(
-          `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
-           WHERE a.id IN $nodeIds AND b.id IN $nodeIds
-           RETURN a.id AS source, b.id AS target, r.reason AS reason`,
-          { nodeIds },
-        ),
-        tagEdgesSession.run(
-          `MATCH (a:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(b:Memory)
-           WHERE a.id IN $nodeIds AND b.id IN $nodeIds AND a.id < b.id
-           WITH a.id AS source, b.id AS target,
-                count(t) AS weight, collect(t.name)[0..5] AS sharedTags
-           WHERE weight >= 2
-           RETURN source, target, weight, sharedTags
-           ORDER BY weight DESC
-           LIMIT 2000`,
-          { nodeIds },
-        ),
-      ]);
+      const relatesToResult = await relatesToSession.run(
+        `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
+         WHERE a.id IN $nodeIds AND b.id IN $nodeIds
+         RETURN a.id AS source, b.id AS target, r.reason AS reason`,
+        { nodeIds },
+      );
 
       const relatesToEdges = relatesToResult.records.map((r) => ({
         source: String(r.get("source")),
@@ -1192,18 +1221,11 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
         reason: String(r.get("reason") ?? ""),
       }));
 
-      const tagEdges = tagEdgesResult.records.map((r) => ({
-        source: String(r.get("source")),
-        target: String(r.get("target")),
-        weight: Number(r.get("weight")),
-        sharedTags: Array.isArray(r.get("sharedTags"))
-          ? r.get("sharedTags").filter(Boolean).map(String)
-          : [],
-      }));
+      const tagEdges = computeTagEdges(nodes, 2000);
 
       return { nodes, relatesToEdges, tagEdges };
     } finally {
-      await Promise.all([relatesToSession.close(), tagEdgesSession.close()]);
+      await relatesToSession.close();
     }
   }
 
