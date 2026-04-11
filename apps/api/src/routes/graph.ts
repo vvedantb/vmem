@@ -61,8 +61,12 @@ graph.get("/", async (c) => {
     setCache(cacheKey, data);
     return c.json(data);
   } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[graph] failed to fetch graph data:", err);
-    return c.json({ error: "Failed to fetch graph data" }, 500);
+    return c.json(
+      { error: "Failed to fetch graph data", detail: message },
+      500,
+    );
   }
 });
 
