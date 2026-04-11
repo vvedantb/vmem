@@ -64,6 +64,7 @@ export function render(
   interaction: InteractionState,
   theme: GraphViewTheme,
   neighborSet: Set<string>,
+  focusNodeId: string | null,
 ): void {
   const w = canvasW * dpr;
   const h = canvasH * dpr;
@@ -312,6 +313,26 @@ export function render(
       ctx.beginPath();
       ctx.arc(nx, ny, baseRadius + outlineWidth, 0, TWO_PI);
       ctx.stroke();
+    }
+  }
+
+  // --- Focus node highlight ring (always visible, even at low zoom) ---
+  if (focusNodeId) {
+    const focusNode = nodes.find((n) => n.id === focusNodeId);
+    if (focusNode) {
+      const nx = focusNode.x ?? 0;
+      const ny = focusNode.y ?? 0;
+      const baseRadius = focusNode.size * 3;
+      const ringRadius = baseRadius * 1.5 + 4;
+      ctx.strokeStyle = theme.isDarkCanvas
+        ? "rgba(255,255,255,0.7)"
+        : "rgba(0,0,0,0.5)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.arc(nx, ny, ringRadius, 0, TWO_PI);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
   }
 

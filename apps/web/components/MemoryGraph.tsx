@@ -3,7 +3,12 @@
 import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
-import { IconMoodEmpty, IconLoader2, IconPlus } from "@tabler/icons-react";
+import {
+  IconMoodEmpty,
+  IconLoader2,
+  IconPlus,
+  IconArrowBack,
+} from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 import { z } from "zod";
 import AddMemoryModal from "@/components/AddMemoryModal";
@@ -72,19 +77,23 @@ export default function MemoryGraph() {
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
   const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
+  const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
   const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<RelatesToEdge[]>(
     [],
   );
 
   const graphQuery = useTanstackQuery({
-    queryKey: ["graph"],
+    queryKey: ["graph", focusNodeId ?? "global"],
     queryFn: async (): Promise<GraphResponse> => {
       const token = await getToken();
       const headers: HeadersInit = {};
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch(`${API_URL}/v1/graph`, { headers });
+      const url = focusNodeId
+        ? `${API_URL}/v1/graph?focus=${encodeURIComponent(focusNodeId)}`
+        : `${API_URL}/v1/graph`;
+      const res = await fetch(url, { headers });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || `Graph request failed with ${res.status}`);
@@ -274,6 +283,15 @@ export default function MemoryGraph() {
     setSelectedNodeId(nodeId);
   }, []);
 
+  const handleFocusNode = useCallback((nodeId: string) => {
+    setFocusNodeId(nodeId);
+    setSelectedNodeId(null);
+  }, []);
+
+  const handleBackToGlobal = useCallback(() => {
+    setFocusNodeId(null);
+  }, []);
+
   const handleLinkNodes = useCallback(
     async (sourceId: string, targetId: string) => {
       const token = await getToken();
@@ -344,10 +362,26 @@ export default function MemoryGraph() {
           edges={graphEdges}
           viewTheme={viewTheme}
           settings={graphSettings}
+          focusNodeId={focusNodeId}
           onHoverNode={handleHoverNode}
           onClickNode={handleClickNode}
           onLinkNodes={handleLinkNodes}
+          onFocusNode={handleFocusNode}
         />
+
+        {focusNodeId && (
+          <div className="absolute top-2 left-2 z-10">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackToGlobal}
+              className="bg-background/80 backdrop-blur-sm gap-1.5"
+            >
+              <IconArrowBack size={14} />
+              Global graph
+            </Button>
+          </div>
+        )}
 
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5">
           <AddMemoryModal
@@ -389,6 +423,7 @@ export default function MemoryGraph() {
         onClose={handleCloseDialog}
         onNavigate={handleNavigateNode}
         onDelete={deleteMemory}
+        onFocusNode={handleFocusNode}
       />
     </>
   );
