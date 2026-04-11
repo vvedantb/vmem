@@ -69,8 +69,8 @@ function createWorkerSimulation(
   const workerNodes = nodes.map((n) => ({
     id: n.id,
     size: n.size,
-    x: n.x ?? (Math.random() - 0.5) * 500,
-    y: n.y ?? (Math.random() - 0.5) * 500,
+    x: n.x ?? (Math.random() - 0.5) * 100,
+    y: n.y ?? (Math.random() - 0.5) * 100,
   }));
 
   // Resolve edge source/target to string IDs
@@ -158,8 +158,8 @@ function createWorkerSimulation(
         nodes: newNodes.map((n) => ({
           id: n.id,
           size: n.size,
-          x: n.x ?? (Math.random() - 0.5) * 500,
-          y: n.y ?? (Math.random() - 0.5) * 500,
+          x: n.x ?? (Math.random() - 0.5) * 100,
+          y: n.y ?? (Math.random() - 0.5) * 100,
         })),
         edges: newEdges.map((e) => ({
           source: typeof e.source === "string" ? e.source : e.source.id,
@@ -184,37 +184,37 @@ function createMainThreadSimulation(
   scalingRatio: number,
   gravity: number,
 ): SimulationController {
-  const chargeStrength = -scalingRatio * 30;
+  const chargeStrength = -scalingRatio * 5;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
   const linkForce = forceLink<GraphNode, GraphEdge>(edges)
     .id((d) => d.id)
-    .distance(30)
+    .distance(15)
     .strength((d) => (d.edgeType === "relates_to" ? 0.7 : 0.15));
 
   const chargeForce = forceManyBody<GraphNode>()
     .strength(chargeStrength)
     .theta(theta);
 
-  const centerForce = forceCenter<GraphNode>(0, 0).strength(gravity * 0.3);
+  const centerForce = forceCenter<GraphNode>(0, 0).strength(gravity * 2.0);
 
   const collideForce = forceCollide<GraphNode>()
-    .radius((d) => d.size * 2 + 3)
-    .strength(0.8);
+    .radius((d) => d.size * 1.5 + 1)
+    .strength(0.7);
 
   const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)
     .force("link", linkForce)
     .force("charge", chargeForce)
     .force("center", centerForce)
     .force("collide", collideForce)
-    .alphaDecay(0.02)
-    .velocityDecay(0.4);
+    .alphaDecay(0.03)
+    .velocityDecay(0.5);
 
   // Warm-up (main thread — blocks but same as original behavior)
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 150; i++) {
     simulation.tick();
   }
-  simulation.alpha(0.3).restart();
+  simulation.alpha(0.2).restart();
 
   const nodeById = new Map<string, GraphNode>();
   for (const n of nodes) nodeById.set(n.id, n);
@@ -231,12 +231,12 @@ function createMainThreadSimulation(
     },
 
     setStrength(s: number) {
-      chargeForce.strength(-s * 30);
+      chargeForce.strength(-s * 5);
       simulation.alpha(0.3).restart();
     },
 
     setGravity(g: number) {
-      centerForce.strength(g * 0.3);
+      centerForce.strength(g * 2.0);
       simulation.alpha(0.3).restart();
     },
 
