@@ -16,6 +16,16 @@ import {
   ChainOfThought,
   ChainOfThoughtContent,
   ChainOfThoughtTrigger,
+  Context,
+  ContextContent,
+  ContextContentBody,
+  ContextContentHeader,
+  ContextIcon,
+  ContextInputUsage,
+  ContextOutputUsage,
+  ContextReasoningUsage,
+  ContextCacheUsage,
+  ContextTrigger,
   InlineCitation,
   Message,
   MessageContent,
@@ -27,6 +37,7 @@ import {
   Tool,
   ToolInput,
   ToolOutput,
+  type ContextUsage,
 } from "@vmem/ui/ai";
 import { IconUser, IconCopy, IconCheck } from "@tabler/icons-react";
 import Image from "next/image";
@@ -90,11 +101,17 @@ function mapTaskStatus(part: ToolPart): "running" | "completed" | "failed" {
   return "running";
 }
 
+const MODEL_CONTEXT_WINDOW = 128_000;
+
 interface ChatMessageItemProps {
   message: UIMessage;
+  usage?: ContextUsage;
 }
 
-export default function ChatMessageItem({ message }: ChatMessageItemProps) {
+export default function ChatMessageItem({
+  message,
+  usage,
+}: ChatMessageItemProps) {
   const [copied, setCopied] = useState(false);
   const isStreaming = message.status === "streaming";
   const isAssistant = message.role === "assistant";
@@ -215,6 +232,37 @@ export default function ChatMessageItem({ message }: ChatMessageItemProps) {
                 <IconCopy className="size-3.5" stroke={1.5} />
               )}
             </Action>
+            {usage && (
+              <Context
+                usedTokens={usage.totalTokens}
+                maxTokens={MODEL_CONTEXT_WINDOW}
+                usage={usage}
+              >
+                <ContextTrigger>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  >
+                    <ContextIcon />
+                    <span>
+                      {new Intl.NumberFormat("en-US", {
+                        notation: "compact",
+                      }).format(usage.totalTokens)}{" "}
+                      tokens
+                    </span>
+                  </button>
+                </ContextTrigger>
+                <ContextContent>
+                  <ContextContentHeader />
+                  <ContextContentBody>
+                    <ContextInputUsage />
+                    <ContextOutputUsage />
+                    <ContextReasoningUsage />
+                    <ContextCacheUsage />
+                  </ContextContentBody>
+                </ContextContent>
+              </Context>
+            )}
           </Actions>
         )}
       </div>

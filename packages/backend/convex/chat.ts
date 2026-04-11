@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-import { listUIMessages, syncStreams } from "@convex-dev/agent";
+import { listMessages, listUIMessages, syncStreams } from "@convex-dev/agent";
 import { vStreamArgs } from "@convex-dev/agent/validators";
 import { components, internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
@@ -81,5 +81,40 @@ export const listThreadMessages = authQuery({
       paginationOpts: args.paginationOpts,
     });
     return { ...paginated, streams };
+  },
+});
+
+export const getThreadMessageUsage = authQuery({
+  args: { threadId: v.string() },
+  handler: async (ctx, { threadId }) => {
+    const result = await listMessages(ctx, components.agent, {
+      threadId,
+      paginationOpts: { cursor: null, numItems: 200 },
+    });
+
+    const usageByMessageId: Record<
+      string,
+      {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+        reasoningTokens?: number;
+        cachedInputTokens?: number;
+      }
+    > = {};
+
+    for (const msg of result.page) {
+      if (msg.usage) {
+        usageByMessageId[msg._id] = {
+          promptTokens: msg.usage.promptTokens,
+          completionTokens: msg.usage.completionTokens,
+          totalTokens: msg.usage.totalTokens,
+          reasoningTokens: msg.usage.reasoningTokens,
+          cachedInputTokens: msg.usage.cachedInputTokens,
+        };
+      }
+    }
+
+    return usageByMessageId;
   },
 });

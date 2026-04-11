@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { IconLoader2 } from "@tabler/icons-react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import {
   useUIMessages,
   optimisticallySendMessage,
@@ -63,6 +63,11 @@ export default function Chat() {
     api.chat.listThreadMessages,
     threadId ? { threadId } : "skip",
     { initialNumItems: 50, stream: true },
+  );
+
+  const usageData = useQuery(
+    api.chat.getThreadMessageUsage,
+    threadId ? { threadId } : "skip",
   );
 
   const isWaitingForResponse = messages.some(
@@ -140,7 +145,11 @@ export default function Chat() {
           )}
 
           {messages.map((message) => (
-            <ChatMessageItem key={message.key} message={message} />
+            <ChatMessageItem
+              key={message.key}
+              message={message}
+              usage={usageData?.[message.key]}
+            />
           ))}
         </ConversationContent>
         <ConversationScrollButton />

@@ -1,6 +1,7 @@
 export * from "./actions";
 export * from "./chain-of-thought";
 export * from "./code-block";
+export * from "./context";
 export * from "./conversation";
 export * from "./inline-citation";
 export * from "./message";
