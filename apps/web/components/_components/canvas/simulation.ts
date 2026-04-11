@@ -8,6 +8,7 @@ import {
   forceManyBody,
   forceCenter,
   forceCollide,
+  forceRadial,
 } from "d3-force";
 import type { GraphNode, GraphEdge } from "./types";
 
@@ -202,11 +203,41 @@ function createMainThreadSimulation(
     .radius((d) => d.size * 3 + 5)
     .strength(0.7);
 
+  const connectionCount = new Map<string, number>();
+  for (const node of nodes) connectionCount.set(node.id, 0);
+  for (const edge of edges) {
+    const srcId =
+      typeof edge.source === "string" ? edge.source : edge.source.id;
+    const tgtId =
+      typeof edge.target === "string" ? edge.target : edge.target.id;
+    connectionCount.set(srcId, (connectionCount.get(srcId) ?? 0) + 1);
+    connectionCount.set(tgtId, (connectionCount.get(tgtId) ?? 0) + 1);
+  }
+  let maxConnections = 0;
+  for (const count of connectionCount.values()) {
+    if (count > maxConnections) maxConnections = count;
+  }
+  const borderRadius = Math.sqrt(nodes.length) * 15;
+  const radialForce = forceRadial<GraphNode>(
+    (d) => {
+      const connections = connectionCount.get(d.id) ?? 0;
+      return maxConnections === 0
+        ? borderRadius
+        : (1 - connections / maxConnections) * borderRadius;
+    },
+    0,
+    0,
+  ).strength((d) => {
+    const connections = connectionCount.get(d.id) ?? 0;
+    return connections === 0 ? 0.3 : 0.05;
+  });
+
   const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)
     .force("link", linkForce)
     .force("charge", chargeForce)
     .force("center", centerForce)
     .force("collide", collideForce)
+    .force("radial", radialForce)
     .alphaDecay(0.02)
     .velocityDecay(0.3);
 

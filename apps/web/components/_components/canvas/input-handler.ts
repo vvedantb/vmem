@@ -7,6 +7,7 @@ interface Callbacks {
   onHoverNode: (node: GraphNode | null) => void;
   onClickNode: (nodeId: string) => void;
   onLinkNodes: (sourceId: string, targetId: string) => void;
+  onFocusNode: (nodeId: string) => void;
 }
 
 interface PanSample {
@@ -219,7 +220,25 @@ export function attachInputHandlers(
 
   function onDblClick(e: MouseEvent) {
     const { x, y } = getCanvasXY(e);
-    zoomAt(viewport, x, y, canvas.clientWidth, canvas.clientHeight, 1.5);
+    // Double-click on a node → focus local graph. On background → zoom.
+    const world = screenToWorld(
+      viewport,
+      x,
+      y,
+      canvas.clientWidth,
+      canvas.clientHeight,
+    );
+    const hitNode = getNodeAt(
+      spatialIndexRef.current,
+      world.x,
+      world.y,
+      viewport.scale,
+    );
+    if (hitNode) {
+      callbacks.onFocusNode(hitNode.id);
+    } else {
+      zoomAt(viewport, x, y, canvas.clientWidth, canvas.clientHeight, 1.5);
+    }
   }
 
   function onKeyDown(e: KeyboardEvent) {

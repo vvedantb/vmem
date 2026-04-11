@@ -1,5 +1,13 @@
 # Changelog
 
+## Local Graph Mode (Obsidian-style focus) — 2026-04-11
+
+- Added local graph mode: double-click a memory node (or click "Focus" in its detail dialog) to see its 2-hop RELATES_TO neighborhood
+- Backend: new `getLocalGraph()` method in memory-service runs a variable-length path query capped at 500 nodes, then computes edges within the subgraph
+- Route: `GET /v1/graph?focus=memoryId` returns the focused subgraph with same response shape as global graph
+- Frontend: "Back to global" button to return to full graph view, focus node highlighted with dashed ring
+- Reason: global graph becomes unusable at high node counts. Local graph always renders <500 nodes regardless of total memories, enabling smooth navigation at any scale.
+
 ## Graph View Performance Optimization — 2026-04-11
 
 - **Server-side tag-edge computation**: moved O(n²) tag co-occurrence computation from client to Neo4j Cypher query. Frontend useMemo is now O(n) mapping only.
