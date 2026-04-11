@@ -54,7 +54,7 @@ self.onmessage = (e: MessageEvent) => {
 
     case "setStrength": {
       if (chargeForceRef) {
-        chargeForceRef.strength(-msg.scalingRatio * 30);
+        chargeForceRef.strength(-msg.scalingRatio * 5);
         sim?.alpha(0.3).restart();
       }
       break;
@@ -62,7 +62,7 @@ self.onmessage = (e: MessageEvent) => {
 
     case "setGravity": {
       if (centerForceRef) {
-        centerForceRef.strength(msg.gravity * 0.3);
+        centerForceRef.strength(msg.gravity * 2.0);
         sim?.alpha(0.3).restart();
       }
       break;
@@ -136,36 +136,36 @@ function init(
     weight: e.weight,
   }));
 
-  const chargeStrength = -scalingRatio * 30;
+  const chargeStrength = -scalingRatio * 5;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
   const linkForce = forceLink<WNode, WEdge>(edges)
     .id((d) => d.id)
-    .distance(30)
+    .distance(15)
     .strength((d) => (d.edgeType === "relates_to" ? 0.7 : 0.15));
 
   chargeForceRef = forceManyBody<WNode>().strength(chargeStrength).theta(theta);
 
-  centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 0.3);
+  centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 2.0);
 
   const collideForce = forceCollide<WNode>()
-    .radius((d) => d.size * 2 + 3)
-    .strength(0.8);
+    .radius((d) => d.size * 1.5 + 1)
+    .strength(0.7);
 
   sim = forceSimulation<WNode, WEdge>(nodes)
     .force("link", linkForce)
     .force("charge", chargeForceRef)
     .force("center", centerForceRef)
     .force("collide", collideForce)
-    .alphaDecay(0.02)
-    .velocityDecay(0.4)
+    .alphaDecay(0.03)
+    .velocityDecay(0.5)
     .alpha(1);
 
   // Warm-up ticks run here in the worker (non-blocking for main thread)
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 150; i++) {
     sim.tick();
   }
-  sim.alpha(0.3).restart();
+  sim.alpha(0.2).restart();
 
   // Post initial positions immediately after warm-up
   postPositions();

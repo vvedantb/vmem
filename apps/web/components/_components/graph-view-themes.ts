@@ -105,21 +105,21 @@ const DEFAULT_LIGHT: GraphViewTheme = {
 
 const SATELLITE: GraphViewTheme = {
   isDarkCanvas: true,
-  background: "#0a0a14",
-  gradientCenter: null,
+  background: "#030308",
+  gradientCenter: "rgba(60, 40, 120, 0.08)",
   grid: null,
   edge: {
-    normal: "rgba(255,255,255,0.04)",
-    connected: "rgba(255,255,255,0.15)",
-    dimmed: "rgba(255,255,255,0.02)",
-    width: 0.3,
-    connectedWidth: 0.8,
+    normal: "rgba(255,255,255,0.02)",
+    connected: "rgba(180,160,255,0.25)",
+    dimmed: "rgba(255,255,255,0.01)",
+    width: 0.2,
+    connectedWidth: 0.6,
   },
   glow: {
     enabled: true,
-    radiusMultiplier: 4,
-    intensity: 0.25,
-    hoveredIntensity: 0.45,
+    radiusMultiplier: 6,
+    intensity: 0.4,
+    hoveredIntensity: 0.6,
   },
   outline: {
     enabled: false,
@@ -128,38 +128,41 @@ const SATELLITE: GraphViewTheme = {
     width: 0,
     hoveredWidth: 0,
   },
-  label: { color: "#ffffff", secondary: "rgba(255,255,255,0.4)" },
-  dimAlpha: 0.06,
+  label: {
+    color: "rgba(255,255,255,0.85)",
+    secondary: "rgba(200,180,255,0.5)",
+  },
+  dimAlpha: 0.03,
   nodeColorOverride: null,
 };
 
 const CONSTELLATION: GraphViewTheme = {
   isDarkCanvas: true,
-  background: "#0d1117",
+  background: "#080e1a",
   gradientCenter: null,
   grid: null,
   edge: {
-    normal: "rgba(255,255,255,0.35)",
-    connected: "rgba(255,255,255,0.55)",
-    dimmed: "rgba(255,255,255,0.06)",
-    width: 0.6,
-    connectedWidth: 1.0,
+    normal: "rgba(140,180,255,0.5)",
+    connected: "rgba(200,220,255,0.75)",
+    dimmed: "rgba(140,180,255,0.08)",
+    width: 0.8,
+    connectedWidth: 1.4,
   },
   glow: {
-    enabled: true,
-    radiusMultiplier: 3,
-    intensity: 0.15,
-    hoveredIntensity: 0.3,
+    enabled: false,
+    radiusMultiplier: 0,
+    intensity: 0,
+    hoveredIntensity: 0,
   },
   outline: {
-    enabled: false,
-    color: "transparent",
-    hoveredColor: "node",
-    width: 0,
-    hoveredWidth: 0,
+    enabled: true,
+    color: "rgba(140,180,255,0.3)",
+    hoveredColor: "#ffffff",
+    width: 0.8,
+    hoveredWidth: 2,
   },
-  label: { color: "#ffffff", secondary: "rgba(255,255,255,0.45)" },
-  dimAlpha: 0.08,
+  label: { color: "#e0eaff", secondary: "rgba(180,200,255,0.6)" },
+  dimAlpha: 0.06,
   nodeColorOverride: null,
 };
 
@@ -195,15 +198,15 @@ const BLUEPRINT: GraphViewTheme = {
 
 const MINIMAL_DARK: GraphViewTheme = {
   isDarkCanvas: true,
-  background: "#111111",
+  background: "#0a0a0a",
   gradientCenter: null,
   grid: null,
   edge: {
-    normal: "rgba(255,255,255,0.08)",
-    connected: "rgba(255,255,255,0.2)",
-    dimmed: "rgba(255,255,255,0.02)",
-    width: 0.4,
-    connectedWidth: 0.8,
+    normal: "rgba(255,255,255,0.03)",
+    connected: "rgba(255,255,255,0.12)",
+    dimmed: "rgba(255,255,255,0.01)",
+    width: 0.3,
+    connectedWidth: 0.5,
   },
   glow: {
     enabled: false,
@@ -219,24 +222,24 @@ const MINIMAL_DARK: GraphViewTheme = {
     hoveredWidth: 0,
   },
   label: {
-    color: "rgba(255,255,255,0.7)",
-    secondary: "rgba(255,255,255,0.35)",
+    color: "rgba(255,255,255,0.5)",
+    secondary: "rgba(255,255,255,0.2)",
   },
-  dimAlpha: 0.08,
-  nodeColorOverride: null,
+  dimAlpha: 0.04,
+  nodeColorOverride: "#666666",
 };
 
 const MINIMAL_LIGHT: GraphViewTheme = {
   isDarkCanvas: false,
-  background: "#ffffff",
+  background: "#fafafa",
   gradientCenter: null,
   grid: null,
   edge: {
-    normal: "rgba(0,0,0,0.1)",
-    connected: "rgba(0,0,0,0.22)",
-    dimmed: "rgba(0,0,0,0.03)",
-    width: 0.4,
-    connectedWidth: 0.8,
+    normal: "rgba(0,0,0,0.06)",
+    connected: "rgba(0,0,0,0.15)",
+    dimmed: "rgba(0,0,0,0.02)",
+    width: 0.3,
+    connectedWidth: 0.5,
   },
   glow: {
     enabled: false,
@@ -251,9 +254,9 @@ const MINIMAL_LIGHT: GraphViewTheme = {
     width: 0,
     hoveredWidth: 0,
   },
-  label: { color: "rgba(0,0,0,0.6)", secondary: "rgba(0,0,0,0.3)" },
-  dimAlpha: 0.08,
-  nodeColorOverride: null,
+  label: { color: "rgba(0,0,0,0.4)", secondary: "rgba(0,0,0,0.2)" },
+  dimAlpha: 0.04,
+  nodeColorOverride: "#999999",
 };
 
 export function getViewTheme(
