@@ -189,7 +189,7 @@ function createMainThreadSimulation(
 
   const linkForce = forceLink<GraphNode, GraphEdge>(edges)
     .id((d) => d.id)
-    .distance(15)
+    .distance(25)
     .strength((d) => (d.edgeType === "relates_to" ? 0.7 : 0.15));
 
   const chargeForce = forceManyBody<GraphNode>()
@@ -199,7 +199,7 @@ function createMainThreadSimulation(
   const centerForce = forceCenter<GraphNode>(0, 0).strength(gravity * 2.0);
 
   const collideForce = forceCollide<GraphNode>()
-    .radius((d) => d.size * 1.5 + 1)
+    .radius((d) => d.size * 2 + 1)
     .strength(0.7);
 
   const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)

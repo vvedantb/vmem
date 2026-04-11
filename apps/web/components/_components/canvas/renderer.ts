@@ -336,8 +336,8 @@ export function render(
     }
   }
 
-  // --- Edge labels (only on hovered node's edges, already minimal) ---
-  if (!lowZoom && !highNodeCount && hasHover) {
+  // --- Edge labels (only on hovered node's edges — always safe even at high node counts) ---
+  if (!lowZoom && hasHover) {
     const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";
