@@ -1055,14 +1055,19 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
            RETURN a.id AS source, b.id AS target, r.reason AS reason`,
           { userId },
         ),
-        // Compute tag co-occurrence edges server-side to avoid O(n^2) client computation
+        // Compute tag co-occurrence edges server-side.
+        // Uses aggregation + filter to avoid exploding result sets with large datasets.
         tagEdgesSession.run(
           `MATCH (a:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(b:Memory {userId: $userId})
            WHERE a.id < b.id
              AND coalesce(a.status, 'active') IN ['active', 'pinned']
              AND coalesce(b.status, 'active') IN ['active', 'pinned']
-           RETURN a.id AS source, b.id AS target,
-                  count(t) AS weight, collect(t.name)[0..5] AS sharedTags`,
+           WITH a.id AS source, b.id AS target,
+                count(t) AS weight, collect(t.name)[0..5] AS sharedTags
+           WHERE weight >= 2
+           RETURN source, target, weight, sharedTags
+           ORDER BY weight DESC
+           LIMIT 5000`,
           { userId },
         ),
       ]);
@@ -1171,8 +1176,12 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
         tagEdgesSession.run(
           `MATCH (a:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(b:Memory)
            WHERE a.id IN $nodeIds AND b.id IN $nodeIds AND a.id < b.id
-           RETURN a.id AS source, b.id AS target,
-                  count(t) AS weight, collect(t.name)[0..5] AS sharedTags`,
+           WITH a.id AS source, b.id AS target,
+                count(t) AS weight, collect(t.name)[0..5] AS sharedTags
+           WHERE weight >= 2
+           RETURN source, target, weight, sharedTags
+           ORDER BY weight DESC
+           LIMIT 2000`,
           { nodeIds },
         ),
       ]);
