@@ -2,8 +2,22 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { Badge, Button } from "@vmem/ui";
-import { IconLink, IconLoader2, IconUnlink } from "@tabler/icons-react";
+import {
+  Badge,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@vmem/ui";
+import {
+  IconAlertTriangle,
+  IconLink,
+  IconLoader2,
+  IconUnlink,
+} from "@tabler/icons-react";
 import { toast } from "sonner";
 import { clientEnv } from "@/env/client";
 import type { Memory, MemoryType } from "@/lib/memories";
@@ -44,6 +58,7 @@ export default function RelatedMemories({
   const [entries, setEntries] = useState<RelatedMemoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
+  const [confirmUnlinkId, setConfirmUnlinkId] = useState<string | null>(null);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
 
   const authFetch = useCallback(
@@ -187,7 +202,7 @@ export default function RelatedMemories({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                onClick={() => handleUnlink(entry.memory.id)}
+                onClick={() => setConfirmUnlinkId(entry.memory.id)}
                 disabled={unlinkingId === entry.memory.id}
                 className="flex-shrink-0 text-muted-foreground hover:text-destructive"
               >
@@ -201,6 +216,68 @@ export default function RelatedMemories({
           ))}
         </div>
       )}
+
+      <Dialog
+        open={confirmUnlinkId !== null}
+        onOpenChange={(open) => {
+          if (!open && unlinkingId === null) setConfirmUnlinkId(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm bg-card border border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Unlink Memory</DialogTitle>
+            <DialogDescription className="sr-only">
+              Confirm unlinking a related memory
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-start gap-3 py-4">
+            <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+              <IconAlertTriangle size={20} className="text-destructive" />
+            </div>
+            <div>
+              <p className="text-foreground">
+                Are you sure you want to unlink{" "}
+                <span className="font-medium">
+                  {entries.find((e) => e.memory.id === confirmUnlinkId)?.memory
+                    .title ?? "this memory"}
+                </span>
+                ?
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                This will remove the relationship between these two memories.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmUnlinkId(null)}
+              disabled={unlinkingId !== null}
+              className="text-muted-foreground"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (confirmUnlinkId === null) return;
+                await handleUnlink(confirmUnlinkId);
+                setConfirmUnlinkId(null);
+              }}
+              disabled={unlinkingId !== null}
+              className="bg-destructive text-primary-foreground"
+            >
+              {unlinkingId !== null ? (
+                <>
+                  <IconLoader2 size={16} className="animate-spin" />
+                  Unlinking...
+                </>
+              ) : (
+                "Unlink"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <LinkMemoryModal
         open={linkModalOpen}
