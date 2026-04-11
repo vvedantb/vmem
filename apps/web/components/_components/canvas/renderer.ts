@@ -202,7 +202,7 @@ export function render(
     for (const node of nodes) {
       const nx = node.x ?? 0;
       const ny = node.y ?? 0;
-      const baseRadius = node.size * 3;
+      const baseRadius = node.size * 2;
       if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
       const isHovered = interaction.hoveredNodeId === node.id;
@@ -245,7 +245,7 @@ export function render(
     for (const node of nodes) {
       const nx = node.x ?? 0;
       const ny = node.y ?? 0;
-      const baseRadius = node.size * 3;
+      const baseRadius = node.size * 2;
       if (!lowZoom && !isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH))
         continue;
       const color = nodeColor(node, theme);
@@ -269,7 +269,7 @@ export function render(
 
           const nx = node.x ?? 0;
           const ny = node.y ?? 0;
-          const baseRadius = node.size * 3;
+          const baseRadius = node.size * 2;
           const radius = lowZoom ? Math.max(2, baseRadius * 0.5) : baseRadius;
           ctx.moveTo(nx + radius, ny);
           ctx.arc(nx, ny, radius, 0, TWO_PI);
@@ -290,7 +290,7 @@ export function render(
 
       const nx = node.x ?? 0;
       const ny = node.y ?? 0;
-      const baseRadius = node.size * 3;
+      const baseRadius = node.size * 2;
       if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
       const isNeighbor = neighborSet.has(node.id);
@@ -322,7 +322,7 @@ export function render(
     if (focusNode) {
       const nx = focusNode.x ?? 0;
       const ny = focusNode.y ?? 0;
-      const baseRadius = focusNode.size * 3;
+      const baseRadius = focusNode.size * 2;
       const ringRadius = baseRadius * 1.5 + 4;
       ctx.strokeStyle = theme.isDarkCanvas
         ? "rgba(255,255,255,0.7)"
@@ -386,7 +386,7 @@ export function render(
     for (const node of nodes) {
       const nx = node.x ?? 0;
       const ny = node.y ?? 0;
-      const baseRadius = node.size * 3;
+      const baseRadius = node.size * 2;
 
       if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
@@ -400,7 +400,7 @@ export function render(
       if (!showLabel) continue;
 
       ctx.fillStyle = isHovered ? theme.label.color : theme.label.secondary;
-      ctx.fillText(node.title, nx, ny + baseRadius + 6, 150);
+      ctx.fillText(node.title, nx, ny + baseRadius + 4, 150);
     }
   }
 
@@ -435,7 +435,7 @@ export function render(
           ctx.strokeStyle = theme.label.color;
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(tx, ty, target.size * 3 * vp.scale + 8, 0, TWO_PI);
+          ctx.arc(tx, ty, target.size * 2 * vp.scale + 8, 0, TWO_PI);
           ctx.stroke();
         }
       }

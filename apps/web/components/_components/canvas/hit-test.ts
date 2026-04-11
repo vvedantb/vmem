@@ -1,6 +1,6 @@
 import type { GraphNode } from "./types";
 
-const CELL_SIZE = 200;
+const CELL_SIZE = 60;
 
 interface SpatialIndex {
   cells: Map<string, GraphNode[]>;
@@ -77,7 +77,7 @@ export function getNodeAt(
       for (const node of cell) {
         const nx = node.x ?? 0;
         const ny = node.y ?? 0;
-        const hitRadius = (node.size * 3 + 4) / Math.min(scale, 1);
+        const hitRadius = (node.size * 2 + 6) / Math.min(scale, 1);
         const dist = Math.hypot(worldX - nx, worldY - ny);
         if (dist < hitRadius && dist < closestDist) {
           closest = node;
