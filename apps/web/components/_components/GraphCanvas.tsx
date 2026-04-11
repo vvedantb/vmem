@@ -33,9 +33,11 @@ interface GraphCanvasProps {
   edges: GraphEdge[];
   viewTheme: GraphViewTheme;
   settings: GraphSettings;
+  focusNodeId?: string | null;
   onHoverNode: (info: HoveredNodeInfo | null) => void;
   onClickNode: (nodeId: string) => void;
   onLinkNodes: (sourceId: string, targetId: string) => void;
+  onFocusNode?: (nodeId: string) => void;
 }
 
 export default function GraphCanvas({
@@ -43,9 +45,11 @@ export default function GraphCanvas({
   edges,
   viewTheme,
   settings,
+  focusNodeId,
   onHoverNode,
   onClickNode,
   onLinkNodes,
+  onFocusNode,
 }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -53,7 +57,13 @@ export default function GraphCanvas({
   const edgesRef = useRef(edges);
   const themeRef = useRef(viewTheme);
   const settingsRef = useRef(settings);
-  const callbacksRef = useRef({ onHoverNode, onClickNode, onLinkNodes });
+  const focusNodeIdRef = useRef(focusNodeId);
+  const callbacksRef = useRef({
+    onHoverNode,
+    onClickNode,
+    onLinkNodes,
+    onFocusNode,
+  });
 
   const simRef = useRef<SimulationController | null>(null);
   const viewportRef = useRef<ViewportState>(createViewport());
@@ -72,7 +82,8 @@ export default function GraphCanvas({
   nodesRef.current = nodes;
   edgesRef.current = edges;
   themeRef.current = viewTheme;
-  callbacksRef.current = { onHoverNode, onClickNode, onLinkNodes };
+  focusNodeIdRef.current = focusNodeId;
+  callbacksRef.current = { onHoverNode, onClickNode, onLinkNodes, onFocusNode };
 
   useEffect(() => {
     if (simRef.current) {
@@ -130,6 +141,9 @@ export default function GraphCanvas({
         },
         onLinkNodes(sourceId, targetId) {
           callbacksRef.current.onLinkNodes(sourceId, targetId);
+        },
+        onFocusNode(nodeId) {
+          callbacksRef.current.onFocusNode?.(nodeId);
         },
       },
     );
@@ -242,6 +256,7 @@ export default function GraphCanvas({
         interactionRef.current,
         themeRef.current,
         neighborSet,
+        focusNodeIdRef.current ?? null,
       );
 
       rafId = requestAnimationFrame(tick);

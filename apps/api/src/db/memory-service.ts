@@ -1102,6 +1102,102 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
     }
   }
 
+  /**
+   * Returns a 2-hop RELATES_TO subgraph around a focus memory.
+   * Same response shape as getGraphData so the frontend handles both identically.
+   * Tag edges are computed for the returned nodes (for visual context, not membership).
+   */
+  async getLocalGraph(
+    userId: string,
+    focusId: string,
+  ): Promise<ReturnType<MemoryService["getGraphData"]>> {
+    // Step A: get subgraph nodes (focus + 1-2 hop RELATES_TO neighbors)
+    const nodesSession = this.driver.session();
+    let nodeIds: string[];
+    let nodes: {
+      id: string;
+      title: string;
+      content: string;
+      tags: string[];
+      createdAt: string;
+    }[];
+
+    try {
+      const nodesResult = await nodesSession.run(
+        `MATCH (focus:Memory {id: $focusId, userId: $userId})
+         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned']
+         OPTIONAL MATCH (focus)-[:RELATES_TO*1..2]-(neighbor:Memory {userId: $userId})
+         WHERE coalesce(neighbor.status, 'active') IN ['active', 'pinned']
+         WITH [focus] + collect(DISTINCT neighbor) AS allNodes
+         UNWIND allNodes AS m
+         WITH DISTINCT m
+         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+         RETURN m.id AS id, m.title AS title,
+                substring(m.content, 0, 200) AS content,
+                collect(t.name) AS tags, m.createdAt AS createdAt
+         LIMIT 500`,
+        { userId, focusId },
+      );
+
+      nodes = nodesResult.records.map((r) => ({
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        content: String(r.get("content") ?? ""),
+        tags: Array.isArray(r.get("tags"))
+          ? r.get("tags").filter(Boolean).map(String)
+          : [],
+        createdAt: String(r.get("createdAt")),
+      }));
+      nodeIds = nodes.map((n) => n.id);
+    } finally {
+      await nodesSession.close();
+    }
+
+    if (nodeIds.length === 0) {
+      return { nodes: [], relatesToEdges: [], tagEdges: [] };
+    }
+
+    // Step B: get edges within the subgraph (parallel queries)
+    const relatesToSession = this.driver.session();
+    const tagEdgesSession = this.driver.session();
+    try {
+      const [relatesToResult, tagEdgesResult] = await Promise.all([
+        relatesToSession.run(
+          `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
+           WHERE a.id IN $nodeIds AND b.id IN $nodeIds
+           RETURN a.id AS source, b.id AS target, r.reason AS reason`,
+          { nodeIds },
+        ),
+        tagEdgesSession.run(
+          `MATCH (a:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(b:Memory)
+           WHERE a.id IN $nodeIds AND b.id IN $nodeIds AND a.id < b.id
+           RETURN a.id AS source, b.id AS target,
+                  count(t) AS weight, collect(t.name)[0..5] AS sharedTags`,
+          { nodeIds },
+        ),
+      ]);
+
+      const relatesToEdges = relatesToResult.records.map((r) => ({
+        source: String(r.get("source")),
+        target: String(r.get("target")),
+        reason: String(r.get("reason") ?? ""),
+      }));
+
+      const tagEdges = tagEdgesResult.records.map((r) => ({
+        source: String(r.get("source")),
+        target: String(r.get("target")),
+        weight: Number(r.get("weight")),
+        sharedTags: Array.isArray(r.get("sharedTags"))
+          ? r.get("sharedTags").filter(Boolean).map(String)
+          : [],
+      }));
+
+      return { nodes, relatesToEdges, tagEdges };
+    } finally {
+      await Promise.all([relatesToSession.close(), tagEdgesSession.close()]);
+    }
+  }
+
   async getRecentMemoryTitles(
     userId: string,
     excludeId: string,
