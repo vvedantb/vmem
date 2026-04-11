@@ -3458,7 +3458,7 @@ function generateBulkMemories(count: number) {
           title: `${subj}: ${act}`,
           content: det,
           type: "knowledge",
-          tags,
+          tags: ["engineering", ...tags],
         };
       },
     },
@@ -3485,7 +3485,7 @@ function generateBulkMemories(count: number) {
           title: `${ctx}: ${topic}`,
           content: out,
           type: "episodic",
-          tags,
+          tags: ["work", ...tags],
         };
       },
     },
@@ -3517,7 +3517,7 @@ function generateBulkMemories(count: number) {
           title: `${name} ${ctx}`,
           content: `${topic}. ${det}`,
           type: "episodic",
-          tags,
+          tags: ["social", ...tags],
         };
       },
     },
@@ -3544,7 +3544,7 @@ function generateBulkMemories(count: number) {
           title: `${dom}: ${desc}`,
           content: det,
           type: "profile",
-          tags,
+          tags: ["personal", ...tags],
         };
       },
     },
@@ -3569,7 +3569,12 @@ function generateBulkMemories(count: number) {
               healthTags.length
           ];
         const type: MemType = i % 3 === 0 ? "profile" : "episodic";
-        return { title: `${act}: ${topic}`, content: note, type, tags };
+        return {
+          title: `${act}: ${topic}`,
+          content: note,
+          type,
+          tags: ["wellness", ...tags],
+        };
       },
     },
     // TRAVEL — 10%
@@ -3590,7 +3595,12 @@ function generateBulkMemories(count: number) {
             (i * 5 + ((i / cities.length) | 0) * 3) % travelTags.length
           ];
         const type: MemType = i % 2 === 0 ? "episodic" : "knowledge";
-        return { title: `${city}: ${aspect}`, content: note, type, tags };
+        return {
+          title: `${city}: ${aspect}`,
+          content: note,
+          type,
+          tags: ["travel", ...tags],
+        };
       },
     },
     // LEARNING — 7%
@@ -3617,7 +3627,7 @@ function generateBulkMemories(count: number) {
           title: `${fmt} ${subj}`,
           content: ins,
           type: "knowledge",
-          tags,
+          tags: ["learning", ...tags],
         };
       },
     },
@@ -3636,7 +3646,12 @@ function generateBulkMemories(count: number) {
             (i * 5 + ((i / financeTopics.length) | 0) * 7 + 1) %
               financeTags.length
           ];
-        return { title: topic, content: note, type: "profile", tags };
+        return {
+          title: topic,
+          content: note,
+          type: "profile",
+          tags: ["finance", ...tags],
+        };
       },
     },
     // COOKING — 4%
@@ -3658,7 +3673,7 @@ function generateBulkMemories(count: number) {
           title: `${dish}: recipe notes`,
           content: note,
           type: "knowledge",
-          tags,
+          tags: ["food", ...tags],
         };
       },
     },
@@ -3678,7 +3693,12 @@ function generateBulkMemories(count: number) {
               entertainmentTags.length
           ];
         const type: MemType = i % 3 === 0 ? "profile" : "episodic";
-        return { title: `${mtype}: ${item}`, content: note, type, tags };
+        return {
+          title: `${mtype}: ${item}`,
+          content: note,
+          type,
+          tags: ["media", ...tags],
+        };
       },
     },
   ];
@@ -3968,7 +3988,61 @@ const relationships = [
   rel(250, 251, "Tyler's Igor album and Hades 2 both for late-night sessions"),
   rel(253, 177, "board game nights overlap with book club friend group"),
   rel(256, 165, "Bonobo concert same month as cousin's wedding planning"),
+
+  ...generateBulkRelationships(),
 ];
+
+function generateBulkRelationships() {
+  const handcraftedCount = 257;
+  const total = memories.length;
+  const result: Array<{
+    sourceId: string;
+    targetId: string;
+    reason: string;
+  }> = [];
+
+  let seed = 99;
+  function rng() {
+    seed = (seed * 16807 + 0) % 2147483647;
+    return (seed - 1) / 2147483646;
+  }
+
+  const reasons = [
+    "related topic in same domain",
+    "builds on the same foundational concept",
+    "complementary perspectives on similar problem",
+    "referenced in the same context",
+    "learned around the same time period",
+    "shares underlying technical pattern",
+    "discovered through same research thread",
+    "part of the same knowledge cluster",
+    "connected through shared experience",
+    "natural progression from earlier insight",
+  ];
+
+  for (let i = handcraftedCount; i < total; i++) {
+    const numRels = 1 + Math.floor(rng() * 3);
+    for (let r = 0; r < numRels; r++) {
+      const windowSize = 30 + Math.floor(rng() * 70);
+      const minTarget = Math.max(handcraftedCount, i - windowSize);
+      const maxTarget = Math.min(total - 1, i + windowSize);
+      const targetIdx = minTarget + Math.floor(rng() * (maxTarget - minTarget));
+      if (targetIdx === i) continue;
+
+      const source = memories[i];
+      const target = memories[targetIdx];
+      if (!source || !target) continue;
+
+      result.push({
+        sourceId: source.id,
+        targetId: target.id,
+        reason: reasons[Math.floor(rng() * reasons.length)],
+      });
+    }
+  }
+
+  return result;
+}
 
 function buildEvents(mems: typeof memories) {
   const events: Array<{
