@@ -141,7 +141,7 @@ function init(
 
   const linkForce = forceLink<WNode, WEdge>(edges)
     .id((d) => d.id)
-    .distance(15)
+    .distance(25)
     .strength((d) => (d.edgeType === "relates_to" ? 0.7 : 0.15));
 
   chargeForceRef = forceManyBody<WNode>().strength(chargeStrength).theta(theta);
@@ -149,7 +149,7 @@ function init(
   centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 2.0);
 
   const collideForce = forceCollide<WNode>()
-    .radius((d) => d.size * 1.5 + 1)
+    .radius((d) => d.size * 2 + 1)
     .strength(0.7);
 
   sim = forceSimulation<WNode, WEdge>(nodes)

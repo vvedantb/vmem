@@ -49,11 +49,11 @@ const DEFAULT_DARK: GraphViewTheme = {
   gradientCenter: null,
   grid: null,
   edge: {
-    normal: "rgba(255,255,255,0.06)",
-    connected: "rgba(255,255,255,0.35)",
-    dimmed: "rgba(255,255,255,0.015)",
-    width: 0.4,
-    connectedWidth: 1.2,
+    normal: "rgba(255,255,255,0.12)",
+    connected: "rgba(255,255,255,0.4)",
+    dimmed: "rgba(255,255,255,0.025)",
+    width: 0.6,
+    connectedWidth: 1.5,
   },
   glow: {
     enabled: true,
@@ -109,11 +109,11 @@ const SATELLITE: GraphViewTheme = {
   gradientCenter: "rgba(60, 40, 120, 0.08)",
   grid: null,
   edge: {
-    normal: "rgba(255,255,255,0.02)",
-    connected: "rgba(180,160,255,0.25)",
-    dimmed: "rgba(255,255,255,0.01)",
-    width: 0.2,
-    connectedWidth: 0.6,
+    normal: "rgba(255,255,255,0.06)",
+    connected: "rgba(180,160,255,0.3)",
+    dimmed: "rgba(255,255,255,0.015)",
+    width: 0.4,
+    connectedWidth: 0.8,
   },
   glow: {
     enabled: true,
