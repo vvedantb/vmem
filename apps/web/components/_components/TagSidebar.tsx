@@ -14,6 +14,7 @@ import {
   IconTag,
   IconArrowsSort,
 } from "@tabler/icons-react";
+import { Virtuoso } from "react-virtuoso";
 import {
   buildTagStats,
   sortTagStats,
@@ -28,7 +29,7 @@ interface TagSidebarProps {
 }
 
 const SORT_LABELS: Record<TagSortMode, string> = {
-  "a-z": "A–Z",
+  "a-z": "A\u2013Z",
   "most-used": "Most used",
   "most-recent": "Most recent",
 };
@@ -49,7 +50,7 @@ export default function TagSidebar({
   );
 
   return (
-    <nav className="flex flex-col gap-1 py-1">
+    <nav className="flex flex-col h-full">
       <Button
         variant="ghost"
         size="sm"
@@ -95,30 +96,35 @@ export default function TagSidebar({
         </DropdownMenu>
       </div>
 
-      {sortedTags.map((tagStat) => (
-        <Button
-          key={tagStat.tag}
-          variant="ghost"
-          size="sm"
-          onClick={() => onSelectTag(tagStat.tag)}
-          className={cn(
-            "justify-start gap-2 h-7 px-2 text-xs font-normal",
-            selectedTag === tagStat.tag &&
-              "bg-accent text-accent-foreground font-medium",
-          )}
-        >
-          <IconTag size={14} stroke={1.5} className="flex-shrink-0" />
-          <span className="truncate">{tagStat.tag}</span>
-          <span className="ml-auto text-xs text-muted-foreground/50 tabular-nums">
-            {tagStat.count}
-          </span>
-        </Button>
-      ))}
-
-      {sortedTags.length === 0 && (
+      {sortedTags.length === 0 ? (
         <span className="px-2 py-1 text-xs text-muted-foreground">
           No tags yet
         </span>
+      ) : (
+        <Virtuoso
+          data={sortedTags}
+          computeItemKey={(_index, item) => item.tag}
+          fixedItemHeight={28}
+          itemContent={(_index, tagStat) => (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onSelectTag(tagStat.tag)}
+              className={cn(
+                "justify-start gap-2 h-7 w-full px-2 text-xs font-normal",
+                selectedTag === tagStat.tag &&
+                  "bg-accent text-accent-foreground font-medium",
+              )}
+            >
+              <IconTag size={14} stroke={1.5} className="flex-shrink-0" />
+              <span className="truncate">{tagStat.tag}</span>
+              <span className="ml-auto text-xs text-muted-foreground/50 tabular-nums">
+                {tagStat.count}
+              </span>
+            </Button>
+          )}
+          style={{ flex: 1, minHeight: 0 }}
+        />
       )}
     </nav>
   );
