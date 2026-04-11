@@ -158,9 +158,9 @@ function init(
   for (const node of nodes) connectionCount.set(node.id, 0);
   for (const edge of edges) {
     const srcId =
-      typeof edge.source === "string" ? edge.source : edge.source.id;
+      typeof edge.source === "object" ? edge.source.id : String(edge.source);
     const tgtId =
-      typeof edge.target === "string" ? edge.target : edge.target.id;
+      typeof edge.target === "object" ? edge.target.id : String(edge.target);
     connectionCount.set(srcId, (connectionCount.get(srcId) ?? 0) + 1);
     connectionCount.set(tgtId, (connectionCount.get(tgtId) ?? 0) + 1);
   }
