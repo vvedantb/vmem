@@ -56,7 +56,10 @@ export default function MemoriesPage() {
         </Suspense>
       ) : (
         <div className="h-full min-h-0 -mb-6">
-          <MemoryGraph />
+          <MemoryGraph
+            focusNodeId={params.focus}
+            onFocusChange={(id) => setParams({ focus: id })}
+          />
         </div>
       )}
     </PageContainer>

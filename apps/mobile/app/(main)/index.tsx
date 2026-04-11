@@ -24,6 +24,7 @@ function normalizeChatInput(text: string | undefined): string {
 }
 
 export default function ChatScreen() {
+  console.log("[ChatScreen] render");
   const [inputText, setInputText] = useState("");
   const flatListRef = useRef<FlatList<UIMessage>>(null);
   const navigation = useNavigation();

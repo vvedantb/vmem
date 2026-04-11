@@ -68,7 +68,15 @@ const graphResponseSchema = z.object({
 type RelatesToEdge = z.infer<typeof relatesToEdgeSchema>;
 type GraphResponse = z.infer<typeof graphResponseSchema>;
 
-export default function MemoryGraph() {
+interface MemoryGraphProps {
+  focusNodeId: string | null;
+  onFocusChange: (id: string | null) => void;
+}
+
+export default function MemoryGraph({
+  focusNodeId,
+  onFocusChange,
+}: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
   const { theme } = useThemeContext();
   const { getToken, userId } = useAuth();
@@ -77,7 +85,6 @@ export default function MemoryGraph() {
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
   const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
-  const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
   const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<RelatesToEdge[]>(
     [],
   );
@@ -283,14 +290,17 @@ export default function MemoryGraph() {
     setSelectedNodeId(nodeId);
   }, []);
 
-  const handleFocusNode = useCallback((nodeId: string) => {
-    setFocusNodeId(nodeId);
-    setSelectedNodeId(null);
-  }, []);
+  const handleFocusNode = useCallback(
+    (nodeId: string) => {
+      onFocusChange(nodeId);
+      setSelectedNodeId(null);
+    },
+    [onFocusChange],
+  );
 
   const handleBackToGlobal = useCallback(() => {
-    setFocusNodeId(null);
-  }, []);
+    onFocusChange(null);
+  }, [onFocusChange]);
 
   const handleLinkNodes = useCallback(
     async (sourceId: string, targetId: string) => {
