@@ -8,7 +8,6 @@ import {
   forceManyBody,
   forceCenter,
   forceCollide,
-  forceRadial,
 } from "d3-force";
 import type { GraphNode, GraphEdge } from "./types";
 
@@ -185,61 +184,31 @@ function createMainThreadSimulation(
   scalingRatio: number,
   gravity: number,
 ): SimulationController {
-  const chargeStrength = -scalingRatio * 150;
+  const chargeStrength = -scalingRatio * 30;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
   const linkForce = forceLink<GraphNode, GraphEdge>(edges)
     .id((d) => d.id)
-    .distance(200)
-    .strength((d) => (d.edgeType === "relates_to" ? 0.3 : 0.05));
+    .distance(30)
+    .strength((d) => (d.edgeType === "relates_to" ? 0.7 : 0.15));
 
   const chargeForce = forceManyBody<GraphNode>()
     .strength(chargeStrength)
     .theta(theta);
 
-  const centerForce = forceCenter<GraphNode>(0, 0).strength(gravity * 0.1);
+  const centerForce = forceCenter<GraphNode>(0, 0).strength(gravity * 0.3);
 
   const collideForce = forceCollide<GraphNode>()
-    .radius((d) => d.size * 3 + 5)
-    .strength(0.7);
-
-  const connectionCount = new Map<string, number>();
-  for (const node of nodes) connectionCount.set(node.id, 0);
-  for (const edge of edges) {
-    const srcId =
-      typeof edge.source === "object" ? edge.source.id : String(edge.source);
-    const tgtId =
-      typeof edge.target === "object" ? edge.target.id : String(edge.target);
-    connectionCount.set(srcId, (connectionCount.get(srcId) ?? 0) + 1);
-    connectionCount.set(tgtId, (connectionCount.get(tgtId) ?? 0) + 1);
-  }
-  let maxConnections = 0;
-  for (const count of connectionCount.values()) {
-    if (count > maxConnections) maxConnections = count;
-  }
-  const borderRadius = Math.sqrt(nodes.length) * 15;
-  const radialForce = forceRadial<GraphNode>(
-    (d) => {
-      const connections = connectionCount.get(d.id) ?? 0;
-      return maxConnections === 0
-        ? borderRadius
-        : (1 - connections / maxConnections) * borderRadius;
-    },
-    0,
-    0,
-  ).strength((d) => {
-    const connections = connectionCount.get(d.id) ?? 0;
-    return connections === 0 ? 0.3 : 0.05;
-  });
+    .radius((d) => d.size * 2 + 3)
+    .strength(0.8);
 
   const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)
     .force("link", linkForce)
     .force("charge", chargeForce)
     .force("center", centerForce)
     .force("collide", collideForce)
-    .force("radial", radialForce)
     .alphaDecay(0.02)
-    .velocityDecay(0.3);
+    .velocityDecay(0.4);
 
   // Warm-up (main thread — blocks but same as original behavior)
   for (let i = 0; i < 100; i++) {
@@ -262,12 +231,12 @@ function createMainThreadSimulation(
     },
 
     setStrength(s: number) {
-      chargeForce.strength(-s * 150);
+      chargeForce.strength(-s * 30);
       simulation.alpha(0.3).restart();
     },
 
     setGravity(g: number) {
-      centerForce.strength(g * 0.1);
+      centerForce.strength(g * 0.3);
       simulation.alpha(0.3).restart();
     },
 

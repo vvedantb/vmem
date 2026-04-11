@@ -9,7 +9,6 @@ import {
   forceManyBody,
   forceCenter,
   forceCollide,
-  forceRadial,
   type Simulation,
   type SimulationNodeDatum,
   type SimulationLinkDatum,
@@ -55,7 +54,7 @@ self.onmessage = (e: MessageEvent) => {
 
     case "setStrength": {
       if (chargeForceRef) {
-        chargeForceRef.strength(-msg.scalingRatio * 150);
+        chargeForceRef.strength(-msg.scalingRatio * 30);
         sim?.alpha(0.3).restart();
       }
       break;
@@ -63,7 +62,7 @@ self.onmessage = (e: MessageEvent) => {
 
     case "setGravity": {
       if (centerForceRef) {
-        centerForceRef.strength(msg.gravity * 0.1);
+        centerForceRef.strength(msg.gravity * 0.3);
         sim?.alpha(0.3).restart();
       }
       break;
@@ -137,60 +136,29 @@ function init(
     weight: e.weight,
   }));
 
-  const chargeStrength = -scalingRatio * 150;
-  // Use higher Barnes-Hut theta for large graphs — trades accuracy for speed
+  const chargeStrength = -scalingRatio * 30;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
   const linkForce = forceLink<WNode, WEdge>(edges)
     .id((d) => d.id)
-    .distance(200)
-    .strength((d) => (d.edgeType === "relates_to" ? 0.3 : 0.05));
+    .distance(30)
+    .strength((d) => (d.edgeType === "relates_to" ? 0.7 : 0.15));
 
   chargeForceRef = forceManyBody<WNode>().strength(chargeStrength).theta(theta);
 
-  centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 0.1);
+  centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 0.3);
 
   const collideForce = forceCollide<WNode>()
-    .radius((d) => d.size * 3 + 5)
-    .strength(0.7);
-
-  const connectionCount = new Map<string, number>();
-  for (const node of nodes) connectionCount.set(node.id, 0);
-  for (const edge of edges) {
-    const srcId =
-      typeof edge.source === "object" ? edge.source.id : String(edge.source);
-    const tgtId =
-      typeof edge.target === "object" ? edge.target.id : String(edge.target);
-    connectionCount.set(srcId, (connectionCount.get(srcId) ?? 0) + 1);
-    connectionCount.set(tgtId, (connectionCount.get(tgtId) ?? 0) + 1);
-  }
-  let maxConnections = 0;
-  for (const count of connectionCount.values()) {
-    if (count > maxConnections) maxConnections = count;
-  }
-  const borderRadius = Math.sqrt(nodes.length) * 15;
-  const radialForce = forceRadial<WNode>(
-    (d) => {
-      const connections = connectionCount.get(d.id) ?? 0;
-      return maxConnections === 0
-        ? borderRadius
-        : (1 - connections / maxConnections) * borderRadius;
-    },
-    0,
-    0,
-  ).strength((d) => {
-    const connections = connectionCount.get(d.id) ?? 0;
-    return connections === 0 ? 0.3 : 0.05;
-  });
+    .radius((d) => d.size * 2 + 3)
+    .strength(0.8);
 
   sim = forceSimulation<WNode, WEdge>(nodes)
     .force("link", linkForce)
     .force("charge", chargeForceRef)
     .force("center", centerForceRef)
     .force("collide", collideForce)
-    .force("radial", radialForce)
     .alphaDecay(0.02)
-    .velocityDecay(0.3)
+    .velocityDecay(0.4)
     .alpha(1);
 
   // Warm-up ticks run here in the worker (non-blocking for main thread)
