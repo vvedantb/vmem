@@ -38,6 +38,10 @@ export function getGraphSettings(): GraphSettings {
         DEFAULT_GRAPH_SETTINGS.scalingRatio,
       ),
       gravity: num(parsed.gravity, DEFAULT_GRAPH_SETTINGS.gravity),
+      showLabels:
+        typeof parsed.showLabels === "boolean"
+          ? parsed.showLabels
+          : DEFAULT_GRAPH_SETTINGS.showLabels,
     };
   } catch {
     return DEFAULT_GRAPH_SETTINGS;
