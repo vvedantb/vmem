@@ -16,6 +16,8 @@ interface MessageUsageSummary {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  reasoningTokens: number;
+  cachedInputTokens: number;
 }
 
 interface CloudChatResult {

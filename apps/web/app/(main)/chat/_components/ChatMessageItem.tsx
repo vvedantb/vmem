@@ -17,11 +17,13 @@ import {
   ChainOfThoughtContent,
   ChainOfThoughtTrigger,
   Context,
+  ContextCacheUsage,
   ContextContent,
   ContextContentBody,
   ContextContentHeader,
   ContextInputUsage,
   ContextOutputUsage,
+  ContextReasoningUsage,
   ContextTrigger,
   InlineCitation,
   Message,
@@ -114,11 +116,15 @@ function getProviderLabel(agentName?: string): string | null {
   }
 }
 
+const MODEL_MAX_TOKENS = 1_000_000;
+
 /** Token-usage summary for a single assistant message bubble. */
 interface MessageUsageSummary {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  reasoningTokens: number;
+  cachedInputTokens: number;
 }
 
 interface ChatMessageItemProps {
@@ -266,13 +272,19 @@ export default function ChatMessageItem({
               </span>
             )}
             {isAssistant && usage && (
-              <Context usage={usage}>
+              <Context
+                usage={usage}
+                usedTokens={usage.totalTokens}
+                maxTokens={MODEL_MAX_TOKENS}
+              >
                 <ContextTrigger />
                 <ContextContent>
                   <ContextContentHeader />
                   <ContextContentBody>
                     <ContextInputUsage />
                     <ContextOutputUsage />
+                    <ContextReasoningUsage />
+                    <ContextCacheUsage />
                   </ContextContentBody>
                 </ContextContent>
               </Context>
