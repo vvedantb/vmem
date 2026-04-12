@@ -1,5 +1,21 @@
 # Changelog
 
+## Local Graph Mode (Obsidian-style focus) — 2026-04-11
+
+- Added local graph mode: double-click a memory node (or click "Focus" in its detail dialog) to see its 2-hop RELATES_TO neighborhood
+- Backend: new `getLocalGraph()` method in memory-service runs a variable-length path query capped at 500 nodes, then computes edges within the subgraph
+- Route: `GET /v1/graph?focus=memoryId` returns the focused subgraph with same response shape as global graph
+- Frontend: "Back to global" button to return to full graph view, focus node highlighted with dashed ring
+- Reason: global graph becomes unusable at high node counts. Local graph always renders <500 nodes regardless of total memories, enabling smooth navigation at any scale.
+
+## Graph View Performance Optimization — 2026-04-11
+
+- **Server-side tag-edge computation**: moved O(n²) tag co-occurrence computation from client to Neo4j Cypher query. Frontend useMemo is now O(n) mapping only.
+- **Web Worker simulation**: d3-force physics runs in a dedicated Web Worker off the main thread. 100-tick warm-up no longer blocks the browser. Falls back to main-thread simulation if Worker creation fails.
+- **Renderer batching**: nodes batched by color into single Canvas paths (one fill per color bucket instead of per-node). Edges batched by style. Glow/labels/edges skip at high node counts (>5k) or low zoom.
+- **Frame-loop caching**: resolvedEdges cached (only rebuilt on edge change, not every frame). Spatial index rebuild throttled to every 3 frames with dirty flag.
+- Reason: graph view was slow at >1k memories. These changes target ~10-20k smooth on global graph. Local graph mode (2-hop Obsidian-style) planned as follow-up for unlimited scale.
+
 ## Memories List View → File Browser Layout — 2026-04-10
 
 - Replaced the flat card grid + tag badge filter with a file browser layout: left sidebar for tag navigation, right panel for memory list

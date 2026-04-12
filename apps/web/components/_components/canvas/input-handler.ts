@@ -7,6 +7,7 @@ interface Callbacks {
   onHoverNode: (node: GraphNode | null) => void;
   onClickNode: (nodeId: string) => void;
   onLinkNodes: (sourceId: string, targetId: string) => void;
+  onFocusNode: (nodeId: string) => void;
 }
 
 interface PanSample {
@@ -19,7 +20,6 @@ export function attachInputHandlers(
   canvas: HTMLCanvasElement,
   interaction: InteractionState,
   viewport: ViewportState,
-  nodesRef: { current: GraphNode[] },
   simRef: { current: SimulationController | null },
   spatialIndexRef: {
     current: ReturnType<typeof import("./hit-test").createSpatialIndex>;
@@ -71,8 +71,7 @@ export function attachInputHandlers(
         interaction.mouseWorldY = world.y;
       } else {
         interaction.draggedNodeId = hitNode.id;
-        hitNode.fx = hitNode.x;
-        hitNode.fy = hitNode.y;
+        simRef.current?.dragStart(hitNode.id, hitNode.x ?? 0, hitNode.y ?? 0);
       }
     } else {
       interaction.isPanning = true;
@@ -115,15 +114,7 @@ export function attachInputHandlers(
     }
 
     if (interaction.draggedNodeId) {
-      const node = nodesRef.current.find(
-        (n) => n.id === interaction.draggedNodeId,
-      );
-      if (node) {
-        node.fx = world.x;
-        node.fy = world.y;
-        node.x = world.x;
-        node.y = world.y;
-      }
+      simRef.current?.dragMove(interaction.draggedNodeId, world.x, world.y);
       return;
     }
 
@@ -181,13 +172,7 @@ export function attachInputHandlers(
     }
 
     if (interaction.draggedNodeId) {
-      const node = nodesRef.current.find(
-        (n) => n.id === interaction.draggedNodeId,
-      );
-      if (node) {
-        node.fx = null;
-        node.fy = null;
-      }
+      simRef.current?.dragEnd(interaction.draggedNodeId);
       interaction.draggedNodeId = null;
       simRef.current?.reheat();
     }
@@ -235,7 +220,25 @@ export function attachInputHandlers(
 
   function onDblClick(e: MouseEvent) {
     const { x, y } = getCanvasXY(e);
-    zoomAt(viewport, x, y, canvas.clientWidth, canvas.clientHeight, 1.5);
+    // Double-click on a node → focus local graph. On background → zoom.
+    const world = screenToWorld(
+      viewport,
+      x,
+      y,
+      canvas.clientWidth,
+      canvas.clientHeight,
+    );
+    const hitNode = getNodeAt(
+      spatialIndexRef.current,
+      world.x,
+      world.y,
+      viewport.scale,
+    );
+    if (hitNode) {
+      callbacks.onFocusNode(hitNode.id);
+    } else {
+      zoomAt(viewport, x, y, canvas.clientWidth, canvas.clientHeight, 1.5);
+    }
   }
 
   function onKeyDown(e: KeyboardEvent) {
@@ -320,8 +323,7 @@ export function attachInputHandlers(
 
     if (hitNode) {
       interaction.draggedNodeId = hitNode.id;
-      hitNode.fx = hitNode.x;
-      hitNode.fy = hitNode.y;
+      simRef.current?.dragStart(hitNode.id, hitNode.x ?? 0, hitNode.y ?? 0);
     } else {
       interaction.isPanning = true;
     }
@@ -366,15 +368,7 @@ export function attachInputHandlers(
         canvas.clientWidth,
         canvas.clientHeight,
       );
-      const node = nodesRef.current.find(
-        (n) => n.id === interaction.draggedNodeId,
-      );
-      if (node) {
-        node.fx = world.x;
-        node.fy = world.y;
-        node.x = world.x;
-        node.y = world.y;
-      }
+      simRef.current?.dragMove(interaction.draggedNodeId, world.x, world.y);
       lastTouchX = x;
       lastTouchY = y;
       return;
@@ -400,13 +394,7 @@ export function attachInputHandlers(
     if (e.touches.length > 0) return;
 
     if (interaction.draggedNodeId) {
-      const node = nodesRef.current.find(
-        (n) => n.id === interaction.draggedNodeId,
-      );
-      if (node) {
-        node.fx = null;
-        node.fy = null;
-      }
+      simRef.current?.dragEnd(interaction.draggedNodeId);
       interaction.draggedNodeId = null;
       simRef.current?.reheat();
     }

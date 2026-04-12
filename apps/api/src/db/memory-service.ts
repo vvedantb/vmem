@@ -150,6 +150,74 @@ function toTimelineEvent(record: NeoRecord): TimelineEvent {
   };
 }
 
+interface TagEdge {
+  source: string;
+  target: string;
+  weight: number;
+  sharedTags: string[];
+}
+
+/**
+ * Computes tag co-occurrence edges from an in-memory node list.
+ * This replaces the Cypher cross-join query which blows Neo4j's
+ * transaction memory limit with large datasets (10k+ memories).
+ */
+function computeTagEdges(
+  nodes: ReadonlyArray<{ id: string; tags: string[] }>,
+  limit: number,
+): TagEdge[] {
+  // Build inverted index: tag → list of memory ids
+  const tagIndex = new Map<string, string[]>();
+  for (const node of nodes) {
+    for (const tag of node.tags) {
+      let ids = tagIndex.get(tag);
+      if (!ids) {
+        ids = [];
+        tagIndex.set(tag, ids);
+      }
+      ids.push(node.id);
+    }
+  }
+
+  // Accumulate co-occurrence counts per memory pair
+  const edgeMap = new Map<string, { weight: number; sharedTags: string[] }>();
+  for (const [tag, ids] of tagIndex) {
+    // Skip hyper-popular tags to avoid quadratic blowup in JS too
+    if (ids.length > 500) continue;
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = ids[i];
+        const b = ids[j];
+        const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+        let entry = edgeMap.get(key);
+        if (!entry) {
+          entry = { weight: 0, sharedTags: [] };
+          edgeMap.set(key, entry);
+        }
+        entry.weight++;
+        if (entry.sharedTags.length < 5) {
+          entry.sharedTags.push(tag);
+        }
+      }
+    }
+  }
+
+  // Filter to meaningful connections (≥2 shared tags), sort by strength
+  const edges: TagEdge[] = [];
+  for (const [key, data] of edgeMap) {
+    if (data.weight < 2) continue;
+    const sep = key.indexOf("|");
+    edges.push({
+      source: key.slice(0, sep),
+      target: key.slice(sep + 1),
+      weight: data.weight,
+      sharedTags: data.sharedTags,
+    });
+  }
+  edges.sort((a, b) => b.weight - a.weight);
+  return edges.slice(0, limit);
+}
+
 export class MemoryService {
   constructor(private driver: Driver) {}
 
@@ -1025,12 +1093,18 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
       tags: string[];
       createdAt: string;
     }[];
-    edges: { source: string; target: string; reason: string }[];
+    relatesToEdges: { source: string; target: string; reason: string }[];
+    tagEdges: {
+      source: string;
+      target: string;
+      weight: number;
+      sharedTags: string[];
+    }[];
   }> {
     const nodesSession = this.driver.session();
-    const edgesSession = this.driver.session();
+    const relatesToSession = this.driver.session();
     try {
-      const [nodesResult, edgesResult] = await Promise.all([
+      const [nodesResult, relatesToResult] = await Promise.all([
         nodesSession.run(
           `MATCH (m:Memory {userId: $userId})
            WHERE coalesce(m.status, 'active') IN ['active', 'pinned']
@@ -1041,7 +1115,7 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
                   m.createdAt AS createdAt`,
           { userId },
         ),
-        edgesSession.run(
+        relatesToSession.run(
           `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
            WHERE coalesce(a.status, 'active') IN ['active', 'pinned']
              AND coalesce(b.status, 'active') IN ['active', 'pinned']
@@ -1060,15 +1134,98 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
         createdAt: String(r.get("createdAt")),
       }));
 
-      const edges = edgesResult.records.map((r) => ({
+      const relatesToEdges = relatesToResult.records.map((r) => ({
         source: String(r.get("source")),
         target: String(r.get("target")),
         reason: String(r.get("reason") ?? ""),
       }));
 
-      return { nodes, edges };
+      // Compute tag co-occurrence in JS — the equivalent Cypher cross-join
+      // blows Neo4j's memory limit with large datasets (10k+ memories).
+      const tagEdges = computeTagEdges(nodes, 5000);
+
+      return { nodes, relatesToEdges, tagEdges };
     } finally {
-      await Promise.all([nodesSession.close(), edgesSession.close()]);
+      await Promise.all([nodesSession.close(), relatesToSession.close()]);
+    }
+  }
+
+  /**
+   * Returns a 2-hop RELATES_TO subgraph around a focus memory.
+   * Same response shape as getGraphData so the frontend handles both identically.
+   * Tag edges are computed for the returned nodes (for visual context, not membership).
+   */
+  async getLocalGraph(
+    userId: string,
+    focusId: string,
+  ): Promise<ReturnType<MemoryService["getGraphData"]>> {
+    // Step A: get subgraph nodes (focus + 1-2 hop RELATES_TO neighbors)
+    const nodesSession = this.driver.session();
+    let nodeIds: string[];
+    let nodes: {
+      id: string;
+      title: string;
+      content: string;
+      tags: string[];
+      createdAt: string;
+    }[];
+
+    try {
+      const nodesResult = await nodesSession.run(
+        `MATCH (focus:Memory {id: $focusId, userId: $userId})
+         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned']
+         OPTIONAL MATCH (focus)-[:RELATES_TO*1..2]-(neighbor:Memory {userId: $userId})
+         WHERE coalesce(neighbor.status, 'active') IN ['active', 'pinned']
+         WITH [focus] + collect(DISTINCT neighbor) AS allNodes
+         UNWIND allNodes AS m
+         WITH DISTINCT m
+         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+         RETURN m.id AS id, m.title AS title,
+                substring(m.content, 0, 200) AS content,
+                collect(t.name) AS tags, m.createdAt AS createdAt
+         LIMIT 500`,
+        { userId, focusId },
+      );
+
+      nodes = nodesResult.records.map((r) => ({
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        content: String(r.get("content") ?? ""),
+        tags: Array.isArray(r.get("tags"))
+          ? r.get("tags").filter(Boolean).map(String)
+          : [],
+        createdAt: String(r.get("createdAt")),
+      }));
+      nodeIds = nodes.map((n) => n.id);
+    } finally {
+      await nodesSession.close();
+    }
+
+    if (nodeIds.length === 0) {
+      return { nodes: [], relatesToEdges: [], tagEdges: [] };
+    }
+
+    // Step B: get RELATES_TO edges within the subgraph
+    const relatesToSession = this.driver.session();
+    try {
+      const relatesToResult = await relatesToSession.run(
+        `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
+         WHERE a.id IN $nodeIds AND b.id IN $nodeIds
+         RETURN a.id AS source, b.id AS target, r.reason AS reason`,
+        { nodeIds },
+      );
+
+      const relatesToEdges = relatesToResult.records.map((r) => ({
+        source: String(r.get("source")),
+        target: String(r.get("target")),
+        reason: String(r.get("reason") ?? ""),
+      }));
+
+      const tagEdges = computeTagEdges(nodes, 2000);
+
+      return { nodes, relatesToEdges, tagEdges };
+    } finally {
+      await relatesToSession.close();
     }
   }
 

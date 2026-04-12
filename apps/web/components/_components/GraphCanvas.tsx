@@ -21,7 +21,7 @@ import {
   fitToNodes,
   zoomAt,
 } from "./canvas/viewport";
-import { createSpatialIndex, rebuildIndex } from "./canvas/hit-test";
+import { createSpatialIndex, rebuildIndex, markDirty } from "./canvas/hit-test";
 import { render } from "./canvas/renderer";
 import { attachInputHandlers } from "./canvas/input-handler";
 import type { GraphViewTheme } from "./graph-view-themes";
@@ -33,9 +33,11 @@ interface GraphCanvasProps {
   edges: GraphEdge[];
   viewTheme: GraphViewTheme;
   settings: GraphSettings;
+  focusNodeId?: string | null;
   onHoverNode: (info: HoveredNodeInfo | null) => void;
   onClickNode: (nodeId: string) => void;
   onLinkNodes: (sourceId: string, targetId: string) => void;
+  onFocusNode?: (nodeId: string) => void;
 }
 
 export default function GraphCanvas({
@@ -43,9 +45,11 @@ export default function GraphCanvas({
   edges,
   viewTheme,
   settings,
+  focusNodeId,
   onHoverNode,
   onClickNode,
   onLinkNodes,
+  onFocusNode,
 }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -53,7 +57,13 @@ export default function GraphCanvas({
   const edgesRef = useRef(edges);
   const themeRef = useRef(viewTheme);
   const settingsRef = useRef(settings);
-  const callbacksRef = useRef({ onHoverNode, onClickNode, onLinkNodes });
+  const focusNodeIdRef = useRef(focusNodeId);
+  const callbacksRef = useRef({
+    onHoverNode,
+    onClickNode,
+    onLinkNodes,
+    onFocusNode,
+  });
 
   const simRef = useRef<SimulationController | null>(null);
   const viewportRef = useRef<ViewportState>(createViewport());
@@ -72,7 +82,8 @@ export default function GraphCanvas({
   nodesRef.current = nodes;
   edgesRef.current = edges;
   themeRef.current = viewTheme;
-  callbacksRef.current = { onHoverNode, onClickNode, onLinkNodes };
+  focusNodeIdRef.current = focusNodeId;
+  callbacksRef.current = { onHoverNode, onClickNode, onLinkNodes, onFocusNode };
 
   useEffect(() => {
     if (simRef.current) {
@@ -104,7 +115,6 @@ export default function GraphCanvas({
       canvas,
       interactionRef.current,
       viewportRef.current,
-      nodesRef,
       simRef,
       spatialIndexRef,
       {
@@ -131,6 +141,9 @@ export default function GraphCanvas({
         },
         onLinkNodes(sourceId, targetId) {
           callbacksRef.current.onLinkNodes(sourceId, targetId);
+        },
+        onFocusNode(nodeId) {
+          callbacksRef.current.onFocusNode?.(nodeId);
         },
       },
     );
@@ -174,11 +187,39 @@ export default function GraphCanvas({
       }
     }
 
+    // Frame-loop optimization: track when edges change and cache expensive work
+    let lastEdgesRef = edgesRef.current;
+    let allEdgesResolved = false;
+    let frameCount = 0;
+
     function tick() {
       sim.tick();
       tickViewport(viewportRef.current);
-      rebuildIndex(spatialIndexRef.current, nodesRef.current);
-      resolveEdges();
+
+      // Positions changed from sim.tick — mark spatial index as stale
+      markDirty(spatialIndexRef.current);
+
+      // Only rebuild spatial index every 3 frames (~50ms lag on hover, acceptable).
+      // The dirty flag + hash check inside rebuildIndex avoids redundant O(n) work.
+      frameCount++;
+      if (frameCount % 3 === 0) {
+        rebuildIndex(spatialIndexRef.current, nodesRef.current);
+      }
+
+      // Rebuild neighbor map + reset edge resolution when edge data changes
+      if (edgesRef.current !== lastEdgesRef) {
+        buildNeighborMap();
+        allEdgesResolved = false;
+        lastEdgesRef = edgesRef.current;
+      }
+
+      // Only resolve edges until all are resolved (d3 mutates string IDs → objects
+      // after first tick). Once all resolved, skip until edges change.
+      if (!allEdgesResolved) {
+        resolveEdges();
+        allEdgesResolved =
+          resolvedEdgesCache.length === edgesRef.current.length;
+      }
 
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.clientWidth;
@@ -189,7 +230,7 @@ export default function GraphCanvas({
         canvas.height = h * dpr;
       }
 
-      if (!hasFittedRef.current && sim.simulation.alpha() < 0.15) {
+      if (!hasFittedRef.current && sim.alpha() < 0.15) {
         fitToNodes(viewportRef.current, nodesRef.current, w, h);
         hasFittedRef.current = true;
       }
@@ -215,6 +256,7 @@ export default function GraphCanvas({
         interactionRef.current,
         themeRef.current,
         neighborSet,
+        focusNodeIdRef.current ?? null,
       );
 
       rafId = requestAnimationFrame(tick);
