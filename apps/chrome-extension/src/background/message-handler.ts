@@ -66,6 +66,12 @@ async function handleMessage(
           trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
         const hostname = new URL(message.pageUrl).hostname;
 
+        console.log("[vmem] Saving selection:", {
+          title,
+          hostname,
+          textLength: message.selectedText.length,
+        });
+
         const result = await createMemory({
           title,
           content: message.selectedText.slice(0, 10000),
@@ -89,6 +95,7 @@ async function handleMessage(
         };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";
+        console.error("[vmem] SAVE_SELECTION failed:", error);
         return { type: "SAVE_RESULT", success: false, error };
       }
     }
