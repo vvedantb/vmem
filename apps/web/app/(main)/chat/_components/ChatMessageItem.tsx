@@ -265,7 +265,7 @@ export default function ChatMessageItem({
         )}
 
         {isAssistant && !isStreaming && displayText && (
-          <Actions className="mt-1">
+          <Actions className="mt-1 opacity-0 transition-opacity group-hover:opacity-100">
             <Action tooltip="Copy" label="Copy response" onClick={handleCopy}>
               {copied ? (
                 <IconCheck className="size-3.5" stroke={1.5} />
