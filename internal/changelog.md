@@ -1,5 +1,16 @@
 # Changelog
 
+## Text Selection Popup for Chrome Extension — 2026-04-12
+
+- Added Grammarly-style floating popup on text selection: ~28px circular vmem icon appears 8px below the highlighted text, offering one-click save to vmem
+- Popup uses closed Shadow DOM for CSS/JS isolation from host page, preventing style conflicts on any website
+- One-click save flow: selected text becomes the memory title (auto-truncated to 80 chars), tagged with hostname + "selection" for easy filtering
+- Smart positioning with viewport boundary clamping: horizontally centers on selection, flips above if no room below, clamps to screen edges
+- State machine with visual feedback: `ready` (icon) → `saving` (spinner) → `success` (checkmark, auto-hides 1.5s) / `error` (X icon, auto-hides 2s)
+- Toggle in Settings tab: users can enable/disable the popup per-device, stored in `chrome.storage`, defaults to enabled
+- Edge cases handled: min 3 chars to trigger, skips right-clicks, repositions smoothly on scroll/resize (RAF-throttled), preserves selection on button click via `preventDefault`
+- Reason: right-click → "Save page" saves the entire page; users need a way to save just the text they want to remember without the clutter
+
 ## Files Page → File Explorer Redesign — 2026-04-12
 
 - Redesigned `/files` from flat table view to full file explorer UI with folder hierarchy, breadcrumb navigation, and context menus — modeled on macOS Finder and Windows Explorer
