@@ -77,13 +77,12 @@ export const saveLocalMessages = authMutation({
     assistantText: v.string(),
   },
   handler: async (ctx, { threadId, userText, assistantText }) => {
-    // Save the user message (prompt shorthand creates a user-role message)
-    const { messageId: promptId } = await vmemAgent.saveMessage(ctx, {
+    const { messageId: promptId } = await saveMessage(ctx, components.agent, {
       threadId,
-      prompt: userText,
-      skipEmbeddings: true,
+      userId: ctx.userId,
+      message: { role: "user", content: userText },
+      agentName: "vmem-local",
     });
-    // Save the assistant response with explicit role
     await saveMessage(ctx, components.agent, {
       threadId,
       userId: ctx.userId,
