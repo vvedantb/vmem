@@ -13,7 +13,7 @@ export interface GraphNode extends SimulationNodeDatum {
 export interface GraphEdge extends SimulationLinkDatum<GraphNode> {
   source: string | GraphNode;
   target: string | GraphNode;
-  edgeType: "tag" | "relates_to";
+  edgeType: "tag" | "relates_to" | "imports";
   weight: number;
   reason?: string;
 }
@@ -21,7 +21,7 @@ export interface GraphEdge extends SimulationLinkDatum<GraphNode> {
 export interface ResolvedEdge {
   source: GraphNode;
   target: GraphNode;
-  edgeType: "tag" | "relates_to";
+  edgeType: "tag" | "relates_to" | "imports";
   weight: number;
   reason?: string;
 }

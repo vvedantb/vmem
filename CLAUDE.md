@@ -124,6 +124,20 @@ Local LLM (WebLLM):
 - Provider preference + active model stored in localStorage (device-specific)
 - Web Worker used for non-blocking inference (webllm-worker.ts)
 
+Codebases (GitHub Sync + File Graph):
+
+- `/codebases` route lists synced GitHub repos; `/codebases/[id]` shows file dependency graph
+- GitHub OAuth: Next.js API routes at `app/api/auth/github/` — token encrypted + stored in Convex `githubConnections` table
+- Convex: `githubConnections` (encrypted token), `codebases` (repo metadata + sync status)
+- Neo4j: `CodeFile` nodes + `IMPORTS` edges per codebase — queried via Hono API
+- Hono API: `POST /v1/codebases/sync` (internal auth via X-Internal-Secret), `GET /v1/codebases/:id/graph`
+- Sync pipeline: Convex action → Hono → GitHub tree API → fetch file contents → regex parse TS/JS imports → Neo4j
+- Import parser at `apps/api/src/utils/import-parser.ts` — regex-based, relative imports only, TS/JS
+- Graph reuses existing d3-force canvas engine (GraphCanvas) — `"imports"` added to edgeType union
+- Canvas engine: `types.ts`, `renderer.ts`, `simulation.ts`, `simulation-worker.ts` all support 3 edge types: `tag | relates_to | imports`
+- For Convex functions that accept IDs from URL params, use `v.string()` + `ctx.db.normalizeId()` to avoid `as Id<>` casts
+- Env vars needed: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `INTERNAL_API_SECRET` (for Convex→Hono auth)
+
 Local Voice Mode:
 
 - `/voice` route uses Persona orb (CSS/motion animated, not Rive) from `packages/ui/src/ai-elements/persona.tsx`

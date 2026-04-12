@@ -1,5 +1,17 @@
 # Changelog
 
+## Codebases Feature: GitHub Sync + File Dependency Graph — 2026-04-12
+
+- Implemented full GitHub integration: OAuth 2.0 connect flow stores encrypted access tokens in Convex with secure AES-GCM encryption (reuses apiKeys pattern)
+- Built codebase sync pipeline: fetches TypeScript/JavaScript files from GitHub tree API, parses imports via regex (relative imports only), resolves paths against file tree, stores in Neo4j as CodeFile nodes with IMPORTS edges
+- Created Neo4j schema for file-level dependency graphs: `CodeFile` nodes indexed on (userId, codebaseId), `IMPORTS` relationship edges with importPath metadata
+- Implemented Hono API middleware: `/v1/codebases/sync` endpoint handles GitHub tree fetching + file content parsing in 20-file batches, `/v1/codebases/:id/graph` endpoint returns cached graph data (60s TTL), Neo4j service layer manages node/edge batch operations
+- Built repository picker UI: list connected user's GitHub repos, search/filter, add repos to create codebase entries with real-time sync status (pending → syncing → synced/error)
+- Implemented file dependency graph visualization: reused d3-force canvas engine from MemoryGraph, renders CodeFile nodes with degree-based sizing, import edges with strong force (0.7 strength like relates_to edges)
+- Added directory filtering: group files by directory path, toggle directories to filter graph view, quick "All/None" buttons with file count badges and color-coded dots matching GraphTagFilter pattern
+- Created detail panel on file click: shows filename, full path, directory, extension, lists imports (files this file imports) and imported-by relationships with navigation between related files
+- Reason: enables visual code exploration at file level — developers can understand project structure, identify circular imports, and navigate between dependent files without leaving the graph
+
 ## Text Selection Popup for Chrome Extension — 2026-04-12
 
 - Added Grammarly-style floating popup on text selection: ~28px circular vmem icon appears 8px below the highlighted text, offering one-click save to vmem

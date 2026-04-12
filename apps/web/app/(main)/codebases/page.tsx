@@ -1,113 +1,69 @@
 "use client";
 
-import Link from "next/link";
-import { Badge, Card, CardContent } from "@vmem/ui";
-import {
-  IconDatabase,
-  IconGitBranch,
-  IconLoader2,
-  IconAlertTriangle,
-  IconCheck,
-} from "@tabler/icons-react";
+import { useQuery } from "convex/react";
+import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
-import { mockCodebases } from "@/lib/mock-codebases";
-
-const statusConfig = {
-  indexed: {
-    label: "Indexed",
-    variant: "default" as const,
-    icon: IconCheck,
-    className:
-      "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10",
-  },
-  indexing: {
-    label: "Indexing...",
-    variant: "default" as const,
-    icon: IconLoader2,
-    className:
-      "bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/10",
-  },
-  error: {
-    label: "Error",
-    variant: "destructive" as const,
-    icon: IconAlertTriangle,
-    className: "",
-  },
-};
+import { Button } from "@vmem/ui";
+import { IconDatabase, IconPlus } from "@tabler/icons-react";
+import { useState } from "react";
+import { ConnectGitHubButton } from "./_components/ConnectGitHubButton";
+import { AddRepoModal } from "./_components/AddRepoModal";
+import { CodebaseCard } from "./_components/CodebaseCard";
 
 export default function CodebasesPage() {
+  const connection = useQuery(api.github.getConnection);
+  const codebases = useQuery(api.codebases.listMy);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+
+  const isConnected = connection !== undefined && connection !== null;
+
   return (
-    <PageContainer title="Codebases">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {mockCodebases.map((codebase) => {
-          const status = statusConfig[codebase.status];
-          const StatusIcon = status.icon;
-          const progress =
-            codebase.totalFiles > 0
-              ? Math.round((codebase.filesIndexed / codebase.totalFiles) * 100)
-              : 0;
+    <PageContainer
+      title="Codebases"
+      rightSection={
+        <div className="flex items-center gap-2">
+          {isConnected && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAddModalOpen(true)}
+            >
+              <IconPlus size={16} />
+              Add Repository
+            </Button>
+          )}
+          <ConnectGitHubButton connection={connection ?? null} />
+        </div>
+      }
+    >
+      {codebases === undefined ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+        </div>
+      ) : codebases.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <IconDatabase size={40} className="text-muted-foreground mb-3" />
+          <p className="text-sm text-muted-foreground">
+            {isConnected
+              ? "No repositories synced yet. Add one to get started."
+              : "Connect your GitHub account to start syncing repositories."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {codebases.map((codebase) => (
+            <CodebaseCard key={codebase._id} codebase={codebase} />
+          ))}
+        </div>
+      )}
 
-          return (
-            <Link key={codebase.id} href={`/codebases/${codebase.id}`}>
-              <Card className="border border-border bg-muted/50 shadow-none hover:bg-muted/80 transition-colors cursor-pointer">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                        <IconDatabase size={20} className="text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-medium text-foreground truncate">
-                          {codebase.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
-                          {codebase.description}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge
-                      variant={status.variant}
-                      className={status.className}
-                    >
-                      <StatusIcon
-                        size={12}
-                        className={
-                          codebase.status === "indexing"
-                            ? "animate-spin mr-1"
-                            : "mr-1"
-                        }
-                      />
-                      {status.label}
-                    </Badge>
-                  </div>
-
-                  <div className="mt-3 sm:mt-4 flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground flex-wrap">
-                    <span className="flex items-center gap-1">
-                      <IconGitBranch size={14} />
-                      {codebase.branch}
-                    </span>
-                    <span>{codebase.language}</span>
-                    <span>
-                      {codebase.filesIndexed}/{codebase.totalFiles} files
-                    </span>
-                  </div>
-
-                  {codebase.status === "indexing" && (
-                    <div className="mt-3">
-                      <div className="h-1.5 w-full rounded-full bg-muted">
-                        <div
-                          className="h-1.5 rounded-full bg-blue-500 transition-all"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
+      {isConnected && connection && (
+        <AddRepoModal
+          open={addModalOpen}
+          onOpenChange={setAddModalOpen}
+          connectionId={connection.id}
+        />
+      )}
     </PageContainer>
   );
 }
