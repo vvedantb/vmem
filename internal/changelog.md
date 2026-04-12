@@ -1,5 +1,15 @@
 # Changelog
 
+## Local Voice Mode — 2026-04-12
+
+- Added `/voice` route with push-to-talk voice interaction using browser-local STT (Whisper-base) and TTS (Kokoro-82M) via `@huggingface/transformers`
+- Voice conversations share the same Convex thread as `/chat` — messages created in either route appear in both, tagged with distinct badges (`Cloud`, `Local Text`, `Local Voice`)
+- New `Persona` animated orb component in `packages/ui` visualises session state (idle, listening, thinking, speaking) using motion/react — API matches upstream AI Elements for future Rive swap
+- `VoiceContext` provider orchestrates the full mic → STT → local LLM → persist → TTS → playback pipeline with cancellation support at every step
+- Voice model management added to Settings > Preferences with separate STT/TTS sections, download progress, and Kokoro speaker voice selector (17 presets)
+- Readiness card on `/voice` shows load state for all three required models (chat LLM, Whisper, Kokoro) with inline load CTAs
+- Reason: enables fully offline voice interaction without any cloud dependency, reusing the existing local WebLLM chat model as the assistant brain
+
 ## Local Graph Mode (Obsidian-style focus) — 2026-04-11
 
 - Added local graph mode: double-click a memory node (or click "Focus" in its detail dialog) to see its 2-hop RELATES_TO neighborhood
