@@ -1,5 +1,13 @@
 # Changelog
 
+## Auth Middleware: Fixed /codebases/sync Blocking — 2026-04-13
+
+- Fixed auth middleware pattern `/codebases/:codebaseId` that was matching `/codebases/sync` and running Clerk auth on the internal endpoint
+- Restructured middleware to use `/codebases/:codebaseId/*` pattern: requires trailing path segment, so doesn't match bare `/sync` route
+- Extracted `verifyAuthHeader()` helper function from auth middleware for reusable auth verification without middleware
+- Updated DELETE handler to verify auth inline: `const userId = await verifyAuthHeader(c.req.header("Authorization"))`
+- Reason: allows `/codebases/sync` to use its own X-Internal-Secret authentication without middleware interference; sync endpoint can now reach handler and authenticate via internal API secret
+
 ## Selection Popup UI: Expand-on-Hover + Dark Mode — 2026-04-13
 
 - Added expand-on-hover pill: selection popup starts as 32px icon circle, expands to 152px pill with "Save to vmem" text on hover, collapses back smoothly on mouse leave

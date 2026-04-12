@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { CodebaseService } from "../db/codebase-service";
 import { getDriver } from "../db/neo4j";
 import { parseImports, resolveImportPath } from "../utils/import-parser";
+import { verifyAuthHeader } from "../middleware/auth";
 
 function getService(): CodebaseService {
   return new CodebaseService(getDriver());
@@ -272,10 +273,14 @@ codebases.get("/:codebaseId/graph", async (c) => {
 
 /**
  * DELETE /:codebaseId — delete codebase data from Neo4j.
- * Protected by authMiddleware (applied in index.ts).
+ * Auth verified inline (not via middleware) because the /:codebaseId
+ * pattern also matches /sync which uses separate internal auth.
  */
 codebases.delete("/:codebaseId", async (c) => {
-  const userId = c.get("userId");
+  const userId = await verifyAuthHeader(c.req.header("Authorization"));
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
   const codebaseId = c.req.param("codebaseId");
 
   try {
