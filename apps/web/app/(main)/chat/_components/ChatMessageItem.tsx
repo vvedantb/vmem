@@ -90,16 +90,21 @@ function mapTaskStatus(part: ToolPart): "running" | "completed" | "failed" {
   return "running";
 }
 
+/**
+ * Map `agentName` to the user-facing badge label.
+ * Centralised here so both `/chat` and `/voice` use the same mapping.
+ */
 function getProviderLabel(agentName?: string): string | null {
-  if (agentName === "vmem-local") {
-    return "Local";
+  switch (agentName) {
+    case "vmem":
+      return "Cloud";
+    case "vmem-local":
+      return "Local Text";
+    case "vmem-local-voice":
+      return "Local Voice";
+    default:
+      return null;
   }
-
-  if (agentName === "vmem") {
-    return "Cloud";
-  }
-
-  return null;
 }
 
 interface ChatMessageItemProps {

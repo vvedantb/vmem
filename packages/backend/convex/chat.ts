@@ -67,28 +67,34 @@ export const streamAsync = internalAction({
 
 /**
  * Persist messages from local (in-browser) LLM inference into the shared thread.
- * Called by the web app's useLocalChat hook after streaming completes.
+ * Called by the web app's useLocalChat / voice hooks after streaming completes.
  * Saves both the user prompt and assistant response so they appear in thread history.
+ *
+ * `source` controls the `agentName` tag:
+ *   - "vmem-local"       → text-based local chat (default)
+ *   - "vmem-local-voice" → voice-mode local chat
  */
 export const saveLocalMessages = authMutation({
   args: {
     threadId: v.string(),
     userText: v.string(),
     assistantText: v.string(),
+    source: v.optional(v.string()),
   },
-  handler: async (ctx, { threadId, userText, assistantText }) => {
+  handler: async (ctx, { threadId, userText, assistantText, source }) => {
+    const agentName = source ?? "vmem-local";
     const { messageId: promptId } = await saveMessage(ctx, components.agent, {
       threadId,
       userId: ctx.userId,
       message: { role: "user", content: userText },
-      agentName: "vmem-local",
+      agentName,
     });
     await saveMessage(ctx, components.agent, {
       threadId,
       userId: ctx.userId,
       promptMessageId: promptId,
       message: { role: "assistant", content: assistantText },
-      agentName: "vmem-local",
+      agentName,
     });
     return promptId;
   },
