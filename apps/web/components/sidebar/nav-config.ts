@@ -1,5 +1,6 @@
 import {
   IconMessageCircle,
+  IconMicrophone,
   IconKey,
   IconBell,
   IconSettings,
@@ -24,6 +25,7 @@ export const navGroups: NavGroup[] = [
     icon: IconStack2,
     items: [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
+      { href: "/voice", label: "Voice", icon: IconMicrophone },
       { href: "/memories", label: "Memories", icon: IconBrain },
       {
         href: "/timeline",
