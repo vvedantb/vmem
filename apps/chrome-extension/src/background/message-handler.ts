@@ -102,8 +102,13 @@ async function handleMessage(
 
     case "IMPORT_BOOKMARKS": {
       try {
-        const count = await importBookmarks();
-        return { type: "IMPORT_RESULT", success: true, count };
+        const result = await importBookmarks();
+        return {
+          type: "IMPORT_RESULT",
+          success: true,
+          count: result.imported,
+          locked: result.locked,
+        };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";
         return { type: "IMPORT_RESULT", success: false, count: 0, error };
@@ -112,8 +117,13 @@ async function handleMessage(
 
     case "IMPORT_HISTORY": {
       try {
-        const count = await importHistory(message.days);
-        return { type: "IMPORT_RESULT", success: true, count };
+        const result = await importHistory(message.days);
+        return {
+          type: "IMPORT_RESULT",
+          success: true,
+          count: result.imported,
+          locked: result.locked,
+        };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";
         return { type: "IMPORT_RESULT", success: false, count: 0, error };

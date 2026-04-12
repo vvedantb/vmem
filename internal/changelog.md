@@ -1,5 +1,16 @@
 # Changelog
 
+## Chrome Extension: Auto-Sync + Incremental Bookmarks/History — 2026-04-13
+
+- Implemented auto-sync for bookmarks: new bookmarks sync instantly via `chrome.bookmarks.onCreated` listener without user clicking a button
+- Implemented auto-sync for history: history syncs every 30 minutes via `chrome.alarms` API, only fetches entries since last sync (incremental)
+- Added incremental sync for manual imports: both bookmark and history sync now filter by `dateAdded > lastBookmarkSync` / use `lastHistorySync` as startTime floor, preventing re-sending already-synced items
+- Built in-memory concurrency locks: prevents overlapping auto-sync and manual-sync operations, UI shows "Sync already in progress" if user clicks while auto-sync is running
+- Added sync timestamps to storage: `lastBookmarkSync`, `lastHistorySync` track last successful sync epoch time; first sync (timestamp = 0) imports everything (backwards compatible)
+- Built auto-sync toggle in Settings: users can enable/disable auto-sync per-device, defaults enabled on install; toggle also controls alarm + listener registration
+- Added last-sync timestamps to popup UI: each section (Bookmarks, History) shows "Last synced: Xm ago" / "Never synced" for visibility; renamed buttons "Sync Bookmarks" / "Sync History" to reflect incremental behavior
+- Reason: eliminates manual sync friction, reduces API load by only sending new items, provides visibility into sync status, enables always-current memory context
+
 ## Auth Middleware: Fixed /codebases/sync Blocking — 2026-04-13
 
 - Fixed auth middleware pattern `/codebases/:codebaseId` that was matching `/codebases/sync` and running Clerk auth on the internal endpoint

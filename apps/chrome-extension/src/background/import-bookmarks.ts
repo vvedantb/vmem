@@ -1,10 +1,18 @@
 import { createMemory } from "./api-client";
 import { isCancelled, resetCancel } from "./import-cancel";
+import { acquireBookmarkLock, releaseBookmarkLock } from "./sync-lock";
+import { getStorage, setStorage } from "@/lib/storage";
 
 interface FlatBookmark {
   title: string;
   url: string;
   folderPath: string[];
+  dateAdded: number;
+}
+
+export interface ImportResult {
+  imported: number;
+  locked: boolean;
 }
 
 function flattenBookmarks(
@@ -15,7 +23,12 @@ function flattenBookmarks(
 
   for (const node of nodes) {
     if (node.url) {
-      result.push({ title: node.title, url: node.url, folderPath: path });
+      result.push({
+        title: node.title,
+        url: node.url,
+        folderPath: path,
+        dateAdded: node.dateAdded ?? 0,
+      });
     }
     if (node.children) {
       const childPath = node.title ? [...path, node.title] : path;
@@ -30,43 +43,116 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function importBookmarks(): Promise<number> {
-  resetCancel();
-  const tree = await chrome.bookmarks.getTree();
-  const bookmarks = flattenBookmarks(tree);
-  let imported = 0;
-  let processed = 0;
+/** Walk up the bookmark tree to build the folder path for a single bookmark. */
+async function getBookmarkPath(
+  bookmark: chrome.bookmarks.BookmarkTreeNode,
+): Promise<string[]> {
+  const path: string[] = [];
+  let parentId = bookmark.parentId;
 
-  for (const bookmark of bookmarks) {
-    if (isCancelled()) break;
-
-    try {
-      const result = await createMemory({
-        title: bookmark.title || bookmark.url,
-        content: `${bookmark.title}\n${bookmark.url}`,
-        type: "knowledge",
-        source: "bookmarks",
-        tags: bookmark.folderPath,
-        confidence: 0.8,
-        url: bookmark.url,
-      });
-
-      processed++;
-      if (result.status === "created") {
-        imported++;
-      }
-
-      chrome.runtime.sendMessage({
-        type: "IMPORT_PROGRESS",
-        current: processed,
-        total: bookmarks.length,
-      });
-    } catch {
-      // skip failed bookmarks, continue importing
-    }
-
-    await delay(100);
+  while (parentId) {
+    const [parent] = await chrome.bookmarks.get(parentId);
+    if (!parent || !parent.title) break;
+    path.unshift(parent.title);
+    parentId = parent.parentId;
   }
 
-  return imported;
+  return path;
+}
+
+/**
+ * Bulk import bookmarks — only imports items added since last sync.
+ * First run (lastBookmarkSync === 0) imports everything.
+ */
+export async function importBookmarks(): Promise<ImportResult> {
+  if (!acquireBookmarkLock()) {
+    return { imported: 0, locked: true };
+  }
+
+  try {
+    resetCancel();
+    const { lastBookmarkSync } = await getStorage();
+    const tree = await chrome.bookmarks.getTree();
+    const allBookmarks = flattenBookmarks(tree);
+
+    // Incremental: only bookmarks added since last sync
+    const bookmarks = allBookmarks.filter(
+      (b) => b.dateAdded > lastBookmarkSync,
+    );
+
+    let imported = 0;
+    let processed = 0;
+
+    for (const bookmark of bookmarks) {
+      if (isCancelled()) break;
+
+      try {
+        const result = await createMemory({
+          title: bookmark.title || bookmark.url,
+          content: `${bookmark.title}\n${bookmark.url}`,
+          type: "knowledge",
+          source: "bookmarks",
+          tags: bookmark.folderPath,
+          confidence: 0.8,
+          url: bookmark.url,
+        });
+
+        processed++;
+        if (result.status === "created") {
+          imported++;
+        }
+
+        chrome.runtime.sendMessage({
+          type: "IMPORT_PROGRESS",
+          current: processed,
+          total: bookmarks.length,
+        });
+      } catch {
+        // skip failed bookmarks, continue importing
+      }
+
+      await delay(100);
+    }
+
+    await setStorage({ lastBookmarkSync: Date.now() });
+    return { imported, locked: false };
+  } finally {
+    releaseBookmarkLock();
+  }
+}
+
+/**
+ * Sync a single newly-created bookmark (called from chrome.bookmarks.onCreated).
+ * Skips if auto-sync disabled, not logged in, is a folder, or lock is held.
+ */
+export async function syncSingleBookmark(
+  _id: string,
+  bookmark: chrome.bookmarks.BookmarkTreeNode,
+): Promise<void> {
+  if (!bookmark.url) return; // folders have no URL
+
+  const { autoSyncEnabled, authToken } = await getStorage();
+  if (!autoSyncEnabled || !authToken) return;
+
+  if (!acquireBookmarkLock()) return;
+
+  try {
+    const folderPath = await getBookmarkPath(bookmark);
+
+    await createMemory({
+      title: bookmark.title || bookmark.url,
+      content: `${bookmark.title}\n${bookmark.url}`,
+      type: "knowledge",
+      source: "bookmarks",
+      tags: folderPath,
+      confidence: 0.8,
+      url: bookmark.url,
+    });
+
+    await setStorage({ lastBookmarkSync: Date.now() });
+  } catch {
+    // silently ignore — will be picked up by next bulk sync
+  } finally {
+    releaseBookmarkLock();
+  }
 }
