@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-import { listUIMessages, syncStreams } from "@convex-dev/agent";
+import { listUIMessages, saveMessage, syncStreams } from "@convex-dev/agent";
 import { vStreamArgs } from "@convex-dev/agent/validators";
 import { components, internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
@@ -62,6 +62,36 @@ export const streamAsync = internalAction({
       { saveStreamDeltas: true },
     );
     await result.consumeStream();
+  },
+});
+
+/**
+ * Persist messages from local (in-browser) LLM inference into the shared thread.
+ * Called by the web app's useLocalChat hook after streaming completes.
+ * Saves both the user prompt and assistant response so they appear in thread history.
+ */
+export const saveLocalMessages = authMutation({
+  args: {
+    threadId: v.string(),
+    userText: v.string(),
+    assistantText: v.string(),
+  },
+  handler: async (ctx, { threadId, userText, assistantText }) => {
+    // Save the user message (prompt shorthand creates a user-role message)
+    const { messageId: promptId } = await vmemAgent.saveMessage(ctx, {
+      threadId,
+      prompt: userText,
+      skipEmbeddings: true,
+    });
+    // Save the assistant response with explicit role
+    await saveMessage(ctx, components.agent, {
+      threadId,
+      userId: ctx.userId,
+      promptMessageId: promptId,
+      message: { role: "assistant", content: assistantText },
+      agentName: "vmem-local",
+    });
+    return promptId;
   },
 });
 
