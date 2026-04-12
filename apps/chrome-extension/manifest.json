@@ -39,6 +39,12 @@
     {
       "matches": ["https://claude.ai/*"],
       "js": ["content-claude.js"]
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-selection.js"],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "icons": {

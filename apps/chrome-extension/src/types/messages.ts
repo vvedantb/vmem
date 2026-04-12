@@ -3,6 +3,12 @@ import type { MemoryCandidate } from "./api";
 export type ContentMessage =
   | { type: "RETRIEVE_MEMORIES"; query: string }
   | { type: "SAVE_PAGE"; url: string; title: string; content: string }
+  | {
+      type: "SAVE_SELECTION";
+      selectedText: string;
+      pageUrl: string;
+      pageTitle: string;
+    }
   | { type: "IMPORT_BOOKMARKS" }
   | { type: "IMPORT_HISTORY"; days: number }
   | { type: "TEST_CONNECTION" }
