@@ -71,8 +71,13 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setIsSupported(isWebGPUSupported());
     const stored = getActiveModelId();
-    if (stored) {
+    if (stored && WEB_LLM_MODELS.some((modelInfo) => modelInfo.id === stored)) {
       setActiveModelIdState(stored);
+      return;
+    }
+
+    if (stored) {
+      clearActiveModelId();
     }
   }, []);
 
