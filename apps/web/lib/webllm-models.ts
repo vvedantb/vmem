@@ -18,11 +18,11 @@ export interface WebLLMModelInfo {
 
 export const WEB_LLM_MODELS: WebLLMModelInfo[] = [
   {
-    id: "SmolLM2-135M-Instruct-q4f16_1-MLC",
+    id: "SmolLM2-135M-Instruct-q0f32-MLC",
     name: "SmolLM2 135M",
-    size: "~100MB",
+    size: "~273MB",
     description: "Ultra-fast, limited quality",
-    vramMB: 720,
+    vramMB: 719,
   },
   {
     id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
