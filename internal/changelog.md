@@ -1,5 +1,13 @@
 # Changelog
 
+## Voice Route UI Redesign — 2026-04-12
+
+- Redesigned `/voice` layout from top-to-bottom stack to a CSS Grid centered focus screen — the Persona orb is now the hero, vertically centered with generous breathing room
+- Replaced the disconnected readiness card with inline pill badges (LLM, STT, TTS) below the orb and a one-click "Load All Models" button — orb shows dormant `asleep` state until models are ready
+- Added colored dot indicators to the status line (red=listening, amber=thinking, green=speaking) with pulsing animation during active phases
+- Enlarged mic button from 64px to 80px with shadow depth, icon cross-fade animation, and glass-interactive cancel button
+- Moved conversation history into a collapsible bottom drawer — hidden by default with a "Show conversation" pill trigger, slides up as a glass panel showing all messages
+
 ## Per-Reply Token Usage in Chat — 2026-04-12
 
 - Added Context hover card on every assistant message showing token usage breakdown (input, output, reasoning, cache) with a circular progress ring
