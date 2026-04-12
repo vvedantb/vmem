@@ -27,6 +27,7 @@ import {
   Tool,
   ToolInput,
   ToolOutput,
+  UsageFooter,
 } from "@vmem/ui/ai";
 import { IconUser, IconCopy, IconCheck } from "@tabler/icons-react";
 import Image from "next/image";
@@ -107,11 +108,22 @@ function getProviderLabel(agentName?: string): string | null {
   }
 }
 
-interface ChatMessageItemProps {
-  message: UIMessage;
+/** Token-usage summary for a single assistant message bubble. */
+interface MessageUsageSummary {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
 }
 
-export default function ChatMessageItem({ message }: ChatMessageItemProps) {
+interface ChatMessageItemProps {
+  message: UIMessage;
+  usage?: MessageUsageSummary;
+}
+
+export default function ChatMessageItem({
+  message,
+  usage,
+}: ChatMessageItemProps) {
   const [copied, setCopied] = useState(false);
   const isStreaming = message.status === "streaming";
   const isAssistant = message.role === "assistant";
@@ -236,13 +248,18 @@ export default function ChatMessageItem({ message }: ChatMessageItemProps) {
           </Actions>
         )}
 
-        {providerLabel !== null && (
+        {(providerLabel !== null || (isAssistant && usage)) && (
           <div
-            className={`mt-1 text-xs text-muted-foreground ${
-              isAssistant ? "text-left" : "text-right"
+            className={`mt-1 flex items-center gap-2 ${
+              isAssistant ? "justify-start" : "justify-end"
             }`}
           >
-            {providerLabel}
+            {providerLabel !== null && (
+              <span className="text-xs text-muted-foreground">
+                {providerLabel}
+              </span>
+            )}
+            {isAssistant && usage && <UsageFooter usage={usage} />}
           </div>
         )}
       </div>
