@@ -27,7 +27,6 @@ import {
   IconX,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpandFilled,
-  IconHome,
 } from "@tabler/icons-react";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarFooter } from "./sidebar/SidebarFooter";
@@ -107,7 +106,7 @@ export default function Sidebar({
             >
               <div className="mb-4 flex items-center justify-between pl-4 pr-2 py-2">
                 <Link
-                  href="/"
+                  href="/home"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex flex-row items-center gap-2"
                 >
@@ -178,7 +177,7 @@ export default function Sidebar({
             )}
           >
             <Link
-              href="/"
+              href="/home"
               className={cn(
                 "flex flex-row items-center",
                 !isCollapsed && "gap-2",
@@ -224,18 +223,6 @@ export default function Sidebar({
                 isCollapsed ? "flex-col gap-2" : "flex-row justify-end gap-2",
               )}
             >
-              <Link
-                href="/home"
-                aria-label="Home"
-                className={cn(
-                  "inline-flex items-center justify-center rounded-lg transition-all duration-200 ease-smooth h-7 w-7",
-                  pathname.startsWith("/home")
-                    ? "glass-interactive text-foreground"
-                    : "glass-interactive text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <IconHome className="h-4 w-4" />
-              </Link>
               <Button
                 type="button"
                 variant="ghost"
