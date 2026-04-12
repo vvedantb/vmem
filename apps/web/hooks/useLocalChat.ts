@@ -1,13 +1,6 @@
-/**
- * Hook for local LLM chat via WebLLM (in-browser inference).
- * Mirrors mobile's sendOfflineMessage pattern from useChatProvider.ts.
- *
- * Messages are managed in React state during streaming, then persisted
- * to Convex after completion so they show up in the shared thread.
- */
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { streamText } from "ai";
 import { useUIMessages, type UIMessage } from "@convex-dev/agent/react";
@@ -37,21 +30,30 @@ function makeLocalMessage(
     parts: text ? [{ type: "text", text }] : [],
     order,
     stepOrder: 0,
+    agentName: "vmem-local",
     _creationTime: Date.now(),
   };
 }
 
 function updateMessageText(
-  msg: UIMessage,
-  newText: string,
-  newStatus?: "success" | "streaming",
+  message: UIMessage,
+  text: string,
+  status?: "success" | "streaming",
 ): UIMessage {
   return {
-    ...msg,
-    text: newText,
-    parts: newText ? [{ type: "text", text: newText }] : [],
-    status: newStatus ?? msg.status,
+    ...message,
+    text,
+    parts: text ? [{ type: "text", text }] : [],
+    status: status ?? message.status,
   };
+}
+
+function getHighestOrder(messages: UIMessage[]): number {
+  return messages.reduce(
+    (highestOrder, message) =>
+      message.order > highestOrder ? message.order : highestOrder,
+    -1,
+  );
 }
 
 interface LocalChatResult {
@@ -63,7 +65,7 @@ interface LocalChatResult {
 
 export function useLocalChat(threadId: string | null): LocalChatResult {
   const { model, engineState } = useWebLLM();
-  const [messages, setMessages] = useState<UIMessage[]>([]);
+  const [draftMessages, setDraftMessages] = useState<UIMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const orderRef = useRef(0);
 
@@ -75,58 +77,59 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
   );
 
   useEffect(() => {
-    setMessages([]);
+    setDraftMessages([]);
     orderRef.current = 0;
   }, [threadId]);
 
   useEffect(() => {
-    if (persistedMessages.length === 0) {
+    if (draftMessages.length > 0 || isStreaming) {
       return;
     }
 
-    setMessages((currentMessages) => {
-      if (currentMessages.length > 0) {
-        return currentMessages;
-      }
+    orderRef.current = Math.max(
+      orderRef.current,
+      getHighestOrder(persistedMessages) + 1,
+    );
+  }, [draftMessages.length, isStreaming, persistedMessages]);
 
-      const nextOrder =
-        persistedMessages.reduce(
-          (highestOrder, message) =>
-            message.order > highestOrder ? message.order : highestOrder,
-          -1,
-        ) + 1;
-
-      orderRef.current = nextOrder;
-      return persistedMessages;
-    });
-  }, [persistedMessages]);
+  const messages = persistedMessages.concat(draftMessages);
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!text.trim() || isStreaming || !model) return;
+      if (!text.trim() || isStreaming || !model) {
+        return;
+      }
 
-      const userMsg = makeLocalMessage(
+      const startingOrder = Math.max(
+        orderRef.current,
+        getHighestOrder(messages) + 1,
+      );
+      orderRef.current = startingOrder + 2;
+
+      const userMessage = makeLocalMessage(
         "user",
         text,
         "success",
-        orderRef.current++,
+        startingOrder,
       );
-      const assistantMsg = makeLocalMessage(
+      const assistantMessage = makeLocalMessage(
         "assistant",
         "",
         "streaming",
-        orderRef.current++,
+        startingOrder + 1,
       );
 
-      setMessages((prev) => [...prev, userMsg, assistantMsg]);
+      setDraftMessages([userMessage, assistantMessage]);
       setIsStreaming(true);
 
       try {
-        // Build conversation history from existing messages
         const conversationHistory = messages.flatMap((message) => {
-          if (message.status !== "success") return [];
-          if (message.role !== "user" && message.role !== "assistant")
+          if (message.status !== "success") {
             return [];
+          }
+          if (message.role !== "user" && message.role !== "assistant") {
+            return [];
+          }
           return [{ role: message.role, content: message.text }];
         });
 
@@ -139,48 +142,46 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
         let accumulated = "";
         for await (const delta of textStream) {
           accumulated += delta;
-          const current = accumulated;
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.key === assistantMsg.key ? updateMessageText(m, current) : m,
+          setDraftMessages((currentMessages) =>
+            currentMessages.map((message) =>
+              message.key === assistantMessage.key
+                ? updateMessageText(message, accumulated)
+                : message,
             ),
           );
         }
 
-        // Finalize the message
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.key === assistantMsg.key
-              ? updateMessageText(m, accumulated, "success")
-              : m,
+        setDraftMessages((currentMessages) =>
+          currentMessages.map((message) =>
+            message.key === assistantMessage.key
+              ? updateMessageText(message, accumulated, "success")
+              : message,
           ),
         );
 
-        // Persist to Convex for thread history (fire-and-forget)
         if (threadId && accumulated) {
-          saveLocalMessages({
+          await saveLocalMessages({
             threadId,
             userText: text,
             assistantText: accumulated,
-          }).catch((err) => {
-            console.error("Failed to persist local messages:", err);
           });
+          setDraftMessages([]);
         }
-      } catch (e) {
+      } catch (error) {
         const errorText =
-          e instanceof Error ? e.message : "Something went wrong";
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.key === assistantMsg.key
-              ? updateMessageText(m, `Error: ${errorText}`, "success")
-              : m,
+          error instanceof Error ? error.message : "Something went wrong";
+        setDraftMessages((currentMessages) =>
+          currentMessages.map((message) =>
+            message.key === assistantMessage.key
+              ? updateMessageText(message, `Error: ${errorText}`, "success")
+              : message,
           ),
         );
       } finally {
         setIsStreaming(false);
       }
     },
-    [isStreaming, model, messages, threadId, saveLocalMessages],
+    [isStreaming, messages, model, saveLocalMessages, threadId],
   );
 
   return {

@@ -90,6 +90,18 @@ function mapTaskStatus(part: ToolPart): "running" | "completed" | "failed" {
   return "running";
 }
 
+function getProviderLabel(agentName?: string): string | null {
+  if (agentName === "vmem-local") {
+    return "Local";
+  }
+
+  if (agentName === "vmem") {
+    return "Cloud";
+  }
+
+  return null;
+}
+
 interface ChatMessageItemProps {
   message: UIMessage;
 }
@@ -117,6 +129,7 @@ export default function ChatMessageItem({ message }: ChatMessageItemProps) {
     (p): p is Extract<(typeof message.parts)[number], { type: "source-url" }> =>
       p.type === "source-url",
   );
+  const providerLabel = getProviderLabel(message.agentName);
 
   return (
     <Message from={message.role}>
@@ -216,6 +229,16 @@ export default function ChatMessageItem({ message }: ChatMessageItemProps) {
               )}
             </Action>
           </Actions>
+        )}
+
+        {providerLabel !== null && (
+          <div
+            className={`mt-1 text-xs text-muted-foreground ${
+              isAssistant ? "text-left" : "text-right"
+            }`}
+          >
+            {providerLabel}
+          </div>
         )}
       </div>
     </Message>
