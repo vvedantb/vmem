@@ -1,18 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import Sidebar from "@/components/Sidebar";
 import { PageTitleProvider } from "@/components/contexts/PageTitleContext";
 
 export default function MainShell({ children }: { children: React.ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  const toggleSidebar = useCallback(
+    () => setIsSidebarCollapsed((prev) => !prev),
+    [],
+  );
+
+  useHotkey("Mod+I", toggleSidebar, { preventDefault: true });
+
   return (
     <PageTitleProvider>
       <div className="relative h-screen overflow-hidden bg-[#ffffff] dark:bg-[#222222] md:bg-sidebar md:dark:bg-sidebar">
         <Sidebar
           isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+          onToggleCollapse={toggleSidebar}
         />
         <main
           className={`relative z-10 flex h-full pt-14 md:h-screen md:p-2 md:px-2 md:pb-2 ${

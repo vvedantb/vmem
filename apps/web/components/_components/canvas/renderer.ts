@@ -5,38 +5,12 @@ import type {
   ViewportState,
 } from "./types";
 import type { GraphViewTheme } from "../graph-view-themes";
+import { nodeColor as getNodeColor } from "../graph-colors";
 
 const TWO_PI = Math.PI * 2;
 
-function tagToHue(tag: string): number {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return ((hash % 360) + 360) % 360;
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  s /= 100;
-  l /= 100;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * c)
-      .toString(16)
-      .padStart(2, "0");
-  };
-  return `#${f(0)}${f(8)}${f(4)}`;
-}
-
 function nodeColor(node: GraphNode, theme: GraphViewTheme): string {
-  if (theme.nodeColorOverride) return theme.nodeColorOverride;
-  if (node.tags.length > 0) {
-    const hue = tagToHue(node.tags[0]);
-    return theme.isDarkCanvas ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
-  }
-  return theme.isDarkCanvas ? "#555566" : "#999999";
+  return getNodeColor(node.tags, theme.isDarkCanvas, theme.nodeColorOverride);
 }
 
 function isOnScreen(
@@ -65,6 +39,8 @@ export function render(
   theme: GraphViewTheme,
   neighborSet: Set<string>,
   focusNodeId: string | null,
+  searchMatchSet: Set<string>,
+  showLabels: boolean,
 ): void {
   const w = canvasW * dpr;
   const h = canvasH * dpr;
@@ -117,6 +93,7 @@ export function render(
 
   const nodeCount = nodes.length;
   const hasHover = interaction.hoveredNodeId !== null;
+  const isSearchActive = searchMatchSet.size > 0;
   const lowZoom = vp.scale < 0.4;
   const veryLowZoom = vp.scale < 0.15;
   const highNodeCount = nodeCount > 5000;
@@ -207,7 +184,10 @@ export function render(
 
       const isHovered = interaction.hoveredNodeId === node.id;
       const isNeighbor = neighborSet.has(node.id);
-      const isDimmed = hasHover && !isHovered && !isNeighbor;
+      const isSearchMatch = searchMatchSet.has(node.id);
+      const isDimmed =
+        (hasHover && !isHovered && !isNeighbor) ||
+        (isSearchActive && !isSearchMatch);
       if (isDimmed) continue;
 
       const color = nodeColor(node, theme);
@@ -264,7 +244,10 @@ export function render(
         for (const node of bucket) {
           const isHovered = interaction.hoveredNodeId === node.id;
           const isNeighbor = neighborSet.has(node.id);
-          const isDimmed = hasHover && !isHovered && !isNeighbor;
+          const isSearchMatch = searchMatchSet.has(node.id);
+          const isDimmed =
+            (hasHover && !isHovered && !isNeighbor) ||
+            (isSearchActive && !isSearchMatch);
           if (isDimmed !== dimPass) continue;
 
           const nx = node.x ?? 0;
@@ -294,7 +277,10 @@ export function render(
       if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
       const isNeighbor = neighborSet.has(node.id);
-      const isDimmed = hasHover && !isHovered && !isNeighbor;
+      const isSearchMatch = searchMatchSet.has(node.id);
+      const isDimmed =
+        (hasHover && !isHovered && !isNeighbor) ||
+        (isSearchActive && !isSearchMatch);
       if (isDimmed) continue;
 
       const color = nodeColor(node, theme);
@@ -376,8 +362,8 @@ export function render(
     }
   }
 
-  // --- Node labels: skip at high node count or very low zoom ---
-  if (!lowZoom && !highNodeCount) {
+  // --- Node labels: skip when toggled off, at high node count, or very low zoom ---
+  if (showLabels && !lowZoom && !highNodeCount) {
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     const fontSize = Math.max(10, 12 / Math.max(vp.scale, 0.5));
@@ -392,7 +378,10 @@ export function render(
 
       const isHovered = interaction.hoveredNodeId === node.id;
       const isNeighbor = neighborSet.has(node.id);
-      const isDimmed = hasHover && !isHovered && !isNeighbor;
+      const isSearchMatch = searchMatchSet.has(node.id);
+      const isDimmed =
+        (hasHover && !isHovered && !isNeighbor) ||
+        (isSearchActive && !isSearchMatch);
 
       if (isDimmed) continue;
 
