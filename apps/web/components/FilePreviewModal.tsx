@@ -21,21 +21,11 @@ import {
   IconLoader2,
   IconX,
 } from "@tabler/icons-react";
-
-interface UploadedFile {
-  id: string;
-  name: string;
-  type: string;
-  mimeType: string;
-  size: number;
-  uploadedAt: string;
-  thumbnailUrl?: string;
-  previewContent?: string;
-}
+import type { FileItem } from "@/lib/file-types";
 
 interface FilePreviewModalProps {
   isOpen: boolean;
-  file: UploadedFile | null;
+  file: FileItem | null;
   onClose: () => void;
   onDelete: (id: string) => void;
 }
@@ -58,8 +48,8 @@ function formatDate(dateString: string): string {
   });
 }
 
-function getFileIcon(type: string) {
-  switch (type) {
+function getFileIcon(category: string) {
+  switch (category) {
     case "pdf":
       return IconFileTypePdf;
     case "image":
@@ -147,7 +137,7 @@ export default function FilePreviewModal({
 
   if (!file) return null;
 
-  const FileIcon = getFileIcon(file.type);
+  const FileIcon = getFileIcon(file.fileCategory);
 
   return (
     <>
@@ -179,7 +169,7 @@ export default function FilePreviewModal({
 
           <div className="space-y-6 py-2">
             <div className="rounded-lg bg-muted/50 border border-border overflow-hidden">
-              {file.type === "image" && file.thumbnailUrl ? (
+              {file.fileCategory === "image" && file.thumbnailUrl ? (
                 <div className="flex min-h-72 items-center justify-center p-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -188,7 +178,7 @@ export default function FilePreviewModal({
                     className="max-h-96 max-w-full rounded object-contain"
                   />
                 </div>
-              ) : file.type === "pdf" ? (
+              ) : file.fileCategory === "pdf" ? (
                 <div className="flex min-h-72 flex-col items-center justify-center gap-4 p-8">
                   <IconFileTypePdf size={64} className="text-destructive" />
                   <div className="text-center">

@@ -1,5 +1,19 @@
 # Changelog
 
+## Files Page → File Explorer Redesign — 2026-04-12
+
+- Redesigned `/files` from flat table view to full file explorer UI with folder hierarchy, breadcrumb navigation, and context menus — modeled on macOS Finder and Windows Explorer
+- Added folder support: create folders with inline naming, navigate breadcrumbs to move between folders, `parentFolderId` field tracks hierarchy
+- View toggle: grid (thumbnail/icon cards) and list (compact rows) views, persisted in URL via nuqs with independent sort controls (name, size, date)
+- Multi-select workflow: click, shift+click, ctrl+click to select files; bulk actions bar appears with delete, download, and move-to-folder buttons
+- Full-page drag-and-drop zone: drop files anywhere on the page to open upload modal pre-populated with dropped files
+- Context menus on every item: Open (navigate for folders, preview for files), Download (files only), Move to…, Rename (folders), Delete
+- Extracted shared `FileItem` type to `lib/file-types.ts` — single source of truth for files and folders with proper typing across all consumers
+- Refactored into 14 focused sub-components in `_components/` (FilesClient orchestrator, FileGrid/FileListView for views, BreadcrumbNav, BulkActionBar, MoveFolderDialog, etc.) — page is now a thin server wrapper
+- Added `useFileSelection` hook with `useReducer` for complex multi-select logic (range selection, select-all, toggle patterns)
+- Status bar: Finder-style compact bottom bar showing item count and storage usage with thin progress indicator
+- Reason: files page was a dead table with no navigation or bulk operations; real explorers organize files by folder, support multi-select, and provide quick actions
+
 ## Voice Route UI Redesign — 2026-04-12
 
 - Redesigned `/voice` layout from top-to-bottom stack to a CSS Grid centered focus screen — the Persona orb is now the hero, vertically centered with generous breathing room

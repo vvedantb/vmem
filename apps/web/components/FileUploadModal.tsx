@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,22 +21,13 @@ import {
   IconCheck,
   IconTrash,
 } from "@tabler/icons-react";
-
-interface UploadedFile {
-  id: string;
-  name: string;
-  type: string;
-  mimeType: string;
-  size: number;
-  uploadedAt: string;
-  thumbnailUrl?: string;
-  previewContent?: string;
-}
+import type { FileItem } from "@/lib/file-types";
 
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onFileUploaded: (file: UploadedFile) => void;
+  onFileUploaded: (file: FileItem) => void;
+  initialFiles?: File[];
 }
 
 interface QueuedFile {
@@ -64,10 +55,23 @@ export default function FileUploadModal({
   isOpen,
   onClose,
   onFileUploaded,
+  initialFiles,
 }: FileUploadModalProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [queuedFiles, setQueuedFiles] = useState<QueuedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Pre-populate queue when initialFiles are provided (e.g. from drop zone)
+  useEffect(() => {
+    if (isOpen && initialFiles && initialFiles.length > 0) {
+      const newQueued: QueuedFile[] = initialFiles.map((file) => ({
+        file,
+        progress: 0,
+        status: "pending" as const,
+      }));
+      setQueuedFiles((prev) => [...prev, ...newQueued]);
+    }
+  }, [isOpen, initialFiles]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
