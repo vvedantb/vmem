@@ -59,6 +59,40 @@ async function handleMessage(
       }
     }
 
+    case "SAVE_SELECTION": {
+      try {
+        const trimmed = message.selectedText.trim();
+        const title =
+          trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
+        const hostname = new URL(message.pageUrl).hostname;
+
+        const result = await createMemory({
+          title,
+          content: message.selectedText.slice(0, 10000),
+          type: "knowledge",
+          source: "browser-extension",
+          tags: [hostname, "selection"],
+          confidence: 1.0,
+          url: message.pageUrl,
+        });
+
+        if (result.status === "duplicate") {
+          return {
+            type: "SAVE_DUPLICATE",
+            existingMemory: result.existingMemory,
+          };
+        }
+        return {
+          type: "SAVE_RESULT",
+          success: true,
+          memoryId: result.memory.id,
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "Unknown error";
+        return { type: "SAVE_RESULT", success: false, error };
+      }
+    }
+
     case "IMPORT_BOOKMARKS": {
       try {
         const count = await importBookmarks();
