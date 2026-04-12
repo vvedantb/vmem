@@ -7,10 +7,10 @@
  */
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation } from "convex/react";
 import { streamText } from "ai";
-import type { UIMessage } from "@convex-dev/agent/react";
+import { useUIMessages, type UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
 import { useWebLLM } from "@/components/contexts/WebLLMContext";
 
@@ -68,6 +68,38 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
   const orderRef = useRef(0);
 
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
+  const { results: persistedMessages } = useUIMessages(
+    api.chat.listThreadMessages,
+    threadId ? { threadId } : "skip",
+    { initialNumItems: 50, stream: true },
+  );
+
+  useEffect(() => {
+    setMessages([]);
+    orderRef.current = 0;
+  }, [threadId]);
+
+  useEffect(() => {
+    if (persistedMessages.length === 0) {
+      return;
+    }
+
+    setMessages((currentMessages) => {
+      if (currentMessages.length > 0) {
+        return currentMessages;
+      }
+
+      const nextOrder =
+        persistedMessages.reduce(
+          (highestOrder, message) =>
+            message.order > highestOrder ? message.order : highestOrder,
+          -1,
+        ) + 1;
+
+      orderRef.current = nextOrder;
+      return persistedMessages;
+    });
+  }, [persistedMessages]);
 
   const sendMessage = useCallback(
     async (text: string) => {
