@@ -123,3 +123,15 @@ Local LLM (WebLLM):
 - Local messages persist to Convex via `saveLocalMessages` mutation after streaming completes
 - Provider preference + active model stored in localStorage (device-specific)
 - Web Worker used for non-blocking inference (webllm-worker.ts)
+
+Local Voice Mode:
+
+- `/voice` route uses Persona orb (CSS/motion animated, not Rive) from `packages/ui/src/ai-elements/persona.tsx`
+- Voice model registry in `apps/web/lib/voice/voice-models.ts` — separate from WebLLM text models
+- STT: Whisper-base via `@huggingface/transformers` in `lib/voice/stt-engine.ts`
+- TTS: Kokoro-82M ONNX via `@huggingface/transformers` in `lib/voice/tts-engine.ts`
+- VoiceContext in `components/contexts/VoiceContext.tsx` orchestrates mic → STT → LLM → TTS → playback
+- Voice messages share the same Convex thread as `/chat`, tagged with `agentName: "vmem-local-voice"`
+- Message badges: "Cloud" (vmem), "Local Text" (vmem-local), "Local Voice" (vmem-local-voice)
+- Voice model preferences stored in localStorage: `vmem:activeSTTModelId`, `vmem:activeTTSModelId`, `vmem:activeTTSSpeaker`
+- Push-to-talk v1, no VAD or streaming TTS
