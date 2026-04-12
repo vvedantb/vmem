@@ -119,13 +119,14 @@ export function render(
         ctx.stroke();
       }
 
-      // Relates_to edges (brighter, thicker)
+      // Relates_to + imports edges (brighter, thicker)
       ctx.strokeStyle = theme.edge.normal;
       ctx.lineWidth = theme.edge.width * 2;
       ctx.globalAlpha = 0.6;
       ctx.beginPath();
       for (const edge of edges) {
-        if (edge.edgeType !== "relates_to") continue;
+        if (edge.edgeType !== "relates_to" && edge.edgeType !== "imports")
+          continue;
         ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
         ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
       }
@@ -134,15 +135,17 @@ export function render(
     } else {
       // Hover active — batch into 3 style buckets per edge type: dimmed, normal, connected.
       // Draw dimmed first (bottom), then normal, then connected (top).
-      for (const edgeType of ["tag", "relates_to"] as const) {
+      for (const edgeType of ["tag", "relates_to", "imports"] as const) {
         if (edgeType === "tag" && skipTagEdges) continue;
-        const widthMultiplier = edgeType === "relates_to" ? 2 : 1;
-        const baseAlpha = edgeType === "relates_to" ? 0.6 : 1;
+        const isStrongEdge =
+          edgeType === "relates_to" || edgeType === "imports";
+        const widthMultiplier = isStrongEdge ? 2 : 1;
+        const baseAlpha = isStrongEdge ? 0.6 : 1;
 
         // Pass 1: dimmed edges
         ctx.strokeStyle = theme.edge.dimmed;
         ctx.lineWidth = theme.edge.width * widthMultiplier;
-        ctx.globalAlpha = edgeType === "relates_to" ? theme.dimAlpha : 1;
+        ctx.globalAlpha = isStrongEdge ? theme.dimAlpha : 1;
         ctx.beginPath();
         for (const edge of edges) {
           if (edge.edgeType !== edgeType) continue;
