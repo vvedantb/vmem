@@ -1,8 +1,9 @@
 "use client";
 
-import { IconCpu } from "@tabler/icons-react";
+import { IconCpu, IconMicrophone } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import LocalModelsSection from "./_components/LocalModelsSection";
+import VoiceModelsSection from "./_components/VoiceModelsSection";
 
 export default function PreferencesPage() {
   return (
@@ -20,6 +21,21 @@ export default function PreferencesPage() {
           chat to switch between cloud and local models.
         </p>
         <LocalModelsSection />
+      </div>
+
+      {/* Local Voice Models */}
+      <div className="rounded-xl border border-border p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <IconMicrophone className="h-5 w-5 text-muted-foreground" />
+          <h3 className="text-base font-medium text-foreground">
+            Local Voice Models
+          </h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-5">
+          Download speech recognition and text-to-speech models for the
+          browser-local voice experience. Used on the /voice page.
+        </p>
+        <VoiceModelsSection />
       </div>
     </PageContainer>
   );

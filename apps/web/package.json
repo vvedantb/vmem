@@ -16,6 +16,7 @@
     "@convex-dev/agent": "catalog:",
     "@eslint/eslintrc": "^3.3.1",
     "@hookform/resolvers": "^5.2.2",
+    "@huggingface/transformers": "^4.0.1",
     "@mlc-ai/web-llm": "^0.2.82",
     "@modelcontextprotocol/sdk": "catalog:",
     "@radix-ui/react-checkbox": "catalog:",
