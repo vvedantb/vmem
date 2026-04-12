@@ -1,9 +1,12 @@
 /**
  * TTS engine — browser-local text-to-speech via Kokoro-82M ONNX.
  *
- * Uses Transformers.js to load and run the Kokoro TTS model.
+ * Uses the `kokoro-js` library which wraps Transformers.js internally
+ * to load and run the Kokoro TTS model.
  * Produces raw PCM audio that can be played via the Web Audio API.
  */
+
+import type { ProgressCallback } from "@huggingface/transformers";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -22,22 +25,35 @@ export type TTSProgressCallback = (progress: {
 }) => void;
 
 /**
- * Minimal callable shape for the TTS pipeline.
- * Defined locally because the Transformers.js generic `Pipeline` union
- * doesn't narrow cleanly from `createPipeline("text-to-speech", …)`.
+ * Wrapped generate function that accepts a plain string voice id.
+ * Internally calls KokoroTTS.generate with the typed voice parameter.
  */
-interface TTSPipeline {
-  (
-    text: string,
-    options?: Record<string, string>,
-  ): Promise<{ audio: Float32Array; sampling_rate: number }>;
+type GenerateFn = (
+  text: string,
+  voice?: string,
+) => Promise<{ data: Float32Array; sampling_rate: number }>;
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+/** Merge multiple Float32Array chunks into one contiguous array. */
+function mergeFloat32Arrays(chunks: Float32Array[]): Float32Array {
+  const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+  const merged = new Float32Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return merged;
 }
 
 /* ------------------------------------------------------------------ */
 /*  Singleton state                                                    */
 /* ------------------------------------------------------------------ */
 
-let synthesiser: TTSPipeline | null = null;
+let generateFn: GenerateFn | null = null;
 let loadedModelId: string | null = null;
 let loading = false;
 
@@ -56,45 +72,66 @@ function isDownloadProgress(
 /* ------------------------------------------------------------------ */
 
 /**
- * Download and initialise the TTS pipeline.
+ * Download and initialise the Kokoro TTS model.
  * Safe to call multiple times — returns immediately if already loaded.
  */
 export async function loadTTS(
   modelId: string,
   onProgress?: TTSProgressCallback,
 ): Promise<void> {
-  if (synthesiser && loadedModelId === modelId) return;
+  if (generateFn && loadedModelId === modelId) return;
   if (loading) return;
 
   loading = true;
   onProgress?.({ percent: 0, message: "Loading text-to-speech model..." });
 
   try {
-    const { pipeline: createPipeline } =
-      await import("@huggingface/transformers");
+    // Dynamic import keeps kokoro-js out of the main bundle
+    const { KokoroTTS } = await import("kokoro-js");
 
-    const tts = await createPipeline("text-to-speech", modelId, {
-      dtype: "fp32",
-      device: "wasm",
-      progress_callback: (info: Record<string, unknown>) => {
-        if (isDownloadProgress(info)) {
-          const pct = Math.round(info.progress);
-          onProgress?.({ percent: pct, message: `Downloading: ${pct}%` });
-        }
-        if (info.status === "ready") {
-          onProgress?.({ percent: 100, message: "Ready" });
-        }
-      },
+    const progressCallback: ProgressCallback = (
+      info: Record<string, unknown>,
+    ) => {
+      if (isDownloadProgress(info)) {
+        const pct = Math.round(info.progress);
+        onProgress?.({ percent: pct, message: `Downloading: ${pct}%` });
+      }
+      if (info.status === "ready") {
+        onProgress?.({ percent: 100, message: "Ready" });
+      }
+    };
+
+    const tts = await KokoroTTS.from_pretrained(modelId, {
+      dtype: "q8",
+      device: null, // auto-detect best device
+      progress_callback: progressCallback,
     });
 
-    // Wrap to avoid storing the wide pipeline union type.
-    const wrapped: TTSPipeline = (text, options) =>
-      tts(text, options) as Promise<{
-        audio: Float32Array;
-        sampling_rate: number;
-      }>;
-
-    synthesiser = wrapped;
+    // Wrap generate() so callers pass a plain string voice id.
+    // KokoroTTS.generate types `voice` as a strict union of known
+    // speaker ids; the wrapper bridges that so VoiceContext can pass
+    // any string from localStorage. kokoro-js validates at runtime.
+    const voices = tts.voices;
+    generateFn = async (text: string, voice?: string) => {
+      // Call generate without voice option first, then conditionally
+      // with voice if it's a known speaker. This avoids fighting
+      // the strict `keyof typeof VOICES` union in kokoro-js types.
+      let audio: Awaited<ReturnType<typeof tts.generate>>;
+      if (voice && voice in voices) {
+        // Voice is validated against the known voices object,
+        // so the runtime accepts it even though TS can't narrow string → union.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        audio = await (tts.generate as Function)(text, { voice });
+      } else {
+        audio = await tts.generate(text);
+      }
+      // RawAudio.audio is Float32Array | Float32Array[]. The .data getter
+      // merges chunks, but TS doesn't see it. Access .audio and merge manually.
+      const pcm = Array.isArray(audio.audio)
+        ? mergeFloat32Arrays(audio.audio)
+        : audio.audio;
+      return { data: pcm, sampling_rate: audio.sampling_rate };
+    };
     loadedModelId = modelId;
   } finally {
     loading = false;
@@ -111,18 +148,14 @@ export async function synthesise(
   text: string,
   speakerId?: string,
 ): Promise<TTSResult> {
-  if (!synthesiser) {
+  if (!generateFn) {
     throw new Error("TTS engine not loaded — call loadTTS() first");
   }
 
-  const options: Record<string, string> = {};
-  if (speakerId) {
-    options.speaker_id = speakerId;
-  }
+  const result = await generateFn(text, speakerId);
 
-  const result = await synthesiser(text, options);
   return {
-    audio: result.audio,
+    audio: result.data,
     samplingRate: result.sampling_rate,
   };
 }
@@ -176,7 +209,7 @@ export function playAudio(
  * Free the loaded model from memory.
  */
 export function unloadTTS(): void {
-  synthesiser = null;
+  generateFn = null;
   loadedModelId = null;
 }
 
@@ -184,7 +217,7 @@ export function unloadTTS(): void {
  * Check if the TTS engine is loaded and ready.
  */
 export function isTTSReady(): boolean {
-  return synthesiser !== null;
+  return generateFn !== null;
 }
 
 /**
