@@ -16,6 +16,13 @@ import {
   ChainOfThought,
   ChainOfThoughtContent,
   ChainOfThoughtTrigger,
+  Context,
+  ContextContent,
+  ContextContentBody,
+  ContextContentHeader,
+  ContextInputUsage,
+  ContextOutputUsage,
+  ContextTrigger,
   InlineCitation,
   Message,
   MessageContent,
@@ -27,7 +34,6 @@ import {
   Tool,
   ToolInput,
   ToolOutput,
-  UsageFooter,
 } from "@vmem/ui/ai";
 import { IconUser, IconCopy, IconCheck } from "@tabler/icons-react";
 import Image from "next/image";
@@ -259,7 +265,18 @@ export default function ChatMessageItem({
                 {providerLabel}
               </span>
             )}
-            {isAssistant && usage && <UsageFooter usage={usage} />}
+            {isAssistant && usage && (
+              <Context usage={usage}>
+                <ContextTrigger />
+                <ContextContent>
+                  <ContextContentHeader />
+                  <ContextContentBody>
+                    <ContextInputUsage />
+                    <ContextOutputUsage />
+                  </ContextContentBody>
+                </ContextContent>
+              </Context>
+            )}
           </div>
         )}
       </div>
