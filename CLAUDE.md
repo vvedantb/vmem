@@ -113,39 +113,3 @@ stop adding usestate's useref's for everything, this is the easy way out for eve
 if the user asks you to run a migration, you need to add a migration function to clear the documents with that field in the db, then you run it, then you can get rid of the fields from the schema, then cleanup the migration function
 
 if you are using the agent-browser skill, navigate to `/?agent` to auto sign in as the agent user.
-
-Local LLM (WebLLM):
-
-- Web app uses `@mlc-ai/web-llm` + `@built-in-ai/web-llm` (AI SDK adapter) for in-browser inference
-- Engine singleton in `apps/web/lib/webllm-engine.ts`, model catalog in `webllm-models.ts`
-- WebLLMContext provides model state to the app, useChatProvider toggles cloud/local
-- Chat.tsx uses useCloudChat + useLocalChat hooks — both always run, active one drives UI
-- Local messages persist to Convex via `saveLocalMessages` mutation after streaming completes
-- Provider preference + active model stored in localStorage (device-specific)
-- Web Worker used for non-blocking inference (webllm-worker.ts)
-
-Codebases (GitHub Sync + File Graph):
-
-- `/codebases` route lists synced GitHub repos; `/codebases/[id]` shows file dependency graph
-- GitHub OAuth: Next.js API routes at `app/api/auth/github/` — token encrypted + stored in Convex `githubConnections` table
-- Convex: `githubConnections` (encrypted token), `codebases` (repo metadata + sync status)
-- Neo4j: `CodeFile` nodes + `IMPORTS` edges per codebase — queried via Hono API
-- Hono API: `POST /v1/codebases/sync` (internal auth via X-Internal-Secret), `GET /v1/codebases/:id/graph`
-- Sync pipeline: Convex action → Hono → GitHub tree API → fetch file contents → regex parse TS/JS imports → Neo4j
-- Import parser at `apps/api/src/utils/import-parser.ts` — regex-based, relative imports only, TS/JS
-- Graph reuses existing d3-force canvas engine (GraphCanvas) — `"imports"` added to edgeType union
-- Canvas engine: `types.ts`, `renderer.ts`, `simulation.ts`, `simulation-worker.ts` all support 3 edge types: `tag | relates_to | imports`
-- For Convex functions that accept IDs from URL params, use `v.string()` + `ctx.db.normalizeId()` to avoid `as Id<>` casts
-- Env vars needed: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `INTERNAL_API_SECRET` (for Convex→Hono auth)
-
-Local Voice Mode:
-
-- `/voice` route uses Persona orb (CSS/motion animated, not Rive) from `packages/ui/src/ai-elements/persona.tsx`
-- Voice model registry in `apps/web/lib/voice/voice-models.ts` — separate from WebLLM text models
-- STT: Whisper-base via `@huggingface/transformers` in `lib/voice/stt-engine.ts`
-- TTS: Kokoro-82M ONNX via `@huggingface/transformers` in `lib/voice/tts-engine.ts`
-- VoiceContext in `components/contexts/VoiceContext.tsx` orchestrates mic → STT → LLM → TTS → playback
-- Voice messages share the same Convex thread as `/chat`, tagged with `agentName: "vmem-local-voice"`
-- Message badges: "Cloud" (vmem), "Local Text" (vmem-local), "Local Voice" (vmem-local-voice)
-- Voice model preferences stored in localStorage: `vmem:activeSTTModelId`, `vmem:activeTTSModelId`, `vmem:activeTTSSpeaker`
-- Push-to-talk v1, no VAD or streaming TTS
