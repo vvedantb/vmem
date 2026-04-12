@@ -22,6 +22,7 @@ import {
   getLoadedModelId,
   getActiveModelId,
   setActiveModelId as persistActiveModelId,
+  clearActiveModelId,
   isWebGPUSupported,
 } from "@/lib/webllm-engine";
 
@@ -122,7 +123,9 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
 
   const handleUnloadModel = useCallback(async () => {
     await unloadEngine();
+    clearActiveModelId();
     setModel(null);
+    setActiveModelIdState(null);
     setLoadedModelId(null);
     setLoadingModelId(null);
     setEngineState("idle");
@@ -139,6 +142,25 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       setEngineState("ready");
     }
   }, []);
+
+  useEffect(() => {
+    if (!isSupported || activeModelId === null) {
+      return;
+    }
+
+    if (model !== null || engineState !== "idle" || loadingModelId !== null) {
+      return;
+    }
+
+    void handleLoadModel(activeModelId);
+  }, [
+    activeModelId,
+    engineState,
+    handleLoadModel,
+    isSupported,
+    loadingModelId,
+    model,
+  ]);
 
   return (
     <WebLLMContext.Provider
