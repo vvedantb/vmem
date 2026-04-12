@@ -1,5 +1,13 @@
 # Changelog
 
+## Per-Reply Token Usage in Chat — 2026-04-12
+
+- Added Context hover card on every assistant message showing token usage breakdown (input, output, reasoning, cache) with a circular progress ring
+- New `getThreadMessageUsage` backend query aggregates raw agent message usage per assistant bubble, with correct bubble-key mapping and full pagination
+- Cloud chat usage appears automatically via Convex live query; local chat captures usage from AI SDK `streamText` and persists it through `saveLocalMessages`
+- Context component (`packages/ui/src/ai-elements/context.tsx`) follows the AI SDK Elements compound component pattern — `Context > ContextTrigger > ContextContent > Header/Body` with per-row usage sub-components
+- Supports both providers: cloud messages show server-reported usage, local messages show browser-reported usage (or nothing if unavailable)
+
 ## Consolidate Timeline into Memories — 2026-04-12
 
 - Deleted `/timeline` route — History and Trail features now live contextually inside the memories detail panel instead of a separate page
