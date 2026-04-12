@@ -1,11 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { streamText } from "ai";
 import { useUIMessages, type UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
 import { useWebLLM } from "@/components/contexts/WebLLMContext";
+
+/** Token-usage summary for a single assistant message bubble. */
+interface MessageUsageSummary {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
 
 const SYSTEM_PROMPT = [
   "You are vmem, a memory assistant that helps users store, search, and recall their personal memories.",
@@ -61,15 +68,24 @@ interface LocalChatResult {
   sendMessage: (text: string) => Promise<void>;
   isStreaming: boolean;
   isReady: boolean;
+  usageByMessageKey: Record<string, MessageUsageSummary>;
 }
 
 export function useLocalChat(threadId: string | null): LocalChatResult {
   const { model, engineState } = useWebLLM();
   const [draftMessages, setDraftMessages] = useState<UIMessage[]>([]);
+  const [draftUsageByKey, setDraftUsageByKey] = useState<
+    Record<string, MessageUsageSummary>
+  >({});
   const [isStreaming, setIsStreaming] = useState(false);
   const orderRef = useRef(0);
 
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
+  const persistedUsageByKey: Record<string, MessageUsageSummary> =
+    useQuery(
+      api.chat.getThreadMessageUsage,
+      threadId ? { threadId } : "skip",
+    ) ?? {};
   const { results: persistedMessages } = useUIMessages(
     api.chat.listThreadMessages,
     threadId ? { threadId } : "skip",
@@ -133,14 +149,14 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
           return [{ role: message.role, content: message.text }];
         });
 
-        const { textStream } = streamText({
+        const result = streamText({
           model,
           system: SYSTEM_PROMPT,
           messages: [...conversationHistory, { role: "user", content: text }],
         });
 
         let accumulated = "";
-        for await (const delta of textStream) {
+        for await (const delta of result.textStream) {
           accumulated += delta;
           setDraftMessages((currentMessages) =>
             currentMessages.map((message) =>
@@ -149,6 +165,24 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
                 : message,
             ),
           );
+        }
+
+        // Capture token usage from the completed stream
+        const totalUsage = await result.totalUsage;
+        const inputTokens = totalUsage.inputTokens ?? 0;
+        const outputTokens = totalUsage.outputTokens ?? 0;
+        const hasUsage = inputTokens > 0 || outputTokens > 0;
+
+        if (hasUsage) {
+          const summary: MessageUsageSummary = {
+            inputTokens,
+            outputTokens,
+            totalTokens: inputTokens + outputTokens,
+          };
+          setDraftUsageByKey((prev) => ({
+            ...prev,
+            [assistantMessage.key]: summary,
+          }));
         }
 
         setDraftMessages((currentMessages) =>
@@ -160,12 +194,22 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
         );
 
         if (threadId && accumulated) {
+          const usageForSave = hasUsage
+            ? {
+                promptTokens: inputTokens,
+                completionTokens: outputTokens,
+                totalTokens: inputTokens + outputTokens,
+              }
+            : undefined;
+
           await saveLocalMessages({
             threadId,
             userText: text,
             assistantText: accumulated,
+            usage: usageForSave,
           });
           setDraftMessages([]);
+          setDraftUsageByKey({});
         }
       } catch (error) {
         const errorText =
@@ -184,10 +228,16 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
     [isStreaming, messages, model, saveLocalMessages, threadId],
   );
 
+  const usageByMessageKey: Record<string, MessageUsageSummary> = {
+    ...persistedUsageByKey,
+    ...draftUsageByKey,
+  };
+
   return {
     messages,
     sendMessage,
     isStreaming,
     isReady: engineState === "ready" && model !== null,
+    usageByMessageKey,
   };
 }
