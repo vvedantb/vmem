@@ -122,6 +122,9 @@
     isolation: isolate;
     border: 1px solid oklch(var(--border) / 0.5);
     background: oklch(var(--glass-bg-soft) / 0.82);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    will-change: backdrop-filter;
   }
 
   .glass-panel-strong {
