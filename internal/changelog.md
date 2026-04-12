@@ -1,5 +1,13 @@
 # Changelog
 
+## GitHub OAuth: Moved to Convex HTTP Actions — 2026-04-13
+
+- Migrated GitHub OAuth flow from Next.js API routes to Convex HTTP actions: callback URL now points to Convex site (`*.convex.site`) instead of Next.js domain
+- Implemented state-based authentication: OAuth state tokens stored in new `oauthStates` table prevent CSRF attacks and enable atomic state consumption (defeats replay attacks)
+- Frontend-driven return URL: frontend passes `window.location.origin` when initiating OAuth, supporting same Convex deployment for both dev and staging without env var configuration
+- Eliminated public `storeConnection` action: callback logic now entirely internal (`handleGitHubCallbackInternal` internalAction), reducing surface area
+- Reason: improves security (state validation, atomic consumption), simplifies multi-environment deployments, centralizes OAuth logic in Convex backend, fixes CSRF vulnerability in original code
+
 ## Codebases Feature: GitHub Sync + File Dependency Graph — 2026-04-12
 
 - Implemented full GitHub integration: OAuth 2.0 connect flow stores encrypted access tokens in Convex with secure AES-GCM encryption (reuses apiKeys pattern)

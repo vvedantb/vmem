@@ -1,5 +1,9 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
 
@@ -77,39 +81,151 @@ export const getConnection = authQuery({
   },
 });
 
-export const storeConnection = authAction({
-  args: {
-    githubUsername: v.string(),
-    accessToken: v.string(),
-    avatarUrl: v.optional(v.string()),
-  },
+/**
+ * Initiates the GitHub OAuth flow.
+ * Creates a state token tied to the current user, returns the GitHub authorize URL.
+ * Frontend redirects the browser to this URL.
+ */
+export const startGitHubOAuth = authAction({
+  args: { returnUrl: v.string() },
   handler: async (ctx, args) => {
-    // Check if already connected
-    const existing = await ctx.runQuery(internal.github.getConnectionInternal, {
+    const clientId = getEnvOrThrow("GITHUB_CLIENT_ID");
+    const convexSiteUrl = getEnvOrThrow("CONVEX_SITE_URL");
+
+    const state = crypto.randomUUID();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    await ctx.runMutation(internal.github.insertOAuthStateInternal, {
+      state,
       userId: ctx.userId,
+      returnUrl: args.returnUrl,
+      expiresAt,
     });
-    if (existing) {
-      // Update existing connection
-      const encrypted = await encryptToken(args.accessToken);
-      await ctx.runMutation(internal.github.updateConnectionInternal, {
-        id: existing._id,
-        githubUsername: args.githubUsername,
-        encryptedAccessToken: encrypted,
-        avatarUrl: args.avatarUrl,
-        connectedAt: Date.now(),
-      });
-      return existing._id;
+
+    const redirectUri = `${convexSiteUrl}/api/auth/github/callback`;
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope: "repo read:user",
+      state,
+    });
+
+    return `https://github.com/login/oauth/authorize?${params.toString()}`;
+  },
+});
+
+/** GitHub token exchange response shape. */
+interface GitHubTokenResponse {
+  access_token?: string;
+  error?: string;
+}
+
+/** Subset of GitHub user profile we need. */
+interface GitHubUserProfile {
+  login?: string;
+  avatar_url?: string;
+}
+
+/**
+ * Handles the GitHub OAuth callback. Called by the httpAction in http.ts.
+ * Consumes the state token, exchanges the code for an access token,
+ * fetches the user profile, and stores the encrypted connection.
+ */
+type OAuthCallbackResult = {
+  error: string | null;
+  returnUrl: string | null;
+};
+
+export const handleGitHubCallbackInternal = internalAction({
+  args: { code: v.string(), state: v.string() },
+  handler: async (ctx, args): Promise<OAuthCallbackResult> => {
+    // 1. Consume and validate state
+    const stateEntry = await ctx.runMutation(
+      internal.github.consumeOAuthStateInternal,
+      { state: args.state },
+    );
+    if (!stateEntry) {
+      return { error: "invalid_state", returnUrl: null };
+    }
+    if (stateEntry.expiresAt < Date.now()) {
+      return { error: "expired_state", returnUrl: stateEntry.returnUrl };
     }
 
-    const encrypted = await encryptToken(args.accessToken);
-    const id = await ctx.runMutation(internal.github.insertConnectionInternal, {
-      userId: ctx.userId,
-      githubUsername: args.githubUsername,
-      encryptedAccessToken: encrypted,
-      avatarUrl: args.avatarUrl,
-      connectedAt: Date.now(),
+    // 2. Exchange code for access token
+    const clientId = getEnvOrThrow("GITHUB_CLIENT_ID");
+    const clientSecret = getEnvOrThrow("GITHUB_CLIENT_SECRET");
+
+    const tokenRes = await fetch(
+      "https://github.com/login/oauth/access_token",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code: args.code,
+        }),
+      },
+    );
+    if (!tokenRes.ok) {
+      return {
+        error: "token_exchange_failed",
+        returnUrl: stateEntry.returnUrl,
+      };
+    }
+
+    const tokenData: GitHubTokenResponse = await tokenRes.json();
+    if (!tokenData.access_token) {
+      return {
+        error: tokenData.error ?? "no_token",
+        returnUrl: stateEntry.returnUrl,
+      };
+    }
+
+    // 3. Fetch GitHub user profile
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+        Accept: "application/vnd.github+json",
+      },
     });
-    return id;
+    if (!userRes.ok) {
+      return { error: "user_fetch_failed", returnUrl: stateEntry.returnUrl };
+    }
+
+    const userData: GitHubUserProfile = await userRes.json();
+    if (!userData.login) {
+      return { error: "user_fetch_failed", returnUrl: stateEntry.returnUrl };
+    }
+
+    // 4. Encrypt and store connection
+    const existing = await ctx.runQuery(internal.github.getConnectionInternal, {
+      userId: stateEntry.userId,
+    });
+    const encrypted = await encryptToken(tokenData.access_token);
+
+    if (existing) {
+      await ctx.runMutation(internal.github.updateConnectionInternal, {
+        id: existing._id,
+        githubUsername: userData.login,
+        encryptedAccessToken: encrypted,
+        avatarUrl: userData.avatar_url,
+        connectedAt: Date.now(),
+      });
+    } else {
+      await ctx.runMutation(internal.github.insertConnectionInternal, {
+        userId: stateEntry.userId,
+        githubUsername: userData.login,
+        encryptedAccessToken: encrypted,
+        avatarUrl: userData.avatar_url,
+        connectedAt: Date.now(),
+      });
+    }
+
+    return { error: null, returnUrl: stateEntry.returnUrl };
   },
 });
 
@@ -161,6 +277,51 @@ export const updateConnectionInternal = internalMutation({
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, fields);
+  },
+});
+
+// --- OAuth state helpers ---
+
+export const insertOAuthStateInternal = internalMutation({
+  args: {
+    state: v.string(),
+    userId: v.id("users"),
+    returnUrl: v.string(),
+    expiresAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("oauthStates", args);
+  },
+});
+
+/**
+ * Atomically consumes an OAuth state entry (read + delete).
+ * Returns the entry data if found, null otherwise.
+ * Being a mutation ensures no two callbacks can consume the same state.
+ */
+export const consumeOAuthStateInternal = internalMutation({
+  args: { state: v.string() },
+  returns: v.union(
+    v.object({
+      userId: v.id("users"),
+      returnUrl: v.string(),
+      expiresAt: v.number(),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const entry = await ctx.db
+      .query("oauthStates")
+      .withIndex("by_state", (q) => q.eq("state", args.state))
+      .first();
+    if (!entry) return null;
+
+    await ctx.db.delete(entry._id);
+    return {
+      userId: entry.userId,
+      returnUrl: entry.returnUrl,
+      expiresAt: entry.expiresAt,
+    };
   },
 });
 

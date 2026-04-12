@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import { Button } from "@vmem/ui";
 import { IconBrandGithub, IconCheck, IconLoader2 } from "@tabler/icons-react";
@@ -16,7 +16,9 @@ interface ConnectGitHubButtonProps {
 
 export function ConnectGitHubButton({ connection }: ConnectGitHubButtonProps) {
   const disconnectGithub = useMutation(api.github.disconnect);
+  const startOAuth = useAction(api.github.startGitHubOAuth);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   if (connection) {
     return (
@@ -55,11 +57,25 @@ export function ConnectGitHubButton({ connection }: ConnectGitHubButtonProps) {
     <Button
       variant="outline"
       size="sm"
-      onClick={() => {
-        window.location.href = "/api/auth/github";
+      disabled={connecting}
+      onClick={async () => {
+        setConnecting(true);
+        try {
+          const url = await startOAuth({
+            returnUrl: window.location.origin,
+          });
+          window.location.href = url;
+        } catch {
+          toast.error("Failed to start GitHub connection");
+          setConnecting(false);
+        }
       }}
     >
-      <IconBrandGithub size={16} />
+      {connecting ? (
+        <IconLoader2 size={14} className="animate-spin" />
+      ) : (
+        <IconBrandGithub size={16} />
+      )}
       Connect GitHub
     </Button>
   );
