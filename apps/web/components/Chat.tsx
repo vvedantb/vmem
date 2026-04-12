@@ -124,7 +124,11 @@ export default function Chat() {
           )}
 
           {active.messages.map((message) => (
-            <ChatMessageItem key={message.key} message={message} />
+            <ChatMessageItem
+              key={message.key}
+              message={message}
+              usage={active.usageByMessageKey[message.key]}
+            />
           ))}
         </ConversationContent>
         <ConversationScrollButton />

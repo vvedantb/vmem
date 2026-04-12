@@ -3,7 +3,7 @@
  * Extracted from Chat.tsx to enable dual-mode (cloud/local) switching.
  */
 import { useState, useEffect, useCallback } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import {
   useUIMessages,
   optimisticallySendMessage,
@@ -11,12 +11,20 @@ import {
 import type { UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
 
+/** Token-usage summary for a single assistant message bubble. */
+interface MessageUsageSummary {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
 interface CloudChatResult {
   messages: UIMessage[];
   sendMessage: (text: string) => Promise<void>;
   isStreaming: boolean;
   isReady: boolean;
   threadId: string | null;
+  usageByMessageKey: Record<string, MessageUsageSummary>;
 }
 
 export function useCloudChat(): CloudChatResult {
@@ -43,6 +51,12 @@ export function useCloudChat(): CloudChatResult {
     { initialNumItems: 50, stream: true },
   );
 
+  const usageByMessageKey: Record<string, MessageUsageSummary> =
+    useQuery(
+      api.chat.getThreadMessageUsage,
+      threadId ? { threadId } : "skip",
+    ) ?? {};
+
   const isStreaming = messages.some(
     (m) => m.role === "assistant" && m.status === "streaming",
   );
@@ -61,5 +75,6 @@ export function useCloudChat(): CloudChatResult {
     isStreaming,
     isReady: threadId !== null,
     threadId,
+    usageByMessageKey,
   };
 }
