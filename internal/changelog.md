@@ -1,5 +1,18 @@
 # Changelog
 
+## Consolidate Timeline into Memories — 2026-04-12
+
+- Deleted `/timeline` route — History and Trail features now live contextually inside the memories detail panel instead of a separate page
+- `MemoryDetailPanel` decomposed from 452-line monolith into tabbed shell (179 lines) with three tabs: Details, History, Connections
+- History tab shows change timeline with word-level diffs inline when viewing any memory — no more navigating away
+- Connections tab wraps existing `RelatedMemories` component, promoted from a footer section to a first-class tab
+- Trail data enriches the memory list: selecting a tag in the sidebar now fetches trail metadata and shows violet "related" badges on connected list items
+- Extracted `useAuthFetch` hook to deduplicate the authenticated fetch pattern across 3+ consumers
+- Extracted `TagInputWithSuggestions` component from the edit form for reuse and to keep components under 250 lines
+- Created `useTimelineEvents` and `useTrailData` hooks to encapsulate timeline API calls
+- Removed Timeline from sidebar navigation
+- Reason: timeline was a separate page that broke the user's flow — history and connections are more useful in context, right where you're already looking at a memory
+
 ## Local Voice Mode — 2026-04-12
 
 - Added `/voice` route with push-to-talk voice interaction using browser-local STT (Whisper-base) and TTS (Kokoro-82M) via `@huggingface/transformers`
