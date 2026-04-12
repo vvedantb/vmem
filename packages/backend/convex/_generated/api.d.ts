@@ -16,6 +16,7 @@ import type * as chat from "../chat.js";
 import type * as codebases from "../codebases.js";
 import type * as connectors from "../connectors.js";
 import type * as github from "../github.js";
+import type * as http from "../http.js";
 import type * as memoryEvents from "../memoryEvents.js";
 import type * as notifications from "../notifications.js";
 import type * as userSettings from "../userSettings.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   codebases: typeof codebases;
   connectors: typeof connectors;
   github: typeof github;
+  http: typeof http;
   memoryEvents: typeof memoryEvents;
   notifications: typeof notifications;
   userSettings: typeof userSettings;

@@ -113,3 +113,17 @@ stop adding usestate's useref's for everything, this is the easy way out for eve
 if the user asks you to run a migration, you need to add a migration function to clear the documents with that field in the db, then you run it, then you can get rid of the fields from the schema, then cleanup the migration function
 
 if you are using the agent-browser skill, navigate to `/?agent` to auto sign in as the agent user.
+
+Codebases (GitHub Sync + File Graph):
+
+- `/codebases` route lists synced GitHub repos; `/codebases/[id]` shows file dependency graph
+- GitHub OAuth: Convex-side — `startGitHubOAuth` authAction creates state in `oauthStates` table, returns GitHub authorize URL; `http.ts` httpAction handles callback, delegates to `handleGitHubCallbackInternal`
+- State-based auth: since GitHub callback has no Clerk JWT, the `state` param maps to userId via `oauthStates` table (consumed atomically on callback)
+- Frontend passes `window.location.origin` as `returnUrl` so the same Convex deployment works for dev/staging
+- Convex: `githubConnections` (encrypted token), `codebases` (repo metadata + sync status), `oauthStates` (temporary OAuth flow state)
+- Neo4j: `CodeFile` nodes + `IMPORTS` edges per codebase — queried via Hono API
+- Hono API: `POST /v1/codebases/sync` (internal auth via X-Internal-Secret), `GET /v1/codebases/:id/graph`
+- Sync pipeline: Convex action → Hono → GitHub tree API → fetch file contents → regex parse TS/JS imports → Neo4j
+- Import parser at `apps/api/src/utils/import-parser.ts` — regex-based, relative imports only, TS/JS
+- Graph reuses existing d3-force canvas engine (GraphCanvas) — `"imports"` added to edgeType union
+- Env vars needed: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `CONVEX_SITE_URL` (in Convex env), `INTERNAL_API_SECRET` (for Convex→Hono auth)
