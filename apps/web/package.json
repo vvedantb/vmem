@@ -11,10 +11,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@built-in-ai/web-llm": "^1.0.1",
     "@clerk/nextjs": "catalog:",
     "@convex-dev/agent": "catalog:",
     "@eslint/eslintrc": "^3.3.1",
     "@hookform/resolvers": "^5.2.2",
+    "@mlc-ai/web-llm": "^0.2.82",
     "@modelcontextprotocol/sdk": "catalog:",
     "@radix-ui/react-checkbox": "catalog:",
     "@radix-ui/react-collapsible": "catalog:",
