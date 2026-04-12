@@ -43,7 +43,7 @@ interface SyncRequestBody {
   githubToken: string;
 }
 
-const codebases = new Hono<{ Variables: { userId: string } }>();
+const codebases = new Hono();
 
 /**
  * POST /sync — sync a codebase from GitHub.
@@ -240,10 +240,14 @@ codebases.post("/sync", async (c) => {
 
 /**
  * GET /:codebaseId/graph — get file graph for a codebase.
- * Protected by authMiddleware (applied in index.ts).
+ * Auth verified inline (same as DELETE) because middleware on /codebases
+ * would also match /sync which uses separate internal auth.
  */
 codebases.get("/:codebaseId/graph", async (c) => {
-  const userId = c.get("userId");
+  const userId = await verifyAuthHeader(c.req.header("Authorization"));
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
   const codebaseId = c.req.param("codebaseId");
 
   const cacheKey = `${userId}:${codebaseId}`;
