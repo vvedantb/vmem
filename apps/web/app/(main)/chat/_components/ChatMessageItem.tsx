@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import { useSmoothText } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import {
@@ -37,7 +37,14 @@ import {
   ToolInput,
   ToolOutput,
 } from "@vmem/ui/ai";
-import { IconUser, IconCopy, IconCheck } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconCloud,
+  IconCopy,
+  IconCpu,
+  IconMicrophone,
+  IconUser,
+} from "@tabler/icons-react";
 import Image from "next/image";
 
 function AssistantAvatar() {
@@ -99,18 +106,27 @@ function mapTaskStatus(part: ToolPart): "running" | "completed" | "failed" {
   return "running";
 }
 
-/**
- * Map `agentName` to the user-facing badge label.
- * Centralised here so both `/chat` and `/voice` use the same mapping.
- */
-function getProviderLabel(agentName?: string): string | null {
+/** Map `agentName` to a provider icon + tooltip. */
+function getProviderMeta(agentName?: string): {
+  icon: ReactNode;
+  tooltip: string;
+} | null {
   switch (agentName) {
     case "vmem":
-      return "Cloud";
+      return {
+        icon: <IconCloud className="size-3.5" stroke={1.5} />,
+        tooltip: "Cloud",
+      };
     case "vmem-local":
-      return "Local Text";
+      return {
+        icon: <IconCpu className="size-3.5" stroke={1.5} />,
+        tooltip: "Local",
+      };
     case "vmem-local-voice":
-      return "Local Voice";
+      return {
+        icon: <IconMicrophone className="size-3.5" stroke={1.5} />,
+        tooltip: "Voice",
+      };
     default:
       return null;
   }
@@ -158,7 +174,7 @@ export default function ChatMessageItem({
     (p): p is Extract<(typeof message.parts)[number], { type: "source-url" }> =>
       p.type === "source-url",
   );
-  const providerLabel = getProviderLabel(message.agentName);
+  const providerMeta = getProviderMeta(message.agentName);
 
   return (
     <Message from={message.role}>
@@ -257,21 +273,17 @@ export default function ChatMessageItem({
                 <IconCopy className="size-3.5" stroke={1.5} />
               )}
             </Action>
-          </Actions>
-        )}
 
-        {(providerLabel !== null || (isAssistant && usage)) && (
-          <div
-            className={`mt-1 flex items-center gap-2 ${
-              isAssistant ? "justify-start" : "justify-end"
-            }`}
-          >
-            {providerLabel !== null && (
-              <span className="text-xs text-muted-foreground">
-                {providerLabel}
-              </span>
+            {providerMeta && (
+              <Action
+                tooltip={providerMeta.tooltip}
+                label={providerMeta.tooltip}
+              >
+                {providerMeta.icon}
+              </Action>
             )}
-            {isAssistant && usage && (
+
+            {usage && (
               <Context
                 usage={usage}
                 usedTokens={usage.totalTokens}
@@ -289,7 +301,7 @@ export default function ChatMessageItem({
                 </ContextContent>
               </Context>
             )}
-          </div>
+          </Actions>
         )}
       </div>
     </Message>
