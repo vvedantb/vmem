@@ -248,11 +248,18 @@ function saveSelection(): void {
     (response: BackgroundResponse | undefined) => {
       // Handle extension context invalidated (e.g. extension updated/reloaded)
       if (chrome.runtime.lastError) {
+        console.error(
+          "[vmem] sendMessage error:",
+          chrome.runtime.lastError.message,
+        );
         transitionTo("error");
         return;
       }
 
       if (!response) {
+        console.error(
+          "[vmem] No response from background — is the service worker running?",
+        );
         transitionTo("error");
         return;
       }
@@ -263,6 +270,7 @@ function saveSelection(): void {
         // Already saved — treat as success from user's perspective
         transitionTo("success");
       } else {
+        console.error("[vmem] Save failed:", response);
         transitionTo("error");
       }
     },
