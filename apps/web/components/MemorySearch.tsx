@@ -17,6 +17,7 @@ import TagSidebar from "./_components/TagSidebar";
 import MemoryListItem from "./_components/MemoryListItem";
 import { searchMemories, type Memory, type SearchResult } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
+import { useTrailData } from "@/hooks/useTrailData";
 
 interface MemorySearchProps {
   searchQuery?: string;
@@ -34,6 +35,7 @@ export default function MemorySearch({
   const setSearchQuery = onSearchChange ?? setInternalQuery;
   const isExternalSearch = externalQuery !== undefined;
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const { trailMap } = useTrailData({ tag: selectedTag });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
@@ -275,6 +277,7 @@ export default function MemorySearch({
                       item={item}
                       isSelected={selectedMemoryId === item.id}
                       isShowingSearchResults={isShowingSearchResults}
+                      trailEntry={trailMap.get(item.id)}
                       onCardClick={handleCardClick}
                       onContextEdit={handleContextEdit}
                       onContextDelete={handleContextDelete}
