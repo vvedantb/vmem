@@ -16,6 +16,15 @@ import {
   ChainOfThought,
   ChainOfThoughtContent,
   ChainOfThoughtTrigger,
+  Context,
+  ContextCacheUsage,
+  ContextContent,
+  ContextContentBody,
+  ContextContentHeader,
+  ContextInputUsage,
+  ContextOutputUsage,
+  ContextReasoningUsage,
+  ContextTrigger,
   InlineCitation,
   Message,
   MessageContent,
@@ -90,11 +99,43 @@ function mapTaskStatus(part: ToolPart): "running" | "completed" | "failed" {
   return "running";
 }
 
-interface ChatMessageItemProps {
-  message: UIMessage;
+/**
+ * Map `agentName` to the user-facing badge label.
+ * Centralised here so both `/chat` and `/voice` use the same mapping.
+ */
+function getProviderLabel(agentName?: string): string | null {
+  switch (agentName) {
+    case "vmem":
+      return "Cloud";
+    case "vmem-local":
+      return "Local Text";
+    case "vmem-local-voice":
+      return "Local Voice";
+    default:
+      return null;
+  }
 }
 
-export default function ChatMessageItem({ message }: ChatMessageItemProps) {
+const MODEL_MAX_TOKENS = 1_000_000;
+
+/** Token-usage summary for a single assistant message bubble. */
+interface MessageUsageSummary {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  reasoningTokens: number;
+  cachedInputTokens: number;
+}
+
+interface ChatMessageItemProps {
+  message: UIMessage;
+  usage?: MessageUsageSummary;
+}
+
+export default function ChatMessageItem({
+  message,
+  usage,
+}: ChatMessageItemProps) {
   const [copied, setCopied] = useState(false);
   const isStreaming = message.status === "streaming";
   const isAssistant = message.role === "assistant";
@@ -117,6 +158,7 @@ export default function ChatMessageItem({ message }: ChatMessageItemProps) {
     (p): p is Extract<(typeof message.parts)[number], { type: "source-url" }> =>
       p.type === "source-url",
   );
+  const providerLabel = getProviderLabel(message.agentName);
 
   return (
     <Message from={message.role}>
@@ -216,6 +258,38 @@ export default function ChatMessageItem({ message }: ChatMessageItemProps) {
               )}
             </Action>
           </Actions>
+        )}
+
+        {(providerLabel !== null || (isAssistant && usage)) && (
+          <div
+            className={`mt-1 flex items-center gap-2 ${
+              isAssistant ? "justify-start" : "justify-end"
+            }`}
+          >
+            {providerLabel !== null && (
+              <span className="text-xs text-muted-foreground">
+                {providerLabel}
+              </span>
+            )}
+            {isAssistant && usage && (
+              <Context
+                usage={usage}
+                usedTokens={usage.totalTokens}
+                maxTokens={MODEL_MAX_TOKENS}
+              >
+                <ContextTrigger />
+                <ContextContent>
+                  <ContextContentHeader />
+                  <ContextContentBody>
+                    <ContextInputUsage />
+                    <ContextOutputUsage />
+                    <ContextReasoningUsage />
+                    <ContextCacheUsage />
+                  </ContextContentBody>
+                </ContextContent>
+              </Context>
+            )}
+          </div>
         )}
       </div>
     </Message>

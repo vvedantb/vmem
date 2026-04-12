@@ -14,3 +14,5 @@ export * from "./suggestion";
 export * from "./task";
 export * from "./tool";
 export * from "./toolbar";
+export * from "./context";
+export * from "./persona";
