@@ -99,6 +99,13 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_read", ["userId", "read"]),
 
+  oauthStates: defineTable({
+    state: v.string(),
+    userId: v.id("users"),
+    returnUrl: v.string(),
+    expiresAt: v.number(),
+  }).index("by_state", ["state"]),
+
   githubConnections: defineTable({
     userId: v.id("users"),
     githubUsername: v.string(),
