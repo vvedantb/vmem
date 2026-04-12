@@ -5,9 +5,20 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "../ui/hover-card";
+import { Progress } from "../ui/progress";
 import { cn } from "../utils/cn";
 import type { ComponentProps } from "react";
 import { createContext, useContext, useMemo } from "react";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const ICON_RADIUS = 10;
+const ICON_VIEWBOX = 24;
+const ICON_CENTER = 12;
+const ICON_STROKE_WIDTH = 2;
+const PERCENT_MAX = 100;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -17,9 +28,13 @@ export interface MessageUsageSummary {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  reasoningTokens: number;
+  cachedInputTokens: number;
 }
 
 interface ContextSchema {
+  usedTokens: number;
+  maxTokens: number;
   usage: MessageUsageSummary;
 }
 
@@ -38,11 +53,17 @@ const useContextValue = () => {
 };
 
 // ---------------------------------------------------------------------------
-// Formatting helper
+// Formatting helpers
 // ---------------------------------------------------------------------------
 
 const formatTokens = (n: number) =>
   new Intl.NumberFormat("en-US", { notation: "compact" }).format(n);
+
+const formatPercent = (n: number) =>
+  new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 1,
+    style: "percent",
+  }).format(n);
 
 // ---------------------------------------------------------------------------
 // Compound components
@@ -50,11 +71,21 @@ const formatTokens = (n: number) =>
 
 export type ContextProps = ComponentProps<typeof HoverCard> & {
   usage: MessageUsageSummary;
+  usedTokens: number;
+  maxTokens: number;
 };
 
 /** Root provider — wrap trigger + content. */
-export const Context = ({ usage, ...props }: ContextProps) => {
-  const contextValue = useMemo(() => ({ usage }), [usage]);
+export const Context = ({
+  usage,
+  usedTokens,
+  maxTokens,
+  ...props
+}: ContextProps) => {
+  const contextValue = useMemo(
+    () => ({ usage, usedTokens, maxTokens }),
+    [usage, usedTokens, maxTokens],
+  );
 
   return (
     <ContextContext.Provider value={contextValue}>
@@ -63,7 +94,55 @@ export const Context = ({ usage, ...props }: ContextProps) => {
   );
 };
 
-/** Default trigger: compact total-token count. */
+// ---------------------------------------------------------------------------
+// ContextIcon — circular SVG progress ring
+// ---------------------------------------------------------------------------
+
+export const ContextIcon = () => {
+  const { usedTokens, maxTokens } = useContextValue();
+  const circumference = 2 * Math.PI * ICON_RADIUS;
+  const usedPercent = maxTokens > 0 ? usedTokens / maxTokens : 0;
+  const dashOffset = circumference * (1 - usedPercent);
+
+  return (
+    <svg
+      aria-label="Context usage"
+      height="16"
+      role="img"
+      style={{ color: "currentcolor" }}
+      viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
+      width="16"
+    >
+      <circle
+        cx={ICON_CENTER}
+        cy={ICON_CENTER}
+        fill="none"
+        opacity="0.25"
+        r={ICON_RADIUS}
+        stroke="currentColor"
+        strokeWidth={ICON_STROKE_WIDTH}
+      />
+      <circle
+        cx={ICON_CENTER}
+        cy={ICON_CENTER}
+        fill="none"
+        opacity="0.7"
+        r={ICON_RADIUS}
+        stroke="currentColor"
+        strokeDasharray={`${circumference} ${circumference}`}
+        strokeDashoffset={dashOffset}
+        strokeLinecap="round"
+        strokeWidth={ICON_STROKE_WIDTH}
+        style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
+      />
+    </svg>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// ContextTrigger — default: compact token count with icon
+// ---------------------------------------------------------------------------
+
 export type ContextTriggerProps = ComponentProps<"button">;
 
 export const ContextTrigger = ({
@@ -84,6 +163,7 @@ export const ContextTrigger = ({
           )}
           {...props}
         >
+          <ContextIcon />
           {formatTokens(usage.totalTokens)} tokens
         </button>
       )}
@@ -91,7 +171,10 @@ export const ContextTrigger = ({
   );
 };
 
-/** Hover card content wrapper. */
+// ---------------------------------------------------------------------------
+// ContextContent — hover card wrapper
+// ---------------------------------------------------------------------------
+
 export type ContextContentProps = ComponentProps<typeof HoverCardContent>;
 
 export const ContextContent = ({
@@ -104,7 +187,10 @@ export const ContextContent = ({
   />
 );
 
-/** Header section inside the hover card. */
+// ---------------------------------------------------------------------------
+// ContextContentHeader — percentage + progress bar
+// ---------------------------------------------------------------------------
+
 export type ContextContentHeaderProps = ComponentProps<"div">;
 
 export const ContextContentHeader = ({
@@ -112,21 +198,30 @@ export const ContextContentHeader = ({
   className,
   ...props
 }: ContextContentHeaderProps) => {
-  const { usage } = useContextValue();
+  const { usedTokens, maxTokens } = useContextValue();
+  const usedPercent = maxTokens > 0 ? usedTokens / maxTokens : 0;
 
   return (
-    <div className={cn("w-full space-y-1 p-3", className)} {...props}>
+    <div className={cn("w-full space-y-2 p-3", className)} {...props}>
       {children ?? (
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Total</span>
-          <span className="font-mono">{formatTokens(usage.totalTokens)}</span>
-        </div>
+        <>
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <p>{formatPercent(usedPercent)}</p>
+            <p className="font-mono text-muted-foreground">
+              {formatTokens(usedTokens)} / {formatTokens(maxTokens)}
+            </p>
+          </div>
+          <Progress className="bg-muted" value={usedPercent * PERCENT_MAX} />
+        </>
       )}
     </div>
   );
 };
 
-/** Body section — usually contains usage rows. */
+// ---------------------------------------------------------------------------
+// ContextContentBody
+// ---------------------------------------------------------------------------
+
 export type ContextContentBodyProps = ComponentProps<"div">;
 
 export const ContextContentBody = ({
@@ -139,7 +234,10 @@ export const ContextContentBody = ({
   </div>
 );
 
-/** Footer section. */
+// ---------------------------------------------------------------------------
+// ContextContentFooter
+// ---------------------------------------------------------------------------
+
 export type ContextContentFooterProps = ComponentProps<"div">;
 
 export const ContextContentFooter = ({
@@ -202,6 +300,50 @@ export const ContextOutputUsage = ({
     >
       <span className="text-muted-foreground">Output</span>
       <span>{formatTokens(usage.outputTokens)}</span>
+    </div>
+  );
+};
+
+export type ContextReasoningUsageProps = ComponentProps<"div">;
+
+export const ContextReasoningUsage = ({
+  className,
+  children,
+  ...props
+}: ContextReasoningUsageProps) => {
+  const { usage } = useContextValue();
+  if (children) return <>{children}</>;
+  if (!usage.reasoningTokens) return null;
+
+  return (
+    <div
+      className={cn("flex items-center justify-between text-xs", className)}
+      {...props}
+    >
+      <span className="text-muted-foreground">Reasoning</span>
+      <span>{formatTokens(usage.reasoningTokens)}</span>
+    </div>
+  );
+};
+
+export type ContextCacheUsageProps = ComponentProps<"div">;
+
+export const ContextCacheUsage = ({
+  className,
+  children,
+  ...props
+}: ContextCacheUsageProps) => {
+  const { usage } = useContextValue();
+  if (children) return <>{children}</>;
+  if (!usage.cachedInputTokens) return null;
+
+  return (
+    <div
+      className={cn("flex items-center justify-between text-xs", className)}
+      {...props}
+    >
+      <span className="text-muted-foreground">Cache</span>
+      <span>{formatTokens(usage.cachedInputTokens)}</span>
     </div>
   );
 };

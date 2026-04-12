@@ -131,6 +131,8 @@ export const getThreadMessageUsage = authQuery({
         inputTokens: number;
         outputTokens: number;
         totalTokens: number;
+        reasoningTokens: number;
+        cachedInputTokens: number;
         firstStepOrder: number;
       }
     > = {};
@@ -161,6 +163,8 @@ export const getThreadMessageUsage = authQuery({
             existing.inputTokens += msg.usage.promptTokens;
             existing.outputTokens += msg.usage.completionTokens;
             existing.totalTokens += msg.usage.totalTokens;
+            existing.reasoningTokens += msg.usage.reasoningTokens ?? 0;
+            existing.cachedInputTokens += msg.usage.cachedInputTokens ?? 0;
           }
         } else {
           // First record for this order group
@@ -168,6 +172,8 @@ export const getThreadMessageUsage = authQuery({
             inputTokens: msg.usage?.promptTokens ?? 0,
             outputTokens: msg.usage?.completionTokens ?? 0,
             totalTokens: msg.usage?.totalTokens ?? 0,
+            reasoningTokens: msg.usage?.reasoningTokens ?? 0,
+            cachedInputTokens: msg.usage?.cachedInputTokens ?? 0,
             firstStepOrder: msg.stepOrder,
           };
         }
@@ -180,7 +186,13 @@ export const getThreadMessageUsage = authQuery({
     // Re-key from order → bubble key, dropping entries with zero usage
     const byBubbleKey: Record<
       string,
-      { inputTokens: number; outputTokens: number; totalTokens: number }
+      {
+        inputTokens: number;
+        outputTokens: number;
+        totalTokens: number;
+        reasoningTokens: number;
+        cachedInputTokens: number;
+      }
     > = {};
 
     for (const [orderKey, entry] of Object.entries(byOrder)) {
@@ -190,6 +202,8 @@ export const getThreadMessageUsage = authQuery({
         inputTokens: entry.inputTokens,
         outputTokens: entry.outputTokens,
         totalTokens: entry.totalTokens,
+        reasoningTokens: entry.reasoningTokens,
+        cachedInputTokens: entry.cachedInputTokens,
       };
     }
 

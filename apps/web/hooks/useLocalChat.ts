@@ -12,6 +12,8 @@ interface MessageUsageSummary {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  reasoningTokens: number;
+  cachedInputTokens: number;
 }
 
 const SYSTEM_PROMPT = [
@@ -178,6 +180,8 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
             inputTokens,
             outputTokens,
             totalTokens: inputTokens + outputTokens,
+            reasoningTokens: 0,
+            cachedInputTokens: 0,
           };
           setDraftUsageByKey((prev) => ({
             ...prev,
