@@ -27,8 +27,10 @@ app.use("/dashboard/*", authMiddleware);
 app.use("/timeline/*", authMiddleware);
 app.use("/relationships/*", authMiddleware);
 app.use("/graph/*", authMiddleware);
+// Auth for codebase sub-routes (e.g. /graph). The bare /:codebaseId path
+// is NOT covered here because it would also match /sync — DELETE handles
+// its own auth via verifyAuthHeader, sync uses X-Internal-Secret.
 app.use("/codebases/:codebaseId/*", authMiddleware);
-app.use("/codebases/:codebaseId", authMiddleware);
 
 app.route("/memories", memories);
 app.route("/proposed-updates", proposedUpdates);
