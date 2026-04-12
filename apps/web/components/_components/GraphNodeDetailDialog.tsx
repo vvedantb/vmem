@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconTrash, IconLoader2 } from "@tabler/icons-react";
+import { IconTrash, IconLoader2, IconFocusCentered } from "@tabler/icons-react";
 import {
   Badge,
   Button,
@@ -27,6 +27,7 @@ interface GraphNodeDetailDialogProps {
   onClose: () => void;
   onNavigate: (nodeId: string) => void;
   onDelete: (nodeId: string) => Promise<boolean>;
+  onFocusNode: (nodeId: string) => void;
 }
 
 function formatDate(dateString: string) {
@@ -44,6 +45,7 @@ export default function GraphNodeDetailDialog({
   onClose,
   onNavigate,
   onDelete,
+  onFocusNode,
 }: GraphNodeDetailDialogProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -84,7 +86,15 @@ export default function GraphNodeDetailDialog({
               </div>
             )}
 
-            <div className="pt-2">
+            <div className="flex items-center gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onFocusNode(nodeData.id)}
+              >
+                <IconFocusCentered size={14} />
+                Focus
+              </Button>
               {confirmingDelete ? (
                 <div className="flex items-center gap-2">
                   <Button

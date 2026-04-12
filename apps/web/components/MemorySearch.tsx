@@ -1,35 +1,21 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Button,
-  Input,
-  Card,
-  cn,
-  ContextMenu,
-  ContextMenuTrigger,
-  ContextMenuContent,
-  ContextMenuItem,
-} from "@vmem/ui";
+import { Button, Input, cn } from "@vmem/ui";
 import {
   IconSearch,
   IconMoodEmpty,
   IconLoader2,
-  IconEdit,
-  IconTrash,
   IconFilter,
   IconX,
 } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { Virtuoso } from "react-virtuoso";
 import MemoryDetailPanel from "./MemoryDetailPanel";
 import TagSidebar from "./_components/TagSidebar";
-import {
-  searchMemories,
-  timeAgo,
-  type Memory,
-  type SearchResult,
-} from "@/lib/memories";
+import MemoryListItem from "./_components/MemoryListItem";
+import { searchMemories, type Memory, type SearchResult } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
 interface MemorySearchProps {
@@ -275,66 +261,28 @@ export default function MemorySearch({
           >
             <div
               className={cn(
-                "flex-1 min-w-0 min-h-0 overflow-y-auto",
+                "flex-1 min-w-0 min-h-0",
                 selectedMemory ? "hidden sm:block" : "",
               )}
             >
-              <div className="flex flex-col gap-1.5">
-                <AnimatePresence mode="popLayout">
-                  {displayData.map((item) => (
-                    <motion.div
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.98 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <ContextMenu>
-                        <ContextMenuTrigger asChild>
-                          <Card
-                            className={cn(
-                              "cursor-pointer transition-all hover:bg-accent/50 px-3 py-2.5",
-                              selectedMemoryId === item.id && "bg-accent",
-                            )}
-                            onClick={() => handleCardClick(item)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-foreground truncate">
-                                {item.title}
-                              </span>
-                              {isShowingSearchResults &&
-                                "relevanceScore" in item && (
-                                  <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
-                                    {Math.round(item.relevanceScore * 100)}%
-                                  </span>
-                                )}
-                              <span className="ml-auto text-xs text-muted-foreground/50 tabular-nums flex-shrink-0">
-                                {timeAgo(item.createdAt)}
-                              </span>
-                            </div>
-                          </Card>
-                        </ContextMenuTrigger>
-                        <ContextMenuContent>
-                          <ContextMenuItem
-                            onClick={() => handleContextEdit(item)}
-                          >
-                            <IconEdit size={16} stroke={1.5} />
-                            Edit
-                          </ContextMenuItem>
-                          <ContextMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => handleContextDelete(item)}
-                          >
-                            <IconTrash size={16} stroke={1.5} />
-                            Delete
-                          </ContextMenuItem>
-                        </ContextMenuContent>
-                      </ContextMenu>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
+              <Virtuoso
+                data={displayData}
+                computeItemKey={(_index, item) => item.id}
+                defaultItemHeight={44}
+                itemContent={(_index, item) => (
+                  <div className="pb-1.5">
+                    <MemoryListItem
+                      item={item}
+                      isSelected={selectedMemoryId === item.id}
+                      isShowingSearchResults={isShowingSearchResults}
+                      onCardClick={handleCardClick}
+                      onContextEdit={handleContextEdit}
+                      onContextDelete={handleContextDelete}
+                    />
+                  </div>
+                )}
+                style={{ height: "100%" }}
+              />
             </div>
 
             <AnimatePresence>

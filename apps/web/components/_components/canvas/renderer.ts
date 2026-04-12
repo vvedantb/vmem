@@ -64,6 +64,7 @@ export function render(
   interaction: InteractionState,
   theme: GraphViewTheme,
   neighborSet: Set<string>,
+  focusNodeId: string | null,
 ): void {
   const w = canvasW * dpr;
   const h = canvasH * dpr;
@@ -114,98 +115,102 @@ export function render(
   ctx.translate(canvasW / 2 + vp.offsetX, canvasH / 2 + vp.offsetY);
   ctx.scale(vp.scale, vp.scale);
 
+  const nodeCount = nodes.length;
   const hasHover = interaction.hoveredNodeId !== null;
   const lowZoom = vp.scale < 0.4;
+  const veryLowZoom = vp.scale < 0.15;
+  const highNodeCount = nodeCount > 5000;
 
-  // --- Edges ---
-  const tagEdges: ResolvedEdge[] = [];
-  const relatesToEdges: ResolvedEdge[] = [];
-  for (const edge of edges) {
-    if (edge.edgeType === "relates_to") relatesToEdges.push(edge);
-    else tagEdges.push(edge);
-  }
+  // --- Edges (batched by style — single beginPath/stroke per style bucket) ---
+  // Skip ALL edges at very low zoom (just render node dots)
+  if (!veryLowZoom && edges.length > 0) {
+    // Edge budget: skip tag edges when total edge count is very high
+    const skipTagEdges = edges.length > 10_000;
 
-  // Tag edges (dimmer, thinner)
-  if (tagEdges.length > 0) {
-    for (const edge of tagEdges) {
-      const sx = edge.source.x ?? 0;
-      const sy = edge.source.y ?? 0;
-      const tx = edge.target.x ?? 0;
-      const ty = edge.target.y ?? 0;
+    if (!hasHover) {
+      // No hover — all edges same alpha. Two batched passes: tag edges, relates_to edges.
+      // Tag edges (dimmer, thinner)
+      if (!skipTagEdges) {
+        ctx.strokeStyle = theme.edge.normal;
+        ctx.lineWidth = theme.edge.width;
+        ctx.beginPath();
+        for (const edge of edges) {
+          if (edge.edgeType !== "tag") continue;
+          ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
+          ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+        }
+        ctx.stroke();
+      }
 
-      const isConnected =
-        hasHover &&
-        neighborSet.has(edge.source.id) &&
-        neighborSet.has(edge.target.id);
-      const isDimmed = hasHover && !isConnected;
-
-      ctx.strokeStyle = isDimmed
-        ? theme.edge.dimmed
-        : isConnected
-          ? theme.edge.connected
-          : theme.edge.normal;
-      ctx.lineWidth = isConnected
-        ? theme.edge.connectedWidth
-        : theme.edge.width;
+      // Relates_to edges (brighter, thicker)
+      ctx.strokeStyle = theme.edge.normal;
+      ctx.lineWidth = theme.edge.width * 2;
+      ctx.globalAlpha = 0.6;
       ctx.beginPath();
-      ctx.moveTo(sx, sy);
-      ctx.lineTo(tx, ty);
-      ctx.stroke();
-    }
-  }
-
-  // Relates_to edges (brighter, thicker)
-  if (relatesToEdges.length > 0) {
-    for (const edge of relatesToEdges) {
-      const sx = edge.source.x ?? 0;
-      const sy = edge.source.y ?? 0;
-      const tx = edge.target.x ?? 0;
-      const ty = edge.target.y ?? 0;
-
-      const isConnected =
-        hasHover &&
-        neighborSet.has(edge.source.id) &&
-        neighborSet.has(edge.target.id);
-      const isDimmed = hasHover && !isConnected;
-
-      ctx.strokeStyle = isDimmed
-        ? theme.edge.dimmed
-        : isConnected
-          ? theme.edge.connected
-          : theme.edge.normal;
-      ctx.lineWidth =
-        (isConnected ? theme.edge.connectedWidth : theme.edge.width) * 2;
-      ctx.globalAlpha = isDimmed ? theme.dimAlpha : 0.6;
-      ctx.beginPath();
-      ctx.moveTo(sx, sy);
-      ctx.lineTo(tx, ty);
+      for (const edge of edges) {
+        if (edge.edgeType !== "relates_to") continue;
+        ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
+        ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+      }
       ctx.stroke();
       ctx.globalAlpha = 1;
+    } else {
+      // Hover active — batch into 3 style buckets per edge type: dimmed, normal, connected.
+      // Draw dimmed first (bottom), then normal, then connected (top).
+      for (const edgeType of ["tag", "relates_to"] as const) {
+        if (edgeType === "tag" && skipTagEdges) continue;
+        const widthMultiplier = edgeType === "relates_to" ? 2 : 1;
+        const baseAlpha = edgeType === "relates_to" ? 0.6 : 1;
+
+        // Pass 1: dimmed edges
+        ctx.strokeStyle = theme.edge.dimmed;
+        ctx.lineWidth = theme.edge.width * widthMultiplier;
+        ctx.globalAlpha = edgeType === "relates_to" ? theme.dimAlpha : 1;
+        ctx.beginPath();
+        for (const edge of edges) {
+          if (edge.edgeType !== edgeType) continue;
+          const isConnected =
+            neighborSet.has(edge.source.id) && neighborSet.has(edge.target.id);
+          if (isConnected) continue; // skip non-dimmed
+          ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
+          ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+        }
+        ctx.stroke();
+
+        // Pass 2: connected edges (on top)
+        ctx.strokeStyle = theme.edge.connected;
+        ctx.lineWidth = theme.edge.connectedWidth * widthMultiplier;
+        ctx.globalAlpha = baseAlpha;
+        ctx.beginPath();
+        for (const edge of edges) {
+          if (edge.edgeType !== edgeType) continue;
+          const isConnected =
+            neighborSet.has(edge.source.id) && neighborSet.has(edge.target.id);
+          if (!isConnected) continue;
+          ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
+          ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+        }
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
     }
   }
 
   // --- Nodes ---
-  for (const node of nodes) {
-    const nx = node.x ?? 0;
-    const ny = node.y ?? 0;
-    const baseRadius = node.size * 3;
+  // Glow pass: skip when highNodeCount or lowZoom (expensive per-node radial gradient)
+  if (theme.glow.enabled && !lowZoom && !highNodeCount) {
+    for (const node of nodes) {
+      const nx = node.x ?? 0;
+      const ny = node.y ?? 0;
+      const baseRadius = node.size * 2;
+      if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
-    if (!lowZoom && !isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH))
-      continue;
+      const isHovered = interaction.hoveredNodeId === node.id;
+      const isNeighbor = neighborSet.has(node.id);
+      const isDimmed = hasHover && !isHovered && !isNeighbor;
+      if (isDimmed) continue;
 
-    const isHovered = interaction.hoveredNodeId === node.id;
-    const isDragged = interaction.draggedNodeId === node.id;
-    const isNeighbor = neighborSet.has(node.id);
-    const isDimmed = hasHover && !isHovered && !isNeighbor;
-
-    if (isDimmed) {
-      ctx.globalAlpha = theme.dimAlpha;
-    }
-
-    const color = nodeColor(node, theme);
-
-    // Glow effect
-    if (theme.glow.enabled && !isDimmed) {
+      const color = nodeColor(node, theme);
       const glowRadius = baseRadius * theme.glow.radiusMultiplier;
       const intensity = isHovered
         ? theme.glow.hoveredIntensity
@@ -231,15 +236,68 @@ export function render(
       ctx.arc(nx, ny, glowRadius, 0, TWO_PI);
       ctx.fill();
     }
+  }
 
-    // Node shape (circle)
-    const radius = lowZoom ? Math.max(2, baseRadius * 0.5) : baseRadius;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(nx, ny, radius, 0, TWO_PI);
-    ctx.fill();
+  // Node circles pass: batched by color to reduce draw calls from O(n) to O(unique colors)
+  {
+    // Build color buckets
+    const colorBuckets = new Map<string, GraphNode[]>();
+    for (const node of nodes) {
+      const nx = node.x ?? 0;
+      const ny = node.y ?? 0;
+      const baseRadius = node.size * 2;
+      if (!lowZoom && !isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH))
+        continue;
+      const color = nodeColor(node, theme);
+      const bucket = colorBuckets.get(color);
+      if (bucket) bucket.push(node);
+      else colorBuckets.set(color, [node]);
+    }
 
-    if (!lowZoom && (theme.outline.enabled || isHovered || isDragged)) {
+    // Draw non-dimmed nodes first, then dimmed nodes at reduced alpha
+    for (const dimPass of [false, true]) {
+      if (dimPass) ctx.globalAlpha = theme.dimAlpha;
+
+      for (const [color, bucket] of colorBuckets) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        for (const node of bucket) {
+          const isHovered = interaction.hoveredNodeId === node.id;
+          const isNeighbor = neighborSet.has(node.id);
+          const isDimmed = hasHover && !isHovered && !isNeighbor;
+          if (isDimmed !== dimPass) continue;
+
+          const nx = node.x ?? 0;
+          const ny = node.y ?? 0;
+          const baseRadius = node.size * 2;
+          const radius = lowZoom ? Math.max(2, baseRadius * 0.5) : baseRadius;
+          ctx.moveTo(nx + radius, ny);
+          ctx.arc(nx, ny, radius, 0, TWO_PI);
+        }
+        ctx.fill();
+      }
+
+      if (dimPass) ctx.globalAlpha = 1;
+    }
+  }
+
+  // Outlines pass: only for hovered/dragged/outlined nodes (few nodes, no batch needed)
+  if (!lowZoom) {
+    for (const node of nodes) {
+      const isHovered = interaction.hoveredNodeId === node.id;
+      const isDragged = interaction.draggedNodeId === node.id;
+      if (!theme.outline.enabled && !isHovered && !isDragged) continue;
+
+      const nx = node.x ?? 0;
+      const ny = node.y ?? 0;
+      const baseRadius = node.size * 2;
+      if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
+
+      const isNeighbor = neighborSet.has(node.id);
+      const isDimmed = hasHover && !isHovered && !isNeighbor;
+      if (isDimmed) continue;
+
+      const color = nodeColor(node, theme);
       const outlineColor =
         isHovered || isDragged
           ? theme.outline.hoveredColor === "node"
@@ -256,13 +314,29 @@ export function render(
       ctx.arc(nx, ny, baseRadius + outlineWidth, 0, TWO_PI);
       ctx.stroke();
     }
+  }
 
-    if (isDimmed) {
-      ctx.globalAlpha = 1;
+  // --- Focus node highlight ring (always visible, even at low zoom) ---
+  if (focusNodeId) {
+    const focusNode = nodes.find((n) => n.id === focusNodeId);
+    if (focusNode) {
+      const nx = focusNode.x ?? 0;
+      const ny = focusNode.y ?? 0;
+      const baseRadius = focusNode.size * 2;
+      const ringRadius = baseRadius * 1.5 + 4;
+      ctx.strokeStyle = theme.isDarkCanvas
+        ? "rgba(255,255,255,0.7)"
+        : "rgba(0,0,0,0.5)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.arc(nx, ny, ringRadius, 0, TWO_PI);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
   }
 
-  // --- Edge labels (only on hovered node's edges) ---
+  // --- Edge labels (only on hovered node's edges — always safe even at high node counts) ---
   if (!lowZoom && hasHover) {
     const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
@@ -302,8 +376,8 @@ export function render(
     }
   }
 
-  // --- Labels ---
-  if (!lowZoom) {
+  // --- Node labels: skip at high node count or very low zoom ---
+  if (!lowZoom && !highNodeCount) {
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     const fontSize = Math.max(10, 12 / Math.max(vp.scale, 0.5));
@@ -312,7 +386,7 @@ export function render(
     for (const node of nodes) {
       const nx = node.x ?? 0;
       const ny = node.y ?? 0;
-      const baseRadius = node.size * 3;
+      const baseRadius = node.size * 2;
 
       if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
@@ -326,7 +400,7 @@ export function render(
       if (!showLabel) continue;
 
       ctx.fillStyle = isHovered ? theme.label.color : theme.label.secondary;
-      ctx.fillText(node.title, nx, ny + baseRadius + 6, 150);
+      ctx.fillText(node.title, nx, ny + baseRadius + 4, 150);
     }
   }
 
@@ -361,7 +435,7 @@ export function render(
           ctx.strokeStyle = theme.label.color;
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(tx, ty, target.size * 3 * vp.scale + 8, 0, TWO_PI);
+          ctx.arc(tx, ty, target.size * 2 * vp.scale + 8, 0, TWO_PI);
           ctx.stroke();
         }
       }

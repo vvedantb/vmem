@@ -3,7 +3,12 @@
 import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
-import { IconMoodEmpty, IconLoader2, IconPlus } from "@tabler/icons-react";
+import {
+  IconMoodEmpty,
+  IconLoader2,
+  IconPlus,
+  IconArrowBack,
+} from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 import { z } from "zod";
 import AddMemoryModal from "@/components/AddMemoryModal";
@@ -41,21 +46,37 @@ const graphNodeSchema = z.object({
   createdAt: z.string(),
 });
 
-const relationshipEdgeSchema = z.object({
+const relatesToEdgeSchema = z.object({
   source: z.string(),
   target: z.string(),
   reason: z.string(),
 });
 
-const graphResponseSchema = z.object({
-  nodes: z.array(graphNodeSchema),
-  edges: z.array(relationshipEdgeSchema),
+const tagEdgeSchema = z.object({
+  source: z.string(),
+  target: z.string(),
+  weight: z.number(),
+  sharedTags: z.array(z.string()),
 });
 
-type RelationshipEdge = z.infer<typeof relationshipEdgeSchema>;
+const graphResponseSchema = z.object({
+  nodes: z.array(graphNodeSchema),
+  relatesToEdges: z.array(relatesToEdgeSchema),
+  tagEdges: z.array(tagEdgeSchema),
+});
+
+type RelatesToEdge = z.infer<typeof relatesToEdgeSchema>;
 type GraphResponse = z.infer<typeof graphResponseSchema>;
 
-export default function MemoryGraph() {
+interface MemoryGraphProps {
+  focusNodeId: string | null;
+  onFocusChange: (id: string | null) => void;
+}
+
+export default function MemoryGraph({
+  focusNodeId,
+  onFocusChange,
+}: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
   const { theme } = useThemeContext();
   const { getToken, userId } = useAuth();
@@ -64,19 +85,22 @@ export default function MemoryGraph() {
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
   const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
-  const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<
-    RelationshipEdge[]
-  >([]);
+  const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<RelatesToEdge[]>(
+    [],
+  );
 
   const graphQuery = useTanstackQuery({
-    queryKey: ["graph"],
+    queryKey: ["graph", focusNodeId ?? "global"],
     queryFn: async (): Promise<GraphResponse> => {
       const token = await getToken();
       const headers: HeadersInit = {};
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch(`${API_URL}/v1/graph`, { headers });
+      const url = focusNodeId
+        ? `${API_URL}/v1/graph?focus=${encodeURIComponent(focusNodeId)}`
+        : `${API_URL}/v1/graph`;
+      const res = await fetch(url, { headers });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || `Graph request failed with ${res.status}`);
@@ -137,45 +161,23 @@ export default function MemoryGraph() {
   );
 
   const allRelatesToEdges = useMemo(() => {
-    const apiEdges = graphData?.edges ?? [];
+    const apiEdges = graphData?.relatesToEdges ?? [];
     return [...apiEdges, ...liveRelatesToEdges];
-  }, [graphData?.edges, liveRelatesToEdges]);
+  }, [graphData?.relatesToEdges, liveRelatesToEdges]);
 
   const apiNodes = graphData?.nodes ?? [];
+  const apiTagEdges = graphData?.tagEdges ?? [];
 
+  // O(n) mapping — tag-edge computation now happens server-side in Neo4j
   const { graphNodes, graphEdges } = useMemo(() => {
     if (apiNodes.length === 0)
       return { graphNodes: [] as GraphNode[], graphEdges: [] as GraphEdge[] };
 
-    const tagToNodeIds = new Map<string, string[]>();
-    for (const node of apiNodes) {
-      for (const tag of node.tags) {
-        const ids = tagToNodeIds.get(tag);
-        if (ids) ids.push(node.id);
-        else tagToNodeIds.set(tag, [node.id]);
-      }
-    }
-
-    const edgeWeights = new Map<string, number>();
-    const edgeTags = new Map<string, string[]>();
-    for (const [tag, ids] of tagToNodeIds) {
-      for (let a = 0; a < ids.length; a++) {
-        for (let b = a + 1; b < ids.length; b++) {
-          const key =
-            ids[a] < ids[b] ? `${ids[a]}|${ids[b]}` : `${ids[b]}|${ids[a]}`;
-          edgeWeights.set(key, (edgeWeights.get(key) ?? 0) + 1);
-          const tags = edgeTags.get(key);
-          if (tags) tags.push(tag);
-          else edgeTags.set(key, [tag]);
-        }
-      }
-    }
-
+    // Count degree per node from both edge types
     const degreeCount = new Map<string, number>();
-    for (const [key] of edgeWeights) {
-      const [a, b] = key.split("|");
-      degreeCount.set(a, (degreeCount.get(a) ?? 0) + 1);
-      degreeCount.set(b, (degreeCount.get(b) ?? 0) + 1);
+    for (const edge of apiTagEdges) {
+      degreeCount.set(edge.source, (degreeCount.get(edge.source) ?? 0) + 1);
+      degreeCount.set(edge.target, (degreeCount.get(edge.target) ?? 0) + 1);
     }
     for (const rel of allRelatesToEdges) {
       degreeCount.set(rel.source, (degreeCount.get(rel.source) ?? 0) + 1);
@@ -200,21 +202,22 @@ export default function MemoryGraph() {
     const gEdges: GraphEdge[] = [];
     const addedPairs = new Set<string>();
 
-    for (const [key, weight] of edgeWeights) {
-      const [a, b] = key.split("|");
-      if (nodeSet.has(a) && nodeSet.has(b)) {
-        const sharedTags = edgeTags.get(key) ?? [];
+    // Tag edges from server (already deduplicated, a.id < b.id guaranteed)
+    for (const edge of apiTagEdges) {
+      if (nodeSet.has(edge.source) && nodeSet.has(edge.target)) {
+        const pairKey = `${edge.source}|${edge.target}`;
         gEdges.push({
-          source: a,
-          target: b,
-          weight,
+          source: edge.source,
+          target: edge.target,
+          weight: edge.weight,
           edgeType: "tag",
-          reason: sharedTags.join(", "),
+          reason: edge.sharedTags.join(", "),
         });
-        addedPairs.add(key);
+        addedPairs.add(pairKey);
       }
     }
 
+    // Relates-to edges (skip if already covered by a tag edge for same pair)
     for (const rel of allRelatesToEdges) {
       if (nodeSet.has(rel.source) && nodeSet.has(rel.target)) {
         const pairKey =
@@ -235,7 +238,7 @@ export default function MemoryGraph() {
     }
 
     return { graphNodes: gNodes, graphEdges: gEdges };
-  }, [apiNodes, allRelatesToEdges]);
+  }, [apiNodes, apiTagEdges, allRelatesToEdges]);
 
   const selectedNodeData = useMemo(() => {
     if (!selectedNodeId) return null;
@@ -286,6 +289,18 @@ export default function MemoryGraph() {
   const handleNavigateNode = useCallback((nodeId: string) => {
     setSelectedNodeId(nodeId);
   }, []);
+
+  const handleFocusNode = useCallback(
+    (nodeId: string) => {
+      onFocusChange(nodeId);
+      setSelectedNodeId(null);
+    },
+    [onFocusChange],
+  );
+
+  const handleBackToGlobal = useCallback(() => {
+    onFocusChange(null);
+  }, [onFocusChange]);
 
   const handleLinkNodes = useCallback(
     async (sourceId: string, targetId: string) => {
@@ -357,10 +372,26 @@ export default function MemoryGraph() {
           edges={graphEdges}
           viewTheme={viewTheme}
           settings={graphSettings}
+          focusNodeId={focusNodeId}
           onHoverNode={handleHoverNode}
           onClickNode={handleClickNode}
           onLinkNodes={handleLinkNodes}
+          onFocusNode={handleFocusNode}
         />
+
+        {focusNodeId && (
+          <div className="absolute top-2 left-2 z-10">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackToGlobal}
+              className="bg-background/80 backdrop-blur-sm gap-1.5"
+            >
+              <IconArrowBack size={14} />
+              Global graph
+            </Button>
+          </div>
+        )}
 
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5">
           <AddMemoryModal
@@ -402,6 +433,7 @@ export default function MemoryGraph() {
         onClose={handleCloseDialog}
         onNavigate={handleNavigateNode}
         onDelete={deleteMemory}
+        onFocusNode={handleFocusNode}
       />
     </>
   );
