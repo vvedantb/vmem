@@ -98,6 +98,37 @@ const schema = defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_read", ["userId", "read"]),
+
+  githubConnections: defineTable({
+    userId: v.id("users"),
+    githubUsername: v.string(),
+    encryptedAccessToken: v.string(),
+    avatarUrl: v.optional(v.string()),
+    connectedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  codebases: defineTable({
+    userId: v.id("users"),
+    githubConnectionId: v.id("githubConnections"),
+    repoOwner: v.string(),
+    repoName: v.string(),
+    repoFullName: v.string(),
+    defaultBranch: v.string(),
+    language: v.optional(v.string()),
+    description: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("syncing"),
+      v.literal("synced"),
+      v.literal("error"),
+    ),
+    totalFiles: v.number(),
+    syncedFiles: v.number(),
+    lastSyncedAt: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_repo", ["userId", "repoFullName"]),
 });
 
 export default schema;

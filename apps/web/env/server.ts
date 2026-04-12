@@ -6,6 +6,8 @@ export const serverEnv = createEnv({
     CLERK_SECRET_KEY: z.string().min(1),
     ALLOWED_ORIGINS: z.string().optional().default("http://localhost:3000"),
     AGENT_CLERK_USER_ID: z.string().optional(),
+    GITHUB_CLIENT_ID: z.string().optional(),
+    GITHUB_CLIENT_SECRET: z.string().optional(),
   },
   experimental__runtimeEnv: process.env,
 });
