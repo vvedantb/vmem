@@ -26,6 +26,7 @@ export type BackgroundResponse =
       success: boolean;
       count: number;
       skipped?: number;
+      locked?: boolean;
       error?: string;
     }
   | { type: "CONNECTION_RESULT"; connected: boolean; error?: string }
