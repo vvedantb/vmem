@@ -3,16 +3,16 @@ import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 // ── SVG icons (vmem logo uses dark fill on light bg) ──────────────────────────
 
 const VMEM_ICON = `<svg width="16" height="16" viewBox="0 0 210 204" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M81.3835 181.779C22.2397 161.586 13.4909 102.411 36.5078 61.7585L25.0687 36.241C-10.1246 81.7999 -19.3022 165.229 71.8802 203.249L81.3835 181.779Z" fill="#2a2a2f"/>
-  <path d="M128.109 181.779C187.253 161.586 196.002 102.411 172.985 61.7585L184.424 36.241C219.617 81.7999 228.795 165.229 137.612 203.249L128.109 181.779Z" fill="#2a2a2f"/>
-  <path d="M156.866 14.2622C115.857 -4.51398 93.2253 -4.72022 53.5056 13.461L63.1205 36.2163C92.2894 19.6073 110.744 19.1365 147.571 34.774L156.866 14.2622Z" fill="#2a2a2f"/>
+  <path d="M81.3835 181.779C22.2397 161.586 13.4909 102.411 36.5078 61.7585L25.0687 36.241C-10.1246 81.7999 -19.3022 165.229 71.8802 203.249L81.3835 181.779Z" fill="currentColor"/>
+  <path d="M128.109 181.779C187.253 161.586 196.002 102.411 172.985 61.7585L184.424 36.241C219.617 81.7999 228.795 165.229 137.612 203.249L128.109 181.779Z" fill="currentColor"/>
+  <path d="M156.866 14.2622C115.857 -4.51398 93.2253 -4.72022 53.5056 13.461L63.1205 36.2163C92.2894 19.6073 110.744 19.1365 147.571 34.774L156.866 14.2622Z" fill="currentColor"/>
 </svg>`;
 
-const CHECK_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+const CHECK_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
   <polyline points="20 6 9 17 4 12"/>
 </svg>`;
 
-const ERROR_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+const ERROR_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
 </svg>`;
 
@@ -62,19 +62,29 @@ styleEl.textContent = `
     align-items: center;
     justify-content: center;
     pointer-events: auto;
+    box-sizing: border-box;
     width: 32px;
     height: 32px;
-    border-radius: 50%;
+    padding: 8px;
+    border: 1px solid transparent;
+    border-radius: 99px;
     background: #ebebee;
+    color: #2a2a2f;
     box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1), 0 6px 16px rgba(16, 24, 40, 0.08);
     cursor: pointer;
     font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
     opacity: 0;
     transform: translateY(4px);
+    overflow: hidden;
+    white-space: nowrap;
     transition: opacity 240ms cubic-bezier(0.22, 1, 0.36, 1),
                 transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+                width 240ms cubic-bezier(0.22, 1, 0.36, 1),
+                padding 240ms cubic-bezier(0.22, 1, 0.36, 1),
                 background 180ms ease,
-                box-shadow 180ms ease;
+                box-shadow 180ms ease,
+                color 180ms ease,
+                border-color 180ms ease;
     user-select: none;
     -webkit-user-select: none;
   }
@@ -85,22 +95,48 @@ styleEl.textContent = `
     transform: translateY(0);
   }
 
-  #vmem-popup:hover {
+  /* Expand to pill on hover — only in ready state */
+  #vmem-popup.expandable:hover {
     background: rgba(235, 235, 238, 0.95);
     box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 10px 28px rgba(16, 24, 40, 0.12);
     transform: translateY(-1px);
+    width: 152px;
+    padding: 8px 14px 8px 10px;
   }
 
-  #vmem-popup:active {
+  #vmem-popup.expandable:active {
     transform: translateY(0);
   }
 
-  /* State-specific backgrounds */
+  /* Label — hidden by default, fades in on hover */
+  .vmem-label {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    opacity: 0;
+    max-width: 0;
+    margin-left: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                max-width 240ms cubic-bezier(0.22, 1, 0.36, 1),
+                margin-left 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  #vmem-popup.expandable:hover .vmem-label {
+    opacity: 1;
+    max-width: 80px;
+    margin-left: 6px;
+  }
+
+  /* State-specific colors (drive currentColor in SVGs) */
   #vmem-popup.state-success {
     background: #dcfce7;
+    color: #16a34a;
   }
   #vmem-popup.state-error {
     background: #fee2e2;
+    color: #dc2626;
   }
 
   /* Spinner animation */
@@ -122,6 +158,37 @@ styleEl.textContent = `
     align-items: center;
     justify-content: center;
     line-height: 0;
+    flex-shrink: 0;
+  }
+
+  /* Dark mode */
+  @media (prefers-color-scheme: dark) {
+    #vmem-popup {
+      background: rgba(38, 38, 42, 0.92);
+      color: #e4e4e7;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.25);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    #vmem-popup.expandable:hover {
+      background: rgba(48, 48, 54, 0.95);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 10px 28px rgba(0, 0, 0, 0.3);
+    }
+
+    #vmem-popup.state-success {
+      background: rgba(22, 101, 52, 0.3);
+      color: #16a34a;
+    }
+
+    #vmem-popup.state-error {
+      background: rgba(153, 27, 27, 0.3);
+      color: #dc2626;
+    }
+
+    .vmem-spinner {
+      border-color: #4a4a50;
+      border-top-color: #e4e4e7;
+    }
   }
 `;
 shadow.appendChild(styleEl);
@@ -138,6 +205,11 @@ iconContainer.className = "vmem-icon";
 iconContainer.innerHTML = VMEM_ICON;
 popup.appendChild(iconContainer);
 
+const label = document.createElement("span");
+label.className = "vmem-label";
+label.textContent = "Save to vmem";
+popup.appendChild(label);
+
 shadow.appendChild(popup);
 
 // ── State transitions ─────────────────────────────────────────────────────────
@@ -151,8 +223,8 @@ function transitionTo(next: PopupState): void {
     hideTimer = null;
   }
 
-  // Remove state classes
-  popup.classList.remove("state-success", "state-error");
+  // Remove state classes + expandable (only re-added in ready state)
+  popup.classList.remove("state-success", "state-error", "expandable");
 
   switch (next) {
     case "idle":
@@ -167,7 +239,7 @@ function transitionTo(next: PopupState): void {
 
     case "ready":
       iconContainer.innerHTML = VMEM_ICON;
-      popup.classList.add("visible");
+      popup.classList.add("visible", "expandable");
       break;
 
     case "saving":

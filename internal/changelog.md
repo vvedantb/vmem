@@ -1,5 +1,13 @@
 # Changelog
 
+## Selection Popup UI: Expand-on-Hover + Dark Mode — 2026-04-13
+
+- Added expand-on-hover pill: selection popup starts as 32px icon circle, expands to 152px pill with "Save to vmem" text on hover, collapses back smoothly on mouse leave
+- Label enters after width animation: text opacity lags 40ms behind expansion, fades out first on collapse — user never sees clipped text during resize
+- Implemented dark/light theme awareness: detects OS color scheme preference via `@media (prefers-color-scheme)`, adapts popup background, text, border, and shadows for dark sites (dark bg gets light icon; light bg keeps current look)
+- SVG icons use `currentColor`: vmem logo, checkmark, and X icon now inherit color from parent CSS, eliminating hardcoded fill/stroke values
+- Reason: expand-on-hover improves discoverability (currently icon-only), dark mode prevents jarring white popup on dark sites, matches OS theme preference automatically
+
 ## GitHub OAuth: Moved to Convex HTTP Actions — 2026-04-13
 
 - Migrated GitHub OAuth flow from Next.js API routes to Convex HTTP actions: callback URL now points to Convex site (`*.convex.site`) instead of Next.js domain
