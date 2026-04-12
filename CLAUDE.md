@@ -113,3 +113,13 @@ stop adding usestate's useref's for everything, this is the easy way out for eve
 if the user asks you to run a migration, you need to add a migration function to clear the documents with that field in the db, then you run it, then you can get rid of the fields from the schema, then cleanup the migration function
 
 if you are using the agent-browser skill, navigate to `/?agent` to auto sign in as the agent user.
+
+Local LLM (WebLLM):
+
+- Web app uses `@mlc-ai/web-llm` + `@built-in-ai/web-llm` (AI SDK adapter) for in-browser inference
+- Engine singleton in `apps/web/lib/webllm-engine.ts`, model catalog in `webllm-models.ts`
+- WebLLMContext provides model state to the app, useChatProvider toggles cloud/local
+- Chat.tsx uses useCloudChat + useLocalChat hooks — both always run, active one drives UI
+- Local messages persist to Convex via `saveLocalMessages` mutation after streaming completes
+- Provider preference + active model stored in localStorage (device-specific)
+- Web Worker used for non-blocking inference (webllm-worker.ts)

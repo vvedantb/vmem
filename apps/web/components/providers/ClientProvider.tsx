@@ -6,9 +6,11 @@ import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { useAuth } from "@clerk/nextjs";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { TooltipProvider } from "@vmem/ui";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { NotificationProvider } from "../contexts/NotificationContext";
 import { MemoryProvider } from "../contexts/MemoryContext";
+import { WebLLMProvider } from "../contexts/WebLLMContext";
 import { MotionProvider } from "./MotionProvider";
 import { QueryProvider } from "./QueryProvider";
 
@@ -32,9 +34,13 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
           <MotionProvider>
             <QueryProvider>
               <ThemeProvider>
-                <NotificationProvider>
-                  <MemoryProvider>{children}</MemoryProvider>
-                </NotificationProvider>
+                <TooltipProvider>
+                  <NotificationProvider>
+                    <WebLLMProvider>
+                      <MemoryProvider>{children}</MemoryProvider>
+                    </WebLLMProvider>
+                  </NotificationProvider>
+                </TooltipProvider>
                 <Toaster position="top-center" />
               </ThemeProvider>
             </QueryProvider>
