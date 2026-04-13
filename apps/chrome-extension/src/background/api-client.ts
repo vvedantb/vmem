@@ -1,15 +1,12 @@
 import { getStorage } from "@/lib/storage";
-import { API_VERSION } from "@/lib/constants";
+import { CONVEX_URL } from "@/lib/constants";
 import type {
   CreateMemoryParams,
   MemoryWithTags,
   MemoryCandidate,
 } from "@/types/api";
 
-async function getBaseUrl(): Promise<string> {
-  const { apiUrl } = await getStorage();
-  return `${apiUrl}/${API_VERSION}`;
-}
+const API_BASE = `${CONVEX_URL}/api/mcp/memories`;
 
 async function authHeaders(): Promise<Record<string, string>> {
   const { authToken } = await getStorage();
@@ -35,10 +32,9 @@ export type CreateResult =
 export async function createMemory(
   params: CreateMemoryParams,
 ): Promise<CreateResult> {
-  const baseUrl = await getBaseUrl();
   const headers = await authHeaders();
 
-  const response = await fetch(`${baseUrl}/memories`, {
+  const response = await fetch(`${API_BASE}/create`, {
     method: "POST",
     headers,
     body: JSON.stringify(params),
@@ -54,21 +50,20 @@ export async function createMemory(
     throw new Error(`Failed to create memory: ${error}`);
   }
 
-  const memory: MemoryWithTags = await response.json();
-  return { status: "created", memory };
+  const result = await response.json();
+  return { status: "created", memory: result.data };
 }
 
 export async function updateMemory(
   memoryId: string,
   params: { title?: string; content?: string; tags?: string[] },
 ): Promise<MemoryWithTags> {
-  const baseUrl = await getBaseUrl();
   const headers = await authHeaders();
 
-  const response = await fetch(`${baseUrl}/memories/${memoryId}`, {
-    method: "PATCH",
+  const response = await fetch(`${API_BASE}/update`, {
+    method: "POST",
     headers,
-    body: JSON.stringify(params),
+    body: JSON.stringify({ memoryId, ...params }),
   });
 
   if (!response.ok) {
@@ -76,18 +71,17 @@ export async function updateMemory(
     throw new Error(`Failed to update memory: ${error}`);
   }
 
-  const memory: MemoryWithTags = await response.json();
-  return memory;
+  const result = await response.json();
+  return result.data;
 }
 
 export async function retrieveMemories(
   query: string,
   limit = 5,
 ): Promise<MemoryCandidate[]> {
-  const baseUrl = await getBaseUrl();
   const headers = await authHeaders();
 
-  const response = await fetch(`${baseUrl}/memories/retrieve`, {
+  const response = await fetch(`${API_BASE}/retrieve`, {
     method: "POST",
     headers,
     body: JSON.stringify({ query, limit }),
@@ -98,15 +92,6 @@ export async function retrieveMemories(
     throw new Error(`Failed to retrieve memories: ${error}`);
   }
 
-  const data: { memories: MemoryCandidate[] } = await response.json();
-  return data.memories;
-}
-
-export async function testConnection(): Promise<boolean> {
-  const baseUrl = await getBaseUrl();
-  const headers = await authHeaders();
-
-  const response = await fetch(`${baseUrl}/memories?limit=1`, { headers });
-
-  return response.ok;
+  const result = await response.json();
+  return result.data;
 }

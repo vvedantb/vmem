@@ -1,5 +1,15 @@
 # Changelog
 
+## Chrome Extension: Migrated Auto-Sync to Convex HTTP Routes — 2026-04-14
+
+- Fixed broken auto-sync: background service worker was calling deprecated Railway Hono API — now calls Convex HTTP routes at `/api/mcp/memories/*`
+- Refactored `api-client.ts`: removed `DEFAULT_API_URL` and `API_VERSION` constants, now uses `CONVEX_URL` directly with HTTP route paths
+- Updated API endpoints: changed from `POST /v1/memories` (PATCH for update) to `POST /api/mcp/memories/create` (POST for update with memoryId in body)
+- Leveraged existing JWT persistence: `TokenSync` component already stores Clerk JWT to `chrome.storage` every 50s, background sync now reads it as Bearer token for Convex HTTP requests
+- Removed dead code: deleted `testConnection()` function and `TEST_CONNECTION` message type (was never wired to UI)
+- Removed manual API URL configuration from Settings UI: users can no longer override endpoint — always uses production Convex deployment
+- Reason: eliminates dependency on deprecated Railway API, unifies extension (popup + background) on single auth model (Clerk JWT), reduces config surface area
+
 ## Graph API: Cap Arrays for Convex 8192 Element Limit — 2026-04-13
 
 - Fixed graph endpoint crashing with "Array length is too long (10415 > maximum length 8192)" — Convex enforces a hard 8192 element limit on any array in a return value (applies to all Convex values, not just documents)
