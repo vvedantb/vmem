@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAction } from "convex/react";
 import {
   Dialog,
   DialogContent,
@@ -12,10 +12,8 @@ import {
 } from "@vmem/ui";
 import { IconSearch, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { clientEnv } from "@/env/client";
+import { api } from "@vmem/backend";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
-
-const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
 
 interface LinkMemoryModalProps {
   open: boolean;
@@ -32,7 +30,7 @@ export default function LinkMemoryModal({
   excludeIds,
   onLinked,
 }: LinkMemoryModalProps) {
-  const { getToken } = useAuth();
+  const linkMemories = useAction(api.relationshipApi.linkMemories);
   const { memories } = useMemoryContext();
   const [search, setSearch] = useState("");
   const [linkingId, setLinkingId] = useState<string | null>(null);
@@ -54,38 +52,21 @@ export default function LinkMemoryModal({
     async (selectedId: string) => {
       setLinkingId(selectedId);
       try {
-        const token = await getToken();
-        const headers = new Headers({
-          "Content-Type": "application/json",
+        await linkMemories({
+          memoryIdA: currentMemoryId,
+          memoryIdB: selectedId,
+          reason: "user linked",
         });
-        if (token) {
-          headers.set("Authorization", `Bearer ${token}`);
-        }
-
-        const res = await fetch(`${API_URL}/v1/relationships/link`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            memoryIdA: currentMemoryId,
-            memoryIdB: selectedId,
-            reason: "user linked",
-          }),
-        });
-
-        if (res.ok) {
-          toast.success("Memory linked");
-          onLinked();
-          onOpenChange(false);
-          setSearch("");
-        } else {
-          toast.error("Failed to link memory");
-        }
+        toast.success("Memory linked");
+        onLinked();
+        onOpenChange(false);
+        setSearch("");
       } catch {
         toast.error("Failed to link memory");
       }
       setLinkingId(null);
     },
-    [currentMemoryId, getToken, onLinked, onOpenChange],
+    [currentMemoryId, linkMemories, onLinked, onOpenChange],
   );
 
   return (

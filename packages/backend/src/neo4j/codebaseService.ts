@@ -32,17 +32,12 @@ interface ImportEdge {
 export class CodebaseService {
   constructor(private driver: Driver) {}
 
-  /**
-   * Clear existing codebase data and write new file nodes + import edges.
-   * Uses separate sessions for each batch to avoid parallel session.run() calls.
-   */
   async syncCodebase(
     userId: string,
     codebaseId: string,
     files: CodeFileInput[],
     edges: ImportEdgeInput[],
   ): Promise<{ totalFiles: number; totalEdges: number }> {
-    // Step 1: Delete existing data for this codebase
     const deleteSession = this.driver.session();
     try {
       await deleteSession.run(
@@ -55,7 +50,6 @@ export class CodebaseService {
 
     if (files.length === 0) return { totalFiles: 0, totalEdges: 0 };
 
-    // Step 2: Create file nodes in batches
     const BATCH_SIZE = 500;
     for (let i = 0; i < files.length; i += BATCH_SIZE) {
       const batch = files.slice(i, i + BATCH_SIZE);
@@ -80,7 +74,6 @@ export class CodebaseService {
       }
     }
 
-    // Step 3: Create import edges in batches
     let totalEdges = 0;
     for (let i = 0; i < edges.length; i += BATCH_SIZE) {
       const batch = edges.slice(i, i + BATCH_SIZE);
@@ -107,16 +100,12 @@ export class CodebaseService {
     return { totalFiles: files.length, totalEdges };
   }
 
-  /**
-   * Get the file graph for a codebase (all nodes + import edges).
-   */
   async getCodebaseGraph(
     userId: string,
     codebaseId: string,
   ): Promise<{ nodes: CodeFileNode[]; edges: ImportEdge[] }> {
     const session = this.driver.session();
     try {
-      // Get all file nodes
       const nodesResult = await session.run(
         `MATCH (f:CodeFile { userId: $userId, codebaseId: $codebaseId })
          RETURN f.id AS id, f.path AS path, f.directory AS directory,
@@ -134,7 +123,6 @@ export class CodebaseService {
         sizeBytes: Number(r.get("sizeBytes")),
       }));
 
-      // Get all import edges (separate query, same session is fine sequentially)
       const edgesResult = await session.run(
         `MATCH (src:CodeFile { userId: $userId, codebaseId: $codebaseId })
                -[rel:IMPORTS]->(tgt:CodeFile)
@@ -154,9 +142,6 @@ export class CodebaseService {
     }
   }
 
-  /**
-   * Delete all data for a codebase.
-   */
   async deleteCodebase(userId: string, codebaseId: string): Promise<void> {
     const session = this.driver.session();
     try {

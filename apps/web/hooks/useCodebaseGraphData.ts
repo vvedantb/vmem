@@ -1,15 +1,13 @@
 "use client";
 
 /**
- * Hook to fetch codebase file graph data from the Hono API.
+ * Hook to fetch codebase file graph data via Convex action.
  * Mirrors useGraphData.ts pattern but for codebases.
  */
-import { useAuth } from "@clerk/nextjs";
+import { useConvexAuth, useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { clientEnv } from "@/env/client";
-
-const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
+import { api } from "@vmem/backend";
 
 // ---- Zod schemas ----
 
@@ -50,26 +48,17 @@ export interface UseCodebaseGraphDataReturn {
 export function useCodebaseGraphData(
   codebaseId: string | null,
 ): UseCodebaseGraphDataReturn {
-  const { getToken, userId } = useAuth();
+  const { isAuthenticated } = useConvexAuth();
+  const getCodebaseGraph = useAction(api.codebases.getCodebaseGraph);
 
   const graphQuery = useTanstackQuery({
     queryKey: ["codebase-graph", codebaseId],
     queryFn: async (): Promise<CodebaseGraphResponse> => {
-      const token = await getToken();
-      const headers: HeadersInit = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-      const res = await fetch(`${API_URL}/v1/codebases/${codebaseId}/graph`, {
-        headers,
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `Graph request failed with ${res.status}`);
-      }
-      return codebaseGraphResponseSchema.parse(await res.json());
+      if (!codebaseId) throw new Error("No codebase ID");
+      const result = await getCodebaseGraph({ codebaseId });
+      return codebaseGraphResponseSchema.parse(result);
     },
-    enabled: !!userId && !!codebaseId,
+    enabled: isAuthenticated && !!codebaseId,
     staleTime: 60_000,
   });
 

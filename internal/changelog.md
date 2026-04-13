@@ -1,5 +1,26 @@
 # Changelog
 
+## Graph API: Cap Arrays for Convex 8192 Element Limit — 2026-04-13
+
+- Fixed graph endpoint crashing with "Array length is too long (10415 > maximum length 8192)" — Convex enforces a hard 8192 element limit on any array in a return value (applies to all Convex values, not just documents)
+- Capped graph results to 2000 nodes / 4000 edges per array, with orphan edge cleanup — also improves d3-force rendering performance
+- Documented JSON.stringify workaround as an alternative if full dataset is ever needed (strings only hit the 16 MiB size limit, no array cap)
+
+## Memory Engine: Migrated from Hono API to Convex "use node" Actions — 2026-04-13
+
+- Eliminated Railway Hono API (`apps/api/`): all Neo4j queries and mutations now run inside Convex serverless functions via "use node" runtime
+- Ported service layer to `packages/backend/src/neo4j/`: moved MemoryService (1330 lines), CodebaseService, Neo4j driver, and utilities outside convex/ to avoid bundler conflicts with Node.js dependencies (neo4j-driver, jsonwebtoken, node:crypto)
+- Created 10 internal action files in `convex/neo4jActions/` (memories, enrichment, dashboard, timeline, relationships, graph, codebases, proposedUpdates, mcp, dbSetup) — all "use node", receive clerkId + args, return typed results
+- Added 6 public API files (`convex/*Api.ts`): thin authAction wrappers that resolve Clerk ID via internal query, delegate to internalActions via ctx.runAction, no business logic
+- Implemented 5 MCP HTTP POST routes in `convex/http.ts` at `/api/mcp/memories/*`: each verifies JWT token + calls internalAction in single hop (no intermediate REST layer)
+- Updated MCP api-client.ts: changed base URL from Railway Hono to Convex site, updated all endpoints from `/v1/memories/...` to `/api/mcp/memories/...`
+- Updated frontend hooks: replaced `authFetch(API_URL)` with `useAction(api.xxxApi.yyy)` wrapped in React Query for staleTime/invalidation (GraphData, CodebaseGraphData, TrailData, TimelineEvents, MemoryContext)
+- Removed `useAuthFetch` hook and `NEXT_PUBLIC_API_URL` env var from frontend — no longer needed
+- Fixed TypeScript: resolved TS7022 (implicit any) via explicit return type annotations on authActions; resolved TS2589 (excessively deep type instantiation) by using `v.string()` in authAction args instead of `v.union(v.literal(...))`, with runtime type narrowing in internalAction handlers
+- Memory events pushed via `ctx.runMutation(internal.memoryEvents.pushEventInternal)` instead of HTTP client
+- Enrichment scheduled via `ctx.scheduler.runAfter(0, internal.neo4jActions.enrichment.enrichMemory)` instead of fire-and-forget promises
+- Reason: eliminates separate API deployment, reduces operational complexity, enables tight integration with Convex ecosystem (scheduler, mutations, actions), improves security (JWT verification in single hop), reduces latency (no HTTP round-trip)
+
 ## Chat UX: Provider Submenu, Reasoning UI, Assistant Avatar — 2026-04-13
 
 - Redesigned model selector dropdown: models now grouped by provider (Qwen, Llama, Gemma, etc.) with nested submenus instead of flat list

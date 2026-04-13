@@ -121,9 +121,19 @@ Codebases (GitHub Sync + File Graph):
 - State-based auth: since GitHub callback has no Clerk JWT, the `state` param maps to userId via `oauthStates` table (consumed atomically on callback)
 - Frontend passes `window.location.origin` as `returnUrl` so the same Convex deployment works for dev/staging
 - Convex: `githubConnections` (encrypted token), `codebases` (repo metadata + sync status), `oauthStates` (temporary OAuth flow state)
-- Neo4j: `CodeFile` nodes + `IMPORTS` edges per codebase — queried via Hono API
-- Hono API: `POST /v1/codebases/sync` (internal auth via X-Internal-Secret), `GET /v1/codebases/:id/graph`
-- Sync pipeline: Convex action → Hono → GitHub tree API → fetch file contents → regex parse TS/JS imports → Neo4j
-- Import parser at `apps/api/src/utils/import-parser.ts` — regex-based, relative imports only, TS/JS
+- Neo4j: `CodeFile` nodes + `IMPORTS` edges per codebase — queried via Convex "use node" actions
+- Sync pipeline: Convex authAction → internalAction ("use node") → GitHub tree API → fetch file contents → regex parse TS/JS imports → Neo4j
+- Import parser at `packages/backend/src/neo4j/importParser.ts` — regex-based, relative imports only, TS/JS
 - Graph reuses existing d3-force canvas engine (GraphCanvas) — `"imports"` added to edgeType union
-- Env vars needed: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `CONVEX_SITE_URL` (in Convex env), `INTERNAL_API_SECRET` (for Convex→Hono auth)
+- Env vars needed: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `CONVEX_SITE_URL` (in Convex env)
+
+Neo4j Architecture (post-Hono migration):
+
+- All Neo4j operations run inside Convex `"use node"` internalActions in `convex/neo4jActions/`
+- Service layer lives at `packages/backend/src/neo4j/` (outside convex/ to avoid bundler issues)
+- Public API: authAction wrappers in `convex/*Api.ts` delegate to internalActions via `ctx.runAction`
+- MCP: 5 HTTP POST routes in `convex/http.ts` at `/api/mcp/memories/*` — each calls an internalAction that verifies JWT + queries Neo4j in one hop
+- Frontend uses `useAction(api.xxxApi.yyy)` wrapped in React Query for staleTime/invalidation
+- Memory events pushed via `ctx.runMutation(internal.memoryEvents.pushEventInternal)`
+- Enrichment scheduled via `ctx.scheduler.runAfter(0, internal.neo4jActions.enrichment.enrichMemory)`
+- TS2589 workaround: authAction args use `v.string()` instead of `v.union(v.literal(...))` to avoid excessively deep type instantiation with convex-helpers customAction; internalAction handlers narrow strings back to union types via helper functions
