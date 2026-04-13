@@ -11,30 +11,31 @@ interface AuthEnv {
   };
 }
 
-export const authMiddleware = createMiddleware<AuthEnv>(async (c, next) => {
-  const authHeader = c.req.header("Authorization");
+/**
+ * Extracts and verifies the Bearer token from an Authorization header.
+ * Returns the userId if valid, null otherwise.
+ * Useful for routes that need auth but can't use the middleware
+ * (e.g. paths that collide with unauthenticated routes).
+ */
+export async function verifyAuthHeader(
+  authHeader: string | undefined,
+): Promise<string | null> {
+  if (!authHeader?.startsWith("Bearer ")) return null;
+  const token = authHeader.slice(7);
+  const clerkUserId = await verifyWithClerk(token);
+  if (clerkUserId) return clerkUserId;
+  const mcpUserId = verifyWithMcpJwt(token);
+  if (mcpUserId) return mcpUserId;
+  return null;
+}
 
-  if (!authHeader?.startsWith("Bearer ")) {
+export const authMiddleware = createMiddleware<AuthEnv>(async (c, next) => {
+  const userId = await verifyAuthHeader(c.req.header("Authorization"));
+  if (!userId) {
     return c.json({ error: "Missing or invalid Authorization header" }, 401);
   }
-
-  const token = authHeader.slice(7);
-
-  const clerkUserId = await verifyWithClerk(token);
-  if (clerkUserId) {
-    c.set("userId", clerkUserId);
-    await next();
-    return;
-  }
-
-  const mcpUserId = verifyWithMcpJwt(token);
-  if (mcpUserId) {
-    c.set("userId", mcpUserId);
-    await next();
-    return;
-  }
-
-  return c.json({ error: "Invalid or expired token" }, 401);
+  c.set("userId", userId);
+  await next();
 });
 
 async function verifyWithClerk(token: string): Promise<string | null> {

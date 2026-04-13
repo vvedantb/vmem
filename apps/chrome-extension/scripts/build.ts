@@ -45,4 +45,13 @@ await build(
   ),
 );
 
+console.log("Building selection content script...");
+await build(
+  createContentScriptConfig(
+    "content-selection",
+    "src/content/selection/index.ts",
+    mode,
+  ),
+);
+
 console.log("Build complete → dist/");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import { useSmoothText } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import {
@@ -24,6 +24,7 @@ import {
   ContextInputUsage,
   ContextOutputUsage,
   ContextReasoningUsage,
+  ContextSpeedUsage,
   ContextTrigger,
   InlineCitation,
   Message,
@@ -37,8 +38,14 @@ import {
   ToolInput,
   ToolOutput,
 } from "@vmem/ui/ai";
-import { IconUser, IconCopy, IconCheck } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconCopy,
+  IconMicrophone,
+  IconUser,
+} from "@tabler/icons-react";
 import Image from "next/image";
+import type { MessageUsageSummary } from "@/hooks/useLocalChat";
 
 function AssistantAvatar() {
   return (
@@ -99,42 +106,36 @@ function mapTaskStatus(part: ToolPart): "running" | "completed" | "failed" {
   return "running";
 }
 
-/**
- * Map `agentName` to the user-facing badge label.
- * Centralised here so both `/chat` and `/voice` use the same mapping.
- */
-function getProviderLabel(agentName?: string): string | null {
+/** Map `agentName` to a provider icon + tooltip. */
+function getProviderMeta(agentName?: string): {
+  icon: ReactNode;
+  tooltip: string;
+} | null {
   switch (agentName) {
-    case "vmem":
-      return "Cloud";
-    case "vmem-local":
-      return "Local Text";
     case "vmem-local-voice":
-      return "Local Voice";
+      return {
+        icon: <IconMicrophone className="size-3.5" stroke={1.5} />,
+        tooltip: "Voice",
+      };
     default:
       return null;
   }
 }
 
-const MODEL_MAX_TOKENS = 1_000_000;
-
-/** Token-usage summary for a single assistant message bubble. */
-interface MessageUsageSummary {
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
-  reasoningTokens: number;
-  cachedInputTokens: number;
-}
+/** Fallback when caller doesn't know the model's context window. */
+const DEFAULT_MAX_CONTEXT_TOKENS = 4096;
 
 interface ChatMessageItemProps {
   message: UIMessage;
   usage?: MessageUsageSummary;
+  /** Model's context window size in tokens. Defaults to 4096. */
+  maxContextTokens?: number;
 }
 
 export default function ChatMessageItem({
   message,
   usage,
+  maxContextTokens = DEFAULT_MAX_CONTEXT_TOKENS,
 }: ChatMessageItemProps) {
   const [copied, setCopied] = useState(false);
   const isStreaming = message.status === "streaming";
@@ -158,10 +159,11 @@ export default function ChatMessageItem({
     (p): p is Extract<(typeof message.parts)[number], { type: "source-url" }> =>
       p.type === "source-url",
   );
-  const providerLabel = getProviderLabel(message.agentName);
+  const providerMeta = getProviderMeta(message.agentName);
 
   return (
     <Message from={message.role}>
+      {isAssistant && <AssistantAvatar />}
       <div
         className={`flex w-fit max-w-4xl flex-col ${
           isAssistant ? "items-start" : "items-end"
@@ -249,7 +251,7 @@ export default function ChatMessageItem({
         )}
 
         {isAssistant && !isStreaming && displayText && (
-          <Actions className="mt-1">
+          <Actions className="mt-1 opacity-0 transition-opacity group-hover:opacity-100">
             <Action tooltip="Copy" label="Copy response" onClick={handleCopy}>
               {copied ? (
                 <IconCheck className="size-3.5" stroke={1.5} />
@@ -257,25 +259,21 @@ export default function ChatMessageItem({
                 <IconCopy className="size-3.5" stroke={1.5} />
               )}
             </Action>
-          </Actions>
-        )}
 
-        {(providerLabel !== null || (isAssistant && usage)) && (
-          <div
-            className={`mt-1 flex items-center gap-2 ${
-              isAssistant ? "justify-start" : "justify-end"
-            }`}
-          >
-            {providerLabel !== null && (
-              <span className="text-xs text-muted-foreground">
-                {providerLabel}
-              </span>
+            {providerMeta && (
+              <Action
+                tooltip={providerMeta.tooltip}
+                label={providerMeta.tooltip}
+              >
+                {providerMeta.icon}
+              </Action>
             )}
-            {isAssistant && usage && (
+
+            {usage && (
               <Context
                 usage={usage}
                 usedTokens={usage.totalTokens}
-                maxTokens={MODEL_MAX_TOKENS}
+                maxTokens={maxContextTokens}
               >
                 <ContextTrigger />
                 <ContextContent>
@@ -285,11 +283,12 @@ export default function ChatMessageItem({
                     <ContextOutputUsage />
                     <ContextReasoningUsage />
                     <ContextCacheUsage />
+                    <ContextSpeedUsage />
                   </ContextContentBody>
                 </ContextContent>
               </Context>
             )}
-          </div>
+          </Actions>
         )}
       </div>
     </Message>

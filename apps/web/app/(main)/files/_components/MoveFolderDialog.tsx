@@ -1,0 +1,119 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  Button,
+  cn,
+} from "@vmem/ui";
+import { IconFolder, IconFolderSymlink, IconHome } from "@tabler/icons-react";
+import type { FileItem } from "@/lib/file-types";
+
+interface MoveFolderDialogProps {
+  isOpen: boolean;
+  folders: FileItem[];
+  currentFolderId: string | null;
+  itemCount: number;
+  onMove: (targetFolderId: string | null) => void;
+  onClose: () => void;
+}
+
+export default function MoveFolderDialog({
+  isOpen,
+  folders,
+  currentFolderId,
+  itemCount,
+  onMove,
+  onClose,
+}: MoveFolderDialogProps) {
+  const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
+
+  const handleConfirm = useCallback(() => {
+    onMove(selectedTarget);
+    onClose();
+  }, [selectedTarget, onMove, onClose]);
+
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) onClose();
+    },
+    [onClose],
+  );
+
+  // Filter out the current folder from destinations
+  const destinations = folders.filter((f) => f.id !== currentFolderId);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-sm" hideCloseButton>
+        <DialogHeader className="border-b border-border pb-4">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
+            <IconFolderSymlink size={18} stroke={1.5} />
+            Move {itemCount} {itemCount === 1 ? "item" : "items"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="py-2 max-h-64 overflow-y-auto space-y-1">
+          {/* Root option */}
+          <button
+            type="button"
+            className={cn(
+              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
+              selectedTarget === null
+                ? "bg-primary/10 text-primary"
+                : "text-foreground hover:bg-accent",
+            )}
+            onClick={() => setSelectedTarget(null)}
+          >
+            <IconHome size={18} stroke={1.5} />
+            Files (root)
+          </button>
+
+          {/* Folder list */}
+          {destinations.map((folder) => (
+            <button
+              key={folder.id}
+              type="button"
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
+                selectedTarget === folder.id
+                  ? "bg-primary/10 text-primary"
+                  : "text-foreground hover:bg-accent",
+              )}
+              onClick={() => setSelectedTarget(folder.id)}
+            >
+              <IconFolder size={18} stroke={1.5} />
+              {folder.name}
+            </button>
+          ))}
+
+          {destinations.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No other folders available
+            </p>
+          )}
+        </div>
+
+        <DialogFooter className="border-t border-border pt-4">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            className="text-muted-foreground"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            className="bg-primary text-primary-foreground"
+          >
+            Move here
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

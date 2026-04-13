@@ -59,10 +59,56 @@ async function handleMessage(
       }
     }
 
+    case "SAVE_SELECTION": {
+      try {
+        const trimmed = message.selectedText.trim();
+        const title =
+          trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
+        const hostname = new URL(message.pageUrl).hostname;
+
+        console.log("[vmem] Saving selection:", {
+          title,
+          hostname,
+          textLength: message.selectedText.length,
+        });
+
+        const result = await createMemory({
+          title,
+          content: message.selectedText.slice(0, 10000),
+          type: "knowledge",
+          source: "browser-extension",
+          tags: [hostname, "selection"],
+          confidence: 1.0,
+          url: message.pageUrl,
+        });
+
+        if (result.status === "duplicate") {
+          return {
+            type: "SAVE_DUPLICATE",
+            existingMemory: result.existingMemory,
+          };
+        }
+        return {
+          type: "SAVE_RESULT",
+          success: true,
+          memoryId: result.memory.id,
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "Unknown error";
+        console.error("[vmem] SAVE_SELECTION failed:", error);
+        return { type: "SAVE_RESULT", success: false, error };
+      }
+    }
+
     case "IMPORT_BOOKMARKS": {
       try {
-        const count = await importBookmarks();
-        return { type: "IMPORT_RESULT", success: true, count };
+        const result = await importBookmarks();
+        return {
+          type: "IMPORT_RESULT",
+          success: true,
+          count: result.imported,
+          locked: result.locked,
+        };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";
         return { type: "IMPORT_RESULT", success: false, count: 0, error };
@@ -71,8 +117,13 @@ async function handleMessage(
 
     case "IMPORT_HISTORY": {
       try {
-        const count = await importHistory(message.days);
-        return { type: "IMPORT_RESULT", success: true, count };
+        const result = await importHistory(message.days);
+        return {
+          type: "IMPORT_RESULT",
+          success: true,
+          count: result.imported,
+          locked: result.locked,
+        };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";
         return { type: "IMPORT_RESULT", success: false, count: 0, error };
