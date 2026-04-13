@@ -14,6 +14,8 @@ export interface WebLLMModelInfo {
   description: string;
   /** Approximate VRAM required in MB */
   vramMB: number;
+  /** Maximum context window in tokens */
+  contextLength: number;
 }
 
 export const WEB_LLM_MODELS: WebLLMModelInfo[] = [
@@ -23,6 +25,7 @@ export const WEB_LLM_MODELS: WebLLMModelInfo[] = [
     size: "~273MB",
     description: "Ultra-fast, limited quality",
     vramMB: 719,
+    contextLength: 2048,
   },
   {
     id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
@@ -30,6 +33,7 @@ export const WEB_LLM_MODELS: WebLLMModelInfo[] = [
     size: "~350MB",
     description: "Good balance for low VRAM",
     vramMB: 1200,
+    contextLength: 4096,
   },
   {
     id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",
@@ -37,6 +41,7 @@ export const WEB_LLM_MODELS: WebLLMModelInfo[] = [
     size: "~700MB",
     description: "Recommended default",
     vramMB: 2000,
+    contextLength: 8192,
   },
   {
     id: "Phi-3.5-mini-instruct-q4f16_1-MLC",
@@ -44,6 +49,7 @@ export const WEB_LLM_MODELS: WebLLMModelInfo[] = [
     size: "~2.2GB",
     description: "Best quality, needs good GPU",
     vramMB: 4500,
+    contextLength: 4096,
   },
 ];
 
