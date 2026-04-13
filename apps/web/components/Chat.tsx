@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { IconLoader2 } from "@tabler/icons-react";
+import { IconCpu, IconLoader2 } from "@tabler/icons-react";
 import {
   Conversation,
   ConversationContent,
@@ -17,11 +17,16 @@ import {
   usePromptInput,
   type PromptInputMessage,
 } from "@vmem/ui/ai";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@vmem/ui";
 import Image from "next/image";
 import Link from "next/link";
 import ChatMessageItem from "@/app/(main)/chat/_components/ChatMessageItem";
 import { useLocalChat } from "@/hooks/useLocalChat";
 import { useWebLLM } from "@/components/contexts/WebLLMContext";
+import { findModel } from "@/lib/webllm-models";
+
+/** Fallback context length when model info isn't available. */
+const DEFAULT_CONTEXT_LENGTH = 4096;
 
 function ChatSpeechInput() {
   const { input, setInput } = usePromptInput();
@@ -42,18 +47,44 @@ function ChatSpeechInput() {
   );
 }
 
+/** Chip showing the loaded model name in the prompt footer. */
+function ModelChip() {
+  const { loadedModelId } = useWebLLM();
+  if (loadedModelId === null) return null;
+
+  const modelInfo = findModel(loadedModelId);
+  const label = modelInfo?.name ?? "Local model";
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link
+          href="/settings/preferences"
+          className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <IconCpu className="size-3" stroke={1.5} />
+          {label}
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="top">Change model</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export default function Chat() {
   const {
     isThreadReady,
-    isReady,
     messages,
     sendMessage,
     isStreaming,
     usageByMessageKey,
   } = useLocalChat();
-  const { engineState } = useWebLLM();
+  const { engineState, loadedModelId } = useWebLLM();
 
   const promptStatus = isStreaming ? "streaming" : "ready";
+
+  const loadedModel = loadedModelId ? findModel(loadedModelId) : undefined;
+  const maxContextTokens = loadedModel?.contextLength ?? DEFAULT_CONTEXT_LENGTH;
 
   const handleSubmit = useCallback(
     async ({ text }: PromptInputMessage) => {
@@ -167,6 +198,7 @@ export default function Chat() {
               key={message.key}
               message={message}
               usage={usageByMessageKey[message.key]}
+              maxContextTokens={maxContextTokens}
             />
           ))}
         </ConversationContent>
@@ -184,6 +216,7 @@ export default function Chat() {
             {...(needsModel ? { disabled: true } : {})}
           />
           <PromptInputFooter>
+            <ModelChip />
             <ChatSpeechInput />
             <PromptInputSubmit {...(needsModel ? { disabled: true } : {})} />
           </PromptInputFooter>

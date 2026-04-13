@@ -24,6 +24,7 @@ import {
   ContextInputUsage,
   ContextOutputUsage,
   ContextReasoningUsage,
+  ContextSpeedUsage,
   ContextTrigger,
   InlineCitation,
   Message,
@@ -45,6 +46,7 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import Image from "next/image";
+import type { MessageUsageSummary } from "@/hooks/useLocalChat";
 
 function AssistantAvatar() {
   return (
@@ -126,25 +128,17 @@ function getProviderMeta(agentName?: string): {
   }
 }
 
-const MODEL_MAX_TOKENS = 1_000_000;
-
-/** Token-usage summary for a single assistant message bubble. */
-interface MessageUsageSummary {
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
-  reasoningTokens: number;
-  cachedInputTokens: number;
-}
-
 interface ChatMessageItemProps {
   message: UIMessage;
   usage?: MessageUsageSummary;
+  /** Model's context window size in tokens. */
+  maxContextTokens: number;
 }
 
 export default function ChatMessageItem({
   message,
   usage,
+  maxContextTokens,
 }: ChatMessageItemProps) {
   const [copied, setCopied] = useState(false);
   const isStreaming = message.status === "streaming";
@@ -281,7 +275,7 @@ export default function ChatMessageItem({
               <Context
                 usage={usage}
                 usedTokens={usage.totalTokens}
-                maxTokens={MODEL_MAX_TOKENS}
+                maxTokens={maxContextTokens}
               >
                 <ContextTrigger />
                 <ContextContent>
@@ -291,6 +285,7 @@ export default function ChatMessageItem({
                     <ContextOutputUsage />
                     <ContextReasoningUsage />
                     <ContextCacheUsage />
+                    <ContextSpeedUsage />
                   </ContextContentBody>
                 </ContextContent>
               </Context>

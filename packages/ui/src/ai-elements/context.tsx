@@ -30,6 +30,8 @@ export interface MessageUsageSummary {
   totalTokens: number;
   reasoningTokens: number;
   cachedInputTokens: number;
+  /** Output tokens per second (local inference speed). */
+  tokensPerSecond?: number;
 }
 
 interface ContextSchema {
@@ -344,6 +346,32 @@ export const ContextCacheUsage = ({
     >
       <span className="text-muted-foreground">Cache</span>
       <span>{formatTokens(usage.cachedInputTokens)}</span>
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Speed row — tokens per second
+// ---------------------------------------------------------------------------
+
+export type ContextSpeedUsageProps = ComponentProps<"div">;
+
+export const ContextSpeedUsage = ({
+  className,
+  children,
+  ...props
+}: ContextSpeedUsageProps) => {
+  const { usage } = useContextValue();
+  if (children) return <>{children}</>;
+  if (!usage.tokensPerSecond || usage.tokensPerSecond <= 0) return null;
+
+  return (
+    <div
+      className={cn("flex items-center justify-between text-xs", className)}
+      {...props}
+    >
+      <span className="text-muted-foreground">Speed</span>
+      <span>{usage.tokensPerSecond.toFixed(1)} tok/s</span>
     </div>
   );
 };
