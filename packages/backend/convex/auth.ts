@@ -1,6 +1,7 @@
 import {
   action,
   internalAction,
+  internalQuery,
   mutation,
   query,
   ActionCtx,
@@ -143,5 +144,15 @@ export const me = query({
   returns: v.union(v.id("users"), v.null()),
   handler: async (ctx) => {
     return await getCurrentUserId(ctx);
+  },
+});
+
+/** Returns the Clerk subject ID for a given Convex user. */
+export const getClerkIdInternal = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    return user?.clerkId ?? null;
   },
 });
