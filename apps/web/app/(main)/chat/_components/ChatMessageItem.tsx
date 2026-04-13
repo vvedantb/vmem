@@ -41,7 +41,6 @@ import {
 import {
   IconCheck,
   IconCopy,
-  IconCpu,
   IconMicrophone,
   IconUser,
 } from "@tabler/icons-react";
@@ -113,11 +112,6 @@ function getProviderMeta(agentName?: string): {
   tooltip: string;
 } | null {
   switch (agentName) {
-    case "vmem-local":
-      return {
-        icon: <IconCpu className="size-3.5" stroke={1.5} />,
-        tooltip: "Local",
-      };
     case "vmem-local-voice":
       return {
         icon: <IconMicrophone className="size-3.5" stroke={1.5} />,

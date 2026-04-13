@@ -221,8 +221,6 @@ export function useLocalChat(): LocalChatResult {
         const totalUsage = await result.totalUsage;
         const inputTokens = totalUsage.inputTokens ?? 0;
         const outputTokens = totalUsage.outputTokens ?? 0;
-        const hasUsage = inputTokens > 0 || outputTokens > 0;
-
         // Use SDK-reported output tokens when available, fall back to delta count
         const finalOutputTokens =
           outputTokens > 0 ? outputTokens : outputTokenCount;
@@ -256,19 +254,15 @@ export function useLocalChat(): LocalChatResult {
         );
 
         if (threadId && accumulatedText) {
-          const usageForSave = hasUsage
-            ? {
-                promptTokens: inputTokens,
-                completionTokens: outputTokens,
-                totalTokens: inputTokens + outputTokens,
-              }
-            : undefined;
-
           await saveLocalMessages({
             threadId,
             userText: text,
             assistantText: accumulatedText,
-            usage: usageForSave,
+            usage: {
+              promptTokens: inputTokens,
+              completionTokens: finalOutputTokens,
+              totalTokens: inputTokens + finalOutputTokens,
+            },
           });
           setDraftMessages([]);
           setDraftUsageByKey({});
