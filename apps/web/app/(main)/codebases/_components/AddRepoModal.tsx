@@ -69,6 +69,7 @@ export function AddRepoModal({
         defaultBranch: repo.defaultBranch,
         language: repo.language ?? undefined,
         description: repo.description ?? undefined,
+        isPrivate: repo.isPrivate,
       });
       toast.success(`Added ${repo.fullName}`);
       onOpenChange(false);
