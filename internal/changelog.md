@@ -1,5 +1,13 @@
 # Changelog
 
+## Chat UX: Provider Submenu, Reasoning UI, Assistant Avatar — 2026-04-13
+
+- Redesigned model selector dropdown: models now grouped by provider (Qwen, Llama, Gemma, etc.) with nested submenus instead of flat list
+- Expanded WebLLM model catalog from 10 to 12 models across 6 providers; added `provider` field and `groupByProvider()` helper; removed model descriptions for cleaner UI
+- Added reasoning/thinking UI for local models: switched from `textStream` to `fullStream` to capture `reasoning-delta` parts, enabling the existing ChainOfThought accordion to render thinking from models like Qwen 3
+- Added vmem assistant avatar to chat messages: assistant bubbles now show the vmem icon alongside responses
+- Reason: improves model discovery with organized provider grouping, surfaces chain-of-thought from thinking models, gives assistant messages consistent visual identity
+
 ## Chat: Local LLM Only (Removed Cloud OpenRouter) — 2026-04-13
 
 - Removed dual-mode chat (cloud/local toggle): chat now exclusively uses local WebLLM inference, eliminating dependency on OpenRouter for chat
