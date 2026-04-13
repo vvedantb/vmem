@@ -1,5 +1,12 @@
 # Changelog
 
+## Chrome Extension: Improved Popup UI — 2026-04-14
+
+- Fixed active tab styling: replaced glassmorphic effect (border + shadow) with flat accent background to match web version
+- Enhanced Save page tab with Raindrop-style page preview: displays current page favicon, title, URL (truncated), and timestamp ("Today at HH:MM AM/PM") before save button
+- Refactored QuickSave component: added `useEffect` to fetch page info on mount, added helper functions (`formatTimestamp`, `truncateUrl`) for consistent date/URL formatting
+- Reason: improves visual hierarchy and consistency between extension and web app, gives users context of what they're saving before confirming
+
 ## Chrome Extension: Migrated Auto-Sync to Convex HTTP Routes — 2026-04-14
 
 - Fixed broken auto-sync: background service worker was calling deprecated Railway Hono API — now calls Convex HTTP routes at `/api/mcp/memories/*`
