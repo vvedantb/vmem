@@ -69,12 +69,16 @@ interface LocalChatResult {
   messages: UIMessage[];
   sendMessage: (text: string) => Promise<void>;
   isStreaming: boolean;
+  /** Thread loaded (may still need a model to send messages). */
+  isThreadReady: boolean;
+  /** Thread loaded AND WebLLM engine ready. */
   isReady: boolean;
   usageByMessageKey: Record<string, MessageUsageSummary>;
 }
 
-export function useLocalChat(threadId: string | null): LocalChatResult {
+export function useLocalChat(): LocalChatResult {
   const { model, engineState } = useWebLLM();
+  const [threadId, setThreadId] = useState<string | null>(null);
   const [draftMessages, setDraftMessages] = useState<UIMessage[]>([]);
   const [draftUsageByKey, setDraftUsageByKey] = useState<
     Record<string, MessageUsageSummary>
@@ -82,7 +86,18 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
   const [isStreaming, setIsStreaming] = useState(false);
   const orderRef = useRef(0);
 
+  const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
+
+  // Load or create the chat thread on mount
+  useEffect(() => {
+    getOrCreateThread()
+      .then((id) => setThreadId(id))
+      .catch((error) => {
+        console.error("Failed to load chat thread:", error);
+      });
+  }, [getOrCreateThread]);
+
   const persistedUsageByKey: Record<string, MessageUsageSummary> =
     useQuery(
       api.chat.getThreadMessageUsage,
@@ -237,11 +252,15 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
     ...draftUsageByKey,
   };
 
+  const isThreadReady = threadId !== null;
+  const isModelReady = engineState === "ready" && model !== null;
+
   return {
     messages,
     sendMessage,
     isStreaming,
-    isReady: engineState === "ready" && model !== null,
+    isThreadReady,
+    isReady: isThreadReady && isModelReady,
     usageByMessageKey,
   };
 }

@@ -18,11 +18,10 @@ import {
   type PromptInputMessage,
 } from "@vmem/ui/ai";
 import Image from "next/image";
+import Link from "next/link";
 import ChatMessageItem from "@/app/(main)/chat/_components/ChatMessageItem";
-import ProviderToggle from "@/app/(main)/chat/_components/ProviderToggle";
-import { useCloudChat } from "@/hooks/useCloudChat";
 import { useLocalChat } from "@/hooks/useLocalChat";
-import { useChatProvider } from "@/hooks/useChatProvider";
+import { useWebLLM } from "@/components/contexts/WebLLMContext";
 
 function ChatSpeechInput() {
   const { input, setInput } = usePromptInput();
@@ -44,22 +43,24 @@ function ChatSpeechInput() {
 }
 
 export default function Chat() {
-  const { provider } = useChatProvider();
-  const cloud = useCloudChat();
-  const local = useLocalChat(cloud.threadId);
+  const {
+    isThreadReady,
+    isReady,
+    messages,
+    sendMessage,
+    isStreaming,
+    usageByMessageKey,
+  } = useLocalChat();
+  const { engineState } = useWebLLM();
 
-  // Branch on provider — both hooks always run, but only one drives the UI
-  const active = provider === "local" && local.isReady ? local : cloud;
-
-  const isWaitingForResponse = active.isStreaming;
-  const promptStatus = isWaitingForResponse ? "streaming" : "ready";
+  const promptStatus = isStreaming ? "streaming" : "ready";
 
   const handleSubmit = useCallback(
     async ({ text }: PromptInputMessage) => {
       if (!text) return;
-      await active.sendMessage(text);
+      await sendMessage(text);
     },
-    [active],
+    [sendMessage],
   );
 
   const handleSuggestionClick = useCallback(
@@ -69,7 +70,8 @@ export default function Chat() {
     [handleSubmit],
   );
 
-  if (!cloud.isReady) {
+  // Show loader while thread is being created
+  if (!isThreadReady) {
     return (
       <div className="flex h-full items-center justify-center">
         <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -77,11 +79,48 @@ export default function Chat() {
     );
   }
 
+  // No model loaded — prompt user to load one
+  const needsModel = engineState !== "ready";
+
   return (
     <div className="flex flex-col h-full min-h-0">
       <Conversation className="flex-1 min-h-0">
         <ConversationContent className="pb-4 max-w-4xl mx-auto w-full px-1 sm:px-0">
-          {active.messages.length === 0 && (
+          {messages.length === 0 && needsModel && (
+            <ConversationEmptyState
+              icon={
+                <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
+                  <Image
+                    unoptimized
+                    width={22}
+                    height={22}
+                    alt="vmem"
+                    src="/icon-dark.svg"
+                    className="block dark:hidden"
+                  />
+                  <Image
+                    unoptimized
+                    width={22}
+                    height={22}
+                    alt="vmem"
+                    src="/icon-light.svg"
+                    className="hidden dark:block"
+                  />
+                </div>
+              }
+              title="No local model loaded"
+              description="Load a local model to start chatting."
+            >
+              <Link
+                href="/settings/preferences"
+                className="mt-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Go to Settings &rarr; Preferences
+              </Link>
+            </ConversationEmptyState>
+          )}
+
+          {messages.length === 0 && !needsModel && (
             <ConversationEmptyState
               icon={
                 <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
@@ -104,7 +143,7 @@ export default function Chat() {
                 </div>
               }
               title="Start a conversation"
-              description="Ask anything about your stored memories. The AI will search and reference relevant information."
+              description="Ask anything — running locally in your browser."
             >
               <Suggestions className="max-w-md">
                 {[
@@ -123,11 +162,11 @@ export default function Chat() {
             </ConversationEmptyState>
           )}
 
-          {active.messages.map((message) => (
+          {messages.map((message) => (
             <ChatMessageItem
               key={message.key}
               message={message}
-              usage={active.usageByMessageKey[message.key]}
+              usage={usageByMessageKey[message.key]}
             />
           ))}
         </ConversationContent>
@@ -136,11 +175,17 @@ export default function Chat() {
 
       <div className="flex-shrink-0 max-w-3xl mx-auto w-full px-1 sm:px-0">
         <PromptInput onSubmit={handleSubmit} status={promptStatus}>
-          <PromptInputTextarea placeholder="Ask about your memories..." />
+          <PromptInputTextarea
+            placeholder={
+              needsModel
+                ? "Load a local model to chat..."
+                : "Ask about your memories..."
+            }
+            {...(needsModel ? { disabled: true } : {})}
+          />
           <PromptInputFooter>
-            <ProviderToggle />
             <ChatSpeechInput />
-            <PromptInputSubmit />
+            <PromptInputSubmit {...(needsModel ? { disabled: true } : {})} />
           </PromptInputFooter>
         </PromptInput>
       </div>

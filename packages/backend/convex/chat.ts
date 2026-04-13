@@ -1,16 +1,15 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import {
+  createThread,
   listMessages,
   listUIMessages,
   saveMessage,
   syncStreams,
 } from "@convex-dev/agent";
 import { vStreamArgs, vUsage } from "@convex-dev/agent/validators";
-import { components, internal } from "./_generated/api";
-import { internalAction } from "./_generated/server";
+import { components } from "./_generated/api";
 import { authMutation, authQuery } from "./auth";
-import { vmemAgent } from "./agent";
 
 export const getOrCreateThread = authMutation({
   args: {},
@@ -26,47 +25,10 @@ export const getOrCreateThread = authMutation({
     if (existing.page.length > 0) {
       return existing.page[0]._id;
     }
-    const { threadId } = await vmemAgent.createThread(ctx, {
+    const threadId = await createThread(ctx, components.agent, {
       userId: ctx.userId,
     });
     return threadId;
-  },
-});
-
-export const initiateStreaming = authMutation({
-  args: {
-    prompt: v.string(),
-    threadId: v.string(),
-  },
-  handler: async (ctx, { prompt, threadId }) => {
-    const { messageId } = await vmemAgent.saveMessage(ctx, {
-      threadId,
-      prompt,
-      skipEmbeddings: true,
-    });
-    await ctx.scheduler.runAfter(0, internal.chat.streamAsync, {
-      threadId,
-      promptMessageId: messageId,
-      userId: ctx.userId,
-    });
-    return messageId;
-  },
-});
-
-export const streamAsync = internalAction({
-  args: {
-    threadId: v.string(),
-    promptMessageId: v.string(),
-    userId: v.string(),
-  },
-  handler: async (ctx, { threadId, promptMessageId, userId }) => {
-    const result = await vmemAgent.streamText(
-      ctx,
-      { threadId, userId },
-      { promptMessageId },
-      { saveStreamDeltas: true },
-    );
-    await result.consumeStream();
   },
 });
 
