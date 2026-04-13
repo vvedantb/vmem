@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuthFetch } from "@/hooks/useAuthFetch";
-import { clientEnv } from "@/env/client";
-import type { TimelineEvent } from "@/lib/timeline";
-
-const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
+import { useAction } from "convex/react";
+import { api } from "@vmem/backend";
 
 export interface TrailEntry {
   connectionType: string;
@@ -22,7 +19,7 @@ interface UseTrailDataResult {
 }
 
 export function useTrailData({ tag }: UseTrailDataOptions): UseTrailDataResult {
-  const authFetch = useAuthFetch();
+  const getTopicTimeline = useAction(api.timelineApi.getTopicTimeline);
   const [trailMap, setTrailMap] = useState<Map<string, TrailEntry>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
 
@@ -35,26 +32,24 @@ export function useTrailData({ tag }: UseTrailDataOptions): UseTrailDataResult {
     let cancelled = false;
     setIsLoading(true);
 
-    const url = `${API_URL}/v1/timeline/topic?tag=${encodeURIComponent(tag)}`;
-
-    authFetch(url)
-      .then(async (res) => {
+    getTopicTimeline({ tag, limit: 200, offset: 0 })
+      .then((events) => {
         if (cancelled) return;
-        if (res.ok) {
-          const json: { data: TimelineEvent[] } = await res.json();
-          const map = new Map<string, TrailEntry>();
-          for (const event of json.data) {
-            if (!map.has(event.memoryId)) {
-              map.set(event.memoryId, {
-                connectionType: event.connectionType ?? "tag",
-                reason: event.reason,
-              });
-            }
+        const data = events as Array<{
+          memoryId: string;
+          connectionType?: string;
+          reason?: string;
+        }>;
+        const map = new Map<string, TrailEntry>();
+        for (const event of data) {
+          if (!map.has(event.memoryId)) {
+            map.set(event.memoryId, {
+              connectionType: event.connectionType ?? "tag",
+              reason: event.reason,
+            });
           }
-          setTrailMap(map);
-        } else {
-          setTrailMap(new Map());
         }
+        setTrailMap(map);
       })
       .catch(() => {
         if (!cancelled) setTrailMap(new Map());
@@ -66,7 +61,7 @@ export function useTrailData({ tag }: UseTrailDataOptions): UseTrailDataResult {
     return () => {
       cancelled = true;
     };
-  }, [tag, authFetch]);
+  }, [tag, getTopicTimeline]);
 
   return { trailMap, isLoading };
 }

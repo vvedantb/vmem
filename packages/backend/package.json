@@ -12,11 +12,15 @@
   "dependencies": {
     "@ai-sdk/provider-utils": "catalog:",
     "@convex-dev/agent": "catalog:",
+    "@neo4j/cypher-builder": "^3.0.1",
     "ai": "catalog:",
     "convex": "catalog:",
-    "convex-helpers": "catalog:"
+    "convex-helpers": "catalog:",
+    "jsonwebtoken": "catalog:",
+    "neo4j-driver": "^5.28.3"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "catalog:",
     "@types/node": "catalog:node-types-22",
     "typescript": "catalog:"
   }

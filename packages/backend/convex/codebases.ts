@@ -188,7 +188,6 @@ export const removeCodebase = authMutation({
 export const syncCodebase = authAction({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    // Normalize string → Id for internal function calls
     const normalizedId = await ctx.runQuery(
       internal.codebases.normalizeCodebaseId,
       { id: args.id },
@@ -201,7 +200,6 @@ export const syncCodebase = authAction({
     });
     if (!codebase) throw new Error("Codebase not found");
 
-    // Resolve Clerk user ID — Neo4j and Hono API use Clerk IDs, not Convex IDs
     const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
       userId: ctx.userId,
     });
@@ -215,7 +213,6 @@ export const syncCodebase = authAction({
 
     const token = await decryptToken(encryptedToken);
 
-    // Set status to syncing
     await ctx.runMutation(internal.codebases.updateStatusInternal, {
       id: normalizedId,
       status: "syncing",
@@ -224,33 +221,17 @@ export const syncCodebase = authAction({
     });
 
     try {
-      // Call Hono API to perform the sync
-      const apiUrl = process.env.API_URL ?? "http://localhost:3001";
-      const response = await fetch(`${apiUrl}/v1/codebases/sync`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Internal auth — pass secret + Clerk userId (not Convex Id)
-          // so Neo4j data matches what verifyAuthHeader returns on read
-          "X-Internal-Secret": process.env.INTERNAL_API_SECRET ?? "",
-          "X-User-Id": clerkId,
-        },
-        body: JSON.stringify({
+      const result = await ctx.runAction(
+        internal.neo4jActions.codebases.syncCodebaseInternal,
+        {
+          clerkId,
           codebaseId: normalizedId,
           repoOwner: codebase.repoOwner,
           repoName: codebase.repoName,
           branch: codebase.defaultBranch,
           githubToken: token,
-        }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Sync failed: ${response.status} ${text}`);
-      }
-
-      const result: { totalFiles: number; totalEdges: number } =
-        await response.json();
+        },
+      );
 
       await ctx.runMutation(internal.codebases.updateStatusInternal, {
         id: normalizedId,
@@ -270,6 +251,44 @@ export const syncCodebase = authAction({
       });
       throw err;
     }
+  },
+});
+
+interface CodeFileNode {
+  id: string;
+  path: string;
+  directory: string;
+  filename: string;
+  extension: string;
+  sizeBytes: number;
+}
+
+interface ImportEdge {
+  source: string;
+  target: string;
+  importPath: string;
+}
+
+interface CodebaseGraphResult {
+  nodes: CodeFileNode[];
+  edges: ImportEdge[];
+}
+
+export const getCodebaseGraph = authAction({
+  args: { codebaseId: v.string() },
+  handler: async (ctx, args): Promise<CodebaseGraphResult> => {
+    const clerkId: string | null = await ctx.runQuery(
+      internal.auth.getClerkIdInternal,
+      { userId: ctx.userId },
+    );
+    if (!clerkId) throw new Error("User not found");
+    return await ctx.runAction(
+      internal.neo4jActions.codebases.getCodebaseGraphInternal,
+      {
+        clerkId,
+        codebaseId: args.codebaseId,
+      },
+    );
   },
 });
 

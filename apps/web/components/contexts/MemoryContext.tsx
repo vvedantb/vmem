@@ -1,17 +1,14 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { useAuthFetch } from "@/hooks/useAuthFetch";
+import { useConvexAuth, useAction } from "convex/react";
 import {
   useQuery as useTanstackQuery,
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 import type { Memory } from "@/lib/memories";
-import { clientEnv } from "@/env/client";
-
-const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
+import { api } from "@vmem/backend";
 
 interface CreateMemoryInput {
   title: string;
@@ -68,9 +65,12 @@ function apiToMemory(m: ApiMemory): Memory {
 }
 
 export function MemoryProvider({ children }: { children: React.ReactNode }) {
-  const { userId } = useAuth();
+  const { isAuthenticated } = useConvexAuth();
   const queryClient = useQueryClient();
-  const authFetch = useAuthFetch();
+  const listMemoriesAction = useAction(api.memoryApi.listMemories);
+  const createMemoryAction = useAction(api.memoryApi.createMemory);
+  const updateMemoryAction = useAction(api.memoryApi.updateMemory);
+  const deleteMemoryAction = useAction(api.memoryApi.deleteMemory);
 
   const memoriesQuery = useTanstackQuery({
     queryKey: ["memories"],
@@ -80,20 +80,16 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       let offset = 0;
 
       for (;;) {
-        const res = await authFetch(
-          `${API_URL}/v1/memories?limit=${PAGE_SIZE}&offset=${offset}`,
-        );
-        if (!res.ok) return all;
-
-        const data = (await res.json()) as {
-          memories: ApiMemory[];
-          total: number;
-        };
-        for (const m of data.memories) {
+        const data = await listMemoriesAction({
+          limit: PAGE_SIZE,
+          offset,
+        });
+        const result = data as { memories: ApiMemory[]; total: number };
+        for (const m of result.memories) {
           all.push(apiToMemory(m));
         }
 
-        if (all.length >= data.total || data.memories.length < PAGE_SIZE) {
+        if (all.length >= result.total || result.memories.length < PAGE_SIZE) {
           break;
         }
         offset += PAGE_SIZE;
@@ -101,31 +97,20 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
 
       return all;
     },
-    enabled: !!userId,
+    enabled: isAuthenticated,
   });
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateMemoryInput): Promise<Memory> => {
-      const res = await authFetch(`${API_URL}/v1/memories`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: input.title.trim(),
-          content: input.content.trim(),
-          type: "knowledge",
-          source: "web",
-          tags: input.tags ?? [],
-          confidence: 1.0,
-        }),
+      const apiMemory = await createMemoryAction({
+        title: input.title.trim(),
+        content: input.content.trim(),
+        type: "knowledge",
+        source: "web",
+        tags: input.tags ?? [],
+        confidence: 1.0,
       });
-
-      if (!res.ok) {
-        const err = (await res.json()) as { error: string };
-        throw new Error(err.error);
-      }
-
-      const apiMemory = (await res.json()) as ApiMemory;
-      return apiToMemory(apiMemory);
+      return apiToMemory(apiMemory as ApiMemory);
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: ["memories"] });
@@ -157,20 +142,13 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     mutationFn: async (
       input: UpdateMemoryInput,
     ): Promise<{ memory: Memory; id: string }> => {
-      const res = await authFetch(`${API_URL}/v1/memories/${input.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: input.title,
-          content: input.content,
-          tags: input.tags,
-        }),
+      const apiMemory = await updateMemoryAction({
+        memoryId: input.id,
+        title: input.title,
+        content: input.content,
+        tags: input.tags,
       });
-
-      if (!res.ok) throw new Error("Update failed");
-
-      const apiMemory = (await res.json()) as ApiMemory;
-      return { memory: apiToMemory(apiMemory), id: input.id };
+      return { memory: apiToMemory(apiMemory as ApiMemory), id: input.id };
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: ["memories"] });
@@ -207,10 +185,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string): Promise<string> => {
-      const res = await authFetch(`${API_URL}/v1/memories/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Delete failed");
+      await deleteMemoryAction({ memoryId: id });
       return id;
     },
     onMutate: async (id) => {
@@ -233,15 +208,15 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
 
   const createMemory = useCallback(
     async (input: CreateMemoryInput): Promise<Memory> => {
-      if (!userId) throw new Error("Not authenticated");
+      if (!isAuthenticated) throw new Error("Not authenticated");
       return createMutation.mutateAsync(input);
     },
-    [userId, createMutation],
+    [isAuthenticated, createMutation],
   );
 
   const updateMemory = useCallback(
     async (input: UpdateMemoryInput): Promise<Memory | null> => {
-      if (!userId) throw new Error("Not authenticated");
+      if (!isAuthenticated) throw new Error("Not authenticated");
       try {
         const result = await updateMutation.mutateAsync(input);
         return result.memory;
@@ -249,12 +224,12 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
     },
-    [userId, updateMutation],
+    [isAuthenticated, updateMutation],
   );
 
   const deleteMemory = useCallback(
     async (id: string): Promise<boolean> => {
-      if (!userId) throw new Error("Not authenticated");
+      if (!isAuthenticated) throw new Error("Not authenticated");
       try {
         await deleteMutation.mutateAsync(id);
         return true;
@@ -262,7 +237,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
     },
-    [userId, deleteMutation],
+    [isAuthenticated, deleteMutation],
   );
 
   const refreshMemories = useCallback(async () => {
