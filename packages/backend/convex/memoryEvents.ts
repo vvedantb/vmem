@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 const eventTypeValidator = v.union(
@@ -24,6 +24,38 @@ export const pushEvent = mutation({
       throw new Error("Unauthorized");
     }
 
+    await ctx.db.insert("memoryEvents", {
+      clerkId: args.clerkId,
+      eventType: args.eventType,
+      memoryId: args.memoryId,
+      payload: args.payload,
+    });
+
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    const oldEvents = await ctx.db
+      .query("memoryEvents")
+      .withIndex("by_clerk", (q) =>
+        q.eq("clerkId", args.clerkId).lt("_creationTime", fiveMinutesAgo),
+      )
+      .collect();
+
+    for (const event of oldEvents) {
+      await ctx.db.delete(event._id);
+    }
+
+    return null;
+  },
+});
+
+export const pushEventInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    eventType: eventTypeValidator,
+    memoryId: v.string(),
+    payload: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
     await ctx.db.insert("memoryEvents", {
       clerkId: args.clerkId,
       eventType: args.eventType,

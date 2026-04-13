@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, Button } from "@vmem/ui";
 import Link from "next/link";
-import { useAuth } from "@clerk/nextjs";
+import { useConvexAuth, useAction } from "convex/react";
 import {
   IconBrain,
   IconCalendarWeek,
@@ -21,9 +21,7 @@ import {
   IconCheck,
   IconLoader2,
 } from "@tabler/icons-react";
-import { clientEnv } from "@/env/client";
-
-const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
+import { api } from "@vmem/backend";
 
 interface StatsData {
   totalMemories: number;
@@ -99,50 +97,33 @@ function getActivityIcon(type: string) {
 }
 
 export default function Dashboard() {
-  const { userId, getToken } = useAuth();
+  const { isAuthenticated } = useConvexAuth();
+  const getStats = useAction(api.dashboardApi.getStats);
+  const getRecentActivity = useAction(api.dashboardApi.getRecentActivity);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!userId) return;
+    if (!isAuthenticated) return;
     try {
       setIsLoading(true);
       setError(null);
 
-      const token = await getToken();
-      const headers: HeadersInit = token
-        ? { Authorization: `Bearer ${token}` }
-        : {};
-      const [statsRes, activityRes] = await Promise.all([
-        fetch(`${API_URL}/v1/dashboard/stats`, { headers }),
-        fetch(`${API_URL}/v1/dashboard/activity`, { headers }),
+      const [statsData, activityData] = await Promise.all([
+        getStats({}),
+        getRecentActivity({}),
       ]);
 
-      if (!statsRes.ok) {
-        const statsErr = (await statsRes.json()) as { error: string };
-        throw new Error(statsErr.error || "Failed to fetch stats");
-      }
-
-      if (!activityRes.ok) {
-        const activityErr = (await activityRes.json()) as { error: string };
-        throw new Error(activityErr.error || "Failed to fetch activity");
-      }
-
-      const statsData = (await statsRes.json()) as { data: StatsData };
-      const activityData = (await activityRes.json()) as {
-        data: ActivityItem[];
-      };
-
-      setStats(statsData.data);
-      setActivity(activityData.data);
+      setStats(statsData as StatsData);
+      setActivity(activityData as ActivityItem[]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load dashboard");
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [isAuthenticated, getStats, getRecentActivity]);
 
   useEffect(() => {
     fetchData();

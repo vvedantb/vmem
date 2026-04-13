@@ -5,11 +5,6 @@
 export function parseImports(content: string): string[] {
   const imports: string[] = [];
 
-  // Match: import ... from './path'  or  import ... from "../path"
-  // Match: import('./path')  (dynamic imports)
-  // Match: require('./path')
-  // Match: export ... from './path'
-  // Only capture relative paths (starting with . or ..)
   const patterns = [
     /import\s+(?:[\s\S]*?)\s+from\s+['"](\.[^'"]+)['"]/g,
     /import\s*\(\s*['"](\.[^'"]+)['"]\s*\)/g,
@@ -18,7 +13,6 @@ export function parseImports(content: string): string[] {
   ];
 
   for (const pattern of patterns) {
-    // Reset lastIndex before each pass
     pattern.lastIndex = 0;
     let match = pattern.exec(content);
     while (match !== null) {
@@ -42,22 +36,16 @@ export function resolveImportPath(
   fromFilePath: string,
   fileTree: Set<string>,
 ): string | null {
-  // Get the directory of the importing file
   const fromDir = fromFilePath.substring(0, fromFilePath.lastIndexOf("/"));
-
-  // Resolve the relative path
   const resolved = normalizePath(`${fromDir}/${importPath}`);
 
-  // Try exact match first
   if (fileTree.has(resolved)) return resolved;
 
-  // Try with extensions
   const extensions = [".ts", ".tsx", ".js", ".jsx"];
   for (const ext of extensions) {
     if (fileTree.has(resolved + ext)) return resolved + ext;
   }
 
-  // Try as directory with index file
   for (const ext of extensions) {
     if (fileTree.has(`${resolved}/index${ext}`))
       return `${resolved}/index${ext}`;
@@ -66,9 +54,6 @@ export function resolveImportPath(
   return null;
 }
 
-/**
- * Normalize a path by resolving . and .. segments.
- */
 function normalizePath(path: string): string {
   const parts = path.split("/");
   const result: string[] = [];

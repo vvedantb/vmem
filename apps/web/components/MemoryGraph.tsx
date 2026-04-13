@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useRef } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAction } from "convex/react";
 import {
   IconMoodEmpty,
   IconLoader2,
@@ -13,7 +13,7 @@ import AddMemoryModal from "@/components/AddMemoryModal";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useGraphData } from "@/hooks/useGraphData";
-import { clientEnv } from "@/env/client";
+import { api } from "@vmem/backend";
 import {
   getGraphSettings,
   setGraphSettings,
@@ -42,15 +42,13 @@ interface MemoryGraphProps {
 
 const EMPTY_SET = new Set<string>();
 
-const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
-
 export default function MemoryGraph({
   focusNodeId,
   onFocusChange,
 }: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
   const { theme } = useThemeContext();
-  const { getToken } = useAuth();
+  const linkMemories = useAction(api.relationshipApi.linkMemories);
   const canvasRef = useRef<GraphCanvasHandle>(null);
 
   // Data
@@ -162,22 +160,13 @@ export default function MemoryGraph({
 
   const handleLinkNodes = useCallback(
     async (sourceId: string, targetId: string) => {
-      const token = await getToken();
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-      await fetch(`${API_URL}/v1/relationships/link`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          memoryIdA: sourceId,
-          memoryIdB: targetId,
-          reason: "user linked",
-        }),
+      await linkMemories({
+        memoryIdA: sourceId,
+        memoryIdB: targetId,
+        reason: "user linked",
       });
     },
-    [getToken],
+    [linkMemories],
   );
 
   const handleToggleTag = useCallback((tag: string) => {
@@ -200,7 +189,7 @@ export default function MemoryGraph({
     setActiveTags((prev) => {
       // If already all selected (empty = show all), select none instead
       if (prev.size === 0) {
-        return new Set(["__NONE__"]); // sentinel: no tags match → empty graph
+        return new Set(["__NONE__"]); // sentinel: no tags match -> empty graph
       }
       return EMPTY_SET;
     });

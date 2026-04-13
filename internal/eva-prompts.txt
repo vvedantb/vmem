@@ -1,3 +1,16 @@
+2 more issues
+context icon is not showing up anywhere
+get rid of the local thing in the footer pls, not needed anymore
+
+
+
+
+
+
+
+
+
+
 1. Refactor the settings area so it no longer uses the current `settings/page.tsx` layout. Create a settings sidebar with visible tabs for `Preferences` and `Data Controls`, and move the settings experience into that tabbed layout. Keep it consistent with the current app shell and make the default view land on `Preferences`.
 
 2. Improve the mobile header/navbar styling. Make it feel more intentional and polished, with better spacing, hierarchy, and responsiveness. Preserve the current functionality, but make the mobile top bar look cleaner and more premium.

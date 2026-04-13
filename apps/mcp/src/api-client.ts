@@ -1,9 +1,9 @@
 type BodyValue = Record<string, string | number | string[] | undefined>;
 
 function getApiUrl(): string {
-  const url = process.env.VMEM_API_URL;
+  const url = process.env.VMEM_CONVEX_SITE_URL;
   if (!url) {
-    throw new Error("VMEM_API_URL environment variable is required");
+    throw new Error("VMEM_CONVEX_SITE_URL environment variable is required");
   }
   return url.replace(/\/$/, "");
 }
@@ -21,29 +21,22 @@ interface ApiFailure {
 
 type ApiResult = ApiSuccess | ApiFailure;
 
-interface RequestOptions {
-  method: "GET" | "POST" | "PATCH" | "DELETE";
-  body?: BodyValue;
-}
-
 async function apiRequest(
   path: string,
   token: string,
-  options: RequestOptions,
+  body?: BodyValue,
 ): Promise<ApiResult> {
-  const url = `${getApiUrl()}/v1${path}`;
+  const url = `${getApiUrl()}${path}`;
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
   };
-  if (options.body) {
-    headers["Content-Type"] = "application/json";
-  }
 
   const response = await fetch(url, {
-    method: options.method,
+    method: "POST",
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: body ? JSON.stringify(body) : JSON.stringify({}),
   });
 
   const text = await response.text();
@@ -63,18 +56,18 @@ export function searchMemories(
   token: string,
   body: BodyValue,
 ): Promise<ApiResult> {
-  return apiRequest("/memories/search", token, { method: "POST", body });
+  return apiRequest("/api/mcp/memories/search", token, body);
 }
 
 export function retrieveMemories(
   token: string,
   body: BodyValue,
 ): Promise<ApiResult> {
-  return apiRequest("/memories/retrieve", token, { method: "POST", body });
+  return apiRequest("/api/mcp/memories/retrieve", token, body);
 }
 
 export function addMemory(token: string, body: BodyValue): Promise<ApiResult> {
-  return apiRequest("/memories", token, { method: "POST", body });
+  return apiRequest("/api/mcp/memories/create", token, body);
 }
 
 export function updateMemory(
@@ -82,9 +75,12 @@ export function updateMemory(
   id: string,
   body: BodyValue,
 ): Promise<ApiResult> {
-  return apiRequest(`/memories/${id}`, token, { method: "PATCH", body });
+  return apiRequest("/api/mcp/memories/update", token, {
+    ...body,
+    memoryId: id,
+  });
 }
 
 export function deleteMemory(token: string, id: string): Promise<ApiResult> {
-  return apiRequest(`/memories/${id}`, token, { method: "DELETE" });
+  return apiRequest("/api/mcp/memories/delete", token, { memoryId: id });
 }

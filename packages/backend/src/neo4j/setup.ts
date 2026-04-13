@@ -1,4 +1,4 @@
-import { Driver } from "neo4j-driver";
+import type { Driver } from "neo4j-driver";
 
 export async function setupDatabase(driver: Driver): Promise<void> {
   const session = driver.session();

@@ -2,21 +2,19 @@
 
 /**
  * Extracted graph data-fetching hook.
- * Handles API query, Zod validation, and live relationship events.
+ * Handles Convex action query, Zod validation, and live relationship events.
  */
 import { useState, useMemo, useCallback } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useConvexAuth, useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
-import { clientEnv } from "@/env/client";
+import { api } from "@vmem/backend";
 import type {
   ApiGraphNode,
   ApiTagEdge,
   ApiRelatesToEdge,
 } from "@/components/_components/graph-data";
-
-const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
 
 // ---- Zod schemas ----
 
@@ -61,7 +59,8 @@ export interface UseGraphDataReturn {
 }
 
 export function useGraphData(focusNodeId: string | null): UseGraphDataReturn {
-  const { getToken, userId } = useAuth();
+  const { isAuthenticated } = useConvexAuth();
+  const getGraphData = useAction(api.graphApi.getGraphData);
   const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<
     ApiRelatesToEdge[]
   >([]);
@@ -69,22 +68,10 @@ export function useGraphData(focusNodeId: string | null): UseGraphDataReturn {
   const graphQuery = useTanstackQuery({
     queryKey: ["graph", focusNodeId ?? "global"],
     queryFn: async (): Promise<GraphResponse> => {
-      const token = await getToken();
-      const headers: HeadersInit = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-      const url = focusNodeId
-        ? `${API_URL}/v1/graph?focus=${encodeURIComponent(focusNodeId)}`
-        : `${API_URL}/v1/graph`;
-      const res = await fetch(url, { headers });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `Graph request failed with ${res.status}`);
-      }
-      return graphResponseSchema.parse(await res.json());
+      const result = await getGraphData({ focus: focusNodeId ?? undefined });
+      return graphResponseSchema.parse(result);
     },
-    enabled: !!userId,
+    enabled: isAuthenticated,
     staleTime: 30_000,
   });
 

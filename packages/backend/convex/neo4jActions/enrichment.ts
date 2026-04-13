@@ -1,16 +1,21 @@
-import { z } from "zod/v4";
-import { MemoryService } from "../db/memory-service";
-import { getDriver } from "../db/neo4j";
-import { pushMemoryEvent } from "../lib/convex";
+"use node";
 
-const ENRICHMENT_MODEL =
-  process.env.ENRICHMENT_MODEL ?? "google/gemini-2.0-flash";
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? "";
+import { internalAction } from "../_generated/server";
+import { internal } from "../_generated/api";
+import { v } from "convex/values";
+import { z } from "zod";
+import { MemoryService } from "../../src/neo4j/memoryService";
+import { getDriver } from "../../src/neo4j/driver";
+
 const MAX_CONTENT_LENGTH = 2000;
 
 const enrichmentResponseSchema = z.object({
   tags: z.array(z.string()),
   relatedMemoryIds: z.array(z.string()),
+});
+
+const openRouterResponseSchema = z.object({
+  choices: z.array(z.object({ message: z.object({ content: z.string() }) })),
 });
 
 function truncateAtWord(text: string, maxLen: number): string {
@@ -27,16 +32,15 @@ function sanitizeTag(tag: string): string {
     .slice(0, 50);
 }
 
-const openRouterResponseSchema = z.object({
-  choices: z.array(z.object({ message: z.object({ content: z.string() }) })),
-});
-
 async function callOpenRouter(
   title: string,
   content: string,
   existingMemories: Array<{ id: string; title: string }>,
 ): Promise<{ tags: string[]; relatedMemoryIds: string[] } | null> {
-  if (!OPENROUTER_API_KEY) {
+  const apiKey = process.env.OPENROUTER_API_KEY ?? "";
+  const model = process.env.ENRICHMENT_MODEL ?? "google/gemini-2.0-flash";
+
+  if (!apiKey) {
     console.warn("[enrichment] OPENROUTER_API_KEY not set, skipping");
     return null;
   }
@@ -68,11 +72,11 @@ Respond in JSON only:
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
           "HTTP-Referer": "https://vmem.vedantb.com",
         },
         body: JSON.stringify({
-          model: ENRICHMENT_MODEL,
+          model,
           messages: [{ role: "user", content: prompt }],
           response_format: { type: "json_object" },
         }),
@@ -104,21 +108,25 @@ Respond in JSON only:
   }
 }
 
-export function enrichMemory(
-  memoryId: string,
-  userId: string,
-  title: string,
-  content: string,
-): void {
-  const run = async () => {
+export const enrichMemory = internalAction({
+  args: {
+    memoryId: v.string(),
+    userId: v.string(),
+    title: v.string(),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
     const service = new MemoryService(getDriver());
-    const existing = await service.getRecentMemoryTitles(userId, memoryId);
+    const existing = await service.getRecentMemoryTitles(
+      args.userId,
+      args.memoryId,
+    );
 
     const validIds = new Set<string>();
     for (const m of existing) validIds.add(m.id);
 
-    const result = await callOpenRouter(title, content, existing);
-    if (!result) return;
+    const result = await callOpenRouter(args.title, args.content, existing);
+    if (!result) return null;
 
     const tags = result.tags
       .map(sanitizeTag)
@@ -127,20 +135,21 @@ export function enrichMemory(
 
     const relatedIds = result.relatedMemoryIds.filter((id) => validIds.has(id));
 
-    if (tags.length === 0) return;
+    if (tags.length === 0) return null;
 
-    await service.applyEnrichment(memoryId, userId, tags, relatedIds);
+    await service.applyEnrichment(args.memoryId, args.userId, tags, relatedIds);
 
-    pushMemoryEvent(userId, "memory_updated", memoryId, {
-      tags,
+    await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+      clerkId: args.userId,
+      eventType: "memory_updated",
+      memoryId: args.memoryId,
+      payload: JSON.stringify({ tags }),
     });
 
     console.log(
-      `[enrichment] ${memoryId}: ${tags.length} tags, ${relatedIds.length} links`,
+      `[enrichment] ${args.memoryId}: ${tags.length} tags, ${relatedIds.length} links`,
     );
-  };
 
-  run().catch((err) => {
-    console.error(`[enrichment] failed for ${memoryId}:`, err);
-  });
-}
+    return null;
+  },
+});
