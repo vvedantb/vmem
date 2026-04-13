@@ -1,12 +1,12 @@
 import neo4j, {
-  Driver,
+  type Driver,
   type Integer,
   type Session,
   type Record as NeoRecord,
 } from "neo4j-driver";
 import Cypher, { type RawCypherContext } from "@neo4j/cypher-builder";
 import crypto from "node:crypto";
-import { buildAndRun } from "./cypher-helpers.js";
+import { buildAndRun } from "./cypherHelpers";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
 type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
@@ -81,7 +81,7 @@ interface ProposedUpdateNode {
 
 function parseJsonField<T>(val: string | null): T | null {
   if (val === null) return null;
-  return JSON.parse(val);
+  return JSON.parse(val) as T;
 }
 
 function toNeoInt(val: number | { toNumber(): number }): number {
@@ -157,16 +157,10 @@ interface TagEdge {
   sharedTags: string[];
 }
 
-/**
- * Computes tag co-occurrence edges from an in-memory node list.
- * This replaces the Cypher cross-join query which blows Neo4j's
- * transaction memory limit with large datasets (10k+ memories).
- */
 function computeTagEdges(
   nodes: ReadonlyArray<{ id: string; tags: string[] }>,
   limit: number,
 ): TagEdge[] {
-  // Build inverted index: tag → list of memory ids
   const tagIndex = new Map<string, string[]>();
   for (const node of nodes) {
     for (const tag of node.tags) {
@@ -179,15 +173,14 @@ function computeTagEdges(
     }
   }
 
-  // Accumulate co-occurrence counts per memory pair
   const edgeMap = new Map<string, { weight: number; sharedTags: string[] }>();
   for (const [tag, ids] of tagIndex) {
-    // Skip hyper-popular tags to avoid quadratic blowup in JS too
     if (ids.length > 500) continue;
     for (let i = 0; i < ids.length; i++) {
       for (let j = i + 1; j < ids.length; j++) {
         const a = ids[i];
         const b = ids[j];
+        if (!a || !b) continue;
         const key = a < b ? `${a}|${b}` : `${b}|${a}`;
         let entry = edgeMap.get(key);
         if (!entry) {
@@ -202,7 +195,6 @@ function computeTagEdges(
     }
   }
 
-  // Filter to meaningful connections (≥2 shared tags), sort by strength
   const edges: TagEdge[] = [];
   for (const [key, data] of edgeMap) {
     if (data.weight < 2) continue;
@@ -320,7 +312,9 @@ export class MemoryService {
         },
       );
 
-      return toMemoryWithTags(result.records[0]);
+      const firstRecord = result.records[0];
+      if (!firstRecord) throw new Error("Failed to create memory");
+      return toMemoryWithTags(firstRecord);
     });
   }
 
@@ -338,6 +332,7 @@ export class MemoryService {
       );
       if (result.records.length === 0) return null;
       const r = result.records[0];
+      if (!r) return null;
       return {
         id: String(r.get("id")),
         title: String(r.get("title")),
@@ -359,7 +354,9 @@ export class MemoryService {
       );
 
       if (result.records.length === 0) return null;
-      return toMemoryWithTags(result.records[0]);
+      const firstRecord = result.records[0];
+      if (!firstRecord) return null;
+      return toMemoryWithTags(firstRecord);
     });
   }
 
@@ -401,7 +398,8 @@ export class MemoryService {
         `MATCH (m:Memory) WHERE ${where} RETURN count(m) AS total`,
         queryParams,
       );
-      const total = toNeoInt(countResult.records[0].get("total"));
+      const countRecord = countResult.records[0];
+      const total = countRecord ? toNeoInt(countRecord.get("total")) : 0;
 
       const result = await session.run(
         `MATCH (m:Memory) WHERE ${where}
@@ -503,7 +501,9 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
 
       if (result.records.length === 0) return null;
 
-      const updated = toMemoryWithTags(result.records[0]);
+      const firstRecord = result.records[0];
+      if (!firstRecord) return null;
+      const updated = toMemoryWithTags(firstRecord);
       await this.logEvent(
         session,
         memoryId,
@@ -524,7 +524,9 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
          RETURN count(m) AS deleted`,
         { memoryId, userId },
       );
-      return toNeoInt(result.records[0].get("deleted")) > 0;
+      const firstRecord = result.records[0];
+      if (!firstRecord) return false;
+      return toNeoInt(firstRecord.get("deleted")) > 0;
     });
   }
 
@@ -676,7 +678,9 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
         },
       );
 
-      const props = result.records[0].get("p").properties;
+      const firstRecord = result.records[0];
+      if (!firstRecord) throw new Error("Failed to create proposed update");
+      const props = firstRecord.get("p").properties;
       return {
         id: props.id,
         memoryId: props.memoryId,
@@ -732,7 +736,9 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
         );
 
         if (result.records.length === 0) return null;
-        const memory = toMemoryWithTags(result.records[0]);
+        const firstRecord = result.records[0];
+        if (!firstRecord) return null;
+        const memory = toMemoryWithTags(firstRecord);
 
         await this.logEvent(
           session,
@@ -744,7 +750,7 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
         );
 
         return {
-          status: String(result.records[0].get("status")),
+          status: String(firstRecord.get("status")),
           memoryId: memory.id,
         };
       }
@@ -758,6 +764,7 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
 
       if (result.records.length === 0) return null;
       const record = result.records[0];
+      if (!record) return null;
       const memoryId = String(record.get("memoryId"));
 
       await this.logEvent(
@@ -819,11 +826,13 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
 
       if (result.records.length > 0) {
         const record = result.records[0];
-        totalMemories = toNeoInt(record.get("total"));
-        memoriesThisWeek = toNeoInt(record.get("thisWeek"));
-        memoriesThisMonth = toNeoInt(record.get("thisMonth"));
-        memoriesAddedToday = toNeoInt(record.get("today"));
-        totalTags = toNeoInt(record.get("tagCount"));
+        if (record) {
+          totalMemories = toNeoInt(record.get("total"));
+          memoriesThisWeek = toNeoInt(record.get("thisWeek"));
+          memoriesThisMonth = toNeoInt(record.get("thisMonth"));
+          memoriesAddedToday = toNeoInt(record.get("today"));
+          totalTags = toNeoInt(record.get("tagCount"));
+        }
       }
 
       const growthResult = await session.run(
@@ -1140,8 +1149,6 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
         reason: String(r.get("reason") ?? ""),
       }));
 
-      // Compute tag co-occurrence in JS — the equivalent Cypher cross-join
-      // blows Neo4j's memory limit with large datasets (10k+ memories).
       const tagEdges = computeTagEdges(nodes, 5000);
 
       return { nodes, relatesToEdges, tagEdges };
@@ -1150,16 +1157,10 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
     }
   }
 
-  /**
-   * Returns a 2-hop RELATES_TO subgraph around a focus memory.
-   * Same response shape as getGraphData so the frontend handles both identically.
-   * Tag edges are computed for the returned nodes (for visual context, not membership).
-   */
   async getLocalGraph(
     userId: string,
     focusId: string,
   ): Promise<ReturnType<MemoryService["getGraphData"]>> {
-    // Step A: get subgraph nodes (focus + 1-2 hop RELATES_TO neighbors)
     const nodesSession = this.driver.session();
     let nodeIds: string[];
     let nodes: {
@@ -1205,7 +1206,6 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
       return { nodes: [], relatesToEdges: [], tagEdges: [] };
     }
 
-    // Step B: get RELATES_TO edges within the subgraph
     const relatesToSession = this.driver.session();
     try {
       const relatesToResult = await relatesToSession.run(
