@@ -123,6 +123,7 @@ const schema = defineSchema({
     defaultBranch: v.string(),
     language: v.optional(v.string()),
     description: v.optional(v.string()),
+    isPrivate: v.optional(v.boolean()),
     status: v.union(
       v.literal("pending"),
       v.literal("syncing"),
@@ -130,6 +131,7 @@ const schema = defineSchema({
       v.literal("error"),
     ),
     totalFiles: v.number(),
+    totalEdges: v.optional(v.number()),
     syncedFiles: v.number(),
     lastSyncedAt: v.optional(v.number()),
     errorMessage: v.optional(v.string()),
