@@ -7,15 +7,14 @@
 - Refactored QuickSave component: added `useEffect` to fetch page info on mount, added helper functions (`formatTimestamp`, `truncateUrl`) for consistent date/URL formatting
 - Reason: improves visual hierarchy and consistency between extension and web app, gives users context of what they're saving before confirming
 
-## Chrome Extension: Migrated Auto-Sync to Convex HTTP Routes — 2026-04-14
+## Chrome Extension: Migrated to ConvexHttpClient — 2026-04-14
 
-- Fixed broken auto-sync: background service worker was calling deprecated Railway Hono API — now calls Convex HTTP routes at `/api/mcp/memories/*`
-- Refactored `api-client.ts`: removed `DEFAULT_API_URL` and `API_VERSION` constants, now uses `CONVEX_URL` directly with HTTP route paths
-- Updated API endpoints: changed from `POST /v1/memories` (PATCH for update) to `POST /api/mcp/memories/create` (POST for update with memoryId in body)
-- Leveraged existing JWT persistence: `TokenSync` component already stores Clerk JWT to `chrome.storage` every 50s, background sync now reads it as Bearer token for Convex HTTP requests
-- Removed dead code: deleted `testConnection()` function and `TEST_CONNECTION` message type (was never wired to UI)
-- Removed manual API URL configuration from Settings UI: users can no longer override endpoint — always uses production Convex deployment
-- Reason: eliminates dependency on deprecated Railway API, unifies extension (popup + background) on single auth model (Clerk JWT), reduces config surface area
+- Fixed broken auto-sync: background service worker now uses `ConvexHttpClient` with Clerk JWT auth instead of custom HTTP routes
+- Refactored `api-client.ts`: replaced raw `fetch()` calls to `/api/mcp/memories/*` (which expected MCP JWT) with `client.action(api.memoryApi.*)` calls that use the same Clerk auth as the popup
+- Auth flow: `TokenSync` persists Clerk JWT to storage → background reads it → `ConvexHttpClient.setAuth(token)` → calls authenticated Convex actions
+- Removed dead code: deleted `testConnection()` function, `TEST_CONNECTION` message type, manual API URL settings
+- Aligned extension types with Convex: changed `MemoryNode.type` and `status` from union types to `string` to match Convex return shapes
+- Reason: MCP HTTP routes were designed for MCP clients (custom JWT), not browser extensions (Clerk JWT). Using ConvexHttpClient unifies auth with popup.
 
 ## Graph API: Cap Arrays for Convex 8192 Element Limit — 2026-04-13
 

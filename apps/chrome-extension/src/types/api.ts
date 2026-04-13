@@ -6,10 +6,10 @@ export interface MemoryNode {
   userId: string;
   title: string;
   content: string;
-  type: MemoryType;
+  type: string; // Convex returns string, narrowed at runtime
   source: string;
   confidence: number;
-  status: MemoryStatus;
+  status: string; // Convex returns string, narrowed at runtime
   createdAt: string;
   updatedAt: string;
   expiresAt: string | null;
@@ -36,7 +36,7 @@ export interface MemoryCandidate extends MemoryWithTags {
 export interface CreateMemoryParams {
   title: string;
   content: string;
-  type: MemoryType;
+  type: string;
   source: string;
   tags: string[];
   confidence: number;
@@ -46,7 +46,7 @@ export interface CreateMemoryParams {
 
 export interface RetrieveParams {
   query: string;
-  type?: MemoryType;
+  type?: string;
   tags?: string[];
   limit?: number;
 }
