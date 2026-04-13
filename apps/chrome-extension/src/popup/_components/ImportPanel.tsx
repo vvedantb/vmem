@@ -141,6 +141,15 @@ export function ImportPanel() {
   const isImporting =
     bookmarkStatus === "importing" || historyStatus === "importing";
 
+  function handleResetSync() {
+    void setStorage({ lastBookmarkSync: 0, lastHistorySync: 0 });
+    setLastBookmarkSync(0);
+    setLastHistorySync(0);
+    setResultMessage(
+      "Sync timestamps reset — next sync will include all items",
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -236,6 +245,16 @@ export function ImportPanel() {
           {resultMessage}
         </p>
       )}
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full text-muted-foreground"
+        onClick={handleResetSync}
+        disabled={isImporting}
+      >
+        Reset Sync Timestamps
+      </Button>
     </div>
   );
 }
