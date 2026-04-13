@@ -57,10 +57,23 @@ type GitHubRepo = {
 export const listMy = authQuery({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
+    const codebases = await ctx.db
       .query("codebases")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .collect();
+
+    // Batch-resolve avatar URLs from GitHub connections
+    const connectionCache = new Map<string, string | undefined>();
+    return Promise.all(
+      codebases.map(async (cb) => {
+        const connId = cb.githubConnectionId.toString();
+        if (!connectionCache.has(connId)) {
+          const conn = await ctx.db.get(cb.githubConnectionId);
+          connectionCache.set(connId, conn?.avatarUrl);
+        }
+        return { ...cb, avatarUrl: connectionCache.get(connId) };
+      }),
+    );
   },
 });
 
@@ -129,6 +142,7 @@ export const addCodebase = authMutation({
     defaultBranch: v.string(),
     language: v.optional(v.string()),
     description: v.optional(v.string()),
+    isPrivate: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     // Check for duplicate
@@ -149,6 +163,7 @@ export const addCodebase = authMutation({
       defaultBranch: args.defaultBranch,
       language: args.language,
       description: args.description,
+      isPrivate: args.isPrivate,
       status: "pending",
       totalFiles: 0,
       syncedFiles: 0,
@@ -241,6 +256,7 @@ export const syncCodebase = authAction({
         id: normalizedId,
         status: "synced",
         totalFiles: result.totalFiles,
+        totalEdges: result.totalEdges,
         syncedFiles: result.totalFiles,
         lastSyncedAt: Date.now(),
         errorMessage: undefined,
@@ -286,22 +302,32 @@ export const updateStatusInternal = internalMutation({
       v.literal("error"),
     ),
     totalFiles: v.optional(v.number()),
+    totalEdges: v.optional(v.number()),
     syncedFiles: v.optional(v.number()),
     lastSyncedAt: v.optional(v.number()),
     errorMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { id, status, totalFiles, syncedFiles, lastSyncedAt, errorMessage } =
-      args;
+    const {
+      id,
+      status,
+      totalFiles,
+      totalEdges,
+      syncedFiles,
+      lastSyncedAt,
+      errorMessage,
+    } = args;
     // Build patch object with only defined fields
     const patch: {
       status: typeof status;
       totalFiles?: number;
+      totalEdges?: number;
       syncedFiles?: number;
       lastSyncedAt?: number;
       errorMessage?: string;
     } = { status };
     if (totalFiles !== undefined) patch.totalFiles = totalFiles;
+    if (totalEdges !== undefined) patch.totalEdges = totalEdges;
     if (syncedFiles !== undefined) patch.syncedFiles = syncedFiles;
     if (lastSyncedAt !== undefined) patch.lastSyncedAt = lastSyncedAt;
     if (errorMessage !== undefined) patch.errorMessage = errorMessage;
