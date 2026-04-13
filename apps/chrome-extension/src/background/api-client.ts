@@ -1,3 +1,5 @@
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@vmem/backend";
 import { getStorage } from "@/lib/storage";
 import { CONVEX_URL } from "@/lib/constants";
 import type {
@@ -6,17 +8,20 @@ import type {
   MemoryCandidate,
 } from "@/types/api";
 
-const API_BASE = `${CONVEX_URL}/api/mcp/memories`;
-
-async function authHeaders(): Promise<Record<string, string>> {
+/**
+ * Get an authenticated ConvexHttpClient with the stored Clerk JWT.
+ * Returns null if no auth token is available.
+ */
+async function getAuthenticatedClient(): Promise<ConvexHttpClient | null> {
   const { authToken } = await getStorage();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (authToken) {
-    headers["Authorization"] = `Bearer ${authToken}`;
+  if (!authToken) {
+    console.warn("[vmem] No auth token available for Convex client");
+    return null;
   }
-  return headers;
+
+  const client = new ConvexHttpClient(CONVEX_URL);
+  client.setAuth(authToken);
+  return client;
 }
 
 export interface DuplicateInfo {
@@ -32,66 +37,64 @@ export type CreateResult =
 export async function createMemory(
   params: CreateMemoryParams,
 ): Promise<CreateResult> {
-  const headers = await authHeaders();
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
 
-  const response = await fetch(`${API_BASE}/create`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(params),
+  const memory = await client.action(api.memoryApi.createMemory, {
+    title: params.title,
+    content: params.content,
+    type: params.type,
+    source: params.source,
+    tags: params.tags,
+    confidence: params.confidence,
+    url: params.url,
   });
 
-  if (response.status === 409) {
-    const data: { existingMemory: DuplicateInfo } = await response.json();
-    return { status: "duplicate", existingMemory: data.existingMemory };
-  }
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to create memory: ${error}`);
-  }
-
-  const result = await response.json();
-  return { status: "created", memory: result.data };
+  return { status: "created", memory };
 }
 
 export async function updateMemory(
   memoryId: string,
   params: { title?: string; content?: string; tags?: string[] },
 ): Promise<MemoryWithTags> {
-  const headers = await authHeaders();
-
-  const response = await fetch(`${API_BASE}/update`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ memoryId, ...params }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to update memory: ${error}`);
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
   }
 
-  const result = await response.json();
-  return result.data;
+  const result = await client.action(api.memoryApi.updateMemory, {
+    memoryId,
+    title: params.title,
+    content: params.content,
+    tags: params.tags,
+  });
+
+  if (!result) {
+    throw new Error("Memory not found or update failed");
+  }
+
+  return result;
 }
 
 export async function retrieveMemories(
   query: string,
   limit = 5,
 ): Promise<MemoryCandidate[]> {
-  const headers = await authHeaders();
-
-  const response = await fetch(`${API_BASE}/retrieve`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ query, limit }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to retrieve memories: ${error}`);
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
   }
 
-  const result = await response.json();
-  return result.data;
+  return await client.action(api.memoryApi.retrieveMemories, {
+    query,
+    limit,
+  });
 }
