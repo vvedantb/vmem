@@ -128,17 +128,20 @@ function getProviderMeta(agentName?: string): {
   }
 }
 
+/** Fallback when caller doesn't know the model's context window. */
+const DEFAULT_MAX_CONTEXT_TOKENS = 4096;
+
 interface ChatMessageItemProps {
   message: UIMessage;
   usage?: MessageUsageSummary;
-  /** Model's context window size in tokens. */
-  maxContextTokens: number;
+  /** Model's context window size in tokens. Defaults to 4096. */
+  maxContextTokens?: number;
 }
 
 export default function ChatMessageItem({
   message,
   usage,
-  maxContextTokens,
+  maxContextTokens = DEFAULT_MAX_CONTEXT_TOKENS,
 }: ChatMessageItemProps) {
   const [copied, setCopied] = useState(false);
   const isStreaming = message.status === "streaming";
