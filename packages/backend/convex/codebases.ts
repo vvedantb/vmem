@@ -186,6 +186,12 @@ export const syncCodebase = authAction({
     });
     if (!codebase) throw new Error("Codebase not found");
 
+    // Resolve Clerk user ID — Neo4j and Hono API use Clerk IDs, not Convex IDs
+    const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
+      userId: ctx.userId,
+    });
+    if (!clerkId) throw new Error("User not found");
+
     const encryptedToken = await ctx.runQuery(
       internal.github.getDecryptedTokenInternal,
       { userId: ctx.userId },
@@ -209,10 +215,10 @@ export const syncCodebase = authAction({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Internal auth — Convex action doesn't have a Clerk token,
-          // so pass an internal secret + userId instead
+          // Internal auth — pass secret + Clerk userId (not Convex Id)
+          // so Neo4j data matches what verifyAuthHeader returns on read
           "X-Internal-Secret": process.env.INTERNAL_API_SECRET ?? "",
-          "X-User-Id": ctx.userId,
+          "X-User-Id": clerkId,
         },
         body: JSON.stringify({
           codebaseId: normalizedId,
