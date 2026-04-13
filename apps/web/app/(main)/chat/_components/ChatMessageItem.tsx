@@ -39,7 +39,6 @@ import {
 } from "@vmem/ui/ai";
 import {
   IconCheck,
-  IconCloud,
   IconCopy,
   IconCpu,
   IconMicrophone,
@@ -112,11 +111,6 @@ function getProviderMeta(agentName?: string): {
   tooltip: string;
 } | null {
   switch (agentName) {
-    case "vmem":
-      return {
-        icon: <IconCloud className="size-3.5" stroke={1.5} />,
-        tooltip: "Cloud",
-      };
     case "vmem-local":
       return {
         icon: <IconCpu className="size-3.5" stroke={1.5} />,
