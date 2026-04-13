@@ -8,12 +8,14 @@ import { api } from "@vmem/backend";
 import { useWebLLM } from "@/components/contexts/WebLLMContext";
 
 /** Token-usage summary for a single assistant message bubble. */
-interface MessageUsageSummary {
+export interface MessageUsageSummary {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
   reasoningTokens: number;
   cachedInputTokens: number;
+  /** Output tokens per second (local inference speed). Present for local messages only. */
+  tokensPerSecond?: number;
 }
 
 const SYSTEM_PROMPT = [
@@ -173,8 +175,12 @@ export function useLocalChat(): LocalChatResult {
         });
 
         let accumulated = "";
+        let outputTokenCount = 0;
+        const streamStartTime = performance.now();
+
         for await (const delta of result.textStream) {
           accumulated += delta;
+          outputTokenCount++;
           setDraftMessages((currentMessages) =>
             currentMessages.map((message) =>
               message.key === assistantMessage.key
@@ -184,25 +190,32 @@ export function useLocalChat(): LocalChatResult {
           );
         }
 
+        const streamDurationSec = (performance.now() - streamStartTime) / 1000;
+
         // Capture token usage from the completed stream
         const totalUsage = await result.totalUsage;
         const inputTokens = totalUsage.inputTokens ?? 0;
         const outputTokens = totalUsage.outputTokens ?? 0;
         const hasUsage = inputTokens > 0 || outputTokens > 0;
 
-        if (hasUsage) {
-          const summary: MessageUsageSummary = {
-            inputTokens,
-            outputTokens,
-            totalTokens: inputTokens + outputTokens,
-            reasoningTokens: 0,
-            cachedInputTokens: 0,
-          };
-          setDraftUsageByKey((prev) => ({
-            ...prev,
-            [assistantMessage.key]: summary,
-          }));
-        }
+        // Use SDK-reported output tokens when available, fall back to delta count
+        const finalOutputTokens =
+          outputTokens > 0 ? outputTokens : outputTokenCount;
+        const tokensPerSecond =
+          streamDurationSec > 0 ? finalOutputTokens / streamDurationSec : 0;
+
+        const summary: MessageUsageSummary = {
+          inputTokens,
+          outputTokens: finalOutputTokens,
+          totalTokens: inputTokens + finalOutputTokens,
+          reasoningTokens: 0,
+          cachedInputTokens: 0,
+          tokensPerSecond,
+        };
+        setDraftUsageByKey((prev) => ({
+          ...prev,
+          [assistantMessage.key]: summary,
+        }));
 
         setDraftMessages((currentMessages) =>
           currentMessages.map((message) =>
