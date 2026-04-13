@@ -24,6 +24,9 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@vmem/ui";
 import Image from "next/image";
@@ -31,7 +34,7 @@ import Link from "next/link";
 import ChatMessageItem from "@/app/(main)/chat/_components/ChatMessageItem";
 import { useLocalChat } from "@/hooks/useLocalChat";
 import { useWebLLM } from "@/components/contexts/WebLLMContext";
-import { WEB_LLM_MODELS, findModel } from "@/lib/webllm-models";
+import { findModel, groupByProvider } from "@/lib/webllm-models";
 
 /** Fallback context length when model info isn't available. */
 const DEFAULT_CONTEXT_LENGTH = 4096;
@@ -54,6 +57,8 @@ function ChatSpeechInput() {
     />
   );
 }
+
+const providerGroups = groupByProvider();
 
 /** Dropdown to select and switch between available local models. */
 function ModelSelector() {
@@ -84,26 +89,29 @@ function ModelSelector() {
           {label}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
+      <DropdownMenuContent align="start" className="w-52">
         <DropdownMenuLabel>Local model</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup
-          value={loadedModelId ?? ""}
-          onValueChange={handleSelect}
-        >
-          {WEB_LLM_MODELS.map((model) => (
-            <DropdownMenuRadioItem
-              key={model.id}
-              value={model.id}
-              className="flex flex-col items-start gap-0 py-2"
-            >
-              <span className="text-sm font-medium">{model.name}</span>
-              <span className="text-[11px] text-muted-foreground">
-                {model.description} · {model.size}
-              </span>
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
+        {Array.from(providerGroups).map(([provider, models]) => (
+          <DropdownMenuSub key={provider}>
+            <DropdownMenuSubTrigger>{provider}</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuRadioGroup
+                value={loadedModelId ?? ""}
+                onValueChange={handleSelect}
+              >
+                {models.map((model) => (
+                  <DropdownMenuRadioItem key={model.id} value={model.id}>
+                    {model.name}
+                    <span className="ml-auto pl-3 text-[11px] text-muted-foreground">
+                      {model.size}
+                    </span>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
