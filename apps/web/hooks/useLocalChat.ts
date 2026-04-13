@@ -46,15 +46,28 @@ function makeLocalMessage(
   };
 }
 
-function updateMessageText(
+/** Build parts array from accumulated text + reasoning. */
+function buildParts(text: string, reasoning: string): UIMessage["parts"] {
+  const parts: UIMessage["parts"] = [];
+  if (reasoning) {
+    parts.push({ type: "reasoning", text: reasoning, providerMetadata: {} });
+  }
+  if (text) {
+    parts.push({ type: "text", text });
+  }
+  return parts;
+}
+
+function updateMessage(
   message: UIMessage,
   text: string,
+  reasoning: string,
   status?: "success" | "streaming",
 ): UIMessage {
   return {
     ...message,
     text,
-    parts: text ? [{ type: "text", text }] : [],
+    parts: buildParts(text, reasoning),
     status: status ?? message.status,
   };
 }
@@ -174,20 +187,32 @@ export function useLocalChat(): LocalChatResult {
           messages: [...conversationHistory, { role: "user", content: text }],
         });
 
-        let accumulated = "";
+        let accumulatedText = "";
+        let accumulatedReasoning = "";
         let outputTokenCount = 0;
         const streamStartTime = performance.now();
 
-        for await (const delta of result.textStream) {
-          accumulated += delta;
-          outputTokenCount++;
-          setDraftMessages((currentMessages) =>
-            currentMessages.map((message) =>
-              message.key === assistantMessage.key
-                ? updateMessageText(message, accumulated)
-                : message,
-            ),
-          );
+        for await (const part of result.fullStream) {
+          if (part.type === "reasoning-delta") {
+            accumulatedReasoning += part.text;
+            setDraftMessages((cur) =>
+              cur.map((m) =>
+                m.key === assistantMessage.key
+                  ? updateMessage(m, accumulatedText, accumulatedReasoning)
+                  : m,
+              ),
+            );
+          } else if (part.type === "text-delta") {
+            accumulatedText += part.text;
+            outputTokenCount++;
+            setDraftMessages((cur) =>
+              cur.map((m) =>
+                m.key === assistantMessage.key
+                  ? updateMessage(m, accumulatedText, accumulatedReasoning)
+                  : m,
+              ),
+            );
+          }
         }
 
         const streamDurationSec = (performance.now() - streamStartTime) / 1000;
@@ -217,15 +242,20 @@ export function useLocalChat(): LocalChatResult {
           [assistantMessage.key]: summary,
         }));
 
-        setDraftMessages((currentMessages) =>
-          currentMessages.map((message) =>
-            message.key === assistantMessage.key
-              ? updateMessageText(message, accumulated, "success")
-              : message,
+        setDraftMessages((cur) =>
+          cur.map((m) =>
+            m.key === assistantMessage.key
+              ? updateMessage(
+                  m,
+                  accumulatedText,
+                  accumulatedReasoning,
+                  "success",
+                )
+              : m,
           ),
         );
 
-        if (threadId && accumulated) {
+        if (threadId && accumulatedText) {
           const usageForSave = hasUsage
             ? {
                 promptTokens: inputTokens,
@@ -237,7 +267,7 @@ export function useLocalChat(): LocalChatResult {
           await saveLocalMessages({
             threadId,
             userText: text,
-            assistantText: accumulated,
+            assistantText: accumulatedText,
             usage: usageForSave,
           });
           setDraftMessages([]);
@@ -246,11 +276,11 @@ export function useLocalChat(): LocalChatResult {
       } catch (error) {
         const errorText =
           error instanceof Error ? error.message : "Something went wrong";
-        setDraftMessages((currentMessages) =>
-          currentMessages.map((message) =>
-            message.key === assistantMessage.key
-              ? updateMessageText(message, `Error: ${errorText}`, "success")
-              : message,
+        setDraftMessages((cur) =>
+          cur.map((m) =>
+            m.key === assistantMessage.key
+              ? updateMessage(m, `Error: ${errorText}`, "", "success")
+              : m,
           ),
         );
       } finally {

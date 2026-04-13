@@ -61,10 +61,7 @@ export default function ModelCard({
               </Badge>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {model.description}
-          </p>
-          <div className="flex gap-3 mt-1.5 text-xs text-muted-foreground">
+          <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
             <span>{model.size}</span>
             <span>·</span>
             <span>~{model.vramMB}MB VRAM</span>
