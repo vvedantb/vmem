@@ -10,11 +10,10 @@ import {
   HoverCardTrigger,
   HoverCardContent,
 } from "@vmem/ui";
-import { UserButton, useAuth } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
+import { useConvexAuth, useAction } from "convex/react";
 import { IconMoon, IconSun, IconChartBar } from "@tabler/icons-react";
-import { clientEnv } from "@/env/client";
-
-const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
+import { api } from "@vmem/backend";
 
 interface SidebarStats {
   addedToday: number;
@@ -22,29 +21,26 @@ interface SidebarStats {
 }
 
 function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
-  const { getToken, userId } = useAuth();
+  const { isAuthenticated } = useConvexAuth();
+  const getStats = useAction(api.dashboardApi.getStats);
   const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
 
   const fetchStats = useCallback(async () => {
-    if (!userId) return;
+    if (!isAuthenticated) return;
     try {
-      const token = await getToken();
-      const headers: HeadersInit = token
-        ? { Authorization: `Bearer ${token}` }
-        : {};
-      const res = await fetch(`${API_URL}/v1/dashboard/stats`, { headers });
-      if (!res.ok) return;
-      const json = (await res.json()) as {
-        data: { memoriesAddedToday: number; totalMemories: number };
+      const data = await getStats({});
+      const result = data as {
+        memoriesAddedToday: number;
+        totalMemories: number;
       };
       setStats({
-        addedToday: json.data.memoriesAddedToday,
-        total: json.data.totalMemories,
+        addedToday: result.memoriesAddedToday,
+        total: result.totalMemories,
       });
     } catch {
-      // silently fail — sidebar stats are non-critical
+      // silently fail -- sidebar stats are non-critical
     }
-  }, [userId, getToken]);
+  }, [isAuthenticated, getStats]);
 
   useEffect(() => {
     fetchStats();

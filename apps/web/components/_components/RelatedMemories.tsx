@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useAuthFetch } from "@/hooks/useAuthFetch";
+import { useAction } from "convex/react";
 import {
   Badge,
   Button,
@@ -19,11 +19,9 @@ import {
   IconUnlink,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { clientEnv } from "@/env/client";
+import { api } from "@vmem/backend";
 import type { Memory, MemoryType } from "@/lib/memories";
 import LinkMemoryModal from "@/components/LinkMemoryModal";
-
-const API_URL = clientEnv.NEXT_PUBLIC_API_URL;
 
 function isMemoryType(value: string): value is MemoryType {
   return value === "profile" || value === "episodic" || value === "knowledge";
@@ -54,7 +52,8 @@ export default function RelatedMemories({
   memoryId,
   onSelectRelated,
 }: RelatedMemoriesProps) {
-  const authFetch = useAuthFetch();
+  const getRelatedMemories = useAction(api.relationshipApi.getRelatedMemories);
+  const unlinkMemoriesAction = useAction(api.relationshipApi.unlinkMemories);
   const [entries, setEntries] = useState<RelatedMemoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
@@ -64,24 +63,20 @@ export default function RelatedMemories({
   const fetchRelated = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await authFetch(
-        `${API_URL}/v1/relationships/memory/${memoryId}`,
-      );
-      if (res.ok) {
-        const json: { data: RelatedMemoryEntry[] } = await res.json();
-        const seen = new Set<string>();
-        const unique = json.data.filter((entry) => {
-          if (seen.has(entry.memory.id)) return false;
-          seen.add(entry.memory.id);
-          return true;
-        });
-        setEntries(unique);
-      }
+      const data = await getRelatedMemories({ memoryId });
+      const entries = data as RelatedMemoryEntry[];
+      const seen = new Set<string>();
+      const unique = entries.filter((entry) => {
+        if (seen.has(entry.memory.id)) return false;
+        seen.add(entry.memory.id);
+        return true;
+      });
+      setEntries(unique);
     } catch {
       setEntries([]);
     }
     setIsLoading(false);
-  }, [memoryId, authFetch]);
+  }, [memoryId, getRelatedMemories]);
 
   useEffect(() => {
     fetchRelated();
@@ -91,28 +86,20 @@ export default function RelatedMemories({
     async (relatedId: string) => {
       setUnlinkingId(relatedId);
       try {
-        const res = await authFetch(`${API_URL}/v1/relationships/link`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            memoryIdA: memoryId,
-            memoryIdB: relatedId,
-          }),
+        await unlinkMemoriesAction({
+          memoryIdA: memoryId,
+          memoryIdB: relatedId,
         });
-        if (res.ok) {
-          setEntries((prev) =>
-            prev.filter((entry) => entry.memory.id !== relatedId),
-          );
-          toast.success("Memory unlinked");
-        } else {
-          toast.error("Failed to unlink memory");
-        }
+        setEntries((prev) =>
+          prev.filter((entry) => entry.memory.id !== relatedId),
+        );
+        toast.success("Memory unlinked");
       } catch {
         toast.error("Failed to unlink memory");
       }
       setUnlinkingId(null);
     },
-    [memoryId, authFetch],
+    [memoryId, unlinkMemoriesAction],
   );
 
   const relatedIds = useMemo(

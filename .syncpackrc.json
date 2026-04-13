@@ -22,12 +22,6 @@
       "isIgnored": true
     },
     {
-      "label": "zod 4 in api only",
-      "dependencies": ["zod"],
-      "packages": ["@vmem/api"],
-      "pinVersion": "catalog:zod4"
-    },
-    {
       "label": "Tailwind 4 in chrome-extension",
       "dependencies": ["tailwindcss", "@tailwindcss/*"],
       "packages": ["@vmem/chrome-extension"],
