@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useMutation } from "convex/react";
 import { useUser } from "@clerk/clerk-expo";
-import {
-  useUIMessages,
-  optimisticallySendMessage,
-} from "@convex-dev/agent/react";
+import { useUIMessages } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
 import { streamText } from "ai";
@@ -15,19 +12,19 @@ import {
   getActiveModelIdOrDefault,
 } from "@/services/model-manager";
 
-type ChatMode = "online" | "offline" | "offline_no_model";
+type ChatMode = "ready" | "no_model";
 
 function normalizeChatInput(text: string | undefined): string {
   return typeof text === "string" ? text.trim() : "";
 }
 
-function makeOfflineMessage(
+function makeLocalMessage(
   role: "user" | "assistant",
   text: string,
   status: "success" | "streaming",
   order: number,
 ): UIMessage {
-  const id = `offline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return {
     id,
     key: id,
@@ -56,7 +53,7 @@ function updateMessageText(
 
 const SYSTEM_PROMPT = [
   "You are vmem, a memory assistant that helps users store, search, and recall their personal memories.",
-  "You are currently running offline on the user's device with limited capabilities.",
+  "You are currently running locally on the user's device with limited capabilities.",
   "You cannot search memories right now. Have a helpful general conversation.",
   "Be concise and helpful.",
 ].join(" ");
@@ -64,27 +61,20 @@ const SYSTEM_PROMPT = [
 export function useChatProvider() {
   const { user, isLoaded } = useUser();
   const isOnline = useIsOnline();
-  const [mode, setMode] = useState<ChatMode>("online");
-  const [offlineMessages, setOfflineMessages] = useState<UIMessage[]>([]);
-  const [offlineStreaming, setOfflineStreaming] = useState(false);
-  const [offlineReady, setOfflineReady] = useState(false);
+  const [mode, setMode] = useState<ChatMode>("no_model");
+  const [localMessages, setLocalMessages] = useState<UIMessage[]>([]);
+  const [localStreaming, setLocalStreaming] = useState(false);
+  const [localReady, setLocalReady] = useState(false);
   const orderRef = useRef(0);
 
   const [threadId, setThreadId] = useState<string | null>(null);
   const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
-  const sendOnlineMessage = useMutation(
-    api.chat.initiateStreaming,
-  ).withOptimisticUpdate((store, args) => {
-    optimisticallySendMessage(api.chat.listThreadMessages)(store, args);
-  });
+  const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
 
+  // Load or create thread when online and authenticated
   useEffect(() => {
-    if (!isOnline) {
+    if (!isOnline || !isLoaded || !user) {
       setThreadId(null);
-      return;
-    }
-
-    if (!isLoaded || !user) {
       return;
     }
 
@@ -95,59 +85,53 @@ export function useChatProvider() {
       });
   }, [isOnline, isLoaded, user, getOrCreateThread]);
 
+  // Check local model readiness
   useEffect(() => {
-    if (isOnline) {
-      setMode("online");
-      return;
-    }
     getActiveModelIdOrDefault()
       .then((modelId) => checkModelStatus(modelId))
       .then((status) => {
         if (status.state === "ready") {
-          setMode("offline");
+          setMode("ready");
           getLocalModel().then((model) => {
-            setOfflineReady(model !== null);
+            setLocalReady(model !== null);
           });
         } else {
-          setMode("offline_no_model");
+          setMode("no_model");
         }
       });
-  }, [isOnline]);
+  }, []);
 
-  const { results: onlineMessages } = useUIMessages(
+  // Show persisted messages from Convex when thread is available
+  const { results: persistedMessages } = useUIMessages(
     api.chat.listThreadMessages,
     isOnline && threadId ? { threadId } : "skip",
     { initialNumItems: 50, stream: true },
   );
 
-  const onlineStreaming = onlineMessages.some(
-    (m) => m.role === "assistant" && m.status === "streaming",
-  );
-
-  const sendOfflineMessage = useCallback(
+  const sendLocalMessage = useCallback(
     async (text: string) => {
-      if (offlineStreaming) return;
+      if (localStreaming) return;
 
-      const userMsg = makeOfflineMessage(
+      const userMsg = makeLocalMessage(
         "user",
         text,
         "success",
         orderRef.current++,
       );
-      const assistantMsg = makeOfflineMessage(
+      const assistantMsg = makeLocalMessage(
         "assistant",
         "",
         "streaming",
         orderRef.current++,
       );
 
-      setOfflineMessages((prev) => [...prev, userMsg, assistantMsg]);
-      setOfflineStreaming(true);
+      setLocalMessages((prev) => [...prev, userMsg, assistantMsg]);
+      setLocalStreaming(true);
 
       try {
         const model = await getLocalModel();
         if (!model) {
-          setOfflineMessages((prev) =>
+          setLocalMessages((prev) =>
             prev.map((m) =>
               m.key === assistantMsg.key
                 ? updateMessageText(
@@ -158,11 +142,11 @@ export function useChatProvider() {
                 : m,
             ),
           );
-          setOfflineStreaming(false);
+          setLocalStreaming(false);
           return;
         }
 
-        const conversationHistory = offlineMessages.flatMap((message) => {
+        const conversationHistory = localMessages.flatMap((message) => {
           if (message.status !== "success") {
             return [];
           }
@@ -184,24 +168,33 @@ export function useChatProvider() {
         for await (const delta of textStream) {
           accumulated += delta;
           const current = accumulated;
-          setOfflineMessages((prev) =>
+          setLocalMessages((prev) =>
             prev.map((m) =>
               m.key === assistantMsg.key ? updateMessageText(m, current) : m,
             ),
           );
         }
 
-        setOfflineMessages((prev) =>
+        setLocalMessages((prev) =>
           prev.map((m) =>
             m.key === assistantMsg.key
               ? updateMessageText(m, accumulated, "success")
               : m,
           ),
         );
+
+        // Persist to Convex when online
+        if (threadId && accumulated) {
+          await saveLocalMessages({
+            threadId,
+            userText: text,
+            assistantText: accumulated,
+          });
+        }
       } catch (e) {
         const errorText =
           e instanceof Error ? e.message : "Something went wrong";
-        setOfflineMessages((prev) =>
+        setLocalMessages((prev) =>
           prev.map((m) =>
             m.key === assistantMsg.key
               ? updateMessageText(m, `Error: ${errorText}`, "success")
@@ -209,10 +202,10 @@ export function useChatProvider() {
           ),
         );
       } finally {
-        setOfflineStreaming(false);
+        setLocalStreaming(false);
       }
     },
-    [offlineStreaming, offlineMessages],
+    [localStreaming, localMessages, threadId, saveLocalMessages],
   );
 
   const sendMessage = useCallback(
@@ -220,23 +213,20 @@ export function useChatProvider() {
       const prompt = normalizeChatInput(text);
       if (!prompt) return;
 
-      if (mode === "online" && threadId) {
-        await sendOnlineMessage({ prompt, threadId });
-      } else if (mode === "offline") {
-        await sendOfflineMessage(prompt);
+      if (mode === "ready") {
+        await sendLocalMessage(prompt);
       }
     },
-    [mode, threadId, sendOnlineMessage, sendOfflineMessage],
+    [mode, sendLocalMessage],
   );
 
-  const messages = mode === "online" ? onlineMessages : offlineMessages;
-  const isStreaming = mode === "online" ? onlineStreaming : offlineStreaming;
-  const isReady =
-    mode === "online"
-      ? threadId !== null
-      : mode === "offline"
-        ? offlineReady
-        : false;
+  // Combine persisted + local draft messages
+  const messages =
+    isOnline && persistedMessages.length > 0
+      ? persistedMessages.concat(localMessages)
+      : localMessages;
+  const isStreaming = localStreaming;
+  const isReady = mode === "ready" && localReady;
 
   return {
     messages,

@@ -1,5 +1,15 @@
 # Changelog
 
+## Chat: Local LLM Only (Removed Cloud OpenRouter) — 2026-04-13
+
+- Removed dual-mode chat (cloud/local toggle): chat now exclusively uses local WebLLM inference, eliminating dependency on OpenRouter for chat
+- Deleted cloud chat backend mutations: removed `initiateStreaming` and `streamAsync` mutations that powered OpenRouter chat path
+- Deleted `agent.ts`: removed Convex Agent instance configured with OpenRouter language model; refactored `getOrCreateThread` to use standalone `createThread()` from `@convex-dev/agent` framework
+- Updated web chat UX: `useLocalChat` hook now self-manages thread creation (no longer receives `threadId` param), Chat component shows empty state with link to Settings when no local model loaded, removed ProviderToggle component entirely
+- Updated mobile chat UX: collapsed 3 modes (`online/offline/offline_no_model`) to 2 (`ready/no_model`), removed online/cloud logic, always uses local inference with optional persistence to Convex when connected
+- Removed `@openrouter/ai-sdk-provider` from backend dependencies; kept OpenRouter in `apps/api` for async memory enrichment (separate non-chat service)
+- Reason: simplifies architecture (single LLM path), eliminates cloud API keys from backend, reduces costs, supports offline-first design; OpenRouter still available for memory enrichment via separate REST service
+
 ## Chrome Extension: Auto-Sync + Incremental Bookmarks/History — 2026-04-13
 
 - Implemented auto-sync for bookmarks: new bookmarks sync instantly via `chrome.bookmarks.onCreated` listener without user clicking a button
