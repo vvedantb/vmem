@@ -17,13 +17,21 @@ import {
   usePromptInput,
   type PromptInputMessage,
 } from "@vmem/ui/ai";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@vmem/ui";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@vmem/ui";
 import Image from "next/image";
 import Link from "next/link";
 import ChatMessageItem from "@/app/(main)/chat/_components/ChatMessageItem";
 import { useLocalChat } from "@/hooks/useLocalChat";
 import { useWebLLM } from "@/components/contexts/WebLLMContext";
-import { findModel } from "@/lib/webllm-models";
+import { WEB_LLM_MODELS, findModel } from "@/lib/webllm-models";
 
 /** Fallback context length when model info isn't available. */
 const DEFAULT_CONTEXT_LENGTH = 4096;
@@ -47,27 +55,57 @@ function ChatSpeechInput() {
   );
 }
 
-/** Chip showing the loaded model name in the prompt footer. */
-function ModelChip() {
-  const { loadedModelId } = useWebLLM();
-  if (loadedModelId === null) return null;
+/** Dropdown to select and switch between available local models. */
+function ModelSelector() {
+  const { loadedModelId, engineState, loadModel, isSupported } = useWebLLM();
 
-  const modelInfo = findModel(loadedModelId);
-  const label = modelInfo?.name ?? "Local model";
+  if (!isSupported) return null;
+
+  const loadedInfo = loadedModelId ? findModel(loadedModelId) : undefined;
+  const label =
+    loadedInfo?.name ??
+    (engineState === "loading" ? "Loading..." : "Select model");
+  const isLoading = engineState === "loading";
+
+  const handleSelect = (modelId: string) => {
+    if (modelId === loadedModelId || isLoading) return;
+    void loadModel(modelId);
+  };
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Link
-          href="/settings/preferences"
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+          disabled={isLoading}
         >
           <IconCpu className="size-3" stroke={1.5} />
           {label}
-        </Link>
-      </TooltipTrigger>
-      <TooltipContent side="top">Change model</TooltipContent>
-    </Tooltip>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64">
+        <DropdownMenuLabel>Local model</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup
+          value={loadedModelId ?? ""}
+          onValueChange={handleSelect}
+        >
+          {WEB_LLM_MODELS.map((model) => (
+            <DropdownMenuRadioItem
+              key={model.id}
+              value={model.id}
+              className="flex flex-col items-start gap-0 py-2"
+            >
+              <span className="text-sm font-medium">{model.name}</span>
+              <span className="text-[11px] text-muted-foreground">
+                {model.description} · {model.size}
+              </span>
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -140,13 +178,13 @@ export default function Chat() {
                 </div>
               }
               title="No local model loaded"
-              description="Load a local model to start chatting."
+              description="Select a model below to start chatting."
             >
               <Link
                 href="/settings/preferences"
-                className="mt-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                className="mt-2 text-xs text-muted-foreground underline-offset-4 hover:underline"
               >
-                Go to Settings &rarr; Preferences
+                Or manage models in Settings
               </Link>
             </ConversationEmptyState>
           )}
@@ -210,13 +248,13 @@ export default function Chat() {
           <PromptInputTextarea
             placeholder={
               needsModel
-                ? "Load a local model to chat..."
+                ? "Select a model to chat..."
                 : "Ask about your memories..."
             }
             {...(needsModel ? { disabled: true } : {})}
           />
           <PromptInputFooter>
-            <ModelChip />
+            <ModelSelector />
             <ChatSpeechInput />
             <PromptInputSubmit {...(needsModel ? { disabled: true } : {})} />
           </PromptInputFooter>
