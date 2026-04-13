@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuthFetch } from "@/hooks/useAuthFetch";
 import {
   Badge,
   Button,
@@ -54,24 +54,12 @@ export default function RelatedMemories({
   memoryId,
   onSelectRelated,
 }: RelatedMemoriesProps) {
-  const { getToken } = useAuth();
+  const authFetch = useAuthFetch();
   const [entries, setEntries] = useState<RelatedMemoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
   const [confirmUnlinkId, setConfirmUnlinkId] = useState<string | null>(null);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
-
-  const authFetch = useCallback(
-    async (url: string, init?: RequestInit): Promise<Response> => {
-      const token = await getToken();
-      const headers = new Headers(init?.headers);
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
-      }
-      return fetch(url, { ...init, headers });
-    },
-    [getToken],
-  );
 
   const fetchRelated = useCallback(async () => {
     setIsLoading(true);

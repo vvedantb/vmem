@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     turbopackFileSystemCacheForDev: true,
   },
   transpilePackages: ["@vmem/backend", "@vmem/ui"],
+  images: {
+    remotePatterns: [{ hostname: "avatars.githubusercontent.com" }],
+  },
 };
 
 export default nextConfig;

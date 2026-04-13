@@ -1,5 +1,124 @@
 # Changelog
 
+## Chat UX: Provider Submenu, Reasoning UI, Assistant Avatar — 2026-04-13
+
+- Redesigned model selector dropdown: models now grouped by provider (Qwen, Llama, Gemma, etc.) with nested submenus instead of flat list
+- Expanded WebLLM model catalog from 10 to 12 models across 6 providers; added `provider` field and `groupByProvider()` helper; removed model descriptions for cleaner UI
+- Added reasoning/thinking UI for local models: switched from `textStream` to `fullStream` to capture `reasoning-delta` parts, enabling the existing ChainOfThought accordion to render thinking from models like Qwen 3
+- Added vmem assistant avatar to chat messages: assistant bubbles now show the vmem icon alongside responses
+- Reason: improves model discovery with organized provider grouping, surfaces chain-of-thought from thinking models, gives assistant messages consistent visual identity
+
+## Chat: Local LLM Only (Removed Cloud OpenRouter) — 2026-04-13
+
+- Removed dual-mode chat (cloud/local toggle): chat now exclusively uses local WebLLM inference, eliminating dependency on OpenRouter for chat
+- Deleted cloud chat backend mutations: removed `initiateStreaming` and `streamAsync` mutations that powered OpenRouter chat path
+- Deleted `agent.ts`: removed Convex Agent instance configured with OpenRouter language model; refactored `getOrCreateThread` to use standalone `createThread()` from `@convex-dev/agent` framework
+- Updated web chat UX: `useLocalChat` hook now self-manages thread creation (no longer receives `threadId` param), Chat component shows empty state with link to Settings when no local model loaded, removed ProviderToggle component entirely
+- Updated mobile chat UX: collapsed 3 modes (`online/offline/offline_no_model`) to 2 (`ready/no_model`), removed online/cloud logic, always uses local inference with optional persistence to Convex when connected
+- Removed `@openrouter/ai-sdk-provider` from backend dependencies; kept OpenRouter in `apps/api` for async memory enrichment (separate non-chat service)
+- Reason: simplifies architecture (single LLM path), eliminates cloud API keys from backend, reduces costs, supports offline-first design; OpenRouter still available for memory enrichment via separate REST service
+
+## Chrome Extension: Auto-Sync + Incremental Bookmarks/History — 2026-04-13
+
+- Implemented auto-sync for bookmarks: new bookmarks sync instantly via `chrome.bookmarks.onCreated` listener without user clicking a button
+- Implemented auto-sync for history: history syncs every 30 minutes via `chrome.alarms` API, only fetches entries since last sync (incremental)
+- Added incremental sync for manual imports: both bookmark and history sync now filter by `dateAdded > lastBookmarkSync` / use `lastHistorySync` as startTime floor, preventing re-sending already-synced items
+- Built in-memory concurrency locks: prevents overlapping auto-sync and manual-sync operations, UI shows "Sync already in progress" if user clicks while auto-sync is running
+- Added sync timestamps to storage: `lastBookmarkSync`, `lastHistorySync` track last successful sync epoch time; first sync (timestamp = 0) imports everything (backwards compatible)
+- Built auto-sync toggle in Settings: users can enable/disable auto-sync per-device, defaults enabled on install; toggle also controls alarm + listener registration
+- Added last-sync timestamps to popup UI: each section (Bookmarks, History) shows "Last synced: Xm ago" / "Never synced" for visibility; renamed buttons "Sync Bookmarks" / "Sync History" to reflect incremental behavior
+- Reason: eliminates manual sync friction, reduces API load by only sending new items, provides visibility into sync status, enables always-current memory context
+
+## Auth Middleware: Fixed /codebases/sync Blocking — 2026-04-13
+
+- Fixed auth middleware pattern `/codebases/:codebaseId` that was matching `/codebases/sync` and running Clerk auth on the internal endpoint
+- Restructured middleware to use `/codebases/:codebaseId/*` pattern: requires trailing path segment, so doesn't match bare `/sync` route
+- Extracted `verifyAuthHeader()` helper function from auth middleware for reusable auth verification without middleware
+- Updated DELETE handler to verify auth inline: `const userId = await verifyAuthHeader(c.req.header("Authorization"))`
+- Reason: allows `/codebases/sync` to use its own X-Internal-Secret authentication without middleware interference; sync endpoint can now reach handler and authenticate via internal API secret
+
+## Selection Popup UI: Expand-on-Hover + Dark Mode — 2026-04-13
+
+- Added expand-on-hover pill: selection popup starts as 32px icon circle, expands to 152px pill with "Save to vmem" text on hover, collapses back smoothly on mouse leave
+- Label enters after width animation: text opacity lags 40ms behind expansion, fades out first on collapse — user never sees clipped text during resize
+- Implemented dark/light theme awareness: detects OS color scheme preference via `@media (prefers-color-scheme)`, adapts popup background, text, border, and shadows for dark sites (dark bg gets light icon; light bg keeps current look)
+- SVG icons use `currentColor`: vmem logo, checkmark, and X icon now inherit color from parent CSS, eliminating hardcoded fill/stroke values
+- Reason: expand-on-hover improves discoverability (currently icon-only), dark mode prevents jarring white popup on dark sites, matches OS theme preference automatically
+
+## GitHub OAuth: Moved to Convex HTTP Actions — 2026-04-13
+
+- Migrated GitHub OAuth flow from Next.js API routes to Convex HTTP actions: callback URL now points to Convex site (`*.convex.site`) instead of Next.js domain
+- Implemented state-based authentication: OAuth state tokens stored in new `oauthStates` table prevent CSRF attacks and enable atomic state consumption (defeats replay attacks)
+- Frontend-driven return URL: frontend passes `window.location.origin` when initiating OAuth, supporting same Convex deployment for both dev and staging without env var configuration
+- Eliminated public `storeConnection` action: callback logic now entirely internal (`handleGitHubCallbackInternal` internalAction), reducing surface area
+- Reason: improves security (state validation, atomic consumption), simplifies multi-environment deployments, centralizes OAuth logic in Convex backend, fixes CSRF vulnerability in original code
+
+## Codebases Feature: GitHub Sync + File Dependency Graph — 2026-04-12
+
+- Implemented full GitHub integration: OAuth 2.0 connect flow stores encrypted access tokens in Convex with secure AES-GCM encryption (reuses apiKeys pattern)
+- Built codebase sync pipeline: fetches TypeScript/JavaScript files from GitHub tree API, parses imports via regex (relative imports only), resolves paths against file tree, stores in Neo4j as CodeFile nodes with IMPORTS edges
+- Created Neo4j schema for file-level dependency graphs: `CodeFile` nodes indexed on (userId, codebaseId), `IMPORTS` relationship edges with importPath metadata
+- Implemented Hono API middleware: `/v1/codebases/sync` endpoint handles GitHub tree fetching + file content parsing in 20-file batches, `/v1/codebases/:id/graph` endpoint returns cached graph data (60s TTL), Neo4j service layer manages node/edge batch operations
+- Built repository picker UI: list connected user's GitHub repos, search/filter, add repos to create codebase entries with real-time sync status (pending → syncing → synced/error)
+- Implemented file dependency graph visualization: reused d3-force canvas engine from MemoryGraph, renders CodeFile nodes with degree-based sizing, import edges with strong force (0.7 strength like relates_to edges)
+- Added directory filtering: group files by directory path, toggle directories to filter graph view, quick "All/None" buttons with file count badges and color-coded dots matching GraphTagFilter pattern
+- Created detail panel on file click: shows filename, full path, directory, extension, lists imports (files this file imports) and imported-by relationships with navigation between related files
+- Reason: enables visual code exploration at file level — developers can understand project structure, identify circular imports, and navigate between dependent files without leaving the graph
+
+## Text Selection Popup for Chrome Extension — 2026-04-12
+
+- Added Grammarly-style floating popup on text selection: ~28px circular vmem icon appears 8px below the highlighted text, offering one-click save to vmem
+- Popup uses closed Shadow DOM for CSS/JS isolation from host page, preventing style conflicts on any website
+- One-click save flow: selected text becomes the memory title (auto-truncated to 80 chars), tagged with hostname + "selection" for easy filtering
+- Smart positioning with viewport boundary clamping: horizontally centers on selection, flips above if no room below, clamps to screen edges
+- State machine with visual feedback: `ready` (icon) → `saving` (spinner) → `success` (checkmark, auto-hides 1.5s) / `error` (X icon, auto-hides 2s)
+- Toggle in Settings tab: users can enable/disable the popup per-device, stored in `chrome.storage`, defaults to enabled
+- Edge cases handled: min 3 chars to trigger, skips right-clicks, repositions smoothly on scroll/resize (RAF-throttled), preserves selection on button click via `preventDefault`
+- Reason: right-click → "Save page" saves the entire page; users need a way to save just the text they want to remember without the clutter
+
+## Files Page → File Explorer Redesign — 2026-04-12
+
+- Redesigned `/files` from flat table view to full file explorer UI with folder hierarchy, breadcrumb navigation, and context menus — modeled on macOS Finder and Windows Explorer
+- Added folder support: create folders with inline naming, navigate breadcrumbs to move between folders, `parentFolderId` field tracks hierarchy
+- View toggle: grid (thumbnail/icon cards) and list (compact rows) views, persisted in URL via nuqs with independent sort controls (name, size, date)
+- Multi-select workflow: click, shift+click, ctrl+click to select files; bulk actions bar appears with delete, download, and move-to-folder buttons
+- Full-page drag-and-drop zone: drop files anywhere on the page to open upload modal pre-populated with dropped files
+- Context menus on every item: Open (navigate for folders, preview for files), Download (files only), Move to…, Rename (folders), Delete
+- Extracted shared `FileItem` type to `lib/file-types.ts` — single source of truth for files and folders with proper typing across all consumers
+- Refactored into 14 focused sub-components in `_components/` (FilesClient orchestrator, FileGrid/FileListView for views, BreadcrumbNav, BulkActionBar, MoveFolderDialog, etc.) — page is now a thin server wrapper
+- Added `useFileSelection` hook with `useReducer` for complex multi-select logic (range selection, select-all, toggle patterns)
+- Status bar: Finder-style compact bottom bar showing item count and storage usage with thin progress indicator
+- Reason: files page was a dead table with no navigation or bulk operations; real explorers organize files by folder, support multi-select, and provide quick actions
+
+## Voice Route UI Redesign — 2026-04-12
+
+- Redesigned `/voice` layout from top-to-bottom stack to a CSS Grid centered focus screen — the Persona orb is now the hero, vertically centered with generous breathing room
+- Replaced the disconnected readiness card with inline pill badges (LLM, STT, TTS) below the orb and a one-click "Load All Models" button — orb shows dormant `asleep` state until models are ready
+- Added colored dot indicators to the status line (red=listening, amber=thinking, green=speaking) with pulsing animation during active phases
+- Enlarged mic button from 64px to 80px with shadow depth, icon cross-fade animation, and glass-interactive cancel button
+- Moved conversation history into a collapsible bottom drawer — hidden by default with a "Show conversation" pill trigger, slides up as a glass panel showing all messages
+
+## Per-Reply Token Usage in Chat — 2026-04-12
+
+- Added Context hover card on every assistant message showing token usage breakdown (input, output, reasoning, cache) with a circular progress ring
+- New `getThreadMessageUsage` backend query aggregates raw agent message usage per assistant bubble, with correct bubble-key mapping and full pagination
+- Cloud chat usage appears automatically via Convex live query; local chat captures usage from AI SDK `streamText` and persists it through `saveLocalMessages`
+- Context component (`packages/ui/src/ai-elements/context.tsx`) follows the AI SDK Elements compound component pattern — `Context > ContextTrigger > ContextContent > Header/Body` with per-row usage sub-components
+- Supports both providers: cloud messages show server-reported usage, local messages show browser-reported usage (or nothing if unavailable)
+
+## Consolidate Timeline into Memories — 2026-04-12
+
+- Deleted `/timeline` route — History and Trail features now live contextually inside the memories detail panel instead of a separate page
+- `MemoryDetailPanel` decomposed from 452-line monolith into tabbed shell (179 lines) with three tabs: Details, History, Connections
+- History tab shows change timeline with word-level diffs inline when viewing any memory — no more navigating away
+- Connections tab wraps existing `RelatedMemories` component, promoted from a footer section to a first-class tab
+- Trail data enriches the memory list: selecting a tag in the sidebar now fetches trail metadata and shows violet "related" badges on connected list items
+- Extracted `useAuthFetch` hook to deduplicate the authenticated fetch pattern across 3+ consumers
+- Extracted `TagInputWithSuggestions` component from the edit form for reuse and to keep components under 250 lines
+- Created `useTimelineEvents` and `useTrailData` hooks to encapsulate timeline API calls
+- Removed Timeline from sidebar navigation
+- Reason: timeline was a separate page that broke the user's flow — history and connections are more useful in context, right where you're already looking at a memory
+
 ## Local Voice Mode — 2026-04-12
 
 - Added `/voice` route with push-to-talk voice interaction using browser-local STT (Whisper-base) and TTS (Kokoro-82M) via `@huggingface/transformers`

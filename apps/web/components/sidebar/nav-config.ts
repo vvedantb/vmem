@@ -15,7 +15,6 @@ import {
   IconAdjustments,
   IconShieldLock,
   IconTerminal2,
-  IconHistory,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -27,11 +26,6 @@ export const navGroups: NavGroup[] = [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/voice", label: "Voice", icon: IconMicrophone },
       { href: "/memories", label: "Memories", icon: IconBrain },
-      {
-        href: "/timeline",
-        label: "Timeline",
-        icon: IconHistory,
-      },
     ],
   },
   {

@@ -4,13 +4,15 @@
  * Wires VoiceContext (mic / STT / TTS), WebLLM (local chat model),
  * and Convex (shared thread persistence) together.
  *
- * The Persona orb state is derived directly from VoicePhase.
+ * Layout: CSS Grid centers the orb cluster vertically.
+ * The Persona orb is the hero — everything else serves it.
  */
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { streamText } from "ai";
+import { AnimatePresence } from "motion/react";
 import { useUIMessages } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
@@ -22,10 +24,10 @@ import {
   type VoiceReadiness,
 } from "@/components/contexts/VoiceContext";
 import { STT_MODELS, TTS_MODELS } from "@/lib/voice/voice-models";
-import VoiceReadinessCard from "./_components/VoiceReadinessCard";
+import VoiceReadinessOverlay from "./_components/VoiceReadinessOverlay";
 import VoiceControls from "./_components/VoiceControls";
 import VoiceStatusLine from "./_components/VoiceStatusLine";
-import VoiceThreadHistory from "./_components/VoiceThreadHistory";
+import VoiceHistoryDrawer from "./_components/VoiceHistoryDrawer";
 
 /* ------------------------------------------------------------------ */
 /*  Voice → Persona state mapping                                      */
@@ -85,6 +87,8 @@ export default function VoiceClient() {
     ttsReady: voice.ttsState === "ready",
   };
 
+  const allReady =
+    readiness.llmReady && readiness.sttReady && readiness.ttsReady;
   const canRecord = readiness.llmReady && readiness.sttReady;
 
   /* -- LLM reply generator ----------------------------------------- */
@@ -140,64 +144,75 @@ export default function VoiceClient() {
     voice.stopRecording(generateReply, handlePersist);
   }, [voice, generateReply, handlePersist]);
 
-  /* -- Load helpers for readiness card ------------------------------ */
-  const handleLoadLlm = useCallback(() => {
-    if (activeModelId) {
+  /* -- Load helpers ------------------------------------------------- */
+  const handleLoadAll = useCallback(() => {
+    if (activeModelId && !readiness.llmReady && engineState !== "loading") {
       void loadModel(activeModelId);
     }
-  }, [activeModelId, loadModel]);
-
-  const handleLoadStt = useCallback(() => {
-    const firstSTT = STT_MODELS[0];
-    if (firstSTT) void voice.loadStt(firstSTT.id);
-  }, [voice]);
-
-  const handleLoadTts = useCallback(() => {
-    const firstTTS = TTS_MODELS[0];
-    if (firstTTS) void voice.loadTts(firstTTS.id);
-  }, [voice]);
+    if (!readiness.sttReady && voice.sttState !== "loading") {
+      const firstSTT = STT_MODELS[0];
+      if (firstSTT) void voice.loadStt(firstSTT.id);
+    }
+    if (!readiness.ttsReady && voice.ttsState !== "loading") {
+      const firstTTS = TTS_MODELS[0];
+      if (firstTTS) void voice.loadTts(firstTTS.id);
+    }
+  }, [activeModelId, readiness, engineState, loadModel, voice]);
 
   /* -- Render ------------------------------------------------------- */
   const personaState = PHASE_TO_PERSONA[voice.phase];
 
   return (
-    <div className="flex flex-col items-center h-full min-h-0 gap-6 py-6">
-      {/* Readiness card — hidden once all three models are loaded */}
-      <VoiceReadinessCard
-        readiness={readiness}
-        llmLoading={engineState === "loading"}
-        sttLoading={voice.sttState === "loading"}
-        ttsLoading={voice.ttsState === "loading"}
-        onLoadLlm={activeModelId ? handleLoadLlm : undefined}
-        onLoadStt={handleLoadStt}
-        onLoadTts={handleLoadTts}
-      />
+    <div className="relative grid h-full min-h-0 grid-rows-[1fr_auto_1fr]">
+      {/* Top spacer — pushes content to center */}
+      <div />
 
-      {/* Persona orb */}
-      <div className="flex-shrink-0">
-        <Persona state={personaState} variant="mana" className="size-40" />
+      {/* Center cluster — orb is the hero */}
+      <div className="flex flex-col items-center gap-5">
+        {/* Orb + readiness overlay */}
+        <div className="relative flex-shrink-0">
+          <Persona
+            state={allReady ? personaState : "asleep"}
+            variant="mana"
+            className="size-40 sm:size-56"
+          />
+
+          {/* Readiness pills — fade out when all models are loaded */}
+          <AnimatePresence>
+            {!allReady && (
+              <VoiceReadinessOverlay
+                readiness={readiness}
+                llmLoading={engineState === "loading"}
+                sttLoading={voice.sttState === "loading"}
+                ttsLoading={voice.ttsState === "loading"}
+                onLoadAll={handleLoadAll}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Status line */}
+        <VoiceStatusLine
+          phase={voice.phase}
+          transcript={voice.transcript}
+          replyText={voice.replyText}
+          errorMessage={voice.errorMessage}
+          allReady={allReady}
+        />
+
+        {/* Mic controls */}
+        <VoiceControls
+          phase={voice.phase}
+          disabled={!canRecord}
+          onStartRecording={handleStartRecording}
+          onStopRecording={handleStopRecording}
+          onCancel={voice.cancelSession}
+        />
       </div>
 
-      {/* Status line */}
-      <VoiceStatusLine
-        phase={voice.phase}
-        transcript={voice.transcript}
-        replyText={voice.replyText}
-        errorMessage={voice.errorMessage}
-      />
-
-      {/* Mic controls */}
-      <VoiceControls
-        phase={voice.phase}
-        disabled={!canRecord}
-        onStartRecording={handleStartRecording}
-        onStopRecording={handleStopRecording}
-        onCancel={voice.cancelSession}
-      />
-
-      {/* Thread history */}
-      <div className="flex-1 min-h-0 w-full overflow-y-auto">
-        <VoiceThreadHistory messages={messages} />
+      {/* Bottom zone — drawer trigger anchored to bottom */}
+      <div className="flex items-end justify-center pb-2">
+        <VoiceHistoryDrawer messages={messages} />
       </div>
     </div>
   );

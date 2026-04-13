@@ -12,7 +12,6 @@
   "dependencies": {
     "@ai-sdk/provider-utils": "catalog:",
     "@convex-dev/agent": "catalog:",
-    "@openrouter/ai-sdk-provider": "catalog:",
     "ai": "catalog:",
     "convex": "catalog:",
     "convex-helpers": "catalog:"

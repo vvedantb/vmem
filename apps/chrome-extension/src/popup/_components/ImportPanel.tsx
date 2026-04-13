@@ -7,14 +7,27 @@ import {
   SelectContent,
   SelectItem,
   Progress,
+  Switch,
 } from "@vmem/ui";
 import type {
   ContentMessage,
   BackgroundResponse,
   ProgressMessage,
 } from "@/types/messages";
+import { getStorage, setStorage } from "@/lib/storage";
 
 type ImportStatus = "idle" | "importing" | "done" | "error" | "cancelled";
+
+function formatLastSync(epochMs: number): string {
+  if (epochMs === 0) return "Never synced";
+  const diffMs = Date.now() - epochMs;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHrs = Math.floor(diffMin / 60);
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  return `${Math.floor(diffHrs / 24)}d ago`;
+}
 
 export function ImportPanel() {
   const [historyDays, setHistoryDays] = useState("7");
@@ -25,6 +38,18 @@ export function ImportPanel() {
     total: number;
   } | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [lastBookmarkSync, setLastBookmarkSync] = useState(0);
+  const [lastHistorySync, setLastHistorySync] = useState(0);
+
+  // Load storage values on mount
+  useEffect(() => {
+    void getStorage().then((storage) => {
+      setAutoSyncEnabled(storage.autoSyncEnabled);
+      setLastBookmarkSync(storage.lastBookmarkSync);
+      setLastHistorySync(storage.lastHistorySync);
+    });
+  }, []);
 
   useEffect(() => {
     function handleProgress(message: ProgressMessage) {
@@ -37,6 +62,11 @@ export function ImportPanel() {
     return () => chrome.runtime.onMessage.removeListener(handleProgress);
   }, []);
 
+  function handleAutoSyncToggle(checked: boolean) {
+    setAutoSyncEnabled(checked);
+    void setStorage({ autoSyncEnabled: checked });
+  }
+
   function handleImportBookmarks() {
     setBookmarkStatus("importing");
     setProgress(null);
@@ -47,14 +77,18 @@ export function ImportPanel() {
       message,
       (response: BackgroundResponse | undefined) => {
         if (response?.type === "IMPORT_RESULT") {
-          if (bookmarkStatus === "importing") {
+          if (response.locked) {
+            setBookmarkStatus("idle");
+            setResultMessage("Sync already in progress");
+          } else {
             setBookmarkStatus(response.success ? "done" : "error");
+            setResultMessage(
+              response.success
+                ? `Synced ${response.count} new bookmarks`
+                : (response.error ?? "Sync failed"),
+            );
+            setLastBookmarkSync(Date.now());
           }
-          setResultMessage(
-            response.success
-              ? `Imported ${response.count} bookmarks`
-              : (response.error ?? "Import failed"),
-          );
         }
         setProgress(null);
       },
@@ -74,14 +108,18 @@ export function ImportPanel() {
       message,
       (response: BackgroundResponse | undefined) => {
         if (response?.type === "IMPORT_RESULT") {
-          if (historyStatus === "importing") {
+          if (response.locked) {
+            setHistoryStatus("idle");
+            setResultMessage("Sync already in progress");
+          } else {
             setHistoryStatus(response.success ? "done" : "error");
+            setResultMessage(
+              response.success
+                ? `Synced ${response.count} new history entries`
+                : (response.error ?? "Sync failed"),
+            );
+            setLastHistorySync(Date.now());
           }
-          setResultMessage(
-            response.success
-              ? `Imported ${response.count} history entries`
-              : (response.error ?? "Import failed"),
-          );
         }
         setProgress(null);
       },
@@ -95,7 +133,7 @@ export function ImportPanel() {
     if (bookmarkStatus === "importing") setBookmarkStatus("cancelled");
     if (historyStatus === "importing") setHistoryStatus("cancelled");
     setResultMessage(
-      `Cancelled — ${progress?.current ?? 0} items imported before stopping`,
+      `Cancelled — ${progress?.current ?? 0} items synced before stopping`,
     );
     setProgress(null);
   }
@@ -105,24 +143,42 @@ export function ImportPanel() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">Auto-sync</span>
+        <Switch
+          checked={autoSyncEnabled}
+          onCheckedChange={handleAutoSyncToggle}
+        />
+      </div>
+
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-muted-foreground">Bookmarks</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            Bookmarks
+          </h3>
+          <span className="text-xs text-muted-foreground">
+            {formatLastSync(lastBookmarkSync)}
+          </span>
+        </div>
         <Button
           variant="outline"
           className="w-full"
           onClick={handleImportBookmarks}
           disabled={isImporting}
         >
-          {bookmarkStatus === "importing"
-            ? "Importing..."
-            : "Import All Bookmarks"}
+          {bookmarkStatus === "importing" ? "Syncing..." : "Sync Bookmarks"}
         </Button>
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-muted-foreground">
-          Browsing History
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            Browsing History
+          </h3>
+          <span className="text-xs text-muted-foreground">
+            {formatLastSync(lastHistorySync)}
+          </span>
+        </div>
         <div className="flex gap-2">
           <Select
             value={historyDays}
@@ -144,7 +200,7 @@ export function ImportPanel() {
             onClick={handleImportHistory}
             disabled={isImporting}
           >
-            {historyStatus === "importing" ? "Importing..." : "Import History"}
+            {historyStatus === "importing" ? "Syncing..." : "Sync History"}
           </Button>
         </div>
       </div>
@@ -163,7 +219,7 @@ export function ImportPanel() {
 
       {isImporting && (
         <Button variant="destructive" className="w-full" onClick={handleCancel}>
-          Cancel Import
+          Cancel Sync
         </Button>
       )}
 

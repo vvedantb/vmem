@@ -8,12 +8,14 @@ import { api } from "@vmem/backend";
 import { useWebLLM } from "@/components/contexts/WebLLMContext";
 
 /** Token-usage summary for a single assistant message bubble. */
-interface MessageUsageSummary {
+export interface MessageUsageSummary {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
   reasoningTokens: number;
   cachedInputTokens: number;
+  /** Output tokens per second (local inference speed). Present for local messages only. */
+  tokensPerSecond?: number;
 }
 
 const SYSTEM_PROMPT = [
@@ -44,15 +46,28 @@ function makeLocalMessage(
   };
 }
 
-function updateMessageText(
+/** Build parts array from accumulated text + reasoning. */
+function buildParts(text: string, reasoning: string): UIMessage["parts"] {
+  const parts: UIMessage["parts"] = [];
+  if (reasoning) {
+    parts.push({ type: "reasoning", text: reasoning, providerMetadata: {} });
+  }
+  if (text) {
+    parts.push({ type: "text", text });
+  }
+  return parts;
+}
+
+function updateMessage(
   message: UIMessage,
   text: string,
+  reasoning: string,
   status?: "success" | "streaming",
 ): UIMessage {
   return {
     ...message,
     text,
-    parts: text ? [{ type: "text", text }] : [],
+    parts: buildParts(text, reasoning),
     status: status ?? message.status,
   };
 }
@@ -69,12 +84,16 @@ interface LocalChatResult {
   messages: UIMessage[];
   sendMessage: (text: string) => Promise<void>;
   isStreaming: boolean;
+  /** Thread loaded (may still need a model to send messages). */
+  isThreadReady: boolean;
+  /** Thread loaded AND WebLLM engine ready. */
   isReady: boolean;
   usageByMessageKey: Record<string, MessageUsageSummary>;
 }
 
-export function useLocalChat(threadId: string | null): LocalChatResult {
+export function useLocalChat(): LocalChatResult {
   const { model, engineState } = useWebLLM();
+  const [threadId, setThreadId] = useState<string | null>(null);
   const [draftMessages, setDraftMessages] = useState<UIMessage[]>([]);
   const [draftUsageByKey, setDraftUsageByKey] = useState<
     Record<string, MessageUsageSummary>
@@ -82,7 +101,18 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
   const [isStreaming, setIsStreaming] = useState(false);
   const orderRef = useRef(0);
 
+  const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
+
+  // Load or create the chat thread on mount
+  useEffect(() => {
+    getOrCreateThread()
+      .then((id) => setThreadId(id))
+      .catch((error) => {
+        console.error("Failed to load chat thread:", error);
+      });
+  }, [getOrCreateThread]);
+
   const persistedUsageByKey: Record<string, MessageUsageSummary> =
     useQuery(
       api.chat.getThreadMessageUsage,
@@ -157,60 +187,82 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
           messages: [...conversationHistory, { role: "user", content: text }],
         });
 
-        let accumulated = "";
-        for await (const delta of result.textStream) {
-          accumulated += delta;
-          setDraftMessages((currentMessages) =>
-            currentMessages.map((message) =>
-              message.key === assistantMessage.key
-                ? updateMessageText(message, accumulated)
-                : message,
-            ),
-          );
+        let accumulatedText = "";
+        let accumulatedReasoning = "";
+        let outputTokenCount = 0;
+        const streamStartTime = performance.now();
+
+        for await (const part of result.fullStream) {
+          if (part.type === "reasoning-delta") {
+            accumulatedReasoning += part.text;
+            setDraftMessages((cur) =>
+              cur.map((m) =>
+                m.key === assistantMessage.key
+                  ? updateMessage(m, accumulatedText, accumulatedReasoning)
+                  : m,
+              ),
+            );
+          } else if (part.type === "text-delta") {
+            accumulatedText += part.text;
+            outputTokenCount++;
+            setDraftMessages((cur) =>
+              cur.map((m) =>
+                m.key === assistantMessage.key
+                  ? updateMessage(m, accumulatedText, accumulatedReasoning)
+                  : m,
+              ),
+            );
+          }
         }
+
+        const streamDurationSec = (performance.now() - streamStartTime) / 1000;
 
         // Capture token usage from the completed stream
         const totalUsage = await result.totalUsage;
         const inputTokens = totalUsage.inputTokens ?? 0;
         const outputTokens = totalUsage.outputTokens ?? 0;
-        const hasUsage = inputTokens > 0 || outputTokens > 0;
+        // Use SDK-reported output tokens when available, fall back to delta count
+        const finalOutputTokens =
+          outputTokens > 0 ? outputTokens : outputTokenCount;
+        const tokensPerSecond =
+          streamDurationSec > 0 ? finalOutputTokens / streamDurationSec : 0;
 
-        if (hasUsage) {
-          const summary: MessageUsageSummary = {
-            inputTokens,
-            outputTokens,
-            totalTokens: inputTokens + outputTokens,
-            reasoningTokens: 0,
-            cachedInputTokens: 0,
-          };
-          setDraftUsageByKey((prev) => ({
-            ...prev,
-            [assistantMessage.key]: summary,
-          }));
-        }
+        const summary: MessageUsageSummary = {
+          inputTokens,
+          outputTokens: finalOutputTokens,
+          totalTokens: inputTokens + finalOutputTokens,
+          reasoningTokens: 0,
+          cachedInputTokens: 0,
+          tokensPerSecond,
+        };
+        setDraftUsageByKey((prev) => ({
+          ...prev,
+          [assistantMessage.key]: summary,
+        }));
 
-        setDraftMessages((currentMessages) =>
-          currentMessages.map((message) =>
-            message.key === assistantMessage.key
-              ? updateMessageText(message, accumulated, "success")
-              : message,
+        setDraftMessages((cur) =>
+          cur.map((m) =>
+            m.key === assistantMessage.key
+              ? updateMessage(
+                  m,
+                  accumulatedText,
+                  accumulatedReasoning,
+                  "success",
+                )
+              : m,
           ),
         );
 
-        if (threadId && accumulated) {
-          const usageForSave = hasUsage
-            ? {
-                promptTokens: inputTokens,
-                completionTokens: outputTokens,
-                totalTokens: inputTokens + outputTokens,
-              }
-            : undefined;
-
+        if (threadId && accumulatedText) {
           await saveLocalMessages({
             threadId,
             userText: text,
-            assistantText: accumulated,
-            usage: usageForSave,
+            assistantText: accumulatedText,
+            usage: {
+              promptTokens: inputTokens,
+              completionTokens: finalOutputTokens,
+              totalTokens: inputTokens + finalOutputTokens,
+            },
           });
           setDraftMessages([]);
           setDraftUsageByKey({});
@@ -218,11 +270,11 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
       } catch (error) {
         const errorText =
           error instanceof Error ? error.message : "Something went wrong";
-        setDraftMessages((currentMessages) =>
-          currentMessages.map((message) =>
-            message.key === assistantMessage.key
-              ? updateMessageText(message, `Error: ${errorText}`, "success")
-              : message,
+        setDraftMessages((cur) =>
+          cur.map((m) =>
+            m.key === assistantMessage.key
+              ? updateMessage(m, `Error: ${errorText}`, "", "success")
+              : m,
           ),
         );
       } finally {
@@ -237,11 +289,15 @@ export function useLocalChat(threadId: string | null): LocalChatResult {
     ...draftUsageByKey,
   };
 
+  const isThreadReady = threadId !== null;
+  const isModelReady = engineState === "ready" && model !== null;
+
   return {
     messages,
     sendMessage,
     isStreaming,
-    isReady: engineState === "ready" && model !== null,
+    isThreadReady,
+    isReady: isThreadReady && isModelReady,
     usageByMessageKey,
   };
 }

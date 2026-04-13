@@ -1,20 +1,29 @@
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/chrome-extension";
-import { Button, Input, Label } from "@vmem/ui";
+import { Button, Input, Label, Switch } from "@vmem/ui";
 import { getStorage, setStorage } from "@/lib/storage";
 
 export function SettingsForm() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const [apiUrl, setApiUrl] = useState("");
+  const [selectionPopupEnabled, setSelectionPopupEnabled] = useState(true);
 
   useEffect(() => {
-    getStorage().then((s) => setApiUrl(s.apiUrl));
+    getStorage().then((s) => {
+      setApiUrl(s.apiUrl);
+      setSelectionPopupEnabled(s.selectionPopupEnabled);
+    });
   }, []);
 
   function handleApiUrlChange(value: string) {
     setApiUrl(value);
     setStorage({ apiUrl: value });
+  }
+
+  function handleSelectionPopupToggle(checked: boolean) {
+    setSelectionPopupEnabled(checked);
+    setStorage({ selectionPopupEnabled: checked });
   }
 
   return (
@@ -33,6 +42,17 @@ export function SettingsForm() {
           </div>
         </div>
       )}
+
+      <div className="flex items-center justify-between gap-3">
+        <Label htmlFor="selection-popup-toggle" className="text-sm">
+          Save popup on text selection
+        </Label>
+        <Switch
+          id="selection-popup-toggle"
+          checked={selectionPopupEnabled}
+          onCheckedChange={handleSelectionPopupToggle}
+        />
+      </div>
 
       <div className="space-y-1.5">
         <Label>API URL</Label>
