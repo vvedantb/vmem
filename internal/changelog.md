@@ -1,5 +1,11 @@
 # Changelog
 
+## Graph API: Cap Arrays for Convex 8192 Element Limit — 2026-04-13
+
+- Fixed graph endpoint crashing with "Array length is too long (10415 > maximum length 8192)" — Convex enforces a hard 8192 element limit on any array in a return value (applies to all Convex values, not just documents)
+- Capped graph results to 2000 nodes / 4000 edges per array, with orphan edge cleanup — also improves d3-force rendering performance
+- Documented JSON.stringify workaround as an alternative if full dataset is ever needed (strings only hit the 16 MiB size limit, no array cap)
+
 ## Memory Engine: Migrated from Hono API to Convex "use node" Actions — 2026-04-13
 
 - Eliminated Railway Hono API (`apps/api/`): all Neo4j queries and mutations now run inside Convex serverless functions via "use node" runtime
