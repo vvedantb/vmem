@@ -109,6 +109,10 @@ interface VoiceContextValue {
   setSpeaker: (speakerId: string) => void;
   setActiveSTTModelId: (modelId: string) => void;
   setActiveTTSModelId: (modelId: string) => void;
+  /** Play a short preview of a voice */
+  previewVoice: (speakerId: string) => Promise<void>;
+  /** Whether a voice preview is currently playing */
+  isPreviewing: boolean;
 
   /**
    * Start a voice turn: record → transcribe → call LLM → TTS playback.
@@ -157,12 +161,14 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [transcript, setTranscript] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
 
   /* Refs for cancellation */
   const recordingRef = useRef<Awaited<
     ReturnType<typeof startMicRecording>
   > | null>(null);
   const playbackCancelRef = useRef<(() => void) | null>(null);
+  const previewCancelRef = useRef<(() => void) | null>(null);
   const cancelledRef = useRef(false);
 
   /* -- Hydrate from localStorage ------------------------------------- */
@@ -260,6 +266,37 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     persistSpeakerId(speakerId);
     setActiveSpeakerState(speakerId);
   }, []);
+
+  const PREVIEW_TEXT = "Hello! This is what I sound like.";
+
+  const handlePreviewVoice = useCallback(
+    async (speakerId: string) => {
+      if (!isTTSReady() || isPreviewing) return;
+
+      // Cancel any existing preview
+      if (previewCancelRef.current) {
+        previewCancelRef.current();
+        previewCancelRef.current = null;
+      }
+
+      setIsPreviewing(true);
+      try {
+        const { audio, samplingRate } = await synthesise(
+          PREVIEW_TEXT,
+          speakerId,
+        );
+        const { done, cancel } = playAudio(audio, samplingRate);
+        previewCancelRef.current = cancel;
+        await done;
+      } catch {
+        // Preview failure is non-fatal
+      } finally {
+        setIsPreviewing(false);
+        previewCancelRef.current = null;
+      }
+    },
+    [isPreviewing],
+  );
 
   /* -- Model ID setters (preference only, no load) ------------------ */
   const handleSetActiveSTTId = useCallback((modelId: string) => {
@@ -438,6 +475,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         startRecording: handleStartRecording,
         stopRecording: handleStopRecording,
         cancelSession: handleCancel,
+        previewVoice: handlePreviewVoice,
+        isPreviewing,
       }}
     >
       {children}

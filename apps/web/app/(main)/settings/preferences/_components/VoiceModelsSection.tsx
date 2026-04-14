@@ -5,9 +5,10 @@
 "use client";
 
 import { useCallback } from "react";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { IconInfoCircle, IconPlayerPlay } from "@tabler/icons-react";
 import { useVoice } from "@/components/contexts/VoiceContext";
 import {
+  Button,
   Select,
   SelectContent,
   SelectItem,
@@ -37,6 +38,8 @@ export default function VoiceModelsSection() {
     loadTts,
     unloadTts,
     setSpeaker,
+    previewVoice,
+    isPreviewing,
   } = useVoice();
 
   const handleLoadStt = useCallback(
@@ -112,18 +115,33 @@ export default function VoiceModelsSection() {
           <Label htmlFor="speaker-select" className="text-sm font-medium">
             Voice
           </Label>
-          <Select value={activeSpeaker} onValueChange={setSpeaker}>
-            <SelectTrigger id="speaker-select" className="w-60">
-              <SelectValue placeholder="Select voice" />
-            </SelectTrigger>
-            <SelectContent>
-              {KOKORO_SPEAKERS.map((speaker) => (
-                <SelectItem key={speaker} value={speaker}>
-                  {formatSpeakerName(speaker)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={activeSpeaker} onValueChange={setSpeaker}>
+              <SelectTrigger id="speaker-select" className="w-60">
+                <SelectValue placeholder="Select voice" />
+              </SelectTrigger>
+              <SelectContent>
+                {KOKORO_SPEAKERS.map((speaker) => (
+                  <SelectItem key={speaker} value={speaker}>
+                    {formatSpeakerName(speaker)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={isPreviewing}
+              onClick={() => {
+                void previewVoice(activeSpeaker);
+              }}
+            >
+              <IconPlayerPlay className="h-3.5 w-3.5" aria-hidden />
+              Preview
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground">
             Choose the voice used for spoken replies.
           </p>
