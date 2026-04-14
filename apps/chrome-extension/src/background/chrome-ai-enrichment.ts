@@ -1,16 +1,8 @@
-/**
- * Chrome Built-in AI (Gemini Nano) integration for local enrichment.
- * Available in Chrome 138+ with the optimization flag enabled.
- *
- * This is the preferred path when available - zero download, instant inference.
- */
-
 import {
-  buildEnrichmentPrompt,
-  parseEnrichmentResponse,
-} from "./enrichment-prompt";
+  buildFullEnrichmentPrompt,
+  parseFullEnrichmentResponse,
+} from "@vmem/backend/enrichmentPrompt";
 
-// Chrome AI API types (not yet in @types/chrome)
 interface LanguageModelCapabilities {
   available: "no" | "readily" | "after-download";
 }
@@ -25,25 +17,24 @@ interface LanguageModelAPI {
   create(): Promise<LanguageModel>;
 }
 
-interface ChromeAINamespace {
-  languageModel?: LanguageModelAPI;
+function isLanguageModelAPI(value: unknown): value is LanguageModelAPI {
+  if (typeof value !== "object" || value === null) return false;
+  const capabilities = Reflect.get(value, "capabilities");
+  const create = Reflect.get(value, "create");
+  return typeof capabilities === "function" && typeof create === "function";
 }
 
-// Access Chrome AI APIs with proper typing
 function getChromeAI(): LanguageModelAPI | undefined {
-  const chromeWithAI = chrome as typeof chrome & {
-    aiOriginTrial?: ChromeAINamespace;
-    ai?: ChromeAINamespace;
-  };
-  return (
-    chromeWithAI.aiOriginTrial?.languageModel ?? chromeWithAI.ai?.languageModel
-  );
+  for (const key of ["aiOriginTrial", "ai"]) {
+    if (!Reflect.has(chrome, key)) continue;
+    const ns = Reflect.get(chrome, key);
+    if (typeof ns !== "object" || ns === null) continue;
+    const lm = Reflect.get(ns, "languageModel");
+    if (isLanguageModelAPI(lm)) return lm;
+  }
+  return undefined;
 }
 
-/**
- * Check if Chrome Built-in AI is available.
- * Returns the availability status or null if the API doesn't exist.
- */
 export async function checkChromeAIAvailability(): Promise<
   "no" | "readily" | "after-download" | null
 > {
@@ -64,14 +55,11 @@ export async function checkChromeAIAvailability(): Promise<
   }
 }
 
-/**
- * Generate tags using Chrome's built-in Gemini Nano model.
- * Returns null if Chrome AI is not available or inference fails.
- */
-export async function generateTagsWithChromeAI(
+export async function runFullEnrichmentWithChromeAI(
   title: string,
   content: string,
-): Promise<string[] | null> {
+  existingMemories: Array<{ id: string; title: string }>,
+): Promise<{ tags: string[]; relatedMemoryIds: string[] } | null> {
   try {
     const api = getChromeAI();
 
@@ -86,30 +74,30 @@ export async function generateTagsWithChromeAI(
     }
 
     if (capabilities.available === "after-download") {
-      // Model needs to be downloaded first - skip for now, use WebLLM instead
       console.log(
         "[chrome-ai] Model requires download, falling back to WebLLM",
       );
       return null;
     }
 
-    // Create a session and run inference
     const session = await api.create();
-    const prompt = buildEnrichmentPrompt(title, content);
+    const prompt = buildFullEnrichmentPrompt(title, content, existingMemories);
 
     try {
       const response = await session.prompt(prompt);
       console.log("[chrome-ai] Raw response:", response);
 
-      const tags = parseEnrichmentResponse(response);
-      if (tags && tags.length > 0) {
-        console.log("[chrome-ai] Generated tags:", tags);
-        return tags.slice(0, 5);
+      const parsed = parseFullEnrichmentResponse(response);
+      if (parsed && parsed.tags.length > 0) {
+        console.log("[chrome-ai] Enrichment:", parsed);
+        return {
+          tags: parsed.tags.slice(0, 5),
+          relatedMemoryIds: parsed.relatedMemoryIds,
+        };
       }
 
       return null;
     } finally {
-      // Clean up the session
       session.destroy();
     }
   } catch (err) {

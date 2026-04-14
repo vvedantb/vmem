@@ -11,6 +11,7 @@ import {
   composeSystemPrompt,
 } from "@vmem/backend/memoryRagPrompt";
 import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
+import { parseThinkTags } from "@/lib/think-tags";
 
 /** Token-usage summary for a single assistant message bubble. */
 export interface MessageUsageSummary {
@@ -89,49 +90,6 @@ function getHighestOrder(messages: UIMessage[]): number {
       message.order > highestOrder ? message.order : highestOrder,
     -1,
   );
-}
-
-/**
- * Parse <think>...</think> tags from raw text.
- * Returns { reasoning, text, isThinking } where:
- * - reasoning: content inside <think> tags (accumulated)
- * - text: content outside <think> tags
- * - isThinking: true if currently inside an unclosed <think> tag
- */
-function parseThinkTags(raw: string): {
-  reasoning: string;
-  text: string;
-  isThinking: boolean;
-} {
-  let reasoning = "";
-  let text = "";
-  let isThinking = false;
-  let cursor = 0;
-
-  while (cursor < raw.length) {
-    if (!isThinking) {
-      const thinkStart = raw.indexOf("<think>", cursor);
-      if (thinkStart === -1) {
-        text += raw.slice(cursor);
-        break;
-      }
-      text += raw.slice(cursor, thinkStart);
-      cursor = thinkStart + 7; // length of "<think>"
-      isThinking = true;
-    } else {
-      const thinkEnd = raw.indexOf("</think>", cursor);
-      if (thinkEnd === -1) {
-        // Still inside thinking, accumulate but don't add to reasoning yet
-        reasoning += raw.slice(cursor);
-        break;
-      }
-      reasoning += raw.slice(cursor, thinkEnd);
-      cursor = thinkEnd + 8; // length of "</think>"
-      isThinking = false;
-    }
-  }
-
-  return { reasoning: reasoning.trim(), text: text.trim(), isThinking };
 }
 
 interface LocalChatResult {
