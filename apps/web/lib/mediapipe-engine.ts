@@ -10,12 +10,12 @@ export interface MediaPipeProgressReport {
   progress: number;
 }
 
-// Model URLs on HuggingFace (GPU-optimized .task files)
+// Model URLs on HuggingFace (GPU-optimized .task files from litert-community)
 const MODEL_URLS: Record<string, string> = {
   "gemma-4-e2b-it":
-    "https://huggingface.co/psi-tripp/gemma-4-E2B-it-GPU-int4-tok4/resolve/main/gemma-4-E2B-it-GPU-int4-tok4.task",
+    "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-web.task",
   "gemma-4-e4b-it":
-    "https://huggingface.co/psi-tripp/gemma-4-E4B-it-GPU-int4-tok4/resolve/main/gemma-4-E4B-it-GPU-int4-tok4.task",
+    "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it-web.task",
 };
 
 // Singleton state
