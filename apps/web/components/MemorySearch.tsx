@@ -250,7 +250,7 @@ export default function MemorySearch({
               <Virtuoso
                 data={displayData}
                 computeItemKey={(_index, item) => item.id}
-                defaultItemHeight={56}
+                defaultItemHeight={44}
                 itemContent={(_index, item) => (
                   <div className="pb-1.5">
                     <MemoryListItem

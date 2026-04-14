@@ -45,11 +45,11 @@ export default function MemoryListItem({
           )}
           onClick={() => onCardClick(item)}
         >
-          <div className="flex flex-col gap-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-foreground truncate">
-                {item.title}
-              </span>
+          <div className="flex items-center gap-2 min-w-0 w-full">
+            <span className="text-sm font-medium text-foreground truncate min-w-0 flex-1">
+              {item.title}
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
               {trailEntry && trailEntry.connectionType === "related" && (
                 <Badge
                   variant="outline"
@@ -63,16 +63,18 @@ export default function MemoryListItem({
                   {Math.round(item.relevanceScore * 100)}%
                 </span>
               )}
-              <span className="ml-auto text-xs text-muted-foreground/50 tabular-nums flex-shrink-0">
-                {timeAgo(item.createdAt)}
-              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted-foreground border-border whitespace-nowrap"
+                >
+                  {formatMemorySourceLabel(item.source)}
+                </Badge>
+                <span className="text-xs text-muted-foreground/50 tabular-nums whitespace-nowrap">
+                  {timeAgo(item.createdAt)}
+                </span>
+              </div>
             </div>
-            <Badge
-              variant="outline"
-              className="w-fit text-[10px] px-1.5 py-0 h-4 font-normal text-muted-foreground border-border"
-            >
-              {formatMemorySourceLabel(item.source)}
-            </Badge>
           </div>
         </Card>
       </ContextMenuTrigger>
