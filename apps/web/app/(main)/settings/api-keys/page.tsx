@@ -45,7 +45,7 @@ export default function ApiKeysPage() {
 
   if (isLoading) {
     return (
-      <PageContainer title="API Keys">
+      <PageContainer title="API Keys" centeredMaxWidth>
         <ApiKeysLoadingSkeleton />
       </PageContainer>
     );
@@ -54,6 +54,7 @@ export default function ApiKeysPage() {
   return (
     <PageContainer
       title="API Keys"
+      centeredMaxWidth
       rightSection={
         <Button
           onClick={() => setIsCreateModalOpen(true)}

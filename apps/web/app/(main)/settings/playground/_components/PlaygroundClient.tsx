@@ -307,6 +307,7 @@ export default function PlaygroundClient() {
   return (
     <PageContainer
       title="Playground"
+      centeredMaxWidth
       rightSection={
         state.status === "connected" ? (
           <Button variant="outline" onClick={handleDisconnect}>

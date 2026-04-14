@@ -30,7 +30,7 @@ export default function ConnectorsPage() {
 
   if (connectors === undefined) {
     return (
-      <PageContainer title="Connectors">
+      <PageContainer title="Connectors" centeredMaxWidth>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2].map((i) => (
             <Card
@@ -60,6 +60,7 @@ export default function ConnectorsPage() {
     <>
       <PageContainer
         title="Connectors"
+        centeredMaxWidth
         rightSection={
           <Button
             variant="outline"

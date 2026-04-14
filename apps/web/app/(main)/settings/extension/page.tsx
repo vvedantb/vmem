@@ -11,7 +11,7 @@ export default function ExtensionSettingsPage() {
 
   if (settings === undefined) {
     return (
-      <PageContainer title="Extension">
+      <PageContainer title="Extension" centeredMaxWidth>
         <div className="rounded-xl border border-border p-6 space-y-6">
           <div className="flex items-center justify-between gap-3">
             <Skeleton className="h-4 w-32" />
@@ -27,7 +27,7 @@ export default function ExtensionSettingsPage() {
   }
 
   return (
-    <PageContainer title="Extension">
+    <PageContainer title="Extension" centeredMaxWidth>
       <div className="rounded-xl border border-border p-6 space-y-6">
         <p className="text-sm text-muted-foreground">
           Browser extension settings. The same preferences apply when you change

@@ -118,6 +118,7 @@ export default function NotificationsPage() {
   return (
     <PageContainer
       title="Notifications"
+      centeredMaxWidth
       rightSection={
         unreadCount > 0 ? (
           <Button
