@@ -1,5 +1,11 @@
 # Changelog
 
+## Settings: Chat export import to memories — 2026-04-14
+
+- Added a Settings → Import flow so users can bring official ChatGPT or Claude data exports into vmem as Neo4j memories instead of replaying chats in the app
+- Parses ZIP or JSON client-side and lets people pick which conversations to import before writing episodic memories with clear import tagging for retrieval
+- Reason: makes external chat history usable inside the memory graph without duplicating it as in-app threads
+
 ## Extension settings: Convex + web settings page — 2026-04-14
 
 - Store browser extension toggles (auto-sync, save popup on text selection) in Convex `userSettings` so the web app and extension share one source of truth instead of only local storage
