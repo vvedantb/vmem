@@ -59,6 +59,7 @@ function apiToMemory(m: ApiMemory): Memory {
     title: m.title,
     content: m.content,
     type: isMemoryType(m.type) ? m.type : "knowledge",
+    source: m.source,
     tags: m.tags,
     createdAt: m.createdAt,
   };
@@ -120,6 +121,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         title: input.title.trim(),
         content: input.content.trim(),
         type: "knowledge",
+        source: "web",
         tags: input.tags ?? [],
         createdAt: new Date().toISOString(),
       };

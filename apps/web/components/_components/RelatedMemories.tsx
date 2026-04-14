@@ -37,6 +37,7 @@ interface RelatedMemoryEntry {
     title: string;
     content: string;
     type: string;
+    source?: string;
     tags: string[];
     createdAt: string;
   };
@@ -158,6 +159,7 @@ export default function RelatedMemories({
                     title: entry.memory.title,
                     content: entry.memory.content,
                     type: toMemoryType(entry.memory.type),
+                    source: entry.memory.source ?? "web",
                     tags: entry.memory.tags,
                     createdAt: entry.memory.createdAt,
                   })
