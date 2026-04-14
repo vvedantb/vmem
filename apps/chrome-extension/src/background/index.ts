@@ -1,7 +1,16 @@
 import { registerContextMenu } from "./context-menu";
 import { registerMessageHandler } from "./message-handler";
-import { startAutoSync, stopAutoSync } from "./sync-scheduler";
+import {
+  startAutoSync,
+  stopAutoSync,
+  registerAlarmListener,
+} from "./sync-scheduler";
 import { getStorage } from "@/lib/storage";
+
+// CRITICAL: Register alarm listener at top level so it's ready when
+// service worker wakes up from an alarm. Service workers can restart
+// at any time, but alarms persist — listener must be registered synchronously.
+registerAlarmListener();
 
 chrome.runtime.onInstalled.addListener(async () => {
   registerContextMenu();

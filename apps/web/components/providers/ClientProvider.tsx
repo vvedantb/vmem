@@ -10,7 +10,7 @@ import { TooltipProvider } from "@vmem/ui";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { NotificationProvider } from "../contexts/NotificationContext";
 import { MemoryProvider } from "../contexts/MemoryContext";
-import { WebLLMProvider } from "../contexts/WebLLMContext";
+import { LocalLLMProvider } from "../contexts/LocalLLMContext";
 import { VoiceProvider } from "../contexts/VoiceContext";
 import { MotionProvider } from "./MotionProvider";
 import { QueryProvider } from "./QueryProvider";
@@ -37,11 +37,11 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
               <ThemeProvider>
                 <TooltipProvider>
                   <NotificationProvider>
-                    <WebLLMProvider>
+                    <LocalLLMProvider>
                       <VoiceProvider>
                         <MemoryProvider>{children}</MemoryProvider>
                       </VoiceProvider>
-                    </WebLLMProvider>
+                    </LocalLLMProvider>
                   </NotificationProvider>
                 </TooltipProvider>
                 <Toaster position="top-center" />

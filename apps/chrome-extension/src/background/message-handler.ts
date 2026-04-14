@@ -1,5 +1,5 @@
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { createMemory, retrieveMemories, testConnection } from "./api-client";
+import { createMemory, retrieveMemories } from "./api-client";
 import { savePageFromTab } from "./context-menu";
 import { importBookmarks } from "./import-bookmarks";
 import { importHistory } from "./import-history";
@@ -127,16 +127,6 @@ async function handleMessage(
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";
         return { type: "IMPORT_RESULT", success: false, count: 0, error };
-      }
-    }
-
-    case "TEST_CONNECTION": {
-      try {
-        const connected = await testConnection();
-        return { type: "CONNECTION_RESULT", connected };
-      } catch (err) {
-        const error = err instanceof Error ? err.message : "Unknown error";
-        return { type: "CONNECTION_RESULT", connected: false, error };
       }
     }
 

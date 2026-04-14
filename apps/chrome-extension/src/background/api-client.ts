@@ -1,25 +1,27 @@
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@vmem/backend";
 import { getStorage } from "@/lib/storage";
-import { API_VERSION } from "@/lib/constants";
+import { CONVEX_URL } from "@/lib/constants";
 import type {
   CreateMemoryParams,
   MemoryWithTags,
   MemoryCandidate,
 } from "@/types/api";
 
-async function getBaseUrl(): Promise<string> {
-  const { apiUrl } = await getStorage();
-  return `${apiUrl}/${API_VERSION}`;
-}
-
-async function authHeaders(): Promise<Record<string, string>> {
+/**
+ * Get an authenticated ConvexHttpClient with the stored Clerk JWT.
+ * Returns null if no auth token is available.
+ */
+async function getAuthenticatedClient(): Promise<ConvexHttpClient | null> {
   const { authToken } = await getStorage();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (authToken) {
-    headers["Authorization"] = `Bearer ${authToken}`;
+  if (!authToken) {
+    console.warn("[vmem] No auth token available for Convex client");
+    return null;
   }
-  return headers;
+
+  const client = new ConvexHttpClient(CONVEX_URL);
+  client.setAuth(authToken);
+  return client;
 }
 
 export interface DuplicateInfo {
@@ -35,26 +37,23 @@ export type CreateResult =
 export async function createMemory(
   params: CreateMemoryParams,
 ): Promise<CreateResult> {
-  const baseUrl = await getBaseUrl();
-  const headers = await authHeaders();
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
 
-  const response = await fetch(`${baseUrl}/memories`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(params),
+  const memory = await client.action(api.memoryApi.createMemory, {
+    title: params.title,
+    content: params.content,
+    type: params.type,
+    source: params.source,
+    tags: params.tags,
+    confidence: params.confidence,
+    url: params.url,
   });
 
-  if (response.status === 409) {
-    const data: { existingMemory: DuplicateInfo } = await response.json();
-    return { status: "duplicate", existingMemory: data.existingMemory };
-  }
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to create memory: ${error}`);
-  }
-
-  const memory: MemoryWithTags = await response.json();
   return { status: "created", memory };
 }
 
@@ -62,51 +61,40 @@ export async function updateMemory(
   memoryId: string,
   params: { title?: string; content?: string; tags?: string[] },
 ): Promise<MemoryWithTags> {
-  const baseUrl = await getBaseUrl();
-  const headers = await authHeaders();
-
-  const response = await fetch(`${baseUrl}/memories/${memoryId}`, {
-    method: "PATCH",
-    headers,
-    body: JSON.stringify(params),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to update memory: ${error}`);
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
   }
 
-  const memory: MemoryWithTags = await response.json();
-  return memory;
+  const result = await client.action(api.memoryApi.updateMemory, {
+    memoryId,
+    title: params.title,
+    content: params.content,
+    tags: params.tags,
+  });
+
+  if (!result) {
+    throw new Error("Memory not found or update failed");
+  }
+
+  return result;
 }
 
 export async function retrieveMemories(
   query: string,
   limit = 5,
 ): Promise<MemoryCandidate[]> {
-  const baseUrl = await getBaseUrl();
-  const headers = await authHeaders();
-
-  const response = await fetch(`${baseUrl}/memories/retrieve`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ query, limit }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to retrieve memories: ${error}`);
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
   }
 
-  const data: { memories: MemoryCandidate[] } = await response.json();
-  return data.memories;
-}
-
-export async function testConnection(): Promise<boolean> {
-  const baseUrl = await getBaseUrl();
-  const headers = await authHeaders();
-
-  const response = await fetch(`${baseUrl}/memories?limit=1`, { headers });
-
-  return response.ok;
+  return await client.action(api.memoryApi.retrieveMemories, {
+    query,
+    limit,
+  });
 }

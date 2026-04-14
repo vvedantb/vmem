@@ -116,7 +116,5 @@ select,
 }
 
 .glass-tab-trigger[data-state="active"] {
-  border: 1px solid oklch(0.34 0.006 260 / 0.4);
-  background: oklch(0.26 0 0 / 0.7);
-  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.5);
+  background: var(--color-accent);
 }

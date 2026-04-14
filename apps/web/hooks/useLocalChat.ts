@@ -5,7 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { streamText } from "ai";
 import { useUIMessages, type UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
-import { useWebLLM } from "@/components/contexts/WebLLMContext";
+import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
 
 /** Token-usage summary for a single assistant message bubble. */
 export interface MessageUsageSummary {
@@ -92,7 +92,7 @@ interface LocalChatResult {
 }
 
 export function useLocalChat(): LocalChatResult {
-  const { model, engineState } = useWebLLM();
+  const { model, engineState } = useLocalLLM();
   const [threadId, setThreadId] = useState<string | null>(null);
   const [draftMessages, setDraftMessages] = useState<UIMessage[]>([]);
   const [draftUsageByKey, setDraftUsageByKey] = useState<

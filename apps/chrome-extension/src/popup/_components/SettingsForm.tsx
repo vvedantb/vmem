@@ -1,25 +1,18 @@
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/chrome-extension";
-import { Button, Input, Label, Switch } from "@vmem/ui";
+import { Button, Label, Switch } from "@vmem/ui";
 import { getStorage, setStorage } from "@/lib/storage";
 
 export function SettingsForm() {
   const { user } = useUser();
   const { signOut } = useClerk();
-  const [apiUrl, setApiUrl] = useState("");
   const [selectionPopupEnabled, setSelectionPopupEnabled] = useState(true);
 
   useEffect(() => {
     getStorage().then((s) => {
-      setApiUrl(s.apiUrl);
       setSelectionPopupEnabled(s.selectionPopupEnabled);
     });
   }, []);
-
-  function handleApiUrlChange(value: string) {
-    setApiUrl(value);
-    setStorage({ apiUrl: value });
-  }
 
   function handleSelectionPopupToggle(checked: boolean) {
     setSelectionPopupEnabled(checked);
@@ -51,16 +44,6 @@ export function SettingsForm() {
           id="selection-popup-toggle"
           checked={selectionPopupEnabled}
           onCheckedChange={handleSelectionPopupToggle}
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label>API URL</Label>
-        <Input
-          type="url"
-          value={apiUrl}
-          onChange={(e) => handleApiUrlChange(e.target.value)}
-          placeholder="https://vmem-api.up.railway.app"
         />
       </div>
 
