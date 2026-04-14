@@ -72,24 +72,34 @@ export const seedDefaults = authMutation({
     const existing = await ctx.db
       .query("connectors")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .first();
+      .collect();
 
-    if (existing) {
-      return;
-    }
+    const existingByName = new Map(existing.map((c) => [c.name, c]));
 
     for (const connector of DEFAULT_CONNECTORS) {
-      await ctx.db.insert("connectors", {
-        userId: ctx.userId,
-        name: connector.name,
-        description: connector.description,
-        icon: connector.icon,
-        provider: connector.provider,
-        connectionStatus: "disconnected",
-        syncStatus: "idle",
-        syncProgress: 0,
-        itemsSynced: 0,
-      });
+      const existingConnector = existingByName.get(connector.name);
+
+      if (existingConnector) {
+        // Update provider if missing (migration for existing connectors)
+        if (connector.provider && !existingConnector.provider) {
+          await ctx.db.patch(existingConnector._id, {
+            provider: connector.provider,
+          });
+        }
+      } else {
+        // Create new connector
+        await ctx.db.insert("connectors", {
+          userId: ctx.userId,
+          name: connector.name,
+          description: connector.description,
+          icon: connector.icon,
+          provider: connector.provider,
+          connectionStatus: "disconnected",
+          syncStatus: "idle",
+          syncProgress: 0,
+          itemsSynced: 0,
+        });
+      }
     }
   },
 });
