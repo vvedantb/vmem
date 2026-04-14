@@ -23,8 +23,6 @@ const SYSTEM_PROMPT = [
   "You are currently running locally in the user's browser with limited capabilities.",
   "You cannot search memories right now. Have a helpful general conversation.",
   "Be concise and helpful.",
-  "Always provide a clear response to the user after any internal reasoning.",
-  "Do not use <think> tags - respond directly and naturally.",
 ].join(" ");
 
 function makeLocalMessage(
@@ -266,6 +264,10 @@ export function useLocalChat(): LocalChatResult {
         // Final parse to get clean text/reasoning
         const finalParsed = parseThinkTags(rawAccumulated);
 
+        // If model only output thinking (no response text), use thinking as the response
+        const displayText = finalParsed.text || finalParsed.reasoning;
+        const displayReasoning = finalParsed.text ? finalParsed.reasoning : "";
+
         const streamDurationSec = (performance.now() - streamStartTime) / 1000;
 
         // Capture token usage from the completed stream
@@ -294,21 +296,16 @@ export function useLocalChat(): LocalChatResult {
         setDraftMessages((cur) =>
           cur.map((m) =>
             m.key === assistantMessage.key
-              ? updateMessage(
-                  m,
-                  finalParsed.text,
-                  finalParsed.reasoning,
-                  "success",
-                )
+              ? updateMessage(m, displayText, displayReasoning, "success")
               : m,
           ),
         );
 
-        if (threadId && finalParsed.text) {
+        if (threadId && displayText) {
           await saveLocalMessages({
             threadId,
             userText: text,
-            assistantText: finalParsed.text,
+            assistantText: displayText,
             usage: {
               promptTokens: inputTokens,
               completionTokens: finalOutputTokens,
