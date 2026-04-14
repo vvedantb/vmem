@@ -133,6 +133,15 @@ const schema = defineSchema({
     connectedAt: v.number(),
   }).index("by_user", ["userId"]),
 
+  chatMessageMemoryRefs: defineTable({
+    userId: v.id("users"),
+    threadId: v.string(),
+    bubbleKey: v.string(),
+    refs: v.array(v.object({ id: v.string(), title: v.string() })),
+  })
+    .index("by_user_thread", ["userId", "threadId"])
+    .index("by_user_bubble", ["userId", "bubbleKey"]),
+
   codebases: defineTable({
     userId: v.id("users"),
     githubConnectionId: v.id("githubConnections"),

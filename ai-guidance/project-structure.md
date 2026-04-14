@@ -1,0 +1,5 @@
+# vmem — project structure
+
+Monorepo: Next.js web app (`apps/web`), Expo mobile (`apps/mobile`), Convex backend (`packages/backend`), MCP server (`apps/mcp`), shared UI (`packages/ui`).
+
+**Chat + memories:** Local WebLLM chat (`/chat`, `useLocalChat`) and voice (`/voice`) call Convex `memoryApi.retrieveMemories` before each turn to inject Neo4j-ranked memories into the system prompt. Assistant message keys `${threadId}-${order}-${stepOrder}` align persisted memory reference badges via `chatMessageMemoryRefs` and `getThreadMessageMemoryRefs`. Shared prompt helpers live in `packages/backend/src/memoryRagPrompt.ts` (export `@vmem/backend/memoryRagPrompt`).
