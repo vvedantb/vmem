@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { Card, CardContent, Skeleton, Button } from "@vmem/ui";
 import { IconPlug, IconPlus } from "@tabler/icons-react";
@@ -13,9 +13,12 @@ export default function ConnectorsPage() {
   const connectors = useQuery(api.connectors.listMy);
   const seedDefaults = useMutation(api.connectors.seedDefaults);
   const [showBrowse, setShowBrowse] = useState(false);
+  const seededRef = useRef(false);
 
+  // seedDefaults is idempotent — creates missing connectors and updates providers
   useEffect(() => {
-    if (connectors && connectors.length === 0) {
+    if (connectors !== undefined && !seededRef.current) {
+      seededRef.current = true;
       seedDefaults();
     }
   }, [connectors, seedDefaults]);
