@@ -23,6 +23,8 @@ const SYSTEM_PROMPT = [
   "You are currently running locally in the user's browser with limited capabilities.",
   "You cannot search memories right now. Have a helpful general conversation.",
   "Be concise and helpful.",
+  "Always provide a clear response to the user after any internal reasoning.",
+  "Do not use <think> tags - respond directly and naturally.",
 ].join(" ");
 
 function makeLocalMessage(
