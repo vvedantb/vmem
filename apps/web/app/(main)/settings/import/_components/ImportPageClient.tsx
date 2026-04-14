@@ -4,9 +4,10 @@ import { useCallback, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
 import { Button } from "@vmem/ui";
-import { IconMessageChatbot, IconSparkles } from "@tabler/icons-react";
 import { toast } from "sonner";
 import PageContainer from "@/components/PageContainer";
+import ClaudeLogo from "./ClaudeLogo";
+import OpenAiLogo from "./OpenAiLogo";
 import UploadImportModal, { type ImportProvider } from "./UploadImportModal";
 import SelectImportRowsModal from "./SelectImportRowsModal";
 import { parseChatGptExportBuffer } from "../_utils/parseChatGptExport";
@@ -94,7 +95,7 @@ export default function ImportPageClient() {
         <div className="space-y-6">
           <div className="rounded-xl border border-border p-6">
             <div className="mb-4 flex items-center gap-2">
-              <IconMessageChatbot className="h-5 w-5 text-muted-foreground" />
+              <OpenAiLogo className="h-5 w-5 shrink-0 text-muted-foreground" />
               <h3 className="text-base font-medium text-foreground">ChatGPT</h3>
             </div>
             <p className="mb-5 text-sm text-muted-foreground">
@@ -108,7 +109,7 @@ export default function ImportPageClient() {
 
           <div className="rounded-xl border border-border p-6">
             <div className="mb-4 flex items-center gap-2">
-              <IconSparkles className="h-5 w-5 text-muted-foreground" />
+              <ClaudeLogo className="h-5 w-5 shrink-0 text-muted-foreground" />
               <h3 className="text-base font-medium text-foreground">Claude</h3>
             </div>
             <p className="mb-5 text-sm text-muted-foreground">
