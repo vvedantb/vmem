@@ -1,5 +1,9 @@
 # AI guidance changelog
 
+## 2026-04-14 (enrichment)
+
+- Removed OpenRouter/server-side `enrichMemory`; enrichment is local-only (web: `MemoryContext` + `runLocalFullEnrichment`; extension: Chrome AI or offscreen WebLLM). Convex exposes `listRecentMemoryTitlesForEnrichment` and `applyEnrichment` (optional `relatedMemoryIds`). Shared `buildFullEnrichmentPrompt` / `parseFullEnrichmentResponse` in `@vmem/backend/enrichmentPrompt`.
+
 ## 2026-04-14
 
 - Chat (web, voice, mobile): retrieve memories via Convex `retrieveMemories` before streaming; show memory title badges under assistant messages; persist refs in `chatMessageMemoryRefs` for reload/history.

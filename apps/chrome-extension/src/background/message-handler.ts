@@ -1,5 +1,10 @@
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { createMemory, retrieveMemories, applyEnrichment } from "./api-client";
+import {
+  createMemory,
+  retrieveMemories,
+  applyEnrichment,
+  listRecentMemoryTitlesForEnrichment,
+} from "./api-client";
 import { savePageFromTab } from "./context-menu";
 import { importBookmarks } from "./import-bookmarks";
 import { importHistory } from "./import-history";
@@ -42,14 +47,15 @@ async function enrichMemoryLocally(
     }
 
     console.log("[enrichment] Enriching memory:", memoryId);
-    const tags = await enrichMemory(title, content);
+    const existing = await listRecentMemoryTitlesForEnrichment(memoryId);
+    const result = await enrichMemory(title, content, existing);
 
-    if (tags && tags.length > 0) {
-      console.log("[enrichment] Generated tags:", tags);
-      await applyEnrichment(memoryId, tags);
-      console.log("[enrichment] Tags applied successfully");
+    if (result && result.tags.length > 0) {
+      console.log("[enrichment] Generated enrichment:", result);
+      await applyEnrichment(memoryId, result.tags, result.relatedMemoryIds);
+      console.log("[enrichment] Enrichment applied successfully");
     } else {
-      console.log("[enrichment] No tags generated");
+      console.log("[enrichment] No enrichment generated");
     }
   } catch (err) {
     // Don't fail the memory creation if enrichment fails
