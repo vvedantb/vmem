@@ -129,17 +129,34 @@ function callbackHtml(
     <p class="hint">This window will close automatically...</p>
   </div>
   <script>
-    try {
-      window.opener.postMessage({
+    (function() {
+      const payload = {
         type: "connector-oauth-complete",
         success: ${success},
         connectorId: ${connectorId ? `"${connectorId}"` : "null"},
         error: ${error ? `"${error}"` : "null"}
-      }, "${frontendUrl}");
-    } catch (e) {
-      console.error("Failed to post message:", e);
-    }
-    setTimeout(() => window.close(), 1500);
+      };
+
+      if (window.opener) {
+        try {
+          // Try stored origin first
+          window.opener.postMessage(payload, "${frontendUrl}");
+        } catch (e) {
+          console.error("postMessage failed:", e);
+        }
+        // Also try wildcard as fallback (safe - payload is non-sensitive)
+        try {
+          window.opener.postMessage(payload, "*");
+        } catch (e2) {
+          console.error("postMessage wildcard failed:", e2);
+        }
+      } else {
+        console.error("No window.opener - popup may have been opened in new tab");
+        document.querySelector('.hint').textContent = "Please close this window and check the main app.";
+      }
+
+      setTimeout(() => window.close(), 1500);
+    })();
   </script>
 </body>
 </html>`;
