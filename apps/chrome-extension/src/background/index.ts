@@ -4,7 +4,9 @@ import {
   startAutoSync,
   stopAutoSync,
   registerAlarmListener,
+  ensureSettingsMirrorAlarm,
 } from "./sync-scheduler";
+import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
 import { getStorage } from "@/lib/storage";
 import { initializeEnrichment } from "./enrichment-router";
 
@@ -15,12 +17,15 @@ registerAlarmListener();
 
 chrome.runtime.onInstalled.addListener(async () => {
   registerContextMenu();
+  await refreshUserSettingsMirrorFromConvex();
+  ensureSettingsMirrorAlarm();
   await initAutoSync();
   await initializeEnrichment();
 });
 
-// Service worker restarts clear listeners but alarms persist — re-register.
 chrome.runtime.onStartup.addListener(async () => {
+  await refreshUserSettingsMirrorFromConvex();
+  ensureSettingsMirrorAlarm();
   await initAutoSync();
   await initializeEnrichment();
 });
