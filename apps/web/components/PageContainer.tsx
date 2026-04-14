@@ -52,7 +52,7 @@ export default function PageContainer({
   } as const;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex min-h-0 w-full flex-1 flex-col">
       <div
         className={cn(
           "flex min-h-0 flex-1",
@@ -61,8 +61,8 @@ export default function PageContainer({
       >
         <div
           className={cn(
-            "flex min-h-0 w-full min-w-0 flex-col",
-            centeredMaxWidth ? "h-full max-w-3xl shrink-0" : "flex-1",
+            "flex min-h-0 w-full min-w-0 flex-1 flex-col",
+            centeredMaxWidth && "max-w-3xl shrink-0",
           )}
         >
           {hasHeader && (
