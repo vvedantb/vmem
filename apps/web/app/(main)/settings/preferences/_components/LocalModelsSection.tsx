@@ -1,12 +1,13 @@
 /**
- * Settings section for managing local AI models via WebLLM.
+ * Settings section for managing local AI models.
+ * Supports multiple runtimes: WebLLM (MLC) and MediaPipe.
  * Shows WebGPU support status and a list of available models to download/load.
  */
 "use client";
 
 import { useCallback } from "react";
 import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
-import { useWebLLM } from "@/components/contexts/WebLLMContext";
+import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
 import ModelCard from "./ModelCard";
 
 export default function LocalModelsSection() {
@@ -21,7 +22,7 @@ export default function LocalModelsSection() {
     loadingModelId,
     loadModel,
     unloadModel,
-  } = useWebLLM();
+  } = useLocalLLM();
 
   const handleLoad = useCallback(
     (modelId: string) => {
