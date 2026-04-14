@@ -103,9 +103,6 @@ function ModelSelector() {
                 {models.map((model) => (
                   <DropdownMenuRadioItem key={model.id} value={model.id}>
                     {model.name}
-                    <span className="ml-auto pl-3 text-[11px] text-muted-foreground">
-                      {model.size}
-                    </span>
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
