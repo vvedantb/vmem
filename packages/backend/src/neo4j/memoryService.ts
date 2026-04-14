@@ -341,6 +341,68 @@ export class MemoryService {
     });
   }
 
+  /**
+   * Upsert a memory from an external source (Google Drive, Notion, etc.)
+   * Uses MERGE on (userId, sourceType, sourceId) to avoid duplicates.
+   * Creates new memory if not exists, updates content if exists.
+   */
+  async upsertFromSource(params: {
+    userId: string;
+    title: string;
+    content: string;
+    sourceType: string;
+    sourceId: string;
+    sourceUrl: string;
+  }): Promise<{ id: string; created: boolean }> {
+    return this.withSession(async (session) => {
+      const now = new Date().toISOString();
+
+      const result = await session.run(
+        `MERGE (m:Memory {userId: $userId, sourceType: $sourceType, sourceId: $sourceId})
+         ON CREATE SET
+           m.id = $newId,
+           m.title = $title,
+           m.content = $content,
+           m.type = 'knowledge',
+           m.source = $sourceType,
+           m.confidence = 0.8,
+           m.status = 'active',
+           m.createdAt = $now,
+           m.updatedAt = $now,
+           m.sourceUrl = $sourceUrl,
+           m.sourceSyncedAt = $now
+         ON MATCH SET
+           m.title = $title,
+           m.content = $content,
+           m.updatedAt = $now,
+           m.sourceUrl = $sourceUrl,
+           m.sourceSyncedAt = $now
+         WITH m, m.createdAt = $now AS wasCreated
+         MERGE (s:Source {name: $sourceType})
+         MERGE (m)-[:FROM_SOURCE]->(s)
+         RETURN m.id AS id, wasCreated`,
+        {
+          userId: params.userId,
+          sourceType: params.sourceType,
+          sourceId: params.sourceId,
+          sourceUrl: params.sourceUrl,
+          title: params.title,
+          content: params.content,
+          newId: crypto.randomUUID(),
+          now,
+        },
+      );
+
+      const firstRecord = result.records[0];
+      if (!firstRecord) throw new Error("Failed to upsert memory from source");
+
+      return {
+        id: String(firstRecord.get("id")),
+        created: Boolean(firstRecord.get("wasCreated")),
+      };
+    });
+  }
+
   async getMemory(
     userId: string,
     memoryId: string,
