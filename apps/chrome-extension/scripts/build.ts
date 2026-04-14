@@ -5,6 +5,7 @@ import {
   createPopupConfig,
   createBackgroundConfig,
   createContentScriptConfig,
+  createOffscreenConfig,
 } from "../vite.config.js";
 
 const root = resolve(import.meta.dirname, "..");
@@ -53,5 +54,8 @@ await build(
     mode,
   ),
 );
+
+console.log("Building offscreen document (WebLLM)...");
+await build(createOffscreenConfig(mode));
 
 console.log("Build complete → dist/");

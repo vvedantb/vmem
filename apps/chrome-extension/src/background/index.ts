@@ -6,6 +6,7 @@ import {
   registerAlarmListener,
 } from "./sync-scheduler";
 import { getStorage } from "@/lib/storage";
+import { initializeEnrichment } from "./enrichment-router";
 
 // CRITICAL: Register alarm listener at top level so it's ready when
 // service worker wakes up from an alarm. Service workers can restart
@@ -15,11 +16,13 @@ registerAlarmListener();
 chrome.runtime.onInstalled.addListener(async () => {
   registerContextMenu();
   await initAutoSync();
+  await initializeEnrichment();
 });
 
 // Service worker restarts clear listeners but alarms persist — re-register.
 chrome.runtime.onStartup.addListener(async () => {
   await initAutoSync();
+  await initializeEnrichment();
 });
 
 // React to user toggling auto-sync in the popup.
