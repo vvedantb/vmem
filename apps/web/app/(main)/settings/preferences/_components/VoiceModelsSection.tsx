@@ -62,7 +62,7 @@ export default function VoiceModelsSection() {
   return (
     <div className="space-y-5">
       {/* Info banner */}
-      <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/50 p-3">
+      <div className="flex items-start gap-3">
         <IconInfoCircle className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
         <p className="text-xs text-muted-foreground">
           Voice models run entirely in your browser. Whisper handles speech

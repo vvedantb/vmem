@@ -16,7 +16,6 @@ import { unloadLocalModel } from "@/services/llm-context";
 import { useIsOnline } from "@/providers/NetworkProvider";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/badge";
 import {
   IconCircleCheck,
   IconCircle,
@@ -42,6 +41,7 @@ interface ModelCardProps {
   model: ModelInfo;
   modelState: ModelState;
   isActive: boolean;
+  isLast: boolean;
   onDownload: () => void;
   onDelete: () => void;
   onSelect: () => void;
@@ -51,6 +51,7 @@ function ModelCard({
   model,
   modelState,
   isActive,
+  isLast,
   onDownload,
   onDelete,
   onSelect,
@@ -63,8 +64,8 @@ function ModelCard({
   return (
     <Pressable
       onPress={isReady ? onSelect : undefined}
-      className={`rounded-xl border p-4 ${
-        isActive ? "border-primary bg-primary/5" : "border-border"
+      className={`py-4 ${isLast ? "" : "border-b border-border/50"} ${
+        isActive ? "bg-primary/5 -mx-1 px-1 rounded-md" : ""
       }`}
     >
       <View className="flex-row items-start justify-between">
@@ -73,9 +74,6 @@ function ModelCard({
             <Text className="text-base font-sans-semibold text-foreground">
               {model.name}
             </Text>
-            <Badge variant="secondary">
-              <Text className="text-xs">{model.size}</Text>
-            </Badge>
           </View>
           <Text className="text-sm text-muted-foreground">
             {model.description}
@@ -255,7 +253,7 @@ export default function SettingsScreen() {
 
       <ScrollView
         className="flex-1 px-6"
-        contentContainerStyle={{ gap: 12, paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
         <Text className="text-sm font-sans-medium text-muted-foreground uppercase tracking-wider">
           Offline AI Models
@@ -265,12 +263,13 @@ export default function SettingsScreen() {
           active.
         </Text>
 
-        {MODELS.map((model) => (
+        {MODELS.map((model, index) => (
           <ModelCard
             key={model.id}
             model={model}
             modelState={states[model.id] ?? { state: "not_downloaded" }}
             isActive={activeId === model.id}
+            isLast={index === MODELS.length - 1}
             onDownload={() => handleDownload(model.id)}
             onDelete={() => handleDelete(model.id)}
             onSelect={() => handleSelect(model.id)}
