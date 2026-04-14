@@ -263,3 +263,29 @@ export const getMemoryEvents = authAction({
     );
   },
 });
+
+/**
+ * Apply client-side enrichment (tags) to a memory.
+ * Used by Chrome extension when local LLM enrichment is enabled.
+ */
+export const applyEnrichment = authAction({
+  args: {
+    memoryId: v.string(),
+    tags: v.array(v.string()),
+  },
+  handler: async (ctx, args): Promise<{ applied: boolean }> => {
+    const clerkId: string | null = await ctx.runQuery(
+      internal.auth.getClerkIdInternal,
+      { userId: ctx.userId },
+    );
+    if (!clerkId) throw new Error("User not found");
+    return await ctx.runAction(
+      internal.neo4jActions.enrichment.applyEnrichmentInternal,
+      {
+        clerkId,
+        memoryId: args.memoryId,
+        tags: args.tags,
+      },
+    );
+  },
+});

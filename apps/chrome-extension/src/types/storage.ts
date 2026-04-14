@@ -4,6 +4,7 @@ export interface ExtensionStorage {
   lastBookmarkSync: number; // epoch ms, 0 = never synced
   lastHistorySync: number; // epoch ms, 0 = never synced
   autoSyncEnabled: boolean;
+  localEnrichmentEnabled: boolean; // Use local LLM for tag generation
 }
 
 export const STORAGE_DEFAULTS: ExtensionStorage = {
@@ -12,4 +13,5 @@ export const STORAGE_DEFAULTS: ExtensionStorage = {
   lastBookmarkSync: 0,
   lastHistorySync: 0,
   autoSyncEnabled: true,
+  localEnrichmentEnabled: true, // Default to local enrichment
 };

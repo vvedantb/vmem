@@ -38,7 +38,7 @@ async function callOpenRouter(
   existingMemories: Array<{ id: string; title: string }>,
 ): Promise<{ tags: string[]; relatedMemoryIds: string[] } | null> {
   const apiKey = process.env.OPENROUTER_API_KEY ?? "";
-  const model = process.env.ENRICHMENT_MODEL ?? "google/gemini-2.0-flash";
+  const model = process.env.ENRICHMENT_MODEL ?? "openai/gpt-5-nano";
 
   if (!apiKey) {
     console.warn("[enrichment] OPENROUTER_API_KEY not set, skipping");
@@ -84,7 +84,10 @@ Respond in JSON only:
     );
 
     if (!response.ok) {
-      console.error(`[enrichment] OpenRouter returned ${response.status}`);
+      const errorBody = await response.text();
+      console.error(
+        `[enrichment] OpenRouter returned ${response.status}: ${errorBody}`,
+      );
       return null;
     }
 
@@ -108,6 +111,61 @@ Respond in JSON only:
   }
 }
 
+/**
+ * Apply enrichment from client-side local LLM.
+ * Used by Chrome extension when local enrichment is enabled.
+ */
+export const applyEnrichmentInternal = internalAction({
+  args: {
+    clerkId: v.string(),
+    memoryId: v.string(),
+    tags: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const service = new MemoryService(getDriver());
+
+    // Sanitize tags
+    const sanitizedTags = args.tags
+      .map(sanitizeTag)
+      .filter((t) => t.length > 0)
+      .slice(0, 5);
+
+    if (sanitizedTags.length === 0) {
+      console.log("[enrichment] No valid tags to apply");
+      return { applied: false };
+    }
+
+    // Apply enrichment (tags only, no related memories for client enrichment)
+    await service.applyEnrichment(
+      args.memoryId,
+      args.clerkId,
+      sanitizedTags,
+      [], // No related memories from client
+    );
+
+    // Push event
+    await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+      clerkId: args.clerkId,
+      eventType: "memory_updated",
+      memoryId: args.memoryId,
+      payload: JSON.stringify({
+        tags: sanitizedTags,
+        source: "client-enrichment",
+      }),
+    });
+
+    console.log(
+      `[enrichment] Client enrichment applied: ${args.memoryId} with ${sanitizedTags.length} tags`,
+    );
+
+    return { applied: true };
+  },
+});
+
+/**
+ * Server-side enrichment via OpenRouter.
+ * Scheduled automatically after memory creation.
+ */
 export const enrichMemory = internalAction({
   args: {
     memoryId: v.string(),
