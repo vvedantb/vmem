@@ -5,8 +5,45 @@ export interface Memory {
   title: string;
   content: string;
   type: MemoryType;
+  source: string;
   tags: string[];
   createdAt: string;
+}
+
+const MEMORY_SOURCE_LABELS: Record<string, string> = {
+  web: "Web",
+  "browser-extension": "Extension",
+  google_drive: "Google Drive",
+  notion: "Notion",
+  mcp: "MCP",
+  "client-enrichment": "Enrichment",
+};
+
+export function memoryMatchesTagFilters(
+  memory: Memory,
+  selectedTags: string[],
+): boolean {
+  if (selectedTags.length === 0) {
+    return true;
+  }
+  return selectedTags.every((tag) =>
+    memory.tags.some((mt) => mt.toLowerCase() === tag.toLowerCase()),
+  );
+}
+
+export function formatMemorySourceLabel(source: string): string {
+  const mapped = MEMORY_SOURCE_LABELS[source];
+  if (mapped !== undefined) {
+    return mapped;
+  }
+  const normalized = source.replace(/[-_]+/g, " ").trim();
+  if (normalized.length === 0) {
+    return source;
+  }
+  return normalized
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
 export interface TagStats {
