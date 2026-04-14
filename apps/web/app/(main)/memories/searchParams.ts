@@ -7,7 +7,7 @@ const memoriesSearchParams = {
   /** When set, graph shows 2-hop local subgraph around this memory ID */
   focus: parseAsString,
   tags: parseAsArrayOf(parseAsString, ",").withDefault([]),
-  source: parseAsString,
+  sources: parseAsArrayOf(parseAsString, ",").withDefault([]),
 };
 
 export { memoriesSearchParams };
