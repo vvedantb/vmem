@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-query";
 import type { Memory } from "@/lib/memories";
 import { api } from "@vmem/backend";
+import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
+import { runLocalFullEnrichment } from "@/lib/local-enrichment";
 
 interface CreateMemoryInput {
   title: string;
@@ -72,6 +74,41 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const createMemoryAction = useAction(api.memoryApi.createMemory);
   const updateMemoryAction = useAction(api.memoryApi.updateMemory);
   const deleteMemoryAction = useAction(api.memoryApi.deleteMemory);
+  const listRecentForEnrichment = useAction(
+    api.memoryApi.listRecentMemoryTitlesForEnrichment,
+  );
+  const applyEnrichmentAction = useAction(api.memoryApi.applyEnrichment);
+  const { model, engineState } = useLocalLLM();
+
+  const enrichAfterCreate = useCallback(
+    async (memoryId: string, title: string, content: string) => {
+      if (engineState !== "ready" || model === null) {
+        return;
+      }
+      try {
+        const existing = await listRecentForEnrichment({
+          excludeMemoryId: memoryId,
+        });
+        const parsed = await runLocalFullEnrichment(
+          model,
+          title,
+          content,
+          existing,
+        );
+        if (parsed === null) {
+          return;
+        }
+        await applyEnrichmentAction({
+          memoryId,
+          tags: parsed.tags,
+          relatedMemoryIds: parsed.relatedMemoryIds,
+        });
+      } catch (err) {
+        console.error("[enrichment] web local enrichment failed:", err);
+      }
+    },
+    [model, engineState, listRecentForEnrichment, applyEnrichmentAction],
+  );
 
   const memoriesQuery = useTanstackQuery({
     queryKey: ["memories"],
@@ -103,7 +140,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateMemoryInput): Promise<Memory> => {
-      const apiMemory = await createMemoryAction({
+      const created = await createMemoryAction({
         title: input.title.trim(),
         content: input.content.trim(),
         type: "knowledge",
@@ -111,7 +148,22 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         tags: input.tags ?? [],
         confidence: 1.0,
       });
-      return apiToMemory(apiMemory as ApiMemory);
+      const memory = apiToMemory({
+        id: created.id,
+        userId: created.userId,
+        title: created.title,
+        content: created.content,
+        type: created.type,
+        source: created.source,
+        confidence: created.confidence,
+        status: created.status,
+        tags: created.tags,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+        expiresAt: created.expiresAt,
+      });
+      void enrichAfterCreate(memory.id, memory.title, memory.content);
+      return memory;
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: ["memories"] });

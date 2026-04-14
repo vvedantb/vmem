@@ -100,17 +100,6 @@ export const mcpCreateMemory = internalAction({
       payload: JSON.stringify({ title: result.title }),
     });
 
-    await ctx.scheduler.runAfter(
-      0,
-      internal.neo4jActions.enrichment.enrichMemory,
-      {
-        memoryId: result.id,
-        userId: clerkId,
-        title: result.title,
-        content: result.content,
-      },
-    );
-
     return result;
   },
 });
