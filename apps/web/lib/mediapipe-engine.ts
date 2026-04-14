@@ -10,12 +10,11 @@ export interface MediaPipeProgressReport {
   progress: number;
 }
 
-// Model URLs on HuggingFace (GPU-optimized .task files from litert-community)
+// Model URLs on HuggingFace (web-optimized .task files from litert-community)
+// Note: Gemma 4 is unstable for web (memory issues), using Gemma 3 instead
 const MODEL_URLS: Record<string, string> = {
-  "gemma-4-e2b-it":
-    "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-web.task",
-  "gemma-4-e4b-it":
-    "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it-web.task",
+  "gemma-3-1b-it":
+    "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4-web.task",
 };
 
 // Singleton state
