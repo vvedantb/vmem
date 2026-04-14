@@ -98,3 +98,24 @@ export async function retrieveMemories(
     limit,
   });
 }
+
+/**
+ * Apply client-side enrichment (tags) to a memory.
+ * Used when local LLM enrichment is enabled.
+ */
+export async function applyEnrichment(
+  memoryId: string,
+  tags: string[],
+): Promise<{ applied: boolean }> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  return await client.action(api.memoryApi.applyEnrichment, {
+    memoryId,
+    tags,
+  });
+}

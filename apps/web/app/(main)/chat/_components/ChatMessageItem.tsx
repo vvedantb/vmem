@@ -44,32 +44,7 @@ import {
   IconMicrophone,
   IconUser,
 } from "@tabler/icons-react";
-import Image from "next/image";
 import type { MessageUsageSummary } from "@/hooks/useLocalChat";
-
-function AssistantAvatar() {
-  return (
-    <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-soft animate-pulse-slow dark:bg-black dark:shadow-soft">
-      <Image
-        unoptimized
-        width={18}
-        height={18}
-        alt="vmem icon"
-        src="/icon-dark.svg"
-        className="block dark:hidden"
-      />
-      <Image
-        unoptimized
-        width={18}
-        height={18}
-        src="/icon-light.svg"
-        alt="vmem icon"
-        className="hidden dark:block"
-      />
-      <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/10 ring-inset dark:ring-white/15" />
-    </div>
-  );
-}
 
 function UserAvatar() {
   return (
@@ -163,7 +138,6 @@ export default function ChatMessageItem({
 
   return (
     <Message from={message.role}>
-      {isAssistant && <AssistantAvatar />}
       <div
         className={`flex w-fit max-w-4xl flex-col ${
           isAssistant ? "items-start" : "items-end"

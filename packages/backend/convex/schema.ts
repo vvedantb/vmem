@@ -46,6 +46,13 @@ const schema = defineSchema({
     name: v.string(),
     description: v.string(),
     icon: v.string(),
+    provider: v.optional(
+      v.union(
+        v.literal("google_drive"),
+        v.literal("notion"),
+        v.literal("gmail"),
+      ),
+    ),
     connectionStatus: v.union(
       v.literal("connected"),
       v.literal("disconnected"),
@@ -60,6 +67,15 @@ const schema = defineSchema({
     itemsSynced: v.number(),
     errorMessage: v.optional(v.string()),
   }).index("by_user", ["userId"]),
+
+  connectorTokens: defineTable({
+    connectorId: v.id("connectors"),
+    accessToken: v.string(),
+    refreshToken: v.string(),
+    expiresAt: v.number(),
+    tokenType: v.string(),
+    scope: v.string(),
+  }).index("by_connector", ["connectorId"]),
 
   userSettings: defineTable({
     userId: v.id("users"),
@@ -104,6 +120,9 @@ const schema = defineSchema({
     userId: v.id("users"),
     returnUrl: v.string(),
     expiresAt: v.number(),
+    // Connector OAuth fields (optional to not break existing GitHub flow)
+    connectorId: v.optional(v.id("connectors")),
+    provider: v.optional(v.string()),
   }).index("by_state", ["state"]),
 
   githubConnections: defineTable({

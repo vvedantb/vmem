@@ -1,9 +1,15 @@
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { createMemory, retrieveMemories } from "./api-client";
+import { createMemory, retrieveMemories, applyEnrichment } from "./api-client";
 import { savePageFromTab } from "./context-menu";
 import { importBookmarks } from "./import-bookmarks";
 import { importHistory } from "./import-history";
 import { cancelImport } from "./import-cancel";
+import {
+  enrichMemory,
+  getEnrichmentStatus,
+  loadWebLLMModel,
+} from "./enrichment-router";
+import { getStorage } from "@/lib/storage";
 
 export function registerMessageHandler(): void {
   chrome.runtime.onMessage.addListener(
@@ -16,6 +22,39 @@ export function registerMessageHandler(): void {
       return true;
     },
   );
+}
+
+/**
+ * Enrich a memory with local LLM-generated tags.
+ * Called after memory creation if local enrichment is enabled.
+ * Non-blocking - doesn't fail the memory creation if enrichment fails.
+ */
+async function enrichMemoryLocally(
+  memoryId: string,
+  title: string,
+  content: string,
+): Promise<void> {
+  try {
+    const { localEnrichmentEnabled } = await getStorage();
+    if (!localEnrichmentEnabled) {
+      console.log("[enrichment] Local enrichment disabled, skipping");
+      return;
+    }
+
+    console.log("[enrichment] Enriching memory:", memoryId);
+    const tags = await enrichMemory(title, content);
+
+    if (tags && tags.length > 0) {
+      console.log("[enrichment] Generated tags:", tags);
+      await applyEnrichment(memoryId, tags);
+      console.log("[enrichment] Tags applied successfully");
+    } else {
+      console.log("[enrichment] No tags generated");
+    }
+  } catch (err) {
+    // Don't fail the memory creation if enrichment fails
+    console.error("[enrichment] Failed to enrich memory:", err);
+  }
 }
 
 async function handleMessage(
@@ -48,6 +87,12 @@ async function handleMessage(
             existingMemory: result.existingMemory,
           };
         }
+        // Enrich in background (non-blocking)
+        void enrichMemoryLocally(
+          result.memory.id,
+          message.title,
+          message.content,
+        );
         return {
           type: "SAVE_RESULT",
           success: true,
@@ -88,6 +133,8 @@ async function handleMessage(
             existingMemory: result.existingMemory,
           };
         }
+        // Enrich in background (non-blocking)
+        void enrichMemoryLocally(result.memory.id, title, message.selectedText);
         return {
           type: "SAVE_RESULT",
           success: true,
@@ -133,6 +180,37 @@ async function handleMessage(
     case "CANCEL_IMPORT": {
       cancelImport();
       return { type: "CANCEL_RESULT", success: true };
+    }
+
+    case "GET_ENRICHMENT_STATUS": {
+      const status = await getEnrichmentStatus();
+      return {
+        type: "ENRICHMENT_STATUS",
+        method: status.method,
+        modelLoaded: status.modelLoaded,
+        modelProgress: status.modelProgress,
+      };
+    }
+
+    case "LOAD_ENRICHMENT_MODEL": {
+      try {
+        const success = await loadWebLLMModel((progress, text) => {
+          // Send progress updates to popup
+          chrome.runtime
+            .sendMessage({
+              type: "MODEL_LOAD_PROGRESS",
+              progress,
+              text,
+            })
+            .catch(() => {
+              // Popup might be closed, ignore
+            });
+        });
+        return { type: "MODEL_LOAD_RESULT", success };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "Unknown error";
+        return { type: "MODEL_LOAD_RESULT", success: false, error };
+      }
     }
   }
 }
