@@ -85,6 +85,8 @@ const schema = defineSchema({
     language: v.optional(v.string()),
     memoryAutoTag: v.optional(v.boolean()),
     notificationsEnabled: v.optional(v.boolean()),
+    extensionAutoSyncEnabled: v.optional(v.boolean()),
+    extensionSelectionPopupEnabled: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
 
   apiRequestLogs: defineTable({

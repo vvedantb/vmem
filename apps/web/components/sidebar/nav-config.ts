@@ -15,6 +15,7 @@ import {
   IconAdjustments,
   IconShieldLock,
   IconTerminal2,
+  IconPuzzle,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -52,6 +53,11 @@ export const settingsNavItems: SettingsNavItem[] = [
     href: "/settings/preferences",
     label: "Preferences",
     icon: IconAdjustments,
+  },
+  {
+    href: "/settings/extension",
+    label: "Extension",
+    icon: IconPuzzle,
   },
   {
     href: "/settings/data-controls",
