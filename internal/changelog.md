@@ -1,5 +1,15 @@
 # Changelog
 
+## Chrome Extension: Local LLM Enrichment (Chrome AI + WebLLM) — 2026-04-14
+
+- Implemented hybrid enrichment strategy: tries Chrome Built-in AI (Gemini Nano) first (Chrome 138+, zero download), falls back to WebLLM (Qwen 3 0.6B, ~400MB), skips enrichment if both unavailable (no server fallback)
+- Created offscreen document architecture: Manifest V3 offscreen HTML + Service Worker messaging enables WebGPU inference in Chrome extensions
+- Added background enrichment pipeline: non-blocking async tag generation after memory creation (doesn't fail memory save if enrichment fails)
+- Integrated client-side enrichment with Convex backend: new `applyEnrichment` action applies tags to Neo4j graph with source: "client-enrichment" event tracking
+- Built Settings UI controls: toggle for local enrichment, model status indicator (Chrome AI / Qwen 0.6B / Download), progress bar during model download, model load triggers via `LOAD_ENRICHMENT_MODEL` message
+- Added enrichment message types: `GET_ENRICHMENT_STATUS`, `LOAD_ENRICHMENT_MODEL`, `MODEL_LOAD_PROGRESS` for async communication between popup, background, and offscreen
+- Reason: eliminates OpenRouter API dependency and 400 errors during history sync; local inference provides privacy, reliability, and zero per-request cost; Chrome AI path requires no setup for modern Chrome; WebLLM fallback ensures compatibility with older Chrome versions
+
 ## Chrome Extension: Improved Popup UI — 2026-04-14
 
 - Fixed active tab styling: replaced glassmorphic effect (border + shadow) with flat accent background to match web version
