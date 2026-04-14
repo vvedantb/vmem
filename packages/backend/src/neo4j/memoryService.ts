@@ -1239,7 +1239,8 @@ CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
          WHERE coalesce(focus.status, 'active') IN ['active', 'pinned']
          OPTIONAL MATCH (focus)-[:RELATES_TO*1..2]-(neighbor:Memory {userId: $userId})
          WHERE coalesce(neighbor.status, 'active') IN ['active', 'pinned']
-         WITH [focus] + collect(DISTINCT neighbor) AS allNodes
+         WITH focus, collect(DISTINCT neighbor) AS neighbors
+         WITH [focus] + neighbors AS allNodes
          UNWIND allNodes AS m
          WITH DISTINCT m
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
