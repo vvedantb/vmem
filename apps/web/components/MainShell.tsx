@@ -27,7 +27,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
           onToggleCollapse={toggleSidebar}
         />
         <main
-          className={`relative z-10 flex h-full pt-14 md:h-screen md:p-2 md:px-2 md:pb-2 ${
+          className={`relative z-10 flex min-h-0 h-full pt-14 md:h-screen md:p-2 md:px-2 md:pb-2 ${
             isSidebarCollapsed ? "md:ml-24" : "md:ml-80"
           } md:transition-[margin-left] md:duration-[280ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]`}
         >

@@ -52,16 +52,16 @@ export default function PageContainer({
   } as const;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col">
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
       <div
         className={cn(
-          "flex min-h-0 flex-1",
+          "flex min-h-0 min-w-0 flex-1 overflow-hidden",
           centeredMaxWidth ? "flex-row justify-center" : "flex-col",
         )}
       >
         <div
           className={cn(
-            "flex min-h-0 w-full min-w-0 flex-1 flex-col",
+            "flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden",
             centeredMaxWidth && "max-w-3xl shrink-0",
           )}
         >
@@ -121,23 +121,23 @@ export default function PageContainer({
               )}
             </div>
           )}
-          <motion.div
+          <div
             className={cn(
               "min-h-0 flex-1 flex flex-col",
               noScroll
                 ? "overflow-hidden"
                 : "overflow-y-auto pr-1 scrollbar-thin",
             )}
-            initial={{ opacity: 0, y: motionDistance.pageY }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={contentTransition}
           >
-            <div
+            <motion.div
               className={cn(
                 noScroll
                   ? "flex min-h-0 flex-1 flex-col"
-                  : "flex flex-1 flex-col space-y-8",
+                  : "flex flex-col space-y-8",
               )}
+              initial={{ opacity: 0, y: motionDistance.pageY }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={contentTransition}
             >
               <div className="flex min-h-0 w-full flex-col">
                 {showInPageHeading && !mergeTitleIntoHeader ? (
@@ -147,8 +147,8 @@ export default function PageContainer({
                 ) : null}
                 {children}
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
       </div>
     </div>
