@@ -17,7 +17,7 @@ import { useUIMessages } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
 import { Persona, type PersonaState } from "@vmem/ui/ai";
-import { useWebLLM } from "@/components/contexts/WebLLMContext";
+import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
 import {
   useVoice,
   type VoicePhase,
@@ -57,7 +57,7 @@ const SYSTEM_PROMPT = [
 /* ------------------------------------------------------------------ */
 
 export default function VoiceClient() {
-  const { model, engineState, loadModel, activeModelId } = useWebLLM();
+  const { model, engineState, loadModel, activeModelId } = useLocalLLM();
   const voice = useVoice();
 
   /* -- Thread setup ------------------------------------------------- */

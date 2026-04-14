@@ -1,6 +1,6 @@
 /**
  * Individual model card for the Local AI Models section.
- * Shows model info, status, and load/unload actions with progress.
+ * Shows model info, status, runtime badge, and load/unload actions with progress.
  */
 "use client";
 
@@ -12,11 +12,11 @@ import {
   IconCpu,
 } from "@tabler/icons-react";
 import { Button, Progress, Badge } from "@vmem/ui";
-import type { WebLLMModelInfo } from "@/lib/webllm-models";
-import type { EngineState } from "@/components/contexts/WebLLMContext";
+import type { LocalModelInfo } from "@/lib/local-models";
+import type { EngineState } from "@/components/contexts/LocalLLMContext";
 
 interface ModelCardProps {
-  model: WebLLMModelInfo;
+  model: LocalModelInfo;
   isLoaded: boolean;
   isActive: boolean;
   engineState: EngineState;
@@ -60,6 +60,17 @@ export default function ModelCard({
                 Default
               </Badge>
             )}
+            {/* Runtime badge */}
+            <Badge
+              variant="outline"
+              className={`text-xs ${
+                model.runtime === "mediapipe"
+                  ? "border-green-500/50 text-green-600 dark:text-green-400"
+                  : "border-blue-500/50 text-blue-600 dark:text-blue-400"
+              }`}
+            >
+              {model.runtime === "mediapipe" ? "MediaPipe" : "MLC"}
+            </Badge>
           </div>
           <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
             <span>{model.size}</span>

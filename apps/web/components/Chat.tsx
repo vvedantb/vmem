@@ -33,8 +33,8 @@ import Image from "next/image";
 import Link from "next/link";
 import ChatMessageItem from "@/app/(main)/chat/_components/ChatMessageItem";
 import { useLocalChat } from "@/hooks/useLocalChat";
-import { useWebLLM } from "@/components/contexts/WebLLMContext";
-import { findModel, groupByProvider } from "@/lib/webllm-models";
+import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
+import { findModel, groupByProvider } from "@/lib/local-models";
 
 /** Fallback context length when model info isn't available. */
 const DEFAULT_CONTEXT_LENGTH = 4096;
@@ -62,7 +62,7 @@ const providerGroups = groupByProvider();
 
 /** Dropdown to select and switch between available local models. */
 function ModelSelector() {
-  const { loadedModelId, engineState, loadModel, isSupported } = useWebLLM();
+  const { loadedModelId, engineState, loadModel, isSupported } = useLocalLLM();
 
   if (!isSupported) return null;
 
@@ -125,7 +125,7 @@ export default function Chat() {
     isStreaming,
     usageByMessageKey,
   } = useLocalChat();
-  const { engineState, loadedModelId } = useWebLLM();
+  const { engineState, loadedModelId } = useLocalLLM();
 
   const promptStatus = isStreaming ? "streaming" : "ready";
 
