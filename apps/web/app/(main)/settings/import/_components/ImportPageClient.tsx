@@ -86,21 +86,25 @@ export default function ImportPageClient() {
     }
     setImporting(false);
     closeSelect();
-    toast.success(`Imported ${String(ok)} conversation(s) as memories.`);
+    toast.success(
+      ok === 1
+        ? "Saved 1 conversation to your library."
+        : `Saved ${String(ok)} conversations to your library.`,
+    );
   };
 
   return (
     <>
       <PageContainer title="Import">
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-border p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <OpenAiLogo className="h-5 w-5 shrink-0 text-muted-foreground" />
+            <div className="mb-4 flex items-center gap-3">
+              <OpenAiLogo className="h-6 w-6 shrink-0 text-[#10A37F] dark:text-[#1EC286]" />
               <h3 className="text-base font-medium text-foreground">ChatGPT</h3>
             </div>
             <p className="mb-5 text-sm text-muted-foreground">
-              Import an official ChatGPT data export. Each chosen conversation
-              becomes a memory in Neo4j (episodic), tagged for retrieval.
+              Upload the file you get from ChatGPT&apos;s export. Choose which
+              chats to keep here so they are easy to find later.
             </p>
             <Button type="button" onClick={() => openUpload("chatgpt")}>
               Import
@@ -108,13 +112,14 @@ export default function ImportPageClient() {
           </div>
 
           <div className="rounded-xl border border-border p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <ClaudeLogo className="h-5 w-5 shrink-0 text-muted-foreground" />
+            <div className="mb-4 flex items-center gap-3">
+              <ClaudeLogo className="h-6 w-6 shrink-0 text-[#D97757] dark:text-[#EA9A7A]" />
               <h3 className="text-base font-medium text-foreground">Claude</h3>
             </div>
             <p className="mb-5 text-sm text-muted-foreground">
-              Import an official Claude privacy export. Parsed chats are stored
-              as memories, not as app chat threads.
+              Upload your Claude export from Settings → Privacy. Choose which
+              conversations to keep; they are saved with your other material
+              here for later.
             </p>
             <Button type="button" onClick={() => openUpload("claude")}>
               Import
