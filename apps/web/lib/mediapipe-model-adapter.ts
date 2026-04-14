@@ -135,6 +135,59 @@ export function createMediaPipeLanguageModel(
   };
 }
 
+// MediaPipe models have limited context (2048 tokens total incl. output)
+// Reserve tokens for output, use rest for input
+const MAX_INPUT_TOKENS = 1500;
+const CHARS_PER_TOKEN = 4;
+
+/**
+ * Estimate token count from text (rough approximation).
+ */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / CHARS_PER_TOKEN);
+}
+
+/**
+ * Truncate messages to fit within MediaPipe's limited context window.
+ * Keeps system prompt + last user message, then adds history from recent to old.
+ */
+function truncateMessages(
+  systemPrompt: string,
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+): Array<{ role: "user" | "assistant"; content: string }> {
+  if (messages.length === 0) return messages;
+
+  // System prompt overhead (with Gemma formatting)
+  const systemTokens = systemPrompt
+    ? estimateTokens(systemPrompt) + 50 // ~50 tokens for formatting
+    : 0;
+
+  // Last message is required
+  const lastMessage = messages[messages.length - 1];
+  if (!lastMessage) return messages;
+  const lastMessageTokens = estimateTokens(lastMessage.content) + 20;
+
+  let budgetLeft = MAX_INPUT_TOKENS - systemTokens - lastMessageTokens;
+  if (budgetLeft <= 0) {
+    // Only room for system + last message
+    return [lastMessage];
+  }
+
+  // Add previous messages from recent to old until budget exhausted
+  const truncated: Array<{ role: "user" | "assistant"; content: string }> = [];
+  for (let i = messages.length - 2; i >= 0; i--) {
+    const msg = messages[i];
+    if (!msg) continue;
+    const tokens = estimateTokens(msg.content) + 20;
+    if (tokens > budgetLeft) break;
+    truncated.unshift(msg);
+    budgetLeft -= tokens;
+  }
+
+  truncated.push(lastMessage);
+  return truncated;
+}
+
 /**
  * Build a Gemma-formatted prompt from AI SDK message format.
  */
@@ -176,7 +229,10 @@ function buildPromptFromMessages(options: LanguageModelV3CallOptions): string {
     }
   }
 
-  return formatGemmaPrompt(systemPrompt, messages);
+  // Truncate history to fit within MediaPipe's limited context
+  const truncatedMessages = truncateMessages(systemPrompt, messages);
+
+  return formatGemmaPrompt(systemPrompt, truncatedMessages);
 }
 
 /**

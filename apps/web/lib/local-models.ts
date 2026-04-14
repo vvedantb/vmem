@@ -103,22 +103,23 @@ export const LOCAL_MODELS: LocalModelInfo[] = [
   },
 
   // ── Gemma (MediaPipe) ───────────────────────────────────────────
+  // Note: MediaPipe web models have limited context (2048 total tokens incl. output)
   {
     id: "gemma-4-e2b-it",
     provider: "Gemma",
     name: "Gemma 4 E2B",
-    size: "~500MB",
-    vramMB: 2000,
-    contextLength: 32768,
+    size: "~2GB",
+    vramMB: 3000,
+    contextLength: 2048,
     runtime: "mediapipe",
   },
   {
     id: "gemma-4-e4b-it",
     provider: "Gemma",
     name: "Gemma 4 E4B",
-    size: "~1.5GB",
-    vramMB: 4000,
-    contextLength: 32768,
+    size: "~3GB",
+    vramMB: 5000,
+    contextLength: 2048,
     runtime: "mediapipe",
   },
 ];
