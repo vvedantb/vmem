@@ -85,6 +85,34 @@ export function createContentScriptConfig(
   };
 }
 
+export function createOffscreenConfig(mode: string): UserConfig {
+  return {
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(mode),
+    },
+    resolve: sharedResolve,
+    root: resolve(root, "src/offscreen"),
+    base: "./",
+    build: {
+      outDir: resolve(root, "dist/offscreen"),
+      emptyOutDir: false,
+      sourcemap: mode === "development",
+      rollupOptions: {
+        input: { index: resolve(root, "src/offscreen/index.html") },
+        output: {
+          entryFileNames: "[name].js",
+          chunkFileNames: "chunks/[name].js",
+          assetFileNames: "[name].[ext]",
+        },
+      },
+    },
+    publicDir: false,
+    worker: {
+      format: "es",
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss()],
   resolve: sharedResolve,

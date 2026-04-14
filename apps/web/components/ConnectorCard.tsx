@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { Card, CardContent, Button, Badge, Progress } from "@vmem/ui";
 import { toast } from "sonner";
 import {
@@ -16,6 +16,7 @@ import {
   IconRefresh,
   IconAlertCircle,
   IconClock,
+  IconClockHour4,
 } from "@tabler/icons-react";
 import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
@@ -55,38 +56,34 @@ function formatRelativeTime(timestamp: number | undefined): string {
 }
 
 export default function ConnectorCard({ connector }: ConnectorCardProps) {
-  const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showOAuthModal, setShowOAuthModal] = useState(false);
 
-  const connectMutation = useMutation(api.connectors.connect);
-  const disconnectMutation = useMutation(api.connectors.disconnect);
-  const syncMutation = useMutation(api.connectors.sync);
+  const disconnectAction = useAction(api.connectorOAuth.disconnect);
+  const startSyncAction = useAction(api.connectorSync.startSync);
 
   const Icon = iconMap[connector.icon] || IconBrandGoogleDrive;
   const isConnected = connector.connectionStatus === "connected";
   const isSyncing = connector.syncStatus === "syncing";
+  const hasProvider = !!connector.provider;
 
   const handleConnect = () => {
+    if (!hasProvider) {
+      toast.info(`${connector.name} support coming soon!`);
+      return;
+    }
     setShowOAuthModal(true);
   };
 
-  const handleOAuthComplete = async () => {
-    setIsConnecting(true);
-    try {
-      await connectMutation({ id: connector._id });
-      toast.success(`Successfully connected to ${connector.name}`);
-    } catch {
-      toast.error("Failed to connect");
-    } finally {
-      setIsConnecting(false);
-    }
+  const handleOAuthComplete = () => {
+    // Connection is handled by the OAuth callback — Convex live query updates UI
+    toast.success(`Successfully connected to ${connector.name}`);
   };
 
   const handleDisconnect = async () => {
     setIsDisconnecting(true);
     try {
-      await disconnectMutation({ id: connector._id });
+      await disconnectAction({ connectorId: connector._id });
       toast(`Disconnected from ${connector.name}`);
     } catch {
       toast.error("Failed to disconnect");
@@ -97,10 +94,10 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
 
   const handleSync = async () => {
     try {
-      await syncMutation({ id: connector._id });
+      await startSyncAction({ connectorId: connector._id });
       toast(`Syncing ${connector.name}...`);
-    } catch {
-      toast.error("Failed to start sync");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to start sync");
     }
   };
 
@@ -121,6 +118,12 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                   <Badge className="bg-primary/5 dark:bg-card/10 text-muted-foreground gap-1">
                     <IconCheck size={12} stroke={2} />
                     Connected
+                  </Badge>
+                )}
+                {!hasProvider && !isConnected && (
+                  <Badge className="bg-muted text-muted-foreground gap-1">
+                    <IconClockHour4 size={12} stroke={2} />
+                    Coming Soon
                   </Badge>
                 )}
                 {isSyncing && (
@@ -210,25 +213,29 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
               <Button
                 size="sm"
                 onClick={handleConnect}
-                disabled={isConnecting}
-                className="bg-primary text-primary-foreground font-medium"
+                disabled={!hasProvider}
+                className={
+                  hasProvider
+                    ? "bg-primary text-primary-foreground font-medium"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                }
               >
-                {isConnecting && (
-                  <IconLoader2 size={14} className="animate-spin" />
-                )}
-                {isConnecting ? "Connecting..." : "Connect"}
+                {hasProvider ? "Connect" : "Coming Soon"}
               </Button>
             )}
           </div>
         </CardContent>
       </Card>
 
-      <OAuthModal
-        isOpen={showOAuthModal}
-        onClose={() => setShowOAuthModal(false)}
-        connectorName={connector.name}
-        onComplete={handleOAuthComplete}
-      />
+      {hasProvider && (
+        <OAuthModal
+          isOpen={showOAuthModal}
+          onClose={() => setShowOAuthModal(false)}
+          connectorId={connector._id}
+          connectorName={connector.name}
+          onComplete={handleOAuthComplete}
+        />
+      )}
     </>
   );
 }

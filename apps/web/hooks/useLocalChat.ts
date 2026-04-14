@@ -80,6 +80,49 @@ function getHighestOrder(messages: UIMessage[]): number {
   );
 }
 
+/**
+ * Parse <think>...</think> tags from raw text.
+ * Returns { reasoning, text, isThinking } where:
+ * - reasoning: content inside <think> tags (accumulated)
+ * - text: content outside <think> tags
+ * - isThinking: true if currently inside an unclosed <think> tag
+ */
+function parseThinkTags(raw: string): {
+  reasoning: string;
+  text: string;
+  isThinking: boolean;
+} {
+  let reasoning = "";
+  let text = "";
+  let isThinking = false;
+  let cursor = 0;
+
+  while (cursor < raw.length) {
+    if (!isThinking) {
+      const thinkStart = raw.indexOf("<think>", cursor);
+      if (thinkStart === -1) {
+        text += raw.slice(cursor);
+        break;
+      }
+      text += raw.slice(cursor, thinkStart);
+      cursor = thinkStart + 7; // length of "<think>"
+      isThinking = true;
+    } else {
+      const thinkEnd = raw.indexOf("</think>", cursor);
+      if (thinkEnd === -1) {
+        // Still inside thinking, accumulate but don't add to reasoning yet
+        reasoning += raw.slice(cursor);
+        break;
+      }
+      reasoning += raw.slice(cursor, thinkEnd);
+      cursor = thinkEnd + 8; // length of "</think>"
+      isThinking = false;
+    }
+  }
+
+  return { reasoning: reasoning.trim(), text: text.trim(), isThinking };
+}
+
 interface LocalChatResult {
   messages: UIMessage[];
   sendMessage: (text: string) => Promise<void>;
@@ -187,33 +230,43 @@ export function useLocalChat(): LocalChatResult {
           messages: [...conversationHistory, { role: "user", content: text }],
         });
 
-        let accumulatedText = "";
-        let accumulatedReasoning = "";
+        let rawAccumulated = "";
         let outputTokenCount = 0;
         const streamStartTime = performance.now();
 
         for await (const part of result.fullStream) {
           if (part.type === "reasoning-delta") {
-            accumulatedReasoning += part.text;
+            // Native reasoning support (e.g., from providers that support it directly)
+            rawAccumulated += part.text;
+            const parsed = parseThinkTags(rawAccumulated);
             setDraftMessages((cur) =>
               cur.map((m) =>
                 m.key === assistantMessage.key
-                  ? updateMessage(m, accumulatedText, accumulatedReasoning)
+                  ? updateMessage(m, parsed.text, parsed.reasoning)
                   : m,
               ),
             );
           } else if (part.type === "text-delta") {
-            accumulatedText += part.text;
+            rawAccumulated += part.text;
             outputTokenCount++;
+            // Parse <think> tags from raw text (Qwen 3, DeepSeek, etc.)
+            const parsed = parseThinkTags(rawAccumulated);
             setDraftMessages((cur) =>
               cur.map((m) =>
                 m.key === assistantMessage.key
-                  ? updateMessage(m, accumulatedText, accumulatedReasoning)
+                  ? updateMessage(m, parsed.text, parsed.reasoning)
                   : m,
               ),
             );
           }
         }
+
+        // Final parse to get clean text/reasoning
+        const finalParsed = parseThinkTags(rawAccumulated);
+
+        // If model only output thinking (no response text), use thinking as the response
+        const displayText = finalParsed.text || finalParsed.reasoning;
+        const displayReasoning = finalParsed.text ? finalParsed.reasoning : "";
 
         const streamDurationSec = (performance.now() - streamStartTime) / 1000;
 
@@ -243,21 +296,16 @@ export function useLocalChat(): LocalChatResult {
         setDraftMessages((cur) =>
           cur.map((m) =>
             m.key === assistantMessage.key
-              ? updateMessage(
-                  m,
-                  accumulatedText,
-                  accumulatedReasoning,
-                  "success",
-                )
+              ? updateMessage(m, displayText, displayReasoning, "success")
               : m,
           ),
         );
 
-        if (threadId && accumulatedText) {
+        if (threadId && displayText) {
           await saveLocalMessages({
             threadId,
             userText: text,
-            assistantText: accumulatedText,
+            assistantText: displayText,
             usage: {
               promptTokens: inputTokens,
               completionTokens: finalOutputTokens,
