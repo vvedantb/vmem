@@ -17,7 +17,7 @@ function Conversation({ className, ...props }: ConversationProps) {
     <StickToBottom
       className={cn("relative flex-1 overflow-hidden", className)}
       resize="smooth"
-      initial="smooth"
+      initial="instant"
       {...props}
     />
   );
