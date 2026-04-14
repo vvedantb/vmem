@@ -14,6 +14,7 @@ import MemoryListItem from "./_components/MemoryListItem";
 import {
   searchMemories,
   memoryMatchesTagFilters,
+  memoryMatchesSourceFilters,
   formatMemorySourceLabel,
   type Memory,
   type SearchResult,
@@ -64,6 +65,20 @@ export default function MemorySearch({
     router.replace(`${pathname}?${next.toString()}`);
   }, [searchParams, pathname, router, params.tags.length]);
 
+  useEffect(() => {
+    const legacy = searchParams.get("source");
+    if (!legacy?.trim()) {
+      return;
+    }
+    if (params.sources.length > 0) {
+      return;
+    }
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("source");
+    next.set("sources", legacy.trim());
+    router.replace(`${pathname}?${next.toString()}`);
+  }, [searchParams, pathname, router, params.sources.length]);
+
   const distinctSources = useMemo(() => {
     const set = new Set<string>();
     for (const m of allMemories) {
@@ -72,15 +87,19 @@ export default function MemorySearch({
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [allMemories]);
 
+  const memoriesAfterTags = useMemo(
+    () => allMemories.filter((m) => memoryMatchesTagFilters(m, params.tags)),
+    [allMemories, params.tags],
+  );
+
   const filteredMemories = useMemo(() => {
-    let list = allMemories.filter((m) =>
-      memoryMatchesTagFilters(m, params.tags),
-    );
-    if (params.source !== null) {
-      list = list.filter((m) => m.source === params.source);
+    if (params.sources.length === 0) {
+      return memoriesAfterTags;
     }
-    return list;
-  }, [allMemories, params.tags, params.source]);
+    return memoriesAfterTags.filter((m) =>
+      memoryMatchesSourceFilters(m, params.sources),
+    );
+  }, [memoriesAfterTags, params.sources]);
 
   const normalizedQuery = searchQuery.trim();
   const searchResults = useMemo(() => {
@@ -100,14 +119,16 @@ export default function MemorySearch({
     if (params.tags.length > 0) {
       hints.push(params.tags.join(" · "));
     }
-    if (params.source !== null) {
-      hints.push(formatMemorySourceLabel(params.source));
+    if (params.sources.length > 0) {
+      hints.push(
+        params.sources.map((s) => formatMemorySourceLabel(s)).join(" · "),
+      );
     }
     if (hints.length === 0) {
       return "Search memories semantically...";
     }
     return `Search (${hints.join(" — ")})...`;
-  }, [params.tags, params.source]);
+  }, [params.tags, params.sources]);
 
   const selectedMemory = useMemo(() => {
     if (!selectedMemoryId) {
@@ -198,8 +219,9 @@ export default function MemorySearch({
             />
             <MemorySourceFilter
               sources={distinctSources}
-              selectedSource={params.source}
-              onSourceChange={(source) => setParams({ source })}
+              baseMemories={memoriesAfterTags}
+              selectedSources={params.sources}
+              onSourcesChange={(sources) => setParams({ sources })}
             />
             <div className="relative flex-1 min-w-[200px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2">

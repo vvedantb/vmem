@@ -31,6 +31,16 @@ export function memoryMatchesTagFilters(
   );
 }
 
+export function memoryMatchesSourceFilters(
+  memory: Memory,
+  selectedSources: string[],
+): boolean {
+  if (selectedSources.length === 0) {
+    return true;
+  }
+  return selectedSources.includes(memory.source);
+}
+
 export function formatMemorySourceLabel(source: string): string {
   const mapped = MEMORY_SOURCE_LABELS[source];
   if (mapped !== undefined) {
