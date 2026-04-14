@@ -114,7 +114,11 @@ export async function importBookmarks(): Promise<ImportResult> {
       await delay(100);
     }
 
-    await setStorage({ lastBookmarkSync: Date.now() });
+    // Only update lastBookmarkSync if we actually imported something,
+    // so failed syncs don't prevent future retries
+    if (imported > 0) {
+      await setStorage({ lastBookmarkSync: Date.now() });
+    }
     return { imported, locked: false };
   } finally {
     releaseBookmarkLock();

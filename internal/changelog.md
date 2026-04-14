@@ -1,5 +1,21 @@
 # Changelog
 
+## Chrome Extension: Improved Popup UI — 2026-04-14
+
+- Fixed active tab styling: replaced glassmorphic effect (border + shadow) with flat accent background to match web version
+- Enhanced Save page tab with Raindrop-style page preview: displays current page favicon, title, URL (truncated), and timestamp ("Today at HH:MM AM/PM") before save button
+- Refactored QuickSave component: added `useEffect` to fetch page info on mount, added helper functions (`formatTimestamp`, `truncateUrl`) for consistent date/URL formatting
+- Reason: improves visual hierarchy and consistency between extension and web app, gives users context of what they're saving before confirming
+
+## Chrome Extension: Migrated to ConvexHttpClient — 2026-04-14
+
+- Fixed broken auto-sync: background service worker now uses `ConvexHttpClient` with Clerk JWT auth instead of custom HTTP routes
+- Refactored `api-client.ts`: replaced raw `fetch()` calls to `/api/mcp/memories/*` (which expected MCP JWT) with `client.action(api.memoryApi.*)` calls that use the same Clerk auth as the popup
+- Auth flow: `TokenSync` persists Clerk JWT to storage → background reads it → `ConvexHttpClient.setAuth(token)` → calls authenticated Convex actions
+- Removed dead code: deleted `testConnection()` function, `TEST_CONNECTION` message type, manual API URL settings
+- Aligned extension types with Convex: changed `MemoryNode.type` and `status` from union types to `string` to match Convex return shapes
+- Reason: MCP HTTP routes were designed for MCP clients (custom JWT), not browser extensions (Clerk JWT). Using ConvexHttpClient unifies auth with popup.
+
 ## Graph API: Cap Arrays for Convex 8192 Element Limit — 2026-04-13
 
 - Fixed graph endpoint crashing with "Array length is too long (10415 > maximum length 8192)" — Convex enforces a hard 8192 element limit on any array in a return value (applies to all Convex values, not just documents)

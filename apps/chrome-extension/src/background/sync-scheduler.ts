@@ -10,7 +10,22 @@ let bookmarkListener:
   | ((id: string, bookmark: chrome.bookmarks.BookmarkTreeNode) => void)
   | null = null;
 
-let alarmListener: ((alarm: chrome.alarms.Alarm) => void) | null = null;
+let alarmListenerRegistered = false;
+
+/**
+ * Register alarm listener at service worker top level.
+ * Must be called synchronously when SW starts so it's ready
+ * when an alarm wakes the worker. Idempotent.
+ */
+export function registerAlarmListener(): void {
+  if (alarmListenerRegistered) return;
+  alarmListenerRegistered = true;
+
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name !== HISTORY_ALARM_NAME) return;
+    void handleHistoryAlarm();
+  });
+}
 
 /**
  * Start auto-sync: real-time bookmark listener + periodic history alarm.
@@ -26,17 +41,10 @@ export function startAutoSync(): void {
   }
 
   // History: alarm-driven, every 30 min
+  // Alarm listener is registered separately at SW top level
   chrome.alarms.create(HISTORY_ALARM_NAME, {
     periodInMinutes: HISTORY_SYNC_INTERVAL_MINUTES,
   });
-
-  if (!alarmListener) {
-    alarmListener = (alarm) => {
-      if (alarm.name !== HISTORY_ALARM_NAME) return;
-      void handleHistoryAlarm();
-    };
-    chrome.alarms.onAlarm.addListener(alarmListener);
-  }
 }
 
 /** Stop auto-sync: remove bookmark listener + clear history alarm. */
@@ -46,11 +54,8 @@ export function stopAutoSync(): void {
     bookmarkListener = null;
   }
 
-  if (alarmListener) {
-    chrome.alarms.onAlarm.removeListener(alarmListener);
-    alarmListener = null;
-  }
-
+  // Clear the alarm but keep listener registered — alarm listener
+  // checks autoSyncEnabled before acting, so it's safe to leave.
   void chrome.alarms.clear(HISTORY_ALARM_NAME);
 }
 

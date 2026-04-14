@@ -18,7 +18,8 @@ export function TokenSync() {
     let active = true;
 
     async function sync() {
-      const token = await getToken();
+      // Get token with "convex" template so Convex can verify it
+      const token = await getToken({ template: "convex" });
       if (active) {
         setStorage({ authToken: token ?? "" });
       }

@@ -1,9 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@vmem/ui";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { updateMemory } from "@/background/api-client";
 
+interface PageInfo {
+  title: string;
+  url: string;
+  favicon: string;
+}
+
+function formatTimestamp(): string {
+  const now = new Date();
+  const timeStr = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(now);
+  return `Today at ${timeStr}`;
+}
+
+function truncateUrl(url: string, maxLength = 40): string {
+  try {
+    const parsed = new URL(url);
+    const display = parsed.host + parsed.pathname;
+    if (display.length <= maxLength) return display;
+    return display.slice(0, maxLength - 1) + "…";
+  } catch {
+    return url.slice(0, maxLength);
+  }
+}
+
 export function QuickSave() {
+  const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
@@ -14,6 +42,19 @@ export function QuickSave() {
     title: string;
     content: string;
   } | null>(null);
+
+  useEffect(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tab = tabs[0];
+      if (tab?.url) {
+        setPageInfo({
+          title: tab.title ?? "Untitled",
+          url: tab.url,
+          favicon: tab.favIconUrl ?? "",
+        });
+      }
+    });
+  }, []);
 
   function handleSave() {
     setSaving(true);
@@ -94,18 +135,38 @@ export function QuickSave() {
   }
 
   return (
-    <div className="space-y-5">
-      <p className="text-sm text-muted-foreground">
-        Save the current page as a memory in vmem.
-      </p>
+    <div className="space-y-4">
+      {/* Page preview card */}
+      {pageInfo && (
+        <div className="glass-panel-subtle rounded-lg p-3 space-y-2">
+          <div className="flex items-start gap-2.5">
+            {pageInfo.favicon ? (
+              <img
+                src={pageInfo.favicon}
+                alt=""
+                className="w-4 h-4 mt-0.5 rounded-sm shrink-0"
+              />
+            ) : (
+              <div className="w-4 h-4 mt-0.5 rounded-sm bg-muted shrink-0" />
+            )}
+            <span className="text-sm font-medium leading-tight line-clamp-2">
+              {pageInfo.title}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground truncate">
+            {truncateUrl(pageInfo.url)}
+          </p>
+          <p className="text-xs text-muted-foreground">{formatTimestamp()}</p>
+        </div>
+      )}
 
       <Button
         variant="outline"
         className="w-full"
         onClick={handleSave}
-        disabled={saving}
+        disabled={saving || !pageInfo}
       >
-        {saving ? "Saving..." : "Save Current Page"}
+        {saving ? "Saving..." : "Save to vmem"}
       </Button>
 
       {pendingUpdate && (
