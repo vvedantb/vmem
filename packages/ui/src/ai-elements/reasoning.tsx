@@ -13,7 +13,7 @@ import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
-import { IconChevronDown } from "@tabler/icons-react";
+import { IconChevronDown, IconSparkles, IconCheck } from "@tabler/icons-react";
 import { cn } from "../utils/cn";
 import {
   Collapsible,
@@ -132,23 +132,19 @@ function ReasoningTrigger({
   return (
     <CollapsibleTrigger
       className={cn(
-        "flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1",
+        "flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1",
         className,
       )}
       {...props}
     >
-      <span className="flex size-6 items-center justify-center rounded-full bg-muted">
-        <img
-          src="/icon-dark.svg"
-          alt="vmem"
-          className="size-3.5 block dark:hidden"
+      {isStreaming ? (
+        <IconSparkles
+          className="size-3.5 animate-pulse text-primary"
+          stroke={1.5}
         />
-        <img
-          src="/icon-light.svg"
-          alt="vmem"
-          className="size-3.5 hidden dark:block"
-        />
-      </span>
+      ) : (
+        <IconCheck className="size-3.5 text-success" stroke={1.5} />
+      )}
       {children ??
         (isStreaming ? (
           <Shimmer duration={1.5}>{thinkingText}</Shimmer>
