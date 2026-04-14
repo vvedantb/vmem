@@ -31,6 +31,11 @@ export async function setupDatabase(driver: Driver): Promise<void> {
       `CREATE FULLTEXT INDEX memory_content IF NOT EXISTS
        FOR (m:Memory) ON EACH [m.title, m.content]`,
     );
+    // Index for connector sync upserts — lookup by source
+    await session.run(
+      `CREATE INDEX memory_source_id IF NOT EXISTS
+       FOR (m:Memory) ON (m.userId, m.sourceType, m.sourceId)`,
+    );
     console.log("neo4j indexes and constraints ready");
   } finally {
     await session.close();

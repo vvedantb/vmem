@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
   IconBrandNotion,
   IconBrandSlack,
   IconBrandGithub,
+  IconClockHour4,
 } from "@tabler/icons-react";
 import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "@/components/OAuthModal";
@@ -47,40 +48,35 @@ export default function BrowseConnectorsModal({
   onClose,
   connectors,
 }: BrowseConnectorsModalProps) {
-  const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [oauthConnector, setOauthConnector] =
     useState<Doc<"connectors"> | null>(null);
 
-  const connectMutation = useMutation(api.connectors.connect);
-  const disconnectMutation = useMutation(api.connectors.disconnect);
+  const disconnectAction = useAction(api.connectorOAuth.disconnect);
 
   const handleConnect = (connector: Doc<"connectors">) => {
+    if (!connector.provider) {
+      toast.info(`${connector.name} support coming soon!`);
+      return;
+    }
     setOauthConnector(connector);
   };
 
-  const handleOAuthComplete = async () => {
+  const handleOAuthComplete = () => {
     if (!oauthConnector) return;
-    setConnectingId(oauthConnector._id);
-    try {
-      await connectMutation({ id: oauthConnector._id });
-      toast.success(`Connected to ${oauthConnector.name}`);
-    } catch {
-      toast.error("Failed to connect");
-    } finally {
-      setConnectingId(null);
-      setOauthConnector(null);
-    }
+    toast.success(`Connected to ${oauthConnector.name}`);
+    setOauthConnector(null);
   };
 
   const handleDisconnect = async (connector: Doc<"connectors">) => {
-    setConnectingId(connector._id);
+    setDisconnectingId(connector._id);
     try {
-      await disconnectMutation({ id: connector._id });
+      await disconnectAction({ connectorId: connector._id });
       toast(`Disconnected from ${connector.name}`);
     } catch {
       toast.error("Failed to disconnect");
     } finally {
-      setConnectingId(null);
+      setDisconnectingId(null);
     }
   };
 
@@ -97,7 +93,8 @@ export default function BrowseConnectorsModal({
             {connectors.map((connector) => {
               const Icon = iconMap[connector.icon] || IconBrandGoogleDrive;
               const isConnected = connector.connectionStatus === "connected";
-              const isLoading = connectingId === connector._id;
+              const isLoading = disconnectingId === connector._id;
+              const hasProvider = !!connector.provider;
 
               return (
                 <div
@@ -116,6 +113,12 @@ export default function BrowseConnectorsModal({
                         <Badge className="bg-primary/5 dark:bg-card/10 text-muted-foreground gap-1 text-xs">
                           <IconCheck size={10} stroke={2} />
                           Connected
+                        </Badge>
+                      )}
+                      {!hasProvider && !isConnected && (
+                        <Badge className="bg-muted text-muted-foreground gap-1 text-xs">
+                          <IconClockHour4 size={10} stroke={2} />
+                          Soon
                         </Badge>
                       )}
                     </div>
@@ -142,14 +145,14 @@ export default function BrowseConnectorsModal({
                       <Button
                         size="sm"
                         onClick={() => handleConnect(connector)}
-                        disabled={isLoading}
-                        className="bg-primary text-primary-foreground"
+                        disabled={!hasProvider}
+                        className={
+                          hasProvider
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground cursor-not-allowed"
+                        }
                       >
-                        {isLoading ? (
-                          <IconLoader2 size={14} className="animate-spin" />
-                        ) : (
-                          "Connect"
-                        )}
+                        {hasProvider ? "Connect" : "Soon"}
                       </Button>
                     )}
                   </div>
@@ -164,6 +167,7 @@ export default function BrowseConnectorsModal({
         <OAuthModal
           isOpen={!!oauthConnector}
           onClose={() => setOauthConnector(null)}
+          connectorId={oauthConnector._id}
           connectorName={oauthConnector.name}
           onComplete={handleOAuthComplete}
         />
