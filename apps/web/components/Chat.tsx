@@ -124,6 +124,7 @@ export default function Chat() {
     sendMessage,
     isStreaming,
     usageByMessageKey,
+    memoryRefsByMessageKey,
   } = useLocalChat();
   const { engineState, loadedModelId } = useLocalLLM();
 
@@ -244,6 +245,7 @@ export default function Chat() {
               key={message.key}
               message={message}
               usage={usageByMessageKey[message.key]}
+              memoryRefs={memoryRefsByMessageKey[message.key]}
               maxContextTokens={maxContextTokens}
             />
           ))}

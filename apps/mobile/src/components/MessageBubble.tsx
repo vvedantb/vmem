@@ -13,6 +13,7 @@ import { useColorScheme } from "nativewind";
 import { Text } from "@/components/ui/text";
 import { Badge } from "@/components/ui/badge";
 import { THEME_COLORS } from "@/lib/theme";
+import type { ChatMemoryRef } from "@/hooks/useChatProvider";
 
 function StreamingDots() {
   return (
@@ -158,9 +159,13 @@ function ReasoningBlock({ text, isStreaming }: ReasoningBlockProps) {
 
 interface MessageBubbleProps {
   message: UIMessage;
+  memoryRefs?: ChatMemoryRef[];
 }
 
-export default function MessageBubble({ message }: MessageBubbleProps) {
+export default function MessageBubble({
+  message,
+  memoryRefs,
+}: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const isAssistant = message.role === "assistant";
   const isStreaming = message.status === "streaming";
@@ -215,6 +220,23 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
             {displayText}
           </Text>
         )}
+
+        {!isStreaming &&
+          displayText &&
+          memoryRefs !== undefined &&
+          memoryRefs.length > 0 && (
+            <View className="mt-2 flex-row flex-wrap gap-1.5">
+              {memoryRefs.map((ref) => (
+                <Badge
+                  key={ref.id}
+                  variant="secondary"
+                  className="max-w-[200px]"
+                >
+                  <Text className="truncate text-xs">{ref.title}</Text>
+                </Badge>
+              ))}
+            </View>
+          )}
 
         {!isStreaming && displayText && (
           <TouchableOpacity

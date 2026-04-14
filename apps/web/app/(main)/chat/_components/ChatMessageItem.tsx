@@ -44,7 +44,8 @@ import {
   IconMicrophone,
   IconUser,
 } from "@tabler/icons-react";
-import type { MessageUsageSummary } from "@/hooks/useLocalChat";
+import Link from "next/link";
+import type { ChatMemoryRef, MessageUsageSummary } from "@/hooks/useLocalChat";
 
 function UserAvatar() {
   return (
@@ -103,6 +104,7 @@ const DEFAULT_MAX_CONTEXT_TOKENS = 4096;
 interface ChatMessageItemProps {
   message: UIMessage;
   usage?: MessageUsageSummary;
+  memoryRefs?: ChatMemoryRef[];
   /** Model's context window size in tokens. Defaults to 4096. */
   maxContextTokens?: number;
 }
@@ -110,6 +112,7 @@ interface ChatMessageItemProps {
 export default function ChatMessageItem({
   message,
   usage,
+  memoryRefs,
   maxContextTokens = DEFAULT_MAX_CONTEXT_TOKENS,
 }: ChatMessageItemProps) {
   const [copied, setCopied] = useState(false);
@@ -209,6 +212,20 @@ export default function ChatMessageItem({
             <span className="whitespace-pre-wrap">{displayText}</span>
           )}
         </MessageContent>
+
+        {isAssistant && memoryRefs !== undefined && memoryRefs.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {memoryRefs.map((ref) => (
+              <Link
+                key={ref.id}
+                href={`/memories?view=graph&focus=${encodeURIComponent(ref.id)}`}
+                className="inline-flex max-w-[220px] items-center rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <span className="truncate">{ref.title}</span>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {isAssistant && sourceParts.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1">

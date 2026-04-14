@@ -1,9 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { useUser } from "@clerk/clerk-expo";
 import { useUIMessages } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
+import {
+  VMEM_LOCAL_CHAT_CORE,
+  buildMemoryRagAddition,
+  composeSystemPrompt,
+} from "@vmem/backend/memoryRagPrompt";
 import { streamText } from "ai";
 import { useIsOnline } from "@/providers/NetworkProvider";
 import { getLocalModel } from "@/services/llm-context";
@@ -12,28 +17,49 @@ import {
   getActiveModelIdOrDefault,
 } from "@/services/model-manager";
 
-type ChatMode = "ready" | "no_model";
+type ChatMode = "ready" | "no_model" | "offline" | "offline_no_model";
+
+export interface ChatMemoryRef {
+  id: string;
+  title: string;
+}
+
+const RETRIEVE_LIMIT = 8;
 
 function normalizeChatInput(text: string | undefined): string {
   return typeof text === "string" ? text.trim() : "";
 }
 
+function getHighestOrder(messages: UIMessage[]): number {
+  return messages.reduce(
+    (highestOrder, message) =>
+      message.order > highestOrder ? message.order : highestOrder,
+    -1,
+  );
+}
+
 function makeLocalMessage(
+  threadId: string | null,
   role: "user" | "assistant",
   text: string,
   status: "success" | "streaming",
   order: number,
 ): UIMessage {
   const id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const stepOrder = 0;
+  const key =
+    threadId !== null
+      ? `${threadId}-${String(order)}-${String(stepOrder)}`
+      : id;
   return {
     id,
-    key: id,
+    key,
     role,
     text,
     status,
     parts: text ? [{ type: "text", text }] : [],
     order,
-    stepOrder: 0,
+    stepOrder,
     _creationTime: Date.now(),
   };
 }
@@ -51,13 +77,6 @@ function updateMessageText(
   };
 }
 
-const SYSTEM_PROMPT = [
-  "You are vmem, a memory assistant that helps users store, search, and recall their personal memories.",
-  "You are currently running locally on the user's device with limited capabilities.",
-  "You cannot search memories right now. Have a helpful general conversation.",
-  "Be concise and helpful.",
-].join(" ");
-
 export function useChatProvider() {
   const { user, isLoaded } = useUser();
   const isOnline = useIsOnline();
@@ -66,12 +85,15 @@ export function useChatProvider() {
   const [localStreaming, setLocalStreaming] = useState(false);
   const [localReady, setLocalReady] = useState(false);
   const orderRef = useRef(0);
+  const [draftMemoryRefsByKey, setDraftMemoryRefsByKey] = useState<
+    Record<string, ChatMemoryRef[]>
+  >({});
 
   const [threadId, setThreadId] = useState<string | null>(null);
   const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
+  const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
 
-  // Load or create thread when online and authenticated
   useEffect(() => {
     if (!isOnline || !isLoaded || !user) {
       setThreadId(null);
@@ -85,7 +107,12 @@ export function useChatProvider() {
       });
   }, [isOnline, isLoaded, user, getOrCreateThread]);
 
-  // Check local model readiness
+  useEffect(() => {
+    setLocalMessages([]);
+    setDraftMemoryRefsByKey({});
+    orderRef.current = 0;
+  }, [threadId]);
+
   useEffect(() => {
     getActiveModelIdOrDefault()
       .then((modelId) => checkModelStatus(modelId))
@@ -101,28 +128,57 @@ export function useChatProvider() {
       });
   }, []);
 
-  // Show persisted messages from Convex when thread is available
   const { results: persistedMessages } = useUIMessages(
     api.chat.listThreadMessages,
     isOnline && threadId ? { threadId } : "skip",
     { initialNumItems: 50, stream: true },
   );
 
+  const persistedMemoryRefsByKey: Record<string, ChatMemoryRef[]> =
+    useQuery(
+      api.chat.getThreadMessageMemoryRefs,
+      isOnline && threadId ? { threadId } : "skip",
+    ) ?? {};
+
+  useEffect(() => {
+    if (localMessages.length > 0 || localStreaming) {
+      return;
+    }
+
+    orderRef.current = Math.max(
+      orderRef.current,
+      getHighestOrder(persistedMessages) + 1,
+    );
+  }, [localMessages.length, localStreaming, persistedMessages]);
+
+  const priorForOrdering: UIMessage[] =
+    isOnline && persistedMessages.length > 0
+      ? persistedMessages.concat(localMessages)
+      : localMessages;
+
   const sendLocalMessage = useCallback(
     async (text: string) => {
       if (localStreaming) return;
 
+      const startingOrder = Math.max(
+        orderRef.current,
+        getHighestOrder(priorForOrdering) + 1,
+      );
+      orderRef.current = startingOrder + 2;
+
       const userMsg = makeLocalMessage(
+        threadId,
         "user",
         text,
         "success",
-        orderRef.current++,
+        startingOrder,
       );
       const assistantMsg = makeLocalMessage(
+        threadId,
         "assistant",
         "",
         "streaming",
-        orderRef.current++,
+        startingOrder + 1,
       );
 
       setLocalMessages((prev) => [...prev, userMsg, assistantMsg]);
@@ -146,7 +202,36 @@ export function useChatProvider() {
           return;
         }
 
-        const conversationHistory = localMessages.flatMap((message) => {
+        let memoryRefs: ChatMemoryRef[] = [];
+        let systemPrompt = VMEM_LOCAL_CHAT_CORE;
+
+        if (isOnline) {
+          try {
+            const retrieved = await retrieveMemories({
+              query: text,
+              limit: RETRIEVE_LIMIT,
+            });
+            memoryRefs = retrieved.map((m) => ({ id: m.id, title: m.title }));
+            const addition = buildMemoryRagAddition(
+              retrieved.map((m) => ({
+                id: m.id,
+                title: m.title,
+                content: m.content,
+                trace: { reason: m.trace.reason },
+              })),
+            );
+            systemPrompt = composeSystemPrompt(VMEM_LOCAL_CHAT_CORE, addition);
+          } catch (retrieveError) {
+            console.error("retrieveMemories failed:", retrieveError);
+          }
+        }
+
+        setDraftMemoryRefsByKey((prev) => ({
+          ...prev,
+          [assistantMsg.key]: memoryRefs,
+        }));
+
+        const conversationHistory = priorForOrdering.flatMap((message) => {
           if (message.status !== "success") {
             return [];
           }
@@ -160,7 +245,7 @@ export function useChatProvider() {
 
         const { textStream } = streamText({
           model,
-          system: SYSTEM_PROMPT,
+          system: systemPrompt,
           messages: [...conversationHistory, { role: "user", content: text }],
         });
 
@@ -183,13 +268,22 @@ export function useChatProvider() {
           ),
         );
 
-        // Persist to Convex when online
-        if (threadId && accumulated) {
+        if (threadId && accumulated && isOnline) {
+          const hasRefs = memoryRefs.length > 0;
           await saveLocalMessages({
             threadId,
             userText: text,
             assistantText: accumulated,
+            ...(hasRefs
+              ? {
+                  memoryRefs,
+                  assistantOrder: assistantMsg.order,
+                  assistantStepOrder: assistantMsg.stepOrder,
+                }
+              : {}),
           });
+          setLocalMessages([]);
+          setDraftMemoryRefsByKey({});
         }
       } catch (e) {
         const errorText =
@@ -205,7 +299,14 @@ export function useChatProvider() {
         setLocalStreaming(false);
       }
     },
-    [localStreaming, localMessages, threadId, saveLocalMessages],
+    [
+      isOnline,
+      localStreaming,
+      priorForOrdering,
+      retrieveMemories,
+      saveLocalMessages,
+      threadId,
+    ],
   );
 
   const sendMessage = useCallback(
@@ -220,11 +321,16 @@ export function useChatProvider() {
     [mode, sendLocalMessage],
   );
 
-  // Combine persisted + local draft messages
   const messages =
     isOnline && persistedMessages.length > 0
       ? persistedMessages.concat(localMessages)
       : localMessages;
+
+  const memoryRefsByMessageKey: Record<string, ChatMemoryRef[]> = {
+    ...persistedMemoryRefsByKey,
+    ...draftMemoryRefsByKey,
+  };
+
   const isStreaming = localStreaming;
   const isReady = mode === "ready" && localReady;
 
@@ -234,5 +340,6 @@ export function useChatProvider() {
     isStreaming,
     isReady,
     mode,
+    memoryRefsByMessageKey,
   };
 }

@@ -11,6 +11,8 @@ import { vStreamArgs, vUsage } from "@convex-dev/agent/validators";
 import { components } from "./_generated/api";
 import { authMutation, authQuery } from "./auth";
 
+const memoryRefValidator = v.object({ id: v.string(), title: v.string() });
+
 export const getOrCreateThread = authMutation({
   args: {},
   handler: async (ctx) => {
@@ -48,10 +50,22 @@ export const saveLocalMessages = authMutation({
     assistantText: v.string(),
     source: v.optional(v.string()),
     usage: v.optional(vUsage),
+    memoryRefs: v.optional(v.array(memoryRefValidator)),
+    assistantOrder: v.optional(v.number()),
+    assistantStepOrder: v.optional(v.number()),
   },
   handler: async (
     ctx,
-    { threadId, userText, assistantText, source, usage },
+    {
+      threadId,
+      userText,
+      assistantText,
+      source,
+      usage,
+      memoryRefs,
+      assistantOrder,
+      assistantStepOrder,
+    },
   ) => {
     const agentName = source ?? "vmem-local";
     const { messageId: promptId } = await saveMessage(ctx, components.agent, {
@@ -68,6 +82,32 @@ export const saveLocalMessages = authMutation({
       agentName,
       ...(usage ? { metadata: { usage } } : {}),
     });
+
+    const hasRefs = memoryRefs !== undefined && memoryRefs.length > 0;
+    if (hasRefs) {
+      if (assistantOrder === undefined || assistantStepOrder === undefined) {
+        throw new Error(
+          "assistantOrder and assistantStepOrder are required when memoryRefs is non-empty",
+        );
+      }
+      const bubbleKey = `${threadId}-${String(assistantOrder)}-${String(assistantStepOrder)}`;
+      const existing = await ctx.db
+        .query("chatMessageMemoryRefs")
+        .withIndex("by_user_bubble", (q) =>
+          q.eq("userId", ctx.userId).eq("bubbleKey", bubbleKey),
+        )
+        .first();
+      if (existing) {
+        await ctx.db.delete(existing._id);
+      }
+      await ctx.db.insert("chatMessageMemoryRefs", {
+        userId: ctx.userId,
+        threadId,
+        bubbleKey,
+        refs: memoryRefs,
+      });
+    }
+
     return promptId;
   },
 });
@@ -167,6 +207,26 @@ export const getThreadMessageUsage = authQuery({
         reasoningTokens: entry.reasoningTokens,
         cachedInputTokens: entry.cachedInputTokens,
       };
+    }
+
+    return byBubbleKey;
+  },
+});
+
+export const getThreadMessageMemoryRefs = authQuery({
+  args: { threadId: v.string() },
+  handler: async (ctx, { threadId }) => {
+    const rows = await ctx.db
+      .query("chatMessageMemoryRefs")
+      .withIndex("by_user_thread", (q) =>
+        q.eq("userId", ctx.userId).eq("threadId", threadId),
+      )
+      .collect();
+
+    const byBubbleKey: Record<string, { id: string; title: string }[]> = {};
+
+    for (const row of rows) {
+      byBubbleKey[row.bubbleKey] = row.refs;
     }
 
     return byBubbleKey;
