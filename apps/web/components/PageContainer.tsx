@@ -11,6 +11,8 @@ interface PageContainerProps {
   centerSection?: ReactNode;
   rightSection?: ReactNode;
   noScroll?: boolean;
+  hideTitle?: boolean;
+  centeredMaxWidth?: boolean;
   children: ReactNode;
 }
 
@@ -20,14 +22,21 @@ export default function PageContainer({
   centerSection,
   rightSection,
   noScroll = false,
+  hideTitle = false,
+  centeredMaxWidth = false,
   children,
 }: PageContainerProps) {
   const { setPageTitle } = usePageTitle();
+  const showInPageHeading = Boolean(title) && !hideTitle;
 
   useEffect(() => {
+    if (hideTitle) {
+      setPageTitle("");
+      return () => setPageTitle("");
+    }
     setPageTitle(title ?? "");
     return () => setPageTitle("");
-  }, [title, setPageTitle]);
+  }, [title, setPageTitle, hideTitle]);
 
   const hasHeader = leftSection || centerSection || rightSection;
   const childTransition = {
@@ -99,8 +108,26 @@ export default function PageContainer({
         animate={{ opacity: 1, y: 0 }}
         transition={contentTransition}
       >
-        <div className={cn(noScroll ? "flex-1 min-h-0" : "space-y-8 flex-1")}>
-          {children}
+        <div
+          className={cn(
+            noScroll
+              ? "flex min-h-0 flex-1 flex-col"
+              : "flex flex-1 flex-col space-y-8",
+          )}
+        >
+          <div
+            className={cn(
+              "flex min-h-0 w-full flex-col",
+              centeredMaxWidth && "mx-auto max-w-3xl",
+            )}
+          >
+            {showInPageHeading ? (
+              <h1 className="mb-6 hidden text-2xl leading-tight font-instrumentSerif text-foreground md:block">
+                {title}
+              </h1>
+            ) : null}
+            {children}
+          </div>
         </div>
       </motion.div>
     </div>

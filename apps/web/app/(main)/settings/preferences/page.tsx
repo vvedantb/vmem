@@ -7,7 +7,7 @@ import VoiceModelsSection from "./_components/VoiceModelsSection";
 
 export default function PreferencesPage() {
   return (
-    <PageContainer title="Preferences">
+    <PageContainer title="Preferences" centeredMaxWidth>
       {/* Local AI Models */}
       <div className="rounded-xl border border-border p-6">
         <div className="flex items-center gap-2 mb-4">
