@@ -11,9 +11,13 @@ import {
   Badge,
 } from "@vmem/ui";
 import { IconSearch, IconLoader2 } from "@tabler/icons-react";
+import { Virtuoso } from "react-virtuoso";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
+
+const TAGS_PREVIEW = 3;
+const ROW_HEIGHT = 70;
 
 interface LinkMemoryModalProps {
   open: boolean;
@@ -99,48 +103,61 @@ export default function LinkMemoryModal({
           />
         </div>
 
-        <div className="max-h-64 overflow-y-auto space-y-1 py-1">
-          {filteredMemories.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No memories to link
-            </p>
-          ) : (
-            filteredMemories.map((memory) => (
-              <button
-                key={memory.id}
-                type="button"
-                disabled={linkingId !== null}
-                onClick={() => handleLink(memory.id)}
-                className="w-full text-left p-2.5 rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
-              >
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-foreground truncate flex-1">
-                    {memory.title}
-                  </p>
-                  {linkingId === memory.id && (
-                    <IconLoader2
-                      size={14}
-                      className="animate-spin text-muted-foreground flex-shrink-0"
-                    />
-                  )}
-                </div>
-                {memory.tags.length > 0 && (
-                  <div className="flex gap-1 flex-wrap mt-1">
-                    {memory.tags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="outline"
-                        className="bg-muted border-border text-muted-foreground text-xs"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
+        {filteredMemories.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No memories to link
+          </p>
+        ) : (
+          <Virtuoso
+            data={filteredMemories}
+            computeItemKey={(_index, memory) => memory.id}
+            defaultItemHeight={ROW_HEIGHT}
+            itemContent={(_index, memory) => (
+              <div className="pb-1.5">
+                <button
+                  type="button"
+                  disabled={linkingId !== null}
+                  onClick={() => handleLink(memory.id)}
+                  className="w-full h-[64px] text-left px-2.5 py-1 rounded-lg hover:bg-accent transition-colors disabled:opacity-50 flex flex-col justify-center gap-1 min-w-0"
+                >
+                  <div className="flex items-center gap-2 min-h-0">
+                    <p className="text-sm font-medium text-foreground truncate flex-1">
+                      {memory.title}
+                    </p>
+                    {linkingId === memory.id && (
+                      <IconLoader2
+                        size={14}
+                        className="animate-spin text-muted-foreground flex-shrink-0"
+                      />
+                    )}
                   </div>
-                )}
-              </button>
-            ))
-          )}
-        </div>
+                  {memory.tags.length > 0 ? (
+                    <div className="flex gap-1 flex-nowrap overflow-hidden min-h-[1.25rem]">
+                      {memory.tags.slice(0, TAGS_PREVIEW).map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="outline"
+                          className="bg-muted border-border text-muted-foreground text-xs shrink-0 max-w-[40%] truncate"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                      {memory.tags.length > TAGS_PREVIEW ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-muted border-border text-muted-foreground text-xs shrink-0"
+                        >
+                          +{memory.tags.length - TAGS_PREVIEW}
+                        </Badge>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </button>
+              </div>
+            )}
+            style={{ height: 256 }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
