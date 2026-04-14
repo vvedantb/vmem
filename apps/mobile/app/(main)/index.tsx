@@ -28,8 +28,14 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState("");
   const flatListRef = useRef<FlatList<UIMessage>>(null);
   const navigation = useNavigation();
-  const { messages, sendMessage, isStreaming, isReady, mode } =
-    useChatProvider();
+  const {
+    messages,
+    sendMessage,
+    isStreaming,
+    isReady,
+    mode,
+    memoryRefsByMessageKey,
+  } = useChatProvider();
   const { colorScheme } = useColorScheme();
   const theme = colorScheme === "dark" ? THEME_COLORS.dark : THEME_COLORS.light;
 
@@ -94,7 +100,12 @@ export default function ChatScreen() {
             ref={flatListRef}
             data={messages}
             keyExtractor={(item) => item.key}
-            renderItem={({ item }) => <MessageBubble message={item} />}
+            renderItem={({ item }) => (
+              <MessageBubble
+                message={item}
+                memoryRefs={memoryRefsByMessageKey[item.key]}
+              />
+            )}
             contentContainerStyle={{
               paddingVertical: 16,
               paddingHorizontal: 16,

@@ -9,13 +9,19 @@
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useMutation } from "convex/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { streamText } from "ai";
 import { AnimatePresence } from "motion/react";
 import { useUIMessages } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
+import {
+  VMEM_VOICE_CORE,
+  buildMemoryRagAddition,
+  composeSystemPrompt,
+} from "@vmem/backend/memoryRagPrompt";
+import type { ChatMemoryRef } from "@/hooks/useLocalChat";
 import { Persona, type PersonaState } from "@vmem/ui/ai";
 import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
 import {
@@ -41,16 +47,14 @@ const PHASE_TO_PERSONA: Record<VoicePhase, PersonaState> = {
   error: "idle",
 };
 
-/* ------------------------------------------------------------------ */
-/*  System prompt (same brain as /chat local mode)                     */
-/* ------------------------------------------------------------------ */
+const RETRIEVE_LIMIT = 8;
 
-const SYSTEM_PROMPT = [
-  "You are vmem, a memory assistant that helps users store, search, and recall their personal memories.",
-  "You are currently running locally in the user's browser with limited capabilities.",
-  "You cannot search memories right now. Have a helpful general conversation.",
-  "Be concise and helpful. Keep responses short since they will be spoken aloud.",
-].join(" ");
+function highestOrder(messages: UIMessage[]): number {
+  return messages.reduce(
+    (best, message) => (message.order > best ? message.order : best),
+    -1,
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -59,11 +63,13 @@ const SYSTEM_PROMPT = [
 export default function VoiceClient() {
   const { model, engineState, loadModel, activeModelId } = useLocalLLM();
   const voice = useVoice();
+  const lastVoiceMemoryRefsRef = useRef<ChatMemoryRef[]>([]);
 
   /* -- Thread setup ------------------------------------------------- */
   const [threadId, setThreadId] = useState<string | null>(null);
   const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
+  const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
 
   useEffect(() => {
     getOrCreateThread()
@@ -79,6 +85,12 @@ export default function VoiceClient() {
     threadId ? { threadId } : "skip",
     { initialNumItems: 50, stream: true },
   );
+
+  const memoryRefsByMessageKey: Record<string, ChatMemoryRef[]> =
+    useQuery(
+      api.chat.getThreadMessageMemoryRefs,
+      threadId ? { threadId } : "skip",
+    ) ?? {};
 
   /* -- Readiness ---------------------------------------------------- */
   const readiness: VoiceReadiness = {
@@ -101,6 +113,30 @@ export default function VoiceClient() {
     async (transcript: string): Promise<string> => {
       if (!model) throw new Error("Local LLM not loaded");
 
+      let memoryRefs: ChatMemoryRef[] = [];
+      let systemPrompt = VMEM_VOICE_CORE;
+
+      try {
+        const retrieved = await retrieveMemories({
+          query: transcript,
+          limit: RETRIEVE_LIMIT,
+        });
+        memoryRefs = retrieved.map((m) => ({ id: m.id, title: m.title }));
+        const addition = buildMemoryRagAddition(
+          retrieved.map((m) => ({
+            id: m.id,
+            title: m.title,
+            content: m.content,
+            trace: { reason: m.trace.reason },
+          })),
+        );
+        systemPrompt = composeSystemPrompt(VMEM_VOICE_CORE, addition);
+      } catch (retrieveError) {
+        console.error("retrieveMemories failed:", retrieveError);
+      }
+
+      lastVoiceMemoryRefsRef.current = memoryRefs;
+
       const history = messages
         .filter(
           (m): m is UIMessage & { role: "user" | "assistant" } =>
@@ -111,28 +147,40 @@ export default function VoiceClient() {
 
       const { text } = await streamText({
         model,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [...history, { role: "user" as const, content: transcript }],
       });
 
-      // For voice we consume the full text (no streaming UI needed)
       return text;
     },
-    [model, messages],
+    [model, messages, retrieveMemories],
   );
 
   /* -- Persist callback --------------------------------------------- */
   const handlePersist = useCallback(
     async (userText: string, assistantText: string) => {
       if (!threadId) return;
+
+      const refs = lastVoiceMemoryRefsRef.current;
+      const maxOrder = highestOrder(messages);
+      const assistantOrder = maxOrder + 2;
+      const assistantStepOrder = 0;
+
       await saveLocalMessages({
         threadId,
         userText,
         assistantText,
         source: "vmem-local-voice",
+        ...(refs.length > 0
+          ? {
+              memoryRefs: refs,
+              assistantOrder,
+              assistantStepOrder,
+            }
+          : {}),
       });
     },
-    [threadId, saveLocalMessages],
+    [threadId, saveLocalMessages, messages],
   );
 
   /* -- Recording handlers ------------------------------------------ */
@@ -212,7 +260,10 @@ export default function VoiceClient() {
 
       {/* Bottom zone — drawer trigger anchored to bottom */}
       <div className="flex items-end justify-center pb-2">
-        <VoiceHistoryDrawer messages={messages} />
+        <VoiceHistoryDrawer
+          messages={messages}
+          memoryRefsByMessageKey={memoryRefsByMessageKey}
+        />
       </div>
     </div>
   );
