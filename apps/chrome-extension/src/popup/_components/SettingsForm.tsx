@@ -3,6 +3,7 @@ import { useUser, useClerk } from "@clerk/chrome-extension";
 import { IconSparkles, IconDownload, IconCheck } from "@tabler/icons-react";
 import { Button, Label, Switch, Spinner } from "@vmem/ui";
 import { getStorage, setStorage } from "@/lib/storage";
+import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import type { BackgroundResponse, ProgressMessage } from "@/types/messages";
 
 type EnrichmentMethod = "chrome-ai" | "webllm" | null;
@@ -16,7 +17,7 @@ interface EnrichmentStatus {
 export function SettingsForm() {
   const { user } = useUser();
   const { signOut } = useClerk();
-  const [selectionPopupEnabled, setSelectionPopupEnabled] = useState(true);
+  const { settings, update } = useExtensionUserSettings();
   const [localEnrichmentEnabled, setLocalEnrichmentEnabled] = useState(true);
   const [enrichmentStatus, setEnrichmentStatus] =
     useState<EnrichmentStatus | null>(null);
@@ -26,10 +27,8 @@ export function SettingsForm() {
     text: string;
   } | null>(null);
 
-  // Load initial settings
   useEffect(() => {
     getStorage().then((s) => {
-      setSelectionPopupEnabled(s.selectionPopupEnabled);
       setLocalEnrichmentEnabled(s.localEnrichmentEnabled);
     });
 
@@ -66,8 +65,7 @@ export function SettingsForm() {
   }, []);
 
   function handleSelectionPopupToggle(checked: boolean) {
-    setSelectionPopupEnabled(checked);
-    setStorage({ selectionPopupEnabled: checked });
+    void update({ extensionSelectionPopupEnabled: checked });
   }
 
   function handleLocalEnrichmentToggle(checked: boolean) {
@@ -168,8 +166,9 @@ export function SettingsForm() {
         </Label>
         <Switch
           id="selection-popup-toggle"
-          checked={selectionPopupEnabled}
+          checked={settings?.extensionSelectionPopupEnabled ?? true}
           onCheckedChange={handleSelectionPopupToggle}
+          disabled={settings === undefined}
         />
       </div>
 

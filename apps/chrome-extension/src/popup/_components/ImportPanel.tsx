@@ -15,6 +15,7 @@ import type {
   ProgressMessage,
 } from "@/types/messages";
 import { getStorage, setStorage } from "@/lib/storage";
+import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 
 type ImportStatus = "idle" | "importing" | "done" | "error" | "cancelled";
 
@@ -30,6 +31,7 @@ function formatLastSync(epochMs: number): string {
 }
 
 export function ImportPanel() {
+  const { settings, update } = useExtensionUserSettings();
   const [historyDays, setHistoryDays] = useState("7");
   const [bookmarkStatus, setBookmarkStatus] = useState<ImportStatus>("idle");
   const [historyStatus, setHistoryStatus] = useState<ImportStatus>("idle");
@@ -38,14 +40,11 @@ export function ImportPanel() {
     total: number;
   } | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
-  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [lastBookmarkSync, setLastBookmarkSync] = useState(0);
   const [lastHistorySync, setLastHistorySync] = useState(0);
 
-  // Load storage values on mount
   useEffect(() => {
     void getStorage().then((storage) => {
-      setAutoSyncEnabled(storage.autoSyncEnabled);
       setLastBookmarkSync(storage.lastBookmarkSync);
       setLastHistorySync(storage.lastHistorySync);
     });
@@ -63,8 +62,7 @@ export function ImportPanel() {
   }, []);
 
   function handleAutoSyncToggle(checked: boolean) {
-    setAutoSyncEnabled(checked);
-    void setStorage({ autoSyncEnabled: checked });
+    void update({ extensionAutoSyncEnabled: checked });
   }
 
   function handleImportBookmarks() {
@@ -155,8 +153,9 @@ export function ImportPanel() {
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Auto-sync</span>
         <Switch
-          checked={autoSyncEnabled}
+          checked={settings?.extensionAutoSyncEnabled ?? true}
           onCheckedChange={handleAutoSyncToggle}
+          disabled={settings === undefined}
         />
       </div>
 

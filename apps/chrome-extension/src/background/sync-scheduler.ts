@@ -1,9 +1,13 @@
 import { syncSingleBookmark } from "./import-bookmarks";
 import { importHistory } from "./import-history";
+import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
 import { getStorage } from "@/lib/storage";
 
 const HISTORY_ALARM_NAME = "vmem-history-sync";
 const HISTORY_SYNC_INTERVAL_MINUTES = 30;
+
+const SETTINGS_MIRROR_ALARM_NAME = "vmem-user-settings-mirror";
+const SETTINGS_MIRROR_INTERVAL_MINUTES = 5;
 
 /** Stored so stopAutoSync can remove the exact listener reference. */
 let bookmarkListener:
@@ -22,8 +26,20 @@ export function registerAlarmListener(): void {
   alarmListenerRegistered = true;
 
   chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name !== HISTORY_ALARM_NAME) return;
-    void handleHistoryAlarm();
+    if (alarm.name === HISTORY_ALARM_NAME) {
+      void handleHistoryAlarm();
+      return;
+    }
+    if (alarm.name === SETTINGS_MIRROR_ALARM_NAME) {
+      void refreshUserSettingsMirrorFromConvex();
+      return;
+    }
+  });
+}
+
+export function ensureSettingsMirrorAlarm(): void {
+  void chrome.alarms.create(SETTINGS_MIRROR_ALARM_NAME, {
+    periodInMinutes: SETTINGS_MIRROR_INTERVAL_MINUTES,
   });
 }
 
