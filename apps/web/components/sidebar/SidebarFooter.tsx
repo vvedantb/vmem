@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   Separator,
   Button,
@@ -25,26 +25,30 @@ function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
   const getStats = useAction(api.dashboardApi.getStats);
   const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
 
-  const fetchStats = useCallback(async () => {
-    if (!isAuthenticated) return;
-    try {
-      const data = await getStats({});
-      const result = data as {
-        memoriesAddedToday: number;
-        totalMemories: number;
-      };
-      setStats({
-        addedToday: result.memoriesAddedToday,
-        total: result.totalMemories,
-      });
-    } catch {
-      // silently fail -- sidebar stats are non-critical
-    }
-  }, [isAuthenticated, getStats]);
-
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await getStats({});
+        const result = data as {
+          memoriesAddedToday: number;
+          totalMemories: number;
+        };
+        if (!cancelled) {
+          setStats({
+            addedToday: result.memoriesAddedToday,
+            total: result.totalMemories,
+          });
+        }
+      } catch {
+        // silently fail -- sidebar stats are non-critical
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   if (isIconOnly) {
     return (
@@ -158,7 +162,8 @@ export function SidebarFooter({
                   userButtonOuterIdentifier:
                     "truncate text-sm font-medium text-foreground",
                   userButtonPopoverCard:
-                    "glass-panel-strong text-popover-foreground",
+                    "glass-panel-strong text-popover-foreground !z-[300] pointer-events-auto",
+                  userButtonPopoverActions: "!z-[300] pointer-events-auto",
                   userButtonPopoverActionButton:
                     "rounded-lg hover:bg-accent hover:text-accent-foreground",
                 },
