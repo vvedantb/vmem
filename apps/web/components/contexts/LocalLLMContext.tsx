@@ -1,5 +1,6 @@
 /**
- * React context for WebLLM model management.
+ * React context for local LLM model management.
+ * Supports multiple runtimes: WebLLM (MLC) and MediaPipe.
  * Provides model loading/unloading state, progress tracking, and WebGPU support detection.
  */
 "use client";
@@ -13,8 +14,7 @@ import {
   type ReactNode,
 } from "react";
 import type { InitProgressReport } from "@mlc-ai/web-llm";
-import type { WebLLMLanguageModel } from "@built-in-ai/web-llm";
-import { WEB_LLM_MODELS, type WebLLMModelInfo } from "@/lib/webllm-models";
+import { LOCAL_MODELS, type LocalModelInfo } from "@/lib/local-models";
 import {
   loadEngine,
   unloadEngine,
@@ -24,15 +24,18 @@ import {
   setActiveModelId as persistActiveModelId,
   clearActiveModelId,
   isWebGPUSupported,
-} from "@/lib/webllm-engine";
+  getCurrentRuntime,
+  type LocalLanguageModel,
+} from "@/lib/local-engine";
+import type { LocalModelRuntime } from "@/lib/local-models";
 
 export type EngineState = "idle" | "loading" | "ready" | "error";
 
-interface WebLLMContextValue {
+interface LocalLLMContextValue {
   /** Whether the browser supports WebGPU */
   isSupported: boolean;
   /** Available models */
-  models: WebLLMModelInfo[];
+  models: LocalModelInfo[];
   /** User's preferred model ID (from localStorage) */
   activeModelId: string | null;
   /** Current engine lifecycle state */
@@ -42,36 +45,40 @@ interface WebLLMContextValue {
   /** Human-readable progress message during loading */
   loadMessage: string | null;
   /** The loaded AI SDK LanguageModel, or null */
-  model: WebLLMLanguageModel | null;
-  /** ID of the model currently loaded in VRAM */
+  model: LocalLanguageModel | null;
+  /** ID of the model currently loaded in GPU memory */
   loadedModelId: string | null;
   /** ID of the model currently being loaded, null if not loading */
   loadingModelId: string | null;
+  /** Current runtime being used ("webllm" | "mediapipe" | null) */
+  currentRuntime: LocalModelRuntime | null;
   /** Load a model by ID (downloads if needed) */
   loadModel: (modelId: string) => Promise<void>;
-  /** Unload the current model, freeing VRAM */
+  /** Unload the current model, freeing GPU memory */
   unloadModel: () => Promise<void>;
   /** Set the active model preference (doesn't load it) */
   setActiveModelId: (modelId: string) => void;
 }
 
-const WebLLMContext = createContext<WebLLMContextValue | null>(null);
+const LocalLLMContext = createContext<LocalLLMContextValue | null>(null);
 
-export function WebLLMProvider({ children }: { children: ReactNode }) {
+export function LocalLLMProvider({ children }: { children: ReactNode }) {
   const [isSupported, setIsSupported] = useState(false);
   const [activeModelId, setActiveModelIdState] = useState<string | null>(null);
   const [engineState, setEngineState] = useState<EngineState>("idle");
   const [loadProgress, setLoadProgress] = useState<number | null>(null);
   const [loadMessage, setLoadMessage] = useState<string | null>(null);
-  const [model, setModel] = useState<WebLLMLanguageModel | null>(null);
+  const [model, setModel] = useState<LocalLanguageModel | null>(null);
   const [loadedModelId, setLoadedModelId] = useState<string | null>(null);
   const [loadingModelId, setLoadingModelId] = useState<string | null>(null);
+  const [currentRuntimeState, setCurrentRuntimeState] =
+    useState<LocalModelRuntime | null>(null);
 
   // Check WebGPU support and read persisted active model on mount
   useEffect(() => {
     setIsSupported(isWebGPUSupported());
     const stored = getActiveModelId();
-    if (stored && WEB_LLM_MODELS.some((modelInfo) => modelInfo.id === stored)) {
+    if (stored && LOCAL_MODELS.some((modelInfo) => modelInfo.id === stored)) {
       setActiveModelIdState(stored);
       return;
     }
@@ -107,6 +114,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       setModel(loadedModel);
       setLoadedModelId(modelId);
       setLoadingModelId(null);
+      setCurrentRuntimeState(getCurrentRuntime());
       setEngineState("ready");
       setLoadProgress(100);
       setLoadMessage(null);
@@ -123,6 +131,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       );
       setModel(null);
       setLoadedModelId(null);
+      setCurrentRuntimeState(null);
     }
   }, []);
 
@@ -133,6 +142,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     setActiveModelIdState(null);
     setLoadedModelId(null);
     setLoadingModelId(null);
+    setCurrentRuntimeState(null);
     setEngineState("idle");
     setLoadProgress(null);
     setLoadMessage(null);
@@ -144,6 +154,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     if (existing) {
       setModel(existing);
       setLoadedModelId(getLoadedModelId());
+      setCurrentRuntimeState(getCurrentRuntime());
       setEngineState("ready");
     }
   }, []);
@@ -168,10 +179,10 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   ]);
 
   return (
-    <WebLLMContext.Provider
+    <LocalLLMContext.Provider
       value={{
         isSupported,
-        models: WEB_LLM_MODELS,
+        models: LOCAL_MODELS,
         activeModelId,
         engineState,
         loadProgress,
@@ -179,20 +190,25 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         model,
         loadedModelId,
         loadingModelId,
+        currentRuntime: currentRuntimeState,
         loadModel: handleLoadModel,
         unloadModel: handleUnloadModel,
         setActiveModelId: handleSetActiveModelId,
       }}
     >
       {children}
-    </WebLLMContext.Provider>
+    </LocalLLMContext.Provider>
   );
 }
 
-export function useWebLLM(): WebLLMContextValue {
-  const ctx = useContext(WebLLMContext);
+export function useLocalLLM(): LocalLLMContextValue {
+  const ctx = useContext(LocalLLMContext);
   if (ctx === null) {
-    throw new Error("useWebLLM must be used within a WebLLMProvider");
+    throw new Error("useLocalLLM must be used within a LocalLLMProvider");
   }
   return ctx;
 }
+
+// Backwards compatibility exports
+export const WebLLMProvider = LocalLLMProvider;
+export const useWebLLM = useLocalLLM;
