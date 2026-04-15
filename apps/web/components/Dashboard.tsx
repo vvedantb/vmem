@@ -21,6 +21,7 @@ import {
   IconCheck,
   IconLoader2,
 } from "@tabler/icons-react";
+import { AnimatedCounter } from "./svg-animations";
 import { api } from "@vmem/backend";
 
 interface StatsData {
@@ -197,7 +198,7 @@ export default function Dashboard() {
                     {stat.label}
                   </p>
                   <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-semibold tabular-nums text-foreground">
-                    {stat.value}
+                    <AnimatedCounter value={stat.value} duration={0.8} />
                   </p>
                 </div>
                 <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-border/60 bg-secondary">

@@ -4,10 +4,11 @@
  */
 "use client";
 
-import { IconMicrophone, IconPlayerStop, IconX } from "@tabler/icons-react";
+import { IconX } from "@tabler/icons-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
 import type { VoicePhase } from "@/components/contexts/VoiceContext";
+import { MorphingMicIcon, PulsingRings } from "@/components/svg-animations";
 
 interface VoiceControlsProps {
   phase: VoicePhase;
@@ -49,36 +50,16 @@ export default function VoiceControls({
           transition={{ duration: motionDuration.fast, ease: motionEase }}
           aria-label={isListening ? "Stop recording" : "Start recording"}
         >
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={isListening ? "stop" : "mic"}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.15 }}
-            >
-              {isListening ? (
-                <IconPlayerStop className="size-8" stroke={2} />
-              ) : (
-                <IconMicrophone className="size-8" stroke={2} />
-              )}
-            </motion.span>
-          </AnimatePresence>
+          {/* Morphing mic/stop icon */}
+          <MorphingMicIcon
+            isListening={isListening}
+            size={32}
+            strokeWidth={2}
+          />
         </motion.button>
 
-        {/* Pulsing ring while listening */}
-        {isListening && (
-          <motion.span
-            className="absolute inset-0 rounded-full border-2 border-red-400 pointer-events-none"
-            initial={{ scale: 1, opacity: 0.6 }}
-            animate={{ scale: 1.3, opacity: 0 }}
-            transition={{
-              duration: 1.2,
-              repeat: Infinity,
-              ease: "easeOut",
-            }}
-          />
-        )}
+        {/* Concentric pulsing rings while listening */}
+        <PulsingRings size={80} ringCount={3} active={isListening} />
       </div>
 
       {/* Cancel button — visible during active session */}
