@@ -7,7 +7,7 @@ import VoiceModelsSection from "./_components/VoiceModelsSection";
 
 export default function PreferencesPage() {
   return (
-    <PageContainer title="Preferences" centeredMaxWidth>
+    <PageContainer title="Preferences" centeredMaxWidth showTitle>
       <div className="space-y-12">
         <section className="space-y-4">
           <div className="flex items-center gap-2">
