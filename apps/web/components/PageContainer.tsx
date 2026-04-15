@@ -132,8 +132,9 @@ export default function PageContainer({
       >
         <div
           className={cn(
-            "flex min-h-0 w-full flex-1 flex-col",
+            "flex min-h-0 w-full flex-col",
             centeredMaxWidth && "max-w-3xl mx-auto",
+            noScroll && "flex-1",
           )}
         >
           <motion.div
@@ -146,7 +147,12 @@ export default function PageContainer({
             animate={{ opacity: 1, y: 0 }}
             transition={contentTransition}
           >
-            <div className="flex min-h-0 w-full flex-col">
+            <div
+              className={cn(
+                "flex min-h-0 w-full flex-col",
+                noScroll && "flex-1",
+              )}
+            >
               {showInPageHeading && !mergeTitleIntoHeader ? (
                 <h1 className="mb-6 hidden text-2xl leading-tight font-instrumentSerif text-foreground md:block">
                   {title}
