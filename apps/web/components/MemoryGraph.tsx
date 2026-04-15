@@ -272,6 +272,7 @@ export default function MemoryGraph({
         visibleNodeCount={graphNodes.length}
         edgeCount={graphEdges.length}
         isDark={isDark}
+        isDarkCanvas={viewTheme.isDarkCanvas}
       />
 
       {/* Nav controls (zoom) */}
@@ -279,6 +280,7 @@ export default function MemoryGraph({
         onZoomIn={() => canvasRef.current?.zoomIn()}
         onZoomOut={() => canvasRef.current?.zoomOut()}
         onFit={() => canvasRef.current?.fit()}
+        isDarkCanvas={viewTheme.isDarkCanvas}
       />
 
       {/* Back button for focus mode */}
