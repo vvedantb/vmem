@@ -14,6 +14,7 @@ import {
   getEnrichmentStatus,
   loadWebLLMModel,
 } from "./enrichment-router";
+import { drainPendingEnrichmentQueue } from "./pending-enrichment-drain";
 import { getStorage } from "@/lib/storage";
 
 export function registerMessageHandler(): void {
@@ -212,6 +213,9 @@ async function handleMessage(
               // Popup might be closed, ignore
             });
         });
+        if (success) {
+          void drainPendingEnrichmentQueue();
+        }
         return { type: "MODEL_LOAD_RESULT", success };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";

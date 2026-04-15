@@ -36,6 +36,7 @@ import type * as neo4jActions_proposedUpdates from "../neo4jActions/proposedUpda
 import type * as neo4jActions_relationships from "../neo4jActions/relationships.js";
 import type * as neo4jActions_timeline from "../neo4jActions/timeline.js";
 import type * as notifications from "../notifications.js";
+import type * as pendingEnrichment from "../pendingEnrichment.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
 import type * as relationshipApi from "../relationshipApi.js";
 import type * as timelineApi from "../timelineApi.js";
@@ -77,6 +78,7 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/relationships": typeof neo4jActions_relationships;
   "neo4jActions/timeline": typeof neo4jActions_timeline;
   notifications: typeof notifications;
+  pendingEnrichment: typeof pendingEnrichment;
   proposedUpdateApi: typeof proposedUpdateApi;
   relationshipApi: typeof relationshipApi;
   timelineApi: typeof timelineApi;

@@ -11,13 +11,40 @@ import {
   HoverCardContent,
 } from "@vmem/ui";
 import { UserButton } from "@clerk/nextjs";
-import { useConvexAuth, useAction } from "convex/react";
+import { useConvexAuth, useAction, useQuery } from "convex/react";
 import { IconMoon, IconSun, IconChartBar } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 
 interface SidebarStats {
   addedToday: number;
   total: number;
+}
+
+function PendingEnrichmentBadge({ isIconOnly }: { isIconOnly: boolean }) {
+  const { isAuthenticated } = useConvexAuth();
+  const pending = useQuery(
+    api.pendingEnrichment.listPendingEnrichment,
+    isAuthenticated ? { limit: 100 } : "skip",
+  );
+  const count = pending === undefined ? 0 : pending.length;
+  if (count === 0) return null;
+  if (isIconOnly) {
+    return (
+      <div className="flex justify-center">
+        <span
+          className="text-[10px] tabular-nums text-muted-foreground"
+          title={`${String(count)} pending enrichment`}
+        >
+          {String(count)}
+        </span>
+      </div>
+    );
+  }
+  return (
+    <p className="mb-1 px-3 text-[11px] text-muted-foreground">
+      {String(count)} pending enrichment
+    </p>
+  );
 }
 
 function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
@@ -123,6 +150,7 @@ export function SidebarFooter({
 
   return (
     <div className={cn("space-y-4 pt-3")}>
+      <PendingEnrichmentBadge isIconOnly={isIconOnly} />
       <StatsCard isIconOnly={isIconOnly} />
       <Separator className="bg-border/45" />
 

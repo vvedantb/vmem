@@ -135,3 +135,49 @@ export async function applyEnrichment(
     relatedMemoryIds,
   });
 }
+
+export async function getMemory(
+  memoryId: string,
+): Promise<MemoryWithTags | null> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  return await client.action(api.memoryApi.getMemory, { memoryId });
+}
+
+export async function listPendingEnrichment(limit: number): Promise<
+  Array<{
+    _id: string;
+    memoryId: string;
+    source: "mcp" | "import" | "web";
+    queuedAt: number;
+  }>
+> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  return await client.query(api.pendingEnrichment.listPendingEnrichment, {
+    limit,
+  });
+}
+
+export async function removePendingEnrichment(memoryId: string): Promise<void> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  await client.mutation(api.pendingEnrichment.removePendingEnrichment, {
+    memoryId,
+  });
+}

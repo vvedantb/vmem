@@ -43,6 +43,7 @@ export const createMemoryInternal = internalAction({
     confidence: v.number(),
     expiresAt: v.optional(v.string()),
     url: v.optional(v.string()),
+    queueForLocalEnrichment: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const service = new MemoryService(getDriver());
@@ -87,6 +88,14 @@ export const createMemoryInternal = internalAction({
       memoryId: result.id,
       payload: JSON.stringify({ title: result.title }),
     });
+
+    if (args.queueForLocalEnrichment === true) {
+      await ctx.runMutation(internal.pendingEnrichment.enqueuePendingInternal, {
+        clerkId: args.clerkId,
+        memoryId: result.id,
+        source: "import",
+      });
+    }
 
     return result;
   },

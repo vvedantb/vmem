@@ -68,6 +68,7 @@ export const createMemory = authAction({
     confidence: v.number(),
     expiresAt: v.optional(v.string()),
     url: v.optional(v.string()),
+    queueForLocalEnrichment: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId: string | null = await ctx.runQuery(
@@ -87,6 +88,7 @@ export const createMemory = authAction({
         confidence: args.confidence,
         expiresAt: args.expiresAt,
         url: args.url,
+        queueForLocalEnrichment: args.queueForLocalEnrichment,
       },
     );
   },

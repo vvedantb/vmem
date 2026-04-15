@@ -144,6 +144,15 @@ const schema = defineSchema({
     .index("by_user_thread", ["userId", "threadId"])
     .index("by_user_bubble", ["userId", "bubbleKey"]),
 
+  pendingMemoryEnrichment: defineTable({
+    clerkId: v.string(),
+    memoryId: v.string(),
+    source: v.union(v.literal("mcp"), v.literal("import"), v.literal("web")),
+    queuedAt: v.number(),
+  })
+    .index("by_clerk_memory", ["clerkId", "memoryId"])
+    .index("by_clerk_queued", ["clerkId", "queuedAt"]),
+
   codebases: defineTable({
     userId: v.id("users"),
     githubConnectionId: v.id("githubConnections"),

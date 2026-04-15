@@ -1,7 +1,11 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo } from "react";
-import { useConvexAuth, useAction } from "convex/react";
+import {
+  useConvexAuth,
+  useAction,
+  useMutation as useConvexMutation,
+} from "convex/react";
 import {
   useQuery as useTanstackQuery,
   useMutation,
@@ -78,6 +82,9 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     api.memoryApi.listRecentMemoryTitlesForEnrichment,
   );
   const applyEnrichmentAction = useAction(api.memoryApi.applyEnrichment);
+  const enqueuePendingEnrichment = useConvexMutation(
+    api.pendingEnrichment.enqueuePendingEnrichment,
+  );
   const { model, engineState } = useLocalLLM();
 
   const enrichAfterCreate = useCallback(
@@ -162,7 +169,14 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         updatedAt: created.updatedAt,
         expiresAt: created.expiresAt,
       });
-      void enrichAfterCreate(memory.id, memory.title, memory.content);
+      if (engineState === "ready" && model !== null) {
+        void enrichAfterCreate(memory.id, memory.title, memory.content);
+      } else {
+        void enqueuePendingEnrichment({
+          memoryId: memory.id,
+          source: "web",
+        });
+      }
       return memory;
     },
     onMutate: async (input) => {
