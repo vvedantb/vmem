@@ -104,6 +104,10 @@ export async function enrichMemory(
   content: string,
   existingMemories: Array<{ id: string; title: string }>,
 ): Promise<{ tags: string[]; relatedMemoryIds: string[] } | null> {
+  if (activeMethod === null) {
+    await initializeEnrichment();
+  }
+
   if (activeMethod === "chrome-ai") {
     console.log("[enrichment-router] Trying Chrome Built-in AI...");
     const result = await runFullEnrichmentWithChromeAI(
@@ -167,6 +171,10 @@ export async function getEnrichmentStatus(): Promise<{
   modelLoaded: boolean;
   modelProgress?: number;
 }> {
+  if (activeMethod === null) {
+    await initializeEnrichment();
+  }
+
   if (activeMethod === "chrome-ai") {
     return { method: "chrome-ai", modelLoaded: true };
   }
