@@ -1,5 +1,9 @@
 # AI guidance changelog
 
+## 2026-04-15 (deferred enrichment queue)
+
+- Convex `pendingMemoryEnrichment` + `pendingEnrichment` API: enqueue when MCP creates a memory, when import passes `queueForLocalEnrichment`, or when the web app creates a memory without a ready local model; drain on web (`useEnrichmentQueueDrain` / `PendingEnrichmentRunner`) and extension background (`pending-enrichment-drain.ts`) with the same Neo4j fetch → local LLM → `applyEnrichment` flow, max 50 per pass. Sidebar shows pending count above memory stats; sonner toasts on web drain batches.
+
 ## 2026-04-14 (enrichment)
 
 - Removed OpenRouter/server-side `enrichMemory`; enrichment is local-only (web: `MemoryContext` + `runLocalFullEnrichment`; extension: Chrome AI or offscreen WebLLM). Convex exposes `listRecentMemoryTitlesForEnrichment` and `applyEnrichment` (optional `relatedMemoryIds`). Shared `buildFullEnrichmentPrompt` / `parseFullEnrichmentResponse` in `@vmem/backend/enrichmentPrompt`.

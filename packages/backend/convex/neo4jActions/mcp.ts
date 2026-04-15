@@ -100,6 +100,12 @@ export const mcpCreateMemory = internalAction({
       payload: JSON.stringify({ title: result.title }),
     });
 
+    await ctx.runMutation(internal.pendingEnrichment.enqueuePendingInternal, {
+      clerkId,
+      memoryId: result.id,
+      source: "mcp",
+    });
+
     return result;
   },
 });

@@ -9,6 +9,7 @@ import {
 import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
 import { getStorage } from "@/lib/storage";
 import { initializeEnrichment } from "./enrichment-router";
+import { drainPendingEnrichmentQueue } from "./pending-enrichment-drain";
 
 // CRITICAL: Register alarm listener at top level so it's ready when
 // service worker wakes up from an alarm. Service workers can restart
@@ -21,6 +22,7 @@ chrome.runtime.onInstalled.addListener(async () => {
   ensureSettingsMirrorAlarm();
   await initAutoSync();
   await initializeEnrichment();
+  void drainPendingEnrichmentQueue();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
@@ -28,6 +30,7 @@ chrome.runtime.onStartup.addListener(async () => {
   ensureSettingsMirrorAlarm();
   await initAutoSync();
   await initializeEnrichment();
+  void drainPendingEnrichmentQueue();
 });
 
 // React to user toggling auto-sync in the popup.
