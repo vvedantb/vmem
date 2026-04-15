@@ -139,7 +139,7 @@ export default function TagsPage() {
 
   if (isLoading) {
     return (
-      <PageContainer title="Memories" hideTitle>
+      <PageContainer title="Memories">
         <div className="space-y-8">
           <div>
             <Skeleton className="h-8 w-48 rounded mb-2" />
@@ -155,7 +155,7 @@ export default function TagsPage() {
   const totalMemoriesWithTags = tags.reduce((sum, tag) => sum + tag.count, 0);
 
   return (
-    <PageContainer title="Memories" hideTitle>
+    <PageContainer title="Memories">
       <div className="space-y-8">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">

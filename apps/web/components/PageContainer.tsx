@@ -11,7 +11,7 @@ interface PageContainerProps {
   centerSection?: ReactNode;
   rightSection?: ReactNode;
   noScroll?: boolean;
-  hideTitle?: boolean;
+  /** Show title in header row. Defaults to true if sections exist, false otherwise. */
   showTitle?: boolean;
   centeredMaxWidth?: boolean;
   children: ReactNode;
@@ -23,25 +23,21 @@ export default function PageContainer({
   centerSection,
   rightSection,
   noScroll = false,
-  hideTitle = false,
-  showTitle = false,
+  showTitle,
   centeredMaxWidth = false,
   children,
 }: PageContainerProps) {
   const { setPageTitle } = usePageTitle();
 
   useEffect(() => {
-    if (hideTitle) {
-      setPageTitle("");
-      return () => setPageTitle("");
-    }
     setPageTitle(title ?? "");
     return () => setPageTitle("");
-  }, [title, setPageTitle, hideTitle]);
+  }, [title, setPageTitle]);
 
   const hasSections = leftSection || centerSection || rightSection;
+  // Default: show title if sections exist, unless explicitly set
   const showTitleInHeader =
-    Boolean(title) && !hideTitle && (showTitle || hasSections);
+    Boolean(title) && (showTitle ?? Boolean(hasSections));
   const hasHeader = showTitleInHeader || hasSections;
 
   const childTransition = {
