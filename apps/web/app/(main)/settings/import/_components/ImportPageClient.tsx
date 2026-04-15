@@ -96,7 +96,7 @@ export default function ImportPageClient() {
 
   return (
     <>
-      <PageContainer title="Import" centeredMaxWidth>
+      <PageContainer title="Import" centeredMaxWidth showTitle>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-border p-6">
             <div className="mb-4 flex items-center gap-3">

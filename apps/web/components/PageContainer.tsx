@@ -12,6 +12,7 @@ interface PageContainerProps {
   rightSection?: ReactNode;
   noScroll?: boolean;
   hideTitle?: boolean;
+  showTitle?: boolean;
   centeredMaxWidth?: boolean;
   children: ReactNode;
 }
@@ -23,6 +24,7 @@ export default function PageContainer({
   rightSection,
   noScroll = false,
   hideTitle = false,
+  showTitle = false,
   centeredMaxWidth = false,
   children,
 }: PageContainerProps) {
@@ -37,8 +39,10 @@ export default function PageContainer({
     return () => setPageTitle("");
   }, [title, setPageTitle, hideTitle]);
 
-  const hasHeader = leftSection || centerSection || rightSection;
-  const showTitleInHeader = Boolean(title) && hasHeader;
+  const hasSections = leftSection || centerSection || rightSection;
+  const showTitleInHeader =
+    Boolean(title) && !hideTitle && (showTitle || hasSections);
+  const hasHeader = showTitleInHeader || hasSections;
 
   const childTransition = {
     duration: motionDuration.fast,
