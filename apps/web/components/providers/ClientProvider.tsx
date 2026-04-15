@@ -11,6 +11,7 @@ import { ThemeProvider } from "../contexts/ThemeContext";
 import { NotificationProvider } from "../contexts/NotificationContext";
 import { MemoryProvider } from "../contexts/MemoryContext";
 import { LocalLLMProvider } from "../contexts/LocalLLMContext";
+import { PendingEnrichmentRunner } from "../PendingEnrichmentRunner";
 import { VoiceProvider } from "../contexts/VoiceContext";
 import { MotionProvider } from "./MotionProvider";
 import { QueryProvider } from "./QueryProvider";
@@ -39,7 +40,10 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
                   <NotificationProvider>
                     <LocalLLMProvider>
                       <VoiceProvider>
-                        <MemoryProvider>{children}</MemoryProvider>
+                        <MemoryProvider>
+                          <PendingEnrichmentRunner />
+                          {children}
+                        </MemoryProvider>
                       </VoiceProvider>
                     </LocalLLMProvider>
                   </NotificationProvider>
