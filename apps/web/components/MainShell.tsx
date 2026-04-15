@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
+import { useLocalStorage } from "usehooks-ts";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import Sidebar from "@/components/Sidebar";
 import { PageTitleProvider } from "@/components/contexts/PageTitleContext";
 
 export default function MainShell({ children }: { children: React.ReactNode }) {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useLocalStorage(
+    "sidebar-collapsed",
+    false,
+  );
   const toggleSidebar = useCallback(
     () => setIsSidebarCollapsed((prev) => !prev),
     [],
