@@ -99,13 +99,28 @@ export async function retrieveMemories(
   });
 }
 
-/**
- * Apply client-side enrichment (tags) to a memory.
- * Used when local LLM enrichment is enabled.
- */
+export async function listRecentMemoryTitlesForEnrichment(
+  excludeMemoryId: string,
+): Promise<Array<{ id: string; title: string }>> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  return await client.action(
+    api.memoryApi.listRecentMemoryTitlesForEnrichment,
+    {
+      excludeMemoryId,
+    },
+  );
+}
+
 export async function applyEnrichment(
   memoryId: string,
   tags: string[],
+  relatedMemoryIds?: string[],
 ): Promise<{ applied: boolean }> {
   const client = await getAuthenticatedClient();
   if (!client) {
@@ -117,5 +132,52 @@ export async function applyEnrichment(
   return await client.action(api.memoryApi.applyEnrichment, {
     memoryId,
     tags,
+    relatedMemoryIds,
+  });
+}
+
+export async function getMemory(
+  memoryId: string,
+): Promise<MemoryWithTags | null> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  return await client.action(api.memoryApi.getMemory, { memoryId });
+}
+
+export async function listPendingEnrichment(limit: number): Promise<
+  Array<{
+    _id: string;
+    memoryId: string;
+    source: "mcp" | "import" | "web";
+    queuedAt: number;
+  }>
+> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  return await client.query(api.pendingEnrichment.listPendingEnrichment, {
+    limit,
+  });
+}
+
+export async function removePendingEnrichment(memoryId: string): Promise<void> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  await client.mutation(api.pendingEnrichment.removePendingEnrichment, {
+    memoryId,
   });
 }

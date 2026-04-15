@@ -42,7 +42,7 @@ export default function ModelCard({
   const isAnyLoading = engineState === "loading";
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+    <div className="flex flex-col gap-3 py-5 border-b border-border/50 last:border-b-0 last:pb-0 first:pt-0">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -73,8 +73,6 @@ export default function ModelCard({
             </Badge>
           </div>
           <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
-            <span>{model.size}</span>
-            <span>·</span>
             <span>~{model.vramMB}MB VRAM</span>
           </div>
         </div>

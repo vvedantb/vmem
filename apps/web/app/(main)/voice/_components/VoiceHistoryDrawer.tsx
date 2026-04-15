@@ -15,13 +15,16 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
 import type { UIMessage } from "@convex-dev/agent/react";
 import ChatMessageItem from "@/app/(main)/chat/_components/ChatMessageItem";
+import type { ChatMemoryRef } from "@/hooks/useLocalChat";
 
 interface VoiceHistoryDrawerProps {
   messages: UIMessage[];
+  memoryRefsByMessageKey: Record<string, ChatMemoryRef[]>;
 }
 
 export default function VoiceHistoryDrawer({
   messages,
+  memoryRefsByMessageKey,
 }: VoiceHistoryDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -57,7 +60,11 @@ export default function VoiceHistoryDrawer({
                 Conversation
               </p>
               {messages.map((message) => (
-                <ChatMessageItem key={message.key} message={message} />
+                <ChatMessageItem
+                  key={message.key}
+                  message={message}
+                  memoryRefs={memoryRefsByMessageKey[message.key]}
+                />
               ))}
             </div>
           </motion.div>

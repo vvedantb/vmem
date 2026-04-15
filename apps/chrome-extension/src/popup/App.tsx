@@ -25,6 +25,7 @@ import { SettingsForm } from "./_components/SettingsForm";
 import { QuickSave } from "./_components/QuickSave";
 import { ImportPanel } from "./_components/ImportPanel";
 import { TokenSync } from "./_components/TokenSync";
+import { ExtensionUserSettingsProvider } from "./useExtensionUserSettings";
 
 function EnsureUser() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -41,7 +42,7 @@ function EnsureUser() {
 
 function SignedInContent() {
   return (
-    <>
+    <ExtensionUserSettingsProvider>
       <EnsureUser />
       <TokenSync />
       <Tabs defaultValue="save" className="flex flex-1 flex-col">
@@ -70,7 +71,7 @@ function SignedInContent() {
           <SettingsForm />
         </TabsContent>
       </Tabs>
-    </>
+    </ExtensionUserSettingsProvider>
   );
 }
 

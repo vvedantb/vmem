@@ -1,5 +1,18 @@
 # Changelog
 
+## Settings: Chat export import to memories — 2026-04-14
+
+- Added a Settings → Import flow so users can bring official ChatGPT or Claude data exports into vmem as Neo4j memories instead of replaying chats in the app
+- Parses ZIP or JSON client-side and lets people pick which conversations to import before writing episodic memories with clear import tagging for retrieval
+- Reason: makes external chat history usable inside the memory graph without duplicating it as in-app threads
+
+## Extension settings: Convex + web settings page — 2026-04-14
+
+- Store browser extension toggles (auto-sync, save popup on text selection) in Convex `userSettings` so the web app and extension share one source of truth instead of only local storage
+- Added `/settings/extension` in the web app with the same two switches, wired to Clerk-authenticated Convex mutations
+- Kept `chrome.storage` as a mirror refreshed from the popup, on service worker startup, and on a periodic alarm so background scripts and content scripts keep working without Convex in those contexts
+- Reason: users can manage extension behavior from the main app; settings stay consistent when switching between web and the browser extension
+
 ## Chrome Extension: Local LLM Enrichment (Chrome AI + WebLLM) — 2026-04-14
 
 - Implemented hybrid enrichment strategy: tries Chrome Built-in AI (Gemini Nano) first (Chrome 138+, zero download), falls back to WebLLM (Qwen 3 0.6B, ~400MB), skips enrichment if both unavailable (no server fallback)

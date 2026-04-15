@@ -103,9 +103,6 @@ function ModelSelector() {
                 {models.map((model) => (
                   <DropdownMenuRadioItem key={model.id} value={model.id}>
                     {model.name}
-                    <span className="ml-auto pl-3 text-[11px] text-muted-foreground">
-                      {model.size}
-                    </span>
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
@@ -124,6 +121,7 @@ export default function Chat() {
     sendMessage,
     isStreaming,
     usageByMessageKey,
+    memoryRefsByMessageKey,
   } = useLocalChat();
   const { engineState, loadedModelId } = useLocalLLM();
 
@@ -244,6 +242,7 @@ export default function Chat() {
               key={message.key}
               message={message}
               usage={usageByMessageKey[message.key]}
+              memoryRefs={memoryRefsByMessageKey[message.key]}
               maxContextTokens={maxContextTokens}
             />
           ))}

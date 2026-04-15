@@ -38,19 +38,17 @@ export default function LocalModelsSection() {
   // WebGPU not supported — show info banner
   if (!isSupported) {
     return (
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-        <div className="flex items-start gap-3">
-          <IconAlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="text-sm font-medium text-foreground">
-              WebGPU not available
-            </h4>
-            <p className="text-xs text-muted-foreground mt-1">
-              Your browser doesn&apos;t support WebGPU, which is required for
-              local AI models. Try Chrome, Edge, or another Chromium-based
-              browser with WebGPU enabled.
-            </p>
-          </div>
+      <div className="flex items-start gap-3">
+        <IconAlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+        <div>
+          <h4 className="text-sm font-medium text-foreground">
+            WebGPU not available
+          </h4>
+          <p className="text-xs text-muted-foreground mt-1">
+            Your browser doesn&apos;t support WebGPU, which is required for
+            local AI models. Try Chrome, Edge, or another Chromium-based browser
+            with WebGPU enabled.
+          </p>
         </div>
       </div>
     );
@@ -59,7 +57,7 @@ export default function LocalModelsSection() {
   return (
     <div className="space-y-4">
       {/* Info banner */}
-      <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/50 p-3">
+      <div className="flex items-start gap-3">
         <IconInfoCircle className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
         <p className="text-xs text-muted-foreground">
           Local models run entirely in your browser using WebGPU. No data is
@@ -67,8 +65,7 @@ export default function LocalModelsSection() {
         </p>
       </div>
 
-      {/* Model list */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="flex flex-col">
         {models.map((model) => (
           <ModelCard
             key={model.id}
@@ -87,9 +84,7 @@ export default function LocalModelsSection() {
 
       {/* Error state */}
       {engineState === "error" && loadMessage && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-          <p className="text-xs text-destructive">{loadMessage}</p>
-        </div>
+        <p className="text-xs text-destructive pt-1">{loadMessage}</p>
       )}
     </div>
   );

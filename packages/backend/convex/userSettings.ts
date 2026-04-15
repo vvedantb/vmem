@@ -6,6 +6,8 @@ const defaults = {
   language: "en",
   memoryAutoTag: true,
   notificationsEnabled: false,
+  extensionAutoSyncEnabled: true,
+  extensionSelectionPopupEnabled: true,
 } as const;
 
 export const get = authQuery({
@@ -24,6 +26,8 @@ export const get = authQuery({
         language: defaults.language,
         memoryAutoTag: defaults.memoryAutoTag,
         notificationsEnabled: defaults.notificationsEnabled,
+        extensionAutoSyncEnabled: defaults.extensionAutoSyncEnabled,
+        extensionSelectionPopupEnabled: defaults.extensionSelectionPopupEnabled,
       };
     }
 
@@ -35,6 +39,11 @@ export const get = authQuery({
       memoryAutoTag: doc.memoryAutoTag ?? defaults.memoryAutoTag,
       notificationsEnabled:
         doc.notificationsEnabled ?? defaults.notificationsEnabled,
+      extensionAutoSyncEnabled:
+        doc.extensionAutoSyncEnabled ?? defaults.extensionAutoSyncEnabled,
+      extensionSelectionPopupEnabled:
+        doc.extensionSelectionPopupEnabled ??
+        defaults.extensionSelectionPopupEnabled,
     };
   },
 });
@@ -47,6 +56,8 @@ export const update = authMutation({
     language: v.optional(v.string()),
     memoryAutoTag: v.optional(v.boolean()),
     notificationsEnabled: v.optional(v.boolean()),
+    extensionAutoSyncEnabled: v.optional(v.boolean()),
+    extensionSelectionPopupEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -61,6 +72,11 @@ export const update = authMutation({
       fields.memoryAutoTag = args.memoryAutoTag;
     if (args.notificationsEnabled !== undefined)
       fields.notificationsEnabled = args.notificationsEnabled;
+    if (args.extensionAutoSyncEnabled !== undefined)
+      fields.extensionAutoSyncEnabled = args.extensionAutoSyncEnabled;
+    if (args.extensionSelectionPopupEnabled !== undefined)
+      fields.extensionSelectionPopupEnabled =
+        args.extensionSelectionPopupEnabled;
 
     if (existing) {
       await ctx.db.patch(existing._id, fields);

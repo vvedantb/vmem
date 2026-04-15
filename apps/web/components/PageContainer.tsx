@@ -11,6 +11,9 @@ interface PageContainerProps {
   centerSection?: ReactNode;
   rightSection?: ReactNode;
   noScroll?: boolean;
+  /** Show title in header row. Defaults to true if sections exist, false otherwise. */
+  showTitle?: boolean;
+  centeredMaxWidth?: boolean;
   children: ReactNode;
 }
 
@@ -20,6 +23,8 @@ export default function PageContainer({
   centerSection,
   rightSection,
   noScroll = false,
+  showTitle,
+  centeredMaxWidth = false,
   children,
 }: PageContainerProps) {
   const { setPageTitle } = usePageTitle();
@@ -29,7 +34,12 @@ export default function PageContainer({
     return () => setPageTitle("");
   }, [title, setPageTitle]);
 
-  const hasHeader = leftSection || centerSection || rightSection;
+  const hasSections = leftSection || centerSection || rightSection;
+  // Default: show title if sections exist, unless explicitly set
+  const showTitleInHeader =
+    Boolean(title) && (showTitle ?? Boolean(hasSections));
+  const hasHeader = showTitleInHeader || hasSections;
+
   const childTransition = {
     duration: motionDuration.fast,
     ease: motionEase,
@@ -44,18 +54,35 @@ export default function PageContainer({
   return (
     <div className="flex h-full min-h-0 flex-col">
       {hasHeader && (
-        <div className="mb-5 flex-shrink-0 min-h-10">
-          <div className="flex h-10 items-center justify-between gap-4">
-            {leftSection && (
-              <motion.div
-                className="flex-shrink-0 mr-auto"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={childTransition}
-              >
-                {leftSection}
-              </motion.div>
+        <div
+          className={cn(
+            "mb-5 flex-shrink-0 min-h-10",
+            centeredMaxWidth && "flex justify-center",
+          )}
+        >
+          <div
+            className={cn(
+              "flex h-10 w-full items-center justify-between gap-4",
+              centeredMaxWidth && "max-w-3xl",
             )}
+          >
+            <div className="flex min-w-0 flex-shrink-0 items-center gap-4">
+              {showTitleInHeader && (
+                <h1 className="hidden min-w-0 truncate text-2xl leading-tight font-instrumentSerif text-foreground md:block">
+                  {title}
+                </h1>
+              )}
+              {leftSection && (
+                <motion.div
+                  className="flex-shrink-0"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={childTransition}
+                >
+                  {leftSection}
+                </motion.div>
+              )}
+            </div>
             <div className="hidden md:flex md:flex-1 md:justify-center">
               {centerSection && (
                 <motion.div
@@ -99,7 +126,12 @@ export default function PageContainer({
         animate={{ opacity: 1, y: 0 }}
         transition={contentTransition}
       >
-        <div className={cn(noScroll ? "flex-1 min-h-0" : "space-y-8 flex-1")}>
+        <div
+          className={cn(
+            noScroll ? "flex-1 min-h-0" : "space-y-8 flex-1",
+            centeredMaxWidth && "max-w-3xl mx-auto w-full",
+          )}
+        >
           {children}
         </div>
       </motion.div>
