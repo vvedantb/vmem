@@ -325,22 +325,29 @@ export function render(
     }
   }
 
-  // --- Edge labels (only on hovered node's edges — always safe even at high node counts) ---
-  if (!lowZoom && hasHover) {
+  // --- Edge labels ---
+  // Always show labels for relates_to edges (user-created relationships)
+  // Only show tag edge labels on hover (to avoid clutter)
+  if (!lowZoom) {
     const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
     for (const edge of edges) {
+      if (!edge.reason) continue;
+
       const sId = edge.source.id;
       const tId = edge.target.id;
-      if (
-        sId !== interaction.hoveredNodeId &&
-        tId !== interaction.hoveredNodeId
-      )
-        continue;
-      if (!edge.reason) continue;
+      const isRelatesToEdge =
+        edge.edgeType === "relates_to" || edge.edgeType === "imports";
+      const isHoveredEdge =
+        hasHover &&
+        (sId === interaction.hoveredNodeId ||
+          tId === interaction.hoveredNodeId);
+
+      // Show label if: relates_to edge (always) OR tag edge when hovered
+      if (!isRelatesToEdge && !isHoveredEdge) continue;
 
       const mx = ((edge.source.x ?? 0) + (edge.target.x ?? 0)) / 2;
       const my = ((edge.source.y ?? 0) + (edge.target.y ?? 0)) / 2;
