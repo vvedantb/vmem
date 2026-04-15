@@ -74,11 +74,12 @@ chrome.runtime.onMessage.addListener(
     _sender: chrome.runtime.MessageSender,
     sendResponse: (response: OffscreenResponse) => void,
   ) => {
-    if (
-      typeof message !== "object" ||
-      message === null ||
-      !HANDLED_TYPES.has(Reflect.get(message, "type") as string)
-    ) {
+    const msgType =
+      typeof message === "object" && message !== null
+        ? Reflect.get(message, "type")
+        : undefined;
+    console.log("[offscreen] Received message type:", msgType);
+    if (typeof msgType !== "string" || !HANDLED_TYPES.has(msgType)) {
       return false;
     }
     void handleMessage(message, sendResponse);

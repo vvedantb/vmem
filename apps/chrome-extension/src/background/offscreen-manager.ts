@@ -84,5 +84,8 @@ export async function closeOffscreenDocument(): Promise<void> {
  */
 export async function sendToOffscreen<T>(message: unknown): Promise<T> {
   await ensureOffscreenDocument();
-  return chrome.runtime.sendMessage(message) as Promise<T>;
+  console.log("[offscreen-manager] Sending message:", message);
+  const response = await chrome.runtime.sendMessage(message);
+  console.log("[offscreen-manager] Got response:", response);
+  return response as T;
 }

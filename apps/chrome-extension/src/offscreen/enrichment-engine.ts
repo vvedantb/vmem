@@ -35,6 +35,8 @@ export function isWebGPUAvailable(): boolean {
 export async function loadModel(
   onProgress?: (progress: number, text: string) => void,
 ): Promise<void> {
+  console.log("[webllm] loadModel called, current state:", status.state);
+
   if (status.state === "ready" && engine) {
     console.log("[webllm] Model already loaded");
     return;
@@ -45,7 +47,11 @@ export async function loadModel(
     return;
   }
 
-  if (!isWebGPUAvailable()) {
+  console.log("[webllm] Checking WebGPU availability...");
+  const webgpuAvailable = isWebGPUAvailable();
+  console.log("[webllm] WebGPU available:", webgpuAvailable);
+
+  if (!webgpuAvailable) {
     status = {
       state: "error",
       modelId: null,

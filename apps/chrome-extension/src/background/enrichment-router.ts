@@ -67,7 +67,11 @@ export async function loadWebLLMModel(
   onProgress?: (progress: number, text: string) => void,
 ): Promise<boolean> {
   try {
+    console.log(
+      "[enrichment-router] loadWebLLMModel called, ensuring offscreen...",
+    );
     await ensureOffscreenDocument();
+    console.log("[enrichment-router] Offscreen document ready");
 
     const progressListener = (message: unknown) => {
       if (typeof message !== "object" || message === null) return;
@@ -75,6 +79,7 @@ export async function loadWebLLMModel(
       if (type !== "MODEL_LOAD_PROGRESS") return;
       const progress = Reflect.get(message, "progress");
       const text = Reflect.get(message, "text");
+      console.log("[enrichment-router] Progress:", progress, text);
       onProgress?.(
         typeof progress === "number" ? progress : 0,
         typeof text === "string" ? text : "Loading...",
@@ -84,11 +89,13 @@ export async function loadWebLLMModel(
     chrome.runtime.onMessage.addListener(progressListener);
 
     try {
+      console.log("[enrichment-router] Sending LOAD_MODEL to offscreen...");
       const response = await sendToOffscreen<ModelStatusResponse>({
         type: "LOAD_MODEL",
       });
+      console.log("[enrichment-router] Got response:", response);
 
-      webllmModelLoaded = response.status.state === "ready";
+      webllmModelLoaded = response?.status?.state === "ready";
       return webllmModelLoaded;
     } finally {
       chrome.runtime.onMessage.removeListener(progressListener);
