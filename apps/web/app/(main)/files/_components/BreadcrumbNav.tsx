@@ -1,4 +1,4 @@
-import { IconChevronRight, IconHome } from "@tabler/icons-react";
+import { IconChevronRight } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 import type { FolderBreadcrumb } from "@/lib/file-types";
 
@@ -11,11 +11,17 @@ export default function BreadcrumbNav({
   breadcrumbs,
   onNavigate,
 }: BreadcrumbNavProps) {
+  // Skip the root "Files" crumb, only show folder hierarchy
+  const folderCrumbs = breadcrumbs.slice(1);
+
+  if (folderCrumbs.length === 0) {
+    return null;
+  }
+
   return (
     <nav className="flex items-center gap-1 text-sm min-w-0">
-      {breadcrumbs.map((crumb, index) => {
-        const isLast = index === breadcrumbs.length - 1;
-        const isRoot = index === 0;
+      {folderCrumbs.map((crumb, index) => {
+        const isLast = index === folderCrumbs.length - 1;
 
         return (
           <div
@@ -30,14 +36,7 @@ export default function BreadcrumbNav({
             )}
             {isLast ? (
               <span className="text-foreground font-medium truncate">
-                {isRoot ? (
-                  <span className="flex items-center gap-1.5">
-                    <IconHome size={14} stroke={1.5} />
-                    Files
-                  </span>
-                ) : (
-                  crumb.name
-                )}
+                {crumb.name}
               </span>
             ) : (
               <Button
@@ -46,14 +45,7 @@ export default function BreadcrumbNav({
                 className="h-auto px-1.5 py-0.5 text-muted-foreground hover:text-foreground"
                 onClick={() => onNavigate(crumb.id)}
               >
-                {isRoot ? (
-                  <span className="flex items-center gap-1.5">
-                    <IconHome size={14} stroke={1.5} />
-                    Files
-                  </span>
-                ) : (
-                  crumb.name
-                )}
+                {crumb.name}
               </Button>
             )}
           </div>
