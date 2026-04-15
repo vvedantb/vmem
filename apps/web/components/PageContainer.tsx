@@ -38,6 +38,8 @@ export default function PageContainer({
   }, [title, setPageTitle, hideTitle]);
 
   const hasHeader = leftSection || centerSection || rightSection;
+  const showTitleInHeader = Boolean(title) && hasHeader;
+
   const childTransition = {
     duration: motionDuration.fast,
     ease: motionEase,
@@ -52,18 +54,35 @@ export default function PageContainer({
   return (
     <div className="flex h-full min-h-0 flex-col">
       {hasHeader && (
-        <div className="mb-5 flex-shrink-0 min-h-10">
-          <div className="flex h-10 items-center justify-between gap-4">
-            {leftSection && (
-              <motion.div
-                className="flex-shrink-0 mr-auto"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={childTransition}
-              >
-                {leftSection}
-              </motion.div>
+        <div
+          className={cn(
+            "mb-5 flex-shrink-0 min-h-10",
+            centeredMaxWidth && "flex justify-center",
+          )}
+        >
+          <div
+            className={cn(
+              "flex h-10 w-full items-center justify-between gap-4",
+              centeredMaxWidth && "max-w-3xl",
             )}
+          >
+            <div className="flex min-w-0 flex-shrink-0 items-center gap-4">
+              {showTitleInHeader && (
+                <h1 className="hidden min-w-0 truncate text-2xl leading-tight font-instrumentSerif text-foreground md:block">
+                  {title}
+                </h1>
+              )}
+              {leftSection && (
+                <motion.div
+                  className="flex-shrink-0"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={childTransition}
+                >
+                  {leftSection}
+                </motion.div>
+              )}
+            </div>
             <div className="hidden md:flex md:flex-1 md:justify-center">
               {centerSection && (
                 <motion.div
