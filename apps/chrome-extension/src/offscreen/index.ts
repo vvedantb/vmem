@@ -61,12 +61,26 @@ function sendToBackground(message: OffscreenResponse): void {
   });
 }
 
+const HANDLED_TYPES = new Set([
+  "LOAD_MODEL",
+  "GENERATE_ENRICHMENT",
+  "GET_STATUS",
+  "UNLOAD_MODEL",
+]);
+
 chrome.runtime.onMessage.addListener(
   (
     message: OffscreenMessage,
     _sender: chrome.runtime.MessageSender,
     sendResponse: (response: OffscreenResponse) => void,
   ) => {
+    if (
+      typeof message !== "object" ||
+      message === null ||
+      !HANDLED_TYPES.has(Reflect.get(message, "type") as string)
+    ) {
+      return false;
+    }
     void handleMessage(message, sendResponse);
     return true;
   },
@@ -145,5 +159,7 @@ async function handleMessage(
     }
   }
 }
+
+chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" }).catch(() => {});
 
 console.log("[offscreen] Document loaded, ready for WebLLM inference");
