@@ -74,13 +74,16 @@ export function SettingsForm() {
   }
 
   const handleLoadModel = useCallback(async () => {
+    console.log("[popup] Download button clicked");
     setIsLoadingModel(true);
     setLoadProgress({ progress: 0, text: "Initializing..." });
 
     try {
+      console.log("[popup] Sending LOAD_ENRICHMENT_MODEL to background...");
       const response: BackgroundResponse = await chrome.runtime.sendMessage({
         type: "LOAD_ENRICHMENT_MODEL",
       });
+      console.log("[popup] Got response:", response);
 
       if (response.type === "MODEL_LOAD_RESULT" && response.success) {
         setEnrichmentStatus((prev) =>
@@ -88,8 +91,9 @@ export function SettingsForm() {
         );
       }
     } catch (err) {
-      console.error("Failed to load model:", err);
+      console.error("[popup] Failed to load model:", err);
     } finally {
+      console.log("[popup] handleLoadModel finished");
       setIsLoadingModel(false);
       setLoadProgress(null);
     }

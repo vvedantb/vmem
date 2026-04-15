@@ -17,6 +17,17 @@ import {
 import { drainPendingEnrichmentQueue } from "./pending-enrichment-drain";
 import { getStorage } from "@/lib/storage";
 
+const HANDLED_TYPES = new Set<string>([
+  "RETRIEVE_MEMORIES",
+  "SAVE_PAGE",
+  "SAVE_SELECTION",
+  "IMPORT_BOOKMARKS",
+  "IMPORT_HISTORY",
+  "CANCEL_IMPORT",
+  "GET_ENRICHMENT_STATUS",
+  "LOAD_ENRICHMENT_MODEL",
+]);
+
 export function registerMessageHandler(): void {
   chrome.runtime.onMessage.addListener(
     (
@@ -24,6 +35,16 @@ export function registerMessageHandler(): void {
       _sender: chrome.runtime.MessageSender,
       sendResponse: (response: BackgroundResponse) => void,
     ) => {
+      const messageType =
+        typeof message === "object" && message !== null
+          ? Reflect.get(message, "type")
+          : undefined;
+      console.log("[message-handler] Received:", messageType);
+      if (typeof messageType !== "string" || !HANDLED_TYPES.has(messageType)) {
+        console.log("[message-handler] Not handled, skipping");
+        return false;
+      }
+      console.log("[message-handler] Handling:", messageType);
       handleMessage(message).then(sendResponse);
       return true;
     },
