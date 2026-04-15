@@ -41,8 +41,7 @@ export default function MemoriesPage() {
   return (
     <PageContainer
       title="Memories"
-      hideTitle
-      noScroll
+      noScroll={isListView}
       leftSection={
         <ViewTabs
           value={params.view}
