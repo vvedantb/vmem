@@ -97,6 +97,7 @@ interface GraphControlPanelProps {
   edgeCount: number;
 
   isDark: boolean;
+  isDarkCanvas: boolean;
 }
 
 export default function GraphControlPanel({
@@ -117,7 +118,12 @@ export default function GraphControlPanel({
   visibleNodeCount,
   edgeCount,
   isDark,
+  isDarkCanvas,
 }: GraphControlPanelProps) {
+  // Button styling based on canvas theme (for overlay buttons on dark canvas in light system mode)
+  const overlayBtnClass = isDarkCanvas
+    ? "w-8 h-8 flex items-center justify-center rounded-md bg-black/30 backdrop-blur-sm border border-white/10 hover:bg-black/50 text-white/70 hover:text-white transition-colors"
+    : "w-8 h-8 flex items-center justify-center rounded-md bg-background/50 backdrop-blur-sm border border-border/30 hover:bg-background/70 text-muted-foreground hover:text-foreground transition-colors";
   const handleSliderChange = useCallback(
     (key: "scalingRatio" | "gravity", value: number) => {
       onSettingsChange({ ...settings, [key]: value });
@@ -143,7 +149,7 @@ export default function GraphControlPanel({
         <button
           type="button"
           onClick={onToggle}
-          className="absolute top-3 left-3 z-20 w-8 h-8 flex items-center justify-center rounded-md bg-background/50 backdrop-blur-sm border border-border/30 hover:bg-background/70 text-muted-foreground hover:text-foreground transition-colors"
+          className={`absolute top-3 left-3 z-20 ${overlayBtnClass}`}
         >
           <IconMenu2 size={16} />
         </button>

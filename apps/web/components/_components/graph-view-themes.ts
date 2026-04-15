@@ -79,11 +79,11 @@ const DEFAULT_LIGHT: GraphViewTheme = {
   gradientCenter: "rgba(80, 80, 180, 0.03)",
   grid: null,
   edge: {
-    normal: "rgba(0,0,0,0.15)",
-    connected: "rgba(0,0,0,0.25)",
-    dimmed: "rgba(0,0,0,0.03)",
-    width: 0.5,
-    connectedWidth: 1.2,
+    normal: "rgba(0,0,0,0.25)",
+    connected: "rgba(0,0,0,0.4)",
+    dimmed: "rgba(0,0,0,0.05)",
+    width: 0.8,
+    connectedWidth: 1.6,
   },
   glow: {
     enabled: false,
