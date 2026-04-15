@@ -1,16 +1,12 @@
 "use client";
 
-import { useCallback } from "react";
-import { useLocalStorage } from "usehooks-ts";
+import { useState, useCallback } from "react";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import Sidebar from "@/components/Sidebar";
 import { PageTitleProvider } from "@/components/contexts/PageTitleContext";
 
 export default function MainShell({ children }: { children: React.ReactNode }) {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useLocalStorage(
-    "sidebar-collapsed",
-    false,
-  );
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const toggleSidebar = useCallback(
     () => setIsSidebarCollapsed((prev) => !prev),
@@ -27,12 +23,12 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
           onToggleCollapse={toggleSidebar}
         />
         <main
-          className={`relative z-10 flex min-h-0 h-full pt-14 md:h-screen md:p-2 md:px-2 md:pb-2 ${
+          className={`relative z-10 flex h-full pt-14 md:h-screen md:p-2 md:px-2 md:pb-2 ${
             isSidebarCollapsed ? "md:ml-24" : "md:ml-80"
           } md:transition-[margin-left] md:duration-[280ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]`}
         >
           <div className="glass-panel flex min-h-0 flex-1 flex-col overflow-hidden md:rounded-3xl">
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 md:p-4">
+            <div className="flex-1 overflow-y-auto p-3 md:p-4 scrollbar-thin">
               {children}
             </div>
           </div>
