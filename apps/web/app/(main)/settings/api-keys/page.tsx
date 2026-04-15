@@ -11,7 +11,7 @@ import {
   TableBody,
   TableRow,
 } from "@vmem/ui";
-import { IconBolt } from "@tabler/icons-react";
+import { AnimatedKeyIcon } from "@/components/svg-animations";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
 import { ApiKeysLoadingSkeleton } from "@/components/api-keys/ApiKeysLoadingSkeleton";
@@ -66,10 +66,9 @@ export default function ApiKeysPage() {
     >
       {apiKeyList.length === 0 ? (
         <div className="py-16 text-center border border-border rounded-xl">
-          <IconBolt
+          <AnimatedKeyIcon
             size={48}
             className="mx-auto text-muted-foreground mb-4"
-            stroke={1.5}
           />
           <h3 className="text-lg font-medium text-foreground mb-2">
             No API keys yet

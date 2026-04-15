@@ -6,8 +6,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
-import { cn, motionDuration, motionEase } from "@vmem/ui";
+import { motionDuration, motionEase } from "@vmem/ui";
 import type { VoicePhase } from "@/components/contexts/VoiceContext";
+import { AnimatedStatusDot } from "@/components/svg-animations";
 
 interface VoiceStatusLineProps {
   phase: VoicePhase;
@@ -23,14 +24,6 @@ const PHASE_LABELS: Record<VoicePhase, string> = {
   thinking: "Thinking...",
   speaking: "Speaking...",
   error: "Something went wrong",
-};
-
-const PHASE_DOT_COLORS: Record<VoicePhase, string> = {
-  idle: "bg-muted-foreground/40",
-  listening: "bg-red-500",
-  thinking: "bg-amber-500",
-  speaking: "bg-emerald-500",
-  error: "bg-destructive",
 };
 
 export default function VoiceStatusLine({
@@ -64,15 +57,8 @@ export default function VoiceStatusLine({
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: motionDuration.fast, ease: motionEase }}
         >
-          {/* Colored dot indicator */}
-          <span
-            className={cn(
-              "size-2 rounded-full transition-colors",
-              PHASE_DOT_COLORS[phase],
-              (phase === "listening" || phase === "speaking") &&
-                "animate-pulse",
-            )}
-          />
+          {/* Animated status dot with glow and ripples */}
+          <AnimatedStatusDot phase={phase} size={8} />
           <p className="text-sm font-medium text-foreground/80">
             {phase === "error" && errorMessage ? errorMessage : label}
           </p>
