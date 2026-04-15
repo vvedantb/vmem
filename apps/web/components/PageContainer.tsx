@@ -53,65 +53,42 @@ export default function PageContainer({
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
-      <div
-        className={cn(
-          "flex min-h-0 min-w-0 flex-1 overflow-hidden",
-          centeredMaxWidth ? "flex-row justify-center" : "flex-col",
-        )}
-      >
+      {/* Header stays at full width but content inside is centered */}
+      {hasHeader && (
         <div
           className={cn(
-            "flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden",
-            centeredMaxWidth && "max-w-3xl shrink-0",
+            "mb-5 flex-shrink-0 min-h-10",
+            centeredMaxWidth && "flex justify-center",
           )}
         >
-          {hasHeader && (
-            <div className="mb-5 flex-shrink-0 min-h-10">
-              <div className="flex h-10 items-center justify-between gap-4">
-                {(leftSection || mergeTitleIntoHeader) && (
-                  <div className="flex min-w-0 flex-shrink-0 items-center gap-4">
-                    {leftSection && (
-                      <motion.div
-                        className="flex-shrink-0"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={childTransition}
-                      >
-                        {leftSection}
-                      </motion.div>
-                    )}
-                    {mergeTitleIntoHeader ? (
-                      <h1 className="hidden min-w-0 truncate text-2xl leading-tight font-instrumentSerif text-foreground md:block">
-                        {title}
-                      </h1>
-                    ) : null}
-                  </div>
-                )}
-                <div className="hidden min-w-0 flex-1 justify-center md:flex">
-                  {centerSection && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ ...childTransition, delay: 0.06 }}
-                    >
-                      {centerSection}
-                    </motion.div>
-                  )}
-                </div>
-                {rightSection && (
+          <div
+            className={cn(
+              "flex h-10 w-full items-center justify-between gap-4",
+              centeredMaxWidth && "max-w-3xl",
+            )}
+          >
+            {(leftSection || mergeTitleIntoHeader) && (
+              <div className="flex min-w-0 flex-shrink-0 items-center gap-4">
+                {leftSection && (
                   <motion.div
-                    className="flex-shrink-0 ml-auto"
+                    className="flex-shrink-0"
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ ...childTransition, delay: 0.1 }}
+                    transition={childTransition}
                   >
-                    {rightSection}
+                    {leftSection}
                   </motion.div>
                 )}
+                {mergeTitleIntoHeader ? (
+                  <h1 className="hidden min-w-0 truncate text-2xl leading-tight font-instrumentSerif text-foreground md:block">
+                    {title}
+                  </h1>
+                ) : null}
               </div>
+            )}
+            <div className="hidden min-w-0 flex-1 justify-center md:flex">
               {centerSection && (
                 <motion.div
-                  className="mt-3 flex justify-center md:hidden"
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ ...childTransition, delay: 0.06 }}
@@ -120,35 +97,64 @@ export default function PageContainer({
                 </motion.div>
               )}
             </div>
-          )}
-          <div
-            className={cn(
-              "min-h-0 flex-1 flex flex-col",
-              noScroll
-                ? "overflow-hidden"
-                : "overflow-y-auto pr-1 scrollbar-thin",
+            {rightSection && (
+              <motion.div
+                className="flex-shrink-0 ml-auto"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...childTransition, delay: 0.1 }}
+              >
+                {rightSection}
+              </motion.div>
             )}
-          >
+          </div>
+          {centerSection && (
             <motion.div
               className={cn(
-                noScroll
-                  ? "flex min-h-0 flex-1 flex-col"
-                  : "flex flex-col space-y-8",
+                "mt-3 flex justify-center md:hidden",
+                centeredMaxWidth && "max-w-3xl mx-auto",
               )}
-              initial={{ opacity: 0, y: motionDistance.pageY }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={contentTransition}
+              transition={{ ...childTransition, delay: 0.06 }}
             >
-              <div className="flex min-h-0 w-full flex-col">
-                {showInPageHeading && !mergeTitleIntoHeader ? (
-                  <h1 className="mb-6 hidden text-2xl leading-tight font-instrumentSerif text-foreground md:block">
-                    {title}
-                  </h1>
-                ) : null}
-                {children}
-              </div>
+              {centerSection}
             </motion.div>
-          </div>
+          )}
+        </div>
+      )}
+      {/* Scroll container at full width, content centered inside */}
+      <div
+        className={cn(
+          "min-h-0 flex-1 flex flex-col",
+          noScroll ? "overflow-hidden" : "overflow-y-auto pr-1 scrollbar-thin",
+        )}
+      >
+        <div
+          className={cn(
+            "flex min-h-0 w-full flex-1 flex-col",
+            centeredMaxWidth && "max-w-3xl mx-auto",
+          )}
+        >
+          <motion.div
+            className={cn(
+              noScroll
+                ? "flex min-h-0 flex-1 flex-col"
+                : "flex flex-col space-y-8",
+            )}
+            initial={{ opacity: 0, y: motionDistance.pageY }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={contentTransition}
+          >
+            <div className="flex min-h-0 w-full flex-col">
+              {showInPageHeading && !mergeTitleIntoHeader ? (
+                <h1 className="mb-6 hidden text-2xl leading-tight font-instrumentSerif text-foreground md:block">
+                  {title}
+                </h1>
+              ) : null}
+              {children}
+            </div>
+          </motion.div>
         </div>
       </div>
     </div>
