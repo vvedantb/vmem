@@ -7,6 +7,7 @@ export const MOCK_MEMORIES: Memory[] = [
     content:
       "Use memoization only when profiling shows real render pressure. Prefer splitting large components before overusing memo hooks.",
     type: "knowledge",
+    source: "web",
     tags: ["react", "frontend", "performance"],
     createdAt: "2026-02-18T10:12:00.000Z",
   },
@@ -16,6 +17,7 @@ export const MOCK_MEMORIES: Memory[] = [
     content:
       "Keep compose files minimal for local use. Mount source code, cache package manager folders, and isolate database volumes per project.",
     type: "knowledge",
+    source: "web",
     tags: ["docker", "devops"],
     createdAt: "2026-02-17T16:40:00.000Z",
   },
@@ -25,6 +27,7 @@ export const MOCK_MEMORIES: Memory[] = [
     content:
       "Avoid any, model API responses with runtime validation, and keep tsconfig strict flags enabled for shared packages.",
     type: "knowledge",
+    source: "browser-extension",
     tags: ["typescript", "backend", "quality"],
     createdAt: "2026-02-16T09:05:00.000Z",
   },
@@ -34,6 +37,7 @@ export const MOCK_MEMORIES: Memory[] = [
     content:
       "Use composite indexes that match filter order. Measure write amplification before adding broad indexes on hot tables.",
     type: "knowledge",
+    source: "web",
     tags: ["database", "postgres", "performance"],
     createdAt: "2026-02-14T14:20:00.000Z",
   },
@@ -43,6 +47,7 @@ export const MOCK_MEMORIES: Memory[] = [
     content:
       "Power users want faster search, fewer clicks to edit tags, and clearer export options for backups.",
     type: "episodic",
+    source: "web",
     tags: ["product", "research", "ux"],
     createdAt: "2026-02-12T11:30:00.000Z",
   },
@@ -52,6 +57,7 @@ export const MOCK_MEMORIES: Memory[] = [
     content:
       "Return stable error codes, keep messages user-safe, and log detailed diagnostics with request context for debugging.",
     type: "knowledge",
+    source: "notion",
     tags: ["api", "backend", "reliability"],
     createdAt: "2026-02-10T19:50:00.000Z",
   },
@@ -61,6 +67,7 @@ export const MOCK_MEMORIES: Memory[] = [
     content:
       "Use server components by default for data-heavy pages. Add client components only when interaction state is required.",
     type: "knowledge",
+    source: "google_drive",
     tags: ["nextjs", "frontend", "architecture"],
     createdAt: "2026-02-08T08:15:00.000Z",
   },
@@ -70,6 +77,7 @@ export const MOCK_MEMORIES: Memory[] = [
     content:
       "Document active incidents, high-risk deploys, pending rollbacks, and top alerts with clear owner and ETA.",
     type: "episodic",
+    source: "web",
     tags: ["ops", "team", "process"],
     createdAt: "2026-02-05T22:10:00.000Z",
   },

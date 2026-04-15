@@ -1,11 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { streamText } from "ai";
 import { useUIMessages, type UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
+import {
+  VMEM_LOCAL_CHAT_CORE,
+  buildMemoryRagAddition,
+  composeSystemPrompt,
+} from "@vmem/backend/memoryRagPrompt";
 import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
+import { parseThinkTags } from "@/lib/think-tags";
 
 /** Token-usage summary for a single assistant message bubble. */
 export interface MessageUsageSummary {
@@ -18,29 +24,35 @@ export interface MessageUsageSummary {
   tokensPerSecond?: number;
 }
 
-const SYSTEM_PROMPT = [
-  "You are vmem, a memory assistant that helps users store, search, and recall their personal memories.",
-  "You are currently running locally in the user's browser with limited capabilities.",
-  "You cannot search memories right now. Have a helpful general conversation.",
-  "Be concise and helpful.",
-].join(" ");
+export interface ChatMemoryRef {
+  id: string;
+  title: string;
+}
+
+const RETRIEVE_LIMIT = 8;
 
 function makeLocalMessage(
+  threadId: string | null,
   role: "user" | "assistant",
   text: string,
   status: "success" | "streaming",
   order: number,
 ): UIMessage {
   const id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const stepOrder = 0;
+  const key =
+    threadId !== null
+      ? `${threadId}-${String(order)}-${String(stepOrder)}`
+      : id;
   return {
     id,
-    key: id,
+    key,
     role,
     text,
     status,
     parts: text ? [{ type: "text", text }] : [],
     order,
-    stepOrder: 0,
+    stepOrder,
     agentName: "vmem-local",
     _creationTime: Date.now(),
   };
@@ -80,49 +92,6 @@ function getHighestOrder(messages: UIMessage[]): number {
   );
 }
 
-/**
- * Parse <think>...</think> tags from raw text.
- * Returns { reasoning, text, isThinking } where:
- * - reasoning: content inside <think> tags (accumulated)
- * - text: content outside <think> tags
- * - isThinking: true if currently inside an unclosed <think> tag
- */
-function parseThinkTags(raw: string): {
-  reasoning: string;
-  text: string;
-  isThinking: boolean;
-} {
-  let reasoning = "";
-  let text = "";
-  let isThinking = false;
-  let cursor = 0;
-
-  while (cursor < raw.length) {
-    if (!isThinking) {
-      const thinkStart = raw.indexOf("<think>", cursor);
-      if (thinkStart === -1) {
-        text += raw.slice(cursor);
-        break;
-      }
-      text += raw.slice(cursor, thinkStart);
-      cursor = thinkStart + 7; // length of "<think>"
-      isThinking = true;
-    } else {
-      const thinkEnd = raw.indexOf("</think>", cursor);
-      if (thinkEnd === -1) {
-        // Still inside thinking, accumulate but don't add to reasoning yet
-        reasoning += raw.slice(cursor);
-        break;
-      }
-      reasoning += raw.slice(cursor, thinkEnd);
-      cursor = thinkEnd + 8; // length of "</think>"
-      isThinking = false;
-    }
-  }
-
-  return { reasoning: reasoning.trim(), text: text.trim(), isThinking };
-}
-
 interface LocalChatResult {
   messages: UIMessage[];
   sendMessage: (text: string) => Promise<void>;
@@ -132,6 +101,7 @@ interface LocalChatResult {
   /** Thread loaded AND WebLLM engine ready. */
   isReady: boolean;
   usageByMessageKey: Record<string, MessageUsageSummary>;
+  memoryRefsByMessageKey: Record<string, ChatMemoryRef[]>;
 }
 
 export function useLocalChat(): LocalChatResult {
@@ -141,11 +111,15 @@ export function useLocalChat(): LocalChatResult {
   const [draftUsageByKey, setDraftUsageByKey] = useState<
     Record<string, MessageUsageSummary>
   >({});
+  const [draftMemoryRefsByKey, setDraftMemoryRefsByKey] = useState<
+    Record<string, ChatMemoryRef[]>
+  >({});
   const [isStreaming, setIsStreaming] = useState(false);
   const orderRef = useRef(0);
 
   const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
+  const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
 
   // Load or create the chat thread on mount
   useEffect(() => {
@@ -161,6 +135,11 @@ export function useLocalChat(): LocalChatResult {
       api.chat.getThreadMessageUsage,
       threadId ? { threadId } : "skip",
     ) ?? {};
+  const persistedMemoryRefsByKey: Record<string, ChatMemoryRef[]> =
+    useQuery(
+      api.chat.getThreadMessageMemoryRefs,
+      threadId ? { threadId } : "skip",
+    ) ?? {};
   const { results: persistedMessages } = useUIMessages(
     api.chat.listThreadMessages,
     threadId ? { threadId } : "skip",
@@ -169,6 +148,7 @@ export function useLocalChat(): LocalChatResult {
 
   useEffect(() => {
     setDraftMessages([]);
+    setDraftMemoryRefsByKey({});
     orderRef.current = 0;
   }, [threadId]);
 
@@ -198,12 +178,14 @@ export function useLocalChat(): LocalChatResult {
       orderRef.current = startingOrder + 2;
 
       const userMessage = makeLocalMessage(
+        threadId,
         "user",
         text,
         "success",
         startingOrder,
       );
       const assistantMessage = makeLocalMessage(
+        threadId,
         "assistant",
         "",
         "streaming",
@@ -214,6 +196,33 @@ export function useLocalChat(): LocalChatResult {
       setIsStreaming(true);
 
       try {
+        let memoryRefs: ChatMemoryRef[] = [];
+        let systemPrompt = VMEM_LOCAL_CHAT_CORE;
+
+        try {
+          const retrieved = await retrieveMemories({
+            query: text,
+            limit: RETRIEVE_LIMIT,
+          });
+          memoryRefs = retrieved.map((m) => ({ id: m.id, title: m.title }));
+          const addition = buildMemoryRagAddition(
+            retrieved.map((m) => ({
+              id: m.id,
+              title: m.title,
+              content: m.content,
+              trace: { reason: m.trace.reason },
+            })),
+          );
+          systemPrompt = composeSystemPrompt(VMEM_LOCAL_CHAT_CORE, addition);
+        } catch (retrieveError) {
+          console.error("retrieveMemories failed:", retrieveError);
+        }
+
+        setDraftMemoryRefsByKey((prev) => ({
+          ...prev,
+          [assistantMessage.key]: memoryRefs,
+        }));
+
         const conversationHistory = messages.flatMap((message) => {
           if (message.status !== "success") {
             return [];
@@ -226,7 +235,7 @@ export function useLocalChat(): LocalChatResult {
 
         const result = streamText({
           model,
-          system: SYSTEM_PROMPT,
+          system: systemPrompt,
           messages: [...conversationHistory, { role: "user", content: text }],
         });
 
@@ -302,6 +311,7 @@ export function useLocalChat(): LocalChatResult {
         );
 
         if (threadId && displayText) {
+          const hasRefs = memoryRefs.length > 0;
           await saveLocalMessages({
             threadId,
             userText: text,
@@ -311,9 +321,17 @@ export function useLocalChat(): LocalChatResult {
               completionTokens: finalOutputTokens,
               totalTokens: inputTokens + finalOutputTokens,
             },
+            ...(hasRefs
+              ? {
+                  memoryRefs,
+                  assistantOrder: assistantMessage.order,
+                  assistantStepOrder: assistantMessage.stepOrder,
+                }
+              : {}),
           });
           setDraftMessages([]);
           setDraftUsageByKey({});
+          setDraftMemoryRefsByKey({});
         }
       } catch (error) {
         const errorText =
@@ -329,12 +347,24 @@ export function useLocalChat(): LocalChatResult {
         setIsStreaming(false);
       }
     },
-    [isStreaming, messages, model, saveLocalMessages, threadId],
+    [
+      isStreaming,
+      messages,
+      model,
+      retrieveMemories,
+      saveLocalMessages,
+      threadId,
+    ],
   );
 
   const usageByMessageKey: Record<string, MessageUsageSummary> = {
     ...persistedUsageByKey,
     ...draftUsageByKey,
+  };
+
+  const memoryRefsByMessageKey: Record<string, ChatMemoryRef[]> = {
+    ...persistedMemoryRefsByKey,
+    ...draftMemoryRefsByKey,
   };
 
   const isThreadReady = threadId !== null;
@@ -347,5 +377,6 @@ export function useLocalChat(): LocalChatResult {
     isThreadReady,
     isReady: isThreadReady && isModelReady,
     usageByMessageKey,
+    memoryRefsByMessageKey,
   };
 }

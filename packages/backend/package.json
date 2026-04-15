@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./memoryRagPrompt": "./src/memoryRagPrompt.ts",
+    "./enrichmentPrompt": "./src/enrichmentPrompt.ts"
   },
   "scripts": {
     "dev": "npx convex dev",

@@ -3,6 +3,7 @@ import { useUser, useClerk } from "@clerk/chrome-extension";
 import { IconSparkles, IconDownload, IconCheck } from "@tabler/icons-react";
 import { Button, Label, Switch, Spinner } from "@vmem/ui";
 import { getStorage, setStorage } from "@/lib/storage";
+import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import type { BackgroundResponse, ProgressMessage } from "@/types/messages";
 
 type EnrichmentMethod = "chrome-ai" | "webllm" | null;
@@ -16,7 +17,7 @@ interface EnrichmentStatus {
 export function SettingsForm() {
   const { user } = useUser();
   const { signOut } = useClerk();
-  const [selectionPopupEnabled, setSelectionPopupEnabled] = useState(true);
+  const { settings, update } = useExtensionUserSettings();
   const [localEnrichmentEnabled, setLocalEnrichmentEnabled] = useState(true);
   const [enrichmentStatus, setEnrichmentStatus] =
     useState<EnrichmentStatus | null>(null);
@@ -26,10 +27,8 @@ export function SettingsForm() {
     text: string;
   } | null>(null);
 
-  // Load initial settings
   useEffect(() => {
     getStorage().then((s) => {
-      setSelectionPopupEnabled(s.selectionPopupEnabled);
       setLocalEnrichmentEnabled(s.localEnrichmentEnabled);
     });
 
@@ -66,8 +65,7 @@ export function SettingsForm() {
   }, []);
 
   function handleSelectionPopupToggle(checked: boolean) {
-    setSelectionPopupEnabled(checked);
-    setStorage({ selectionPopupEnabled: checked });
+    void update({ extensionSelectionPopupEnabled: checked });
   }
 
   function handleLocalEnrichmentToggle(checked: boolean) {
@@ -76,13 +74,16 @@ export function SettingsForm() {
   }
 
   const handleLoadModel = useCallback(async () => {
+    console.log("[popup] Download button clicked");
     setIsLoadingModel(true);
     setLoadProgress({ progress: 0, text: "Initializing..." });
 
     try {
+      console.log("[popup] Sending LOAD_ENRICHMENT_MODEL to background...");
       const response: BackgroundResponse = await chrome.runtime.sendMessage({
         type: "LOAD_ENRICHMENT_MODEL",
       });
+      console.log("[popup] Got response:", response);
 
       if (response.type === "MODEL_LOAD_RESULT" && response.success) {
         setEnrichmentStatus((prev) =>
@@ -90,8 +91,9 @@ export function SettingsForm() {
         );
       }
     } catch (err) {
-      console.error("Failed to load model:", err);
+      console.error("[popup] Failed to load model:", err);
     } finally {
+      console.log("[popup] handleLoadModel finished");
       setIsLoadingModel(false);
       setLoadProgress(null);
     }
@@ -168,8 +170,9 @@ export function SettingsForm() {
         </Label>
         <Switch
           id="selection-popup-toggle"
-          checked={selectionPopupEnabled}
+          checked={settings?.extensionSelectionPopupEnabled ?? true}
           onCheckedChange={handleSelectionPopupToggle}
+          disabled={settings === undefined}
         />
       </div>
 

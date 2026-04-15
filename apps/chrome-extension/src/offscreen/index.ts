@@ -1,32 +1,21 @@
-/**
- * Offscreen document entry point for WebLLM inference.
- * This document has access to WebGPU which service workers don't have.
- *
- * Message protocol:
- * - LOAD_MODEL: Initialize WebLLM with Qwen 0.6B
- * - GENERATE_TAGS: Run inference to generate tags
- * - GET_STATUS: Get current model status
- * - UNLOAD_MODEL: Free GPU memory
- */
-
 import {
   loadModel,
-  generateTags,
+  generateFullEnrichment,
   unloadModel,
   getModelStatus,
   type ModelStatus,
 } from "./enrichment-engine";
 
-// Message types from background script
 interface LoadModelMessage {
   type: "LOAD_MODEL";
 }
 
-interface GenerateTagsMessage {
-  type: "GENERATE_TAGS";
+interface GenerateEnrichmentMessage {
+  type: "GENERATE_ENRICHMENT";
   requestId: string;
   title: string;
   content: string;
+  existingMemories: Array<{ id: string; title: string }>;
 }
 
 interface GetStatusMessage {
@@ -39,20 +28,19 @@ interface UnloadModelMessage {
 
 type OffscreenMessage =
   | LoadModelMessage
-  | GenerateTagsMessage
+  | GenerateEnrichmentMessage
   | GetStatusMessage
   | UnloadModelMessage;
 
-// Response types to background script
 interface ModelStatusResponse {
   type: "MODEL_STATUS";
   status: ModelStatus;
 }
 
-interface TagsGeneratedResponse {
-  type: "TAGS_GENERATED";
+interface EnrichmentGeneratedResponse {
+  type: "ENRICHMENT_GENERATED";
   requestId: string;
-  tags: string[] | null;
+  result: { tags: string[]; relatedMemoryIds: string[] } | null;
   error?: string;
 }
 
@@ -64,30 +52,38 @@ interface ModelLoadProgressResponse {
 
 type OffscreenResponse =
   | ModelStatusResponse
-  | TagsGeneratedResponse
+  | EnrichmentGeneratedResponse
   | ModelLoadProgressResponse;
 
-/**
- * Send a message to the background script.
- */
 function sendToBackground(message: OffscreenResponse): void {
   chrome.runtime.sendMessage(message).catch((err) => {
-    // Background might not be listening, that's okay
     console.debug("[offscreen] Failed to send message:", err);
   });
 }
 
-/**
- * Handle incoming messages from the background script.
- */
+const HANDLED_TYPES = new Set([
+  "LOAD_MODEL",
+  "GENERATE_ENRICHMENT",
+  "GET_STATUS",
+  "UNLOAD_MODEL",
+]);
+
 chrome.runtime.onMessage.addListener(
   (
     message: OffscreenMessage,
     _sender: chrome.runtime.MessageSender,
     sendResponse: (response: OffscreenResponse) => void,
   ) => {
-    handleMessage(message, sendResponse);
-    return true; // Keep channel open for async response
+    const msgType =
+      typeof message === "object" && message !== null
+        ? Reflect.get(message, "type")
+        : undefined;
+    console.log("[offscreen] Received message type:", msgType);
+    if (typeof msgType !== "string" || !HANDLED_TYPES.has(msgType)) {
+      return false;
+    }
+    void handleMessage(message, sendResponse);
+    return true;
   },
 );
 
@@ -120,21 +116,25 @@ async function handleMessage(
       break;
     }
 
-    case "GENERATE_TAGS": {
-      console.log("[offscreen] Generating tags for:", message.title);
+    case "GENERATE_ENRICHMENT": {
+      console.log("[offscreen] Generating enrichment for:", message.title);
       try {
-        const tags = await generateTags(message.title, message.content);
+        const result = await generateFullEnrichment(
+          message.title,
+          message.content,
+          message.existingMemories,
+        );
         sendResponse({
-          type: "TAGS_GENERATED",
+          type: "ENRICHMENT_GENERATED",
           requestId: message.requestId,
-          tags,
+          result,
         });
       } catch (err) {
-        console.error("[offscreen] Tag generation failed:", err);
+        console.error("[offscreen] Enrichment generation failed:", err);
         sendResponse({
-          type: "TAGS_GENERATED",
+          type: "ENRICHMENT_GENERATED",
           requestId: message.requestId,
-          tags: null,
+          result: null,
           error: err instanceof Error ? err.message : "Unknown error",
         });
       }
@@ -161,5 +161,6 @@ async function handleMessage(
   }
 }
 
-// Log when offscreen document is loaded
+chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" }).catch(() => {});
+
 console.log("[offscreen] Document loaded, ready for WebLLM inference");

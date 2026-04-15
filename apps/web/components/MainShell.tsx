@@ -11,7 +11,6 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
     "sidebar-collapsed",
     false,
   );
-
   const toggleSidebar = useCallback(
     () => setIsSidebarCollapsed((prev) => !prev),
     [],

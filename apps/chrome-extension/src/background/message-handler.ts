@@ -1,5 +1,10 @@
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { createMemory, retrieveMemories, applyEnrichment } from "./api-client";
+import {
+  createMemory,
+  retrieveMemories,
+  applyEnrichment,
+  listRecentMemoryTitlesForEnrichment,
+} from "./api-client";
 import { savePageFromTab } from "./context-menu";
 import { importBookmarks } from "./import-bookmarks";
 import { importHistory } from "./import-history";
@@ -9,7 +14,19 @@ import {
   getEnrichmentStatus,
   loadWebLLMModel,
 } from "./enrichment-router";
+import { drainPendingEnrichmentQueue } from "./pending-enrichment-drain";
 import { getStorage } from "@/lib/storage";
+
+const HANDLED_TYPES = new Set<string>([
+  "RETRIEVE_MEMORIES",
+  "SAVE_PAGE",
+  "SAVE_SELECTION",
+  "IMPORT_BOOKMARKS",
+  "IMPORT_HISTORY",
+  "CANCEL_IMPORT",
+  "GET_ENRICHMENT_STATUS",
+  "LOAD_ENRICHMENT_MODEL",
+]);
 
 export function registerMessageHandler(): void {
   chrome.runtime.onMessage.addListener(
@@ -18,6 +35,16 @@ export function registerMessageHandler(): void {
       _sender: chrome.runtime.MessageSender,
       sendResponse: (response: BackgroundResponse) => void,
     ) => {
+      const messageType =
+        typeof message === "object" && message !== null
+          ? Reflect.get(message, "type")
+          : undefined;
+      console.log("[message-handler] Received:", messageType);
+      if (typeof messageType !== "string" || !HANDLED_TYPES.has(messageType)) {
+        console.log("[message-handler] Not handled, skipping");
+        return false;
+      }
+      console.log("[message-handler] Handling:", messageType);
       handleMessage(message).then(sendResponse);
       return true;
     },
@@ -42,14 +69,15 @@ async function enrichMemoryLocally(
     }
 
     console.log("[enrichment] Enriching memory:", memoryId);
-    const tags = await enrichMemory(title, content);
+    const existing = await listRecentMemoryTitlesForEnrichment(memoryId);
+    const result = await enrichMemory(title, content, existing);
 
-    if (tags && tags.length > 0) {
-      console.log("[enrichment] Generated tags:", tags);
-      await applyEnrichment(memoryId, tags);
-      console.log("[enrichment] Tags applied successfully");
+    if (result && result.tags.length > 0) {
+      console.log("[enrichment] Generated enrichment:", result);
+      await applyEnrichment(memoryId, result.tags, result.relatedMemoryIds);
+      console.log("[enrichment] Enrichment applied successfully");
     } else {
-      console.log("[enrichment] No tags generated");
+      console.log("[enrichment] No enrichment generated");
     }
   } catch (err) {
     // Don't fail the memory creation if enrichment fails
@@ -206,6 +234,9 @@ async function handleMessage(
               // Popup might be closed, ignore
             });
         });
+        if (success) {
+          void drainPendingEnrichmentQueue();
+        }
         return { type: "MODEL_LOAD_RESULT", success };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";

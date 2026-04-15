@@ -1,21 +1,25 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Button, Input, cn } from "@vmem/ui";
-import {
-  IconSearch,
-  IconMoodEmpty,
-  IconLoader2,
-  IconFilter,
-  IconX,
-} from "@tabler/icons-react";
-import { useSearchParams } from "next/navigation";
+import { useQueryStates } from "nuqs";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Input, cn } from "@vmem/ui";
+import { IconSearch, IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Virtuoso } from "react-virtuoso";
 import MemoryDetailPanel from "./MemoryDetailPanel";
-import TagSidebar from "./_components/TagSidebar";
+import MemoryTagFilter from "./_components/MemoryTagFilter";
+import MemorySourceFilter from "./_components/MemorySourceFilter";
 import MemoryListItem from "./_components/MemoryListItem";
-import { searchMemories, type Memory, type SearchResult } from "@/lib/memories";
+import {
+  searchMemories,
+  memoryMatchesTagFilters,
+  memoryMatchesSourceFilters,
+  formatMemorySourceLabel,
+  type Memory,
+  type SearchResult,
+} from "@/lib/memories";
+import { memoriesSearchParams } from "@/app/(main)/memories/searchParams";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useTrailData } from "@/hooks/useTrailData";
 
@@ -28,34 +32,74 @@ export default function MemorySearch({
   searchQuery: externalQuery,
   onSearchChange,
 }: MemorySearchProps = {}) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [params, setParams] = useQueryStates(memoriesSearchParams);
+
   const { memories: allMemories, isLoading } = useMemoryContext();
   const [internalQuery, setInternalQuery] = useState("");
   const searchQuery = externalQuery ?? internalQuery;
   const setSearchQuery = onSearchChange ?? setInternalQuery;
   const isExternalSearch = externalQuery !== undefined;
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const { trailMap } = useTrailData({ tag: selectedTag });
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const trailTag = params.tags.length === 1 ? params.tags[0] : null;
+  const { trailMap } = useTrailData({ tag: trailTag });
+
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
     null,
   );
 
   useEffect(() => {
-    const initialTag = searchParams.get("tag");
-    if (initialTag && selectedTag === null) {
-      setSelectedTag(initialTag.trim().toLowerCase());
+    const legacy = searchParams.get("tag");
+    if (!legacy?.trim()) {
+      return;
     }
-  }, [searchParams, selectedTag]);
+    if (params.tags.length > 0) {
+      return;
+    }
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("tag");
+    next.set("tags", legacy.trim().toLowerCase());
+    router.replace(`${pathname}?${next.toString()}`);
+  }, [searchParams, pathname, router, params.tags.length]);
+
+  useEffect(() => {
+    const legacy = searchParams.get("source");
+    if (!legacy?.trim()) {
+      return;
+    }
+    if (params.sources.length > 0) {
+      return;
+    }
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("source");
+    next.set("sources", legacy.trim());
+    router.replace(`${pathname}?${next.toString()}`);
+  }, [searchParams, pathname, router, params.sources.length]);
+
+  const distinctSources = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of allMemories) {
+      set.add(m.source);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [allMemories]);
+
+  const memoriesAfterTags = useMemo(
+    () => allMemories.filter((m) => memoryMatchesTagFilters(m, params.tags)),
+    [allMemories, params.tags],
+  );
 
   const filteredMemories = useMemo(() => {
-    if (selectedTag === null) {
-      return allMemories;
+    if (params.sources.length === 0) {
+      return memoriesAfterTags;
     }
-
-    return allMemories.filter((memory) => memory.tags.includes(selectedTag));
-  }, [allMemories, selectedTag]);
+    return memoriesAfterTags.filter((m) =>
+      memoryMatchesSourceFilters(m, params.sources),
+    );
+  }, [memoriesAfterTags, params.sources]);
 
   const normalizedQuery = searchQuery.trim();
   const searchResults = useMemo(() => {
@@ -69,6 +113,22 @@ export default function MemorySearch({
   const displayData: (Memory | SearchResult)[] =
     searchResults ?? filteredMemories;
   const isShowingSearchResults = searchResults !== null;
+
+  const searchPlaceholder = useMemo(() => {
+    const hints: string[] = [];
+    if (params.tags.length > 0) {
+      hints.push(params.tags.join(" · "));
+    }
+    if (params.sources.length > 0) {
+      hints.push(
+        params.sources.map((s) => formatMemorySourceLabel(s)).join(" · "),
+      );
+    }
+    if (hints.length === 0) {
+      return "Search memories semantically...";
+    }
+    return `Search (${hints.join(" — ")})...`;
+  }, [params.tags, params.sources]);
 
   const selectedMemory = useMemo(() => {
     if (!selectedMemoryId) {
@@ -87,11 +147,6 @@ export default function MemorySearch({
       setSelectedMemoryId(null);
     }
   }, [allMemories, selectedMemoryId]);
-
-  const handleSelectTag = useCallback((tag: string | null) => {
-    setSelectedTag(tag);
-    setMobileSidebarOpen(false);
-  }, []);
 
   const handleMemoryUpdate = useCallback((updatedMemory: Memory) => {
     setSelectedMemoryId(updatedMemory.id);
@@ -153,71 +208,22 @@ export default function MemorySearch({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 gap-4">
-      <div className="hidden md:block w-56 flex-shrink-0 overflow-y-auto pr-6">
-        <TagSidebar
-          memories={allMemories}
-          selectedTag={selectedTag}
-          onSelectTag={handleSelectTag}
-        />
-      </div>
-
-      <AnimatePresence>
-        {mobileSidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="md:hidden fixed inset-0 z-40 bg-black/40"
-              onClick={() => setMobileSidebarOpen(false)}
-            />
-            <motion.div
-              initial={{ x: -240, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -240, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="md:hidden absolute inset-y-0 left-0 z-50 w-60 overflow-y-auto border-r border-border bg-background p-3 rounded-r-xl shadow-lg"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-foreground">
-                  Filter
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className="text-muted-foreground"
-                >
-                  <IconX size={16} />
-                </Button>
-              </div>
-              <TagSidebar
-                memories={allMemories}
-                selectedTag={selectedTag}
-                onSelectTag={handleSelectTag}
-              />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
+    <div className="relative flex h-full min-h-0 flex-col">
       <div className="flex flex-1 min-w-0 min-h-0 flex-col">
         {!isExternalSearch && (
-          <div className="flex gap-2 flex-shrink-0 pb-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setMobileSidebarOpen(true)}
-              className={cn(
-                "md:hidden h-12 w-12 flex-shrink-0",
-                selectedTag && "border-primary text-primary",
-              )}
-            >
-              <IconFilter size={18} stroke={1.5} />
-            </Button>
-            <div className="relative flex-1">
+          <div className="flex gap-2 flex-shrink-0 pb-4 flex-wrap">
+            <MemoryTagFilter
+              memories={allMemories}
+              selectedTags={params.tags}
+              onTagsChange={(tags) => setParams({ tags })}
+            />
+            <MemorySourceFilter
+              sources={distinctSources}
+              baseMemories={memoriesAfterTags}
+              selectedSources={params.sources}
+              onSourcesChange={(sources) => setParams({ sources })}
+            />
+            <div className="relative flex-1 min-w-[200px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
                 <IconSearch
                   className="text-muted-foreground"
@@ -229,11 +235,7 @@ export default function MemorySearch({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={
-                  selectedTag
-                    ? `Search in "${selectedTag}"...`
-                    : "Search memories semantically..."
-                }
+                placeholder={searchPlaceholder}
                 className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
               />
             </div>

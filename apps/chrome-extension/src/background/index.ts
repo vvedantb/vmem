@@ -4,9 +4,12 @@ import {
   startAutoSync,
   stopAutoSync,
   registerAlarmListener,
+  ensureSettingsMirrorAlarm,
 } from "./sync-scheduler";
+import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
 import { getStorage } from "@/lib/storage";
 import { initializeEnrichment } from "./enrichment-router";
+import { drainPendingEnrichmentQueue } from "./pending-enrichment-drain";
 
 // CRITICAL: Register alarm listener at top level so it's ready when
 // service worker wakes up from an alarm. Service workers can restart
@@ -15,14 +18,19 @@ registerAlarmListener();
 
 chrome.runtime.onInstalled.addListener(async () => {
   registerContextMenu();
+  await refreshUserSettingsMirrorFromConvex();
+  ensureSettingsMirrorAlarm();
   await initAutoSync();
   await initializeEnrichment();
+  void drainPendingEnrichmentQueue();
 });
 
-// Service worker restarts clear listeners but alarms persist — re-register.
 chrome.runtime.onStartup.addListener(async () => {
+  await refreshUserSettingsMirrorFromConvex();
+  ensureSettingsMirrorAlarm();
   await initAutoSync();
   await initializeEnrichment();
+  void drainPendingEnrichmentQueue();
 });
 
 // React to user toggling auto-sync in the popup.

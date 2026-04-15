@@ -12,14 +12,14 @@ export default function ApiLogsPage() {
 
   if (data === undefined) {
     return (
-      <PageContainer title="Usage">
+      <PageContainer title="Usage" showTitle>
         <ApiLogsLoadingSkeleton />
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer title="Usage">
+    <PageContainer title="Usage" showTitle>
       <ApiLogsSummary
         totalRequests={data.summary.totalRequests}
         successRate={data.summary.successRate}

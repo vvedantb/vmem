@@ -8,7 +8,12 @@ import {
   ContextMenuItem,
 } from "@vmem/ui";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
-import { timeAgo, type Memory, type SearchResult } from "@/lib/memories";
+import {
+  formatMemorySourceLabel,
+  timeAgo,
+  type Memory,
+  type SearchResult,
+} from "@/lib/memories";
 import type { TrailEntry } from "@/hooks/useTrailData";
 
 interface MemoryListItemProps {
@@ -40,26 +45,36 @@ export default function MemoryListItem({
           )}
           onClick={() => onCardClick(item)}
         >
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground truncate">
+          <div className="flex items-center gap-2 min-w-0 w-full">
+            <span className="text-sm font-medium text-foreground truncate min-w-0 flex-1">
               {item.title}
             </span>
-            {trailEntry && trailEntry.connectionType === "related" && (
-              <Badge
-                variant="outline"
-                className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0 border-violet-400 text-violet-600 dark:border-violet-600 dark:text-violet-400"
-              >
-                {trailEntry.reason ?? "related"}
-              </Badge>
-            )}
-            {isShowingSearchResults && "relevanceScore" in item && (
-              <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
-                {Math.round(item.relevanceScore * 100)}%
-              </span>
-            )}
-            <span className="ml-auto text-xs text-muted-foreground/50 tabular-nums flex-shrink-0">
-              {timeAgo(item.createdAt)}
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              {trailEntry && trailEntry.connectionType === "related" && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0 border-violet-400 text-violet-600 dark:border-violet-600 dark:text-violet-400"
+                >
+                  {trailEntry.reason ?? "related"}
+                </Badge>
+              )}
+              {isShowingSearchResults && "relevanceScore" in item && (
+                <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
+                  {Math.round(item.relevanceScore * 100)}%
+                </span>
+              )}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted-foreground border-border whitespace-nowrap"
+                >
+                  {formatMemorySourceLabel(item.source)}
+                </Badge>
+                <span className="text-xs text-muted-foreground/50 tabular-nums whitespace-nowrap">
+                  {timeAgo(item.createdAt)}
+                </span>
+              </div>
+            </div>
           </div>
         </Card>
       </ContextMenuTrigger>

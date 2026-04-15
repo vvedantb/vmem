@@ -43,6 +43,7 @@ export const createMemoryInternal = internalAction({
     confidence: v.number(),
     expiresAt: v.optional(v.string()),
     url: v.optional(v.string()),
+    queueForLocalEnrichment: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const service = new MemoryService(getDriver());
@@ -88,17 +89,13 @@ export const createMemoryInternal = internalAction({
       payload: JSON.stringify({ title: result.title }),
     });
 
-    // Schedule enrichment
-    await ctx.scheduler.runAfter(
-      0,
-      internal.neo4jActions.enrichment.enrichMemory,
-      {
+    if (args.queueForLocalEnrichment === true) {
+      await ctx.runMutation(internal.pendingEnrichment.enqueuePendingInternal, {
+        clerkId: args.clerkId,
         memoryId: result.id,
-        userId: args.clerkId,
-        title: result.title,
-        content: result.content,
-      },
-    );
+        source: "import",
+      });
+    }
 
     return result;
   },
@@ -248,5 +245,19 @@ export const getMemoryEventsInternal = internalAction({
   handler: async (_ctx, args) => {
     const service = new MemoryService(getDriver());
     return await service.getMemoryEvents(args.clerkId, args.memoryId);
+  },
+});
+
+export const getRecentMemoryTitlesInternal = internalAction({
+  args: {
+    clerkId: v.string(),
+    excludeMemoryId: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const service = new MemoryService(getDriver());
+    return await service.getRecentMemoryTitles(
+      args.clerkId,
+      args.excludeMemoryId,
+    );
   },
 });

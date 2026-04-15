@@ -1,21 +1,9 @@
-/**
- * Enrichment router - orchestrates local enrichment strategies.
- *
- * Priority:
- * 1. Chrome Built-in AI (Gemini Nano) - if available
- * 2. WebLLM via Offscreen Document - if Chrome AI unavailable
- * 3. Skip enrichment - if both fail
- *
- * No server fallback - local only for maximum privacy.
- */
-
 import {
   checkChromeAIAvailability,
-  generateTagsWithChromeAI,
+  runFullEnrichmentWithChromeAI,
 } from "./chrome-ai-enrichment";
 import { ensureOffscreenDocument, sendToOffscreen } from "./offscreen-manager";
 
-// Types for offscreen communication
 interface ModelStatus {
   state: "idle" | "loading" | "ready" | "error";
   modelId: string | null;
@@ -28,37 +16,25 @@ interface ModelStatusResponse {
   status: ModelStatus;
 }
 
-interface TagsGeneratedResponse {
-  type: "TAGS_GENERATED";
+interface EnrichmentGeneratedResponse {
+  type: "ENRICHMENT_GENERATED";
   requestId: string;
-  tags: string[] | null;
+  result: { tags: string[]; relatedMemoryIds: string[] } | null;
   error?: string;
 }
 
-// Track which enrichment method is active
 let activeMethod: "chrome-ai" | "webllm" | null = null;
 let webllmModelLoaded = false;
 
-/**
- * Get the current enrichment method being used.
- */
 export function getActiveEnrichmentMethod(): "chrome-ai" | "webllm" | null {
   return activeMethod;
 }
 
-/**
- * Check if WebLLM model is loaded and ready.
- */
 export function isWebLLMReady(): boolean {
   return webllmModelLoaded;
 }
 
-/**
- * Initialize the enrichment router.
- * Checks which methods are available and prepares them.
- */
 export async function initializeEnrichment(): Promise<void> {
-  // Check Chrome AI availability
   const chromeAIAvailable = await checkChromeAIAvailability();
 
   if (chromeAIAvailable === "readily") {
@@ -67,13 +43,11 @@ export async function initializeEnrichment(): Promise<void> {
     return;
   }
 
-  // Chrome AI not available, prepare WebLLM
   console.log(
     "[enrichment-router] Chrome AI not available, will use WebLLM fallback",
   );
   activeMethod = "webllm";
 
-  // Check if WebLLM model is already loaded (from previous session)
   try {
     await ensureOffscreenDocument();
     const response = await sendToOffscreen<ModelStatusResponse>({
@@ -89,42 +63,39 @@ export async function initializeEnrichment(): Promise<void> {
   }
 }
 
-/**
- * Load the WebLLM model manually (for settings UI).
- * Returns progress updates via callback.
- */
 export async function loadWebLLMModel(
   onProgress?: (progress: number, text: string) => void,
 ): Promise<boolean> {
   try {
+    console.log(
+      "[enrichment-router] loadWebLLMModel called, ensuring offscreen...",
+    );
     await ensureOffscreenDocument();
+    console.log("[enrichment-router] Offscreen document ready");
 
-    // Set up progress listener
     const progressListener = (message: unknown) => {
-      if (
-        typeof message === "object" &&
-        message !== null &&
-        "type" in message
-      ) {
-        const msg = message as {
-          type: string;
-          progress?: number;
-          text?: string;
-        };
-        if (msg.type === "MODEL_LOAD_PROGRESS") {
-          onProgress?.(msg.progress ?? 0, msg.text ?? "Loading...");
-        }
-      }
+      if (typeof message !== "object" || message === null) return;
+      const type = Reflect.get(message, "type");
+      if (type !== "MODEL_LOAD_PROGRESS") return;
+      const progress = Reflect.get(message, "progress");
+      const text = Reflect.get(message, "text");
+      console.log("[enrichment-router] Progress:", progress, text);
+      onProgress?.(
+        typeof progress === "number" ? progress : 0,
+        typeof text === "string" ? text : "Loading...",
+      );
     };
 
     chrome.runtime.onMessage.addListener(progressListener);
 
     try {
+      console.log("[enrichment-router] Sending LOAD_MODEL to offscreen...");
       const response = await sendToOffscreen<ModelStatusResponse>({
         type: "LOAD_MODEL",
       });
+      console.log("[enrichment-router] Got response:", response);
 
-      webllmModelLoaded = response.status.state === "ready";
+      webllmModelLoaded = response?.status?.state === "ready";
       return webllmModelLoaded;
     } finally {
       chrome.runtime.onMessage.removeListener(progressListener);
@@ -135,32 +106,33 @@ export async function loadWebLLMModel(
   }
 }
 
-/**
- * Generate tags for a memory using the best available method.
- * Returns null if enrichment fails or is unavailable.
- */
 export async function enrichMemory(
   title: string,
   content: string,
-): Promise<string[] | null> {
-  // Try Chrome AI first (if available)
+  existingMemories: Array<{ id: string; title: string }>,
+): Promise<{ tags: string[]; relatedMemoryIds: string[] } | null> {
+  if (activeMethod === null) {
+    await initializeEnrichment();
+  }
+
   if (activeMethod === "chrome-ai") {
     console.log("[enrichment-router] Trying Chrome Built-in AI...");
-    const tags = await generateTagsWithChromeAI(title, content);
-    if (tags && tags.length > 0) {
-      return tags;
+    const result = await runFullEnrichmentWithChromeAI(
+      title,
+      content,
+      existingMemories,
+    );
+    if (result && result.tags.length > 0) {
+      return result;
     }
 
-    // Chrome AI failed, try WebLLM fallback
     console.log("[enrichment-router] Chrome AI failed, falling back to WebLLM");
     activeMethod = "webllm";
   }
 
-  // Try WebLLM
   if (activeMethod === "webllm") {
     console.log("[enrichment-router] Using WebLLM...");
 
-    // Ensure model is loaded
     if (!webllmModelLoaded) {
       console.log("[enrichment-router] Loading WebLLM model first...");
       const loaded = await loadWebLLMModel();
@@ -174,15 +146,16 @@ export async function enrichMemory(
       await ensureOffscreenDocument();
 
       const requestId = crypto.randomUUID();
-      const response = await sendToOffscreen<TagsGeneratedResponse>({
-        type: "GENERATE_TAGS",
+      const response = await sendToOffscreen<EnrichmentGeneratedResponse>({
+        type: "GENERATE_ENRICHMENT",
         requestId,
         title,
         content,
+        existingMemories,
       });
 
-      if (response.tags && response.tags.length > 0) {
-        return response.tags;
+      if (response.result && response.result.tags.length > 0) {
+        return response.result;
       }
 
       if (response.error) {
@@ -196,19 +169,19 @@ export async function enrichMemory(
     }
   }
 
-  // No enrichment method available
   console.log("[enrichment-router] No enrichment method available");
   return null;
 }
 
-/**
- * Get the current enrichment status for UI display.
- */
 export async function getEnrichmentStatus(): Promise<{
   method: "chrome-ai" | "webllm" | null;
   modelLoaded: boolean;
   modelProgress?: number;
 }> {
+  if (activeMethod === null) {
+    await initializeEnrichment();
+  }
+
   if (activeMethod === "chrome-ai") {
     return { method: "chrome-ai", modelLoaded: true };
   }

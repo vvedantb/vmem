@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   Separator,
   Button,
@@ -11,7 +11,7 @@ import {
   HoverCardContent,
 } from "@vmem/ui";
 import { UserButton } from "@clerk/nextjs";
-import { useConvexAuth, useAction } from "convex/react";
+import { useConvexAuth, useAction, useQuery } from "convex/react";
 import { IconMoon, IconSun, IconChartBar } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 
@@ -20,31 +20,62 @@ interface SidebarStats {
   total: number;
 }
 
+function PendingEnrichmentBadge({ isIconOnly }: { isIconOnly: boolean }) {
+  const { isAuthenticated } = useConvexAuth();
+  const pending = useQuery(
+    api.pendingEnrichment.listPendingEnrichment,
+    isAuthenticated ? { limit: 100 } : "skip",
+  );
+  const count = pending === undefined ? 0 : pending.length;
+  if (count === 0) return null;
+  if (isIconOnly) {
+    return (
+      <div className="flex justify-center">
+        <span
+          className="text-[10px] tabular-nums text-muted-foreground"
+          title={`${String(count)} pending enrichment`}
+        >
+          {String(count)}
+        </span>
+      </div>
+    );
+  }
+  return (
+    <p className="mb-1 px-3 text-[11px] text-muted-foreground">
+      {String(count)} pending enrichment
+    </p>
+  );
+}
+
 function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
   const { isAuthenticated } = useConvexAuth();
   const getStats = useAction(api.dashboardApi.getStats);
   const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
 
-  const fetchStats = useCallback(async () => {
-    if (!isAuthenticated) return;
-    try {
-      const data = await getStats({});
-      const result = data as {
-        memoriesAddedToday: number;
-        totalMemories: number;
-      };
-      setStats({
-        addedToday: result.memoriesAddedToday,
-        total: result.totalMemories,
-      });
-    } catch {
-      // silently fail -- sidebar stats are non-critical
-    }
-  }, [isAuthenticated, getStats]);
-
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await getStats({});
+        const result = data as {
+          memoriesAddedToday: number;
+          totalMemories: number;
+        };
+        if (!cancelled) {
+          setStats({
+            addedToday: result.memoriesAddedToday,
+            total: result.totalMemories,
+          });
+        }
+      } catch {
+        // silently fail -- sidebar stats are non-critical
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   if (isIconOnly) {
     return (
@@ -119,6 +150,7 @@ export function SidebarFooter({
 
   return (
     <div className={cn("space-y-4 pt-3")}>
+      <PendingEnrichmentBadge isIconOnly={isIconOnly} />
       <StatsCard isIconOnly={isIconOnly} />
       <Separator className="bg-border/45" />
 
@@ -158,7 +190,8 @@ export function SidebarFooter({
                   userButtonOuterIdentifier:
                     "truncate text-sm font-medium text-foreground",
                   userButtonPopoverCard:
-                    "glass-panel-strong text-popover-foreground",
+                    "glass-panel-strong text-popover-foreground !z-[300] pointer-events-auto",
+                  userButtonPopoverActions: "!z-[300] pointer-events-auto",
                   userButtonPopoverActionButton:
                     "rounded-lg hover:bg-accent hover:text-accent-foreground",
                 },
