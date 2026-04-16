@@ -31,6 +31,6 @@ export interface GraphSettings {
 
 export const DEFAULT_GRAPH_SETTINGS: GraphSettings = {
   scalingRatio: 10,
-  gravity: 0.3,
+  gravity: 0.5,
   showLabels: true,
 };

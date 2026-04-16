@@ -95,7 +95,7 @@ export function render(
   const hasHover = interaction.hoveredNodeId !== null;
   const isSearchActive = searchMatchSet.size > 0;
   const lowZoom = vp.scale < 0.4;
-  const veryLowZoom = vp.scale < 0.15;
+  const veryLowZoom = vp.scale < 0.08;
   const highNodeCount = nodeCount > 5000;
 
   // --- Edges (batched by style — single beginPath/stroke per style bucket) ---
@@ -326,8 +326,9 @@ export function render(
   }
 
   // --- Edge labels ---
-  // Always show labels for relates_to edges (user-created relationships)
-  // Only show tag edge labels on hover (to avoid clutter)
+  // Show relationship *category* ("relates to" / "tagged" / "imports") as a
+  // small chip centered on each edge. Always visible for every edge type so
+  // the user can see at-a-glance what kind of connection each line is.
   if (!lowZoom) {
     const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
@@ -335,27 +336,16 @@ export function render(
     ctx.textBaseline = "middle";
 
     for (const edge of edges) {
-      if (!edge.reason) continue;
-
-      const sId = edge.source.id;
-      const tId = edge.target.id;
-      const isRelatesToEdge =
-        edge.edgeType === "relates_to" || edge.edgeType === "imports";
-      const isHoveredEdge =
-        hasHover &&
-        (sId === interaction.hoveredNodeId ||
-          tId === interaction.hoveredNodeId);
-
-      // Show label if: relates_to edge (always) OR tag edge when hovered
-      if (!isRelatesToEdge && !isHoveredEdge) continue;
+      const label =
+        edge.edgeType === "relates_to"
+          ? "relates to"
+          : edge.edgeType === "imports"
+            ? "imports"
+            : "tagged";
 
       const mx = ((edge.source.x ?? 0) + (edge.target.x ?? 0)) / 2;
       const my = ((edge.source.y ?? 0) + (edge.target.y ?? 0)) / 2;
 
-      const label =
-        edge.reason.length > 30
-          ? edge.reason.slice(0, 28) + "..."
-          : edge.reason;
       const metrics = ctx.measureText(label);
       const padX = 4;
       const padY = 2;
