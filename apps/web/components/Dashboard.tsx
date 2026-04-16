@@ -189,7 +189,7 @@ export default function Dashboard() {
         {statsCards.map((stat) => (
           <Card
             key={stat.label}
-            className="border-0 bg-secondary/50 transition-all duration-200 ease-smooth hover:-translate-y-0.5 hover:bg-secondary/70"
+            className="border-0 bg-secondary/50 transition-[transform,background-color] duration-200 ease-smooth hover:-translate-y-0.5 hover:bg-secondary/70"
           >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
@@ -344,7 +344,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
               {quickActions.map((action) => (
                 <Link href={action.href} key={action.label}>
-                  <div className="group cursor-pointer rounded-2xl bg-background/60 p-4 transition-all duration-200 ease-smooth hover:-translate-y-0.5 hover:bg-background/80">
+                  <div className="group cursor-pointer rounded-2xl bg-background/60 p-4 transition-[transform,background-color] duration-200 ease-smooth hover:-translate-y-0.5 hover:bg-background/80">
                     <div className="mb-2 flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary transition-colors group-hover:bg-secondary/80">
                         <action.icon
