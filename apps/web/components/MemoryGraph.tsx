@@ -237,7 +237,7 @@ export default function MemoryGraph({
   }
 
   return (
-    <div className="relative h-full min-h-0">
+    <div className="relative h-full min-h-0 rounded-lg overflow-hidden">
       <GraphCanvas
         ref={canvasRef}
         nodes={graphNodes}

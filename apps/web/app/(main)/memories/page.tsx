@@ -56,7 +56,7 @@ export default function MemoriesPage() {
           <MemorySearch />
         </Suspense>
       ) : (
-        <div className="h-full min-h-0 -mb-6 rounded-lg overflow-hidden">
+        <div className="h-full min-h-0 -mb-6">
           <MemoryGraph
             focusNodeId={params.focus}
             onFocusChange={(id) => setParams({ focus: id })}
