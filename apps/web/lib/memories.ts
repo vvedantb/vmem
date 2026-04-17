@@ -1,5 +1,21 @@
 export type MemoryType = "profile" | "episodic" | "knowledge";
 
+export const MEMORY_TYPES: readonly MemoryType[] = [
+  "profile",
+  "episodic",
+  "knowledge",
+];
+
+const MEMORY_TYPE_LABELS: Record<MemoryType, string> = {
+  profile: "Profile",
+  episodic: "Episodic",
+  knowledge: "Knowledge",
+};
+
+export function formatMemoryTypeLabel(type: MemoryType): string {
+  return MEMORY_TYPE_LABELS[type];
+}
+
 export interface Memory {
   id: string;
   title: string;
@@ -39,6 +55,16 @@ export function memoryMatchesSourceFilters(
     return true;
   }
   return selectedSources.includes(memory.source);
+}
+
+export function memoryMatchesTypeFilters(
+  memory: Memory,
+  selectedTypes: MemoryType[],
+): boolean {
+  if (selectedTypes.length === 0) {
+    return true;
+  }
+  return selectedTypes.includes(memory.type);
 }
 
 export function formatMemorySourceLabel(source: string): string {
