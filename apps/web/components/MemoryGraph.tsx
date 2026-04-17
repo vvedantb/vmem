@@ -23,9 +23,11 @@ import {
 import type { HoveredNodeInfo, GraphSettings } from "./_components/graph-types";
 import type { ViewMode } from "./_components/graph-view-themes";
 import { getViewTheme } from "./_components/graph-view-themes";
+import type { GraphNodeKind } from "./_components/canvas/types";
 import {
   buildGraphData,
   getAllTags,
+  getAllKinds,
   getRelatedNodes,
 } from "./_components/graph-data";
 import GraphCanvas from "./_components/GraphCanvas";
@@ -41,6 +43,15 @@ interface MemoryGraphProps {
 }
 
 const EMPTY_SET = new Set<string>();
+
+/**
+ * Default kind filter shows every known kind. We keep all three in the initial
+ * set (rather than only present kinds) so that when a user creates their first
+ * wiki doc or folder, it shows up without them having to re-enable the filter.
+ */
+const DEFAULT_ACTIVE_KINDS: ReadonlySet<GraphNodeKind> = new Set<GraphNodeKind>(
+  ["memory", "wiki-document", "wiki-folder"],
+);
 
 export default function MemoryGraph({
   focusNodeId,
@@ -71,6 +82,9 @@ export default function MemoryGraph({
   const [controlPanelOpen, setControlPanelOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTags, setActiveTags] = useState<Set<string>>(EMPTY_SET);
+  const [activeKinds, setActiveKinds] = useState<Set<GraphNodeKind>>(
+    () => new Set(DEFAULT_ACTIVE_KINDS),
+  );
 
   // Derived
   const isDark = theme === "dark";
@@ -80,6 +94,7 @@ export default function MemoryGraph({
   );
 
   const allTags = useMemo(() => getAllTags(apiNodes), [apiNodes]);
+  const allKinds = useMemo(() => getAllKinds(apiNodes), [apiNodes]);
 
   const { graphNodes, graphEdges } = useMemo(
     () =>
@@ -89,8 +104,16 @@ export default function MemoryGraph({
         allRelatesToEdges,
         apiWikiParentEdges,
         activeTags,
+        activeKinds,
       ),
-    [apiNodes, apiTagEdges, allRelatesToEdges, apiWikiParentEdges, activeTags],
+    [
+      apiNodes,
+      apiTagEdges,
+      allRelatesToEdges,
+      apiWikiParentEdges,
+      activeTags,
+      activeKinds,
+    ],
   );
 
   const searchMatchSet = useMemo(() => {
@@ -203,6 +226,29 @@ export default function MemoryGraph({
     });
   }, []);
 
+  // Kind filter uses explicit semantics: the set always lists every visible
+  // kind. Empty set = hide everything; full set = show everything. Simpler than
+  // the tag filter's empty-means-all convention since we only have 3 checkboxes.
+  const handleToggleKind = useCallback((kind: GraphNodeKind) => {
+    setActiveKinds((prev) => {
+      const next = new Set(prev);
+      if (next.has(kind)) {
+        next.delete(kind);
+      } else {
+        next.add(kind);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAllKinds = useCallback(() => {
+    setActiveKinds(new Set(DEFAULT_ACTIVE_KINDS));
+  }, []);
+
+  const handleClearAllKinds = useCallback(() => {
+    setActiveKinds(new Set<GraphNodeKind>());
+  }, []);
+
   // Loading / error / empty states
   if (isLoading) {
     return (
@@ -267,6 +313,11 @@ export default function MemoryGraph({
         onToggle={() => setControlPanelOpen((p) => !p)}
         search={search}
         onSearchChange={setSearch}
+        allKinds={allKinds}
+        activeKinds={activeKinds}
+        onToggleKind={handleToggleKind}
+        onSelectAllKinds={handleSelectAllKinds}
+        onClearAllKinds={handleClearAllKinds}
         allTags={allTags}
         activeTags={activeTags}
         onToggleTag={handleToggleTag}

@@ -58,15 +58,43 @@ export function getAllTags(apiNodes: ApiGraphNode[]): TagStat[] {
     .sort((a, b) => b.count - a.count);
 }
 
+// ---- Kind stats ----
+
+export interface KindStat {
+  kind: GraphNodeKind;
+  count: number;
+}
+
+/** Canonical display order for kinds — never shuffle regardless of data. */
+const KIND_ORDER: GraphNodeKind[] = ["memory", "wiki-document", "wiki-folder"];
+
+/**
+ * Returns counts for each node kind present in the data, in a stable order.
+ * Kinds with zero nodes are omitted so the filter UI hides categories the user
+ * hasn't started using yet.
+ */
+export function getAllKinds(apiNodes: ApiGraphNode[]): KindStat[] {
+  const counts = new Map<GraphNodeKind, number>();
+  for (const node of apiNodes) {
+    counts.set(node.kind, (counts.get(node.kind) ?? 0) + 1);
+  }
+  return KIND_ORDER.map((kind) => ({
+    kind,
+    count: counts.get(kind) ?? 0,
+  })).filter((s) => s.count > 0);
+}
+
 // ---- Build graph data ----
 
 /**
  * Transforms API data into simulation-ready nodes + edges.
  *
- * When `activeTags` is non-empty, only memory nodes with at least one active
- * tag are included (OR filter). Wiki nodes never have tags — they're shown
- * when no tag filter is active and hidden once the user opts into tag-filtering
- * (wiki content is not tag-searchable yet).
+ * Two filters applied in sequence:
+ *  - `activeKinds`: hard filter by node kind. A node is visible only if its
+ *    kind is in the set. An empty set hides everything.
+ *  - `activeTags`: OR filter by tag. When non-empty, nodes must have at least
+ *    one matching tag. Wiki nodes have no tags, so enabling a tag filter hides
+ *    them (wiki content isn't tag-searchable yet).
  */
 export function buildGraphData(
   apiNodes: ApiGraphNode[],
@@ -74,17 +102,19 @@ export function buildGraphData(
   allRelatesToEdges: ApiRelatesToEdge[],
   apiWikiParentEdges: ApiWikiParentEdge[],
   activeTags: Set<string>,
+  activeKinds: Set<GraphNodeKind>,
 ): { graphNodes: GraphNode[]; graphEdges: GraphEdge[] } {
   if (apiNodes.length === 0) {
     return { graphNodes: [], graphEdges: [] };
   }
 
-  // Filter nodes by active tags (OR: node visible if it has ANY active tag).
-  // When tag filtering is active, wiki nodes (tags=[]) drop out naturally.
+  // Kind filter is the broader cut; apply first, then narrow by tags.
+  const kindFiltered = apiNodes.filter((n) => activeKinds.has(n.kind));
+
   const filteredNodes =
     activeTags.size > 0
-      ? apiNodes.filter((n) => n.tags.some((t) => activeTags.has(t)))
-      : apiNodes;
+      ? kindFiltered.filter((n) => n.tags.some((t) => activeTags.has(t)))
+      : kindFiltered;
 
   // Degree counting across all edge types
   const degreeCount = new Map<string, number>();
