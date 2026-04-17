@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { wikiNodeFields } from "./validators";
 
 const schema = defineSchema({
   users: defineTable({
@@ -188,6 +189,18 @@ const schema = defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_name", ["userId", "name"]),
+
+  wikiNodes: defineTable(wikiNodeFields)
+    .index("by_user", ["userId"])
+    .index("by_user_parent", ["userId", "parentId"])
+    .searchIndex("search_title", {
+      searchField: "title",
+      filterFields: ["userId"],
+    })
+    .searchIndex("search_content", {
+      searchField: "contentText",
+      filterFields: ["userId"],
+    }),
 });
 
 export default schema;
