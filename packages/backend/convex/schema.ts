@@ -177,6 +177,17 @@ const schema = defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_repo", ["userId", "repoFullName"]),
+
+  skills: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    description: v.string(),
+    instructions: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_name", ["userId", "name"]),
 });
 
 export default schema;
