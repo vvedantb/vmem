@@ -66,7 +66,12 @@ export interface KindStat {
 }
 
 /** Canonical display order for kinds — never shuffle regardless of data. */
-const KIND_ORDER: GraphNodeKind[] = ["memory", "wiki-document", "wiki-folder"];
+const KIND_ORDER: GraphNodeKind[] = [
+  "memory",
+  "wiki-document",
+  "wiki-folder",
+  "skill",
+];
 
 /**
  * Returns counts for each node kind present in the data, in a stable order.
@@ -135,6 +140,10 @@ export function buildGraphData(
 
   const graphNodes: GraphNode[] = filteredNodes.map((node) => {
     const degree = degreeCount.get(node.id) ?? 0;
+    // Skills carry no edges today, so they'd otherwise land at the degree-0
+    // minimum (3) and read as tiny dots. Bump them to a fixed 4 so they read
+    // as distinct atoms, still smaller than high-degree memories.
+    const size = node.kind === "skill" ? 4 : Math.min(3 + degree * 0.6, 6);
     return {
       id: node.id,
       title: node.title,
@@ -142,7 +151,7 @@ export function buildGraphData(
       tags: node.tags,
       createdAt: node.createdAt,
       color: "",
-      size: Math.min(3 + degree * 0.6, 6),
+      size,
       kind: node.kind,
     };
   });

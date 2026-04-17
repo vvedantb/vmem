@@ -45,12 +45,12 @@ interface MemoryGraphProps {
 const EMPTY_SET = new Set<string>();
 
 /**
- * Default kind filter shows every known kind. We keep all three in the initial
- * set (rather than only present kinds) so that when a user creates their first
- * wiki doc or folder, it shows up without them having to re-enable the filter.
+ * Default kind filter shows every known kind. We seed the set with all four
+ * (rather than only present kinds) so a user's first wiki doc, folder, or
+ * skill appears automatically without them having to re-enable the filter.
  */
 const DEFAULT_ACTIVE_KINDS: ReadonlySet<GraphNodeKind> = new Set<GraphNodeKind>(
-  ["memory", "wiki-document", "wiki-folder"],
+  ["memory", "wiki-document", "wiki-folder", "skill"],
 );
 
 export default function MemoryGraph({

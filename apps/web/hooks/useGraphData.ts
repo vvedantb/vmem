@@ -19,7 +19,12 @@ import type {
 
 // ---- Zod schemas ----
 
-const graphNodeKindSchema = z.enum(["memory", "wiki-document", "wiki-folder"]);
+const graphNodeKindSchema = z.enum([
+  "memory",
+  "wiki-document",
+  "wiki-folder",
+  "skill",
+]);
 
 const graphNodeSchema = z.object({
   id: z.string(),

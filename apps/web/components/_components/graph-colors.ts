@@ -32,14 +32,22 @@ export function tagToColor(tag: string, isDark: boolean): string {
 }
 
 /**
- * Fixed colors for wiki nodes. Wiki nodes have no tags so we pick kind-based
- * colors from the same HSL space used by `tagToColor` to stay visually coherent
- * with the rest of the palette. Documents read as "content" (warm accent),
- * folders read as "structure" (cool neutral).
+ * Fixed colors for tagless node kinds (wiki docs, wiki folders, skills). Picks
+ * from the same HSL space used by `tagToColor` to stay visually coherent with
+ * the rest of the palette:
+ *  - wiki-document: warm amber (content accent)
+ *  - wiki-folder:   cool slate (structural)
+ *  - skill:         purple (tool/capability)
  */
-function wikiKindColor(kind: "wiki-document" | "wiki-folder", isDark: boolean) {
+function kindColor(
+  kind: "wiki-document" | "wiki-folder" | "skill",
+  isDark: boolean,
+): string {
   if (kind === "wiki-folder") {
     return isDark ? hslToHex(220, 15, 65) : hslToHex(220, 20, 45);
+  }
+  if (kind === "skill") {
+    return isDark ? hslToHex(285, 55, 72) : hslToHex(285, 60, 50);
   }
   return isDark ? hslToHex(35, 55, 70) : hslToHex(35, 60, 50);
 }
@@ -48,7 +56,7 @@ function wikiKindColor(kind: "wiki-document" | "wiki-folder", isDark: boolean) {
  * Color for a node based on its kind, tags, and theme. Used by renderer and UI.
  *
  * - Memory nodes: first tag drives the hue (falls back to a theme-aware grey).
- * - Wiki nodes: fixed kind-based color (no tags on wiki today).
+ * - Non-memory kinds (wiki docs, wiki folders, skills): fixed kind-based color.
  * - `nodeColorOverride` from a view theme (e.g. monochrome themes) wins for all.
  */
 export function nodeColor(
@@ -58,7 +66,7 @@ export function nodeColor(
   nodeColorOverride: string | null,
 ): string {
   if (nodeColorOverride) return nodeColorOverride;
-  if (kind !== "memory") return wikiKindColor(kind, isDarkCanvas);
+  if (kind !== "memory") return kindColor(kind, isDarkCanvas);
   if (tags.length > 0) return tagToColor(tags[0], isDarkCanvas);
   return isDarkCanvas ? "#555566" : "#999999";
 }

@@ -65,6 +65,22 @@ function traceDiamond(
   ctx.closePath();
 }
 
+function traceHexagon(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+): void {
+  // Flat-topped regular hexagon. i=0 places a vertex at 3 o'clock; the six
+  // vertices step around the inscribing circle at 60° intervals.
+  ctx.moveTo(x + r, y);
+  for (let i = 1; i < 6; i++) {
+    const angle = (Math.PI / 3) * i;
+    ctx.lineTo(x + r * Math.cos(angle), y + r * Math.sin(angle));
+  }
+  ctx.closePath();
+}
+
 function traceShape(
   ctx: CanvasRenderingContext2D,
   kind: GraphNodeKind,
@@ -74,6 +90,7 @@ function traceShape(
 ): void {
   if (kind === "wiki-folder") return traceSquare(ctx, x, y, r);
   if (kind === "wiki-document") return traceDiamond(ctx, x, y, r);
+  if (kind === "skill") return traceHexagon(ctx, x, y, r);
   return traceCircle(ctx, x, y, r);
 }
 
@@ -306,8 +323,8 @@ export function render(
   }
 
   // Node shape pass: batched by (color, kind) so we keep O(unique (color,kind))
-  // draw calls. With only 3 kinds today the extra cardinality is negligible,
-  // and it lets us stamp circles / squares / diamonds in one path each.
+  // draw calls. With only 4 kinds today the extra cardinality is negligible,
+  // and it lets us stamp circles / squares / diamonds / hexagons in one path each.
   {
     const buckets = new Map<
       string,

@@ -18,11 +18,18 @@ const KIND_LABELS: Record<GraphNodeKind, string> = {
   memory: "Memories",
   "wiki-document": "Wiki docs",
   "wiki-folder": "Folders",
+  skill: "Skills",
 };
+
+/** Flat-topped hexagon clip-path matching the canvas renderer's skill shape. */
+const HEX_CLIP_PATH =
+  "polygon(25% 6.7%, 75% 6.7%, 100% 50%, 75% 93.3%, 25% 93.3%, 0% 50%)";
 
 /**
  * Small shape indicator matching the canvas: circle for memories, diamond for
- * wiki documents, square for folders. Keeps the filter legible as a legend too.
+ * wiki documents, square for folders, hexagon for skills. Acts as the legend
+ * inside the Types filter — each row shows the exact shape it will toggle on
+ * the canvas.
  */
 function ShapeIndicator({
   kind,
@@ -32,19 +39,36 @@ function ShapeIndicator({
   color: string;
 }) {
   const base = "w-2 h-2 flex-shrink-0";
-  const shape =
-    kind === "memory"
-      ? "rounded-full"
-      : kind === "wiki-document"
-        ? "rotate-45"
-        : "";
-  return (
-    <span
-      className={`${base} ${shape}`}
-      style={{ backgroundColor: color }}
-      aria-hidden
-    />
-  );
+  switch (kind) {
+    case "memory":
+      return (
+        <span
+          className={`${base} rounded-full`}
+          style={{ backgroundColor: color }}
+          aria-hidden
+        />
+      );
+    case "wiki-document":
+      return (
+        <span
+          className={`${base} rotate-45`}
+          style={{ backgroundColor: color }}
+          aria-hidden
+        />
+      );
+    case "wiki-folder":
+      return (
+        <span className={base} style={{ backgroundColor: color }} aria-hidden />
+      );
+    case "skill":
+      return (
+        <span
+          className={base}
+          style={{ backgroundColor: color, clipPath: HEX_CLIP_PATH }}
+          aria-hidden
+        />
+      );
+  }
 }
 
 export default function GraphKindFilter({
