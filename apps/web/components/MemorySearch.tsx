@@ -10,12 +10,15 @@ import { Virtuoso } from "react-virtuoso";
 import MemoryDetailPanel from "./MemoryDetailPanel";
 import MemoryTagFilter from "./_components/MemoryTagFilter";
 import MemorySourceFilter from "./_components/MemorySourceFilter";
+import MemoryTypeFilter from "./_components/MemoryTypeFilter";
 import MemoryListItem from "./_components/MemoryListItem";
 import {
   searchMemories,
   memoryMatchesTagFilters,
   memoryMatchesSourceFilters,
+  memoryMatchesTypeFilters,
   formatMemorySourceLabel,
+  formatMemoryTypeLabel,
   type Memory,
   type SearchResult,
 } from "@/lib/memories";
@@ -92,7 +95,7 @@ export default function MemorySearch({
     [allMemories, params.tags],
   );
 
-  const filteredMemories = useMemo(() => {
+  const memoriesAfterTagsAndSources = useMemo(() => {
     if (params.sources.length === 0) {
       return memoriesAfterTags;
     }
@@ -100,6 +103,15 @@ export default function MemorySearch({
       memoryMatchesSourceFilters(m, params.sources),
     );
   }, [memoriesAfterTags, params.sources]);
+
+  const filteredMemories = useMemo(() => {
+    if (params.types.length === 0) {
+      return memoriesAfterTagsAndSources;
+    }
+    return memoriesAfterTagsAndSources.filter((m) =>
+      memoryMatchesTypeFilters(m, params.types),
+    );
+  }, [memoriesAfterTagsAndSources, params.types]);
 
   const normalizedQuery = searchQuery.trim();
   const searchResults = useMemo(() => {
@@ -124,11 +136,14 @@ export default function MemorySearch({
         params.sources.map((s) => formatMemorySourceLabel(s)).join(" · "),
       );
     }
+    if (params.types.length > 0) {
+      hints.push(params.types.map((t) => formatMemoryTypeLabel(t)).join(" · "));
+    }
     if (hints.length === 0) {
       return "Search memories semantically...";
     }
     return `Search (${hints.join(" — ")})...`;
-  }, [params.tags, params.sources]);
+  }, [params.tags, params.sources, params.types]);
 
   const selectedMemory = useMemo(() => {
     if (!selectedMemoryId) {
@@ -222,6 +237,11 @@ export default function MemorySearch({
               baseMemories={memoriesAfterTags}
               selectedSources={params.sources}
               onSourcesChange={(sources) => setParams({ sources })}
+            />
+            <MemoryTypeFilter
+              baseMemories={memoriesAfterTagsAndSources}
+              selectedTypes={params.types}
+              onTypesChange={(types) => setParams({ types })}
             />
             <div className="relative flex-1 min-w-[200px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
