@@ -17,6 +17,7 @@ import {
   IconTerminal2,
   IconPuzzle,
   IconFileImport,
+  IconBolt,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -36,6 +37,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { href: "/files", label: "Files", icon: IconFiles },
       { href: "/codebases", label: "Codebases", icon: IconDatabase },
+      { href: "/skills", label: "Skills", icon: IconBolt },
       { href: "/usage", label: "Usage", icon: IconChartBar },
     ],
   },
