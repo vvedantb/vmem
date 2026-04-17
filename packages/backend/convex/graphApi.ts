@@ -3,9 +3,13 @@ import { authAction } from "./auth";
 import { internal } from "./_generated/api";
 
 /**
- * A node in the unified canvas graph. Memory nodes (from Neo4j) and wiki nodes
- * (from Convex `wikiNodes`) are merged into a single list; `kind` tells the
- * renderer which shape to draw.
+ * A node in the unified canvas graph. Memory nodes (from Neo4j), wiki nodes
+ * (from Convex `wikiNodes`), and skills (from Convex `skills`) are merged into
+ * a single list; `kind` tells the renderer which shape to draw:
+ *   memory        → circle
+ *   wiki-document → diamond
+ *   wiki-folder   → square
+ *   skill         → hexagon
  */
 interface GraphNodeEntry {
   id: string;
@@ -13,7 +17,7 @@ interface GraphNodeEntry {
   content: string;
   tags: string[];
   createdAt: string;
-  kind: "memory" | "wiki-document" | "wiki-folder";
+  kind: "memory" | "wiki-document" | "wiki-folder" | "skill";
 }
 
 interface GraphResult {
@@ -48,6 +52,9 @@ interface MemoryGraph {
 
 /** Prefix applied to wikiNode ids so they never collide with Neo4j memory ids. */
 const WIKI_PREFIX = "wiki:";
+
+/** Prefix applied to skill ids so they never collide with memory or wiki ids. */
+const SKILL_PREFIX = "skill:";
 
 function annotateMemoryNodes(nodes: MemoryGraph["nodes"]): GraphNodeEntry[] {
   return nodes.map((n) => ({
@@ -102,8 +109,30 @@ export const getGraphData = authAction({
       }
     }
 
+    // Skills — same visibility rule as wiki: only in the global graph. Skills
+    // are user-level atoms (tools) with no edges into the memory graph today,
+    // so they render as isolated hexagons.
+    const skillRows = args.focus
+      ? []
+      : await ctx.runQuery(internal.skills.listByClerkIdInternal, {
+          clerkId,
+        });
+
+    const skillNodes: GraphNodeEntry[] = skillRows.map((s) => ({
+      id: `${SKILL_PREFIX}${s._id}`,
+      title: s.name,
+      content: s.description,
+      tags: [],
+      createdAt: new Date(s.createdAt).toISOString(),
+      kind: "skill",
+    }));
+
     return {
-      nodes: [...annotateMemoryNodes(memoryGraph.nodes), ...wikiNodes],
+      nodes: [
+        ...annotateMemoryNodes(memoryGraph.nodes),
+        ...wikiNodes,
+        ...skillNodes,
+      ],
       relatesToEdges: memoryGraph.relatesToEdges,
       tagEdges: memoryGraph.tagEdges,
       wikiParentEdges,
