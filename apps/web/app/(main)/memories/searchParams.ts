@@ -1,4 +1,5 @@
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from "nuqs";
+import { MEMORY_TYPES } from "@/lib/memories";
 
 const memoryViews = ["graph", "list"] as const;
 
@@ -8,6 +9,9 @@ const memoriesSearchParams = {
   focus: parseAsString,
   tags: parseAsArrayOf(parseAsString, ",").withDefault([]),
   sources: parseAsArrayOf(parseAsString, ",").withDefault([]),
+  types: parseAsArrayOf(parseAsStringLiteral(MEMORY_TYPES), ",").withDefault(
+    [],
+  ),
 };
 
 export { memoriesSearchParams };
