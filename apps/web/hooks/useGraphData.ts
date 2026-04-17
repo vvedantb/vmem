@@ -14,9 +14,12 @@ import type {
   ApiGraphNode,
   ApiTagEdge,
   ApiRelatesToEdge,
+  ApiWikiParentEdge,
 } from "@/components/_components/graph-data";
 
 // ---- Zod schemas ----
+
+const graphNodeKindSchema = z.enum(["memory", "wiki-document", "wiki-folder"]);
 
 const graphNodeSchema = z.object({
   id: z.string(),
@@ -24,6 +27,7 @@ const graphNodeSchema = z.object({
   content: z.string(),
   tags: z.array(z.string()),
   createdAt: z.string(),
+  kind: graphNodeKindSchema,
 });
 
 const relatesToEdgeSchema = z.object({
@@ -39,10 +43,16 @@ const tagEdgeSchema = z.object({
   sharedTags: z.array(z.string()),
 });
 
+const wikiParentEdgeSchema = z.object({
+  source: z.string(),
+  target: z.string(),
+});
+
 const graphResponseSchema = z.object({
   nodes: z.array(graphNodeSchema),
   relatesToEdges: z.array(relatesToEdgeSchema),
   tagEdges: z.array(tagEdgeSchema),
+  wikiParentEdges: z.array(wikiParentEdgeSchema),
 });
 
 type GraphResponse = z.infer<typeof graphResponseSchema>;
@@ -53,6 +63,7 @@ export interface UseGraphDataReturn {
   apiNodes: ApiGraphNode[];
   apiTagEdges: ApiTagEdge[];
   allRelatesToEdges: ApiRelatesToEdge[];
+  apiWikiParentEdges: ApiWikiParentEdge[];
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
@@ -117,6 +128,7 @@ export function useGraphData(focusNodeId: string | null): UseGraphDataReturn {
     apiNodes: graphData?.nodes ?? [],
     apiTagEdges: graphData?.tagEdges ?? [],
     allRelatesToEdges,
+    apiWikiParentEdges: graphData?.wikiParentEdges ?? [],
     isLoading: graphQuery.isLoading,
     isError: graphQuery.isError,
     error: graphQuery.error,

@@ -21,8 +21,10 @@ interface WNode extends SimulationNodeDatum {
   size: number;
 }
 
+type WEdgeType = "tag" | "relates_to" | "imports" | "wiki_parent";
+
 interface WEdge extends SimulationLinkDatum<WNode> {
-  edgeType: "tag" | "relates_to" | "imports";
+  edgeType: WEdgeType;
   weight: number;
 }
 
@@ -112,7 +114,7 @@ function init(
   initEdges: Array<{
     source: string;
     target: string;
-    edgeType: "tag" | "relates_to" | "imports";
+    edgeType: WEdgeType;
     weight: number;
   }>,
   scalingRatio: number,
@@ -146,7 +148,11 @@ function init(
     .id((d) => d.id)
     .distance(35)
     .strength((d) =>
-      d.edgeType === "relates_to" || d.edgeType === "imports" ? 1.0 : 0.4,
+      d.edgeType === "relates_to" ||
+      d.edgeType === "imports" ||
+      d.edgeType === "wiki_parent"
+        ? 1.0
+        : 0.4,
     );
 
   chargeForceRef = forceManyBody<WNode>().strength(chargeStrength).theta(theta);

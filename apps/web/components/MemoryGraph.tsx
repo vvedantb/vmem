@@ -56,6 +56,7 @@ export default function MemoryGraph({
     apiNodes,
     apiTagEdges,
     allRelatesToEdges,
+    apiWikiParentEdges,
     isLoading,
     isError,
     error,
@@ -81,8 +82,15 @@ export default function MemoryGraph({
   const allTags = useMemo(() => getAllTags(apiNodes), [apiNodes]);
 
   const { graphNodes, graphEdges } = useMemo(
-    () => buildGraphData(apiNodes, apiTagEdges, allRelatesToEdges, activeTags),
-    [apiNodes, apiTagEdges, allRelatesToEdges, activeTags],
+    () =>
+      buildGraphData(
+        apiNodes,
+        apiTagEdges,
+        allRelatesToEdges,
+        apiWikiParentEdges,
+        activeTags,
+      ),
+    [apiNodes, apiTagEdges, allRelatesToEdges, apiWikiParentEdges, activeTags],
   );
 
   const searchMatchSet = useMemo(() => {

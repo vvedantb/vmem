@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { authMutation, authQuery } from "./auth";
+import { internalQuery } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { wikiNodeFields } from "./validators";
 
 /**
  * Wiki (Obsidian-style notes) backend.
@@ -24,6 +26,31 @@ export const listTree = authQuery({
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .collect();
     return nodes.sort((a, b) => a.order - b.order);
+  },
+});
+
+/**
+ * Internal variant of `listTree` that takes an explicit userId instead of deriving
+ * it from auth. Called by `graphApi.getGraphData` (an action) so the graph payload
+ * can include wiki folders/documents as extra nodes alongside Neo4j memories.
+ *
+ * Kept separate from `listTree` to avoid relying on auth propagation through
+ * runQuery and to mirror the pattern used by `internal.auth.getClerkIdInternal`.
+ */
+export const listForUserInternal = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.array(
+    v.object({
+      _id: v.id("wikiNodes"),
+      _creationTime: v.number(),
+      ...wikiNodeFields,
+    }),
+  ),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("wikiNodes")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
   },
 });
 
