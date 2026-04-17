@@ -7,6 +7,8 @@ import {
   addMemory,
   updateMemory,
   deleteMemory,
+  listSkills,
+  getSkill,
 } from "./api-client.js";
 
 const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
@@ -187,6 +189,38 @@ export function registerTools(
       if (!result.ok) {
         return errorContent(
           `Delete failed (${result.status}): ${result.message}`,
+        );
+      }
+      return textContent(result.text);
+    },
+  );
+
+  server.tool(
+    "skills_list",
+    "List all skills authored by the authenticated user. A skill is a reusable instruction module (name, description, markdown instructions) that the agent can consult. Returns the full list so you can decide which skill to apply.",
+    {},
+    async () => {
+      const result = await listSkills(user.token);
+      if (!result.ok) {
+        return errorContent(
+          `List skills failed (${result.status}): ${result.message}`,
+        );
+      }
+      return textContent(result.text);
+    },
+  );
+
+  server.tool(
+    "skills_get",
+    "Fetch a single skill by its exact name. Returns the full skill including its markdown instructions so you can follow them.",
+    {
+      name: z.string().describe("Exact skill name (case sensitive)"),
+    },
+    async (params) => {
+      const result = await getSkill(user.token, params.name);
+      if (!result.ok) {
+        return errorContent(
+          `Get skill failed (${result.status}): ${result.message}`,
         );
       }
       return textContent(result.text);
