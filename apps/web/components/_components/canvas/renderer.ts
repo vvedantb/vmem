@@ -157,6 +157,12 @@ export function render(
 
   const nodeCount = nodes.length;
   const hasHover = interaction.hoveredNodeId !== null;
+  // Edges only enter hover mode (dim non-connected, highlight connected) when
+  // the hovered node actually has neighbors. Hovering an isolated node would
+  // otherwise fade the entire graph to gray with nothing to highlight.
+  // neighborSet always includes the hovered node itself, so size > 1 means
+  // there's at least one real neighbor.
+  const hasHoveredNeighbors = hasHover && neighborSet.size > 1;
   const isSearchActive = searchMatchSet.size > 0;
   const lowZoom = vp.scale < 0.4;
   const veryLowZoom = vp.scale < 0.08;
@@ -168,7 +174,7 @@ export function render(
     // Edge budget: skip tag edges when total edge count is very high
     const skipTagEdges = edges.length > 10_000;
 
-    if (!hasHover) {
+    if (!hasHoveredNeighbors) {
       // No hover — all edges same alpha. Two batched passes: tag edges, relates_to edges.
       // Tag edges (dimmer, thinner)
       if (!skipTagEdges) {
@@ -203,8 +209,9 @@ export function render(
       ctx.stroke();
       ctx.globalAlpha = 1;
     } else {
-      // Hover active — batch into 3 style buckets per edge type: dimmed, normal, connected.
-      // Draw dimmed first (bottom), then normal, then connected (top).
+      // Hover active — two batched passes per edge type: dimmed non-connected
+      // edges first (fade into background), then connected edges on top at
+      // full opacity so the hover highlight reads as a clear "lit up" line.
       for (const edgeType of [
         "tag",
         "relates_to",
@@ -217,9 +224,8 @@ export function render(
           edgeType === "imports" ||
           edgeType === "wiki_parent";
         const widthMultiplier = isStrongEdge ? 2 : 1;
-        const baseAlpha = isStrongEdge ? 0.6 : 1;
 
-        // Pass 1: dimmed edges
+        // Pass 1: dimmed edges (everything not connected to the hovered node)
         ctx.strokeStyle = theme.edge.dimmed;
         ctx.lineWidth = theme.edge.width * widthMultiplier;
         ctx.globalAlpha = isStrongEdge ? theme.dimAlpha : 1;
@@ -234,10 +240,12 @@ export function render(
         }
         ctx.stroke();
 
-        // Pass 2: connected edges (on top)
+        // Pass 2: connected edges (on top) — full opacity + 1.5× the usual
+        // connected width so the hover line is unmistakably visible, even in
+        // minimal/low-contrast themes.
         ctx.strokeStyle = theme.edge.connected;
-        ctx.lineWidth = theme.edge.connectedWidth * widthMultiplier;
-        ctx.globalAlpha = baseAlpha;
+        ctx.lineWidth = theme.edge.connectedWidth * widthMultiplier * 1.5;
+        ctx.globalAlpha = 1;
         ctx.beginPath();
         for (const edge of edges) {
           if (edge.edgeType !== edgeType) continue;
@@ -248,7 +256,6 @@ export function render(
           ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
         }
         ctx.stroke();
-        ctx.globalAlpha = 1;
       }
     }
   }
