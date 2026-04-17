@@ -2,7 +2,12 @@
  * Pure graph-data transformation functions.
  * No React, no side effects — just data in → data out.
  */
-import type { GraphNode, GraphEdge, RelatedNode } from "./canvas/types";
+import type {
+  GraphNode,
+  GraphEdge,
+  GraphNodeKind,
+  RelatedNode,
+} from "./canvas/types";
 
 // ---- API response shapes (mirrors Zod schemas in useGraphData) ----
 
@@ -12,6 +17,7 @@ export interface ApiGraphNode {
   content: string;
   tags: string[];
   createdAt: string;
+  kind: GraphNodeKind;
 }
 
 export interface ApiTagEdge {
@@ -25,6 +31,11 @@ export interface ApiRelatesToEdge {
   source: string;
   target: string;
   reason: string;
+}
+
+export interface ApiWikiParentEdge {
+  source: string;
+  target: string;
 }
 
 // ---- Tag stats ----
@@ -51,25 +62,31 @@ export function getAllTags(apiNodes: ApiGraphNode[]): TagStat[] {
 
 /**
  * Transforms API data into simulation-ready nodes + edges.
- * When `activeTags` is non-empty, only nodes with at least one active tag are included (OR filter).
+ *
+ * When `activeTags` is non-empty, only memory nodes with at least one active
+ * tag are included (OR filter). Wiki nodes never have tags — they're shown
+ * when no tag filter is active and hidden once the user opts into tag-filtering
+ * (wiki content is not tag-searchable yet).
  */
 export function buildGraphData(
   apiNodes: ApiGraphNode[],
   apiTagEdges: ApiTagEdge[],
   allRelatesToEdges: ApiRelatesToEdge[],
+  apiWikiParentEdges: ApiWikiParentEdge[],
   activeTags: Set<string>,
 ): { graphNodes: GraphNode[]; graphEdges: GraphEdge[] } {
   if (apiNodes.length === 0) {
     return { graphNodes: [], graphEdges: [] };
   }
 
-  // Filter nodes by active tags (OR: node visible if it has ANY active tag)
+  // Filter nodes by active tags (OR: node visible if it has ANY active tag).
+  // When tag filtering is active, wiki nodes (tags=[]) drop out naturally.
   const filteredNodes =
     activeTags.size > 0
       ? apiNodes.filter((n) => n.tags.some((t) => activeTags.has(t)))
       : apiNodes;
 
-  // Degree counting across both edge types
+  // Degree counting across all edge types
   const degreeCount = new Map<string, number>();
   for (const edge of apiTagEdges) {
     degreeCount.set(edge.source, (degreeCount.get(edge.source) ?? 0) + 1);
@@ -78,6 +95,10 @@ export function buildGraphData(
   for (const rel of allRelatesToEdges) {
     degreeCount.set(rel.source, (degreeCount.get(rel.source) ?? 0) + 1);
     degreeCount.set(rel.target, (degreeCount.get(rel.target) ?? 0) + 1);
+  }
+  for (const wpe of apiWikiParentEdges) {
+    degreeCount.set(wpe.source, (degreeCount.get(wpe.source) ?? 0) + 1);
+    degreeCount.set(wpe.target, (degreeCount.get(wpe.target) ?? 0) + 1);
   }
 
   const nodeSet = new Set(filteredNodes.map((n) => n.id));
@@ -92,6 +113,7 @@ export function buildGraphData(
       createdAt: node.createdAt,
       color: "",
       size: Math.min(3 + degree * 0.6, 6),
+      kind: node.kind,
     };
   });
 
@@ -130,6 +152,19 @@ export function buildGraphData(
         });
         addedPairs.add(pairKey);
       }
+    }
+  }
+
+  // Wiki parent→child edges (folder hierarchy). Always a distinct pair from
+  // tag/relates_to edges since wiki ids are namespaced with "wiki:".
+  for (const wpe of apiWikiParentEdges) {
+    if (nodeSet.has(wpe.source) && nodeSet.has(wpe.target)) {
+      graphEdges.push({
+        source: wpe.source,
+        target: wpe.target,
+        weight: 1,
+        edgeType: "wiki_parent",
+      });
     }
   }
 
