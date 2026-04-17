@@ -1,5 +1,16 @@
 import type { SimulationNodeDatum, SimulationLinkDatum } from "d3-force";
 
+/**
+ * Kind of node shown on the graph. Distinguishes Neo4j memory nodes from Convex
+ * wikiNode rows so the renderer can dispatch a different shape per kind:
+ *  - memory        → circle
+ *  - wiki-document → diamond
+ *  - wiki-folder   → square
+ */
+export type GraphNodeKind = "memory" | "wiki-document" | "wiki-folder";
+
+export type GraphEdgeType = "tag" | "relates_to" | "imports" | "wiki_parent";
+
 export interface GraphNode extends SimulationNodeDatum {
   id: string;
   title: string;
@@ -8,12 +19,13 @@ export interface GraphNode extends SimulationNodeDatum {
   createdAt: string;
   color: string;
   size: number;
+  kind: GraphNodeKind;
 }
 
 export interface GraphEdge extends SimulationLinkDatum<GraphNode> {
   source: string | GraphNode;
   target: string | GraphNode;
-  edgeType: "tag" | "relates_to" | "imports";
+  edgeType: GraphEdgeType;
   weight: number;
   reason?: string;
 }
@@ -21,7 +33,7 @@ export interface GraphEdge extends SimulationLinkDatum<GraphNode> {
 export interface ResolvedEdge {
   source: GraphNode;
   target: GraphNode;
-  edgeType: "tag" | "relates_to" | "imports";
+  edgeType: GraphEdgeType;
   weight: number;
   reason?: string;
 }

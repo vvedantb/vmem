@@ -71,6 +71,10 @@ export function buildCodebaseGraphData(
       createdAt: "", // Not relevant for code files
       color: "", // Assigned by renderer via tags
       size: Math.min(3 + degree * 0.4, 8),
+      // Codebase files reuse the canvas renderer; the default "memory" kind
+      // renders them as circles, matching the behaviour before wiki shapes
+      // were introduced.
+      kind: "memory",
     };
   });
 

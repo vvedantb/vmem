@@ -191,7 +191,11 @@ function createMainThreadSimulation(
     .id((d) => d.id)
     .distance(25)
     .strength((d) =>
-      d.edgeType === "relates_to" || d.edgeType === "imports" ? 0.7 : 0.15,
+      d.edgeType === "relates_to" ||
+      d.edgeType === "imports" ||
+      d.edgeType === "wiki_parent"
+        ? 0.7
+        : 0.15,
     );
 
   const chargeForce = forceManyBody<GraphNode>()
