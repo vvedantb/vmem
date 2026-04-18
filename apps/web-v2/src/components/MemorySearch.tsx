@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQueryStates } from "nuqs";
-import { useLocation, useNavigate, useSearch } from "@tanstack/react-router";
+import { useSearch } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Input, cn } from "@vmem/ui";
 import { IconSearch, IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
@@ -77,8 +77,6 @@ export default function MemorySearch({
   searchQuery: externalQuery,
   onSearchChange,
 }: MemorySearchProps = {}) {
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
   const searchParams = useSearch({ strict: false });
   const [params, setParams] = useQueryStates(memoriesSearchParams);
 
