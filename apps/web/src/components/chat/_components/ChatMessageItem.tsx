@@ -39,7 +39,7 @@ import {
   ToolOutput,
 } from "@vmem/ui/ai";
 import { IconCheck, IconCopy, IconMicrophone } from "@tabler/icons-react";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import type { ChatMemoryRef, MessageUsageSummary } from "@/hooks/useLocalChat";
 
 function StreamingDots() {
@@ -205,7 +205,7 @@ export default function ChatMessageItem({
             {memoryRefs.map((ref) => (
               <Link
                 key={ref.id}
-                href={`/memories?view=graph&focus=${encodeURIComponent(ref.id)}`}
+                to={`/memories?view=graph&focus=${encodeURIComponent(ref.id)}`}
                 className="inline-flex max-w-[220px] items-center rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <span className="truncate">{ref.title}</span>
