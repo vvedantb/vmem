@@ -21,8 +21,10 @@ interface WNode extends SimulationNodeDatum {
   size: number;
 }
 
+type WEdgeType = "tag" | "relates_to" | "imports" | "wiki_parent";
+
 interface WEdge extends SimulationLinkDatum<WNode> {
-  edgeType: "tag" | "relates_to" | "imports";
+  edgeType: WEdgeType;
   weight: number;
 }
 
@@ -54,7 +56,7 @@ self.onmessage = (e: MessageEvent) => {
 
     case "setStrength": {
       if (chargeForceRef) {
-        chargeForceRef.strength(-msg.scalingRatio * 5);
+        chargeForceRef.strength(-msg.scalingRatio * 8);
         sim?.alpha(0.3).restart();
       }
       break;
@@ -62,7 +64,7 @@ self.onmessage = (e: MessageEvent) => {
 
     case "setGravity": {
       if (centerForceRef) {
-        centerForceRef.strength(msg.gravity * 2.0);
+        centerForceRef.strength(msg.gravity * 3.0);
         sim?.alpha(0.3).restart();
       }
       break;
@@ -112,7 +114,7 @@ function init(
   initEdges: Array<{
     source: string;
     target: string;
-    edgeType: "tag" | "relates_to" | "imports";
+    edgeType: WEdgeType;
     weight: number;
   }>,
   scalingRatio: number,
@@ -136,31 +138,41 @@ function init(
     weight: e.weight,
   }));
 
-  const chargeStrength = -scalingRatio * 5;
+  const chargeStrength = -scalingRatio * 8;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
+  // Obsidian-style springs: short distance + strong pull so connected nodes
+  // visibly cluster. Tag edges (derived from shared tags) pull less hard than
+  // explicit user-created relates_to links.
   const linkForce = forceLink<WNode, WEdge>(edges)
     .id((d) => d.id)
-    .distance(25)
+    .distance(35)
     .strength((d) =>
-      d.edgeType === "relates_to" || d.edgeType === "imports" ? 0.7 : 0.15,
+      d.edgeType === "relates_to" ||
+      d.edgeType === "imports" ||
+      d.edgeType === "wiki_parent"
+        ? 1.0
+        : 0.4,
     );
 
   chargeForceRef = forceManyBody<WNode>().strength(chargeStrength).theta(theta);
 
-  centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 2.0);
+  // Stronger center pull keeps the whole graph bounded in the viewport,
+  // preventing isolated nodes from drifting off-screen.
+  centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 3.0);
 
   const collideForce = forceCollide<WNode>()
     .radius((d) => d.size * 2 + 1)
-    .strength(0.7);
+    .strength(0.9);
 
+  // alphaDecay 0.0228 = d3 default; velocityDecay 0.4 = smoother organic motion.
   sim = forceSimulation<WNode, WEdge>(nodes)
     .force("link", linkForce)
     .force("charge", chargeForceRef)
     .force("center", centerForceRef)
     .force("collide", collideForce)
-    .alphaDecay(0.03)
-    .velocityDecay(0.5)
+    .alphaDecay(0.0228)
+    .velocityDecay(0.4)
     .alpha(1);
 
   // Warm-up ticks run here in the worker (non-blocking for main thread)

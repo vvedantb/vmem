@@ -23,11 +23,11 @@ import { useThemeContext } from "./contexts/ThemeContext";
 import { useUser } from "@clerk/nextjs";
 import { useNotifications } from "./contexts/NotificationContext";
 import {
-  IconMenu2,
   IconX,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpandFilled,
 } from "@tabler/icons-react";
+import { MorphingMenuIcon } from "./svg-animations";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarFooter } from "./sidebar/SidebarFooter";
 import { usePageTitle } from "./contexts/PageTitleContext";
@@ -80,7 +80,7 @@ export default function Sidebar({
             aria-controls={mobileMenuId}
             className="flex h-9 w-9 items-center justify-center rounded-xl glass-interactive text-muted-foreground transition-colors hover:text-foreground"
           >
-            <IconMenu2 className="h-5 w-5" />
+            <MorphingMenuIcon isOpen={mobileMenuOpen} size={20} />
           </button>
           {pageTitle ? (
             <span className="text-lg leading-none font-instrumentSerif text-foreground">

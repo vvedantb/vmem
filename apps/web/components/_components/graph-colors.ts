@@ -2,6 +2,7 @@
  * Shared color utilities for graph nodes.
  * Used by both the canvas renderer and UI components (tag filters, legend).
  */
+import type { GraphNodeKind } from "./canvas/types";
 
 export function tagToHue(tag: string): number {
   let hash = 0;
@@ -30,13 +31,42 @@ export function tagToColor(tag: string, isDark: boolean): string {
   return isDark ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
 }
 
-/** Color for a node based on its first tag + theme. Used by renderer and UI. */
+/**
+ * Fixed colors for tagless node kinds (wiki docs, wiki folders, skills). Picks
+ * from the same HSL space used by `tagToColor` to stay visually coherent with
+ * the rest of the palette:
+ *  - wiki-document: warm amber (content accent)
+ *  - wiki-folder:   cool slate (structural)
+ *  - skill:         purple (tool/capability)
+ */
+function kindColor(
+  kind: "wiki-document" | "wiki-folder" | "skill",
+  isDark: boolean,
+): string {
+  if (kind === "wiki-folder") {
+    return isDark ? hslToHex(220, 15, 65) : hslToHex(220, 20, 45);
+  }
+  if (kind === "skill") {
+    return isDark ? hslToHex(285, 55, 72) : hslToHex(285, 60, 50);
+  }
+  return isDark ? hslToHex(35, 55, 70) : hslToHex(35, 60, 50);
+}
+
+/**
+ * Color for a node based on its kind, tags, and theme. Used by renderer and UI.
+ *
+ * - Memory nodes: first tag drives the hue (falls back to a theme-aware grey).
+ * - Non-memory kinds (wiki docs, wiki folders, skills): fixed kind-based color.
+ * - `nodeColorOverride` from a view theme (e.g. monochrome themes) wins for all.
+ */
 export function nodeColor(
   tags: string[],
+  kind: GraphNodeKind,
   isDarkCanvas: boolean,
   nodeColorOverride: string | null,
 ): string {
   if (nodeColorOverride) return nodeColorOverride;
+  if (kind !== "memory") return kindColor(kind, isDarkCanvas);
   if (tags.length > 0) return tagToColor(tags[0], isDarkCanvas);
   return isDarkCanvas ? "#555566" : "#999999";
 }

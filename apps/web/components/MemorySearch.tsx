@@ -3,24 +3,39 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQueryStates } from "nuqs";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useQuery } from "convex/react";
 import { Input, cn } from "@vmem/ui";
 import { IconSearch, IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Virtuoso } from "react-virtuoso";
+import { api } from "@vmem/backend";
 import MemoryDetailPanel from "./MemoryDetailPanel";
 import MemoryTagFilter from "./_components/MemoryTagFilter";
 import MemorySourceFilter from "./_components/MemorySourceFilter";
-import MemoryListItem from "./_components/MemoryListItem";
+import MemoryTypeFilter from "./_components/MemoryTypeFilter";
+import ListKindFilter from "./_components/ListKindFilter";
+import ListItemRow from "./_components/ListItemRow";
 import {
-  searchMemories,
-  memoryMatchesTagFilters,
-  memoryMatchesSourceFilters,
   formatMemorySourceLabel,
+  formatMemoryTypeLabel,
   type Memory,
-  type SearchResult,
 } from "@/lib/memories";
+import {
+  formatListItemKindLabel,
+  listItemMatchesKindFilter,
+  listItemMatchesSourceFilter,
+  listItemMatchesTagFilter,
+  listItemMatchesTypeFilter,
+  memoryToListItem,
+  searchListItems,
+  skillRowsToListItems,
+  wikiRowsToListItems,
+  type ListItem,
+  type ListItemSearchResult,
+} from "@/lib/list-items";
 import { memoriesSearchParams } from "@/app/(main)/memories/searchParams";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
+import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
 
 interface MemorySearchProps {
@@ -28,6 +43,38 @@ interface MemorySearchProps {
   onSearchChange?: (query: string) => void;
 }
 
+/**
+ * Extracts memory items from a mixed list and re-materialises them as Memory
+ * objects for the memory-scoped filter components (Source, Type, Tag), which
+ * were written before the unified list-item model and still expect `Memory[]`.
+ */
+function listItemsToMemories(items: readonly ListItem[]): Memory[] {
+  return items.flatMap((item): Memory[] => {
+    if (item.kind !== "memory") {
+      return [];
+    }
+    return [
+      {
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        tags: item.tags,
+        createdAt: item.createdAt,
+        type: item.type,
+        source: item.source,
+      },
+    ];
+  });
+}
+
+/**
+ * The "list" view of /memories. Mirrors the graph view's node set by merging
+ * memories (from Neo4j via Convex), wiki documents/folders, and skills into a
+ * single scrollable list. Filters are kind-aware: the Kind filter cuts across
+ * all four kinds; Tag/Source/Type filters are memory-scoped and let non-memory
+ * items pass through, so e.g. setting a tag filter narrows memories without
+ * hiding every wiki doc and skill.
+ */
 export default function MemorySearch({
   searchQuery: externalQuery,
   onSearchChange,
@@ -37,7 +84,13 @@ export default function MemorySearch({
   const searchParams = useSearchParams();
   const [params, setParams] = useQueryStates(memoriesSearchParams);
 
-  const { memories: allMemories, isLoading } = useMemoryContext();
+  const { memories: allMemories, isLoading: isMemoriesLoading } =
+    useMemoryContext();
+  const wikiRows = useQuery(api.wiki.listTree);
+  const skillRows = useQuery(api.skills.listMy);
+  const { theme } = useThemeContext();
+  const isDark = theme === "dark";
+
   const [internalQuery, setInternalQuery] = useState("");
   const searchQuery = externalQuery ?? internalQuery;
   const setSearchQuery = onSearchChange ?? setInternalQuery;
@@ -79,6 +132,17 @@ export default function MemorySearch({
     router.replace(`${pathname}?${next.toString()}`);
   }, [searchParams, pathname, router, params.sources.length]);
 
+  // Merge memories + wiki + skills into one list-item stream. We defer
+  // non-memory queries gracefully — an unresolved Convex useQuery returns
+  // `undefined`, which we fall back to an empty array so the list still shows
+  // memories immediately while wiki/skills finish loading.
+  const allItems = useMemo<ListItem[]>(() => {
+    const memoryItems = allMemories.map(memoryToListItem);
+    const wikiItems = wikiRows ? wikiRowsToListItems(wikiRows) : [];
+    const skillItems = skillRows ? skillRowsToListItems(skillRows) : [];
+    return [...memoryItems, ...wikiItems, ...skillItems];
+  }, [allMemories, wikiRows, skillRows]);
+
   const distinctSources = useMemo(() => {
     const set = new Set<string>();
     for (const m of allMemories) {
@@ -87,35 +151,81 @@ export default function MemorySearch({
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [allMemories]);
 
-  const memoriesAfterTags = useMemo(
-    () => allMemories.filter((m) => memoryMatchesTagFilters(m, params.tags)),
-    [allMemories, params.tags],
+  // Kind filter runs first — it's the broadest cut.
+  const itemsAfterKinds = useMemo(
+    () =>
+      allItems.filter((item) => listItemMatchesKindFilter(item, params.kinds)),
+    [allItems, params.kinds],
   );
 
-  const filteredMemories = useMemo(() => {
+  const itemsAfterKindsAndTags = useMemo(
+    () =>
+      itemsAfterKinds.filter((item) =>
+        listItemMatchesTagFilter(item, params.tags),
+      ),
+    [itemsAfterKinds, params.tags],
+  );
+
+  const itemsAfterKindsTagsSources = useMemo(() => {
     if (params.sources.length === 0) {
-      return memoriesAfterTags;
+      return itemsAfterKindsAndTags;
     }
-    return memoriesAfterTags.filter((m) =>
-      memoryMatchesSourceFilters(m, params.sources),
+    return itemsAfterKindsAndTags.filter((item) =>
+      listItemMatchesSourceFilter(item, params.sources),
     );
-  }, [memoriesAfterTags, params.sources]);
+  }, [itemsAfterKindsAndTags, params.sources]);
+
+  const filteredItems = useMemo(() => {
+    if (params.types.length === 0) {
+      return itemsAfterKindsTagsSources;
+    }
+    return itemsAfterKindsTagsSources.filter((item) =>
+      listItemMatchesTypeFilter(item, params.types),
+    );
+  }, [itemsAfterKindsTagsSources, params.types]);
+
+  // The memory-scoped filter popovers (Source, Type) show counts over the
+  // memory subset at each stage of the filter chain. The filter components
+  // were written before the unified item model and still expect `Memory[]`,
+  // so we re-materialise Memory objects from the appropriate stage.
+  const memoryObjectsForSourceFilter = useMemo(
+    () => listItemsToMemories(itemsAfterKindsAndTags),
+    [itemsAfterKindsAndTags],
+  );
+
+  const memoryObjectsForTypeFilter = useMemo(
+    () => listItemsToMemories(itemsAfterKindsTagsSources),
+    [itemsAfterKindsTagsSources],
+  );
 
   const normalizedQuery = searchQuery.trim();
   const searchResults = useMemo(() => {
     if (!normalizedQuery) {
       return null;
     }
+    return searchListItems(filteredItems, normalizedQuery);
+  }, [filteredItems, normalizedQuery]);
 
-    return searchMemories(filteredMemories, normalizedQuery);
-  }, [filteredMemories, normalizedQuery]);
+  const displayItems: Array<{ item: ListItem; score: number | null }> =
+    useMemo(() => {
+      if (searchResults !== null) {
+        return searchResults.map((r: ListItemSearchResult) => ({
+          item: r.item,
+          score: r.relevanceScore,
+        }));
+      }
+      return filteredItems.map((item) => ({ item, score: null }));
+    }, [searchResults, filteredItems]);
 
-  const displayData: (Memory | SearchResult)[] =
-    searchResults ?? filteredMemories;
   const isShowingSearchResults = searchResults !== null;
 
   const searchPlaceholder = useMemo(() => {
     const hints: string[] = [];
+    if (params.kinds.length > 0) {
+      hints.push(
+        params.kinds.map((k) => formatListItemKindLabel(k)).join(" · "),
+      );
+    }
     if (params.tags.length > 0) {
       hints.push(params.tags.join(" · "));
     }
@@ -124,17 +234,19 @@ export default function MemorySearch({
         params.sources.map((s) => formatMemorySourceLabel(s)).join(" · "),
       );
     }
+    if (params.types.length > 0) {
+      hints.push(params.types.map((t) => formatMemoryTypeLabel(t)).join(" · "));
+    }
     if (hints.length === 0) {
-      return "Search memories semantically...";
+      return "Search memories, wiki, and skills...";
     }
     return `Search (${hints.join(" — ")})...`;
-  }, [params.tags, params.sources]);
+  }, [params.kinds, params.tags, params.sources, params.types]);
 
   const selectedMemory = useMemo(() => {
     if (!selectedMemoryId) {
       return null;
     }
-
     return allMemories.find((memory) => memory.id === selectedMemoryId) ?? null;
   }, [allMemories, selectedMemoryId]);
 
@@ -142,7 +254,6 @@ export default function MemorySearch({
     if (!selectedMemoryId) {
       return;
     }
-
     if (!allMemories.some((memory) => memory.id === selectedMemoryId)) {
       setSelectedMemoryId(null);
     }
@@ -161,7 +272,7 @@ export default function MemorySearch({
     [selectedMemoryId],
   );
 
-  const handleCardClick = useCallback(
+  const handleMemoryClick = useCallback(
     (memory: Memory) => {
       setPanelAction(null);
       setSelectedMemoryId(selectedMemoryId === memory.id ? null : memory.id);
@@ -183,7 +294,7 @@ export default function MemorySearch({
     setPanelAction(null);
   }, []);
 
-  if (isLoading) {
+  if (isMemoriesLoading) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
         <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -191,17 +302,17 @@ export default function MemorySearch({
     );
   }
 
-  if (allMemories.length === 0) {
+  if (allItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
           <IconMoodEmpty className="w-6 h-6 text-muted-foreground" />
         </div>
         <h3 className="text-lg font-medium text-foreground mb-2">
-          No memories yet
+          Nothing here yet
         </h3>
         <p className="text-sm text-muted-foreground">
-          Start by adding your first memory
+          Add a memory, wiki doc, or skill to get started
         </p>
       </div>
     );
@@ -212,6 +323,12 @@ export default function MemorySearch({
       <div className="flex flex-1 min-w-0 min-h-0 flex-col">
         {!isExternalSearch && (
           <div className="flex gap-2 flex-shrink-0 pb-4 flex-wrap">
+            <ListKindFilter
+              baseItems={allItems}
+              selectedKinds={params.kinds}
+              onKindsChange={(kinds) => setParams({ kinds })}
+              isDark={isDark}
+            />
             <MemoryTagFilter
               memories={allMemories}
               selectedTags={params.tags}
@@ -219,9 +336,14 @@ export default function MemorySearch({
             />
             <MemorySourceFilter
               sources={distinctSources}
-              baseMemories={memoriesAfterTags}
+              baseMemories={memoryObjectsForSourceFilter}
               selectedSources={params.sources}
               onSourcesChange={(sources) => setParams({ sources })}
+            />
+            <MemoryTypeFilter
+              baseMemories={memoryObjectsForTypeFilter}
+              selectedTypes={params.types}
+              onTypesChange={(types) => setParams({ types })}
             />
             <div className="relative flex-1 min-w-[200px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -242,7 +364,7 @@ export default function MemorySearch({
           </div>
         )}
 
-        {isShowingSearchResults && displayData.length === 0 && (
+        {isShowingSearchResults && displayItems.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-xl">
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
               <IconSearch className="w-5 h-5 text-muted-foreground" />
@@ -256,7 +378,7 @@ export default function MemorySearch({
           </div>
         )}
 
-        {(!isShowingSearchResults || displayData.length > 0) && (
+        {(!isShowingSearchResults || displayItems.length > 0) && (
           <div
             className={cn(
               "flex flex-1 min-h-0 gap-4",
@@ -270,17 +392,18 @@ export default function MemorySearch({
               )}
             >
               <Virtuoso
-                data={displayData}
-                computeItemKey={(_index, item) => item.id}
+                data={displayItems}
+                computeItemKey={(_index, entry) => entry.item.id}
                 defaultItemHeight={44}
-                itemContent={(_index, item) => (
+                itemContent={(_index, entry) => (
                   <div className="pb-1.5">
-                    <MemoryListItem
-                      item={item}
-                      isSelected={selectedMemoryId === item.id}
-                      isShowingSearchResults={isShowingSearchResults}
-                      trailEntry={trailMap.get(item.id)}
-                      onCardClick={handleCardClick}
+                    <ListItemRow
+                      item={entry.item}
+                      relevanceScore={entry.score}
+                      isSelected={selectedMemoryId === entry.item.id}
+                      trailEntry={trailMap.get(entry.item.id)}
+                      isDark={isDark}
+                      onMemoryClick={handleMemoryClick}
                       onContextEdit={handleContextEdit}
                       onContextDelete={handleContextDelete}
                     />

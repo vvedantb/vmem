@@ -50,7 +50,7 @@ const DEFAULT_DARK: GraphViewTheme = {
   grid: null,
   edge: {
     normal: "rgba(255,255,255,0.12)",
-    connected: "rgba(255,255,255,0.4)",
+    connected: "rgba(255,255,255,0.85)",
     dimmed: "rgba(255,255,255,0.025)",
     width: 0.6,
     connectedWidth: 1.5,
@@ -79,11 +79,11 @@ const DEFAULT_LIGHT: GraphViewTheme = {
   gradientCenter: "rgba(80, 80, 180, 0.03)",
   grid: null,
   edge: {
-    normal: "rgba(0,0,0,0.15)",
-    connected: "rgba(0,0,0,0.25)",
-    dimmed: "rgba(0,0,0,0.03)",
-    width: 0.5,
-    connectedWidth: 1.2,
+    normal: "rgba(0,0,0,0.25)",
+    connected: "rgba(0,0,0,0.75)",
+    dimmed: "rgba(0,0,0,0.05)",
+    width: 0.8,
+    connectedWidth: 1.6,
   },
   glow: {
     enabled: false,
@@ -110,7 +110,7 @@ const SATELLITE: GraphViewTheme = {
   grid: null,
   edge: {
     normal: "rgba(255,255,255,0.06)",
-    connected: "rgba(180,160,255,0.3)",
+    connected: "rgba(200,180,255,0.9)",
     dimmed: "rgba(255,255,255,0.015)",
     width: 0.4,
     connectedWidth: 0.8,
@@ -143,7 +143,7 @@ const CONSTELLATION: GraphViewTheme = {
   grid: null,
   edge: {
     normal: "rgba(140,180,255,0.5)",
-    connected: "rgba(200,220,255,0.75)",
+    connected: "rgba(220,235,255,0.95)",
     dimmed: "rgba(140,180,255,0.08)",
     width: 0.8,
     connectedWidth: 1.4,
@@ -203,10 +203,10 @@ const MINIMAL_DARK: GraphViewTheme = {
   grid: null,
   edge: {
     normal: "rgba(255,255,255,0.03)",
-    connected: "rgba(255,255,255,0.12)",
+    connected: "rgba(255,255,255,0.55)",
     dimmed: "rgba(255,255,255,0.01)",
     width: 0.3,
-    connectedWidth: 0.5,
+    connectedWidth: 0.8,
   },
   glow: {
     enabled: false,
@@ -236,10 +236,10 @@ const MINIMAL_LIGHT: GraphViewTheme = {
   grid: null,
   edge: {
     normal: "rgba(0,0,0,0.06)",
-    connected: "rgba(0,0,0,0.15)",
+    connected: "rgba(0,0,0,0.55)",
     dimmed: "rgba(0,0,0,0.02)",
     width: 0.3,
-    connectedWidth: 0.5,
+    connectedWidth: 0.8,
   },
   glow: {
     enabled: false,

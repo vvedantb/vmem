@@ -313,4 +313,49 @@ http.route({
   }),
 });
 
+// --- Skills (read-only from MCP) ---
+
+http.route({
+  path: "/api/mcp/skills/list",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const token = extractBearerToken(req);
+    if (!token) return jsonResponse({ error: "Missing token" }, 401);
+
+    try {
+      const result = await ctx.runAction(internal.mcpSkills.mcpListSkills, {
+        token,
+      });
+      return jsonResponse({ data: result });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Internal error";
+      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
+    }
+  }),
+});
+
+http.route({
+  path: "/api/mcp/skills/get",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const token = extractBearerToken(req);
+    if (!token) return jsonResponse({ error: "Missing token" }, 401);
+
+    try {
+      const body = await req.json();
+      if (typeof body.name !== "string" || body.name.length === 0) {
+        return jsonResponse({ error: "Missing skill name" }, 400);
+      }
+      const result = await ctx.runAction(internal.mcpSkills.mcpGetSkill, {
+        token,
+        name: body.name,
+      });
+      return jsonResponse({ data: result });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Internal error";
+      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
+    }
+  }),
+});
+
 export default http;
