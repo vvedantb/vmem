@@ -15,4 +15,18 @@ vector db- https://www.pinecone.io/product/
 letta code - store memories
 convexmem component
 
-https://www.myworklayer.com/
+infinite connectors - https://www.myworklayer.com/
+
+code review graph -https://github.com/tirth8205/code-review-graph
+
+membase - https://docs.membase.so/
+
+obsidian - knowledge graph
+
+clawd-mem https://claude-mem.ai/
+
+superlocalmemory - https://www.superlocalmemory.com/
+
+hydradb
+
+openviking - https://github.com/volcengine/OpenViking
