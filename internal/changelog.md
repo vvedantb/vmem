@@ -1,5 +1,13 @@
 # Changelog
 
+## Web-v2: Auth routing refactor and build fixes — 2026-04-18
+
+- Fixed pnpm lockfile corruption issue: regenerated `pnpm-lock.yaml` and added `onlyBuiltDependencies: ["esbuild"]` config to allow postinstall scripts, resolving missing vite/esbuild packages
+- Replicated conductor's routing pattern: `beforeLoad` guards instead of `useEffect` redirects for faster auth state handling (redirect before render, not after)
+- Refactored auth context: added `RouterContext<{ isSignedIn: boolean }>` to `createRootRouteWithContext()` so all routes can access Clerk auth state synchronously
+- Moved ClerkProvider to `main.tsx` with loader pattern: wrapped `InnerApp` component tracks `useAuth()` and passes context to `RouterProvider`; shows `AppSkeleton` while Clerk initializes
+- Reason: eliminates page flash on auth state change, matches production patterns (conductor), ensures 1-to-1 parity with original Next.js web app
+
 ## Vite + TanStack Router Migration — 2026-04-18
 
 - Created `apps/web-v2` with Vite + TanStack Router for faster dev/build speeds — Next.js dev server was too slow for iteration
