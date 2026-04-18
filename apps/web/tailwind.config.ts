@@ -8,8 +8,8 @@ function c(name: string) {
 const config: Config = {
   darkMode: "class",
   content: [
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
     "../../packages/ui/src/**/*.{ts,tsx}",
   ],
   theme: {
@@ -55,9 +55,9 @@ const config: Config = {
         smooth: "cubic-bezier(0.22, 1, 0.36, 1)",
       },
       fontFamily: {
-        sans: ["var(--font-instrument-sans)", "system-ui", "sans-serif"],
-        instrumentSerif: ["var(--font-instrument-serif)"],
-        instrumentSans: ["var(--font-instrument-sans)"],
+        sans: ["Instrument Sans", "system-ui", "sans-serif"],
+        instrumentSerif: ["Instrument Serif", "Georgia", "serif"],
+        instrumentSans: ["Instrument Sans", "system-ui", "sans-serif"],
       },
       screens: {
         xs: "475px",
