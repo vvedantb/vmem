@@ -2,7 +2,7 @@ import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
-import { NuqsAdapter } from "nuqs/adapters/react";
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@vmem/ui";
@@ -25,8 +25,8 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <ClerkProvider publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}>
-      <NuqsAdapter>
-        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        <NuqsAdapter>
           <NextThemesProvider
             attribute="class"
             defaultTheme="light"
@@ -53,8 +53,8 @@ function RootComponent() {
               </QueryProvider>
             </MotionProvider>
           </NextThemesProvider>
-        </ConvexProviderWithClerk>
-      </NuqsAdapter>
+        </NuqsAdapter>
+      </ConvexProviderWithClerk>
     </ClerkProvider>
   );
 }

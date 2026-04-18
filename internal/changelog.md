@@ -1,5 +1,16 @@
 # Changelog
 
+## Vite + TanStack Router Migration — 2026-04-18
+
+- Created `apps/web-v2` with Vite + TanStack Router for faster dev/build speeds — Next.js dev server was too slow for iteration
+- Migrated all 23 routes to TanStack file-based routing: `__root.tsx` for providers, `_main/route.tsx` for protected layout, `$id.tsx` for dynamic routes
+- Copied all components, hooks, lib files from `apps/web` with updated imports: `@clerk/nextjs` → `@clerk/clerk-react`, `next/link` → `@tanstack/react-router`, `next/image` → native `<img>`
+- Configured nuqs with `nuqs/adapters/tanstack-router` adapter for URL state management
+- Non-blocking Google Fonts via Conductor pattern (media="print" onload trick) instead of `next/font`
+- Env vars renamed from `NEXT_PUBLIC_*` to `VITE_*` with simple runtime validation in `src/env.ts`
+- `apps/web` (Next.js) preserved as backup — delete after `web-v2` is verified in production
+- Reason: Vite HMR is sub-second vs Next.js 5-10s cold starts; TanStack Router provides type-safe routing without the RSC complexity we weren't using
+
 ## Settings: Chat export import to memories — 2026-04-14
 
 - Added a Settings → Import flow so users can bring official ChatGPT or Claude data exports into vmem as Neo4j memories instead of replaying chats in the app
