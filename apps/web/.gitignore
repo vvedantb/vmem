@@ -9,9 +9,6 @@ dist-ssr
 *.local
 vite.config.ts.timestamp-*
 
-# TanStack Router generated
-src/routeTree.gen.ts
-
 # Bundle analysis
 stats.html
 
