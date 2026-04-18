@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
-import react from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
 import tanstackRouter from "@tanstack/router-plugin/vite";
 import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
@@ -76,6 +77,9 @@ export default defineConfig({
       autoCodeSplitting: true,
     }),
     react(),
+    babel({
+      presets: [reactCompilerPreset()],
+    }),
     agentLoginPlugin(),
     process.env.ANALYZE === "true" &&
       visualizer({
@@ -109,28 +113,31 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          "vendor-radix": [
-            "@radix-ui/react-checkbox",
-            "@radix-ui/react-collapsible",
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-hover-card",
-            "@radix-ui/react-label",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-progress",
-            "@radix-ui/react-select",
-            "@radix-ui/react-separator",
-            "@radix-ui/react-slot",
-            "@radix-ui/react-switch",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-tooltip",
+        codeSplitting: {
+          groups: [
+            {
+              name: "vendor-radix",
+              test: /node_modules[\\/]@radix-ui/,
+              priority: 15,
+            },
+            {
+              name: "vendor-convex",
+              test: /node_modules[\\/](convex|convex-helpers)/,
+              priority: 15,
+            },
+            {
+              name: "vendor-clerk",
+              test: /node_modules[\\/]@clerk/,
+              priority: 15,
+            },
+            {
+              name: "vendor-motion",
+              test: /node_modules[\\/](motion|framer-motion)/,
+              priority: 15,
+            },
           ],
-          "vendor-convex": ["convex", "convex-helpers"],
-          "vendor-clerk": ["@clerk/clerk-react"],
-          "vendor-motion": ["motion"],
         },
       },
     },
