@@ -1,22 +1,17 @@
-// Vite exposes env vars via import.meta.env
-// All public env vars must be prefixed with VITE_
+import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod";
 
-export const env = {
-  VITE_CONVEX_URL: import.meta.env.VITE_CONVEX_URL,
-  VITE_CLERK_PUBLISHABLE_KEY: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-  VITE_MCP_URL: import.meta.env.VITE_MCP_URL,
-  DEV: import.meta.env.DEV,
-  PROD: import.meta.env.PROD,
-} as const;
+export const env = createEnv({
+  clientPrefix: "VITE_",
+  client: {
+    VITE_CONVEX_URL: z.string().url(),
+    VITE_CLERK_PUBLISHABLE_KEY: z.string().startsWith("pk_"),
+    VITE_MCP_URL: z.string().url().optional(),
+  },
+  runtimeEnv: import.meta.env,
+  emptyStringAsUndefined: true,
+});
 
-// Runtime validation
-function validateEnv() {
-  if (!env.VITE_CONVEX_URL) {
-    throw new Error("Missing VITE_CONVEX_URL environment variable");
-  }
-  if (!env.VITE_CLERK_PUBLISHABLE_KEY) {
-    throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY environment variable");
-  }
-}
-
-validateEnv();
+// Re-export Vite's built-in env vars for convenience
+export const DEV = import.meta.env.DEV;
+export const PROD = import.meta.env.PROD;

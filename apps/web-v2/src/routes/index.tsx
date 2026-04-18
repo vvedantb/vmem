@@ -3,7 +3,7 @@ import { SignInButton, SignUpButton, useSignIn } from "@clerk/clerk-react";
 import { Button } from "@vmem/ui";
 import { useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { env } from "@/env";
+import { env, PROD } from "@/env";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
@@ -28,7 +28,7 @@ function LandingPage() {
     }
   }, [agent, isLoaded]);
 
-  const isProduction = import.meta.env.VITE_ENV === "production";
+  const isProduction = PROD;
 
   return (
     <div className="flex min-h-screen items-center justify-center">
