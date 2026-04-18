@@ -13,13 +13,6 @@ interface MorphingMicIconProps {
   className?: string;
 }
 
-// Path data for microphone icon (simplified for morphing)
-const MIC_PATH =
-  "M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z M19 10v2a7 7 0 0 1-14 0v-2 M12 19v4 M8 23h8";
-
-// Path data for stop icon (square)
-const STOP_PATH = "M6 6h12v12H6z M6 6h12v12H6z M6 6h12v12H6z M6 6h12v12H6z";
-
 export function MorphingMicIcon({
   isListening,
   size = 32,
