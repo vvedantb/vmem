@@ -16,6 +16,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { useLocalStorage } from "usehooks-ts";
 import type { InitProgressReport } from "@mlc-ai/web-llm";
 import type { LanguageModelV3 } from "@ai-sdk/provider";
 import {
@@ -27,23 +28,7 @@ import {
 export type EngineState = "idle" | "loading" | "ready" | "error";
 export type LocalLanguageModel = LanguageModelV3;
 
-// Lightweight localStorage helpers (no heavy imports)
 const ACTIVE_MODEL_KEY = "vmem:activeLocalModelId";
-
-function getActiveModelId(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACTIVE_MODEL_KEY);
-}
-
-function setActiveModelIdStorage(modelId: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(ACTIVE_MODEL_KEY, modelId);
-}
-
-function clearActiveModelId(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(ACTIVE_MODEL_KEY);
-}
 
 function isWebGPUSupported(): boolean {
   if (typeof window === "undefined") return false;
@@ -93,7 +78,8 @@ async function getEngineModule() {
 
 export function LocalLLMProvider({ children }: { children: ReactNode }) {
   const [isSupported, setIsSupported] = useState(false);
-  const [activeModelId, setActiveModelIdState] = useState<string | null>(null);
+  const [activeModelId, setActiveModelId, removeActiveModelId] =
+    useLocalStorage<string | null>(ACTIVE_MODEL_KEY, null);
   const [engineState, setEngineState] = useState<EngineState>("idle");
   const [loadProgress, setLoadProgress] = useState<number | null>(null);
   const [loadMessage, setLoadMessage] = useState<string | null>(null);
@@ -103,84 +89,87 @@ export function LocalLLMProvider({ children }: { children: ReactNode }) {
   const [currentRuntimeState, setCurrentRuntimeState] =
     useState<LocalModelRuntime | null>(null);
 
-  // Check WebGPU support and read persisted active model on mount
+  // Check WebGPU support on mount and validate stored model
   useEffect(() => {
     setIsSupported(isWebGPUSupported());
-    const stored = getActiveModelId();
-    if (stored && LOCAL_MODELS.some((modelInfo) => modelInfo.id === stored)) {
-      setActiveModelIdState(stored);
-      return;
+    // useLocalStorage handles reading from localStorage
+    // Just validate the stored model still exists in available models
+    if (
+      activeModelId !== null &&
+      !LOCAL_MODELS.some((modelInfo) => modelInfo.id === activeModelId)
+    ) {
+      removeActiveModelId();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only validate on mount
 
-    if (stored) {
-      clearActiveModelId();
-    }
-  }, []);
+  const handleSetActiveModelId = useCallback(
+    (modelId: string) => {
+      setActiveModelId(modelId);
+    },
+    [setActiveModelId],
+  );
 
-  const handleSetActiveModelId = useCallback((modelId: string) => {
-    setActiveModelIdStorage(modelId);
-    setActiveModelIdState(modelId);
-  }, []);
+  const handleLoadModel = useCallback(
+    async (modelId: string) => {
+      setEngineState("loading");
+      setLoadingModelId(modelId);
+      setLoadProgress(0);
+      setLoadMessage("Initializing...");
 
-  const handleLoadModel = useCallback(async (modelId: string) => {
-    setEngineState("loading");
-    setLoadingModelId(modelId);
-    setLoadProgress(0);
-    setLoadMessage("Initializing...");
+      try {
+        // Lazy load the heavy engine module only when actually loading a model
+        const engine = await getEngineModule();
 
-    try {
-      // Lazy load the heavy engine module only when actually loading a model
-      const engine = await getEngineModule();
+        const onProgress = (progress: InitProgressReport) => {
+          // Extract percentage from progress text if available
+          const match = progress.text.match(/(\d+)%/);
+          if (match) {
+            setLoadProgress(parseInt(match[1], 10));
+          }
+          setLoadMessage(progress.text);
+        };
 
-      const onProgress = (progress: InitProgressReport) => {
-        // Extract percentage from progress text if available
-        const match = progress.text.match(/(\d+)%/);
-        if (match) {
-          setLoadProgress(parseInt(match[1], 10));
-        }
-        setLoadMessage(progress.text);
-      };
+        const loadedModel = await engine.loadEngine(modelId, onProgress);
 
-      const loadedModel = await engine.loadEngine(modelId, onProgress);
+        setModel(loadedModel);
+        setLoadedModelId(modelId);
+        setLoadingModelId(null);
+        setCurrentRuntimeState(engine.getCurrentRuntime());
+        setEngineState("ready");
+        setLoadProgress(100);
+        setLoadMessage(null);
 
-      setModel(loadedModel);
-      setLoadedModelId(modelId);
-      setLoadingModelId(null);
-      setCurrentRuntimeState(engine.getCurrentRuntime());
-      setEngineState("ready");
-      setLoadProgress(100);
-      setLoadMessage(null);
-
-      // Also persist as active model
-      setActiveModelIdStorage(modelId);
-      setActiveModelIdState(modelId);
-    } catch (err) {
-      setEngineState("error");
-      setLoadingModelId(null);
-      setLoadProgress(null);
-      setLoadMessage(
-        err instanceof Error ? err.message : "Failed to load model",
-      );
-      setModel(null);
-      setLoadedModelId(null);
-      setCurrentRuntimeState(null);
-    }
-  }, []);
+        // Also persist as active model
+        setActiveModelId(modelId);
+      } catch (err) {
+        setEngineState("error");
+        setLoadingModelId(null);
+        setLoadProgress(null);
+        setLoadMessage(
+          err instanceof Error ? err.message : "Failed to load model",
+        );
+        setModel(null);
+        setLoadedModelId(null);
+        setCurrentRuntimeState(null);
+      }
+    },
+    [setActiveModelId],
+  );
 
   const handleUnloadModel = useCallback(async () => {
     if (engineModule) {
       await engineModule.unloadEngine();
     }
-    clearActiveModelId();
+    removeActiveModelId();
     setModel(null);
-    setActiveModelIdState(null);
     setLoadedModelId(null);
     setLoadingModelId(null);
     setCurrentRuntimeState(null);
     setEngineState("idle");
     setLoadProgress(null);
     setLoadMessage(null);
-  }, []);
+  }, [removeActiveModelId]);
 
   // Sync with engine state on mount (in case engine was loaded before context mounted)
   useEffect(() => {

@@ -24,17 +24,13 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { useLocalStorage } from "usehooks-ts";
 import {
   STT_MODELS,
   TTS_MODELS,
-  getActiveSTTModelId,
-  setActiveSTTModelId,
-  getActiveTTSModelId,
-  setActiveTTSModelId,
-  getActiveSpeakerId,
-  setActiveSpeakerId as persistSpeakerId,
-  clearActiveSTTModelId,
-  clearActiveTTSModelId,
+  STT_MODEL_KEY,
+  TTS_MODEL_KEY,
+  TTS_SPEAKER_KEY,
   type STTVoiceModelInfo,
   type TTSVoiceModelInfo,
 } from "@/lib/voice/voice-models";
@@ -155,17 +151,24 @@ const VoiceContext = createContext<VoiceContextValue | null>(null);
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
   /* -- STT ---------------------------------------------------------- */
-  const [activeSTTId, setActiveSTTId] = useState<string | null>(null);
+  const [activeSTTId, setActiveSTTId, removeActiveSTTId] = useLocalStorage<
+    string | null
+  >(STT_MODEL_KEY, null);
   const [sttState, setSttState] = useState<VoiceModelLoadState>("idle");
   const [sttProgress, setSttProgress] = useState<number | null>(null);
   const [sttMessage, setSttMessage] = useState<string | null>(null);
 
   /* -- TTS ---------------------------------------------------------- */
-  const [activeTTSId, setActiveTTSId] = useState<string | null>(null);
+  const [activeTTSId, setActiveTTSId, removeActiveTTSId] = useLocalStorage<
+    string | null
+  >(TTS_MODEL_KEY, null);
   const [ttsState, setTtsState] = useState<VoiceModelLoadState>("idle");
   const [ttsProgress, setTtsProgress] = useState<number | null>(null);
   const [ttsMessage, setTtsMessage] = useState<string | null>(null);
-  const [activeSpeaker, setActiveSpeakerState] = useState<string>("af_heart");
+  const [activeSpeaker, setActiveSpeaker] = useLocalStorage<string>(
+    TTS_SPEAKER_KEY,
+    "af_heart",
+  );
 
   /* -- Session ------------------------------------------------------ */
   const [phase, setPhase] = useState<VoicePhase>("idle");
@@ -183,114 +186,118 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const previewCancelRef = useRef<(() => void) | null>(null);
   const cancelledRef = useRef(false);
 
-  /* -- Hydrate from localStorage ------------------------------------- */
+  /* -- Sync with engine state on mount ------------------------------- */
   useEffect(() => {
-    const storedSTT = getActiveSTTModelId();
-    if (storedSTT) setActiveSTTId(storedSTT);
-
-    const storedTTS = getActiveTTSModelId();
-    if (storedTTS) setActiveTTSId(storedTTS);
-
-    const storedSpeaker = getActiveSpeakerId();
-    if (storedSpeaker) setActiveSpeakerState(storedSpeaker);
+    // useLocalStorage handles reading from localStorage
+    // Just validate stored models exist and sync engine state
+    if (activeSTTId !== null && !STT_MODELS.some((m) => m.id === activeSTTId)) {
+      removeActiveSTTId();
+    }
+    if (activeTTSId !== null && !TTS_MODELS.some((m) => m.id === activeTTSId)) {
+      removeActiveTTSId();
+    }
 
     // Sync with engine state (in case engines were loaded before mount)
-    // Only check if modules are already loaded
     if (sttModule?.isSTTReady()) setSttState("ready");
     if (ttsModule?.isTTSReady()) setTtsState("ready");
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only validate on mount
 
   /* -- STT actions -------------------------------------------------- */
-  const handleLoadStt = useCallback(async (modelId: string) => {
-    const mod = await getSTTModule();
-    if (mod.isSTTLoading()) return;
-    setSttState("loading");
-    setSttProgress(0);
-    setSttMessage("Initializing...");
+  const handleLoadStt = useCallback(
+    async (modelId: string) => {
+      const mod = await getSTTModule();
+      if (mod.isSTTLoading()) return;
+      setSttState("loading");
+      setSttProgress(0);
+      setSttMessage("Initializing...");
 
-    const onProgress: Parameters<typeof mod.loadSTT>[1] = ({
-      percent,
-      message,
-    }) => {
-      if (percent !== null) setSttProgress(percent);
-      setSttMessage(message);
-    };
+      const onProgress: Parameters<typeof mod.loadSTT>[1] = ({
+        percent,
+        message,
+      }) => {
+        if (percent !== null) setSttProgress(percent);
+        setSttMessage(message);
+      };
 
-    try {
-      await mod.loadSTT(modelId, onProgress);
-      setSttState("ready");
-      setSttProgress(100);
-      setSttMessage(null);
-      setActiveSTTModelId(modelId);
-      setActiveSTTId(modelId);
-    } catch (err) {
-      setSttState("error");
-      setSttProgress(null);
-      setSttMessage(
-        err instanceof Error ? err.message : "Failed to load STT model",
-      );
-    }
-  }, []);
+      try {
+        await mod.loadSTT(modelId, onProgress);
+        setSttState("ready");
+        setSttProgress(100);
+        setSttMessage(null);
+        setActiveSTTId(modelId);
+      } catch (err) {
+        setSttState("error");
+        setSttProgress(null);
+        setSttMessage(
+          err instanceof Error ? err.message : "Failed to load STT model",
+        );
+      }
+    },
+    [setActiveSTTId],
+  );
 
   const handleUnloadStt = useCallback(async () => {
     if (sttModule) {
       sttModule.unloadSTT();
     }
-    clearActiveSTTModelId();
-    setActiveSTTId(null);
+    removeActiveSTTId();
     setSttState("idle");
     setSttProgress(null);
     setSttMessage(null);
-  }, []);
+  }, [removeActiveSTTId]);
 
   /* -- TTS actions -------------------------------------------------- */
-  const handleLoadTts = useCallback(async (modelId: string) => {
-    const mod = await getTTSModule();
-    if (mod.isTTSLoading()) return;
-    setTtsState("loading");
-    setTtsProgress(0);
-    setTtsMessage("Initializing...");
+  const handleLoadTts = useCallback(
+    async (modelId: string) => {
+      const mod = await getTTSModule();
+      if (mod.isTTSLoading()) return;
+      setTtsState("loading");
+      setTtsProgress(0);
+      setTtsMessage("Initializing...");
 
-    const onProgress: Parameters<typeof mod.loadTTS>[1] = ({
-      percent,
-      message,
-    }) => {
-      if (percent !== null) setTtsProgress(percent);
-      setTtsMessage(message);
-    };
+      const onProgress: Parameters<typeof mod.loadTTS>[1] = ({
+        percent,
+        message,
+      }) => {
+        if (percent !== null) setTtsProgress(percent);
+        setTtsMessage(message);
+      };
 
-    try {
-      await mod.loadTTS(modelId, onProgress);
-      setTtsState("ready");
-      setTtsProgress(100);
-      setTtsMessage(null);
-      setActiveTTSModelId(modelId);
-      setActiveTTSId(modelId);
-    } catch (err) {
-      setTtsState("error");
-      setTtsProgress(null);
-      setTtsMessage(
-        err instanceof Error ? err.message : "Failed to load TTS model",
-      );
-    }
-  }, []);
+      try {
+        await mod.loadTTS(modelId, onProgress);
+        setTtsState("ready");
+        setTtsProgress(100);
+        setTtsMessage(null);
+        setActiveTTSId(modelId);
+      } catch (err) {
+        setTtsState("error");
+        setTtsProgress(null);
+        setTtsMessage(
+          err instanceof Error ? err.message : "Failed to load TTS model",
+        );
+      }
+    },
+    [setActiveTTSId],
+  );
 
   const handleUnloadTts = useCallback(async () => {
     if (ttsModule) {
       ttsModule.unloadTTS();
     }
-    clearActiveTTSModelId();
-    setActiveTTSId(null);
+    removeActiveTTSId();
     setTtsState("idle");
     setTtsProgress(null);
     setTtsMessage(null);
-  }, []);
+  }, [removeActiveTTSId]);
 
   /* -- Speaker ------------------------------------------------------ */
-  const handleSetSpeaker = useCallback((speakerId: string) => {
-    persistSpeakerId(speakerId);
-    setActiveSpeakerState(speakerId);
-  }, []);
+  const handleSetSpeaker = useCallback(
+    (speakerId: string) => {
+      setActiveSpeaker(speakerId);
+    },
+    [setActiveSpeaker],
+  );
 
   const PREVIEW_TEXT = "Hello! This is what I sound like.";
 
@@ -324,15 +331,19 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   );
 
   /* -- Model ID setters (preference only, no load) ------------------ */
-  const handleSetActiveSTTId = useCallback((modelId: string) => {
-    setActiveSTTModelId(modelId);
-    setActiveSTTId(modelId);
-  }, []);
+  const handleSetActiveSTTId = useCallback(
+    (modelId: string) => {
+      setActiveSTTId(modelId);
+    },
+    [setActiveSTTId],
+  );
 
-  const handleSetActiveTTSId = useCallback((modelId: string) => {
-    setActiveTTSModelId(modelId);
-    setActiveTTSId(modelId);
-  }, []);
+  const handleSetActiveTTSId = useCallback(
+    (modelId: string) => {
+      setActiveTTSId(modelId);
+    },
+    [setActiveTTSId],
+  );
 
   /* -- Recording ---------------------------------------------------- */
   const handleStartRecording = useCallback(async () => {

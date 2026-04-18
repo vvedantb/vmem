@@ -104,81 +104,9 @@ export function findTTSModel(modelId: string): TTSVoiceModelInfo | undefined {
 }
 
 /* ------------------------------------------------------------------ */
-/*  localStorage persistence                                           */
+/*  localStorage keys (used by useLocalStorage in VoiceContext)        */
 /* ------------------------------------------------------------------ */
 
-const STT_MODEL_KEY = "vmem:activeSTTModelId";
-const TTS_MODEL_KEY = "vmem:activeTTSModelId";
-const TTS_SPEAKER_KEY = "vmem:activeTTSSpeaker";
-
-function safeGet(key: string): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(key);
-}
-
-function safeSet(key: string, value: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(key, value);
-}
-
-function safeRemove(key: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(key);
-}
-
-/* -- STT ----------------------------------------------------------- */
-
-export function getActiveSTTModelId(): string | null {
-  const stored = safeGet(STT_MODEL_KEY);
-  if (stored && STT_MODELS.some((m) => m.id === stored)) return stored;
-  if (stored) safeRemove(STT_MODEL_KEY);
-  return null;
-}
-
-export function setActiveSTTModelId(modelId: string): void {
-  safeSet(STT_MODEL_KEY, modelId);
-}
-
-export function clearActiveSTTModelId(): void {
-  safeRemove(STT_MODEL_KEY);
-}
-
-/* -- TTS ----------------------------------------------------------- */
-
-export function getActiveTTSModelId(): string | null {
-  const stored = safeGet(TTS_MODEL_KEY);
-  if (stored && TTS_MODELS.some((m) => m.id === stored)) return stored;
-  if (stored) safeRemove(TTS_MODEL_KEY);
-  return null;
-}
-
-export function setActiveTTSModelId(modelId: string): void {
-  safeSet(TTS_MODEL_KEY, modelId);
-}
-
-export function clearActiveTTSModelId(): void {
-  safeRemove(TTS_MODEL_KEY);
-}
-
-/* -- Speaker ------------------------------------------------------- */
-
-function isKokoroSpeaker(value: string): value is KokoroSpeakerId {
-  return (KOKORO_SPEAKERS as readonly string[]).includes(value);
-}
-
-export function getActiveSpeakerId(): string | null {
-  const stored = safeGet(TTS_SPEAKER_KEY);
-  if (stored && isKokoroSpeaker(stored)) {
-    return stored;
-  }
-  if (stored) safeRemove(TTS_SPEAKER_KEY);
-  return null;
-}
-
-export function setActiveSpeakerId(speakerId: string): void {
-  safeSet(TTS_SPEAKER_KEY, speakerId);
-}
-
-export function clearActiveSpeakerId(): void {
-  safeRemove(TTS_SPEAKER_KEY);
-}
+export const STT_MODEL_KEY = "vmem:activeSTTModelId";
+export const TTS_MODEL_KEY = "vmem:activeTTSModelId";
+export const TTS_SPEAKER_KEY = "vmem:activeTTSSpeaker";

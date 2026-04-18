@@ -19,8 +19,6 @@ import {
 } from "./mediapipe-engine";
 import { createMediaPipeLanguageModel } from "./mediapipe-model-adapter";
 
-const ACTIVE_MODEL_KEY = "vmem:activeLocalModelId";
-
 // Union type for both model types
 export type LocalLanguageModel = LanguageModelV3;
 
@@ -181,30 +179,6 @@ export function getLoadedModelId(): string | null {
  */
 export function getCurrentRuntime(): LocalModelRuntime | null {
   return currentRuntime;
-}
-
-/**
- * Get the user's preferred active model ID from localStorage.
- */
-export function getActiveModelId(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACTIVE_MODEL_KEY);
-}
-
-/**
- * Set the user's preferred active model ID in localStorage.
- */
-export function setActiveModelId(modelId: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(ACTIVE_MODEL_KEY, modelId);
-}
-
-/**
- * Clear the active model preference from localStorage.
- */
-export function clearActiveModelId(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(ACTIVE_MODEL_KEY);
 }
 
 /**
