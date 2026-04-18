@@ -8,6 +8,9 @@
  *  - Transient transcript / assistant draft during a voice turn
  *  - Mic recording, STT, TTS playback orchestration
  *
+ * IMPORTANT: Heavy dependencies (kokoro-js, transformers.js) are lazy-loaded
+ * only when loadStt/loadTts is called, not at initial page load.
+ *
  * Does NOT own message history — that stays in Convex via the shared thread.
  */
 "use client";
@@ -21,39 +24,43 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { useLocalStorage } from "usehooks-ts";
 import {
   STT_MODELS,
   TTS_MODELS,
-  getActiveSTTModelId,
-  setActiveSTTModelId,
-  getActiveTTSModelId,
-  setActiveTTSModelId,
-  getActiveSpeakerId,
-  setActiveSpeakerId as persistSpeakerId,
-  clearActiveSTTModelId,
-  clearActiveTTSModelId,
+  STT_MODEL_KEY,
+  TTS_MODEL_KEY,
+  TTS_SPEAKER_KEY,
   type STTVoiceModelInfo,
   type TTSVoiceModelInfo,
-  type KokoroSpeakerId,
 } from "@/lib/voice/voice-models";
-import {
-  loadSTT,
-  unloadSTT,
-  isSTTReady,
-  isSTTLoading,
-  transcribe,
-  type STTProgressCallback,
-} from "@/lib/voice/stt-engine";
-import {
-  loadTTS,
-  unloadTTS,
-  isTTSReady,
-  isTTSLoading,
-  synthesise,
-  playAudio,
-  type TTSProgressCallback,
-} from "@/lib/voice/tts-engine";
-import { startMicRecording, blobToFloat32 } from "@/lib/voice/voice-session";
+
+// Lazy-loaded modules (only imported when actually loading models)
+let sttModule: typeof import("@/lib/voice/stt-engine") | null = null;
+let ttsModule: typeof import("@/lib/voice/tts-engine") | null = null;
+let voiceSessionModule: typeof import("@/lib/voice/voice-session") | null =
+  null;
+
+async function getSTTModule() {
+  if (!sttModule) {
+    sttModule = await import("@/lib/voice/stt-engine");
+  }
+  return sttModule;
+}
+
+async function getTTSModule() {
+  if (!ttsModule) {
+    ttsModule = await import("@/lib/voice/tts-engine");
+  }
+  return ttsModule;
+}
+
+async function getVoiceSessionModule() {
+  if (!voiceSessionModule) {
+    voiceSessionModule = await import("@/lib/voice/voice-session");
+  }
+  return voiceSessionModule;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Public types                                                       */
@@ -144,17 +151,24 @@ const VoiceContext = createContext<VoiceContextValue | null>(null);
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
   /* -- STT ---------------------------------------------------------- */
-  const [activeSTTId, setActiveSTTId] = useState<string | null>(null);
+  const [activeSTTId, setActiveSTTId, removeActiveSTTId] = useLocalStorage<
+    string | null
+  >(STT_MODEL_KEY, null);
   const [sttState, setSttState] = useState<VoiceModelLoadState>("idle");
   const [sttProgress, setSttProgress] = useState<number | null>(null);
   const [sttMessage, setSttMessage] = useState<string | null>(null);
 
   /* -- TTS ---------------------------------------------------------- */
-  const [activeTTSId, setActiveTTSId] = useState<string | null>(null);
+  const [activeTTSId, setActiveTTSId, removeActiveTTSId] = useLocalStorage<
+    string | null
+  >(TTS_MODEL_KEY, null);
   const [ttsState, setTtsState] = useState<VoiceModelLoadState>("idle");
   const [ttsProgress, setTtsProgress] = useState<number | null>(null);
   const [ttsMessage, setTtsMessage] = useState<string | null>(null);
-  const [activeSpeaker, setActiveSpeakerState] = useState<string>("af_heart");
+  const [activeSpeaker, setActiveSpeaker] = useLocalStorage<string>(
+    TTS_SPEAKER_KEY,
+    "af_heart",
+  );
 
   /* -- Session ------------------------------------------------------ */
   const [phase, setPhase] = useState<VoicePhase>("idle");
@@ -164,114 +178,132 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [isPreviewing, setIsPreviewing] = useState(false);
 
   /* Refs for cancellation */
-  const recordingRef = useRef<Awaited<
-    ReturnType<typeof startMicRecording>
-  > | null>(null);
+  const recordingRef = useRef<{
+    stop: () => Promise<Blob>;
+    cancel: () => void;
+  } | null>(null);
   const playbackCancelRef = useRef<(() => void) | null>(null);
   const previewCancelRef = useRef<(() => void) | null>(null);
   const cancelledRef = useRef(false);
 
-  /* -- Hydrate from localStorage ------------------------------------- */
+  /* -- Sync with engine state on mount ------------------------------- */
   useEffect(() => {
-    const storedSTT = getActiveSTTModelId();
-    if (storedSTT) setActiveSTTId(storedSTT);
-
-    const storedTTS = getActiveTTSModelId();
-    if (storedTTS) setActiveTTSId(storedTTS);
-
-    const storedSpeaker = getActiveSpeakerId();
-    if (storedSpeaker) setActiveSpeakerState(storedSpeaker);
+    // useLocalStorage handles reading from localStorage
+    // Just validate stored models exist and sync engine state
+    if (activeSTTId !== null && !STT_MODELS.some((m) => m.id === activeSTTId)) {
+      removeActiveSTTId();
+    }
+    if (activeTTSId !== null && !TTS_MODELS.some((m) => m.id === activeTTSId)) {
+      removeActiveTTSId();
+    }
 
     // Sync with engine state (in case engines were loaded before mount)
-    if (isSTTReady()) setSttState("ready");
-    if (isTTSReady()) setTtsState("ready");
-  }, []);
+    if (sttModule?.isSTTReady()) setSttState("ready");
+    if (ttsModule?.isTTSReady()) setTtsState("ready");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only validate on mount
 
   /* -- STT actions -------------------------------------------------- */
-  const handleLoadStt = useCallback(async (modelId: string) => {
-    if (isSTTLoading()) return;
-    setSttState("loading");
-    setSttProgress(0);
-    setSttMessage("Initializing...");
+  const handleLoadStt = useCallback(
+    async (modelId: string) => {
+      const mod = await getSTTModule();
+      if (mod.isSTTLoading()) return;
+      setSttState("loading");
+      setSttProgress(0);
+      setSttMessage("Initializing...");
 
-    const onProgress: STTProgressCallback = ({ percent, message }) => {
-      if (percent !== null) setSttProgress(percent);
-      setSttMessage(message);
-    };
+      const onProgress: Parameters<typeof mod.loadSTT>[1] = ({
+        percent,
+        message,
+      }) => {
+        if (percent !== null) setSttProgress(percent);
+        setSttMessage(message);
+      };
 
-    try {
-      await loadSTT(modelId, onProgress);
-      setSttState("ready");
-      setSttProgress(100);
-      setSttMessage(null);
-      setActiveSTTModelId(modelId);
-      setActiveSTTId(modelId);
-    } catch (err) {
-      setSttState("error");
-      setSttProgress(null);
-      setSttMessage(
-        err instanceof Error ? err.message : "Failed to load STT model",
-      );
+      try {
+        await mod.loadSTT(modelId, onProgress);
+        setSttState("ready");
+        setSttProgress(100);
+        setSttMessage(null);
+        setActiveSTTId(modelId);
+      } catch (err) {
+        setSttState("error");
+        setSttProgress(null);
+        setSttMessage(
+          err instanceof Error ? err.message : "Failed to load STT model",
+        );
+      }
+    },
+    [setActiveSTTId],
+  );
+
+  const handleUnloadStt = useCallback(async () => {
+    if (sttModule) {
+      sttModule.unloadSTT();
     }
-  }, []);
-
-  const handleUnloadStt = useCallback(() => {
-    unloadSTT();
-    clearActiveSTTModelId();
-    setActiveSTTId(null);
+    removeActiveSTTId();
     setSttState("idle");
     setSttProgress(null);
     setSttMessage(null);
-  }, []);
+  }, [removeActiveSTTId]);
 
   /* -- TTS actions -------------------------------------------------- */
-  const handleLoadTts = useCallback(async (modelId: string) => {
-    if (isTTSLoading()) return;
-    setTtsState("loading");
-    setTtsProgress(0);
-    setTtsMessage("Initializing...");
+  const handleLoadTts = useCallback(
+    async (modelId: string) => {
+      const mod = await getTTSModule();
+      if (mod.isTTSLoading()) return;
+      setTtsState("loading");
+      setTtsProgress(0);
+      setTtsMessage("Initializing...");
 
-    const onProgress: TTSProgressCallback = ({ percent, message }) => {
-      if (percent !== null) setTtsProgress(percent);
-      setTtsMessage(message);
-    };
+      const onProgress: Parameters<typeof mod.loadTTS>[1] = ({
+        percent,
+        message,
+      }) => {
+        if (percent !== null) setTtsProgress(percent);
+        setTtsMessage(message);
+      };
 
-    try {
-      await loadTTS(modelId, onProgress);
-      setTtsState("ready");
-      setTtsProgress(100);
-      setTtsMessage(null);
-      setActiveTTSModelId(modelId);
-      setActiveTTSId(modelId);
-    } catch (err) {
-      setTtsState("error");
-      setTtsProgress(null);
-      setTtsMessage(
-        err instanceof Error ? err.message : "Failed to load TTS model",
-      );
+      try {
+        await mod.loadTTS(modelId, onProgress);
+        setTtsState("ready");
+        setTtsProgress(100);
+        setTtsMessage(null);
+        setActiveTTSId(modelId);
+      } catch (err) {
+        setTtsState("error");
+        setTtsProgress(null);
+        setTtsMessage(
+          err instanceof Error ? err.message : "Failed to load TTS model",
+        );
+      }
+    },
+    [setActiveTTSId],
+  );
+
+  const handleUnloadTts = useCallback(async () => {
+    if (ttsModule) {
+      ttsModule.unloadTTS();
     }
-  }, []);
-
-  const handleUnloadTts = useCallback(() => {
-    unloadTTS();
-    clearActiveTTSModelId();
-    setActiveTTSId(null);
+    removeActiveTTSId();
     setTtsState("idle");
     setTtsProgress(null);
     setTtsMessage(null);
-  }, []);
+  }, [removeActiveTTSId]);
 
   /* -- Speaker ------------------------------------------------------ */
-  const handleSetSpeaker = useCallback((speakerId: string) => {
-    persistSpeakerId(speakerId);
-    setActiveSpeakerState(speakerId);
-  }, []);
+  const handleSetSpeaker = useCallback(
+    (speakerId: string) => {
+      setActiveSpeaker(speakerId);
+    },
+    [setActiveSpeaker],
+  );
 
   const PREVIEW_TEXT = "Hello! This is what I sound like.";
 
   const handlePreviewVoice = useCallback(
     async (speakerId: string) => {
-      if (!isTTSReady() || isPreviewing) return;
+      if (!ttsModule?.isTTSReady() || isPreviewing) return;
 
       // Cancel any existing preview
       if (previewCancelRef.current) {
@@ -281,11 +313,11 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
       setIsPreviewing(true);
       try {
-        const { audio, samplingRate } = await synthesise(
+        const { audio, samplingRate } = await ttsModule.synthesise(
           PREVIEW_TEXT,
           speakerId,
         );
-        const { done, cancel } = playAudio(audio, samplingRate);
+        const { done, cancel } = ttsModule.playAudio(audio, samplingRate);
         previewCancelRef.current = cancel;
         await done;
       } catch {
@@ -299,18 +331,22 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   );
 
   /* -- Model ID setters (preference only, no load) ------------------ */
-  const handleSetActiveSTTId = useCallback((modelId: string) => {
-    setActiveSTTModelId(modelId);
-    setActiveSTTId(modelId);
-  }, []);
+  const handleSetActiveSTTId = useCallback(
+    (modelId: string) => {
+      setActiveSTTId(modelId);
+    },
+    [setActiveSTTId],
+  );
 
-  const handleSetActiveTTSId = useCallback((modelId: string) => {
-    setActiveTTSModelId(modelId);
-    setActiveTTSId(modelId);
-  }, []);
+  const handleSetActiveTTSId = useCallback(
+    (modelId: string) => {
+      setActiveTTSId(modelId);
+    },
+    [setActiveTTSId],
+  );
 
   /* -- Recording ---------------------------------------------------- */
-  const handleStartRecording = useCallback(() => {
+  const handleStartRecording = useCallback(async () => {
     if (phase !== "idle") return;
 
     cancelledRef.current = false;
@@ -319,21 +355,21 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setErrorMessage(null);
     setPhase("listening");
 
-    startMicRecording()
-      .then((handle) => {
-        if (cancelledRef.current) {
-          handle.cancel();
-          setPhase("idle");
-          return;
-        }
-        recordingRef.current = handle;
-      })
-      .catch((err) => {
-        setPhase("error");
-        setErrorMessage(
-          err instanceof Error ? err.message : "Microphone access denied",
-        );
-      });
+    try {
+      const voiceSession = await getVoiceSessionModule();
+      const handle = await voiceSession.startMicRecording();
+      if (cancelledRef.current) {
+        handle.cancel();
+        setPhase("idle");
+        return;
+      }
+      recordingRef.current = handle;
+    } catch (err) {
+      setPhase("error");
+      setErrorMessage(
+        err instanceof Error ? err.message : "Microphone access denied",
+      );
+    }
   }, [phase]);
 
   /**
@@ -356,9 +392,12 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         .then(async (blob) => {
           if (cancelledRef.current) return;
 
+          const voiceSession = await getVoiceSessionModule();
+          const stt = await getSTTModule();
+
           /* 1. Transcribe -------------------------------------------- */
-          const pcm = await blobToFloat32(blob);
-          const text = await transcribe(pcm);
+          const pcm = await voiceSession.blobToFloat32(blob);
+          const text = await stt.transcribe(pcm);
           if (cancelledRef.current) return;
           if (!text.trim()) {
             setPhase("idle");
@@ -378,16 +417,16 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
           if (cancelledRef.current) return;
 
           /* 4. TTS synthesis + playback ------------------------------ */
-          if (isTTSReady() && reply.trim()) {
+          if (ttsModule?.isTTSReady() && reply.trim()) {
             setPhase("speaking");
             try {
-              const { audio, samplingRate } = await synthesise(
+              const { audio, samplingRate } = await ttsModule.synthesise(
                 reply,
                 activeSpeaker,
               );
               if (cancelledRef.current) return;
 
-              const { done, cancel } = playAudio(audio, samplingRate);
+              const { done, cancel } = ttsModule.playAudio(audio, samplingRate);
               playbackCancelRef.current = cancel;
               await done;
             } catch {
@@ -435,13 +474,13 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   /* -- Auto-load voice models when IDs are set ---------------------- */
   useEffect(() => {
-    if (activeSTTId && sttState === "idle" && !isSTTReady()) {
+    if (activeSTTId && sttState === "idle" && !sttModule?.isSTTReady()) {
       void handleLoadStt(activeSTTId);
     }
   }, [activeSTTId, sttState, handleLoadStt]);
 
   useEffect(() => {
-    if (activeTTSId && ttsState === "idle" && !isTTSReady()) {
+    if (activeTTSId && ttsState === "idle" && !ttsModule?.isTTSReady()) {
       void handleLoadTts(activeTTSId);
     }
   }, [activeTTSId, ttsState, handleLoadTts]);

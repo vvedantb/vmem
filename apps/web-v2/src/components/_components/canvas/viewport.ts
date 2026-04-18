@@ -65,7 +65,6 @@ export function zoomAt(
     MIN_SCALE,
     Math.min(MAX_SCALE, vp.targetScale * factor),
   );
-  const ratio = newScale / vp.scale;
 
   const cx = canvasW / 2;
   const cy = canvasH / 2;

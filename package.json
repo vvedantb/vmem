@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.15.1",
   "scripts": {
     "turbo": "pnpm --filter web turbo",
-    "dev": "pnpm --filter web dev",
+    "dev": "pnpm --filter web-v2 dev",
     "build": "pnpm --filter web build",
     "start": "pnpm --filter web start",
     "mcp:dev": "pnpm --filter mcp dev",

@@ -1,34 +1,27 @@
-import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
-import { SignInButton, SignUpButton, useSignIn } from "@clerk/clerk-react";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { Button } from "@vmem/ui";
-import { useEffect, useRef } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { env } from "@/env";
 
+const isProduction = env.VITE_ENV === "production";
+
 export const Route = createFileRoute("/")({
+  beforeLoad: ({ context }) => {
+    if (context.isSignedIn) {
+      throw redirect({ to: "/home" });
+    }
+  },
   component: LandingPage,
-  validateSearch: (search: Record<string, unknown>) => ({
-    agent: search.agent === "" || search.agent === "true" ? true : undefined,
-  }),
 });
 
 function LandingPage() {
-  const { agent } = useSearch({ from: "/" });
-  const { signIn, setActive, isLoaded } = useSignIn();
   const navigate = useNavigate();
-  const triggered = useRef(false);
+  const hasAgent = new URLSearchParams(window.location.search).has("agent");
 
-  // Agent auto-login: redirect to Convex HTTP action for agent sign-in
-  useEffect(() => {
-    if (agent && isLoaded && !triggered.current) {
-      triggered.current = true;
-      // Redirect to Convex HTTP action for agent login
-      const convexUrl = env.VITE_CONVEX_URL.replace(".cloud", ".site");
-      window.location.href = `${convexUrl}/api/auth/agent-login`;
-    }
-  }, [agent, isLoaded]);
-
-  const isProduction = import.meta.env.VITE_ENV === "production";
+  if (hasAgent) {
+    window.location.href = "/api/auth/agent-login";
+    return <div className="min-h-screen w-full bg-background" />;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -76,11 +69,17 @@ function LandingPage() {
         </div>
 
         {!isProduction && (
-          <Link to="/" search={{ agent: true }}>
-            <Button size="lg" variant="ghost">
+          <div className="flex justify-center">
+            <Button
+              size="lg"
+              variant="ghost"
+              onClick={() => {
+                navigate({ to: "/", search: { agent: true } });
+              }}
+            >
               Sign in anonymously
             </Button>
-          </Link>
+          </div>
         )}
 
         {isProduction && (

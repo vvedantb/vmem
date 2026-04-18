@@ -5,14 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
+    "@built-in-ai/web-llm": "^1.0.1",
     "@clerk/clerk-react": "^5.22.4",
     "@convex-dev/agent": "catalog:",
     "@hookform/resolvers": "^5.2.2",
+    "@huggingface/transformers": "^4.0.1",
+    "@mediapipe/tasks-genai": "^0.10.27",
+    "@mlc-ai/web-llm": "^0.2.82",
+    "@modelcontextprotocol/sdk": "catalog:",
     "@radix-ui/react-checkbox": "catalog:",
     "@radix-ui/react-collapsible": "catalog:",
     "@radix-ui/react-dialog": "catalog:",
@@ -32,6 +36,7 @@
     "@streamdown/code": "^1.0.2",
     "@streamdown/math": "^1.0.2",
     "@streamdown/mermaid": "^1.0.2",
+    "@t3-oss/env-core": "^0.13.11",
     "@tabler/icons-react": "catalog:",
     "@tanstack/react-hotkeys": "^0.9.1",
     "@tanstack/react-query": "^5.91.2",
@@ -42,12 +47,15 @@
     "@types/diff": "^8.0.0",
     "@vmem/backend": "workspace:*",
     "@vmem/ui": "workspace:*",
+    "ai": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "cmdk": "catalog:",
     "convex": "catalog:",
     "d3-force": "^3.0.0",
     "diff": "^8.0.3",
+    "fflate": "^0.8.2",
+    "kokoro-js": "^1.2.1",
     "motion": "^12.34.0",
     "nanoid": "^5.1.6",
     "next-themes": "^0.4.4",
@@ -66,16 +74,18 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@tanstack/router-vite-plugin": "^1.120.3",
+    "@rolldown/plugin-babel": "^0.2.3",
+    "@tanstack/router-plugin": "^1.167.22",
     "@types/d3-force": "^3.0.10",
     "@types/node": "catalog:node-types-20",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@vitejs/plugin-react": "^4.4.1",
+    "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.4",
+    "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "catalog:tailwind3",
     "typescript": "catalog:",
-    "vite": "^6.3.5"
+    "vite": "^8.0.8"
   }
 }
