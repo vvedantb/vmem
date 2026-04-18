@@ -13,7 +13,7 @@ ie connected to linear to grab issue, updating issue, retried memory, memory upd
 - prompt
 
 - look into vector db/graph db implementation
-- cache for fast lookup
+- cache for fast lookupj
 - long term memory, short term memory
 - Memory timeline + graph, You could replay how ideas evolved.
 
