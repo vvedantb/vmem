@@ -76,18 +76,20 @@ export default function VoiceModelsSection() {
         <h4 className="text-sm font-medium text-foreground">
           Speech Recognition (STT)
         </h4>
-        {sttModels.map((model) => (
-          <VoiceModelCard
-            key={model.id}
-            model={model}
-            isLoaded={sttReady}
-            loadState={sttState}
-            loadProgress={sttProgress}
-            loadMessage={sttMessage}
-            onLoad={() => handleLoadStt(model.id)}
-            onUnload={unloadStt}
-          />
-        ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {sttModels.map((model) => (
+            <VoiceModelCard
+              key={model.id}
+              model={model}
+              isLoaded={sttReady}
+              loadState={sttState}
+              loadProgress={sttProgress}
+              loadMessage={sttMessage}
+              onLoad={() => handleLoadStt(model.id)}
+              onUnload={unloadStt}
+            />
+          ))}
+        </div>
       </div>
 
       {/* TTS models */}
@@ -95,18 +97,20 @@ export default function VoiceModelsSection() {
         <h4 className="text-sm font-medium text-foreground">
           Text-to-Speech (TTS)
         </h4>
-        {ttsModels.map((model) => (
-          <VoiceModelCard
-            key={model.id}
-            model={model}
-            isLoaded={ttsReady}
-            loadState={ttsState}
-            loadProgress={ttsProgress}
-            loadMessage={ttsMessage}
-            onLoad={() => handleLoadTts(model.id)}
-            onUnload={unloadTts}
-          />
-        ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {ttsModels.map((model) => (
+            <VoiceModelCard
+              key={model.id}
+              model={model}
+              isLoaded={ttsReady}
+              loadState={ttsState}
+              loadProgress={ttsProgress}
+              loadMessage={ttsMessage}
+              onLoad={() => handleLoadTts(model.id)}
+              onUnload={unloadTts}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Speaker selection (only relevant when TTS is loaded) */}
