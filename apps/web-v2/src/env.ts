@@ -7,6 +7,7 @@ export const env = createEnv({
     VITE_CONVEX_URL: z.string().url(),
     VITE_CLERK_PUBLISHABLE_KEY: z.string().startsWith("pk_"),
     VITE_MCP_URL: z.string().url().optional(),
+    VITE_ENV: z.enum(["development", "production"]).default("development"),
   },
   runtimeEnv: import.meta.env,
   emptyStringAsUndefined: true,
