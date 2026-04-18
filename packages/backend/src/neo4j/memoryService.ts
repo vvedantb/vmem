@@ -4,7 +4,7 @@ import neo4j, {
   type Session,
   type Record as NeoRecord,
 } from "neo4j-driver";
-import Cypher, { type RawCypherContext } from "@neo4j/cypher-builder";
+import Cypher from "@neo4j/cypher-builder";
 import crypto from "node:crypto";
 import { buildAndRun } from "./cypherHelpers";
 
@@ -489,7 +489,7 @@ export class MemoryService {
     },
   ): Promise<MemoryWithTags | null> {
     return this.withSession(async (session) => {
-      const m = new Cypher.Node();
+      const m = new Cypher.NamedNode("m");
       const t = new Cypher.Node();
 
       const setParams: Cypher.SetParam[] = [
@@ -538,14 +538,14 @@ export class MemoryService {
 
       const tagUpdate =
         updates.tags !== undefined
-          ? new Cypher.Raw((ctx: RawCypherContext) => [
-              `WITH ${ctx.compile(m)}
-OPTIONAL MATCH (${ctx.compile(m)})-[r:TAGGED_WITH]->(:Tag)
+          ? new Cypher.Raw(() => [
+              `WITH m
+OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
 DELETE r
-WITH ${ctx.compile(m)}
+WITH m
 UNWIND $newTags AS tagName
 MERGE (tag:Tag {name: tagName})
-CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
+CREATE (m)-[:TAGGED_WITH]->(tag)`,
               { newTags: updates.tags },
             ])
           : undefined;
