@@ -90,6 +90,7 @@ export default defineConfig({
       }),
   ].filter(Boolean),
   server: {
+    port: 3001,
     host: "0.0.0.0",
     cors: false,
   },
