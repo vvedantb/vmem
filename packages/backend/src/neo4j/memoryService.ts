@@ -489,7 +489,8 @@ export class MemoryService {
     },
   ): Promise<MemoryWithTags | null> {
     return this.withSession(async (session) => {
-      const m = new Cypher.Node();
+      const mVar = new Cypher.Variable();
+      const m = new Cypher.Node({ variable: mVar });
       const t = new Cypher.Node();
 
       const setParams: Cypher.SetParam[] = [
@@ -539,13 +540,13 @@ export class MemoryService {
       const tagUpdate =
         updates.tags !== undefined
           ? new Cypher.Raw((ctx: RawCypherContext) => [
-              `WITH ${ctx.compile(m)}
-OPTIONAL MATCH (${ctx.compile(m)})-[r:TAGGED_WITH]->(:Tag)
+              `WITH ${ctx.compile(mVar)}
+OPTIONAL MATCH (${ctx.compile(mVar)})-[r:TAGGED_WITH]->(:Tag)
 DELETE r
-WITH ${ctx.compile(m)}
+WITH ${ctx.compile(mVar)}
 UNWIND $newTags AS tagName
 MERGE (tag:Tag {name: tagName})
-CREATE (${ctx.compile(m)})-[:TAGGED_WITH]->(tag)`,
+CREATE (${ctx.compile(mVar)})-[:TAGGED_WITH]->(tag)`,
               { newTags: updates.tags },
             ])
           : undefined;
