@@ -13,7 +13,6 @@ import {
   IconCircleDot,
 } from "@tabler/icons-react";
 import {
-  Button,
   Input,
   Switch,
   Collapsible,

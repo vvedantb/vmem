@@ -2,7 +2,7 @@ import { type MouseEventHandler, useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { Separator, cn, motionDuration, motionEase } from "@vmem/ui";
-import { IconArrowLeft, IconSettings } from "@tabler/icons-react";
+import { IconArrowLeft } from "@tabler/icons-react";
 import type { NavIcon } from "./types";
 import { navGroups, settingsNavItems } from "./nav-config";
 import { NavLink } from "./NavLink";
