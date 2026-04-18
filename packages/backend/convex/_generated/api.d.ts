@@ -22,6 +22,7 @@ import type * as github from "../github.js";
 import type * as graphApi from "../graphApi.js";
 import type * as http from "../http.js";
 import type * as lib_crypto from "../lib/crypto.js";
+import type * as mcpSkills from "../mcpSkills.js";
 import type * as memoryApi from "../memoryApi.js";
 import type * as memoryEvents from "../memoryEvents.js";
 import type * as neo4jActions_codebases from "../neo4jActions/codebases.js";
@@ -39,9 +40,12 @@ import type * as notifications from "../notifications.js";
 import type * as pendingEnrichment from "../pendingEnrichment.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
 import type * as relationshipApi from "../relationshipApi.js";
+import type * as skills from "../skills.js";
 import type * as timelineApi from "../timelineApi.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
+import type * as validators from "../validators.js";
+import type * as wiki from "../wiki.js";
 
 import type {
   ApiFromModules,
@@ -64,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   graphApi: typeof graphApi;
   http: typeof http;
   "lib/crypto": typeof lib_crypto;
+  mcpSkills: typeof mcpSkills;
   memoryApi: typeof memoryApi;
   memoryEvents: typeof memoryEvents;
   "neo4jActions/codebases": typeof neo4jActions_codebases;
@@ -81,9 +86,12 @@ declare const fullApi: ApiFromModules<{
   pendingEnrichment: typeof pendingEnrichment;
   proposedUpdateApi: typeof proposedUpdateApi;
   relationshipApi: typeof relationshipApi;
+  skills: typeof skills;
   timelineApi: typeof timelineApi;
   userSettings: typeof userSettings;
   users: typeof users;
+  validators: typeof validators;
+  wiki: typeof wiki;
 }>;
 
 /**

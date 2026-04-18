@@ -230,6 +230,7 @@ export function CodebaseGraph({ codebaseId }: CodebaseGraphProps) {
         onZoomIn={() => canvasRef.current?.zoomIn()}
         onZoomOut={() => canvasRef.current?.zoomOut()}
         onFit={() => canvasRef.current?.fit()}
+        isDarkCanvas={viewTheme.isDarkCanvas}
       />
 
       {/* Hover tooltip */}

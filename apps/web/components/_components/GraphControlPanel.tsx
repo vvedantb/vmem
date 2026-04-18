@@ -26,8 +26,10 @@ import type { GraphSettings } from "./graph-types";
 import { DEFAULT_GRAPH_SETTINGS } from "./graph-types";
 import type { ViewMode } from "./graph-view-themes";
 import { VIEW_MODE_LABELS } from "./graph-view-themes";
-import type { TagStat } from "./graph-data";
+import type { TagStat, KindStat } from "./graph-data";
+import type { GraphNodeKind } from "./canvas/types";
 import GraphTagFilter from "./GraphTagFilter";
+import GraphKindFilter from "./GraphKindFilter";
 import GraphLegend from "./GraphLegend";
 
 // ---- View mode icons mapping ----
@@ -78,6 +80,13 @@ interface GraphControlPanelProps {
   search: string;
   onSearchChange: (value: string) => void;
 
+  // Kinds (node type filter)
+  allKinds: KindStat[];
+  activeKinds: Set<GraphNodeKind>;
+  onToggleKind: (kind: GraphNodeKind) => void;
+  onSelectAllKinds: () => void;
+  onClearAllKinds: () => void;
+
   // Tags
   allTags: TagStat[];
   activeTags: Set<string>;
@@ -97,6 +106,7 @@ interface GraphControlPanelProps {
   edgeCount: number;
 
   isDark: boolean;
+  isDarkCanvas: boolean;
 }
 
 export default function GraphControlPanel({
@@ -104,6 +114,11 @@ export default function GraphControlPanel({
   onToggle,
   search,
   onSearchChange,
+  allKinds,
+  activeKinds,
+  onToggleKind,
+  onSelectAllKinds,
+  onClearAllKinds,
   allTags,
   activeTags,
   onToggleTag,
@@ -117,7 +132,12 @@ export default function GraphControlPanel({
   visibleNodeCount,
   edgeCount,
   isDark,
+  isDarkCanvas,
 }: GraphControlPanelProps) {
+  // Button styling based on canvas theme (for overlay buttons on dark canvas in light system mode)
+  const overlayBtnClass = isDarkCanvas
+    ? "w-8 h-8 flex items-center justify-center rounded-md bg-black/30 backdrop-blur-sm border border-white/10 hover:bg-black/50 text-white/70 hover:text-white transition-colors"
+    : "w-8 h-8 flex items-center justify-center rounded-md bg-background/50 backdrop-blur-sm border border-border/30 hover:bg-background/70 text-muted-foreground hover:text-foreground transition-colors";
   const handleSliderChange = useCallback(
     (key: "scalingRatio" | "gravity", value: number) => {
       onSettingsChange({ ...settings, [key]: value });
@@ -143,7 +163,7 @@ export default function GraphControlPanel({
         <button
           type="button"
           onClick={onToggle}
-          className="absolute top-3 left-3 z-20 w-8 h-8 flex items-center justify-center rounded-md bg-background/50 backdrop-blur-sm border border-border/30 hover:bg-background/70 text-muted-foreground hover:text-foreground transition-colors"
+          className={`absolute top-3 left-3 z-20 ${overlayBtnClass}`}
         >
           <IconMenu2 size={16} />
         </button>
@@ -190,6 +210,30 @@ export default function GraphControlPanel({
             </div>
 
             <Separator />
+
+            {/* Types (kind filter) — only shown when >1 kind is present,
+                otherwise the filter has nothing to toggle between. */}
+            {allKinds.length > 1 && (
+              <>
+                <Collapsible defaultOpen>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                    Types ({allKinds.length})
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="px-3 pb-2">
+                    <GraphKindFilter
+                      kinds={allKinds}
+                      activeKinds={activeKinds}
+                      onToggle={onToggleKind}
+                      onSelectAll={onSelectAllKinds}
+                      onClearAll={onClearAllKinds}
+                      isDark={isDark}
+                    />
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Separator />
+              </>
+            )}
 
             {/* Tags */}
             {allTags.length > 0 && (

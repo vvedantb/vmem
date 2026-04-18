@@ -9,16 +9,15 @@ import {
   DropdownMenuItem,
 } from "@vmem/ui";
 import {
-  IconCheck,
-  IconAlertTriangle,
-  IconAlertCircle,
-  IconInfoCircle,
   IconDotsVertical,
   IconEye,
   IconEyeOff,
   IconTrash,
-  IconBellOff,
 } from "@tabler/icons-react";
+import {
+  AnimatedNotificationIcon,
+  AnimatedBellIcon,
+} from "@/components/svg-animations";
 import PageContainer from "@/components/PageContainer";
 import { useNotifications } from "@/components/contexts/NotificationContext";
 import type { NotificationType } from "@/components/contexts/NotificationContext";
@@ -39,21 +38,7 @@ function formatTimestamp(createdAt: number): string {
 }
 
 function NotificationIcon({ type }: { type: NotificationType }) {
-  switch (type) {
-    case "success":
-      return <IconCheck className="w-5 h-5 text-success" stroke={1.5} />;
-    case "warning":
-      return (
-        <IconAlertTriangle className="w-5 h-5 text-warning" stroke={1.5} />
-      );
-    case "error":
-      return (
-        <IconAlertCircle className="w-5 h-5 text-destructive" stroke={1.5} />
-      );
-    case "info":
-    default:
-      return <IconInfoCircle className="w-5 h-5 text-info" stroke={1.5} />;
-  }
+  return <AnimatedNotificationIcon type={type} size={20} />;
 }
 
 function getIconBackground(type: NotificationType) {
@@ -92,7 +77,7 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-        <IconBellOff className="w-8 h-8 text-muted-foreground" stroke={1.5} />
+        <AnimatedBellIcon size={32} className="text-muted-foreground" muted />
       </div>
       <h3 className="text-lg font-medium text-foreground mb-1">
         No notifications

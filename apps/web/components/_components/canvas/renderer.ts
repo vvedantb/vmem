@@ -1,5 +1,6 @@
 import type {
   GraphNode,
+  GraphNodeKind,
   ResolvedEdge,
   InteractionState,
   ViewportState,
@@ -10,7 +11,87 @@ import { nodeColor as getNodeColor } from "../graph-colors";
 const TWO_PI = Math.PI * 2;
 
 function nodeColor(node: GraphNode, theme: GraphViewTheme): string {
-  return getNodeColor(node.tags, theme.isDarkCanvas, theme.nodeColorOverride);
+  return getNodeColor(
+    node.tags,
+    node.kind,
+    theme.isDarkCanvas,
+    theme.nodeColorOverride,
+  );
+}
+
+/**
+ * Node shape helpers. All shapes are inscribed in a circle of the given `r`
+ * so the existing hit-test, glow, and collision physics (all radius-based)
+ * keep working unchanged. Each helper appends a sub-path to the caller's
+ * currently-open path — callers are responsible for beginPath/fill/stroke
+ * so we can batch many nodes in a single draw call.
+ */
+function traceCircle(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+): void {
+  ctx.moveTo(x + r, y);
+  ctx.arc(x, y, r, 0, TWO_PI);
+}
+
+function traceSquare(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+): void {
+  // Axis-aligned square inscribed in the circle of radius r (side = r * √2).
+  const half = r * Math.SQRT1_2 * 1.15; // scale slightly so visual mass ≈ circle
+  ctx.moveTo(x - half, y - half);
+  ctx.lineTo(x + half, y - half);
+  ctx.lineTo(x + half, y + half);
+  ctx.lineTo(x - half, y + half);
+  ctx.closePath();
+}
+
+function traceDiamond(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+): void {
+  // Square rotated 45°: the four cardinal points lie on the circle of radius r.
+  ctx.moveTo(x, y - r);
+  ctx.lineTo(x + r, y);
+  ctx.lineTo(x, y + r);
+  ctx.lineTo(x - r, y);
+  ctx.closePath();
+}
+
+function traceHexagon(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+): void {
+  // Flat-topped regular hexagon. i=0 places a vertex at 3 o'clock; the six
+  // vertices step around the inscribing circle at 60° intervals.
+  ctx.moveTo(x + r, y);
+  for (let i = 1; i < 6; i++) {
+    const angle = (Math.PI / 3) * i;
+    ctx.lineTo(x + r * Math.cos(angle), y + r * Math.sin(angle));
+  }
+  ctx.closePath();
+}
+
+function traceShape(
+  ctx: CanvasRenderingContext2D,
+  kind: GraphNodeKind,
+  x: number,
+  y: number,
+  r: number,
+): void {
+  if (kind === "wiki-folder") return traceSquare(ctx, x, y, r);
+  if (kind === "wiki-document") return traceDiamond(ctx, x, y, r);
+  if (kind === "skill") return traceHexagon(ctx, x, y, r);
+  return traceCircle(ctx, x, y, r);
 }
 
 function isOnScreen(
@@ -93,9 +174,15 @@ export function render(
 
   const nodeCount = nodes.length;
   const hasHover = interaction.hoveredNodeId !== null;
+  // Edges only enter hover mode (dim non-connected, highlight connected) when
+  // the hovered node actually has neighbors. Hovering an isolated node would
+  // otherwise fade the entire graph to gray with nothing to highlight.
+  // neighborSet always includes the hovered node itself, so size > 1 means
+  // there's at least one real neighbor.
+  const hasHoveredNeighbors = hasHover && neighborSet.size > 1;
   const isSearchActive = searchMatchSet.size > 0;
   const lowZoom = vp.scale < 0.4;
-  const veryLowZoom = vp.scale < 0.15;
+  const veryLowZoom = vp.scale < 0.08;
   const highNodeCount = nodeCount > 5000;
 
   // --- Edges (batched by style — single beginPath/stroke per style bucket) ---
@@ -104,7 +191,7 @@ export function render(
     // Edge budget: skip tag edges when total edge count is very high
     const skipTagEdges = edges.length > 10_000;
 
-    if (!hasHover) {
+    if (!hasHoveredNeighbors) {
       // No hover — all edges same alpha. Two batched passes: tag edges, relates_to edges.
       // Tag edges (dimmer, thinner)
       if (!skipTagEdges) {
@@ -119,13 +206,19 @@ export function render(
         ctx.stroke();
       }
 
-      // Relates_to + imports edges (brighter, thicker)
+      // Relates_to + imports + wiki_parent edges (brighter, thicker).
+      // wiki_parent uses the same styling: it's a semantic link (folder → child),
+      // deserves the same visual weight as a user-linked relation.
       ctx.strokeStyle = theme.edge.normal;
       ctx.lineWidth = theme.edge.width * 2;
       ctx.globalAlpha = 0.6;
       ctx.beginPath();
       for (const edge of edges) {
-        if (edge.edgeType !== "relates_to" && edge.edgeType !== "imports")
+        if (
+          edge.edgeType !== "relates_to" &&
+          edge.edgeType !== "imports" &&
+          edge.edgeType !== "wiki_parent"
+        )
           continue;
         ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
         ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
@@ -133,16 +226,23 @@ export function render(
       ctx.stroke();
       ctx.globalAlpha = 1;
     } else {
-      // Hover active — batch into 3 style buckets per edge type: dimmed, normal, connected.
-      // Draw dimmed first (bottom), then normal, then connected (top).
-      for (const edgeType of ["tag", "relates_to", "imports"] as const) {
+      // Hover active — two batched passes per edge type: dimmed non-connected
+      // edges first (fade into background), then connected edges on top at
+      // full opacity so the hover highlight reads as a clear "lit up" line.
+      for (const edgeType of [
+        "tag",
+        "relates_to",
+        "imports",
+        "wiki_parent",
+      ] as const) {
         if (edgeType === "tag" && skipTagEdges) continue;
         const isStrongEdge =
-          edgeType === "relates_to" || edgeType === "imports";
+          edgeType === "relates_to" ||
+          edgeType === "imports" ||
+          edgeType === "wiki_parent";
         const widthMultiplier = isStrongEdge ? 2 : 1;
-        const baseAlpha = isStrongEdge ? 0.6 : 1;
 
-        // Pass 1: dimmed edges
+        // Pass 1: dimmed edges (everything not connected to the hovered node)
         ctx.strokeStyle = theme.edge.dimmed;
         ctx.lineWidth = theme.edge.width * widthMultiplier;
         ctx.globalAlpha = isStrongEdge ? theme.dimAlpha : 1;
@@ -157,10 +257,12 @@ export function render(
         }
         ctx.stroke();
 
-        // Pass 2: connected edges (on top)
+        // Pass 2: connected edges (on top) — full opacity + 1.5× the usual
+        // connected width so the hover line is unmistakably visible, even in
+        // minimal/low-contrast themes.
         ctx.strokeStyle = theme.edge.connected;
-        ctx.lineWidth = theme.edge.connectedWidth * widthMultiplier;
-        ctx.globalAlpha = baseAlpha;
+        ctx.lineWidth = theme.edge.connectedWidth * widthMultiplier * 1.5;
+        ctx.globalAlpha = 1;
         ctx.beginPath();
         for (const edge of edges) {
           if (edge.edgeType !== edgeType) continue;
@@ -171,7 +273,6 @@ export function render(
           ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
         }
         ctx.stroke();
-        ctx.globalAlpha = 1;
       }
     }
   }
@@ -221,10 +322,14 @@ export function render(
     }
   }
 
-  // Node circles pass: batched by color to reduce draw calls from O(n) to O(unique colors)
+  // Node shape pass: batched by (color, kind) so we keep O(unique (color,kind))
+  // draw calls. With only 4 kinds today the extra cardinality is negligible,
+  // and it lets us stamp circles / squares / diamonds / hexagons in one path each.
   {
-    // Build color buckets
-    const colorBuckets = new Map<string, GraphNode[]>();
+    const buckets = new Map<
+      string,
+      { color: string; kind: GraphNodeKind; nodes: GraphNode[] }
+    >();
     for (const node of nodes) {
       const nx = node.x ?? 0;
       const ny = node.y ?? 0;
@@ -232,16 +337,17 @@ export function render(
       if (!lowZoom && !isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH))
         continue;
       const color = nodeColor(node, theme);
-      const bucket = colorBuckets.get(color);
-      if (bucket) bucket.push(node);
-      else colorBuckets.set(color, [node]);
+      const key = `${node.kind}|${color}`;
+      const bucket = buckets.get(key);
+      if (bucket) bucket.nodes.push(node);
+      else buckets.set(key, { color, kind: node.kind, nodes: [node] });
     }
 
     // Draw non-dimmed nodes first, then dimmed nodes at reduced alpha
     for (const dimPass of [false, true]) {
       if (dimPass) ctx.globalAlpha = theme.dimAlpha;
 
-      for (const [color, bucket] of colorBuckets) {
+      for (const { color, kind, nodes: bucket } of buckets.values()) {
         ctx.fillStyle = color;
         ctx.beginPath();
         for (const node of bucket) {
@@ -257,8 +363,7 @@ export function render(
           const ny = node.y ?? 0;
           const baseRadius = node.size * 2;
           const radius = lowZoom ? Math.max(2, baseRadius * 0.5) : baseRadius;
-          ctx.moveTo(nx + radius, ny);
-          ctx.arc(nx, ny, radius, 0, TWO_PI);
+          traceShape(ctx, kind, nx, ny, radius);
         }
         ctx.fill();
       }
@@ -300,7 +405,7 @@ export function render(
       ctx.strokeStyle = outlineColor;
       ctx.lineWidth = outlineWidth;
       ctx.beginPath();
-      ctx.arc(nx, ny, baseRadius + outlineWidth, 0, TWO_PI);
+      traceShape(ctx, node.kind, nx, ny, baseRadius + outlineWidth);
       ctx.stroke();
     }
   }
@@ -325,30 +430,29 @@ export function render(
     }
   }
 
-  // --- Edge labels (only on hovered node's edges — always safe even at high node counts) ---
-  if (!lowZoom && hasHover) {
+  // --- Edge labels ---
+  // Show relationship *category* ("relates to" / "tagged" / "imports") as a
+  // small chip centered on each edge. Always visible for every edge type so
+  // the user can see at-a-glance what kind of connection each line is.
+  if (!lowZoom) {
     const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
     for (const edge of edges) {
-      const sId = edge.source.id;
-      const tId = edge.target.id;
-      if (
-        sId !== interaction.hoveredNodeId &&
-        tId !== interaction.hoveredNodeId
-      )
-        continue;
-      if (!edge.reason) continue;
+      const label =
+        edge.edgeType === "relates_to"
+          ? "relates to"
+          : edge.edgeType === "imports"
+            ? "imports"
+            : edge.edgeType === "wiki_parent"
+              ? "parent of"
+              : "tagged";
 
       const mx = ((edge.source.x ?? 0) + (edge.target.x ?? 0)) / 2;
       const my = ((edge.source.y ?? 0) + (edge.target.y ?? 0)) / 2;
 
-      const label =
-        edge.reason.length > 30
-          ? edge.reason.slice(0, 28) + "..."
-          : edge.reason;
       const metrics = ctx.measureText(label);
       const padX = 4;
       const padY = 2;

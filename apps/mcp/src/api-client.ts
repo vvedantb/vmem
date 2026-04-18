@@ -84,3 +84,11 @@ export function updateMemory(
 export function deleteMemory(token: string, id: string): Promise<ApiResult> {
   return apiRequest("/api/mcp/memories/delete", token, { memoryId: id });
 }
+
+export function listSkills(token: string): Promise<ApiResult> {
+  return apiRequest("/api/mcp/skills/list", token);
+}
+
+export function getSkill(token: string, name: string): Promise<ApiResult> {
+  return apiRequest("/api/mcp/skills/get", token, { name });
+}

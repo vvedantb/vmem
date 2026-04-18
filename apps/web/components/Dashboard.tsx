@@ -21,6 +21,7 @@ import {
   IconCheck,
   IconLoader2,
 } from "@tabler/icons-react";
+import { AnimatedCounter } from "./svg-animations";
 import { api } from "@vmem/backend";
 
 interface StatsData {
@@ -140,7 +141,7 @@ export default function Dashboard() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-destructive/20 bg-destructive/10">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
           <IconAlertCircle className="w-6 h-6 text-destructive" />
         </div>
         <h3 className="mb-2 text-lg font-medium text-foreground">
@@ -188,7 +189,7 @@ export default function Dashboard() {
         {statsCards.map((stat) => (
           <Card
             key={stat.label}
-            className="border-border/70 bg-card transition-all duration-200 ease-smooth hover:-translate-y-0.5 hover:border-border hover:shadow-panel"
+            className="border-0 bg-secondary/50 transition-[transform,background-color] duration-200 ease-smooth hover:-translate-y-0.5 hover:bg-secondary/70"
           >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
@@ -197,10 +198,10 @@ export default function Dashboard() {
                     {stat.label}
                   </p>
                   <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-semibold tabular-nums text-foreground">
-                    {stat.value}
+                    <AnimatedCounter value={stat.value} duration={0.8} />
                   </p>
                 </div>
-                <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-border/60 bg-secondary">
+                <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-background/60">
                   <stat.icon size={20} className="text-muted-foreground" />
                 </div>
               </div>
@@ -209,7 +210,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <Card className="border-border/70 bg-card">
+      <Card className="border-0 bg-secondary/50">
         <CardContent className="p-4 sm:p-6">
           <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground">
             Memory Growth (Last 7 Days)
@@ -298,7 +299,7 @@ export default function Dashboard() {
       </Card>
 
       <div className="grid grid-cols-1 gap-5 sm:gap-7 lg:grid-cols-2">
-        <Card className="border-border/70 bg-card">
+        <Card className="border-0 bg-secondary/50">
           <CardContent className="p-4 sm:p-6">
             <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground">
               Recent Activity
@@ -314,9 +315,9 @@ export default function Dashboard() {
                   return (
                     <li
                       key={item.id}
-                      className="flex items-start gap-3 rounded-xl border border-border/65 bg-secondary/55 px-3 py-2.5"
+                      className="flex items-start gap-3 rounded-xl bg-background/60 px-3 py-2.5"
                     >
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-border/60 bg-card">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary">
                         <Icon size={16} className="text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -335,7 +336,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card">
+        <Card className="border-0 bg-secondary/50">
           <CardContent className="p-4 sm:p-6">
             <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground">
               Quick Actions
@@ -343,9 +344,9 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
               {quickActions.map((action) => (
                 <Link href={action.href} key={action.label}>
-                  <div className="group cursor-pointer rounded-2xl border border-border/65 bg-secondary/55 p-4 transition-all duration-200 ease-smooth hover:-translate-y-0.5 hover:border-border hover:bg-card">
+                  <div className="group cursor-pointer rounded-2xl bg-background/60 p-4 transition-[transform,background-color] duration-200 ease-smooth hover:-translate-y-0.5 hover:bg-background/80">
                     <div className="mb-2 flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-card transition-colors group-hover:bg-secondary">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary transition-colors group-hover:bg-secondary/80">
                         <action.icon
                           size={16}
                           className="text-muted-foreground"
