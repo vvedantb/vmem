@@ -1,5 +1,14 @@
 # Changelog
 
+## Web: Vite app finalized, Next.js removed — 2025-04-18
+
+- Deleted `apps/web` (Next.js) and renamed `apps/web-v2` to `apps/web` — Vite/TanStack Router is now the primary web frontend
+- Refactored all localStorage usage to `useLocalStorage` from usehooks-ts for reactive state sync, SSR hydration, and cross-tab sync — removed ~90 lines of manual localStorage helpers
+- Added missing dependencies: `@built-in-ai/web-llm` and `@mediapipe/tasks-genai` that were imported but not declared in package.json (pnpm hoisting masked the issue)
+- Added `.gitignore` for Vite/TanStack Router patterns including `stats.html` bundle analysis output
+- Aligned Vite server config with conductor: kept `host: "0.0.0.0"` and `cors: false`, removed unnecessary custom port
+- Reason: consolidates to single web app, eliminates maintenance burden of two frontends, cleans up localStorage patterns
+
 ## Web-v2: Auth routing refactor and build fixes — 2026-04-18
 
 - Fixed pnpm lockfile corruption issue: regenerated `pnpm-lock.yaml` and added `onlyBuiltDependencies: ["esbuild"]` config to allow postinstall scripts, resolving missing vite/esbuild packages
