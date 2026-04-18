@@ -8,7 +8,7 @@ import {
 } from "@tabler/icons-react";
 import type { TablerIcon } from "@tabler/icons-react";
 import type { FileCategory, FileItem } from "@/lib/file-types";
-import type { FileSortField, SortDirection } from "./searchParams";
+import type { FileSortField, SortDirection } from "./-searchParams";
 
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
