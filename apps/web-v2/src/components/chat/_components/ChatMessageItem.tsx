@@ -38,22 +38,9 @@ import {
   ToolInput,
   ToolOutput,
 } from "@vmem/ui/ai";
-import {
-  IconCheck,
-  IconCopy,
-  IconMicrophone,
-  IconUser,
-} from "@tabler/icons-react";
+import { IconCheck, IconCopy, IconMicrophone } from "@tabler/icons-react";
 import Link from "next/link";
 import type { ChatMemoryRef, MessageUsageSummary } from "@/hooks/useLocalChat";
-
-function UserAvatar() {
-  return (
-    <div className="flex size-8 items-center justify-center rounded-full bg-primary shrink-0">
-      <IconUser className="size-4 text-primary-foreground" stroke={1.5} />
-    </div>
-  );
-}
 
 function StreamingDots() {
   return (

@@ -2,7 +2,6 @@ import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { SignInButton, SignUpButton, useSignIn } from "@clerk/clerk-react";
 import { Button } from "@vmem/ui";
 import { useEffect, useRef } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { env, PROD } from "@/env";
 
 export const Route = createFileRoute("/")({
@@ -14,8 +13,7 @@ export const Route = createFileRoute("/")({
 
 function LandingPage() {
   const { agent } = useSearch({ from: "/" });
-  const { signIn, setActive, isLoaded } = useSignIn();
-  const navigate = useNavigate();
+  const { isLoaded } = useSignIn();
   const triggered = useRef(false);
 
   // Agent auto-login: redirect to Convex HTTP action for agent sign-in

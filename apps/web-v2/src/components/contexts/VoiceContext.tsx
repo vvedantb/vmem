@@ -34,7 +34,6 @@ import {
   clearActiveTTSModelId,
   type STTVoiceModelInfo,
   type TTSVoiceModelInfo,
-  type KokoroSpeakerId,
 } from "@/lib/voice/voice-models";
 import {
   loadSTT,

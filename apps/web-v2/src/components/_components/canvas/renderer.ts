@@ -123,9 +123,6 @@ export function render(
   searchMatchSet: Set<string>,
   showLabels: boolean,
 ): void {
-  const w = canvasW * dpr;
-  const h = canvasH * dpr;
-
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, canvasW, canvasH);
 

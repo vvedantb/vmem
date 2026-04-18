@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef } from "react";
 import { Button, Input, Badge } from "@vmem/ui";
 import { IconX } from "@tabler/icons-react";
-import { buildTagStats, type Memory } from "@/lib/memories";
+import { buildTagStats } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 
 interface TagInputWithSuggestionsProps {
