@@ -117,6 +117,7 @@ export default defineConfig({
       output: {
         codeSplitting: {
           groups: [
+            // Core vendor chunks
             {
               name: "vendor-radix",
               test: /node_modules[\\/]@radix-ui/,
@@ -136,6 +137,27 @@ export default defineConfig({
               name: "vendor-motion",
               test: /node_modules[\\/](motion|framer-motion)/,
               priority: 15,
+            },
+            // Heavy AI chunks - only loaded when user accesses voice/local LLM features
+            {
+              name: "vendor-webllm",
+              test: /node_modules[\\/]@mlc-ai[\\/]web-llm/,
+              priority: 20,
+            },
+            {
+              name: "vendor-transformers",
+              test: /node_modules[\\/]@huggingface[\\/]transformers/,
+              priority: 20,
+            },
+            {
+              name: "vendor-kokoro",
+              test: /node_modules[\\/]kokoro-js/,
+              priority: 20,
+            },
+            {
+              name: "vendor-onnx",
+              test: /node_modules[\\/]onnxruntime/,
+              priority: 20,
             },
           ],
         },

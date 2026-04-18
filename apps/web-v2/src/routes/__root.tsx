@@ -16,7 +16,7 @@ import { MotionProvider } from "@/components/providers/MotionProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { env } from "@/env";
 
-const convex = new ConvexReactClient(env.VITE_CONVEX_URL);
+export const convex = new ConvexReactClient(env.VITE_CONVEX_URL);
 
 export interface RouterContext {
   isSignedIn: boolean;
