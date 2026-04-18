@@ -16,13 +16,18 @@ function LandingPage() {
   const { isLoaded } = useSignIn();
   const triggered = useRef(false);
 
-  // Agent auto-login: redirect to Convex HTTP action for agent sign-in
+  // Agent auto-login: in dev, use Vite middleware; in prod, use Convex HTTP action
   useEffect(() => {
     if (agent && isLoaded && !triggered.current) {
       triggered.current = true;
-      // Redirect to Convex HTTP action for agent login
-      const convexUrl = env.VITE_CONVEX_URL.replace(".cloud", ".site");
-      window.location.href = `${convexUrl}/api/auth/agent-login`;
+      if (PROD) {
+        // Production: redirect to Convex HTTP action
+        const convexUrl = env.VITE_CONVEX_URL.replace(".cloud", ".site");
+        window.location.href = `${convexUrl}/api/auth/agent-login`;
+      } else {
+        // Dev: use Vite middleware
+        window.location.href = "/api/auth/agent-login";
+      }
     }
   }, [agent, isLoaded]);
 
