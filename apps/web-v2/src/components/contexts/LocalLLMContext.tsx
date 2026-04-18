@@ -2,6 +2,9 @@
  * React context for local LLM model management.
  * Supports multiple runtimes: WebLLM (MLC) and MediaPipe.
  * Provides model loading/unloading state, progress tracking, and WebGPU support detection.
+ *
+ * IMPORTANT: Heavy dependencies (@mlc-ai/web-llm, transformers.js) are lazy-loaded
+ * only when loadModel() is called, not at initial page load.
  */
 "use client";
 
@@ -14,22 +17,38 @@ import {
   type ReactNode,
 } from "react";
 import type { InitProgressReport } from "@mlc-ai/web-llm";
-import { LOCAL_MODELS, type LocalModelInfo } from "@/lib/local-models";
+import type { LanguageModelV3 } from "@ai-sdk/provider";
 import {
-  loadEngine,
-  unloadEngine,
-  getEngine,
-  getLoadedModelId,
-  getActiveModelId,
-  setActiveModelId as persistActiveModelId,
-  clearActiveModelId,
-  isWebGPUSupported,
-  getCurrentRuntime,
-  type LocalLanguageModel,
-} from "@/lib/local-engine";
-import type { LocalModelRuntime } from "@/lib/local-models";
+  LOCAL_MODELS,
+  type LocalModelInfo,
+  type LocalModelRuntime,
+} from "@/lib/local-models";
 
 export type EngineState = "idle" | "loading" | "ready" | "error";
+export type LocalLanguageModel = LanguageModelV3;
+
+// Lightweight localStorage helpers (no heavy imports)
+const ACTIVE_MODEL_KEY = "vmem:activeLocalModelId";
+
+function getActiveModelId(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(ACTIVE_MODEL_KEY);
+}
+
+function setActiveModelIdStorage(modelId: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ACTIVE_MODEL_KEY, modelId);
+}
+
+function clearActiveModelId(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(ACTIVE_MODEL_KEY);
+}
+
+function isWebGPUSupported(): boolean {
+  if (typeof window === "undefined") return false;
+  return "gpu" in navigator;
+}
 
 interface LocalLLMContextValue {
   /** Whether the browser supports WebGPU */
@@ -62,6 +81,16 @@ interface LocalLLMContextValue {
 
 const LocalLLMContext = createContext<LocalLLMContextValue | null>(null);
 
+// Lazy-loaded engine module (only imported when loadModel is called)
+let engineModule: typeof import("@/lib/local-engine") | null = null;
+
+async function getEngineModule() {
+  if (!engineModule) {
+    engineModule = await import("@/lib/local-engine");
+  }
+  return engineModule;
+}
+
 export function LocalLLMProvider({ children }: { children: ReactNode }) {
   const [isSupported, setIsSupported] = useState(false);
   const [activeModelId, setActiveModelIdState] = useState<string | null>(null);
@@ -89,7 +118,7 @@ export function LocalLLMProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleSetActiveModelId = useCallback((modelId: string) => {
-    persistActiveModelId(modelId);
+    setActiveModelIdStorage(modelId);
     setActiveModelIdState(modelId);
   }, []);
 
@@ -100,6 +129,9 @@ export function LocalLLMProvider({ children }: { children: ReactNode }) {
     setLoadMessage("Initializing...");
 
     try {
+      // Lazy load the heavy engine module only when actually loading a model
+      const engine = await getEngineModule();
+
       const onProgress = (progress: InitProgressReport) => {
         // Extract percentage from progress text if available
         const match = progress.text.match(/(\d+)%/);
@@ -109,18 +141,18 @@ export function LocalLLMProvider({ children }: { children: ReactNode }) {
         setLoadMessage(progress.text);
       };
 
-      const loadedModel = await loadEngine(modelId, onProgress);
+      const loadedModel = await engine.loadEngine(modelId, onProgress);
 
       setModel(loadedModel);
       setLoadedModelId(modelId);
       setLoadingModelId(null);
-      setCurrentRuntimeState(getCurrentRuntime());
+      setCurrentRuntimeState(engine.getCurrentRuntime());
       setEngineState("ready");
       setLoadProgress(100);
       setLoadMessage(null);
 
       // Also persist as active model
-      persistActiveModelId(modelId);
+      setActiveModelIdStorage(modelId);
       setActiveModelIdState(modelId);
     } catch (err) {
       setEngineState("error");
@@ -136,7 +168,9 @@ export function LocalLLMProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleUnloadModel = useCallback(async () => {
-    await unloadEngine();
+    if (engineModule) {
+      await engineModule.unloadEngine();
+    }
     clearActiveModelId();
     setModel(null);
     setActiveModelIdState(null);
@@ -150,15 +184,18 @@ export function LocalLLMProvider({ children }: { children: ReactNode }) {
 
   // Sync with engine state on mount (in case engine was loaded before context mounted)
   useEffect(() => {
-    const existing = getEngine();
-    if (existing) {
-      setModel(existing);
-      setLoadedModelId(getLoadedModelId());
-      setCurrentRuntimeState(getCurrentRuntime());
-      setEngineState("ready");
+    if (engineModule) {
+      const existing = engineModule.getEngine();
+      if (existing) {
+        setModel(existing);
+        setLoadedModelId(engineModule.getLoadedModelId());
+        setCurrentRuntimeState(engineModule.getCurrentRuntime());
+        setEngineState("ready");
+      }
     }
   }, []);
 
+  // Auto-load saved model preference on mount (if WebGPU supported)
   useEffect(() => {
     if (!isSupported || activeModelId === null) {
       return;
