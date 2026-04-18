@@ -1,5 +1,5 @@
-import { createRootRoute, Outlet } from "@tanstack/react-router";
-import { ClerkProvider, useAuth } from "@clerk/clerk-react";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import { useAuth } from "@clerk/clerk-react";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
@@ -18,43 +18,45 @@ import { env } from "@/env";
 
 const convex = new ConvexReactClient(env.VITE_CONVEX_URL);
 
-export const Route = createRootRoute({
+export interface RouterContext {
+  isSignedIn: boolean;
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
 
 function RootComponent() {
   return (
-    <ClerkProvider publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}>
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <NuqsAdapter>
-          <NextThemesProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <MotionProvider>
-              <QueryProvider>
-                <ThemeProvider>
-                  <TooltipProvider>
-                    <NotificationProvider>
-                      <LocalLLMProvider>
-                        <VoiceProvider>
-                          <MemoryProvider>
-                            <PendingEnrichmentRunner />
-                            <Outlet />
-                          </MemoryProvider>
-                        </VoiceProvider>
-                      </LocalLLMProvider>
-                    </NotificationProvider>
-                  </TooltipProvider>
-                  <Toaster position="top-center" />
-                </ThemeProvider>
-              </QueryProvider>
-            </MotionProvider>
-          </NextThemesProvider>
-        </NuqsAdapter>
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+    <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+      <NuqsAdapter>
+        <NextThemesProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <MotionProvider>
+            <QueryProvider>
+              <ThemeProvider>
+                <TooltipProvider>
+                  <NotificationProvider>
+                    <LocalLLMProvider>
+                      <VoiceProvider>
+                        <MemoryProvider>
+                          <PendingEnrichmentRunner />
+                          <Outlet />
+                        </MemoryProvider>
+                      </VoiceProvider>
+                    </LocalLLMProvider>
+                  </NotificationProvider>
+                </TooltipProvider>
+                <Toaster position="top-center" />
+              </ThemeProvider>
+            </QueryProvider>
+          </MotionProvider>
+        </NextThemesProvider>
+      </NuqsAdapter>
+    </ConvexProviderWithClerk>
   );
 }
