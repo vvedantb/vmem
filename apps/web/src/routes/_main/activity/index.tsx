@@ -86,7 +86,7 @@ function LoadingSkeleton() {
   return (
     <div className="space-y-3">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="rounded-xl border border-border p-4 sm:p-6">
+        <div key={i} className="rounded-xl bg-muted/40 p-4 sm:p-6">
           <div className="flex items-start gap-3 sm:gap-4">
             <Skeleton className="h-10 w-10 rounded-xl" />
             <div className="flex-1 space-y-2">
@@ -106,7 +106,7 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
         <IconActivity size={32} className="text-muted-foreground" />
       </div>
-      <h3 className="mb-1 text-lg font-medium text-foreground">
+      <h3 className="mb-1 text-lg font-medium text-foreground text-balance">
         {hasFilters ? "No matching activity" : "No activity yet"}
       </h3>
       <p className="text-sm text-muted-foreground">
@@ -334,7 +334,7 @@ function ActivityPage() {
             const Icon = getActivityIcon(item.type);
             return (
               <div className="pb-3">
-                <div className="rounded-xl border border-border bg-muted/30 p-3 transition-colors sm:p-4">
+                <div className="rounded-xl bg-muted/40 p-3 transition-colors sm:p-4">
                   <div className="flex items-start gap-3 sm:gap-4">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
                       <Icon size={20} className="text-primary" />
@@ -343,7 +343,7 @@ function ActivityPage() {
                       <p className="text-sm font-medium text-foreground sm:text-base">
                         {item.description}
                       </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+                      <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm tabular-nums">
                         {item.relativeTime}
                       </p>
                     </div>

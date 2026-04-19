@@ -43,7 +43,7 @@ const DialogContent = React.forwardRef<
     >
       {children}
       {!hideCloseButton && (
-        <DialogPrimitive.Close className="glass-interactive absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground/90 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none">
+        <DialogPrimitive.Close className="glass-interactive absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground/90 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none before:absolute before:inset-[-4px] before:content-['']">
           <IconX className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
@@ -85,7 +85,7 @@ const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      "text-lg font-semibold tracking-normal text-foreground",
+      "text-lg font-semibold tracking-normal text-foreground text-balance",
       className,
     )}
     {...props}

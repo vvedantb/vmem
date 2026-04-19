@@ -24,7 +24,7 @@ function Task({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-md border border-border bg-muted/20 px-2.5 py-2 text-xs",
+        "flex items-center gap-2 rounded-md bg-muted/40 px-2.5 py-2 text-xs",
         className,
       )}
       {...props}

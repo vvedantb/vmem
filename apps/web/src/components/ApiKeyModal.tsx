@@ -109,7 +109,7 @@ export default function ApiKeyModal({
           if (isSubmitting) e.preventDefault();
         }}
       >
-        <DialogHeader className="border-b border-border pb-4">
+        <DialogHeader className="pb-5">
           <DialogTitle className="text-foreground">
             {step === "success" ? "API Key Created" : "Create New API Key"}
           </DialogTitle>
@@ -210,7 +210,7 @@ export default function ApiKeyModal({
           </div>
         )}
 
-        <DialogFooter className="border-t border-border pt-4">
+        <DialogFooter className="pt-5">
           {step === "create" && !isSubmitting && (
             <>
               <Button

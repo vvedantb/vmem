@@ -164,9 +164,9 @@ export default function AddMemoryModal({
                           variant="ghost"
                           size="icon-xs"
                           onClick={() => removeTag(tag, field.onChange)}
-                          className="h-auto w-auto p-0 text-muted-foreground hover:text-foreground"
+                          className="h-5 w-5 p-0.5 -mr-0.5 text-muted-foreground hover:text-foreground"
                         >
-                          <IconX size={14} />
+                          <IconX size={12} />
                         </Button>
                       </Badge>
                     ))}
