@@ -41,13 +41,13 @@ export const navGroups: NavGroup[] = [
       { href: "/codebases", label: "Codebases", icon: IconDatabase },
       { href: "/skills", label: "Skills", icon: IconBolt },
       { href: "/wiki", label: "Wiki", icon: IconNotebook },
-      { href: "/activity", label: "Activity", icon: IconActivity },
     ],
   },
   {
     title: "Account",
     icon: IconUserCircle,
     items: [
+      { href: "/activity", label: "Activity", icon: IconActivity },
       { href: "/notifications", label: "Notifications", icon: IconBell },
       { href: "/settings", label: "Settings", icon: IconSettings },
     ],
