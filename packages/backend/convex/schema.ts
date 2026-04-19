@@ -88,6 +88,13 @@ const schema = defineSchema({
     notificationsEnabled: v.optional(v.boolean()),
     extensionAutoSyncEnabled: v.optional(v.boolean()),
     extensionSelectionPopupEnabled: v.optional(v.boolean()),
+    // Memory behavior defaults
+    memoryAutoExtract: v.optional(v.boolean()),
+    memoryConfidenceThreshold: v.optional(v.number()),
+    // Notification preferences
+    notifyMemoryConflicts: v.optional(v.boolean()),
+    notifyNewMemories: v.optional(v.boolean()),
+    notifyMemoriesExpiring: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
 
   apiRequestLogs: defineTable({
