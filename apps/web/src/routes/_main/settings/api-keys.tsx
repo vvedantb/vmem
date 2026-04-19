@@ -61,10 +61,11 @@ function ApiKeysPage() {
       centeredMaxWidth
       rightSection={
         <Button
+          variant="outline"
+          size="sm"
           onClick={() => setIsCreateModalOpen(true)}
-          className="bg-primary font-medium text-primary-foreground"
         >
-          <IconPlus size={16} className="mr-1.5" />
+          <IconPlus size={16} />
           New Key
         </Button>
       }
@@ -82,10 +83,11 @@ function ApiKeysPage() {
             Create your first API key to start using vMemory programmatically.
           </p>
           <Button
+            variant="outline"
+            size="sm"
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-primary text-primary-foreground"
           >
-            <IconPlus size={16} className="mr-1.5" />
+            <IconPlus size={16} />
             New Key
           </Button>
         </div>

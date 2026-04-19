@@ -57,7 +57,7 @@ export default function LocalModelsSection() {
   return (
     <div className="space-y-4">
       {/* Info banner */}
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 bg-muted/40 rounded-lg p-3">
         <IconInfoCircle className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
         <p className="text-xs text-muted-foreground">
           Local models run entirely in your browser using WebGPU. No data is
