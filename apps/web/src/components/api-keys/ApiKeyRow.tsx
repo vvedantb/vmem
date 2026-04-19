@@ -40,17 +40,21 @@ export function ApiKeyRow({
   return (
     <TableRow>
       <TableCell className="py-4">
-        <div className="flex items-center gap-2">
-          <span className="text-foreground">{apiKey.name}</span>
-          {apiKey.status === "revoked" && (
-            <Badge className="bg-destructive/10 text-destructive text-xs">
-              Revoked
-            </Badge>
-          )}
-        </div>
+        <span className="text-foreground">{apiKey.name}</span>
         <p className="text-xs text-muted-foreground mt-0.5 md:hidden">
           {formatDate(apiKey.createdAt)}
         </p>
+      </TableCell>
+      <TableCell className="hidden sm:table-cell py-4">
+        {isActive ? (
+          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs">
+            Active
+          </Badge>
+        ) : (
+          <Badge className="bg-destructive/10 text-destructive text-xs">
+            Revoked
+          </Badge>
+        )}
       </TableCell>
       <TableCell className="hidden md:table-cell py-4">
         <div className="flex items-center gap-2">
