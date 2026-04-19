@@ -11,7 +11,7 @@ import {
   IconWaveSine,
   IconMicrophone,
 } from "@tabler/icons-react";
-import { Button, Progress, Badge } from "@vmem/ui";
+import { Button, Progress } from "@vmem/ui";
 import type { VoiceModelInfo } from "@/lib/voice/voice-models";
 import type { VoiceModelLoadState } from "@/components/contexts/VoiceContext";
 
@@ -46,11 +46,6 @@ export default function VoiceModelCard({
             <h4 className="text-sm font-medium text-foreground">
               {model.name}
             </h4>
-            {isLoaded && (
-              <Badge variant="secondary" className="text-xs">
-                Loaded
-              </Badge>
-            )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {model.description}

@@ -4,12 +4,7 @@
  */
 "use client";
 
-import {
-  IconDownload,
-  IconLoader2,
-  IconPlayerStop,
-  IconCpu,
-} from "@tabler/icons-react";
+import { IconDownload, IconLoader2, IconPlayerStop } from "@tabler/icons-react";
 import { Button, Progress, Badge } from "@vmem/ui";
 import type { LocalModelInfo } from "@/lib/local-models";
 import type { EngineState } from "@/components/contexts/LocalLLMContext";
@@ -48,12 +43,6 @@ export default function ModelCard({
             <h4 className="text-sm font-medium text-foreground">
               {model.name}
             </h4>
-            {isLoaded && (
-              <Badge variant="secondary" className="text-xs">
-                <IconCpu className="h-3 w-3 mr-1" />
-                Loaded
-              </Badge>
-            )}
             {isActive && !isLoaded && (
               <Badge variant="outline" className="text-xs">
                 Default
