@@ -93,6 +93,9 @@ function ApiKeysPage() {
               <TableHead className="font-medium text-muted-foreground">
                 NAME
               </TableHead>
+              <TableHead className="hidden font-medium text-muted-foreground sm:table-cell">
+                STATUS
+              </TableHead>
               <TableHead className="hidden font-medium text-muted-foreground md:table-cell">
                 KEY
               </TableHead>
