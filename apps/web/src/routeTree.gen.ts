@@ -26,6 +26,7 @@ import { Route as MainActivityIndexRouteImport } from "./routes/_main/activity/i
 import { Route as MainWikiDocIdRouteImport } from "./routes/_main/wiki/$docId";
 import { Route as MainSettingsUsageRouteImport } from "./routes/_main/settings/usage";
 import { Route as MainSettingsPreferencesRouteImport } from "./routes/_main/settings/preferences";
+import { Route as MainSettingsModelsRouteImport } from "./routes/_main/settings/models";
 import { Route as MainSettingsImportRouteImport } from "./routes/_main/settings/import";
 import { Route as MainSettingsExtensionRouteImport } from "./routes/_main/settings/extension";
 import { Route as MainSettingsDataControlsRouteImport } from "./routes/_main/settings/data-controls";
@@ -120,6 +121,11 @@ const MainSettingsPreferencesRoute = MainSettingsPreferencesRouteImport.update({
   path: "/settings/preferences",
   getParentRoute: () => MainRouteRoute,
 } as any);
+const MainSettingsModelsRoute = MainSettingsModelsRouteImport.update({
+  id: "/settings/models",
+  path: "/settings/models",
+  getParentRoute: () => MainRouteRoute,
+} as any);
 const MainSettingsImportRoute = MainSettingsImportRouteImport.update({
   id: "/settings/import",
   path: "/settings/import",
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   "/settings/data-controls": typeof MainSettingsDataControlsRoute;
   "/settings/extension": typeof MainSettingsExtensionRoute;
   "/settings/import": typeof MainSettingsImportRoute;
+  "/settings/models": typeof MainSettingsModelsRoute;
   "/settings/preferences": typeof MainSettingsPreferencesRoute;
   "/settings/usage": typeof MainSettingsUsageRoute;
   "/wiki/$docId": typeof MainWikiDocIdRoute;
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   "/settings/data-controls": typeof MainSettingsDataControlsRoute;
   "/settings/extension": typeof MainSettingsExtensionRoute;
   "/settings/import": typeof MainSettingsImportRoute;
+  "/settings/models": typeof MainSettingsModelsRoute;
   "/settings/preferences": typeof MainSettingsPreferencesRoute;
   "/settings/usage": typeof MainSettingsUsageRoute;
   "/wiki/$docId": typeof MainWikiDocIdRoute;
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   "/_main/settings/data-controls": typeof MainSettingsDataControlsRoute;
   "/_main/settings/extension": typeof MainSettingsExtensionRoute;
   "/_main/settings/import": typeof MainSettingsImportRoute;
+  "/_main/settings/models": typeof MainSettingsModelsRoute;
   "/_main/settings/preferences": typeof MainSettingsPreferencesRoute;
   "/_main/settings/usage": typeof MainSettingsUsageRoute;
   "/_main/wiki/$docId": typeof MainWikiDocIdRoute;
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | "/settings/data-controls"
     | "/settings/extension"
     | "/settings/import"
+    | "/settings/models"
     | "/settings/preferences"
     | "/settings/usage"
     | "/wiki/$docId"
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | "/settings/data-controls"
     | "/settings/extension"
     | "/settings/import"
+    | "/settings/models"
     | "/settings/preferences"
     | "/settings/usage"
     | "/wiki/$docId"
@@ -325,6 +336,7 @@ export interface FileRouteTypes {
     | "/_main/settings/data-controls"
     | "/_main/settings/extension"
     | "/_main/settings/import"
+    | "/_main/settings/models"
     | "/_main/settings/preferences"
     | "/_main/settings/usage"
     | "/_main/wiki/$docId"
@@ -464,6 +476,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof MainSettingsPreferencesRouteImport;
       parentRoute: typeof MainRouteRoute;
     };
+    "/_main/settings/models": {
+      id: "/_main/settings/models";
+      path: "/settings/models";
+      fullPath: "/settings/models";
+      preLoaderRoute: typeof MainSettingsModelsRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
     "/_main/settings/import": {
       id: "/_main/settings/import";
       path: "/settings/import";
@@ -544,6 +563,7 @@ interface MainRouteRouteChildren {
   MainSettingsDataControlsRoute: typeof MainSettingsDataControlsRoute;
   MainSettingsExtensionRoute: typeof MainSettingsExtensionRoute;
   MainSettingsImportRoute: typeof MainSettingsImportRoute;
+  MainSettingsModelsRoute: typeof MainSettingsModelsRoute;
   MainSettingsPreferencesRoute: typeof MainSettingsPreferencesRoute;
   MainSettingsUsageRoute: typeof MainSettingsUsageRoute;
   MainWikiDocIdRoute: typeof MainWikiDocIdRoute;
@@ -570,6 +590,7 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsDataControlsRoute: MainSettingsDataControlsRoute,
   MainSettingsExtensionRoute: MainSettingsExtensionRoute,
   MainSettingsImportRoute: MainSettingsImportRoute,
+  MainSettingsModelsRoute: MainSettingsModelsRoute,
   MainSettingsPreferencesRoute: MainSettingsPreferencesRoute,
   MainSettingsUsageRoute: MainSettingsUsageRoute,
   MainWikiDocIdRoute: MainWikiDocIdRoute,
