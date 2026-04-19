@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useQuery } from "convex/react";
-import { useQueryState } from "nuqs";
+import { useNavigate } from "@tanstack/react-router";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
-import { wikiSearchParams } from "./-searchParams";
 import { buildTree } from "./_utils";
 import type { OutlineHeading } from "./_utils";
 import WikiTree from "./WikiTree";
@@ -13,16 +12,20 @@ import WikiEditor from "./WikiEditor";
 import WikiOutline from "./WikiOutline";
 import WikiSearch from "./WikiSearch";
 
+interface WikiWorkspaceProps {
+  docId: string | null;
+}
+
 /**
  * Three-pane shell for /wiki. Tree on the left, editor center, outline right.
- * Selected document id lives in `?doc=<id>` (nuqs). Tree writes, editor reads.
+ * Selected document id lives in `/wiki/:docId` path param.
  *
  * Outline state is lifted here because the editor emits headings on update
  * but the outline pane needs them for rendering/jumping — keeping it here lets
  * the outline pane stay stateless and re-render whenever editor emits.
  */
-export default function WikiWorkspace() {
-  const [docId, setDocId] = useQueryState("doc", wikiSearchParams.doc);
+export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
+  const navigate = useNavigate();
   const nodes = useQuery(api.wiki.listTree);
 
   const [headings, setHeadings] = useState<OutlineHeading[]>([]);
@@ -33,11 +36,16 @@ export default function WikiWorkspace() {
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
 
-  const selectedDocId = docId.length > 0 ? docId : null;
-
-  const handleSelectNode = (id: string) => {
-    void setDocId(id);
-  };
+  const handleSelectNode = useCallback(
+    (id: string) => {
+      if (id.length > 0) {
+        void navigate({ to: "/wiki/$docId", params: { docId: id } });
+      } else {
+        void navigate({ to: "/wiki" });
+      }
+    },
+    [navigate],
+  );
 
   const handleJumpToHeading = (pos: number) => {
     // Bump `n` so React treats each click as a new effect tick even if pos is identical.
@@ -53,7 +61,7 @@ export default function WikiWorkspace() {
           <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin -mr-1 pr-1">
             <WikiTree
               tree={tree}
-              selectedId={selectedDocId}
+              selectedId={docId}
               onSelect={handleSelectNode}
             />
           </div>
@@ -62,7 +70,7 @@ export default function WikiWorkspace() {
         {/* Center pane: editor */}
         <div className="min-h-0 overflow-hidden flex flex-col">
           <WikiEditor
-            docId={selectedDocId}
+            docId={docId}
             allNodes={nodes ?? []}
             onHeadingsChange={setHeadings}
             jumpRequest={jumpRequest}
@@ -74,7 +82,7 @@ export default function WikiWorkspace() {
           <WikiOutline
             headings={headings}
             onJump={handleJumpToHeading}
-            hasDoc={selectedDocId !== null}
+            hasDoc={docId !== null}
           />
         </div>
       </div>

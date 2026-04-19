@@ -32,7 +32,7 @@ interface ListItemRowProps {
  * folders, etc.) and click behaviour:
  *
  *  - memory       → toggles the inline detail panel via onMemoryClick
- *  - wiki-doc     → navigates to /wiki?doc=<id>
+ *  - wiki-doc     → navigates to /wiki/<id>
  *  - wiki-folder  → navigates to /wiki (no deep-link to folder yet)
  *  - skill        → navigates to /skills
  *
@@ -71,7 +71,7 @@ export default function ListItemRow({
         return;
       }
       case "wiki-document":
-        navigate({ to: "/wiki", search: { doc: item.wikiId } });
+        navigate({ to: "/wiki/$docId", params: { docId: item.wikiId } });
         return;
       case "wiki-folder":
         navigate({ to: "/wiki" });
