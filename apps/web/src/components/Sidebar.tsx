@@ -158,7 +158,7 @@ export default function Sidebar({
 
       <motion.aside
         className="fixed left-0 top-0 z-40 hidden h-screen overflow-hidden bg-sidebar md:block"
-        animate={{ width: isCollapsed ? 96 : 320 }}
+        animate={{ width: isCollapsed ? 80 : 288 }}
         transition={{ duration: motionTiming.sidebar, ease: motionEase }}
       >
         <div className="flex h-full flex-col p-4 pt-7">
