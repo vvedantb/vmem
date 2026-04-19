@@ -10,6 +10,9 @@ import {
   IconFolderOpen,
   IconFileText,
   IconPlus,
+  IconFolderPlus,
+  IconPencil,
+  IconTrash,
 } from "@tabler/icons-react";
 import {
   Button,
@@ -222,23 +225,27 @@ function TreeItem({
               <ContextMenuItem
                 onSelect={() => onCreateInside(item.node._id, "document")}
               >
+                <IconFileText size={16} className="text-muted-foreground" />
                 New document
               </ContextMenuItem>
               <ContextMenuItem
                 onSelect={() => onCreateInside(item.node._id, "folder")}
               >
+                <IconFolderPlus size={16} className="text-muted-foreground" />
                 New folder
               </ContextMenuItem>
               <ContextMenuSeparator />
             </>
           )}
           <ContextMenuItem onSelect={() => onRequestRename(item.node)}>
+            <IconPencil size={16} className="text-muted-foreground" />
             Rename
           </ContextMenuItem>
           <ContextMenuItem
             onSelect={() => onRequestDelete(item.node)}
             className="text-destructive focus:text-destructive"
           >
+            <IconTrash size={16} />
             Delete
           </ContextMenuItem>
         </ContextMenuContent>
