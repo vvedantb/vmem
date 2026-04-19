@@ -19,6 +19,7 @@ import {
   IconFileImport,
   IconBolt,
   IconNotebook,
+  IconActivity,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -40,13 +41,13 @@ export const navGroups: NavGroup[] = [
       { href: "/codebases", label: "Codebases", icon: IconDatabase },
       { href: "/skills", label: "Skills", icon: IconBolt },
       { href: "/wiki", label: "Wiki", icon: IconNotebook },
-      { href: "/usage", label: "Usage", icon: IconChartBar },
     ],
   },
   {
     title: "Account",
     icon: IconUserCircle,
     items: [
+      { href: "/activity", label: "Activity", icon: IconActivity },
       { href: "/notifications", label: "Notifications", icon: IconBell },
       { href: "/settings", label: "Settings", icon: IconSettings },
     ],
@@ -78,6 +79,11 @@ export const settingsNavItems: SettingsNavItem[] = [
     href: "/settings/api-keys",
     label: "API Keys",
     icon: IconKey,
+  },
+  {
+    href: "/settings/usage",
+    label: "Usage",
+    icon: IconChartBar,
   },
   {
     href: "/settings/connectors",

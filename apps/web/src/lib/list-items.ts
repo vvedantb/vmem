@@ -56,7 +56,7 @@ interface MemoryRowItem extends BaseListItem {
 
 interface WikiDocumentItem extends BaseListItem {
   kind: "wiki-document";
-  /** Raw Convex id, used to deep-link into /wiki?doc=<wikiId>. */
+  /** Raw Convex id, used to deep-link into /wiki/<wikiId>. */
   wikiId: string;
 }
 

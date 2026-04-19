@@ -19,10 +19,6 @@ function PreferencesPage() {
               Local AI Models
             </h3>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Download and run AI models locally in your browser. Use the toggle
-            in chat to switch between cloud and local models.
-          </p>
           <LocalModelsSection />
         </section>
 
@@ -33,10 +29,6 @@ function PreferencesPage() {
               Local Voice Models
             </h3>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Download speech recognition and text-to-speech models for the
-            browser-local voice experience. Used on the /voice page.
-          </p>
           <VoiceModelsSection />
         </section>
       </div>

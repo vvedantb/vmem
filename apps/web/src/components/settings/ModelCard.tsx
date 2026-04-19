@@ -4,12 +4,7 @@
  */
 "use client";
 
-import {
-  IconDownload,
-  IconLoader2,
-  IconPlayerStop,
-  IconCpu,
-} from "@tabler/icons-react";
+import { IconDownload, IconLoader2, IconPlayerStop } from "@tabler/icons-react";
 import { Button, Progress, Badge } from "@vmem/ui";
 import type { LocalModelInfo } from "@/lib/local-models";
 import type { EngineState } from "@/components/contexts/LocalLLMContext";
@@ -48,12 +43,6 @@ export default function ModelCard({
             <h4 className="text-sm font-medium text-foreground">
               {model.name}
             </h4>
-            {isLoaded && (
-              <Badge variant="secondary" className="text-xs">
-                <IconCpu className="h-3 w-3 mr-1" />
-                Loaded
-              </Badge>
-            )}
             {isActive && !isLoaded && (
               <Badge variant="outline" className="text-xs">
                 Default
@@ -92,13 +81,16 @@ export default function ModelCard({
               size="sm"
               onClick={() => onLoad(model.id)}
               disabled={isAnyLoading}
+              className="group overflow-hidden transition-all duration-200"
             >
               {isThisModelLoading ? (
-                <IconLoader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                <IconLoader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <IconDownload className="h-3.5 w-3.5 mr-1.5" />
+                <IconDownload className="h-3.5 w-3.5" />
               )}
-              {isThisModelLoading ? "Loading..." : "Load"}
+              <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-200 group-hover:max-w-24 group-hover:opacity-100 group-hover:ml-1.5">
+                {isThisModelLoading ? "Loading..." : "Load"}
+              </span>
             </Button>
           )}
         </div>

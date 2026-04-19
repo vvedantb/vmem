@@ -184,11 +184,11 @@ export function SidebarFooter({
                   userButtonTrigger: `rounded-xl bg-transparent transition-colors hover:bg-card/60 focus:shadow-none ${
                     isIconOnly
                       ? "h-10 w-10 p-0"
-                      : "h-11 w-full justify-start gap-2.5 px-2.5"
+                      : "h-10 w-full justify-start gap-0 px-2"
                   }`,
-                  userButtonAvatarBox: "h-8 w-8",
+                  userButtonAvatarBox: "h-6 w-6 order-first",
                   userButtonOuterIdentifier:
-                    "truncate text-sm font-medium text-foreground",
+                    "truncate text-sm font-medium text-foreground order-last -ml-2",
                   userButtonPopoverCard:
                     "glass-panel-strong text-popover-foreground !z-[300] pointer-events-auto",
                   userButtonPopoverActions: "!z-[300] pointer-events-auto",
