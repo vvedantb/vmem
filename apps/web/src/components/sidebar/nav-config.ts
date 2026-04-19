@@ -41,7 +41,6 @@ export const navGroups: NavGroup[] = [
       { href: "/codebases", label: "Codebases", icon: IconDatabase },
       { href: "/skills", label: "Skills", icon: IconBolt },
       { href: "/wiki", label: "Wiki", icon: IconNotebook },
-      { href: "/usage", label: "Usage", icon: IconChartBar },
       { href: "/activity", label: "Activity", icon: IconActivity },
     ],
   },
@@ -80,6 +79,11 @@ export const settingsNavItems: SettingsNavItem[] = [
     href: "/settings/api-keys",
     label: "API Keys",
     icon: IconKey,
+  },
+  {
+    href: "/settings/usage",
+    label: "Usage",
+    icon: IconChartBar,
   },
   {
     href: "/settings/connectors",
