@@ -36,11 +36,11 @@ function Tool({
   return (
     <Collapsible
       defaultOpen={state === "running" || state === "output-error"}
-      className={cn("rounded-lg border border-border bg-muted/20", className)}
+      className={cn("rounded-lg bg-muted/40", className)}
       {...props}
     >
       <ToolHeader name={name} state={state} />
-      <CollapsibleContent className="border-t border-border px-3 py-2">
+      <CollapsibleContent className="bg-muted/20 px-3 py-2 rounded-b-lg">
         {children}
       </CollapsibleContent>
     </Collapsible>

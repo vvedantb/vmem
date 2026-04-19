@@ -165,7 +165,7 @@
   }
 
   .glass-interactive:active {
-    transform: scale(0.985);
+    transform: scale(0.96);
   }
 
   .glass-tab-trigger[data-state="active"] {
@@ -319,7 +319,9 @@
 
   .smooth-typing-input {
     caret-color: oklch(var(--primary));
-    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition-property: border-color, box-shadow, background-color;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     caret-shape: bar;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;

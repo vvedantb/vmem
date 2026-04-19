@@ -16,7 +16,7 @@ function InlineCitation({
   return (
     <a
       className={cn(
-        "inline-flex items-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium align-middle text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+        "inline-flex items-center rounded bg-muted/70 px-1.5 py-0.5 text-xs font-medium align-middle text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
         className,
       )}
       {...props}
