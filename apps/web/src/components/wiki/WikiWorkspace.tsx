@@ -3,6 +3,10 @@
 import { useMemo, useState, useCallback } from "react";
 import { useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
+import {
+  IconLayoutSidebarLeftCollapse,
+  IconLayoutSidebarRightCollapse,
+} from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
 import { buildTree } from "./_utils";
@@ -33,8 +37,16 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     pos: 0,
     n: 0,
   });
+  const [isTreeCollapsed, setIsTreeCollapsed] = useState(false);
+  const [isOutlineCollapsed, setIsOutlineCollapsed] = useState(false);
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
+
+  const gridCols = useMemo(() => {
+    const left = isTreeCollapsed ? "40px" : "280px";
+    const right = isOutlineCollapsed ? "40px" : "220px";
+    return `${left} 1fr ${right}`;
+  }, [isTreeCollapsed, isOutlineCollapsed]);
 
   const handleSelectNode = useCallback(
     (id: string) => {
@@ -54,17 +66,43 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
 
   return (
     <PageContainer title="Wiki" noScroll>
-      <div className="grid grid-cols-[280px_1fr_220px] gap-4 h-full min-h-0">
+      <div
+        className="grid gap-4 h-full min-h-0 transition-[grid-template-columns] duration-200"
+        style={{ gridTemplateColumns: gridCols }}
+      >
         {/* Left pane: search + tree */}
         <div className="flex flex-col min-h-0 rounded-lg bg-muted/40 p-3 gap-3">
-          <WikiSearch onSelect={handleSelectNode} />
-          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin -mr-1 pr-1">
-            <WikiTree
-              tree={tree}
-              selectedId={docId}
-              onSelect={handleSelectNode}
-            />
-          </div>
+          {isTreeCollapsed ? (
+            <button
+              type="button"
+              onClick={() => setIsTreeCollapsed(false)}
+              className="w-full flex justify-center pt-1 text-muted-foreground hover:text-foreground transition-colors"
+              title="Expand tree"
+            >
+              <IconLayoutSidebarLeftCollapse size={16} className="rotate-180" />
+            </button>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <WikiSearch onSelect={handleSelectNode} />
+                <button
+                  type="button"
+                  onClick={() => setIsTreeCollapsed(true)}
+                  className="shrink-0 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded hover:bg-muted/70"
+                  title="Collapse tree"
+                >
+                  <IconLayoutSidebarLeftCollapse size={14} />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin -mr-1 pr-1">
+                <WikiTree
+                  tree={tree}
+                  selectedId={docId}
+                  onSelect={handleSelectNode}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Center pane: editor */}
@@ -79,11 +117,26 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
 
         {/* Right pane: outline */}
         <div className="min-h-0 rounded-lg bg-muted/40 p-3 overflow-y-auto scrollbar-thin">
-          <WikiOutline
-            headings={headings}
-            onJump={handleJumpToHeading}
-            hasDoc={docId !== null}
-          />
+          {isOutlineCollapsed ? (
+            <button
+              type="button"
+              onClick={() => setIsOutlineCollapsed(false)}
+              className="w-full flex justify-center pt-1 text-muted-foreground hover:text-foreground transition-colors"
+              title="Expand outline"
+            >
+              <IconLayoutSidebarRightCollapse
+                size={16}
+                className="rotate-180"
+              />
+            </button>
+          ) : (
+            <WikiOutline
+              headings={headings}
+              onJump={handleJumpToHeading}
+              hasDoc={docId !== null}
+              onCollapse={() => setIsOutlineCollapsed(true)}
+            />
+          )}
         </div>
       </div>
     </PageContainer>
