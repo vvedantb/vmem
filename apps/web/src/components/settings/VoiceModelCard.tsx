@@ -11,7 +11,7 @@ import {
   IconWaveSine,
   IconMicrophone,
 } from "@tabler/icons-react";
-import { Button, Progress, Badge } from "@vmem/ui";
+import { Button, Progress } from "@vmem/ui";
 import type { VoiceModelInfo } from "@/lib/voice/voice-models";
 import type { VoiceModelLoadState } from "@/components/contexts/VoiceContext";
 
@@ -46,11 +46,6 @@ export default function VoiceModelCard({
             <h4 className="text-sm font-medium text-foreground">
               {model.name}
             </h4>
-            {isLoaded && (
-              <Badge variant="secondary" className="text-xs">
-                Loaded
-              </Badge>
-            )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {model.description}
@@ -72,13 +67,20 @@ export default function VoiceModelCard({
               Unload
             </Button>
           ) : (
-            <Button size="sm" onClick={onLoad} disabled={isLoading}>
+            <Button
+              size="sm"
+              onClick={onLoad}
+              disabled={isLoading}
+              className="group overflow-hidden transition-all duration-200"
+            >
               {isLoading ? (
-                <IconLoader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                <IconLoader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <IconDownload className="h-3.5 w-3.5 mr-1.5" />
+                <IconDownload className="h-3.5 w-3.5" />
               )}
-              {isLoading ? "Loading..." : "Load"}
+              <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-200 group-hover:max-w-24 group-hover:opacity-100 group-hover:ml-1.5">
+                {isLoading ? "Loading..." : "Load"}
+              </span>
             </Button>
           )}
         </div>

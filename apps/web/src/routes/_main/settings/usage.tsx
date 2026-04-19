@@ -6,7 +6,7 @@ import { ApiLogsTable } from "@/components/api-logs/ApiLogsTable";
 import { ApiLogsLoadingSkeleton } from "@/components/api-logs/ApiLogsLoadingSkeleton";
 import PageContainer from "@/components/PageContainer";
 
-export const Route = createFileRoute("/_main/usage")({
+export const Route = createFileRoute("/_main/settings/usage")({
   component: ApiLogsPage,
 });
 

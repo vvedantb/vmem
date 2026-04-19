@@ -10,6 +10,7 @@ import {
   TableBody,
   TableRow,
 } from "@vmem/ui";
+import { IconPlus } from "@tabler/icons-react";
 import { AnimatedKeyIcon } from "@/components/svg-animations";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
@@ -60,10 +61,12 @@ function ApiKeysPage() {
       centeredMaxWidth
       rightSection={
         <Button
+          variant="outline"
+          size="sm"
           onClick={() => setIsCreateModalOpen(true)}
-          className="bg-primary font-medium text-primary-foreground"
         >
-          Create New Key
+          <IconPlus size={16} />
+          New Key
         </Button>
       }
     >
@@ -80,10 +83,12 @@ function ApiKeysPage() {
             Create your first API key to start using vMemory programmatically.
           </p>
           <Button
+            variant="outline"
+            size="sm"
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-primary text-primary-foreground"
           >
-            Create New Key
+            <IconPlus size={16} />
+            New Key
           </Button>
         </div>
       ) : (
@@ -92,6 +97,9 @@ function ApiKeysPage() {
             <TableRow className="bg-muted/50">
               <TableHead className="font-medium text-muted-foreground">
                 NAME
+              </TableHead>
+              <TableHead className="hidden font-medium text-muted-foreground sm:table-cell">
+                STATUS
               </TableHead>
               <TableHead className="hidden font-medium text-muted-foreground md:table-cell">
                 KEY

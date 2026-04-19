@@ -15,7 +15,8 @@ function ExtensionSettingsPage() {
   if (settings === undefined) {
     return (
       <PageContainer title="Extension" centeredMaxWidth showTitle>
-        <div className="space-y-6 rounded-xl border border-border p-6">
+        <div className="space-y-6">
+          <Skeleton className="h-4 w-64" />
           <div className="flex items-center justify-between gap-3">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-6 w-10 rounded-full" />
@@ -31,7 +32,7 @@ function ExtensionSettingsPage() {
 
   return (
     <PageContainer title="Extension" centeredMaxWidth showTitle>
-      <div className="space-y-6 rounded-xl border border-border p-6">
+      <div className="space-y-6">
         <p className="text-sm text-muted-foreground">
           Browser extension settings. The same preferences apply when you change
           them in the extension popup.
