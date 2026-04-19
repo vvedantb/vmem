@@ -10,6 +10,7 @@ import {
   TableBody,
   TableRow,
 } from "@vmem/ui";
+import { IconPlus } from "@tabler/icons-react";
 import { AnimatedKeyIcon } from "@/components/svg-animations";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
@@ -63,7 +64,8 @@ function ApiKeysPage() {
           onClick={() => setIsCreateModalOpen(true)}
           className="bg-primary font-medium text-primary-foreground"
         >
-          Create New Key
+          <IconPlus size={16} className="mr-1.5" />
+          New Key
         </Button>
       }
     >
@@ -83,7 +85,8 @@ function ApiKeysPage() {
             onClick={() => setIsCreateModalOpen(true)}
             className="bg-primary text-primary-foreground"
           >
-            Create New Key
+            <IconPlus size={16} className="mr-1.5" />
+            New Key
           </Button>
         </div>
       ) : (
