@@ -71,12 +71,12 @@ function ApiKeysPage() {
       }
     >
       {apiKeyList.length === 0 ? (
-        <div className="rounded-xl border border-border py-16 text-center">
+        <div className="rounded-xl bg-muted/40 py-16 text-center">
           <AnimatedKeyIcon
             size={48}
             className="mx-auto mb-4 text-muted-foreground"
           />
-          <h3 className="mb-2 text-lg font-medium text-foreground">
+          <h3 className="mb-2 text-lg font-medium text-foreground text-balance">
             No API keys yet
           </h3>
           <p className="mb-6 text-muted-foreground">
@@ -92,7 +92,7 @@ function ApiKeysPage() {
           </Button>
         </div>
       ) : (
-        <Table className="rounded-xl border border-border">
+        <Table className="rounded-xl bg-muted/30 overflow-hidden">
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="font-medium text-muted-foreground">

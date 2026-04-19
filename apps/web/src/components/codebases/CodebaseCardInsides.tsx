@@ -97,7 +97,7 @@ export function CodebaseCardInsides({
       : 0;
 
   return (
-    <Card className="group border border-border bg-muted/50 shadow-none hover:border-border/80 hover:bg-muted/80 transition-colors cursor-pointer">
+    <Card className="group bg-muted/50 shadow-none hover:bg-muted/70 transition-colors cursor-pointer">
       <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-2.5 min-w-0">
@@ -107,7 +107,7 @@ export function CodebaseCardInsides({
                 alt={codebase.repoOwner}
                 width={20}
                 height={20}
-                className="rounded-full mt-0.5 shrink-0"
+                className="rounded-full mt-0.5 shrink-0 outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
               />
             )}
             <div className="min-w-0">
@@ -180,13 +180,13 @@ export function CodebaseCardInsides({
             {codebase.defaultBranch}
           </span>
           {codebase.totalFiles > 0 && (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 tabular-nums">
               <IconFile size={13} />
               {codebase.totalFiles.toLocaleString()} files
             </span>
           )}
           {codebase.totalEdges !== undefined && codebase.totalEdges > 0 && (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 tabular-nums">
               <IconArrowsJoin size={13} />
               {codebase.totalEdges.toLocaleString()} imports
             </span>

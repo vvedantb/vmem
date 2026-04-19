@@ -15,7 +15,7 @@ const InputGroup = React.forwardRef<
     ref={ref}
     data-input-group=""
     className={cn(
-      "flex h-10 flex-wrap rounded-xl border border-input bg-muted text-sm transition-all duration-200 ease-smooth",
+      "flex h-10 flex-wrap rounded-xl border border-input bg-muted text-sm transition-[border-color,box-shadow] duration-200 ease-smooth",
       "has-[textarea]:h-auto",
       "has-[:focus-visible]:border-ring/70 has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/30",
       error &&

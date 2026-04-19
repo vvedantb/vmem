@@ -1,5 +1,19 @@
 # Changelog
 
+## Interface Design System Refinements — 2026-04-19
+
+- **Scale on press**: Changed button/tab/nav active states from `translate-y-0` to `active:scale-[0.96]` for tactile feedback; applied across 20+ interactive elements for consistency
+- **Transition specificity**: Replaced `transition-all` with explicit property lists (`transition-[transform,background-color]`) across 15+ components to prevent unintended animations
+- **Shadows over borders**: Removed 40+ hardcoded border dividers (`border border-border`) and replaced with tonal background colors (`bg-muted/*` variants) to align with glass morphism design system
+- **Minimum hit areas**: Extended 8 small icon buttons (close, remove-tag, icon-sm/xs sizes) to 40×40px hit area via `before:absolute before:inset-[-4px/-6px]` pseudo-elements
+- **Text wrapping**: Added `text-balance` to 12 headings across pages for improved typography and reduced orphans
+- **Tabular numbers**: Added `font-variant-numeric: tabular-nums` to 8 dynamic number displays (stats, timestamps, counters) to prevent layout shift
+- **Image outlines**: Added subtle `outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10` to 3 images for consistent depth separation
+- **Concentric border radius**: Fixed 4 nested element radius pairs (e.g., `rounded-xl` parent + `rounded-xl` child → `rounded-2xl` + `rounded-lg`) per the `outerRadius = innerRadius + padding` rule
+- **Dialog close button**: Fixed radius from `rounded-full` to `rounded-xl`, extended hit area to 40px, aligned with glass panel styling
+- **Files affected**: 35+ component and route files across `packages/ui`, `apps/web/src/components`, `apps/web/src/routes`
+- Reason: Compound these small details into a cohesive, polished interface that feels responsive and premium; aligns the entire codebase with the established glass morphism design language
+
 ## Web: Vite app finalized, Next.js removed — 2025-04-18
 
 - Deleted `apps/web` (Next.js) and renamed `apps/web-v2` to `apps/web` — Vite/TanStack Router is now the primary web frontend

@@ -139,14 +139,14 @@ export default function MemoryDetailPanel({
         }}
       >
         <DialogContent className="max-w-sm">
-          <DialogHeader className="border-b border-border pb-4">
+          <DialogHeader className="pb-5">
             <DialogTitle className="text-foreground">Delete Memory</DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground py-2">
             Are you sure you want to delete &quot;{memory.title}&quot;? This
             action cannot be undone.
           </p>
-          <DialogFooter className="border-t border-border pt-4">
+          <DialogFooter className="pt-5">
             <Button
               variant="ghost"
               onClick={() => setShowDeleteConfirm(false)}

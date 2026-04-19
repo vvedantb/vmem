@@ -62,7 +62,7 @@ function LoadingSkeleton() {
   return (
     <div className="space-y-3">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="rounded-xl border border-border p-6">
+        <div key={i} className="rounded-xl bg-muted/50 p-6">
           <div className="flex items-start gap-4">
             <Skeleton className="h-10 w-10 rounded-xl" />
             <div className="flex-1 space-y-2">
@@ -82,7 +82,7 @@ function EmptyState() {
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
         <AnimatedBellIcon size={32} className="text-muted-foreground" muted />
       </div>
-      <h3 className="mb-1 text-lg font-medium text-foreground">
+      <h3 className="mb-1 text-lg font-medium text-foreground text-balance">
         No notifications
       </h3>
       <p className="text-sm text-muted-foreground">
@@ -128,10 +128,8 @@ function NotificationsPage() {
           {notifications.map((notification) => (
             <div
               key={notification._id}
-              className={`rounded-xl border p-3 transition-colors sm:p-6 ${
-                notification.read
-                  ? "border-border bg-muted/50"
-                  : "border-border/80 bg-accent"
+              className={`rounded-xl p-3 transition-colors sm:p-6 ${
+                notification.read ? "bg-muted/50" : "bg-accent"
               }`}
             >
               <div className="flex items-start gap-3 sm:gap-4">
@@ -153,7 +151,7 @@ function NotificationsPage() {
                     >
                       {notification.title}
                     </h3>
-                    <span className="flex-shrink-0 text-xs text-muted-foreground sm:text-sm">
+                    <span className="flex-shrink-0 text-xs text-muted-foreground sm:text-sm tabular-nums">
                       {formatTimestamp(notification.createdAt)}
                     </span>
                   </div>

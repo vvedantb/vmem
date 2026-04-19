@@ -103,10 +103,10 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
 
   return (
     <>
-      <Card className="border border-border bg-muted/50 shadow-none">
+      <Card className="bg-muted/50 shadow-none">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-lg bg-muted/60 flex items-center justify-center flex-shrink-0">
               <Icon size={24} stroke={1.5} className="text-foreground" />
             </div>
             <div className="flex-1 min-w-0">

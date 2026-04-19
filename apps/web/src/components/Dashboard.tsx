@@ -199,7 +199,7 @@ export default function Dashboard() {
                     <AnimatedCounter value={stat.value} duration={0.8} />
                   </p>
                 </div>
-                <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-background/60">
+                <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-background/60">
                   <stat.icon size={20} className="text-muted-foreground" />
                 </div>
               </div>
@@ -210,7 +210,7 @@ export default function Dashboard() {
 
       <Card className="border-0 bg-secondary/50">
         <CardContent className="p-4 sm:p-6">
-          <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground">
+          <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground text-balance">
             Memory Growth (Last 7 Days)
           </h3>
           <div className="relative" style={{ height: chartHeight + 40 }}>
@@ -299,7 +299,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-5 sm:gap-7 lg:grid-cols-2">
         <Card className="border-0 bg-secondary/50">
           <CardContent className="p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground">
+            <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground text-balance">
               Recent Activity
             </h3>
             {activity.length === 0 ? (
@@ -336,13 +336,13 @@ export default function Dashboard() {
 
         <Card className="border-0 bg-secondary/50">
           <CardContent className="p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground">
+            <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-foreground text-balance">
               Quick Actions
             </h3>
             <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
               {quickActions.map((action) => (
                 <Link to={action.href} key={action.label}>
-                  <div className="group cursor-pointer rounded-2xl bg-background/60 p-4 transition-[transform,background-color] duration-200 ease-smooth hover:-translate-y-0.5 hover:bg-background/80">
+                  <div className="group cursor-pointer rounded-2xl bg-background/60 p-4 transition-[transform,background-color] duration-200 ease-smooth hover:-translate-y-0.5 hover:bg-background/80 active:scale-[0.96]">
                     <div className="mb-2 flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary transition-colors group-hover:bg-secondary/80">
                         <action.icon

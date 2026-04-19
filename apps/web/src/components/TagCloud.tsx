@@ -75,7 +75,7 @@ export default function TagCloud({
   }
 
   return (
-    <div className="p-6 rounded-xl border border-border bg-muted/50">
+    <div className="p-6 rounded-xl bg-muted/50">
       <div className="flex flex-wrap items-center justify-center gap-4">
         {tagsWithSize.map((item) => (
           <Button
@@ -92,7 +92,7 @@ export default function TagCloud({
           </Button>
         ))}
       </div>
-      <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+      <div className="mt-6 pt-4 flex items-center justify-between text-xs text-muted-foreground">
         <span>
           {tags.length} {tags.length === 1 ? "tag" : "tags"} total
         </span>

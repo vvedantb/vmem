@@ -66,7 +66,7 @@ export function CodebaseCard({ codebase }: CodebaseCardProps) {
             e.preventDefault();
             e.stopPropagation();
           }}
-          className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-muted transition-all text-muted-foreground hover:text-foreground"
+          className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-muted transition-[opacity,background-color] text-muted-foreground hover:text-foreground"
         >
           <IconDots size={16} />
         </button>
