@@ -40,6 +40,8 @@ import GraphDetailPanel from "./_components/GraphDetailPanel";
 interface MemoryGraphProps {
   focusNodeId: string | null;
   onFocusChange: (id: string | null) => void;
+  profileId: string | null;
+  onProfileChange: (id: string | null) => void;
 }
 
 const EMPTY_SET = new Set<string>();
@@ -56,6 +58,8 @@ const DEFAULT_ACTIVE_KINDS: ReadonlySet<GraphNodeKind> = new Set<GraphNodeKind>(
 export default function MemoryGraph({
   focusNodeId,
   onFocusChange,
+  profileId,
+  onProfileChange,
 }: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
   const { theme } = useThemeContext();
@@ -71,7 +75,7 @@ export default function MemoryGraph({
     isLoading,
     isError,
     error,
-  } = useGraphData(focusNodeId);
+  } = useGraphData(focusNodeId, profileId);
 
   // UI state
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -313,6 +317,8 @@ export default function MemoryGraph({
         onToggle={() => setControlPanelOpen((p) => !p)}
         search={search}
         onSearchChange={setSearch}
+        profileId={profileId}
+        onProfileChange={onProfileChange}
         allKinds={allKinds}
         activeKinds={activeKinds}
         onToggleKind={handleToggleKind}
