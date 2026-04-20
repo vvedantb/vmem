@@ -6,12 +6,6 @@ import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@vmem/ui";
-import { ThemeProvider } from "@/components/contexts/ThemeContext";
-import { NotificationProvider } from "@/components/contexts/NotificationContext";
-import { MemoryProvider } from "@/components/contexts/MemoryContext";
-import { LocalLLMProvider } from "@/components/contexts/LocalLLMContext";
-import { PendingEnrichmentRunner } from "@/components/PendingEnrichmentRunner";
-import { VoiceProvider } from "@/components/contexts/VoiceContext";
 import { MotionProvider } from "@/components/providers/MotionProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { env } from "@/env";
@@ -26,6 +20,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
 
+// Root component only contains providers that don't require authentication.
+// Auth-dependent providers (ThemeProvider, MemoryProvider, etc.) are in _main/route.tsx
 function RootComponent() {
   return (
     <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
@@ -38,21 +34,10 @@ function RootComponent() {
         >
           <MotionProvider>
             <QueryProvider>
-              <ThemeProvider>
-                <TooltipProvider>
-                  <NotificationProvider>
-                    <LocalLLMProvider>
-                      <VoiceProvider>
-                        <MemoryProvider>
-                          <PendingEnrichmentRunner />
-                          <Outlet />
-                        </MemoryProvider>
-                      </VoiceProvider>
-                    </LocalLLMProvider>
-                  </NotificationProvider>
-                </TooltipProvider>
-                <Toaster position="top-center" />
-              </ThemeProvider>
+              <TooltipProvider>
+                <Outlet />
+              </TooltipProvider>
+              <Toaster position="top-center" />
             </QueryProvider>
           </MotionProvider>
         </NextThemesProvider>
