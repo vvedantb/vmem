@@ -277,9 +277,9 @@ export default function UnifiedFilterPanel({
         align="start"
         sideOffset={8}
       >
-        <Tabs defaultValue="profile" className="flex flex-1 min-h-0">
+        <Tabs defaultValue="profile" className="flex h-[320px]">
           {/* Left: Vertical tabs */}
-          <TabsList className="flex flex-col h-auto w-32 shrink-0 rounded-none border-r border-border bg-muted/30 p-1 gap-0.5">
+          <TabsList className="flex flex-col justify-start h-full w-32 shrink-0 rounded-none border-r border-border bg-muted/30 p-1 gap-0.5">
             {visibleTabs.includes("profile") && (
               <TabsTrigger
                 value="profile"
@@ -333,12 +333,12 @@ export default function UnifiedFilterPanel({
           </TabsList>
 
           {/* Right: Tab content */}
-          <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
             {/* Profile tab */}
             {visibleTabs.includes("profile") && (
               <TabsContent
                 value="profile"
-                className="flex-1 m-0 flex flex-col data-[state=inactive]:hidden"
+                className="flex-1 m-0 flex flex-col overflow-hidden data-[state=inactive]:hidden"
               >
                 <div className="p-2 border-b border-border">
                   <button
@@ -400,7 +400,7 @@ export default function UnifiedFilterPanel({
             {visibleTabs.includes("kind") && (
               <TabsContent
                 value="kind"
-                className="flex-1 m-0 flex flex-col data-[state=inactive]:hidden"
+                className="flex-1 m-0 flex flex-col overflow-hidden data-[state=inactive]:hidden"
               >
                 <div className="p-2 border-b border-border">
                   <button
@@ -450,7 +450,7 @@ export default function UnifiedFilterPanel({
             {visibleTabs.includes("tags") && (
               <TabsContent
                 value="tags"
-                className="flex-1 m-0 flex flex-col data-[state=inactive]:hidden"
+                className="flex-1 m-0 flex flex-col overflow-hidden data-[state=inactive]:hidden"
               >
                 <div className="p-2 border-b border-border">
                   <div className="flex items-center justify-between">
@@ -504,31 +504,33 @@ export default function UnifiedFilterPanel({
                     No tags yet
                   </div>
                 ) : (
-                  <Virtuoso
-                    data={sortedTags}
-                    computeItemKey={(_index, item) => item.tag}
-                    fixedItemHeight={36}
-                    itemContent={(_i, tagStat) => {
-                      const checked = selectedTags.some(
-                        (t) => t.toLowerCase() === tagStat.tag.toLowerCase(),
-                      );
-                      return (
-                        <label className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-border/40 last:border-0 hover:bg-muted/30">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() => toggleTag(tagStat.tag)}
-                          />
-                          <span className="flex-1 text-xs truncate">
-                            {tagStat.tag}
-                          </span>
-                          <span className="text-xs text-muted-foreground/50 tabular-nums">
-                            {tagStat.count}
-                          </span>
-                        </label>
-                      );
-                    }}
-                    style={{ height: 200 }}
-                  />
+                  <div className="flex-1 min-h-0">
+                    <Virtuoso
+                      data={sortedTags}
+                      computeItemKey={(_index, item) => item.tag}
+                      fixedItemHeight={36}
+                      itemContent={(_i, tagStat) => {
+                        const checked = selectedTags.some(
+                          (t) => t.toLowerCase() === tagStat.tag.toLowerCase(),
+                        );
+                        return (
+                          <label className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-border/40 last:border-0 hover:bg-muted/30">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleTag(tagStat.tag)}
+                            />
+                            <span className="flex-1 text-xs truncate">
+                              {tagStat.tag}
+                            </span>
+                            <span className="text-xs text-muted-foreground/50 tabular-nums">
+                              {tagStat.count}
+                            </span>
+                          </label>
+                        );
+                      }}
+                      style={{ height: "100%" }}
+                    />
+                  </div>
                 )}
               </TabsContent>
             )}
@@ -537,7 +539,7 @@ export default function UnifiedFilterPanel({
             {visibleTabs.includes("source") && (
               <TabsContent
                 value="source"
-                className="flex-1 m-0 flex flex-col data-[state=inactive]:hidden"
+                className="flex-1 m-0 flex flex-col overflow-hidden data-[state=inactive]:hidden"
               >
                 <div className="p-2 border-b border-border">
                   <button
@@ -561,26 +563,28 @@ export default function UnifiedFilterPanel({
                     No sources yet
                   </div>
                 ) : (
-                  <Virtuoso
-                    data={distinctSources}
-                    computeItemKey={(_index, item) => item}
-                    fixedItemHeight={36}
-                    itemContent={(_i, source) => {
-                      const checked = selectedSources.includes(source);
-                      return (
-                        <label className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-border/40 last:border-0 hover:bg-muted/30">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() => toggleSource(source)}
-                          />
-                          <span className="flex-1 text-xs truncate">
-                            {formatMemorySourceLabel(source)}
-                          </span>
-                        </label>
-                      );
-                    }}
-                    style={{ height: 200 }}
-                  />
+                  <div className="flex-1 min-h-0">
+                    <Virtuoso
+                      data={distinctSources}
+                      computeItemKey={(_index, item) => item}
+                      fixedItemHeight={36}
+                      itemContent={(_i, source) => {
+                        const checked = selectedSources.includes(source);
+                        return (
+                          <label className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-border/40 last:border-0 hover:bg-muted/30">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleSource(source)}
+                            />
+                            <span className="flex-1 text-xs truncate">
+                              {formatMemorySourceLabel(source)}
+                            </span>
+                          </label>
+                        );
+                      }}
+                      style={{ height: "100%" }}
+                    />
+                  </div>
                 )}
               </TabsContent>
             )}
@@ -589,7 +593,7 @@ export default function UnifiedFilterPanel({
             {visibleTabs.includes("type") && (
               <TabsContent
                 value="type"
-                className="flex-1 m-0 flex flex-col data-[state=inactive]:hidden"
+                className="flex-1 m-0 flex flex-col overflow-hidden data-[state=inactive]:hidden"
               >
                 <div className="p-2 border-b border-border">
                   <button
