@@ -63,7 +63,7 @@ export default function PageContainer({
           <div
             className={cn(
               "flex h-10 w-full items-center justify-between gap-4",
-              centeredMaxWidth && "max-w-3xl",
+              centeredMaxWidth && "max-w-5xl",
             )}
           >
             <div className="flex min-w-0 flex-shrink-0 items-center gap-4">
@@ -129,7 +129,7 @@ export default function PageContainer({
         <div
           className={cn(
             noScroll ? "flex-1 min-h-0" : "space-y-8 flex-1",
-            centeredMaxWidth && "max-w-3xl mx-auto w-full",
+            centeredMaxWidth && "max-w-5xl mx-auto w-full",
           )}
         >
           {children}
