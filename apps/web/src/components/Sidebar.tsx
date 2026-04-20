@@ -17,6 +17,8 @@ import {
 } from "@vmem/ui";
 import { useThemeContext } from "./contexts/ThemeContext";
 import { useUser } from "@clerk/clerk-react";
+import { useConvexAuth, useAction } from "convex/react";
+import { api } from "@vmem/backend";
 import { useNotifications } from "./contexts/NotificationContext";
 import {
   IconX,
@@ -25,7 +27,7 @@ import {
 } from "@tabler/icons-react";
 import { MorphingMenuIcon } from "./svg-animations";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
-import { SidebarFooter } from "./sidebar/SidebarFooter";
+import { SidebarFooter, type SidebarStats } from "./sidebar/SidebarFooter";
 import { usePageTitle } from "./contexts/PageTitleContext";
 
 type SidebarProps = {
@@ -47,6 +49,36 @@ export default function Sidebar({
   const { pageTitle } = usePageTitle();
 
   const isDark = theme === "dark";
+
+  // Lift stats fetching here so it persists across mobile menu open/close
+  const { isAuthenticated } = useConvexAuth();
+  const getStats = useAction(api.dashboardApi.getStats);
+  const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await getStats({});
+        const result = data as {
+          memoriesAddedToday: number;
+          totalMemories: number;
+        };
+        if (!cancelled) {
+          setStats({
+            addedToday: result.memoriesAddedToday,
+            total: result.totalMemories,
+          });
+        }
+      } catch {
+        // silently fail -- sidebar stats are non-critical
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -150,6 +182,7 @@ export default function Sidebar({
                 isDark={isDark}
                 toggleTheme={toggleTheme}
                 isAuthLoading={isAuthLoading}
+                stats={stats}
               />
             </motion.div>
           </DialogRawContent>
@@ -246,6 +279,7 @@ export default function Sidebar({
             isDark={isDark}
             toggleTheme={toggleTheme}
             isAuthLoading={isAuthLoading}
+            stats={stats}
           />
         </div>
       </motion.aside>
