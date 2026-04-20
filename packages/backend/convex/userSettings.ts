@@ -15,8 +15,8 @@ const defaults = {
   notifyMemoryConflicts: true,
   notifyNewMemories: false,
   notifyMemoriesExpiring: true,
-  // Active profile (null means use default)
-  activeProfileId: null,
+  // Source-specific default profiles
+  defaultProfiles: null,
 } as const;
 
 export const get = authQuery({
@@ -42,7 +42,7 @@ export const get = authQuery({
         notifyMemoryConflicts: defaults.notifyMemoryConflicts,
         notifyNewMemories: defaults.notifyNewMemories,
         notifyMemoriesExpiring: defaults.notifyMemoriesExpiring,
-        activeProfileId: defaults.activeProfileId,
+        defaultProfiles: defaults.defaultProfiles,
       };
     }
 
@@ -67,7 +67,7 @@ export const get = authQuery({
       notifyNewMemories: doc.notifyNewMemories ?? defaults.notifyNewMemories,
       notifyMemoriesExpiring:
         doc.notifyMemoriesExpiring ?? defaults.notifyMemoriesExpiring,
-      activeProfileId: doc.activeProfileId ?? defaults.activeProfileId,
+      defaultProfiles: doc.defaultProfiles ?? defaults.defaultProfiles,
     };
   },
 });
@@ -87,7 +87,6 @@ export const update = authMutation({
     notifyMemoryConflicts: v.optional(v.boolean()),
     notifyNewMemories: v.optional(v.boolean()),
     notifyMemoriesExpiring: v.optional(v.boolean()),
-    activeProfileId: v.optional(v.id("profiles")),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -119,19 +118,66 @@ export const update = authMutation({
       fields.notifyMemoriesExpiring = args.notifyMemoriesExpiring;
 
     if (existing) {
-      // Handle activeProfileId separately since it's an Id type
-      const patchFields = { ...fields };
-      if (args.activeProfileId !== undefined) {
-        (patchFields as Record<string, unknown>).activeProfileId =
-          args.activeProfileId;
-      }
-      await ctx.db.patch(existing._id, patchFields);
+      await ctx.db.patch(existing._id, fields);
       return existing._id;
     }
 
     return await ctx.db.insert("userSettings", {
       userId: ctx.userId,
       ...args,
+    });
+  },
+});
+
+// Get default profile for a specific source (web or extension)
+export const getDefaultProfile = authQuery({
+  args: {
+    source: v.union(v.literal("web"), v.literal("extension")),
+  },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+      .first();
+
+    if (!doc?.defaultProfiles) return null;
+
+    return doc.defaultProfiles[args.source] ?? null;
+  },
+});
+
+// Set default profile for a specific source
+export const setDefaultProfile = authMutation({
+  args: {
+    source: v.union(v.literal("web"), v.literal("extension")),
+    profileId: v.id("profiles"),
+  },
+  handler: async (ctx, args) => {
+    // Verify profile belongs to user
+    const profile = await ctx.db.get(args.profileId);
+    if (!profile || profile.userId !== ctx.userId) {
+      throw new Error("Profile not found");
+    }
+
+    const existing = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+      .first();
+
+    const currentDefaults = existing?.defaultProfiles ?? {};
+    const updatedDefaults = {
+      ...currentDefaults,
+      [args.source]: args.profileId,
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { defaultProfiles: updatedDefaults });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("userSettings", {
+      userId: ctx.userId,
+      defaultProfiles: updatedDefaults,
     });
   },
 });

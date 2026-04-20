@@ -42,6 +42,15 @@ export interface CreateMemoryParams {
   confidence: number;
   expiresAt?: string;
   url?: string;
+  profileId?: string;
+}
+
+export interface Profile {
+  _id: string;
+  name: string;
+  color: string;
+  icon: string;
+  isDefault: boolean;
 }
 
 export interface RetrieveParams {

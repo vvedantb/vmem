@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type MouseEventHandler } from "react";
+import { useEffect, useState } from "react";
 import {
   Separator,
   Button,
@@ -14,7 +14,6 @@ import { UserButton } from "@clerk/clerk-react";
 import { useConvexAuth, useAction, useQuery } from "convex/react";
 import { IconMoon, IconSun, IconChartBar } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import { ProfileSelector } from "./ProfileSelector";
 
 interface SidebarStats {
   addedToday: number;
@@ -137,7 +136,6 @@ export type SidebarFooterProps = {
   isDark: boolean;
   toggleTheme: () => void;
   isAuthLoading: boolean;
-  onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
 
 export function SidebarFooter({
@@ -147,17 +145,11 @@ export function SidebarFooter({
   isDark,
   toggleTheme,
   isAuthLoading,
-  onNavigate,
 }: SidebarFooterProps) {
   const isIconOnly = !isMobile && isCollapsed;
 
   return (
     <div className={cn("space-y-4 pt-3")}>
-      <ProfileSelector
-        isCollapsed={isCollapsed}
-        isMobile={isMobile}
-        onNavigate={onNavigate}
-      />
       <PendingEnrichmentBadge isIconOnly={isIconOnly} />
       <StatsCard isIconOnly={isIconOnly} />
       <Separator className="bg-border/45" />

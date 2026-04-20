@@ -12,6 +12,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   cn,
 } from "@vmem/ui";
 import {
@@ -32,6 +37,8 @@ import {
   IconCamera,
   IconDeviceGamepad,
   IconLoader2,
+  IconWorld,
+  IconBrandChrome,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
@@ -76,26 +83,17 @@ type Profile = Doc<"profiles">;
 
 function ProfileCard({
   profile,
-  isActive,
   onEdit,
   onDelete,
-  onSetActive,
 }: {
   profile: Profile;
-  isActive: boolean;
   onEdit: () => void;
   onDelete: () => void;
-  onSetActive: () => void;
 }) {
   const Icon = getProfileIcon(profile.icon);
 
   return (
-    <div
-      className={cn(
-        "relative rounded-xl p-4 transition-colors",
-        isActive ? "bg-accent/50 ring-1 ring-accent" : "bg-muted/40",
-      )}
-    >
+    <div className="relative rounded-xl p-4 bg-muted/40">
       <div className="flex items-start gap-3">
         <div
           className="flex h-10 w-10 items-center justify-center rounded-lg"
@@ -113,11 +111,6 @@ function ProfileCard({
                 Default
               </span>
             )}
-            {isActive && (
-              <span className="text-[10px] uppercase tracking-wider text-accent-foreground bg-accent px-1.5 py-0.5 rounded">
-                Active
-              </span>
-            )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             Created{" "}
@@ -130,11 +123,6 @@ function ProfileCard({
         </div>
       </div>
       <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
-        {!isActive && (
-          <Button variant="ghost" size="sm" onClick={onSetActive}>
-            Set Active
-          </Button>
-        )}
         <Button variant="ghost" size="icon-sm" onClick={onEdit}>
           <IconEdit className="h-4 w-4" />
         </Button>
@@ -389,19 +377,138 @@ function DeleteProfileDialog({
   );
 }
 
+function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
+  const settings = useQuery(api.userSettings.get);
+  const setDefaultProfile = useMutation(api.userSettings.setDefaultProfile);
+
+  const webDefaultId = settings?.defaultProfiles?.web ?? null;
+  const extensionDefaultId = settings?.defaultProfiles?.extension ?? null;
+
+  const defaultProfile = profiles.find((p) => p.isDefault);
+  const webDefault =
+    profiles.find((p) => p._id === webDefaultId) ?? defaultProfile;
+  const extensionDefault =
+    profiles.find((p) => p._id === extensionDefaultId) ?? defaultProfile;
+
+  const handleWebDefaultChange = (profileId: string) => {
+    void setDefaultProfile({
+      source: "web",
+      profileId: profileId as Id<"profiles">,
+    });
+  };
+
+  const handleExtensionDefaultChange = (profileId: string) => {
+    void setDefaultProfile({
+      source: "extension",
+      profileId: profileId as Id<"profiles">,
+    });
+  };
+
+  return (
+    <div className="rounded-xl bg-muted/40 p-4 space-y-4">
+      <div>
+        <h3 className="font-medium text-foreground">Default Profiles</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Choose which profile new memories are saved to by default
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <IconWorld className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-sm">Web App</Label>
+          </div>
+          <Select
+            value={webDefault?._id ?? ""}
+            onValueChange={handleWebDefaultChange}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue>
+                {webDefault && (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: webDefault.color }}
+                    />
+                    <span className="truncate">{webDefault.name}</span>
+                  </div>
+                )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {profiles.map((profile) => (
+                <SelectItem key={profile._id} value={profile._id}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: profile.color }}
+                    />
+                    <span>{profile.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <IconBrandChrome className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-sm">Browser Extension</Label>
+          </div>
+          <Select
+            value={extensionDefault?._id ?? ""}
+            onValueChange={handleExtensionDefaultChange}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue>
+                {extensionDefault && (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: extensionDefault.color }}
+                    />
+                    <span className="truncate">{extensionDefault.name}</span>
+                  </div>
+                )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {profiles.map((profile) => (
+                <SelectItem key={profile._id} value={profile._id}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: profile.color }}
+                    />
+                    <span>{profile.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <p className="text-xs text-muted-foreground pt-1">
+          MCP clients will ask which profile to save to
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ProfilesPage() {
   const profiles = useQuery(api.profiles.list);
-  const activeProfile = useQuery(api.profiles.getActive);
   const createProfile = useMutation(api.profiles.create);
   const updateProfile = useMutation(api.profiles.update);
   const removeProfileWithMemories = useAction(api.profiles.removeWithMemories);
-  const setActiveProfile = useMutation(api.profiles.setActive);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [deletingProfile, setDeletingProfile] = useState<Profile | null>(null);
 
-  if (profiles === undefined || activeProfile === undefined) {
+  if (profiles === undefined) {
     return (
       <PageContainer title="Profiles" centeredMaxWidth showTitle>
         <div className="space-y-4">
@@ -454,15 +561,15 @@ function ProfilesPage() {
           </Button>
         </div>
 
+        <DefaultProfilesSection profiles={profiles} />
+
         <div className="grid gap-4 sm:grid-cols-2">
           {profiles.map((profile) => (
             <ProfileCard
               key={profile._id}
               profile={profile}
-              isActive={profile._id === activeProfile?._id}
               onEdit={() => setEditingProfile(profile)}
               onDelete={() => setDeletingProfile(profile)}
-              onSetActive={() => setActiveProfile({ profileId: profile._id })}
             />
           ))}
         </div>

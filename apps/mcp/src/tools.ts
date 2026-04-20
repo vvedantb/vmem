@@ -10,6 +10,7 @@ import {
   listSkills,
   getSkill,
   whoami,
+  listProfiles,
 } from "./api-client.js";
 
 const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
@@ -52,6 +53,21 @@ export function registerTools(
       if (!result.ok) {
         return errorContent(
           `Whoami failed (${result.status}): ${result.message}`,
+        );
+      }
+      return textContent(result.text);
+    },
+  );
+
+  server.tool(
+    "list_profiles",
+    "List all profiles available to the user. Returns profile IDs, names, colors, and icons. Use a profile ID with memory_add to save to a specific profile. Ask the user which profile they want to use before saving.",
+    {},
+    async () => {
+      const result = await listProfiles(user.token);
+      if (!result.ok) {
+        return errorContent(
+          `List profiles failed (${result.status}): ${result.message}`,
         );
       }
       return textContent(result.text);

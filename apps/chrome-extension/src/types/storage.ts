@@ -5,6 +5,7 @@ export interface ExtensionStorage {
   lastHistorySync: number; // epoch ms, 0 = never synced
   autoSyncEnabled: boolean;
   localEnrichmentEnabled: boolean; // Use local LLM for tag generation
+  defaultProfileId: string; // Default profile for saving memories
 }
 
 export const STORAGE_DEFAULTS: ExtensionStorage = {
@@ -14,4 +15,5 @@ export const STORAGE_DEFAULTS: ExtensionStorage = {
   lastHistorySync: 0,
   autoSyncEnabled: true,
   localEnrichmentEnabled: true, // Default to local enrichment
+  defaultProfileId: "", // Empty = use user's default profile
 };
