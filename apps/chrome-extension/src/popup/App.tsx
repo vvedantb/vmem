@@ -91,7 +91,7 @@ function SignedOutContent() {
       </p>
       <div className="flex gap-3">
         <SignInButton mode="modal">
-          <Button variant="default">Sign in</Button>
+          <Button variant="outline">Sign in</Button>
         </SignInButton>
         <SignUpButton mode="modal">
           <Button variant="outline">Sign up</Button>
@@ -106,7 +106,7 @@ export function App() {
 
   return (
     <div className="glass-panel text-foreground min-h-[500px] flex flex-col">
-      <header className="flex items-center justify-between px-5 py-3.5 border-b border-border/30">
+      <header className="flex items-center justify-between px-5 py-3.5 bg-muted/20">
         <div className="flex items-center gap-2.5">
           <span className="text-lg font-serif tracking-tight">
             v<span className="italic">mem</span>

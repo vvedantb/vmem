@@ -1,5 +1,15 @@
 # Changelog
 
+## Chrome Extension: Design System Alignment (Flat UI, Button Variants, Icons) — 2026-04-20
+
+- **Flat content cards**: Changed page preview and pending update cards from `glass-panel-subtle` to `bg-muted/40` for flat tonal surfaces instead of glass morphism on content elements (glass UI reserved for layout)
+- **Button variant consistency**: Primary action buttons (Save to vmem, Sync Bookmarks, Sync History) now use `default` variant (primary color fill) to match web app settings pattern; secondary actions (Update, Dismiss) use `outline`/`ghost` variants
+- **Sign-in button alignment**: Changed Sign in button from `default` to `outline` variant to match web app settings button styling
+- **Header separator**: Replaced `border-b border-border/30` with `bg-muted/20` for tonal surface contrast instead of borders (aligns with design system rule: no borders for visual separation between layout regions)
+- **Action button icons**: Added `IconDeviceFloppy`, `IconBookmark`, `IconHistory` icons to main action buttons for visual consistency with web settings pages
+- **Files affected**: `apps/chrome-extension/src/popup/_components/QuickSave.tsx`, `apps/chrome-extension/src/popup/_components/ImportPanel.tsx`, `apps/chrome-extension/src/popup/App.tsx`
+- Reason: Chrome extension UI was inconsistent with web app design system (glass UI on content, button variants). Alignments ensure cohesive visual language across both apps (both use shared `@vmem/ui` component library)
+
 ## Chrome Extension: Interface design polish — 2026-04-20
 
 - **Scale on press consistency**: Normalized all active/press states to `scale(0.96)` (was 0.97, 0.985 in different components) for consistent tactile feedback across popup buttons, tabs, and injected content script buttons
