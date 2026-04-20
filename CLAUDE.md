@@ -45,6 +45,13 @@ Neo4j:
 
 - Never run parallel `session.run()` calls on the same session — use separate sessions for concurrent queries
 
+Profiles:
+
+- Profiles are for **organizing where memories get saved**, NOT for filtering views
+- All main views (dashboard stats, sidebar stats, activity feed, memories list) always show user-wide totals — never filter by profile
+- Profile selector popover can show per-profile breakdown (informational only)
+- Switching profiles only changes which profile new memories are saved to
+
 FOLLOW ALL OF THESE RULES
 
 UI Design System — Tonal Surface Hierarchy:

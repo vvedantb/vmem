@@ -1,3 +1,6 @@
+stats maybe show for each profile somehow? how do we show this?
+add filter for profile type in memory list/graph
+
 focus on knowledge graphs for enterprise, not on end users B2C like supermemory is going for. two types of areas, company knowledge graph for company memories, user knowledge graph.
 show to the user what is happening via the graph
 ie connected to linear to grab issue, updating issue, retried memory, memory updated

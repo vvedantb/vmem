@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { useConvexAuth } from "convex/react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
@@ -35,7 +35,7 @@ import {
   IconDeviceGamepad,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import { useState, type MouseEventHandler } from "react";
+import { useEffect, useMemo, useState, type MouseEventHandler } from "react";
 
 const ICON_MAP: Record<string, typeof IconUser> = {
   user: IconUser,
@@ -62,6 +62,10 @@ interface ProfileSelectorProps {
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }
 
+interface ProfileStatsMap {
+  [profileId: string]: { total: number; today: number };
+}
+
 export function ProfileSelector({
   isCollapsed,
   isMobile,
@@ -74,7 +78,33 @@ export function ProfileSelector({
     isAuthenticated ? {} : "skip",
   );
   const setActive = useMutation(api.profiles.setActive);
+  const getProfilesStats = useAction(api.dashboardApi.getProfilesStats);
   const [open, setOpen] = useState(false);
+  const [profileStats, setProfileStats] = useState<ProfileStatsMap>({});
+
+  // Fetch stats for all profiles when profiles are loaded
+  const profileIds = useMemo(
+    () => profiles?.map((p) => p._id) ?? [],
+    [profiles],
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated || profileIds.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const stats = await getProfilesStats({ profileIds });
+        if (!cancelled) {
+          setProfileStats(stats as ProfileStatsMap);
+        }
+      } catch {
+        // silently fail -- stats in popover are non-critical
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, profileIds.join(",")]);
 
   const isIconOnly = !isMobile && isCollapsed;
   const isLoading = profiles === undefined || activeProfile === undefined;
@@ -174,6 +204,7 @@ export function ProfileSelector({
                 {profiles?.map((profile) => {
                   const Icon = getProfileIcon(profile.icon);
                   const isActive = profile._id === activeProfile?._id;
+                  const stats = profileStats[profile._id];
                   return (
                     <button
                       key={profile._id}
@@ -194,6 +225,11 @@ export function ProfileSelector({
                       <span className="flex-1 truncate text-left">
                         {profile.name}
                       </span>
+                      {stats !== undefined && (
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          {stats.total}
+                        </span>
+                      )}
                       {isActive && (
                         <IconCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
                       )}
