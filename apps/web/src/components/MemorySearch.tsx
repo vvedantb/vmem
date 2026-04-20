@@ -8,11 +8,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Virtuoso } from "react-virtuoso";
 import { api } from "@vmem/backend";
 import MemoryDetailPanel from "./MemoryDetailPanel";
-import MemoryTagFilter from "./_components/MemoryTagFilter";
-import MemorySourceFilter from "./_components/MemorySourceFilter";
-import MemoryTypeFilter from "./_components/MemoryTypeFilter";
-import ListKindFilter from "./_components/ListKindFilter";
-import ProfileFilter from "./_components/ProfileFilter";
+import UnifiedFilterPanel from "./_components/UnifiedFilterPanel";
 import ListItemRow from "./_components/ListItemRow";
 import {
   formatMemorySourceLabel,
@@ -41,31 +37,6 @@ import { useTrailData } from "@/hooks/useTrailData";
 interface MemorySearchProps {
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
-}
-
-/**
- * Extracts memory items from a mixed list and re-materialises them as Memory
- * objects for the memory-scoped filter components (Source, Type, Tag), which
- * were written before the unified list-item model and still expect `Memory[]`.
- */
-function listItemsToMemories(items: readonly ListItem[]): Memory[] {
-  return items.flatMap((item): Memory[] => {
-    if (item.kind !== "memory") {
-      return [];
-    }
-    return [
-      {
-        id: item.id,
-        title: item.title,
-        content: item.content,
-        tags: item.tags,
-        createdAt: item.createdAt,
-        type: item.type,
-        source: item.source,
-        profileId: item.profileId,
-      },
-    ];
-  });
 }
 
 /**
@@ -186,20 +157,6 @@ export default function MemorySearch({
       listItemMatchesProfileFilter(item, params.profile),
     );
   }, [itemsAfterTypes, params.profile]);
-
-  // The memory-scoped filter popovers (Source, Type) show counts over the
-  // memory subset at each stage of the filter chain. The filter components
-  // were written before the unified item model and still expect `Memory[]`,
-  // so we re-materialise Memory objects from the appropriate stage.
-  const memoryObjectsForSourceFilter = useMemo(
-    () => listItemsToMemories(itemsAfterKindsAndTags),
-    [itemsAfterKindsAndTags],
-  );
-
-  const memoryObjectsForTypeFilter = useMemo(
-    () => listItemsToMemories(itemsAfterKindsTagsSources),
-    [itemsAfterKindsTagsSources],
-  );
 
   const normalizedQuery = searchQuery.trim();
   const searchResults = useMemo(() => {
@@ -325,33 +282,24 @@ export default function MemorySearch({
     <div className="relative flex h-full min-h-0 flex-col">
       <div className="flex flex-1 min-w-0 min-h-0 flex-col">
         {!isExternalSearch && (
-          <div className="flex gap-2 flex-shrink-0 pb-4 flex-wrap">
-            <ProfileFilter
+          <div className="flex gap-2 flex-shrink-0 pb-4">
+            <UnifiedFilterPanel
+              allMemories={allMemories}
+              allItems={allItems}
               selectedProfileId={params.profile}
               onProfileChange={(profile) => setParams({ profile })}
-              itemCount={allItems.length}
-            />
-            <ListKindFilter
-              baseItems={allItems}
               selectedKinds={params.kinds}
               onKindsChange={(kinds) => setParams({ kinds })}
-              isDark={isDark}
-            />
-            <MemoryTagFilter
-              memories={allMemories}
               selectedTags={params.tags}
               onTagsChange={(tags) => setParams({ tags })}
-            />
-            <MemorySourceFilter
-              sources={distinctSources}
-              baseMemories={memoryObjectsForSourceFilter}
+              distinctSources={distinctSources}
               selectedSources={params.sources}
               onSourcesChange={(sources) => setParams({ sources })}
-            />
-            <MemoryTypeFilter
-              baseMemories={memoryObjectsForTypeFilter}
               selectedTypes={params.types}
               onTypesChange={(types) => setParams({ types })}
+              filteredCount={displayItems.length}
+              totalCount={allItems.length}
+              isDark={isDark}
             />
             <div className="relative flex-1 min-w-[200px]">
               <div className="absolute left-3 top-1/2 -translate-y-1/2">

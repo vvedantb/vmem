@@ -1,5 +1,15 @@
 # Changelog
 
+## Unified Filter Panel for Memories List and Graph — 2026-04-20
+
+- **Consolidated 5 filter buttons into single "Filter" popover**: Replaced separate Profile, Kind, Tags, Source, and Type filter buttons with a single unified filter panel featuring vertical tabs for each category
+- **Vertical tab navigation with badges**: Each tab shows the category name with a badge indicating active filter count (e.g., "Tags (3)"); trigger button shows total active filter count
+- **Live filtering with instant updates**: Filters apply immediately as selections change (no Cancel/Save needed); footer shows "Showing X of Y items" count
+- **Clear all functionality**: Single "Clear all" button resets all filters; also appears on hover of the trigger button when filters are active
+- **Graph view integration**: GraphControlPanel now uses the same UnifiedFilterPanel with 3 tabs (Profile, Kind, Tags) instead of separate collapsible sections; adapter logic converts between Set-based and array-based state
+- **Deleted 7 filter components**: Removed ProfileFilter, ListKindFilter, MemoryTagFilter, MemorySourceFilter, MemoryTypeFilter, GraphKindFilter, GraphTagFilter — all logic consolidated into UnifiedFilterPanel
+- **Reason**: 5 separate filter buttons cluttered the UI and took up horizontal space; unified panel provides cleaner interface while maintaining full filter functionality with better discoverability
+
 ## Activity Page Scrollbar Consistency — 2026-04-20
 
 - **PageContainer scrollRef prop**: Added optional `scrollRef` callback prop to expose the scroll container (motion.div) for virtualized lists to use as custom scroll parent
