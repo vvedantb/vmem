@@ -237,6 +237,7 @@ function ActivityPage() {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [scrollParent, setScrollParent] = useState<HTMLDivElement | null>(null);
 
   const fetchActivity = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -293,7 +294,7 @@ function ActivityPage() {
     <PageContainer
       title="Activity"
       centeredMaxWidth
-      noScroll
+      scrollRef={setScrollParent}
       rightSection={
         <div className="flex items-center gap-2">
           <DateRangeDropdown
@@ -325,9 +326,12 @@ function ActivityPage() {
         </div>
       ) : filteredAndSortedActivity.length === 0 ? (
         <EmptyState hasFilters={hasFilters} />
+      ) : !scrollParent ? (
+        <LoadingSkeleton />
       ) : (
         <Virtuoso
           data={filteredAndSortedActivity}
+          customScrollParent={scrollParent}
           computeItemKey={(_index, item) => item.id}
           defaultItemHeight={72}
           itemContent={(_index, item) => {
