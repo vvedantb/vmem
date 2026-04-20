@@ -69,6 +69,7 @@ export const createMemory = authAction({
     expiresAt: v.optional(v.string()),
     url: v.optional(v.string()),
     queueForLocalEnrichment: v.optional(v.boolean()),
+    profileId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId: string | null = await ctx.runQuery(
@@ -80,6 +81,7 @@ export const createMemory = authAction({
       internal.neo4jActions.memories.createMemoryInternal,
       {
         clerkId,
+        profileId: args.profileId,
         title: args.title,
         content: args.content,
         type: args.type,

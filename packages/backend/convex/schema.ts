@@ -95,8 +95,13 @@ const schema = defineSchema({
     notifyMemoryConflicts: v.optional(v.boolean()),
     notifyNewMemories: v.optional(v.boolean()),
     notifyMemoriesExpiring: v.optional(v.boolean()),
-    // Active profile
-    activeProfileId: v.optional(v.id("profiles")),
+    // Source-specific default profiles (replaces activeProfileId)
+    defaultProfiles: v.optional(
+      v.object({
+        web: v.optional(v.id("profiles")),
+        extension: v.optional(v.id("profiles")),
+      }),
+    ),
   }).index("by_user", ["userId"]),
 
   profiles: defineTable(profileFields)

@@ -108,6 +108,7 @@ async function handleMessage(
           tags: [new URL(message.url).hostname],
           confidence: 1.0,
           url: message.url,
+          profileId: message.profileId,
         });
         if (result.status === "duplicate") {
           return {
@@ -153,6 +154,7 @@ async function handleMessage(
           tags: [hostname, "selection"],
           confidence: 1.0,
           url: message.pageUrl,
+          profileId: message.profileId,
         });
 
         if (result.status === "duplicate") {

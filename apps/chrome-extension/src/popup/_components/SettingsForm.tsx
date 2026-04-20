@@ -14,6 +14,7 @@ import {
   Label,
   Switch,
   Spinner,
+  Skeleton,
   Select,
   SelectTrigger,
   SelectValue,
@@ -23,6 +24,8 @@ import {
 import { getStorage, setStorage } from "@/lib/storage";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import type { BackgroundResponse, ProgressMessage } from "@/types/messages";
+import type { Profile } from "@/types/api";
+import { listProfiles, setDefaultProfile } from "@/background/api-client";
 
 type EnrichmentMethod = "chrome-ai" | "webllm" | null;
 type Theme = "light" | "dark" | "system";
@@ -45,11 +48,32 @@ export function SettingsForm() {
     progress: number;
     text: string;
   } | null>(null);
+  const [profiles, setProfiles] = useState<Profile[] | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
 
   useEffect(() => {
     getStorage().then((s) => {
       setLocalEnrichmentEnabled(s.localEnrichmentEnabled);
+      setSelectedProfileId(s.defaultProfileId);
     });
+
+    // Load profiles
+    void listProfiles()
+      .then((profileList) => {
+        setProfiles(profileList);
+        // If no profile selected, use the default one
+        getStorage().then((s) => {
+          if (!s.defaultProfileId) {
+            const defaultProfile = profileList.find((p) => p.isDefault);
+            if (defaultProfile) {
+              setSelectedProfileId(defaultProfile._id);
+            }
+          }
+        });
+      })
+      .catch(() => {
+        // Not authenticated yet
+      });
 
     // Get enrichment status
     chrome.runtime
@@ -94,6 +118,17 @@ export function SettingsForm() {
   function handleLocalEnrichmentToggle(checked: boolean) {
     setLocalEnrichmentEnabled(checked);
     setStorage({ localEnrichmentEnabled: checked });
+  }
+
+  async function handleProfileChange(profileId: string) {
+    setSelectedProfileId(profileId);
+    await setStorage({ defaultProfileId: profileId });
+    // Also sync to backend
+    try {
+      await setDefaultProfile(profileId);
+    } catch {
+      // Backend sync failed, but local storage is updated
+    }
   }
 
   const handleLoadModel = useCallback(async () => {
@@ -218,6 +253,39 @@ export function SettingsForm() {
             </SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <Label className="text-sm">Default Profile</Label>
+        {profiles === null ? (
+          <Skeleton className="h-9 w-[130px] rounded-md" />
+        ) : (
+          <Select
+            value={selectedProfileId}
+            onValueChange={handleProfileChange}
+            disabled={profiles.length === 0}
+          >
+            <SelectTrigger className="w-[130px] h-9">
+              <SelectValue>
+                {profiles.find((p) => p._id === selectedProfileId)?.name ??
+                  "Select..."}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {profiles.map((profile) => (
+                <SelectItem key={profile._id} value={profile._id}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: profile.color }}
+                    />
+                    <span>{profile.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-3">

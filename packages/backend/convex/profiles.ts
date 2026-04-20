@@ -171,14 +171,37 @@ export const remove = authMutation({
       }
     }
 
-    // If this was the active profile, clear it
+    // If this profile is a default for any source, clear it
     const settings = await ctx.db
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .first();
 
-    if (settings?.activeProfileId === args.profileId) {
-      await ctx.db.patch(settings._id, { activeProfileId: undefined });
+    if (settings?.defaultProfiles) {
+      const currentDefaults = settings.defaultProfiles;
+      const updatedDefaults: {
+        web?: Id<"profiles">;
+        extension?: Id<"profiles">;
+      } = {};
+
+      // Preserve web default if not the deleted profile
+      if (currentDefaults.web && currentDefaults.web !== args.profileId) {
+        updatedDefaults.web = currentDefaults.web;
+      }
+      // Preserve extension default if not the deleted profile
+      if (
+        currentDefaults.extension &&
+        currentDefaults.extension !== args.profileId
+      ) {
+        updatedDefaults.extension = currentDefaults.extension;
+      }
+
+      // Only update if something changed
+      const webChanged = currentDefaults.web === args.profileId;
+      const extensionChanged = currentDefaults.extension === args.profileId;
+      if (webChanged || extensionChanged) {
+        await ctx.db.patch(settings._id, { defaultProfiles: updatedDefaults });
+      }
     }
 
     // Delete the profile
@@ -253,14 +276,37 @@ export const removeInternalMutation = internalMutation({
       throw new Error("Cannot delete the default profile");
     }
 
-    // If this was the active profile, clear it
+    // If this profile is a default for any source, clear it
     const settings = await ctx.db
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", profile.userId))
       .first();
 
-    if (settings?.activeProfileId === args.profileId) {
-      await ctx.db.patch(settings._id, { activeProfileId: undefined });
+    if (settings?.defaultProfiles) {
+      const currentDefaults = settings.defaultProfiles;
+      const updatedDefaults: {
+        web?: Id<"profiles">;
+        extension?: Id<"profiles">;
+      } = {};
+
+      // Preserve web default if not the deleted profile
+      if (currentDefaults.web && currentDefaults.web !== args.profileId) {
+        updatedDefaults.web = currentDefaults.web;
+      }
+      // Preserve extension default if not the deleted profile
+      if (
+        currentDefaults.extension &&
+        currentDefaults.extension !== args.profileId
+      ) {
+        updatedDefaults.extension = currentDefaults.extension;
+      }
+
+      // Only update if something changed
+      const webChanged = currentDefaults.web === args.profileId;
+      const extensionChanged = currentDefaults.extension === args.profileId;
+      if (webChanged || extensionChanged) {
+        await ctx.db.patch(settings._id, { defaultProfiles: updatedDefaults });
+      }
     }
 
     await ctx.db.delete(args.profileId);
@@ -268,55 +314,21 @@ export const removeInternalMutation = internalMutation({
   },
 });
 
-/** Set the active profile */
-export const setActive = authMutation({
-  args: { profileId: v.id("profiles") },
-  handler: async (ctx, args) => {
-    // Validate profile belongs to user
-    const profile = await ctx.db.get(args.profileId);
-    if (!profile || profile.userId !== ctx.userId) {
-      throw new Error("Profile not found");
-    }
-
-    const settings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .first();
-
-    if (settings) {
-      await ctx.db.patch(settings._id, { activeProfileId: args.profileId });
-    } else {
-      await ctx.db.insert("userSettings", {
-        userId: ctx.userId,
-        activeProfileId: args.profileId,
-      });
-    }
-
-    return profile;
-  },
-});
-
-/** Get the active profile (or null if not set) */
+/**
+ * Get the user's default profile.
+ * @deprecated Use specific source defaults from userSettings instead
+ */
 export const getActive = authQuery({
   args: {},
   handler: async (ctx) => {
-    const settings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+    // Return the user's default profile
+    const defaultProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user_default", (q) =>
+        q.eq("userId", ctx.userId).eq("isDefault", true),
+      )
       .first();
-
-    if (!settings?.activeProfileId) {
-      // Return default profile if no active set
-      const defaultProfile = await ctx.db
-        .query("profiles")
-        .withIndex("by_user_default", (q) =>
-          q.eq("userId", ctx.userId).eq("isDefault", true),
-        )
-        .first();
-      return defaultProfile ?? null;
-    }
-
-    return await ctx.db.get(settings.activeProfileId);
+    return defaultProfile ?? null;
   },
 });
 
@@ -332,7 +344,10 @@ export const getByIdInternal = internalQuery({
   },
 });
 
-/** Get active profile by Clerk ID */
+/**
+ * Get default profile by Clerk ID
+ * @deprecated Use specific source defaults from userSettings instead
+ */
 export const getActiveByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -343,22 +358,13 @@ export const getActiveByClerkIdInternal = internalQuery({
 
     if (!user) return null;
 
-    const settings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+    // Return default profile
+    return await ctx.db
+      .query("profiles")
+      .withIndex("by_user_default", (q) =>
+        q.eq("userId", user._id).eq("isDefault", true),
+      )
       .first();
-
-    if (!settings?.activeProfileId) {
-      // Return default profile
-      return await ctx.db
-        .query("profiles")
-        .withIndex("by_user_default", (q) =>
-          q.eq("userId", user._id).eq("isDefault", true),
-        )
-        .first();
-    }
-
-    return await ctx.db.get(settings.activeProfileId);
   },
 });
 

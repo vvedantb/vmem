@@ -1,8 +1,19 @@
 import { useState, useEffect } from "react";
 import { IconDeviceFloppy } from "@tabler/icons-react";
-import { Button } from "@vmem/ui";
+import {
+  Button,
+  Label,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  Skeleton,
+} from "@vmem/ui";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { updateMemory } from "@/background/api-client";
+import type { Profile } from "@/types/api";
+import { updateMemory, listProfiles } from "@/background/api-client";
+import { getStorage } from "@/lib/storage";
 
 interface PageInfo {
   title: string;
@@ -43,6 +54,8 @@ export function QuickSave() {
     title: string;
     content: string;
   } | null>(null);
+  const [profiles, setProfiles] = useState<Profile[] | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
 
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -55,6 +68,26 @@ export function QuickSave() {
         });
       }
     });
+
+    // Load profiles and default profile
+    void (async () => {
+      try {
+        const [profileList, storage] = await Promise.all([
+          listProfiles(),
+          getStorage(),
+        ]);
+        setProfiles(profileList);
+
+        // Set selected profile: use stored default, or fall back to isDefault profile
+        const defaultId =
+          storage.defaultProfileId ||
+          profileList.find((p) => p.isDefault)?._id ||
+          "";
+        setSelectedProfileId(defaultId);
+      } catch {
+        // Not authenticated or other error
+      }
+    })();
   }, []);
 
   function handleSave() {
@@ -84,6 +117,7 @@ export function QuickSave() {
             url: tab.url ?? "",
             title: tab.title ?? "Untitled",
             content: pageContent,
+            profileId: selectedProfileId || undefined,
           };
 
           chrome.runtime.sendMessage(
@@ -135,6 +169,8 @@ export function QuickSave() {
     setPendingUpdate(null);
   }
 
+  const selectedProfile = profiles?.find((p) => p._id === selectedProfileId);
+
   return (
     <div className="space-y-4">
       {/* Page preview card */}
@@ -160,6 +196,50 @@ export function QuickSave() {
           <p className="text-xs text-muted-foreground">{formatTimestamp()}</p>
         </div>
       )}
+
+      {/* Profile selector */}
+      {profiles === null ? (
+        <div className="flex items-center gap-2">
+          <Label className="text-sm text-muted-foreground">Save to</Label>
+          <Skeleton className="h-9 w-[120px] rounded-md" />
+        </div>
+      ) : profiles.length > 0 ? (
+        <div className="flex items-center gap-2">
+          <Label className="text-sm text-muted-foreground">Save to</Label>
+          <Select
+            value={selectedProfileId}
+            onValueChange={setSelectedProfileId}
+            disabled={saving}
+          >
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue>
+                {selectedProfile && (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: selectedProfile.color }}
+                    />
+                    <span className="truncate">{selectedProfile.name}</span>
+                  </div>
+                )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {profiles.map((profile) => (
+                <SelectItem key={profile._id} value={profile._id}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: profile.color }}
+                    />
+                    <span>{profile.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
 
       <Button
         className="w-full"
