@@ -38,10 +38,10 @@ export function createVmemButton(
       "0 1px 2px rgba(16,24,40,0.06), 0 10px 28px rgba(16,24,40,0.06)";
   });
   button.addEventListener("mousedown", () => {
-    button.style.transform = "translateY(0)";
+    button.style.transform = "translateY(0) scale(0.96)";
   });
   button.addEventListener("mouseup", () => {
-    button.style.transform = "translateY(-2px)";
+    button.style.transform = "translateY(-2px) scale(1)";
   });
   button.addEventListener("click", (e) => {
     e.preventDefault();

@@ -217,7 +217,7 @@ export function ImportPanel() {
         <div className="space-y-2">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Progress</span>
-            <span>
+            <span className="tabular-nums">
               {progress.current} / {progress.total}
             </span>
           </div>

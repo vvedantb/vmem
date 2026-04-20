@@ -7,6 +7,7 @@ import {
   useAuth,
 } from "@clerk/chrome-extension";
 import { useMutation } from "convex/react";
+import { motion } from "motion/react";
 import {
   IconDeviceFloppy,
   IconDownload,
@@ -19,6 +20,7 @@ import {
   TabsContent,
   Button,
   Spinner,
+  fadeUp,
 } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import { SettingsForm } from "./_components/SettingsForm";
@@ -62,13 +64,19 @@ function SignedInContent() {
         </TabsList>
 
         <TabsContent value="save" className="flex-1 p-5">
-          <QuickSave />
+          <motion.div variants={fadeUp} initial="hidden" animate="show">
+            <QuickSave />
+          </motion.div>
         </TabsContent>
         <TabsContent value="import" className="flex-1 p-5">
-          <ImportPanel />
+          <motion.div variants={fadeUp} initial="hidden" animate="show">
+            <ImportPanel />
+          </motion.div>
         </TabsContent>
         <TabsContent value="settings" className="flex-1 p-5">
-          <SettingsForm />
+          <motion.div variants={fadeUp} initial="hidden" animate="show">
+            <SettingsForm />
+          </motion.div>
         </TabsContent>
       </Tabs>
     </ExtensionUserSettingsProvider>
@@ -78,7 +86,7 @@ function SignedInContent() {
 function SignedOutContent() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
-      <p className="text-sm text-muted-foreground text-center">
+      <p className="text-sm text-muted-foreground text-center text-pretty">
         Sign in to start saving memories
       </p>
       <div className="flex gap-3">

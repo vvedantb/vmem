@@ -112,7 +112,7 @@ select,
 }
 
 .glass-interactive:active {
-  transform: scale(0.985);
+  transform: scale(0.96);
 }
 
 .glass-tab-trigger[data-state="active"] {

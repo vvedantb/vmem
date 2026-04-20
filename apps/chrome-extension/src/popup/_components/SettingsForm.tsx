@@ -125,7 +125,7 @@ export function SettingsForm() {
         return (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Spinner className="size-3" />
-            {loadProgress.progress}%
+            <span className="tabular-nums">{loadProgress.progress}%</span>
           </span>
         );
       }
@@ -134,7 +134,7 @@ export function SettingsForm() {
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 px-2 text-xs gap-1"
+          className="h-6 px-2 text-xs gap-1 relative before:absolute before:inset-[-7px] before:content-['']"
           onClick={handleLoadModel}
           disabled={isLoadingModel}
         >
