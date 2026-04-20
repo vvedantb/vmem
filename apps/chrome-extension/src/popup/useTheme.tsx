@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
+import { useMediaQuery, useSessionStorage } from "usehooks-ts";
 import { useExtensionUserSettings } from "./useExtensionUserSettings";
 
 type Theme = "light" | "dark" | "system";
@@ -6,19 +7,8 @@ type ResolvedTheme = "light" | "dark";
 
 const CACHE_KEY = "vmem-resolved-theme";
 
-function getSystemTheme(): ResolvedTheme {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-}
-
 function applyTheme(resolved: ResolvedTheme) {
   document.documentElement.classList.toggle("dark", resolved === "dark");
-  try {
-    sessionStorage.setItem(CACHE_KEY, resolved);
-  } catch {
-    // sessionStorage may be unavailable
-  }
 }
 
 /**
@@ -27,41 +17,21 @@ function applyTheme(resolved: ResolvedTheme) {
  */
 export function useTheme() {
   const { settings, update } = useExtensionUserSettings();
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
-    // Initialize from cache or system preference
-    try {
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached === "light" || cached === "dark") return cached;
-    } catch {
-      // sessionStorage may be unavailable
-    }
-    return getSystemTheme();
-  });
+  const prefersDark = useMediaQuery("(prefers-color-scheme: dark)");
+  const [, setCachedTheme] = useSessionStorage<ResolvedTheme>(
+    CACHE_KEY,
+    "dark",
+  );
 
   const theme: Theme = settings?.theme ?? "system";
+  const resolvedTheme: ResolvedTheme =
+    theme === "system" ? (prefersDark ? "dark" : "light") : theme;
 
-  // Resolve theme and listen for system changes
+  // Apply theme and cache when it changes
   useEffect(() => {
-    if (theme === "system") {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-      const handleChange = (e: MediaQueryListEvent) => {
-        const newResolved = e.matches ? "dark" : "light";
-        setResolvedTheme(newResolved);
-        applyTheme(newResolved);
-      };
-
-      const initial = mediaQuery.matches ? "dark" : "light";
-      setResolvedTheme(initial);
-      applyTheme(initial);
-
-      mediaQuery.addEventListener("change", handleChange);
-      return () => mediaQuery.removeEventListener("change", handleChange);
-    } else {
-      setResolvedTheme(theme);
-      applyTheme(theme);
-    }
-  }, [theme]);
+    applyTheme(resolvedTheme);
+    setCachedTheme(resolvedTheme);
+  }, [resolvedTheme, setCachedTheme]);
 
   const setTheme = useCallback(
     (newTheme: Theme) => {
@@ -82,32 +52,19 @@ export function useTheme() {
  * Does not require ExtensionUserSettingsProvider.
  */
 export function useSystemTheme() {
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
-    try {
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached === "light" || cached === "dark") return cached;
-    } catch {
-      // sessionStorage may be unavailable
-    }
-    return getSystemTheme();
-  });
+  const prefersDark = useMediaQuery("(prefers-color-scheme: dark)");
+  const [, setCachedTheme] = useSessionStorage<ResolvedTheme>(
+    CACHE_KEY,
+    "dark",
+  );
 
+  const resolvedTheme: ResolvedTheme = prefersDark ? "dark" : "light";
+
+  // Apply theme and cache when it changes
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      const newResolved = e.matches ? "dark" : "light";
-      setResolvedTheme(newResolved);
-      applyTheme(newResolved);
-    };
-
-    const initial = mediaQuery.matches ? "dark" : "light";
-    setResolvedTheme(initial);
-    applyTheme(initial);
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
+    applyTheme(resolvedTheme);
+    setCachedTheme(resolvedTheme);
+  }, [resolvedTheme, setCachedTheme]);
 
   return { resolvedTheme };
 }

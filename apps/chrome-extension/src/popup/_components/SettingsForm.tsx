@@ -7,6 +7,7 @@ import {
   IconSun,
   IconMoon,
   IconDeviceDesktop,
+  IconLogout,
 } from "@tabler/icons-react";
 import {
   Button,
@@ -271,6 +272,7 @@ export function SettingsForm() {
         className="w-full text-destructive hover:text-destructive"
         onClick={() => signOut()}
       >
+        <IconLogout size={16} stroke={1.8} />
         Sign Out
       </Button>
     </div>

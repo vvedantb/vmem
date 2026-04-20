@@ -161,6 +161,8 @@ select,
   isolation: isolate;
   border: 1px solid var(--glass-border-50);
   background: var(--glass-bg-82);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   box-shadow:
     0 2px 6px var(--glass-shadow-08),
     0 12px 32px -4px var(--glass-shadow-12),
@@ -172,6 +174,8 @@ select,
   isolation: isolate;
   border: 1px solid var(--glass-border-62);
   background: var(--glass-bg-88);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   box-shadow:
     0 2px 6px var(--glass-shadow-08),
     0 12px 32px -4px var(--glass-shadow-12),
@@ -183,6 +187,8 @@ select,
   isolation: isolate;
   border: 1px solid var(--glass-border-38);
   background: var(--glass-bg-65);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   box-shadow:
     0 1px 2px var(--glass-shadow-04),
     0 4px 12px -2px var(--glass-shadow-07),
