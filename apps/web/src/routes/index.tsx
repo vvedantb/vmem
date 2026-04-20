@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { Button } from "@vmem/ui";
 import { env } from "@/env";
@@ -15,7 +15,6 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
-  const navigate = useNavigate();
   const hasAgent = new URLSearchParams(window.location.search).has("agent");
 
   if (hasAgent) {
@@ -74,7 +73,7 @@ function LandingPage() {
               size="lg"
               variant="ghost"
               onClick={() => {
-                navigate({ to: "/", search: { agent: true } });
+                window.location.href = "/api/auth/agent-login";
               }}
             >
               Sign in anonymously
