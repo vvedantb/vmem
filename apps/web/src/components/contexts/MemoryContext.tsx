@@ -54,6 +54,7 @@ interface ApiMemory {
   createdAt: string;
   updatedAt: string;
   expiresAt: string | null;
+  profileId?: string;
 }
 
 function isMemoryType(value: string): value is Memory["type"] {
@@ -69,6 +70,7 @@ function apiToMemory(m: ApiMemory): Memory {
     source: m.source,
     tags: m.tags,
     createdAt: m.createdAt,
+    profileId: m.profileId,
   };
 }
 

@@ -52,12 +52,13 @@ export const getGraphDataInternal = internalAction({
   args: {
     clerkId: v.string(),
     focus: v.optional(v.string()),
+    profileId: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
     const service = new MemoryService(getDriver());
     const raw = args.focus
-      ? await service.getLocalGraph(args.clerkId, args.focus)
-      : await service.getGraphData(args.clerkId);
+      ? await service.getLocalGraph(args.clerkId, args.focus, args.profileId)
+      : await service.getGraphData(args.clerkId, args.profileId);
     return capGraph(raw);
   },
 });
@@ -66,9 +67,12 @@ export const getLocalGraphInternal = internalAction({
   args: {
     clerkId: v.string(),
     focusId: v.string(),
+    profileId: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
     const service = new MemoryService(getDriver());
-    return capGraph(await service.getLocalGraph(args.clerkId, args.focusId));
+    return capGraph(
+      await service.getLocalGraph(args.clerkId, args.focusId, args.profileId),
+    );
   },
 });
