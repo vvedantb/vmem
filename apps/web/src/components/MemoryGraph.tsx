@@ -1,166 +1,65 @@
 "use client";
 
+/**
+ * Pure graph canvas — renders the force-directed graph and the overlays that
+ * are inherently canvas-local (zoom nav, focus-mode back button, hover tooltip,
+ * node detail panel).
+ *
+ * All filter/search/display state lives in `useMemoryGraphController` and is
+ * passed in via the `controller` prop. Chrome (filters, options, search,
+ * legend, add-memory) lives in the page header via `GraphHeaderControls`.
+ *
+ * Canvas-local state intentionally kept here:
+ *   - selectedNodeId / hoveredNode: driven by canvas pointer events
+ *   - linkMemories action: fired directly by the canvas link gesture
+ *   - deleteMemory: fired by the detail panel
+ */
+
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
-import { useQueryStates } from "nuqs";
-import {
-  IconMoodEmpty,
-  IconLoader2,
-  IconPlus,
-  IconArrowBack,
-} from "@tabler/icons-react";
+import { IconMoodEmpty, IconLoader2, IconArrowBack } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
-import AddMemoryModal from "@/components/AddMemoryModal";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
-import { useThemeContext } from "@/components/contexts/ThemeContext";
-import { useGraphData } from "@/hooks/useGraphData";
 import { api } from "@vmem/backend";
-import {
-  getGraphSettings,
-  setGraphSettings,
-  getGraphViewMode,
-  setGraphViewMode,
-} from "@/lib/graph-cookies";
-import type { MemoryType } from "@/lib/memories";
-import { memoriesSearchParams } from "@/routes/_main/memories/-searchParams";
-import type { HoveredNodeInfo, GraphSettings } from "./_components/graph-types";
-import type { ViewMode } from "./_components/graph-view-themes";
-import { getViewTheme } from "./_components/graph-view-themes";
-import type { GraphNodeKind } from "./_components/canvas/types";
-import {
-  buildGraphData,
-  getAllTags,
-  getAllKinds,
-  getAllSources,
-  getAllTypes,
-  getRelatedNodes,
-} from "./_components/graph-data";
+import type { HoveredNodeInfo } from "./_components/graph-types";
+import { getRelatedNodes } from "./_components/graph-data";
 import GraphCanvas from "./_components/GraphCanvas";
 import type { GraphCanvasHandle } from "./_components/GraphCanvas";
-import GraphControlPanel from "./_components/GraphControlPanel";
 import GraphNavControls from "./_components/GraphNavControls";
 import GraphNodeTooltip from "./_components/GraphNodeTooltip";
 import GraphDetailPanel from "./_components/GraphDetailPanel";
+import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 
 interface MemoryGraphProps {
+  controller: MemoryGraphController;
   focusNodeId: string | null;
   onFocusChange: (id: string | null) => void;
 }
 
-const EMPTY_SET = new Set<string>();
-
-/**
- * Default kind filter shows every known kind. We seed the set with all four
- * (rather than only present kinds) so a user's first wiki doc, folder, or
- * skill appears automatically without them having to re-enable the filter.
- */
-const DEFAULT_ACTIVE_KINDS: ReadonlySet<GraphNodeKind> = new Set<GraphNodeKind>(
-  ["memory", "wiki-document", "wiki-folder", "skill"],
-);
-
 export default function MemoryGraph({
+  controller,
   focusNodeId,
   onFocusChange,
 }: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
-  const { theme } = useThemeContext();
   const linkMemories = useAction(api.relationshipApi.linkMemories);
   const canvasRef = useRef<GraphCanvasHandle>(null);
 
-  // URL-backed filter state — shared with the list view via nuqs so filters
-  // persist when switching view modes or across sessions.
-  const [params, setParams] = useQueryStates(memoriesSearchParams);
+  // Canvas-local state (purely driven by pointer events on the canvas).
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
 
-  // Data
   const {
     apiNodes,
-    apiTagEdges,
-    allRelatesToEdges,
-    apiWikiParentEdges,
+    graphNodes,
+    graphEdges,
+    graphSettings,
+    viewTheme,
+    searchMatchSet,
     isLoading,
     isError,
     error,
-  } = useGraphData(focusNodeId, params.profile);
-
-  // UI state
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
-  const [graphSettings, setGraphSettingsState] =
-    useState<GraphSettings>(getGraphSettings);
-  const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
-  const [controlPanelOpen, setControlPanelOpen] = useState(true);
-  const [search, setSearch] = useState("");
-
-  // Adapt nuqs arrays ↔ Sets once; buildGraphData / handlers downstream still
-  // want Set semantics. An empty `kinds` param means "all kinds" so a fresh
-  // URL shows everything.
-  const activeTags = useMemo(() => new Set(params.tags), [params.tags]);
-  const activeKinds = useMemo<Set<GraphNodeKind>>(
-    () =>
-      params.kinds.length > 0
-        ? new Set(params.kinds)
-        : new Set(DEFAULT_ACTIVE_KINDS),
-    [params.kinds],
-  );
-  const activeSources = useMemo(
-    () => new Set(params.sources),
-    [params.sources],
-  );
-  const activeTypes = useMemo<Set<MemoryType>>(
-    () => new Set(params.types),
-    [params.types],
-  );
-
-  // Derived
-  const isDark = theme === "dark";
-  const viewTheme = useMemo(
-    () => getViewTheme(viewMode, isDark),
-    [viewMode, isDark],
-  );
-
-  const allTags = useMemo(() => getAllTags(apiNodes), [apiNodes]);
-  const allKinds = useMemo(() => getAllKinds(apiNodes), [apiNodes]);
-  const allSources = useMemo(() => getAllSources(apiNodes), [apiNodes]);
-  const allTypes = useMemo(() => getAllTypes(apiNodes), [apiNodes]);
-
-  const { graphNodes, graphEdges } = useMemo(
-    () =>
-      buildGraphData(
-        apiNodes,
-        apiTagEdges,
-        allRelatesToEdges,
-        apiWikiParentEdges,
-        activeTags,
-        activeKinds,
-        activeSources,
-        activeTypes,
-      ),
-    [
-      apiNodes,
-      apiTagEdges,
-      allRelatesToEdges,
-      apiWikiParentEdges,
-      activeTags,
-      activeKinds,
-      activeSources,
-      activeTypes,
-    ],
-  );
-
-  const searchMatchSet = useMemo(() => {
-    if (search.trim().length === 0) return EMPTY_SET;
-    const q = search.trim().toLowerCase();
-    const matches = new Set<string>();
-    for (const node of graphNodes) {
-      if (
-        node.title.toLowerCase().includes(q) ||
-        node.tags.some((t) => t.toLowerCase().includes(q))
-      ) {
-        matches.add(node.id);
-      }
-    }
-    return matches;
-  }, [search, graphNodes]);
+  } = controller;
 
   const selectedNodeData = useMemo(() => {
     if (!selectedNodeId) return null;
@@ -180,17 +79,7 @@ export default function MemoryGraph({
     return getRelatedNodes(selectedNodeId, graphEdges, graphNodes);
   }, [selectedNodeId, graphEdges, graphNodes]);
 
-  // Handlers
-  const handleSettingsChange = useCallback((next: GraphSettings) => {
-    setGraphSettingsState(next);
-    setGraphSettings(next);
-  }, []);
-
-  const handleViewModeChange = useCallback((mode: ViewMode) => {
-    setViewModeState(mode);
-    setGraphViewMode(mode);
-  }, []);
-
+  // Canvas handlers
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
   }, []);
@@ -229,63 +118,6 @@ export default function MemoryGraph({
       });
     },
     [linkMemories],
-  );
-
-  const handleToggleTag = useCallback(
-    (tag: string) => {
-      const next = params.tags.includes(tag)
-        ? params.tags.filter((t) => t !== tag)
-        : [...params.tags, tag];
-      void setParams({ tags: next });
-    },
-    [params.tags, setParams],
-  );
-
-  // Kind filter stays aligned with list-view semantics: an empty `kinds` array
-  // in the URL means "all kinds visible" (handled at read time via the
-  // activeKinds memo). Toggling off every kind results in an empty array,
-  // which then widens back to "show all" — matches how nuqs filters work
-  // everywhere else in the app.
-  const handleToggleKind = useCallback(
-    (kind: GraphNodeKind) => {
-      // If url is empty (all-visible), toggling one off means "show all except this one".
-      const current =
-        params.kinds.length > 0
-          ? params.kinds
-          : Array.from(DEFAULT_ACTIVE_KINDS);
-      const next = current.includes(kind)
-        ? current.filter((k) => k !== kind)
-        : [...current, kind];
-      void setParams({ kinds: next });
-    },
-    [params.kinds, setParams],
-  );
-
-  const handleToggleSource = useCallback(
-    (source: string) => {
-      const next = params.sources.includes(source)
-        ? params.sources.filter((s) => s !== source)
-        : [...params.sources, source];
-      void setParams({ sources: next });
-    },
-    [params.sources, setParams],
-  );
-
-  const handleToggleType = useCallback(
-    (type: MemoryType) => {
-      const next = params.types.includes(type)
-        ? params.types.filter((t) => t !== type)
-        : [...params.types, type];
-      void setParams({ types: next });
-    },
-    [params.types, setParams],
-  );
-
-  const handleProfileChange = useCallback(
-    (profile: string | null) => {
-      void setParams({ profile });
-    },
-    [setParams],
   );
 
   // Loading / error / empty states
@@ -346,37 +178,6 @@ export default function MemoryGraph({
         onFocusNode={handleFocusNode}
       />
 
-      {/* Left control panel */}
-      <GraphControlPanel
-        open={controlPanelOpen}
-        onToggle={() => setControlPanelOpen((p) => !p)}
-        search={search}
-        onSearchChange={setSearch}
-        profileId={params.profile}
-        onProfileChange={handleProfileChange}
-        allKinds={allKinds}
-        activeKinds={activeKinds}
-        onToggleKind={handleToggleKind}
-        allTags={allTags}
-        activeTags={activeTags}
-        onToggleTag={handleToggleTag}
-        allSources={allSources}
-        activeSources={activeSources}
-        onToggleSource={handleToggleSource}
-        allTypes={allTypes}
-        activeTypes={activeTypes}
-        onToggleType={handleToggleType}
-        viewMode={viewMode}
-        onViewModeChange={handleViewModeChange}
-        settings={graphSettings}
-        onSettingsChange={handleSettingsChange}
-        totalNodeCount={apiNodes.length}
-        visibleNodeCount={graphNodes.length}
-        edgeCount={graphEdges.length}
-        isDark={isDark}
-        isDarkCanvas={viewTheme.isDarkCanvas}
-      />
-
       {/* Nav controls (zoom) */}
       <GraphNavControls
         onZoomIn={() => canvasRef.current?.zoomIn()}
@@ -387,7 +188,7 @@ export default function MemoryGraph({
 
       {/* Back button for focus mode */}
       {focusNodeId && (
-        <div className="absolute top-2 left-14 z-10">
+        <div className="absolute top-2 left-2 z-10">
           <Button
             variant="outline"
             size="sm"
@@ -399,21 +200,6 @@ export default function MemoryGraph({
           </Button>
         </div>
       )}
-
-      {/* Add memory */}
-      <div className="absolute top-2 right-2 z-10">
-        <AddMemoryModal
-          trigger={
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 bg-background/80 backdrop-blur-sm"
-            >
-              <IconPlus size={16} />
-            </Button>
-          }
-        />
-      </div>
 
       {/* Tooltip near node */}
       {hoveredNode && !selectedNodeId && (
