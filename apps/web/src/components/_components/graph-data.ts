@@ -2,6 +2,8 @@
  * Pure graph-data transformation functions.
  * No React, no side effects — just data in → data out.
  */
+import type { MemoryType } from "@/lib/memories";
+import { MEMORY_TYPES } from "@/lib/memories";
 import type {
   GraphNode,
   GraphEdge,
@@ -11,6 +13,11 @@ import type {
 
 // ---- API response shapes (mirrors Zod schemas in useGraphData) ----
 
+/**
+ * `source` and `type` are only populated on memory nodes — wiki/skill nodes
+ * leave them undefined, and the Source/Type filters treat those as
+ * passthrough so narrowing memories never hides non-memory items.
+ */
 export interface ApiGraphNode {
   id: string;
   title: string;
@@ -18,6 +25,8 @@ export interface ApiGraphNode {
   tags: string[];
   createdAt: string;
   kind: GraphNodeKind;
+  source?: string;
+  type?: MemoryType;
 }
 
 export interface ApiTagEdge {
@@ -89,17 +98,67 @@ export function getAllKinds(apiNodes: ApiGraphNode[]): KindStat[] {
   })).filter((s) => s.count > 0);
 }
 
+// ---- Source stats ----
+
+export interface SourceStat {
+  source: string;
+  count: number;
+}
+
+/**
+ * Unique memory sources with counts, sorted alphabetically. Only memory nodes
+ * carry a `source`; wiki/skill nodes are skipped so the Source filter UI
+ * reflects what's actually filterable.
+ */
+export function getAllSources(apiNodes: ApiGraphNode[]): SourceStat[] {
+  const counts = new Map<string, number>();
+  for (const node of apiNodes) {
+    if (node.kind !== "memory" || !node.source) continue;
+    counts.set(node.source, (counts.get(node.source) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([source, count]) => ({ source, count }))
+    .sort((a, b) => a.source.localeCompare(b.source));
+}
+
+// ---- Type stats ----
+
+export interface TypeStat {
+  type: MemoryType;
+  count: number;
+}
+
+/**
+ * Memory-type counts in canonical order. Types with zero memories are kept
+ * (unlike kinds) because there are only 3 of them — hiding some would make
+ * the filter UI feel inconsistent as the user adds memories of new types.
+ */
+export function getAllTypes(apiNodes: ApiGraphNode[]): TypeStat[] {
+  const counts = new Map<MemoryType, number>();
+  for (const node of apiNodes) {
+    if (node.kind !== "memory" || !node.type) continue;
+    counts.set(node.type, (counts.get(node.type) ?? 0) + 1);
+  }
+  return MEMORY_TYPES.map((type) => ({
+    type,
+    count: counts.get(type) ?? 0,
+  }));
+}
+
 // ---- Build graph data ----
 
 /**
  * Transforms API data into simulation-ready nodes + edges.
  *
- * Two filters applied in sequence:
+ * Four filters applied in sequence:
  *  - `activeKinds`: hard filter by node kind. A node is visible only if its
  *    kind is in the set. An empty set hides everything.
  *  - `activeTags`: OR filter by tag. When non-empty, nodes must have at least
  *    one matching tag. Wiki nodes have no tags, so enabling a tag filter hides
  *    them (wiki content isn't tag-searchable yet).
+ *  - `activeSources` / `activeTypes`: memory-scoped filters. When non-empty,
+ *    memory nodes without a matching source/type hide; wiki/skill nodes pass
+ *    through unchanged (they have no source/type to match against).
  */
 export function buildGraphData(
   apiNodes: ApiGraphNode[],
@@ -108,6 +167,8 @@ export function buildGraphData(
   apiWikiParentEdges: ApiWikiParentEdge[],
   activeTags: Set<string>,
   activeKinds: Set<GraphNodeKind>,
+  activeSources: Set<string>,
+  activeTypes: Set<MemoryType>,
 ): { graphNodes: GraphNode[]; graphEdges: GraphEdge[] } {
   if (apiNodes.length === 0) {
     return { graphNodes: [], graphEdges: [] };
@@ -116,10 +177,27 @@ export function buildGraphData(
   // Kind filter is the broader cut; apply first, then narrow by tags.
   const kindFiltered = apiNodes.filter((n) => activeKinds.has(n.kind));
 
-  const filteredNodes =
+  const tagFiltered =
     activeTags.size > 0
       ? kindFiltered.filter((n) => n.tags.some((t) => activeTags.has(t)))
       : kindFiltered;
+
+  // Source/type are memory-scoped: non-memory nodes pass through so a user
+  // filtering memories by source doesn't wipe out their wiki docs & skills.
+  const sourceFiltered =
+    activeSources.size > 0
+      ? tagFiltered.filter(
+          (n) =>
+            n.kind !== "memory" || (n.source && activeSources.has(n.source)),
+        )
+      : tagFiltered;
+
+  const filteredNodes =
+    activeTypes.size > 0
+      ? sourceFiltered.filter(
+          (n) => n.kind !== "memory" || (n.type && activeTypes.has(n.type)),
+        )
+      : sourceFiltered;
 
   // Degree counting across all edge types
   const degreeCount = new Map<string, number>();

@@ -1,5 +1,16 @@
 # Changelog
 
+## Source & Type Filters for Memory Graph + Unified nuqs State — 2026-04-21
+
+- **Graph view filter parity with list view**: Graph now exposes all 5 filter tabs (Profile, Kind, Tags, Source, Type) in the UnifiedFilterPanel — previously only Profile/Kind/Tags were available
+- **Unified URL-backed filter state**: MemoryGraph swapped local `useState` Sets for nuqs `useQueryStates(memoriesSearchParams)` — tags, kinds, sources, types, and profile all persist in the URL and carry over when switching graph ↔ list view
+- **Backend projection**: `graphApi.getGraphData` / `getLocalGraph` now return `source` and `type` on memory nodes; Neo4j Cypher RETURN clauses and `memoryService` types extended to forward the fields
+- **Frontend data model**: `ApiGraphNode` gains optional `source`/`type`; new `getAllSources()` / `getAllTypes()` stat helpers mirror `getAllKinds`; `buildGraphData()` signature extended with `activeSources` / `activeTypes` filters
+- **Non-memory passthrough**: Source/Type filters narrow only memory nodes — wiki/skill nodes pass through unchanged, matching the list-view convention in `listItemMatchesSourceFilter` / `Type`
+- **UnifiedFilterPanel**: Added optional `typeCounts` override prop (mirrors existing `kindCounts` pattern) so graph view can supply its own counts without constructing synthetic `Memory[]`
+- **Files affected**: graphApi.ts, memoryService.ts, neo4jActions/graph.ts, useGraphData.ts, graph-data.ts, MemoryGraph.tsx, GraphControlPanel.tsx, UnifiedFilterPanel.tsx, routes/\_main/memories/index.tsx
+- **Reason**: Users couldn't filter the graph by memory source or type, making the graph/list views feel inconsistent; filter state resetting on view switch was also annoying. Unifying both via nuqs makes filter URLs shareable and keeps the two views perfectly in sync.
+
 ## Unified Filter Panel for Memories List and Graph — 2026-04-20
 
 - **Consolidated 5 filter buttons into single "Filter" popover**: Replaced separate Profile, Kind, Tags, Source, and Type filter buttons with a single unified filter panel featuring vertical tabs for each category
