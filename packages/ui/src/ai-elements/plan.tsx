@@ -8,13 +8,7 @@ type PlanProps = ComponentProps<"div">;
 
 function Plan({ className, children, ...props }: PlanProps) {
   return (
-    <div
-      className={cn(
-        "rounded-lg border border-border bg-muted/20 p-3",
-        className,
-      )}
-      {...props}
-    >
+    <div className={cn("rounded-lg bg-muted/40 p-3", className)} {...props}>
       {children}
     </div>
   );

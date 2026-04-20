@@ -74,7 +74,7 @@ function MainNav({
                         onClick={onSettingsClick}
                         title={isIconOnly ? item.label : undefined}
                         className={cn(
-                          "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-all duration-200 ease-smooth",
+                          "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
                           isIconOnly
                             ? "justify-center px-2 py-2.5"
                             : "gap-3 px-3.5",
@@ -161,7 +161,7 @@ function SettingsNav({
               onClick={onBack}
               title={isIconOnly ? "Back" : undefined}
               className={cn(
-                "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-all duration-200 ease-smooth text-muted-foreground hover:bg-card/45 hover:text-foreground",
+                "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98] text-muted-foreground hover:bg-card/45 hover:text-foreground",
                 isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
                 isMobile ? "py-3.5" : "py-2.5",
               )}
@@ -199,7 +199,7 @@ function SettingsNav({
                   onClick={onNavigate}
                   title={isIconOnly ? item.label : undefined}
                   className={cn(
-                    "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-all duration-200 ease-smooth",
+                    "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
                     isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
                     isMobile ? "py-3.5" : "py-2.5",
                     isActive

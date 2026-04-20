@@ -20,6 +20,8 @@ import {
   IconBolt,
   IconNotebook,
   IconActivity,
+  IconCpu,
+  IconUsers,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -59,6 +61,16 @@ export const settingsNavItems: SettingsNavItem[] = [
     href: "/settings/preferences",
     label: "Preferences",
     icon: IconAdjustments,
+  },
+  {
+    href: "/settings/profiles",
+    label: "Profiles",
+    icon: IconUsers,
+  },
+  {
+    href: "/settings/models",
+    label: "Models",
+    icon: IconCpu,
   },
   {
     href: "/settings/extension",

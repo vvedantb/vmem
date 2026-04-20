@@ -1,7 +1,19 @@
 import { useState, useEffect } from "react";
-import { Button } from "@vmem/ui";
+import { IconDeviceFloppy } from "@tabler/icons-react";
+import {
+  Button,
+  Label,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  Skeleton,
+} from "@vmem/ui";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { updateMemory } from "@/background/api-client";
+import type { Profile } from "@/types/api";
+import { updateMemory, listProfiles } from "@/background/api-client";
+import { getStorage } from "@/lib/storage";
 
 interface PageInfo {
   title: string;
@@ -42,6 +54,8 @@ export function QuickSave() {
     title: string;
     content: string;
   } | null>(null);
+  const [profiles, setProfiles] = useState<Profile[] | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
 
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -54,6 +68,26 @@ export function QuickSave() {
         });
       }
     });
+
+    // Load profiles and default profile
+    void (async () => {
+      try {
+        const [profileList, storage] = await Promise.all([
+          listProfiles(),
+          getStorage(),
+        ]);
+        setProfiles(profileList);
+
+        // Set selected profile: use stored default, or fall back to isDefault profile
+        const defaultId =
+          storage.defaultProfileId ||
+          profileList.find((p) => p.isDefault)?._id ||
+          "";
+        setSelectedProfileId(defaultId);
+      } catch {
+        // Not authenticated or other error
+      }
+    })();
   }, []);
 
   function handleSave() {
@@ -83,6 +117,7 @@ export function QuickSave() {
             url: tab.url ?? "",
             title: tab.title ?? "Untitled",
             content: pageContent,
+            profileId: selectedProfileId || undefined,
           };
 
           chrome.runtime.sendMessage(
@@ -134,22 +169,24 @@ export function QuickSave() {
     setPendingUpdate(null);
   }
 
+  const selectedProfile = profiles?.find((p) => p._id === selectedProfileId);
+
   return (
     <div className="space-y-4">
       {/* Page preview card */}
       {pageInfo && (
-        <div className="glass-panel-subtle rounded-lg p-3 space-y-2">
+        <div className="rounded-lg p-3 space-y-2 bg-muted/40">
           <div className="flex items-start gap-2.5">
             {pageInfo.favicon ? (
               <img
                 src={pageInfo.favicon}
                 alt=""
-                className="w-4 h-4 mt-0.5 rounded-sm shrink-0"
+                className="w-4 h-4 mt-0.5 rounded-sm shrink-0 outline outline-1 outline-white/10"
               />
             ) : (
               <div className="w-4 h-4 mt-0.5 rounded-sm bg-muted shrink-0" />
             )}
-            <span className="text-sm font-medium leading-tight line-clamp-2">
+            <span className="text-sm font-medium leading-tight line-clamp-2 text-balance">
               {pageInfo.title}
             </span>
           </div>
@@ -160,17 +197,61 @@ export function QuickSave() {
         </div>
       )}
 
+      {/* Profile selector */}
+      {profiles === null ? (
+        <div className="flex items-center gap-2">
+          <Label className="text-sm text-muted-foreground">Save to</Label>
+          <Skeleton className="h-9 w-[120px] rounded-md" />
+        </div>
+      ) : profiles.length > 0 ? (
+        <div className="flex items-center gap-2">
+          <Label className="text-sm text-muted-foreground">Save to</Label>
+          <Select
+            value={selectedProfileId}
+            onValueChange={setSelectedProfileId}
+            disabled={saving}
+          >
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue>
+                {selectedProfile && (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: selectedProfile.color }}
+                    />
+                    <span className="truncate">{selectedProfile.name}</span>
+                  </div>
+                )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {profiles.map((profile) => (
+                <SelectItem key={profile._id} value={profile._id}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: profile.color }}
+                    />
+                    <span>{profile.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
+
       <Button
-        variant="outline"
         className="w-full"
         onClick={handleSave}
         disabled={saving || !pageInfo}
       >
+        <IconDeviceFloppy size={16} />
         {saving ? "Saving..." : "Save to vmem"}
       </Button>
 
       {pendingUpdate && (
-        <div className="space-y-2 rounded-md border border-border p-3">
+        <div className="space-y-2 rounded-xl p-3 bg-muted/40">
           <p className="text-sm text-muted-foreground">
             Already saved — update it?
           </p>

@@ -14,6 +14,7 @@ type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
 interface MemoryNode {
   id: string;
   userId: string;
+  profileId: string | null;
   title: string;
   content: string;
   type: MemoryType;
@@ -129,6 +130,7 @@ function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
   return {
     id: props.id,
     userId: props.userId,
+    profileId: props.profileId ?? null,
     title: props.title,
     content: props.content,
     type: props.type,
@@ -226,6 +228,7 @@ export class MemoryService {
 
   async createMemory(params: {
     userId: string;
+    profileId: string;
     title: string;
     content: string;
     type: MemoryType;
@@ -243,6 +246,7 @@ export class MemoryService {
         `CREATE (m:Memory {
           id: $id,
           userId: $userId,
+          profileId: $profileId,
           title: $title,
           content: $content,
           type: $type,
@@ -268,6 +272,7 @@ export class MemoryService {
         {
           id,
           userId: params.userId,
+          profileId: params.profileId,
           title: params.title,
           content: params.content,
           type: params.type,
@@ -348,6 +353,7 @@ export class MemoryService {
    */
   async upsertFromSource(params: {
     userId: string;
+    profileId: string;
     title: string;
     content: string;
     sourceType: string;
@@ -361,6 +367,7 @@ export class MemoryService {
         `MERGE (m:Memory {userId: $userId, sourceType: $sourceType, sourceId: $sourceId})
          ON CREATE SET
            m.id = $newId,
+           m.profileId = $profileId,
            m.title = $title,
            m.content = $content,
            m.type = 'knowledge',
@@ -383,6 +390,7 @@ export class MemoryService {
          RETURN m.id AS id, wasCreated`,
         {
           userId: params.userId,
+          profileId: params.profileId,
           sourceType: params.sourceType,
           sourceId: params.sourceId,
           sourceUrl: params.sourceUrl,
@@ -424,6 +432,7 @@ export class MemoryService {
 
   async listMemories(params: {
     userId: string;
+    profileId?: string | null;
     type?: MemoryType;
     status?: MemoryStatus;
     tags?: string[];
@@ -432,12 +441,20 @@ export class MemoryService {
   }): Promise<{ memories: MemoryWithTags[]; total: number }> {
     return this.withSession(async (session) => {
       const whereClauses = ["m.userId = $userId"];
-      const queryParams: Record<string, string | number | Integer | string[]> =
-        {
-          userId: params.userId,
-          limit: neo4j.int(params.limit),
-          offset: neo4j.int(params.offset),
-        };
+      const queryParams: Record<
+        string,
+        string | number | Integer | string[] | null
+      > = {
+        userId: params.userId,
+        limit: neo4j.int(params.limit),
+        offset: neo4j.int(params.offset),
+      };
+
+      // Profile filter: if profileId provided, filter by it; null means include all
+      if (params.profileId !== undefined && params.profileId !== null) {
+        whereClauses.push("(m.profileId = $profileId OR m.profileId IS NULL)");
+        queryParams.profileId = params.profileId;
+      }
 
       if (params.type) {
         whereClauses.push("m.type = $type");
@@ -594,6 +611,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
 
   async searchMemories(params: {
     userId: string;
+    profileId?: string | null;
     query?: string;
     type?: MemoryType;
     tags?: string[];
@@ -604,10 +622,16 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     if (!params.query) return this.listMemories(params);
 
     return this.withSession(async (session) => {
+      // Build profile filter clause
+      const profileFilter =
+        params.profileId !== undefined && params.profileId !== null
+          ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
+          : "";
+
       const result = await session.run(
         `CALL db.index.fulltext.queryNodes('memory_content', $query)
          YIELD node AS m, score
-         WHERE m.userId = $userId
+         WHERE m.userId = $userId ${profileFilter}
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          RETURN m, collect(t.name) AS tags, score
          ORDER BY score DESC
@@ -615,6 +639,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         {
           query: params.query,
           userId: params.userId,
+          profileId: params.profileId ?? null,
           offset: neo4j.int(params.offset),
           limit: neo4j.int(params.limit),
         },
@@ -627,16 +652,23 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
 
   async retrieveMemories(params: {
     userId: string;
+    profileId?: string | null;
     query: string;
     type?: MemoryType;
     tags?: string[];
     limit: number;
   }): Promise<MemoryCandidate[]> {
     return this.withSession(async (session) => {
+      // Build profile filter clause
+      const profileFilter =
+        params.profileId !== undefined && params.profileId !== null
+          ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
+          : "";
+
       const result = await session.run(
         `CALL db.index.fulltext.queryNodes('memory_content', $query)
          YIELD node AS m, score AS fulltextScore
-         WHERE m.userId = $userId
+         WHERE m.userId = $userId ${profileFilter}
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          WITH m, collect(t.name) AS tags, fulltextScore,
               duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
@@ -655,6 +687,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         {
           query: params.query,
           userId: params.userId,
+          profileId: params.profileId ?? null,
           limit: neo4j.int(params.limit),
         },
       );
@@ -845,7 +878,10 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     });
   }
 
-  async getStats(userId: string): Promise<{
+  async getStats(
+    userId: string,
+    profileId?: string | null,
+  ): Promise<{
     totalMemories: number;
     memoriesThisWeek: number;
     memoriesThisMonth: number;
@@ -863,17 +899,26 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         now.getDate(),
       ).toISOString();
 
+      // Build profile filter
+      const profileFilter =
+        profileId !== undefined && profileId !== null
+          ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
+          : "";
+
       const result = await session.run(
         `MATCH (m:Memory {userId: $userId})
+         WHERE true ${profileFilter}
          WITH count(m) AS total,
               count(CASE WHEN m.createdAt >= $weekAgo THEN 1 END) AS thisWeek,
               count(CASE WHEN m.createdAt >= $monthAgo THEN 1 END) AS thisMonth,
               count(CASE WHEN m.createdAt >= $todayStart THEN 1 END) AS today
-         OPTIONAL MATCH (t:Tag)<-[:TAGGED_WITH]-(:Memory {userId: $userId})
+         OPTIONAL MATCH (t:Tag)<-[:TAGGED_WITH]-(m2:Memory {userId: $userId})
+         WHERE true ${profileFilter.replace(/m\./g, "m2.")}
          WITH total, thisWeek, thisMonth, today, count(DISTINCT t) AS tagCount
          RETURN total, thisWeek, thisMonth, today, tagCount`,
         {
           userId,
+          profileId: profileId ?? null,
           weekAgo: weekAgo.toISOString(),
           monthAgo: monthAgo.toISOString(),
           todayStart,
@@ -897,19 +942,29 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         }
       }
 
+      // Build profile filter for growth query
+      const growthProfileFilter =
+        profileId !== undefined && profileId !== null
+          ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
+          : "";
+      const growthProfileFilter2 =
+        profileId !== undefined && profileId !== null
+          ? "AND (m2.profileId = $profileId OR m2.profileId IS NULL)"
+          : "";
+
       const growthResult = await session.run(
         `WITH range(0, 6) AS days
          UNWIND days AS dayOffset
          WITH date() - duration({days: dayOffset}) AS d
          OPTIONAL MATCH (m:Memory {userId: $userId})
-           WHERE date(datetime(m.createdAt)) <= d
+           WHERE date(datetime(m.createdAt)) <= d ${growthProfileFilter}
          WITH d, count(m) AS total
          OPTIONAL MATCH (m2:Memory {userId: $userId})
-           WHERE date(datetime(m2.createdAt)) = d
+           WHERE date(datetime(m2.createdAt)) = d ${growthProfileFilter2}
          WITH d, total, count(m2) AS newCount
          RETURN toString(d) AS date, total, newCount
          ORDER BY d ASC`,
-        { userId },
+        { userId, profileId: profileId ?? null },
       );
 
       const growthData = growthResult.records.map((r) => {
@@ -939,6 +994,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
 
   async getRecentActivity(
     userId: string,
+    profileId?: string | null,
     limit = 10,
   ): Promise<
     {
@@ -951,12 +1007,18 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     }[]
   > {
     return this.withSession(async (session) => {
+      const profileFilter =
+        profileId !== undefined && profileId !== null
+          ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
+          : "";
+
       const result = await session.run(
         `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
+         WHERE true ${profileFilter}
          RETURN e, m.title AS memoryTitle
          ORDER BY e.createdAt DESC
          LIMIT $limit`,
-        { userId, limit: neo4j.int(limit) },
+        { userId, profileId: profileId ?? null, limit: neo4j.int(limit) },
       );
 
       const now = Date.now();
@@ -1156,7 +1218,10 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     });
   }
 
-  async getGraphData(userId: string): Promise<{
+  async getGraphData(
+    userId: string,
+    profileId?: string | null,
+  ): Promise<{
     nodes: {
       id: string;
       title: string;
@@ -1174,24 +1239,38 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
   }> {
     const nodesSession = this.driver.session();
     const relatesToSession = this.driver.session();
+
+    const profileFilter =
+      profileId !== undefined && profileId !== null
+        ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
+        : "";
+    const profileFilterA =
+      profileId !== undefined && profileId !== null
+        ? "AND (a.profileId = $profileId OR a.profileId IS NULL)"
+        : "";
+    const profileFilterB =
+      profileId !== undefined && profileId !== null
+        ? "AND (b.profileId = $profileId OR b.profileId IS NULL)"
+        : "";
+
     try {
       const [nodesResult, relatesToResult] = await Promise.all([
         nodesSession.run(
           `MATCH (m:Memory {userId: $userId})
-           WHERE coalesce(m.status, 'active') IN ['active', 'pinned']
+           WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${profileFilter}
            OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
            RETURN m.id AS id, m.title AS title,
                   substring(m.content, 0, 200) AS content,
                   collect(t.name) AS tags,
                   m.createdAt AS createdAt`,
-          { userId },
+          { userId, profileId: profileId ?? null },
         ),
         relatesToSession.run(
           `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
-           WHERE coalesce(a.status, 'active') IN ['active', 'pinned']
-             AND coalesce(b.status, 'active') IN ['active', 'pinned']
+           WHERE coalesce(a.status, 'active') IN ['active', 'pinned'] ${profileFilterA}
+             AND coalesce(b.status, 'active') IN ['active', 'pinned'] ${profileFilterB}
            RETURN a.id AS source, b.id AS target, r.reason AS reason`,
-          { userId },
+          { userId, profileId: profileId ?? null },
         ),
       ]);
 
@@ -1222,6 +1301,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
   async getLocalGraph(
     userId: string,
     focusId: string,
+    profileId?: string | null,
   ): Promise<ReturnType<MemoryService["getGraphData"]>> {
     const nodesSession = this.driver.session();
     let nodeIds: string[];
@@ -1233,12 +1313,21 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       createdAt: string;
     }[];
 
+    const profileFilterFocus =
+      profileId !== undefined && profileId !== null
+        ? "AND (focus.profileId = $profileId OR focus.profileId IS NULL)"
+        : "";
+    const profileFilterNeighbor =
+      profileId !== undefined && profileId !== null
+        ? "AND (neighbor.profileId = $profileId OR neighbor.profileId IS NULL)"
+        : "";
+
     try {
       const nodesResult = await nodesSession.run(
         `MATCH (focus:Memory {id: $focusId, userId: $userId})
-         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned']
+         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${profileFilterFocus}
          OPTIONAL MATCH (focus)-[:RELATES_TO*1..2]-(neighbor:Memory {userId: $userId})
-         WHERE coalesce(neighbor.status, 'active') IN ['active', 'pinned']
+         WHERE coalesce(neighbor.status, 'active') IN ['active', 'pinned'] ${profileFilterNeighbor}
          WITH focus, collect(DISTINCT neighbor) AS neighbors
          WITH [focus] + neighbors AS allNodes
          UNWIND allNodes AS m
@@ -1248,7 +1337,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
                 substring(m.content, 0, 200) AS content,
                 collect(t.name) AS tags, m.createdAt AS createdAt
          LIMIT 500`,
-        { userId, focusId },
+        { userId, focusId, profileId: profileId ?? null },
       );
 
       nodes = nodesResult.records.map((r) => ({
@@ -1389,5 +1478,92 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         now: new Date().toISOString(),
       },
     );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Profile migration methods
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /** Count memories without profileId for a user */
+  async countMemoriesWithoutProfile(userId: string): Promise<number> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE m.profileId IS NULL
+         RETURN count(m) AS count`,
+        { userId },
+      );
+      const record = result.records[0];
+      return record ? toNeoInt(record.get("count")) : 0;
+    });
+  }
+
+  /** Count all memories for a profile */
+  async countMemoriesByProfile(
+    userId: string,
+    profileId: string,
+  ): Promise<number> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId, profileId: $profileId})
+         RETURN count(m) AS count`,
+        { userId, profileId },
+      );
+      const record = result.records[0];
+      return record ? toNeoInt(record.get("count")) : 0;
+    });
+  }
+
+  /** Migrate all memories without profileId to a specific profile */
+  async migrateMemoriesToProfile(
+    userId: string,
+    profileId: string,
+  ): Promise<number> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE m.profileId IS NULL
+         SET m.profileId = $profileId
+         RETURN count(m) AS migrated`,
+        { userId, profileId },
+      );
+      const record = result.records[0];
+      return record ? toNeoInt(record.get("migrated")) : 0;
+    });
+  }
+
+  /** Move memories from one profile to another */
+  async moveMemoriesBetweenProfiles(
+    userId: string,
+    fromProfileId: string,
+    toProfileId: string,
+  ): Promise<number> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId, profileId: $fromProfileId})
+         SET m.profileId = $toProfileId
+         RETURN count(m) AS moved`,
+        { userId, fromProfileId, toProfileId },
+      );
+      const record = result.records[0];
+      return record ? toNeoInt(record.get("moved")) : 0;
+    });
+  }
+
+  /** Delete all memories for a profile */
+  async deleteMemoriesByProfile(
+    userId: string,
+    profileId: string,
+  ): Promise<number> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId, profileId: $profileId})
+         DETACH DELETE m
+         RETURN count(m) AS deleted`,
+        { userId, profileId },
+      );
+      const record = result.records[0];
+      return record ? toNeoInt(record.get("deleted")) : 0;
+    });
   }
 }

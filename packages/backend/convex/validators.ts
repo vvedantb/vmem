@@ -1,6 +1,23 @@
 import { v } from "convex/values";
 
 /**
+ * Single source of truth for profiles table fields.
+ * Used in schema.ts (defineTable) and return validators.
+ *
+ * A profile is a Chrome-like workspace for organizing memories.
+ * Each memory belongs to exactly one profile.
+ */
+export const profileFields = {
+  userId: v.id("users"),
+  name: v.string(),
+  color: v.string(), // hex e.g. "#3B82F6"
+  icon: v.string(), // icon name e.g. "briefcase"
+  isDefault: v.boolean(),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+};
+
+/**
  * Single source of truth for wikiNodes table fields.
  * Used in schema.ts (defineTable) and anywhere we need to describe a wikiNode row.
  *

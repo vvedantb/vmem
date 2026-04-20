@@ -14,6 +14,8 @@ interface PageContainerProps {
   /** Show title in header row. Defaults to true if sections exist, false otherwise. */
   showTitle?: boolean;
   centeredMaxWidth?: boolean;
+  /** Ref callback to access the scroll container (for use with virtualized lists) */
+  scrollRef?: (el: HTMLDivElement | null) => void;
   children: ReactNode;
 }
 
@@ -25,6 +27,7 @@ export default function PageContainer({
   noScroll = false,
   showTitle,
   centeredMaxWidth = false,
+  scrollRef,
   children,
 }: PageContainerProps) {
   const { setPageTitle } = usePageTitle();
@@ -56,14 +59,14 @@ export default function PageContainer({
       {hasHeader && (
         <div
           className={cn(
-            "mb-5 flex-shrink-0 min-h-10",
+            "mb-5 flex-shrink-0 min-h-10 px-3 pt-3 md:px-4 md:pt-4",
             centeredMaxWidth && "flex justify-center",
           )}
         >
           <div
             className={cn(
               "flex h-10 w-full items-center justify-between gap-4",
-              centeredMaxWidth && "max-w-3xl",
+              centeredMaxWidth && "max-w-5xl",
             )}
           >
             <div className="flex min-w-0 flex-shrink-0 items-center gap-4">
@@ -118,9 +121,10 @@ export default function PageContainer({
         </div>
       )}
       <motion.div
+        ref={scrollRef}
         className={cn(
           "min-h-0 flex-1 flex flex-col",
-          noScroll ? "overflow-hidden" : "overflow-y-auto pr-1 scrollbar-thin",
+          noScroll ? "overflow-hidden" : "overflow-y-auto scrollbar-thin",
         )}
         initial={{ opacity: 0, y: motionDistance.pageY }}
         animate={{ opacity: 1, y: 0 }}
@@ -129,7 +133,9 @@ export default function PageContainer({
         <div
           className={cn(
             noScroll ? "flex-1 min-h-0" : "space-y-8 flex-1",
-            centeredMaxWidth && "max-w-3xl mx-auto w-full",
+            centeredMaxWidth && "max-w-5xl mx-auto w-full",
+            "px-3 pb-3 md:px-4 md:pb-4",
+            !hasHeader && "pt-3 md:pt-4",
           )}
         >
           {children}

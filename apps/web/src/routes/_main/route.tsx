@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { AuthGate } from "@/components/providers/ClientProvider";
 import MainShell from "@/components/MainShell";
-import { EnsureUser } from "@/components/providers/EnsureUser";
 
 export const Route = createFileRoute("/_main")({
   beforeLoad: ({ context }) => {
@@ -13,10 +13,10 @@ export const Route = createFileRoute("/_main")({
 
 function MainLayout() {
   return (
-    <EnsureUser>
+    <AuthGate>
       <MainShell>
         <Outlet />
       </MainShell>
-    </EnsureUser>
+    </AuthGate>
   );
 }

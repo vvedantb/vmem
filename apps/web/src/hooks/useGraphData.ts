@@ -74,7 +74,10 @@ export interface UseGraphDataReturn {
   error: Error | null;
 }
 
-export function useGraphData(focusNodeId: string | null): UseGraphDataReturn {
+export function useGraphData(
+  focusNodeId: string | null,
+  profileId: string | null = null,
+): UseGraphDataReturn {
   const { isAuthenticated } = useConvexAuth();
   const getGraphData = useAction(api.graphApi.getGraphData);
   const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<
@@ -82,9 +85,12 @@ export function useGraphData(focusNodeId: string | null): UseGraphDataReturn {
   >([]);
 
   const graphQuery = useTanstackQuery({
-    queryKey: ["graph", focusNodeId ?? "global"],
+    queryKey: ["graph", focusNodeId ?? "global", profileId ?? "all"],
     queryFn: async (): Promise<GraphResponse> => {
-      const result = await getGraphData({ focus: focusNodeId ?? undefined });
+      const result = await getGraphData({
+        focus: focusNodeId ?? undefined,
+        profileId: profileId ?? undefined,
+      });
       return graphResponseSchema.parse(result);
     },
     enabled: isAuthenticated,

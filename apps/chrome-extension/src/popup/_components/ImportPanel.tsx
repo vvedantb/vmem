@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { IconBookmark, IconHistory } from "@tabler/icons-react";
 import {
   Button,
   Select,
@@ -169,11 +170,11 @@ export function ImportPanel() {
           </span>
         </div>
         <Button
-          variant="outline"
           className="w-full"
           onClick={handleImportBookmarks}
           disabled={isImporting}
         >
+          <IconBookmark size={16} />
           {bookmarkStatus === "importing" ? "Syncing..." : "Sync Bookmarks"}
         </Button>
       </div>
@@ -203,11 +204,11 @@ export function ImportPanel() {
             </SelectContent>
           </Select>
           <Button
-            variant="outline"
             className="flex-1"
             onClick={handleImportHistory}
             disabled={isImporting}
           >
+            <IconHistory size={16} />
             {historyStatus === "importing" ? "Syncing..." : "Sync History"}
           </Button>
         </div>
@@ -217,7 +218,7 @@ export function ImportPanel() {
         <div className="space-y-2">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Progress</span>
-            <span>
+            <span className="tabular-nums">
               {progress.current} / {progress.total}
             </span>
           </div>

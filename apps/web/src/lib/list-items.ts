@@ -52,6 +52,7 @@ interface MemoryRowItem extends BaseListItem {
   kind: "memory";
   type: MemoryType;
   source: string;
+  profileId?: string;
 }
 
 interface WikiDocumentItem extends BaseListItem {
@@ -135,6 +136,19 @@ export function listItemMatchesTypeFilter(
   return selectedTypes.includes(item.type);
 }
 
+export function listItemMatchesProfileFilter(
+  item: ListItem,
+  selectedProfileId: string | null,
+): boolean {
+  if (selectedProfileId === null) {
+    return true;
+  }
+  if (item.kind !== "memory") {
+    return true;
+  }
+  return item.profileId === selectedProfileId;
+}
+
 // ---- Builders -------------------------------------------------------------
 
 const WIKI_PREFIX = "wiki:";
@@ -150,6 +164,7 @@ export function memoryToListItem(memory: Memory): ListItem {
     createdAt: memory.createdAt,
     type: memory.type,
     source: memory.source,
+    profileId: memory.profileId,
   };
 }
 

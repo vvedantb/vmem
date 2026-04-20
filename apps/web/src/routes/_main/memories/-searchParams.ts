@@ -8,6 +8,8 @@ const memoriesSearchParams = {
   view: parseAsStringLiteral(memoryViews).withDefault("graph"),
   /** When set, graph shows 2-hop local subgraph around this memory ID */
   focus: parseAsString,
+  /** Profile filter — when set, only show memories from this profile */
+  profile: parseAsString,
   tags: parseAsArrayOf(parseAsString, ",").withDefault([]),
   sources: parseAsArrayOf(parseAsString, ",").withDefault([]),
   types: parseAsArrayOf(parseAsStringLiteral(MEMORY_TYPES), ",").withDefault(

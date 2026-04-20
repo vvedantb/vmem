@@ -45,6 +45,14 @@ Neo4j:
 
 - Never run parallel `session.run()` calls on the same session — use separate sessions for concurrent queries
 
+Profiles:
+
+- Profiles are for **organizing where memories get saved**
+- Profile filtering IS allowed in views (list/graph) via URL params, just not as a route-level prefix (e.g., no `/work/memories` vs `/personal/memories`)
+- Dashboard stats, sidebar stats, activity feed always show user-wide totals (not filtered by profile)
+- Profile filter uses nuqs like other filters (tags, sources, types) — persists to URL for shareability
+- Switching profiles in save forms changes which profile new memories are saved to
+
 FOLLOW ALL OF THESE RULES
 
 UI Design System — Tonal Surface Hierarchy:
@@ -117,6 +125,7 @@ Verification Rules after implementation:
 - Ensure types are inferred where possible.
 - Ensure no unnecessary client components were introduced.
 - Ensure CLAUDE.md is updated if architecture decisions changed and with new learnings.
+- Run `/changelog` after medium-large changes or new features to document what changed.
 
 Implementation Process:
 
