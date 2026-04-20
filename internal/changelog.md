@@ -1,5 +1,18 @@
 # Changelog
 
+## Profile Filtering for Memory List and Graph Views — 2026-04-20
+
+- **Profile filter component**: Created reusable `ProfileFilter.tsx` popover component (single-select) showing all profiles with color dots, following ListKindFilter pattern
+- **Memory interface updates**: Added `profileId?: string` to Memory type and ListItem.MemoryRowItem; updated `memoryToListItem()` and `listItemsToMemories()` helpers
+- **Memory context updates**: Added `profileId` to ApiMemory interface and included in `apiToMemory()` mapping from backend
+- **List view client-side filtering**: MemorySearch applies profile filter to all items, non-memory kinds (wiki, skills) pass through untouched (consistent with tag/source/type filters)
+- **Graph view server-side filtering**: useGraphData hook now accepts profileId parameter, query key includes profileId for cache isolation; backend getGraphData/getLocalGraph actions accept optional profileId and pass to Neo4j service
+- **URL state management**: Added `profile: parseAsString` to memoriesSearchParams via nuqs for persistent filter state alongside existing tags/sources/types
+- **Component integration**: ProfileFilter added to MemorySearch toolbar and GraphControlPanel; both components receive selectedProfileId + onProfileChange props from their parent routes
+- **Architecture clarification**: Updated CLAUDE.md to reflect that profile filtering IS allowed in views (unlike the strict "no profile filtering" rule previously documented), just not as a route-level separation (no /work/memories vs /personal/memories routes)
+- **Files affected**: ProfileFilter.tsx (new), memories.ts, list-items.ts, MemoryContext.tsx, searchParams.ts, useGraphData.ts, graphApi.ts, neo4jActions/graph.ts, MemorySearch.tsx, MemoryGraph.tsx, GraphControlPanel.tsx, routes index.tsx, CLAUDE.md
+- **Reason**: Users wanted to view memories filtered by profile in both graph and list views without splitting routes; hybrid approach (server-side for graph to respect 2000-node cap, client-side for list to keep logic simple) balances performance and simplicity
+
 ## Profile UX Overhaul: Save-Time Profile Selection — 2026-04-20
 
 - **Shifted from global "active profile" to save-time profile selection**: Users now choose which profile to save a memory to when creating/saving, instead of setting a global profile that persists. Source-specific defaults (web app, chrome extension) replace the single `activeProfileId`.

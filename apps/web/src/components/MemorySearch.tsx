@@ -12,6 +12,7 @@ import MemoryTagFilter from "./_components/MemoryTagFilter";
 import MemorySourceFilter from "./_components/MemorySourceFilter";
 import MemoryTypeFilter from "./_components/MemoryTypeFilter";
 import ListKindFilter from "./_components/ListKindFilter";
+import ProfileFilter from "./_components/ProfileFilter";
 import ListItemRow from "./_components/ListItemRow";
 import {
   formatMemorySourceLabel,
@@ -21,6 +22,7 @@ import {
 import {
   formatListItemKindLabel,
   listItemMatchesKindFilter,
+  listItemMatchesProfileFilter,
   listItemMatchesSourceFilter,
   listItemMatchesTagFilter,
   listItemMatchesTypeFilter,
@@ -60,6 +62,7 @@ function listItemsToMemories(items: readonly ListItem[]): Memory[] {
         createdAt: item.createdAt,
         type: item.type,
         source: item.source,
+        profileId: item.profileId,
       },
     ];
   });
@@ -169,7 +172,7 @@ export default function MemorySearch({
     );
   }, [itemsAfterKindsAndTags, params.sources]);
 
-  const filteredItems = useMemo(() => {
+  const itemsAfterTypes = useMemo(() => {
     if (params.types.length === 0) {
       return itemsAfterKindsTagsSources;
     }
@@ -177,6 +180,12 @@ export default function MemorySearch({
       listItemMatchesTypeFilter(item, params.types),
     );
   }, [itemsAfterKindsTagsSources, params.types]);
+
+  const filteredItems = useMemo(() => {
+    return itemsAfterTypes.filter((item) =>
+      listItemMatchesProfileFilter(item, params.profile),
+    );
+  }, [itemsAfterTypes, params.profile]);
 
   // The memory-scoped filter popovers (Source, Type) show counts over the
   // memory subset at each stage of the filter chain. The filter components
@@ -317,6 +326,11 @@ export default function MemorySearch({
       <div className="flex flex-1 min-w-0 min-h-0 flex-col">
         {!isExternalSearch && (
           <div className="flex gap-2 flex-shrink-0 pb-4 flex-wrap">
+            <ProfileFilter
+              selectedProfileId={params.profile}
+              onProfileChange={(profile) => setParams({ profile })}
+              itemCount={allItems.length}
+            />
             <ListKindFilter
               baseItems={allItems}
               selectedKinds={params.kinds}

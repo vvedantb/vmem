@@ -27,6 +27,7 @@ import type { ViewMode } from "./graph-view-themes";
 import { VIEW_MODE_LABELS } from "./graph-view-themes";
 import type { TagStat, KindStat } from "./graph-data";
 import type { GraphNodeKind } from "./canvas/types";
+import ProfileFilter from "./ProfileFilter";
 import GraphTagFilter from "./GraphTagFilter";
 import GraphKindFilter from "./GraphKindFilter";
 import GraphLegend from "./GraphLegend";
@@ -79,6 +80,10 @@ interface GraphControlPanelProps {
   search: string;
   onSearchChange: (value: string) => void;
 
+  // Profile
+  profileId: string | null;
+  onProfileChange: (id: string | null) => void;
+
   // Kinds (node type filter)
   allKinds: KindStat[];
   activeKinds: Set<GraphNodeKind>;
@@ -113,6 +118,8 @@ export default function GraphControlPanel({
   onToggle,
   search,
   onSearchChange,
+  profileId,
+  onProfileChange,
   allKinds,
   activeKinds,
   onToggleKind,
@@ -206,6 +213,15 @@ export default function GraphControlPanel({
                   className="h-8 pl-8 text-xs bg-background/50"
                 />
               </div>
+            </div>
+
+            {/* Profile filter */}
+            <div className="px-3 pb-2">
+              <ProfileFilter
+                selectedProfileId={profileId}
+                onProfileChange={onProfileChange}
+                itemCount={totalNodeCount}
+              />
             </div>
 
             <Separator />

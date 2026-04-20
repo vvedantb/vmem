@@ -47,10 +47,11 @@ Neo4j:
 
 Profiles:
 
-- Profiles are for **organizing where memories get saved**, NOT for filtering views
-- All main views (dashboard stats, sidebar stats, activity feed, memories list) always show user-wide totals — never filter by profile
-- Profile selector popover can show per-profile breakdown (informational only)
-- Switching profiles only changes which profile new memories are saved to
+- Profiles are for **organizing where memories get saved**
+- Profile filtering IS allowed in views (list/graph) via URL params, just not as a route-level prefix (e.g., no `/work/memories` vs `/personal/memories`)
+- Dashboard stats, sidebar stats, activity feed always show user-wide totals (not filtered by profile)
+- Profile filter uses nuqs like other filters (tags, sources, types) — persists to URL for shareability
+- Switching profiles in save forms changes which profile new memories are saved to
 
 FOLLOW ALL OF THESE RULES
 
