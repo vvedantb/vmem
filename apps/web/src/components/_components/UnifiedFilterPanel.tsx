@@ -14,11 +14,8 @@ import {
   PopoverContent,
   PopoverTrigger,
   Skeleton,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
 } from "@vmem/ui";
+import * as TabsPrimitive from "@radix-ui/react-tabs";
 import {
   IconArrowsSort,
   IconCategory,
@@ -277,68 +274,71 @@ export default function UnifiedFilterPanel({
         align="start"
         sideOffset={8}
       >
-        <Tabs defaultValue="profile" className="flex h-[320px]">
+        <TabsPrimitive.Root defaultValue="profile" className="flex h-[320px]">
           {/* Left: Vertical tabs */}
-          <TabsList className="flex flex-col justify-start h-full w-32 shrink-0 !rounded-l-2xl !rounded-r-none border-r border-border !bg-transparent !backdrop-blur-none p-1 gap-0.5">
+          <TabsPrimitive.List
+            className="flex flex-col justify-start h-full w-32 shrink-0 border-r border-border p-1 gap-0.5"
+            aria-orientation="vertical"
+          >
             {visibleTabs.includes("profile") && (
-              <TabsTrigger
+              <TabsPrimitive.Trigger
                 value="profile"
-                className="w-full justify-start gap-1.5 px-2 py-2 text-xs data-[state=active]:bg-background"
+                className="flex w-full items-center justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
               >
                 <IconUser size={14} />
                 Profile
                 {tabBadge(profileCount)}
-              </TabsTrigger>
+              </TabsPrimitive.Trigger>
             )}
             {visibleTabs.includes("kind") && (
-              <TabsTrigger
+              <TabsPrimitive.Trigger
                 value="kind"
-                className="w-full justify-start gap-1.5 px-2 py-2 text-xs data-[state=active]:bg-background"
+                className="flex w-full items-center justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
               >
                 <IconShape size={14} />
                 Kind
                 {tabBadge(kindCount)}
-              </TabsTrigger>
+              </TabsPrimitive.Trigger>
             )}
             {visibleTabs.includes("tags") && (
-              <TabsTrigger
+              <TabsPrimitive.Trigger
                 value="tags"
-                className="w-full justify-start gap-1.5 px-2 py-2 text-xs data-[state=active]:bg-background"
+                className="flex w-full items-center justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
               >
                 <IconTag size={14} />
                 Tags
                 {tabBadge(tagCount)}
-              </TabsTrigger>
+              </TabsPrimitive.Trigger>
             )}
             {visibleTabs.includes("source") && (
-              <TabsTrigger
+              <TabsPrimitive.Trigger
                 value="source"
-                className="w-full justify-start gap-1.5 px-2 py-2 text-xs data-[state=active]:bg-background"
+                className="flex w-full items-center justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
               >
                 <IconPlug size={14} />
                 Source
                 {tabBadge(sourceCount)}
-              </TabsTrigger>
+              </TabsPrimitive.Trigger>
             )}
             {visibleTabs.includes("type") && (
-              <TabsTrigger
+              <TabsPrimitive.Trigger
                 value="type"
-                className="w-full justify-start gap-1.5 px-2 py-2 text-xs data-[state=active]:bg-background"
+                className="flex w-full items-center justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
               >
                 <IconCategory size={14} />
                 Type
                 {tabBadge(typeCount)}
-              </TabsTrigger>
+              </TabsPrimitive.Trigger>
             )}
-          </TabsList>
+          </TabsPrimitive.List>
 
           {/* Right: Tab content */}
           <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
             {/* Profile tab */}
             {visibleTabs.includes("profile") && (
-              <TabsContent
+              <TabsPrimitive.Content
                 value="profile"
-                className="flex-1 m-0 flex flex-col overflow-hidden data-[state=inactive]:hidden"
+                className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
               >
                 <div className="p-2 border-b border-border">
                   <button
@@ -393,14 +393,14 @@ export default function UnifiedFilterPanel({
                     })
                   )}
                 </div>
-              </TabsContent>
+              </TabsPrimitive.Content>
             )}
 
             {/* Kind tab */}
             {visibleTabs.includes("kind") && (
-              <TabsContent
+              <TabsPrimitive.Content
                 value="kind"
-                className="flex-1 m-0 flex flex-col overflow-hidden data-[state=inactive]:hidden"
+                className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
               >
                 <div className="p-2 border-b border-border">
                   <button
@@ -443,14 +443,14 @@ export default function UnifiedFilterPanel({
                     );
                   })}
                 </div>
-              </TabsContent>
+              </TabsPrimitive.Content>
             )}
 
             {/* Tags tab */}
             {visibleTabs.includes("tags") && (
-              <TabsContent
+              <TabsPrimitive.Content
                 value="tags"
-                className="flex-1 m-0 flex flex-col overflow-hidden data-[state=inactive]:hidden"
+                className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
               >
                 <div className="p-2 border-b border-border">
                   <div className="flex items-center justify-between">
@@ -532,14 +532,14 @@ export default function UnifiedFilterPanel({
                     />
                   </div>
                 )}
-              </TabsContent>
+              </TabsPrimitive.Content>
             )}
 
             {/* Source tab */}
             {visibleTabs.includes("source") && (
-              <TabsContent
+              <TabsPrimitive.Content
                 value="source"
-                className="flex-1 m-0 flex flex-col overflow-hidden data-[state=inactive]:hidden"
+                className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
               >
                 <div className="p-2 border-b border-border">
                   <button
@@ -586,14 +586,14 @@ export default function UnifiedFilterPanel({
                     />
                   </div>
                 )}
-              </TabsContent>
+              </TabsPrimitive.Content>
             )}
 
             {/* Type tab */}
             {visibleTabs.includes("type") && (
-              <TabsContent
+              <TabsPrimitive.Content
                 value="type"
-                className="flex-1 m-0 flex flex-col overflow-hidden data-[state=inactive]:hidden"
+                className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
               >
                 <div className="p-2 border-b border-border">
                   <button
@@ -634,10 +634,10 @@ export default function UnifiedFilterPanel({
                     );
                   })}
                 </div>
-              </TabsContent>
+              </TabsPrimitive.Content>
             )}
           </div>
-        </Tabs>
+        </TabsPrimitive.Root>
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-border px-3 py-2">
