@@ -1,5 +1,19 @@
 # Changelog
 
+## Chrome Extension: Interface design polish — 2026-04-20
+
+- **Scale on press consistency**: Normalized all active/press states to `scale(0.96)` (was 0.97, 0.985 in different components) for consistent tactile feedback across popup buttons, tabs, and injected content script buttons
+- **Hit area improvements**: Extended Switch (24px → 40px height), Download button, and selection popup (32px → 40px) with `::before` pseudo-elements to meet 40×40px minimum hit area requirement
+- **Tabular numbers**: Added `tabular-nums` class to dynamic progress counters (sync %, progress displays) to prevent layout shift during rapid updates
+- **Text wrapping**: Added `text-balance` to page title in QuickSave and `text-pretty` to signed-out message for improved typography
+- **Image outlines**: Added subtle `outline outline-1 outline-white/10` to favicon in page preview for consistent depth separation
+- **Tonal surfaces over borders**: Replaced `border border-border` on duplicate-save card with `glass-panel-subtle` for cohesive glass morphism design
+- **Concentric border radius**: Fixed SelectItem radius from `rounded-md` to `rounded-lg` to match outer container radius + padding rule
+- **Transition specificity**: Changed injected button transition from `all` to explicit `transform, background-color, box-shadow` for performance
+- **Tab enter animations**: Wrapped TabsContent children in `motion.div` with `fadeUp` preset for polished tab switches
+- **Files affected**: 11 files across `packages/ui/` and `apps/chrome-extension/`
+- Reason: Compound small interface details into cohesive, premium feel; improves usability (hit areas, tabular-nums prevents shift) and tactile feedback (consistent scale-on-press)
+
 ## Interface Design System Refinements — 2026-04-19
 
 - **Scale on press**: Changed button/tab/nav active states from `translate-y-0` to `active:scale-[0.96]` for tactile feedback; applied across 20+ interactive elements for consistency
