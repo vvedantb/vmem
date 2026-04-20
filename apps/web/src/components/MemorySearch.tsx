@@ -10,6 +10,7 @@ import { api } from "@vmem/backend";
 import MemoryDetailPanel from "./MemoryDetailPanel";
 import UnifiedFilterPanel from "./_components/UnifiedFilterPanel";
 import ListItemRow from "./_components/ListItemRow";
+import AnimatedSearchIcon from "./_components/AnimatedSearchIcon";
 import {
   formatMemorySourceLabel,
   formatMemoryTypeLabel,
@@ -321,9 +322,9 @@ export default function MemorySearch({
         )}
 
         {isShowingSearchResults && displayItems.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-xl">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
-              <IconSearch className="w-5 h-5 text-muted-foreground" />
+              <AnimatedSearchIcon className="text-muted-foreground" />
             </div>
             <h3 className="text-base font-medium text-foreground mb-1">
               No results found
