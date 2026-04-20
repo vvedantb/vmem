@@ -1,13 +1,15 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 
+type Theme = "light" | "dark" | "system";
+
 interface ThemeContextType {
-  theme: string;
-  setTheme: (theme: string) => void;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   mounted: boolean;
 }
@@ -15,40 +17,43 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { theme, setTheme } = useTheme();
+  const { theme: nextTheme, setTheme: setNextTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const convexUser = useQuery(api.users.getMe);
-  const updateTheme = useMutation(api.users.setTheme);
-  const hasSynced = useRef(false);
+
+  // Use userSettings (same as extension) - single source of truth
+  const settings = useQuery(api.userSettings.get);
+  const updateSettings = useMutation(api.userSettings.update);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Sync next-themes with Convex userSettings (reactive)
   useEffect(() => {
-    if (!mounted || hasSynced.current || convexUser === undefined) return;
-    hasSynced.current = true;
-    if (convexUser?.theme) {
-      setTheme(convexUser.theme);
+    if (!mounted || settings === undefined) return;
+    const convexTheme = settings.theme ?? "system";
+    if (nextTheme !== convexTheme) {
+      setNextTheme(convexTheme);
     }
-  }, [mounted, convexUser, setTheme]);
+  }, [mounted, settings, nextTheme, setNextTheme]);
 
-  const handleSetTheme = (newTheme: string) => {
-    setTheme(newTheme);
-    if (newTheme === "light" || newTheme === "dark") {
-      void updateTheme({ theme: newTheme });
-    }
+  const theme: Theme = (settings?.theme as Theme) ?? "system";
+
+  const handleSetTheme = (newTheme: Theme) => {
+    setNextTheme(newTheme);
+    void updateSettings({ theme: newTheme });
   };
 
   const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    handleSetTheme(newTheme);
+    // Toggle between light and dark (skip system in toggle)
+    const resolved = nextTheme === "dark" ? "light" : "dark";
+    handleSetTheme(resolved);
   };
 
   return (
     <ThemeContext.Provider
       value={{
-        theme: theme || "dark",
+        theme,
         setTheme: handleSetTheme,
         toggleTheme,
         mounted,
