@@ -144,12 +144,12 @@ export function QuickSave() {
               <img
                 src={pageInfo.favicon}
                 alt=""
-                className="w-4 h-4 mt-0.5 rounded-sm shrink-0"
+                className="w-4 h-4 mt-0.5 rounded-sm shrink-0 outline outline-1 outline-white/10"
               />
             ) : (
               <div className="w-4 h-4 mt-0.5 rounded-sm bg-muted shrink-0" />
             )}
-            <span className="text-sm font-medium leading-tight line-clamp-2">
+            <span className="text-sm font-medium leading-tight line-clamp-2 text-balance">
               {pageInfo.title}
             </span>
           </div>
@@ -170,7 +170,7 @@ export function QuickSave() {
       </Button>
 
       {pendingUpdate && (
-        <div className="space-y-2 rounded-md border border-border p-3">
+        <div className="space-y-2 glass-panel-subtle rounded-xl p-3">
           <p className="text-sm text-muted-foreground">
             Already saved — update it?
           </p>
