@@ -61,9 +61,9 @@ export default function MemorySearch({
   const { theme } = useThemeContext();
   const isDark = theme === "dark";
 
-  const [internalQuery, setInternalQuery] = useState("");
-  const searchQuery = externalQuery ?? internalQuery;
-  const setSearchQuery = onSearchChange ?? setInternalQuery;
+  // Search query: use external prop if provided, else nuqs URL state
+  const searchQuery = externalQuery ?? params.q;
+  const setSearchQuery = onSearchChange ?? ((q: string) => setParams({ q }));
   const isExternalSearch = externalQuery !== undefined;
 
   const trailTag = params.tags.length === 1 ? params.tags[0] : null;
