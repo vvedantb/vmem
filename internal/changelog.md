@@ -1,5 +1,15 @@
 # Changelog
 
+## Chrome Extension: Light/Dark Mode Support with Convex Sync — 2026-04-20
+
+- **Theme toggle in Settings tab**: Added Light/Dark/System theme selector dropdown with icons in the extension's Settings tab, synced to Convex `userSettings.theme` for cross-device consistency
+- **CSS variable restructure**: Refactored `globals.css` from hardcoded dark colors to light/dark theme CSS variables (`:root` for light, `.dark` scope for dark), matching web app's design system
+- **Dynamic theme application**: Created `useTheme()` hook for signed-in users that reads from Convex settings, applies `.dark` class to document root, and resolves "system" preference via `matchMedia`; created `useSystemTheme()` for signed-out users to follow OS preference
+- **Real-time sync**: Theme changes in extension are reflected in web app instantly via Convex reactive queries, and vice versa — single source of truth
+- **Flash prevention**: Added inline script in `index.html` to check sessionStorage cache or OS preference before React hydrates, preventing wrong-theme flashes on popup open
+- **Files affected**: `apps/chrome-extension/src/popup/globals.css`, `apps/chrome-extension/src/popup/useTheme.tsx` (new), `apps/chrome-extension/src/popup/App.tsx`, `apps/chrome-extension/src/popup/_components/SettingsForm.tsx`, `apps/chrome-extension/src/popup/index.html`
+- Reason: Extension was hardcoded to dark mode, inconsistent with web app's theming. Users can now match their OS preference or choose explicitly, and preference stays consistent across web and extension.
+
 ## Chrome Extension: Design System Alignment (Flat UI, Button Variants, Icons) — 2026-04-20
 
 - **Flat content cards**: Changed page preview and pending update cards from `glass-panel-subtle` to `bg-muted/40` for flat tonal surfaces instead of glass morphism on content elements (glass UI reserved for layout)

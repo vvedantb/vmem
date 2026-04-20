@@ -28,6 +28,7 @@ import { QuickSave } from "./_components/QuickSave";
 import { ImportPanel } from "./_components/ImportPanel";
 import { TokenSync } from "./_components/TokenSync";
 import { ExtensionUserSettingsProvider } from "./useExtensionUserSettings";
+import { useTheme, useSystemTheme } from "./useTheme";
 
 function EnsureUser() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -42,9 +43,15 @@ function EnsureUser() {
   return null;
 }
 
+function ThemeApplier() {
+  useTheme();
+  return null;
+}
+
 function SignedInContent() {
   return (
     <ExtensionUserSettingsProvider>
+      <ThemeApplier />
       <EnsureUser />
       <TokenSync />
       <Tabs defaultValue="save" className="flex flex-1 flex-col">
@@ -84,6 +91,8 @@ function SignedInContent() {
 }
 
 function SignedOutContent() {
+  useSystemTheme();
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
       <p className="text-sm text-muted-foreground text-center text-pretty">
