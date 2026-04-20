@@ -1,5 +1,11 @@
 # Changelog
 
+## Activity Page Scrollbar Consistency — 2026-04-20
+
+- **PageContainer scrollRef prop**: Added optional `scrollRef` callback prop to expose the scroll container (motion.div) for virtualized lists to use as custom scroll parent
+- **Activity page refactor**: Removed `noScroll` prop and configured Virtuoso's `customScrollParent` to use PageContainer's scroll container, matching behavior of settings/models page
+- **Reason**: Consistent scrollbar UX across pages — Activity page now uses parent-level scrollbar instead of Virtuoso's internal scrollbar, aligning with other pages that use PageContainer's default scroll behavior
+
 ## Profile Filtering for Memory List and Graph Views — 2026-04-20
 
 - **Profile filter component**: Created reusable `ProfileFilter.tsx` popover component (single-select) showing all profiles with color dots, following ListKindFilter pattern
