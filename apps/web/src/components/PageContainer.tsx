@@ -14,6 +14,8 @@ interface PageContainerProps {
   /** Show title in header row. Defaults to true if sections exist, false otherwise. */
   showTitle?: boolean;
   centeredMaxWidth?: boolean;
+  /** Ref callback to access the scroll container (for use with virtualized lists) */
+  scrollRef?: (el: HTMLDivElement | null) => void;
   children: ReactNode;
 }
 
@@ -25,6 +27,7 @@ export default function PageContainer({
   noScroll = false,
   showTitle,
   centeredMaxWidth = false,
+  scrollRef,
   children,
 }: PageContainerProps) {
   const { setPageTitle } = usePageTitle();
@@ -118,6 +121,7 @@ export default function PageContainer({
         </div>
       )}
       <motion.div
+        ref={scrollRef}
         className={cn(
           "min-h-0 flex-1 flex flex-col",
           noScroll ? "overflow-hidden" : "overflow-y-auto scrollbar-thin",
