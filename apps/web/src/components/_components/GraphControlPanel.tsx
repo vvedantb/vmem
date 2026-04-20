@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import {
   IconMenu2,
   IconX,
@@ -27,9 +27,8 @@ import type { ViewMode } from "./graph-view-themes";
 import { VIEW_MODE_LABELS } from "./graph-view-themes";
 import type { TagStat, KindStat } from "./graph-data";
 import type { GraphNodeKind } from "./canvas/types";
-import ProfileFilter from "./ProfileFilter";
-import GraphTagFilter from "./GraphTagFilter";
-import GraphKindFilter from "./GraphKindFilter";
+import type { ListItemKind } from "@/lib/list-items";
+import UnifiedFilterPanel from "./UnifiedFilterPanel";
 import GraphLegend from "./GraphLegend";
 
 // ---- View mode icons mapping ----
@@ -88,15 +87,11 @@ interface GraphControlPanelProps {
   allKinds: KindStat[];
   activeKinds: Set<GraphNodeKind>;
   onToggleKind: (kind: GraphNodeKind) => void;
-  onSelectAllKinds: () => void;
-  onClearAllKinds: () => void;
 
   // Tags
   allTags: TagStat[];
   activeTags: Set<string>;
   onToggleTag: (tag: string) => void;
-  onSelectAllTags: () => void;
-  onClearAllTags: () => void;
 
   // Display
   viewMode: ViewMode;
@@ -123,13 +118,9 @@ export default function GraphControlPanel({
   allKinds,
   activeKinds,
   onToggleKind,
-  onSelectAllKinds,
-  onClearAllKinds,
   allTags,
   activeTags,
   onToggleTag,
-  onSelectAllTags,
-  onClearAllTags,
   viewMode,
   onViewModeChange,
   settings,
@@ -160,6 +151,77 @@ export default function GraphControlPanel({
       onSettingsChange({ ...settings, showLabels: checked });
     },
     [settings, onSettingsChange],
+  );
+
+  // Adapter: Convert Set<GraphNodeKind> to ListItemKind[] for UnifiedFilterPanel
+  const selectedKindsArray = useMemo(
+    () => Array.from(activeKinds) as ListItemKind[],
+    [activeKinds],
+  );
+
+  // Adapter: Convert ListItemKind[] changes to Set-based handlers
+  const handleKindsChange = useCallback(
+    (kinds: ListItemKind[]) => {
+      const newSet = new Set(kinds as GraphNodeKind[]);
+      // Find which kinds were added/removed and call the appropriate toggle
+      for (const kind of kinds) {
+        if (!activeKinds.has(kind as GraphNodeKind)) {
+          onToggleKind(kind as GraphNodeKind);
+        }
+      }
+      for (const kind of activeKinds) {
+        if (!newSet.has(kind)) {
+          onToggleKind(kind);
+        }
+      }
+    },
+    [activeKinds, onToggleKind],
+  );
+
+  // Adapter: Convert Set<string> to string[] for UnifiedFilterPanel
+  const selectedTagsArray = useMemo(() => Array.from(activeTags), [activeTags]);
+
+  // Adapter: Convert string[] changes to Set-based handlers
+  const handleTagsChange = useCallback(
+    (tags: string[]) => {
+      const newSet = new Set(tags);
+      for (const tag of tags) {
+        if (!activeTags.has(tag)) {
+          onToggleTag(tag);
+        }
+      }
+      for (const tag of activeTags) {
+        if (!newSet.has(tag)) {
+          onToggleTag(tag);
+        }
+      }
+    },
+    [activeTags, onToggleTag],
+  );
+
+  // Compute kind counts from KindStat[] for UnifiedFilterPanel
+  const kindCounts = useMemo(() => {
+    const counts: Record<ListItemKind, number> = {
+      memory: 0,
+      "wiki-document": 0,
+      "wiki-folder": 0,
+      skill: 0,
+    };
+    for (const stat of allKinds) {
+      counts[stat.kind as ListItemKind] = stat.count;
+    }
+    return counts;
+  }, [allKinds]);
+
+  // Convert TagStat[] to TagStats[] format for UnifiedFilterPanel
+  const tagStats = useMemo(
+    () =>
+      allTags.map((t) => ({
+        tag: t.tag,
+        count: t.count,
+        latestCreatedAt: "", // Graph doesn't track this
+      })),
+    [allTags],
   );
 
   return (
@@ -215,59 +277,23 @@ export default function GraphControlPanel({
               </div>
             </div>
 
-            {/* Profile filter */}
+            {/* Unified filter panel for Profile, Kind, Tags */}
             <div className="px-3 pb-2">
-              <ProfileFilter
+              <UnifiedFilterPanel
                 selectedProfileId={profileId}
                 onProfileChange={onProfileChange}
-                itemCount={totalNodeCount}
+                selectedKinds={selectedKindsArray}
+                onKindsChange={handleKindsChange}
+                kindCounts={kindCounts}
+                selectedTags={selectedTagsArray}
+                onTagsChange={handleTagsChange}
+                tagStats={tagStats}
+                filteredCount={visibleNodeCount}
+                totalCount={totalNodeCount}
+                isDark={isDark}
+                visibleTabs={["profile", "kind", "tags"]}
               />
             </div>
-
-            <Separator />
-
-            {/* Types (kind filter) — only shown when >1 kind is present,
-                otherwise the filter has nothing to toggle between. */}
-            {allKinds.length > 1 && (
-              <>
-                <Collapsible defaultOpen>
-                  <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                    Types ({allKinds.length})
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="px-3 pb-2">
-                    <GraphKindFilter
-                      kinds={allKinds}
-                      activeKinds={activeKinds}
-                      onToggle={onToggleKind}
-                      onSelectAll={onSelectAllKinds}
-                      onClearAll={onClearAllKinds}
-                      isDark={isDark}
-                    />
-                  </CollapsibleContent>
-                </Collapsible>
-
-                <Separator />
-              </>
-            )}
-
-            {/* Tags */}
-            {allTags.length > 0 && (
-              <Collapsible defaultOpen>
-                <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  Tags ({allTags.length})
-                </CollapsibleTrigger>
-                <CollapsibleContent className="px-3 pb-2">
-                  <GraphTagFilter
-                    tags={allTags}
-                    activeTags={activeTags}
-                    onToggle={onToggleTag}
-                    onSelectAll={onSelectAllTags}
-                    onClearAll={onClearAllTags}
-                    isDark={isDark}
-                  />
-                </CollapsibleContent>
-              </Collapsible>
-            )}
 
             <Separator />
 
