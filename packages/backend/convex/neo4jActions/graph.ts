@@ -5,6 +5,8 @@ import { v } from "convex/values";
 import { MemoryService } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 
+type MemoryType = "profile" | "episodic" | "knowledge";
+
 // Convex enforces a hard 8192 element limit on ANY array in a return value
 // (applies to all Convex values: return values, arguments, and documents alike).
 // The graph can exceed this — e.g. tagEdges alone reached 10,415 in production.
@@ -25,6 +27,8 @@ function capGraph(data: {
     content: string;
     tags: string[];
     createdAt: string;
+    source?: string;
+    type?: MemoryType;
   }[];
   relatesToEdges: { source: string; target: string; reason: string }[];
   tagEdges: {

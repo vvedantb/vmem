@@ -25,9 +25,10 @@ import type { GraphSettings } from "./graph-types";
 import { DEFAULT_GRAPH_SETTINGS } from "./graph-types";
 import type { ViewMode } from "./graph-view-themes";
 import { VIEW_MODE_LABELS } from "./graph-view-themes";
-import type { TagStat, KindStat } from "./graph-data";
+import type { TagStat, KindStat, SourceStat, TypeStat } from "./graph-data";
 import type { GraphNodeKind } from "./canvas/types";
 import type { ListItemKind } from "@/lib/list-items";
+import type { MemoryType } from "@/lib/memories";
 import UnifiedFilterPanel from "./UnifiedFilterPanel";
 import GraphLegend from "./GraphLegend";
 
@@ -93,6 +94,16 @@ interface GraphControlPanelProps {
   activeTags: Set<string>;
   onToggleTag: (tag: string) => void;
 
+  // Sources (memory-scoped)
+  allSources: SourceStat[];
+  activeSources: Set<string>;
+  onToggleSource: (source: string) => void;
+
+  // Types (memory-scoped)
+  allTypes: TypeStat[];
+  activeTypes: Set<MemoryType>;
+  onToggleType: (type: MemoryType) => void;
+
   // Display
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
@@ -121,6 +132,12 @@ export default function GraphControlPanel({
   allTags,
   activeTags,
   onToggleTag,
+  allSources,
+  activeSources,
+  onToggleSource,
+  allTypes,
+  activeTypes,
+  onToggleType,
   viewMode,
   onViewModeChange,
   settings,
@@ -199,7 +216,55 @@ export default function GraphControlPanel({
     [activeTags, onToggleTag],
   );
 
-  // Compute kind counts from KindStat[] for UnifiedFilterPanel
+  // Adapter: Convert Set<string> to string[] for UnifiedFilterPanel (sources)
+  const selectedSourcesArray = useMemo(
+    () => Array.from(activeSources),
+    [activeSources],
+  );
+
+  const handleSourcesChange = useCallback(
+    (sources: string[]) => {
+      const newSet = new Set(sources);
+      for (const source of sources) {
+        if (!activeSources.has(source)) {
+          onToggleSource(source);
+        }
+      }
+      for (const source of activeSources) {
+        if (!newSet.has(source)) {
+          onToggleSource(source);
+        }
+      }
+    },
+    [activeSources, onToggleSource],
+  );
+
+  // Adapter: Convert Set<MemoryType> to MemoryType[] for UnifiedFilterPanel
+  const selectedTypesArray = useMemo(
+    () => Array.from(activeTypes),
+    [activeTypes],
+  );
+
+  const handleTypesChange = useCallback(
+    (types: MemoryType[]) => {
+      const newSet = new Set(types);
+      for (const type of types) {
+        if (!activeTypes.has(type)) {
+          onToggleType(type);
+        }
+      }
+      for (const type of activeTypes) {
+        if (!newSet.has(type)) {
+          onToggleType(type);
+        }
+      }
+    },
+    [activeTypes, onToggleType],
+  );
+
+  // Compute kind counts from KindStat[] for UnifiedFilterPanel. GraphNodeKind
+  // and ListItemKind are structurally identical string unions, so the keys
+  // line up directly.
   const kindCounts = useMemo(() => {
     const counts: Record<ListItemKind, number> = {
       memory: 0,
@@ -208,10 +273,29 @@ export default function GraphControlPanel({
       skill: 0,
     };
     for (const stat of allKinds) {
-      counts[stat.kind as ListItemKind] = stat.count;
+      counts[stat.kind] = stat.count;
     }
     return counts;
   }, [allKinds]);
+
+  // Derive the plain `string[]` that UnifiedFilterPanel's source list expects.
+  const distinctSources = useMemo(
+    () => allSources.map((s) => s.source),
+    [allSources],
+  );
+
+  // Convert TypeStat[] to Record<MemoryType, number> for UnifiedFilterPanel
+  const typeCounts = useMemo<Record<MemoryType, number>>(() => {
+    const counts: Record<MemoryType, number> = {
+      profile: 0,
+      episodic: 0,
+      knowledge: 0,
+    };
+    for (const stat of allTypes) {
+      counts[stat.type] = stat.count;
+    }
+    return counts;
+  }, [allTypes]);
 
   // Convert TagStat[] to TagStats[] format for UnifiedFilterPanel
   const tagStats = useMemo(
@@ -277,7 +361,7 @@ export default function GraphControlPanel({
               </div>
             </div>
 
-            {/* Unified filter panel for Profile, Kind, Tags */}
+            {/* Unified filter panel — full 5-tab parity with list view */}
             <div className="px-3 pb-2">
               <UnifiedFilterPanel
                 selectedProfileId={profileId}
@@ -288,10 +372,15 @@ export default function GraphControlPanel({
                 selectedTags={selectedTagsArray}
                 onTagsChange={handleTagsChange}
                 tagStats={tagStats}
+                distinctSources={distinctSources}
+                selectedSources={selectedSourcesArray}
+                onSourcesChange={handleSourcesChange}
+                selectedTypes={selectedTypesArray}
+                onTypesChange={handleTypesChange}
+                typeCounts={typeCounts}
                 filteredCount={visibleNodeCount}
                 totalCount={totalNodeCount}
                 isDark={isDark}
-                visibleTabs={["profile", "kind", "tags"]}
               />
             </div>
 

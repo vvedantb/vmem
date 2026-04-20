@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
+import { useQueryStates } from "nuqs";
 import {
   IconMoodEmpty,
   IconLoader2,
@@ -20,6 +21,8 @@ import {
   getGraphViewMode,
   setGraphViewMode,
 } from "@/lib/graph-cookies";
+import type { MemoryType } from "@/lib/memories";
+import { memoriesSearchParams } from "@/routes/_main/memories/-searchParams";
 import type { HoveredNodeInfo, GraphSettings } from "./_components/graph-types";
 import type { ViewMode } from "./_components/graph-view-themes";
 import { getViewTheme } from "./_components/graph-view-themes";
@@ -28,6 +31,8 @@ import {
   buildGraphData,
   getAllTags,
   getAllKinds,
+  getAllSources,
+  getAllTypes,
   getRelatedNodes,
 } from "./_components/graph-data";
 import GraphCanvas from "./_components/GraphCanvas";
@@ -40,8 +45,6 @@ import GraphDetailPanel from "./_components/GraphDetailPanel";
 interface MemoryGraphProps {
   focusNodeId: string | null;
   onFocusChange: (id: string | null) => void;
-  profileId: string | null;
-  onProfileChange: (id: string | null) => void;
 }
 
 const EMPTY_SET = new Set<string>();
@@ -58,13 +61,15 @@ const DEFAULT_ACTIVE_KINDS: ReadonlySet<GraphNodeKind> = new Set<GraphNodeKind>(
 export default function MemoryGraph({
   focusNodeId,
   onFocusChange,
-  profileId,
-  onProfileChange,
 }: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
   const { theme } = useThemeContext();
   const linkMemories = useAction(api.relationshipApi.linkMemories);
   const canvasRef = useRef<GraphCanvasHandle>(null);
+
+  // URL-backed filter state — shared with the list view via nuqs so filters
+  // persist when switching view modes or across sessions.
+  const [params, setParams] = useQueryStates(memoriesSearchParams);
 
   // Data
   const {
@@ -75,7 +80,7 @@ export default function MemoryGraph({
     isLoading,
     isError,
     error,
-  } = useGraphData(focusNodeId, profileId);
+  } = useGraphData(focusNodeId, params.profile);
 
   // UI state
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -85,9 +90,25 @@ export default function MemoryGraph({
   const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
   const [controlPanelOpen, setControlPanelOpen] = useState(true);
   const [search, setSearch] = useState("");
-  const [activeTags, setActiveTags] = useState<Set<string>>(EMPTY_SET);
-  const [activeKinds, setActiveKinds] = useState<Set<GraphNodeKind>>(
-    () => new Set(DEFAULT_ACTIVE_KINDS),
+
+  // Adapt nuqs arrays ↔ Sets once; buildGraphData / handlers downstream still
+  // want Set semantics. An empty `kinds` param means "all kinds" so a fresh
+  // URL shows everything.
+  const activeTags = useMemo(() => new Set(params.tags), [params.tags]);
+  const activeKinds = useMemo<Set<GraphNodeKind>>(
+    () =>
+      params.kinds.length > 0
+        ? new Set(params.kinds)
+        : new Set(DEFAULT_ACTIVE_KINDS),
+    [params.kinds],
+  );
+  const activeSources = useMemo(
+    () => new Set(params.sources),
+    [params.sources],
+  );
+  const activeTypes = useMemo<Set<MemoryType>>(
+    () => new Set(params.types),
+    [params.types],
   );
 
   // Derived
@@ -99,6 +120,8 @@ export default function MemoryGraph({
 
   const allTags = useMemo(() => getAllTags(apiNodes), [apiNodes]);
   const allKinds = useMemo(() => getAllKinds(apiNodes), [apiNodes]);
+  const allSources = useMemo(() => getAllSources(apiNodes), [apiNodes]);
+  const allTypes = useMemo(() => getAllTypes(apiNodes), [apiNodes]);
 
   const { graphNodes, graphEdges } = useMemo(
     () =>
@@ -109,6 +132,8 @@ export default function MemoryGraph({
         apiWikiParentEdges,
         activeTags,
         activeKinds,
+        activeSources,
+        activeTypes,
       ),
     [
       apiNodes,
@@ -117,6 +142,8 @@ export default function MemoryGraph({
       apiWikiParentEdges,
       activeTags,
       activeKinds,
+      activeSources,
+      activeTypes,
     ],
   );
 
@@ -204,32 +231,62 @@ export default function MemoryGraph({
     [linkMemories],
   );
 
-  const handleToggleTag = useCallback((tag: string) => {
-    setActiveTags((prev) => {
-      const next = new Set(prev);
-      if (next.has(tag)) {
-        next.delete(tag);
-      } else {
-        next.add(tag);
-      }
-      return next;
-    });
-  }, []);
+  const handleToggleTag = useCallback(
+    (tag: string) => {
+      const next = params.tags.includes(tag)
+        ? params.tags.filter((t) => t !== tag)
+        : [...params.tags, tag];
+      void setParams({ tags: next });
+    },
+    [params.tags, setParams],
+  );
 
-  // Kind filter uses explicit semantics: the set always lists every visible
-  // kind. Empty set = hide everything; full set = show everything. Simpler than
-  // the tag filter's empty-means-all convention since we only have 3 checkboxes.
-  const handleToggleKind = useCallback((kind: GraphNodeKind) => {
-    setActiveKinds((prev) => {
-      const next = new Set(prev);
-      if (next.has(kind)) {
-        next.delete(kind);
-      } else {
-        next.add(kind);
-      }
-      return next;
-    });
-  }, []);
+  // Kind filter stays aligned with list-view semantics: an empty `kinds` array
+  // in the URL means "all kinds visible" (handled at read time via the
+  // activeKinds memo). Toggling off every kind results in an empty array,
+  // which then widens back to "show all" — matches how nuqs filters work
+  // everywhere else in the app.
+  const handleToggleKind = useCallback(
+    (kind: GraphNodeKind) => {
+      // If url is empty (all-visible), toggling one off means "show all except this one".
+      const current =
+        params.kinds.length > 0
+          ? params.kinds
+          : Array.from(DEFAULT_ACTIVE_KINDS);
+      const next = current.includes(kind)
+        ? current.filter((k) => k !== kind)
+        : [...current, kind];
+      void setParams({ kinds: next });
+    },
+    [params.kinds, setParams],
+  );
+
+  const handleToggleSource = useCallback(
+    (source: string) => {
+      const next = params.sources.includes(source)
+        ? params.sources.filter((s) => s !== source)
+        : [...params.sources, source];
+      void setParams({ sources: next });
+    },
+    [params.sources, setParams],
+  );
+
+  const handleToggleType = useCallback(
+    (type: MemoryType) => {
+      const next = params.types.includes(type)
+        ? params.types.filter((t) => t !== type)
+        : [...params.types, type];
+      void setParams({ types: next });
+    },
+    [params.types, setParams],
+  );
+
+  const handleProfileChange = useCallback(
+    (profile: string | null) => {
+      void setParams({ profile });
+    },
+    [setParams],
+  );
 
   // Loading / error / empty states
   if (isLoading) {
@@ -295,14 +352,20 @@ export default function MemoryGraph({
         onToggle={() => setControlPanelOpen((p) => !p)}
         search={search}
         onSearchChange={setSearch}
-        profileId={profileId}
-        onProfileChange={onProfileChange}
+        profileId={params.profile}
+        onProfileChange={handleProfileChange}
         allKinds={allKinds}
         activeKinds={activeKinds}
         onToggleKind={handleToggleKind}
         allTags={allTags}
         activeTags={activeTags}
         onToggleTag={handleToggleTag}
+        allSources={allSources}
+        activeSources={activeSources}
+        onToggleSource={handleToggleSource}
+        allTypes={allTypes}
+        activeTypes={activeTypes}
+        onToggleType={handleToggleType}
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         settings={graphSettings}

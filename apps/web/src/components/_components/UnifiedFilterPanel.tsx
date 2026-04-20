@@ -89,6 +89,8 @@ interface UnifiedFilterPanelProps {
   // Types (list view only)
   selectedTypes?: MemoryType[];
   onTypesChange?: (types: MemoryType[]) => void;
+  /** Graph-style type counts — if provided, used instead of computing from allMemories */
+  typeCounts?: Record<MemoryType, number>;
 
   // Result count
   filteredCount: number;
@@ -97,8 +99,9 @@ interface UnifiedFilterPanelProps {
   isDark: boolean;
 
   /**
-   * Which tabs to show. Default is all 5 for list view.
-   * Graph view passes ["profile", "kind", "tags"] since Source/Type are memory-only.
+   * Which tabs to show. Defaults to all 5. Kept configurable so embeddings
+   * that only care about a subset (e.g. a dialog scoped to picking a tag)
+   * can hide the rest.
    */
   visibleTabs?: FilterTab[];
 }
@@ -123,6 +126,7 @@ export default function UnifiedFilterPanel({
   onSourcesChange,
   selectedTypes = [],
   onTypesChange,
+  typeCounts: typeCountsProp,
   filteredCount,
   totalCount,
   isDark,
@@ -165,8 +169,9 @@ export default function UnifiedFilterPanel({
     return tagStatsProp ? tags : sortTagStats(tags, tagSortMode);
   }, [tagStatsProp, computedTags, tagSortMode]);
 
-  // Type counts
+  // Type counts - use prop if provided (graph view), else compute from allMemories
   const typeCounts = useMemo(() => {
+    if (typeCountsProp) return typeCountsProp;
     const counts: Record<MemoryType, number> = {
       profile: 0,
       episodic: 0,
@@ -176,7 +181,7 @@ export default function UnifiedFilterPanel({
       counts[memory.type] += 1;
     }
     return counts;
-  }, [allMemories]);
+  }, [typeCountsProp, allMemories]);
 
   // Toggle helpers
   const toggleKind = (kind: ListItemKind) => {
