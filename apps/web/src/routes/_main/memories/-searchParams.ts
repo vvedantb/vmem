@@ -10,6 +10,8 @@ const memoriesSearchParams = {
   focus: parseAsString,
   /** Profile filter — when set, only show memories from this profile */
   profile: parseAsString,
+  /** Search query for filtering items */
+  q: parseAsString.withDefault(""),
   tags: parseAsArrayOf(parseAsString, ",").withDefault([]),
   sources: parseAsArrayOf(parseAsString, ",").withDefault([]),
   types: parseAsArrayOf(parseAsStringLiteral(MEMORY_TYPES), ",").withDefault(
