@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { wikiNodeFields } from "./validators";
+import { wikiNodeFields, profileFields } from "./validators";
 
 const schema = defineSchema({
   users: defineTable({
@@ -95,7 +95,14 @@ const schema = defineSchema({
     notifyMemoryConflicts: v.optional(v.boolean()),
     notifyNewMemories: v.optional(v.boolean()),
     notifyMemoriesExpiring: v.optional(v.boolean()),
+    // Active profile
+    activeProfileId: v.optional(v.id("profiles")),
   }).index("by_user", ["userId"]),
+
+  profiles: defineTable(profileFields)
+    .index("by_user", ["userId"])
+    .index("by_user_default", ["userId", "isDefault"])
+    .index("by_user_name", ["userId", "name"]),
 
   apiRequestLogs: defineTable({
     userId: v.id("users"),
