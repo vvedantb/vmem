@@ -63,8 +63,6 @@ function MemoriesPage() {
           <MemoryGraph
             focusNodeId={params.focus}
             onFocusChange={(id) => setParams({ focus: id })}
-            profileId={params.profile}
-            onProfileChange={(id) => setParams({ profile: id })}
           />
         </div>
       )}

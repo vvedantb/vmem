@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { authAction } from "./auth";
 import { internal } from "./_generated/api";
 
+type MemoryType = "profile" | "episodic" | "knowledge";
+
 /**
  * A node in the unified canvas graph. Memory nodes (from Neo4j), wiki nodes
  * (from Convex `wikiNodes`), and skills (from Convex `skills`) are merged into
@@ -10,6 +12,10 @@ import { internal } from "./_generated/api";
  *   wiki-document → diamond
  *   wiki-folder   → square
  *   skill         → hexagon
+ *
+ * `source` and `type` are only populated on memory nodes — the list/graph
+ * filter UI treats them as memory-scoped filters (non-memory nodes pass
+ * through when a source/type filter is active).
  */
 interface GraphNodeEntry {
   id: string;
@@ -18,6 +24,8 @@ interface GraphNodeEntry {
   tags: string[];
   createdAt: string;
   kind: "memory" | "wiki-document" | "wiki-folder" | "skill";
+  source?: string;
+  type?: MemoryType;
 }
 
 interface GraphResult {
@@ -40,6 +48,8 @@ interface MemoryGraph {
     content: string;
     tags: string[];
     createdAt: string;
+    source?: string;
+    type?: MemoryType;
   }[];
   relatesToEdges: { source: string; target: string; reason: string }[];
   tagEdges: {
@@ -64,6 +74,8 @@ function annotateMemoryNodes(nodes: MemoryGraph["nodes"]): GraphNodeEntry[] {
     tags: n.tags,
     createdAt: n.createdAt,
     kind: "memory",
+    source: n.source,
+    type: n.type,
   }));
 }
 
