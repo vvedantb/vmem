@@ -19,19 +19,10 @@
       }
     </style>
     <script>
-      // Prevent flash of wrong theme on load
-      (function () {
-        try {
-          var cached = sessionStorage.getItem("vmem-resolved-theme");
-          if (
-            cached === "dark" ||
-            (!cached &&
-              window.matchMedia("(prefers-color-scheme: dark)").matches)
-          ) {
-            document.documentElement.classList.add("dark");
-          }
-        } catch (e) {}
-      })();
+      // Apply system theme preference before React hydrates to prevent flash
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        document.documentElement.classList.add("dark");
+      }
     </script>
   </head>
   <body>
