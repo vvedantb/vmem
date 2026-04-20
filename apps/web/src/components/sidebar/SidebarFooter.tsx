@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   Separator,
   Button,
@@ -11,11 +10,11 @@ import {
   HoverCardContent,
 } from "@vmem/ui";
 import { UserButton } from "@clerk/clerk-react";
-import { useConvexAuth, useAction, useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { IconMoon, IconSun, IconChartBar } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 
-interface SidebarStats {
+export interface SidebarStats {
   addedToday: number;
   total: number;
 }
@@ -47,36 +46,13 @@ function PendingEnrichmentBadge({ isIconOnly }: { isIconOnly: boolean }) {
   );
 }
 
-function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
-  const { isAuthenticated } = useConvexAuth();
-  const getStats = useAction(api.dashboardApi.getStats);
-  const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const data = await getStats({});
-        const result = data as {
-          memoriesAddedToday: number;
-          totalMemories: number;
-        };
-        if (!cancelled) {
-          setStats({
-            addedToday: result.memoriesAddedToday,
-            total: result.totalMemories,
-          });
-        }
-      } catch {
-        // silently fail -- sidebar stats are non-critical
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
-
+function StatsCard({
+  isIconOnly,
+  stats,
+}: {
+  isIconOnly: boolean;
+  stats: SidebarStats;
+}) {
   if (isIconOnly) {
     return (
       <div className="flex justify-center">
@@ -136,6 +112,7 @@ export type SidebarFooterProps = {
   isDark: boolean;
   toggleTheme: () => void;
   isAuthLoading: boolean;
+  stats: SidebarStats;
 };
 
 export function SidebarFooter({
@@ -145,13 +122,14 @@ export function SidebarFooter({
   isDark,
   toggleTheme,
   isAuthLoading,
+  stats,
 }: SidebarFooterProps) {
   const isIconOnly = !isMobile && isCollapsed;
 
   return (
     <div className={cn("space-y-4 pt-3")}>
       <PendingEnrichmentBadge isIconOnly={isIconOnly} />
-      <StatsCard isIconOnly={isIconOnly} />
+      <StatsCard isIconOnly={isIconOnly} stats={stats} />
       <Separator className="bg-border/45" />
 
       <div className={cn(isMobile ? "pr-2" : "px-2")}>
