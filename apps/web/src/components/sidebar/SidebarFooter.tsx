@@ -14,6 +14,24 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { IconMoon, IconSun, IconChartBar } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 
+/**
+ * Formats a number with abbreviated suffix (k, m, b) and 1 decimal place.
+ * Numbers under 1000 are displayed as-is.
+ */
+function formatCompactNumber(num: number): string {
+  if (num < 1000) return String(num);
+  if (num < 1_000_000) {
+    const value = num / 1000;
+    return `${value % 1 === 0 ? String(value) : value.toFixed(1)}k`;
+  }
+  if (num < 1_000_000_000) {
+    const value = num / 1_000_000;
+    return `${value % 1 === 0 ? String(value) : value.toFixed(1)}m`;
+  }
+  const value = num / 1_000_000_000;
+  return `${value % 1 === 0 ? String(value) : value.toFixed(1)}b`;
+}
+
 export interface SidebarStats {
   addedToday: number;
   total: number;
@@ -66,7 +84,7 @@ function StatsCard({
             <div className="flex items-baseline gap-4">
               <div className="flex items-baseline gap-1.5">
                 <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
-                  {stats.addedToday}
+                  {formatCompactNumber(stats.addedToday)}
                 </span>
                 <span className="text-[11px] text-muted-foreground/70">
                   today
@@ -74,7 +92,7 @@ function StatsCard({
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
-                  {stats.total}
+                  {formatCompactNumber(stats.total)}
                 </span>
                 <span className="text-[11px] text-muted-foreground/70">
                   total
@@ -91,13 +109,13 @@ function StatsCard({
     <div className="mx-2 flex items-baseline justify-between px-2">
       <div className="flex items-baseline gap-1.5">
         <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
-          {stats.addedToday}
+          {formatCompactNumber(stats.addedToday)}
         </span>
         <span className="text-[11px] text-muted-foreground/70">today</span>
       </div>
       <div className="flex items-baseline gap-1.5">
         <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
-          {stats.total}
+          {formatCompactNumber(stats.total)}
         </span>
         <span className="text-[11px] text-muted-foreground/70">total</span>
       </div>
