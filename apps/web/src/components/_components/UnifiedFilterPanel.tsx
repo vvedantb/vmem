@@ -14,8 +14,8 @@ import {
   PopoverContent,
   PopoverTrigger,
   Skeleton,
+  TabsPrimitive,
 } from "@vmem/ui";
-import * as TabsPrimitive from "@radix-ui/react-tabs";
 import {
   IconArrowsSort,
   IconCategory,
