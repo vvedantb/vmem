@@ -150,6 +150,7 @@ export default function Sidebar({
                 isDark={isDark}
                 toggleTheme={toggleTheme}
                 isAuthLoading={isAuthLoading}
+                onNavigate={() => setMobileMenuOpen(false)}
               />
             </motion.div>
           </DialogRawContent>

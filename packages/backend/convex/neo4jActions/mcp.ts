@@ -1,6 +1,6 @@
 "use node";
 
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { MemoryService } from "../../src/neo4j/memoryService";
@@ -14,6 +14,33 @@ function verifyTokenOrThrow(token: string): string {
   return clerkId;
 }
 
+/**
+ * Resolve the profileId to use for a request.
+ * Priority: explicit profileId > active profile > default profile
+ *
+ * Note: We don't validate explicit profileId ownership here since the memory
+ * queries already filter by userId. If someone passes an invalid profileId,
+ * they just get no results.
+ */
+async function resolveProfileId(
+  ctx: ActionCtx,
+  clerkId: string,
+  explicitProfileId?: string,
+): Promise<string> {
+  // If explicit profileId provided, use it directly
+  // (queries are already scoped to the user's memories)
+  if (explicitProfileId) {
+    return explicitProfileId;
+  }
+
+  // Get active profile or create default
+  const profile = await ctx.runMutation(
+    internal.profiles.getOrCreateDefaultByClerkIdInternal,
+    { clerkId },
+  );
+  return profile._id;
+}
+
 export const mcpSearchMemories = internalAction({
   args: {
     token: v.string(),
@@ -22,12 +49,15 @@ export const mcpSearchMemories = internalAction({
     tags: v.optional(v.array(v.string())),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
+    profileId: v.optional(v.string()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const clerkId = verifyTokenOrThrow(args.token);
+    const profileId = await resolveProfileId(ctx, clerkId, args.profileId);
     const service = new MemoryService(getDriver());
     return await service.searchMemories({
       userId: clerkId,
+      profileId,
       query: args.query,
       limit: args.limit ?? 20,
       offset: args.offset ?? 0,
@@ -40,12 +70,15 @@ export const mcpRetrieveMemories = internalAction({
     token: v.string(),
     query: v.string(),
     limit: v.optional(v.number()),
+    profileId: v.optional(v.string()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const clerkId = verifyTokenOrThrow(args.token);
+    const profileId = await resolveProfileId(ctx, clerkId, args.profileId);
     const service = new MemoryService(getDriver());
     return await service.retrieveMemories({
       userId: clerkId,
+      profileId,
       query: args.query,
       limit: args.limit ?? 10,
     });
@@ -62,9 +95,11 @@ export const mcpCreateMemory = internalAction({
     tags: v.optional(v.array(v.string())),
     confidence: v.optional(v.number()),
     url: v.optional(v.string()),
+    profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const clerkId = verifyTokenOrThrow(args.token);
+    const profileId = await resolveProfileId(ctx, clerkId, args.profileId);
     const service = new MemoryService(getDriver());
 
     const normalizedUrl = args.url
@@ -81,6 +116,7 @@ export const mcpCreateMemory = internalAction({
 
     const result = await service.createMemory({
       userId: clerkId,
+      profileId,
       title: args.title,
       content: args.content,
       type:

@@ -9,6 +9,7 @@ import {
   deleteMemory,
   listSkills,
   getSkill,
+  whoami,
 } from "./api-client.js";
 
 const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
@@ -44,26 +45,31 @@ export function registerTools(
 
   server.tool(
     "whoami",
-    "Returns the authenticated user ID for the current session.",
+    "Returns the authenticated user ID and active profile for the current session.",
     {},
     async () => {
-      return textContent(
-        JSON.stringify({
-          authenticated: true,
-          clerkUserId: user.clerkUserId,
-        }),
-      );
+      const result = await whoami(user.token);
+      if (!result.ok) {
+        return errorContent(
+          `Whoami failed (${result.status}): ${result.message}`,
+        );
+      }
+      return textContent(result.text);
     },
   );
 
   server.tool(
     "memory_search",
-    "Search your memories by query text, type, tags, or source. Returns matching memories with metadata.",
+    "Search your memories by query text, type, tags, or source. Returns matching memories with metadata. Defaults to the active profile unless profileId is specified.",
     {
       query: z.string().optional().describe("Text to search for"),
       type: memoryTypeSchema.optional().describe("Filter by memory type"),
       tags: z.array(z.string()).optional().describe("Filter by tags"),
       source: z.string().optional().describe("Filter by source"),
+      profileId: z
+        .string()
+        .optional()
+        .describe("Profile ID to search in (defaults to active profile)"),
       limit: z
         .number()
         .min(1)
@@ -89,13 +95,17 @@ export function registerTools(
 
   server.tool(
     "memory_retrieve",
-    "Retrieve the most relevant memories for a natural language query. Returns scored results with Context Trace explaining WHY each memory matched (score breakdown: fulltext, recency, confidence).",
+    "Retrieve the most relevant memories for a natural language query. Returns scored results with Context Trace explaining WHY each memory matched (score breakdown: fulltext, recency, confidence). Defaults to the active profile unless profileId is specified.",
     {
       query: z
         .string()
         .describe("Natural language query to find relevant memories"),
       type: memoryTypeSchema.optional().describe("Filter by memory type"),
       tags: z.array(z.string()).optional().describe("Filter by tags"),
+      profileId: z
+        .string()
+        .optional()
+        .describe("Profile ID to search in (defaults to active profile)"),
       limit: z
         .number()
         .min(1)
@@ -116,7 +126,7 @@ export function registerTools(
 
   server.tool(
     "memory_add",
-    "Store a new memory. Use type 'profile' for stable user facts, 'episodic' for past events/interactions, 'knowledge' for durable extracted knowledge.",
+    "Store a new memory. Use type 'profile' for stable user facts, 'episodic' for past events/interactions, 'knowledge' for durable extracted knowledge. Adds to the active profile unless profileId is specified.",
     {
       title: z.string().describe("Short title for the memory"),
       content: z.string().describe("The memory content"),
@@ -135,6 +145,10 @@ export function registerTools(
         .max(1)
         .optional()
         .describe("Confidence score 0-1 (default 1.0)"),
+      profileId: z
+        .string()
+        .optional()
+        .describe("Profile ID to add memory to (defaults to active profile)"),
     },
     async (params) => {
       const result = await addMemory(user.token, params);

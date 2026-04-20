@@ -36,6 +36,11 @@ export async function setupDatabase(driver: Driver): Promise<void> {
       `CREATE INDEX memory_source_id IF NOT EXISTS
        FOR (m:Memory) ON (m.userId, m.sourceType, m.sourceId)`,
     );
+    // Composite index for profile-scoped queries
+    await session.run(
+      `CREATE INDEX memory_user_profile IF NOT EXISTS
+       FOR (m:Memory) ON (m.userId, m.profileId)`,
+    );
     console.log("neo4j indexes and constraints ready");
   } finally {
     await session.close();

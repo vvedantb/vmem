@@ -16,10 +16,15 @@ export const getStatsInternal = internalAction({
 export const getRecentActivityInternal = internalAction({
   args: {
     clerkId: v.string(),
+    profileId: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (_ctx, args) => {
     const service = new MemoryService(getDriver());
-    return await service.getRecentActivity(args.clerkId, args.limit ?? 10);
+    return await service.getRecentActivity(
+      args.clerkId,
+      args.profileId ?? null,
+      args.limit ?? 10,
+    );
   },
 });

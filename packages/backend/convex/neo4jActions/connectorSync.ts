@@ -24,6 +24,13 @@ export const syncGoogleDriveInternal = internalAction({
   handler: async (ctx, args) => {
     const service = new MemoryService(getDriver());
 
+    // Get or create default profile for synced content
+    const defaultProfile = await ctx.runMutation(
+      internal.profiles.getOrCreateDefaultByClerkIdInternal,
+      { clerkId: args.clerkId },
+    );
+    const profileId = defaultProfile._id;
+
     try {
       // Setup Google Drive client
       const auth = new google.auth.OAuth2();
@@ -70,6 +77,7 @@ export const syncGoogleDriveInternal = internalAction({
             // Upsert to Neo4j
             await service.upsertFromSource({
               userId: args.clerkId,
+              profileId,
               title: file.name,
               content: content.slice(0, 50000), // Limit content size
               sourceType: "google_drive",
@@ -186,6 +194,13 @@ export const syncNotionInternal = internalAction({
   handler: async (ctx, args) => {
     const memoryService = new MemoryService(getDriver());
 
+    // Get or create default profile for synced content
+    const defaultProfile = await ctx.runMutation(
+      internal.profiles.getOrCreateDefaultByClerkIdInternal,
+      { clerkId: args.clerkId },
+    );
+    const profileId = defaultProfile._id;
+
     try {
       const notion = new NotionClient({ auth: args.accessToken });
 
@@ -250,6 +265,7 @@ export const syncNotionInternal = internalAction({
             // Upsert to Neo4j
             await memoryService.upsertFromSource({
               userId: args.clerkId,
+              profileId,
               title,
               content,
               sourceType: "notion",

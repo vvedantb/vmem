@@ -35,6 +35,7 @@ function toMemoryStatus(s: string | undefined): MemoryStatus | undefined {
 export const createMemoryInternal = internalAction({
   args: {
     clerkId: v.string(),
+    profileId: v.optional(v.string()),
     title: v.string(),
     content: v.string(),
     type: v.string(),
@@ -47,6 +48,19 @@ export const createMemoryInternal = internalAction({
   },
   handler: async (ctx, args) => {
     const service = new MemoryService(getDriver());
+
+    // Get profileId - use provided or get default
+    let resolvedProfileId: string;
+    if (args.profileId) {
+      resolvedProfileId = args.profileId;
+    } else {
+      const defaultProfile = await ctx.runMutation(
+        internal.profiles.getOrCreateDefaultByClerkIdInternal,
+        { clerkId: args.clerkId },
+      );
+      resolvedProfileId = defaultProfile._id;
+    }
+
     const memoryType =
       args.type === "profile" || args.type === "episodic"
         ? args.type
@@ -71,6 +85,7 @@ export const createMemoryInternal = internalAction({
 
     const result = await service.createMemory({
       userId: args.clerkId,
+      profileId: resolvedProfileId,
       title: args.title,
       content: args.content,
       type: memoryType,
