@@ -15,6 +15,8 @@ const defaults = {
   notifyMemoryConflicts: true,
   notifyNewMemories: false,
   notifyMemoriesExpiring: true,
+  // Active profile (null means use default)
+  activeProfileId: null,
 } as const;
 
 export const get = authQuery({
@@ -40,6 +42,7 @@ export const get = authQuery({
         notifyMemoryConflicts: defaults.notifyMemoryConflicts,
         notifyNewMemories: defaults.notifyNewMemories,
         notifyMemoriesExpiring: defaults.notifyMemoriesExpiring,
+        activeProfileId: defaults.activeProfileId,
       };
     }
 
@@ -64,6 +67,7 @@ export const get = authQuery({
       notifyNewMemories: doc.notifyNewMemories ?? defaults.notifyNewMemories,
       notifyMemoriesExpiring:
         doc.notifyMemoriesExpiring ?? defaults.notifyMemoriesExpiring,
+      activeProfileId: doc.activeProfileId ?? defaults.activeProfileId,
     };
   },
 });
@@ -83,6 +87,7 @@ export const update = authMutation({
     notifyMemoryConflicts: v.optional(v.boolean()),
     notifyNewMemories: v.optional(v.boolean()),
     notifyMemoriesExpiring: v.optional(v.boolean()),
+    activeProfileId: v.optional(v.id("profiles")),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -114,7 +119,13 @@ export const update = authMutation({
       fields.notifyMemoriesExpiring = args.notifyMemoriesExpiring;
 
     if (existing) {
-      await ctx.db.patch(existing._id, fields);
+      // Handle activeProfileId separately since it's an Id type
+      const patchFields = { ...fields };
+      if (args.activeProfileId !== undefined) {
+        (patchFields as Record<string, unknown>).activeProfileId =
+          args.activeProfileId;
+      }
+      await ctx.db.patch(existing._id, patchFields);
       return existing._id;
     }
 

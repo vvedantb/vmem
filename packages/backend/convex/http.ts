@@ -197,6 +197,7 @@ http.route({
           tags: body.tags,
           limit: body.limit,
           offset: body.offset,
+          profileId: body.profileId,
         },
       );
       return jsonResponse({ data: result });
@@ -222,6 +223,7 @@ http.route({
           token,
           query: body.query,
           limit: body.limit,
+          profileId: body.profileId,
         },
       );
       return jsonResponse({ data: result });
@@ -252,6 +254,7 @@ http.route({
           tags: body.tags,
           confidence: body.confidence,
           url: body.url,
+          profileId: body.profileId,
         },
       );
       return jsonResponse({ data: result });
@@ -349,6 +352,66 @@ http.route({
       const result = await ctx.runAction(internal.mcpSkills.mcpGetSkill, {
         token,
         name: body.name,
+      });
+      return jsonResponse({ data: result });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Internal error";
+      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
+    }
+  }),
+});
+
+// --- Profile endpoints (for MCP) ---
+
+http.route({
+  path: "/api/mcp/profiles/list",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const token = extractBearerToken(req);
+    if (!token) return jsonResponse({ error: "Missing token" }, 401);
+
+    try {
+      const result = await ctx.runAction(internal.mcpProfiles.mcpListProfiles, {
+        token,
+      });
+      return jsonResponse({ data: result });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Internal error";
+      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
+    }
+  }),
+});
+
+http.route({
+  path: "/api/mcp/profiles/active",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const token = extractBearerToken(req);
+    if (!token) return jsonResponse({ error: "Missing token" }, 401);
+
+    try {
+      const result = await ctx.runAction(
+        internal.mcpProfiles.mcpGetActiveProfile,
+        { token },
+      );
+      return jsonResponse({ data: result });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Internal error";
+      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
+    }
+  }),
+});
+
+http.route({
+  path: "/api/mcp/whoami",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const token = extractBearerToken(req);
+    if (!token) return jsonResponse({ error: "Missing token" }, 401);
+
+    try {
+      const result = await ctx.runAction(internal.mcpProfiles.mcpWhoami, {
+        token,
       });
       return jsonResponse({ data: result });
     } catch (err) {

@@ -135,6 +135,18 @@ export const ensureUserExists = mutation({
       fullName,
     });
 
+    // Auto-create default "Personal" profile for new users
+    const now = Date.now();
+    await ctx.db.insert("profiles", {
+      userId,
+      name: "Personal",
+      color: "#3B82F6",
+      icon: "user",
+      isDefault: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
     return { userId, wasCreated: true };
   },
 });
