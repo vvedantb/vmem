@@ -56,7 +56,7 @@ export default function PageContainer({
       {hasHeader && (
         <div
           className={cn(
-            "mb-5 flex-shrink-0 min-h-10",
+            "mb-5 flex-shrink-0 min-h-10 px-3 pt-3 md:px-4 md:pt-4",
             centeredMaxWidth && "flex justify-center",
           )}
         >
@@ -120,7 +120,7 @@ export default function PageContainer({
       <motion.div
         className={cn(
           "min-h-0 flex-1 flex flex-col",
-          noScroll ? "overflow-hidden" : "overflow-y-auto pr-1 scrollbar-thin",
+          noScroll ? "overflow-hidden" : "overflow-y-auto scrollbar-thin",
         )}
         initial={{ opacity: 0, y: motionDistance.pageY }}
         animate={{ opacity: 1, y: 0 }}
@@ -130,6 +130,8 @@ export default function PageContainer({
           className={cn(
             noScroll ? "flex-1 min-h-0" : "space-y-8 flex-1",
             centeredMaxWidth && "max-w-5xl mx-auto w-full",
+            "px-3 pb-3 md:px-4 md:pb-4",
+            !hasHeader && "pt-3 md:pt-4",
           )}
         >
           {children}
