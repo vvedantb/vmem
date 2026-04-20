@@ -1,12 +1,30 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser, useClerk } from "@clerk/chrome-extension";
-import { IconSparkles, IconDownload, IconCheck } from "@tabler/icons-react";
-import { Button, Label, Switch, Spinner } from "@vmem/ui";
+import {
+  IconSparkles,
+  IconDownload,
+  IconCheck,
+  IconSun,
+  IconMoon,
+  IconDeviceDesktop,
+} from "@tabler/icons-react";
+import {
+  Button,
+  Label,
+  Switch,
+  Spinner,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@vmem/ui";
 import { getStorage, setStorage } from "@/lib/storage";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import type { BackgroundResponse, ProgressMessage } from "@/types/messages";
 
 type EnrichmentMethod = "chrome-ai" | "webllm" | null;
+type Theme = "light" | "dark" | "system";
 
 interface EnrichmentStatus {
   method: EnrichmentMethod;
@@ -63,6 +81,10 @@ export function SettingsForm() {
     chrome.runtime.onMessage.addListener(handleProgress);
     return () => chrome.runtime.onMessage.removeListener(handleProgress);
   }, []);
+
+  function handleThemeChange(value: string) {
+    void update({ theme: value as Theme });
+  }
 
   function handleSelectionPopupToggle(checked: boolean) {
     void update({ extensionSelectionPopupEnabled: checked });
@@ -163,6 +185,39 @@ export function SettingsForm() {
           </div>
         </div>
       )}
+
+      <div className="flex items-center justify-between gap-3">
+        <Label className="text-sm">Theme</Label>
+        <Select
+          value={settings?.theme ?? "system"}
+          onValueChange={handleThemeChange}
+          disabled={settings === undefined}
+        >
+          <SelectTrigger className="w-[130px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="light">
+              <span className="flex items-center gap-2">
+                <IconSun size={14} />
+                Light
+              </span>
+            </SelectItem>
+            <SelectItem value="dark">
+              <span className="flex items-center gap-2">
+                <IconMoon size={14} />
+                Dark
+              </span>
+            </SelectItem>
+            <SelectItem value="system">
+              <span className="flex items-center gap-2">
+                <IconDeviceDesktop size={14} />
+                System
+              </span>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="flex items-center justify-between gap-3">
         <Label htmlFor="selection-popup-toggle" className="text-sm">
