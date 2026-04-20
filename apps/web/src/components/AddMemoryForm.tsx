@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Input, Textarea, Button, Badge } from "@vmem/ui";
+import { Input, Textarea, Button, Badge, Label } from "@vmem/ui";
 import { toast } from "sonner";
 import {
   IconLoader2,
@@ -18,6 +18,7 @@ import {
 import { buildTagStats } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
+import { ProfileDropdown } from "./ProfileDropdown";
 
 export default function AddMemoryForm() {
   const { memories, createMemory } = useMemoryContext();
@@ -36,6 +37,9 @@ export default function AddMemoryForm() {
   });
 
   const [tagInput, setTagInput] = useState("");
+  const [selectedProfileId, setSelectedProfileId] = useState<
+    string | undefined
+  >();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
@@ -246,7 +250,10 @@ export default function AddMemoryForm() {
 
   const onSubmit = async (data: MemoryFormValues) => {
     try {
-      await createMemory(data);
+      await createMemory({
+        ...data,
+        profileId: selectedProfileId,
+      });
       toast.success("Memory Saved", {
         description: "Your memory has been saved successfully",
       });
@@ -262,6 +269,15 @@ export default function AddMemoryForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <div className="flex items-center gap-3">
+        <Label className="text-sm text-muted-foreground">Save to</Label>
+        <ProfileDropdown
+          value={selectedProfileId}
+          onChange={setSelectedProfileId}
+          disabled={isSubmitting}
+        />
+      </div>
+
       <div className="space-y-3">
         <Input
           type="text"

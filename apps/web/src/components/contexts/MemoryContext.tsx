@@ -20,6 +20,7 @@ interface CreateMemoryInput {
   title: string;
   content: string;
   tags?: string[];
+  profileId?: string;
 }
 
 interface UpdateMemoryInput {
@@ -154,6 +155,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         source: "web",
         tags: input.tags ?? [],
         confidence: 1.0,
+        profileId: input.profileId,
       });
       const memory = apiToMemory({
         id: created.id,

@@ -124,6 +124,7 @@ Verification Rules after implementation:
 - Ensure types are inferred where possible.
 - Ensure no unnecessary client components were introduced.
 - Ensure CLAUDE.md is updated if architecture decisions changed and with new learnings.
+- Run `/changelog` after medium-large changes or new features to document what changed.
 
 Implementation Process:
 

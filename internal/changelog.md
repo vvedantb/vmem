@@ -1,5 +1,18 @@
 # Changelog
 
+## Profile UX Overhaul: Save-Time Profile Selection — 2026-04-20
+
+- **Shifted from global "active profile" to save-time profile selection**: Users now choose which profile to save a memory to when creating/saving, instead of setting a global profile that persists. Source-specific defaults (web app, chrome extension) replace the single `activeProfileId`.
+- **Backend schema migration**: Replaced `userSettings.activeProfileId` with `defaultProfiles: { web?: Id<"profiles">, extension?: Id<"profiles"> }` to support per-source defaults. Added `getDefaultProfile(source)` and `setDefaultProfile(source, profileId)` queries/mutations.
+- **Memory creation with profile selection**: Added optional `profileId` parameter to `createMemory` action, allowing memories to be saved to any profile at creation time rather than defaulting to the active profile.
+- **Web app ProfileDropdown component**: Created reusable dropdown showing all user profiles with colored dots and names. Integrated into AddMemoryForm and AddMemoryModal at the top, with live default fetched from web source setting.
+- **Web app settings redesign**: Replaced single "Active Profile" button with new "Default Profiles" section showing Web App and Browser Extension dropdowns, each with independent defaults managed via `setDefaultProfile`.
+- **Chrome extension profile selection**: QuickSave tab now shows profile dropdown alongside save button. SettingsForm shows "Default Profile" dropdown to set the extension's default profile (persisted to both local storage and backend).
+- **MCP list_profiles tool**: Added tool for Claude/agents to list all available profiles with ID, name, color, and icon. Agents can now ask users which profile to save to before calling memory_add.
+- **Deleted ProfileSelector component**: No longer needed as profile selection moved to save-time. Removed from sidebar footer.
+- **Files affected**: Schema.ts, userSettings.ts, memoryApi.ts, profiles.ts (backend); ProfileDropdown.tsx (new), AddMemoryForm.tsx, AddMemoryModal.tsx, SettingsForm.tsx, SidebarFooter.tsx, profiles.tsx (web); api-client.ts, types/api.ts, types/storage.ts, types/messages.ts, QuickSave.tsx, SettingsForm.tsx (extension); tools.ts (mcp).
+- **Reason**: Save-time profile selection aligns with the architectural principle that profiles are for **organizing where memories get saved**, not for filtering views. Users can now flexibly choose profiles per-memory without changing a global setting, and multi-source defaults (web vs extension) allow independent defaults per device/app.
+
 ## Profile Stats in Selector Popover — 2026-04-20
 
 - **Profile selector popover stats**: Shows `total (+today)` memory count next to each profile name when opening the profile selector — users can see distribution across profiles at a glance

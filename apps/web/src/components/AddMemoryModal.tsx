@@ -15,11 +15,13 @@ import {
   Input,
   Textarea,
   Badge,
+  Label,
 } from "@vmem/ui";
 import { IconLoader2, IconPlus, IconX } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
+import { ProfileDropdown } from "./ProfileDropdown";
 
 export default function AddMemoryModal({
   trigger,
@@ -29,6 +31,9 @@ export default function AddMemoryModal({
   const { createMemory } = useMemoryContext();
   const [open, setOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
+  const [selectedProfileId, setSelectedProfileId] = useState<
+    string | undefined
+  >();
 
   const {
     register,
@@ -67,14 +72,19 @@ export default function AddMemoryModal({
   const handleClose = () => {
     reset();
     setTagInput("");
+    setSelectedProfileId(undefined);
   };
 
   const onSubmit = async (data: MemoryFormValues) => {
     try {
-      await createMemory(data);
+      await createMemory({
+        ...data,
+        profileId: selectedProfileId,
+      });
       toast.success("Memory saved");
       reset();
       setTagInput("");
+      setSelectedProfileId(undefined);
       setOpen(false);
     } catch (error) {
       toast.error(
@@ -108,6 +118,15 @@ export default function AddMemoryModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-2">
+          <div className="flex items-center gap-3">
+            <Label className="text-sm text-muted-foreground">Save to</Label>
+            <ProfileDropdown
+              value={selectedProfileId}
+              onChange={setSelectedProfileId}
+              disabled={isSubmitting}
+            />
+          </div>
+
           <div className="space-y-2">
             <Input
               type="text"
