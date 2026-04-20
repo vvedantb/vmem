@@ -1,5 +1,13 @@
 # Changelog
 
+## Profile Stats in Selector Popover — 2026-04-20
+
+- **Profile selector popover stats**: Shows `total (+today)` memory count next to each profile name when opening the profile selector — users can see distribution across profiles at a glance
+- **New backend queries**: Added `getProfilesStats` action that fetches `{total, today}` for multiple profiles in parallel; added `profileId` param to `getStatsInternal` (Neo4j already supported filtering)
+- **Key architectural decision**: Profiles are for **organizing where memories get saved**, NOT for filtering views. All main stats (dashboard, sidebar StatsCard, activity feed) always show user-wide totals. Profile selector breakdown is purely informational.
+- **Files affected**: `packages/backend/convex/dashboardApi.ts`, `packages/backend/convex/neo4jActions/dashboard.ts`, `apps/web/src/components/sidebar/ProfileSelector.tsx`
+- Reason: Users wanted visibility into how memories are distributed across profiles without changing the core principle that all views show total memories
+
 ## Chrome Extension: Light/Dark Mode Support with Convex Sync — 2026-04-20
 
 - **Theme toggle in Settings tab**: Added Light/Dark/System theme selector dropdown with icons in the extension's Settings tab, synced to Convex `userSettings.theme` for cross-device consistency
