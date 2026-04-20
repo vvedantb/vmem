@@ -279,7 +279,7 @@ export default function UnifiedFilterPanel({
       >
         <Tabs defaultValue="profile" className="flex h-[320px]">
           {/* Left: Vertical tabs */}
-          <TabsList className="flex flex-col justify-start h-full w-32 shrink-0 !rounded-l-2xl !rounded-r-none border-r border-border bg-muted/30 p-1 gap-0.5">
+          <TabsList className="flex flex-col justify-start h-full w-32 shrink-0  border-r border-border !bg-muted/30 !backdrop-blur-none p-1 gap-0.5">
             {visibleTabs.includes("profile") && (
               <TabsTrigger
                 value="profile"
