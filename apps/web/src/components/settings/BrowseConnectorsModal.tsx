@@ -101,7 +101,7 @@ export default function BrowseConnectorsModal({
                   key={connector._id}
                   className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-muted/50 transition-colors min-w-0"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-muted/60 flex items-center justify-center flex-shrink-0">
                     <Icon size={20} stroke={1.5} className="text-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">

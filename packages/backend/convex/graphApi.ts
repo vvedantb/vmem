@@ -68,7 +68,10 @@ function annotateMemoryNodes(nodes: MemoryGraph["nodes"]): GraphNodeEntry[] {
 }
 
 export const getGraphData = authAction({
-  args: { focus: v.optional(v.string()) },
+  args: {
+    focus: v.optional(v.string()),
+    profileId: v.optional(v.string()),
+  },
   handler: async (ctx, args): Promise<GraphResult> => {
     const clerkId: string | null = await ctx.runQuery(
       internal.auth.getClerkIdInternal,
@@ -78,7 +81,7 @@ export const getGraphData = authAction({
 
     const memoryGraph: MemoryGraph = await ctx.runAction(
       internal.neo4jActions.graph.getGraphDataInternal,
-      { clerkId, focus: args.focus },
+      { clerkId, focus: args.focus, profileId: args.profileId },
     );
 
     // Wiki nodes are only included for the global graph. When the user focuses
@@ -141,7 +144,10 @@ export const getGraphData = authAction({
 });
 
 export const getLocalGraph = authAction({
-  args: { focusId: v.string() },
+  args: {
+    focusId: v.string(),
+    profileId: v.optional(v.string()),
+  },
   handler: async (ctx, args): Promise<GraphResult> => {
     const clerkId: string | null = await ctx.runQuery(
       internal.auth.getClerkIdInternal,
@@ -153,6 +159,7 @@ export const getLocalGraph = authAction({
       {
         clerkId,
         focusId: args.focusId,
+        profileId: args.profileId,
       },
     );
     return {

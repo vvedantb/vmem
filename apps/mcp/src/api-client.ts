@@ -92,3 +92,15 @@ export function listSkills(token: string): Promise<ApiResult> {
 export function getSkill(token: string, name: string): Promise<ApiResult> {
   return apiRequest("/api/mcp/skills/get", token, { name });
 }
+
+export function whoami(token: string): Promise<ApiResult> {
+  return apiRequest("/api/mcp/whoami", token);
+}
+
+export function listProfiles(token: string): Promise<ApiResult> {
+  return apiRequest("/api/mcp/profiles/list", token);
+}
+
+export function getActiveProfile(token: string): Promise<ApiResult> {
+  return apiRequest("/api/mcp/profiles/active", token);
+}

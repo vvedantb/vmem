@@ -163,7 +163,7 @@ function TagsPage() {
     <PageContainer title="Memories">
       <div className="space-y-8">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">
+          <h1 className="text-2xl font-semibold text-foreground text-balance">
             Tag Management
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -172,21 +172,21 @@ function TagsPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-          <div className="rounded-xl border border-border bg-muted/50 p-4">
+          <div className="rounded-xl bg-muted/50 p-4">
             <p className="text-sm text-muted-foreground">Total Tags</p>
-            <p className="mt-1 text-2xl font-semibold text-foreground">
+            <p className="mt-1 text-2xl font-semibold text-foreground tabular-nums">
               {tags.length}
             </p>
           </div>
-          <div className="rounded-xl border border-border bg-muted/50 p-4">
+          <div className="rounded-xl bg-muted/50 p-4">
             <p className="text-sm text-muted-foreground">Tag Uses</p>
-            <p className="mt-1 text-2xl font-semibold text-foreground">
+            <p className="mt-1 text-2xl font-semibold text-foreground tabular-nums">
               {totalMemoriesWithTags}
             </p>
           </div>
-          <div className="rounded-xl border border-border bg-muted/50 p-4">
+          <div className="rounded-xl bg-muted/50 p-4">
             <p className="text-sm text-muted-foreground">Avg Tags/Memory</p>
-            <p className="mt-1 text-2xl font-semibold text-foreground">
+            <p className="mt-1 text-2xl font-semibold text-foreground tabular-nums">
               {tags.length > 0
                 ? (totalMemoriesWithTags / tags.length).toFixed(1)
                 : "0"}
@@ -195,22 +195,24 @@ function TagsPage() {
         </div>
 
         <div>
-          <h2 className="mb-4 text-lg font-medium text-foreground">
+          <h2 className="mb-4 text-lg font-medium text-foreground text-balance">
             Tag Cloud
           </h2>
           <TagCloud tags={tags} onTagClick={handleTagClick} />
         </div>
 
         <div>
-          <h2 className="mb-4 text-lg font-medium text-foreground">All Tags</h2>
+          <h2 className="mb-4 text-lg font-medium text-foreground text-balance">
+            All Tags
+          </h2>
           {tags.length === 0 ? (
-            <div className="rounded-xl border border-border p-8 text-center">
+            <div className="rounded-xl bg-muted/40 p-8 text-center">
               <p className="text-sm text-muted-foreground">
                 No tags found. Add tags to your memories to manage them here.
               </p>
             </div>
           ) : (
-            <div className="rounded-xl border border-border">
+            <div className="rounded-xl bg-muted/30 overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>

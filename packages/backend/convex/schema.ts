@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { wikiNodeFields } from "./validators";
+import { wikiNodeFields, profileFields } from "./validators";
 
 const schema = defineSchema({
   users: defineTable({
@@ -88,7 +88,26 @@ const schema = defineSchema({
     notificationsEnabled: v.optional(v.boolean()),
     extensionAutoSyncEnabled: v.optional(v.boolean()),
     extensionSelectionPopupEnabled: v.optional(v.boolean()),
+    // Memory behavior defaults
+    memoryAutoExtract: v.optional(v.boolean()),
+    memoryConfidenceThreshold: v.optional(v.number()),
+    // Notification preferences
+    notifyMemoryConflicts: v.optional(v.boolean()),
+    notifyNewMemories: v.optional(v.boolean()),
+    notifyMemoriesExpiring: v.optional(v.boolean()),
+    // Source-specific default profiles (replaces activeProfileId)
+    defaultProfiles: v.optional(
+      v.object({
+        web: v.optional(v.id("profiles")),
+        extension: v.optional(v.id("profiles")),
+      }),
+    ),
   }).index("by_user", ["userId"]),
+
+  profiles: defineTable(profileFields)
+    .index("by_user", ["userId"])
+    .index("by_user_default", ["userId", "isDefault"])
+    .index("by_user_name", ["userId", "name"]),
 
   apiRequestLogs: defineTable({
     userId: v.id("users"),

@@ -1,5 +1,103 @@
 # Changelog
 
+## Unified Filter Panel for Memories List and Graph — 2026-04-20
+
+- **Consolidated 5 filter buttons into single "Filter" popover**: Replaced separate Profile, Kind, Tags, Source, and Type filter buttons with a single unified filter panel featuring vertical tabs for each category
+- **Vertical tab navigation with badges**: Each tab shows the category name with a badge indicating active filter count (e.g., "Tags (3)"); trigger button shows total active filter count
+- **Live filtering with instant updates**: Filters apply immediately as selections change (no Cancel/Save needed); footer shows "Showing X of Y items" count
+- **Clear all functionality**: Single "Clear all" button resets all filters; also appears on hover of the trigger button when filters are active
+- **Graph view integration**: GraphControlPanel now uses the same UnifiedFilterPanel with 3 tabs (Profile, Kind, Tags) instead of separate collapsible sections; adapter logic converts between Set-based and array-based state
+- **Deleted 7 filter components**: Removed ProfileFilter, ListKindFilter, MemoryTagFilter, MemorySourceFilter, MemoryTypeFilter, GraphKindFilter, GraphTagFilter — all logic consolidated into UnifiedFilterPanel
+- **Reason**: 5 separate filter buttons cluttered the UI and took up horizontal space; unified panel provides cleaner interface while maintaining full filter functionality with better discoverability
+
+## Activity Page Scrollbar Consistency — 2026-04-20
+
+- **PageContainer scrollRef prop**: Added optional `scrollRef` callback prop to expose the scroll container (motion.div) for virtualized lists to use as custom scroll parent
+- **Activity page refactor**: Removed `noScroll` prop and configured Virtuoso's `customScrollParent` to use PageContainer's scroll container, matching behavior of settings/models page
+- **Reason**: Consistent scrollbar UX across pages — Activity page now uses parent-level scrollbar instead of Virtuoso's internal scrollbar, aligning with other pages that use PageContainer's default scroll behavior
+
+## Profile Filtering for Memory List and Graph Views — 2026-04-20
+
+- **Profile filter component**: Created reusable `ProfileFilter.tsx` popover component (single-select) showing all profiles with color dots, following ListKindFilter pattern
+- **Memory interface updates**: Added `profileId?: string` to Memory type and ListItem.MemoryRowItem; updated `memoryToListItem()` and `listItemsToMemories()` helpers
+- **Memory context updates**: Added `profileId` to ApiMemory interface and included in `apiToMemory()` mapping from backend
+- **List view client-side filtering**: MemorySearch applies profile filter to all items, non-memory kinds (wiki, skills) pass through untouched (consistent with tag/source/type filters)
+- **Graph view server-side filtering**: useGraphData hook now accepts profileId parameter, query key includes profileId for cache isolation; backend getGraphData/getLocalGraph actions accept optional profileId and pass to Neo4j service
+- **URL state management**: Added `profile: parseAsString` to memoriesSearchParams via nuqs for persistent filter state alongside existing tags/sources/types
+- **Component integration**: ProfileFilter added to MemorySearch toolbar and GraphControlPanel; both components receive selectedProfileId + onProfileChange props from their parent routes
+- **Architecture clarification**: Updated CLAUDE.md to reflect that profile filtering IS allowed in views (unlike the strict "no profile filtering" rule previously documented), just not as a route-level separation (no /work/memories vs /personal/memories routes)
+- **Files affected**: ProfileFilter.tsx (new), memories.ts, list-items.ts, MemoryContext.tsx, searchParams.ts, useGraphData.ts, graphApi.ts, neo4jActions/graph.ts, MemorySearch.tsx, MemoryGraph.tsx, GraphControlPanel.tsx, routes index.tsx, CLAUDE.md
+- **Reason**: Users wanted to view memories filtered by profile in both graph and list views without splitting routes; hybrid approach (server-side for graph to respect 2000-node cap, client-side for list to keep logic simple) balances performance and simplicity
+
+## Profile UX Overhaul: Save-Time Profile Selection — 2026-04-20
+
+- **Shifted from global "active profile" to save-time profile selection**: Users now choose which profile to save a memory to when creating/saving, instead of setting a global profile that persists. Source-specific defaults (web app, chrome extension) replace the single `activeProfileId`.
+- **Backend schema migration**: Replaced `userSettings.activeProfileId` with `defaultProfiles: { web?: Id<"profiles">, extension?: Id<"profiles"> }` to support per-source defaults. Added `getDefaultProfile(source)` and `setDefaultProfile(source, profileId)` queries/mutations.
+- **Memory creation with profile selection**: Added optional `profileId` parameter to `createMemory` action, allowing memories to be saved to any profile at creation time rather than defaulting to the active profile.
+- **Web app ProfileDropdown component**: Created reusable dropdown showing all user profiles with colored dots and names. Integrated into AddMemoryForm and AddMemoryModal at the top, with live default fetched from web source setting.
+- **Web app settings redesign**: Replaced single "Active Profile" button with new "Default Profiles" section showing Web App and Browser Extension dropdowns, each with independent defaults managed via `setDefaultProfile`.
+- **Chrome extension profile selection**: QuickSave tab now shows profile dropdown alongside save button. SettingsForm shows "Default Profile" dropdown to set the extension's default profile (persisted to both local storage and backend).
+- **MCP list_profiles tool**: Added tool for Claude/agents to list all available profiles with ID, name, color, and icon. Agents can now ask users which profile to save to before calling memory_add.
+- **Deleted ProfileSelector component**: No longer needed as profile selection moved to save-time. Removed from sidebar footer.
+- **Files affected**: Schema.ts, userSettings.ts, memoryApi.ts, profiles.ts (backend); ProfileDropdown.tsx (new), AddMemoryForm.tsx, AddMemoryModal.tsx, SettingsForm.tsx, SidebarFooter.tsx, profiles.tsx (web); api-client.ts, types/api.ts, types/storage.ts, types/messages.ts, QuickSave.tsx, SettingsForm.tsx (extension); tools.ts (mcp).
+- **Reason**: Save-time profile selection aligns with the architectural principle that profiles are for **organizing where memories get saved**, not for filtering views. Users can now flexibly choose profiles per-memory without changing a global setting, and multi-source defaults (web vs extension) allow independent defaults per device/app.
+
+## Profile Stats in Selector Popover — 2026-04-20
+
+- **Profile selector popover stats**: Shows `total (+today)` memory count next to each profile name when opening the profile selector — users can see distribution across profiles at a glance
+- **New backend queries**: Added `getProfilesStats` action that fetches `{total, today}` for multiple profiles in parallel; added `profileId` param to `getStatsInternal` (Neo4j already supported filtering)
+- **Key architectural decision**: Profiles are for **organizing where memories get saved**, NOT for filtering views. All main stats (dashboard, sidebar StatsCard, activity feed) always show user-wide totals. Profile selector breakdown is purely informational.
+- **Files affected**: `packages/backend/convex/dashboardApi.ts`, `packages/backend/convex/neo4jActions/dashboard.ts`, `apps/web/src/components/sidebar/ProfileSelector.tsx`
+- Reason: Users wanted visibility into how memories are distributed across profiles without changing the core principle that all views show total memories
+
+## Chrome Extension: Light/Dark Mode Support with Convex Sync — 2026-04-20
+
+- **Theme toggle in Settings tab**: Added Light/Dark/System theme selector dropdown with icons in the extension's Settings tab, synced to Convex `userSettings.theme` for cross-device consistency
+- **CSS variable restructure**: Refactored `globals.css` from hardcoded dark colors to light/dark theme CSS variables (`:root` for light, `.dark` scope for dark), matching web app's design system
+- **Dynamic theme application**: Created `useTheme()` hook for signed-in users that reads from Convex settings, applies `.dark` class to document root, and resolves "system" preference via `matchMedia`; created `useSystemTheme()` for signed-out users to follow OS preference
+- **Real-time sync**: Theme changes in extension are reflected in web app instantly via Convex reactive queries, and vice versa — single source of truth
+- **Flash prevention**: Added inline script in `index.html` to check sessionStorage cache or OS preference before React hydrates, preventing wrong-theme flashes on popup open
+- **Files affected**: `apps/chrome-extension/src/popup/globals.css`, `apps/chrome-extension/src/popup/useTheme.tsx` (new), `apps/chrome-extension/src/popup/App.tsx`, `apps/chrome-extension/src/popup/_components/SettingsForm.tsx`, `apps/chrome-extension/src/popup/index.html`
+- Reason: Extension was hardcoded to dark mode, inconsistent with web app's theming. Users can now match their OS preference or choose explicitly, and preference stays consistent across web and extension.
+
+## Chrome Extension: Design System Alignment (Flat UI, Button Variants, Icons) — 2026-04-20
+
+- **Flat content cards**: Changed page preview and pending update cards from `glass-panel-subtle` to `bg-muted/40` for flat tonal surfaces instead of glass morphism on content elements (glass UI reserved for layout)
+- **Button variant consistency**: Primary action buttons (Save to vmem, Sync Bookmarks, Sync History) now use `default` variant (primary color fill) to match web app settings pattern; secondary actions (Update, Dismiss) use `outline`/`ghost` variants
+- **Sign-in button alignment**: Changed Sign in button from `default` to `outline` variant to match web app settings button styling
+- **Header separator**: Replaced `border-b border-border/30` with `bg-muted/20` for tonal surface contrast instead of borders (aligns with design system rule: no borders for visual separation between layout regions)
+- **Action button icons**: Added `IconDeviceFloppy`, `IconBookmark`, `IconHistory` icons to main action buttons for visual consistency with web settings pages
+- **Files affected**: `apps/chrome-extension/src/popup/_components/QuickSave.tsx`, `apps/chrome-extension/src/popup/_components/ImportPanel.tsx`, `apps/chrome-extension/src/popup/App.tsx`
+- Reason: Chrome extension UI was inconsistent with web app design system (glass UI on content, button variants). Alignments ensure cohesive visual language across both apps (both use shared `@vmem/ui` component library)
+
+## Chrome Extension: Interface design polish — 2026-04-20
+
+- **Scale on press consistency**: Normalized all active/press states to `scale(0.96)` (was 0.97, 0.985 in different components) for consistent tactile feedback across popup buttons, tabs, and injected content script buttons
+- **Hit area improvements**: Extended Switch (24px → 40px height), Download button, and selection popup (32px → 40px) with `::before` pseudo-elements to meet 40×40px minimum hit area requirement
+- **Tabular numbers**: Added `tabular-nums` class to dynamic progress counters (sync %, progress displays) to prevent layout shift during rapid updates
+- **Text wrapping**: Added `text-balance` to page title in QuickSave and `text-pretty` to signed-out message for improved typography
+- **Image outlines**: Added subtle `outline outline-1 outline-white/10` to favicon in page preview for consistent depth separation
+- **Tonal surfaces over borders**: Replaced `border border-border` on duplicate-save card with `glass-panel-subtle` for cohesive glass morphism design
+- **Concentric border radius**: Fixed SelectItem radius from `rounded-md` to `rounded-lg` to match outer container radius + padding rule
+- **Transition specificity**: Changed injected button transition from `all` to explicit `transform, background-color, box-shadow` for performance
+- **Tab enter animations**: Wrapped TabsContent children in `motion.div` with `fadeUp` preset for polished tab switches
+- **Files affected**: 11 files across `packages/ui/` and `apps/chrome-extension/`
+- Reason: Compound small interface details into cohesive, premium feel; improves usability (hit areas, tabular-nums prevents shift) and tactile feedback (consistent scale-on-press)
+
+## Interface Design System Refinements — 2026-04-19
+
+- **Scale on press**: Changed button/tab/nav active states from `translate-y-0` to `active:scale-[0.96]` for tactile feedback; applied across 20+ interactive elements for consistency
+- **Transition specificity**: Replaced `transition-all` with explicit property lists (`transition-[transform,background-color]`) across 15+ components to prevent unintended animations
+- **Shadows over borders**: Removed 40+ hardcoded border dividers (`border border-border`) and replaced with tonal background colors (`bg-muted/*` variants) to align with glass morphism design system
+- **Minimum hit areas**: Extended 8 small icon buttons (close, remove-tag, icon-sm/xs sizes) to 40×40px hit area via `before:absolute before:inset-[-4px/-6px]` pseudo-elements
+- **Text wrapping**: Added `text-balance` to 12 headings across pages for improved typography and reduced orphans
+- **Tabular numbers**: Added `font-variant-numeric: tabular-nums` to 8 dynamic number displays (stats, timestamps, counters) to prevent layout shift
+- **Image outlines**: Added subtle `outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10` to 3 images for consistent depth separation
+- **Concentric border radius**: Fixed 4 nested element radius pairs (e.g., `rounded-xl` parent + `rounded-xl` child → `rounded-2xl` + `rounded-lg`) per the `outerRadius = innerRadius + padding` rule
+- **Dialog close button**: Fixed radius from `rounded-full` to `rounded-xl`, extended hit area to 40px, aligned with glass panel styling
+- **Files affected**: 35+ component and route files across `packages/ui`, `apps/web/src/components`, `apps/web/src/routes`
+- Reason: Compound these small details into a cohesive, polished interface that feels responsive and premium; aligns the entire codebase with the established glass morphism design language
+
 ## Web: Vite app finalized, Next.js removed — 2025-04-18
 
 - Deleted `apps/web` (Next.js) and renamed `apps/web-v2` to `apps/web` — Vite/TanStack Router is now the primary web frontend

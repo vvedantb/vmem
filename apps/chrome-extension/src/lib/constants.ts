@@ -28,7 +28,8 @@ export const VMEM_BUTTON_STYLES = {
   gap: "8px",
   fontFamily: "'Instrument Sans', system-ui, -apple-system, sans-serif",
   boxShadow: "0 1px 2px rgba(16,24,40,0.06), 0 10px 28px rgba(16,24,40,0.06)",
-  transition: "all 240ms cubic-bezier(0.22,1,0.36,1)",
+  transition:
+    "transform 240ms cubic-bezier(0.22,1,0.36,1), background-color 240ms cubic-bezier(0.22,1,0.36,1), box-shadow 240ms cubic-bezier(0.22,1,0.36,1)",
   letterSpacing: "0",
   lineHeight: "1",
   height: "40px",

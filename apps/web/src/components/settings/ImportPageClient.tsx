@@ -98,7 +98,7 @@ export default function ImportPageClient() {
     <>
       <PageContainer title="Import" centeredMaxWidth showTitle>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-border p-6">
+          <div className="rounded-xl bg-muted/40 p-6">
             <div className="mb-4 flex items-center gap-3">
               <OpenAiLogo className="h-6 w-6 shrink-0 text-[#10A37F] dark:text-[#1EC286]" />
               <h3 className="text-base font-medium text-foreground">ChatGPT</h3>
@@ -112,7 +112,7 @@ export default function ImportPageClient() {
             </Button>
           </div>
 
-          <div className="rounded-xl border border-border p-6">
+          <div className="rounded-xl bg-muted/40 p-6">
             <div className="mb-4 flex items-center gap-3">
               <ClaudeLogo className="h-6 w-6 shrink-0 text-[#D97757] dark:text-[#EA9A7A]" />
               <h3 className="text-base font-medium text-foreground">Claude</h3>

@@ -20,6 +20,7 @@ interface CreateMemoryInput {
   title: string;
   content: string;
   tags?: string[];
+  profileId?: string;
 }
 
 interface UpdateMemoryInput {
@@ -53,6 +54,7 @@ interface ApiMemory {
   createdAt: string;
   updatedAt: string;
   expiresAt: string | null;
+  profileId?: string;
 }
 
 function isMemoryType(value: string): value is Memory["type"] {
@@ -68,6 +70,7 @@ function apiToMemory(m: ApiMemory): Memory {
     source: m.source,
     tags: m.tags,
     createdAt: m.createdAt,
+    profileId: m.profileId,
   };
 }
 
@@ -154,6 +157,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         source: "web",
         tags: input.tags ?? [],
         confidence: 1.0,
+        profileId: input.profileId,
       });
       const memory = apiToMemory({
         id: created.id,

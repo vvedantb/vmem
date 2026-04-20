@@ -1,12 +1,34 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser, useClerk } from "@clerk/chrome-extension";
-import { IconSparkles, IconDownload, IconCheck } from "@tabler/icons-react";
-import { Button, Label, Switch, Spinner } from "@vmem/ui";
+import {
+  IconSparkles,
+  IconDownload,
+  IconCheck,
+  IconSun,
+  IconMoon,
+  IconDeviceDesktop,
+  IconLogout,
+} from "@tabler/icons-react";
+import {
+  Button,
+  Label,
+  Switch,
+  Spinner,
+  Skeleton,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@vmem/ui";
 import { getStorage, setStorage } from "@/lib/storage";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import type { BackgroundResponse, ProgressMessage } from "@/types/messages";
+import type { Profile } from "@/types/api";
+import { listProfiles, setDefaultProfile } from "@/background/api-client";
 
 type EnrichmentMethod = "chrome-ai" | "webllm" | null;
+type Theme = "light" | "dark" | "system";
 
 interface EnrichmentStatus {
   method: EnrichmentMethod;
@@ -26,11 +48,32 @@ export function SettingsForm() {
     progress: number;
     text: string;
   } | null>(null);
+  const [profiles, setProfiles] = useState<Profile[] | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
 
   useEffect(() => {
     getStorage().then((s) => {
       setLocalEnrichmentEnabled(s.localEnrichmentEnabled);
+      setSelectedProfileId(s.defaultProfileId);
     });
+
+    // Load profiles
+    void listProfiles()
+      .then((profileList) => {
+        setProfiles(profileList);
+        // If no profile selected, use the default one
+        getStorage().then((s) => {
+          if (!s.defaultProfileId) {
+            const defaultProfile = profileList.find((p) => p.isDefault);
+            if (defaultProfile) {
+              setSelectedProfileId(defaultProfile._id);
+            }
+          }
+        });
+      })
+      .catch(() => {
+        // Not authenticated yet
+      });
 
     // Get enrichment status
     chrome.runtime
@@ -64,6 +107,10 @@ export function SettingsForm() {
     return () => chrome.runtime.onMessage.removeListener(handleProgress);
   }, []);
 
+  function handleThemeChange(value: string) {
+    void update({ theme: value as Theme });
+  }
+
   function handleSelectionPopupToggle(checked: boolean) {
     void update({ extensionSelectionPopupEnabled: checked });
   }
@@ -71,6 +118,17 @@ export function SettingsForm() {
   function handleLocalEnrichmentToggle(checked: boolean) {
     setLocalEnrichmentEnabled(checked);
     setStorage({ localEnrichmentEnabled: checked });
+  }
+
+  async function handleProfileChange(profileId: string) {
+    setSelectedProfileId(profileId);
+    await setStorage({ defaultProfileId: profileId });
+    // Also sync to backend
+    try {
+      await setDefaultProfile(profileId);
+    } catch {
+      // Backend sync failed, but local storage is updated
+    }
   }
 
   const handleLoadModel = useCallback(async () => {
@@ -125,7 +183,7 @@ export function SettingsForm() {
         return (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Spinner className="size-3" />
-            {loadProgress.progress}%
+            <span className="tabular-nums">{loadProgress.progress}%</span>
           </span>
         );
       }
@@ -134,7 +192,7 @@ export function SettingsForm() {
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 px-2 text-xs gap-1"
+          className="h-6 px-2 text-xs gap-1 relative before:absolute before:inset-[-7px] before:content-['']"
           onClick={handleLoadModel}
           disabled={isLoadingModel}
         >
@@ -163,6 +221,72 @@ export function SettingsForm() {
           </div>
         </div>
       )}
+
+      <div className="flex items-center justify-between gap-3">
+        <Label className="text-sm">Theme</Label>
+        <Select
+          value={settings?.theme ?? "system"}
+          onValueChange={handleThemeChange}
+          disabled={settings === undefined}
+        >
+          <SelectTrigger className="w-[130px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="light">
+              <span className="flex items-center gap-2">
+                <IconSun size={14} />
+                Light
+              </span>
+            </SelectItem>
+            <SelectItem value="dark">
+              <span className="flex items-center gap-2">
+                <IconMoon size={14} />
+                Dark
+              </span>
+            </SelectItem>
+            <SelectItem value="system">
+              <span className="flex items-center gap-2">
+                <IconDeviceDesktop size={14} />
+                System
+              </span>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <Label className="text-sm">Default Profile</Label>
+        {profiles === null ? (
+          <Skeleton className="h-9 w-[130px] rounded-md" />
+        ) : (
+          <Select
+            value={selectedProfileId}
+            onValueChange={handleProfileChange}
+            disabled={profiles.length === 0}
+          >
+            <SelectTrigger className="w-[130px] h-9">
+              <SelectValue>
+                {profiles.find((p) => p._id === selectedProfileId)?.name ??
+                  "Select..."}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {profiles.map((profile) => (
+                <SelectItem key={profile._id} value={profile._id}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: profile.color }}
+                    />
+                    <span>{profile.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
 
       <div className="flex items-center justify-between gap-3">
         <Label htmlFor="selection-popup-toggle" className="text-sm">
@@ -216,6 +340,7 @@ export function SettingsForm() {
         className="w-full text-destructive hover:text-destructive"
         onClick={() => signOut()}
       >
+        <IconLogout size={16} stroke={1.8} />
         Sign Out
       </Button>
     </div>

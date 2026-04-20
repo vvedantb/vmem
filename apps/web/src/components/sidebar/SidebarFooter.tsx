@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   Separator,
   Button,
@@ -11,11 +10,29 @@ import {
   HoverCardContent,
 } from "@vmem/ui";
 import { UserButton } from "@clerk/clerk-react";
-import { useConvexAuth, useAction, useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { IconMoon, IconSun, IconChartBar } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 
-interface SidebarStats {
+/**
+ * Formats a number with abbreviated suffix (k, m, b) and 1 decimal place.
+ * Numbers under 1000 are displayed as-is.
+ */
+function formatCompactNumber(num: number): string {
+  if (num < 1000) return String(num);
+  if (num < 1_000_000) {
+    const value = num / 1000;
+    return `${value % 1 === 0 ? String(value) : value.toFixed(1)}k`;
+  }
+  if (num < 1_000_000_000) {
+    const value = num / 1_000_000;
+    return `${value % 1 === 0 ? String(value) : value.toFixed(1)}m`;
+  }
+  const value = num / 1_000_000_000;
+  return `${value % 1 === 0 ? String(value) : value.toFixed(1)}b`;
+}
+
+export interface SidebarStats {
   addedToday: number;
   total: number;
 }
@@ -47,36 +64,13 @@ function PendingEnrichmentBadge({ isIconOnly }: { isIconOnly: boolean }) {
   );
 }
 
-function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
-  const { isAuthenticated } = useConvexAuth();
-  const getStats = useAction(api.dashboardApi.getStats);
-  const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const data = await getStats({});
-        const result = data as {
-          memoriesAddedToday: number;
-          totalMemories: number;
-        };
-        if (!cancelled) {
-          setStats({
-            addedToday: result.memoriesAddedToday,
-            total: result.totalMemories,
-          });
-        }
-      } catch {
-        // silently fail -- sidebar stats are non-critical
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
-
+function StatsCard({
+  isIconOnly,
+  stats,
+}: {
+  isIconOnly: boolean;
+  stats: SidebarStats;
+}) {
   if (isIconOnly) {
     return (
       <div className="flex justify-center">
@@ -90,7 +84,7 @@ function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
             <div className="flex items-baseline gap-4">
               <div className="flex items-baseline gap-1.5">
                 <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
-                  {stats.addedToday}
+                  {formatCompactNumber(stats.addedToday)}
                 </span>
                 <span className="text-[11px] text-muted-foreground/70">
                   today
@@ -98,7 +92,7 @@ function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
-                  {stats.total}
+                  {formatCompactNumber(stats.total)}
                 </span>
                 <span className="text-[11px] text-muted-foreground/70">
                   total
@@ -115,13 +109,13 @@ function StatsCard({ isIconOnly }: { isIconOnly: boolean }) {
     <div className="mx-2 flex items-baseline justify-between px-2">
       <div className="flex items-baseline gap-1.5">
         <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
-          {stats.addedToday}
+          {formatCompactNumber(stats.addedToday)}
         </span>
         <span className="text-[11px] text-muted-foreground/70">today</span>
       </div>
       <div className="flex items-baseline gap-1.5">
         <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
-          {stats.total}
+          {formatCompactNumber(stats.total)}
         </span>
         <span className="text-[11px] text-muted-foreground/70">total</span>
       </div>
@@ -136,6 +130,7 @@ export type SidebarFooterProps = {
   isDark: boolean;
   toggleTheme: () => void;
   isAuthLoading: boolean;
+  stats: SidebarStats;
 };
 
 export function SidebarFooter({
@@ -145,13 +140,14 @@ export function SidebarFooter({
   isDark,
   toggleTheme,
   isAuthLoading,
+  stats,
 }: SidebarFooterProps) {
   const isIconOnly = !isMobile && isCollapsed;
 
   return (
     <div className={cn("space-y-4 pt-3")}>
       <PendingEnrichmentBadge isIconOnly={isIconOnly} />
-      <StatsCard isIconOnly={isIconOnly} />
+      <StatsCard isIconOnly={isIconOnly} stats={stats} />
       <Separator className="bg-border/45" />
 
       <div className={cn(isMobile ? "pr-2" : "px-2")}>

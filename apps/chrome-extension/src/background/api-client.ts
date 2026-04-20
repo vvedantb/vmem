@@ -1,11 +1,12 @@
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "@vmem/backend";
+import { api, type Id } from "@vmem/backend";
 import { getStorage } from "@/lib/storage";
 import { CONVEX_URL } from "@/lib/constants";
 import type {
   CreateMemoryParams,
   MemoryWithTags,
   MemoryCandidate,
+  Profile,
 } from "@/types/api";
 
 /**
@@ -52,6 +53,7 @@ export async function createMemory(
     tags: params.tags,
     confidence: params.confidence,
     url: params.url,
+    profileId: params.profileId,
   });
 
   return { status: "created", memory };
@@ -179,5 +181,37 @@ export async function removePendingEnrichment(memoryId: string): Promise<void> {
 
   await client.mutation(api.pendingEnrichment.removePendingEnrichment, {
     memoryId,
+  });
+}
+
+export async function listProfiles(): Promise<Profile[]> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  const profiles = await client.query(api.profiles.list, {});
+  return profiles.map((p) => ({
+    _id: p._id,
+    name: p.name,
+    color: p.color,
+    icon: p.icon,
+    isDefault: p.isDefault,
+  }));
+}
+
+export async function setDefaultProfile(profileId: string): Promise<void> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  await client.mutation(api.userSettings.setDefaultProfile, {
+    source: "extension" as const,
+    profileId: profileId as Id<"profiles">,
   });
 }

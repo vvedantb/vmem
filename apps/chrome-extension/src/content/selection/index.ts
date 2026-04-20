@@ -89,6 +89,14 @@ styleEl.textContent = `
     -webkit-user-select: none;
   }
 
+  /* Extend hit area to 40px minimum */
+  #vmem-popup::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 99px;
+  }
+
   #vmem-popup.visible {
     display: flex;
     opacity: 1;
@@ -105,7 +113,7 @@ styleEl.textContent = `
   }
 
   #vmem-popup.expandable:active {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.96);
   }
 
   /* Label — hidden by default, fades in on hover */

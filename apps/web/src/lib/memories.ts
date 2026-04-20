@@ -24,6 +24,15 @@ export interface Memory {
   source: string;
   tags: string[];
   createdAt: string;
+  profileId?: string;
+}
+
+export function memoryMatchesProfileFilter(
+  memory: Memory,
+  selectedProfileId: string | null,
+): boolean {
+  if (selectedProfileId === null) return true;
+  return memory.profileId === selectedProfileId;
 }
 
 const MEMORY_SOURCE_LABELS: Record<string, string> = {

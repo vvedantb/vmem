@@ -179,7 +179,7 @@ function ReasoningContent({
 }: ReasoningContentProps) {
   return (
     <CollapsibleContent className={cn("pt-2 pb-1", className)} {...props}>
-      <div className="rounded-lg border border-border bg-muted/30 p-3">
+      <div className="rounded-lg bg-muted/40 p-3">
         <Streamdown
           className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground"
           plugins={streamdownPlugins}
