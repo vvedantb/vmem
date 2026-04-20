@@ -2,11 +2,20 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { Button } from "@vmem/ui";
 import { env } from "@/env";
+import { z } from "zod";
 
 const isProduction = env.VITE_ENV === "production";
 
+const searchSchema = z.object({
+  agent: z.boolean().optional(),
+});
+
 export const Route = createFileRoute("/")({
-  beforeLoad: ({ context }) => {
+  validateSearch: searchSchema,
+  beforeLoad: ({ context, search }) => {
+    if (search.agent) {
+      window.location.href = "/api/auth/agent-login";
+    }
     if (context.isSignedIn) {
       throw redirect({ to: "/home" });
     }
@@ -15,13 +24,6 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
-  const hasAgent = new URLSearchParams(window.location.search).has("agent");
-
-  if (hasAgent) {
-    window.location.href = "/api/auth/agent-login";
-    return <div className="min-h-screen w-full bg-background" />;
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="flex flex-col items-center gap-8">
