@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { IconDeviceFloppy } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { updateMemory } from "@/background/api-client";
@@ -138,7 +139,7 @@ export function QuickSave() {
     <div className="space-y-4">
       {/* Page preview card */}
       {pageInfo && (
-        <div className="glass-panel-subtle rounded-lg p-3 space-y-2">
+        <div className="rounded-lg p-3 space-y-2 bg-muted/40">
           <div className="flex items-start gap-2.5">
             {pageInfo.favicon ? (
               <img
@@ -161,16 +162,16 @@ export function QuickSave() {
       )}
 
       <Button
-        variant="outline"
         className="w-full"
         onClick={handleSave}
         disabled={saving || !pageInfo}
       >
+        <IconDeviceFloppy size={16} />
         {saving ? "Saving..." : "Save to vmem"}
       </Button>
 
       {pendingUpdate && (
-        <div className="space-y-2 glass-panel-subtle rounded-xl p-3">
+        <div className="space-y-2 rounded-xl p-3 bg-muted/40">
           <p className="text-sm text-muted-foreground">
             Already saved — update it?
           </p>
