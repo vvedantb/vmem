@@ -26,7 +26,11 @@ import { createSpatialIndex, rebuildIndex, markDirty } from "./canvas/hit-test";
 import { render } from "./canvas/renderer";
 import { attachInputHandlers } from "./canvas/input-handler";
 import type { GraphViewTheme } from "./graph-view-themes";
-import type { GraphSettings, HoveredNodeInfo } from "./graph-types";
+import type {
+  GraphSettings,
+  HoveredEdgeInfo,
+  HoveredNodeInfo,
+} from "./graph-types";
 
 export interface GraphCanvasHandle {
   zoomIn: () => void;
@@ -43,6 +47,7 @@ interface GraphCanvasProps {
   searchMatchSet: Set<string>;
   showLabels: boolean;
   onHoverNode: (info: HoveredNodeInfo | null) => void;
+  onHoverEdge?: (info: HoveredEdgeInfo | null) => void;
   onClickNode: (nodeId: string) => void;
   onLinkNodes: (sourceId: string, targetId: string) => void;
   onFocusNode?: (nodeId: string) => void;
@@ -59,6 +64,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       searchMatchSet,
       showLabels,
       onHoverNode,
+      onHoverEdge,
       onClickNode,
       onLinkNodes,
       onFocusNode,
@@ -76,15 +82,18 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     const showLabelsRef = useRef(showLabels);
     const callbacksRef = useRef({
       onHoverNode,
+      onHoverEdge,
       onClickNode,
       onLinkNodes,
       onFocusNode,
     });
 
     const simRef = useRef<SimulationController | null>(null);
+    const resolvedEdgesRef = useRef<ResolvedEdge[]>([]);
     const viewportRef = useRef<ViewportState>(createViewport());
     const interactionRef = useRef<InteractionState>({
       hoveredNodeId: null,
+      hoveredEdgeIndex: null,
       draggedNodeId: null,
       linkSourceId: null,
       isPanning: false,
@@ -103,6 +112,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     showLabelsRef.current = showLabels;
     callbacksRef.current = {
       onHoverNode,
+      onHoverEdge,
       onClickNode,
       onLinkNodes,
       onFocusNode,
@@ -140,6 +150,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         viewportRef.current,
         simRef,
         spatialIndexRef,
+        resolvedEdgesRef,
         {
           onHoverNode(node) {
             if (node) {
@@ -158,6 +169,29 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             } else {
               callbacksRef.current.onHoverNode(null);
             }
+          },
+          onHoverEdge(idx) {
+            const edgeList = resolvedEdgesRef.current;
+            if (idx === null || idx >= edgeList.length) {
+              callbacksRef.current.onHoverEdge?.(null);
+              return;
+            }
+            const edge = edgeList[idx];
+            const vp = viewportRef.current;
+            const mx = ((edge.source.x ?? 0) + (edge.target.x ?? 0)) / 2;
+            const my = ((edge.source.y ?? 0) + (edge.target.y ?? 0)) / 2;
+            const sx = mx * vp.scale + vp.offsetX + canvas.clientWidth / 2;
+            const sy = my * vp.scale + vp.offsetY + canvas.clientHeight / 2;
+            // `wiki_parent` edges carry no reason — only tag and relates_to do.
+            const reason = edge.reason ?? null;
+            callbacksRef.current.onHoverEdge?.({
+              edgeType: edge.edgeType,
+              sourceTitle: edge.source.title,
+              targetTitle: edge.target.title,
+              reason,
+              viewportX: sx,
+              viewportY: sy,
+            });
           },
           onClickNode(nodeId) {
             callbacksRef.current.onClickNode(nodeId);
@@ -198,6 +232,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       buildNeighborMap();
 
       const resolvedEdgesCache: ResolvedEdge[] = [];
+      resolvedEdgesRef.current = resolvedEdgesCache;
       function resolveEdges() {
         resolvedEdgesCache.length = 0;
         for (const edge of edgesRef.current) {
@@ -228,6 +263,12 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         if (edgesRef.current !== lastEdgesRef) {
           buildNeighborMap();
           allEdgesResolved = false;
+          // Clear stale edge-hover index: the old idx could now point to a
+          // different edge (or past the end) after the edges array changes.
+          if (interactionRef.current.hoveredEdgeIndex !== null) {
+            interactionRef.current.hoveredEdgeIndex = null;
+            callbacksRef.current.onHoverEdge?.(null);
+          }
           lastEdgesRef = edgesRef.current;
         }
 
