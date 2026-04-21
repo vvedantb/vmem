@@ -95,10 +95,11 @@ export async function retrieveMemories(
     );
   }
 
-  return await client.action(api.memoryApi.retrieveMemories, {
+  const result = await client.action(api.memoryApi.retrieveMemories, {
     query,
     limit,
   });
+  return result.memories;
 }
 
 export async function listRecentMemoryTitlesForEnrichment(

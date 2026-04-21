@@ -1,4 +1,5 @@
 import { authQuery, authMutation } from "./auth";
+import { internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 const defaults = {
@@ -15,6 +16,9 @@ const defaults = {
   notifyMemoryConflicts: true,
   notifyNewMemories: false,
   notifyMemoriesExpiring: true,
+  // User-provided context
+  aboutMe: "",
+  preferences: "",
   // Source-specific default profiles
   defaultProfiles: null,
 } as const;
@@ -42,6 +46,8 @@ export const get = authQuery({
         notifyMemoryConflicts: defaults.notifyMemoryConflicts,
         notifyNewMemories: defaults.notifyNewMemories,
         notifyMemoriesExpiring: defaults.notifyMemoriesExpiring,
+        aboutMe: defaults.aboutMe,
+        preferences: defaults.preferences,
         defaultProfiles: defaults.defaultProfiles,
       };
     }
@@ -67,7 +73,33 @@ export const get = authQuery({
       notifyNewMemories: doc.notifyNewMemories ?? defaults.notifyNewMemories,
       notifyMemoriesExpiring:
         doc.notifyMemoriesExpiring ?? defaults.notifyMemoriesExpiring,
+      aboutMe: doc.aboutMe ?? defaults.aboutMe,
+      preferences: doc.preferences ?? defaults.preferences,
       defaultProfiles: doc.defaultProfiles ?? defaults.defaultProfiles,
+    };
+  },
+});
+
+/**
+ * Internal query used by actions to fetch the user-provided context
+ * (About Me / Preferences) that gets surfaced alongside memory retrieval.
+ */
+export const getUserContextInternal = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.object({
+    aboutMe: v.union(v.string(), v.null()),
+    preferences: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+    const aboutMe = doc?.aboutMe?.trim();
+    const preferences = doc?.preferences?.trim();
+    return {
+      aboutMe: aboutMe ? aboutMe : null,
+      preferences: preferences ? preferences : null,
     };
   },
 });
@@ -87,6 +119,8 @@ export const update = authMutation({
     notifyMemoryConflicts: v.optional(v.boolean()),
     notifyNewMemories: v.optional(v.boolean()),
     notifyMemoriesExpiring: v.optional(v.boolean()),
+    aboutMe: v.optional(v.string()),
+    preferences: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -116,6 +150,8 @@ export const update = authMutation({
       fields.notifyNewMemories = args.notifyNewMemories;
     if (args.notifyMemoriesExpiring !== undefined)
       fields.notifyMemoriesExpiring = args.notifyMemoriesExpiring;
+    if (args.aboutMe !== undefined) fields.aboutMe = args.aboutMe;
+    if (args.preferences !== undefined) fields.preferences = args.preferences;
 
     if (existing) {
       await ctx.db.patch(existing._id, fields);

@@ -95,6 +95,9 @@ const schema = defineSchema({
     notifyMemoryConflicts: v.optional(v.boolean()),
     notifyNewMemories: v.optional(v.boolean()),
     notifyMemoriesExpiring: v.optional(v.boolean()),
+    // User-provided context surfaced to AI apps on retrieval
+    aboutMe: v.optional(v.string()),
+    preferences: v.optional(v.string()),
     // Source-specific default profiles (replaces activeProfileId)
     defaultProfiles: v.optional(
       v.object({
