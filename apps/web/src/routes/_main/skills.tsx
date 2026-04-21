@@ -54,10 +54,10 @@ function SkillsPage() {
         </Button>
       }
     >
-      <div className="flex h-full gap-4">
-        {/* Left: Skill list */}
+      <div className="flex h-full min-h-0 flex-col gap-4 md:flex-row">
+        {/* Left: Skill list. Hidden on mobile when a panel is open. */}
         <div
-          className={`flex-1 overflow-y-auto ${isPanelOpen ? "hidden md:block" : ""}`}
+          className={`min-h-0 flex-1 overflow-y-auto ${isPanelOpen ? "hidden md:block" : "block"}`}
         >
           {skills === undefined ? (
             <div className="flex items-center justify-center py-20">
@@ -88,9 +88,9 @@ function SkillsPage() {
           )}
         </div>
 
-        {/* Right: Panel */}
+        {/* Right: Panel. Inline on mobile (replaces the list), fixed-width card on desktop. */}
         {isPanelOpen && (
-          <div className="fixed inset-0 z-50 bg-background md:static md:z-auto md:w-[400px] md:shrink-0 md:rounded-xl md:bg-muted/40">
+          <div className="flex min-h-0 flex-1 flex-col md:w-[400px] md:flex-initial md:shrink-0 md:rounded-xl md:bg-muted/40">
             {panel.mode === "add" && (
               <AddSkillPanel
                 onClose={() => setPanel({ mode: "none" })}
