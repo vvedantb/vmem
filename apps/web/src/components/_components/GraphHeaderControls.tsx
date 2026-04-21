@@ -3,9 +3,10 @@
 /**
  * Graph-view controls rendered in the page header.
  *
- * Renders four popover buttons — Search, Filters, Options, Legend. Keeps the
- * graph canvas visually clean; all chrome lives here. State flows in through
- * a single `controller` prop (see `useMemoryGraphController`).
+ * Renders four popover buttons — Search, Filters, Options, Legend — plus the
+ * Add Memory trigger. Keeps the graph canvas visually clean; all chrome lives
+ * here. State flows in through a single `controller` prop (see
+ * `useMemoryGraphController`).
  */
 
 import { useCallback, useMemo } from "react";
@@ -13,6 +14,7 @@ import {
   IconFilter,
   IconAdjustmentsHorizontal,
   IconInfoCircle,
+  IconPlus,
   IconRefresh,
   IconGraph,
   IconSatellite,
@@ -28,6 +30,7 @@ import {
   Switch,
   Separator,
 } from "@vmem/ui";
+import AddMemoryModal from "@/components/AddMemoryModal";
 import SearchPopover from "./SearchPopover";
 import UnifiedFilterPanel from "./UnifiedFilterPanel";
 import GraphLegend from "./GraphLegend";
@@ -105,6 +108,13 @@ export default function GraphHeaderControls({
         totalNodeCount={controller.totalNodeCount}
         visibleNodeCount={controller.visibleNodeCount}
         edgeCount={controller.edgeCount}
+      />
+      <AddMemoryModal
+        trigger={
+          <Button variant="outline" size="icon-sm" aria-label="Add memory">
+            <IconPlus size={16} />
+          </Button>
+        }
       />
     </div>
   );
