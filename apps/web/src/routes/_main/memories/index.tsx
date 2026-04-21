@@ -4,10 +4,10 @@ import { useQueryStates } from "nuqs";
 import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
 import { IconTopologyStar3, IconList } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
-import AddMemoryModal from "@/components/AddMemoryModal";
 import MemorySearch from "@/components/MemorySearch";
 import MemoryGraph from "@/components/MemoryGraph";
 import GraphHeaderControls from "@/components/_components/GraphHeaderControls";
+import MemoryListHeaderControls from "@/components/_components/MemoryListHeaderControls";
 import { useMemoryGraphController } from "@/hooks/useMemoryGraphController";
 import { memoriesSearchParams } from "./-searchParams";
 
@@ -61,7 +61,7 @@ function MemoriesPage() {
       }
       rightSection={
         isListView ? (
-          <AddMemoryModal />
+          <MemoryListHeaderControls />
         ) : (
           <GraphHeaderControls controller={graphController} />
         )
