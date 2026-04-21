@@ -11,7 +11,6 @@
 
 import { useCallback, useMemo } from "react";
 import {
-  IconSearch,
   IconFilter,
   IconAdjustmentsHorizontal,
   IconInfoCircle,
@@ -25,7 +24,6 @@ import {
 } from "@tabler/icons-react";
 import {
   Button,
-  Input,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -33,6 +31,7 @@ import {
   Separator,
 } from "@vmem/ui";
 import AddMemoryModal from "@/components/AddMemoryModal";
+import SearchPopover from "./SearchPopover";
 import UnifiedFilterPanel from "./UnifiedFilterPanel";
 import GraphLegend from "./GraphLegend";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
@@ -92,8 +91,10 @@ export default function GraphHeaderControls({
   return (
     <div className="flex items-center gap-1.5">
       <SearchPopover
-        search={controller.search}
-        onSearchChange={controller.onSearchChange}
+        value={controller.search}
+        onChange={controller.onSearchChange}
+        placeholder="Search nodes..."
+        label="Search nodes"
       />
       <FiltersPopover controller={controller} />
       <OptionsPopover
@@ -116,50 +117,6 @@ export default function GraphHeaderControls({
         }
       />
     </div>
-  );
-}
-
-// ---- Search popover ----
-
-function SearchPopover({
-  search,
-  onSearchChange,
-}: {
-  search: string;
-  onSearchChange: (q: string) => void;
-}) {
-  const active = search.trim().length > 0;
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          aria-label="Search nodes"
-          className="relative"
-        >
-          <IconSearch size={16} />
-          {active && (
-            <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary" />
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 p-3">
-        <div className="relative">
-          <IconSearch
-            size={14}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-          />
-          <Input
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search nodes..."
-            autoFocus
-            className="h-8 pl-8 text-xs bg-background/50"
-          />
-        </div>
-      </PopoverContent>
-    </Popover>
   );
 }
 
