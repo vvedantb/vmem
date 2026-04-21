@@ -82,7 +82,7 @@ export default function WikiEditor({
     editorProps: {
       attributes: {
         class:
-          "max-w-none focus:outline-none min-h-[300px] px-6 py-6 text-[15px]",
+          "max-w-none focus:outline-none min-h-[300px] px-3 py-4 text-[15px] md:px-6 md:py-6",
       },
     },
     onUpdate: ({ editor: instance }) => {
@@ -209,7 +209,7 @@ export default function WikiEditor({
 
   return (
     <div className="flex flex-col min-h-0 flex-1">
-      <div className="px-6 pt-4">
+      <div className="px-3 pt-2 md:px-6 md:pt-4">
         <WikiBreadcrumb ancestors={ancestors} />
         <input
           value={titleDraft}
@@ -222,7 +222,8 @@ export default function WikiEditor({
             }
           }}
           placeholder="Untitled"
-          className="w-full bg-transparent text-3xl font-instrumentSerif text-foreground outline-none placeholder:text-muted-foreground/50 mt-2"
+          aria-label="Document title"
+          className="w-full bg-transparent text-2xl md:text-3xl font-instrumentSerif text-foreground outline-none placeholder:text-muted-foreground/50 mt-2"
         />
       </div>
       <div className="wiki-editor flex-1 min-h-0 overflow-y-auto scrollbar-thin">
