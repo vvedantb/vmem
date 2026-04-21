@@ -218,10 +218,11 @@ export function buildGraphData(
 
   const graphNodes: GraphNode[] = filteredNodes.map((node) => {
     const degree = degreeCount.get(node.id) ?? 0;
-    // Skills carry no edges today, so they'd otherwise land at the degree-0
-    // minimum (3) and read as tiny dots. Bump them to a fixed 4 so they read
-    // as distinct atoms, still smaller than high-degree memories.
-    const size = node.kind === "skill" ? 4 : Math.min(3 + degree * 0.6, 6);
+    // Uncapped multiplicative scale so super-hubs visibly dominate.
+    // Skills carry no edges today, so their degree-0 floor is lifted to 4
+    // to keep them readable as distinct atoms.
+    const scaled = 3 * (1 + degree * 0.05);
+    const size = node.kind === "skill" ? Math.max(4, scaled) : scaled;
     return {
       id: node.id,
       title: node.title,
