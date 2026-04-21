@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { useQuery, useAction } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
 import { Button, Badge } from "@vmem/ui";
@@ -16,6 +17,8 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { CodebaseGraph } from "@/components/codebases/CodebaseGraph";
+import CodebaseGraphHeaderControls from "@/components/codebases/CodebaseGraphHeaderControls";
+import { useCodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 
 /** Status badge display config keyed by codebase sync status */
 const statusConfig = {
@@ -48,21 +51,6 @@ export const Route = createFileRoute("/_main/codebases/$id")({
 function CodebaseDetailPage() {
   const { id } = Route.useParams();
   const codebase = useQuery(api.codebases.getById, { id });
-  const syncCodebase = useAction(api.codebases.syncCodebase);
-  const [syncing, setSyncing] = useState(false);
-
-  const handleSync = useCallback(async () => {
-    setSyncing(true);
-    try {
-      await syncCodebase({ id });
-      toast.success("Sync started");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Sync failed";
-      toast.error(message);
-    } finally {
-      setSyncing(false);
-    }
-  }, [id, syncCodebase]);
 
   // Loading state — query returns undefined while fetching
   if (codebase === undefined) {
@@ -96,6 +84,35 @@ function CodebaseDetailPage() {
     );
   }
 
+  return <CodebaseDetailView id={id} codebase={codebase} />;
+}
+
+type Codebase = NonNullable<FunctionReturnType<typeof api.codebases.getById>>;
+
+function CodebaseDetailView({
+  id,
+  codebase,
+}: {
+  id: string;
+  codebase: Codebase;
+}) {
+  const syncCodebase = useAction(api.codebases.syncCodebase);
+  const [syncing, setSyncing] = useState(false);
+  const controller = useCodebaseGraphController(id);
+
+  const handleSync = useCallback(async () => {
+    setSyncing(true);
+    try {
+      await syncCodebase({ id });
+      toast.success("Sync started");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Sync failed";
+      toast.error(message);
+    } finally {
+      setSyncing(false);
+    }
+  }, [id, syncCodebase]);
+
   const status = statusConfig[codebase.status];
   const StatusIcon = status.icon;
 
@@ -127,22 +144,25 @@ function CodebaseDetailPage() {
         </div>
       }
       rightSection={
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSync}
-          disabled={syncing || codebase.status === "syncing"}
-        >
-          {syncing ? (
-            <IconLoader2 size={16} className="animate-spin" />
-          ) : (
-            <IconRefresh size={16} />
-          )}
-          {syncing ? "Syncing..." : "Sync"}
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <CodebaseGraphHeaderControls controller={controller} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSync}
+            disabled={syncing || codebase.status === "syncing"}
+          >
+            {syncing ? (
+              <IconLoader2 size={16} className="animate-spin" />
+            ) : (
+              <IconRefresh size={16} />
+            )}
+            {syncing ? "Syncing..." : "Sync"}
+          </Button>
+        </div>
       }
     >
-      <CodebaseGraph codebaseId={id} />
+      <CodebaseGraph controller={controller} />
     </PageContainer>
   );
 }
