@@ -241,56 +241,61 @@ export default function UnifiedFilterPanel({
       <TabsPrimitive.Root defaultValue="profile" className="flex h-[320px]">
         {/* Left: Vertical tabs */}
         <TabsPrimitive.List
-          className="flex flex-col justify-start h-full w-32 shrink-0 border-r border-border p-1 gap-0.5"
+          className="flex flex-col justify-start h-full w-12 sm:w-32 shrink-0 border-r border-border p-1 gap-0.5"
           aria-orientation="vertical"
         >
           {visibleTabs.includes("profile") && (
             <TabsPrimitive.Trigger
               value="profile"
-              className="flex w-full items-center justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
+              aria-label="Profile"
+              className="flex w-full items-center justify-center sm:justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
             >
               <IconUser size={14} />
-              Profile
+              <span className="hidden sm:inline">Profile</span>
               {tabBadge(profileCount)}
             </TabsPrimitive.Trigger>
           )}
           {visibleTabs.includes("kind") && (
             <TabsPrimitive.Trigger
               value="kind"
-              className="flex w-full items-center justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
+              aria-label="Kind"
+              className="flex w-full items-center justify-center sm:justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
             >
               <IconShape size={14} />
-              Kind
+              <span className="hidden sm:inline">Kind</span>
               {tabBadge(kindCount)}
             </TabsPrimitive.Trigger>
           )}
           {visibleTabs.includes("tags") && (
             <TabsPrimitive.Trigger
               value="tags"
-              className="flex w-full items-center justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
+              aria-label="Tags"
+              className="flex w-full items-center justify-center sm:justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
             >
               <IconTag size={14} />
-              Tags
+              <span className="hidden sm:inline">Tags</span>
               {tabBadge(tagCount)}
             </TabsPrimitive.Trigger>
           )}
           {visibleTabs.includes("source") && (
             <TabsPrimitive.Trigger
               value="source"
-              className="flex w-full items-center justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
+              aria-label="Source"
+              className="flex w-full items-center justify-center sm:justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
             >
               <IconPlug size={14} />
-              Source
+              <span className="hidden sm:inline">Source</span>
               {tabBadge(sourceCount)}
             </TabsPrimitive.Trigger>
           )}
           {visibleTabs.includes("type") && (
             <TabsPrimitive.Trigger
               value="type"
-              className="flex w-full items-center justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
+              aria-label="Type"
+              className="flex w-full items-center justify-center sm:justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground"
             >
               <IconCategory size={14} />
-              Type
+              <span className="hidden sm:inline">Type</span>
               {tabBadge(typeCount)}
             </TabsPrimitive.Trigger>
           )}
