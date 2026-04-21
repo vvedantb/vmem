@@ -132,11 +132,22 @@ export default function Sidebar({
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: motionTiming.sidebar, ease: motionEase }}
             >
-              <div className="mb-4 flex items-center justify-between pl-4 pr-2 py-2">
+              <div className="relative mb-4 flex items-center py-2">
+                <DialogClose asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Close navigation menu"
+                    className="glass-interactive rounded-full text-muted-foreground hover:text-foreground"
+                  >
+                    <IconX className="h-5 w-5" />
+                  </Button>
+                </DialogClose>
                 <Link
                   to="/home"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex flex-row items-center gap-2"
+                  className="absolute left-1/2 -translate-x-1/2 flex flex-row items-center gap-2"
                 >
                   <img
                     width={22}
@@ -156,17 +167,6 @@ export default function Sidebar({
                     v<span className="italic">mem</span>
                   </h1>
                 </Link>
-                <DialogClose asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Close navigation menu"
-                    className="glass-interactive rounded-full text-muted-foreground hover:text-foreground"
-                  >
-                    <IconX className="h-5 w-5" />
-                  </Button>
-                </DialogClose>
               </div>
               <SidebarNavigation
                 pathname={pathname}
