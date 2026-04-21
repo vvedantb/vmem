@@ -74,12 +74,12 @@ export default function MemoryListHeaderControls() {
     params.profile,
   ]);
 
-  const hasActiveFilters =
-    params.profile !== null ||
-    params.kinds.length > 0 ||
-    params.tags.length > 0 ||
-    params.sources.length > 0 ||
-    params.types.length > 0;
+  const activeFilterCount =
+    (params.profile !== null ? 1 : 0) +
+    params.kinds.length +
+    params.tags.length +
+    params.sources.length +
+    params.types.length;
 
   return (
     <div className="flex items-center gap-1.5">
@@ -98,12 +98,14 @@ export default function MemoryListHeaderControls() {
             className="relative"
           >
             <IconFilter size={16} />
-            {hasActiveFilters && (
-              <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-[10px] font-medium tabular-nums text-primary-foreground flex items-center justify-center leading-none">
+                {activeFilterCount}
+              </span>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-80 p-3">
+        <PopoverContent align="end" className="w-[420px] p-0">
           <UnifiedFilterPanel
             allMemories={allMemories}
             allItems={allItems}
