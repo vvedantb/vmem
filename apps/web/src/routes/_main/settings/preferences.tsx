@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
-import { Label, Switch, Skeleton } from "@vmem/ui";
+import { Label, Switch, Skeleton, Textarea } from "@vmem/ui";
 import { api } from "@vmem/backend";
-import { IconBrain, IconBell } from "@tabler/icons-react";
+import { IconBrain, IconBell, IconUser } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
+import { useDebounceCallback } from "usehooks-ts";
 import PageContainer from "@/components/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 
@@ -13,6 +15,34 @@ export const Route = createFileRoute("/_main/settings/preferences")({
 function PreferencesPage() {
   const settings = useQuery(api.userSettings.get);
   const updateSettings = useMutation(api.userSettings.update);
+
+  const [aboutMe, setAboutMe] = useState<string>("");
+  const [preferences, setPreferences] = useState<string>("");
+  const [contextHydrated, setContextHydrated] = useState(false);
+
+  // Hydrate the local draft once the initial settings arrive. We avoid
+  // overwriting the user's in-progress edits on every subsequent query update.
+  useEffect(() => {
+    if (settings && !contextHydrated) {
+      setAboutMe(settings.aboutMe);
+      setPreferences(settings.preferences);
+      setContextHydrated(true);
+    }
+  }, [settings, contextHydrated]);
+
+  const debouncedSaveAboutMe = useDebounceCallback((value: string) => {
+    void updateSettings({ aboutMe: value });
+  }, 600);
+  const debouncedSavePreferences = useDebounceCallback((value: string) => {
+    void updateSettings({ preferences: value });
+  }, 600);
+
+  useEffect(() => {
+    return () => {
+      debouncedSaveAboutMe.flush();
+      debouncedSavePreferences.flush();
+    };
+  }, [debouncedSaveAboutMe, debouncedSavePreferences]);
 
   if (settings === undefined) {
     return (
@@ -41,6 +71,59 @@ function PreferencesPage() {
   return (
     <PageContainer title="Preferences" centeredMaxWidth showTitle>
       <div className="space-y-12">
+        <section className="space-y-6">
+          <div className="flex items-center gap-2">
+            <IconUser className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-base font-medium text-foreground">About You</h3>
+          </div>
+          <p className="-mt-3 text-xs text-muted-foreground">
+            Shared automatically with AI apps alongside retrieved memories, so
+            they can tailor responses to you.
+          </p>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="about-me" className="text-sm font-medium">
+                About me
+              </Label>
+              <Textarea
+                id="about-me"
+                placeholder="A few lines on who you are, what you do, and what you're working toward."
+                value={aboutMe}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setAboutMe(value);
+                  debouncedSaveAboutMe(value);
+                }}
+                rows={4}
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground">
+                {aboutMe.length}/500
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="preferences" className="text-sm font-medium">
+                Preferences
+              </Label>
+              <Textarea
+                id="preferences"
+                placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
+                value={preferences}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setPreferences(value);
+                  debouncedSavePreferences(value);
+                }}
+                rows={4}
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground">
+                {preferences.length}/500
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="space-y-6">
           <div className="flex items-center gap-2">
             <IconBrain className="h-5 w-5 text-muted-foreground" />
