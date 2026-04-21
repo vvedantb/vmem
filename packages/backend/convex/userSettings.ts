@@ -1,23 +1,45 @@
 import { authQuery, authMutation } from "./auth";
+import { internalQuery } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
-const defaults = {
+type ThemeValue = "light" | "dark" | "system";
+type DefaultProfilesValue = {
+  web?: Id<"profiles">;
+  extension?: Id<"profiles">;
+} | null;
+
+const defaults: {
+  theme: ThemeValue;
+  language: string;
+  memoryAutoTag: boolean;
+  notificationsEnabled: boolean;
+  extensionAutoSyncEnabled: boolean;
+  extensionSelectionPopupEnabled: boolean;
+  memoryAutoExtract: boolean;
+  memoryConfidenceThreshold: number;
+  notifyMemoryConflicts: boolean;
+  notifyNewMemories: boolean;
+  notifyMemoriesExpiring: boolean;
+  aboutMe: string;
+  preferences: string;
+  defaultProfiles: DefaultProfilesValue;
+} = {
   theme: "system",
   language: "en",
   memoryAutoTag: true,
   notificationsEnabled: false,
   extensionAutoSyncEnabled: true,
   extensionSelectionPopupEnabled: true,
-  // Memory behavior defaults
   memoryAutoExtract: true,
   memoryConfidenceThreshold: 70,
-  // Notification preferences
   notifyMemoryConflicts: true,
   notifyNewMemories: false,
   notifyMemoriesExpiring: true,
-  // Source-specific default profiles
+  aboutMe: "",
+  preferences: "",
   defaultProfiles: null,
-} as const;
+};
 
 export const get = authQuery({
   args: {},
@@ -27,47 +49,54 @@ export const get = authQuery({
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .first();
 
-    if (!doc) {
-      return {
-        _id: null,
-        userId: ctx.userId,
-        theme: defaults.theme,
-        language: defaults.language,
-        memoryAutoTag: defaults.memoryAutoTag,
-        notificationsEnabled: defaults.notificationsEnabled,
-        extensionAutoSyncEnabled: defaults.extensionAutoSyncEnabled,
-        extensionSelectionPopupEnabled: defaults.extensionSelectionPopupEnabled,
-        memoryAutoExtract: defaults.memoryAutoExtract,
-        memoryConfidenceThreshold: defaults.memoryConfidenceThreshold,
-        notifyMemoryConflicts: defaults.notifyMemoryConflicts,
-        notifyNewMemories: defaults.notifyNewMemories,
-        notifyMemoriesExpiring: defaults.notifyMemoriesExpiring,
-        defaultProfiles: defaults.defaultProfiles,
-      };
-    }
-
     return {
-      _id: doc._id,
-      userId: doc.userId,
-      theme: doc.theme ?? defaults.theme,
-      language: doc.language ?? defaults.language,
-      memoryAutoTag: doc.memoryAutoTag ?? defaults.memoryAutoTag,
+      _id: doc?._id ?? null,
+      userId: ctx.userId,
+      theme: doc?.theme ?? defaults.theme,
+      language: doc?.language ?? defaults.language,
+      memoryAutoTag: doc?.memoryAutoTag ?? defaults.memoryAutoTag,
       notificationsEnabled:
-        doc.notificationsEnabled ?? defaults.notificationsEnabled,
+        doc?.notificationsEnabled ?? defaults.notificationsEnabled,
       extensionAutoSyncEnabled:
-        doc.extensionAutoSyncEnabled ?? defaults.extensionAutoSyncEnabled,
+        doc?.extensionAutoSyncEnabled ?? defaults.extensionAutoSyncEnabled,
       extensionSelectionPopupEnabled:
-        doc.extensionSelectionPopupEnabled ??
+        doc?.extensionSelectionPopupEnabled ??
         defaults.extensionSelectionPopupEnabled,
-      memoryAutoExtract: doc.memoryAutoExtract ?? defaults.memoryAutoExtract,
+      memoryAutoExtract: doc?.memoryAutoExtract ?? defaults.memoryAutoExtract,
       memoryConfidenceThreshold:
-        doc.memoryConfidenceThreshold ?? defaults.memoryConfidenceThreshold,
+        doc?.memoryConfidenceThreshold ?? defaults.memoryConfidenceThreshold,
       notifyMemoryConflicts:
-        doc.notifyMemoryConflicts ?? defaults.notifyMemoryConflicts,
-      notifyNewMemories: doc.notifyNewMemories ?? defaults.notifyNewMemories,
+        doc?.notifyMemoryConflicts ?? defaults.notifyMemoryConflicts,
+      notifyNewMemories: doc?.notifyNewMemories ?? defaults.notifyNewMemories,
       notifyMemoriesExpiring:
-        doc.notifyMemoriesExpiring ?? defaults.notifyMemoriesExpiring,
-      defaultProfiles: doc.defaultProfiles ?? defaults.defaultProfiles,
+        doc?.notifyMemoriesExpiring ?? defaults.notifyMemoriesExpiring,
+      aboutMe: doc?.aboutMe ?? defaults.aboutMe,
+      preferences: doc?.preferences ?? defaults.preferences,
+      defaultProfiles: doc?.defaultProfiles ?? defaults.defaultProfiles,
+    };
+  },
+});
+
+/**
+ * Internal query used by actions to fetch the user-provided context
+ * (About Me / Preferences) that gets surfaced alongside memory retrieval.
+ */
+export const getUserContextInternal = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.object({
+    aboutMe: v.union(v.string(), v.null()),
+    preferences: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+    const aboutMe = doc?.aboutMe?.trim();
+    const preferences = doc?.preferences?.trim();
+    return {
+      aboutMe: aboutMe ? aboutMe : null,
+      preferences: preferences ? preferences : null,
     };
   },
 });
@@ -87,6 +116,8 @@ export const update = authMutation({
     notifyMemoryConflicts: v.optional(v.boolean()),
     notifyNewMemories: v.optional(v.boolean()),
     notifyMemoriesExpiring: v.optional(v.boolean()),
+    aboutMe: v.optional(v.string()),
+    preferences: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -116,6 +147,8 @@ export const update = authMutation({
       fields.notifyNewMemories = args.notifyNewMemories;
     if (args.notifyMemoriesExpiring !== undefined)
       fields.notifyMemoriesExpiring = args.notifyMemoriesExpiring;
+    if (args.aboutMe !== undefined) fields.aboutMe = args.aboutMe;
+    if (args.preferences !== undefined) fields.preferences = args.preferences;
 
     if (existing) {
       await ctx.db.patch(existing._id, fields);

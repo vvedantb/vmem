@@ -38,6 +38,16 @@ interface MemoryCandidate extends MemoryWithTags {
   };
 }
 
+interface UserContext {
+  aboutMe: string | null;
+  preferences: string | null;
+}
+
+interface RetrieveMemoriesResult {
+  memories: MemoryCandidate[];
+  userContext: UserContext;
+}
+
 interface MemorySnapshot {
   title: string;
   content: string;
@@ -231,22 +241,25 @@ export const retrieveMemories = authAction({
     tags: v.optional(v.array(v.string())),
     limit: v.number(),
   },
-  handler: async (ctx, args): Promise<MemoryCandidate[]> => {
+  handler: async (ctx, args): Promise<RetrieveMemoriesResult> => {
     const clerkId: string | null = await ctx.runQuery(
       internal.auth.getClerkIdInternal,
       { userId: ctx.userId },
     );
     if (!clerkId) throw new Error("User not found");
-    return await ctx.runAction(
-      internal.neo4jActions.memories.retrieveMemoriesInternal,
-      {
+    const [memories, userContext] = await Promise.all([
+      ctx.runAction(internal.neo4jActions.memories.retrieveMemoriesInternal, {
         clerkId,
         query: args.query,
         type: args.type,
         tags: args.tags,
         limit: args.limit,
-      },
-    );
+      }),
+      ctx.runQuery(internal.userSettings.getUserContextInternal, {
+        userId: ctx.userId,
+      }),
+    ]);
+    return { memories, userContext };
   },
 });
 
