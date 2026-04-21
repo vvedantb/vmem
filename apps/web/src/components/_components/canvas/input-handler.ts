@@ -1,10 +1,16 @@
-import type { GraphNode, InteractionState, ViewportState } from "./types";
+import type {
+  GraphNode,
+  InteractionState,
+  ResolvedEdge,
+  ViewportState,
+} from "./types";
 import { screenToWorld, zoomAt } from "./viewport";
-import { getNodeAt } from "./hit-test";
+import { getEdgeAt, getNodeAt } from "./hit-test";
 import type { SimulationController } from "./simulation";
 
 interface Callbacks {
   onHoverNode: (node: GraphNode | null) => void;
+  onHoverEdge: (idx: number | null) => void;
   onClickNode: (nodeId: string) => void;
   onLinkNodes: (sourceId: string, targetId: string) => void;
   onFocusNode: (nodeId: string) => void;
@@ -24,6 +30,7 @@ export function attachInputHandlers(
   spatialIndexRef: {
     current: ReturnType<typeof import("./hit-test").createSpatialIndex>;
   },
+  edgesRef: { current: ResolvedEdge[] },
   callbacks: Callbacks,
 ): () => void {
   let mouseDown = false;
@@ -131,7 +138,8 @@ export function attachInputHandlers(
       return;
     }
 
-    // Hover detection
+    // Hover detection — nodes take precedence over edges. When the cursor
+    // is over a node, the edge hover is cleared so the node tooltip wins.
     const hitNode = getNodeAt(
       spatialIndexRef.current,
       world.x,
@@ -143,6 +151,24 @@ export function attachInputHandlers(
       interaction.hoveredNodeId = hoveredId;
       callbacks.onHoverNode(hitNode);
       canvas.style.cursor = hitNode ? "pointer" : "default";
+    }
+
+    if (hitNode) {
+      if (interaction.hoveredEdgeIndex !== null) {
+        interaction.hoveredEdgeIndex = null;
+        callbacks.onHoverEdge(null);
+      }
+    } else {
+      const edgeIdx = getEdgeAt(
+        edgesRef.current,
+        world.x,
+        world.y,
+        viewport.scale,
+      );
+      if (edgeIdx !== interaction.hoveredEdgeIndex) {
+        interaction.hoveredEdgeIndex = edgeIdx;
+        callbacks.onHoverEdge(edgeIdx);
+      }
     }
   }
 

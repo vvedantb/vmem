@@ -1,4 +1,4 @@
-import type { GraphNode } from "./types";
+import type { GraphNode, ResolvedEdge } from "./types";
 
 const CELL_SIZE = 60;
 
@@ -56,6 +56,43 @@ export function rebuildIndex(index: SpatialIndex, nodes: GraphNode[]): void {
   }
   index.lastHash = hash;
   index.dirty = false;
+}
+
+/**
+ * Naive O(E) edge hit-test. Edge counts are capped by data pipeline
+ * (~≤4000 typical), so a spatial index isn't worth the maintenance cost here.
+ */
+export function getEdgeAt(
+  edges: ResolvedEdge[],
+  worldX: number,
+  worldY: number,
+  scale: number,
+): number | null {
+  const threshold = 6 / Math.min(scale, 1);
+  const thrSq = threshold * threshold;
+  let bestIdx = -1;
+  let bestDSq = thrSq;
+  for (let i = 0; i < edges.length; i++) {
+    const e = edges[i];
+    const x1 = e.source.x ?? 0;
+    const y1 = e.source.y ?? 0;
+    const x2 = e.target.x ?? 0;
+    const y2 = e.target.y ?? 0;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) continue;
+    let t = ((worldX - x1) * dx + (worldY - y1) * dy) / lenSq;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const px = x1 + t * dx;
+    const py = y1 + t * dy;
+    const dSq = (worldX - px) ** 2 + (worldY - py) ** 2;
+    if (dSq < bestDSq) {
+      bestDSq = dSq;
+      bestIdx = i;
+    }
+  }
+  return bestIdx === -1 ? null : bestIdx;
 }
 
 export function getNodeAt(

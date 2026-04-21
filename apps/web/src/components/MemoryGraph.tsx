@@ -21,12 +21,16 @@ import { IconMoodEmpty, IconLoader2, IconArrowBack } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { api } from "@vmem/backend";
-import type { HoveredNodeInfo } from "./_components/graph-types";
+import type {
+  HoveredEdgeInfo,
+  HoveredNodeInfo,
+} from "./_components/graph-types";
 import { getRelatedNodes } from "./_components/graph-data";
 import GraphCanvas from "./_components/GraphCanvas";
 import type { GraphCanvasHandle } from "./_components/GraphCanvas";
 import GraphNavControls from "./_components/GraphNavControls";
 import GraphNodeTooltip from "./_components/GraphNodeTooltip";
+import GraphEdgeTooltip from "./_components/GraphEdgeTooltip";
 import GraphDetailPanel from "./_components/GraphDetailPanel";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 
@@ -48,6 +52,7 @@ export default function MemoryGraph({
   // Canvas-local state (purely driven by pointer events on the canvas).
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
 
   const {
     apiNodes,
@@ -173,6 +178,7 @@ export default function MemoryGraph({
         searchMatchSet={searchMatchSet}
         showLabels={graphSettings.showLabels}
         onHoverNode={handleHoverNode}
+        onHoverEdge={setHoveredEdge}
         onClickNode={handleClickNode}
         onLinkNodes={handleLinkNodes}
         onFocusNode={handleFocusNode}
@@ -208,6 +214,19 @@ export default function MemoryGraph({
           content={hoveredNode.content}
           viewportX={hoveredNode.viewportX}
           viewportY={hoveredNode.viewportY}
+        />
+      )}
+
+      {/* Edge tooltip — shown only when no node is hovered/selected so the
+          node tooltip takes visual precedence. */}
+      {hoveredEdge && !selectedNodeId && !hoveredNode && (
+        <GraphEdgeTooltip
+          edgeType={hoveredEdge.edgeType}
+          sourceTitle={hoveredEdge.sourceTitle}
+          targetTitle={hoveredEdge.targetTitle}
+          reason={hoveredEdge.reason}
+          viewportX={hoveredEdge.viewportX}
+          viewportY={hoveredEdge.viewportY}
         />
       )}
 

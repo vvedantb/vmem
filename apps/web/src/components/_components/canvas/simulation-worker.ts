@@ -162,7 +162,7 @@ function init(
   centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 3.0);
 
   const collideForce = forceCollide<WNode>()
-    .radius((d) => d.size * 2 + 1)
+    .radius((d) => Math.min(d.size, 12) * 2 + 1)
     .strength(0.9);
 
   // alphaDecay 0.0228 = d3 default; velocityDecay 0.4 = smoother organic motion.
