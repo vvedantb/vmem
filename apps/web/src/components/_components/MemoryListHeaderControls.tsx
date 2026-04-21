@@ -3,17 +3,19 @@
 /**
  * List-view controls rendered in the page header.
  *
- * Renders two popover buttons — Search and Filters. Mirrors the graph's
- * header pattern but with list-specific filter data (memories + wiki + skills
- * merged). Graph-only controls (Options, Legend) are intentionally omitted.
+ * Renders Search + Filters popovers and the Add Memory trigger. Mirrors the
+ * graph's header pattern but with list-specific filter data (memories + wiki
+ * + skills merged). Graph-only controls (Options, Legend) are intentionally
+ * omitted.
  */
 
 import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
 import { useQuery } from "convex/react";
-import { IconFilter } from "@tabler/icons-react";
+import { IconFilter, IconPlus } from "@tabler/icons-react";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@vmem/ui";
 import { api } from "@vmem/backend";
+import AddMemoryModal from "@/components/AddMemoryModal";
 import SearchPopover from "./SearchPopover";
 import UnifiedFilterPanel from "./UnifiedFilterPanel";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
@@ -122,6 +124,13 @@ export default function MemoryListHeaderControls() {
           />
         </PopoverContent>
       </Popover>
+      <AddMemoryModal
+        trigger={
+          <Button variant="outline" size="icon-sm" aria-label="Add memory">
+            <IconPlus size={16} />
+          </Button>
+        }
+      />
     </div>
   );
 }
