@@ -141,18 +141,18 @@ function init(
   const chargeStrength = -scalingRatio * 8;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
-  // Obsidian-style springs: short distance + strong pull so connected nodes
-  // visibly cluster. Tag edges (derived from shared tags) pull less hard than
-  // explicit user-created relates_to links.
+  // Obsidian-style springs: connected nodes cluster but keep enough slack that
+  // the collide force can always separate them without fighting the link pull.
+  // Tag edges pull less hard than explicit user-created relates_to links.
   const linkForce = forceLink<WNode, WEdge>(edges)
     .id((d) => d.id)
-    .distance(35)
+    .distance(70)
     .strength((d) =>
       d.edgeType === "relates_to" ||
       d.edgeType === "imports" ||
       d.edgeType === "wiki_parent"
-        ? 1.0
-        : 0.4,
+        ? 0.8
+        : 0.3,
     );
 
   chargeForceRef = forceManyBody<WNode>().strength(chargeStrength).theta(theta);
@@ -161,9 +161,13 @@ function init(
   // preventing isolated nodes from drifting off-screen.
   centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 3.0);
 
+  // Hard non-overlap: radius matches the rendered node (size*2) plus a
+  // breathing-room pad, strength 1 + 3 iterations so the force fully resolves
+  // even in dense clusters where many constraints compete each tick.
   const collideForce = forceCollide<WNode>()
-    .radius((d) => Math.min(d.size, 12) * 2 + 1)
-    .strength(0.9);
+    .radius((d) => d.size * 2 + 8)
+    .strength(1)
+    .iterations(3);
 
   // alphaDecay 0.0228 = d3 default; velocityDecay 0.4 = smoother organic motion.
   sim = forceSimulation<WNode, WEdge>(nodes)
