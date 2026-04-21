@@ -2,22 +2,16 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQueryStates } from "nuqs";
 import { useSearch } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { Input, cn } from "@vmem/ui";
-import { IconSearch, IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
+import { cn } from "@vmem/ui";
+import { IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Virtuoso } from "react-virtuoso";
 import { api } from "@vmem/backend";
 import MemoryDetailPanel from "./MemoryDetailPanel";
-import UnifiedFilterPanel from "./_components/UnifiedFilterPanel";
 import ListItemRow from "./_components/ListItemRow";
 import AnimatedSearchIcon from "./_components/AnimatedSearchIcon";
+import { type Memory } from "@/lib/memories";
 import {
-  formatMemorySourceLabel,
-  formatMemoryTypeLabel,
-  type Memory,
-} from "@/lib/memories";
-import {
-  formatListItemKindLabel,
   listItemMatchesKindFilter,
   listItemMatchesProfileFilter,
   listItemMatchesSourceFilter,
@@ -35,23 +29,16 @@ import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
 
-interface MemorySearchProps {
-  searchQuery?: string;
-  onSearchChange?: (query: string) => void;
-}
-
 /**
  * The "list" view of /memories. Mirrors the graph view's node set by merging
  * memories (from Neo4j via Convex), wiki documents/folders, and skills into a
  * single scrollable list. Filters are kind-aware: the Kind filter cuts across
  * all four kinds; Tag/Source/Type filters are memory-scoped and let non-memory
  * items pass through, so e.g. setting a tag filter narrows memories without
- * hiding every wiki doc and skill.
+ * hiding every wiki doc and skill. Search + filter controls live in the page
+ * header (see MemoryListHeaderControls); this component only renders the list.
  */
-export default function MemorySearch({
-  searchQuery: externalQuery,
-  onSearchChange,
-}: MemorySearchProps = {}) {
+export default function MemorySearch() {
   const searchParams = useSearch({ strict: false });
   const [params, setParams] = useQueryStates(memoriesSearchParams);
 
@@ -62,10 +49,7 @@ export default function MemorySearch({
   const { theme } = useThemeContext();
   const isDark = theme === "dark";
 
-  // Search query: use external prop if provided, else nuqs URL state
-  const searchQuery = externalQuery ?? params.q;
-  const setSearchQuery = onSearchChange ?? ((q: string) => setParams({ q }));
-  const isExternalSearch = externalQuery !== undefined;
+  const searchQuery = params.q;
 
   const trailTag = params.tags.length === 1 ? params.tags[0] : null;
   const { trailMap } = useTrailData({ tag: trailTag });
@@ -111,14 +95,6 @@ export default function MemorySearch({
     const skillItems = skillRows ? skillRowsToListItems(skillRows) : [];
     return [...memoryItems, ...wikiItems, ...skillItems];
   }, [allMemories, wikiRows, skillRows]);
-
-  const distinctSources = useMemo(() => {
-    const set = new Set<string>();
-    for (const m of allMemories) {
-      set.add(m.source);
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [allMemories]);
 
   // Kind filter runs first — it's the broadest cut.
   const itemsAfterKinds = useMemo(
@@ -179,30 +155,6 @@ export default function MemorySearch({
     }, [searchResults, filteredItems]);
 
   const isShowingSearchResults = searchResults !== null;
-
-  const searchPlaceholder = useMemo(() => {
-    const hints: string[] = [];
-    if (params.kinds.length > 0) {
-      hints.push(
-        params.kinds.map((k) => formatListItemKindLabel(k)).join(" · "),
-      );
-    }
-    if (params.tags.length > 0) {
-      hints.push(params.tags.join(" · "));
-    }
-    if (params.sources.length > 0) {
-      hints.push(
-        params.sources.map((s) => formatMemorySourceLabel(s)).join(" · "),
-      );
-    }
-    if (params.types.length > 0) {
-      hints.push(params.types.map((t) => formatMemoryTypeLabel(t)).join(" · "));
-    }
-    if (hints.length === 0) {
-      return "Search memories, wiki, and skills...";
-    }
-    return `Search (${hints.join(" — ")})...`;
-  }, [params.kinds, params.tags, params.sources, params.types]);
 
   const selectedMemory = useMemo(() => {
     if (!selectedMemoryId) {
@@ -282,45 +234,6 @@ export default function MemorySearch({
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       <div className="flex flex-1 min-w-0 min-h-0 flex-col">
-        {!isExternalSearch && (
-          <div className="flex gap-2 flex-shrink-0 pb-4">
-            <UnifiedFilterPanel
-              allMemories={allMemories}
-              allItems={allItems}
-              selectedProfileId={params.profile}
-              onProfileChange={(profile) => setParams({ profile })}
-              selectedKinds={params.kinds}
-              onKindsChange={(kinds) => setParams({ kinds })}
-              selectedTags={params.tags}
-              onTagsChange={(tags) => setParams({ tags })}
-              distinctSources={distinctSources}
-              selectedSources={params.sources}
-              onSourcesChange={(sources) => setParams({ sources })}
-              selectedTypes={params.types}
-              onTypesChange={(types) => setParams({ types })}
-              filteredCount={displayItems.length}
-              totalCount={allItems.length}
-              isDark={isDark}
-            />
-            <div className="relative flex-1 min-w-[200px]">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                <IconSearch
-                  className="text-muted-foreground"
-                  size={20}
-                  stroke={1.5}
-                />
-              </div>
-              <Input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={searchPlaceholder}
-                className="h-12 bg-muted/50 border-border pl-10 text-foreground hover:bg-accent focus-visible:border-ring"
-              />
-            </div>
-          </div>
-        )}
-
         {isShowingSearchResults && displayItems.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
