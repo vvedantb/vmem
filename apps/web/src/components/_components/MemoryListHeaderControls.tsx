@@ -105,7 +105,10 @@ export default function MemoryListHeaderControls() {
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-[420px] p-0">
+        <PopoverContent
+          align="end"
+          className="w-[calc(100vw-1rem)] max-w-[420px] p-0 sm:w-[420px]"
+        >
           <UnifiedFilterPanel
             allMemories={allMemories}
             allItems={allItems}
