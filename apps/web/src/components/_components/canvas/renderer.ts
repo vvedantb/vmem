@@ -189,10 +189,11 @@ export function render(
     const skipTagEdges = edges.length > 10_000;
 
     if (!hasHoveredNeighbors) {
-      // No hover — all edges same alpha. Two batched passes: tag edges, relates_to edges.
-      // Tag edges (dimmer, thinner)
+      // No hover — three batched passes, one per edge type. Each type gets its
+      // own hue via `theme.edge.normalByType` so users can read the semantic
+      // category (tag / user-linked / folder-parent) at a glance.
       if (!skipTagEdges) {
-        ctx.strokeStyle = theme.edge.normal;
+        ctx.strokeStyle = theme.edge.normalByType.tag;
         ctx.lineWidth = theme.edge.width;
         ctx.beginPath();
         for (const edge of edges) {
@@ -203,25 +204,28 @@ export function render(
         ctx.stroke();
       }
 
-      // Relates_to + imports + wiki_parent edges (brighter, thicker).
-      // wiki_parent uses the same styling: it's a semantic link (folder → child),
-      // deserves the same visual weight as a user-linked relation.
-      ctx.strokeStyle = theme.edge.normal;
+      // relates_to + imports — same hue ("user-forged" warm).
+      ctx.strokeStyle = theme.edge.normalByType.relates_to;
       ctx.lineWidth = theme.edge.width * 2;
-      ctx.globalAlpha = 0.6;
       ctx.beginPath();
       for (const edge of edges) {
-        if (
-          edge.edgeType !== "relates_to" &&
-          edge.edgeType !== "imports" &&
-          edge.edgeType !== "wiki_parent"
-        )
+        if (edge.edgeType !== "relates_to" && edge.edgeType !== "imports")
           continue;
         ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
         ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
       }
       ctx.stroke();
-      ctx.globalAlpha = 1;
+
+      // wiki_parent — structural cool hue.
+      ctx.strokeStyle = theme.edge.normalByType.wiki_parent;
+      ctx.lineWidth = theme.edge.width * 2;
+      ctx.beginPath();
+      for (const edge of edges) {
+        if (edge.edgeType !== "wiki_parent") continue;
+        ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
+        ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+      }
+      ctx.stroke();
     } else {
       // Hover active — two batched passes per edge type: dimmed non-connected
       // edges first (fade into background), then connected edges on top at
@@ -238,28 +242,35 @@ export function render(
           edgeType === "imports" ||
           edgeType === "wiki_parent";
         const widthMultiplier = isStrongEdge ? 2 : 1;
+        // `imports` reuses the relates_to palette slot (both are user-linked).
+        const typeColor =
+          edgeType === "imports"
+            ? theme.edge.normalByType.relates_to
+            : theme.edge.normalByType[edgeType];
 
-        // Pass 1: dimmed edges (everything not connected to the hovered node)
-        ctx.strokeStyle = theme.edge.dimmed;
+        // Pass 1: dimmed edges (everything not connected to the hovered node).
+        // Use the per-type hue at reduced alpha so you can still tell the
+        // background lattice apart by category while the hovered neighborhood
+        // lights up.
+        ctx.strokeStyle = typeColor;
         ctx.lineWidth = theme.edge.width * widthMultiplier;
-        ctx.globalAlpha = isStrongEdge ? theme.dimAlpha : 1;
+        ctx.globalAlpha = theme.dimAlpha * (isStrongEdge ? 1 : 2);
         ctx.beginPath();
         for (const edge of edges) {
           if (edge.edgeType !== edgeType) continue;
           const isConnected =
             neighborSet.has(edge.source.id) && neighborSet.has(edge.target.id);
-          if (isConnected) continue; // skip non-dimmed
+          if (isConnected) continue;
           ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
           ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
         }
         ctx.stroke();
+        ctx.globalAlpha = 1;
 
-        // Pass 2: connected edges (on top) — full opacity + 1.5× the usual
-        // connected width so the hover line is unmistakably visible, even in
-        // minimal/low-contrast themes.
+        // Pass 2: connected edges (on top) — single `connected` hue across all
+        // types signals "lit up" consistently, 1.5× width for unmistakability.
         ctx.strokeStyle = theme.edge.connected;
         ctx.lineWidth = theme.edge.connectedWidth * widthMultiplier * 1.5;
-        ctx.globalAlpha = 1;
         ctx.beginPath();
         for (const edge of edges) {
           if (edge.edgeType !== edgeType) continue;
@@ -271,6 +282,21 @@ export function render(
         }
         ctx.stroke();
       }
+    }
+
+    // Hovered-edge emphasis pass: re-stroke the single hovered edge in the
+    // "connected" hue so the tooltip has a clear visual anchor. Runs after
+    // the batched passes so it always draws on top, even when no node is
+    // hovered (the common case when reading an edge tooltip).
+    const hoveredEdgeIdx = interaction.hoveredEdgeIndex;
+    if (hoveredEdgeIdx !== null && hoveredEdgeIdx < edges.length) {
+      const edge = edges[hoveredEdgeIdx];
+      ctx.strokeStyle = theme.edge.connected;
+      ctx.lineWidth = theme.edge.connectedWidth * 1.8;
+      ctx.beginPath();
+      ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
+      ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+      ctx.stroke();
     }
   }
 
@@ -292,14 +318,17 @@ export function render(
       if (isDimmed) continue;
 
       const color = nodeColor(node, theme);
-      const glowRadius = baseRadius * theme.glow.radiusMultiplier;
+      // Clamp the *glow* radius source (not the node's visual size) so a
+      // degree-500 super-hub doesn't paint a screen-filling radial gradient.
+      const glowR = Math.min(node.size, 10) * 2;
+      const glowRadius = glowR * theme.glow.radiusMultiplier;
       const intensity = isHovered
         ? theme.glow.hoveredIntensity
         : theme.glow.intensity;
       const grad = ctx.createRadialGradient(
         nx,
         ny,
-        baseRadius * 0.5,
+        glowR * 0.5,
         nx,
         ny,
         glowRadius,

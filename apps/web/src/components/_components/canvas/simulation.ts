@@ -205,7 +205,7 @@ function createMainThreadSimulation(
   const centerForce = forceCenter<GraphNode>(0, 0).strength(gravity * 2.0);
 
   const collideForce = forceCollide<GraphNode>()
-    .radius((d) => d.size * 2 + 1)
+    .radius((d) => Math.min(d.size, 12) * 2 + 1)
     .strength(0.7);
 
   const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)
