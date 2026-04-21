@@ -3,8 +3,6 @@ import { useQuery, useMutation } from "convex/react";
 import { Label, Switch, Skeleton, Textarea } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import { IconBrain, IconBell, IconUser } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
-import { useDebounceCallback } from "usehooks-ts";
 import PageContainer from "@/components/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 
@@ -14,35 +12,15 @@ export const Route = createFileRoute("/_main/settings/preferences")({
 
 function PreferencesPage() {
   const settings = useQuery(api.userSettings.get);
-  const updateSettings = useMutation(api.userSettings.update);
-
-  const [aboutMe, setAboutMe] = useState<string>("");
-  const [preferences, setPreferences] = useState<string>("");
-  const [contextHydrated, setContextHydrated] = useState(false);
-
-  // Hydrate the local draft once the initial settings arrive. We avoid
-  // overwriting the user's in-progress edits on every subsequent query update.
-  useEffect(() => {
-    if (settings && !contextHydrated) {
-      setAboutMe(settings.aboutMe);
-      setPreferences(settings.preferences);
-      setContextHydrated(true);
-    }
-  }, [settings, contextHydrated]);
-
-  const debouncedSaveAboutMe = useDebounceCallback((value: string) => {
-    void updateSettings({ aboutMe: value });
-  }, 600);
-  const debouncedSavePreferences = useDebounceCallback((value: string) => {
-    void updateSettings({ preferences: value });
-  }, 600);
-
-  useEffect(() => {
-    return () => {
-      debouncedSaveAboutMe.flush();
-      debouncedSavePreferences.flush();
-    };
-  }, [debouncedSaveAboutMe, debouncedSavePreferences]);
+  // Optimistic update patches the local query cache so the controlled
+  // textareas stay in sync with keystrokes without waiting for the server.
+  const updateSettings = useMutation(
+    api.userSettings.update,
+  ).withOptimisticUpdate((localStore, args) => {
+    const current = localStore.getQuery(api.userSettings.get, {});
+    if (!current) return;
+    localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
+  });
 
   if (settings === undefined) {
     return (
@@ -88,17 +66,15 @@ function PreferencesPage() {
               <Textarea
                 id="about-me"
                 placeholder="A few lines on who you are, what you do, and what you're working toward."
-                value={aboutMe}
+                value={settings.aboutMe}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  setAboutMe(value);
-                  debouncedSaveAboutMe(value);
+                  void updateSettings({ aboutMe: e.target.value });
                 }}
                 rows={4}
                 maxLength={500}
               />
               <p className="text-xs text-muted-foreground">
-                {aboutMe.length}/500
+                {settings.aboutMe.length}/500
               </p>
             </div>
             <div className="space-y-2">
@@ -108,17 +84,15 @@ function PreferencesPage() {
               <Textarea
                 id="preferences"
                 placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
-                value={preferences}
+                value={settings.preferences}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  setPreferences(value);
-                  debouncedSavePreferences(value);
+                  void updateSettings({ preferences: e.target.value });
                 }}
                 rows={4}
                 maxLength={500}
               />
               <p className="text-xs text-muted-foreground">
-                {preferences.length}/500
+                {settings.preferences.length}/500
               </p>
             </div>
           </div>

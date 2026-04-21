@@ -1,27 +1,45 @@
 import { authQuery, authMutation } from "./auth";
 import { internalQuery } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
-const defaults = {
+type ThemeValue = "light" | "dark" | "system";
+type DefaultProfilesValue = {
+  web?: Id<"profiles">;
+  extension?: Id<"profiles">;
+} | null;
+
+const defaults: {
+  theme: ThemeValue;
+  language: string;
+  memoryAutoTag: boolean;
+  notificationsEnabled: boolean;
+  extensionAutoSyncEnabled: boolean;
+  extensionSelectionPopupEnabled: boolean;
+  memoryAutoExtract: boolean;
+  memoryConfidenceThreshold: number;
+  notifyMemoryConflicts: boolean;
+  notifyNewMemories: boolean;
+  notifyMemoriesExpiring: boolean;
+  aboutMe: string;
+  preferences: string;
+  defaultProfiles: DefaultProfilesValue;
+} = {
   theme: "system",
   language: "en",
   memoryAutoTag: true,
   notificationsEnabled: false,
   extensionAutoSyncEnabled: true,
   extensionSelectionPopupEnabled: true,
-  // Memory behavior defaults
   memoryAutoExtract: true,
   memoryConfidenceThreshold: 70,
-  // Notification preferences
   notifyMemoryConflicts: true,
   notifyNewMemories: false,
   notifyMemoriesExpiring: true,
-  // User-provided context
   aboutMe: "",
   preferences: "",
-  // Source-specific default profiles
   defaultProfiles: null,
-} as const;
+};
 
 export const get = authQuery({
   args: {},
@@ -31,51 +49,30 @@ export const get = authQuery({
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .first();
 
-    if (!doc) {
-      return {
-        _id: null,
-        userId: ctx.userId,
-        theme: defaults.theme,
-        language: defaults.language,
-        memoryAutoTag: defaults.memoryAutoTag,
-        notificationsEnabled: defaults.notificationsEnabled,
-        extensionAutoSyncEnabled: defaults.extensionAutoSyncEnabled,
-        extensionSelectionPopupEnabled: defaults.extensionSelectionPopupEnabled,
-        memoryAutoExtract: defaults.memoryAutoExtract,
-        memoryConfidenceThreshold: defaults.memoryConfidenceThreshold,
-        notifyMemoryConflicts: defaults.notifyMemoryConflicts,
-        notifyNewMemories: defaults.notifyNewMemories,
-        notifyMemoriesExpiring: defaults.notifyMemoriesExpiring,
-        aboutMe: defaults.aboutMe,
-        preferences: defaults.preferences,
-        defaultProfiles: defaults.defaultProfiles,
-      };
-    }
-
     return {
-      _id: doc._id,
-      userId: doc.userId,
-      theme: doc.theme ?? defaults.theme,
-      language: doc.language ?? defaults.language,
-      memoryAutoTag: doc.memoryAutoTag ?? defaults.memoryAutoTag,
+      _id: doc?._id ?? null,
+      userId: ctx.userId,
+      theme: doc?.theme ?? defaults.theme,
+      language: doc?.language ?? defaults.language,
+      memoryAutoTag: doc?.memoryAutoTag ?? defaults.memoryAutoTag,
       notificationsEnabled:
-        doc.notificationsEnabled ?? defaults.notificationsEnabled,
+        doc?.notificationsEnabled ?? defaults.notificationsEnabled,
       extensionAutoSyncEnabled:
-        doc.extensionAutoSyncEnabled ?? defaults.extensionAutoSyncEnabled,
+        doc?.extensionAutoSyncEnabled ?? defaults.extensionAutoSyncEnabled,
       extensionSelectionPopupEnabled:
-        doc.extensionSelectionPopupEnabled ??
+        doc?.extensionSelectionPopupEnabled ??
         defaults.extensionSelectionPopupEnabled,
-      memoryAutoExtract: doc.memoryAutoExtract ?? defaults.memoryAutoExtract,
+      memoryAutoExtract: doc?.memoryAutoExtract ?? defaults.memoryAutoExtract,
       memoryConfidenceThreshold:
-        doc.memoryConfidenceThreshold ?? defaults.memoryConfidenceThreshold,
+        doc?.memoryConfidenceThreshold ?? defaults.memoryConfidenceThreshold,
       notifyMemoryConflicts:
-        doc.notifyMemoryConflicts ?? defaults.notifyMemoryConflicts,
-      notifyNewMemories: doc.notifyNewMemories ?? defaults.notifyNewMemories,
+        doc?.notifyMemoryConflicts ?? defaults.notifyMemoryConflicts,
+      notifyNewMemories: doc?.notifyNewMemories ?? defaults.notifyNewMemories,
       notifyMemoriesExpiring:
-        doc.notifyMemoriesExpiring ?? defaults.notifyMemoriesExpiring,
-      aboutMe: doc.aboutMe ?? defaults.aboutMe,
-      preferences: doc.preferences ?? defaults.preferences,
-      defaultProfiles: doc.defaultProfiles ?? defaults.defaultProfiles,
+        doc?.notifyMemoriesExpiring ?? defaults.notifyMemoriesExpiring,
+      aboutMe: doc?.aboutMe ?? defaults.aboutMe,
+      preferences: doc?.preferences ?? defaults.preferences,
+      defaultProfiles: doc?.defaultProfiles ?? defaults.defaultProfiles,
     };
   },
 });
