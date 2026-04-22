@@ -9,11 +9,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@vmem/ui";
 import { Virtuoso } from "react-virtuoso";
 import {
@@ -27,6 +29,7 @@ import {
   IconSortDescending,
   IconSortAscending,
   IconActivity,
+  IconX,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
@@ -170,36 +173,49 @@ function ActivityFiltersDropdown({
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Date Range</DropdownMenuLabel>
-        <DropdownMenuRadioGroup
-          value={range}
-          onValueChange={(v) => {
-            const preset = DATE_PRESETS.find((p) => p === v);
-            if (preset) onRangeChange(preset);
-          }}
-        >
-          {DATE_PRESETS.map((preset) => (
-            <DropdownMenuRadioItem key={preset} value={preset}>
-              {DATE_PRESET_LABELS[preset]}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel>Activity Types</DropdownMenuLabel>
-        {ACTIVITY_TYPES.map((type) => (
-          <DropdownMenuCheckboxItem
-            key={type}
-            checked={types.includes(type)}
-            onCheckedChange={() => toggleType(type)}
-          >
-            {ACTIVITY_TYPE_LABELS[type]}
-          </DropdownMenuCheckboxItem>
-        ))}
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Date Range</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup
+              value={range}
+              onValueChange={(v) => {
+                const preset = DATE_PRESETS.find((p) => p === v);
+                if (preset) onRangeChange(preset);
+              }}
+            >
+              {DATE_PRESETS.map((preset) => (
+                <DropdownMenuRadioItem key={preset} value={preset}>
+                  {DATE_PRESET_LABELS[preset]}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Activity Types</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {ACTIVITY_TYPES.map((type) => (
+              <DropdownMenuCheckboxItem
+                key={type}
+                checked={types.includes(type)}
+                onCheckedChange={() => toggleType(type)}
+              >
+                {ACTIVITY_TYPE_LABELS[type]}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
         {activeFilterCount > 0 && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onReset}>Reset filters</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={onReset}
+              className="text-destructive focus:text-destructive"
+            >
+              <IconX size={16} />
+              Clear filters
+            </DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>
