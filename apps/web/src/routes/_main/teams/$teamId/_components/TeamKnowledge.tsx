@@ -119,7 +119,9 @@ export function TeamKnowledge({ data }: { data: TeamDetail }) {
           <Input
             placeholder="Search team knowledge..."
             value={params.q}
-            onChange={(e) => void setParams({ q: e.target.value })}
+            onChange={(e) =>
+              void setParams({ q: e.target.value }, { shallow: true })
+            }
             className="pl-9"
           />
         </div>
