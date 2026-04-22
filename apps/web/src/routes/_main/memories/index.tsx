@@ -4,9 +4,11 @@ import { useQueryStates } from "nuqs";
 import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
 import { IconTopologyStar3, IconList } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
-import AddMemoryModal from "@/components/AddMemoryModal";
 import MemorySearch from "@/components/MemorySearch";
 import MemoryGraph from "@/components/MemoryGraph";
+import GraphHeaderControls from "@/components/_components/GraphHeaderControls";
+import MemoryListHeaderControls from "@/components/_components/MemoryListHeaderControls";
+import { useMemoryGraphController } from "@/hooks/useMemoryGraphController";
 import { memoriesSearchParams } from "./-searchParams";
 
 export const Route = createFileRoute("/_main/memories/")({
@@ -38,8 +40,13 @@ function ViewTabs({
 
 function MemoriesPage() {
   const [params, setParams] = useQueryStates(memoriesSearchParams);
-
   const isListView = params.view === "list";
+
+  // Controller owns graph data + filter/display state so both the canvas and
+  // the header popover buttons can consume a single source of truth.
+  const graphController = useMemoryGraphController({
+    focusNodeId: params.focus,
+  });
 
   return (
     <PageContainer
@@ -52,7 +59,13 @@ function MemoriesPage() {
           onChange={(view) => setParams({ view })}
         />
       }
-      rightSection={isListView ? <AddMemoryModal /> : undefined}
+      rightSection={
+        isListView ? (
+          <MemoryListHeaderControls />
+        ) : (
+          <GraphHeaderControls controller={graphController} />
+        )
+      }
     >
       {isListView ? (
         <Suspense>
@@ -61,10 +74,9 @@ function MemoriesPage() {
       ) : (
         <div className="-mb-6 h-full min-h-0 overflow-hidden rounded-lg">
           <MemoryGraph
+            controller={graphController}
             focusNodeId={params.focus}
             onFocusChange={(id) => setParams({ focus: id })}
-            profileId={params.profile}
-            onProfileChange={(id) => setParams({ profile: id })}
           />
         </div>
       )}

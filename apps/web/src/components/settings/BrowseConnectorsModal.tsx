@@ -5,14 +5,14 @@ import { useAction } from "convex/react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   Button,
-  Badge,
 } from "@vmem/ui";
 import { toast } from "sonner";
 import {
-  IconCheck,
   IconLoader2,
   IconBrandGoogleDrive,
   IconBrandOnedrive,
@@ -20,7 +20,6 @@ import {
   IconBrandNotion,
   IconBrandSlack,
   IconBrandGithub,
-  IconClockHour4,
 } from "@tabler/icons-react";
 import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "@/components/OAuthModal";
@@ -48,7 +47,9 @@ export default function BrowseConnectorsModal({
   onClose,
   connectors,
 }: BrowseConnectorsModalProps) {
-  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [disconnectTarget, setDisconnectTarget] =
+    useState<Doc<"connectors"> | null>(null);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [oauthConnector, setOauthConnector] =
     useState<Doc<"connectors"> | null>(null);
 
@@ -68,15 +69,17 @@ export default function BrowseConnectorsModal({
     setOauthConnector(null);
   };
 
-  const handleDisconnect = async (connector: Doc<"connectors">) => {
-    setDisconnectingId(connector._id);
+  const handleDisconnectConfirm = async () => {
+    if (!disconnectTarget) return;
+    setIsDisconnecting(true);
     try {
-      await disconnectAction({ connectorId: connector._id });
-      toast(`Disconnected from ${connector.name}`);
+      await disconnectAction({ connectorId: disconnectTarget._id });
+      toast(`Disconnected from ${disconnectTarget.name}`);
+      setDisconnectTarget(null);
     } catch {
       toast.error("Failed to disconnect");
     } finally {
-      setDisconnectingId(null);
+      setIsDisconnecting(false);
     }
   };
 
@@ -93,7 +96,6 @@ export default function BrowseConnectorsModal({
             {connectors.map((connector) => {
               const Icon = iconMap[connector.icon] || IconBrandGoogleDrive;
               const isConnected = connector.connectionStatus === "connected";
-              const isLoading = disconnectingId === connector._id;
               const hasProvider = !!connector.provider;
 
               return (
@@ -105,23 +107,9 @@ export default function BrowseConnectorsModal({
                     <Icon size={20} stroke={1.5} className="text-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-foreground">
-                        {connector.name}
-                      </p>
-                      {isConnected && (
-                        <Badge className="bg-primary/5 dark:bg-card/10 text-muted-foreground gap-1 text-xs">
-                          <IconCheck size={10} stroke={2} />
-                          Connected
-                        </Badge>
-                      )}
-                      {!hasProvider && !isConnected && (
-                        <Badge className="bg-muted text-muted-foreground gap-1 text-xs">
-                          <IconClockHour4 size={10} stroke={2} />
-                          Soon
-                        </Badge>
-                      )}
-                    </div>
+                    <p className="text-sm font-medium text-foreground">
+                      {connector.name}
+                    </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {connector.description}
                     </p>
@@ -131,15 +119,10 @@ export default function BrowseConnectorsModal({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDisconnect(connector)}
-                        disabled={isLoading}
-                        className="text-muted-foreground"
+                        onClick={() => setDisconnectTarget(connector)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
-                        {isLoading ? (
-                          <IconLoader2 size={14} className="animate-spin" />
-                        ) : (
-                          "Disconnect"
-                        )}
+                        Disconnect
                       </Button>
                     ) : (
                       <Button
@@ -172,6 +155,41 @@ export default function BrowseConnectorsModal({
           onComplete={handleOAuthComplete}
         />
       )}
+
+      <Dialog
+        open={disconnectTarget !== null}
+        onOpenChange={(open) => !open && setDisconnectTarget(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Disconnect {disconnectTarget?.name}?</DialogTitle>
+            <DialogDescription>
+              This will remove access to {disconnectTarget?.name}. You can
+              reconnect anytime.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setDisconnectTarget(null)}
+              disabled={isDisconnecting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void handleDisconnectConfirm()}
+              disabled={isDisconnecting}
+            >
+              {isDisconnecting ? (
+                <IconLoader2 size={14} className="animate-spin" />
+              ) : (
+                "Disconnect"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

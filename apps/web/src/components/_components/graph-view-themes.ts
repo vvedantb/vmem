@@ -13,13 +13,19 @@ export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   minimal: "Minimal",
 };
 
+export interface EdgeColorsByType {
+  tag: string;
+  relates_to: string;
+  wiki_parent: string;
+}
+
 export interface GraphViewTheme {
   isDarkCanvas: boolean;
   background: string;
   gradientCenter: string | null;
   grid: { color: string; spacing: number } | null;
   edge: {
-    normal: string;
+    normalByType: EdgeColorsByType;
     connected: string;
     dimmed: string;
     width: number;
@@ -49,10 +55,14 @@ const DEFAULT_DARK: GraphViewTheme = {
   gradientCenter: null,
   grid: null,
   edge: {
-    normal: "rgba(255,255,255,0.12)",
+    normalByType: {
+      tag: "rgba(180,180,200,0.18)",
+      relates_to: "rgba(255,170,110,0.55)",
+      wiki_parent: "rgba(130,170,255,0.5)",
+    },
     connected: "rgba(255,255,255,0.85)",
     dimmed: "rgba(255,255,255,0.025)",
-    width: 0.6,
+    width: 0.8,
     connectedWidth: 1.5,
   },
   glow: {
@@ -79,7 +89,11 @@ const DEFAULT_LIGHT: GraphViewTheme = {
   gradientCenter: "rgba(80, 80, 180, 0.03)",
   grid: null,
   edge: {
-    normal: "rgba(0,0,0,0.25)",
+    normalByType: {
+      tag: "rgba(60,70,90,0.22)",
+      relates_to: "rgba(200,90,30,0.65)",
+      wiki_parent: "rgba(60,100,200,0.55)",
+    },
     connected: "rgba(0,0,0,0.75)",
     dimmed: "rgba(0,0,0,0.05)",
     width: 0.8,
@@ -109,10 +123,14 @@ const SATELLITE: GraphViewTheme = {
   gradientCenter: "rgba(60, 40, 120, 0.08)",
   grid: null,
   edge: {
-    normal: "rgba(255,255,255,0.06)",
+    normalByType: {
+      tag: "rgba(160,150,200,0.12)",
+      relates_to: "rgba(255,180,120,0.55)",
+      wiki_parent: "rgba(140,200,255,0.5)",
+    },
     connected: "rgba(200,180,255,0.9)",
     dimmed: "rgba(255,255,255,0.015)",
-    width: 0.4,
+    width: 0.55,
     connectedWidth: 0.8,
   },
   glow: {
@@ -142,7 +160,11 @@ const CONSTELLATION: GraphViewTheme = {
   gradientCenter: null,
   grid: null,
   edge: {
-    normal: "rgba(140,180,255,0.5)",
+    normalByType: {
+      tag: "rgba(140,180,255,0.45)",
+      relates_to: "rgba(255,200,140,0.85)",
+      wiki_parent: "rgba(180,220,255,0.75)",
+    },
     connected: "rgba(220,235,255,0.95)",
     dimmed: "rgba(140,180,255,0.08)",
     width: 0.8,
@@ -172,7 +194,11 @@ const BLUEPRINT: GraphViewTheme = {
   gradientCenter: null,
   grid: { color: "#d0dae6", spacing: 40 },
   edge: {
-    normal: "#8ba4bc",
+    normalByType: {
+      tag: "#a8b8cc",
+      relates_to: "#c67b3f",
+      wiki_parent: "#4a6b9a",
+    },
     connected: "#5b7b9a",
     dimmed: "rgba(139,164,188,0.2)",
     width: 0.8,
@@ -202,7 +228,11 @@ const MINIMAL_DARK: GraphViewTheme = {
   gradientCenter: null,
   grid: null,
   edge: {
-    normal: "rgba(255,255,255,0.03)",
+    normalByType: {
+      tag: "rgba(255,255,255,0.07)",
+      relates_to: "rgba(230,180,130,0.4)",
+      wiki_parent: "rgba(160,190,230,0.35)",
+    },
     connected: "rgba(255,255,255,0.55)",
     dimmed: "rgba(255,255,255,0.01)",
     width: 0.3,
@@ -235,7 +265,11 @@ const MINIMAL_LIGHT: GraphViewTheme = {
   gradientCenter: null,
   grid: null,
   edge: {
-    normal: "rgba(0,0,0,0.06)",
+    normalByType: {
+      tag: "rgba(0,0,0,0.1)",
+      relates_to: "rgba(150,80,30,0.5)",
+      wiki_parent: "rgba(40,70,130,0.4)",
+    },
     connected: "rgba(0,0,0,0.55)",
     dimmed: "rgba(0,0,0,0.02)",
     width: 0.3,

@@ -1,3 +1,5 @@
+import type { GraphEdgeType } from "./canvas/types";
+
 export interface NodeAttributes {
   label: string;
   content: string;
@@ -19,6 +21,16 @@ export interface HoveredNodeInfo {
   id: string;
   title: string;
   content: string;
+  viewportX: number;
+  viewportY: number;
+}
+
+export interface HoveredEdgeInfo {
+  edgeType: GraphEdgeType;
+  sourceTitle: string;
+  targetTitle: string;
+  /** Tag edges: shared tag list. relates_to: reason from API. wiki_parent: null. */
+  reason: string | null;
   viewportX: number;
   viewportY: number;
 }

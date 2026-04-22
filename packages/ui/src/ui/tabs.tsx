@@ -51,4 +51,12 @@ const TabsContent = React.forwardRef<
 ));
 TabsContent.displayName = TabsPrimitive.Content.displayName;
 
+/**
+ * Raw Radix primitives — use these when you need a tabs layout that the
+ * styled `Tabs`/`TabsList`/`TabsTrigger`/`TabsContent` defaults don't fit
+ * (e.g. a vertical sidebar of tabs inside a popover). The styled exports
+ * above are tuned for horizontal pill-style tab bars.
+ */
+export { TabsPrimitive };
+
 export { Tabs, TabsList, TabsTrigger, TabsContent };

@@ -41,7 +41,7 @@ export function DirectoryFilter({
   const isAllSelected = activeDirectories.size === 0;
 
   return (
-    <div className="bg-background/80 backdrop-blur-sm rounded-lg border border-border/30 p-2">
+    <div>
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
           Directories

@@ -33,6 +33,8 @@ const graphNodeSchema = z.object({
   tags: z.array(z.string()),
   createdAt: z.string(),
   kind: graphNodeKindSchema,
+  source: z.string().optional(),
+  type: z.enum(["profile", "episodic", "knowledge"]).optional(),
 });
 
 const relatesToEdgeSchema = z.object({
