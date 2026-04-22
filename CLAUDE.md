@@ -94,6 +94,14 @@ Detail Page Headers:
 - Page meta (status badges, branch names, counts) lives in `centerSection`, not next to the breadcrumb. Actions live in `rightSection`.
 - Breadcrumb is desktop-only; mobile topbar shows the page title from `PageTitleContext` (still set via `PageContainer`'s `title` prop).
 
+Header Controls — Filters vs Sort vs View:
+
+- A filter = a control whose intent is to change which items are visible (reduce the set). Sort order and view layout (grid/list) are NOT filters — they only change presentation.
+- Consolidate real filters into a single `Filters` dropdown button (with `IconFilter` + count badge). Sort and view stay as their own separate controls.
+- Active-filter count on the badge: count each filter field that is currently non-default as 1 (arrays with ≥1 item count as 1, not length). Sort and view never contribute to this count.
+- The Filters dropdown's "Reset filters" option (rendered only when count > 0) resets ONLY filter fields — never sort or view.
+- Prefer dropdowns with explicit options over toggle buttons when a control has ≥2 states — more discoverable.
+
 Component Structure:
 
 - Max ~250 lines per client component
