@@ -1,6 +1,11 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { wikiNodeFields, profileFields } from "./validators";
+import {
+  wikiNodeFields,
+  profileFields,
+  teamFields,
+  teamMemberFields,
+} from "./validators";
 
 const schema = defineSchema({
   users: defineTable({
@@ -110,7 +115,16 @@ const schema = defineSchema({
   profiles: defineTable(profileFields)
     .index("by_user", ["userId"])
     .index("by_user_default", ["userId", "isDefault"])
-    .index("by_user_name", ["userId", "name"]),
+    .index("by_user_name", ["userId", "name"])
+    .index("by_team", ["teamId"]),
+
+  teams: defineTable(teamFields).index("by_createdBy", ["createdBy"]),
+
+  teamMembers: defineTable(teamMemberFields)
+    .index("by_team", ["teamId"])
+    .index("by_user", ["userId"])
+    .index("by_team_user", ["teamId", "userId"])
+    .index("by_user_team", ["userId", "teamId"]),
 
   apiRequestLogs: defineTable({
     userId: v.id("users"),

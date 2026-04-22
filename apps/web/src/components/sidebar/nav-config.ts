@@ -22,6 +22,7 @@ import {
   IconActivity,
   IconCpu,
   IconUsers,
+  IconBuilding,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -34,6 +35,11 @@ export const navGroups: NavGroup[] = [
       { href: "/voice", label: "Voice", icon: IconMicrophone },
       { href: "/memories", label: "Memories", icon: IconBrain },
     ],
+  },
+  {
+    title: "Teams",
+    icon: IconBuilding,
+    items: [{ href: "/teams", label: "Teams", icon: IconBuilding }],
   },
   {
     title: "Data",

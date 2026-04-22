@@ -1,5 +1,5 @@
 import { query, internalQuery } from "./_generated/server";
-import { authMutation } from "./auth";
+import { authQuery, authMutation } from "./auth";
 import { v } from "convex/values";
 
 export const getMe = query({
@@ -30,5 +30,40 @@ export const getByClerkIdInternal = internalQuery({
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .first();
+  },
+});
+
+/**
+ * Resolve clerkIds → minimal user info for attribution in team memory lists.
+ * Returns a map keyed by clerkId; unknown clerkIds are simply omitted.
+ * Intentionally only exposes display fields (no Convex _id, no theme, etc.).
+ */
+export const getByClerkIds = authQuery({
+  args: { clerkIds: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const unique = Array.from(new Set(args.clerkIds));
+    const result: Record<
+      string,
+      {
+        firstName: string | null;
+        lastName: string | null;
+        fullName: string | null;
+        email: string | null;
+      }
+    > = {};
+    for (const clerkId of unique) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+        .first();
+      if (!user) continue;
+      result[clerkId] = {
+        firstName: user.firstName ?? null,
+        lastName: user.lastName ?? null,
+        fullName: user.fullName ?? null,
+        email: user.email ?? null,
+      };
+    }
+    return result;
   },
 });
