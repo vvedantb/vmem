@@ -6,6 +6,10 @@ import { v } from "convex/values";
  *
  * A profile is a Chrome-like workspace for organizing memories.
  * Each memory belongs to exactly one profile.
+ *
+ * Personal profile: teamId undefined, userId = owner.
+ * Team profile:    teamId set, userId = team creator (for historical attribution only),
+ *                  isDefault always false. Access via teamMembers table.
  */
 export const profileFields = {
   userId: v.id("users"),
@@ -13,8 +17,33 @@ export const profileFields = {
   color: v.string(), // hex e.g. "#3B82F6"
   icon: v.string(), // icon name e.g. "briefcase"
   isDefault: v.boolean(),
+  /** When set, this profile is shared across a team. Access is granted via teamMembers. */
+  teamId: v.optional(v.id("teams")),
   createdAt: v.number(),
   updatedAt: v.number(),
+};
+
+/**
+ * Single source of truth for teams table fields.
+ * A team is a group of users sharing a single profile.
+ */
+export const teamFields = {
+  name: v.string(),
+  createdBy: v.id("users"),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+};
+
+/**
+ * Single source of truth for teamMembers table fields.
+ * Membership row joining a user to a team with a role.
+ * Uniqueness (one row per (teamId, userId)) enforced in mutations via by_team_user index.
+ */
+export const teamMemberFields = {
+  teamId: v.id("teams"),
+  userId: v.id("users"),
+  role: v.union(v.literal("owner"), v.literal("member")),
+  joinedAt: v.number(),
 };
 
 /**

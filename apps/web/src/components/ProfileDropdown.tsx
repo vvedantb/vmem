@@ -6,7 +6,10 @@ import {
   cn,
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
   Skeleton,
@@ -24,8 +27,10 @@ import {
   IconMusic,
   IconCamera,
   IconDeviceGamepad,
+  IconUsers,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
+import type { FunctionReturnType } from "convex/server";
 
 const ICON_MAP: Record<string, typeof IconUser> = {
   user: IconUser,
@@ -45,6 +50,8 @@ const ICON_MAP: Record<string, typeof IconUser> = {
 function getProfileIcon(iconName: string) {
   return ICON_MAP[iconName] ?? IconUser;
 }
+
+type ProfileListItem = FunctionReturnType<typeof api.profiles.list>[number];
 
 interface ProfileDropdownProps {
   value: string | undefined;
@@ -84,6 +91,14 @@ export function ProfileDropdown({
 
   const selectedProfile = profiles?.find((p) => p._id === effectiveValue);
 
+  // Partition into personal vs team so the dropdown can render two labelled groups.
+  const personalProfiles: ProfileListItem[] = [];
+  const teamProfiles: ProfileListItem[] = [];
+  for (const p of profiles ?? []) {
+    if (p.teamId) teamProfiles.push(p);
+    else personalProfiles.push(p);
+  }
+
   return (
     <Select
       value={effectiveValue}
@@ -104,27 +119,61 @@ export function ProfileDropdown({
                 style={{ backgroundColor: selectedProfile.color }}
               />
               <span className="truncate">{selectedProfile.name}</span>
+              {selectedProfile.teamId && (
+                <IconUsers className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              )}
             </div>
           )}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {profiles?.map((profile) => {
-          const Icon = getProfileIcon(profile.icon);
-          return (
-            <SelectItem key={profile._id} value={profile._id}>
-              <div className="flex items-center gap-2">
-                <div
-                  className="h-2 w-2 rounded-full shrink-0"
-                  style={{ backgroundColor: profile.color }}
-                />
-                <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span>{profile.name}</span>
-              </div>
-            </SelectItem>
-          );
-        })}
+        {personalProfiles.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Personal</SelectLabel>
+            {personalProfiles.map((profile) => (
+              <ProfileRow key={profile._id} profile={profile} />
+            ))}
+          </SelectGroup>
+        )}
+        {personalProfiles.length > 0 && teamProfiles.length > 0 && (
+          <SelectSeparator />
+        )}
+        {teamProfiles.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Teams</SelectLabel>
+            {teamProfiles.map((profile) => (
+              <ProfileRow key={profile._id} profile={profile} isTeam />
+            ))}
+          </SelectGroup>
+        )}
       </SelectContent>
     </Select>
+  );
+}
+
+function ProfileRow({
+  profile,
+  isTeam,
+}: {
+  profile: ProfileListItem;
+  isTeam?: boolean;
+}) {
+  const Icon = getProfileIcon(profile.icon);
+  return (
+    <SelectItem value={profile._id}>
+      <div className="flex items-center gap-2">
+        <div
+          className="h-2 w-2 rounded-full shrink-0"
+          style={{ backgroundColor: profile.color }}
+        />
+        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span>{profile.name}</span>
+        {isTeam && (
+          <span className="ml-auto rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            Team
+          </span>
+        )}
+      </div>
+    </SelectItem>
   );
 }
