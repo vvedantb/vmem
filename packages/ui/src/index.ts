@@ -2,6 +2,7 @@ export { cn } from "./utils/cn";
 export * from "./motion/presets";
 
 export * from "./ui/badge";
+export * from "./ui/breadcrumb";
 export * from "./ui/button";
 export * from "./ui/card";
 export * from "./ui/checkbox";

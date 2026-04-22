@@ -276,3 +276,92 @@ export const getRecentMemoryTitlesInternal = internalAction({
     );
   },
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Team-scoped internal actions.
+// The Convex layer must verify team membership BEFORE invoking these —
+// they carry no per-user auth check, only a profileId filter.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const listMemoriesForTeamInternal = internalAction({
+  args: {
+    profileId: v.string(),
+    type: v.optional(v.string()),
+    status: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    limit: v.number(),
+    offset: v.number(),
+  },
+  handler: async (_ctx, args) => {
+    const service = new MemoryService(getDriver());
+    return await service.listMemoriesForTeam({
+      profileId: args.profileId,
+      type: toMemoryType(args.type),
+      status: toMemoryStatus(args.status),
+      tags: args.tags,
+      limit: args.limit,
+      offset: args.offset,
+    });
+  },
+});
+
+export const getMemoryForTeamInternal = internalAction({
+  args: {
+    profileId: v.string(),
+    memoryId: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const service = new MemoryService(getDriver());
+    return await service.getMemoryForTeam(args.profileId, args.memoryId);
+  },
+});
+
+export const searchMemoriesForTeamInternal = internalAction({
+  args: {
+    profileId: v.string(),
+    query: v.optional(v.string()),
+    type: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    source: v.optional(v.string()),
+    limit: v.number(),
+    offset: v.number(),
+  },
+  handler: async (_ctx, args) => {
+    const service = new MemoryService(getDriver());
+    return await service.searchMemoriesForTeam({
+      profileId: args.profileId,
+      query: args.query,
+      type: toMemoryType(args.type),
+      tags: args.tags,
+      source: args.source,
+      limit: args.limit,
+      offset: args.offset,
+    });
+  },
+});
+
+export const deleteTeamMemoryAsOwnerInternal = internalAction({
+  args: {
+    profileId: v.string(),
+    memoryId: v.string(),
+    ownerClerkId: v.string(), // for event logging
+  },
+  handler: async (ctx, args) => {
+    const service = new MemoryService(getDriver());
+    const deleted = await service.deleteTeamMemoryAsOwner(
+      args.profileId,
+      args.memoryId,
+    );
+
+    if (deleted) {
+      await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+        clerkId: args.ownerClerkId,
+        eventType: "memory_deleted",
+        memoryId: args.memoryId,
+        payload: JSON.stringify({ moderatedByTeamOwner: true }),
+      });
+    }
+
+    return deleted;
+  },
+});

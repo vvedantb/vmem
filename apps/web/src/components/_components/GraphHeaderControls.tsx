@@ -138,6 +138,7 @@ function FiltersPopover({ controller }: { controller: MemoryGraphController }) {
     allTypes,
     activeTypes,
     onToggleType,
+    onClearFilters,
     totalNodeCount,
     visibleNodeCount,
     isDark,
@@ -298,6 +299,7 @@ function FiltersPopover({ controller }: { controller: MemoryGraphController }) {
           typeCounts={typeCounts}
           filteredCount={visibleNodeCount}
           totalCount={totalNodeCount}
+          onClearAll={onClearFilters}
           isDark={isDark}
         />
       </PopoverContent>

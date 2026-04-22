@@ -1,5 +1,29 @@
 # Changelog
 
+## Breadcrumb Navigation for Detail Pages — 2026-04-22
+
+- **New Breadcrumb component in @vmem/ui**: Created reusable `Breadcrumb` / `BreadcrumbLink` / `BreadcrumbPage` / `BreadcrumbSeparator` primitives using Radix Slot for type-safe routing; parent segments render as muted links (hover→foreground), current segment is foreground non-clickable
+- **PageContainer breadcrumb prop**: Added optional `breadcrumb?: ReactNode` prop that renders in place of the `<h1>` title; mobile topbar still shows title via PageTitleContext, desktop hides h1 when breadcrumb is present
+- **Detail pages migrated to breadcrumbs**: Removed back buttons from `/codebases/$id` and `/teams/$teamId`, replaced with breadcrumbs (e.g. `Codebases / acme-corp/api` and `Teams / {teamName}`); moved page meta (branch, status, etc.) to `centerSection` for cleaner header layout
+- **FilesClient breadcrumb consistency**: Refactored `BreadcrumbNav.tsx` to use the new @vmem/ui primitive instead of custom styles; folder navigation (nuqs state update) now follows the same pattern as detail pages
+- **Updated CLAUDE.md**: Added "Detail Page Headers" section documenting the pattern for future detail pages — breadcrumbs replace back buttons, page meta goes in center, actions in right
+- **Files affected**: `packages/ui/src/ui/breadcrumb.tsx` (new), `packages/ui/src/index.ts`, `apps/web/src/components/PageContainer.tsx`, `apps/web/src/routes/_main/codebases/$id.tsx`, `apps/web/src/routes/_main/teams/$teamId/index.tsx`, `apps/web/src/components/files/BreadcrumbNav.tsx`, `CLAUDE.md`
+- **Reason**: Detail pages with "Title / Back Button" layout read in the wrong order (back belongs before title, not after). Breadcrumbs provide clearer navigation hierarchy, reduce button chrome, and establish a consistent pattern for all detail pages.
+
+## Company Knowledge (Teams) — Shared Profiles, Members, Attribution — 2026-04-22
+
+- **Teams primitive**: Users can now create teams, invite teammates by email (instant-add if a vmem account exists; no invite tokens, no email sending), and belong to many teams at once with `owner` / `member` roles
+- **Shared team profile**: Every team gets exactly one shared profile — all members save memories into the same pool, and the profile appears in every member's ProfileDropdown grouped under a new "Teams" section with a pill badge
+- **Memory attribution preserved on leave**: Team memory reads filter by `profileId` alone (not `userId`), so when someone leaves the team their memories stay with the team and the original "Saved by X" attribution is retained
+- **Creator-or-owner edit/delete**: Team memories can be edited or deleted by the creator or any team owner; non-owners are blocked from mutating others' entries
+- **New routes**: `/teams` (card grid + create dialog) and `/teams/$teamId` (Overview stats, Knowledge memory list with "Saved by" chips, Members management, Settings — Settings tab owner-only) with nuqs-backed tab + filter state
+- **Neo4j scope refactor**: Memory service entry points now take a discriminated scope (`personal` vs `team`) — every Cypher path that filtered by `m.userId` branches on scope; the team branch filters by `profileId` and resolves permitted members via Convex
+- **Backend shape**: New `teams` + `teamMembers` tables, `teamId` added to `profileFields`, new `convex/teams.ts` with full CRUD + membership API; `users.getByClerkIds` query powers attribution lookups across the frontend
+- **No `as` casts at client boundary**: Public team APIs accept `v.string()` and normalize server-side via `ctx.db.normalizeId`, keeping the CLAUDE.md "no type assertions" rule intact all the way through the stack
+- **Tooling**: Added `apps/web/scripts/generate-route-tree.mjs` so the TanStack Router route tree can be regenerated headlessly (matches the Vite plugin config) without spinning up the dev server — unblocks CI typecheck after route additions
+- **Files affected**: `schema.ts`, `validators.ts`, `teams.ts` (new), `profiles.ts`, `memoryApi.ts`, `users.ts`, `neo4jActions/memories.ts`, `neo4j/memoryService.ts`, `sidebar/nav-config.ts`, `ProfileDropdown.tsx`, `routes/_main/teams/**` (new folder with index, `$teamId/index`, `-searchParams.ts`, and 5 subcomponents), `scripts/generate-route-tree.mjs` (new)
+- **Reason**: vmem had no multi-user story — every memory was locked to one creator. Teams unlock the "company knowledge base" use case where a whole team contributes to and searches one shared brain, with attribution, role-gated mutation, and member churn handled cleanly.
+
 ## Source & Type Filters for Memory Graph + Unified nuqs State — 2026-04-21
 
 - **Graph view filter parity with list view**: Graph now exposes all 5 filter tabs (Profile, Kind, Tags, Source, Type) in the UnifiedFilterPanel — previously only Profile/Kind/Tags were available

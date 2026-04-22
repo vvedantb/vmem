@@ -7,6 +7,8 @@ import type {
 } from "./types";
 import type { GraphViewTheme } from "../graph-view-themes";
 import { nodeColor as getNodeColor } from "../graph-colors";
+import type { ConnectorLogoMap } from "./connector-logos";
+import { getConnectorLogo } from "./connector-logos";
 
 const TWO_PI = Math.PI * 2;
 
@@ -122,6 +124,7 @@ export function render(
   focusNodeId: string | null,
   searchMatchSet: Set<string>,
   showLabels: boolean,
+  connectorLogos: ConnectorLogoMap,
 ): void {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, canvasW, canvasH);
@@ -395,6 +398,48 @@ export function render(
       }
 
       if (dimPass) ctx.globalAlpha = 1;
+    }
+  }
+
+  // Connector-logo pass: stamp the sourceType's brand logo inside the circle
+  // for memories that came in through a connector sync. Skipped at low zoom
+  // and on very large graphs because drawImage per-node is not free.
+  //
+  // Runs AFTER the batched circle pass so the common case (no logo) never pays
+  // any extra cost — the inner loop here only iterates nodes that actually
+  // resolve to a connector logo. Clip-to-circle guarantees the logo never
+  // bleeds past the node's visual boundary even if the SVG is slightly
+  // off-centre.
+  if (!lowZoom && !highNodeCount && connectorLogos.size > 0) {
+    for (const node of nodes) {
+      if (node.kind !== "memory") continue;
+      const logo = getConnectorLogo(node.sourceType, connectorLogos);
+      if (!logo) continue;
+
+      const nx = node.x ?? 0;
+      const ny = node.y ?? 0;
+      const baseRadius = node.size * 2;
+      if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
+
+      const isHovered = interaction.hoveredNodeId === node.id;
+      const isNeighbor = neighborSet.has(node.id);
+      const isSearchMatch = searchMatchSet.has(node.id);
+      const isDimmed =
+        (hasHover && !isHovered && !isNeighbor) ||
+        (isSearchActive && !isSearchMatch);
+
+      // Logo sits inset inside the circle so the tag-hash ring remains visible
+      // around it — topic colour and provenance read as two distinct signals.
+      const logoSize = baseRadius * 1.4;
+      const logoHalf = logoSize / 2;
+
+      ctx.save();
+      if (isDimmed) ctx.globalAlpha = theme.dimAlpha;
+      ctx.beginPath();
+      ctx.arc(nx, ny, baseRadius, 0, TWO_PI);
+      ctx.clip();
+      ctx.drawImage(logo, nx - logoHalf, ny - logoHalf, logoSize, logoSize);
+      ctx.restore();
     }
   }
 

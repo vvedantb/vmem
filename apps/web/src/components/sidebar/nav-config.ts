@@ -22,6 +22,7 @@ import {
   IconActivity,
   IconCpu,
   IconUsers,
+  IconBuilding,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -33,6 +34,7 @@ export const navGroups: NavGroup[] = [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/voice", label: "Voice", icon: IconMicrophone },
       { href: "/memories", label: "Memories", icon: IconBrain },
+      { href: "/teams", label: "Teams", icon: IconBuilding },
     ],
   },
   {

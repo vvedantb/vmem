@@ -16,6 +16,11 @@ type MemoryType = "profile" | "episodic" | "knowledge";
  * `source` and `type` are only populated on memory nodes — the list/graph
  * filter UI treats them as memory-scoped filters (non-memory nodes pass
  * through when a source/type filter is active).
+ *
+ * `sourceType` is the connector provenance (gmail / google_drive / notion) on
+ * memories that came in through a connector sync. null for MCP / manual / web
+ * captures and for non-memory kinds. The renderer uses it to overlay a brand
+ * logo inside the node so users can see where the memory came from.
  */
 interface GraphNodeEntry {
   id: string;
@@ -25,6 +30,7 @@ interface GraphNodeEntry {
   createdAt: string;
   kind: "memory" | "wiki-document" | "wiki-folder" | "skill";
   source?: string;
+  sourceType: string | null;
   type?: MemoryType;
 }
 
@@ -49,6 +55,7 @@ interface MemoryGraph {
     tags: string[];
     createdAt: string;
     source?: string;
+    sourceType: string | null;
     type?: MemoryType;
   }[];
   relatesToEdges: { source: string; target: string; reason: string }[];
@@ -75,6 +82,7 @@ function annotateMemoryNodes(nodes: MemoryGraph["nodes"]): GraphNodeEntry[] {
     createdAt: n.createdAt,
     kind: "memory",
     source: n.source,
+    sourceType: n.sourceType,
     type: n.type,
   }));
 }
@@ -112,6 +120,7 @@ export const getGraphData = authAction({
       tags: [],
       createdAt: new Date(w.createdAt).toISOString(),
       kind: w.kind === "folder" ? "wiki-folder" : "wiki-document",
+      sourceType: null,
     }));
 
     const wikiParentEdges: { source: string; target: string }[] = [];
@@ -140,6 +149,7 @@ export const getGraphData = authAction({
       tags: [],
       createdAt: new Date(s.createdAt).toISOString(),
       kind: "skill",
+      sourceType: null,
     }));
 
     return {

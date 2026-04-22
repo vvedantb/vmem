@@ -44,6 +44,7 @@ import type * as profiles from "../profiles.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
 import type * as relationshipApi from "../relationshipApi.js";
 import type * as skills from "../skills.js";
+import type * as teams from "../teams.js";
 import type * as timelineApi from "../timelineApi.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
@@ -93,6 +94,7 @@ declare const fullApi: ApiFromModules<{
   proposedUpdateApi: typeof proposedUpdateApi;
   relationshipApi: typeof relationshipApi;
   skills: typeof skills;
+  teams: typeof teams;
   timelineApi: typeof timelineApi;
   userSettings: typeof userSettings;
   users: typeof users;

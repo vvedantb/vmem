@@ -41,26 +41,66 @@ const DEFAULT_PROFILE_ICON = "user";
 // Public queries/mutations (require auth)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** List all profiles for the current user */
+/**
+ * List all profiles visible to the current user.
+ * Includes:
+ *  - personal profiles owned by the user (teamId undefined)
+ *  - team profiles for every team the user is a member of
+ *
+ * Personal profiles owned by a different user that happen to be shared via
+ * team membership are NOT included here — team access is strictly through
+ * team profiles.
+ */
 export const list = authQuery({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
-      .query("profiles")
+    // Personal profiles: owned by user AND not linked to a team.
+    const personal = (
+      await ctx.db
+        .query("profiles")
+        .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+        .collect()
+    ).filter((p) => p.teamId === undefined);
+
+    // Team profiles: one per team the user is a member of.
+    const memberships = await ctx.db
+      .query("teamMembers")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .collect();
+    const teamProfiles: Doc<"profiles">[] = [];
+    for (const m of memberships) {
+      const profile = await ctx.db
+        .query("profiles")
+        .withIndex("by_team", (q) => q.eq("teamId", m.teamId))
+        .first();
+      if (profile) teamProfiles.push(profile);
+    }
+
+    return [...personal, ...teamProfiles];
   },
 });
 
-/** Get a single profile by ID (must belong to user) */
+/** Get a single profile by ID (must belong to user OR be a team profile where user is a member) */
 export const get = authQuery({
   args: { profileId: v.id("profiles") },
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.profileId);
-    if (!profile || profile.userId !== ctx.userId) {
-      return null;
+    if (!profile) return null;
+
+    // Personal profile — must be owner
+    if (!profile.teamId) {
+      return profile.userId === ctx.userId ? profile : null;
     }
-    return profile;
+
+    // Team profile — must be a member
+    const teamId = profile.teamId;
+    const membership = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_team_user", (q) =>
+        q.eq("teamId", teamId).eq("userId", ctx.userId),
+      )
+      .first();
+    return membership ? profile : null;
   },
 });
 
@@ -107,7 +147,12 @@ export const create = authMutation({
   },
 });
 
-/** Update an existing profile (rename, recolor, re-icon) */
+/**
+ * Update an existing profile (rename, recolor, re-icon).
+ * Personal profile: owner only.
+ * Team profile: must be a team owner. Renaming a team profile here also syncs
+ * the team's name so the two stay in lockstep.
+ */
 export const update = authMutation({
   args: {
     profileId: v.id("profiles"),
@@ -117,12 +162,30 @@ export const update = authMutation({
   },
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.profileId);
-    if (!profile || profile.userId !== ctx.userId) {
+    if (!profile) throw new Error("Profile not found");
+
+    if (profile.teamId) {
+      const teamId = profile.teamId;
+      const membership = await ctx.db
+        .query("teamMembers")
+        .withIndex("by_team_user", (q) =>
+          q.eq("teamId", teamId).eq("userId", ctx.userId),
+        )
+        .first();
+      if (!membership || membership.role !== "owner") {
+        throw new Error("Only team owners can edit a team profile");
+      }
+    } else if (profile.userId !== ctx.userId) {
       throw new Error("Profile not found");
     }
 
-    // Check name uniqueness if changing name
-    if (args.name !== undefined && args.name !== profile.name) {
+    // Check name uniqueness within the same owner for personal profiles only.
+    // Team profiles don't participate in per-user name uniqueness.
+    if (
+      !profile.teamId &&
+      args.name !== undefined &&
+      args.name !== profile.name
+    ) {
       const newName = args.name;
       const existing = await ctx.db
         .query("profiles")
@@ -136,12 +199,18 @@ export const update = authMutation({
       }
     }
 
-    const updates: Partial<Doc<"profiles">> = { updatedAt: Date.now() };
+    const now = Date.now();
+    const updates: Partial<Doc<"profiles">> = { updatedAt: now };
     if (args.name !== undefined) updates.name = args.name;
     if (args.color !== undefined) updates.color = args.color;
     if (args.icon !== undefined) updates.icon = args.icon;
 
     await ctx.db.patch(args.profileId, updates);
+
+    // Keep team name in sync if we renamed the team profile
+    if (profile.teamId && args.name !== undefined) {
+      await ctx.db.patch(profile.teamId, { name: args.name, updatedAt: now });
+    }
     return await ctx.db.get(args.profileId);
   },
 });
@@ -157,6 +226,10 @@ export const remove = authMutation({
     const profile = await ctx.db.get(args.profileId);
     if (!profile || profile.userId !== ctx.userId) {
       throw new Error("Profile not found");
+    }
+
+    if (profile.teamId) {
+      throw new Error("Use teams.deleteTeam to remove a team profile");
     }
 
     if (profile.isDefault) {
@@ -224,6 +297,15 @@ export const removeWithMemories = authAction({
     moveMemoriesToProfileId: v.optional(v.id("profiles")),
   },
   handler: async (ctx, args) => {
+    // Disallow team profile removal via this path — teams.deleteTeam handles cascading cleanup.
+    const profile: Doc<"profiles"> | null = await ctx.runQuery(
+      internal.profiles.getByIdInternal,
+      { profileId: args.profileId },
+    );
+    if (profile?.teamId) {
+      throw new Error("Use teams.deleteTeam to remove a team profile");
+    }
+
     // Get user's clerkId
     const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
       userId: ctx.userId,
