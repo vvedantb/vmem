@@ -87,6 +87,13 @@ Spacing:
 - Use whitespace/padding (Gestalt Law of Proximity) to group related elements, not dividers or `border-t`/`border-b`.
 - Section separation = increased margin (`mt-6`), not a line.
 
+Detail Page Headers:
+
+- Detail pages (`$id`, `$teamId`, etc.) use the `breadcrumb` prop on `PageContainer` — never a back button.
+- Breadcrumb replaces the `<h1>` title. Pattern: parent route (muted, clickable `BreadcrumbLink asChild` wrapping `Link`) → `/` → current page (`BreadcrumbPage`, foreground, not clickable, same font weight).
+- Page meta (status badges, branch names, counts) lives in `centerSection`, not next to the breadcrumb. Actions live in `rightSection`.
+- Breadcrumb is desktop-only; mobile topbar shows the page title from `PageTitleContext` (still set via `PageContainer`'s `title` prop).
+
 Component Structure:
 
 - Max ~250 lines per client component

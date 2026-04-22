@@ -272,7 +272,7 @@ export default function FilesClient() {
     <PageContainer
       title="Files"
       noScroll
-      leftSection={
+      breadcrumb={
         <BreadcrumbNav
           breadcrumbs={breadcrumbs}
           onNavigate={navigateToFolder}
