@@ -17,6 +17,10 @@ import type {
  * `source` and `type` are only populated on memory nodes — wiki/skill nodes
  * leave them undefined, and the Source/Type filters treat those as
  * passthrough so narrowing memories never hides non-memory items.
+ *
+ * `sourceType` is the connector provenance (gmail / google_drive / notion) for
+ * memories that arrived through a connector sync; null otherwise. Drives the
+ * logo-overlay pass in the renderer.
  */
 export interface ApiGraphNode {
   id: string;
@@ -26,6 +30,7 @@ export interface ApiGraphNode {
   createdAt: string;
   kind: GraphNodeKind;
   source?: string;
+  sourceType: string | null;
   type?: MemoryType;
 }
 
@@ -232,6 +237,7 @@ export function buildGraphData(
       color: "",
       size,
       kind: node.kind,
+      sourceType: node.sourceType,
     };
   });
 

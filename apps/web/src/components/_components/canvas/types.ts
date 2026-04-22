@@ -26,6 +26,14 @@ export interface GraphNode extends SimulationNodeDatum {
   color: string;
   size: number;
   kind: GraphNodeKind;
+  /**
+   * Connector provenance string (e.g. "gmail", "google_drive", "notion") for
+   * memories that came in through a connector sync. null for MCP / manual /
+   * web captures and for non-memory kinds. The renderer uses this to stamp a
+   * brand logo inside the circle so provenance reads at a glance without
+   * disturbing the tag-hash colour.
+   */
+  sourceType: string | null;
 }
 
 export interface GraphEdge extends SimulationLinkDatum<GraphNode> {

@@ -28,6 +28,7 @@ function capGraph(data: {
     tags: string[];
     createdAt: string;
     source?: string;
+    sourceType: string | null;
     type?: MemoryType;
   }[];
   relatesToEdges: { source: string; target: string; reason: string }[];

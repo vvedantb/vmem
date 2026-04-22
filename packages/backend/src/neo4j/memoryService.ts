@@ -1241,6 +1241,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       tags: string[];
       createdAt: string;
       source?: string;
+      sourceType: string | null;
       type?: MemoryType;
     }[];
     relatesToEdges: { source: string; target: string; reason: string }[];
@@ -1277,7 +1278,8 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
                   substring(m.content, 0, 200) AS content,
                   collect(t.name) AS tags,
                   m.createdAt AS createdAt,
-                  m.source AS source, m.type AS type`,
+                  m.source AS source, m.type AS type,
+                  m.sourceType AS sourceType`,
           { userId, profileId: profileId ?? null },
         ),
         relatesToSession.run(
@@ -1298,6 +1300,8 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           : [],
         createdAt: String(r.get("createdAt")),
         source: r.get("source") !== null ? String(r.get("source")) : undefined,
+        sourceType:
+          r.get("sourceType") !== null ? String(r.get("sourceType")) : null,
         type: toMemoryTypeOrUndefined(r.get("type")),
       }));
 
@@ -1329,6 +1333,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       tags: string[];
       createdAt: string;
       source?: string;
+      sourceType: string | null;
       type?: MemoryType;
     }[];
 
@@ -1355,7 +1360,8 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
          RETURN m.id AS id, m.title AS title,
                 substring(m.content, 0, 200) AS content,
                 collect(t.name) AS tags, m.createdAt AS createdAt,
-                m.source AS source, m.type AS type
+                m.source AS source, m.type AS type,
+                m.sourceType AS sourceType
          LIMIT 500`,
         { userId, focusId, profileId: profileId ?? null },
       );
@@ -1369,6 +1375,8 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           : [],
         createdAt: String(r.get("createdAt")),
         source: r.get("source") !== null ? String(r.get("source")) : undefined,
+        sourceType:
+          r.get("sourceType") !== null ? String(r.get("sourceType")) : null,
         type: toMemoryTypeOrUndefined(r.get("type")),
       }));
       nodeIds = nodes.map((n) => n.id);
