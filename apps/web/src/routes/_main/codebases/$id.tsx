@@ -4,7 +4,13 @@ import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
-import { Button, Badge } from "@vmem/ui";
+import {
+  Badge,
+  Breadcrumb,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  Button,
+} from "@vmem/ui";
 import {
   IconArrowLeft,
   IconGitBranch,
@@ -120,14 +126,16 @@ function CodebaseDetailView({
     <PageContainer
       title={codebase.repoFullName}
       noScroll
-      leftSection={
+      breadcrumb={
+        <Breadcrumb>
+          <BreadcrumbLink asChild>
+            <Link to="/codebases">Codebases</Link>
+          </BreadcrumbLink>
+          <BreadcrumbPage>{codebase.repoFullName}</BreadcrumbPage>
+        </Breadcrumb>
+      }
+      centerSection={
         <div className="flex items-center gap-3">
-          <Link to="/codebases">
-            <Button variant="outline" size="sm">
-              <IconArrowLeft size={16} />
-              Back
-            </Button>
-          </Link>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <IconGitBranch size={14} />
             <span>{codebase.defaultBranch}</span>
