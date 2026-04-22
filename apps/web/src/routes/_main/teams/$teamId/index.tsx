@@ -29,6 +29,7 @@ export type TeamDetail = NonNullable<FunctionReturnType<typeof api.teams.get>>;
 
 function TeamDetailPage() {
   const { teamId } = Route.useParams();
+  const [params, setParams] = useQueryStates(teamRouteSearchParams);
   const data = useQuery(api.teams.get, { teamId });
 
   if (data === undefined) {
@@ -62,11 +63,22 @@ function TeamDetailPage() {
     );
   }
 
-  return <TeamDetailView data={data} />;
+  return <TeamDetailView data={data} params={params} setParams={setParams} />;
 }
 
-function TeamDetailView({ data }: { data: TeamDetail }) {
-  const [params, setParams] = useQueryStates(teamRouteSearchParams);
+type SetParams = ReturnType<
+  typeof useQueryStates<typeof teamRouteSearchParams>
+>[1];
+
+function TeamDetailView({
+  data,
+  params,
+  setParams,
+}: {
+  data: TeamDetail;
+  params: ReturnType<typeof useQueryStates<typeof teamRouteSearchParams>>[0];
+  setParams: SetParams;
+}) {
   const isOwner = data.role === "owner";
 
   return (
