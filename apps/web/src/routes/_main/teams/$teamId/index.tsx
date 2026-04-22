@@ -85,13 +85,15 @@ function TeamDetailView({ data }: { data: TeamDetail }) {
           value={params.tab}
           onValueChange={(v) => {
             // parseAsStringLiteral guarantees the value type; cast-free via setParams.
+            // shallow: true prevents router navigation, avoiding parent re-renders
+            // that would flash the loading state.
             if (
               v === "overview" ||
               v === "knowledge" ||
               v === "members" ||
               v === "settings"
             ) {
-              void setParams({ tab: v });
+              void setParams({ tab: v }, { shallow: true });
             }
           }}
         >
