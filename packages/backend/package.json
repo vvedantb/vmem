@@ -26,6 +26,7 @@
   "devDependencies": {
     "@types/jsonwebtoken": "catalog:",
     "@types/node": "catalog:node-types-22",
+    "@typescript/native-preview": "7.0.0-dev.20260422.1",
     "typescript": "catalog:"
   }
 }
