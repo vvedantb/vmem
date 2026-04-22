@@ -125,6 +125,15 @@ export default function MemoryListHeaderControls() {
             onTypesChange={(types) => setParams({ types })}
             filteredCount={filteredItems.length}
             totalCount={allItems.length}
+            onClearAll={() =>
+              setParams({
+                profile: null,
+                kinds: [],
+                tags: [],
+                sources: [],
+                types: [],
+              })
+            }
             isDark={isDark}
           />
         </PopoverContent>

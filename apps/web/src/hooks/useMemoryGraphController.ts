@@ -114,6 +114,8 @@ export interface MemoryGraphController {
   onToggleKind: (kind: GraphNodeKind) => void;
   onToggleSource: (source: string) => void;
   onToggleType: (type: MemoryType) => void;
+  /** Reset every URL-backed filter in a single `setParams` write. */
+  onClearFilters: () => void;
   onSettingsChange: (next: GraphSettings) => void;
   onViewModeChange: (mode: ViewMode) => void;
   onSearchChange: (q: string) => void;
@@ -305,6 +307,20 @@ export function useMemoryGraphController({
     [setParams],
   );
 
+  // Clearing per-field via the individual toggle callbacks would race — each
+  // toggle reads `params.*` from a stale closure, so successive setParams calls
+  // throttle to a single URL write that only reflects the last toggle. Writing
+  // every filter in one setParams call sidesteps the race entirely.
+  const onClearFilters = useCallback(() => {
+    void setParams({
+      profile: null,
+      kinds: [],
+      tags: [],
+      sources: [],
+      types: [],
+    });
+  }, [setParams]);
+
   const onSearchChange = useCallback((q: string) => {
     setSearch(q);
   }, []);
@@ -354,6 +370,7 @@ export function useMemoryGraphController({
     onToggleKind,
     onToggleSource,
     onToggleType,
+    onClearFilters,
     onSettingsChange,
     onViewModeChange,
     onSearchChange,

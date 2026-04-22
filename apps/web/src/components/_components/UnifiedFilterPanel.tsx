@@ -91,6 +91,13 @@ interface UnifiedFilterPanelProps {
   filteredCount: number;
   totalCount: number;
 
+  /**
+   * Reset every filter at once. Must be a single atomic update — clearing
+   * filters one-by-one via the individual handlers races when those handlers
+   * read from stale URL/closure state (see graph view's toggle-based adapters).
+   */
+  onClearAll: () => void;
+
   isDark: boolean;
 
   /**
@@ -125,6 +132,7 @@ export default function UnifiedFilterPanel({
   typeCounts: typeCountsProp,
   filteredCount,
   totalCount,
+  onClearAll,
   isDark,
   visibleTabs = ["profile", "kind", "tags", "source", "type"],
 }: UnifiedFilterPanelProps) {
@@ -220,13 +228,12 @@ export default function UnifiedFilterPanel({
     }
   };
 
-  const clearAll = () => {
-    onProfileChange(null);
-    onKindsChange?.([]);
-    onTagsChange?.([]);
-    onSourcesChange?.([]);
-    onTypesChange?.([]);
-  };
+  // Delegate to the caller so every filter resets in one atomic update. Calling
+  // the individual on*Change handlers in sequence races in the graph view,
+  // whose adapters iterate `activeKinds`/`activeTags` and call per-item toggles
+  // — each toggle reads stale `params.*` from its closure, so only the last
+  // update survives. A single batched write from the caller sidesteps that.
+  const clearAll = () => onClearAll();
 
   // Tab badge helper
   const tabBadge = (count: number) =>
