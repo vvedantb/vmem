@@ -7,6 +7,13 @@ import { usePageTitle } from "./contexts/PageTitleContext";
 
 interface PageContainerProps {
   title?: string;
+  /**
+   * Breadcrumb trail shown in the header's left slot. When provided, replaces
+   * the large `<h1>` title render — the breadcrumb's final segment identifies
+   * the current page. The `title` prop is still used for the browser tab and
+   * mobile topbar via the page title context.
+   */
+  breadcrumb?: ReactNode;
   leftSection?: ReactNode;
   centerSection?: ReactNode;
   rightSection?: ReactNode;
@@ -21,6 +28,7 @@ interface PageContainerProps {
 
 export default function PageContainer({
   title,
+  breadcrumb,
   leftSection,
   centerSection,
   rightSection,
@@ -37,11 +45,12 @@ export default function PageContainer({
     return () => setPageTitle("");
   }, [title, setPageTitle]);
 
-  const hasSections = leftSection || centerSection || rightSection;
-  // Default: show title if sections exist, unless explicitly set
+  const hasSections = Boolean(leftSection || centerSection || rightSection);
+  // Breadcrumb takes precedence over the h1 title — don't render both.
+  // Default: show title if sections exist, unless explicitly set.
   const showTitleInHeader =
-    Boolean(title) && (showTitle ?? Boolean(hasSections));
-  const hasHeader = showTitleInHeader || hasSections;
+    !breadcrumb && Boolean(title) && (showTitle ?? hasSections);
+  const hasHeader = Boolean(breadcrumb) || showTitleInHeader || hasSections;
 
   const childTransition = {
     duration: motionDuration.fast,
@@ -69,11 +78,22 @@ export default function PageContainer({
               centeredMaxWidth && "max-w-5xl",
             )}
           >
-            <div className="flex min-w-0 flex-shrink-0 items-center gap-4">
-              {showTitleInHeader && (
-                <h1 className="hidden min-w-0 truncate text-2xl leading-tight font-instrumentSerif text-foreground md:block">
-                  {title}
-                </h1>
+            <div className="flex min-w-0 items-center gap-4">
+              {breadcrumb ? (
+                <motion.div
+                  className="hidden min-w-0 md:flex"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={childTransition}
+                >
+                  {breadcrumb}
+                </motion.div>
+              ) : (
+                showTitleInHeader && (
+                  <h1 className="hidden min-w-0 truncate text-2xl leading-tight font-instrumentSerif text-foreground md:block">
+                    {title}
+                  </h1>
+                )
               )}
               {leftSection && (
                 <motion.div

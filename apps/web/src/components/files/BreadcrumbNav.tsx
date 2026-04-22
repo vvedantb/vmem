@@ -1,5 +1,4 @@
-import { IconChevronRight } from "@tabler/icons-react";
-import { Button } from "@vmem/ui";
+import { Breadcrumb, BreadcrumbLink, BreadcrumbPage } from "@vmem/ui";
 import type { FolderBreadcrumb } from "@/lib/file-types";
 
 interface BreadcrumbNavProps {
@@ -7,50 +6,36 @@ interface BreadcrumbNavProps {
   onNavigate: (folderId: string | null) => void;
 }
 
+/**
+ * Files page breadcrumb. Renders the folder path using the generic @vmem/ui
+ * Breadcrumb primitive so the styling matches other detail pages.
+ *
+ * Navigation is a nuqs state update (not a router Link), so parent segments
+ * render as buttons inside BreadcrumbLink's asChild slot. The final segment
+ * is the current folder (or "Files" at root) and is not clickable.
+ */
 export default function BreadcrumbNav({
   breadcrumbs,
   onNavigate,
 }: BreadcrumbNavProps) {
-  // Skip the root "Files" crumb, only show folder hierarchy
-  const folderCrumbs = breadcrumbs.slice(1);
-
-  if (folderCrumbs.length === 0) {
-    return null;
-  }
-
   return (
-    <nav className="flex items-center gap-1 text-sm min-w-0">
-      {folderCrumbs.map((crumb, index) => {
-        const isLast = index === folderCrumbs.length - 1;
+    <Breadcrumb>
+      {breadcrumbs.map((crumb, index) => {
+        const isLast = index === breadcrumbs.length - 1;
+        const key = crumb.id ?? "root";
+
+        if (isLast) {
+          return <BreadcrumbPage key={key}>{crumb.name}</BreadcrumbPage>;
+        }
 
         return (
-          <div
-            key={crumb.id ?? "root"}
-            className="flex items-center gap-1 min-w-0"
-          >
-            {index > 0 && (
-              <IconChevronRight
-                size={14}
-                className="text-muted-foreground/50 flex-shrink-0"
-              />
-            )}
-            {isLast ? (
-              <span className="text-foreground font-medium truncate">
-                {crumb.name}
-              </span>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-auto px-1.5 py-0.5 text-muted-foreground hover:text-foreground"
-                onClick={() => onNavigate(crumb.id)}
-              >
-                {crumb.name}
-              </Button>
-            )}
-          </div>
+          <BreadcrumbLink key={key} asChild>
+            <button type="button" onClick={() => onNavigate(crumb.id)}>
+              {crumb.name}
+            </button>
+          </BreadcrumbLink>
         );
       })}
-    </nav>
+    </Breadcrumb>
   );
 }

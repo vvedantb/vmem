@@ -6,6 +6,17 @@ interface GraphLegendProps {
   visibleNodeCount: number;
 }
 
+/**
+ * Connector logos mirrored on the graph: memories synced from one of these
+ * services carry a small brand logo inside their node. Kept in sync with
+ * `CONNECTOR_SOURCE_TYPES` in `canvas/connector-logos.ts`.
+ */
+const CONNECTOR_LEGEND: { src: string; label: string }[] = [
+  { src: "/connector-logos/gmail.svg", label: "Gmail" },
+  { src: "/connector-logos/google_drive.svg", label: "Google Drive" },
+  { src: "/connector-logos/notion.svg", label: "Notion" },
+];
+
 export default function GraphLegend({
   nodeCount,
   edgeCount,
@@ -43,6 +54,24 @@ export default function GraphLegend({
           <span className="w-4 h-0.5 bg-muted-foreground/70" />
           <span>Relates-to edge</span>
         </div>
+      </div>
+
+      {/* Connector source provenance */}
+      <div className="space-y-1 pt-1">
+        <p className="text-muted-foreground/80">Source</p>
+        {CONNECTOR_LEGEND.map(({ src, label }) => (
+          <div key={src} className="flex items-center gap-2">
+            <img
+              src={src}
+              alt=""
+              width={12}
+              height={12}
+              aria-hidden
+              className="flex-shrink-0"
+            />
+            <span>{label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

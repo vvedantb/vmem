@@ -13,6 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@vmem/ui";
 import { Virtuoso } from "react-virtuoso";
 import {
@@ -26,7 +30,7 @@ import {
   IconSortDescending,
   IconSortAscending,
   IconActivity,
-  IconCalendar,
+  IconX,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
@@ -37,6 +41,7 @@ import {
   DATE_PRESET_LABELS,
   type ActivityType,
   type DatePreset,
+  type SortDirection,
 } from "./-searchParams";
 
 export const Route = createFileRoute("/_main/activity/")({
@@ -118,57 +123,100 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   );
 }
 
-function TypeFilterDropdown({
-  selectedTypes,
+const DATE_PRESETS: DatePreset[] = ["all", "today", "week", "month"];
+
+/**
+ * Unified filter dropdown for the /activity header.
+ *
+ * Consolidates the real content filters (Date Range + Activity Types) into a
+ * single trigger with an active-filter count badge. Sort is intentionally
+ * excluded — it lives in its own ActivitySortDropdown because sort order
+ * doesn't change which items are visible, only their order.
+ *
+ * Active count = number of filter fields currently non-default (arrays with
+ * >=1 item count as 1, not length). Reset restores both fields to defaults
+ * and is only rendered when at least one filter is active.
+ */
+function ActivityFiltersDropdown({
+  types,
+  range,
   onTypesChange,
+  onRangeChange,
+  onReset,
 }: {
-  selectedTypes: ActivityType[];
+  types: ActivityType[];
+  range: DatePreset;
   onTypesChange: (types: ActivityType[]) => void;
+  onRangeChange: (range: DatePreset) => void;
+  onReset: () => void;
 }) {
   const toggleType = (type: ActivityType) => {
-    if (selectedTypes.includes(type)) {
-      onTypesChange(selectedTypes.filter((t) => t !== type));
+    if (types.includes(type)) {
+      onTypesChange(types.filter((t) => t !== type));
     } else {
-      onTypesChange([...selectedTypes, type]);
+      onTypesChange([...types, type]);
     }
   };
 
-  const label =
-    selectedTypes.length === 0
-      ? "All types"
-      : selectedTypes.length === 1
-        ? ACTIVITY_TYPE_LABELS[selectedTypes[0]]
-        : `${selectedTypes.length} types`;
+  const activeFilterCount =
+    (types.length > 0 ? 1 : 0) + (range !== "all" ? 1 : 0);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="relative gap-2">
           <IconFilter size={16} />
-          {label}
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-[10px] font-medium tabular-nums text-primary-foreground flex items-center justify-center leading-none">
+              {activeFilterCount}
+            </span>
+          )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuLabel>Activity Types</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {ACTIVITY_TYPES.map((type) => (
-          <DropdownMenuCheckboxItem
-            key={type}
-            checked={selectedTypes.includes(type)}
-            onCheckedChange={() => toggleType(type)}
-          >
-            {ACTIVITY_TYPE_LABELS[type]}
-          </DropdownMenuCheckboxItem>
-        ))}
-        {selectedTypes.length > 0 && (
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Date Range</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup
+              value={range}
+              onValueChange={(v) => {
+                const preset = DATE_PRESETS.find((p) => p === v);
+                if (preset) onRangeChange(preset);
+              }}
+            >
+              {DATE_PRESETS.map((preset) => (
+                <DropdownMenuRadioItem key={preset} value={preset}>
+                  {DATE_PRESET_LABELS[preset]}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Activity Types</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {ACTIVITY_TYPES.map((type) => (
+              <DropdownMenuCheckboxItem
+                key={type}
+                checked={types.includes(type)}
+                onCheckedChange={() => toggleType(type)}
+              >
+                {ACTIVITY_TYPE_LABELS[type]}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        {activeFilterCount > 0 && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={false}
-              onCheckedChange={() => onTypesChange([])}
+            <DropdownMenuItem
+              onClick={onReset}
+              className="text-destructive focus:text-destructive"
             >
-              Clear all
-            </DropdownMenuCheckboxItem>
+              <IconX size={16} />
+              Clear filters
+            </DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>
@@ -176,56 +224,51 @@ function TypeFilterDropdown({
   );
 }
 
-const DATE_PRESETS: DatePreset[] = ["all", "today", "week", "month"];
-
-function DateRangeDropdown({
-  value,
-  onChange,
-}: {
-  value: DatePreset;
-  onChange: (preset: DatePreset) => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <IconCalendar size={16} />
-          {DATE_PRESET_LABELS[value]}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        <DropdownMenuLabel>Date Range</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup
-          value={value}
-          onValueChange={(v) => onChange(v as DatePreset)}
-        >
-          {DATE_PRESETS.map((preset) => (
-            <DropdownMenuRadioItem key={preset} value={preset}>
-              {DATE_PRESET_LABELS[preset]}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function SortToggle({
+/**
+ * Sort dropdown for the /activity header.
+ *
+ * Standalone dropdown rather than a toggle so the options (Newest first /
+ * Oldest first) are explicit and discoverable. Trigger label mirrors current
+ * selection with a matching direction icon. Does not contribute to the
+ * filters badge — sort isn't a content filter.
+ */
+function ActivitySortDropdown({
   sortDir,
-  onToggle,
+  onSortDirChange,
 }: {
-  sortDir: "desc" | "asc";
-  onToggle: () => void;
+  sortDir: SortDirection;
+  onSortDirChange: (sortDir: SortDirection) => void;
 }) {
   const Icon = sortDir === "desc" ? IconSortDescending : IconSortAscending;
   const label = sortDir === "desc" ? "Newest" : "Oldest";
 
   return (
-    <Button variant="ghost" size="sm" onClick={onToggle} className="gap-2">
-      <Icon size={16} />
-      <span className="hidden sm:inline">{label}</span>
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="gap-2">
+          <Icon size={16} />
+          <span className="hidden sm:inline">{label}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Sort</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={sortDir}
+          onValueChange={(v) => {
+            if (v === "desc" || v === "asc") {
+              onSortDirChange(v);
+            }
+          }}
+        >
+          <DropdownMenuRadioItem value="desc">
+            Newest first
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="asc">
+            Oldest first
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -297,19 +340,16 @@ function ActivityPage() {
       scrollRef={setScrollParent}
       rightSection={
         <div className="flex items-center gap-2">
-          <DateRangeDropdown
-            value={params.range}
-            onChange={(range) => setParams({ range })}
-          />
-          <TypeFilterDropdown
-            selectedTypes={params.types}
+          <ActivityFiltersDropdown
+            types={params.types}
+            range={params.range}
             onTypesChange={(types) => setParams({ types })}
+            onRangeChange={(range) => setParams({ range })}
+            onReset={() => setParams({ types: [], range: "all" })}
           />
-          <SortToggle
+          <ActivitySortDropdown
             sortDir={params.sortDir}
-            onToggle={() =>
-              setParams({ sortDir: params.sortDir === "desc" ? "asc" : "desc" })
-            }
+            onSortDirChange={(sortDir) => setParams({ sortDir })}
           />
         </div>
       }
