@@ -3,7 +3,16 @@ import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
-import { Button, Tabs, TabsList, TabsTrigger, TabsContent } from "@vmem/ui";
+import {
+  Breadcrumb,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  Button,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@vmem/ui";
 import { IconArrowLeft, IconLoader2 } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import { teamRouteSearchParams } from "./-searchParams";
@@ -63,13 +72,13 @@ function TeamDetailView({ data }: { data: TeamDetail }) {
   return (
     <PageContainer
       title={data.team.name}
-      leftSection={
-        <Link to="/teams">
-          <Button variant="outline" size="sm">
-            <IconArrowLeft size={16} />
-            Back
-          </Button>
-        </Link>
+      breadcrumb={
+        <Breadcrumb>
+          <BreadcrumbLink asChild>
+            <Link to="/teams">Teams</Link>
+          </BreadcrumbLink>
+          <BreadcrumbPage>{data.team.name}</BreadcrumbPage>
+        </Breadcrumb>
       }
       centerSection={
         <Tabs
