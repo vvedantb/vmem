@@ -25,6 +25,10 @@ import {
 import { createSpatialIndex, rebuildIndex, markDirty } from "./canvas/hit-test";
 import { render } from "./canvas/renderer";
 import { attachInputHandlers } from "./canvas/input-handler";
+import {
+  loadConnectorLogos,
+  type ConnectorLogoMap,
+} from "./canvas/connector-logos";
 import type { GraphViewTheme } from "./graph-view-themes";
 import type {
   GraphSettings,
@@ -103,6 +107,20 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     });
     const spatialIndexRef = useRef(createSpatialIndex());
     const hasFittedRef = useRef(false);
+    // Connector logos preload asynchronously. We hold an empty map on mount
+    // and populate it once the images resolve — nodes render as plain circles
+    // in the interim, no layout shift when the logos drop in.
+    const connectorLogosRef = useRef<ConnectorLogoMap>(new Map());
+
+    useEffect(() => {
+      let cancelled = false;
+      loadConnectorLogos().then((map) => {
+        if (!cancelled) connectorLogosRef.current = map;
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, []);
 
     nodesRef.current = nodes;
     edgesRef.current = edges;
@@ -316,6 +334,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           focusNodeIdRef.current ?? null,
           searchMatchSetRef.current,
           showLabelsRef.current,
+          connectorLogosRef.current,
         );
 
         rafId = requestAnimationFrame(tick);
