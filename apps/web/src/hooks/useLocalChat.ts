@@ -204,9 +204,12 @@ export function useLocalChat(): LocalChatResult {
             query: text,
             limit: RETRIEVE_LIMIT,
           });
-          memoryRefs = retrieved.map((m) => ({ id: m.id, title: m.title }));
+          memoryRefs = retrieved.memories.map((m) => ({
+            id: m.id,
+            title: m.title,
+          }));
           const addition = buildMemoryRagAddition(
-            retrieved.map((m) => ({
+            retrieved.memories.map((m) => ({
               id: m.id,
               title: m.title,
               content: m.content,

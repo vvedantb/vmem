@@ -85,6 +85,18 @@ function parseJsonField<T>(val: string | null): T | null {
   return JSON.parse(val) as T;
 }
 
+/**
+ * Narrow a raw Neo4j property value to `MemoryType | undefined`. Returns
+ * undefined for nulls and any unrecognized string (future-proof against new
+ * type values landing in the DB before the frontend knows about them).
+ */
+function toMemoryTypeOrUndefined(val: string | null): MemoryType | undefined {
+  if (val === "profile" || val === "episodic" || val === "knowledge") {
+    return val;
+  }
+  return undefined;
+}
+
 function toNeoInt(val: number | { toNumber(): number }): number {
   if (typeof val === "number") return val;
   return val.toNumber();
@@ -1228,6 +1240,8 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       content: string;
       tags: string[];
       createdAt: string;
+      source?: string;
+      type?: MemoryType;
     }[];
     relatesToEdges: { source: string; target: string; reason: string }[];
     tagEdges: {
@@ -1262,7 +1276,8 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
            RETURN m.id AS id, m.title AS title,
                   substring(m.content, 0, 200) AS content,
                   collect(t.name) AS tags,
-                  m.createdAt AS createdAt`,
+                  m.createdAt AS createdAt,
+                  m.source AS source, m.type AS type`,
           { userId, profileId: profileId ?? null },
         ),
         relatesToSession.run(
@@ -1282,6 +1297,8 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           ? r.get("tags").filter(Boolean).map(String)
           : [],
         createdAt: String(r.get("createdAt")),
+        source: r.get("source") !== null ? String(r.get("source")) : undefined,
+        type: toMemoryTypeOrUndefined(r.get("type")),
       }));
 
       const relatesToEdges = relatesToResult.records.map((r) => ({
@@ -1311,6 +1328,8 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       content: string;
       tags: string[];
       createdAt: string;
+      source?: string;
+      type?: MemoryType;
     }[];
 
     const profileFilterFocus =
@@ -1335,7 +1354,8 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          RETURN m.id AS id, m.title AS title,
                 substring(m.content, 0, 200) AS content,
-                collect(t.name) AS tags, m.createdAt AS createdAt
+                collect(t.name) AS tags, m.createdAt AS createdAt,
+                m.source AS source, m.type AS type
          LIMIT 500`,
         { userId, focusId, profileId: profileId ?? null },
       );
@@ -1348,6 +1368,8 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           ? r.get("tags").filter(Boolean).map(String)
           : [],
         createdAt: String(r.get("createdAt")),
+        source: r.get("source") !== null ? String(r.get("source")) : undefined,
+        type: toMemoryTypeOrUndefined(r.get("type")),
       }));
       nodeIds = nodes.map((n) => n.id);
     } finally {

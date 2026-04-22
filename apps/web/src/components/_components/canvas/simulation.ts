@@ -189,13 +189,13 @@ function createMainThreadSimulation(
 
   const linkForce = forceLink<GraphNode, GraphEdge>(edges)
     .id((d) => d.id)
-    .distance(25)
+    .distance(70)
     .strength((d) =>
       d.edgeType === "relates_to" ||
       d.edgeType === "imports" ||
       d.edgeType === "wiki_parent"
-        ? 0.7
-        : 0.15,
+        ? 0.6
+        : 0.12,
     );
 
   const chargeForce = forceManyBody<GraphNode>()
@@ -204,9 +204,13 @@ function createMainThreadSimulation(
 
   const centerForce = forceCenter<GraphNode>(0, 0).strength(gravity * 2.0);
 
+  // Hard non-overlap: radius matches the rendered node (size*2) plus a pad,
+  // strength 1 + 3 iterations so the force fully resolves even in dense
+  // clusters where many constraints compete each tick.
   const collideForce = forceCollide<GraphNode>()
-    .radius((d) => d.size * 2 + 1)
-    .strength(0.7);
+    .radius((d) => d.size * 2 + 8)
+    .strength(1)
+    .iterations(3);
 
   const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)
     .force("link", linkForce)

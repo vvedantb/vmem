@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
-import { Label, Switch, Skeleton } from "@vmem/ui";
+import { Label, Switch, Skeleton, Textarea } from "@vmem/ui";
 import { api } from "@vmem/backend";
-import { IconBrain, IconBell } from "@tabler/icons-react";
+import { IconBrain, IconBell, IconUser } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 
@@ -12,7 +12,15 @@ export const Route = createFileRoute("/_main/settings/preferences")({
 
 function PreferencesPage() {
   const settings = useQuery(api.userSettings.get);
-  const updateSettings = useMutation(api.userSettings.update);
+  // Optimistic update patches the local query cache so the controlled
+  // textareas stay in sync with keystrokes without waiting for the server.
+  const updateSettings = useMutation(
+    api.userSettings.update,
+  ).withOptimisticUpdate((localStore, args) => {
+    const current = localStore.getQuery(api.userSettings.get, {});
+    if (!current) return;
+    localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
+  });
 
   if (settings === undefined) {
     return (
@@ -41,6 +49,55 @@ function PreferencesPage() {
   return (
     <PageContainer title="Preferences" centeredMaxWidth showTitle>
       <div className="space-y-12">
+        <section className="space-y-6">
+          <div className="flex items-center gap-2">
+            <IconUser className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-base font-medium text-foreground">About You</h3>
+          </div>
+          <p className="-mt-3 text-xs text-muted-foreground">
+            Shared automatically with AI apps alongside retrieved memories, so
+            they can tailor responses to you.
+          </p>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="about-me" className="text-sm font-medium">
+                About me
+              </Label>
+              <Textarea
+                id="about-me"
+                placeholder="A few lines on who you are, what you do, and what you're working toward."
+                value={settings.aboutMe}
+                onChange={(e) => {
+                  void updateSettings({ aboutMe: e.target.value });
+                }}
+                rows={4}
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground">
+                {settings.aboutMe.length}/500
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="preferences" className="text-sm font-medium">
+                Preferences
+              </Label>
+              <Textarea
+                id="preferences"
+                placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
+                value={settings.preferences}
+                onChange={(e) => {
+                  void updateSettings({ preferences: e.target.value });
+                }}
+                rows={4}
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground">
+                {settings.preferences.length}/500
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="space-y-6">
           <div className="flex items-center gap-2">
             <IconBrain className="h-5 w-5 text-muted-foreground" />

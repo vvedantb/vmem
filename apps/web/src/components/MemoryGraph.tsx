@@ -1,139 +1,70 @@
 "use client";
 
+/**
+ * Pure graph canvas — renders the force-directed graph and the overlays that
+ * are inherently canvas-local (zoom nav, focus-mode back button, hover tooltip,
+ * node detail panel).
+ *
+ * All filter/search/display state lives in `useMemoryGraphController` and is
+ * passed in via the `controller` prop. Chrome (filters, options, search,
+ * legend, add-memory) lives in the page header via `GraphHeaderControls`.
+ *
+ * Canvas-local state intentionally kept here:
+ *   - selectedNodeId / hoveredNode: driven by canvas pointer events
+ *   - linkMemories action: fired directly by the canvas link gesture
+ *   - deleteMemory: fired by the detail panel
+ */
+
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
-import {
-  IconMoodEmpty,
-  IconLoader2,
-  IconPlus,
-  IconArrowBack,
-} from "@tabler/icons-react";
+import { IconMoodEmpty, IconLoader2, IconArrowBack } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
-import AddMemoryModal from "@/components/AddMemoryModal";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
-import { useThemeContext } from "@/components/contexts/ThemeContext";
-import { useGraphData } from "@/hooks/useGraphData";
 import { api } from "@vmem/backend";
-import {
-  getGraphSettings,
-  setGraphSettings,
-  getGraphViewMode,
-  setGraphViewMode,
-} from "@/lib/graph-cookies";
-import type { HoveredNodeInfo, GraphSettings } from "./_components/graph-types";
-import type { ViewMode } from "./_components/graph-view-themes";
-import { getViewTheme } from "./_components/graph-view-themes";
-import type { GraphNodeKind } from "./_components/canvas/types";
-import {
-  buildGraphData,
-  getAllTags,
-  getAllKinds,
-  getRelatedNodes,
-} from "./_components/graph-data";
+import type {
+  HoveredEdgeInfo,
+  HoveredNodeInfo,
+} from "./_components/graph-types";
+import { getRelatedNodes } from "./_components/graph-data";
 import GraphCanvas from "./_components/GraphCanvas";
 import type { GraphCanvasHandle } from "./_components/GraphCanvas";
-import GraphControlPanel from "./_components/GraphControlPanel";
 import GraphNavControls from "./_components/GraphNavControls";
 import GraphNodeTooltip from "./_components/GraphNodeTooltip";
+import GraphEdgeTooltip from "./_components/GraphEdgeTooltip";
 import GraphDetailPanel from "./_components/GraphDetailPanel";
+import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 
 interface MemoryGraphProps {
+  controller: MemoryGraphController;
   focusNodeId: string | null;
   onFocusChange: (id: string | null) => void;
-  profileId: string | null;
-  onProfileChange: (id: string | null) => void;
 }
 
-const EMPTY_SET = new Set<string>();
-
-/**
- * Default kind filter shows every known kind. We seed the set with all four
- * (rather than only present kinds) so a user's first wiki doc, folder, or
- * skill appears automatically without them having to re-enable the filter.
- */
-const DEFAULT_ACTIVE_KINDS: ReadonlySet<GraphNodeKind> = new Set<GraphNodeKind>(
-  ["memory", "wiki-document", "wiki-folder", "skill"],
-);
-
 export default function MemoryGraph({
+  controller,
   focusNodeId,
   onFocusChange,
-  profileId,
-  onProfileChange,
 }: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
-  const { theme } = useThemeContext();
   const linkMemories = useAction(api.relationshipApi.linkMemories);
   const canvasRef = useRef<GraphCanvasHandle>(null);
 
-  // Data
+  // Canvas-local state (purely driven by pointer events on the canvas).
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
+
   const {
     apiNodes,
-    apiTagEdges,
-    allRelatesToEdges,
-    apiWikiParentEdges,
+    graphNodes,
+    graphEdges,
+    graphSettings,
+    viewTheme,
+    searchMatchSet,
     isLoading,
     isError,
     error,
-  } = useGraphData(focusNodeId, profileId);
-
-  // UI state
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
-  const [graphSettings, setGraphSettingsState] =
-    useState<GraphSettings>(getGraphSettings);
-  const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
-  const [controlPanelOpen, setControlPanelOpen] = useState(true);
-  const [search, setSearch] = useState("");
-  const [activeTags, setActiveTags] = useState<Set<string>>(EMPTY_SET);
-  const [activeKinds, setActiveKinds] = useState<Set<GraphNodeKind>>(
-    () => new Set(DEFAULT_ACTIVE_KINDS),
-  );
-
-  // Derived
-  const isDark = theme === "dark";
-  const viewTheme = useMemo(
-    () => getViewTheme(viewMode, isDark),
-    [viewMode, isDark],
-  );
-
-  const allTags = useMemo(() => getAllTags(apiNodes), [apiNodes]);
-  const allKinds = useMemo(() => getAllKinds(apiNodes), [apiNodes]);
-
-  const { graphNodes, graphEdges } = useMemo(
-    () =>
-      buildGraphData(
-        apiNodes,
-        apiTagEdges,
-        allRelatesToEdges,
-        apiWikiParentEdges,
-        activeTags,
-        activeKinds,
-      ),
-    [
-      apiNodes,
-      apiTagEdges,
-      allRelatesToEdges,
-      apiWikiParentEdges,
-      activeTags,
-      activeKinds,
-    ],
-  );
-
-  const searchMatchSet = useMemo(() => {
-    if (search.trim().length === 0) return EMPTY_SET;
-    const q = search.trim().toLowerCase();
-    const matches = new Set<string>();
-    for (const node of graphNodes) {
-      if (
-        node.title.toLowerCase().includes(q) ||
-        node.tags.some((t) => t.toLowerCase().includes(q))
-      ) {
-        matches.add(node.id);
-      }
-    }
-    return matches;
-  }, [search, graphNodes]);
+  } = controller;
 
   const selectedNodeData = useMemo(() => {
     if (!selectedNodeId) return null;
@@ -153,17 +84,7 @@ export default function MemoryGraph({
     return getRelatedNodes(selectedNodeId, graphEdges, graphNodes);
   }, [selectedNodeId, graphEdges, graphNodes]);
 
-  // Handlers
-  const handleSettingsChange = useCallback((next: GraphSettings) => {
-    setGraphSettingsState(next);
-    setGraphSettings(next);
-  }, []);
-
-  const handleViewModeChange = useCallback((mode: ViewMode) => {
-    setViewModeState(mode);
-    setGraphViewMode(mode);
-  }, []);
-
+  // Canvas handlers
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
   }, []);
@@ -203,33 +124,6 @@ export default function MemoryGraph({
     },
     [linkMemories],
   );
-
-  const handleToggleTag = useCallback((tag: string) => {
-    setActiveTags((prev) => {
-      const next = new Set(prev);
-      if (next.has(tag)) {
-        next.delete(tag);
-      } else {
-        next.add(tag);
-      }
-      return next;
-    });
-  }, []);
-
-  // Kind filter uses explicit semantics: the set always lists every visible
-  // kind. Empty set = hide everything; full set = show everything. Simpler than
-  // the tag filter's empty-means-all convention since we only have 3 checkboxes.
-  const handleToggleKind = useCallback((kind: GraphNodeKind) => {
-    setActiveKinds((prev) => {
-      const next = new Set(prev);
-      if (next.has(kind)) {
-        next.delete(kind);
-      } else {
-        next.add(kind);
-      }
-      return next;
-    });
-  }, []);
 
   // Loading / error / empty states
   if (isLoading) {
@@ -284,34 +178,10 @@ export default function MemoryGraph({
         searchMatchSet={searchMatchSet}
         showLabels={graphSettings.showLabels}
         onHoverNode={handleHoverNode}
+        onHoverEdge={setHoveredEdge}
         onClickNode={handleClickNode}
         onLinkNodes={handleLinkNodes}
         onFocusNode={handleFocusNode}
-      />
-
-      {/* Left control panel */}
-      <GraphControlPanel
-        open={controlPanelOpen}
-        onToggle={() => setControlPanelOpen((p) => !p)}
-        search={search}
-        onSearchChange={setSearch}
-        profileId={profileId}
-        onProfileChange={onProfileChange}
-        allKinds={allKinds}
-        activeKinds={activeKinds}
-        onToggleKind={handleToggleKind}
-        allTags={allTags}
-        activeTags={activeTags}
-        onToggleTag={handleToggleTag}
-        viewMode={viewMode}
-        onViewModeChange={handleViewModeChange}
-        settings={graphSettings}
-        onSettingsChange={handleSettingsChange}
-        totalNodeCount={apiNodes.length}
-        visibleNodeCount={graphNodes.length}
-        edgeCount={graphEdges.length}
-        isDark={isDark}
-        isDarkCanvas={viewTheme.isDarkCanvas}
       />
 
       {/* Nav controls (zoom) */}
@@ -324,7 +194,7 @@ export default function MemoryGraph({
 
       {/* Back button for focus mode */}
       {focusNodeId && (
-        <div className="absolute top-2 left-14 z-10">
+        <div className="absolute top-2 left-2 z-10">
           <Button
             variant="outline"
             size="sm"
@@ -337,21 +207,6 @@ export default function MemoryGraph({
         </div>
       )}
 
-      {/* Add memory */}
-      <div className="absolute top-2 right-2 z-10">
-        <AddMemoryModal
-          trigger={
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 bg-background/80 backdrop-blur-sm"
-            >
-              <IconPlus size={16} />
-            </Button>
-          }
-        />
-      </div>
-
       {/* Tooltip near node */}
       {hoveredNode && !selectedNodeId && (
         <GraphNodeTooltip
@@ -359,6 +214,19 @@ export default function MemoryGraph({
           content={hoveredNode.content}
           viewportX={hoveredNode.viewportX}
           viewportY={hoveredNode.viewportY}
+        />
+      )}
+
+      {/* Edge tooltip — shown only when no node is hovered/selected so the
+          node tooltip takes visual precedence. */}
+      {hoveredEdge && !selectedNodeId && !hoveredNode && (
+        <GraphEdgeTooltip
+          edgeType={hoveredEdge.edgeType}
+          sourceTitle={hoveredEdge.sourceTitle}
+          targetTitle={hoveredEdge.targetTitle}
+          reason={hoveredEdge.reason}
+          viewportX={hoveredEdge.viewportX}
+          viewportY={hoveredEdge.viewportY}
         />
       )}
 

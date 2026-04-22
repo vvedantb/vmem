@@ -57,6 +57,7 @@ export interface ViewportState {
 
 export interface InteractionState {
   hoveredNodeId: string | null;
+  hoveredEdgeIndex: number | null;
   draggedNodeId: string | null;
   linkSourceId: string | null;
   isPanning: boolean;
