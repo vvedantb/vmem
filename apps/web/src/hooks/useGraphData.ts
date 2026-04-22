@@ -34,6 +34,7 @@ const graphNodeSchema = z.object({
   createdAt: z.string(),
   kind: graphNodeKindSchema,
   source: z.string().optional(),
+  sourceType: z.string().nullable(),
   type: z.enum(["profile", "episodic", "knowledge"]).optional(),
 });
 

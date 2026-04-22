@@ -75,6 +75,9 @@ export function buildCodebaseGraphData(
       // renders them as circles, matching the behaviour before wiki shapes
       // were introduced.
       kind: "memory",
+      // Codebase file nodes have no connector provenance — they're code, not
+      // synced memories — so the logo-overlay pass stays off for them.
+      sourceType: null,
     };
   });
 
