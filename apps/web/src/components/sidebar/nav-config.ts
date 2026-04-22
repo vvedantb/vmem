@@ -34,12 +34,8 @@ export const navGroups: NavGroup[] = [
       { href: "/chat", label: "Chat", icon: IconMessageCircle },
       { href: "/voice", label: "Voice", icon: IconMicrophone },
       { href: "/memories", label: "Memories", icon: IconBrain },
+      { href: "/teams", label: "Teams", icon: IconBuilding },
     ],
-  },
-  {
-    title: "Teams",
-    icon: IconBuilding,
-    items: [{ href: "/teams", label: "Teams", icon: IconBuilding }],
   },
   {
     title: "Data",
