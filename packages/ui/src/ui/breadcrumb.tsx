@@ -32,7 +32,10 @@ const Breadcrumb = React.forwardRef<
     <nav
       ref={ref}
       aria-label="breadcrumb"
-      className={cn("flex min-w-0 items-center gap-1.5 text-sm", className)}
+      className={cn(
+        "flex min-w-0 items-center gap-1.5 text-2xl font-instrumentSerif leading-tight",
+        className,
+      )}
       {...props}
     >
       {items.map((item, index) => (
