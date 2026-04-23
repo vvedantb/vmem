@@ -3,6 +3,7 @@ import { internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authAction } from "./auth";
 import { encryptToken, decryptToken, getEnvOrThrow } from "./lib/crypto";
+import { auditLog, ResourceTypes } from "./auditLog";
 
 // --- Provider configurations ---
 
@@ -147,6 +148,19 @@ export const disconnect = authAction({
     });
     await ctx.runMutation(internal.connectors.markDisconnectedInternal, {
       id: args.connectorId,
+    });
+
+    await auditLog.log(ctx, {
+      action: "connector.disconnected",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.CONNECTOR,
+      resourceId: args.connectorId,
+      metadata: {
+        name: connector.name,
+        provider: connector.provider ?? null,
+        via: "oauth_revoke",
+      },
+      severity: "warning",
     });
   },
 });
@@ -314,6 +328,15 @@ export const handleCallbackInternal = internalAction({
     // 4. Mark connector as connected
     await ctx.runMutation(internal.connectors.markConnectedInternal, {
       id: stateEntry.connectorId,
+    });
+
+    await auditLog.log(ctx, {
+      action: "connector.connected",
+      actorId: stateEntry.userId,
+      resourceType: ResourceTypes.CONNECTOR,
+      resourceId: stateEntry.connectorId,
+      metadata: { provider, via: "oauth_callback" },
+      severity: "info",
     });
 
     return {

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
+import { auditLog, ResourceTypes } from "./auditLog";
 
 type ConnectorProvider = "google_drive" | "notion" | "gmail";
 
@@ -115,6 +116,15 @@ export const connect = authMutation({
     await ctx.db.patch(args.id, {
       connectionStatus: "connected",
     });
+
+    await auditLog.log(ctx, {
+      action: "connector.connected",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.CONNECTOR,
+      resourceId: args.id,
+      metadata: { name: connector.name, provider: connector.provider ?? null },
+      severity: "info",
+    });
   },
 });
 
@@ -133,6 +143,15 @@ export const disconnect = authMutation({
       itemsSynced: 0,
       lastSyncAt: undefined,
       errorMessage: undefined,
+    });
+
+    await auditLog.log(ctx, {
+      action: "connector.disconnected",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.CONNECTOR,
+      resourceId: args.id,
+      metadata: { name: connector.name, provider: connector.provider ?? null },
+      severity: "warning",
     });
   },
 });

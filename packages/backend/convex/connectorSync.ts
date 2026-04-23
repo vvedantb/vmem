@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { authAction } from "./auth";
 import { internal } from "./_generated/api";
 import { decryptToken, getEnvOrThrow } from "./lib/crypto";
+import { retrier } from "./retrier";
 
 /**
  * Public sync action — frontend calls this via useAction.
@@ -114,10 +115,13 @@ export const startSync = authAction({
       errorMessage: undefined,
     });
 
-    // 7. Schedule background sync based on provider
+    // 7. Schedule background sync based on provider.
+    //    Routed through the retrier so transient Neo4j / Google / Notion
+    //    failures replay with exponential backoff instead of surfacing as a
+    //    silent half-finished sync.
     if (connector.provider === "google_drive") {
-      await ctx.scheduler.runAfter(
-        0,
+      await retrier.run(
+        ctx,
         internal.neo4jActions.connectorSync.syncGoogleDriveInternal,
         {
           clerkId,
@@ -126,8 +130,8 @@ export const startSync = authAction({
         },
       );
     } else if (connector.provider === "notion") {
-      await ctx.scheduler.runAfter(
-        0,
+      await retrier.run(
+        ctx,
         internal.neo4jActions.connectorSync.syncNotionInternal,
         {
           clerkId,
