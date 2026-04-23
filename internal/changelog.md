@@ -1,5 +1,18 @@
 # Changelog
 
+## Audit-Log Query Inlining + Adapter Removal — 2026-04-23
+
+- **Removed `packages/backend/convex/apiLogs.ts` adapter entirely**: The adapter was a thin pass-through over `auditLog.queryByActor` that both shaped rows AND computed the summary (total / success rate / avg duration). Frontend now calls the audit-log component directly via a narrow auth-scoped query — one fewer backend module to maintain.
+- **New `auditLog.listMyApiRequestEntries` auth-scoped pass-through**: Lives next to the shared audit-log client. Pins `actorId = ctx.userId` via `authQuery` so a caller can never query another user's audit trail — avoids the library's `exposeAuditLogApi` helper, which accepts `actorId` from the caller and would leak cross-user data if exposed naively. Returns the minimal `{_id, endpoint, status, durationMs, originalTimestamp}` shape; summary + ISO formatting moved to the client.
+- **Slimmed `memoryEvents.getRecentEvents` to raw pass-through**: No longer reshapes each audit entry into the legacy `{eventType, memoryId, payload}` row or carries the reverse-action map. Returns `{_id, action, resourceId, payload}` directly; the web hook owns the `action → MemoryEventType` translation now.
+- **`useMemoryEvents` hook owns the action → eventType mapping**: Added a local `EVENT_FOR_ACTION` map (inverse of backend's `ACTION_FOR_EVENT`). A `useMemo` derives the event list from raw entries, keeping the existing effect loop unchanged.
+- **`usage.tsx` computes summary + logs client-side with `useMemo`**: Pulls up to 1000 entries for the aggregate, sorts + slices + ISO-formats a 100-row window for the table. Data source and presentation now live side-by-side — table size, sort order, and aggregation logic are all tweakable without a backend round-trip.
+- **`ApiLogsTable` decoupled from Convex function types**: Replaced `FunctionReturnType<typeof api.apiLogs.listMy>[...]` with a local `ApiLogItem` interface. The table now takes the row shape its caller computes, not a shape dictated by a specific backend function.
+- **Strict typing preserved**: Every narrow from the audit-log client's `any` return uses `typeof` checks before assignment; no `any`/`unknown`/`as`/`!` introduced anywhere. Convex `returns:` validators gate the wire shape at runtime as a second line of defence.
+- **README update**: `packages/backend/README.md` no longer lists the phantom `apiRequestLogs` table or `apiLogs.ts` module; now mentions that all audit trails live in the `convex-audit-log` component.
+- **Files affected**: `packages/backend/convex/auditLog.ts`, `packages/backend/convex/memoryEvents.ts`, `packages/backend/convex/apiLogs.ts` (deleted), `packages/backend/README.md`, `apps/web/src/hooks/useMemoryEvents.ts`, `apps/web/src/routes/_main/settings/usage.tsx`, `apps/web/src/components/api-logs/ApiLogsTable.tsx`
+- **Reason**: The adapter pattern preserved the frontend shape during the audit-log cutover, but it kept reshape logic on the server where it had no reason to live. Inlining removes a redundant backend module, tightens the surface to one auth-scoped query + one raw event stream, and puts presentation logic next to the component that renders it.
+
 ## Dashboard Read Latency — Cypher Optimizations + Action Cache — 2026-04-23
 
 - **Tag-edge computation moved from JS into Cypher**: `getGraphData` and `getLocalGraph` previously materialised every memory + its tags, then computed shared-tag pairs in an O(n²) JavaScript loop. Now a single Cypher pattern `(m1)-[:TAGGED_WITH]->(t)<-[:TAGGED_WITH]-(m2) WHERE m1.id < m2.id` returns each pair once with its weight and shared tag names, executed in parallel with the nodes query via separate sessions (honours the "no parallel runs on one session" Neo4j rule in CLAUDE.md)
