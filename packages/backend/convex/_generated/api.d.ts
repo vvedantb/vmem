@@ -10,6 +10,7 @@
 
 import type * as apiKeys from "../apiKeys.js";
 import type * as apiLogs from "../apiLogs.js";
+import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as codebases from "../codebases.js";
@@ -44,6 +45,7 @@ import type * as pendingEnrichment from "../pendingEnrichment.js";
 import type * as profiles from "../profiles.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
 import type * as relationshipApi from "../relationshipApi.js";
+import type * as retrier from "../retrier.js";
 import type * as skills from "../skills.js";
 import type * as teams from "../teams.js";
 import type * as timelineApi from "../timelineApi.js";
@@ -63,6 +65,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
   apiLogs: typeof apiLogs;
+  auditLog: typeof auditLog;
   auth: typeof auth;
   chat: typeof chat;
   codebases: typeof codebases;
@@ -97,6 +100,7 @@ declare const fullApi: ApiFromModules<{
   profiles: typeof profiles;
   proposedUpdateApi: typeof proposedUpdateApi;
   relationshipApi: typeof relationshipApi;
+  retrier: typeof retrier;
   skills: typeof skills;
   teams: typeof teams;
   timelineApi: typeof timelineApi;
@@ -136,4 +140,6 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+  actionRetrier: import("@convex-dev/action-retrier/_generated/component.js").ComponentApi<"actionRetrier">;
+  auditLog: import("convex-audit-log/_generated/component.js").ComponentApi<"auditLog">;
 };

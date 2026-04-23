@@ -3,6 +3,7 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
+import { auditLog, ResourceTypes, severityForStatus } from "./auditLog";
 
 // --- Crypto helpers ---
 
@@ -170,6 +171,16 @@ export const revokeMy = authMutation({
       revokedAt: Date.now(),
     });
 
+    // Revocation is a security-relevant event — surface at `warning`.
+    await auditLog.log(ctx, {
+      action: "api_key.revoked",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.API_KEY,
+      resourceId: apiKey._id,
+      metadata: { name: apiKey.name, maskedKey: apiKey.maskedKey },
+      severity: "warning",
+    });
+
     return true;
   },
 });
@@ -228,6 +239,15 @@ export const insertKeyInternal = internalMutation({
       createdAt: args.createdAt,
     });
 
+    await auditLog.log(ctx, {
+      action: "api_key.created",
+      actorId: args.userId,
+      resourceType: ResourceTypes.API_KEY,
+      resourceId: id,
+      metadata: { name: args.name, maskedKey: args.maskedKey },
+      severity: "info",
+    });
+
     return { id };
   },
 });
@@ -255,14 +275,18 @@ export const recordUsageInternal = internalMutation({
       return { accepted: false };
     }
 
-    await ctx.db.insert("apiRequestLogs", {
-      userId: apiKey.userId,
-      apiKeyId: apiKey._id,
-      endpoint: args.endpoint,
-      method: args.method,
-      status: args.status,
-      durationMs: args.durationMs,
-      createdAt: args.createdAt,
+    await auditLog.log(ctx, {
+      action: "api_request",
+      actorId: apiKey.userId,
+      resourceType: ResourceTypes.API_REQUEST,
+      resourceId: apiKey._id,
+      metadata: {
+        endpoint: args.endpoint,
+        method: args.method,
+        status: args.status,
+        durationMs: args.durationMs,
+      },
+      severity: severityForStatus(args.status),
     });
 
     await ctx.db.patch(apiKey._id, {

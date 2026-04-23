@@ -1,5 +1,17 @@
 # Changelog
 
+## Action Retrier + Audit Log Components — Phase 1 & 2 Complete — 2026-04-23
+
+- **Action Retrier for idempotent external calls**: Wrapped fire-and-forget sync actions (Google Drive, Notion) with `@convex-dev/action-retrier` — 500ms→1s→2s→4s exponential backoff (4 attempts max) ensures transient network failures don't surface as user-visible errors on flaky connections
+- **Unified audit trail with convex-audit-log**: Replaced fragmented `memoryEvents` (5-min TTL) + `apiRequestLogs` tables with a single permanent `convex-audit-log` component; all backend state changes (memory lifecycle, proposed-update approvals, API key creation/revocation, team/profile/connector operations) now logged with actor, resource, severity, and before/after diffs where applicable
+- **Memory event dual-write → live adapter**: `memoryEvents.getRecentEvents` now reads from audit log (via `queryByActor` + reverse-mapped actions) and reshapes results into the legacy `{eventType, memoryId, payload}` shape, keeping the web graph view's `useMemoryEvents` hook unchanged
+- **API request logs adapter**: `apiLogs.listMy` rewritten as an adapter over `auditLog.queryByActor({actions: ["api_request"]})` preserving the original `{summary:{totalRequests, successRate, avgResponseMs}, logs:[…]}` shape; no frontend edits required to `usage.tsx` or `ApiLogsTable`
+- **Severity mapping**: HTTP status codes now map to audit-log severity (2xx→info, 4xx→warning, 5xx→error); security events (key revoke, team delete, connector disconnect) surface at warning/error level
+- **Backfill + cleanup**: Two-phase migration ran without downtime — backfilled 2 legacy memory events, cleared both legacy tables, dropped `memoryEvents` + `apiRequestLogs` from schema, removed backfill code. All queries deployed and live.
+- **Strict typing**: No `any`/`unknown`/`as`/`!` in new audit code; `ResourceTypes` constants prevent string drift across call sites; audit-log metadata redacts PII fields (email, phone, encrypted tokens) automatically
+- **Files affected**: `convex.config.ts`, `retrier.ts` (new), `auditLog.ts` (new), `memoryEvents.ts`, `apiKeys.ts`, `apiLogs.ts`, `connectorSync.ts`, `proposedUpdateApi.ts`, `teams.ts`, `profiles.ts`, `connectors.ts`, `connectorOAuth.ts`, `schema.ts` (dropped 2 tables), `backfill.ts` (deleted post-migration)
+- **Reason**: Memory lifecycle ("pin, suppress, expire, audit trail") and proposed-update approval are core vmem differentiators. Single audit log replaces ad-hoc event logging, enables compliance/debugging/forensics, and lets us surface approval workflows to the frontend. Retrier eliminates silent external-service failures on transient network issues.
+
 ## Breadcrumb Navigation for Detail Pages — 2026-04-22
 
 - **New Breadcrumb component in @vmem/ui**: Created reusable `Breadcrumb` / `BreadcrumbLink` / `BreadcrumbPage` / `BreadcrumbSeparator` primitives using Radix Slot for type-safe routing; parent segments render as muted links (hover→foreground), current segment is foreground non-clickable

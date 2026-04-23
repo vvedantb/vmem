@@ -13,11 +13,13 @@
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "catalog:",
+    "@convex-dev/action-retrier": "^0.3.0",
     "@convex-dev/agent": "catalog:",
     "@neo4j/cypher-builder": "^3.0.1",
     "@notionhq/client": "^2.2.15",
     "ai": "catalog:",
     "convex": "catalog:",
+    "convex-audit-log": "^0.2.0",
     "convex-helpers": "catalog:",
     "googleapis": "^144.0.0",
     "jsonwebtoken": "catalog:",
