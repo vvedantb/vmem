@@ -1,5 +1,13 @@
 # Changelog
 
+## Vercel Build Time — Lazy AI Libs + Externalized ORT WASM — 2026-04-24
+
+- **`@mediapipe/tasks-genai` moved to runtime dynamic import**: `mediapipe-engine.ts` now `await import()`s the package inside `getMediaPipeModule()` instead of statically. Only MediaPipe-runtime models (Gemma) pull the package into the reachable graph — WebLLM-only users never pay for it. Types stay intact via an `import type` for `FilesetResolver` / `LlmInference`.
+- **ORT wasm externalized to CDN via custom vite plugin**: New `externalize-ort-wasm` plugin in `apps/web/vite.config.ts` rewrites `new URL("./ort-wasm-*.wasm", import.meta.url)` inside `onnxruntime-web` to an absolute `cdn.jsdelivr.net/@huggingface/transformers@4.1.0/dist/` URL. Stops rolldown copying the 21 MB jsep + 23 MB asyncify wasm blobs (~44 MB) into the Vercel output. Browser fetches them from jsdelivr at runtime.
+- **Runtime wasmPaths config in stt-engine.ts**: Sets `env.backends.onnx.wasm.wasmPaths` on the transformers.js side as a belt-and-braces fallback for code paths that consult the runtime config rather than the `new URL(...)` reference. Guarded on `wasm` being defined (the field is typed optional) — no `!` / `as`.
+- **Reason**: Vercel builds were ~1m 15s vs a comparable sibling project at ~55s. Profiling the build log showed the gap was in the vite/rolldown phase, driven by processing + emitting heavy AI libs that conductor doesn't ship. Lazy-loading + externalizing the wasm trims asset emission and keeps the reachable-from-main graph narrower.
+- **Files affected**: `apps/web/src/lib/mediapipe-engine.ts`, `apps/web/src/lib/voice/stt-engine.ts`, `apps/web/vite.config.ts`
+
 ## Neo4j Query Latency — Tag-Edge Scoping + Driver Pool Tuning — 2026-04-23
 
 - **Tag-edges Cypher rewritten to scope to user first**: `getGraphData` previously scanned ALL tags globally via `MATCH (t:Tag) WITH t, size([subquery...])`, then computed user-scoped cardinality with an O(total_tags) operation before filtering. Now uses `MATCH (:Memory {userId})-[:TAGGED_WITH]->(t:Tag) WITH t, count(*) AS cnt WHERE cnt BETWEEN 2 AND 500` — starts from the Memory.userId index (fast), uses a cheap aggregation, and gates on [2, 500] so tags that can't contribute to a weight-≥2 edge are skipped immediately
