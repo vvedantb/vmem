@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "catalog:",
+    "@convex-dev/action-cache": "^0.3.0",
     "@convex-dev/action-retrier": "^0.3.0",
     "@convex-dev/agent": "catalog:",
     "@neo4j/cypher-builder": "^3.0.1",

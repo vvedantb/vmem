@@ -171,57 +171,26 @@ interface TagEdge {
   sharedTags: string[];
 }
 
-function computeTagEdges(
-  nodes: ReadonlyArray<{ id: string; tags: string[] }>,
-  limit: number,
-): TagEdge[] {
-  const tagIndex = new Map<string, string[]>();
-  for (const node of nodes) {
-    for (const tag of node.tags) {
-      let ids = tagIndex.get(tag);
-      if (!ids) {
-        ids = [];
-        tagIndex.set(tag, ids);
-      }
-      ids.push(node.id);
-    }
-  }
-
-  const edgeMap = new Map<string, { weight: number; sharedTags: string[] }>();
-  for (const [tag, ids] of tagIndex) {
-    if (ids.length > 500) continue;
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const a = ids[i];
-        const b = ids[j];
-        if (!a || !b) continue;
-        const key = a < b ? `${a}|${b}` : `${b}|${a}`;
-        let entry = edgeMap.get(key);
-        if (!entry) {
-          entry = { weight: 0, sharedTags: [] };
-          edgeMap.set(key, entry);
-        }
-        entry.weight++;
-        if (entry.sharedTags.length < 5) {
-          entry.sharedTags.push(tag);
-        }
-      }
-    }
-  }
-
-  const edges: TagEdge[] = [];
-  for (const [key, data] of edgeMap) {
-    if (data.weight < 2) continue;
-    const sep = key.indexOf("|");
-    edges.push({
-      source: key.slice(0, sep),
-      target: key.slice(sep + 1),
-      weight: data.weight,
-      sharedTags: data.sharedTags,
-    });
-  }
-  edges.sort((a, b) => b.weight - a.weight);
-  return edges.slice(0, limit);
+/**
+ * Parse a Neo4j record returned by the tag-edge Cypher query into a typed
+ * TagEdge. The Cypher-side computation enforces:
+ *   - Each pair appears once (m1.id < m2.id ordering).
+ *   - weight >= 2 (at least two shared tags).
+ *   - sharedTags capped at 5 via list slicing.
+ *   - Popular tags with > 500 memories are pre-filtered out to prevent
+ *     combinatorial explosion on blown-out tags like "misc".
+ */
+function toTagEdge(record: NeoRecord): TagEdge {
+  const rawShared = record.get("sharedTags");
+  const sharedTags = Array.isArray(rawShared)
+    ? rawShared.filter(Boolean).map(String)
+    : [];
+  return {
+    source: String(record.get("source")),
+    target: String(record.get("target")),
+    weight: toNeoInt(record.get("weight")),
+    sharedTags,
+  };
 }
 
 export class MemoryService {
@@ -452,6 +421,11 @@ export class MemoryService {
     offset: number;
   }): Promise<{ memories: MemoryWithTags[]; total: number }> {
     return this.withSession(async (session) => {
+      // Build the WHERE clause. Tag filter uses an index-joined pattern
+      // (MATCH … → Tag WHERE name IN) which lets Neo4j hit the Tag name
+      // index instead of scanning every TAGGED_WITH relationship off each
+      // memory. The joined tag match is added to the MATCH portion, not the
+      // WHERE, because it drives the index lookup.
       const whereClauses = ["m.userId = $userId"];
       const queryParams: Record<
         string,
@@ -462,7 +436,6 @@ export class MemoryService {
         offset: neo4j.int(params.offset),
       };
 
-      // Profile filter: if profileId provided, filter by it; null means include all
       if (params.profileId !== undefined && params.profileId !== null) {
         whereClauses.push("(m.profileId = $profileId OR m.profileId IS NULL)");
         queryParams.profileId = params.profileId;
@@ -476,17 +449,33 @@ export class MemoryService {
         whereClauses.push("m.status = $status");
         queryParams.status = params.status;
       }
-      if (params.tags && params.tags.length > 0) {
-        whereClauses.push(
-          `size([(m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags | ft]) = size($filterTags)`,
-        );
+
+      const hasTagFilter = !!params.tags && params.tags.length > 0;
+      if (hasTagFilter && params.tags) {
         queryParams.filterTags = params.tags;
       }
 
       const where = whereClauses.join(" AND ");
+      const filterTagsCount = params.tags?.length ?? 0;
 
+      // Index-joined tag filter: count DISTINCT matched tags per memory and
+      // require it to equal the number of filter tags. Uses the Tag(name)
+      // index via direct equality on a matched Tag node, rather than scanning
+      // all TAGGED_WITH edges on each memory.
+      const tagMatchClause = hasTagFilter
+        ? `MATCH (m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags
+           WITH m, count(DISTINCT ft) AS matchedTags
+           WHERE matchedTags = ${filterTagsCount}`
+        : "";
+
+      // Keep count and fetch as two sequential queries (same session). A
+      // combined CALL{} cartesian-product would drop the count row whenever
+      // the paginated fetch returns zero rows (e.g. offset past end of set),
+      // breaking pagination counts in the UI.
       const countResult = await session.run(
-        `MATCH (m:Memory) WHERE ${where} RETURN count(m) AS total`,
+        `MATCH (m:Memory) WHERE ${where}
+         ${tagMatchClause}
+         RETURN count(m) AS total`,
         queryParams,
       );
       const countRecord = countResult.records[0];
@@ -494,6 +483,7 @@ export class MemoryService {
 
       const result = await session.run(
         `MATCH (m:Memory) WHERE ${where}
+         ${tagMatchClause}
          WITH m ORDER BY m.createdAt DESC SKIP $offset LIMIT $limit
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          RETURN m, collect(t.name) AS tags`,
@@ -954,44 +944,68 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         }
       }
 
-      // Build profile filter for growth query
+      // Growth data: old implementation ran OPTIONAL MATCH twice per day in a
+      // 7-day UNWIND, doing O(7×n) scans to recompute the cumulative total for
+      // each day. Historical per-day totals never change, so replace with:
+      //   1. A single baseline count of memories created before the window.
+      //   2. A single bucketed aggregate of daily counts within the window.
+      // Cumulative totals are then computed in JS by walking the 7 days in
+      // order, adding each daily delta onto the running baseline.
       const growthProfileFilter =
         profileId !== undefined && profileId !== null
           ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
           : "";
-      const growthProfileFilter2 =
-        profileId !== undefined && profileId !== null
-          ? "AND (m2.profileId = $profileId OR m2.profileId IS NULL)"
-          : "";
 
-      const growthResult = await session.run(
-        `WITH range(0, 6) AS days
-         UNWIND days AS dayOffset
-         WITH date() - duration({days: dayOffset}) AS d
-         OPTIONAL MATCH (m:Memory {userId: $userId})
-           WHERE date(datetime(m.createdAt)) <= d ${growthProfileFilter}
-         WITH d, count(m) AS total
-         OPTIONAL MATCH (m2:Memory {userId: $userId})
-           WHERE date(datetime(m2.createdAt)) = d ${growthProfileFilter2}
-         WITH d, total, count(m2) AS newCount
-         RETURN toString(d) AS date, total, newCount
-         ORDER BY d ASC`,
+      const baselineResult = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE date(datetime(m.createdAt)) < date() - duration({days: 6}) ${growthProfileFilter}
+         RETURN count(m) AS baseline`,
+        { userId, profileId: profileId ?? null },
+      );
+      const baselineRecord = baselineResult.records[0];
+      const baseline = baselineRecord
+        ? toNeoInt(baselineRecord.get("baseline"))
+        : 0;
+
+      const dailyResult = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE date(datetime(m.createdAt)) >= date() - duration({days: 6})
+           AND date(datetime(m.createdAt)) <= date() ${growthProfileFilter}
+         RETURN toString(date(datetime(m.createdAt))) AS day, count(*) AS newCount`,
         { userId, profileId: profileId ?? null },
       );
 
-      const growthData = growthResult.records.map((r) => {
-        const dateStr = String(r.get("date"));
-        const d = new Date(dateStr);
-        const label = d.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
+      const dailyCounts = new Map<string, number>();
+      for (const rec of dailyResult.records) {
+        dailyCounts.set(String(rec.get("day")), toNeoInt(rec.get("newCount")));
+      }
+
+      // Walk the 7-day window in ascending order, accumulating the running
+      // total. `todayMs` anchors to midnight local-day so we can derive the
+      // ISO yyyy-mm-dd key matching Cypher's `date()` output.
+      const today = new Date();
+      const todayMs = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      ).getTime();
+      const dayMs = 24 * 60 * 60 * 1000;
+      let running = baseline;
+      const growthData: { date: string; total: number; new: number }[] = [];
+      for (let offset = 6; offset >= 0; offset--) {
+        const dayDate = new Date(todayMs - offset * dayMs);
+        const isoDay = dayDate.toISOString().slice(0, 10);
+        const newCount = dailyCounts.get(isoDay) ?? 0;
+        running += newCount;
+        growthData.push({
+          date: dayDate.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
+          total: running,
+          new: newCount,
         });
-        return {
-          date: label,
-          total: toNeoInt(r.get("total")),
-          new: toNeoInt(r.get("newCount")),
-        };
-      });
+      }
 
       return {
         totalMemories,
@@ -1245,15 +1259,14 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       type?: MemoryType;
     }[];
     relatesToEdges: { source: string; target: string; reason: string }[];
-    tagEdges: {
-      source: string;
-      target: string;
-      weight: number;
-      sharedTags: string[];
-    }[];
+    tagEdges: TagEdge[];
   }> {
+    // Three parallel sessions — nodes, RELATES_TO edges, and tag-shared edges.
+    // Driver rule (see CLAUDE.md): never run concurrent .run() calls on the
+    // same Session, so each parallel query gets its own session.
     const nodesSession = this.driver.session();
     const relatesToSession = this.driver.session();
+    const tagEdgesSession = this.driver.session();
 
     const profileFilter =
       profileId !== undefined && profileId !== null
@@ -1267,9 +1280,24 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       profileId !== undefined && profileId !== null
         ? "AND (b.profileId = $profileId OR b.profileId IS NULL)"
         : "";
+    // For the tag-edge query we use alias names m1/m2 so we don't clash with
+    // relates-to alias m. Mirror the profile filter for each side.
+    const profileFilterM1 =
+      profileId !== undefined && profileId !== null
+        ? "AND (m1.profileId = $profileId OR m1.profileId IS NULL)"
+        : "";
+    const profileFilterM2 =
+      profileId !== undefined && profileId !== null
+        ? "AND (m2.profileId = $profileId OR m2.profileId IS NULL)"
+        : "";
 
     try {
-      const [nodesResult, relatesToResult] = await Promise.all([
+      // Tag-edges are derived entirely in Cypher: pattern matches two memories
+      // sharing a Tag, deduplicates via id ordering, filters out blown-out tags
+      // (those attached to > 500 memories — same cap the old JS implementation
+      // used) so we never materialise that cartesian explosion, then keeps only
+      // pairs with weight >= 2. sharedTags is capped to 5 per edge via slice.
+      const [nodesResult, relatesToResult, tagEdgesResult] = await Promise.all([
         nodesSession.run(
           `MATCH (m:Memory {userId: $userId})
            WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${profileFilter}
@@ -1287,6 +1315,24 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
            WHERE coalesce(a.status, 'active') IN ['active', 'pinned'] ${profileFilterA}
              AND coalesce(b.status, 'active') IN ['active', 'pinned'] ${profileFilterB}
            RETURN a.id AS source, b.id AS target, r.reason AS reason`,
+          { userId, profileId: profileId ?? null },
+        ),
+        tagEdgesSession.run(
+          `MATCH (t:Tag)
+           WITH t, size([(t)<-[:TAGGED_WITH]-(:Memory {userId: $userId}) | 1]) AS userTagCount
+           WHERE userTagCount <= 500
+           MATCH (m1:Memory {userId: $userId})-[:TAGGED_WITH]->(t)<-[:TAGGED_WITH]-(m2:Memory {userId: $userId})
+           WHERE m1.id < m2.id
+             AND coalesce(m1.status, 'active') IN ['active', 'pinned']
+             AND coalesce(m2.status, 'active') IN ['active', 'pinned']
+             ${profileFilterM1} ${profileFilterM2}
+           WITH m1, m2, collect(DISTINCT t.name) AS sharedTagsAll
+           WITH m1, m2, sharedTagsAll, size(sharedTagsAll) AS weight
+           WHERE weight >= 2
+           RETURN m1.id AS source, m2.id AS target, weight,
+                  sharedTagsAll[..5] AS sharedTags
+           ORDER BY weight DESC
+           LIMIT 5000`,
           { userId, profileId: profileId ?? null },
         ),
       ]);
@@ -1311,11 +1357,15 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         reason: String(r.get("reason") ?? ""),
       }));
 
-      const tagEdges = computeTagEdges(nodes, 5000);
+      const tagEdges = tagEdgesResult.records.map(toTagEdge);
 
       return { nodes, relatesToEdges, tagEdges };
     } finally {
-      await Promise.all([nodesSession.close(), relatesToSession.close()]);
+      await Promise.all([
+        nodesSession.close(),
+        relatesToSession.close(),
+        tagEdgesSession.close(),
+      ]);
     }
   }
 
@@ -1388,14 +1438,34 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       return { nodes: [], relatesToEdges: [], tagEdges: [] };
     }
 
+    // Edges scoped to the local neighbourhood: both RELATES_TO edges between
+    // resolved nodes and tag-shared edges are computed in Cypher in parallel.
     const relatesToSession = this.driver.session();
+    const tagEdgesSession = this.driver.session();
     try {
-      const relatesToResult = await relatesToSession.run(
-        `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
-         WHERE a.id IN $nodeIds AND b.id IN $nodeIds
-         RETURN a.id AS source, b.id AS target, r.reason AS reason`,
-        { nodeIds },
-      );
+      const [relatesToResult, tagEdgesResult] = await Promise.all([
+        relatesToSession.run(
+          `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
+           WHERE a.id IN $nodeIds AND b.id IN $nodeIds
+           RETURN a.id AS source, b.id AS target, r.reason AS reason`,
+          { nodeIds },
+        ),
+        tagEdgesSession.run(
+          // No popular-tag pre-filter needed here — the node set is already
+          // bounded by the focus neighbourhood (LIMIT 500 upstream), so the
+          // pair cartesian is always small.
+          `MATCH (m1:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(m2:Memory)
+           WHERE m1.id IN $nodeIds AND m2.id IN $nodeIds AND m1.id < m2.id
+           WITH m1, m2, collect(DISTINCT t.name) AS sharedTagsAll
+           WITH m1, m2, sharedTagsAll, size(sharedTagsAll) AS weight
+           WHERE weight >= 2
+           RETURN m1.id AS source, m2.id AS target, weight,
+                  sharedTagsAll[..5] AS sharedTags
+           ORDER BY weight DESC
+           LIMIT 2000`,
+          { nodeIds },
+        ),
+      ]);
 
       const relatesToEdges = relatesToResult.records.map((r) => ({
         source: String(r.get("source")),
@@ -1403,11 +1473,11 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         reason: String(r.get("reason") ?? ""),
       }));
 
-      const tagEdges = computeTagEdges(nodes, 2000);
+      const tagEdges = tagEdgesResult.records.map(toTagEdge);
 
       return { nodes, relatesToEdges, tagEdges };
     } finally {
-      await relatesToSession.close();
+      await Promise.all([relatesToSession.close(), tagEdgesSession.close()]);
     }
   }
 
@@ -1640,17 +1710,29 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         whereClauses.push("m.status = $status");
         queryParams.status = params.status;
       }
-      if (params.tags && params.tags.length > 0) {
-        whereClauses.push(
-          `size([(m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags | ft]) = size($filterTags)`,
-        );
+
+      const hasTagFilter = !!params.tags && params.tags.length > 0;
+      if (hasTagFilter && params.tags) {
         queryParams.filterTags = params.tags;
       }
 
       const where = whereClauses.join(" AND ");
+      const filterTagsCount = params.tags?.length ?? 0;
+
+      // Same index-joined tag-filter optimisation as listMemories: match the
+      // tag node directly (hits the Tag name index) and require matched-tag
+      // count to equal filter-tag count, avoiding per-memory TAGGED_WITH
+      // relationship scans.
+      const tagMatchClause = hasTagFilter
+        ? `MATCH (m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags
+           WITH m, count(DISTINCT ft) AS matchedTags
+           WHERE matchedTags = ${filterTagsCount}`
+        : "";
 
       const countResult = await session.run(
-        `MATCH (m:Memory) WHERE ${where} RETURN count(m) AS total`,
+        `MATCH (m:Memory) WHERE ${where}
+         ${tagMatchClause}
+         RETURN count(m) AS total`,
         queryParams,
       );
       const countRecord = countResult.records[0];
@@ -1658,6 +1740,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
 
       const result = await session.run(
         `MATCH (m:Memory) WHERE ${where}
+         ${tagMatchClause}
          WITH m ORDER BY m.createdAt DESC SKIP $offset LIMIT $limit
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          RETURN m, collect(t.name) AS tags`,
