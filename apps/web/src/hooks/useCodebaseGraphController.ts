@@ -94,9 +94,13 @@ export function useCodebaseGraphController(
     const q = search.trim().toLowerCase();
     const matches = new Set<string>();
     for (const node of graphNodes) {
+      // Codebase nodes inline the file path into `content`. It's optional on
+      // the shared GraphNode type (memory graph lazy-loads its content) so
+      // we coalesce here; in practice this branch always reads a real path.
+      const path = node.content ?? "";
       if (
         node.title.toLowerCase().includes(q) ||
-        node.content.toLowerCase().includes(q)
+        path.toLowerCase().includes(q)
       ) {
         matches.add(node.id);
       }

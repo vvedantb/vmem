@@ -41,6 +41,14 @@ export async function setupDatabase(driver: Driver): Promise<void> {
       `CREATE INDEX memory_user_profile IF NOT EXISTS
        FOR (m:Memory) ON (m.userId, m.profileId)`,
     );
+    // Composite index for (userId, status) — used heavily in graph/list queries
+    // where we filter by user then by status IN ['active', 'pinned']. Lets the
+    // planner do a single index seek instead of seeking on userId and then
+    // applying a post-filter row-by-row.
+    await session.run(
+      `CREATE INDEX memory_user_status IF NOT EXISTS
+       FOR (m:Memory) ON (m.userId, m.status)`,
+    );
     console.log("neo4j indexes and constraints ready");
   } finally {
     await session.close();

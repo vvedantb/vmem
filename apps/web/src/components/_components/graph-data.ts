@@ -25,13 +25,19 @@ import type {
 export interface ApiGraphNode {
   id: string;
   title: string;
-  content: string;
   tags: string[];
   createdAt: string;
   kind: GraphNodeKind;
   source?: string;
   sourceType: string | null;
   type?: MemoryType;
+  /**
+   * Inline content is only present for wiki documents and skills. Memory
+   * nodes omit it — the graph payload dropped memory content to fit Convex's
+   * 1 MiB value limit, and the UI lazy-fetches it via `getNodeContent` on
+   * hover/click.
+   */
+  content?: string;
 }
 
 export interface ApiTagEdge {
@@ -238,7 +244,7 @@ export function buildGraphData(
       size,
       kind: node.kind,
       sourceType: node.sourceType,
-    };
+    } satisfies GraphNode;
   });
 
   const graphEdges: GraphEdge[] = [];

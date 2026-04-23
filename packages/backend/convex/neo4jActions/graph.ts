@@ -24,7 +24,6 @@ function capGraph(data: {
   nodes: {
     id: string;
     title: string;
-    content: string;
     tags: string[];
     createdAt: string;
     source?: string;
@@ -79,5 +78,21 @@ export const getLocalGraphInternal = internalAction({
     return capGraph(
       await service.getLocalGraph(args.clerkId, args.focusId, args.profileId),
     );
+  },
+});
+
+// Lazy content fetch. The graph/local-graph endpoints drop `content` from
+// their payload (it was the biggest single contributor to the 1.13 MiB graph
+// size), so the UI pulls content on-demand when the user hovers a node or
+// opens the detail panel. Intentionally lightweight: a single property lookup
+// by the unique `memory_id` constraint — a single index seek.
+export const getMemoryContentInternal = internalAction({
+  args: {
+    clerkId: v.string(),
+    memoryId: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const service = new MemoryService(getDriver());
+    return await service.getMemoryContent(args.clerkId, args.memoryId);
   },
 });
