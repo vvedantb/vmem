@@ -30,18 +30,6 @@ export const ACTION_FOR_EVENT: Record<MemoryEventType, string> = {
   relationship_deleted: "memory.relationship.deleted",
 };
 
-/**
- * Reverse mapping so `getRecentEvents` can translate audit-log actions back
- * into the compact `eventType` the web `useMemoryEvents` hook expects.
- */
-const EVENT_FOR_ACTION: Record<string, MemoryEventType> = {
-  "memory.created": "memory_created",
-  "memory.updated": "memory_updated",
-  "memory.deleted": "memory_deleted",
-  "memory.relationship.created": "relationship_created",
-  "memory.relationship.deleted": "relationship_deleted",
-};
-
 type MemoryEventArgs = {
   clerkId: string;
   eventType: MemoryEventType;
@@ -113,12 +101,13 @@ export const pushEventInternal = internalMutation({
 });
 
 /**
- * Live change-feed for the web graph view (`useMemoryEvents`). Reads from the
- * audit-log component and reshapes each entry back into the legacy
- * `memoryEvents` row shape the hook consumes.
+ * Live change-feed for the web graph view (`useMemoryEvents`). Returns the
+ * raw audit-log entries for memory/relationship actions — the web hook owns
+ * the reverse map (action → `MemoryEventType`) and reshaping.
  *
- * The audit-log client returns entries typed as `any` — we rely on the Convex
- * runtime validator (`returns:` below) to enforce the output shape.
+ * The audit-log client types entries as `any`; we narrow each field with
+ * `typeof` checks before returning, and rely on the Convex runtime
+ * `returns:` validator as a second gate.
  */
 export const getRecentEvents = query({
   args: {
@@ -127,8 +116,8 @@ export const getRecentEvents = query({
   returns: v.array(
     v.object({
       _id: v.string(),
-      eventType: eventTypeValidator,
-      memoryId: v.string(),
+      action: v.string(),
+      resourceId: v.string(),
       payload: v.string(),
     }),
   ),
@@ -148,15 +137,20 @@ export const getRecentEvents = query({
 
     const result: {
       _id: string;
-      eventType: MemoryEventType;
-      memoryId: string;
+      action: string;
+      resourceId: string;
       payload: string;
     }[] = [];
 
     for (const entry of entries) {
-      const eventType = EVENT_FOR_ACTION[entry.action];
-      if (!eventType) continue;
-      if (typeof entry.resourceId !== "string") continue;
+      if (!entry || typeof entry !== "object") continue;
+      const entryId = typeof entry._id === "string" ? entry._id : null;
+      if (!entryId) continue;
+      const action = typeof entry.action === "string" ? entry.action : null;
+      if (!action) continue;
+      const resourceId =
+        typeof entry.resourceId === "string" ? entry.resourceId : null;
+      if (!resourceId) continue;
 
       const payload =
         typeof entry.metadata?.payload === "string"
@@ -164,9 +158,9 @@ export const getRecentEvents = query({
           : "{}";
 
       result.push({
-        _id: entry._id,
-        eventType,
-        memoryId: entry.resourceId,
+        _id: entryId,
+        action,
+        resourceId,
         payload,
       });
     }

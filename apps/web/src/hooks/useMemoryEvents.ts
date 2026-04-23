@@ -1,9 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery as useConvexQuery } from "convex/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
+
+type MemoryEventType =
+  | "memory_created"
+  | "memory_updated"
+  | "memory_deleted"
+  | "relationship_created"
+  | "relationship_deleted";
+
+/**
+ * Inverse of `ACTION_FOR_EVENT` in `packages/backend/convex/memoryEvents.ts`.
+ * Backend returns the raw audit-log `action` string; the hook owns this
+ * reverse map so the wire shape stays small and the backend doesn't have to
+ * know about the compact event-type vocabulary.
+ */
+const EVENT_FOR_ACTION: Record<string, MemoryEventType> = {
+  "memory.created": "memory_created",
+  "memory.updated": "memory_updated",
+  "memory.deleted": "memory_deleted",
+  "memory.relationship.created": "relationship_created",
+  "memory.relationship.deleted": "relationship_deleted",
+};
 
 interface RelationshipEvent {
   eventType: "relationship_created" | "relationship_deleted";
@@ -21,9 +42,25 @@ export function useMemoryEvents(
   const [since] = useState(() => Date.now());
   const processedRef = useRef(new Set<string>());
 
-  const events = useConvexQuery(api.memoryEvents.getRecentEvents, {
+  const rawEvents = useConvexQuery(api.memoryEvents.getRecentEvents, {
     since,
   });
+
+  const events = useMemo(() => {
+    if (!rawEvents) return rawEvents;
+    return rawEvents.flatMap((entry) => {
+      const eventType = EVENT_FOR_ACTION[entry.action];
+      if (!eventType) return [];
+      return [
+        {
+          _id: entry._id,
+          eventType,
+          memoryId: entry.resourceId,
+          payload: entry.payload,
+        },
+      ];
+    });
+  }, [rawEvents]);
 
   useEffect(() => {
     if (!events || events.length === 0) return;
