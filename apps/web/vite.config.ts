@@ -5,39 +5,6 @@ import tanstackRouter from "@tanstack/router-plugin/vite";
 import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
 
-/**
- * Rewrite `new URL("./ort-wasm-*.wasm", import.meta.url)` inside
- * onnxruntime-web (transitive dep of @huggingface/transformers +
- * kokoro-js) to an absolute CDN URL. This stops rolldown from copying
- * ~44 MB of ORT wasm into the Vercel build output — the browser
- * fetches it from jsdelivr at runtime instead.
- *
- * Paired with `env.backends.onnx.wasm.wasmPaths` in stt-engine.ts for
- * code paths that read the runtime config rather than the `new URL`
- * reference.
- */
-function externalizeOrtWasm(): Plugin {
-  const WASM_CDN =
-    "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.1.0/dist/";
-  const WASM_PATTERN =
-    /new URL\(\s*(["'])\.\/([\w.-]+\.wasm)\1\s*,\s*import\.meta\.url\s*\)/g;
-
-  return {
-    name: "externalize-ort-wasm",
-    enforce: "pre",
-    transform(code, id) {
-      if (!id.includes("onnxruntime-web")) return null;
-      WASM_PATTERN.lastIndex = 0;
-      if (!WASM_PATTERN.test(code)) return null;
-      WASM_PATTERN.lastIndex = 0;
-      return {
-        code: code.replace(WASM_PATTERN, `new URL("${WASM_CDN}$2")`),
-        map: null,
-      };
-    },
-  };
-}
-
 function agentLoginPlugin(): Plugin {
   let env: Record<string, string>;
 
@@ -113,7 +80,6 @@ export default defineConfig({
     babel({
       presets: [reactCompilerPreset()],
     }),
-    externalizeOrtWasm(),
     agentLoginPlugin(),
     process.env.ANALYZE === "true" &&
       visualizer({
