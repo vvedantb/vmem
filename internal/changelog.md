@@ -1,5 +1,13 @@
 # Changelog
 
+## Neo4j Query Latency — Tag-Edge Scoping + Driver Pool Tuning — 2026-04-23
+
+- **Tag-edges Cypher rewritten to scope to user first**: `getGraphData` previously scanned ALL tags globally via `MATCH (t:Tag) WITH t, size([subquery...])`, then computed user-scoped cardinality with an O(total_tags) operation before filtering. Now uses `MATCH (:Memory {userId})-[:TAGGED_WITH]->(t:Tag) WITH t, count(*) AS cnt WHERE cnt BETWEEN 2 AND 500` — starts from the Memory.userId index (fast), uses a cheap aggregation, and gates on [2, 500] so tags that can't contribute to a weight-≥2 edge are skipped immediately
+- **Neo4j driver connection pool tuned for Convex warm containers**: Added three settings previously at default: `maxConnectionPoolSize: 10` (down from 100 — smaller pools warm faster on cold starts), `connectionAcquisitionTimeout: 10_000` (fail fast vs 60s hang), and `connectionLivenessCheckTimeout: 2000` (ping idle connections before reuse, since Aura silently drops idle TCP after a few minutes). These address the pattern where Convex containers live for hours but the driver is occasionally recreated, and stale connections cause TCP timeouts on first query
+- **Expected improvement**: 2–5s shaved from graph load time (tag-edges rewrite targets O(total_tags) global scan; driver pool tuning reduces TCP stall on cold/stale connections)
+- **Files affected**: `packages/backend/src/neo4j/memoryService.ts` (tag-edges query), `packages/backend/src/neo4j/driver.ts` (pool config)
+- **Reason**: Graph view still felt slow at 10s despite earlier Cypher optimizations. Tag-edges query was a pure optimization miss; tag index is the wrong starting point for user-scoped pair computation. Driver pool config is a common miss on managed Neo4j services where connections are killed silently
+
 ## Audit-Log Query Inlining + Adapter Removal — 2026-04-23
 
 - **Removed `packages/backend/convex/apiLogs.ts` adapter entirely**: The adapter was a thin pass-through over `auditLog.queryByActor` that both shaped rows AND computed the summary (total / success rate / avg duration). Frontend now calls the audit-log component directly via a narrow auth-scoped query — one fewer backend module to maintain.
