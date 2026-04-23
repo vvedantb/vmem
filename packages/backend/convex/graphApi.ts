@@ -25,13 +25,21 @@ type MemoryType = "profile" | "episodic" | "knowledge";
 interface GraphNodeEntry {
   id: string;
   title: string;
-  content: string;
   tags: string[];
   createdAt: string;
   kind: "memory" | "wiki-document" | "wiki-folder" | "skill";
   source?: string;
   sourceType: string | null;
   type?: MemoryType;
+  /**
+   * Content is inlined for wiki documents (contentText) and skills
+   * (description) — those sets are small and pulling separately would add
+   * latency for no payload win. Memory nodes intentionally omit content; the
+   * UI fetches it lazily via `getNodeContent` on hover/click. Dropping memory
+   * content from the graph payload was what let us fit the graph under
+   * Convex's 1 MiB value limit at ~2000 memories.
+   */
+  content?: string;
 }
 
 interface GraphResult {
@@ -51,7 +59,6 @@ interface MemoryGraph {
   nodes: {
     id: string;
     title: string;
-    content: string;
     tags: string[];
     createdAt: string;
     source?: string;
@@ -74,20 +81,19 @@ const WIKI_PREFIX = "wiki:";
 const SKILL_PREFIX = "skill:";
 
 // NOTE: We initially cached this action via @convex-dev/action-cache with a
-// 30s TTL. Production users hit Convex's 1 MiB value-size limit on the cache
-// put mutation (graphs with many memories + full content payloads routinely
-// serialise past 1 MiB), which threw and took the whole action down. Caching
-// was removed here; the Cypher-side optimisations in memoryService.getGraphData
-// (parallel sessions, tag-edge computation in Cypher, popular-tag pre-filter)
-// carry the latency win on their own. If we ever want to re-enable caching,
-// we'd need to shrink the payload first — e.g. drop `content` from graph
-// nodes and fetch it per-node on hover.
+// 30s TTL. Production users hit Convex's 1 MiB value-size limit (graphs with
+// ~2000 memories + full content payloads routinely serialised past 1 MiB).
+// Caching was removed here. Since then we moved memory `content` off the
+// graph payload (lazy-fetched via `getNodeContent` on hover/click), which
+// brought the payload comfortably under the limit — caching could plausibly
+// be re-enabled now, but the Cypher-side wins already make the dashboard
+// feel fast. Leaving uncached until we have a measurement that shows
+// otherwise.
 
 function annotateMemoryNodes(nodes: MemoryGraph["nodes"]): GraphNodeEntry[] {
   return nodes.map((n) => ({
     id: n.id,
     title: n.title,
-    content: n.content,
     tags: n.tags,
     createdAt: n.createdAt,
     kind: "memory",
@@ -204,5 +210,30 @@ export const getLocalGraph = authAction({
       tagEdges: memoryGraph.tagEdges,
       wikiParentEdges: [],
     };
+  },
+});
+
+/**
+ * Lazy-fetch the content body for a single memory node. Called from the graph
+ * tooltip/detail panel when the user hovers or clicks a memory — memories
+ * omit `content` from the graph payload to keep the full-graph response under
+ * Convex's 1 MiB value limit.
+ *
+ * The UI caches results client-side by memory id so repeated hovers are free.
+ */
+export const getNodeContent = authAction({
+  args: {
+    memoryId: v.string(),
+  },
+  handler: async (ctx, args): Promise<string> => {
+    const clerkId: string | null = await ctx.runQuery(
+      internal.auth.getClerkIdInternal,
+      { userId: ctx.userId },
+    );
+    if (!clerkId) throw new Error("User not found");
+    return await ctx.runAction(
+      internal.neo4jActions.graph.getMemoryContentInternal,
+      { clerkId, memoryId: args.memoryId },
+    );
   },
 });

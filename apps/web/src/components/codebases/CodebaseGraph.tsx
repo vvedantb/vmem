@@ -48,10 +48,14 @@ export function CodebaseGraph({ controller }: CodebaseGraphProps) {
     if (!selectedNodeId) return null;
     const node = graphNodes.find((n) => n.id === selectedNodeId);
     if (!node) return null;
+    // Codebase nodes always populate `content` with the file path (see
+    // codebase-graph-data.buildCodebaseGraphData). The `?? ""` is only here
+    // because `GraphNode.content` was made optional to support lazy-loading
+    // memory bodies — codebase data never actually produces undefined.
     return {
       id: node.id,
       filename: node.title,
-      path: node.content,
+      path: node.content ?? "",
       directory: node.tags[0] ?? "",
     };
   }, [selectedNodeId, graphNodes]);

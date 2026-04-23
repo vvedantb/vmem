@@ -14,7 +14,13 @@ import type { RelatedNode } from "./canvas/types";
 interface NodeData {
   id: string;
   title: string;
-  content: string;
+  /**
+   * `undefined` while the parent is lazy-fetching the memory body. Empty
+   * string means the fetch completed and the body is genuinely empty. We
+   * render a subtle loading state for `undefined` so the panel doesn't flash
+   * empty-then-populated.
+   */
+  content?: string;
   tags: string[];
   createdAt: string;
 }
@@ -79,9 +85,16 @@ export default function GraphDetailPanel({
 
           {/* Content */}
           <div className="px-4 py-2 flex-1 min-h-0">
-            <p className="text-sm text-foreground/90 break-words whitespace-pre-wrap">
-              {nodeData.content}
-            </p>
+            {nodeData.content === undefined ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <IconLoader2 size={12} className="animate-spin" />
+                Loading content…
+              </div>
+            ) : (
+              <p className="text-sm text-foreground/90 break-words whitespace-pre-wrap">
+                {nodeData.content}
+              </p>
+            )}
 
             {/* Tags */}
             {nodeData.tags.length > 0 && (
