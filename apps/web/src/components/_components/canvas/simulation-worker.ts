@@ -59,7 +59,7 @@ self.onmessage = (e: MessageEvent) => {
 
     case "setStrength": {
       if (chargeForceRef) {
-        chargeForceRef.strength(-msg.scalingRatio * 8);
+        chargeForceRef.strength(-msg.scalingRatio * 12);
         sim?.alpha(0.3).restart();
       }
       break;
@@ -67,7 +67,7 @@ self.onmessage = (e: MessageEvent) => {
 
     case "setGravity": {
       if (centerForceRef) {
-        centerForceRef.strength(msg.gravity * 3.0);
+        centerForceRef.strength(msg.gravity * 1.4);
         sim?.alpha(0.3).restart();
       }
       break;
@@ -141,45 +141,56 @@ function init(
     weight: e.weight,
   }));
 
-  const chargeStrength = -scalingRatio * 8;
+  // Obsidian-like repel is a bit stronger per unit of scalingRatio so clusters
+  // feel airy at rest, not bunched. Theta stays at 0.9 (d3 default) because
+  // the Barnes-Hut approximation error is invisible at typical graph sizes.
+  const chargeStrength = -scalingRatio * 12;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
-  // Obsidian-style springs: connected nodes cluster but keep enough slack that
-  // the collide force can always separate them without fighting the link pull.
-  // Tag edges pull less hard than explicit user-created relates_to links.
+  // Obsidian's springs keep linked nodes comfortably close without yanking
+  // them together. Longer base distance (90) gives more room for labels and
+  // lets the repel force breathe. Strengths are softened vs before — in
+  // Obsidian a single edge is a light pull, not a tight spring.
   const linkForce = forceLink<WNode, WEdge>(edges)
     .id((d) => d.id)
-    .distance(70)
+    .distance(90)
     .strength((d) =>
       d.edgeType === "relates_to" ||
       d.edgeType === "imports" ||
       d.edgeType === "wiki_parent"
-        ? 0.8
-        : 0.3,
+        ? 0.55
+        : 0.22,
     );
 
-  chargeForceRef = forceManyBody<WNode>().strength(chargeStrength).theta(theta);
+  chargeForceRef = forceManyBody<WNode>()
+    .strength(chargeStrength)
+    .distanceMax(800)
+    .theta(theta);
 
-  // Stronger center pull keeps the whole graph bounded in the viewport,
-  // preventing isolated nodes from drifting off-screen.
-  centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 3.0);
+  // Gentle center pull — just enough to keep the drift bounded. Obsidian's
+  // center force is a soft tether, not a magnet, so isolated clusters stay
+  // readable instead of being yanked into a ball.
+  centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 1.4);
 
-  // Hard non-overlap: radius matches the rendered node (size*2) plus a
-  // breathing-room pad, strength 1 + 3 iterations so the force fully resolves
-  // even in dense clusters where many constraints compete each tick.
+  // Soft non-overlap: radius matches the rendered node (size*2) plus a
+  // breathing-room pad, strength 0.8 + 2 iterations. We back off a little
+  // from a hard constraint so the graph settles more organically, closer to
+  // Obsidian's pure-force look where collisions are implicit in the repel.
   const collideForce = forceCollide<WNode>()
-    .radius((d) => d.size * 2 + 8)
-    .strength(1)
-    .iterations(3);
+    .radius((d) => d.size * 2 + 6)
+    .strength(0.8)
+    .iterations(2);
 
-  // alphaDecay 0.0228 = d3 default; velocityDecay 0.4 = smoother organic motion.
+  // Slower alphaDecay = simulation breathes longer, looks more alive when
+  // nudged. Higher velocityDecay = smoother, more damped motion (less jitter
+  // on hover/drag). Matches the settled, floaty feel of Obsidian's graph.
   sim = forceSimulation<WNode, WEdge>(nodes)
     .force("link", linkForce)
     .force("charge", chargeForceRef)
     .force("center", centerForceRef)
     .force("collide", collideForce)
-    .alphaDecay(0.0228)
-    .velocityDecay(0.4)
+    .alphaDecay(0.018)
+    .velocityDecay(0.55)
     .alpha(1);
 
   // Warm-up ticks run here in the worker (non-blocking for main thread)

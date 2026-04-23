@@ -21,6 +21,7 @@ import {
   IconStars,
   IconGridDots,
   IconCircleDot,
+  IconDiamond,
 } from "@tabler/icons-react";
 import {
   Button,
@@ -44,6 +45,7 @@ import type { GraphSettings } from "./graph-types";
 // ---- View-mode selector config ----
 
 const VIEW_MODES: { mode: ViewMode; Icon: typeof IconGraph }[] = [
+  { mode: "obsidian", Icon: IconDiamond },
   { mode: "default", Icon: IconGraph },
   { mode: "satellite", Icon: IconSatellite },
   { mode: "constellation", Icon: IconStars },

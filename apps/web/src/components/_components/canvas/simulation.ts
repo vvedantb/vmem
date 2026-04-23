@@ -184,41 +184,42 @@ function createMainThreadSimulation(
   scalingRatio: number,
   gravity: number,
 ): SimulationController {
-  const chargeStrength = -scalingRatio * 8;
+  // Physics tuned to mirror the worker path — Obsidian-like airy clustering.
+  const chargeStrength = -scalingRatio * 12;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
   const linkForce = forceLink<GraphNode, GraphEdge>(edges)
     .id((d) => d.id)
-    .distance(70)
+    .distance(90)
     .strength((d) =>
       d.edgeType === "relates_to" ||
       d.edgeType === "imports" ||
       d.edgeType === "wiki_parent"
-        ? 0.6
-        : 0.12,
+        ? 0.55
+        : 0.22,
     );
 
   const chargeForce = forceManyBody<GraphNode>()
     .strength(chargeStrength)
+    .distanceMax(800)
     .theta(theta);
 
-  const centerForce = forceCenter<GraphNode>(0, 0).strength(gravity * 2.0);
+  const centerForce = forceCenter<GraphNode>(0, 0).strength(gravity * 1.4);
 
-  // Hard non-overlap: radius matches the rendered node (size*2) plus a pad,
-  // strength 1 + 3 iterations so the force fully resolves even in dense
-  // clusters where many constraints compete each tick.
+  // Soft non-overlap: backs off a bit so the graph settles organically, in
+  // the same spirit as Obsidian's pure-force look.
   const collideForce = forceCollide<GraphNode>()
-    .radius((d) => d.size * 2 + 8)
-    .strength(1)
-    .iterations(3);
+    .radius((d) => d.size * 2 + 6)
+    .strength(0.8)
+    .iterations(2);
 
   const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)
     .force("link", linkForce)
     .force("charge", chargeForce)
     .force("center", centerForce)
     .force("collide", collideForce)
-    .alphaDecay(0.03)
-    .velocityDecay(0.5);
+    .alphaDecay(0.018)
+    .velocityDecay(0.55);
 
   // Warm-up (main thread — blocks but same as original behavior)
   for (let i = 0; i < 150; i++) {
@@ -242,12 +243,12 @@ function createMainThreadSimulation(
     },
 
     setStrength(s: number) {
-      chargeForce.strength(-s * 8);
+      chargeForce.strength(-s * 12);
       simulation.alpha(0.3).restart();
     },
 
     setGravity(g: number) {
-      centerForce.strength(g * 2.0);
+      centerForce.strength(g * 1.4);
       simulation.alpha(0.3).restart();
     },
 

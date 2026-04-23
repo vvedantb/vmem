@@ -1,4 +1,5 @@
 export type ViewMode =
+  | "obsidian"
   | "default"
   | "satellite"
   | "constellation"
@@ -6,6 +7,7 @@ export type ViewMode =
   | "minimal";
 
 export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
+  obsidian: "Obsidian",
   default: "Default",
   satellite: "Satellite",
   constellation: "Constellation",
@@ -48,6 +50,81 @@ export interface GraphViewTheme {
   dimAlpha: number;
   nodeColorOverride: string | null;
 }
+
+// Obsidian-inspired aesthetic — muted background, soft labels, very faint
+// edges, and a gentle neighborhood glow. Matches the feel of Obsidian's own
+// graph view: almost nothing is shouting, the structure emerges from the
+// density and clustering of nodes, not from heavy ink.
+const OBSIDIAN_DARK: GraphViewTheme = {
+  isDarkCanvas: true,
+  background: "#1e1e1e",
+  gradientCenter: null,
+  grid: null,
+  edge: {
+    normalByType: {
+      tag: "rgba(200,200,210,0.14)",
+      relates_to: "rgba(255,190,130,0.5)",
+      wiki_parent: "rgba(150,190,255,0.45)",
+    },
+    connected: "rgba(255,255,255,0.85)",
+    dimmed: "rgba(255,255,255,0.02)",
+    width: 0.7,
+    connectedWidth: 1.4,
+  },
+  glow: {
+    enabled: true,
+    radiusMultiplier: 3.2,
+    intensity: 0.12,
+    hoveredIntensity: 0.45,
+  },
+  outline: {
+    enabled: false,
+    color: "transparent",
+    hoveredColor: "node",
+    width: 0,
+    hoveredWidth: 1.5,
+  },
+  label: {
+    color: "rgba(230,230,235,0.9)",
+    secondary: "rgba(200,200,210,0.45)",
+  },
+  dimAlpha: 0.08,
+  nodeColorOverride: null,
+};
+
+const OBSIDIAN_LIGHT: GraphViewTheme = {
+  isDarkCanvas: false,
+  background: "#fafaf7",
+  gradientCenter: null,
+  grid: null,
+  edge: {
+    normalByType: {
+      tag: "rgba(60,60,70,0.18)",
+      relates_to: "rgba(190,90,30,0.6)",
+      wiki_parent: "rgba(50,90,180,0.5)",
+    },
+    connected: "rgba(30,30,30,0.8)",
+    dimmed: "rgba(0,0,0,0.04)",
+    width: 0.7,
+    connectedWidth: 1.4,
+  },
+  glow: {
+    enabled: false,
+    radiusMultiplier: 0,
+    intensity: 0,
+    hoveredIntensity: 0,
+  },
+  outline: {
+    enabled: true,
+    color: "rgba(0,0,0,0.08)",
+    hoveredColor: "node",
+    width: 0.5,
+    hoveredWidth: 1.5,
+  },
+  label: { color: "#1a1a1a", secondary: "rgba(40,40,50,0.5)" },
+  dimAlpha: 0.1,
+  nodeColorOverride: null,
+};
 
 const DEFAULT_DARK: GraphViewTheme = {
   isDarkCanvas: true,
@@ -298,6 +375,8 @@ export function getViewTheme(
   systemIsDark: boolean,
 ): GraphViewTheme {
   switch (mode) {
+    case "obsidian":
+      return systemIsDark ? OBSIDIAN_DARK : OBSIDIAN_LIGHT;
     case "default":
       return systemIsDark ? DEFAULT_DARK : DEFAULT_LIGHT;
     case "satellite":

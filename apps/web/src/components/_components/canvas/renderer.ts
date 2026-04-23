@@ -507,17 +507,15 @@ export function render(
     }
   }
 
-  // --- Edge labels ---
-  // Show relationship *category* ("relates to" / "tagged" / "imports") as a
-  // small chip centered on each edge. Always visible for every edge type so
-  // the user can see at-a-glance what kind of connection each line is.
+  // --- Edge label (only on the hovered edge) ---
+  // Obsidian's graph view doesn't annotate every line — it would drown the
+  // canvas. We only stamp the relationship category on the edge the user is
+  // currently pointing at, so the label becomes a targeted affordance instead
+  // of ambient noise.
   if (!lowZoom) {
-    const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
-    ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    for (const edge of edges) {
+    const hoveredEdgeIdx = interaction.hoveredEdgeIndex;
+    if (hoveredEdgeIdx !== null && hoveredEdgeIdx < edges.length) {
+      const edge = edges[hoveredEdgeIdx];
       const label =
         edge.edgeType === "relates_to"
           ? "relates to"
@@ -526,6 +524,11 @@ export function render(
             : edge.edgeType === "wiki_parent"
               ? "parent of"
               : "tagged";
+
+      const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
+      ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
 
       const mx = ((edge.source.x ?? 0) + (edge.target.x ?? 0)) / 2;
       const my = ((edge.source.y ?? 0) + (edge.target.y ?? 0)) / 2;
@@ -541,7 +544,7 @@ export function render(
       ctx.roundRect(mx - bgW / 2, my - bgH / 2, bgW, bgH, 3);
       ctx.fill();
 
-      ctx.fillStyle = theme.label.secondary;
+      ctx.fillStyle = theme.label.color;
       ctx.fillText(label, mx, my);
     }
   }

@@ -9,6 +9,7 @@ const VIEW_MODE_KEY = "vmem-graph-view-mode";
 const MAX_AGE = 60 * 60 * 24 * 365;
 function isViewMode(v: string): v is ViewMode {
   return (
+    v === "obsidian" ||
     v === "default" ||
     v === "satellite" ||
     v === "constellation" ||
@@ -54,16 +55,16 @@ export function setGraphSettings(settings: GraphSettings): void {
 }
 
 export function getGraphViewMode(): ViewMode {
-  if (typeof document === "undefined") return "default";
+  if (typeof document === "undefined") return "obsidian";
 
   const match = document.cookie
     .split("; ")
     .find((row) => row.startsWith(`${VIEW_MODE_KEY}=`));
 
-  if (!match) return "default";
+  if (!match) return "obsidian";
 
   const value = decodeURIComponent(match.split("=")[1]);
-  return isViewMode(value) ? value : "default";
+  return isViewMode(value) ? value : "obsidian";
 }
 
 export function setGraphViewMode(mode: ViewMode): void {
