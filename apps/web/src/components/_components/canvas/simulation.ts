@@ -184,7 +184,7 @@ function createMainThreadSimulation(
   scalingRatio: number,
   gravity: number,
 ): SimulationController {
-  const chargeStrength = -scalingRatio * 5;
+  const chargeStrength = -scalingRatio * 8;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
   const linkForce = forceLink<GraphNode, GraphEdge>(edges)
@@ -237,11 +237,12 @@ function createMainThreadSimulation(
     },
 
     reheat() {
-      simulation.alpha(0.5).restart();
+      const current = simulation.alpha();
+      simulation.alpha(Math.max(current, 0.1)).restart();
     },
 
     setStrength(s: number) {
-      chargeForce.strength(-s * 5);
+      chargeForce.strength(-s * 8);
       simulation.alpha(0.3).restart();
     },
 
