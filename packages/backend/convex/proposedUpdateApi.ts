@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { authAction } from "./auth";
 import { internal } from "./_generated/api";
+import { auditLog, ResourceTypes } from "./auditLog";
 
 interface ProposedUpdateNode {
   id: string;
@@ -45,7 +46,8 @@ export const resolveProposal = authAction({
       { userId: ctx.userId },
     );
     if (!clerkId) throw new Error("User not found");
-    return await ctx.runAction(
+
+    const result: ResolveResult | null = await ctx.runAction(
       internal.neo4jActions.proposedUpdates.resolveProposalInternal,
       {
         clerkId,
@@ -53,5 +55,32 @@ export const resolveProposal = authAction({
         action: args.action,
       },
     );
+
+    // Only audit successful resolutions — a null result means the proposal
+    // was already gone / wasn't owned by this user, which isn't audit-worthy.
+    if (result) {
+      const normalized = args.action.toLowerCase();
+      const auditAction =
+        normalized === "approve" || normalized === "approved"
+          ? "proposed_update.approved"
+          : normalized === "reject" || normalized === "rejected"
+            ? "proposed_update.rejected"
+            : `proposed_update.${normalized}`;
+
+      await auditLog.log(ctx, {
+        action: auditAction,
+        actorId: ctx.userId,
+        resourceType: ResourceTypes.PROPOSED_UPDATE,
+        resourceId: args.proposalId,
+        metadata: {
+          memoryId: result.memoryId,
+          resolutionAction: normalized,
+          status: result.status,
+        },
+        severity: "info",
+      });
+    }
+
+    return result;
   },
 });

@@ -20,19 +20,6 @@ const schema = defineSchema({
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
 
-  memoryEvents: defineTable({
-    clerkId: v.string(),
-    eventType: v.union(
-      v.literal("memory_created"),
-      v.literal("memory_updated"),
-      v.literal("memory_deleted"),
-      v.literal("relationship_created"),
-      v.literal("relationship_deleted"),
-    ),
-    memoryId: v.string(),
-    payload: v.string(),
-  }).index("by_clerk", ["clerkId"]),
-
   apiKeys: defineTable({
     userId: v.id("users"),
     name: v.string(),
@@ -126,18 +113,6 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_team_user", ["teamId", "userId"])
     .index("by_user_team", ["userId", "teamId"]),
-
-  apiRequestLogs: defineTable({
-    userId: v.id("users"),
-    apiKeyId: v.id("apiKeys"),
-    endpoint: v.string(),
-    method: v.string(),
-    status: v.number(),
-    durationMs: v.number(),
-    createdAt: v.number(),
-  })
-    .index("by_user_created", ["userId", "createdAt"])
-    .index("by_key_created", ["apiKeyId", "createdAt"]),
 
   notifications: defineTable({
     userId: v.id("users"),

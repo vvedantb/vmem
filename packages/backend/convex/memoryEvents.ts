@@ -1,5 +1,7 @@
 import { internalMutation, mutation, query } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { auditLog, ResourceTypes } from "./auditLog";
 
 const eventTypeValidator = v.union(
   v.literal("memory_created"),
@@ -8,6 +10,62 @@ const eventTypeValidator = v.union(
   v.literal("relationship_created"),
   v.literal("relationship_deleted"),
 );
+
+export type MemoryEventType =
+  | "memory_created"
+  | "memory_updated"
+  | "memory_deleted"
+  | "relationship_created"
+  | "relationship_deleted";
+
+/**
+ * Maps the short change-feed event type to a stable, dotted audit-log action.
+ * Kept in sync with the audit log's memory resource conventions.
+ */
+export const ACTION_FOR_EVENT: Record<MemoryEventType, string> = {
+  memory_created: "memory.created",
+  memory_updated: "memory.updated",
+  memory_deleted: "memory.deleted",
+  relationship_created: "memory.relationship.created",
+  relationship_deleted: "memory.relationship.deleted",
+};
+
+/**
+ * Reverse mapping so `getRecentEvents` can translate audit-log actions back
+ * into the compact `eventType` the web `useMemoryEvents` hook expects.
+ */
+const EVENT_FOR_ACTION: Record<string, MemoryEventType> = {
+  "memory.created": "memory_created",
+  "memory.updated": "memory_updated",
+  "memory.deleted": "memory_deleted",
+  "memory.relationship.created": "relationship_created",
+  "memory.relationship.deleted": "relationship_deleted",
+};
+
+type MemoryEventArgs = {
+  clerkId: string;
+  eventType: MemoryEventType;
+  memoryId: string;
+  payload: string;
+};
+
+/**
+ * Writes a single memory/relationship event to the permanent audit-log trail.
+ * Shared between the public (secret-guarded) and internal memory-event mutations.
+ */
+async function recordMemoryEvent(
+  ctx: MutationCtx,
+  args: MemoryEventArgs,
+): Promise<void> {
+  await auditLog.log(ctx, {
+    action: ACTION_FOR_EVENT[args.eventType],
+    actorId: args.clerkId,
+    resourceType: ResourceTypes.MEMORY,
+    resourceId: args.memoryId,
+    metadata: { payload: args.payload },
+    severity: "info",
+  });
+}
 
 export const pushEvent = mutation({
   args: {
@@ -24,24 +82,12 @@ export const pushEvent = mutation({
       throw new Error("Unauthorized");
     }
 
-    await ctx.db.insert("memoryEvents", {
+    await recordMemoryEvent(ctx, {
       clerkId: args.clerkId,
       eventType: args.eventType,
       memoryId: args.memoryId,
       payload: args.payload,
     });
-
-    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-    const oldEvents = await ctx.db
-      .query("memoryEvents")
-      .withIndex("by_clerk", (q) =>
-        q.eq("clerkId", args.clerkId).lt("_creationTime", fiveMinutesAgo),
-      )
-      .collect();
-
-    for (const event of oldEvents) {
-      await ctx.db.delete(event._id);
-    }
 
     return null;
   },
@@ -56,38 +102,31 @@ export const pushEventInternal = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await ctx.db.insert("memoryEvents", {
+    await recordMemoryEvent(ctx, {
       clerkId: args.clerkId,
       eventType: args.eventType,
       memoryId: args.memoryId,
       payload: args.payload,
     });
-
-    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-    const oldEvents = await ctx.db
-      .query("memoryEvents")
-      .withIndex("by_clerk", (q) =>
-        q.eq("clerkId", args.clerkId).lt("_creationTime", fiveMinutesAgo),
-      )
-      .collect();
-
-    for (const event of oldEvents) {
-      await ctx.db.delete(event._id);
-    }
-
     return null;
   },
 });
 
+/**
+ * Live change-feed for the web graph view (`useMemoryEvents`). Reads from the
+ * audit-log component and reshapes each entry back into the legacy
+ * `memoryEvents` row shape the hook consumes.
+ *
+ * The audit-log client returns entries typed as `any` — we rely on the Convex
+ * runtime validator (`returns:` below) to enforce the output shape.
+ */
 export const getRecentEvents = query({
   args: {
     since: v.number(),
   },
   returns: v.array(
     v.object({
-      _id: v.id("memoryEvents"),
-      _creationTime: v.number(),
-      clerkId: v.string(),
+      _id: v.string(),
       eventType: eventTypeValidator,
       memoryId: v.string(),
       payload: v.string(),
@@ -100,11 +139,38 @@ export const getRecentEvents = query({
     const clerkId = identity.subject;
     if (!clerkId) return [];
 
-    return await ctx.db
-      .query("memoryEvents")
-      .withIndex("by_clerk", (q) =>
-        q.eq("clerkId", clerkId).gt("_creationTime", args.since),
-      )
-      .collect();
+    const entries = await auditLog.queryByActor(ctx, {
+      actorId: clerkId,
+      fromTimestamp: args.since,
+      actions: Object.values(ACTION_FOR_EVENT),
+      limit: 200,
+    });
+
+    const result: {
+      _id: string;
+      eventType: MemoryEventType;
+      memoryId: string;
+      payload: string;
+    }[] = [];
+
+    for (const entry of entries) {
+      const eventType = EVENT_FOR_ACTION[entry.action];
+      if (!eventType) continue;
+      if (typeof entry.resourceId !== "string") continue;
+
+      const payload =
+        typeof entry.metadata?.payload === "string"
+          ? entry.metadata.payload
+          : "{}";
+
+      result.push({
+        _id: entry._id,
+        eventType,
+        memoryId: entry.resourceId,
+        payload,
+      });
+    }
+
+    return result;
   },
 });
