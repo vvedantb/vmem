@@ -2,14 +2,29 @@ export default function PerplexityLogo({ className }: { className?: string }) {
   return (
     <svg
       role="img"
-      viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 48 48"
+      fill="none"
       className={className}
       aria-hidden
     >
       <path
-        fill="currentColor"
-        d="M22.3977 7.0896h-2.3106V.6691l-5.5163 5.0204V.6691L7.1057 7.0896H1.6023v9.8208h2.8711V23.3309l6.7563-6.2667v5.9067h1.5336v-5.8292l6.6519 6.1528v-6.3737h2.916V7.0896zm-4.8538-3.0229l1.2783.2301-1.2783-.2301zM7.6415 9.0238v-.3104l4.2056 3.5794-4.2056 3.6528zm5.4692 4.0064 4.4844 3.7478L13.1107 19V13.0302z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M24 4.5v39M13.73 16.573v-9.99L24 16.573m0 14.5L13.73 41.417V27.01L24 16.573m0 0l10.27-9.99v9.99"
+      />
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M13.73 31.396H9.44V16.573h29.12v14.823h-4.29"
+      />
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M24 16.573L34.27 27.01v14.407L24 31.073"
       />
     </svg>
   );
