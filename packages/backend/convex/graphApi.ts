@@ -1,7 +1,6 @@
 import { v } from "convex/values";
-import { ActionCache } from "@convex-dev/action-cache";
 import { authAction } from "./auth";
-import { components, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
 
@@ -74,19 +73,15 @@ const WIKI_PREFIX = "wiki:";
 /** Prefix applied to skill ids so they never collide with memory or wiki ids. */
 const SKILL_PREFIX = "skill:";
 
-// Cache TTL for Neo4j-backed graph queries. User tolerates ~seconds of
-// staleness on dashboard reads, so 30s is the sweet spot: short enough that
-// new memories appear quickly after creation, long enough to absorb tab
-// switches and React re-renders without refiring the expensive traversal.
-// Cache key is the stringified args (clerkId + focus + profileId), so users
-// and profiles are naturally isolated.
-const GRAPH_CACHE_TTL_MS = 30_000;
-
-const graphDataCache = new ActionCache(components.actionCache, {
-  action: internal.neo4jActions.graph.getGraphDataInternal,
-  name: "getGraphDataInternal-v1",
-  ttl: GRAPH_CACHE_TTL_MS,
-});
+// NOTE: We initially cached this action via @convex-dev/action-cache with a
+// 30s TTL. Production users hit Convex's 1 MiB value-size limit on the cache
+// put mutation (graphs with many memories + full content payloads routinely
+// serialise past 1 MiB), which threw and took the whole action down. Caching
+// was removed here; the Cypher-side optimisations in memoryService.getGraphData
+// (parallel sessions, tag-edge computation in Cypher, popular-tag pre-filter)
+// carry the latency win on their own. If we ever want to re-enable caching,
+// we'd need to shrink the payload first — e.g. drop `content` from graph
+// nodes and fetch it per-node on hover.
 
 function annotateMemoryNodes(nodes: MemoryGraph["nodes"]): GraphNodeEntry[] {
   return nodes.map((n) => ({
@@ -114,11 +109,14 @@ export const getGraphData = authAction({
     );
     if (!clerkId) throw new Error("User not found");
 
-    const memoryGraph: MemoryGraph = await graphDataCache.fetch(ctx, {
-      clerkId,
-      focus: args.focus,
-      profileId: args.profileId,
-    });
+    const memoryGraph: MemoryGraph = await ctx.runAction(
+      internal.neo4jActions.graph.getGraphDataInternal,
+      {
+        clerkId,
+        focus: args.focus,
+        profileId: args.profileId,
+      },
+    );
 
     // Wiki nodes are only included for the global graph. When the user focuses
     // a specific memory we show its local Neo4j neighbourhood — wiki docs are
