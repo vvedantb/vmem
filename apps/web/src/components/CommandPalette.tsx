@@ -1,0 +1,250 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useHotkey } from "@tanstack/react-hotkeys";
+import { useAction, useConvexAuth, useMutation, useQuery } from "convex/react";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@vmem/ui";
+import {
+  IconBolt,
+  IconBrain,
+  IconLayoutSidebar,
+  IconMoon,
+  IconNotebook,
+  IconSun,
+  IconUsers,
+} from "@tabler/icons-react";
+import { api } from "@vmem/backend";
+import type { FunctionReturnType } from "convex/server";
+import { navGroups, settingsNavItems } from "@/components/sidebar/nav-config";
+import { useThemeContext } from "@/components/contexts/ThemeContext";
+
+type MemoryHit = FunctionReturnType<
+  typeof api.memoryApi.searchMemories
+>["memories"][number];
+
+interface Props {
+  onToggleSidebar: () => void;
+}
+
+export function CommandPalette({ onToggleSidebar }: Props) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const navigate = useNavigate();
+  const { theme, toggleTheme } = useThemeContext();
+  const { isAuthenticated } = useConvexAuth();
+
+  useHotkey("Mod+K", () => setOpen((o) => !o), { preventDefault: true });
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next) setQuery("");
+  };
+
+  const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
+  const setDefaultProfile = useMutation(api.userSettings.setDefaultProfile);
+
+  const skills = useQuery(api.skills.listMy, isAuthenticated ? {} : "skip");
+
+  const wikiHits = useQuery(
+    api.wiki.search,
+    isAuthenticated && query.length >= 2 ? { queryText: query } : "skip",
+  );
+
+  const searchMemories = useAction(api.memoryApi.searchMemories);
+  const [memoryHits, setMemoryHits] = useState<MemoryHit[]>([]);
+
+  useEffect(() => {
+    if (!isAuthenticated || query.length < 2) {
+      setMemoryHits([]);
+      return;
+    }
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      const res = await searchMemories({ query, limit: 8, offset: 0 });
+      if (!cancelled) setMemoryHits(res.memories);
+    }, 180);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [query, isAuthenticated, searchMemories]);
+
+  const runAndClose = <T,>(fn: () => T) => {
+    void fn();
+    setOpen(false);
+  };
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredSkills =
+    normalizedQuery.length >= 2
+      ? (skills ?? []).filter((s) =>
+          s.name.toLowerCase().includes(normalizedQuery),
+        )
+      : [];
+
+  return (
+    <CommandDialog open={open} onOpenChange={handleOpenChange}>
+      <CommandInput
+        placeholder="Search memories, wiki, skills, or jump to a page…"
+        value={query}
+        onValueChange={setQuery}
+      />
+      <CommandList>
+        <CommandEmpty>No results.</CommandEmpty>
+
+        {navGroups.map((group) => (
+          <CommandGroup key={group.title} heading={group.title}>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <CommandItem
+                  key={item.href}
+                  value={`nav ${item.label}`}
+                  onSelect={() =>
+                    runAndClose(() => navigate({ to: item.href }))
+                  }
+                >
+                  <Icon />
+                  <span>{item.label}</span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        ))}
+
+        <CommandGroup heading="Settings">
+          {settingsNavItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <CommandItem
+                key={item.href}
+                value={`settings ${item.label}`}
+                onSelect={() => runAndClose(() => navigate({ to: item.href }))}
+              >
+                <Icon />
+                <span>{item.label}</span>
+              </CommandItem>
+            );
+          })}
+        </CommandGroup>
+
+        <CommandSeparator />
+
+        {profiles && profiles.length > 0 && (
+          <CommandGroup heading="Switch Profile">
+            {profiles.map((p) => (
+              <CommandItem
+                key={p._id}
+                value={`profile ${p.name}`}
+                onSelect={() =>
+                  runAndClose(() =>
+                    setDefaultProfile({ source: "web", profileId: p._id }),
+                  )
+                }
+              >
+                <span
+                  className="h-2.5 w-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: p.color }}
+                />
+                <span>{p.name}</span>
+                {p.teamId && (
+                  <IconUsers className="ml-auto text-muted-foreground" />
+                )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        <CommandGroup heading="Actions">
+          <CommandItem
+            value="action toggle theme"
+            onSelect={() => runAndClose(toggleTheme)}
+          >
+            {theme === "dark" ? <IconSun /> : <IconMoon />}
+            <span>Toggle theme</span>
+          </CommandItem>
+          <CommandItem
+            value="action toggle sidebar"
+            onSelect={() => runAndClose(onToggleSidebar)}
+          >
+            <IconLayoutSidebar />
+            <span>Toggle sidebar</span>
+            <CommandShortcut>⌘I</CommandShortcut>
+          </CommandItem>
+        </CommandGroup>
+
+        {memoryHits.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Memories">
+              {memoryHits.map((m) => (
+                <CommandItem
+                  key={m.id}
+                  value={`memory ${m.title} ${m.id}`}
+                  onSelect={() =>
+                    runAndClose(() =>
+                      navigate({
+                        to: "/memories",
+                        search: { focus: m.id, view: "graph", q: "" },
+                      }),
+                    )
+                  }
+                >
+                  <IconBrain />
+                  <span className="truncate">{m.title}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {wikiHits && wikiHits.length > 0 && (
+          <CommandGroup heading="Wiki">
+            {wikiHits.map((w) => (
+              <CommandItem
+                key={w._id}
+                value={`wiki ${w.title} ${w._id}`}
+                onSelect={() =>
+                  runAndClose(() =>
+                    navigate({
+                      to: "/wiki/$docId",
+                      params: { docId: w._id },
+                    }),
+                  )
+                }
+              >
+                <IconNotebook />
+                <span className="truncate">{w.title}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {filteredSkills.length > 0 && (
+          <CommandGroup heading="Skills">
+            {filteredSkills.map((s) => (
+              <CommandItem
+                key={s._id}
+                value={`skill ${s.name} ${s._id}`}
+                onSelect={() => runAndClose(() => navigate({ to: "/skills" }))}
+              >
+                <IconBolt />
+                <span className="truncate">{s.name}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+      </CommandList>
+    </CommandDialog>
+  );
+}
