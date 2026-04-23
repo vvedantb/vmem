@@ -50,9 +50,12 @@ self.onmessage = (e: MessageEvent) => {
       init(msg.nodes, msg.edges, msg.scalingRatio, msg.gravity);
       break;
 
-    case "reheat":
-      sim?.alpha(0.5).restart();
+    case "reheat": {
+      // Don't clobber a hotter simulation. Drag-release only needs a nudge.
+      const current = sim?.alpha() ?? 0;
+      sim?.alpha(Math.max(current, 0.1)).restart();
       break;
+    }
 
     case "setStrength": {
       if (chargeForceRef) {

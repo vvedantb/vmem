@@ -391,7 +391,13 @@ export function render(
           const nx = node.x ?? 0;
           const ny = node.y ?? 0;
           const baseRadius = node.size * 2;
-          const radius = lowZoom ? Math.max(2, baseRadius * 0.5) : baseRadius;
+          // Keep nodes visible at extreme zoom-out. minWorld is the world-space
+          // length of 4 screen pixels; sqrt-blend preserves hub/leaf ranking at
+          // all zoom levels.
+          const minWorld = 4 / vp.scale;
+          const radius = Math.sqrt(
+            baseRadius * baseRadius + minWorld * minWorld,
+          );
           traceShape(ctx, kind, nx, ny, radius);
         }
         ctx.fill();
