@@ -9,7 +9,6 @@
  */
 
 import type * as apiKeys from "../apiKeys.js";
-import type * as apiLogs from "../apiLogs.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
@@ -64,7 +63,6 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
-  apiLogs: typeof apiLogs;
   auditLog: typeof auditLog;
   auth: typeof auth;
   chat: typeof chat;
@@ -141,5 +139,6 @@ export declare const internal: FilterApi<
 export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   actionRetrier: import("@convex-dev/action-retrier/_generated/component.js").ComponentApi<"actionRetrier">;
+  actionCache: import("@convex-dev/action-cache/_generated/component.js").ComponentApi<"actionCache">;
   auditLog: import("convex-audit-log/_generated/component.js").ComponentApi<"auditLog">;
 };
