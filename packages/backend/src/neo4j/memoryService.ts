@@ -1318,9 +1318,15 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           { userId, profileId: profileId ?? null },
         ),
         tagEdgesSession.run(
-          `MATCH (t:Tag)
-           WITH t, size([(t)<-[:TAGGED_WITH]-(:Memory {userId: $userId}) | 1]) AS userTagCount
-           WHERE userTagCount <= 500
+          // Starts from the user's memories (Memory.userId index) instead of
+          // scanning every Tag in the database. count(*) aggregates the
+          // per-user tag cardinality cheaply, then we gate on [2, 500]:
+          //   - < 2: tag can't contribute to a weight-≥2 edge anyway
+          //   - > 500: blown-out tag (e.g. "note") would explode the pair
+          //     cartesian; matches the cap the old global-scan version used.
+          `MATCH (:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)
+           WITH t, count(*) AS userTagCount
+           WHERE userTagCount >= 2 AND userTagCount <= 500
            MATCH (m1:Memory {userId: $userId})-[:TAGGED_WITH]->(t)<-[:TAGGED_WITH]-(m2:Memory {userId: $userId})
            WHERE m1.id < m2.id
              AND coalesce(m1.status, 'active') IN ['active', 'pinned']
