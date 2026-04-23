@@ -1,13 +1,9 @@
 /**
  * MediaPipe LLM engine manager for Gemma models.
  * Uses Google's MediaPipe tasks-genai for optimized Gemma inference.
- *
- * IMPORTANT: @mediapipe/tasks-genai is lazy-loaded to keep it off the
- * main-route build graph — it only gets pulled in when a MediaPipe-runtime
- * model is actually requested.
  */
 
-import type { FilesetResolver, LlmInference } from "@mediapipe/tasks-genai";
+import { FilesetResolver, LlmInference } from "@mediapipe/tasks-genai";
 
 export interface MediaPipeProgressReport {
   text: string;
@@ -27,17 +23,6 @@ let currentModelId: string | null = null;
 let genaiFileset: Awaited<
   ReturnType<typeof FilesetResolver.forGenAiTasks>
 > | null = null;
-let mediapipeModule: typeof import("@mediapipe/tasks-genai") | null = null;
-
-/**
- * Lazy-load @mediapipe/tasks-genai. Cached after first call.
- */
-async function getMediaPipeModule() {
-  if (!mediapipeModule) {
-    mediapipeModule = await import("@mediapipe/tasks-genai");
-  }
-  return mediapipeModule;
-}
 
 /**
  * Initialize the MediaPipe GenAI fileset (WASM modules).
@@ -45,8 +30,7 @@ async function getMediaPipeModule() {
  */
 async function getGenAIFileset() {
   if (genaiFileset) return genaiFileset;
-  const mp = await getMediaPipeModule();
-  genaiFileset = await mp.FilesetResolver.forGenAiTasks(
+  genaiFileset = await FilesetResolver.forGenAiTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai@latest/wasm",
   );
   return genaiFileset;
@@ -144,8 +128,7 @@ export async function loadMediaPipeModel(
   onProgress?.({ text: "Loading model into GPU...", progress: 92 });
 
   // Create LlmInference from buffer
-  const mp = await getMediaPipeModule();
-  const inference = await mp.LlmInference.createFromOptions(fileset, {
+  const inference = await LlmInference.createFromOptions(fileset, {
     baseOptions: {
       modelAssetBuffer: new Uint8Array(modelBuffer),
     },
