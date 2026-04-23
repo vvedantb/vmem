@@ -31,6 +31,7 @@ import { Route as MainSettingsPreferencesRouteImport } from "./routes/_main/sett
 import { Route as MainSettingsModelsRouteImport } from "./routes/_main/settings/models";
 import { Route as MainSettingsImportRouteImport } from "./routes/_main/settings/import";
 import { Route as MainSettingsExtensionRouteImport } from "./routes/_main/settings/extension";
+import { Route as MainSettingsEnvVarsRouteImport } from "./routes/_main/settings/env-vars";
 import { Route as MainSettingsDataControlsRouteImport } from "./routes/_main/settings/data-controls";
 import { Route as MainSettingsConnectorsRouteImport } from "./routes/_main/settings/connectors";
 import { Route as MainSettingsApiKeysRouteImport } from "./routes/_main/settings/api-keys";
@@ -149,6 +150,11 @@ const MainSettingsExtensionRoute = MainSettingsExtensionRouteImport.update({
   path: "/settings/extension",
   getParentRoute: () => MainRouteRoute,
 } as any);
+const MainSettingsEnvVarsRoute = MainSettingsEnvVarsRouteImport.update({
+  id: "/settings/env-vars",
+  path: "/settings/env-vars",
+  getParentRoute: () => MainRouteRoute,
+} as any);
 const MainSettingsDataControlsRoute =
   MainSettingsDataControlsRouteImport.update({
     id: "/settings/data-controls",
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   "/settings/api-keys": typeof MainSettingsApiKeysRoute;
   "/settings/connectors": typeof MainSettingsConnectorsRoute;
   "/settings/data-controls": typeof MainSettingsDataControlsRoute;
+  "/settings/env-vars": typeof MainSettingsEnvVarsRoute;
   "/settings/extension": typeof MainSettingsExtensionRoute;
   "/settings/import": typeof MainSettingsImportRoute;
   "/settings/models": typeof MainSettingsModelsRoute;
@@ -238,6 +245,7 @@ export interface FileRoutesByTo {
   "/settings/api-keys": typeof MainSettingsApiKeysRoute;
   "/settings/connectors": typeof MainSettingsConnectorsRoute;
   "/settings/data-controls": typeof MainSettingsDataControlsRoute;
+  "/settings/env-vars": typeof MainSettingsEnvVarsRoute;
   "/settings/extension": typeof MainSettingsExtensionRoute;
   "/settings/import": typeof MainSettingsImportRoute;
   "/settings/models": typeof MainSettingsModelsRoute;
@@ -271,6 +279,7 @@ export interface FileRoutesById {
   "/_main/settings/api-keys": typeof MainSettingsApiKeysRoute;
   "/_main/settings/connectors": typeof MainSettingsConnectorsRoute;
   "/_main/settings/data-controls": typeof MainSettingsDataControlsRoute;
+  "/_main/settings/env-vars": typeof MainSettingsEnvVarsRoute;
   "/_main/settings/extension": typeof MainSettingsExtensionRoute;
   "/_main/settings/import": typeof MainSettingsImportRoute;
   "/_main/settings/models": typeof MainSettingsModelsRoute;
@@ -304,6 +313,7 @@ export interface FileRouteTypes {
     | "/settings/api-keys"
     | "/settings/connectors"
     | "/settings/data-controls"
+    | "/settings/env-vars"
     | "/settings/extension"
     | "/settings/import"
     | "/settings/models"
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | "/settings/api-keys"
     | "/settings/connectors"
     | "/settings/data-controls"
+    | "/settings/env-vars"
     | "/settings/extension"
     | "/settings/import"
     | "/settings/models"
@@ -367,6 +378,7 @@ export interface FileRouteTypes {
     | "/_main/settings/api-keys"
     | "/_main/settings/connectors"
     | "/_main/settings/data-controls"
+    | "/_main/settings/env-vars"
     | "/_main/settings/extension"
     | "/_main/settings/import"
     | "/_main/settings/models"
@@ -547,6 +559,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof MainSettingsExtensionRouteImport;
       parentRoute: typeof MainRouteRoute;
     };
+    "/_main/settings/env-vars": {
+      id: "/_main/settings/env-vars";
+      path: "/settings/env-vars";
+      fullPath: "/settings/env-vars";
+      preLoaderRoute: typeof MainSettingsEnvVarsRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
     "/_main/settings/data-controls": {
       id: "/_main/settings/data-controls";
       path: "/settings/data-controls";
@@ -618,6 +637,7 @@ interface MainRouteRouteChildren {
   MainSettingsApiKeysRoute: typeof MainSettingsApiKeysRoute;
   MainSettingsConnectorsRoute: typeof MainSettingsConnectorsRoute;
   MainSettingsDataControlsRoute: typeof MainSettingsDataControlsRoute;
+  MainSettingsEnvVarsRoute: typeof MainSettingsEnvVarsRoute;
   MainSettingsExtensionRoute: typeof MainSettingsExtensionRoute;
   MainSettingsImportRoute: typeof MainSettingsImportRoute;
   MainSettingsModelsRoute: typeof MainSettingsModelsRoute;
@@ -648,6 +668,7 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsApiKeysRoute: MainSettingsApiKeysRoute,
   MainSettingsConnectorsRoute: MainSettingsConnectorsRoute,
   MainSettingsDataControlsRoute: MainSettingsDataControlsRoute,
+  MainSettingsEnvVarsRoute: MainSettingsEnvVarsRoute,
   MainSettingsExtensionRoute: MainSettingsExtensionRoute,
   MainSettingsImportRoute: MainSettingsImportRoute,
   MainSettingsModelsRoute: MainSettingsModelsRoute,

@@ -5,6 +5,7 @@ import {
   profileFields,
   teamFields,
   teamMemberFields,
+  userEnvVarFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -237,6 +238,8 @@ const schema = defineSchema({
       searchField: "contentText",
       filterFields: ["userId"],
     }),
+
+  userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
 });
 
 export default schema;
