@@ -20,7 +20,13 @@ export interface EdgeAttributes {
 export interface HoveredNodeInfo {
   id: string;
   title: string;
-  content: string;
+  /**
+   * Inline content is only present when the node carried content through the
+   * graph payload (wiki docs, skills, codebase files). Memory nodes omit it —
+   * the parent hooks `useMemoryGraphController` / MemoryGraph then lazy-fetch
+   * content via `getNodeContent` and resolve it before rendering the tooltip.
+   */
+  content?: string;
   viewportX: number;
   viewportY: number;
 }

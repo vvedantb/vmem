@@ -29,7 +29,9 @@ const graphNodeKindSchema = z.enum([
 const graphNodeSchema = z.object({
   id: z.string(),
   title: z.string(),
-  content: z.string(),
+  // Inline content is only present for wiki documents and skills; memory
+  // nodes omit it (lazy-fetched via graphApi.getNodeContent on hover/click).
+  content: z.string().optional(),
   tags: z.array(z.string()),
   createdAt: z.string(),
   kind: graphNodeKindSchema,
@@ -90,11 +92,26 @@ export function useGraphData(
   const graphQuery = useTanstackQuery({
     queryKey: ["graph", focusNodeId ?? "global", profileId ?? "all"],
     queryFn: async (): Promise<GraphResponse> => {
+      // Client-side timing so we can see the true user-perceived latency —
+      // Convex action round-trip + Zod parse. Logs once per fetch (TanStack
+      // handles deduping), which makes it cheap to keep on in production.
+      // Useful when debugging graph slowness: compare this number against
+      // the server-side Cypher timing to spot network vs. query regressions.
+      const startedAt =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
       const result = await getGraphData({
         focus: focusNodeId ?? undefined,
         profileId: profileId ?? undefined,
       });
-      return graphResponseSchema.parse(result);
+      const parsed = graphResponseSchema.parse(result);
+      const endedAt =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
+      console.log(
+        `[graph] fetch+parse: ${(endedAt - startedAt).toFixed(0)}ms ` +
+          `(nodes=${parsed.nodes.length} tagEdges=${parsed.tagEdges.length} ` +
+          `relatesTo=${parsed.relatesToEdges.length})`,
+      );
+      return parsed;
     },
     enabled: isAuthenticated,
     staleTime: 30_000,

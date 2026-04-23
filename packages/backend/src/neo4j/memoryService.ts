@@ -1251,7 +1251,6 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     nodes: {
       id: string;
       title: string;
-      content: string;
       tags: string[];
       createdAt: string;
       source?: string;
@@ -1261,11 +1260,19 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     relatesToEdges: { source: string; target: string; reason: string }[];
     tagEdges: TagEdge[];
   }> {
-    // Three parallel sessions — nodes, RELATES_TO edges, and tag-shared edges.
-    // Driver rule (see CLAUDE.md): never run concurrent .run() calls on the
-    // same Session, so each parallel query gets its own session.
-    const nodesSession = this.driver.session();
-    const relatesToSession = this.driver.session();
+    // Two parallel sessions:
+    //   1. Combined nodes + RELATES_TO edges in a single round-trip using a
+    //      CALL subquery. Halves Aura round-trip latency vs the previous 3
+    //      parallel queries. (Driver rule: never run concurrent .run() on the
+    //      same Session, so parallelism still needs separate sessions.)
+    //   2. Tag-shared edges, separately because it scans a different index
+    //      path and can run independently.
+    //
+    // Note: `content` is deliberately NOT returned here. The graph canvas
+    // doesn't render content inline — it's only shown in hover tooltips and
+    // the detail side panel, which now fetch it on demand via getMemoryContent.
+    // Dropping content cuts the wire payload roughly in half at 2k memories.
+    const nodesEdgesSession = this.driver.session();
     const tagEdgesSession = this.driver.session();
 
     const profileFilter =
@@ -1280,8 +1287,6 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       profileId !== undefined && profileId !== null
         ? "AND (b.profileId = $profileId OR b.profileId IS NULL)"
         : "";
-    // For the tag-edge query we use alias names m1/m2 so we don't clash with
-    // relates-to alias m. Mirror the profile filter for each side.
     const profileFilterM1 =
       profileId !== undefined && profileId !== null
         ? "AND (m1.profileId = $profileId OR m1.profileId IS NULL)"
@@ -1292,39 +1297,38 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         : "";
 
     try {
-      // Tag-edges are derived entirely in Cypher: pattern matches two memories
-      // sharing a Tag, deduplicates via id ordering, filters out blown-out tags
-      // (those attached to > 500 memories — same cap the old JS implementation
-      // used) so we never materialise that cartesian explosion, then keeps only
-      // pairs with weight >= 2. sharedTags is capped to 5 per edge via slice.
-      const [nodesResult, relatesToResult, tagEdgesResult] = await Promise.all([
-        nodesSession.run(
+      const [nodesEdgesResult, tagEdgesResult] = await Promise.all([
+        // Single-round-trip query: nodes collected into a list, then a CALL
+        // subquery fetches relates-to edges. The outer RETURN emits exactly
+        // one row containing both lists.
+        nodesEdgesSession.run(
           `MATCH (m:Memory {userId: $userId})
            WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${profileFilter}
            OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-           RETURN m.id AS id, m.title AS title,
-                  substring(m.content, 0, 200) AS content,
-                  collect(t.name) AS tags,
-                  m.createdAt AS createdAt,
-                  m.source AS source, m.type AS type,
-                  m.sourceType AS sourceType`,
+           WITH m, collect(t.name) AS memTags
+           WITH collect({
+             id: m.id, title: m.title, tags: memTags,
+             createdAt: m.createdAt, source: m.source,
+             type: m.type, sourceType: m.sourceType
+           }) AS nodes
+
+           CALL () {
+             MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
+             WHERE coalesce(a.status, 'active') IN ['active', 'pinned'] ${profileFilterA}
+               AND coalesce(b.status, 'active') IN ['active', 'pinned'] ${profileFilterB}
+             RETURN collect({source: a.id, target: b.id, reason: r.reason}) AS relatesToEdges
+           }
+
+           RETURN nodes, relatesToEdges`,
           { userId, profileId: profileId ?? null },
         ),
-        relatesToSession.run(
-          `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
-           WHERE coalesce(a.status, 'active') IN ['active', 'pinned'] ${profileFilterA}
-             AND coalesce(b.status, 'active') IN ['active', 'pinned'] ${profileFilterB}
-           RETURN a.id AS source, b.id AS target, r.reason AS reason`,
-          { userId, profileId: profileId ?? null },
-        ),
+        // Tag-edges. The first MATCH now includes the status filter so
+        // archived memories don't count toward the [2, 500] cardinality gate.
+        // Starts from the user's memories (Memory.userId index) and uses a
+        // cheap count(*) aggregation instead of a global Tag scan.
         tagEdgesSession.run(
-          // Starts from the user's memories (Memory.userId index) instead of
-          // scanning every Tag in the database. count(*) aggregates the
-          // per-user tag cardinality cheaply, then we gate on [2, 500]:
-          //   - < 2: tag can't contribute to a weight-≥2 edge anyway
-          //   - > 500: blown-out tag (e.g. "note") would explode the pair
-          //     cartesian; matches the cap the old global-scan version used.
-          `MATCH (:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)
+          `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)
+           WHERE coalesce(m.status, 'active') IN ['active', 'pinned']
            WITH t, count(*) AS userTagCount
            WHERE userTagCount >= 2 AND userTagCount <= 500
            MATCH (m1:Memory {userId: $userId})-[:TAGGED_WITH]->(t)<-[:TAGGED_WITH]-(m2:Memory {userId: $userId})
@@ -1343,36 +1347,55 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         ),
       ]);
 
-      const nodes = nodesResult.records.map((r) => ({
-        id: String(r.get("id")),
-        title: String(r.get("title")),
-        content: String(r.get("content") ?? ""),
-        tags: Array.isArray(r.get("tags"))
-          ? r.get("tags").filter(Boolean).map(String)
-          : [],
-        createdAt: String(r.get("createdAt")),
-        source: r.get("source") !== null ? String(r.get("source")) : undefined,
-        sourceType:
-          r.get("sourceType") !== null ? String(r.get("sourceType")) : null,
-        type: toMemoryTypeOrUndefined(r.get("type")),
+      const combinedRow = nodesEdgesResult.records[0];
+      const rawNodes = combinedRow ? combinedRow.get("nodes") : [];
+      const rawEdges = combinedRow ? combinedRow.get("relatesToEdges") : [];
+
+      const nodes = (Array.isArray(rawNodes) ? rawNodes : []).map((n) => ({
+        id: String(n.id),
+        title: String(n.title),
+        tags: Array.isArray(n.tags) ? n.tags.filter(Boolean).map(String) : [],
+        createdAt: String(n.createdAt),
+        source: n.source !== null ? String(n.source) : undefined,
+        sourceType: n.sourceType !== null ? String(n.sourceType) : null,
+        type: toMemoryTypeOrUndefined(n.type),
       }));
 
-      const relatesToEdges = relatesToResult.records.map((r) => ({
-        source: String(r.get("source")),
-        target: String(r.get("target")),
-        reason: String(r.get("reason") ?? ""),
-      }));
+      const relatesToEdges = (Array.isArray(rawEdges) ? rawEdges : []).map(
+        (e) => ({
+          source: String(e.source),
+          target: String(e.target),
+          reason: String(e.reason ?? ""),
+        }),
+      );
 
       const tagEdges = tagEdgesResult.records.map(toTagEdge);
 
       return { nodes, relatesToEdges, tagEdges };
     } finally {
-      await Promise.all([
-        nodesSession.close(),
-        relatesToSession.close(),
-        tagEdgesSession.close(),
-      ]);
+      await Promise.all([nodesEdgesSession.close(), tagEdgesSession.close()]);
     }
+  }
+
+  /**
+   * Fetch the `content` (body text) of a single memory on-demand. Used by
+   * the graph view for lazy-loading — the graph listing query omits content
+   * to keep the payload under ~500KB, and this action is called when the
+   * user hovers or clicks a node. Scoped by userId so a user can never read
+   * another user's memory content.
+   */
+  async getMemoryContent(userId: string, memoryId: string): Promise<string> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})
+         RETURN m.content AS content`,
+        { userId, memoryId },
+      );
+      const first = result.records[0];
+      if (!first) return "";
+      const value = first.get("content");
+      return typeof value === "string" ? value : "";
+    });
   }
 
   async getLocalGraph(
@@ -1382,10 +1405,12 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
   ): Promise<ReturnType<MemoryService["getGraphData"]>> {
     const nodesSession = this.driver.session();
     let nodeIds: string[];
+    // Mirrors getGraphData: content is NOT part of the graph payload. The
+    // frontend fetches it on demand via getMemoryContent when the user
+    // hovers or opens the detail panel.
     let nodes: {
       id: string;
       title: string;
-      content: string;
       tags: string[];
       createdAt: string;
       source?: string;
@@ -1414,7 +1439,6 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
          WITH DISTINCT m
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          RETURN m.id AS id, m.title AS title,
-                substring(m.content, 0, 200) AS content,
                 collect(t.name) AS tags, m.createdAt AS createdAt,
                 m.source AS source, m.type AS type,
                 m.sourceType AS sourceType
@@ -1425,7 +1449,6 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       nodes = nodesResult.records.map((r) => ({
         id: String(r.get("id")),
         title: String(r.get("title")),
-        content: String(r.get("content") ?? ""),
         tags: Array.isArray(r.get("tags"))
           ? r.get("tags").filter(Boolean).map(String)
           : [],
