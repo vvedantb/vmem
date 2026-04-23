@@ -69,8 +69,19 @@ export async function loadSTT(
   try {
     // Dynamic import keeps the 15 MB+ transformers bundle out of the
     // main chunk; it only loads when the user actually wants STT.
-    const { pipeline: createPipeline } =
+    const { pipeline: createPipeline, env } =
       await import("@huggingface/transformers");
+
+    // Point the ORT wasm backend at the pinned CDN so rolldown doesn't
+    // have to copy the 20+ MB wasm files into the Vercel output. Paired
+    // with the `externalize-ort-wasm` plugin in vite.config.ts. The
+    // `wasm` config is typed optional, so only set when it exists —
+    // if transformers.js didn't initialize it, its own defaults apply.
+    const wasmConfig = env.backends.onnx.wasm;
+    if (wasmConfig) {
+      wasmConfig.wasmPaths =
+        "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.1.0/dist/";
+    }
 
     const transcriber = await createPipeline(
       "automatic-speech-recognition",
