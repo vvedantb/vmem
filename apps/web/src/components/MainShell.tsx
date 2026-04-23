@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import Sidebar from "@/components/Sidebar";
+import { CommandPalette } from "@/components/CommandPalette";
 import { PageTitleProvider } from "@/components/contexts/PageTitleContext";
 
 export default function MainShell({ children }: { children: React.ReactNode }) {
@@ -20,6 +21,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
 
   return (
     <PageTitleProvider>
+      <CommandPalette onToggleSidebar={toggleSidebar} />
       <div className="relative h-screen overflow-hidden bg-[#ffffff] dark:bg-[#222222] md:bg-sidebar md:dark:bg-sidebar">
         <Sidebar
           isCollapsed={isSidebarCollapsed}
