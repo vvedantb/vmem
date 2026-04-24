@@ -130,9 +130,12 @@ export const getMemoryInternal = internalAction({
 export const listMemoriesInternal = internalAction({
   args: {
     clerkId: v.string(),
+    profileId: v.optional(v.string()),
     type: v.optional(v.string()),
     status: v.optional(v.string()),
+    source: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
+    searchQuery: v.optional(v.string()),
     limit: v.number(),
     offset: v.number(),
   },
@@ -140,9 +143,12 @@ export const listMemoriesInternal = internalAction({
     const service = new MemoryService(getDriver());
     return await service.listMemories({
       userId: args.clerkId,
+      profileId: args.profileId,
       type: toMemoryType(args.type),
       status: toMemoryStatus(args.status),
+      source: args.source,
       tags: args.tags,
+      searchQuery: args.searchQuery,
       limit: args.limit,
       offset: args.offset,
     });

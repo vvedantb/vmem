@@ -25,31 +25,60 @@ import {
   type ListItemSearchResult,
 } from "@/lib/list-items";
 import { memoriesSearchParams } from "@/routes/_main/memories/-searchParams";
-import { useMemoryContext } from "@/components/contexts/MemoryContext";
+import { useMemoryListFlat } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
 
 /**
  * The "list" view of /memories. Mirrors the graph view's node set by merging
  * memories (from Neo4j via Convex), wiki documents/folders, and skills into a
- * single scrollable list. Filters are kind-aware: the Kind filter cuts across
- * all four kinds; Tag/Source/Type filters are memory-scoped and let non-memory
- * items pass through, so e.g. setting a tag filter narrows memories without
- * hiding every wiki doc and skill. Search + filter controls live in the page
- * header (see MemoryListHeaderControls); this component only renders the list.
+ * single scrollable list. Memory filters (profile, type, source, tags, search)
+ * are pushed into Cypher via the paginated `useMemoryListFlat` hook — the list
+ * page no longer fetches every memory upfront. Wiki and skills stay fully
+ * loaded because they're small (single Convex queries already cached).
+ *
+ * Kind filter is the only cross-cutting filter; when the user excludes
+ * memories via the kind filter the list simply hides them and Virtuoso
+ * stops asking for more pages.
  */
 export default function MemorySearch() {
   const searchParams = useSearch({ strict: false });
   const [params, setParams] = useQueryStates(memoriesSearchParams);
 
-  const { memories: allMemories, isLoading: isMemoriesLoading } =
-    useMemoryContext();
+  const searchQuery = params.q;
+  const normalizedQuery = searchQuery.trim();
+  const trimmedProfile = params.profile ?? null;
+
+  // First type in the filter wins for the server-side roundtrip. The server
+  // only supports a single type; multi-type is rare in practice and the
+  // post-merge kind filter handles any residual UI edge cases.
+  const primaryType = params.types.length > 0 ? params.types[0] : undefined;
+  const primarySource =
+    params.sources.length > 0 ? params.sources[0] : undefined;
+
+  const kindIncludesMemory =
+    params.kinds.length === 0 || params.kinds.includes("memory");
+
+  const memoryPage = useMemoryListFlat({
+    profileId: trimmedProfile,
+    type: primaryType,
+    source: primarySource,
+    tags: params.tags,
+    searchQuery: normalizedQuery || undefined,
+  });
+
+  const {
+    memories: memoryResults,
+    isLoading: isMemoriesLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = memoryPage;
+
   const wikiRows = useQuery(api.wiki.listTree);
   const skillRows = useQuery(api.skills.listMy);
   const { theme } = useThemeContext();
   const isDark = theme === "dark";
-
-  const searchQuery = params.q;
 
   const trailTag = params.tags.length === 1 ? params.tags[0] : null;
   const { trailMap } = useTrailData({ tag: trailTag });
@@ -85,92 +114,140 @@ export default function MemorySearch() {
     void setParams({ sources: [legacy.trim()] });
   }, [searchParams, params.sources.length, setParams]);
 
-  // Merge memories + wiki + skills into one list-item stream. We defer
-  // non-memory queries gracefully — an unresolved Convex useQuery returns
-  // `undefined`, which we fall back to an empty array so the list still shows
-  // memories immediately while wiki/skills finish loading.
-  const allItems = useMemo<ListItem[]>(() => {
-    const memoryItems = allMemories.map(memoryToListItem);
-    const wikiItems = wikiRows ? wikiRowsToListItems(wikiRows) : [];
-    const skillItems = skillRows ? skillRowsToListItems(skillRows) : [];
-    return [...memoryItems, ...wikiItems, ...skillItems];
-  }, [allMemories, wikiRows, skillRows]);
-
-  // Kind filter runs first — it's the broadest cut.
-  const itemsAfterKinds = useMemo(
-    () =>
-      allItems.filter((item) => listItemMatchesKindFilter(item, params.kinds)),
-    [allItems, params.kinds],
+  // Memory items come back already filtered + scored from the server. They
+  // only get the final kind filter applied here (the user may have excluded
+  // "memory" from the kind set; we still display in that case but the list
+  // section is hidden below).
+  const memoryItems = useMemo<ListItem[]>(
+    () => memoryResults.map(memoryToListItem),
+    [memoryResults],
   );
 
-  const itemsAfterKindsAndTags = useMemo(
-    () =>
-      itemsAfterKinds.filter((item) =>
-        listItemMatchesTagFilter(item, params.tags),
-      ),
-    [itemsAfterKinds, params.tags],
+  // Wiki + skill items come fully loaded. They run through the regular
+  // client filter chain: kind (restrictive) + tag/source/type/profile
+  // (pass-through for non-memory kinds per the helpers' semantics).
+  const wikiItemsRaw = useMemo<ListItem[]>(
+    () => (wikiRows ? wikiRowsToListItems(wikiRows) : []),
+    [wikiRows],
+  );
+  const skillItemsRaw = useMemo<ListItem[]>(
+    () => (skillRows ? skillRowsToListItems(skillRows) : []),
+    [skillRows],
   );
 
-  const itemsAfterKindsTagsSources = useMemo(() => {
-    if (params.sources.length === 0) {
-      return itemsAfterKindsAndTags;
-    }
-    return itemsAfterKindsAndTags.filter((item) =>
-      listItemMatchesSourceFilter(item, params.sources),
+  const filteredNonMemoryItems = useMemo<ListItem[]>(() => {
+    const nonMemory = [...wikiItemsRaw, ...skillItemsRaw];
+    return nonMemory.filter(
+      (item) =>
+        listItemMatchesKindFilter(item, params.kinds) &&
+        listItemMatchesTagFilter(item, params.tags) &&
+        listItemMatchesSourceFilter(item, params.sources) &&
+        listItemMatchesTypeFilter(item, params.types) &&
+        listItemMatchesProfileFilter(item, params.profile),
     );
-  }, [itemsAfterKindsAndTags, params.sources]);
+  }, [
+    wikiItemsRaw,
+    skillItemsRaw,
+    params.kinds,
+    params.tags,
+    params.sources,
+    params.types,
+    params.profile,
+  ]);
 
-  const itemsAfterTypes = useMemo(() => {
-    if (params.types.length === 0) {
-      return itemsAfterKindsTagsSources;
+  // If multiple types were selected, the server returned results for only
+  // the first. Filter the remainder locally so the displayed set still
+  // respects the full URL state. Same story for multi-source.
+  const memoryItemsAfterMultiFilter = useMemo<ListItem[]>(() => {
+    if (params.types.length <= 1 && params.sources.length <= 1) {
+      return memoryItems;
     }
-    return itemsAfterKindsTagsSources.filter((item) =>
-      listItemMatchesTypeFilter(item, params.types),
-    );
-  }, [itemsAfterKindsTagsSources, params.types]);
+    return memoryItems.filter((item) => {
+      if (params.types.length > 1 && item.kind === "memory") {
+        if (!params.types.includes(item.type)) return false;
+      }
+      if (params.sources.length > 1 && item.kind === "memory") {
+        if (!params.sources.includes(item.source)) return false;
+      }
+      return true;
+    });
+  }, [memoryItems, params.types, params.sources]);
 
-  const filteredItems = useMemo(() => {
-    return itemsAfterTypes.filter((item) =>
-      listItemMatchesProfileFilter(item, params.profile),
-    );
-  }, [itemsAfterTypes, params.profile]);
+  const memoryItemsAfterKind = useMemo<ListItem[]>(
+    () =>
+      kindIncludesMemory
+        ? memoryItemsAfterMultiFilter.filter((item) =>
+            listItemMatchesKindFilter(item, params.kinds),
+          )
+        : [],
+    [memoryItemsAfterMultiFilter, params.kinds, kindIncludesMemory],
+  );
 
-  const normalizedQuery = searchQuery.trim();
-  const searchResults = useMemo(() => {
-    if (!normalizedQuery) {
-      return null;
-    }
-    return searchListItems(filteredItems, normalizedQuery);
-  }, [filteredItems, normalizedQuery]);
+  // Client-side search only scores wiki/skills; memories already come back
+  // scored from Cypher's fulltext index, so they keep their server order.
+  const isShowingSearchResults = normalizedQuery.length > 0;
+  const nonMemorySearchResults = useMemo<ListItemSearchResult[] | null>(() => {
+    if (!isShowingSearchResults) return null;
+    return searchListItems(filteredNonMemoryItems, normalizedQuery);
+  }, [filteredNonMemoryItems, normalizedQuery, isShowingSearchResults]);
 
+  // Memories already arrive in score order from the server when searching
+  // and in createdAt-DESC order otherwise. Either way we render them first,
+  // followed by non-memory items.
   const displayItems: Array<{ item: ListItem; score: number | null }> =
     useMemo(() => {
-      if (searchResults !== null) {
-        return searchResults.map((r: ListItemSearchResult) => ({
+      const memoryEntries = memoryItemsAfterKind.map((item) => ({
+        item,
+        score: isShowingSearchResults ? 1 : null,
+      }));
+      if (nonMemorySearchResults !== null) {
+        const nonMemoryEntries = nonMemorySearchResults.map((r) => ({
           item: r.item,
           score: r.relevanceScore,
         }));
+        return [...memoryEntries, ...nonMemoryEntries];
       }
-      return filteredItems.map((item) => ({ item, score: null }));
-    }, [searchResults, filteredItems]);
+      const nonMemoryEntries = filteredNonMemoryItems.map((item) => ({
+        item,
+        score: null,
+      }));
+      return [...memoryEntries, ...nonMemoryEntries];
+    }, [
+      memoryItemsAfterKind,
+      filteredNonMemoryItems,
+      nonMemorySearchResults,
+      isShowingSearchResults,
+    ]);
 
-  const isShowingSearchResults = searchResults !== null;
+  const totalItems =
+    memoryItemsAfterKind.length + filteredNonMemoryItems.length;
 
-  const selectedMemory = useMemo(() => {
+  const selectedMemory = useMemo<Memory | null>(() => {
     if (!selectedMemoryId) {
       return null;
     }
-    return allMemories.find((memory) => memory.id === selectedMemoryId) ?? null;
-  }, [allMemories, selectedMemoryId]);
+    return (
+      memoryResults.find((memory) => memory.id === selectedMemoryId) ?? null
+    );
+  }, [memoryResults, selectedMemoryId]);
 
   useEffect(() => {
-    if (!selectedMemoryId) {
-      return;
-    }
-    if (!allMemories.some((memory) => memory.id === selectedMemoryId)) {
+    if (!selectedMemoryId) return;
+    // Only clear the selection if we've actually finished loading pages and
+    // the memory is still missing — otherwise typing in the search box would
+    // flicker the detail panel off for the one keystroke before the next
+    // page arrives.
+    if (isMemoriesLoading || isFetchingNextPage || hasNextPage) return;
+    if (!memoryResults.some((memory) => memory.id === selectedMemoryId)) {
       setSelectedMemoryId(null);
     }
-  }, [allMemories, selectedMemoryId]);
+  }, [
+    memoryResults,
+    selectedMemoryId,
+    isMemoriesLoading,
+    isFetchingNextPage,
+    hasNextPage,
+  ]);
 
   const handleMemoryUpdate = useCallback((updatedMemory: Memory) => {
     setSelectedMemoryId(updatedMemory.id);
@@ -207,7 +284,15 @@ export default function MemorySearch() {
     setPanelAction(null);
   }, []);
 
-  if (isMemoriesLoading) {
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage && !isMemoriesLoading) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, isMemoriesLoading, fetchNextPage]);
+
+  // Initial load: block render until we've heard back from the memory
+  // page query at least once. Subsequent page fetches render inline.
+  if (isMemoriesLoading && memoryResults.length === 0) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
         <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -215,7 +300,7 @@ export default function MemorySearch() {
     );
   }
 
-  if (allItems.length === 0) {
+  if (totalItems === 0 && !isShowingSearchResults) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -265,6 +350,7 @@ export default function MemorySearch() {
                 data={displayItems}
                 computeItemKey={(_index, entry) => entry.item.id}
                 defaultItemHeight={44}
+                endReached={handleEndReached}
                 itemContent={(_index, entry) => (
                   <div className="pb-1.5">
                     <ListItemRow
