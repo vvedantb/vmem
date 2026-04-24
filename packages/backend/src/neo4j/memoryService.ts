@@ -58,6 +58,10 @@ interface TimelineEvent extends MemoryEvent {
 
 interface ScoreBreakdown {
   fulltext: number;
+  // Semantic (vector) similarity from Neo4j cosine-distance search over
+  // OpenAI-style embeddings. 0 when embeddings are unavailable (user has
+  // no OPENROUTER_API_KEY set, or fulltext-only fallback is active).
+  vector: number;
   recency: number;
   confidence: number;
 }
@@ -83,6 +87,32 @@ interface ProposedUpdateNode {
 function parseJsonField<T>(val: string | null): T | null {
   if (val === null) return null;
   return JSON.parse(val) as T;
+}
+
+/**
+ * Reciprocal Rank Fusion score. Rank is 1-indexed. The constant k=60 is
+ * the value from Cormack et al. ("Reciprocal Rank Fusion outperforms
+ * Condorcet and individual Rank Learning Methods", SIGIR '09) — it
+ * dampens the contribution of high-rank results while keeping lower
+ * ranks meaningful. RRF is robust to scale differences between fulltext
+ * BM25 scores and cosine-similarity scores, which is why we use ranks
+ * instead of the raw score numbers when combining the two legs.
+ */
+function rrfScore(rank: number, k = 60): number {
+  return 1 / (k + rank);
+}
+
+/**
+ * Age-in-days → recency multiplier. Small fixed buckets keep recent
+ * knowledge (last week) near the top while not penalising older
+ * reference memories too harshly.
+ */
+function recencyFromAgeDays(age: number): number {
+  if (age < 1) return 1.0;
+  if (age < 7) return 0.9;
+  if (age < 30) return 0.7;
+  if (age < 90) return 0.5;
+  return 0.3;
 }
 
 /**
@@ -218,6 +248,11 @@ export class MemoryService {
     confidence: number;
     expiresAt?: string;
     url?: string;
+    // Pre-computed embedding vector (1536 dims for text-embedding-3-small).
+    // Null ⇒ user has no OPENROUTER_API_KEY set, or generation failed.
+    // Memories created without an embedding are still usable; the backfill
+    // migration fills them later, and retrieval degrades to fulltext-only.
+    embedding: number[] | null;
   }): Promise<MemoryWithTags> {
     return this.withSession(async (session) => {
       const id = crypto.randomUUID();
@@ -237,7 +272,8 @@ export class MemoryService {
           createdAt: $now,
           updatedAt: $now,
           expiresAt: $expiresAt,
-          url: $url
+          url: $url,
+          embedding: $embedding
         })
         WITH m
         MERGE (s:Source {name: $source})
@@ -263,6 +299,7 @@ export class MemoryService {
           now,
           expiresAt: params.expiresAt ?? null,
           url: params.url ?? null,
+          embedding: params.embedding,
         },
       );
 
@@ -340,6 +377,11 @@ export class MemoryService {
     sourceType: string;
     sourceId: string;
     sourceUrl: string;
+    // Pre-computed embedding vector. Applied on BOTH create and match — an
+    // updated upstream document should refresh its semantic signal, not just
+    // its text. Null ⇒ caller had no API key or embedding failed; memory
+    // still upserts, backfill migration can repair later.
+    embedding: number[] | null;
   }): Promise<{ id: string; created: boolean }> {
     return this.withSession(async (session) => {
       const now = new Date().toISOString();
@@ -358,13 +400,15 @@ export class MemoryService {
            m.createdAt = $now,
            m.updatedAt = $now,
            m.sourceUrl = $sourceUrl,
-           m.sourceSyncedAt = $now
+           m.sourceSyncedAt = $now,
+           m.embedding = $embedding
          ON MATCH SET
            m.title = $title,
            m.content = $content,
            m.updatedAt = $now,
            m.sourceUrl = $sourceUrl,
-           m.sourceSyncedAt = $now
+           m.sourceSyncedAt = $now,
+           m.embedding = $embedding
          WITH m, m.createdAt = $now AS wasCreated
          MERGE (s:Source {name: $sourceType})
          MERGE (m)-[:FROM_SOURCE]->(s)
@@ -379,6 +423,7 @@ export class MemoryService {
           content: params.content,
           newId: crypto.randomUUID(),
           now,
+          embedding: params.embedding,
         },
       );
 
@@ -671,77 +716,182 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     });
   }
 
+  /**
+   * Hybrid retrieval: fulltext (BM25) + vector (cosine) fused with
+   * Reciprocal Rank Fusion, then weighted by recency and confidence.
+   *
+   * Two legs run sequentially on a single session (per Neo4j driver
+   * guidance — never parallel `session.run` on the same session). The
+   * vector leg is skipped when `queryEmbedding` is null, in which case
+   * the function degrades to fulltext-only scoring with the same
+   * weights — old behaviour preserved for users without an API key.
+   *
+   * RRF replaces the raw `fulltextScore` term from the old formula:
+   *   total = rrfCombined * 0.5 + recency * 0.25 + confidence * 0.25
+   *
+   * Each leg over-fetches `limit * 2` so the merge has room to rerank.
+   */
   async retrieveMemories(params: {
     userId: string;
     profileId?: string | null;
     query: string;
+    /** Pre-computed query embedding. Null ⇒ skip vector leg. */
+    queryEmbedding: number[] | null;
     type?: MemoryType;
     tags?: string[];
     limit: number;
   }): Promise<MemoryCandidate[]> {
     return this.withSession(async (session) => {
-      // Build profile filter clause
       const profileFilter =
         params.profileId !== undefined && params.profileId !== null
           ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
           : "";
 
-      const result = await session.run(
+      const legLimit = params.limit * 2;
+
+      // Leg 1: fulltext (keyword) search.
+      const ftResult = await session.run(
         `CALL db.index.fulltext.queryNodes('memory_content', $query)
          YIELD node AS m, score AS fulltextScore
          WHERE m.userId = $userId ${profileFilter}
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          WITH m, collect(t.name) AS tags, fulltextScore,
               duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
-         WITH m, tags, fulltextScore,
-              CASE WHEN ageInDays < 1 THEN 1.0
-                   WHEN ageInDays < 7 THEN 0.9
-                   WHEN ageInDays < 30 THEN 0.7
-                   WHEN ageInDays < 90 THEN 0.5
-                   ELSE 0.3 END AS recencyScore,
-              m.confidence AS confidenceScore
-         WITH m, tags, fulltextScore, recencyScore, confidenceScore,
-              (fulltextScore * 0.5 + recencyScore * 0.25 + confidenceScore * 0.25) AS totalScore
-         RETURN m, tags, fulltextScore, recencyScore, confidenceScore, totalScore
-         ORDER BY totalScore DESC
-         LIMIT $limit`,
+         RETURN m, tags, fulltextScore, ageInDays
+         ORDER BY fulltextScore DESC
+         LIMIT $legLimit`,
         {
           query: params.query,
           userId: params.userId,
           profileId: params.profileId ?? null,
-          limit: neo4j.int(params.limit),
+          legLimit: neo4j.int(legLimit),
         },
       );
 
-      return result.records.map((record) => {
+      // Leg 2: vector (semantic) search — only when we have an embedding.
+      // db.index.vector.queryNodes takes (indexName, k, vector) and returns
+      // at most k results ordered by cosine similarity DESC.
+      const vecResult = params.queryEmbedding
+        ? await session.run(
+            `CALL db.index.vector.queryNodes('memory_embedding', $k, $queryVector)
+             YIELD node AS m, score AS vectorScore
+             WHERE m.userId = $userId ${profileFilter}
+             OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+             WITH m, collect(t.name) AS tags, vectorScore,
+                  duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
+             RETURN m, tags, vectorScore, ageInDays
+             ORDER BY vectorScore DESC`,
+            {
+              k: neo4j.int(legLimit),
+              queryVector: params.queryEmbedding,
+              userId: params.userId,
+              profileId: params.profileId ?? null,
+            },
+          )
+        : null;
+
+      // Merge by memory id. Each entry holds enough state to compute RRF
+      // plus the final weighted score and the reason-string inputs.
+      interface MergedEntry {
+        memory: MemoryWithTags;
+        fulltextScore: number;
+        vectorScore: number;
+        recencyScore: number;
+        confidenceScore: number;
+        ftRank: number | null;
+        vecRank: number | null;
+      }
+      const merged = new Map<string, MergedEntry>();
+
+      ftResult.records.forEach((record, idx) => {
         const memory = toMemoryWithTags(record);
         const fulltextScore = Number(record.get("fulltextScore"));
-        const recencyScore = Number(record.get("recencyScore"));
-        const confidenceScore = Number(record.get("confidenceScore"));
-        const totalScore = Number(record.get("totalScore"));
-
-        const reasons: string[] = [];
-        if (fulltextScore > 0.5) reasons.push("strong content match");
-        if (recencyScore > 0.8) reasons.push("recently created");
-        if (confidenceScore > 0.8) reasons.push("high confidence source");
-        if (memory.status === "pinned") reasons.push("pinned by user");
-
-        return {
-          ...memory,
-          trace: {
-            score: totalScore,
-            scoreBreakdown: {
-              fulltext: fulltextScore,
-              recency: recencyScore,
-              confidence: confidenceScore,
-            },
-            reason:
-              reasons.length > 0
-                ? `Matched because: ${reasons.join(", ")}`
-                : "Weak match across all signals",
-          },
-        };
+        const ageInDays = toNeoInt(record.get("ageInDays"));
+        merged.set(memory.id, {
+          memory,
+          fulltextScore,
+          vectorScore: 0,
+          recencyScore: recencyFromAgeDays(ageInDays),
+          confidenceScore: memory.confidence,
+          ftRank: idx + 1,
+          vecRank: null,
+        });
       });
+
+      if (vecResult) {
+        vecResult.records.forEach((record, idx) => {
+          const memory = toMemoryWithTags(record);
+          const vectorScore = Number(record.get("vectorScore"));
+          const ageInDays = toNeoInt(record.get("ageInDays"));
+          const existing = merged.get(memory.id);
+          if (existing) {
+            existing.vectorScore = vectorScore;
+            existing.vecRank = idx + 1;
+          } else {
+            merged.set(memory.id, {
+              memory,
+              fulltextScore: 0,
+              vectorScore,
+              recencyScore: recencyFromAgeDays(ageInDays),
+              confidenceScore: memory.confidence,
+              ftRank: null,
+              vecRank: idx + 1,
+            });
+          }
+        });
+      }
+
+      const candidates: MemoryCandidate[] = Array.from(merged.values()).map(
+        (entry) => {
+          const rrfCombined =
+            (entry.ftRank === null ? 0 : rrfScore(entry.ftRank)) +
+            (entry.vecRank === null ? 0 : rrfScore(entry.vecRank));
+          const totalScore =
+            rrfCombined * 0.5 +
+            entry.recencyScore * 0.25 +
+            entry.confidenceScore * 0.25;
+
+          const reasons: string[] = [];
+          // "Both" is strictly stronger than either single-signal reason;
+          // emit it alone when it applies.
+          if (entry.fulltextScore > 0.5 && entry.vectorScore > 0.5) {
+            reasons.push("matched both keywords and meaning");
+          } else if (entry.vectorScore > 0.7) {
+            reasons.push("strong semantic match");
+          } else if (entry.fulltextScore > 0.5) {
+            reasons.push("strong content match");
+          }
+          if (entry.recencyScore > 0.8) reasons.push("recently created");
+          if (entry.confidenceScore > 0.8)
+            reasons.push("high confidence source");
+          if (entry.memory.status === "pinned") reasons.push("pinned by user");
+          if (params.queryEmbedding === null) {
+            reasons.push(
+              "semantic search unavailable — set OPENROUTER_API_KEY",
+            );
+          }
+
+          return {
+            ...entry.memory,
+            trace: {
+              score: totalScore,
+              scoreBreakdown: {
+                fulltext: entry.fulltextScore,
+                vector: entry.vectorScore,
+                recency: entry.recencyScore,
+                confidence: entry.confidenceScore,
+              },
+              reason:
+                reasons.length > 0
+                  ? `Matched because: ${reasons.join(", ")}`
+                  : "Weak match across all signals",
+            },
+          };
+        },
+      );
+
+      candidates.sort((a, b) => b.trace.score - a.trace.score);
+      return candidates.slice(0, params.limit);
     });
   }
 
@@ -1716,6 +1866,62 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       );
       const record = result.records[0];
       return record ? toNeoInt(record.get("deleted")) : 0;
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Embedding backfill helpers
+  //
+  // Used by the one-shot migration in `convex/neo4jActions/migration.ts` to
+  // fill in `m.embedding` on memories that were created before vector search
+  // shipped, or created while the user had no OPENROUTER_API_KEY set.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Return a batch of memories that still have no embedding set. Ordered by
+   * createdAt DESC so newest memories (most likely to be queried) get
+   * embeddings first. Content is truncated in the JS layer by
+   * `embeddingService.truncateForEmbedding` — no truncation here so callers
+   * can choose their own strategy.
+   */
+  async listMissingEmbeddings(
+    limit: number,
+  ): Promise<
+    Array<{ id: string; userId: string; title: string; content: string }>
+  > {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory)
+         WHERE m.embedding IS NULL
+         RETURN m.id AS id, m.userId AS userId, m.title AS title, m.content AS content
+         ORDER BY m.createdAt DESC
+         LIMIT $limit`,
+        { limit: neo4j.int(limit) },
+      );
+      return result.records.map((r) => ({
+        id: String(r.get("id")),
+        userId: String(r.get("userId")),
+        title: String(r.get("title")),
+        content: String(r.get("content")),
+      }));
+    });
+  }
+
+  /**
+   * Bulk-set embeddings on existing memories by id. One round trip via
+   * UNWIND to avoid N queries per batch.
+   */
+  async setEmbeddings(
+    rows: Array<{ id: string; embedding: number[] }>,
+  ): Promise<void> {
+    if (rows.length === 0) return;
+    await this.withSession(async (session) => {
+      await session.run(
+        `UNWIND $rows AS r
+         MATCH (m:Memory {id: r.id})
+         SET m.embedding = r.embedding`,
+        { rows },
+      );
     });
   }
 

@@ -5,8 +5,35 @@ import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { MemoryService } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
+import { generateEmbedding } from "../../src/neo4j/embeddingService";
 import { verifyMcpJwt } from "../../src/neo4j/mcpAuth";
 import { normalizeUrl } from "../../src/neo4j/url";
+import { tryUserEnvVarByClerkId } from "../lib/envVars";
+
+/**
+ * Best-effort embedding helper used by the MCP entry points. Returns null
+ * when the user has no OPENROUTER_API_KEY set or the remote call fails —
+ * downstream Cypher treats that as "no vector yet" and the retrieve/create
+ * paths continue on the fulltext-only degraded path.
+ */
+async function tryEmbed(
+  ctx: ActionCtx,
+  clerkId: string,
+  text: string,
+): Promise<number[] | null> {
+  try {
+    const apiKey = await tryUserEnvVarByClerkId(
+      ctx,
+      clerkId,
+      "OPENROUTER_API_KEY",
+    );
+    if (!apiKey) return null;
+    return await generateEmbedding(apiKey, text);
+  } catch (e) {
+    console.warn("mcp embedding failed", e);
+    return null;
+  }
+}
 
 function verifyTokenOrThrow(token: string): string {
   const clerkId = verifyMcpJwt(token);
@@ -76,10 +103,12 @@ export const mcpRetrieveMemories = internalAction({
     const clerkId = verifyTokenOrThrow(args.token);
     const profileId = await resolveProfileId(ctx, clerkId, args.profileId);
     const service = new MemoryService(getDriver());
+    const queryEmbedding = await tryEmbed(ctx, clerkId, args.query);
     return await service.retrieveMemories({
       userId: clerkId,
       profileId,
       query: args.query,
+      queryEmbedding,
       limit: args.limit ?? 10,
     });
   },
@@ -114,6 +143,12 @@ export const mcpCreateMemory = internalAction({
       }
     }
 
+    const embedding = await tryEmbed(
+      ctx,
+      clerkId,
+      `${args.title}\n\n${args.content}`,
+    );
+
     const result = await service.createMemory({
       userId: clerkId,
       profileId,
@@ -127,6 +162,7 @@ export const mcpCreateMemory = internalAction({
       tags: args.tags ?? [],
       confidence: args.confidence ?? 1.0,
       url: normalizedUrl,
+      embedding,
     });
 
     await ctx.runMutation(internal.memoryEvents.pushEventInternal, {

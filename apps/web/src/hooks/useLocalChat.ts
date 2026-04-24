@@ -24,9 +24,30 @@ export interface MessageUsageSummary {
   tokensPerSecond?: number;
 }
 
+/**
+ * One memory pulled by retrieval and surfaced in a chat bubble.
+ *
+ * `trace` is optional because:
+ *   - legacy rows in `chatMessageMemoryRefs` predate hybrid search and
+ *     carry no trace payload
+ *   - and in dev we sometimes roll back schema changes without wiping rows
+ *
+ * When present the chat UI renders a popover explaining *why* the memory
+ * was pulled (fulltext + vector + recency + confidence breakdown).
+ */
 export interface ChatMemoryRef {
   id: string;
   title: string;
+  trace?: {
+    score: number;
+    scoreBreakdown: {
+      fulltext: number;
+      vector: number;
+      recency: number;
+      confidence: number;
+    };
+    reason: string;
+  };
 }
 
 const RETRIEVE_LIMIT = 8;
@@ -207,6 +228,11 @@ export function useLocalChat(): LocalChatResult {
           memoryRefs = retrieved.memories.map((m) => ({
             id: m.id,
             title: m.title,
+            trace: {
+              score: m.trace.score,
+              scoreBreakdown: m.trace.scoreBreakdown,
+              reason: m.trace.reason,
+            },
           }));
           const addition = buildMemoryRagAddition(
             retrieved.memories.map((m) => ({
