@@ -1,5 +1,29 @@
 # Changelog
 
+## Neo4j Seed + Unseed Scripts — Test Data Management — 2026-04-24
+
+- **Restored `packages/backend/src/neo4j/seed.ts` from git history**: Reincludes 257+ handcrafted memories + 4000+ procedurally-generated memories across 3 test users, with relationships, tags, and event audit trails for realistic testing and performance benchmarking.
+- **Created `packages/backend/src/neo4j/unseed.ts` reverse cleanup script**: Deletes all data for seeded user IDs, orphaned Tags, and orphaned Sources in one run — enables fast iteration during development without manual Neo4j console deletions.
+- **Added `pnpm db:seed` and `pnpm db:unseed` scripts to package.json**: Both use `tsx --env-file=.env.local` for local environment loading, making seed/unseed accessible from the CLI without requiring manual driver setup.
+- **Fixed seed.ts imports for new location**: Updated from old `./neo4j.js` and `./setup.js` paths to `./driver` and `./setup` to align with the post-Convex-migration architecture.
+- **Files affected**: `packages/backend/src/neo4j/seed.ts` (restored), `packages/backend/src/neo4j/unseed.ts` (new), `packages/backend/package.json`
+- **Reason**: Seeded test data is essential for perf testing the graph and list pages on realistic workloads (2000+ memories), and the old seed file was accidentally deleted during the Railway → Convex migration. Manual Neo4j deletion is slow for iterative testing; the reverse seed enables one-command cleanup.
+
+## Memory List + Graph Pages — Pagination + Server-Side Filtering — 2026-04-24
+
+- **List page architecture inverted from fetch-all to server-paginated**: Deleted the 120-round-trip fetch-all loop (100 memories per page in a JS loop over a 12k-memory user). New `useMemoryListPage` hook built on TanStack `useInfiniteQuery` streams pages on demand via `Virtuoso` `endReached` callback — first page renders in <300ms instead of 10s.
+- **All memory filters pushed into Cypher for single-roundtrip queries**: Profile, type, status, source, tags, and fulltext search now land in the Neo4j MATCH + WHERE clauses instead of fetched-then-JS-filtered. `listMemories` unified list + search paths via `matchPrefix` + `orderClause` branching; `searchMemories` now a thin wrapper that delegates.
+- **Graph nodes bounded to most-recent 2000 via `ORDER BY…LIMIT` in MATCH**: `getGraphData` previously scanned unbounded memory sets then capped in JS. Now uses the new `memory_user_status_created` composite index to seek nodes already sorted by creation time, so the planner does a single index seek + already-sorted output with no Sort op.
+- **RELATES_TO edges scoped to 2000-node subgraph via CALL**: `getGraphData` no longer scans all user edges then filters post-hoc. A post-match `CALL (nodeIds) { MATCH (a:Memory)-[r]->(b:Memory) WHERE a.id IN nodeIds AND b.id IN nodeIds }` subquery reduces the edge traversal to O(edges_in_subgraph) instead of O(all_user_edges).
+- **Tag-edge cartesian tightened via per-tag memory lists**: Tag-edges query collects memories per tag with `UNWIND memsForTag AS m1 UNWIND memsForTag AS m2`, so pair generation is bounded by the 500-cardinality gate instead of a double-scan of the entire Memory table — O(n²) pairs per dense tag stays under 500×500.
+- **Local graph rewritten with Quantified Path Pattern**: `getLocalGraph` replaces `[:RELATES_TO*1..2]` with `((a...)-[:RELATES_TO]-(b...)){1,2}(neighbor)` so per-hop filters stop expansion early at suppressed/wrong-user nodes instead of traversing then discarding.
+- **New composite index `memory_user_status_created` on (userId, status, createdAt)**: Covers the universal pattern used by list + graph + stats queries. Lets the planner do a single seek for `WHERE userId = $u AND status IN […] ORDER BY createdAt DESC`.
+- **MemoryContext exposes `useMemoryListPage` + `useMemoryListFlat` hooks**: Bounded fetch of 1000 most-recent memories still backs context consumers (tag suggestions, filter-option derivation). Infinite-query hooks support the paginated list view.
+- **MemorySearch switched to paginated rendering**: Now uses `useMemoryListFlat(filters)` with `Virtuoso endReached`. Removed the client-side JS filter chain for memories — filters arrive pre-applied from Cypher. Wiki + skills stay client-filtered (small, single-query loads).
+- **Bug fixes in filter handling**: Search results now respect type/status/tag/profile filters (previously ignored when searchQuery present). Total count now correct (previously `= page.length`).
+- **Files affected**: `packages/backend/src/neo4j/setup.ts`, `packages/backend/src/neo4j/memoryService.ts`, `packages/backend/convex/memoryApi.ts`, `packages/backend/convex/neo4jActions/memories.ts`, `apps/web/src/components/contexts/MemoryContext.tsx`, `apps/web/src/components/MemorySearch.tsx`
+- **Reason**: List and graph pages both felt slow (10s baseline on 12k-memory user). Root causes were architectural (fetch-all + JS filter loop) and query-side (unbounded scans + O(n²) operations). The new design streams data on demand, pushes all filtering into Cypher, bounds graph scans to a 2000-node window, and runs in <1s end-to-end.
+
 ## Graph Payload Slimming — Lazy Memory Content + Query Restructure — 2026-04-24
 
 - **Memory content dropped from graph payload, lazy-fetched on hover/click**: `getGraphData` / `getLocalGraph` no longer return `m.content` on memory nodes (wiki docs + skills still inline their content — small set, not the bottleneck). New `graphApi.getNodeContent` action fetches a single memory body by id on demand, and `MemoryGraph` caches results client-side in a `Map` keyed by memory id with in-flight deduping. Graph payload dropped from 1.13 MiB to well under 1 MiB for 2000-memory users, unblocking future re-enabling of action-cache if wanted
