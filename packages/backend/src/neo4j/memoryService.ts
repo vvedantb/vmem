@@ -416,17 +416,26 @@ export class MemoryService {
     profileId?: string | null;
     type?: MemoryType;
     status?: MemoryStatus;
+    source?: string;
     tags?: string[];
+    searchQuery?: string;
     limit: number;
     offset: number;
   }): Promise<{ memories: MemoryWithTags[]; total: number }> {
     return this.withSession(async (session) => {
-      // Build the WHERE clause. Tag filter uses an index-joined pattern
-      // (MATCH … → Tag WHERE name IN) which lets Neo4j hit the Tag name
-      // index instead of scanning every TAGGED_WITH relationship off each
-      // memory. The joined tag match is added to the MATCH portion, not the
-      // WHERE, because it drives the index lookup.
-      const whereClauses = ["m.userId = $userId"];
+      // Unified list + search path. All filters (profile, type, status,
+      // source, tags, search) are pushed into Cypher so the frontend can
+      // paginate a filtered subset in constant time rather than fetch every
+      // memory and filter in JS.
+      //
+      // When `searchQuery` is present, the MATCH starts from the fulltext
+      // index hit; otherwise it scans the memory_user_status_created
+      // composite index (most recent active memories first).
+      //
+      // Count + page are still two sequential session.run() calls because a
+      // combined CALL{} pattern that joins them drops the count row whenever
+      // the page query returns zero rows (e.g. user scrolls past the end).
+      // That bug used to silently break pagination UIs, so the guard stays.
       const queryParams: Record<
         string,
         string | number | Integer | string[] | null
@@ -436,11 +445,11 @@ export class MemoryService {
         offset: neo4j.int(params.offset),
       };
 
+      const whereClauses: string[] = ["m.userId = $userId"];
       if (params.profileId !== undefined && params.profileId !== null) {
         whereClauses.push("(m.profileId = $profileId OR m.profileId IS NULL)");
         queryParams.profileId = params.profileId;
       }
-
       if (params.type) {
         whereClauses.push("m.type = $type");
         queryParams.type = params.type;
@@ -448,32 +457,56 @@ export class MemoryService {
       if (params.status) {
         whereClauses.push("m.status = $status");
         queryParams.status = params.status;
+      } else {
+        // Default: hide suppressed/expired. Matches the graph view and
+        // closes a latent bug where the search path ignored status entirely.
+        whereClauses.push(
+          "coalesce(m.status, 'active') IN ['active', 'pinned']",
+        );
       }
+      if (params.source) {
+        whereClauses.push("m.source = $source");
+        queryParams.source = params.source;
+      }
+
+      const where = whereClauses.join(" AND ");
 
       const hasTagFilter = !!params.tags && params.tags.length > 0;
       if (hasTagFilter && params.tags) {
         queryParams.filterTags = params.tags;
       }
-
-      const where = whereClauses.join(" AND ");
       const filterTagsCount = params.tags?.length ?? 0;
 
-      // Index-joined tag filter: count DISTINCT matched tags per memory and
-      // require it to equal the number of filter tags. Uses the Tag(name)
-      // index via direct equality on a matched Tag node, rather than scanning
-      // all TAGGED_WITH edges on each memory.
+      const trimmedQuery = params.searchQuery?.trim() ?? "";
+      const hasSearchQuery = trimmedQuery.length > 0;
+      if (hasSearchQuery) {
+        queryParams.searchQuery = trimmedQuery;
+      }
+
+      // Index-joined tag filter: match the Tag node directly (hits the
+      // Tag(name) unique-constraint index) and require matched-tag count to
+      // equal the number of filter tags. Avoids scanning every TAGGED_WITH
+      // edge per memory. Forwards `score` alongside `m` when the search path
+      // is active so the subsequent ORDER BY can still see it.
       const tagMatchClause = hasTagFilter
         ? `MATCH (m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags
-           WITH m, count(DISTINCT ft) AS matchedTags
+           WITH m${hasSearchQuery ? ", score" : ""}, count(DISTINCT ft) AS matchedTags
            WHERE matchedTags = ${filterTagsCount}`
         : "";
 
-      // Keep count and fetch as two sequential queries (same session). A
-      // combined CALL{} cartesian-product would drop the count row whenever
-      // the paginated fetch returns zero rows (e.g. offset past end of set),
-      // breaking pagination counts in the UI.
+      // The matchPrefix picks the query anchor: fulltext index when the user
+      // is searching, Memory(userId,status,createdAt) composite index
+      // otherwise. The orderClause decides how the page is sorted.
+      const matchPrefix = hasSearchQuery
+        ? `CALL db.index.fulltext.queryNodes('memory_content', $searchQuery) YIELD node AS m, score
+           WHERE ${where}`
+        : `MATCH (m:Memory) WHERE ${where}`;
+      const orderClause = hasSearchQuery
+        ? "WITH m, score ORDER BY score DESC"
+        : "WITH m ORDER BY m.createdAt DESC";
+
       const countResult = await session.run(
-        `MATCH (m:Memory) WHERE ${where}
+        `${matchPrefix}
          ${tagMatchClause}
          RETURN count(m) AS total`,
         queryParams,
@@ -482,9 +515,9 @@ export class MemoryService {
       const total = countRecord ? toNeoInt(countRecord.get("total")) : 0;
 
       const result = await session.run(
-        `MATCH (m:Memory) WHERE ${where}
+        `${matchPrefix}
          ${tagMatchClause}
-         WITH m ORDER BY m.createdAt DESC SKIP $offset LIMIT $limit
+         ${orderClause} SKIP $offset LIMIT $limit
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          RETURN m, collect(t.name) AS tags`,
         queryParams,
@@ -621,34 +654,20 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     limit: number;
     offset: number;
   }): Promise<{ memories: MemoryWithTags[]; total: number }> {
-    if (!params.query) return this.listMemories(params);
-
-    return this.withSession(async (session) => {
-      // Build profile filter clause
-      const profileFilter =
-        params.profileId !== undefined && params.profileId !== null
-          ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
-          : "";
-
-      const result = await session.run(
-        `CALL db.index.fulltext.queryNodes('memory_content', $query)
-         YIELD node AS m, score
-         WHERE m.userId = $userId ${profileFilter}
-         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-         RETURN m, collect(t.name) AS tags, score
-         ORDER BY score DESC
-         SKIP $offset LIMIT $limit`,
-        {
-          query: params.query,
-          userId: params.userId,
-          profileId: params.profileId ?? null,
-          offset: neo4j.int(params.offset),
-          limit: neo4j.int(params.limit),
-        },
-      );
-
-      const memories = result.records.map(toMemoryWithTags);
-      return { memories, total: memories.length };
+    // Thin wrapper around listMemories. Keeps the public action surface stable
+    // for callers (MCP tools, CommandPalette) while funnelling every filter
+    // (profile, type, status, tags, source, fulltext) through the single
+    // Cypher path. Fixes the old bugs where search ignored type/status/tag
+    // filters and returned total = page.length.
+    return this.listMemories({
+      userId: params.userId,
+      profileId: params.profileId,
+      type: params.type,
+      tags: params.tags,
+      source: params.source,
+      searchQuery: params.query,
+      limit: params.limit,
+      offset: params.offset,
     });
   }
 
@@ -1261,12 +1280,17 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     tagEdges: TagEdge[];
   }> {
     // Two parallel sessions:
-    //   1. Combined nodes + RELATES_TO edges in a single round-trip using a
-    //      CALL subquery. Halves Aura round-trip latency vs the previous 3
-    //      parallel queries. (Driver rule: never run concurrent .run() on the
-    //      same Session, so parallelism still needs separate sessions.)
+    //   1. Combined nodes + RELATES_TO edges in a single round-trip. Nodes
+    //      are bounded to the 2000 most recent active/pinned memories via
+    //      ORDER BY + LIMIT pushed into the MATCH — the composite index
+    //      memory_user_status_created lets the planner satisfy both the
+    //      WHERE and the ORDER BY with a single index seek (no Sort op).
+    //      RELATES_TO is then scoped to just those 2000 node IDs, so the
+    //      edge scan is O(edges_in_subgraph) instead of O(all_user_edges).
     //   2. Tag-shared edges, separately because it scans a different index
-    //      path and can run independently.
+    //      path and can run independently. (Driver rule: never run
+    //      concurrent .run() on the same Session, so parallelism still
+    //      needs separate sessions.)
     //
     // Note: `content` is deliberately NOT returned here. The graph canvas
     // doesn't render content inline — it's only shown in hover tooltips and
@@ -1279,63 +1303,49 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       profileId !== undefined && profileId !== null
         ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
         : "";
-    const profileFilterA =
-      profileId !== undefined && profileId !== null
-        ? "AND (a.profileId = $profileId OR a.profileId IS NULL)"
-        : "";
-    const profileFilterB =
-      profileId !== undefined && profileId !== null
-        ? "AND (b.profileId = $profileId OR b.profileId IS NULL)"
-        : "";
-    const profileFilterM1 =
-      profileId !== undefined && profileId !== null
-        ? "AND (m1.profileId = $profileId OR m1.profileId IS NULL)"
-        : "";
-    const profileFilterM2 =
-      profileId !== undefined && profileId !== null
-        ? "AND (m2.profileId = $profileId OR m2.profileId IS NULL)"
-        : "";
 
     try {
       const [nodesEdgesResult, tagEdgesResult] = await Promise.all([
-        // Single-round-trip query: nodes collected into a list, then a CALL
-        // subquery fetches relates-to edges. The outer RETURN emits exactly
-        // one row containing both lists.
+        // Single-round-trip query. The first CALL collects the top-2000
+        // nodes and their IDs in one pass; the second CALL takes those
+        // nodeIds and pulls RELATES_TO edges scoped to that set. The outer
+        // RETURN emits exactly one row containing both lists.
         nodesEdgesSession.run(
-          `MATCH (m:Memory {userId: $userId})
-           WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${profileFilter}
-           OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-           WITH m, collect(t.name) AS memTags
-           WITH collect({
-             id: m.id, title: m.title, tags: memTags,
-             createdAt: m.createdAt, source: m.source,
-             type: m.type, sourceType: m.sourceType
-           }) AS nodes
-
-           CALL () {
-             MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
-             WHERE coalesce(a.status, 'active') IN ['active', 'pinned'] ${profileFilterA}
-               AND coalesce(b.status, 'active') IN ['active', 'pinned'] ${profileFilterB}
+          `CALL () {
+             MATCH (m:Memory {userId: $userId})
+             WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${profileFilter}
+             WITH m ORDER BY m.createdAt DESC LIMIT 2000
+             OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+             WITH m, collect(t.name) AS memTags
+             RETURN collect({
+               id: m.id, title: m.title, tags: memTags,
+               createdAt: m.createdAt, source: m.source,
+               type: m.type, sourceType: m.sourceType
+             }) AS nodes,
+             collect(m.id) AS nodeIds
+           }
+           CALL (nodeIds) {
+             MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
+             WHERE a.id IN nodeIds AND b.id IN nodeIds
              RETURN collect({source: a.id, target: b.id, reason: r.reason}) AS relatesToEdges
            }
-
            RETURN nodes, relatesToEdges`,
           { userId, profileId: profileId ?? null },
         ),
-        // Tag-edges. The first MATCH now includes the status filter so
-        // archived memories don't count toward the [2, 500] cardinality gate.
-        // Starts from the user's memories (Memory.userId index) and uses a
-        // cheap count(*) aggregation instead of a global Tag scan.
+        // Tag-edges. Seed MATCH gathers each tag's memory list once,
+        // applies the [2, 500] cardinality gate, then generates pairs
+        // by unwinding the per-tag list against itself. That caps the
+        // cartesian at 500×500 per tag (already small) instead of letting
+        // the planner rescan Memory twice. Profile/status filtering is
+        // applied once in the seed MATCH, not per-pair.
         tagEdgesSession.run(
           `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)
-           WHERE coalesce(m.status, 'active') IN ['active', 'pinned']
-           WITH t, count(*) AS userTagCount
+           WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${profileFilter}
+           WITH t, collect(m) AS memsForTag, count(*) AS userTagCount
            WHERE userTagCount >= 2 AND userTagCount <= 500
-           MATCH (m1:Memory {userId: $userId})-[:TAGGED_WITH]->(t)<-[:TAGGED_WITH]-(m2:Memory {userId: $userId})
-           WHERE m1.id < m2.id
-             AND coalesce(m1.status, 'active') IN ['active', 'pinned']
-             AND coalesce(m2.status, 'active') IN ['active', 'pinned']
-             ${profileFilterM1} ${profileFilterM2}
+           UNWIND memsForTag AS m1
+           UNWIND memsForTag AS m2
+           WITH m1, m2, t WHERE m1.id < m2.id
            WITH m1, m2, collect(DISTINCT t.name) AS sharedTagsAll
            WITH m1, m2, sharedTagsAll, size(sharedTagsAll) AS weight
            WHERE weight >= 2
@@ -1422,27 +1432,40 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       profileId !== undefined && profileId !== null
         ? "AND (focus.profileId = $profileId OR focus.profileId IS NULL)"
         : "";
-    const profileFilterNeighbor =
+    // QPP inline filter on the traversal node. Keeps the suppressed/wrong-
+    // user nodes from expanding at all, rather than expanding and discarding.
+    const profileFilterB =
       profileId !== undefined && profileId !== null
-        ? "AND (neighbor.profileId = $profileId OR neighbor.profileId IS NULL)"
+        ? "AND (b.profileId = $profileId OR b.profileId IS NULL)"
         : "";
 
     try {
+      // Quantified Path Pattern replaces the old [:RELATES_TO*1..2] form.
+      // QPP filters each hop inline, so the planner stops expansion early at
+      // suppressed or wrong-user nodes instead of traversing then discarding.
+      // The grouping is made explicit with a WITH clause before RETURN so
+      // aggregation keys are unambiguous.
       const nodesResult = await nodesSession.run(
         `MATCH (focus:Memory {id: $focusId, userId: $userId})
          WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${profileFilterFocus}
-         OPTIONAL MATCH (focus)-[:RELATES_TO*1..2]-(neighbor:Memory {userId: $userId})
-         WHERE coalesce(neighbor.status, 'active') IN ['active', 'pinned'] ${profileFilterNeighbor}
+         OPTIONAL MATCH (focus)
+           ((a:Memory WHERE coalesce(a.status, 'active') IN ['active', 'pinned'])
+            -[:RELATES_TO]-
+            (b:Memory WHERE coalesce(b.status, 'active') IN ['active', 'pinned']
+               AND b.userId = $userId
+               ${profileFilterB})
+           ){1,2}
+           (neighbor:Memory)
          WITH focus, collect(DISTINCT neighbor) AS neighbors
          WITH [focus] + neighbors AS allNodes
          UNWIND allNodes AS m
-         WITH DISTINCT m
+         WITH DISTINCT m LIMIT 500
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+         WITH m, collect(t.name) AS tags
          RETURN m.id AS id, m.title AS title,
-                collect(t.name) AS tags, m.createdAt AS createdAt,
+                tags, m.createdAt AS createdAt,
                 m.source AS source, m.type AS type,
-                m.sourceType AS sourceType
-         LIMIT 500`,
+                m.sourceType AS sourceType`,
         { userId, focusId, profileId: profileId ?? null },
       );
 
