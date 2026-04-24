@@ -45,6 +45,8 @@ const schema = defineSchema({
         v.literal("google_drive"),
         v.literal("notion"),
         v.literal("gmail"),
+        v.literal("onedrive"),
+        v.literal("linear"),
       ),
     ),
     connectionStatus: v.union(
