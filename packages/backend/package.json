@@ -31,6 +31,7 @@
   "devDependencies": {
     "@types/jsonwebtoken": "catalog:",
     "@types/node": "catalog:node-types-22",
+    "@typescript/native-preview": "catalog:",
     "typescript": "catalog:"
   }
 }
