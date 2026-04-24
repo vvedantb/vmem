@@ -9,7 +9,9 @@
   },
   "scripts": {
     "dev": "npx convex dev",
-    "deploy": "npx convex deploy"
+    "deploy": "npx convex deploy",
+    "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed.ts",
+    "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts"
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "catalog:",
