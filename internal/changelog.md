@@ -1,5 +1,15 @@
 # Changelog
 
+## OneDrive + Linear Connectors — 2026-04-24
+
+- **OneDrive connector — full OAuth + sync flow**: Promoted the OneDrive "Coming Soon" stub into a working connector. OAuth uses Microsoft's v2.0 endpoint with `Files.Read.All offline_access` scopes (personal accounts only); sync pulls root-level `.txt`/`.md`/`.docx` files via Graph API `?format=text` for server-side Word-to-text conversion, so we don't bundle a docx parser. Refresh tokens are rotated per Microsoft's spec — the refresh path persists the new refresh token when Graph returns one.
+- **Linear connector — issues, comments, and projects**: New provider syncing issues (title + description + inline comments, stitched into a single memory body) and projects (stored as `sourceType: "linear_project"` so users can filter separately). Default pull is the last 30 days via GraphQL `updatedAt: { gte }` filter — cheap for daily sync; a "Sync all history" menu item does a one-shot full backfill when needed.
+- **Split sync button for Linear**: `ConnectorCard`'s single "Sync Now" button becomes a split-button only for Linear — primary click fires the 30-day sync directly (most common path), with a chevron dropdown exposing both "Sync recent (30d)" and "Sync all history". Other providers keep the unchanged single-action button.
+- **Refresh path generalized from Google-only to token-expiring providers**: `connectorSync.startSync` previously hard-coded `provider === "google_drive"` for the refresh branch. Now covers both Google Drive and OneDrive, with per-provider env/URL switching inside the branch. Notion and Linear skip the path entirely (both have non-expiring tokens).
+- **New `LinearIcon` SVG component**: `@tabler/icons-react` doesn't ship `IconBrandLinear`, so added an inline SVG component using Linear's brand mark. `ConnectorCard`'s `iconMap` resolves the string key `"IconBrandLinear"` to it the same way it resolves Tabler icons, keeping the card render path provider-agnostic.
+- **Files affected**: `packages/backend/convex/schema.ts`, `packages/backend/convex/connectors.ts`, `packages/backend/convex/connectorOAuth.ts`, `packages/backend/convex/connectorSync.ts`, `packages/backend/convex/neo4jActions/connectorSync.ts`, `apps/web/src/components/ConnectorCard.tsx`, `apps/web/src/components/LinearIcon.tsx` (new)
+- **Reason**: vmem shipped with Google Drive + Notion as the only working connectors. OneDrive was a stub and Linear didn't exist — both are common sources for knowledge work (docs, issues, project plans). OneDrive unlocks Microsoft 365 users; Linear unlocks engineering teams who keep context in issues and projects.
+
 ## Neo4j Seed + Unseed Scripts — Test Data Management — 2026-04-24
 
 - **Restored `packages/backend/src/neo4j/seed.ts` from git history**: Reincludes 257+ handcrafted memories + 4000+ procedurally-generated memories across 3 test users, with relationships, tags, and event audit trails for realistic testing and performance benchmarking.

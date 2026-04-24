@@ -2,7 +2,17 @@
 
 import { useState } from "react";
 import { useAction } from "convex/react";
-import { Card, CardContent, Button, Badge, Progress } from "@vmem/ui";
+import {
+  Card,
+  CardContent,
+  Button,
+  Badge,
+  Progress,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@vmem/ui";
 import { toast } from "sonner";
 import {
   IconBrandGoogleDrive,
@@ -15,11 +25,13 @@ import {
   IconLoader2,
   IconRefresh,
   IconAlertCircle,
+  IconChevronDown,
   IconClock,
   IconClockHour4,
 } from "@tabler/icons-react";
 import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
+import LinearIcon from "./LinearIcon";
 
 const iconMap: Record<
   string,
@@ -31,6 +43,7 @@ const iconMap: Record<
   IconBrandNotion,
   IconBrandSlack,
   IconBrandGithub,
+  IconBrandLinear: LinearIcon,
 };
 
 interface ConnectorCardProps {
@@ -92,14 +105,21 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
     }
   };
 
-  const handleSync = async () => {
+  // `fullHistory` is only meaningful for Linear — backend ignores it otherwise.
+  const handleSync = async (fullHistory = false) => {
     try {
-      await startSyncAction({ connectorId: connector._id });
-      toast(`Syncing ${connector.name}...`);
+      await startSyncAction({ connectorId: connector._id, fullHistory });
+      toast(
+        fullHistory
+          ? `Syncing all ${connector.name} history...`
+          : `Syncing ${connector.name}...`,
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start sync");
     }
   };
+
+  const isLinear = connector.provider === "linear";
 
   return (
     <>
@@ -182,20 +202,68 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             {isConnected ? (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSync}
-                  disabled={isSyncing || isDisconnecting}
-                  className="border-border text-muted-foreground"
-                >
-                  {isSyncing ? (
-                    <IconLoader2 size={14} className="animate-spin" />
-                  ) : (
-                    <IconRefresh size={14} />
-                  )}
-                  {isSyncing ? "Syncing..." : "Sync Now"}
-                </Button>
+                {isLinear ? (
+                  // Split-button: primary fires "Sync recent (30d)" directly;
+                  // chevron opens menu with both options including full-history backfill.
+                  <div className="inline-flex">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSync(false)}
+                      disabled={isSyncing || isDisconnecting}
+                      className="border-border text-muted-foreground rounded-r-none border-r-0"
+                    >
+                      {isSyncing ? (
+                        <IconLoader2 size={14} className="animate-spin" />
+                      ) : (
+                        <IconRefresh size={14} />
+                      )}
+                      {isSyncing ? "Syncing..." : "Sync recent (30d)"}
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isSyncing || isDisconnecting}
+                          aria-label="More sync options"
+                          className="border-border text-muted-foreground rounded-l-none px-2"
+                        >
+                          <IconChevronDown size={14} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onSelect={() => handleSync(false)}
+                          disabled={isSyncing || isDisconnecting}
+                        >
+                          Sync recent (30d)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => handleSync(true)}
+                          disabled={isSyncing || isDisconnecting}
+                        >
+                          Sync all history
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSync(false)}
+                    disabled={isSyncing || isDisconnecting}
+                    className="border-border text-muted-foreground"
+                  >
+                    {isSyncing ? (
+                      <IconLoader2 size={14} className="animate-spin" />
+                    ) : (
+                      <IconRefresh size={14} />
+                    )}
+                    {isSyncing ? "Syncing..." : "Sync Now"}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
