@@ -154,7 +154,27 @@ const schema = defineSchema({
     userId: v.id("users"),
     threadId: v.string(),
     bubbleKey: v.string(),
-    refs: v.array(v.object({ id: v.string(), title: v.string() })),
+    refs: v.array(
+      v.object({
+        id: v.string(),
+        title: v.string(),
+        // Optional so rows written before hybrid search shipped stay valid.
+        // When present, the web chat popover renders the four-bar score
+        // breakdown and the reason string.
+        trace: v.optional(
+          v.object({
+            score: v.number(),
+            scoreBreakdown: v.object({
+              fulltext: v.number(),
+              vector: v.number(),
+              recency: v.number(),
+              confidence: v.number(),
+            }),
+            reason: v.string(),
+          }),
+        ),
+      }),
+    ),
   })
     .index("by_user_thread", ["userId", "threadId"])
     .index("by_user_bubble", ["userId", "bubbleKey"]),

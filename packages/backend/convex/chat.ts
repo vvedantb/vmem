@@ -11,7 +11,25 @@ import { vStreamArgs, vUsage } from "@convex-dev/agent/validators";
 import { components } from "./_generated/api";
 import { authMutation, authQuery } from "./auth";
 
-const memoryRefValidator = v.object({ id: v.string(), title: v.string() });
+const memoryRefValidator = v.object({
+  id: v.string(),
+  title: v.string(),
+  // Optional so older bubbles (written before hybrid search) round-trip
+  // through this validator unchanged. New bubbles carry the full retrieval
+  // trace so the chat UI can explain *why* each memory was pulled.
+  trace: v.optional(
+    v.object({
+      score: v.number(),
+      scoreBreakdown: v.object({
+        fulltext: v.number(),
+        vector: v.number(),
+        recency: v.number(),
+        confidence: v.number(),
+      }),
+      reason: v.string(),
+    }),
+  ),
+});
 
 export const getOrCreateThread = authMutation({
   args: {},
@@ -223,7 +241,10 @@ export const getThreadMessageMemoryRefs = authQuery({
       )
       .collect();
 
-    const byBubbleKey: Record<string, { id: string; title: string }[]> = {};
+    // Schema's `refs` already carries the optional trace, so we can return
+    // rows verbatim — the consumer (useLocalChat → popover) handles the
+    // "no trace" fallback.
+    const byBubbleKey: Record<string, (typeof rows)[number]["refs"]> = {};
 
     for (const row of rows) {
       byBubbleKey[row.bubbleKey] = row.refs;

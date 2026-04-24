@@ -31,6 +31,16 @@ export async function setupDatabase(driver: Driver): Promise<void> {
       `CREATE FULLTEXT INDEX memory_content IF NOT EXISTS
        FOR (m:Memory) ON EACH [m.title, m.content]`,
     );
+    // Vector index for semantic (embedding-based) retrieval. Dimensions must
+    // match the embedding model used by `embeddingService.ts`
+    // (openai/text-embedding-3-small → 1536). Cosine similarity is the
+    // standard for normalized embedding vectors from OpenAI-family models.
+    // Neo4j 5.11+ required (we run 5.28.x per neo4j-driver version).
+    await session.run(
+      `CREATE VECTOR INDEX memory_embedding IF NOT EXISTS
+       FOR (m:Memory) ON (m.embedding)
+       OPTIONS {indexConfig: {\`vector.dimensions\`: 1536, \`vector.similarity_function\`: 'cosine'}}`,
+    );
     // Index for connector sync upserts — lookup by source
     await session.run(
       `CREATE INDEX memory_source_id IF NOT EXISTS
