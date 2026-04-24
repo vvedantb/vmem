@@ -49,6 +49,16 @@ export async function setupDatabase(driver: Driver): Promise<void> {
       `CREATE INDEX memory_user_status IF NOT EXISTS
        FOR (m:Memory) ON (m.userId, m.status)`,
     );
+    // Three-way composite for the hot "list recent active memories" path used
+    // by both the list page and the graph page. Matches the pattern:
+    //   WHERE m.userId = $u AND m.status IN ['active','pinned']
+    //   ORDER BY m.createdAt DESC
+    // One index seek + already-sorted output, so the planner can skip a Sort
+    // when paginating 12k+ memories.
+    await session.run(
+      `CREATE INDEX memory_user_status_created IF NOT EXISTS
+       FOR (m:Memory) ON (m.userId, m.status, m.createdAt)`,
+    );
     console.log("neo4j indexes and constraints ready");
   } finally {
     await session.close();
