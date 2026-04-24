@@ -5,6 +5,8 @@ import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { MemoryService } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
+import { generateEmbedding } from "../../src/neo4j/embeddingService";
+import { tryUserEnvVarByClerkId } from "../lib/envVars";
 import { google } from "googleapis";
 import { Client as NotionClient } from "@notionhq/client";
 import type {
@@ -12,6 +14,26 @@ import type {
   PartialBlockObjectResponse,
   RichTextItemResponse,
 } from "@notionhq/client/build/src/api-endpoints";
+
+/**
+ * Best-effort embedding for a connector-sourced memory. Returns null when
+ * the user has no OPENROUTER_API_KEY set or when the embedding request
+ * itself fails — sync continues uninterrupted; the backfill migration
+ * will fill these in later once a key is configured.
+ */
+async function embedSyncedDoc(
+  apiKey: string | null,
+  title: string,
+  content: string,
+): Promise<number[] | null> {
+  if (!apiKey) return null;
+  try {
+    return await generateEmbedding(apiKey, `${title}\n\n${content}`);
+  } catch (e) {
+    console.warn("connector sync embedding failed", e);
+    return null;
+  }
+}
 
 // --- Google Drive Sync ---
 
@@ -30,6 +52,14 @@ export const syncGoogleDriveInternal = internalAction({
       { clerkId: args.clerkId },
     );
     const profileId = defaultProfile._id;
+
+    // Resolve the user's OpenRouter key once per sync — reused for every
+    // file's embedding. Null if not configured; syncs continue without it.
+    const apiKey = await tryUserEnvVarByClerkId(
+      ctx,
+      args.clerkId,
+      "OPENROUTER_API_KEY",
+    );
 
     try {
       // Setup Google Drive client
@@ -74,17 +104,25 @@ export const syncGoogleDriveInternal = internalAction({
                 ? exportResponse.data
                 : String(exportResponse.data);
 
+            const truncatedContent = content.slice(0, 50000);
+            const embedding = await embedSyncedDoc(
+              apiKey,
+              file.name,
+              truncatedContent,
+            );
+
             // Upsert to Neo4j
             await service.upsertFromSource({
               userId: args.clerkId,
               profileId,
               title: file.name,
-              content: content.slice(0, 50000), // Limit content size
+              content: truncatedContent,
               sourceType: "google_drive",
               sourceId: file.id,
               sourceUrl:
                 file.webViewLink ??
                 `https://drive.google.com/file/d/${file.id}`,
+              embedding,
             });
 
             totalSynced++;
@@ -189,6 +227,12 @@ export const syncOneDriveInternal = internalAction({
     );
     const profileId = defaultProfile._id;
 
+    const apiKey = await tryUserEnvVarByClerkId(
+      ctx,
+      args.clerkId,
+      "OPENROUTER_API_KEY",
+    );
+
     try {
       // MVP: list root-level files only — no recursion into subfolders.
       let nextUrl: string | null =
@@ -230,17 +274,24 @@ export const syncOneDriveInternal = internalAction({
               continue;
             }
             const text = await contentRes.text();
+            const truncatedText = text.slice(0, 50000);
+            const embedding = await embedSyncedDoc(
+              apiKey,
+              item.name,
+              truncatedText,
+            );
 
             await service.upsertFromSource({
               userId: args.clerkId,
               profileId,
               title: item.name,
-              content: text.slice(0, 50000),
+              content: truncatedText,
               sourceType: "onedrive",
               sourceId: item.id,
               sourceUrl:
                 item.webUrl ??
                 `https://onedrive.live.com/?id=${encodeURIComponent(item.id)}`,
+              embedding,
             });
 
             totalSynced++;
@@ -438,6 +489,12 @@ export const syncLinearInternal = internalAction({
     );
     const profileId = defaultProfile._id;
 
+    const apiKey = await tryUserEnvVarByClerkId(
+      ctx,
+      args.clerkId,
+      "OPENROUTER_API_KEY",
+    );
+
     const filterDate = args.fullHistory
       ? null
       : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -485,14 +542,22 @@ export const syncLinearInternal = internalAction({
               content = title;
             }
 
+            const truncatedContent = content.slice(0, 50000);
+            const embedding = await embedSyncedDoc(
+              apiKey,
+              title,
+              truncatedContent,
+            );
+
             await service.upsertFromSource({
               userId: args.clerkId,
               profileId,
               title,
-              content: content.slice(0, 50000),
+              content: truncatedContent,
               sourceType: "linear",
               sourceId: issue.id,
               sourceUrl: issue.url,
+              embedding,
             });
 
             totalSynced++;
@@ -544,15 +609,22 @@ export const syncLinearInternal = internalAction({
             const title = `Project: ${project.name}`;
             const description = project.description ?? "";
             const content = `${description}\nState: ${project.state}`;
+            const truncatedContent = content.slice(0, 50000);
+            const embedding = await embedSyncedDoc(
+              apiKey,
+              title,
+              truncatedContent,
+            );
 
             await service.upsertFromSource({
               userId: args.clerkId,
               profileId,
               title,
-              content: content.slice(0, 50000),
+              content: truncatedContent,
               sourceType: "linear_project",
               sourceId: project.id,
               sourceUrl: project.url,
+              embedding,
             });
 
             totalSynced++;
@@ -671,6 +743,12 @@ export const syncNotionInternal = internalAction({
     );
     const profileId = defaultProfile._id;
 
+    const apiKey = await tryUserEnvVarByClerkId(
+      ctx,
+      args.clerkId,
+      "OPENROUTER_API_KEY",
+    );
+
     try {
       const notion = new NotionClient({ auth: args.accessToken });
 
@@ -732,6 +810,8 @@ export const syncNotionInternal = internalAction({
                 ? page.url
                 : `https://notion.so/${page.id.replace(/-/g, "")}`;
 
+            const embedding = await embedSyncedDoc(apiKey, title, content);
+
             // Upsert to Neo4j
             await memoryService.upsertFromSource({
               userId: args.clerkId,
@@ -741,6 +821,7 @@ export const syncNotionInternal = internalAction({
               sourceType: "notion",
               sourceId: page.id,
               sourceUrl: pageUrl,
+              embedding,
             });
 
             totalSynced++;

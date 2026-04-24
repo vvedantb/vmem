@@ -124,6 +124,11 @@ export default function VoiceClient() {
         memoryRefs = retrieved.memories.map((m) => ({
           id: m.id,
           title: m.title,
+          trace: {
+            score: m.trace.score,
+            scoreBreakdown: m.trace.scoreBreakdown,
+            reason: m.trace.reason,
+          },
         }));
         const addition = buildMemoryRagAddition(
           retrieved.memories.map((m) => ({

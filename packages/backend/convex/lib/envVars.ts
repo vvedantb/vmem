@@ -46,3 +46,53 @@ export async function requireUserEnvVar(
   }
   return value;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ClerkId variants — Convex actions that wrap Neo4j work carry `clerkId`
+// (Clerk user subject), not `Id<"users">`. These helpers translate before
+// calling the id-based helpers above.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function lookupUserIdByClerkId(
+  ctx: ActionCtx,
+  clerkId: string,
+): Promise<Id<"users"> | null> {
+  const user = await ctx.runQuery(internal.users.getByClerkIdInternal, {
+    clerkId,
+  });
+  return user ? user._id : null;
+}
+
+/**
+ * Throws if either the user record or the requested env var is missing.
+ * Use this for features that cannot meaningfully degrade without the key.
+ */
+export async function requireUserEnvVarByClerkId(
+  ctx: ActionCtx,
+  clerkId: string,
+  key: string,
+): Promise<string> {
+  const userId = await lookupUserIdByClerkId(ctx, clerkId);
+  if (!userId) throw new Error(`No user record for clerkId ${clerkId}`);
+  return requireUserEnvVar(ctx, userId, key);
+}
+
+/**
+ * Soft variant: returns null (instead of throwing) when the user has no
+ * env var of that key set, or when no user record exists. Use this for
+ * features that gracefully fall back without the key (e.g. embedding
+ * generation on memory create — we still want the memory to save).
+ *
+ * Note: other errors (decryption failure, Convex query failure) still
+ * propagate — we only swallow the "key not configured" case.
+ */
+export async function tryUserEnvVarByClerkId(
+  ctx: ActionCtx,
+  clerkId: string,
+  key: string,
+): Promise<string | null> {
+  const userId = await lookupUserIdByClerkId(ctx, clerkId);
+  if (!userId) return null;
+  const all = await resolveUserEnvVars(ctx, userId);
+  return all[key] ?? null;
+}

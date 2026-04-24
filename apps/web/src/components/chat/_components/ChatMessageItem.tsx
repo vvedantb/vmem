@@ -38,6 +38,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "@vmem/ui/ai";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@vmem/ui";
 import { IconCheck, IconCopy, IconMicrophone } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import type { ChatMemoryRef, MessageUsageSummary } from "@/hooks/useLocalChat";
@@ -49,6 +50,95 @@ function StreamingDots() {
       <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse" />
       <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse" />
     </div>
+  );
+}
+
+/**
+ * One-row horizontal score bar for the memory-ref hover card.
+ *
+ * Values come from the retrieval service on mixed scales:
+ *   - fulltext: raw Lucene score (can exceed 1)
+ *   - vector: cosine similarity (0..1)
+ *   - recency: bucketed 0..1
+ *   - confidence: stored 0..1
+ *
+ * We clamp the rendered bar to [0, 1] so it stays readable, but the numeric
+ * value on the right shows the raw score so power users can see real magnitudes.
+ */
+function ScoreBar({ label, value }: { label: string; value: number }) {
+  const pct = Math.max(0, Math.min(1, value)) * 100;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-[88px] shrink-0 text-[10px] text-muted-foreground">
+        {label}
+      </span>
+      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-foreground/70"
+          style={{ width: `${pct.toFixed(1)}%` }}
+        />
+      </div>
+      <span className="w-9 shrink-0 text-right text-[10px] tabular-nums text-muted-foreground">
+        {value.toFixed(2)}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Compact chip for a memory pulled by retrieval. Always renders the link;
+ * wraps it in a hover card when the ref carries a trace payload (memories
+ * retrieved after hybrid search shipped). Legacy rows without a trace
+ * simply render the link unwrapped.
+ */
+function MemoryRefChip({ ref }: { ref: ChatMemoryRef }) {
+  const chip = (
+    <Link
+      to="/memories"
+      search={{ view: "graph", focus: ref.id }}
+      className="inline-flex max-w-[220px] items-center rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+    >
+      <span className="truncate">{ref.title}</span>
+    </Link>
+  );
+
+  if (!ref.trace) return chip;
+
+  return (
+    <HoverCard openDelay={150} closeDelay={80}>
+      <HoverCardTrigger asChild>{chip}</HoverCardTrigger>
+      <HoverCardContent align="start" className="w-72">
+        <div className="mb-1 truncate text-xs font-medium text-foreground">
+          {ref.title}
+        </div>
+        <div className="mb-3 flex items-baseline justify-between">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Retrieval score
+          </span>
+          <span className="text-sm font-medium tabular-nums">
+            {ref.trace.score.toFixed(2)}
+          </span>
+        </div>
+        <div className="space-y-1.5">
+          <ScoreBar
+            label="Content match"
+            value={ref.trace.scoreBreakdown.fulltext}
+          />
+          <ScoreBar
+            label="Semantic match"
+            value={ref.trace.scoreBreakdown.vector}
+          />
+          <ScoreBar label="Recency" value={ref.trace.scoreBreakdown.recency} />
+          <ScoreBar
+            label="Confidence"
+            value={ref.trace.scoreBreakdown.confidence}
+          />
+        </div>
+        <p className="mt-3 text-[11px] italic leading-snug text-muted-foreground">
+          {ref.trace.reason}
+        </p>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
@@ -203,14 +293,7 @@ export default function ChatMessageItem({
         {isAssistant && memoryRefs !== undefined && memoryRefs.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {memoryRefs.map((ref) => (
-              <Link
-                key={ref.id}
-                to="/memories"
-                search={{ view: "graph", focus: ref.id }}
-                className="inline-flex max-w-[220px] items-center rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <span className="truncate">{ref.title}</span>
-              </Link>
+              <MemoryRefChip key={ref.id} ref={ref} />
             ))}
           </div>
         )}

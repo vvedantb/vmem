@@ -21,6 +21,7 @@ export interface MemoryWithTags extends MemoryNode {
 
 export interface ScoreBreakdown {
   fulltext: number;
+  vector: number;
   recency: number;
   confidence: number;
 }

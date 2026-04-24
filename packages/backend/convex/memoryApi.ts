@@ -26,6 +26,7 @@ interface MemoryListResult {
 
 interface ScoreBreakdown {
   fulltext: number;
+  vector: number;
   recency: number;
   confidence: number;
 }
