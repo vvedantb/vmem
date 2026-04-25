@@ -12,6 +12,7 @@ import type { MemoryCandidate } from "@/types/api";
 import { showToast } from "./toast";
 import {
   showMemoryPanel,
+  showMemoryPanelLoading,
   hideMemoryPanel,
   getIncludedMemories,
   clearMemories,
@@ -123,6 +124,8 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
   }
 
   function searchMemories(query: string, anchor: HTMLElement): void {
+    showMemoryPanelLoading(anchor);
+
     const message: ContentMessage = { type: "RETRIEVE_MEMORIES", query };
 
     chrome.runtime.sendMessage(
