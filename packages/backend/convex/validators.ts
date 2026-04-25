@@ -47,6 +47,29 @@ export const teamMemberFields = {
 };
 
 /**
+ * Single source of truth for userEnvVars table fields.
+ *
+ * One document per user. `vars` holds the user's environment variables as
+ * `{ key, value }` pairs, where `value` is the ciphertext returned by
+ * `lib/crypto.ts#encryptToken` (format `v1:iv:ct`).
+ *
+ * Storage pattern mirrors conductor's `teamEnvVars` / `repoEnvVars` tables:
+ * a single row aggregates all vars for a given scope. Env var sets are
+ * bounded in practice; the 1MB document limit is not a concern.
+ */
+export const userEnvVarFields = {
+  userId: v.id("users"),
+  vars: v.array(
+    v.object({
+      key: v.string(),
+      /** Ciphertext from encryptToken(). Never exposed to clients except via `revealValue`. */
+      value: v.string(),
+    }),
+  ),
+  updatedAt: v.number(),
+};
+
+/**
  * Single source of truth for wikiNodes table fields.
  * Used in schema.ts (defineTable) and anywhere we need to describe a wikiNode row.
  *

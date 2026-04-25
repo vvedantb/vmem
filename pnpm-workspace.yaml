@@ -35,7 +35,8 @@ catalog:
   class-variance-authority: ^0.7.1
   clsx: ^2.1.1
   cmdk: ^1.1.1
-  convex: ^1.34.0
+  '@typescript/native-preview': ^7.0.0-dev.20250601
+  convex: ^1.36.1
   convex-helpers: ^0.1.112
   jsonwebtoken: 9.0.3
   react: 19.2.0

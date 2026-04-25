@@ -20,7 +20,12 @@ export type GraphEdgeType = "tag" | "relates_to" | "imports" | "wiki_parent";
 export interface GraphNode extends SimulationNodeDatum {
   id: string;
   title: string;
-  content: string;
+  /**
+   * Inline content — only wiki documents and skills carry this through the
+   * graph payload. Memory nodes omit it (the UI lazy-fetches content on
+   * hover/click to keep the full-graph response under Convex's 1 MiB limit).
+   */
+  content?: string;
   tags: string[];
   createdAt: string;
   color: string;

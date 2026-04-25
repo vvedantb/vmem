@@ -23,6 +23,7 @@ import {
   IconCpu,
   IconUsers,
   IconBuilding,
+  IconVariable,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -93,6 +94,11 @@ export const settingsNavItems: SettingsNavItem[] = [
     href: "/settings/api-keys",
     label: "API Keys",
     icon: IconKey,
+  },
+  {
+    href: "/settings/env-vars",
+    label: "Env Vars",
+    icon: IconVariable,
   },
   {
     href: "/settings/usage",

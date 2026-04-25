@@ -134,6 +134,10 @@ Husky:
 
 - If the codebase uses Nextjs/React, make sure husky is setup with the default prettier configuration to format code before it gets committed.
 
+Icons:
+
+- Get logo SVGs from https://svgl.app
+
 Verification Rules after implementation:
 
 - Ensure no `any`, `unknown`, or `as` exists.

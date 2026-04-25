@@ -5,6 +5,7 @@ import {
   profileFields,
   teamFields,
   teamMemberFields,
+  userEnvVarFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -18,19 +19,6 @@ const schema = defineSchema({
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
-
-  memoryEvents: defineTable({
-    clerkId: v.string(),
-    eventType: v.union(
-      v.literal("memory_created"),
-      v.literal("memory_updated"),
-      v.literal("memory_deleted"),
-      v.literal("relationship_created"),
-      v.literal("relationship_deleted"),
-    ),
-    memoryId: v.string(),
-    payload: v.string(),
-  }).index("by_clerk", ["clerkId"]),
 
   apiKeys: defineTable({
     userId: v.id("users"),
@@ -57,6 +45,8 @@ const schema = defineSchema({
         v.literal("google_drive"),
         v.literal("notion"),
         v.literal("gmail"),
+        v.literal("onedrive"),
+        v.literal("linear"),
       ),
     ),
     connectionStatus: v.union(
@@ -126,18 +116,6 @@ const schema = defineSchema({
     .index("by_team_user", ["teamId", "userId"])
     .index("by_user_team", ["userId", "teamId"]),
 
-  apiRequestLogs: defineTable({
-    userId: v.id("users"),
-    apiKeyId: v.id("apiKeys"),
-    endpoint: v.string(),
-    method: v.string(),
-    status: v.number(),
-    durationMs: v.number(),
-    createdAt: v.number(),
-  })
-    .index("by_user_created", ["userId", "createdAt"])
-    .index("by_key_created", ["apiKeyId", "createdAt"]),
-
   notifications: defineTable({
     userId: v.id("users"),
     title: v.string(),
@@ -176,7 +154,27 @@ const schema = defineSchema({
     userId: v.id("users"),
     threadId: v.string(),
     bubbleKey: v.string(),
-    refs: v.array(v.object({ id: v.string(), title: v.string() })),
+    refs: v.array(
+      v.object({
+        id: v.string(),
+        title: v.string(),
+        // Optional so rows written before hybrid search shipped stay valid.
+        // When present, the web chat popover renders the four-bar score
+        // breakdown and the reason string.
+        trace: v.optional(
+          v.object({
+            score: v.number(),
+            scoreBreakdown: v.object({
+              fulltext: v.number(),
+              vector: v.number(),
+              recency: v.number(),
+              confidence: v.number(),
+            }),
+            reason: v.string(),
+          }),
+        ),
+      }),
+    ),
   })
     .index("by_user_thread", ["userId", "threadId"])
     .index("by_user_bubble", ["userId", "bubbleKey"]),
@@ -237,6 +235,8 @@ const schema = defineSchema({
       searchField: "contentText",
       filterFields: ["userId"],
     }),
+
+  userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
 });
 
 export default schema;

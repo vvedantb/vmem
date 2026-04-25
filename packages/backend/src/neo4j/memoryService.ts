@@ -58,6 +58,10 @@ interface TimelineEvent extends MemoryEvent {
 
 interface ScoreBreakdown {
   fulltext: number;
+  // Semantic (vector) similarity from Neo4j cosine-distance search over
+  // OpenAI-style embeddings. 0 when embeddings are unavailable (user has
+  // no OPENROUTER_API_KEY set, or fulltext-only fallback is active).
+  vector: number;
   recency: number;
   confidence: number;
 }
@@ -83,6 +87,32 @@ interface ProposedUpdateNode {
 function parseJsonField<T>(val: string | null): T | null {
   if (val === null) return null;
   return JSON.parse(val) as T;
+}
+
+/**
+ * Reciprocal Rank Fusion score. Rank is 1-indexed. The constant k=60 is
+ * the value from Cormack et al. ("Reciprocal Rank Fusion outperforms
+ * Condorcet and individual Rank Learning Methods", SIGIR '09) — it
+ * dampens the contribution of high-rank results while keeping lower
+ * ranks meaningful. RRF is robust to scale differences between fulltext
+ * BM25 scores and cosine-similarity scores, which is why we use ranks
+ * instead of the raw score numbers when combining the two legs.
+ */
+function rrfScore(rank: number, k = 60): number {
+  return 1 / (k + rank);
+}
+
+/**
+ * Age-in-days → recency multiplier. Small fixed buckets keep recent
+ * knowledge (last week) near the top while not penalising older
+ * reference memories too harshly.
+ */
+function recencyFromAgeDays(age: number): number {
+  if (age < 1) return 1.0;
+  if (age < 7) return 0.9;
+  if (age < 30) return 0.7;
+  if (age < 90) return 0.5;
+  return 0.3;
 }
 
 /**
@@ -171,57 +201,26 @@ interface TagEdge {
   sharedTags: string[];
 }
 
-function computeTagEdges(
-  nodes: ReadonlyArray<{ id: string; tags: string[] }>,
-  limit: number,
-): TagEdge[] {
-  const tagIndex = new Map<string, string[]>();
-  for (const node of nodes) {
-    for (const tag of node.tags) {
-      let ids = tagIndex.get(tag);
-      if (!ids) {
-        ids = [];
-        tagIndex.set(tag, ids);
-      }
-      ids.push(node.id);
-    }
-  }
-
-  const edgeMap = new Map<string, { weight: number; sharedTags: string[] }>();
-  for (const [tag, ids] of tagIndex) {
-    if (ids.length > 500) continue;
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const a = ids[i];
-        const b = ids[j];
-        if (!a || !b) continue;
-        const key = a < b ? `${a}|${b}` : `${b}|${a}`;
-        let entry = edgeMap.get(key);
-        if (!entry) {
-          entry = { weight: 0, sharedTags: [] };
-          edgeMap.set(key, entry);
-        }
-        entry.weight++;
-        if (entry.sharedTags.length < 5) {
-          entry.sharedTags.push(tag);
-        }
-      }
-    }
-  }
-
-  const edges: TagEdge[] = [];
-  for (const [key, data] of edgeMap) {
-    if (data.weight < 2) continue;
-    const sep = key.indexOf("|");
-    edges.push({
-      source: key.slice(0, sep),
-      target: key.slice(sep + 1),
-      weight: data.weight,
-      sharedTags: data.sharedTags,
-    });
-  }
-  edges.sort((a, b) => b.weight - a.weight);
-  return edges.slice(0, limit);
+/**
+ * Parse a Neo4j record returned by the tag-edge Cypher query into a typed
+ * TagEdge. The Cypher-side computation enforces:
+ *   - Each pair appears once (m1.id < m2.id ordering).
+ *   - weight >= 2 (at least two shared tags).
+ *   - sharedTags capped at 5 via list slicing.
+ *   - Popular tags with > 500 memories are pre-filtered out to prevent
+ *     combinatorial explosion on blown-out tags like "misc".
+ */
+function toTagEdge(record: NeoRecord): TagEdge {
+  const rawShared = record.get("sharedTags");
+  const sharedTags = Array.isArray(rawShared)
+    ? rawShared.filter(Boolean).map(String)
+    : [];
+  return {
+    source: String(record.get("source")),
+    target: String(record.get("target")),
+    weight: toNeoInt(record.get("weight")),
+    sharedTags,
+  };
 }
 
 export class MemoryService {
@@ -249,6 +248,11 @@ export class MemoryService {
     confidence: number;
     expiresAt?: string;
     url?: string;
+    // Pre-computed embedding vector (1536 dims for text-embedding-3-small).
+    // Null ⇒ user has no OPENROUTER_API_KEY set, or generation failed.
+    // Memories created without an embedding are still usable; the backfill
+    // migration fills them later, and retrieval degrades to fulltext-only.
+    embedding: number[] | null;
   }): Promise<MemoryWithTags> {
     return this.withSession(async (session) => {
       const id = crypto.randomUUID();
@@ -268,7 +272,8 @@ export class MemoryService {
           createdAt: $now,
           updatedAt: $now,
           expiresAt: $expiresAt,
-          url: $url
+          url: $url,
+          embedding: $embedding
         })
         WITH m
         MERGE (s:Source {name: $source})
@@ -294,6 +299,7 @@ export class MemoryService {
           now,
           expiresAt: params.expiresAt ?? null,
           url: params.url ?? null,
+          embedding: params.embedding,
         },
       );
 
@@ -371,6 +377,11 @@ export class MemoryService {
     sourceType: string;
     sourceId: string;
     sourceUrl: string;
+    // Pre-computed embedding vector. Applied on BOTH create and match — an
+    // updated upstream document should refresh its semantic signal, not just
+    // its text. Null ⇒ caller had no API key or embedding failed; memory
+    // still upserts, backfill migration can repair later.
+    embedding: number[] | null;
   }): Promise<{ id: string; created: boolean }> {
     return this.withSession(async (session) => {
       const now = new Date().toISOString();
@@ -389,13 +400,15 @@ export class MemoryService {
            m.createdAt = $now,
            m.updatedAt = $now,
            m.sourceUrl = $sourceUrl,
-           m.sourceSyncedAt = $now
+           m.sourceSyncedAt = $now,
+           m.embedding = $embedding
          ON MATCH SET
            m.title = $title,
            m.content = $content,
            m.updatedAt = $now,
            m.sourceUrl = $sourceUrl,
-           m.sourceSyncedAt = $now
+           m.sourceSyncedAt = $now,
+           m.embedding = $embedding
          WITH m, m.createdAt = $now AS wasCreated
          MERGE (s:Source {name: $sourceType})
          MERGE (m)-[:FROM_SOURCE]->(s)
@@ -410,6 +423,7 @@ export class MemoryService {
           content: params.content,
           newId: crypto.randomUUID(),
           now,
+          embedding: params.embedding,
         },
       );
 
@@ -447,12 +461,26 @@ export class MemoryService {
     profileId?: string | null;
     type?: MemoryType;
     status?: MemoryStatus;
+    source?: string;
     tags?: string[];
+    searchQuery?: string;
     limit: number;
     offset: number;
   }): Promise<{ memories: MemoryWithTags[]; total: number }> {
     return this.withSession(async (session) => {
-      const whereClauses = ["m.userId = $userId"];
+      // Unified list + search path. All filters (profile, type, status,
+      // source, tags, search) are pushed into Cypher so the frontend can
+      // paginate a filtered subset in constant time rather than fetch every
+      // memory and filter in JS.
+      //
+      // When `searchQuery` is present, the MATCH starts from the fulltext
+      // index hit; otherwise it scans the memory_user_status_created
+      // composite index (most recent active memories first).
+      //
+      // Count + page are still two sequential session.run() calls because a
+      // combined CALL{} pattern that joins them drops the count row whenever
+      // the page query returns zero rows (e.g. user scrolls past the end).
+      // That bug used to silently break pagination UIs, so the guard stays.
       const queryParams: Record<
         string,
         string | number | Integer | string[] | null
@@ -462,12 +490,11 @@ export class MemoryService {
         offset: neo4j.int(params.offset),
       };
 
-      // Profile filter: if profileId provided, filter by it; null means include all
+      const whereClauses: string[] = ["m.userId = $userId"];
       if (params.profileId !== undefined && params.profileId !== null) {
         whereClauses.push("(m.profileId = $profileId OR m.profileId IS NULL)");
         queryParams.profileId = params.profileId;
       }
-
       if (params.type) {
         whereClauses.push("m.type = $type");
         queryParams.type = params.type;
@@ -475,26 +502,67 @@ export class MemoryService {
       if (params.status) {
         whereClauses.push("m.status = $status");
         queryParams.status = params.status;
-      }
-      if (params.tags && params.tags.length > 0) {
+      } else {
+        // Default: hide suppressed/expired. Matches the graph view and
+        // closes a latent bug where the search path ignored status entirely.
         whereClauses.push(
-          `size([(m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags | ft]) = size($filterTags)`,
+          "coalesce(m.status, 'active') IN ['active', 'pinned']",
         );
-        queryParams.filterTags = params.tags;
+      }
+      if (params.source) {
+        whereClauses.push("m.source = $source");
+        queryParams.source = params.source;
       }
 
       const where = whereClauses.join(" AND ");
 
+      const hasTagFilter = !!params.tags && params.tags.length > 0;
+      if (hasTagFilter && params.tags) {
+        queryParams.filterTags = params.tags;
+      }
+      const filterTagsCount = params.tags?.length ?? 0;
+
+      const trimmedQuery = params.searchQuery?.trim() ?? "";
+      const hasSearchQuery = trimmedQuery.length > 0;
+      if (hasSearchQuery) {
+        queryParams.searchQuery = trimmedQuery;
+      }
+
+      // Index-joined tag filter: match the Tag node directly (hits the
+      // Tag(name) unique-constraint index) and require matched-tag count to
+      // equal the number of filter tags. Avoids scanning every TAGGED_WITH
+      // edge per memory. Forwards `score` alongside `m` when the search path
+      // is active so the subsequent ORDER BY can still see it.
+      const tagMatchClause = hasTagFilter
+        ? `MATCH (m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags
+           WITH m${hasSearchQuery ? ", score" : ""}, count(DISTINCT ft) AS matchedTags
+           WHERE matchedTags = ${filterTagsCount}`
+        : "";
+
+      // The matchPrefix picks the query anchor: fulltext index when the user
+      // is searching, Memory(userId,status,createdAt) composite index
+      // otherwise. The orderClause decides how the page is sorted.
+      const matchPrefix = hasSearchQuery
+        ? `CALL db.index.fulltext.queryNodes('memory_content', $searchQuery) YIELD node AS m, score
+           WHERE ${where}`
+        : `MATCH (m:Memory) WHERE ${where}`;
+      const orderClause = hasSearchQuery
+        ? "WITH m, score ORDER BY score DESC"
+        : "WITH m ORDER BY m.createdAt DESC";
+
       const countResult = await session.run(
-        `MATCH (m:Memory) WHERE ${where} RETURN count(m) AS total`,
+        `${matchPrefix}
+         ${tagMatchClause}
+         RETURN count(m) AS total`,
         queryParams,
       );
       const countRecord = countResult.records[0];
       const total = countRecord ? toNeoInt(countRecord.get("total")) : 0;
 
       const result = await session.run(
-        `MATCH (m:Memory) WHERE ${where}
-         WITH m ORDER BY m.createdAt DESC SKIP $offset LIMIT $limit
+        `${matchPrefix}
+         ${tagMatchClause}
+         ${orderClause} SKIP $offset LIMIT $limit
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          RETURN m, collect(t.name) AS tags`,
         queryParams,
@@ -631,108 +699,199 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     limit: number;
     offset: number;
   }): Promise<{ memories: MemoryWithTags[]; total: number }> {
-    if (!params.query) return this.listMemories(params);
-
-    return this.withSession(async (session) => {
-      // Build profile filter clause
-      const profileFilter =
-        params.profileId !== undefined && params.profileId !== null
-          ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
-          : "";
-
-      const result = await session.run(
-        `CALL db.index.fulltext.queryNodes('memory_content', $query)
-         YIELD node AS m, score
-         WHERE m.userId = $userId ${profileFilter}
-         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-         RETURN m, collect(t.name) AS tags, score
-         ORDER BY score DESC
-         SKIP $offset LIMIT $limit`,
-        {
-          query: params.query,
-          userId: params.userId,
-          profileId: params.profileId ?? null,
-          offset: neo4j.int(params.offset),
-          limit: neo4j.int(params.limit),
-        },
-      );
-
-      const memories = result.records.map(toMemoryWithTags);
-      return { memories, total: memories.length };
+    // Thin wrapper around listMemories. Keeps the public action surface stable
+    // for callers (MCP tools, CommandPalette) while funnelling every filter
+    // (profile, type, status, tags, source, fulltext) through the single
+    // Cypher path. Fixes the old bugs where search ignored type/status/tag
+    // filters and returned total = page.length.
+    return this.listMemories({
+      userId: params.userId,
+      profileId: params.profileId,
+      type: params.type,
+      tags: params.tags,
+      source: params.source,
+      searchQuery: params.query,
+      limit: params.limit,
+      offset: params.offset,
     });
   }
 
+  /**
+   * Hybrid retrieval: fulltext (BM25) + vector (cosine) fused with
+   * Reciprocal Rank Fusion, then weighted by recency and confidence.
+   *
+   * Two legs run sequentially on a single session (per Neo4j driver
+   * guidance — never parallel `session.run` on the same session). The
+   * vector leg is skipped when `queryEmbedding` is null, in which case
+   * the function degrades to fulltext-only scoring with the same
+   * weights — old behaviour preserved for users without an API key.
+   *
+   * RRF replaces the raw `fulltextScore` term from the old formula:
+   *   total = rrfCombined * 0.5 + recency * 0.25 + confidence * 0.25
+   *
+   * Each leg over-fetches `limit * 2` so the merge has room to rerank.
+   */
   async retrieveMemories(params: {
     userId: string;
     profileId?: string | null;
     query: string;
+    /** Pre-computed query embedding. Null ⇒ skip vector leg. */
+    queryEmbedding: number[] | null;
     type?: MemoryType;
     tags?: string[];
     limit: number;
   }): Promise<MemoryCandidate[]> {
     return this.withSession(async (session) => {
-      // Build profile filter clause
       const profileFilter =
         params.profileId !== undefined && params.profileId !== null
           ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
           : "";
 
-      const result = await session.run(
+      const legLimit = params.limit * 2;
+
+      // Leg 1: fulltext (keyword) search.
+      const ftResult = await session.run(
         `CALL db.index.fulltext.queryNodes('memory_content', $query)
          YIELD node AS m, score AS fulltextScore
          WHERE m.userId = $userId ${profileFilter}
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          WITH m, collect(t.name) AS tags, fulltextScore,
               duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
-         WITH m, tags, fulltextScore,
-              CASE WHEN ageInDays < 1 THEN 1.0
-                   WHEN ageInDays < 7 THEN 0.9
-                   WHEN ageInDays < 30 THEN 0.7
-                   WHEN ageInDays < 90 THEN 0.5
-                   ELSE 0.3 END AS recencyScore,
-              m.confidence AS confidenceScore
-         WITH m, tags, fulltextScore, recencyScore, confidenceScore,
-              (fulltextScore * 0.5 + recencyScore * 0.25 + confidenceScore * 0.25) AS totalScore
-         RETURN m, tags, fulltextScore, recencyScore, confidenceScore, totalScore
-         ORDER BY totalScore DESC
-         LIMIT $limit`,
+         RETURN m, tags, fulltextScore, ageInDays
+         ORDER BY fulltextScore DESC
+         LIMIT $legLimit`,
         {
           query: params.query,
           userId: params.userId,
           profileId: params.profileId ?? null,
-          limit: neo4j.int(params.limit),
+          legLimit: neo4j.int(legLimit),
         },
       );
 
-      return result.records.map((record) => {
+      // Leg 2: vector (semantic) search — only when we have an embedding.
+      // db.index.vector.queryNodes takes (indexName, k, vector) and returns
+      // at most k results ordered by cosine similarity DESC.
+      const vecResult = params.queryEmbedding
+        ? await session.run(
+            `CALL db.index.vector.queryNodes('memory_embedding', $k, $queryVector)
+             YIELD node AS m, score AS vectorScore
+             WHERE m.userId = $userId ${profileFilter}
+             OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+             WITH m, collect(t.name) AS tags, vectorScore,
+                  duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
+             RETURN m, tags, vectorScore, ageInDays
+             ORDER BY vectorScore DESC`,
+            {
+              k: neo4j.int(legLimit),
+              queryVector: params.queryEmbedding,
+              userId: params.userId,
+              profileId: params.profileId ?? null,
+            },
+          )
+        : null;
+
+      // Merge by memory id. Each entry holds enough state to compute RRF
+      // plus the final weighted score and the reason-string inputs.
+      interface MergedEntry {
+        memory: MemoryWithTags;
+        fulltextScore: number;
+        vectorScore: number;
+        recencyScore: number;
+        confidenceScore: number;
+        ftRank: number | null;
+        vecRank: number | null;
+      }
+      const merged = new Map<string, MergedEntry>();
+
+      ftResult.records.forEach((record, idx) => {
         const memory = toMemoryWithTags(record);
         const fulltextScore = Number(record.get("fulltextScore"));
-        const recencyScore = Number(record.get("recencyScore"));
-        const confidenceScore = Number(record.get("confidenceScore"));
-        const totalScore = Number(record.get("totalScore"));
-
-        const reasons: string[] = [];
-        if (fulltextScore > 0.5) reasons.push("strong content match");
-        if (recencyScore > 0.8) reasons.push("recently created");
-        if (confidenceScore > 0.8) reasons.push("high confidence source");
-        if (memory.status === "pinned") reasons.push("pinned by user");
-
-        return {
-          ...memory,
-          trace: {
-            score: totalScore,
-            scoreBreakdown: {
-              fulltext: fulltextScore,
-              recency: recencyScore,
-              confidence: confidenceScore,
-            },
-            reason:
-              reasons.length > 0
-                ? `Matched because: ${reasons.join(", ")}`
-                : "Weak match across all signals",
-          },
-        };
+        const ageInDays = toNeoInt(record.get("ageInDays"));
+        merged.set(memory.id, {
+          memory,
+          fulltextScore,
+          vectorScore: 0,
+          recencyScore: recencyFromAgeDays(ageInDays),
+          confidenceScore: memory.confidence,
+          ftRank: idx + 1,
+          vecRank: null,
+        });
       });
+
+      if (vecResult) {
+        vecResult.records.forEach((record, idx) => {
+          const memory = toMemoryWithTags(record);
+          const vectorScore = Number(record.get("vectorScore"));
+          const ageInDays = toNeoInt(record.get("ageInDays"));
+          const existing = merged.get(memory.id);
+          if (existing) {
+            existing.vectorScore = vectorScore;
+            existing.vecRank = idx + 1;
+          } else {
+            merged.set(memory.id, {
+              memory,
+              fulltextScore: 0,
+              vectorScore,
+              recencyScore: recencyFromAgeDays(ageInDays),
+              confidenceScore: memory.confidence,
+              ftRank: null,
+              vecRank: idx + 1,
+            });
+          }
+        });
+      }
+
+      const candidates: MemoryCandidate[] = Array.from(merged.values()).map(
+        (entry) => {
+          const rrfCombined =
+            (entry.ftRank === null ? 0 : rrfScore(entry.ftRank)) +
+            (entry.vecRank === null ? 0 : rrfScore(entry.vecRank));
+          const totalScore =
+            rrfCombined * 0.5 +
+            entry.recencyScore * 0.25 +
+            entry.confidenceScore * 0.25;
+
+          const reasons: string[] = [];
+          // "Both" is strictly stronger than either single-signal reason;
+          // emit it alone when it applies.
+          if (entry.fulltextScore > 0.5 && entry.vectorScore > 0.5) {
+            reasons.push("matched both keywords and meaning");
+          } else if (entry.vectorScore > 0.7) {
+            reasons.push("strong semantic match");
+          } else if (entry.fulltextScore > 0.5) {
+            reasons.push("strong content match");
+          }
+          if (entry.recencyScore > 0.8) reasons.push("recently created");
+          if (entry.confidenceScore > 0.8)
+            reasons.push("high confidence source");
+          if (entry.memory.status === "pinned") reasons.push("pinned by user");
+          if (params.queryEmbedding === null) {
+            reasons.push(
+              "semantic search unavailable — set OPENROUTER_API_KEY",
+            );
+          }
+
+          return {
+            ...entry.memory,
+            trace: {
+              score: totalScore,
+              scoreBreakdown: {
+                fulltext: entry.fulltextScore,
+                vector: entry.vectorScore,
+                recency: entry.recencyScore,
+                confidence: entry.confidenceScore,
+              },
+              reason:
+                reasons.length > 0
+                  ? `Matched because: ${reasons.join(", ")}`
+                  : "Weak match across all signals",
+            },
+          };
+        },
+      );
+
+      candidates.sort((a, b) => b.trace.score - a.trace.score);
+      return candidates.slice(0, params.limit);
     });
   }
 
@@ -954,44 +1113,68 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         }
       }
 
-      // Build profile filter for growth query
+      // Growth data: old implementation ran OPTIONAL MATCH twice per day in a
+      // 7-day UNWIND, doing O(7×n) scans to recompute the cumulative total for
+      // each day. Historical per-day totals never change, so replace with:
+      //   1. A single baseline count of memories created before the window.
+      //   2. A single bucketed aggregate of daily counts within the window.
+      // Cumulative totals are then computed in JS by walking the 7 days in
+      // order, adding each daily delta onto the running baseline.
       const growthProfileFilter =
         profileId !== undefined && profileId !== null
           ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
           : "";
-      const growthProfileFilter2 =
-        profileId !== undefined && profileId !== null
-          ? "AND (m2.profileId = $profileId OR m2.profileId IS NULL)"
-          : "";
 
-      const growthResult = await session.run(
-        `WITH range(0, 6) AS days
-         UNWIND days AS dayOffset
-         WITH date() - duration({days: dayOffset}) AS d
-         OPTIONAL MATCH (m:Memory {userId: $userId})
-           WHERE date(datetime(m.createdAt)) <= d ${growthProfileFilter}
-         WITH d, count(m) AS total
-         OPTIONAL MATCH (m2:Memory {userId: $userId})
-           WHERE date(datetime(m2.createdAt)) = d ${growthProfileFilter2}
-         WITH d, total, count(m2) AS newCount
-         RETURN toString(d) AS date, total, newCount
-         ORDER BY d ASC`,
+      const baselineResult = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE date(datetime(m.createdAt)) < date() - duration({days: 6}) ${growthProfileFilter}
+         RETURN count(m) AS baseline`,
+        { userId, profileId: profileId ?? null },
+      );
+      const baselineRecord = baselineResult.records[0];
+      const baseline = baselineRecord
+        ? toNeoInt(baselineRecord.get("baseline"))
+        : 0;
+
+      const dailyResult = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE date(datetime(m.createdAt)) >= date() - duration({days: 6})
+           AND date(datetime(m.createdAt)) <= date() ${growthProfileFilter}
+         RETURN toString(date(datetime(m.createdAt))) AS day, count(*) AS newCount`,
         { userId, profileId: profileId ?? null },
       );
 
-      const growthData = growthResult.records.map((r) => {
-        const dateStr = String(r.get("date"));
-        const d = new Date(dateStr);
-        const label = d.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
+      const dailyCounts = new Map<string, number>();
+      for (const rec of dailyResult.records) {
+        dailyCounts.set(String(rec.get("day")), toNeoInt(rec.get("newCount")));
+      }
+
+      // Walk the 7-day window in ascending order, accumulating the running
+      // total. `todayMs` anchors to midnight local-day so we can derive the
+      // ISO yyyy-mm-dd key matching Cypher's `date()` output.
+      const today = new Date();
+      const todayMs = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      ).getTime();
+      const dayMs = 24 * 60 * 60 * 1000;
+      let running = baseline;
+      const growthData: { date: string; total: number; new: number }[] = [];
+      for (let offset = 6; offset >= 0; offset--) {
+        const dayDate = new Date(todayMs - offset * dayMs);
+        const isoDay = dayDate.toISOString().slice(0, 10);
+        const newCount = dailyCounts.get(isoDay) ?? 0;
+        running += newCount;
+        growthData.push({
+          date: dayDate.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
+          total: running,
+          new: newCount,
         });
-        return {
-          date: label,
-          total: toNeoInt(r.get("total")),
-          new: toNeoInt(r.get("newCount")),
-        };
-      });
+      }
 
       return {
         totalMemories,
@@ -1237,7 +1420,6 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     nodes: {
       id: string;
       title: string;
-      content: string;
       tags: string[];
       createdAt: string;
       source?: string;
@@ -1245,78 +1427,135 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       type?: MemoryType;
     }[];
     relatesToEdges: { source: string; target: string; reason: string }[];
-    tagEdges: {
-      source: string;
-      target: string;
-      weight: number;
-      sharedTags: string[];
-    }[];
+    tagEdges: TagEdge[];
   }> {
-    const nodesSession = this.driver.session();
-    const relatesToSession = this.driver.session();
+    // Two parallel sessions:
+    //   1. Combined nodes + RELATES_TO edges in a single round-trip. Nodes
+    //      are bounded to the 2000 most recent active/pinned memories via
+    //      ORDER BY + LIMIT pushed into the MATCH — the composite index
+    //      memory_user_status_created lets the planner satisfy both the
+    //      WHERE and the ORDER BY with a single index seek (no Sort op).
+    //      RELATES_TO is then scoped to just those 2000 node IDs, so the
+    //      edge scan is O(edges_in_subgraph) instead of O(all_user_edges).
+    //   2. Tag-shared edges, separately because it scans a different index
+    //      path and can run independently. (Driver rule: never run
+    //      concurrent .run() on the same Session, so parallelism still
+    //      needs separate sessions.)
+    //
+    // Note: `content` is deliberately NOT returned here. The graph canvas
+    // doesn't render content inline — it's only shown in hover tooltips and
+    // the detail side panel, which now fetch it on demand via getMemoryContent.
+    // Dropping content cuts the wire payload roughly in half at 2k memories.
+    const nodesEdgesSession = this.driver.session();
+    const tagEdgesSession = this.driver.session();
 
     const profileFilter =
       profileId !== undefined && profileId !== null
         ? "AND (m.profileId = $profileId OR m.profileId IS NULL)"
         : "";
-    const profileFilterA =
-      profileId !== undefined && profileId !== null
-        ? "AND (a.profileId = $profileId OR a.profileId IS NULL)"
-        : "";
-    const profileFilterB =
-      profileId !== undefined && profileId !== null
-        ? "AND (b.profileId = $profileId OR b.profileId IS NULL)"
-        : "";
 
     try {
-      const [nodesResult, relatesToResult] = await Promise.all([
-        nodesSession.run(
-          `MATCH (m:Memory {userId: $userId})
-           WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${profileFilter}
-           OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-           RETURN m.id AS id, m.title AS title,
-                  substring(m.content, 0, 200) AS content,
-                  collect(t.name) AS tags,
-                  m.createdAt AS createdAt,
-                  m.source AS source, m.type AS type,
-                  m.sourceType AS sourceType`,
+      const [nodesEdgesResult, tagEdgesResult] = await Promise.all([
+        // Single-round-trip query. The first CALL collects the top-2000
+        // nodes and their IDs in one pass; the second CALL takes those
+        // nodeIds and pulls RELATES_TO edges scoped to that set. The outer
+        // RETURN emits exactly one row containing both lists.
+        nodesEdgesSession.run(
+          `CALL () {
+             MATCH (m:Memory {userId: $userId})
+             WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${profileFilter}
+             WITH m ORDER BY m.createdAt DESC LIMIT 2000
+             OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+             WITH m, collect(t.name) AS memTags
+             RETURN collect({
+               id: m.id, title: m.title, tags: memTags,
+               createdAt: m.createdAt, source: m.source,
+               type: m.type, sourceType: m.sourceType
+             }) AS nodes,
+             collect(m.id) AS nodeIds
+           }
+           CALL (nodeIds) {
+             MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
+             WHERE a.id IN nodeIds AND b.id IN nodeIds
+             RETURN collect({source: a.id, target: b.id, reason: r.reason}) AS relatesToEdges
+           }
+           RETURN nodes, relatesToEdges`,
           { userId, profileId: profileId ?? null },
         ),
-        relatesToSession.run(
-          `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory {userId: $userId})
-           WHERE coalesce(a.status, 'active') IN ['active', 'pinned'] ${profileFilterA}
-             AND coalesce(b.status, 'active') IN ['active', 'pinned'] ${profileFilterB}
-           RETURN a.id AS source, b.id AS target, r.reason AS reason`,
+        // Tag-edges. Seed MATCH gathers each tag's memory list once,
+        // applies the [2, 500] cardinality gate, then generates pairs
+        // by unwinding the per-tag list against itself. That caps the
+        // cartesian at 500×500 per tag (already small) instead of letting
+        // the planner rescan Memory twice. Profile/status filtering is
+        // applied once in the seed MATCH, not per-pair.
+        tagEdgesSession.run(
+          `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)
+           WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${profileFilter}
+           WITH t, collect(m) AS memsForTag, count(*) AS userTagCount
+           WHERE userTagCount >= 2 AND userTagCount <= 500
+           UNWIND memsForTag AS m1
+           UNWIND memsForTag AS m2
+           WITH m1, m2, t WHERE m1.id < m2.id
+           WITH m1, m2, collect(DISTINCT t.name) AS sharedTagsAll
+           WITH m1, m2, sharedTagsAll, size(sharedTagsAll) AS weight
+           WHERE weight >= 2
+           RETURN m1.id AS source, m2.id AS target, weight,
+                  sharedTagsAll[..5] AS sharedTags
+           ORDER BY weight DESC
+           LIMIT 5000`,
           { userId, profileId: profileId ?? null },
         ),
       ]);
 
-      const nodes = nodesResult.records.map((r) => ({
-        id: String(r.get("id")),
-        title: String(r.get("title")),
-        content: String(r.get("content") ?? ""),
-        tags: Array.isArray(r.get("tags"))
-          ? r.get("tags").filter(Boolean).map(String)
-          : [],
-        createdAt: String(r.get("createdAt")),
-        source: r.get("source") !== null ? String(r.get("source")) : undefined,
-        sourceType:
-          r.get("sourceType") !== null ? String(r.get("sourceType")) : null,
-        type: toMemoryTypeOrUndefined(r.get("type")),
+      const combinedRow = nodesEdgesResult.records[0];
+      const rawNodes = combinedRow ? combinedRow.get("nodes") : [];
+      const rawEdges = combinedRow ? combinedRow.get("relatesToEdges") : [];
+
+      const nodes = (Array.isArray(rawNodes) ? rawNodes : []).map((n) => ({
+        id: String(n.id),
+        title: String(n.title),
+        tags: Array.isArray(n.tags) ? n.tags.filter(Boolean).map(String) : [],
+        createdAt: String(n.createdAt),
+        source: n.source !== null ? String(n.source) : undefined,
+        sourceType: n.sourceType !== null ? String(n.sourceType) : null,
+        type: toMemoryTypeOrUndefined(n.type),
       }));
 
-      const relatesToEdges = relatesToResult.records.map((r) => ({
-        source: String(r.get("source")),
-        target: String(r.get("target")),
-        reason: String(r.get("reason") ?? ""),
-      }));
+      const relatesToEdges = (Array.isArray(rawEdges) ? rawEdges : []).map(
+        (e) => ({
+          source: String(e.source),
+          target: String(e.target),
+          reason: String(e.reason ?? ""),
+        }),
+      );
 
-      const tagEdges = computeTagEdges(nodes, 5000);
+      const tagEdges = tagEdgesResult.records.map(toTagEdge);
 
       return { nodes, relatesToEdges, tagEdges };
     } finally {
-      await Promise.all([nodesSession.close(), relatesToSession.close()]);
+      await Promise.all([nodesEdgesSession.close(), tagEdgesSession.close()]);
     }
+  }
+
+  /**
+   * Fetch the `content` (body text) of a single memory on-demand. Used by
+   * the graph view for lazy-loading — the graph listing query omits content
+   * to keep the payload under ~500KB, and this action is called when the
+   * user hovers or clicks a node. Scoped by userId so a user can never read
+   * another user's memory content.
+   */
+  async getMemoryContent(userId: string, memoryId: string): Promise<string> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})
+         RETURN m.content AS content`,
+        { userId, memoryId },
+      );
+      const first = result.records[0];
+      if (!first) return "";
+      const value = first.get("content");
+      return typeof value === "string" ? value : "";
+    });
   }
 
   async getLocalGraph(
@@ -1326,10 +1565,12 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
   ): Promise<ReturnType<MemoryService["getGraphData"]>> {
     const nodesSession = this.driver.session();
     let nodeIds: string[];
+    // Mirrors getGraphData: content is NOT part of the graph payload. The
+    // frontend fetches it on demand via getMemoryContent when the user
+    // hovers or opens the detail panel.
     let nodes: {
       id: string;
       title: string;
-      content: string;
       tags: string[];
       createdAt: string;
       source?: string;
@@ -1341,35 +1582,46 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       profileId !== undefined && profileId !== null
         ? "AND (focus.profileId = $profileId OR focus.profileId IS NULL)"
         : "";
-    const profileFilterNeighbor =
+    // QPP inline filter on the traversal node. Keeps the suppressed/wrong-
+    // user nodes from expanding at all, rather than expanding and discarding.
+    const profileFilterB =
       profileId !== undefined && profileId !== null
-        ? "AND (neighbor.profileId = $profileId OR neighbor.profileId IS NULL)"
+        ? "AND (b.profileId = $profileId OR b.profileId IS NULL)"
         : "";
 
     try {
+      // Quantified Path Pattern replaces the old [:RELATES_TO*1..2] form.
+      // QPP filters each hop inline, so the planner stops expansion early at
+      // suppressed or wrong-user nodes instead of traversing then discarding.
+      // The grouping is made explicit with a WITH clause before RETURN so
+      // aggregation keys are unambiguous.
       const nodesResult = await nodesSession.run(
         `MATCH (focus:Memory {id: $focusId, userId: $userId})
          WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${profileFilterFocus}
-         OPTIONAL MATCH (focus)-[:RELATES_TO*1..2]-(neighbor:Memory {userId: $userId})
-         WHERE coalesce(neighbor.status, 'active') IN ['active', 'pinned'] ${profileFilterNeighbor}
+         OPTIONAL MATCH (focus)
+           ((a:Memory WHERE coalesce(a.status, 'active') IN ['active', 'pinned'])
+            -[:RELATES_TO]-
+            (b:Memory WHERE coalesce(b.status, 'active') IN ['active', 'pinned']
+               AND b.userId = $userId
+               ${profileFilterB})
+           ){1,2}
+           (neighbor:Memory)
          WITH focus, collect(DISTINCT neighbor) AS neighbors
          WITH [focus] + neighbors AS allNodes
          UNWIND allNodes AS m
-         WITH DISTINCT m
+         WITH DISTINCT m LIMIT 500
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+         WITH m, collect(t.name) AS tags
          RETURN m.id AS id, m.title AS title,
-                substring(m.content, 0, 200) AS content,
-                collect(t.name) AS tags, m.createdAt AS createdAt,
+                tags, m.createdAt AS createdAt,
                 m.source AS source, m.type AS type,
-                m.sourceType AS sourceType
-         LIMIT 500`,
+                m.sourceType AS sourceType`,
         { userId, focusId, profileId: profileId ?? null },
       );
 
       nodes = nodesResult.records.map((r) => ({
         id: String(r.get("id")),
         title: String(r.get("title")),
-        content: String(r.get("content") ?? ""),
         tags: Array.isArray(r.get("tags"))
           ? r.get("tags").filter(Boolean).map(String)
           : [],
@@ -1388,14 +1640,34 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       return { nodes: [], relatesToEdges: [], tagEdges: [] };
     }
 
+    // Edges scoped to the local neighbourhood: both RELATES_TO edges between
+    // resolved nodes and tag-shared edges are computed in Cypher in parallel.
     const relatesToSession = this.driver.session();
+    const tagEdgesSession = this.driver.session();
     try {
-      const relatesToResult = await relatesToSession.run(
-        `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
-         WHERE a.id IN $nodeIds AND b.id IN $nodeIds
-         RETURN a.id AS source, b.id AS target, r.reason AS reason`,
-        { nodeIds },
-      );
+      const [relatesToResult, tagEdgesResult] = await Promise.all([
+        relatesToSession.run(
+          `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
+           WHERE a.id IN $nodeIds AND b.id IN $nodeIds
+           RETURN a.id AS source, b.id AS target, r.reason AS reason`,
+          { nodeIds },
+        ),
+        tagEdgesSession.run(
+          // No popular-tag pre-filter needed here — the node set is already
+          // bounded by the focus neighbourhood (LIMIT 500 upstream), so the
+          // pair cartesian is always small.
+          `MATCH (m1:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(m2:Memory)
+           WHERE m1.id IN $nodeIds AND m2.id IN $nodeIds AND m1.id < m2.id
+           WITH m1, m2, collect(DISTINCT t.name) AS sharedTagsAll
+           WITH m1, m2, sharedTagsAll, size(sharedTagsAll) AS weight
+           WHERE weight >= 2
+           RETURN m1.id AS source, m2.id AS target, weight,
+                  sharedTagsAll[..5] AS sharedTags
+           ORDER BY weight DESC
+           LIMIT 2000`,
+          { nodeIds },
+        ),
+      ]);
 
       const relatesToEdges = relatesToResult.records.map((r) => ({
         source: String(r.get("source")),
@@ -1403,11 +1675,11 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         reason: String(r.get("reason") ?? ""),
       }));
 
-      const tagEdges = computeTagEdges(nodes, 2000);
+      const tagEdges = tagEdgesResult.records.map(toTagEdge);
 
       return { nodes, relatesToEdges, tagEdges };
     } finally {
-      await relatesToSession.close();
+      await Promise.all([relatesToSession.close(), tagEdgesSession.close()]);
     }
   }
 
@@ -1598,6 +1870,62 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Embedding backfill helpers
+  //
+  // Used by the one-shot migration in `convex/neo4jActions/migration.ts` to
+  // fill in `m.embedding` on memories that were created before vector search
+  // shipped, or created while the user had no OPENROUTER_API_KEY set.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Return a batch of memories that still have no embedding set. Ordered by
+   * createdAt DESC so newest memories (most likely to be queried) get
+   * embeddings first. Content is truncated in the JS layer by
+   * `embeddingService.truncateForEmbedding` — no truncation here so callers
+   * can choose their own strategy.
+   */
+  async listMissingEmbeddings(
+    limit: number,
+  ): Promise<
+    Array<{ id: string; userId: string; title: string; content: string }>
+  > {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory)
+         WHERE m.embedding IS NULL
+         RETURN m.id AS id, m.userId AS userId, m.title AS title, m.content AS content
+         ORDER BY m.createdAt DESC
+         LIMIT $limit`,
+        { limit: neo4j.int(limit) },
+      );
+      return result.records.map((r) => ({
+        id: String(r.get("id")),
+        userId: String(r.get("userId")),
+        title: String(r.get("title")),
+        content: String(r.get("content")),
+      }));
+    });
+  }
+
+  /**
+   * Bulk-set embeddings on existing memories by id. One round trip via
+   * UNWIND to avoid N queries per batch.
+   */
+  async setEmbeddings(
+    rows: Array<{ id: string; embedding: number[] }>,
+  ): Promise<void> {
+    if (rows.length === 0) return;
+    await this.withSession(async (session) => {
+      await session.run(
+        `UNWIND $rows AS r
+         MATCH (m:Memory {id: r.id})
+         SET m.embedding = r.embedding`,
+        { rows },
+      );
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Team-scoped reads
   //
   // Access control: the caller is expected to have already verified team
@@ -1640,17 +1968,29 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         whereClauses.push("m.status = $status");
         queryParams.status = params.status;
       }
-      if (params.tags && params.tags.length > 0) {
-        whereClauses.push(
-          `size([(m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags | ft]) = size($filterTags)`,
-        );
+
+      const hasTagFilter = !!params.tags && params.tags.length > 0;
+      if (hasTagFilter && params.tags) {
         queryParams.filterTags = params.tags;
       }
 
       const where = whereClauses.join(" AND ");
+      const filterTagsCount = params.tags?.length ?? 0;
+
+      // Same index-joined tag-filter optimisation as listMemories: match the
+      // tag node directly (hits the Tag name index) and require matched-tag
+      // count to equal filter-tag count, avoiding per-memory TAGGED_WITH
+      // relationship scans.
+      const tagMatchClause = hasTagFilter
+        ? `MATCH (m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags
+           WITH m, count(DISTINCT ft) AS matchedTags
+           WHERE matchedTags = ${filterTagsCount}`
+        : "";
 
       const countResult = await session.run(
-        `MATCH (m:Memory) WHERE ${where} RETURN count(m) AS total`,
+        `MATCH (m:Memory) WHERE ${where}
+         ${tagMatchClause}
+         RETURN count(m) AS total`,
         queryParams,
       );
       const countRecord = countResult.records[0];
@@ -1658,6 +1998,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
 
       const result = await session.run(
         `MATCH (m:Memory) WHERE ${where}
+         ${tagMatchClause}
          WITH m ORDER BY m.createdAt DESC SKIP $offset LIMIT $limit
          OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
          RETURN m, collect(t.name) AS tags`,

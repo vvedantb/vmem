@@ -4,18 +4,19 @@ Convex backend for vmem.
 
 ## Schema
 
-| Table            | Description                                                                 |
-| ---------------- | --------------------------------------------------------------------------- |
-| `users`          | Clerk-linked user records, indexed by `clerkId` and `email`                 |
-| `memories`       | User memories with `title`, `content`, `tags[]`, timestamps                 |
-| `apiKeys`        | API keys — AES-GCM encrypted at rest, hashed for lookup, masked for display |
-| `apiRequestLogs` | Per-key request logs with endpoint, method, HTTP status, duration           |
+| Table      | Description                                                                 |
+| ---------- | --------------------------------------------------------------------------- |
+| `users`    | Clerk-linked user records, indexed by `clerkId` and `email`                 |
+| `memories` | User memories with `title`, `content`, `tags[]`, timestamps                 |
+| `apiKeys`  | API keys — AES-GCM encrypted at rest, hashed for lookup, masked for display |
+
+API request logs, memory change events, and all other audit trails live in the `convex-audit-log` component (see `auditLog.ts`) — no first-party tables.
 
 ## Modules
 
 - `auth.ts` — `ensureUserExists`, `me`, and custom auth builders (`authQuery`, `authMutation`, `authAction`) that inject `ctx.userId`
 - `apiKeys.ts` — create, list, revoke, reveal (decrypt) API keys; internal mutation for usage recording
-- `apiLogs.ts` — query API request logs per user/key
+- `auditLog.ts` — shared audit-log client + `listMyApiRequestEntries` auth-scoped pass-through for the settings/usage UI
 
 ## Auth Builders
 

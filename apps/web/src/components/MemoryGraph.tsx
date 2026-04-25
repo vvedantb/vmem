@@ -47,12 +47,23 @@ export default function MemoryGraph({
 }: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
   const linkMemories = useAction(api.relationshipApi.linkMemories);
+  const getNodeContent = useAction(api.graphApi.getNodeContent);
   const canvasRef = useRef<GraphCanvasHandle>(null);
 
   // Canvas-local state (purely driven by pointer events on the canvas).
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
+
+  // Lazy memory-body cache. The graph payload no longer ships memory content
+  // (dropped to fit Convex's 1 MiB value limit at ~2000 memories), so we
+  // pull content on-demand when the user hovers or clicks a memory node.
+  // A Set tracks in-flight fetches to avoid duplicate round-trips when the
+  // user hovers the same node repeatedly.
+  const [contentCache, setContentCache] = useState<ReadonlyMap<string, string>>(
+    () => new Map(),
+  );
+  const inflightRef = useRef<Set<string>>(new Set());
 
   const {
     apiNodes,
@@ -66,18 +77,49 @@ export default function MemoryGraph({
     error,
   } = controller;
 
+  const ensureMemoryContent = useCallback(
+    (nodeId: string) => {
+      if (contentCache.has(nodeId)) return;
+      if (inflightRef.current.has(nodeId)) return;
+      inflightRef.current.add(nodeId);
+      getNodeContent({ memoryId: nodeId })
+        .then((content) => {
+          setContentCache((prev) => {
+            const next = new Map(prev);
+            next.set(nodeId, content);
+            return next;
+          });
+        })
+        .finally(() => {
+          inflightRef.current.delete(nodeId);
+        });
+    },
+    [contentCache, getNodeContent],
+  );
+
   const selectedNodeData = useMemo(() => {
     if (!selectedNodeId) return null;
     const node = graphNodes.find((n) => n.id === selectedNodeId);
     if (!node) return null;
+    // Inline content (wiki docs, skills) wins. For memory nodes, content is
+    // undefined at first and becomes a string once the lazy fetch resolves;
+    // the detail panel shows a loading spinner while it's undefined.
+    const content =
+      node.content !== undefined ? node.content : contentCache.get(node.id);
     return {
       id: node.id,
       title: node.title,
-      content: node.content,
+      content,
       tags: node.tags,
       createdAt: node.createdAt,
     };
-  }, [selectedNodeId, graphNodes]);
+  }, [selectedNodeId, graphNodes, contentCache]);
+
+  const hoveredNodeContent = useMemo(() => {
+    if (!hoveredNode) return undefined;
+    if (hoveredNode.content !== undefined) return hoveredNode.content;
+    return contentCache.get(hoveredNode.id);
+  }, [hoveredNode, contentCache]);
 
   const relatedNodes = useMemo(() => {
     if (!selectedNodeId) return [];
@@ -85,14 +127,32 @@ export default function MemoryGraph({
   }, [selectedNodeId, graphEdges, graphNodes]);
 
   // Canvas handlers
-  const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
-    setHoveredNode(info);
-  }, []);
+  const handleHoverNode = useCallback(
+    (info: HoveredNodeInfo | null) => {
+      setHoveredNode(info);
+      if (info && info.content === undefined) {
+        // Memory nodes arrive without content in the graph payload; kick off
+        // the fetch eagerly so the tooltip populates before the user pauses.
+        const node = graphNodes.find((n) => n.id === info.id);
+        if (node && node.kind === "memory") {
+          ensureMemoryContent(info.id);
+        }
+      }
+    },
+    [graphNodes, ensureMemoryContent],
+  );
 
-  const handleClickNode = useCallback((nodeId: string) => {
-    setSelectedNodeId(nodeId);
-    setHoveredNode(null);
-  }, []);
+  const handleClickNode = useCallback(
+    (nodeId: string) => {
+      setSelectedNodeId(nodeId);
+      setHoveredNode(null);
+      const node = graphNodes.find((n) => n.id === nodeId);
+      if (node && node.kind === "memory" && node.content === undefined) {
+        ensureMemoryContent(nodeId);
+      }
+    },
+    [graphNodes, ensureMemoryContent],
+  );
 
   const handleCloseDetail = useCallback(() => {
     setSelectedNodeId(null);
@@ -211,7 +271,7 @@ export default function MemoryGraph({
       {hoveredNode && !selectedNodeId && (
         <GraphNodeTooltip
           title={hoveredNode.title}
-          content={hoveredNode.content}
+          content={hoveredNodeContent}
           viewportX={hoveredNode.viewportX}
           viewportY={hoveredNode.viewportY}
         />

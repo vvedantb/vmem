@@ -1,10 +1,16 @@
 "use client";
 
-import type { FunctionReturnType } from "convex/server";
-import { api } from "@vmem/backend";
 import { formatRelativeTime, formatDuration } from "@/lib/formatters";
 
-type ApiLogItem = FunctionReturnType<typeof api.apiLogs.listMy>["logs"][number];
+// Row shape produced by the caller (`usage.tsx`). Kept local to decouple
+// the table from the backend's audit-log response shape.
+export interface ApiLogItem {
+  id: string;
+  endpoint: string;
+  status: number;
+  durationMs: number;
+  timestamp: string;
+}
 
 function getStatusClassName(status: number): string {
   if (status >= 200 && status < 300) return "bg-success/10 text-success";

@@ -4,6 +4,7 @@ import { internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { auditLog, ResourceTypes } from "./auditLog";
 
 /** Default profile colors (8 preset options) */
 export const PROFILE_COLORS = [
@@ -143,6 +144,15 @@ export const create = authMutation({
       updatedAt: now,
     });
 
+    await auditLog.log(ctx, {
+      action: "profile.created",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.PROFILE,
+      resourceId: profileId,
+      metadata: { name: args.name, color: args.color, icon: args.icon },
+      severity: "info",
+    });
+
     return await ctx.db.get(profileId);
   },
 });
@@ -211,6 +221,21 @@ export const update = authMutation({
     if (profile.teamId && args.name !== undefined) {
       await ctx.db.patch(profile.teamId, { name: args.name, updatedAt: now });
     }
+
+    await auditLog.logChange(ctx, {
+      action: "profile.updated",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.PROFILE,
+      resourceId: args.profileId,
+      before: { name: profile.name, color: profile.color, icon: profile.icon },
+      after: {
+        name: args.name ?? profile.name,
+        color: args.color ?? profile.color,
+        icon: args.icon ?? profile.icon,
+      },
+      severity: "info",
+    });
+
     return await ctx.db.get(args.profileId);
   },
 });
@@ -280,6 +305,18 @@ export const remove = authMutation({
     // Delete the profile
     await ctx.db.delete(args.profileId);
 
+    await auditLog.log(ctx, {
+      action: "profile.deleted",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.PROFILE,
+      resourceId: args.profileId,
+      metadata: {
+        name: profile.name,
+        movedMemoriesTo: args.moveMemoriesToProfileId ?? null,
+      },
+      severity: "warning",
+    });
+
     // Return info for the action to handle memory migration
     return {
       deleted: true,
@@ -337,6 +374,8 @@ export const removeWithMemories = authAction({
     // Delete the profile via the mutation
     await ctx.runMutation(internal.profiles.removeInternalMutation, {
       profileId: args.profileId,
+      actorUserId: ctx.userId,
+      movedMemoriesToProfileId: args.moveMemoriesToProfileId,
     });
 
     return { deleted: true };
@@ -347,6 +386,8 @@ export const removeWithMemories = authAction({
 export const removeInternalMutation = internalMutation({
   args: {
     profileId: v.id("profiles"),
+    actorUserId: v.id("users"),
+    movedMemoriesToProfileId: v.optional(v.id("profiles")),
   },
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.profileId);
@@ -392,6 +433,19 @@ export const removeInternalMutation = internalMutation({
     }
 
     await ctx.db.delete(args.profileId);
+
+    await auditLog.log(ctx, {
+      action: "profile.deleted",
+      actorId: args.actorUserId,
+      resourceType: ResourceTypes.PROFILE,
+      resourceId: args.profileId,
+      metadata: {
+        name: profile.name,
+        movedMemoriesTo: args.movedMemoriesToProfileId ?? null,
+      },
+      severity: "warning",
+    });
+
     return { deleted: true };
   },
 });

@@ -6,6 +6,8 @@ import { v } from "convex/values";
 import { MemoryService } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { normalizeUrl } from "../../src/neo4j/url";
+import { generateEmbedding } from "../../src/neo4j/embeddingService";
+import { tryUserEnvVarByClerkId } from "../lib/envVars";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
 type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
@@ -83,6 +85,26 @@ export const createMemoryInternal = internalAction({
       }
     }
 
+    // Best-effort embedding generation — memory still saves if this fails
+    // or the user hasn't configured an OpenRouter key. Backfill migration
+    // can fill in nulls later.
+    let embedding: number[] | null = null;
+    try {
+      const apiKey = await tryUserEnvVarByClerkId(
+        ctx,
+        args.clerkId,
+        "OPENROUTER_API_KEY",
+      );
+      if (apiKey) {
+        embedding = await generateEmbedding(
+          apiKey,
+          `${args.title}\n\n${args.content}`,
+        );
+      }
+    } catch (e) {
+      console.warn("embedding failed on create", e);
+    }
+
     const result = await service.createMemory({
       userId: args.clerkId,
       profileId: resolvedProfileId,
@@ -94,6 +116,7 @@ export const createMemoryInternal = internalAction({
       confidence: args.confidence,
       expiresAt: args.expiresAt,
       url: normalizedUrl,
+      embedding,
     });
 
     // Push memory event via direct mutation
@@ -130,9 +153,12 @@ export const getMemoryInternal = internalAction({
 export const listMemoriesInternal = internalAction({
   args: {
     clerkId: v.string(),
+    profileId: v.optional(v.string()),
     type: v.optional(v.string()),
     status: v.optional(v.string()),
+    source: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
+    searchQuery: v.optional(v.string()),
     limit: v.number(),
     offset: v.number(),
   },
@@ -140,9 +166,12 @@ export const listMemoriesInternal = internalAction({
     const service = new MemoryService(getDriver());
     return await service.listMemories({
       userId: args.clerkId,
+      profileId: args.profileId,
       type: toMemoryType(args.type),
       status: toMemoryStatus(args.status),
+      source: args.source,
       tags: args.tags,
+      searchQuery: args.searchQuery,
       limit: args.limit,
       offset: args.offset,
     });
@@ -240,11 +269,30 @@ export const retrieveMemoriesInternal = internalAction({
     tags: v.optional(v.array(v.string())),
     limit: v.number(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const service = new MemoryService(getDriver());
+
+    // Best-effort query embedding. If the user has no OPENROUTER_API_KEY
+    // set (or the request fails), we fall back to fulltext-only retrieval
+    // — the service records the degraded state in the trace reason.
+    let queryEmbedding: number[] | null = null;
+    try {
+      const apiKey = await tryUserEnvVarByClerkId(
+        ctx,
+        args.clerkId,
+        "OPENROUTER_API_KEY",
+      );
+      if (apiKey) {
+        queryEmbedding = await generateEmbedding(apiKey, args.query);
+      }
+    } catch (e) {
+      console.warn("query embedding failed, falling back to fulltext", e);
+    }
+
     return await service.retrieveMemories({
       userId: args.clerkId,
       query: args.query,
+      queryEmbedding,
       type: toMemoryType(args.type),
       tags: args.tags,
       limit: args.limit,

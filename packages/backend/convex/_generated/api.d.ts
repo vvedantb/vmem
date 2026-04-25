@@ -9,7 +9,7 @@
  */
 
 import type * as apiKeys from "../apiKeys.js";
-import type * as apiLogs from "../apiLogs.js";
+import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as codebases from "../codebases.js";
@@ -22,6 +22,7 @@ import type * as github from "../github.js";
 import type * as graphApi from "../graphApi.js";
 import type * as http from "../http.js";
 import type * as lib_crypto from "../lib/crypto.js";
+import type * as lib_envVars from "../lib/envVars.js";
 import type * as mcpProfiles from "../mcpProfiles.js";
 import type * as mcpSkills from "../mcpSkills.js";
 import type * as memoryApi from "../memoryApi.js";
@@ -43,9 +44,12 @@ import type * as pendingEnrichment from "../pendingEnrichment.js";
 import type * as profiles from "../profiles.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
 import type * as relationshipApi from "../relationshipApi.js";
+import type * as retrier from "../retrier.js";
 import type * as skills from "../skills.js";
 import type * as teams from "../teams.js";
 import type * as timelineApi from "../timelineApi.js";
+import type * as userEnvVars from "../userEnvVars.js";
+import type * as userEnvVarsActions from "../userEnvVarsActions.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
@@ -59,7 +63,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
-  apiLogs: typeof apiLogs;
+  auditLog: typeof auditLog;
   auth: typeof auth;
   chat: typeof chat;
   codebases: typeof codebases;
@@ -72,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   graphApi: typeof graphApi;
   http: typeof http;
   "lib/crypto": typeof lib_crypto;
+  "lib/envVars": typeof lib_envVars;
   mcpProfiles: typeof mcpProfiles;
   mcpSkills: typeof mcpSkills;
   memoryApi: typeof memoryApi;
@@ -93,9 +98,12 @@ declare const fullApi: ApiFromModules<{
   profiles: typeof profiles;
   proposedUpdateApi: typeof proposedUpdateApi;
   relationshipApi: typeof relationshipApi;
+  retrier: typeof retrier;
   skills: typeof skills;
   teams: typeof teams;
   timelineApi: typeof timelineApi;
+  userEnvVars: typeof userEnvVars;
+  userEnvVarsActions: typeof userEnvVarsActions;
   userSettings: typeof userSettings;
   users: typeof users;
   validators: typeof validators;
@@ -130,4 +138,7 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+  actionRetrier: import("@convex-dev/action-retrier/_generated/component.js").ComponentApi<"actionRetrier">;
+  actionCache: import("@convex-dev/action-cache/_generated/component.js").ComponentApi<"actionCache">;
+  auditLog: import("convex-audit-log/_generated/component.js").ComponentApi<"auditLog">;
 };
