@@ -23,6 +23,7 @@ const HANDLED_TYPES = new Set<string>([
   "SAVE_PAGE",
   "SAVE_SELECTION",
   "SAVE_YOUTUBE_VIDEO",
+  "CAPTURE_PROMPT",
   "IMPORT_BOOKMARKS",
   "IMPORT_HISTORY",
   "CANCEL_IMPORT",
@@ -162,6 +163,42 @@ async function handleMessage(
         }
         // Enrich in background (non-blocking)
         void enrichMemoryLocally(result.memory.id, message.title, content);
+        return {
+          type: "SAVE_RESULT",
+          success: true,
+          memoryId: result.memory.id,
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "Unknown error";
+        return { type: "SAVE_RESULT", success: false, error };
+      }
+    }
+
+    case "CAPTURE_PROMPT": {
+      try {
+        const trimmed = message.prompt.trim();
+        const title =
+          trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
+        const hostname = new URL(message.url).hostname;
+
+        const result = await createMemory({
+          title,
+          content: message.prompt.slice(0, 10000),
+          type: "knowledge",
+          source: "prompt-capture",
+          tags: [hostname, message.platform, "prompt"],
+          confidence: 0.8,
+          url: message.url,
+          profileId: message.profileId,
+        });
+
+        if (result.status === "duplicate") {
+          return {
+            type: "SAVE_DUPLICATE",
+            existingMemory: result.existingMemory,
+          };
+        }
+        void enrichMemoryLocally(result.memory.id, title, message.prompt);
         return {
           type: "SAVE_RESULT",
           success: true,

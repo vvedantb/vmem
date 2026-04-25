@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useUser, useClerk } from "@clerk/chrome-extension";
+import { useClerk } from "@clerk/chrome-extension";
 import {
   IconSparkles,
   IconDownload,
@@ -8,6 +8,8 @@ import {
   IconMoon,
   IconDeviceDesktop,
   IconLogout,
+  IconBrain,
+  IconSend,
 } from "@tabler/icons-react";
 import {
   Button,
@@ -37,10 +39,11 @@ interface EnrichmentStatus {
 }
 
 export function SettingsForm() {
-  const { user } = useUser();
   const { signOut } = useClerk();
   const { settings, update } = useExtensionUserSettings();
   const [localEnrichmentEnabled, setLocalEnrichmentEnabled] = useState(true);
+  const [autoSearchEnabled, setAutoSearchEnabled] = useState(true);
+  const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
   const [enrichmentStatus, setEnrichmentStatus] =
     useState<EnrichmentStatus | null>(null);
   const [isLoadingModel, setIsLoadingModel] = useState(false);
@@ -54,6 +57,8 @@ export function SettingsForm() {
   useEffect(() => {
     getStorage().then((s) => {
       setLocalEnrichmentEnabled(s.localEnrichmentEnabled);
+      setAutoSearchEnabled(s.autoSearchEnabled);
+      setAutoCaptureEnabled(s.autoCaptureEnabled);
       setSelectedProfileId(s.defaultProfileId);
     });
 
@@ -118,6 +123,16 @@ export function SettingsForm() {
   function handleLocalEnrichmentToggle(checked: boolean) {
     setLocalEnrichmentEnabled(checked);
     setStorage({ localEnrichmentEnabled: checked });
+  }
+
+  function handleAutoSearchToggle(checked: boolean) {
+    setAutoSearchEnabled(checked);
+    setStorage({ autoSearchEnabled: checked });
+  }
+
+  function handleAutoCaptureToggle(checked: boolean) {
+    setAutoCaptureEnabled(checked);
+    setStorage({ autoCaptureEnabled: checked });
   }
 
   async function handleProfileChange(profileId: string) {
@@ -207,21 +222,6 @@ export function SettingsForm() {
 
   return (
     <div className="space-y-5">
-      {user && (
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-foreground truncate">
-              {user.fullName ?? user.primaryEmailAddress?.emailAddress}
-            </p>
-            {user.fullName && (
-              <p className="text-xs text-muted-foreground truncate">
-                {user.primaryEmailAddress?.emailAddress}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="flex items-center justify-between gap-3">
         <Label className="text-sm">Theme</Label>
         <Select
@@ -297,6 +297,34 @@ export function SettingsForm() {
           checked={settings?.extensionSelectionPopupEnabled ?? true}
           onCheckedChange={handleSelectionPopupToggle}
           disabled={settings === undefined}
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <IconBrain size={16} className="text-muted-foreground" />
+          <Label htmlFor="auto-search-toggle" className="text-sm">
+            Auto-search memories in chats
+          </Label>
+        </div>
+        <Switch
+          id="auto-search-toggle"
+          checked={autoSearchEnabled}
+          onCheckedChange={handleAutoSearchToggle}
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <IconSend size={16} className="text-muted-foreground" />
+          <Label htmlFor="auto-capture-toggle" className="text-sm">
+            Auto-capture prompts
+          </Label>
+        </div>
+        <Switch
+          id="auto-capture-toggle"
+          checked={autoCaptureEnabled}
+          onCheckedChange={handleAutoCaptureToggle}
         />
       </div>
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## AI Chat Integration & Onboarding — 2026-04-25
+
+- **Auto-search memories in AI chats**: As users type in ChatGPT or Claude, vmem now automatically searches for relevant memories and displays them in a floating panel above the input. Memories are injected as context when the user sends their message. Turns vmem from "save and forget" into "save and automatically resurface."
+- **Auto-capture prompts**: Optionally saves prompts sent to ChatGPT/Claude as memories (off by default). Builds memory passively with deduplication and minimum-length guards so trivial messages are skipped.
+- **Memory panel with per-item removal**: Auto-search results appear in a Shadow DOM floating panel with individual remove buttons and "Clear all." Users control exactly which memories get injected before sending.
+- **In-page toast notifications**: New Shadow DOM toast system for showing save confirmations, errors, and loading states directly on the page — works without the popup open (keyboard shortcut saves, auto-capture, etc.).
+- **Welcome page on first install**: New onboarding page opens on extension install with feature highlights and getting-started instructions. Static HTML with dark mode support, no extra build target needed.
+- **Settings toggles**: Added "Auto-search memories in chats" (on by default) and "Auto-capture prompts" (off by default) to the popup settings panel.
+- **Removed unused `@anthropic-ai/sdk`**: Was installed but never imported anywhere. Cleaned up 247 packages from node_modules.
+
 ## Chrome Extension Extraction Enhancements — 2026-04-25
 
 - **Full page markdown extraction**: Saved pages now preserve formatting (headings, lists, code blocks, links) via TurndownService HTML-to-Markdown conversion, instead of flat `innerText`. Strips nav, footer, ads, and other non-content elements before conversion.

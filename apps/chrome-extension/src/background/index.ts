@@ -34,7 +34,12 @@ chrome.commands.onCommand.addListener(async (command) => {
 // at any time, but alarms persist — listener must be registered synchronously.
 registerAlarmListener();
 
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async (details) => {
+  // Open welcome page on first install
+  if (details.reason === "install") {
+    chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
+  }
+
   registerContextMenu();
   await refreshUserSettingsMirrorFromConvex();
   ensureSettingsMirrorAlarm();
