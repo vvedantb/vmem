@@ -50,3 +50,36 @@ export const getRecentActivityInternal = internalAction({
     );
   },
 });
+
+/** Diagnostic: count MemoryEvent nodes for a user. Run from Convex dashboard. */
+export const debugCountEvents = internalAction({
+  args: { clerkId: v.string() },
+  handler: async (_ctx, args) => {
+    const driver = getDriver();
+    const session = driver.session();
+    try {
+      const r1 = await session.run(
+        `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
+         RETURN count(e) AS total`,
+        { userId: args.clerkId },
+      );
+      const total = r1.records[0]?.get("total")?.toNumber() ?? 0;
+
+      const r2 = await session.run(
+        `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
+         RETURN e.action AS action, count(*) AS cnt
+         ORDER BY cnt DESC`,
+        { userId: args.clerkId },
+      );
+      const breakdown = r2.records.map((r) => ({
+        action: String(r.get("action")),
+        count: r.get("cnt").toNumber(),
+      }));
+
+      console.log(`[debugCountEvents] total=${total}`, breakdown);
+      return { total, breakdown };
+    } finally {
+      await session.close();
+    }
+  },
+});
