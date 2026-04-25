@@ -113,6 +113,24 @@ export const deleteMemoriesByProfile = internalAction({
   },
 });
 
+/**
+ * Delete junk "same session" RELATES_TO edges from batch import sources.
+ * One-time cleanup migration — run via Convex dashboard:
+ *   internal.neo4jActions.migration.deleteJunkSessionEdges({ clerkId: "..." })
+ */
+export const deleteJunkSessionEdges = internalAction({
+  args: { clerkId: v.string() },
+  returns: v.object({ deleted: v.number() }),
+  handler: async (_ctx, args) => {
+    const service = new MemoryService(getDriver());
+    const deleted = await service.deleteJunkSessionEdges(args.clerkId);
+    console.log(
+      `deleteJunkSessionEdges: removed ${deleted} edges for ${args.clerkId}`,
+    );
+    return { deleted };
+  },
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Embedding backfill
 //

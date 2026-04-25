@@ -273,7 +273,10 @@ export class MemoryService {
           updatedAt: $now,
           expiresAt: $expiresAt,
           url: $url,
-          embedding: $embedding
+          embedding: $embedding,
+          visitCount: 1,
+          firstVisitAt: $now,
+          lastVisitAt: $now
         })
         WITH m
         MERGE (s:Source {name: $source})
@@ -321,19 +324,57 @@ export class MemoryService {
         snapshot,
       );
 
-      const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      await session.run(
-        `MATCH (m:Memory {id: $id}), (m2:Memory {userId: $userId, source: $source})
-         WHERE m2.id <> $id AND m2.createdAt > $cutoff
-         MERGE (m2)-[r:RELATES_TO]->(m)
-         ON CREATE SET r.reason = 'same session'`,
-        {
-          id,
-          userId: params.userId,
-          source: params.source,
-          cutoff,
-        },
-      );
+      // Only create "same session" edges for interactive sources, not batch imports.
+      // Batch sources like browsing-history/bookmarks create O(n²) junk edges.
+      const BATCH_SOURCES = new Set([
+        "browsing-history",
+        "bookmarks",
+        "google_drive",
+        "notion",
+        "onedrive",
+        "linear",
+        "gmail",
+      ]);
+
+      if (!BATCH_SOURCES.has(params.source)) {
+        const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+        await session.run(
+          `MATCH (m:Memory {id: $id}), (m2:Memory {userId: $userId, source: $source})
+           WHERE m2.id <> $id AND m2.createdAt > $cutoff
+           MERGE (m2)-[r:RELATES_TO]->(m)
+           ON CREATE SET r.reason = 'same session'`,
+          {
+            id,
+            userId: params.userId,
+            source: params.source,
+            cutoff,
+          },
+        );
+      }
+
+      // Create same-domain edge for URL-based memories (browsing history, bookmarks)
+      if (params.url) {
+        try {
+          const domain = new URL(params.url).hostname;
+          await session.run(
+            `MATCH (m:Memory {id: $id})
+             MATCH (m2:Memory {userId: $userId})
+             WHERE m2.id <> $id
+               AND m2.url IS NOT NULL
+               AND m2.url STARTS WITH 'https://' + $domain
+             WITH m, m2 LIMIT 10
+             MERGE (m)-[r:RELATES_TO]->(m2)
+             ON CREATE SET r.reason = 'same domain'`,
+            {
+              id,
+              userId: params.userId,
+              domain,
+            },
+          );
+        } catch {
+          // Invalid URL, skip domain edge creation
+        }
+      }
 
       const firstRecord = result.records[0];
       if (!firstRecord) throw new Error("Failed to create memory");
@@ -361,6 +402,68 @@ export class MemoryService {
         title: String(r.get("title")),
         updatedAt: String(r.get("updatedAt")),
       };
+    });
+  }
+
+  /**
+   * Increment visit count for an existing URL-based memory.
+   * Called when a duplicate URL is detected during import.
+   */
+  async incrementVisitCount(
+    userId: string,
+    memoryId: string,
+  ): Promise<{ visitCount: number; lastVisitAt: string }> {
+    return this.withSession(async (session) => {
+      const now = new Date().toISOString();
+      const result = await session.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})
+         SET m.visitCount = coalesce(m.visitCount, 1) + 1,
+             m.lastVisitAt = $now,
+             m.updatedAt = $now
+         RETURN m.visitCount AS visitCount, m.lastVisitAt AS lastVisitAt`,
+        { memoryId, userId, now },
+      );
+      const r = result.records[0];
+      if (!r) {
+        return { visitCount: 1, lastVisitAt: now };
+      }
+      const rawCount = r.get("visitCount");
+      const visitCount =
+        typeof rawCount === "object" &&
+        rawCount !== null &&
+        "toNumber" in rawCount
+          ? (rawCount as { toNumber: () => number }).toNumber()
+          : typeof rawCount === "number"
+            ? rawCount
+            : 1;
+      return {
+        visitCount,
+        lastVisitAt: String(r.get("lastVisitAt")),
+      };
+    });
+  }
+
+  /**
+   * Delete all "same session" RELATES_TO edges from batch import sources.
+   * One-time cleanup migration for existing junk edges.
+   */
+  async deleteJunkSessionEdges(userId: string): Promise<number> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})-[r:RELATES_TO {reason: 'same session'}]->(m2:Memory)
+         WHERE m.source IN ['browsing-history', 'bookmarks', 'google_drive', 'notion', 'onedrive', 'linear', 'gmail']
+         DELETE r
+         RETURN count(r) AS deleted`,
+        { userId },
+      );
+      const r = result.records[0];
+      if (!r) return 0;
+      const raw = r.get("deleted");
+      return typeof raw === "object" && raw !== null && "toNumber" in raw
+        ? (raw as { toNumber: () => number }).toNumber()
+        : typeof raw === "number"
+          ? raw
+          : 0;
     });
   }
 
