@@ -5,7 +5,162 @@ import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { MemoryService } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
-import { sanitizeTag } from "../../src/enrichmentPrompt";
+import {
+  sanitizeTag,
+  buildFullEnrichmentPrompt,
+  parseFullEnrichmentResponse,
+} from "../../src/enrichmentPrompt";
+import { tryUserEnvVarByClerkId } from "../lib/envVars";
+
+const LLM_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+const LLM_MODEL = "qwen/qwen3-235b-a22b-instruct-2507";
+
+/** Safely extract the text content from an OpenRouter chat completion response. */
+function extractLLMContent(json: unknown): string | undefined {
+  if (typeof json !== "object" || json === null) return undefined;
+  const choices = Reflect.get(json, "choices");
+  if (!Array.isArray(choices) || choices.length === 0) return undefined;
+  const first: unknown = choices[0];
+  if (typeof first !== "object" || first === null) return undefined;
+  const message: unknown = Reflect.get(first, "message");
+  if (typeof message !== "object" || message === null) return undefined;
+  const content: unknown = Reflect.get(message, "content");
+  return typeof content === "string" ? content : undefined;
+}
+
+/**
+ * Server-side enrichment: generates tags + related memory links via OpenRouter.
+ * Scheduled by createMemoryInternal after every memory save. Best-effort —
+ * silently skips if no API key is configured or the LLM call fails.
+ */
+export const enrichMemoryInternal = internalAction({
+  args: {
+    clerkId: v.string(),
+    memoryId: v.string(),
+    title: v.string(),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    try {
+      const apiKey = await tryUserEnvVarByClerkId(
+        ctx,
+        args.clerkId,
+        "OPENROUTER_API_KEY",
+      );
+      if (!apiKey) {
+        console.log(
+          "[enrichment] No OPENROUTER_API_KEY configured, skipping enrichment",
+        );
+        return { enriched: false };
+      }
+
+      const service = new MemoryService(getDriver());
+
+      // Get recent memories for the LLM to find relationships
+      const existingMemories = await service.getRecentMemoryTitles(
+        args.clerkId,
+        args.memoryId,
+      );
+
+      const prompt = buildFullEnrichmentPrompt(
+        args.title,
+        args.content,
+        existingMemories,
+      );
+
+      const res = await fetch(LLM_ENDPOINT, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://vmem.vedantb.com",
+          "X-Title": "vmem",
+        },
+        body: JSON.stringify({
+          model: LLM_MODEL,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a memory tagging and entity extraction system. Respond with ONLY valid JSON. No thinking, no markdown.",
+            },
+            { role: "user", content: prompt },
+          ],
+          temperature: 0.1,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error(
+          `[enrichment] OpenRouter ${String(res.status)} for ${args.memoryId}`,
+        );
+        return { enriched: false };
+      }
+
+      // Extract LLM content from OpenRouter response safely
+      const json: unknown = await res.json();
+      const rawText = extractLLMContent(json);
+
+      if (typeof rawText !== "string") {
+        console.error(
+          `[enrichment] No LLM content in response for ${args.memoryId}`,
+        );
+        return { enriched: false };
+      }
+
+      const parsed = parseFullEnrichmentResponse(rawText);
+      if (!parsed || parsed.tags.length === 0) {
+        console.log(`[enrichment] No valid tags parsed for ${args.memoryId}`);
+        return { enriched: false };
+      }
+
+      // Sanitize tags
+      const sanitizedTags = parsed.tags
+        .map(sanitizeTag)
+        .filter((t) => t.length > 0)
+        .slice(0, 5);
+
+      if (sanitizedTags.length === 0) {
+        return { enriched: false };
+      }
+
+      // Validate related memory IDs against actual user memories
+      const validIds = new Set(existingMemories.map((m) => m.id));
+      const relatedIds = (parsed.relatedMemoryIds ?? []).filter((id) =>
+        validIds.has(id),
+      );
+
+      // Apply enrichment to Neo4j
+      await service.applyEnrichment(
+        args.memoryId,
+        args.clerkId,
+        sanitizedTags,
+        relatedIds,
+        parsed.entities ?? [],
+      );
+
+      // Log enrichment event
+      await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+        clerkId: args.clerkId,
+        eventType: "memory_updated",
+        memoryId: args.memoryId,
+        payload: JSON.stringify({
+          tags: sanitizedTags,
+          source: "server-enrichment",
+        }),
+      });
+
+      console.log(
+        `[enrichment] Server enrichment applied: ${args.memoryId} — ${String(sanitizedTags.length)} tags, ${String(relatedIds.length)} links`,
+      );
+
+      return { enriched: true };
+    } catch (err) {
+      console.error(`[enrichment] Failed to enrich ${args.memoryId}:`, err);
+      return { enriched: false };
+    }
+  },
+});
 
 export const applyEnrichmentInternal = internalAction({
   args: {

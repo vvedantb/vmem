@@ -1,5 +1,14 @@
 # Changelog
 
+## Server-Side Enrichment Migration — 2026-04-25
+
+- **Moved memory enrichment from local WebLLM to server-side OpenRouter**: Local Qwen3-0.6B was too small for reliable structured JSON output — tags were inconsistent, `<think>` tags broke parsing, and model downloads failed on poor connections. New `enrichMemoryInternal` Convex action calls Qwen3-235B-A22B via OpenRouter (~$0.00015/memory) with dramatically better quality.
+- **Fire-and-forget enrichment via `ctx.scheduler.runAfter`**: Memory creation returns instantly; enrichment runs asynchronously in the background. Graceful degradation — if no OPENROUTER_API_KEY is set, enrichment is silently skipped.
+- **Deleted entire local enrichment pipeline from Chrome extension**: Removed 8 files (offscreen document, WebLLM worker, enrichment router, pending drain, Chrome AI fallback), stripped offscreen permission, removed `@mlc-ai/web-llm` dependency, cleaned up settings UI and message types.
+- **Deleted `pendingMemoryEnrichment` Convex table and queue system**: Server-side enrichment is fire-and-forget, so the client-side queue (enqueue → poll → drain → apply) is no longer needed. Removed table from schema, deleted `pendingEnrichment.ts`, removed public `listRecentMemoryTitlesForEnrichment` and `applyEnrichment` API endpoints.
+- **Cleaned up all consumers across web app and MCP server**: Removed `PendingEnrichmentRunner`, `PendingEnrichmentBadge`, `useEnrichmentQueueDrain` hook, and enrichment-related imports from MemoryContext, SidebarFooter, ClientProvider, and MCP create action.
+- **Web app local LLM (chat/voice) intentionally preserved**: WebLLM in the web app serves a different purpose (interactive chat without third-party LLMs) and was not affected by this migration.
+
 ## Entity Extraction + Graph-Augmented Retrieval — 2026-04-25
 
 - **Named entity extraction during enrichment**: LLM enrichment now extracts people, organizations, places, and technologies from memories — zero additional API cost (piggybacks on existing enrichment call). Entities stored as hub nodes in Neo4j with `MENTIONS` edges.

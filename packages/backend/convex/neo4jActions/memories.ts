@@ -46,7 +46,6 @@ export const createMemoryInternal = internalAction({
     confidence: v.number(),
     expiresAt: v.optional(v.string()),
     url: v.optional(v.string()),
-    queueForLocalEnrichment: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const service = new MemoryService(getDriver());
@@ -129,13 +128,18 @@ export const createMemoryInternal = internalAction({
       payload: JSON.stringify({ title: result.title }),
     });
 
-    if (args.queueForLocalEnrichment === true) {
-      await ctx.runMutation(internal.pendingEnrichment.enqueuePendingInternal, {
+    // Schedule server-side enrichment (tags, relations, entities) via OpenRouter.
+    // Runs async — memory creation returns immediately.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.neo4jActions.enrichment.enrichMemoryInternal,
+      {
         clerkId: args.clerkId,
         memoryId: result.id,
-        source: "import",
-      });
-    }
+        title: args.title,
+        content: args.content,
+      },
+    );
 
     return result;
   },

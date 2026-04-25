@@ -4,7 +4,7 @@
   "description": "Memory layer for your browser",
   "version": "0.1.0",
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "permissions": [
     "storage",
@@ -15,8 +15,7 @@
     "alarms",
     "scripting",
     "identity",
-    "cookies",
-    "offscreen"
+    "cookies"
   ],
   "host_permissions": [
     "https://chat.openai.com/*",

@@ -172,11 +172,17 @@ export const mcpCreateMemory = internalAction({
       payload: JSON.stringify({ title: result.title }),
     });
 
-    await ctx.runMutation(internal.pendingEnrichment.enqueuePendingInternal, {
-      clerkId,
-      memoryId: result.id,
-      source: "mcp",
-    });
+    // Schedule server-side enrichment (tags, relations, entities) via OpenRouter
+    await ctx.scheduler.runAfter(
+      0,
+      internal.neo4jActions.enrichment.enrichMemoryInternal,
+      {
+        clerkId,
+        memoryId: result.id,
+        title: args.title,
+        content: args.content,
+      },
+    );
 
     return result;
   },
