@@ -1,4 +1,5 @@
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
+import { safeSendMessage } from "@/lib/safe-message";
 
 // ── SVG icons (vmem logo uses dark fill on light bg) ──────────────────────────
 
@@ -323,38 +324,25 @@ function saveSelection(): void {
     pageTitle: document.title,
   };
 
-  chrome.runtime.sendMessage(
-    message,
-    (response: BackgroundResponse | undefined) => {
-      // Handle extension context invalidated (e.g. extension updated/reloaded)
-      if (chrome.runtime.lastError) {
-        console.error(
-          "[vmem] sendMessage error:",
-          chrome.runtime.lastError.message,
-        );
-        transitionTo("error");
-        return;
-      }
+  safeSendMessage<BackgroundResponse>(message, (response) => {
+    if (!response) {
+      console.error(
+        "[vmem] No response from background — extension context may be invalidated",
+      );
+      transitionTo("error");
+      return;
+    }
 
-      if (!response) {
-        console.error(
-          "[vmem] No response from background — is the service worker running?",
-        );
-        transitionTo("error");
-        return;
-      }
-
-      if (response.type === "SAVE_RESULT" && response.success) {
-        transitionTo("success");
-      } else if (response.type === "SAVE_DUPLICATE") {
-        // Already saved — treat as success from user's perspective
-        transitionTo("success");
-      } else {
-        console.error("[vmem] Save failed:", response);
-        transitionTo("error");
-      }
-    },
-  );
+    if (response.type === "SAVE_RESULT" && response.success) {
+      transitionTo("success");
+    } else if (response.type === "SAVE_DUPLICATE") {
+      // Already saved — treat as success from user's perspective
+      transitionTo("success");
+    } else {
+      console.error("[vmem] Save failed:", response);
+      transitionTo("error");
+    }
+  });
 }
 
 // ── Event handlers ────────────────────────────────────────────────────────────

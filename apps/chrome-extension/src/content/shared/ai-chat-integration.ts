@@ -9,6 +9,7 @@
 
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import type { MemoryCandidate } from "@/types/api";
+import { safeSendMessage } from "@/lib/safe-message";
 import { showToast } from "./toast";
 import {
   showMemoryPanel,
@@ -128,19 +129,16 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
 
     const message: ContentMessage = { type: "RETRIEVE_MEMORIES", query };
 
-    chrome.runtime.sendMessage(
-      message,
-      (response: BackgroundResponse | undefined) => {
-        if (
-          response?.type === "RETRIEVE_RESULT" &&
-          response.memories.length > 0
-        ) {
-          showMemoryPanel(response.memories, anchor);
-        } else {
-          hideMemoryPanel();
-        }
-      },
-    );
+    safeSendMessage<BackgroundResponse>(message, (response) => {
+      if (
+        response?.type === "RETRIEVE_RESULT" &&
+        response.memories.length > 0
+      ) {
+        showMemoryPanel(response.memories, anchor);
+      } else {
+        hideMemoryPanel();
+      }
+    });
   }
 
   // ── Auto-capture ───────────────────────────────────────────────────────
@@ -166,15 +164,12 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
       profileId: settings.defaultProfileId || undefined,
     };
 
-    chrome.runtime.sendMessage(
-      message,
-      (response: BackgroundResponse | undefined) => {
-        if (response?.type === "SAVE_RESULT" && response.success) {
-          showToast({ type: "success", message: "Prompt saved to vmem" });
-        }
-        // Silently ignore failures — auto-capture should never disrupt the user
-      },
-    );
+    safeSendMessage<BackgroundResponse>(message, (response) => {
+      if (response?.type === "SAVE_RESULT" && response.success) {
+        showToast({ type: "success", message: "Prompt saved to vmem" });
+      }
+      // Silently ignore failures — auto-capture should never disrupt the user
+    });
   }
 
   // ── Send interception ──────────────────────────────────────────────────

@@ -1,5 +1,12 @@
 # Changelog
 
+## Chrome Extension Resilience & Enrichment Fixes — 2026-04-25
+
+- **Safe messaging for content scripts**: All 6 `chrome.runtime.sendMessage` calls in content scripts now go through `safeSendMessage`, which guards against invalidated extension contexts (extension reload/update) instead of crashing with "Cannot read properties of undefined"
+- **Qwen3 thinking-tag parsing**: Enrichment LLM response parser now strips `<think>...</think>` blocks that Qwen3 models emit, fixing all "Failed to parse LLM response" errors. Also handles unclosed think blocks from token-limit truncation
+- **Enrichment prompt hardened**: Added explicit "no thinking, no markdown" instructions to both the prompt template and a system message, reducing wasted tokens on reasoning the model doesn't need to show
+- **Better WebLLM error messages**: Network failures during model download now show "check your internet connection" instead of a raw `TypeError: Failed to fetch`
+
 ## AI Chat Integration UX Fixes — 2026-04-25
 
 - **Keyboard shortcut changed to Alt+S**: Replaced non-working Ctrl+Shift+S with Alt+S, now shows an in-page toast confirming save success or failure via `chrome.scripting.executeScript`

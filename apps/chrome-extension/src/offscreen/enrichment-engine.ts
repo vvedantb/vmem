@@ -88,11 +88,17 @@ export async function loadModel(
     console.log("[webllm] Model loaded successfully");
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    const isNetworkError =
+      errorMessage.includes("Failed to fetch") ||
+      errorMessage.includes("NetworkError") ||
+      errorMessage.includes("net::ERR_");
     status = {
       state: "error",
       modelId: null,
       progress: 0,
-      error: errorMessage,
+      error: isNetworkError
+        ? "Failed to download model — check your internet connection and try again"
+        : errorMessage,
     };
     throw err;
   }
@@ -125,7 +131,14 @@ export async function generateFullEnrichment(
 
   try {
     const response = await engine.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        {
+          role: "system",
+          content:
+            "Respond with ONLY valid JSON. Do not use <think> tags or any reasoning. Output the JSON object directly.",
+        },
+        { role: "user", content: prompt },
+      ],
       temperature: 0.3,
       max_tokens: 400,
     });
