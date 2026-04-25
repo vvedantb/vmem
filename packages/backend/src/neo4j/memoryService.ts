@@ -1863,10 +1863,13 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     details: Record<string, string>,
     snapshot: string | null = null,
   ): Promise<void> {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+
     await session.run(
       `MATCH (m:Memory {id: $memoryId})
        CREATE (e:MemoryEvent {
-         id: randomUUID(),
+         id: $id,
          action: $action,
          actor: $actor,
          details: $details,
@@ -1875,12 +1878,13 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
        })
        CREATE (e)-[:EVENT_FOR]->(m)`,
       {
+        id,
         memoryId,
         action,
         actor,
         details: JSON.stringify(details),
         snapshot,
-        now: new Date().toISOString(),
+        now,
       },
     );
   }
