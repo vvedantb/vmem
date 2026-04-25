@@ -106,17 +106,25 @@ export function QuickSave() {
       chrome.scripting.executeScript(
         {
           target: { tabId: tab.id },
-          func: () => document.body.innerText,
+          func: extractPageData,
         },
         (results) => {
-          const content = results?.[0]?.result ?? "";
-          const pageContent = typeof content === "string" ? content : "";
+          const extraction = results?.[0]?.result;
+          if (!extraction) {
+            setSaving(false);
+            setResult({ success: false, message: "Failed to extract page" });
+            return;
+          }
 
           const message: ContentMessage = {
             type: "SAVE_PAGE",
             url: tab.url ?? "",
-            title: tab.title ?? "Untitled",
-            content: pageContent,
+            title:
+              extraction.ogTitle || extraction.title || tab.title || "Untitled",
+            content: extraction.content,
+            markdown: extraction.html, // Will be converted to markdown in background
+            ogImage: extraction.ogImage,
+            ogDescription: extraction.ogDescription,
             profileId: selectedProfileId || undefined,
           };
 
@@ -137,7 +145,7 @@ export function QuickSave() {
                 setPendingUpdate({
                   memoryId: response.existingMemory.id,
                   title: tab.title ?? "Untitled",
-                  content: pageContent.slice(0, 10000),
+                  content: extraction.content.slice(0, 10000),
                 });
               }
             },
@@ -145,6 +153,71 @@ export function QuickSave() {
         },
       );
     });
+  }
+
+  // Page extraction function - runs in page context
+  function extractPageData() {
+    const ogImage =
+      document
+        .querySelector('meta[property="og:image"]')
+        ?.getAttribute("content") ||
+      document
+        .querySelector('meta[name="og:image"]')
+        ?.getAttribute("content") ||
+      undefined;
+
+    const ogTitle =
+      document
+        .querySelector('meta[property="og:title"]')
+        ?.getAttribute("content") ||
+      document
+        .querySelector('meta[name="og:title"]')
+        ?.getAttribute("content") ||
+      undefined;
+
+    const ogDescription =
+      document
+        .querySelector('meta[property="og:description"]')
+        ?.getAttribute("content") ||
+      document
+        .querySelector('meta[name="og:description"]')
+        ?.getAttribute("content") ||
+      document
+        .querySelector('meta[name="description"]')
+        ?.getAttribute("content") ||
+      undefined;
+
+    const bodyClone = document.body.cloneNode(true) as HTMLElement;
+    const removeSelectors = [
+      "script",
+      "style",
+      "noscript",
+      "iframe",
+      "nav",
+      "footer",
+      "header",
+      "aside",
+      "[role='banner']",
+      "[role='navigation']",
+      "[role='complementary']",
+      "[role='contentinfo']",
+      ".ad",
+      ".ads",
+      ".advertisement",
+      "[data-ad]",
+    ];
+    removeSelectors.forEach((sel) => {
+      bodyClone.querySelectorAll(sel).forEach((el) => el.remove());
+    });
+
+    return {
+      title: document.title,
+      ogTitle,
+      content: bodyClone.innerText.trim().slice(0, 50000),
+      html: bodyClone.innerHTML,
+      ogImage,
+      ogDescription,
+    };
   }
 
   async function handleUpdate() {

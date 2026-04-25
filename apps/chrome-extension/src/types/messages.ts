@@ -7,6 +7,9 @@ export type ContentMessage =
       url: string;
       title: string;
       content: string;
+      markdown?: string;
+      ogImage?: string;
+      ogDescription?: string;
       profileId?: string;
     }
   | {
@@ -14,6 +17,14 @@ export type ContentMessage =
       selectedText: string;
       pageUrl: string;
       pageTitle: string;
+      profileId?: string;
+    }
+  | {
+      type: "SAVE_YOUTUBE_VIDEO";
+      url: string;
+      title: string;
+      channel: string;
+      transcript: string;
       profileId?: string;
     }
   | { type: "IMPORT_BOOKMARKS" }

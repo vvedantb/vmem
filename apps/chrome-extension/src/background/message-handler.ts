@@ -16,11 +16,13 @@ import {
 } from "./enrichment-router";
 import { drainPendingEnrichmentQueue } from "./pending-enrichment-drain";
 import { getStorage } from "@/lib/storage";
+import { htmlToMarkdown } from "@/lib/page-extraction";
 
 const HANDLED_TYPES = new Set<string>([
   "RETRIEVE_MEMORIES",
   "SAVE_PAGE",
   "SAVE_SELECTION",
+  "SAVE_YOUTUBE_VIDEO",
   "IMPORT_BOOKMARKS",
   "IMPORT_HISTORY",
   "CANCEL_IMPORT",
@@ -100,9 +102,15 @@ async function handleMessage(
 
     case "SAVE_PAGE": {
       try {
+        // Convert HTML to markdown if provided, otherwise use plain content
+        let contentToSave = message.content;
+        if (message.markdown) {
+          // markdown field contains HTML from page extraction - convert it
+          contentToSave = htmlToMarkdown(message.markdown);
+        }
         const result = await createMemory({
           title: message.title,
-          content: message.content.slice(0, 10000),
+          content: contentToSave.slice(0, 10000),
           type: "knowledge",
           source: "browser-extension",
           tags: [new URL(message.url).hostname],
@@ -120,8 +128,40 @@ async function handleMessage(
         void enrichMemoryLocally(
           result.memory.id,
           message.title,
-          message.content,
+          contentToSave,
         );
+        return {
+          type: "SAVE_RESULT",
+          success: true,
+          memoryId: result.memory.id,
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "Unknown error";
+        return { type: "SAVE_RESULT", success: false, error };
+      }
+    }
+
+    case "SAVE_YOUTUBE_VIDEO": {
+      try {
+        const content = `Channel: ${message.channel}\n\nTranscript:\n${message.transcript}`;
+        const result = await createMemory({
+          title: message.title,
+          content: content.slice(0, 10000),
+          type: "knowledge",
+          source: "youtube",
+          tags: ["youtube", message.channel],
+          confidence: 1.0,
+          url: message.url,
+          profileId: message.profileId,
+        });
+        if (result.status === "duplicate") {
+          return {
+            type: "SAVE_DUPLICATE",
+            existingMemory: result.existingMemory,
+          };
+        }
+        // Enrich in background (non-blocking)
+        void enrichMemoryLocally(result.memory.id, message.title, content);
         return {
           type: "SAVE_RESULT",
           success: true,
