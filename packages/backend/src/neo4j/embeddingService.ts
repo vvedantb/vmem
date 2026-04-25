@@ -86,6 +86,8 @@ async function postWithRetry(
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      "HTTP-Referer": "https://vmem.vedantb.com",
+      "X-Title": "vmem",
     },
     body: JSON.stringify({ model: EMBEDDING_MODEL, input }),
   });
