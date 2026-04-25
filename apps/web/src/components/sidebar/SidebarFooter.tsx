@@ -10,9 +10,8 @@ import {
   HoverCardContent,
 } from "@vmem/ui";
 import { UserButton } from "@clerk/clerk-react";
-import { useConvexAuth, useQuery } from "convex/react";
+
 import { IconMoon, IconSun, IconChartBar } from "@tabler/icons-react";
-import { api } from "@vmem/backend";
 
 /**
  * Formats a number with abbreviated suffix (k, m, b) and 1 decimal place.
@@ -35,33 +34,6 @@ function formatCompactNumber(num: number): string {
 export interface SidebarStats {
   addedToday: number;
   total: number;
-}
-
-function PendingEnrichmentBadge({ isIconOnly }: { isIconOnly: boolean }) {
-  const { isAuthenticated } = useConvexAuth();
-  const pending = useQuery(
-    api.pendingEnrichment.listPendingEnrichment,
-    isAuthenticated ? { limit: 100 } : "skip",
-  );
-  const count = pending === undefined ? 0 : pending.length;
-  if (count === 0) return null;
-  if (isIconOnly) {
-    return (
-      <div className="flex justify-center">
-        <span
-          className="text-[10px] tabular-nums text-muted-foreground"
-          title={`${String(count)} pending enrichment`}
-        >
-          {String(count)}
-        </span>
-      </div>
-    );
-  }
-  return (
-    <p className="mb-1 px-3 text-[11px] text-muted-foreground">
-      {String(count)} pending enrichment
-    </p>
-  );
 }
 
 function StatsCard({
@@ -146,7 +118,6 @@ export function SidebarFooter({
 
   return (
     <div className={cn("space-y-4 pt-3")}>
-      <PendingEnrichmentBadge isIconOnly={isIconOnly} />
       <StatsCard isIconOnly={isIconOnly} stats={stats} />
       <Separator className="bg-border/45" />
 

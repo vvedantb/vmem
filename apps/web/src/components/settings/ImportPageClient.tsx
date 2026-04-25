@@ -80,7 +80,6 @@ export default function ImportPageClient() {
           source: p.source,
           tags: ["import", p.tag],
           confidence: 0.75,
-          queueForLocalEnrichment: true,
         });
         ok += 1;
       } catch {
