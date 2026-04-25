@@ -15,6 +15,7 @@ export interface EdgeAttributes {
   weight: number;
   edgeType: "tag" | "relates_to";
   reason?: string;
+  score?: number;
 }
 
 export interface HoveredNodeInfo {
@@ -37,6 +38,8 @@ export interface HoveredEdgeInfo {
   targetTitle: string;
   /** Tag edges: shared tag list. relates_to: reason from API. wiki_parent: null. */
   reason: string | null;
+  /** Similarity score (0–1) for semantic similarity edges. */
+  score?: number;
   viewportX: number;
   viewportY: number;
 }

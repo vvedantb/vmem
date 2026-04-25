@@ -231,3 +231,84 @@ export const startEmbeddingBackfill = internalAction({
     return { started: true };
   },
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Semantic-edge backfill
+//
+// Creates RELATES_TO {reason: 'semantic similarity'} edges for memories that
+// already have embeddings but were saved before auto-linking was added.
+// Same self-rescheduling cursor pattern as embedding backfill above.
+//
+// Kick off via Convex dashboard:
+//   internal.neo4jActions.migration.startSemanticEdgesBackfill
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Process one batch of memories missing semantic edges. Fetches memories
+ * with embeddings but no `semanticEdgesAt`, runs vector search for each,
+ * creates RELATES_TO edges, marks processed, and reschedules if more remain.
+ */
+export const backfillSemanticEdgesInternal = internalAction({
+  args: { batchSize: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const BATCH = args.batchSize ?? 50;
+    const service = new MemoryService(getDriver());
+
+    const rows = await service.listMissingSemanticEdges(BATCH);
+    if (rows.length === 0) {
+      console.log("semantic-edge backfill: drained");
+      return { done: true, processed: 0 };
+    }
+
+    let processed = 0;
+    const processedIds: string[] = [];
+
+    for (const row of rows) {
+      try {
+        await service.createSemanticEdgesForMemory(
+          row.id,
+          row.userId,
+          row.embedding,
+        );
+        processedIds.push(row.id);
+        processed++;
+      } catch (e) {
+        console.error(`semantic-edge backfill: failed for memory ${row.id}`, e);
+        // Mark it processed anyway to avoid infinite retry on a bad node
+        processedIds.push(row.id);
+      }
+    }
+
+    if (processedIds.length > 0) {
+      await service.markSemanticEdgesProcessed(processedIds);
+    }
+
+    console.log(
+      `semantic-edge backfill: processed ${processed}/${rows.length}, rescheduling`,
+    );
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.neo4jActions.migration.backfillSemanticEdgesInternal,
+      { batchSize: BATCH },
+    );
+
+    return { done: false, processed };
+  },
+});
+
+/**
+ * Convenience kickoff action for semantic-edge backfill.
+ * Call once from the Convex dashboard.
+ */
+export const startSemanticEdgesBackfill = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    await ctx.scheduler.runAfter(
+      0,
+      internal.neo4jActions.migration.backfillSemanticEdgesInternal,
+      {},
+    );
+    return { started: true };
+  },
+});

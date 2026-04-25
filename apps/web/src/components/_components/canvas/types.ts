@@ -47,6 +47,7 @@ export interface GraphEdge extends SimulationLinkDatum<GraphNode> {
   edgeType: GraphEdgeType;
   weight: number;
   reason?: string;
+  score?: number;
 }
 
 export interface ResolvedEdge {
@@ -55,6 +56,7 @@ export interface ResolvedEdge {
   edgeType: GraphEdgeType;
   weight: number;
   reason?: string;
+  score?: number;
 }
 
 export interface ViewportState {

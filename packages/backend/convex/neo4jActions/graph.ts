@@ -30,7 +30,12 @@ function capGraph(data: {
     sourceType: string | null;
     type?: MemoryType;
   }[];
-  relatesToEdges: { source: string; target: string; reason: string }[];
+  relatesToEdges: {
+    source: string;
+    target: string;
+    reason: string;
+    score?: number;
+  }[];
   tagEdges: {
     source: string;
     target: string;

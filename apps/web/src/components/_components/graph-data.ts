@@ -51,6 +51,7 @@ export interface ApiRelatesToEdge {
   source: string;
   target: string;
   reason: string;
+  score?: number;
 }
 
 export interface ApiWikiParentEdge {
@@ -279,6 +280,7 @@ export function buildGraphData(
           weight: 1,
           edgeType: "relates_to",
           reason: rel.reason,
+          score: rel.score,
         });
         addedPairs.add(pairKey);
       }
