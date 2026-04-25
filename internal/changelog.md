@@ -1,5 +1,10 @@
 # Changelog
 
+## Memory Graph Popover Simplified — 2026-04-26
+
+- **Popover shows title only**: Removed description/content from memory graph node popovers to reduce visual clutter. Hovering a node now displays just the title.
+- **Removed content preload on hover**: Content is now fetched only when clicking to open the detail panel (not on hover), reducing unnecessary API calls while accepting a brief loading state in the detail panel.
+
 ## Graph Physics: Tag Edges Visual-Only — 2026-04-25
 
 - **Excluded tag edges from D3 force simulation**: Tag edges (shared tag relationships) no longer participate in physics calculations. Only `relates_to`, `imports`, and `wiki_parent` edges pull nodes together, preventing artificial clustering from incidental tag matches.
