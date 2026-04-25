@@ -1,5 +1,11 @@
 # Changelog
 
+## Colorful Brand Icons for Connectors — 2026-04-25
+
+- **Replaced monochrome Tabler icons with brand-colored SVGs**: Connector cards and browse modal now display logos with their official brand colors (Google Drive multicolor, OneDrive/Slack/Dropbox in brand blue, Linear in brand purple). GitHub and Notion remain monochrome per their official brands.
+- **New `brand-icons/` component library**: Created dedicated SVG components for each connector (`GoogleDriveIcon`, `OneDriveIcon`, `DropboxIcon`, `NotionIcon`, `SlackIcon`, `GitHubIcon`, `LinearIcon`) with proper viewBox and fills, indexed in `index.ts` for reusability.
+- **Updated icon map in ConnectorCard and BrowseConnectorsModal**: Both components now reference the colorful icons instead of Tabler's monochrome `IconBrand*` variants, improving visual identity and connector recognition on the settings page.
+
 ## Embedding Auto-Linking: Semantic Memory Connections — 2026-04-25
 
 - **Automatic semantic edges**: New memories with embeddings now automatically link to up to 5 semantically similar existing memories (threshold ≥ 0.78 cosine similarity). Uses the existing Neo4j vector index; ~10–20ms added latency (negligible vs. embedding HTTP call).

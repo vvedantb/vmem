@@ -12,28 +12,30 @@ import {
   Button,
 } from "@vmem/ui";
 import { toast } from "sonner";
-import {
-  IconLoader2,
-  IconBrandGoogleDrive,
-  IconBrandOnedrive,
-  IconBrandDropbox,
-  IconBrandNotion,
-  IconBrandSlack,
-  IconBrandGithub,
-} from "@tabler/icons-react";
+import { IconLoader2 } from "@tabler/icons-react";
 import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "@/components/OAuthModal";
+import {
+  GoogleDriveIcon,
+  OneDriveIcon,
+  DropboxIcon,
+  NotionIcon,
+  SlackIcon,
+  GitHubIcon,
+  LinearIcon,
+} from "@/components/brand-icons";
 
 const iconMap: Record<
   string,
-  React.ComponentType<{ size?: number; stroke?: number; className?: string }>
+  React.ComponentType<{ size?: number; className?: string }>
 > = {
-  IconBrandGoogleDrive,
-  IconBrandOnedrive,
-  IconBrandDropbox,
-  IconBrandNotion,
-  IconBrandSlack,
-  IconBrandGithub,
+  IconBrandGoogleDrive: GoogleDriveIcon,
+  IconBrandOnedrive: OneDriveIcon,
+  IconBrandDropbox: DropboxIcon,
+  IconBrandNotion: NotionIcon,
+  IconBrandSlack: SlackIcon,
+  IconBrandGithub: GitHubIcon,
+  IconBrandLinear: LinearIcon,
 };
 
 interface BrowseConnectorsModalProps {
@@ -94,7 +96,7 @@ export default function BrowseConnectorsModal({
           </DialogHeader>
           <div className="space-y-1 overflow-hidden">
             {connectors.map((connector) => {
-              const Icon = iconMap[connector.icon] || IconBrandGoogleDrive;
+              const Icon = iconMap[connector.icon] || GoogleDriveIcon;
               const isConnected = connector.connectionStatus === "connected";
               const hasProvider = !!connector.provider;
 
@@ -104,7 +106,7 @@ export default function BrowseConnectorsModal({
                   className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-muted/50 transition-colors min-w-0"
                 >
                   <div className="w-10 h-10 rounded-lg bg-muted/60 flex items-center justify-center flex-shrink-0">
-                    <Icon size={20} stroke={1.5} className="text-foreground" />
+                    <Icon size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">

@@ -1,0 +1,7 @@
+export { default as GoogleDriveIcon } from "./GoogleDriveIcon";
+export { default as OneDriveIcon } from "./OneDriveIcon";
+export { default as DropboxIcon } from "./DropboxIcon";
+export { default as NotionIcon } from "./NotionIcon";
+export { default as SlackIcon } from "./SlackIcon";
+export { default as GitHubIcon } from "./GitHubIcon";
+export { default as LinearIcon } from "./LinearIcon";
