@@ -59,7 +59,11 @@ export async function runFullEnrichmentWithChromeAI(
   title: string,
   content: string,
   existingMemories: Array<{ id: string; title: string }>,
-): Promise<{ tags: string[]; relatedMemoryIds: string[] } | null> {
+): Promise<{
+  tags: string[];
+  relatedMemoryIds: string[];
+  entities: Array<{ name: string; normalizedName: string; type: string }>;
+} | null> {
   try {
     const api = getChromeAI();
 
@@ -93,6 +97,7 @@ export async function runFullEnrichmentWithChromeAI(
         return {
           tags: parsed.tags.slice(0, 5),
           relatedMemoryIds: parsed.relatedMemoryIds,
+          entities: parsed.entities,
         };
       }
 

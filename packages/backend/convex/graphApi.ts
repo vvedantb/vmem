@@ -27,10 +27,12 @@ interface GraphNodeEntry {
   title: string;
   tags: string[];
   createdAt: string;
-  kind: "memory" | "wiki-document" | "wiki-folder" | "skill";
+  kind: "memory" | "wiki-document" | "wiki-folder" | "skill" | "entity";
   source?: string;
   sourceType: string | null;
   type?: MemoryType;
+  /** Entity sub-type (person/organization/place/technology). Only for entity nodes. */
+  entityType?: string;
   /**
    * Content is inlined for wiki documents (contentText) and skills
    * (description) — those sets are small and pulling separately would add
@@ -58,6 +60,8 @@ interface GraphResult {
   }[];
   /** Folder → child edges inside the wiki tree. */
   wikiParentEdges: { source: string; target: string }[];
+  /** Memory → entity MENTIONS edges. */
+  mentionsEdges: { source: string; target: string }[];
 }
 
 interface MemoryGraph {
@@ -82,6 +86,13 @@ interface MemoryGraph {
     weight: number;
     sharedTags: string[];
   }[];
+  entities: Array<{
+    normalizedName: string;
+    name: string;
+    type: string;
+    memoryIds: string[];
+  }>;
+  mentionsEdges: Array<{ source: string; target: string }>;
 }
 
 /** Prefix applied to wikiNode ids so they never collide with Neo4j memory ids. */
@@ -89,6 +100,9 @@ const WIKI_PREFIX = "wiki:";
 
 /** Prefix applied to skill ids so they never collide with memory or wiki ids. */
 const SKILL_PREFIX = "skill:";
+
+/** Prefix applied to entity ids so they never collide with other node types. */
+const ENTITY_PREFIX = "entity:";
 
 // NOTE: We initially cached this action via @convex-dev/action-cache with a
 // 30s TTL. Production users hit Convex's 1 MiB value-size limit (graphs with
@@ -182,15 +196,27 @@ export const getGraphData = authAction({
       sourceType: null,
     }));
 
+    const entityNodes: GraphNodeEntry[] = memoryGraph.entities.map((e) => ({
+      id: `${ENTITY_PREFIX}${e.normalizedName}:${e.type}`,
+      title: e.name,
+      tags: [],
+      createdAt: new Date().toISOString(),
+      kind: "entity",
+      sourceType: null,
+      entityType: e.type,
+    }));
+
     return {
       nodes: [
         ...annotateMemoryNodes(memoryGraph.nodes),
         ...wikiNodes,
         ...skillNodes,
+        ...entityNodes,
       ],
       relatesToEdges: memoryGraph.relatesToEdges,
       tagEdges: memoryGraph.tagEdges,
       wikiParentEdges,
+      mentionsEdges: memoryGraph.mentionsEdges,
     };
   },
 });
@@ -214,11 +240,23 @@ export const getLocalGraph = authAction({
         profileId: args.profileId,
       },
     );
+
+    const entityNodes: GraphNodeEntry[] = memoryGraph.entities.map((e) => ({
+      id: `${ENTITY_PREFIX}${e.normalizedName}:${e.type}`,
+      title: e.name,
+      tags: [],
+      createdAt: new Date().toISOString(),
+      kind: "entity",
+      sourceType: null,
+      entityType: e.type,
+    }));
+
     return {
-      nodes: annotateMemoryNodes(memoryGraph.nodes),
+      nodes: [...annotateMemoryNodes(memoryGraph.nodes), ...entityNodes],
       relatesToEdges: memoryGraph.relatesToEdges,
       tagEdges: memoryGraph.tagEdges,
       wikiParentEdges: [],
+      mentionsEdges: memoryGraph.mentionsEdges,
     };
   },
 });

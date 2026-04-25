@@ -37,6 +37,7 @@ import {
   type ApiTagEdge,
   type ApiRelatesToEdge,
   type ApiWikiParentEdge,
+  type ApiMentionsEdge,
   type TagStat,
   type KindStat,
   type SourceStat,
@@ -66,7 +67,7 @@ const EMPTY_SET = new Set<string>();
  * skill appears automatically without them having to re-enable the filter.
  */
 const DEFAULT_ACTIVE_KINDS: ReadonlySet<GraphNodeKind> = new Set<GraphNodeKind>(
-  ["memory", "wiki-document", "wiki-folder", "skill"],
+  ["memory", "entity", "wiki-document", "wiki-folder", "skill"],
 );
 
 export interface MemoryGraphController {
@@ -75,6 +76,7 @@ export interface MemoryGraphController {
   apiTagEdges: ApiTagEdge[];
   allRelatesToEdges: ApiRelatesToEdge[];
   apiWikiParentEdges: ApiWikiParentEdge[];
+  apiMentionsEdges: ApiMentionsEdge[];
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
@@ -139,6 +141,7 @@ export function useMemoryGraphController({
     apiTagEdges,
     allRelatesToEdges,
     apiWikiParentEdges,
+    apiMentionsEdges,
     isLoading,
     isError,
     error,
@@ -193,6 +196,7 @@ export function useMemoryGraphController({
         apiTagEdges,
         allRelatesToEdges,
         apiWikiParentEdges,
+        apiMentionsEdges,
         activeTags,
         activeKinds,
         activeSources,
@@ -203,6 +207,7 @@ export function useMemoryGraphController({
       apiTagEdges,
       allRelatesToEdges,
       apiWikiParentEdges,
+      apiMentionsEdges,
       activeTags,
       activeKinds,
       activeSources,
@@ -331,6 +336,7 @@ export function useMemoryGraphController({
     apiTagEdges,
     allRelatesToEdges,
     apiWikiParentEdges,
+    apiMentionsEdges,
     isLoading,
     isError,
     error,

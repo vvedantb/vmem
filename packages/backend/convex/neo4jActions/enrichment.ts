@@ -13,6 +13,15 @@ export const applyEnrichmentInternal = internalAction({
     memoryId: v.string(),
     tags: v.array(v.string()),
     relatedMemoryIds: v.optional(v.array(v.string())),
+    entities: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          normalizedName: v.string(),
+          type: v.string(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const service = new MemoryService(getDriver());
@@ -42,6 +51,7 @@ export const applyEnrichmentInternal = internalAction({
       args.clerkId,
       sanitizedTags,
       relatedIds,
+      args.entities ?? [],
     );
 
     await ctx.runMutation(internal.memoryEvents.pushEventInternal, {

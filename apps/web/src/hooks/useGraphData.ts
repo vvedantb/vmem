@@ -15,6 +15,7 @@ import type {
   ApiTagEdge,
   ApiRelatesToEdge,
   ApiWikiParentEdge,
+  ApiMentionsEdge,
 } from "@/components/_components/graph-data";
 
 // ---- Zod schemas ----
@@ -24,6 +25,7 @@ const graphNodeKindSchema = z.enum([
   "wiki-document",
   "wiki-folder",
   "skill",
+  "entity",
 ]);
 
 const graphNodeSchema = z.object({
@@ -38,6 +40,7 @@ const graphNodeSchema = z.object({
   source: z.string().optional(),
   sourceType: z.string().nullable(),
   type: z.enum(["profile", "episodic", "knowledge"]).optional(),
+  entityType: z.string().optional(),
 });
 
 const relatesToEdgeSchema = z.object({
@@ -59,11 +62,17 @@ const wikiParentEdgeSchema = z.object({
   target: z.string(),
 });
 
+const mentionsEdgeSchema = z.object({
+  source: z.string(),
+  target: z.string(),
+});
+
 const graphResponseSchema = z.object({
   nodes: z.array(graphNodeSchema),
   relatesToEdges: z.array(relatesToEdgeSchema),
   tagEdges: z.array(tagEdgeSchema),
   wikiParentEdges: z.array(wikiParentEdgeSchema),
+  mentionsEdges: z.array(mentionsEdgeSchema),
 });
 
 type GraphResponse = z.infer<typeof graphResponseSchema>;
@@ -75,6 +84,7 @@ export interface UseGraphDataReturn {
   apiTagEdges: ApiTagEdge[];
   allRelatesToEdges: ApiRelatesToEdge[];
   apiWikiParentEdges: ApiWikiParentEdge[];
+  apiMentionsEdges: ApiMentionsEdge[];
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
@@ -161,6 +171,7 @@ export function useGraphData(
     apiTagEdges: graphData?.tagEdges ?? [],
     allRelatesToEdges,
     apiWikiParentEdges: graphData?.wikiParentEdges ?? [],
+    apiMentionsEdges: graphData?.mentionsEdges ?? [],
     isLoading: graphQuery.isLoading,
     isError: graphQuery.isError,
     error: graphQuery.error,

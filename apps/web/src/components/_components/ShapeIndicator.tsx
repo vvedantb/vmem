@@ -8,6 +8,13 @@ import type { ListItemKind } from "@/lib/list-items";
 const HEX_CLIP_PATH =
   "polygon(25% 6.7%, 75% 6.7%, 100% 50%, 75% 93.3%, 25% 93.3%, 0% 50%)";
 
+/**
+ * 8-pointed star clip-path — mirrors the canvas renderer's starburst shape
+ * for entity hub nodes.
+ */
+const STAR_CLIP_PATH =
+  "polygon(50% 0%, 65% 35%, 100% 50%, 65% 65%, 50% 100%, 35% 65%, 0% 50%, 35% 35%)";
+
 interface ShapeIndicatorProps {
   kind: ListItemKind;
   color: string;
@@ -52,6 +59,14 @@ export default function ShapeIndicator({
         <span
           className={base}
           style={{ backgroundColor: color, clipPath: HEX_CLIP_PATH }}
+          aria-hidden
+        />
+      );
+    case "entity":
+      return (
+        <span
+          className={base}
+          style={{ backgroundColor: color, clipPath: STAR_CLIP_PATH }}
           aria-hidden
         />
       );

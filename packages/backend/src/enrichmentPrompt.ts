@@ -14,6 +14,19 @@ export function sanitizeTag(tag: string): string {
     .slice(0, 50);
 }
 
+const ENTITY_TYPES = ["person", "organization", "place", "technology"] as const;
+export type EntityType = (typeof ENTITY_TYPES)[number];
+
+export function normalizeEntityName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ").slice(0, 100);
+}
+
+export interface ExtractedEntity {
+  name: string;
+  normalizedName: string;
+  type: EntityType;
+}
+
 export interface EnrichmentCandidate {
   id: string;
   title: string;
@@ -28,13 +41,18 @@ export function buildFullEnrichmentPrompt(
     .map((m) => `${m.id}: ${m.title}`)
     .join("\n");
 
-  return `You are a memory tagging system. Respond with ONLY a JSON object — no explanation, no thinking, no markdown.
+  return `You are a memory tagging and entity extraction system. Respond with ONLY a JSON object — no explanation, no thinking, no markdown.
 
 Given a memory and a list of existing memories:
 
 1. Generate 3-5 semantic topic tags for this memory. Tags should be lowercase, specific, and reusable (e.g. "react", "authentication", "graph-algorithms", "typescript"). Avoid generic tags like "programming" or "article".
 
 2. From the provided list, identify any memories that are semantically related to this one. Only include strong relationships — shared topic, continuation of the same work, or direct reference.
+
+3. Extract named entities mentioned in this memory. For each, provide name and type.
+   Types: "person", "organization", "place", "technology".
+   Use canonical names (e.g. "TypeScript" not "TS", "Google" not "google LLC").
+   Only extract specific named entities, not vague references.
 
 Memory:
 Title: ${title}
@@ -44,7 +62,7 @@ Existing memories:
 ${memoryList || "(none)"}
 
 Respond with ONLY this JSON format, nothing else:
-{"tags": ["tag1", "tag2"], "relatedMemoryIds": ["id1"]}`;
+{"tags": ["tag1", "tag2"], "relatedMemoryIds": ["id1"], "entities": [{"name": "React", "type": "technology"}]}`;
 }
 
 function extractJsonString(raw: string): string {
@@ -91,6 +109,34 @@ function isStringArrayAllowEmpty(value: unknown): value is string[] {
 export interface ParsedFullEnrichment {
   tags: string[];
   relatedMemoryIds: string[];
+  entities: ExtractedEntity[];
+}
+
+function isValidEntityType(t: string): t is EntityType {
+  return (ENTITY_TYPES as readonly string[]).includes(t);
+}
+
+/**
+ * Parse entities from LLM response. Gracefully returns [] when the field is
+ * missing or malformed — backward compatible with models that don't emit it.
+ */
+function parseEntities(raw: unknown): ExtractedEntity[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const result: ExtractedEntity[] = [];
+  for (const item of raw) {
+    if (typeof item !== "object" || item === null) continue;
+    const name = Reflect.get(item, "name");
+    const type = Reflect.get(item, "type");
+    if (typeof name !== "string" || name.trim().length === 0) continue;
+    if (typeof type !== "string" || !isValidEntityType(type)) continue;
+    const normalizedName = normalizeEntityName(name);
+    const dedupKey = `${normalizedName}:${type}`;
+    if (seen.has(dedupKey)) continue;
+    seen.add(dedupKey);
+    result.push({ name: name.trim(), normalizedName, type });
+  }
+  return result.slice(0, 10);
 }
 
 export function parseFullEnrichmentResponse(
@@ -103,6 +149,7 @@ export function parseFullEnrichmentResponse(
     if (!("tags" in parsed)) return null;
     const tagsRaw = Reflect.get(parsed, "tags");
     const relatedRaw = Reflect.get(parsed, "relatedMemoryIds");
+    const entitiesRaw = Reflect.get(parsed, "entities");
     if (!isNonEmptyStringArray(tagsRaw)) return null;
     const tags = tagsRaw
       .map(sanitizeTag)
@@ -113,7 +160,8 @@ export function parseFullEnrichmentResponse(
       relatedRaw !== undefined && isStringArrayAllowEmpty(relatedRaw)
         ? relatedRaw.filter((id) => id.length > 0)
         : [];
-    return { tags, relatedMemoryIds };
+    const entities = parseEntities(entitiesRaw);
+    return { tags, relatedMemoryIds, entities };
   } catch {
     console.error("[enrichment] Failed to parse LLM response:", raw);
     return null;

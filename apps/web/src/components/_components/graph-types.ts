@@ -13,7 +13,7 @@ export interface NodeAttributes {
 
 export interface EdgeAttributes {
   weight: number;
-  edgeType: "tag" | "relates_to";
+  edgeType: "tag" | "relates_to" | "mentions";
   reason?: string;
   score?: number;
 }

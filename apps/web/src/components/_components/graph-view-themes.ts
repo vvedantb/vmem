@@ -17,6 +17,7 @@ export interface EdgeColorsByType {
   tag: string;
   relates_to: string;
   wiki_parent: string;
+  mentions: string;
 }
 
 export interface GraphViewTheme {
@@ -59,6 +60,7 @@ const DEFAULT_DARK: GraphViewTheme = {
       tag: "rgba(180,180,200,0.18)",
       relates_to: "rgba(255,170,110,0.55)",
       wiki_parent: "rgba(130,170,255,0.5)",
+      mentions: "rgba(100,200,160,0.45)",
     },
     connected: "rgba(255,255,255,0.85)",
     dimmed: "rgba(255,255,255,0.025)",
@@ -93,6 +95,7 @@ const DEFAULT_LIGHT: GraphViewTheme = {
       tag: "rgba(60,70,90,0.22)",
       relates_to: "rgba(200,90,30,0.65)",
       wiki_parent: "rgba(60,100,200,0.55)",
+      mentions: "rgba(30,140,100,0.55)",
     },
     connected: "rgba(0,0,0,0.75)",
     dimmed: "rgba(0,0,0,0.05)",
@@ -127,6 +130,7 @@ const SATELLITE: GraphViewTheme = {
       tag: "rgba(160,150,200,0.12)",
       relates_to: "rgba(255,180,120,0.55)",
       wiki_parent: "rgba(140,200,255,0.5)",
+      mentions: "rgba(100,200,160,0.4)",
     },
     connected: "rgba(200,180,255,0.9)",
     dimmed: "rgba(255,255,255,0.015)",
@@ -164,6 +168,7 @@ const CONSTELLATION: GraphViewTheme = {
       tag: "rgba(140,180,255,0.45)",
       relates_to: "rgba(255,200,140,0.85)",
       wiki_parent: "rgba(180,220,255,0.75)",
+      mentions: "rgba(100,220,170,0.65)",
     },
     connected: "rgba(220,235,255,0.95)",
     dimmed: "rgba(140,180,255,0.08)",
@@ -198,6 +203,7 @@ const BLUEPRINT: GraphViewTheme = {
       tag: "#a8b8cc",
       relates_to: "#c67b3f",
       wiki_parent: "#4a6b9a",
+      mentions: "#3a9070",
     },
     connected: "#5b7b9a",
     dimmed: "rgba(139,164,188,0.2)",
@@ -232,6 +238,7 @@ const MINIMAL_DARK: GraphViewTheme = {
       tag: "rgba(255,255,255,0.07)",
       relates_to: "rgba(230,180,130,0.4)",
       wiki_parent: "rgba(160,190,230,0.35)",
+      mentions: "rgba(100,200,160,0.35)",
     },
     connected: "rgba(255,255,255,0.55)",
     dimmed: "rgba(255,255,255,0.01)",
@@ -269,6 +276,7 @@ const MINIMAL_LIGHT: GraphViewTheme = {
       tag: "rgba(0,0,0,0.1)",
       relates_to: "rgba(150,80,30,0.5)",
       wiki_parent: "rgba(40,70,130,0.4)",
+      mentions: "rgba(30,140,100,0.45)",
     },
     connected: "rgba(0,0,0,0.55)",
     dimmed: "rgba(0,0,0,0.02)",

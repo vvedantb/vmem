@@ -321,6 +321,15 @@ export const applyEnrichment = authAction({
     memoryId: v.string(),
     tags: v.array(v.string()),
     relatedMemoryIds: v.optional(v.array(v.string())),
+    entities: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          normalizedName: v.string(),
+          type: v.string(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args): Promise<{ applied: boolean }> => {
     const clerkId: string | null = await ctx.runQuery(
@@ -335,6 +344,7 @@ export const applyEnrichment = authAction({
         memoryId: args.memoryId,
         tags: args.tags,
         relatedMemoryIds: args.relatedMemoryIds,
+        entities: args.entities,
       },
     );
   },

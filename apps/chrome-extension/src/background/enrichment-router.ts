@@ -19,7 +19,11 @@ interface ModelStatusResponse {
 interface EnrichmentGeneratedResponse {
   type: "ENRICHMENT_GENERATED";
   requestId: string;
-  result: { tags: string[]; relatedMemoryIds: string[] } | null;
+  result: {
+    tags: string[];
+    relatedMemoryIds: string[];
+    entities: Array<{ name: string; normalizedName: string; type: string }>;
+  } | null;
   error?: string;
 }
 
@@ -110,7 +114,11 @@ export async function enrichMemory(
   title: string,
   content: string,
   existingMemories: Array<{ id: string; title: string }>,
-): Promise<{ tags: string[]; relatedMemoryIds: string[] } | null> {
+): Promise<{
+  tags: string[];
+  relatedMemoryIds: string[];
+  entities: Array<{ name: string; normalizedName: string; type: string }>;
+} | null> {
   if (activeMethod === null) {
     await initializeEnrichment();
   }
