@@ -223,16 +223,15 @@ function createMainThreadSimulation(
   const chargeStrength = -scalingRatio * 8;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
-  const linkForce = forceLink<GraphNode, GraphEdge>(edges)
+  // Only structural edges participate in physics — tag edges are visual-only.
+  // This prevents nodes from clustering just because they share tags, keeping
+  // the layout driven by meaningful semantic relationships.
+  const structuralEdges = edges.filter((e) => e.edgeType !== "tag");
+
+  const linkForce = forceLink<GraphNode, GraphEdge>(structuralEdges)
     .id((d) => d.id)
     .distance(70)
-    .strength((d) =>
-      d.edgeType === "relates_to" ||
-      d.edgeType === "imports" ||
-      d.edgeType === "wiki_parent"
-        ? 0.6
-        : 0.12,
-    );
+    .strength(0.6);
 
   const chargeForce = forceManyBody<GraphNode>()
     .strength(chargeStrength)

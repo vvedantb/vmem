@@ -1,5 +1,11 @@
 # Changelog
 
+## Graph Physics: Tag Edges Visual-Only — 2026-04-25
+
+- **Excluded tag edges from D3 force simulation**: Tag edges (shared tag relationships) no longer participate in physics calculations. Only `relates_to`, `imports`, and `wiki_parent` edges pull nodes together, preventing artificial clustering from incidental tag matches.
+- **Cleaner semantic-driven layouts**: Graph layout now clusters nodes based on meaningful relationships rather than surface-level tag overlap — memories that share a "work" tag no longer get pulled together unless semantically related.
+- **Simplified link force strength**: Removed conditional strength branching (`0.3`/`0.12` vs `0.6`/`0.8`) since tag edges are excluded; all structural edges now use uniform `0.6` strength.
+
 ## Server-Side Enrichment Migration — 2026-04-25
 
 - **Moved memory enrichment from local WebLLM to server-side OpenRouter**: Local Qwen3-0.6B was too small for reliable structured JSON output — tags were inconsistent, `<think>` tags broke parsing, and model downloads failed on poor connections. New `enrichMemoryInternal` Convex action calls Qwen3-235B-A22B via OpenRouter (~$0.00015/memory) with dramatically better quality.
