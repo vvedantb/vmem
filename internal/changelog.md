@@ -1,5 +1,12 @@
 # Changelog
 
+## AI Chat Integration UX Fixes — 2026-04-25
+
+- **Keyboard shortcut changed to Alt+S**: Replaced non-working Ctrl+Shift+S with Alt+S, now shows an in-page toast confirming save success or failure via `chrome.scripting.executeScript`
+- **Memory panel loading spinner**: Auto-search now shows a spinner with "Searching memories…" immediately when the search fires, replacing the 5-second blank wait before results appear
+- **Memory panel footer hint**: Added "Hit send to include context" footer so users understand the workflow — memories are auto-injected on send, no manual selection needed
+- **Source labels for prompt-capture and YouTube**: Added missing entries to `MEMORY_SOURCE_LABELS` so these sources display properly in the web dashboard filters
+
 ## AI Chat Integration & Onboarding — 2026-04-25
 
 - **Auto-search memories in AI chats**: As users type in ChatGPT or Claude, vmem now automatically searches for relevant memories and displays them in a floating panel above the input. Memories are injected as context when the user sends their message. Turns vmem from "save and forget" into "save and automatically resurface."
