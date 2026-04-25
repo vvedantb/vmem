@@ -1,5 +1,13 @@
 # Changelog
 
+## Embedding Auto-Linking: Semantic Memory Connections — 2026-04-25
+
+- **Automatic semantic edges**: New memories with embeddings now automatically link to up to 5 semantically similar existing memories (threshold ≥ 0.78 cosine similarity). Uses the existing Neo4j vector index; ~10–20ms added latency (negligible vs. embedding HTTP call).
+- **Backfill migration for existing memories**: Added `startSemanticEdgesBackfill` action to create semantic edges for all memories saved before this feature. Self-rescheduling in batches of 50 — kick off once from Convex dashboard and it drains the queue automatically.
+- **Similarity score in graph visualization**: Semantic edges display their cosine similarity score (0–1) as a percentage in the graph tooltip (e.g., "semantic similarity (84%)"). Edited `score` through Convex types + frontend types (zod schemas, canvas types, component props).
+- **Covers connector imports too**: Semantic edges created for memories from connectors (Google Drive, Notion) and MCP sources when they have embeddings. Non-semantic relationships (same-domain, content-similarity) coexist.
+- **Why Neo4j matters**: Flat vector stores (Mem0, Supermemory approach) can't do multi-hop traversal or cluster detection. Neo4j's graph structure enables future features: "find all memories related to this cluster," "show evidence chain for this conclusion," "detect entity networks."
+
 ## Chrome Extension Resilience & Enrichment Fixes — 2026-04-25
 
 - **Safe messaging for content scripts**: All 6 `chrome.runtime.sendMessage` calls in content scripts now go through `safeSendMessage`, which guards against invalidated extension contexts (extension reload/update) instead of crashing with "Cannot read properties of undefined"

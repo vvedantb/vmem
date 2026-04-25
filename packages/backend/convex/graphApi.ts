@@ -44,7 +44,12 @@ interface GraphNodeEntry {
 
 interface GraphResult {
   nodes: GraphNodeEntry[];
-  relatesToEdges: { source: string; target: string; reason: string }[];
+  relatesToEdges: {
+    source: string;
+    target: string;
+    reason: string;
+    score?: number;
+  }[];
   tagEdges: {
     source: string;
     target: string;
@@ -65,7 +70,12 @@ interface MemoryGraph {
     sourceType: string | null;
     type?: MemoryType;
   }[];
-  relatesToEdges: { source: string; target: string; reason: string }[];
+  relatesToEdges: {
+    source: string;
+    target: string;
+    reason: string;
+    score?: number;
+  }[];
   tagEdges: {
     source: string;
     target: string;

@@ -44,6 +44,7 @@ const relatesToEdgeSchema = z.object({
   source: z.string(),
   target: z.string(),
   reason: z.string(),
+  score: z.number().optional(),
 });
 
 const tagEdgeSchema = z.object({
