@@ -1,5 +1,14 @@
 # Changelog
 
+## Version Chain UI — Memory History Timeline — 2026-04-25
+
+- **Explicit versioning for memory edit history**: History tab now displays memories as numbered versions (v1, v2, v3...) instead of a flat event timeline, making it clear how a memory evolved over time. Users click any version dot to jump to that version, and arrow buttons step through sequentially.
+- **Visual version navigator**: Compact dot navigator shows all versions at a glance, with filled/empty dots indicating presence of snapshots. Current version highlighted, metadata shows "v3 of 5 · Created Mar 12 · Last: 2h ago".
+- **Change summary per version**: Each version card displays inline stats ("+42 chars, -10 chars, +productivity tag, -work tag") so users can scan what changed without opening the diff. Title changes shown as strikethrough → new title.
+- **Diff preview on selection**: Clicking a version card expands to show the full diff from the previous version (colored additions/deletions). Non-selected cards stay compact for fast browsing.
+- **Files affected**: `apps/web/src/lib/timeline.ts`, `apps/web/src/hooks/useVersionChain.ts` (new), `apps/web/src/components/_components/VersionChainBar.tsx` (new), `apps/web/src/components/_components/VersionCard.tsx` (new), `apps/web/src/components/_components/HistoryTab.tsx`
+- **Reason**: Memory audits currently show a flat chronological timeline of events, making it hard to see what changed at each step or compare versions. Explicit versioning with change summaries is a higher-fidelity UX for memory lifecycle transparency — a vmem core differentiator vs Mem0/Supermemory, which either silent-overwrite or lack version history altogether.
+
 ## Memory Vector Search — Hybrid Retrieval via RRF — 2026-04-24
 
 - **Semantic embeddings on every memory write**: Added `packages/backend/src/neo4j/embeddingService.ts` — a pure OpenRouter client (raw fetch, defensive runtime validation, no SDK or zod dep) that generates 1536-dim `openai/text-embedding-3-small` vectors. Threaded through all write paths: `createMemory` (web + MCP), `upsertFromSource` (Google Drive, OneDrive, Linear, Notion), so both user-authored memories and connector-synced documents get a semantic signal the moment they hit Neo4j.
