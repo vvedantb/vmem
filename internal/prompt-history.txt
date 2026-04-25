@@ -1,3 +1,31 @@
+[13:25, 23/04/2026] V: Expose mcp functions to create documents inside wiki, edit docs, and write docs
+[13:28, 23/04/2026] V: Set env var for api keys in app, convex reads that and uses that instead of me setting the openrouter api key
+[13:29, 23/04/2026] V: Can select which model to use for embeddings etc, completely configurable out of the box
+
+Microsoft pdf ingestion 
+Remotion mcp editor
+
+[]cmdk search
+
+the codebases resync on every commit to staging
+point of it is to give agents like eva context of the codebase before it starts working, so it doesnt need to explore the codebase every time to work on a tasks
+acts like an index of the codebase
+wont get stale as it resyncs per commit and each task is usually isolated, or for worktrees this would be ideal
+
+
+[]add more import options, like gemini, grok, 
+
+[]add more connectors,  like sharepoint, etc
+
+[]add a company knowledge tab, company needs to invite you to their team, this then creates a profile for you based on the company, like "Evalucom Profile", where you would save all your memories to, then everyone can see each other's memories
+should be able to create team, invite members to it, it then creates a profile for them
+company knowledge to access all company knowledge across employees
+inspiration from team learning pressentations on sharepoint, severance with work/personal life memories split, 
+new mcp for this connection, /company/mcp instead of /mcp to access company knowledge, including your own memories
+
+
+
+
 stats maybe show for each profile somehow? how do we show this?
 add filter for profile type in memory list/graph
 
@@ -74,3 +102,32 @@ chrome extension
 [x] can you place to get rid of the usestate for forms and instead think of a better way? e.g. if using convex we dont need local state since convex is reactive/live by default. if not using convex then this should be replaced with react hook form and zod
 [x] in the convex folder, don't check for user for every query and mutation, instead we can create a custom authQuery etc inside auth.ts using the convex-helpers package, "convex-helpers/server/customFunctions" and then make those helper functions like authQuery, authMutation, authAction, authInternalAction etc and then use those functions across memories.ts, etc
 [x] also why do we have a convex-server.ts file? and api-auth? we are using clerk and convex? this is not how to do this. we can just do fetchQuery from convex for server fetches
+
+2 more issues
+context icon is not showing up anywhere
+get rid of the local thing in the footer pls, not needed anymore
+
+
+
+
+
+
+
+
+
+
+1. Refactor the settings area so it no longer uses the current `settings/page.tsx` layout. Create a settings sidebar with visible tabs for `Preferences` and `Data Controls`, and move the settings experience into that tabbed layout. Keep it consistent with the current app shell and make the default view land on `Preferences`.
+
+2. Improve the mobile header/navbar styling. Make it feel more intentional and polished, with better spacing, hierarchy, and responsiveness. Preserve the current functionality, but make the mobile top bar look cleaner and more premium.
+
+3. Redesign the sidebar section headers. Remove the current reveal-on-click section behavior. Each section should always show a fixed header in the format `[icon] Section Title` followed by a horizontal line extending to the end of the row, with that section's tabs always visible underneath.
+
+4. Add a footer card above the divider called `Today's Stats`. It should show two metrics: `Memories Added` and `Memories Retrieved`. Match the existing visual style and use mock data for now.
+
+5. Update the API logs page so the top three summary cards are larger and include simple line charts using mock data. The charts should feel like lightweight usage trend visuals rather than full analytics dashboards.
+
+6. Rename `Logs` to `Usage` and rename the `API` section to `API Keys` throughout the UI where appropriate, so the information architecture is clearer and there is no generic `API` section label anymore.
+
+7. Redesign the memories list view. Remove the table and modal pattern. Make the list use cards instead, where each card shows the memory title on the first row and tags on the second row. When a memory is clicked, split the page into a two-column layout and show the selected memory details in a right-hand panel. Remove the `Created` column entirely.
+
+8. Add a reusable right-click context menu component to `packages/ui` so it can be used across the app. It should fit the existing component patterns and styling in the shared UI package.

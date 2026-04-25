@@ -9,15 +9,20 @@
   },
   "scripts": {
     "dev": "npx convex dev",
-    "deploy": "npx convex deploy"
+    "deploy": "npx convex deploy",
+    "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed.ts",
+    "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts"
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "catalog:",
+    "@convex-dev/action-cache": "^0.3.0",
+    "@convex-dev/action-retrier": "^0.3.0",
     "@convex-dev/agent": "catalog:",
     "@neo4j/cypher-builder": "^3.0.1",
     "@notionhq/client": "^2.2.15",
     "ai": "catalog:",
     "convex": "catalog:",
+    "convex-audit-log": "^0.2.0",
     "convex-helpers": "catalog:",
     "googleapis": "^144.0.0",
     "jsonwebtoken": "catalog:",
@@ -26,6 +31,7 @@
   "devDependencies": {
     "@types/jsonwebtoken": "catalog:",
     "@types/node": "catalog:node-types-22",
+    "@typescript/native-preview": "catalog:",
     "typescript": "catalog:"
   }
 }

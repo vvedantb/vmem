@@ -4,6 +4,7 @@ import { internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { auditLog, ResourceTypes } from "./auditLog";
 
 /**
  * Teams & team memberships.
@@ -138,6 +139,15 @@ export const create = authMutation({
       updatedAt: now,
     });
 
+    await auditLog.log(ctx, {
+      action: "team.created",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.TEAM,
+      resourceId: teamId,
+      metadata: { name, profileId },
+      severity: "info",
+    });
+
     return { teamId, profileId };
   },
 });
@@ -153,6 +163,7 @@ export const updateTeam = authMutation({
     const name = args.name.trim();
     if (!name) throw new Error("Team name is required");
 
+    const before = await ctx.db.get(teamId);
     const now = Date.now();
     await ctx.db.patch(teamId, { name, updatedAt: now });
 
@@ -163,6 +174,17 @@ export const updateTeam = authMutation({
     if (profile) {
       await ctx.db.patch(profile._id, { name, updatedAt: now });
     }
+
+    await auditLog.logChange(ctx, {
+      action: "team.renamed",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.TEAM,
+      resourceId: teamId,
+      before: { name: before?.name ?? null },
+      after: { name },
+      severity: "info",
+    });
+
     return { updated: true };
   },
 });
@@ -204,6 +226,16 @@ export const addMember = authMutation({
       role: "member",
       joinedAt: now,
     });
+
+    await auditLog.log(ctx, {
+      action: "team.member_added",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.TEAM_MEMBER,
+      resourceId: `${teamId}:${user._id}`,
+      metadata: { teamId, memberUserId: user._id, role: "member" },
+      severity: "info",
+    });
+
     return { added: true, userId: user._id };
   },
 });
@@ -240,6 +272,16 @@ export const removeMember = authMutation({
     }
 
     await ctx.db.delete(target._id);
+
+    await auditLog.log(ctx, {
+      action: "team.member_removed",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.TEAM_MEMBER,
+      resourceId: `${teamId}:${targetUserId}`,
+      metadata: { teamId, memberUserId: targetUserId, role: target.role },
+      severity: "warning",
+    });
+
     return { removed: true };
   },
 });
@@ -273,6 +315,16 @@ export const leaveTeam = authMutation({
     }
 
     await ctx.db.delete(membership._id);
+
+    await auditLog.log(ctx, {
+      action: "team.member_left",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.TEAM_MEMBER,
+      resourceId: `${teamId}:${ctx.userId}`,
+      metadata: { teamId, role: membership.role },
+      severity: "info",
+    });
+
     return { left: true };
   },
 });
@@ -312,9 +364,11 @@ export const deleteTeam = authAction({
       );
     }
 
-    // Now delete DB rows
+    // Now delete DB rows (finalize logs the audit event before deletion so
+    // the team name is still available).
     await ctx.runMutation(internal.teams.finalizeDeleteTeamInternal, {
       teamId: args.teamId,
+      actorUserId: ctx.userId,
     });
     return { deleted: true };
   },
@@ -354,15 +408,29 @@ export const prepareDeleteTeamInternal = internalMutation({
 
 /** Phase 2: drop memberships, profile, team (Neo4j already purged). */
 export const finalizeDeleteTeamInternal = internalMutation({
-  args: { teamId: v.string() },
+  args: { teamId: v.string(), actorUserId: v.id("users") },
   handler: async (ctx, args) => {
     const teamId = ctx.db.normalizeId("teams", args.teamId);
     if (!teamId) throw new Error("Team not found");
 
+    const team = await ctx.db.get(teamId);
     const members = await ctx.db
       .query("teamMembers")
       .withIndex("by_team", (q) => q.eq("teamId", teamId))
       .collect();
+
+    await auditLog.log(ctx, {
+      action: "team.deleted",
+      actorId: args.actorUserId,
+      resourceType: ResourceTypes.TEAM,
+      resourceId: teamId,
+      metadata: {
+        name: team?.name ?? null,
+        memberCount: members.length,
+      },
+      severity: "warning",
+    });
+
     for (const m of members) {
       await ctx.db.delete(m._id);
     }

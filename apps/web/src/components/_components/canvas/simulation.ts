@@ -51,6 +51,26 @@ export function createSimulation(
 
 // ------ Worker-backed simulation ------
 
+// Golden angle for spiral layout — optimal packing like sunflower seeds
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+
+/**
+ * Computes golden spiral position for a node at index i of n total nodes.
+ * Returns [x, y] centered at origin.
+ */
+function goldenSpiralPosition(
+  index: number,
+  total: number,
+): { x: number; y: number } {
+  const scale = Math.sqrt(total) * 40;
+  const angle = index * GOLDEN_ANGLE;
+  const radius = scale * Math.sqrt((index + 1) / total);
+  return {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * radius,
+  };
+}
+
 function createWorkerSimulation(
   nodes: GraphNode[],
   edges: GraphEdge[],
@@ -66,12 +86,16 @@ function createWorkerSimulation(
   for (const n of nodes) nodeById.set(n.id, n);
 
   // Lightweight node data for the worker (strip d3 simulation properties)
-  const workerNodes = nodes.map((n) => ({
-    id: n.id,
-    size: n.size,
-    x: n.x ?? (Math.random() - 0.5) * 100,
-    y: n.y ?? (Math.random() - 0.5) * 100,
-  }));
+  // Use golden spiral for initial positions instead of random — reduces chaos
+  const workerNodes = nodes.map((n, i) => {
+    const spiral = goldenSpiralPosition(i, nodes.length);
+    return {
+      id: n.id,
+      size: n.size,
+      x: n.x ?? spiral.x,
+      y: n.y ?? spiral.y,
+    };
+  });
 
   // Resolve edge source/target to string IDs
   const workerEdges = edges.map((e) => ({
@@ -155,12 +179,15 @@ function createWorkerSimulation(
       // This is here for interface compatibility.
       worker.postMessage({
         type: "init",
-        nodes: newNodes.map((n) => ({
-          id: n.id,
-          size: n.size,
-          x: n.x ?? (Math.random() - 0.5) * 100,
-          y: n.y ?? (Math.random() - 0.5) * 100,
-        })),
+        nodes: newNodes.map((n, i) => {
+          const spiral = goldenSpiralPosition(i, newNodes.length);
+          return {
+            id: n.id,
+            size: n.size,
+            x: n.x ?? spiral.x,
+            y: n.y ?? spiral.y,
+          };
+        }),
         edges: newEdges.map((e) => ({
           source: typeof e.source === "string" ? e.source : e.source.id,
           target: typeof e.target === "string" ? e.target : e.target.id,
@@ -184,7 +211,16 @@ function createMainThreadSimulation(
   scalingRatio: number,
   gravity: number,
 ): SimulationController {
-  const chargeStrength = -scalingRatio * 5;
+  // Initialize positions with golden spiral if not already set
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].x === undefined || nodes[i].y === undefined) {
+      const spiral = goldenSpiralPosition(i, nodes.length);
+      nodes[i].x = spiral.x;
+      nodes[i].y = spiral.y;
+    }
+  }
+
+  const chargeStrength = -scalingRatio * 8;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
   const linkForce = forceLink<GraphNode, GraphEdge>(edges)
@@ -237,11 +273,12 @@ function createMainThreadSimulation(
     },
 
     reheat() {
-      simulation.alpha(0.5).restart();
+      const current = simulation.alpha();
+      simulation.alpha(Math.max(current, 0.1)).restart();
     },
 
     setStrength(s: number) {
-      chargeForce.strength(-s * 5);
+      chargeForce.strength(-s * 8);
       simulation.alpha(0.3).restart();
     },
 

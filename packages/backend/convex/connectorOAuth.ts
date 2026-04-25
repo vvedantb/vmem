@@ -3,10 +3,11 @@ import { internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authAction } from "./auth";
 import { encryptToken, decryptToken, getEnvOrThrow } from "./lib/crypto";
+import { auditLog, ResourceTypes } from "./auditLog";
 
 // --- Provider configurations ---
 
-type Provider = "google_drive" | "notion";
+type Provider = "google_drive" | "notion" | "onedrive" | "linear";
 
 interface ProviderConfig {
   authUrl: string;
@@ -27,6 +28,18 @@ const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
     tokenUrl: "https://api.notion.com/v1/oauth/token",
     revokeUrl: null,
     scopes: [],
+  },
+  onedrive: {
+    authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+    tokenUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+    revokeUrl: null,
+    scopes: ["Files.Read.All", "offline_access"],
+  },
+  linear: {
+    authUrl: "https://linear.app/oauth/authorize",
+    tokenUrl: "https://api.linear.app/oauth/token",
+    revokeUrl: "https://api.linear.app/oauth/revoke",
+    scopes: ["read"],
   },
 };
 
@@ -104,6 +117,33 @@ export const startOAuth = authAction({
       return `${config.authUrl}?${params.toString()}`;
     }
 
+    if (provider === "onedrive") {
+      const clientId = getEnvOrThrow("MICROSOFT_CLIENT_ID");
+      const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: "code",
+        scope: config.scopes.join(" "),
+        response_mode: "query",
+        prompt: "consent",
+        state,
+      });
+      return `${config.authUrl}?${params.toString()}`;
+    }
+
+    if (provider === "linear") {
+      const clientId = getEnvOrThrow("LINEAR_CLIENT_ID");
+      const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: "code",
+        scope: config.scopes.join(" "),
+        prompt: "consent",
+        state,
+      });
+      return `${config.authUrl}?${params.toString()}`;
+    }
+
     throw new Error(`Unsupported provider: ${provider}`);
   },
 });
@@ -141,12 +181,41 @@ export const disconnect = authAction({
       }
     }
 
+    if (tokens && connector.provider === "linear") {
+      try {
+        const accessToken = await decryptToken(tokens.accessToken);
+        // Revoke with Linear API (best-effort)
+        await fetch("https://api.linear.app/oauth/revoke", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ access_token: accessToken }),
+        });
+      } catch {
+        // Best effort — continue even if revocation fails
+      }
+    }
+
+    // OneDrive: no revoke endpoint for consumer accounts — token deletion only
+
     // 3. Delete tokens and mark disconnected
     await ctx.runMutation(internal.connectorTokens.deleteTokensInternal, {
       connectorId: args.connectorId,
     });
     await ctx.runMutation(internal.connectors.markDisconnectedInternal, {
       id: args.connectorId,
+    });
+
+    await auditLog.log(ctx, {
+      action: "connector.disconnected",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.CONNECTOR,
+      resourceId: args.connectorId,
+      metadata: {
+        name: connector.name,
+        provider: connector.provider ?? null,
+        via: "oauth_revoke",
+      },
+      severity: "warning",
     });
   },
 });
@@ -168,6 +237,24 @@ interface NotionTokenResponse {
   bot_id?: string;
   workspace_id?: string;
   workspace_name?: string;
+  error?: string;
+}
+
+interface OneDriveTokenResponse {
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  token_type?: string;
+  scope?: string;
+  error?: string;
+  error_description?: string;
+}
+
+interface LinearTokenResponse {
+  access_token?: string;
+  token_type?: string;
+  expires_in?: number;
+  scope?: string;
   error?: string;
 }
 
@@ -303,6 +390,98 @@ export const handleCallbackInternal = internalAction({
         tokenType: tokenData.token_type ?? "Bearer",
         scope: "",
       });
+    } else if (provider === "onedrive") {
+      const clientId = getEnvOrThrow("MICROSOFT_CLIENT_ID");
+      const clientSecret = getEnvOrThrow("MICROSOFT_CLIENT_SECRET");
+
+      const tokenRes = await fetch(PROVIDER_CONFIGS.onedrive.tokenUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code: args.code,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code",
+          scope: PROVIDER_CONFIGS.onedrive.scopes.join(" "),
+        }),
+      });
+
+      if (!tokenRes.ok) {
+        return {
+          error: "token_exchange_failed",
+          frontendUrl: stateEntry.returnUrl,
+          connectorId: stateEntry.connectorId,
+        };
+      }
+
+      const tokenData: OneDriveTokenResponse = await tokenRes.json();
+      if (!tokenData.access_token) {
+        return {
+          error: tokenData.error ?? "no_token",
+          frontendUrl: stateEntry.returnUrl,
+          connectorId: stateEntry.connectorId,
+        };
+      }
+
+      const encryptedAccess = await encryptToken(tokenData.access_token);
+      const encryptedRefresh = await encryptToken(
+        tokenData.refresh_token ?? "",
+      );
+
+      await ctx.runMutation(internal.connectorTokens.storeTokensInternal, {
+        connectorId: stateEntry.connectorId,
+        accessToken: encryptedAccess,
+        refreshToken: encryptedRefresh,
+        expiresAt: Date.now() + (tokenData.expires_in ?? 3600) * 1000,
+        tokenType: tokenData.token_type ?? "Bearer",
+        scope: tokenData.scope ?? "",
+      });
+    } else if (provider === "linear") {
+      const clientId = getEnvOrThrow("LINEAR_CLIENT_ID");
+      const clientSecret = getEnvOrThrow("LINEAR_CLIENT_SECRET");
+
+      const tokenRes = await fetch(PROVIDER_CONFIGS.linear.tokenUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code: args.code,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code",
+        }),
+      });
+
+      if (!tokenRes.ok) {
+        return {
+          error: "token_exchange_failed",
+          frontendUrl: stateEntry.returnUrl,
+          connectorId: stateEntry.connectorId,
+        };
+      }
+
+      const tokenData: LinearTokenResponse = await tokenRes.json();
+      if (!tokenData.access_token) {
+        return {
+          error: tokenData.error ?? "no_token",
+          frontendUrl: stateEntry.returnUrl,
+          connectorId: stateEntry.connectorId,
+        };
+      }
+
+      // Linear access tokens last ~10 years and have no refresh token.
+      // Store like Notion: empty refresh, expiresAt=0 (treat as non-expiring).
+      const encryptedAccess = await encryptToken(tokenData.access_token);
+
+      await ctx.runMutation(internal.connectorTokens.storeTokensInternal, {
+        connectorId: stateEntry.connectorId,
+        accessToken: encryptedAccess,
+        refreshToken: "",
+        expiresAt: 0,
+        tokenType: tokenData.token_type ?? "Bearer",
+        scope: tokenData.scope ?? "",
+      });
     } else {
       return {
         error: `unsupported_provider: ${provider}`,
@@ -314,6 +493,15 @@ export const handleCallbackInternal = internalAction({
     // 4. Mark connector as connected
     await ctx.runMutation(internal.connectors.markConnectedInternal, {
       id: stateEntry.connectorId,
+    });
+
+    await auditLog.log(ctx, {
+      action: "connector.connected",
+      actorId: stateEntry.userId,
+      resourceType: ResourceTypes.CONNECTOR,
+      resourceId: stateEntry.connectorId,
+      metadata: { provider, via: "oauth_callback" },
+      severity: "info",
     });
 
     return {

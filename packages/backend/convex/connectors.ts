@@ -1,8 +1,14 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
+import { auditLog, ResourceTypes } from "./auditLog";
 
-type ConnectorProvider = "google_drive" | "notion" | "gmail";
+type ConnectorProvider =
+  | "google_drive"
+  | "notion"
+  | "gmail"
+  | "onedrive"
+  | "linear";
 
 interface DefaultConnector {
   name: string;
@@ -22,7 +28,7 @@ const DEFAULT_CONNECTORS: DefaultConnector[] = [
     name: "OneDrive",
     description: "Connect your Microsoft OneDrive files and documents",
     icon: "IconBrandOnedrive",
-    // No provider — Coming Soon stub
+    provider: "onedrive",
   },
   {
     name: "Dropbox",
@@ -35,6 +41,12 @@ const DEFAULT_CONNECTORS: DefaultConnector[] = [
     description: "Sync pages, databases, and wikis from Notion",
     icon: "IconBrandNotion",
     provider: "notion",
+  },
+  {
+    name: "Linear",
+    description: "Sync issues, comments, and projects from Linear",
+    icon: "IconBrandLinear",
+    provider: "linear",
   },
   {
     name: "Slack",
@@ -115,6 +127,15 @@ export const connect = authMutation({
     await ctx.db.patch(args.id, {
       connectionStatus: "connected",
     });
+
+    await auditLog.log(ctx, {
+      action: "connector.connected",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.CONNECTOR,
+      resourceId: args.id,
+      metadata: { name: connector.name, provider: connector.provider ?? null },
+      severity: "info",
+    });
   },
 });
 
@@ -133,6 +154,15 @@ export const disconnect = authMutation({
       itemsSynced: 0,
       lastSyncAt: undefined,
       errorMessage: undefined,
+    });
+
+    await auditLog.log(ctx, {
+      action: "connector.disconnected",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.CONNECTOR,
+      resourceId: args.id,
+      metadata: { name: connector.name, provider: connector.provider ?? null },
+      severity: "warning",
     });
   },
 });
@@ -229,6 +259,10 @@ export const migrateAddProviders = internalMutation({
           provider = "google_drive";
         } else if (connector.name === "Notion") {
           provider = "notion";
+        } else if (connector.name === "OneDrive") {
+          provider = "onedrive";
+        } else if (connector.name === "Linear") {
+          provider = "linear";
         }
         if (provider) {
           await ctx.db.patch(connector._id, { provider });

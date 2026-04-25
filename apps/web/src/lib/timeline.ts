@@ -21,3 +21,20 @@ export interface TimelineEvent {
 }
 
 export type TimelineMode = "history" | "trail";
+
+export interface ChangeSummary {
+  addedChars: number;
+  removedChars: number;
+  tagsAdded: string[];
+  tagsRemoved: string[];
+}
+
+export interface VersionEntry {
+  version: number;
+  eventId: string;
+  action: string;
+  actor: string;
+  createdAt: string;
+  snapshot: MemorySnapshot;
+  changeSummary: ChangeSummary | null;
+}

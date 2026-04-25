@@ -1,14 +1,20 @@
 import { v } from "convex/values";
 import { authAction } from "./auth";
 import { internal } from "./_generated/api";
-import { decryptToken, getEnvOrThrow } from "./lib/crypto";
+import { decryptToken, encryptToken, getEnvOrThrow } from "./lib/crypto";
+import { retrier } from "./retrier";
 
 /**
  * Public sync action — frontend calls this via useAction.
  * Validates ownership, handles token refresh, schedules background sync.
  */
 export const startSync = authAction({
-  args: { connectorId: v.id("connectors") },
+  args: {
+    connectorId: v.id("connectors"),
+    // Linear-only: if true, pull full history instead of the default 30-day window.
+    // Ignored for all other providers.
+    fullHistory: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
     // 1. Get connector and validate ownership
     const connector = await ctx.runQuery(internal.connectors.getByIdInternal, {
@@ -44,11 +50,12 @@ export const startSync = authAction({
     // 4. Decrypt access token
     let accessToken = await decryptToken(tokens.accessToken);
 
-    // 5. Refresh if Google token is expired
-    if (
-      connector.provider === "google_drive" &&
-      tokens.expiresAt < Date.now()
-    ) {
+    // 5. Refresh expired tokens for providers that use refresh tokens
+    //    (Google Drive + OneDrive). Notion + Linear have non-expiring tokens.
+    const usesRefresh =
+      connector.provider === "google_drive" ||
+      connector.provider === "onedrive";
+    if (usesRefresh && tokens.expiresAt < Date.now()) {
       if (!tokens.refreshToken) {
         throw new Error(
           "Token expired and no refresh token — please reconnect",
@@ -56,10 +63,23 @@ export const startSync = authAction({
       }
 
       const refreshToken = await decryptToken(tokens.refreshToken);
-      const clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
-      const clientSecret = getEnvOrThrow("GOOGLE_CLIENT_SECRET");
 
-      const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
+      let refreshUrl: string;
+      let clientId: string;
+      let clientSecret: string;
+      if (connector.provider === "google_drive") {
+        refreshUrl = "https://oauth2.googleapis.com/token";
+        clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
+        clientSecret = getEnvOrThrow("GOOGLE_CLIENT_SECRET");
+      } else {
+        // onedrive
+        refreshUrl =
+          "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+        clientId = getEnvOrThrow("MICROSOFT_CLIENT_ID");
+        clientSecret = getEnvOrThrow("MICROSOFT_CLIENT_SECRET");
+      }
+
+      const refreshRes = await fetch(refreshUrl, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -84,20 +104,25 @@ export const startSync = authAction({
       interface RefreshResponse {
         access_token?: string;
         expires_in?: number;
+        refresh_token?: string;
       }
       const refreshData: RefreshResponse = await refreshRes.json();
       if (!refreshData.access_token) {
         throw new Error("Token refresh failed — please reconnect");
       }
 
-      // Store new access token (reuse existing refresh token)
-      const { encryptToken } = await import("./lib/crypto");
+      // Microsoft rotates refresh tokens on each use — if a new one came back,
+      // re-encrypt and persist it. Otherwise keep the existing encrypted refresh
+      // token (Google does not rotate).
       const encryptedAccess = await encryptToken(refreshData.access_token);
+      const encryptedRefresh = refreshData.refresh_token
+        ? await encryptToken(refreshData.refresh_token)
+        : tokens.refreshToken;
 
       await ctx.runMutation(internal.connectorTokens.storeTokensInternal, {
         connectorId: args.connectorId,
         accessToken: encryptedAccess,
-        refreshToken: tokens.refreshToken, // Keep existing encrypted refresh token
+        refreshToken: encryptedRefresh,
         expiresAt: Date.now() + (refreshData.expires_in ?? 3600) * 1000,
         tokenType: tokens.tokenType,
         scope: tokens.scope,
@@ -114,10 +139,13 @@ export const startSync = authAction({
       errorMessage: undefined,
     });
 
-    // 7. Schedule background sync based on provider
+    // 7. Schedule background sync based on provider.
+    //    Routed through the retrier so transient Neo4j / Google / Notion
+    //    failures replay with exponential backoff instead of surfacing as a
+    //    silent half-finished sync.
     if (connector.provider === "google_drive") {
-      await ctx.scheduler.runAfter(
-        0,
+      await retrier.run(
+        ctx,
         internal.neo4jActions.connectorSync.syncGoogleDriveInternal,
         {
           clerkId,
@@ -126,13 +154,34 @@ export const startSync = authAction({
         },
       );
     } else if (connector.provider === "notion") {
-      await ctx.scheduler.runAfter(
-        0,
+      await retrier.run(
+        ctx,
         internal.neo4jActions.connectorSync.syncNotionInternal,
         {
           clerkId,
           connectorId: args.connectorId,
           accessToken,
+        },
+      );
+    } else if (connector.provider === "onedrive") {
+      await retrier.run(
+        ctx,
+        internal.neo4jActions.connectorSync.syncOneDriveInternal,
+        {
+          clerkId,
+          connectorId: args.connectorId,
+          accessToken,
+        },
+      );
+    } else if (connector.provider === "linear") {
+      await retrier.run(
+        ctx,
+        internal.neo4jActions.connectorSync.syncLinearInternal,
+        {
+          clerkId,
+          connectorId: args.connectorId,
+          accessToken,
+          fullHistory: args.fullHistory ?? false,
         },
       );
     } else {

@@ -26,6 +26,7 @@ interface MemoryListResult {
 
 interface ScoreBreakdown {
   fulltext: number;
+  vector: number;
   recency: number;
   confidence: number;
 }
@@ -136,9 +137,12 @@ export const getMemory = authAction({
 
 export const listMemories = authAction({
   args: {
+    profileId: v.optional(v.string()),
     type: v.optional(v.string()),
     status: v.optional(v.string()),
+    source: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
+    searchQuery: v.optional(v.string()),
     limit: v.number(),
     offset: v.number(),
   },
@@ -152,9 +156,12 @@ export const listMemories = authAction({
       internal.neo4jActions.memories.listMemoriesInternal,
       {
         clerkId,
+        profileId: args.profileId,
         type: args.type,
         status: args.status,
+        source: args.source,
         tags: args.tags,
+        searchQuery: args.searchQuery,
         limit: args.limit,
         offset: args.offset,
       },
