@@ -253,13 +253,33 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       const resolvedEdgesCache: ResolvedEdge[] = [];
       resolvedEdgesRef.current = resolvedEdgesCache;
       function resolveEdges() {
+        // Build a node lookup so we can resolve string-based source/target
+        // refs ourselves. D3 only mutates edges that go through forceLink
+        // (structural edges), and in the Worker path it doesn't mutate the
+        // main-thread edge objects at all. This manual resolution handles
+        // both cases uniformly.
+        const nodeById = new Map<string, GraphNode>();
+        for (const n of nodesRef.current) nodeById.set(n.id, n);
+
         resolvedEdgesCache.length = 0;
         for (const edge of edgesRef.current) {
-          if (
-            typeof edge.source === "object" &&
+          const sourceNode =
+            typeof edge.source === "object"
+              ? edge.source
+              : nodeById.get(edge.source);
+          const targetNode =
             typeof edge.target === "object"
-          ) {
-            resolvedEdgesCache.push(edge as ResolvedEdge);
+              ? edge.target
+              : nodeById.get(edge.target);
+          if (sourceNode && targetNode) {
+            resolvedEdgesCache.push({
+              source: sourceNode,
+              target: targetNode,
+              edgeType: edge.edgeType,
+              weight: edge.weight,
+              reason: edge.reason,
+              score: edge.score,
+            });
           }
         }
       }
