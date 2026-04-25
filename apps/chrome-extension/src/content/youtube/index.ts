@@ -4,6 +4,7 @@
  */
 
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
+import { safeSendMessage } from "@/lib/safe-message";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -174,30 +175,27 @@ async function handleSaveClick(): Promise<void> {
       transcript: transcript || "(No transcript available)",
     };
 
-    chrome.runtime.sendMessage(
-      message,
-      (response: BackgroundResponse | undefined) => {
-        if (response?.type === "SAVE_RESULT" && response.success) {
-          button.innerHTML = `<span style="color: #16a34a;">✓ Saved!</span>`;
-          setTimeout(() => {
-            button.innerHTML = originalContent;
-            button.disabled = false;
-          }, 2000);
-        } else if (response?.type === "SAVE_DUPLICATE") {
-          button.innerHTML = `<span style="color: #ca8a04;">Already saved</span>`;
-          setTimeout(() => {
-            button.innerHTML = originalContent;
-            button.disabled = false;
-          }, 2000);
-        } else {
-          button.innerHTML = `<span style="color: #dc2626;">Failed</span>`;
-          setTimeout(() => {
-            button.innerHTML = originalContent;
-            button.disabled = false;
-          }, 2000);
-        }
-      },
-    );
+    safeSendMessage<BackgroundResponse>(message, (response) => {
+      if (response?.type === "SAVE_RESULT" && response.success) {
+        button.innerHTML = `<span style="color: #16a34a;">✓ Saved!</span>`;
+        setTimeout(() => {
+          button.innerHTML = originalContent;
+          button.disabled = false;
+        }, 2000);
+      } else if (response?.type === "SAVE_DUPLICATE") {
+        button.innerHTML = `<span style="color: #ca8a04;">Already saved</span>`;
+        setTimeout(() => {
+          button.innerHTML = originalContent;
+          button.disabled = false;
+        }, 2000);
+      } else {
+        button.innerHTML = `<span style="color: #dc2626;">Failed</span>`;
+        setTimeout(() => {
+          button.innerHTML = originalContent;
+          button.disabled = false;
+        }, 2000);
+      }
+    });
   } catch (err) {
     console.error("[vmem] Save failed:", err);
     button.innerHTML = `<span style="color: #dc2626;">Error</span>`;
