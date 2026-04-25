@@ -1,3 +1,16 @@
+https://www.convex.dev/components/djpanda/convex-tenants
+https://www.convex.dev/components/convex-api-keys
+https://www.convex.dev/components/convex-invite-links
+https://www.convex.dev/components/00akshatsinha00/convex-api-keys
+https://www.convex.dev/components/convex-api-tokens
+https://www.convex.dev/components/hamzasaleem2/convex-comments
+https://www.convex.dev/components/convex-audit-log
+https://www.convex.dev/components/retrier
+https://www.convex.dev/components/clipin/convex-wearables
+https://www.convex.dev/components/convex-secret-store
+
+can any of these components be useful for us in this app, search web for all links
+
 [13:25, 23/04/2026] V: Expose mcp functions to create documents inside wiki, edit docs, and write docs
 [13:28, 23/04/2026] V: Set env var for api keys in app, convex reads that and uses that instead of me setting the openrouter api key
 [13:29, 23/04/2026] V: Can select which model to use for embeddings etc, completely configurable out of the box

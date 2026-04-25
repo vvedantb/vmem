@@ -13,9 +13,15 @@ export type GraphNodeKind =
   | "memory"
   | "wiki-document"
   | "wiki-folder"
-  | "skill";
+  | "skill"
+  | "entity";
 
-export type GraphEdgeType = "tag" | "relates_to" | "imports" | "wiki_parent";
+export type GraphEdgeType =
+  | "tag"
+  | "relates_to"
+  | "imports"
+  | "wiki_parent"
+  | "mentions";
 
 export interface GraphNode extends SimulationNodeDatum {
   id: string;
@@ -39,6 +45,8 @@ export interface GraphNode extends SimulationNodeDatum {
    * disturbing the tag-hash colour.
    */
   sourceType: string | null;
+  /** Entity sub-type (person/organization/place/technology). Only for entity nodes. */
+  entityType?: string;
 }
 
 export interface GraphEdge extends SimulationLinkDatum<GraphNode> {

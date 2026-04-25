@@ -7,6 +7,10 @@ import { MemoryService } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { generateEmbeddings } from "../../src/neo4j/embeddingService";
 import { tryUserEnvVarByClerkId } from "../lib/envVars";
+import {
+  buildFullEnrichmentPrompt,
+  parseFullEnrichmentResponse,
+} from "../../src/enrichmentPrompt";
 
 interface MigrationResult {
   profileId: string;
@@ -307,6 +311,168 @@ export const startSemanticEdgesBackfill = internalAction({
     await ctx.scheduler.runAfter(
       0,
       internal.neo4jActions.migration.backfillSemanticEdgesInternal,
+      {},
+    );
+    return { started: true };
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Entity extraction backfill
+//
+// Runs LLM enrichment on memories that have never had entity extraction.
+// Smaller batch size (20) since each memory requires an LLM call.
+// Same self-rescheduling cursor pattern as embedding/semantic backfills.
+//
+// Kick off via Convex dashboard:
+//   internal.neo4jActions.migration.startEntityBackfill
+// ─────────────────────────────────────────────────────────────────────────────
+
+const LLM_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+const LLM_MODEL = "qwen/qwen3-30b-a3b";
+
+export const backfillEntitiesInternal = internalAction({
+  args: { batchSize: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const BATCH = args.batchSize ?? 20;
+    const service = new MemoryService(getDriver());
+
+    const rows = await service.listMissingEntities(BATCH);
+    if (rows.length === 0) {
+      console.log("entity backfill: drained");
+      return { done: true, processed: 0 };
+    }
+
+    // Group by userId so we resolve API keys once per user
+    const byUser = new Map<
+      string,
+      Array<{ id: string; title: string; content: string }>
+    >();
+    for (const r of rows) {
+      const existing = byUser.get(r.userId) ?? [];
+      existing.push({ id: r.id, title: r.title, content: r.content });
+      byUser.set(r.userId, existing);
+    }
+
+    let processed = 0;
+    const processedIds: string[] = [];
+
+    for (const [clerkId, items] of byUser) {
+      try {
+        const apiKey = await tryUserEnvVarByClerkId(
+          ctx,
+          clerkId,
+          "OPENROUTER_API_KEY",
+        );
+        if (!apiKey) {
+          console.warn(
+            `entity backfill: skipping user ${clerkId} (no OPENROUTER_API_KEY)`,
+          );
+          // Still mark as processed to avoid infinite retry
+          for (const item of items) processedIds.push(item.id);
+          continue;
+        }
+
+        // Get recent memory titles for the enrichment prompt context
+        const existingMemories = await service.getRecentMemoryTitles(
+          clerkId,
+          "",
+        );
+
+        for (const item of items) {
+          try {
+            const prompt = buildFullEnrichmentPrompt(
+              item.title,
+              item.content,
+              existingMemories,
+            );
+
+            const res = await fetch(LLM_ENDPOINT, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://vmem.vedantb.com",
+                "X-Title": "vmem",
+              },
+              body: JSON.stringify({
+                model: LLM_MODEL,
+                messages: [
+                  {
+                    role: "system",
+                    content:
+                      "You are a memory tagging and entity extraction system. Respond with ONLY valid JSON. No thinking, no markdown.",
+                  },
+                  { role: "user", content: prompt },
+                ],
+                temperature: 0.1,
+              }),
+            });
+
+            if (!res.ok) {
+              console.error(
+                `entity backfill: LLM ${res.status} for ${item.id}`,
+              );
+              processedIds.push(item.id);
+              continue;
+            }
+
+            const json = await res.json();
+            const llmContent = json?.choices?.[0]?.message?.content;
+            if (typeof llmContent !== "string") {
+              processedIds.push(item.id);
+              continue;
+            }
+
+            const parsed = parseFullEnrichmentResponse(llmContent);
+            if (parsed && parsed.entities.length > 0) {
+              await service.applyEntitiesOnly(
+                item.id,
+                clerkId,
+                parsed.entities,
+              );
+            }
+            processedIds.push(item.id);
+            processed++;
+          } catch (e) {
+            console.error(`entity backfill: failed for memory ${item.id}`, e);
+            processedIds.push(item.id);
+          }
+        }
+      } catch (e) {
+        console.error(`entity backfill: user ${clerkId} batch failed`, e);
+        for (const item of items) processedIds.push(item.id);
+      }
+    }
+
+    if (processedIds.length > 0) {
+      await service.markEntityExtracted(processedIds);
+    }
+
+    console.log(
+      `entity backfill: processed ${processed}/${rows.length}, rescheduling`,
+    );
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.neo4jActions.migration.backfillEntitiesInternal,
+      { batchSize: BATCH },
+    );
+
+    return { done: false, processed };
+  },
+});
+
+/**
+ * Convenience kickoff action for entity extraction backfill.
+ * Call once from the Convex dashboard.
+ */
+export const startEntityBackfill = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    await ctx.scheduler.runAfter(
+      0,
+      internal.neo4jActions.migration.backfillEntitiesInternal,
       {},
     );
     return { started: true };

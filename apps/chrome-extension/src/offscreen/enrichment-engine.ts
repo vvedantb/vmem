@@ -121,7 +121,11 @@ export async function generateFullEnrichment(
   title: string,
   content: string,
   existingMemories: Array<{ id: string; title: string }>,
-): Promise<{ tags: string[]; relatedMemoryIds: string[] } | null> {
+): Promise<{
+  tags: string[];
+  relatedMemoryIds: string[];
+  entities: Array<{ name: string; normalizedName: string; type: string }>;
+} | null> {
   if (!engine || status.state !== "ready") {
     console.error("[webllm] Model not loaded, cannot generate enrichment");
     return null;
@@ -157,6 +161,7 @@ export async function generateFullEnrichment(
       return {
         tags: parsed.tags.slice(0, 5),
         relatedMemoryIds: parsed.relatedMemoryIds,
+        entities: parsed.entities,
       };
     }
 

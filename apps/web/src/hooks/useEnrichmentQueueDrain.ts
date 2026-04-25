@@ -72,6 +72,7 @@ export function useEnrichmentQueueDrain(): void {
             memoryId: row.memoryId,
             tags: parsed.tags,
             relatedMemoryIds: parsed.relatedMemoryIds,
+            entities: parsed.entities,
           });
           await removePending({ memoryId: row.memoryId });
           ok += 1;

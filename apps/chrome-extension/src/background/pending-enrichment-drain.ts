@@ -48,6 +48,7 @@ export async function drainPendingEnrichmentQueue(): Promise<void> {
             row.memoryId,
             result.tags,
             result.relatedMemoryIds,
+            result.entities,
           );
           await removePendingEnrichment(row.memoryId);
         }

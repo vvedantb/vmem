@@ -64,6 +64,8 @@ interface ScoreBreakdown {
   vector: number;
   recency: number;
   confidence: number;
+  /** Graph proximity boost. 1.0 for 1-hop, 0.5 for 2-hop, 0 otherwise. */
+  graphBoost: number;
 }
 
 interface MemoryCandidate extends MemoryWithTags {
@@ -376,6 +378,34 @@ export class MemoryService {
         }
       }
 
+      // Semantic similarity edges — find top-5 most similar existing memories
+      // using the vector index and create RELATES_TO edges above the threshold.
+      // MERGE avoids duplicating edges that already exist from same-session or
+      // same-domain; ON CREATE SET ensures score is only written on new edges.
+      if (params.embedding !== null) {
+        await session.run(
+          `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
+           YIELD node AS candidate, score AS similarity
+           WHERE candidate.userId = $userId
+             AND candidate.id <> $id
+             AND similarity >= $threshold
+           WITH candidate, similarity
+           ORDER BY similarity DESC
+           LIMIT $limit
+           MATCH (m:Memory {id: $id})
+           MERGE (m)-[r:RELATES_TO]->(candidate)
+           ON CREATE SET r.reason = 'semantic similarity', r.score = similarity`,
+          {
+            k: neo4j.int(20),
+            embedding: params.embedding,
+            userId: params.userId,
+            id,
+            threshold: 0.78,
+            limit: neo4j.int(5),
+          },
+        );
+      }
+
       const firstRecord = result.records[0];
       if (!firstRecord) throw new Error("Failed to create memory");
       return toMemoryWithTags(firstRecord);
@@ -533,10 +563,35 @@ export class MemoryService {
       const firstRecord = result.records[0];
       if (!firstRecord) throw new Error("Failed to upsert memory from source");
 
-      return {
-        id: String(firstRecord.get("id")),
-        created: Boolean(firstRecord.get("wasCreated")),
-      };
+      const memoryId = String(firstRecord.get("id"));
+      const wasCreated = Boolean(firstRecord.get("wasCreated"));
+
+      // Semantic similarity edges on new memory creation (not updates)
+      if (wasCreated && params.embedding !== null) {
+        await session.run(
+          `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
+           YIELD node AS candidate, score AS similarity
+           WHERE candidate.userId = $userId
+             AND candidate.id <> $id
+             AND similarity >= $threshold
+           WITH candidate, similarity
+           ORDER BY similarity DESC
+           LIMIT $limit
+           MATCH (m:Memory {id: $id})
+           MERGE (m)-[r:RELATES_TO]->(candidate)
+           ON CREATE SET r.reason = 'semantic similarity', r.score = similarity`,
+          {
+            k: neo4j.int(20),
+            embedding: params.embedding,
+            userId: params.userId,
+            id: memoryId,
+            threshold: 0.78,
+            limit: neo4j.int(5),
+          },
+        );
+      }
+
+      return { id: memoryId, created: wasCreated };
     });
   }
 
@@ -903,6 +958,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         confidenceScore: number;
         ftRank: number | null;
         vecRank: number | null;
+        graphHops: number | null;
       }
       const merged = new Map<string, MergedEntry>();
 
@@ -918,6 +974,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           confidenceScore: memory.confidence,
           ftRank: idx + 1,
           vecRank: null,
+          graphHops: null,
         });
       });
 
@@ -939,9 +996,66 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
               confidenceScore: memory.confidence,
               ftRank: null,
               vecRank: idx + 1,
+              graphHops: null,
             });
           }
         });
+      }
+
+      // Leg 3: Graph expansion — discover memories 1-2 hops from the top
+      // initial BM25/vector matches via RELATES_TO and MENTIONS edges.
+      const TOP_N_SEEDS = 5;
+      const topSeeds = Array.from(merged.entries())
+        .sort((a, b) => {
+          const aRrf =
+            (a[1].ftRank === null ? 0 : rrfScore(a[1].ftRank)) +
+            (a[1].vecRank === null ? 0 : rrfScore(a[1].vecRank));
+          const bRrf =
+            (b[1].ftRank === null ? 0 : rrfScore(b[1].ftRank)) +
+            (b[1].vecRank === null ? 0 : rrfScore(b[1].vecRank));
+          return bRrf - aRrf;
+        })
+        .slice(0, TOP_N_SEEDS)
+        .map(([id]) => id);
+
+      const graphNeighbors =
+        topSeeds.length > 0
+          ? await this.expandViaGraph(topSeeds, params.userId, params.limit)
+          : [];
+
+      // Merge graph-discovered memories into the result set
+      for (const gn of graphNeighbors) {
+        const existing = merged.get(gn.id);
+        if (existing) {
+          existing.graphHops = gn.hops;
+        }
+      }
+
+      // Fetch metadata for graph-only discoveries (not in BM25/vector results)
+      const graphOnlyIds = graphNeighbors
+        .filter((gn) => !merged.has(gn.id))
+        .map((gn) => gn.id);
+
+      if (graphOnlyIds.length > 0) {
+        const metadata = await this.fetchMemoryMetadata(
+          graphOnlyIds,
+          params.userId,
+        );
+        for (const gn of graphNeighbors) {
+          if (merged.has(gn.id)) continue;
+          const meta = metadata.get(gn.id);
+          if (!meta) continue;
+          merged.set(gn.id, {
+            memory: meta.memory,
+            fulltextScore: 0,
+            vectorScore: 0,
+            recencyScore: recencyFromAgeDays(meta.ageInDays),
+            confidenceScore: meta.memory.confidence,
+            ftRank: null,
+            vecRank: null,
+            graphHops: gn.hops,
+          });
+        }
       }
 
       const candidates: MemoryCandidate[] = Array.from(merged.values()).map(
@@ -949,10 +1063,19 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           const rrfCombined =
             (entry.ftRank === null ? 0 : rrfScore(entry.ftRank)) +
             (entry.vecRank === null ? 0 : rrfScore(entry.vecRank));
+          const graphBoost =
+            entry.graphHops === null
+              ? 0
+              : entry.graphHops === 1
+                ? 1.0
+                : entry.graphHops === 2
+                  ? 0.5
+                  : 0;
           const totalScore =
-            rrfCombined * 0.5 +
-            entry.recencyScore * 0.25 +
-            entry.confidenceScore * 0.25;
+            rrfCombined * 0.45 +
+            graphBoost * 0.1 +
+            entry.recencyScore * 0.225 +
+            entry.confidenceScore * 0.225;
 
           const reasons: string[] = [];
           // "Both" is strictly stronger than either single-signal reason;
@@ -963,6 +1086,11 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
             reasons.push("strong semantic match");
           } else if (entry.fulltextScore > 0.5) {
             reasons.push("strong content match");
+          }
+          if (entry.graphHops === 1) {
+            reasons.push("directly connected in knowledge graph");
+          } else if (entry.graphHops === 2) {
+            reasons.push("nearby in knowledge graph (2 hops)");
           }
           if (entry.recencyScore > 0.8) reasons.push("recently created");
           if (entry.confidenceScore > 0.8)
@@ -983,6 +1111,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
                 vector: entry.vectorScore,
                 recency: entry.recencyScore,
                 confidence: entry.confidenceScore,
+                graphBoost,
               },
               reason:
                 reasons.length > 0
@@ -1534,6 +1663,12 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     }[];
     relatesToEdges: { source: string; target: string; reason: string }[];
     tagEdges: TagEdge[];
+    entities: Array<{
+      normalizedName: string;
+      name: string;
+      type: string;
+      memoryIds: string[];
+    }>;
   }> {
     // Two parallel sessions:
     //   1. Combined nodes + RELATES_TO edges in a single round-trip. Nodes
@@ -1583,9 +1718,18 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
            CALL (nodeIds) {
              MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
              WHERE a.id IN nodeIds AND b.id IN nodeIds
-             RETURN collect({source: a.id, target: b.id, reason: r.reason}) AS relatesToEdges
+             RETURN collect({source: a.id, target: b.id, reason: r.reason, score: r.score}) AS relatesToEdges
            }
-           RETURN nodes, relatesToEdges`,
+           CALL (nodeIds) {
+             MATCH (m:Memory)-[:MENTIONS]->(e:Entity)
+             WHERE m.id IN nodeIds
+             WITH e, collect(m.id) AS memoryIds
+             RETURN collect({
+               normalizedName: e.normalizedName, name: e.name,
+               type: e.type, memoryIds: memoryIds
+             }) AS entities
+           }
+           RETURN nodes, relatesToEdges, entities`,
           { userId, profileId: profileId ?? null },
         ),
         // Tag-edges. Seed MATCH gathers each tag's memory list once,
@@ -1616,6 +1760,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       const combinedRow = nodesEdgesResult.records[0];
       const rawNodes = combinedRow ? combinedRow.get("nodes") : [];
       const rawEdges = combinedRow ? combinedRow.get("relatesToEdges") : [];
+      const rawEntities = combinedRow ? combinedRow.get("entities") : [];
 
       const nodes = (Array.isArray(rawNodes) ? rawNodes : []).map((n) => ({
         id: String(n.id),
@@ -1635,9 +1780,18 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         }),
       );
 
+      const entities = (Array.isArray(rawEntities) ? rawEntities : []).map(
+        (e) => ({
+          normalizedName: String(e.normalizedName),
+          name: String(e.name),
+          type: String(e.type),
+          memoryIds: Array.isArray(e.memoryIds) ? e.memoryIds.map(String) : [],
+        }),
+      );
+
       const tagEdges = tagEdgesResult.records.map(toTagEdge);
 
-      return { nodes, relatesToEdges, tagEdges };
+      return { nodes, relatesToEdges, tagEdges, entities };
     } finally {
       await Promise.all([nodesEdgesSession.close(), tagEdgesSession.close()]);
     }
@@ -1743,26 +1897,28 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     }
 
     if (nodeIds.length === 0) {
-      return { nodes: [], relatesToEdges: [], tagEdges: [] };
+      return { nodes: [], relatesToEdges: [], tagEdges: [], entities: [] };
     }
 
-    // Edges scoped to the local neighbourhood: both RELATES_TO edges between
-    // resolved nodes and tag-shared edges are computed in Cypher in parallel.
+    // Edges scoped to the local neighbourhood: RELATES_TO, tag-shared, and
+    // entity data are computed in Cypher in parallel across separate sessions.
     const relatesToSession = this.driver.session();
     const tagEdgesSession = this.driver.session();
+    const entitySession = this.driver.session();
     try {
-      const [relatesToResult, tagEdgesResult] = await Promise.all([
-        relatesToSession.run(
-          `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
+      const [relatesToResult, tagEdgesResult, entityResult] = await Promise.all(
+        [
+          relatesToSession.run(
+            `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
            WHERE a.id IN $nodeIds AND b.id IN $nodeIds
-           RETURN a.id AS source, b.id AS target, r.reason AS reason`,
-          { nodeIds },
-        ),
-        tagEdgesSession.run(
-          // No popular-tag pre-filter needed here — the node set is already
-          // bounded by the focus neighbourhood (LIMIT 500 upstream), so the
-          // pair cartesian is always small.
-          `MATCH (m1:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(m2:Memory)
+           RETURN a.id AS source, b.id AS target, r.reason AS reason, r.score AS score`,
+            { nodeIds },
+          ),
+          tagEdgesSession.run(
+            // No popular-tag pre-filter needed here — the node set is already
+            // bounded by the focus neighbourhood (LIMIT 500 upstream), so the
+            // pair cartesian is always small.
+            `MATCH (m1:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(m2:Memory)
            WHERE m1.id IN $nodeIds AND m2.id IN $nodeIds AND m1.id < m2.id
            WITH m1, m2, collect(DISTINCT t.name) AS sharedTagsAll
            WITH m1, m2, sharedTagsAll, size(sharedTagsAll) AS weight
@@ -1771,21 +1927,50 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
                   sharedTagsAll[..5] AS sharedTags
            ORDER BY weight DESC
            LIMIT 2000`,
-          { nodeIds },
-        ),
-      ]);
+            { nodeIds },
+          ),
+          entitySession.run(
+            `MATCH (m:Memory)-[:MENTIONS]->(e:Entity)
+           WHERE m.id IN $nodeIds
+           WITH e, collect(m.id) AS memoryIds
+           RETURN e.normalizedName AS normalizedName, e.name AS name,
+                  e.type AS type, memoryIds`,
+            { nodeIds },
+          ),
+        ],
+      );
 
-      const relatesToEdges = relatesToResult.records.map((r) => ({
-        source: String(r.get("source")),
-        target: String(r.get("target")),
-        reason: String(r.get("reason") ?? ""),
+      const relatesToEdges = relatesToResult.records.map((r) => {
+        const rawScore = r.get("score");
+        return {
+          source: String(r.get("source")),
+          target: String(r.get("target")),
+          reason: String(r.get("reason") ?? ""),
+          score:
+            rawScore !== null && rawScore !== undefined
+              ? Number(rawScore)
+              : undefined,
+        };
+      });
+
+      const entities = entityResult.records.map((r) => ({
+        normalizedName: String(r.get("normalizedName")),
+        name: String(r.get("name")),
+        type: String(r.get("type")),
+        memoryIds: Array.isArray(r.get("memoryIds"))
+          ? r.get("memoryIds").map(String)
+          : [],
       }));
 
       const tagEdges = tagEdgesResult.records.map(toTagEdge);
 
-      return { nodes, relatesToEdges, tagEdges };
+      return { nodes, relatesToEdges, tagEdges, entities };
     } finally {
-      await Promise.all([relatesToSession.close(), tagEdgesSession.close()]);
+      await Promise.all([
+        relatesToSession.close(),
+        tagEdgesSession.close(),
+        entitySession.close(),
+      ]);
     }
   }
 
@@ -1815,6 +2000,11 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     userId: string,
     tags: string[],
     relatedIds: string[],
+    entities: Array<{
+      name: string;
+      normalizedName: string;
+      type: string;
+    }> = [],
   ): Promise<void> {
     return this.withSession(async (session) => {
       const tx = session.beginTransaction();
@@ -1850,11 +2040,58 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           );
         }
 
+        // Entity extraction: delete old MENTIONS edges, MERGE entity nodes,
+        // re-create MENTIONS edges. Same pattern as TAGGED_WITH above.
+        if (entities.length > 0) {
+          await tx.run(
+            `MATCH (m:Memory {id: $memoryId, userId: $userId})
+             OPTIONAL MATCH (m)-[r:MENTIONS]->(:Entity)
+             DELETE r
+             WITH m
+             FOREACH (ent IN $entities |
+               MERGE (e:Entity {userId: $userId, normalizedName: ent.normalizedName, type: ent.type})
+               ON CREATE SET e.name = ent.name, e.id = randomUUID(), e.createdAt = datetime()
+               MERGE (m)-[:MENTIONS]->(e)
+             )`,
+            { memoryId, userId, entities },
+          );
+        }
+
         await tx.commit();
       } catch (err) {
         await tx.rollback();
         throw err;
       }
+    });
+  }
+
+  /**
+   * Entity-only enrichment for backfill. Applies MENTIONS edges without
+   * touching tags or RELATES_TO edges.
+   */
+  async applyEntitiesOnly(
+    memoryId: string,
+    userId: string,
+    entities: Array<{
+      name: string;
+      normalizedName: string;
+      type: string;
+    }>,
+  ): Promise<void> {
+    if (entities.length === 0) return;
+    return this.withSession(async (session) => {
+      await session.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})
+         OPTIONAL MATCH (m)-[r:MENTIONS]->(:Entity)
+         DELETE r
+         WITH m
+         FOREACH (ent IN $entities |
+           MERGE (e:Entity {userId: $userId, normalizedName: ent.normalizedName, type: ent.type})
+           ON CREATE SET e.name = ent.name, e.id = randomUUID(), e.createdAt = datetime()
+           MERGE (m)-[:MENTIONS]->(e)
+         )`,
+        { memoryId, userId, entities },
+      );
     });
   }
 
@@ -2036,6 +2273,210 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
          SET m.embedding = r.embedding`,
         { rows },
       );
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Semantic edge backfill helpers
+  //
+  // Used by the migration in `convex/neo4jActions/migration.ts` to retroactively
+  // create embedding-based RELATES_TO edges for memories that existed before
+  // auto-linking shipped. Mirrors the embedding backfill pattern.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /** Return memories with embeddings that haven't been processed for semantic edges yet. */
+  async listMissingSemanticEdges(
+    limit: number,
+  ): Promise<Array<{ id: string; userId: string; embedding: number[] }>> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory)
+         WHERE m.embedding IS NOT NULL AND m.semanticEdgesAt IS NULL
+         RETURN m.id AS id, m.userId AS userId, m.embedding AS embedding
+         ORDER BY m.createdAt DESC
+         LIMIT $limit`,
+        { limit: neo4j.int(limit) },
+      );
+      return result.records.map((r) => ({
+        id: String(r.get("id")),
+        userId: String(r.get("userId")),
+        embedding: r.get("embedding") as number[],
+      }));
+    });
+  }
+
+  /** Create semantic similarity edges for a single memory using the vector index. */
+  async createSemanticEdgesForMemory(
+    memoryId: string,
+    userId: string,
+    embedding: number[],
+  ): Promise<number> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
+         YIELD node AS candidate, score AS similarity
+         WHERE candidate.userId = $userId
+           AND candidate.id <> $id
+           AND similarity >= $threshold
+         WITH candidate, similarity
+         ORDER BY similarity DESC
+         LIMIT $limit
+         MATCH (m:Memory {id: $id})
+         MERGE (m)-[r:RELATES_TO]->(candidate)
+         ON CREATE SET r.reason = 'semantic similarity', r.score = similarity
+         RETURN count(r) AS created`,
+        {
+          k: neo4j.int(20),
+          embedding,
+          userId,
+          id: memoryId,
+          threshold: 0.78,
+          limit: neo4j.int(5),
+        },
+      );
+      const record = result.records[0];
+      return record ? toNeoInt(record.get("created")) : 0;
+    });
+  }
+
+  /** Mark memories as processed for semantic edges so the backfill skips them. */
+  async markSemanticEdgesProcessed(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await this.withSession(async (session) => {
+      await session.run(
+        `UNWIND $ids AS memId
+         MATCH (m:Memory {id: memId})
+         SET m.semanticEdgesAt = datetime()`,
+        { ids },
+      );
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Entity backfill helpers
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /** List memories that have not had entity extraction run yet. */
+  async listMissingEntities(
+    limit: number,
+  ): Promise<
+    Array<{ id: string; userId: string; title: string; content: string }>
+  > {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory)
+         WHERE m.entityExtractedAt IS NULL
+           AND coalesce(m.status, 'active') IN ['active', 'pinned']
+         RETURN m.id AS id, m.userId AS userId, m.title AS title, m.content AS content
+         ORDER BY m.createdAt DESC
+         LIMIT $limit`,
+        { limit: neo4j.int(limit) },
+      );
+      return result.records.map((r) => ({
+        id: String(r.get("id")),
+        userId: String(r.get("userId")),
+        title: String(r.get("title")),
+        content: String(r.get("content") ?? ""),
+      }));
+    });
+  }
+
+  /** Mark memories as processed for entity extraction. */
+  async markEntityExtracted(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await this.withSession(async (session) => {
+      await session.run(
+        `UNWIND $ids AS memId
+         MATCH (m:Memory {id: memId})
+         SET m.entityExtractedAt = datetime()`,
+        { ids },
+      );
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Graph-augmented retrieval helpers
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Expand from seed memory IDs via 1-2 hops through RELATES_TO and MENTIONS
+   * edges. Returns neighbouring memory IDs with their minimum hop distance.
+   */
+  async expandViaGraph(
+    seedIds: string[],
+    userId: string,
+    limit: number = 50,
+  ): Promise<Array<{ id: string; hops: number }>> {
+    if (seedIds.length === 0) return [];
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `// 1-hop: direct RELATES_TO neighbor
+         MATCH (seed:Memory {userId: $userId})-[:RELATES_TO]-(neighbor:Memory {userId: $userId})
+         WHERE seed.id IN $seedIds AND NOT neighbor.id IN $seedIds
+           AND coalesce(neighbor.status, 'active') IN ['active', 'pinned']
+         RETURN DISTINCT neighbor.id AS id, 1 AS hops
+         UNION
+         // 1-hop via entity hub: memory→entity←memory
+         MATCH (seed:Memory {userId: $userId})-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(neighbor:Memory {userId: $userId})
+         WHERE seed.id IN $seedIds AND NOT neighbor.id IN $seedIds
+           AND coalesce(neighbor.status, 'active') IN ['active', 'pinned']
+         RETURN DISTINCT neighbor.id AS id, 1 AS hops
+         UNION
+         // 2-hop: memory→memory→memory
+         MATCH (seed:Memory {userId: $userId})-[:RELATES_TO]-(mid:Memory {userId: $userId})-[:RELATES_TO]-(neighbor:Memory {userId: $userId})
+         WHERE seed.id IN $seedIds AND NOT neighbor.id IN $seedIds AND NOT mid.id IN $seedIds
+           AND coalesce(mid.status, 'active') IN ['active', 'pinned']
+           AND coalesce(neighbor.status, 'active') IN ['active', 'pinned']
+         RETURN DISTINCT neighbor.id AS id, 2 AS hops`,
+        { seedIds, userId },
+      );
+
+      // Dedup: keep minimum hop count per memory id
+      const hopMap = new Map<string, number>();
+      for (const r of result.records) {
+        const id = String(r.get("id"));
+        const hops = toNeoInt(r.get("hops"));
+        const existing = hopMap.get(id);
+        if (existing === undefined || hops < existing) {
+          hopMap.set(id, hops);
+        }
+      }
+      return Array.from(hopMap.entries())
+        .map(([id, hops]) => ({ id, hops }))
+        .sort((a, b) => a.hops - b.hops)
+        .slice(0, limit);
+    });
+  }
+
+  /**
+   * Batch-fetch memory metadata for graph-discovered IDs that weren't in the
+   * initial BM25/vector results. Returns enough data to build MergedEntry.
+   */
+  async fetchMemoryMetadata(
+    ids: string[],
+    userId: string,
+  ): Promise<Map<string, { memory: MemoryWithTags; ageInDays: number }>> {
+    if (ids.length === 0) return new Map();
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE m.id IN $ids
+         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+         WITH m, collect(t.name) AS tags,
+              duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
+         RETURN m, tags, ageInDays`,
+        { ids, userId },
+      );
+      const map = new Map<
+        string,
+        { memory: MemoryWithTags; ageInDays: number }
+      >();
+      for (const r of result.records) {
+        const memory = toMemoryWithTags(r);
+        const ageInDays = toNeoInt(r.get("ageInDays"));
+        map.set(memory.id, { memory, ageInDays });
+      }
+      return map;
     });
   }
 
