@@ -15,12 +15,6 @@ import {
 } from "@vmem/ui";
 import { toast } from "sonner";
 import {
-  IconBrandGoogleDrive,
-  IconBrandOnedrive,
-  IconBrandDropbox,
-  IconBrandNotion,
-  IconBrandSlack,
-  IconBrandGithub,
   IconCheck,
   IconLoader2,
   IconRefresh,
@@ -31,18 +25,26 @@ import {
 } from "@tabler/icons-react";
 import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
-import LinearIcon from "./LinearIcon";
+import {
+  GoogleDriveIcon,
+  OneDriveIcon,
+  DropboxIcon,
+  NotionIcon,
+  SlackIcon,
+  GitHubIcon,
+  LinearIcon,
+} from "./brand-icons";
 
 const iconMap: Record<
   string,
-  React.ComponentType<{ size?: number; stroke?: number; className?: string }>
+  React.ComponentType<{ size?: number; className?: string }>
 > = {
-  IconBrandGoogleDrive,
-  IconBrandOnedrive,
-  IconBrandDropbox,
-  IconBrandNotion,
-  IconBrandSlack,
-  IconBrandGithub,
+  IconBrandGoogleDrive: GoogleDriveIcon,
+  IconBrandOnedrive: OneDriveIcon,
+  IconBrandDropbox: DropboxIcon,
+  IconBrandNotion: NotionIcon,
+  IconBrandSlack: SlackIcon,
+  IconBrandGithub: GitHubIcon,
   IconBrandLinear: LinearIcon,
 };
 
@@ -75,7 +77,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
   const disconnectAction = useAction(api.connectorOAuth.disconnect);
   const startSyncAction = useAction(api.connectorSync.startSync);
 
-  const Icon = iconMap[connector.icon] || IconBrandGoogleDrive;
+  const Icon = iconMap[connector.icon] || GoogleDriveIcon;
   const isConnected = connector.connectionStatus === "connected";
   const isSyncing = connector.syncStatus === "syncing";
   const hasProvider = !!connector.provider;
@@ -127,7 +129,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-lg bg-muted/60 flex items-center justify-center flex-shrink-0">
-              <Icon size={24} stroke={1.5} className="text-foreground" />
+              <Icon size={24} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
