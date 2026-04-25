@@ -285,6 +285,7 @@ export default function MemoryGraph({
           sourceTitle={hoveredEdge.sourceTitle}
           targetTitle={hoveredEdge.targetTitle}
           reason={hoveredEdge.reason}
+          score={hoveredEdge.score}
           viewportX={hoveredEdge.viewportX}
           viewportY={hoveredEdge.viewportY}
         />

@@ -207,6 +207,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               sourceTitle: edge.source.title,
               targetTitle: edge.target.title,
               reason,
+              score: edge.score,
               viewportX: sx,
               viewportY: sy,
             });
