@@ -73,13 +73,15 @@ export const createMemoryInternal = internalAction({
       ? (normalizeUrl(args.url) ?? undefined)
       : undefined;
 
-    // Check for existing memory with same URL — return full memory if found
+    // Check for existing memory with same URL — increment visit count if found
     if (normalizedUrl) {
       const existing = await service.findMemoryByUrl(
         args.clerkId,
         normalizedUrl,
       );
       if (existing) {
+        // Increment visit tracking instead of creating duplicate
+        await service.incrementVisitCount(args.clerkId, existing.id);
         const full = await service.getMemory(args.clerkId, existing.id);
         if (full) return full;
       }

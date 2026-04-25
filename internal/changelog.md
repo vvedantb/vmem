@@ -1,5 +1,16 @@
 # Changelog
 
+## Browser History Import Overhaul — 2026-04-25
+
+- **Stop creating junk "same session" edges for batch imports**: Browsing history, bookmarks, and connector imports (Google Drive, Notion, etc.) no longer create O(n²) RELATES_TO edges. Only interactive sources (manual, voice, chat) create same-session relationships.
+- **Visit count tracking instead of duplicates**: Revisiting the same URL now increments `visitCount`, `lastVisitAt` on the existing memory instead of silently skipping. Tracks browsing frequency without creating duplicates.
+- **Same-domain relationship edges**: URL-based memories now connect to other memories from the same domain (limited to 10 edges). Creates useful clustering (all GitHub pages, all Stack Overflow pages) without session spam.
+- **Extended URL normalization**: Added 20+ tracking parameters to strip (fbclid, gclid, msclkid, igshid, mkt_tok, \_ga, etc.). Reduces duplicate URLs from ad/social tracking.
+- **Migration to delete existing junk edges**: Added `deleteJunkSessionEdges` internal action to clean up existing "same session" edges from batch sources. Run via Convex dashboard per user.
+- **Referrer chain infrastructure**: Added visit map building for future referrer-based navigation edges (NAVIGATED_FROM relationships).
+- **Files affected**: `packages/backend/src/neo4j/memoryService.ts`, `packages/backend/src/neo4j/url.ts`, `packages/backend/convex/neo4jActions/memories.ts`, `packages/backend/convex/neo4jActions/migration.ts`, `apps/chrome-extension/src/background/import-history.ts`
+- **Reason**: Importing 500 browser history items created ~125,000 junk edges, making the graph unusable. The "same session" heuristic was designed for interactive use but applied to batch imports. New design: batch sources get domain-based clustering, interactive sources keep session proximity.
+
 ## Golden Spiral Graph Layout — 2026-04-25
 
 - **Golden spiral initial positions**: Graph nodes now start in a sunflower-seed spiral pattern instead of random positions. Eliminates the chaotic bouncing on load where overlapping nodes push apart violently.
