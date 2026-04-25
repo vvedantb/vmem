@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to vmem</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&display=swap"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Instrument Sans", system-ui, -apple-system, sans-serif;
+        background: #fafafa;
+        color: #1a1a1f;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #0e0e10;
+          color: #e5e5e5;
+        }
+        .feature-card {
+          background: rgba(255, 255, 255, 0.04) !important;
+        }
+        .feature-card:hover {
+          background: rgba(255, 255, 255, 0.07) !important;
+        }
+        .feature-title {
+          color: #f0f0f0 !important;
+        }
+        .feature-desc {
+          color: #999 !important;
+        }
+        .cta-box {
+          background: rgba(255, 255, 255, 0.04) !important;
+        }
+        .cta-box p {
+          color: #ccc !important;
+        }
+        .cta-hint {
+          color: #888 !important;
+        }
+        .shortcut-key {
+          background: rgba(255, 255, 255, 0.1) !important;
+          color: #ccc !important;
+        }
+      }
+
+      .container {
+        max-width: 640px;
+        width: 100%;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .logo {
+        font-family: "Instrument Serif", serif;
+        font-size: 48px;
+        font-weight: 400;
+        letter-spacing: -1px;
+        margin-bottom: 0.5rem;
+      }
+
+      .logo em {
+        font-style: italic;
+      }
+
+      .tagline {
+        font-size: 18px;
+        color: #888;
+        font-weight: 400;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 2.5rem;
+      }
+
+      @media (max-width: 480px) {
+        .features {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .feature-card {
+        background: rgba(0, 0, 0, 0.02);
+        border-radius: 14px;
+        padding: 20px;
+        transition:
+          background 200ms ease,
+          transform 200ms ease;
+      }
+
+      .feature-card:hover {
+        background: rgba(0, 0, 0, 0.04);
+        transform: translateY(-2px);
+      }
+
+      .feature-icon {
+        font-size: 24px;
+        margin-bottom: 10px;
+      }
+
+      .feature-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #1a1a1f;
+        margin-bottom: 4px;
+      }
+
+      .feature-desc {
+        font-size: 13px;
+        color: #666;
+        line-height: 1.5;
+      }
+
+      .cta-box {
+        text-align: center;
+        padding: 24px;
+        background: rgba(0, 0, 0, 0.02);
+        border-radius: 14px;
+      }
+
+      .cta-box p {
+        font-size: 15px;
+        color: #444;
+        line-height: 1.6;
+      }
+
+      .cta-hint {
+        font-size: 13px;
+        color: #999;
+        margin-top: 8px;
+      }
+
+      .shortcut-key {
+        display: inline-block;
+        background: rgba(0, 0, 0, 0.06);
+        border-radius: 5px;
+        padding: 2px 7px;
+        font-size: 12px;
+        font-weight: 600;
+        font-family: "SF Mono", ui-monospace, monospace;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="logo">v<em>mem</em></div>
+        <p class="tagline">Your AI memory layer for the browser</p>
+      </div>
+
+      <div class="features">
+        <div class="feature-card">
+          <div class="feature-icon">&#x1f9e0;</div>
+          <div class="feature-title">Auto-Search Memories</div>
+          <div class="feature-desc">
+            Relevant memories surface automatically as you type in ChatGPT and
+            Claude
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">&#x26a1;</div>
+          <div class="feature-title">Quick Save</div>
+          <div class="feature-desc">
+            Press <span class="shortcut-key">Ctrl+Shift+S</span> to save any
+            page, or select text for snippets
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">&#x1f3ac;</div>
+          <div class="feature-title">YouTube Transcripts</div>
+          <div class="feature-desc">
+            Save video transcripts as searchable memories with one click
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">&#x1f50d;</div>
+          <div class="feature-title">Rich Extraction</div>
+          <div class="feature-desc">
+            Pages are saved with markdown formatting, metadata, and structure
+            preserved
+          </div>
+        </div>
+      </div>
+
+      <div class="cta-box">
+        <p>
+          Click the <strong>vmem icon</strong> in your toolbar to sign in and
+          start saving memories.
+        </p>
+        <p class="cta-hint">
+          Tip: pin the extension for quick access (puzzle piece icon &#x2192;
+          pin vmem)
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

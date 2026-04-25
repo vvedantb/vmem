@@ -27,6 +27,13 @@ export type ContentMessage =
       transcript: string;
       profileId?: string;
     }
+  | {
+      type: "CAPTURE_PROMPT";
+      prompt: string;
+      url: string;
+      platform: string;
+      profileId?: string;
+    }
   | { type: "IMPORT_BOOKMARKS" }
   | { type: "IMPORT_HISTORY"; days: number }
   | { type: "CANCEL_IMPORT" }
