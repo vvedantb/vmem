@@ -132,6 +132,38 @@ const STYLES = `
     font-family: inherit;
   }
   .remove-btn:hover { background: rgba(255,255,255,0.1); color: #f87171; }
+
+  .panel-footer {
+    padding: 8px 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    text-align: center;
+    font-size: 11px;
+    color: #666;
+    letter-spacing: 0.3px;
+  }
+
+  .loading-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 14px;
+    color: #888;
+    font-size: 12px;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-top-color: #a0a0a0;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
 `;
 
 // ── Container setup ──────────────────────────────────────────────────────────
@@ -213,6 +245,7 @@ function render(): void {
       <button class="clear-all">Clear all</button>
     </div>
     <div class="panel-body">${cardsHtml}</div>
+    <div class="panel-footer">Hit send to include context</div>
   `;
 
   // Bind events
@@ -235,6 +268,28 @@ function render(): void {
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────
+
+/** Show the panel in a loading state while memories are being fetched. */
+export function showMemoryPanelLoading(anchor: HTMLElement): void {
+  ensureContainer();
+  if (!panelEl) return;
+
+  currentAnchor = anchor;
+  memories = [];
+  removedIds = new Set<string>();
+
+  positionPanel(anchor);
+  panelEl.style.display = "block";
+  void panelEl.offsetWidth;
+  panelEl.classList.add("visible");
+
+  panelEl.innerHTML = `
+    <div class="loading-body">
+      <div class="spinner"></div>
+      <span>Searching memories…</span>
+    </div>
+  `;
+}
 
 /** Show the memory panel with the given results, anchored above the given element. */
 export function showMemoryPanel(
