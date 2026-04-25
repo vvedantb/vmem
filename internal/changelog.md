@@ -1,5 +1,12 @@
 # Changelog
 
+## Golden Spiral Graph Layout — 2026-04-25
+
+- **Golden spiral initial positions**: Graph nodes now start in a sunflower-seed spiral pattern instead of random positions. Eliminates the chaotic bouncing on load where overlapping nodes push apart violently.
+- **Applies to both worker and main-thread simulations**: The `goldenSpiralPosition()` helper computes deterministic positions using the golden angle (~137.5°), ensuring consistent layouts across page loads.
+- **Files affected**: `apps/web/src/components/_components/canvas/simulation.ts`
+- **Reason**: Random initial positions caused poor visual experience on graph load — nodes exploded outward from a clustered center. Golden spiral is the mathematically optimal packing pattern (used by sunflowers), giving force simulation a clean starting point to refine.
+
 ## Version Chain UI — Memory History Timeline — 2026-04-25
 
 - **Explicit versioning for memory edit history**: History tab now displays memories as numbered versions (v1, v2, v3...) instead of a flat event timeline, making it clear how a memory evolved over time. Users click any version dot to jump to that version, and arrow buttons step through sequentially.
