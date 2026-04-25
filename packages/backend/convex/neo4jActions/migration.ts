@@ -329,7 +329,7 @@ export const startSemanticEdgesBackfill = internalAction({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LLM_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-const LLM_MODEL = "qwen/qwen3-30b-a3b";
+const LLM_MODEL = "qwen/qwen3-235b-a22b-instruct-2507";
 
 export const backfillEntitiesInternal = internalAction({
   args: { batchSize: v.optional(v.number()) },
