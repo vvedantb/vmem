@@ -228,6 +228,7 @@ function FiltersPopover({ controller }: { controller: MemoryGraphController }) {
   const kindCounts = useMemo<Record<ListItemKind, number>>(() => {
     const counts: Record<ListItemKind, number> = {
       memory: 0,
+      entity: 0,
       "wiki-document": 0,
       "wiki-folder": 0,
       skill: 0,

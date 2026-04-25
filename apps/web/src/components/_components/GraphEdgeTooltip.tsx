@@ -20,6 +20,7 @@ const EDGE_TYPE_LABEL: Record<GraphEdgeType, string> = {
   relates_to: "Related",
   wiki_parent: "Parent folder",
   imports: "Imports",
+  mentions: "Mentions",
 };
 
 export default function GraphEdgeTooltip({

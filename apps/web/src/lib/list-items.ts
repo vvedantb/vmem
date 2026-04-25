@@ -15,11 +15,17 @@ import type { Memory, MemoryType } from "./memories";
  * Ids are namespaced (`wiki:<id>`, `skill:<id>`) to match the graph and avoid
  * id collisions if two kinds ever share a detail panel.
  */
-export type ListItemKind = "memory" | "wiki-document" | "wiki-folder" | "skill";
+export type ListItemKind =
+  | "memory"
+  | "wiki-document"
+  | "wiki-folder"
+  | "skill"
+  | "entity";
 
 /** Canonical ordering for kinds in filter UI — never shuffle regardless of data. */
 export const LIST_ITEM_KINDS: readonly ListItemKind[] = [
   "memory",
+  "entity",
   "wiki-document",
   "wiki-folder",
   "skill",
@@ -27,6 +33,7 @@ export const LIST_ITEM_KINDS: readonly ListItemKind[] = [
 
 const LIST_ITEM_KIND_LABELS: Record<ListItemKind, string> = {
   memory: "Memories",
+  entity: "Entities",
   "wiki-document": "Wiki docs",
   "wiki-folder": "Folders",
   skill: "Skills",

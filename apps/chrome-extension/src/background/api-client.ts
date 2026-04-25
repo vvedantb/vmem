@@ -124,6 +124,7 @@ export async function applyEnrichment(
   memoryId: string,
   tags: string[],
   relatedMemoryIds?: string[],
+  entities?: Array<{ name: string; normalizedName: string; type: string }>,
 ): Promise<{ applied: boolean }> {
   const client = await getAuthenticatedClient();
   if (!client) {
@@ -136,6 +137,7 @@ export async function applyEnrichment(
     memoryId,
     tags,
     relatedMemoryIds,
+    entities,
   });
 }
 

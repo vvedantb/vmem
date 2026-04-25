@@ -69,6 +69,17 @@ export async function setupDatabase(driver: Driver): Promise<void> {
       `CREATE INDEX memory_user_status_created IF NOT EXISTS
        FOR (m:Memory) ON (m.userId, m.status, m.createdAt)`,
     );
+    // Entity nodes — per-user named entities extracted during LLM enrichment.
+    // Composite uniqueness so "React" (technology) for user A doesn't collide
+    // with "React" (technology) for user B, and "Apple" (organization) coexists
+    // with "Apple" (place) for the same user.
+    await session.run(
+      `CREATE CONSTRAINT entity_user_name_type IF NOT EXISTS
+       FOR (e:Entity) REQUIRE (e.userId, e.normalizedName, e.type) IS UNIQUE`,
+    );
+    await session.run(
+      `CREATE INDEX entity_user_id IF NOT EXISTS FOR (e:Entity) ON (e.userId)`,
+    );
     console.log("neo4j indexes and constraints ready");
   } finally {
     await session.close();

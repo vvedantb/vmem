@@ -1,5 +1,14 @@
 # Changelog
 
+## Entity Extraction + Graph-Augmented Retrieval — 2026-04-25
+
+- **Named entity extraction during enrichment**: LLM enrichment now extracts people, organizations, places, and technologies from memories — zero additional API cost (piggybacks on existing enrichment call). Entities stored as hub nodes in Neo4j with `MENTIONS` edges.
+- **Entity hub nodes on the graph canvas**: Entities render as gold 8-pointed starbursts that memories orbit around. Entity sizing scales with mention count. Filterable as a Kind in graph/list filters.
+- **MENTIONS edges in all 7 view themes**: Teal-green edges connect memories to their entities across Default, Satellite, Constellation, Blueprint, and Minimal themes (dark + light variants).
+- **Graph-augmented retrieval**: Retrieval now expands top-5 BM25/vector results through the knowledge graph (1-hop direct, 1-hop via entity hub, 2-hop RELATES_TO). Graph proximity contributes 10% of the final score — graph-only discoveries appear below strong text/semantic matches but above weak ones.
+- **Entity backfill migration**: `startEntityBackfill` action processes existing memories in self-rescheduling batches of 20, extracting entities via LLM. Run once from Convex dashboard.
+- **Full-stack entity threading**: Entities flow through enrichment prompt → parser → Convex actions → memoryService → graph API → frontend types → canvas renderer → chrome extension enrichment callers.
+
 ## Colorful Brand Icons for Connectors — 2026-04-25
 
 - **Replaced monochrome Tabler icons with brand-colored SVGs**: Connector cards and browse modal now display logos with their official brand colors (Google Drive multicolor, OneDrive/Slack/Dropbox in brand blue, Linear in brand purple). GitHub and Notion remain monochrome per their official brands.
