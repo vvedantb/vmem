@@ -1318,6 +1318,9 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
          LIMIT $limit`,
         { userId, profileId: profileId ?? null, limit: neo4j.int(limit) },
       );
+      console.log(
+        `[getRecentActivity] userId=${userId} profileId=${String(profileId)} records=${result.records.length}`,
+      );
 
       const now = Date.now();
       return result.records.map((record) => {
@@ -1866,7 +1869,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    await session.run(
+    const result = await session.run(
       `MATCH (m:Memory {id: $memoryId})
        CREATE (e:MemoryEvent {
          id: $id,
@@ -1876,7 +1879,8 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
          snapshot: $snapshot,
          createdAt: $now
        })
-       CREATE (e)-[:EVENT_FOR]->(m)`,
+       CREATE (e)-[:EVENT_FOR]->(m)
+       RETURN e.id AS eventId`,
       {
         id,
         memoryId,
@@ -1886,6 +1890,9 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         snapshot,
         now,
       },
+    );
+    console.log(
+      `[logEvent] action=${action} memoryId=${memoryId} created=${result.records.length > 0}`,
     );
   }
 
