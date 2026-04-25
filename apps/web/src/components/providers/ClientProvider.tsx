@@ -21,7 +21,7 @@ import { NotificationProvider } from "@/components/contexts/NotificationContext"
 import { MemoryProvider } from "@/components/contexts/MemoryContext";
 import { LocalLLMProvider } from "@/components/contexts/LocalLLMContext";
 import { VoiceProvider } from "@/components/contexts/VoiceContext";
-import { PendingEnrichmentRunner } from "@/components/PendingEnrichmentRunner";
+
 import { MotionProvider } from "@/components/providers/MotionProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { env } from "@/env";
@@ -140,10 +140,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <NotificationProvider>
               <LocalLLMProvider>
                 <VoiceProvider>
-                  <MemoryProvider>
-                    <PendingEnrichmentRunner />
-                    {children}
-                  </MemoryProvider>
+                  <MemoryProvider>{children}</MemoryProvider>
                 </VoiceProvider>
               </LocalLLMProvider>
             </NotificationProvider>
