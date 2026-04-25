@@ -16,6 +16,7 @@ rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
 cpSync(resolve(root, "manifest.json"), resolve(dist, "manifest.json"));
+cpSync(resolve(root, "src/welcome/index.html"), resolve(dist, "welcome.html"));
 
 const publicDir = resolve(root, "public");
 if (existsSync(publicDir)) {
