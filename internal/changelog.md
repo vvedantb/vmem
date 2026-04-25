@@ -1,5 +1,14 @@
 # Changelog
 
+## Chrome Extension Extraction Enhancements — 2026-04-25
+
+- **Full page markdown extraction**: Saved pages now preserve formatting (headings, lists, code blocks, links) via TurndownService HTML-to-Markdown conversion, instead of flat `innerText`. Strips nav, footer, ads, and other non-content elements before conversion.
+- **OpenGraph metadata extraction**: Page saves now use `og:title` when available (usually cleaner than `document.title`), and extract `og:image` / `og:description` for richer memory cards in the future.
+- **Keyboard shortcut (Ctrl+Shift+S)**: Quick-save the current page without opening the popup. Uses Chrome's commands API; Mac users get `Cmd+Shift+S`.
+- **YouTube transcript extraction**: New content script injects a "Save to vmem" button on YouTube video pages. Extracts video title, channel name, and full transcript from YouTube's timedtext API. Saved with `source: "youtube"` tag for filtering.
+- **Files affected**: `manifest.json`, `src/lib/page-extraction.ts` (new), `src/background/index.ts`, `src/background/context-menu.ts`, `src/background/message-handler.ts`, `src/types/messages.ts`, `src/popup/_components/QuickSave.tsx`, `src/content/youtube/index.ts` (new), `scripts/build.ts`
+- **Reason**: Compared Mem0 and Supermemory browser extensions — both had richer extraction than vmem. Supermemory uses Turndown for markdown; Mem0's YouTube assistant extracts transcripts. Adopted the best of both: markdown for all pages, plus dedicated YouTube support for video content.
+
 ## Browser History Import Overhaul — 2026-04-25
 
 - **Stop creating junk "same session" edges for batch imports**: Browsing history, bookmarks, and connector imports (Google Drive, Notion, etc.) no longer create O(n²) RELATES_TO edges. Only interactive sources (manual, voice, chat) create same-session relationships.

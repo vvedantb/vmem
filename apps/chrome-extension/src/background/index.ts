@@ -1,4 +1,4 @@
-import { registerContextMenu } from "./context-menu";
+import { registerContextMenu, savePageFromTab } from "./context-menu";
 import { registerMessageHandler } from "./message-handler";
 import {
   startAutoSync,
@@ -10,6 +10,24 @@ import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
 import { getStorage } from "@/lib/storage";
 import { initializeEnrichment } from "./enrichment-router";
 import { drainPendingEnrichmentQueue } from "./pending-enrichment-drain";
+
+// Handle keyboard shortcut commands
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === "save-page") {
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      if (tab?.id && tab.url) {
+        console.log("[vmem] Keyboard shortcut: saving page", tab.url);
+        await savePageFromTab(tab);
+      }
+    } catch (err) {
+      console.error("[vmem] Keyboard shortcut save failed:", err);
+    }
+  }
+});
 
 // CRITICAL: Register alarm listener at top level so it's ready when
 // service worker wakes up from an alarm. Service workers can restart

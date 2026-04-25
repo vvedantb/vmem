@@ -22,8 +22,19 @@
     "https://chat.openai.com/*",
     "https://chatgpt.com/*",
     "https://claude.ai/*",
+    "https://www.youtube.com/*",
+    "https://youtube.com/*",
     "<all_urls>"
   ],
+  "commands": {
+    "save-page": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Save current page to vmem"
+    }
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -44,6 +55,11 @@
     {
       "matches": ["https://claude.ai/*"],
       "js": ["content-claude.js"]
+    },
+    {
+      "matches": ["https://www.youtube.com/*", "https://youtube.com/*"],
+      "js": ["content-youtube.js"],
+      "run_at": "document_idle"
     },
     {
       "matches": ["<all_urls>"],

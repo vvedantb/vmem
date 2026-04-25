@@ -55,6 +55,15 @@ await build(
   ),
 );
 
+console.log("Building YouTube content script...");
+await build(
+  createContentScriptConfig(
+    "content-youtube",
+    "src/content/youtube/index.ts",
+    mode,
+  ),
+);
+
 console.log("Building offscreen document (WebLLM)...");
 await build(createOffscreenConfig(mode));
 
