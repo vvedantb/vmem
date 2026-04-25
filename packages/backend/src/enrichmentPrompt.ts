@@ -28,7 +28,9 @@ export function buildFullEnrichmentPrompt(
     .map((m) => `${m.id}: ${m.title}`)
     .join("\n");
 
-  return `You are a memory tagging system. Given a memory and a list of existing memories:
+  return `You are a memory tagging system. Respond with ONLY a JSON object — no explanation, no thinking, no markdown.
+
+Given a memory and a list of existing memories:
 
 1. Generate 3-5 semantic topic tags for this memory. Tags should be lowercase, specific, and reusable (e.g. "react", "authentication", "graph-algorithms", "typescript"). Avoid generic tags like "programming" or "article".
 
@@ -41,18 +43,34 @@ Content: ${truncateAtWord(content, MAX_CONTENT_LENGTH)}
 Existing memories:
 ${memoryList || "(none)"}
 
-Respond in JSON only:
+Respond with ONLY this JSON format, nothing else:
 {"tags": ["tag1", "tag2"], "relatedMemoryIds": ["id1"]}`;
 }
 
 function extractJsonString(raw: string): string {
   let jsonStr = raw.trim();
+
+  // Strip <think>...</think> blocks (Qwen3 and other thinking models)
+  jsonStr = jsonStr.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+
+  // Strip unclosed <think> blocks (model hit token limit mid-thought)
+  if (jsonStr.startsWith("<think>")) {
+    const closeIdx = jsonStr.indexOf("</think>");
+    if (closeIdx === -1) {
+      // Entire response is inside an unclosed think block — try to
+      // salvage JSON after the tag if there's any
+      jsonStr = jsonStr.slice(7).trim();
+    }
+  }
+
+  // Strip markdown code blocks
   if (jsonStr.startsWith("```")) {
     const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (match) {
       jsonStr = match[1].trim();
     }
   }
+
   return jsonStr;
 }
 

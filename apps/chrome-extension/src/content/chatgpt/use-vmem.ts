@@ -3,6 +3,7 @@ import { createVmemButton } from "@/content/shared/inject-button";
 import { SELECTORS } from "./selectors";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import type { MemoryCandidate } from "@/types/api";
+import { safeSendMessage } from "@/lib/safe-message";
 
 function formatMemoriesContext(memories: MemoryCandidate[]): string {
   if (memories.length === 0) return "";
@@ -46,26 +47,23 @@ export async function injectUseVmemButton(): Promise<void> {
       query: currentText,
     };
 
-    chrome.runtime.sendMessage(
-      message,
-      (response: BackgroundResponse | undefined) => {
-        button.textContent = "Use vmem";
-        button.style.opacity = "1";
+    safeSendMessage<BackgroundResponse>(message, (response) => {
+      button.textContent = "Use vmem";
+      button.style.opacity = "1";
 
-        if (
-          response?.type === "RETRIEVE_RESULT" &&
-          response.memories.length > 0
-        ) {
-          const context = formatMemoriesContext(response.memories);
-          setInputValue(input, context + currentText);
-        } else {
-          button.textContent = "No memories found";
-          setTimeout(() => {
-            button.textContent = "Use vmem";
-          }, 2000);
-        }
-      },
-    );
+      if (
+        response?.type === "RETRIEVE_RESULT" &&
+        response.memories.length > 0
+      ) {
+        const context = formatMemoriesContext(response.memories);
+        setInputValue(input, context + currentText);
+      } else {
+        button.textContent = "No memories found";
+        setTimeout(() => {
+          button.textContent = "Use vmem";
+        }, 2000);
+      }
+    });
   });
 
   button.style.marginTop = "4px";
