@@ -45,14 +45,6 @@ interface GitHubTreeFile {
   size?: number;
 }
 
-const stageValidator = v.union(
-  v.literal("fetching"),
-  v.literal("parsing"),
-  v.literal("processes"),
-  v.literal("writing"),
-  v.literal("done"),
-);
-
 /**
  * Pull the repo tree + blobs from GitHub. Throws on non-2xx so the
  * outer action can surface a clear error message via `lastParseError`.

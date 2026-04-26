@@ -142,8 +142,11 @@ function CodebaseDetailView({
 
   // Stat line displayed in the page header. Falls back to the persisted
   // counts on the codebases row when the live overview hasn't loaded yet so
-  // the chrome doesn't flash empty values during navigation.
-  const fileCount = stats?.fileCount ?? codebase.fileCount ?? 0;
+  // the chrome doesn't flash empty values during navigation. The legacy
+  // codebase row stores file count as `syncedFiles` (Phase 0); Phase 1
+  // stats (`functionCount` / `classCount` / `processCount`) live on the
+  // overview query and on the row as new optional fields.
+  const fileCount = stats?.fileCount ?? codebase.syncedFiles ?? 0;
   const fnCount = stats?.functionCount ?? codebase.functionCount ?? 0;
   const classCount = stats?.classCount ?? codebase.classCount ?? 0;
   const processCount = stats?.processCount ?? codebase.processCount ?? 0;
