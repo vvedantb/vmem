@@ -73,8 +73,37 @@ interface FilteredArgs extends ReadArgs {
   blastDepth?: number;
 }
 
-const CALLS_TIER = "coalesce(rel.tier, 'INFERRED')";
-const CALLS_CONF = "coalesce(rel.confidence, 1.0)";
+const CALLS_TIER = "coalesce(r.tier, 'INFERRED')";
+const CALLS_CONF = "coalesce(r.confidence, 1.0)";
+
+/**
+ * Convex hard-caps any single array in an action return at 8192 entries,
+ * so the graph payload has to fit. Big monorepos easily blow past that
+ * with CALLS edges alone. We cap both nodes and edges and surface a
+ * `truncated` flag so the canvas can tell the user to narrow down.
+ */
+const MAX_GRAPH_ARRAY = 8192;
+
+/**
+ * Cap nodes, dropping the most numerous kind (`code-function`) first.
+ * Files / classes / interfaces / processes are structural and far less
+ * likely to overflow on their own — keeping them anchors the graph.
+ */
+function capNodes(
+  nodes: OverviewNode[],
+  cap: number,
+): { nodes: OverviewNode[]; truncated: boolean } {
+  if (nodes.length <= cap) return { nodes, truncated: false };
+  const structural = nodes.filter((n) => n.kind !== "code-function");
+  const functions = nodes.filter((n) => n.kind === "code-function");
+  if (structural.length >= cap) {
+    return { nodes: structural.slice(0, cap), truncated: true };
+  }
+  return {
+    nodes: [...structural, ...functions.slice(0, cap - structural.length)],
+    truncated: true,
+  };
+}
 
 export async function getOverviewStats(args: ReadArgs): Promise<OverviewStats> {
   const session = args.driver.session();
@@ -130,9 +159,11 @@ function pickKind(labels: string[]): OverviewNode["kind"] | null {
  * scoped to the codebase, optionally filtered. The frontend handles
  * positional layout — we just return the topology.
  */
-export async function getGraphOverview(
-  args: FilteredArgs,
-): Promise<{ nodes: OverviewNode[]; edges: OverviewEdge[] }> {
+export async function getGraphOverview(args: FilteredArgs): Promise<{
+  nodes: OverviewNode[];
+  edges: OverviewEdge[];
+  truncated: boolean;
+}> {
   const wantedKinds = new Set(args.kinds ?? []);
   const allKinds = wantedKinds.size === 0;
 
@@ -215,24 +246,30 @@ export async function getGraphOverview(
       nodes = nodes.filter((n) => keep.has(n.id));
     }
 
+    // Cap nodes before we build the edge filter set so that any edges
+    // we drop here also drop their endpoint references.
+    const nodeCapResult = capNodes(nodes, MAX_GRAPH_ARRAY);
+    nodes = nodeCapResult.nodes;
+    let truncated = nodeCapResult.truncated;
+
     const nodeIds = new Set(nodes.map((n) => n.id));
     const edges: OverviewEdge[] = [];
 
     // Edges. We fetch each type separately because Cypher doesn't have a
     // clean "any of these types" form, and the type names are part of
     // the schema not user input — so the static queries are safe.
+    //
+    // Order matters because we cap at MAX_GRAPH_ARRAY: structural edges
+    // (contains / has_method / extends / implements / starts_process /
+    // includes) are bounded and informative, so they go first. Imports
+    // can grow with file count. CALLS is the explosive one (≈ O(fns²) in
+    // the worst case) so it goes last and gets truncated first.
     type EdgeQuery = {
       type: OverviewEdge["type"];
       cypher: string;
       carry: boolean;
     };
     const edgeQueries: EdgeQuery[] = [
-      {
-        type: "imports",
-        cypher: `MATCH (a:CodeFile { userId: $userId, codebaseId: $codebaseId })-[r:IMPORTS]->(b:CodeFile { userId: $userId, codebaseId: $codebaseId })
-                 RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
-        carry: true,
-      },
       {
         type: "contains",
         cypher: `MATCH (a:CodeFile { userId: $userId, codebaseId: $codebaseId })-[r:CONTAINS]->(b { userId: $userId, codebaseId: $codebaseId })
@@ -258,12 +295,6 @@ export async function getGraphOverview(
         carry: true,
       },
       {
-        type: "calls",
-        cypher: `MATCH (a:Function { userId: $userId, codebaseId: $codebaseId })-[r:CALLS]->(b:Function { userId: $userId, codebaseId: $codebaseId })
-                 RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
-        carry: true,
-      },
-      {
         type: "starts_process",
         cypher: `MATCH (a:Function { userId: $userId, codebaseId: $codebaseId })-[r:STARTS_PROCESS]->(b:Process { userId: $userId, codebaseId: $codebaseId })
                  RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
@@ -275,14 +306,34 @@ export async function getGraphOverview(
                  RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
         carry: false,
       },
+      {
+        type: "imports",
+        cypher: `MATCH (a:CodeFile { userId: $userId, codebaseId: $codebaseId })-[r:IMPORTS]->(b:CodeFile { userId: $userId, codebaseId: $codebaseId })
+                 RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
+        carry: true,
+      },
+      {
+        type: "calls",
+        cypher: `MATCH (a:Function { userId: $userId, codebaseId: $codebaseId })-[r:CALLS]->(b:Function { userId: $userId, codebaseId: $codebaseId })
+                 RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
+        carry: true,
+      },
     ];
 
-    for (const q of edgeQueries) {
+    edgeLoop: for (const q of edgeQueries) {
+      if (edges.length >= MAX_GRAPH_ARRAY) {
+        truncated = true;
+        break;
+      }
       const er = await session.run(q.cypher, {
         userId: args.userId,
         codebaseId: args.codebaseId,
       });
       for (const rec of er.records) {
+        if (edges.length >= MAX_GRAPH_ARRAY) {
+          truncated = true;
+          break edgeLoop;
+        }
         const fromId: string = rec.get("fromId");
         const toId: string = rec.get("toId");
         if (!nodeIds.has(fromId) || !nodeIds.has(toId)) continue;
@@ -301,7 +352,7 @@ export async function getGraphOverview(
       }
     }
 
-    return { nodes, edges };
+    return { nodes, edges, truncated };
   } finally {
     await session.close();
   }

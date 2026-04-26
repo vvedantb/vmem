@@ -1,5 +1,13 @@
 # Changelog
 
+## Codebase Graph — Edges Render, Cypher/Payload Fixes — 2026-04-26
+
+- **Fixed Cypher variable mismatch**: Renamed `rel.X` → `r.X` in two snippet constants (`CALLS_TIER`, `CALLS_CONF`) so they match the relationship binding name in all consuming `MATCH (a)-[r:TYPE]->(b)` patterns. This unblocked the graph payload from reaching the canvas.
+- **Capped payload size with intelligent truncation**: Big monorepos overflow Convex's 8192 array limit on `CALLS` edges alone. Implemented `capNodes()` helper that keeps structural symbols (files, classes, interfaces, processes) and drops excess functions first, plus reordered edge queries so cheap structural types are fetched before expensive behavioral types. Both nodes and edges now respect the cap, and a `truncated` flag rides the response so users know to narrow down via filters.
+- **Extended renderer to paint codebase edge types**: The canvas renderer only drew memory edge types (`tag`, `relates_to`, `wiki_parent`, `mentions`), leaving codebase types (`calls`, `imports`, `contains`, `has_method`, `extends`, `implements`, `starts_process`, `includes`) invisible. Now codebase edges piggyback on existing palette slots (warm for behavioral, cool for structural, teal for process membership) in both non-hover and hover render paths, eliminating the need for new theme entries.
+- **Added edge hover tooltips for codebase graph**: Wired `onHoverEdge` callback to `<GraphCanvas>` and rendered `<GraphEdgeTooltip>` overlay, achieving parity with memory graph's edge label affordance. Node tooltips take priority and both suppress when the detail panel is open.
+- **Truncation warning banner**: Top-center overlay (bg-warning/10) alerts users when the graph is sliced, encouraging them to apply filters (kinds, process, blast radius) to see the full topology.
+
 ## Custom SVG Animations & Branded Loading States — 2026-04-26
 
 - **VmemDrawInIcon**: One-shot stroke draw-in animation for sidebar vmem logo (both desktop and mobile). Imports shared `VmemPaths` component and `vmem-anim.css` for animation orchestration.

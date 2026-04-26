@@ -82,6 +82,9 @@ interface GraphResult {
     confidence?: number;
     tier?: "EXTRACTED" | "INFERRED" | "AMBIGUOUS";
   }>;
+  /** True when the payload was capped to fit within Convex's 8192 array
+   *  limit. The canvas surfaces this so the user knows to filter down. */
+  truncated: boolean;
 }
 
 /** Filtered graph payload — kinds, processId, blastRadius all optional. */

@@ -64,6 +64,7 @@ const codeEdgeSchema = z.object({
 const graphResponseSchema = z.object({
   nodes: z.array(codeNodeSchema),
   edges: z.array(codeEdgeSchema),
+  truncated: z.boolean(),
 });
 
 const overviewSchema = z.object({
@@ -112,6 +113,9 @@ export type CodeSymbolContext = z.infer<typeof symbolContextSchema>;
 export interface UseCodebaseGraphDataReturn {
   nodes: CodeNode[];
   edges: CodeEdge[];
+  /** True when the API capped the payload to fit Convex's array limit.
+   *  Surface this to the user so they apply filters to narrow down. */
+  truncated: boolean;
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
@@ -193,6 +197,7 @@ export function useCodebaseGraphData(
   return {
     nodes: graphQuery.data?.nodes ?? [],
     edges: graphQuery.data?.edges ?? [],
+    truncated: graphQuery.data?.truncated ?? false,
     isLoading: graphQuery.isLoading,
     isError: graphQuery.isError,
     error: graphQuery.error,
