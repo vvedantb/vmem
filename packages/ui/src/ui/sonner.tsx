@@ -11,6 +11,12 @@ import { Toaster, type ToasterProps } from "sonner";
  * border, shadow, and translucent fill all reference oklch tokens that are
  * redefined inside `.dark`, so the toast adapts to light/dark automatically.
  *
+ * `!font-sans` is forced on the toaster section because Sonner sets its own
+ * `font-family` on `[data-sonner-toaster]` from a stylesheet that ships with
+ * the package (loaded after our globals), so plain inheritance from `<body>`
+ * loses the cascade. The `!important` here guarantees Instrument Sans wins
+ * — toasts inherit from the section, so this single class covers everything.
+ *
  * Variant icons (success / error / warning / info) are tinted via a
  * `data-icon` descendant selector, leaving the rest of the toast neutral.
  *
@@ -21,7 +27,7 @@ import { Toaster, type ToasterProps } from "sonner";
 function SonnerToaster(props: ToasterProps) {
   return (
     <Toaster
-      className="toaster group"
+      className="toaster group !font-sans"
       toastOptions={{
         unstyled: true,
         classNames: {
