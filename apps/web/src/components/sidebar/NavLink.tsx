@@ -8,8 +8,7 @@ import type { NavItem, NavIcon } from "./types";
  * Sidebar nav link.
  *
  * Carries a single optional badge whose source depends on the route:
- * - `/notifications` → unread notifications
- * - `/proposals`     → pending V2 fact-extraction proposals
+ * - `/inbox` → pending proposals + unread notifications (sum)
  *
  * Both counts come in as separate props so the parent doesn't have to
  * predict which the link cares about. Routes without a badge ignore them.
@@ -37,12 +36,7 @@ export function NavLink({
 
   // Resolve the badge count for this route. Adding a new badge route =
   // new branch here + corresponding prop on this component.
-  const badgeCount =
-    item.href === "/notifications"
-      ? unreadCount
-      : item.href === "/proposals"
-        ? proposalsCount
-        : 0;
+  const badgeCount = item.href === "/inbox" ? proposalsCount + unreadCount : 0;
   const showBadge = badgeCount > 0;
 
   return (

@@ -1,78 +1,12 @@
-import { useMemo } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
-import { api } from "@vmem/backend";
-import { ApiLogsSummary } from "@/components/api-logs/ApiLogsSummary";
-import { ApiLogsTable } from "@/components/api-logs/ApiLogsTable";
-import { ApiLogsLoadingSkeleton } from "@/components/api-logs/ApiLogsLoadingSkeleton";
-import PageContainer from "@/components/PageContainer";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+/**
+ * Legacy `/settings/usage` route — preserved as a redirect after the
+ * merge into `/settings/api?tab=usage`.
+ */
 export const Route = createFileRoute("/_main/settings/usage")({
-  component: ApiLogsPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/settings/api", search: { tab: "usage" } });
+  },
+  component: () => null,
 });
-
-// Max rows rendered in the table. Backend caps at 1000; we slice client-side.
-const DISPLAY_LIMIT = 100;
-
-function ApiLogsPage() {
-  const entries = useQuery(api.auditLog.listMyApiRequestEntries, {
-    limit: 1000,
-  });
-
-  // Summary aggregates the full result set so the counts + success rate +
-  // avg duration stay consistent with what the backend returned (not just
-  // the visible slice).
-  const summary = useMemo(() => {
-    if (!entries) return null;
-    let totalRequests = 0;
-    let successCount = 0;
-    let totalDuration = 0;
-    for (const entry of entries) {
-      totalRequests += 1;
-      if (entry.status >= 200 && entry.status < 300) successCount += 1;
-      totalDuration += entry.durationMs;
-    }
-    return {
-      totalRequests,
-      successRate:
-        totalRequests === 0 ? 0 : (successCount / totalRequests) * 100,
-      avgResponseMs: totalRequests === 0 ? 0 : totalDuration / totalRequests,
-    };
-  }, [entries]);
-
-  // Sort by the source event time (backfilled rows interleave correctly
-  // with live rows), then slice to the display window and format the
-  // timestamp once for the renderer.
-  const logs = useMemo(() => {
-    if (!entries) return null;
-    return [...entries]
-      .sort((a, b) => b.originalTimestamp - a.originalTimestamp)
-      .slice(0, DISPLAY_LIMIT)
-      .map((entry) => ({
-        id: entry._id,
-        endpoint: entry.endpoint,
-        status: entry.status,
-        durationMs: entry.durationMs,
-        timestamp: new Date(entry.originalTimestamp).toISOString(),
-      }));
-  }, [entries]);
-
-  if (!summary || !logs) {
-    return (
-      <PageContainer title="Usage" showTitle>
-        <ApiLogsLoadingSkeleton />
-      </PageContainer>
-    );
-  }
-
-  return (
-    <PageContainer title="Usage" showTitle>
-      <ApiLogsSummary
-        totalRequests={summary.totalRequests}
-        successRate={summary.successRate}
-        avgResponseMs={summary.avgResponseMs}
-      />
-      <ApiLogsTable logs={logs} />
-    </PageContainer>
-  );
-}
