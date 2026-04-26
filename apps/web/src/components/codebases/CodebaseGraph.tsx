@@ -12,8 +12,9 @@
  */
 
 import { useMemo, useCallback, useRef } from "react";
-import { IconLoader2, IconMoodEmpty } from "@tabler/icons-react";
+import { IconMoodEmpty } from "@tabler/icons-react";
 import GraphCanvas from "@/components/_components/GraphCanvas";
+import { VmemSpinner } from "@/components/svg-animations";
 import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
 import GraphNavControls from "@/components/_components/GraphNavControls";
 import GraphNodeTooltip from "@/components/_components/GraphNodeTooltip";
@@ -81,7 +82,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
   if (isLoading) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
-        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <VmemSpinner size={24} className="text-muted-foreground" />
       </div>
     );
   }

@@ -26,6 +26,7 @@ import { CodebaseGraph } from "@/components/codebases/CodebaseGraph";
 import CodebaseGraphHeaderControls from "@/components/codebases/CodebaseGraphHeaderControls";
 import { useCodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 import { useCodebaseOverview } from "@/hooks/useCodebaseGraphData";
+import { VmemSpinner } from "@/components/svg-animations";
 
 /** Status badge display config keyed by codebase sync status. */
 const statusConfig = {
@@ -73,7 +74,7 @@ function CodebaseDetailPage() {
     return (
       <PageContainer title="Codebase">
         <div className="flex items-center justify-center py-20">
-          <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <VmemSpinner size={24} className="text-muted-foreground" />
         </div>
       </PageContainer>
     );

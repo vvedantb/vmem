@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input, Textarea, Button, Badge, Label } from "@vmem/ui";
 import { toast } from "sonner";
 import {
-  IconLoader2,
   IconMicrophone,
   IconPlayerStop,
   IconPlayerPlay,
@@ -16,6 +15,7 @@ import {
   IconX,
   IconUpload,
   IconFileText,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
@@ -472,7 +472,7 @@ export default function AddMemoryForm() {
                   >
                     {isTranscribing ? (
                       <>
-                        <IconLoader2 className="w-4 h-4 animate-spin mr-2" />
+                        <IconLoader2 size={16} className="mr-2 animate-spin" />
                         Transcribing...
                       </>
                     ) : (
@@ -572,7 +572,7 @@ export default function AddMemoryForm() {
                 >
                   {isUploading ? (
                     <>
-                      <IconLoader2 className="w-4 h-4 animate-spin mr-2" />
+                      <IconLoader2 size={16} className="mr-2 animate-spin" />
                       Importing...
                     </>
                   ) : (
@@ -678,7 +678,7 @@ export default function AddMemoryForm() {
         >
           {isSubmitting ? (
             <>
-              <IconLoader2 className="w-4 h-4 animate-spin mr-2" />
+              <IconLoader2 size={16} className="mr-2 animate-spin" />
               Saving...
             </>
           ) : (

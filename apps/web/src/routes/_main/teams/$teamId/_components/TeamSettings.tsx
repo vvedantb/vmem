@@ -3,7 +3,7 @@ import { useAction, useMutation } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "@vmem/backend";
 import { Button, Input } from "@vmem/ui";
-import { IconLoader2, IconTrash } from "@tabler/icons-react";
+import { IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { TeamDetail } from "../index";
 
@@ -71,7 +71,7 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
           />
           <Button onClick={handleRename} disabled={!canSave}>
             {saving ? (
-              <IconLoader2 size={14} className="mr-1.5 animate-spin" />
+              <IconLoader2 size={14} className="animate-spin mr-1.5" />
             ) : null}
             Save
           </Button>

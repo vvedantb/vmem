@@ -7,11 +7,11 @@
 
 import {
   IconCheck,
-  IconLoader2,
   IconCpu,
   IconMicrophone,
   IconWaveSine,
   IconPlayerPlay,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
@@ -48,7 +48,7 @@ function ReadinessPill({ label, ready, loading, icon }: ReadinessPillProps) {
       {ready ? (
         <IconCheck className="size-3.5" stroke={2} />
       ) : loading ? (
-        <IconLoader2 className="size-3.5 animate-spin" />
+        <IconLoader2 size={14} className="animate-spin" />
       ) : (
         icon
       )}

@@ -1,11 +1,11 @@
 "use client";
 
-import { IconLoader2 } from "@tabler/icons-react";
+import { VmemSpinner } from "@/components/svg-animations";
 
 export function ApiKeysLoadingSkeleton() {
   return (
     <div className="flex h-full min-h-0 items-center justify-center">
-      <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <VmemSpinner size={24} className="text-muted-foreground" />
     </div>
   );
 }

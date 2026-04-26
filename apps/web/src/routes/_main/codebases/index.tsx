@@ -6,9 +6,9 @@ import { Button } from "@vmem/ui";
 import {
   IconAlertCircle,
   IconDatabase,
-  IconLoader2,
   IconPlus,
   IconRefresh,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
 import { ConnectGitHubButton } from "@/components/codebases/ConnectGitHubButton";

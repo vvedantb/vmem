@@ -8,6 +8,7 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { VmemSpinner } from "@/components/svg-animations";
 import {
   Conversation,
   ConversationContent,
@@ -176,7 +177,7 @@ export default function Chat() {
   if (!isThreadReady) {
     return (
       <div className="flex h-full items-center justify-center">
-        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <VmemSpinner size={24} className="text-muted-foreground" />
       </div>
     );
   }
@@ -360,7 +361,7 @@ export default function Chat() {
             >
               {isClearing ? (
                 <>
-                  <IconLoader2 size={16} className="animate-spin" />
+                  <IconLoader2 className="size-4 animate-spin" />
                   Clearing...
                 </>
               ) : (
