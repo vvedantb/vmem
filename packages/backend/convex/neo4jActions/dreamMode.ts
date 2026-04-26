@@ -210,10 +210,14 @@ export const runDreamForProfileInternal = internalAction({
           continue;
         }
 
-        if (autoAccept && synthesis.type !== "contradiction") {
+        // Materializable kinds. Contradictions and anomalies are flags —
+        // they go to the proposals queue regardless of auto-accept and the
+        // user dismisses them by hand (no new memory ever gets created).
+        const isMaterializable =
+          synthesis.type === "insight" || synthesis.type === "connection";
+
+        if (autoAccept && isMaterializable) {
           // Auto-accept path: materialize as :Memory + :DERIVED_FROM.
-          // Contradictions never auto-materialize — they need a human to
-          // pick a side.
           let embedding: number[] | null = null;
           try {
             embedding = await generateEmbedding({
@@ -246,6 +250,22 @@ export const runDreamForProfileInternal = internalAction({
               confidence: synthesis.confidence,
             });
           result.memoriesMaterialized += 1;
+
+          // Run the same enrichment pipeline regular memories get — tags,
+          // entities, RELATES_TO edges. Without this, materialized
+          // memories sit as orphan nodes with only DERIVED_FROM edges,
+          // which made them useless in graph view.
+          await ctx.scheduler.runAfter(
+            0,
+            internal.neo4jActions.enrichment.enrichMemoryInternal,
+            {
+              clerkId: args.clerkId,
+              memoryId: newMemoryId,
+              title: synthesis.title,
+              content: synthesis.content,
+              profileId: args.profileId,
+            },
+          );
 
           await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
             clerkId: args.clerkId,
