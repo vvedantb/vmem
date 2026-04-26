@@ -1,156 +1,123 @@
-import { type Driver } from "neo4j-driver";
+/**
+ * Thin orchestrator over the Phase 1 codebase parser pipeline. Composed
+ * by the `"use node"` Convex action — the real work lives in:
+ *
+ *   src/neo4j/codebase/parse.ts          ts-morph AST walk
+ *   src/neo4j/codebase/resolveCalls.ts   type-checker call resolution
+ *   src/neo4j/codebase/entryPoints.ts    Convex/TanStack/heuristic detection
+ *   src/neo4j/codebase/processes.ts      BFS process construction
+ *   src/neo4j/codebase/write.ts          bulk Neo4j write
+ *   src/neo4j/codebase/read.ts           graph/symbol/search read helpers
+ *   src/neo4j/codebase/impact.ts         blast-radius traversal
+ */
 
-interface CodeFileInput {
-  path: string;
-  directory: string;
-  filename: string;
-  extension: string;
-  sizeBytes: number;
+import type { Driver } from "neo4j-driver";
+import { parseRepository, type SourceFileBlob } from "./codebase/parse";
+import { resolveCalls } from "./codebase/resolveCalls";
+import { detectEntryPoints } from "./codebase/entryPoints";
+import { detectProcesses } from "./codebase/processes";
+import { writeParseResult } from "./codebase/write";
+import {
+  getGraphOverview,
+  getOverviewStats,
+  getSymbolContext,
+  searchSymbols,
+  type OverviewNode,
+  type SearchSymbolsResult,
+} from "./codebase/read";
+import {
+  getDownstreamImpact,
+  getUpstreamImpact,
+  type ImpactDirection,
+  type ImpactNode,
+} from "./codebase/impact";
+import { type ParseStats, PARSER_VERSION } from "./codebase/types";
+
+export const CODEBASE_PARSER_VERSION = PARSER_VERSION;
+
+/** Hard cap — enforced upstream too, but defended here. */
+export const MAX_FILES_PER_SYNC = 3000;
+
+export interface SyncCodebaseInput {
+  driver: Driver;
+  userId: string;
+  codebaseId: string;
+  files: SourceFileBlob[];
+  /** Optional progress callback — invoked at each major stage. */
+  onStage?: (stage: SyncStage) => Promise<void> | void;
 }
 
-interface ImportEdgeInput {
-  sourcePath: string;
-  targetPath: string;
-  importPath: string;
-}
+export type SyncStage =
+  | "fetching"
+  | "parsing"
+  | "processes"
+  | "writing"
+  | "done";
 
-interface CodeFileNode {
-  id: string;
-  path: string;
-  directory: string;
-  filename: string;
-  extension: string;
-  sizeBytes: number;
-}
-
-interface ImportEdge {
-  source: string;
-  target: string;
-  importPath: string;
-}
-
-export class CodebaseService {
-  constructor(private driver: Driver) {}
-
-  async syncCodebase(
-    userId: string,
-    codebaseId: string,
-    files: CodeFileInput[],
-    edges: ImportEdgeInput[],
-  ): Promise<{ totalFiles: number; totalEdges: number }> {
-    const deleteSession = this.driver.session();
-    try {
-      await deleteSession.run(
-        `MATCH (f:CodeFile { userId: $userId, codebaseId: $codebaseId }) DETACH DELETE f`,
-        { userId, codebaseId },
-      );
-    } finally {
-      await deleteSession.close();
-    }
-
-    if (files.length === 0) return { totalFiles: 0, totalEdges: 0 };
-
-    const BATCH_SIZE = 500;
-    for (let i = 0; i < files.length; i += BATCH_SIZE) {
-      const batch = files.slice(i, i + BATCH_SIZE);
-      const session = this.driver.session();
-      try {
-        await session.run(
-          `UNWIND $files AS f
-           CREATE (n:CodeFile {
-             id: f.path,
-             userId: $userId,
-             codebaseId: $codebaseId,
-             path: f.path,
-             directory: f.directory,
-             filename: f.filename,
-             extension: f.extension,
-             sizeBytes: f.sizeBytes
-           })`,
-          { userId, codebaseId, files: batch },
-        );
-      } finally {
-        await session.close();
-      }
-    }
-
-    let totalEdges = 0;
-    for (let i = 0; i < edges.length; i += BATCH_SIZE) {
-      const batch = edges.slice(i, i + BATCH_SIZE);
-      const session = this.driver.session();
-      try {
-        const result = await session.run(
-          `UNWIND $edges AS e
-           MATCH (src:CodeFile { userId: $userId, codebaseId: $codebaseId, path: e.sourcePath })
-           MATCH (tgt:CodeFile { userId: $userId, codebaseId: $codebaseId, path: e.targetPath })
-           CREATE (src)-[:IMPORTS { importPath: e.importPath }]->(tgt)
-           RETURN count(*) AS created`,
-          { userId, codebaseId, edges: batch },
-        );
-        const record = result.records[0];
-        if (record) {
-          const val = record.get("created");
-          totalEdges += typeof val === "number" ? val : Number(val);
-        }
-      } finally {
-        await session.close();
-      }
-    }
-
-    return { totalFiles: files.length, totalEdges };
+export async function syncCodebase(
+  input: SyncCodebaseInput,
+): Promise<ParseStats> {
+  if (input.files.length > MAX_FILES_PER_SYNC) {
+    throw new Error(
+      `Repository too large for Phase 1 sync (${input.files.length} files; limit ${MAX_FILES_PER_SYNC}). Chunked sync coming in Phase 3.`,
+    );
   }
 
-  async getCodebaseGraph(
-    userId: string,
-    codebaseId: string,
-  ): Promise<{ nodes: CodeFileNode[]; edges: ImportEdge[] }> {
-    const session = this.driver.session();
-    try {
-      const nodesResult = await session.run(
-        `MATCH (f:CodeFile { userId: $userId, codebaseId: $codebaseId })
-         RETURN f.id AS id, f.path AS path, f.directory AS directory,
-                f.filename AS filename, f.extension AS extension,
-                f.sizeBytes AS sizeBytes`,
-        { userId, codebaseId },
-      );
+  await input.onStage?.("parsing");
+  const { project, result } = parseRepository({
+    codebaseId: input.codebaseId,
+    files: input.files,
+  });
+  const { calls } = resolveCalls(project, result, input.codebaseId);
 
-      const nodes: CodeFileNode[] = nodesResult.records.map((r) => ({
-        id: String(r.get("id")),
-        path: String(r.get("path")),
-        directory: String(r.get("directory")),
-        filename: String(r.get("filename")),
-        extension: String(r.get("extension")),
-        sizeBytes: Number(r.get("sizeBytes")),
-      }));
+  await input.onStage?.("processes");
+  const entryPoints = detectEntryPoints(project, result.symbols, calls);
+  const processes = detectProcesses(input.codebaseId, entryPoints, calls);
 
-      const edgesResult = await session.run(
-        `MATCH (src:CodeFile { userId: $userId, codebaseId: $codebaseId })
-               -[rel:IMPORTS]->(tgt:CodeFile)
-         RETURN src.id AS source, tgt.id AS target, rel.importPath AS importPath`,
-        { userId, codebaseId },
-      );
+  await input.onStage?.("writing");
+  const stats = await writeParseResult({
+    driver: input.driver,
+    userId: input.userId,
+    codebaseId: input.codebaseId,
+    symbols: result.symbols,
+    structuralRelations: result.structuralRelations,
+    calls,
+    processes,
+  });
 
-      const edges: ImportEdge[] = edgesResult.records.map((r) => ({
-        source: String(r.get("source")),
-        target: String(r.get("target")),
-        importPath: String(r.get("importPath")),
-      }));
+  await input.onStage?.("done");
+  return stats;
+}
 
-      return { nodes, edges };
-    } finally {
-      await session.close();
-    }
-  }
-
-  async deleteCodebase(userId: string, codebaseId: string): Promise<void> {
-    const session = this.driver.session();
-    try {
-      await session.run(
-        `MATCH (f:CodeFile { userId: $userId, codebaseId: $codebaseId }) DETACH DELETE f`,
-        { userId, codebaseId },
-      );
-    } finally {
-      await session.close();
-    }
+export async function deleteCodebase(
+  driver: Driver,
+  userId: string,
+  codebaseId: string,
+): Promise<void> {
+  const session = driver.session();
+  try {
+    await session.run(
+      `
+      MATCH (n { userId: $userId, codebaseId: $codebaseId })
+      WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
+      DETACH DELETE n
+      `,
+      { userId, codebaseId },
+    );
+  } finally {
+    await session.close();
   }
 }
+
+// Re-exports — the thin orchestrator's public surface mirrors the
+// individual modules so callers in `convex/neo4jActions/codebases.ts`
+// can import everything from one place.
+export {
+  getGraphOverview,
+  getOverviewStats,
+  getSymbolContext,
+  searchSymbols,
+  getUpstreamImpact,
+  getDownstreamImpact,
+};
+export type { OverviewNode, SearchSymbolsResult, ImpactNode, ImpactDirection };

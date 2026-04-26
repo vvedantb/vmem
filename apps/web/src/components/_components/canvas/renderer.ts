@@ -117,6 +117,13 @@ function traceShape(
   if (kind === "wiki-document") return traceDiamond(ctx, x, y, r);
   if (kind === "skill") return traceHexagon(ctx, x, y, r);
   if (kind === "entity") return traceStarburst(ctx, x, y, r);
+  // Codebase symbols use the same shape vocabulary as the rest of the
+  // graph — this keeps the visual language consistent across views.
+  if (kind === "code-file") return traceSquare(ctx, x, y, r);
+  if (kind === "code-class") return traceHexagon(ctx, x, y, r);
+  if (kind === "code-interface") return traceDiamond(ctx, x, y, r);
+  if (kind === "code-process") return traceStarburst(ctx, x, y, r);
+  // code-function falls through to circle (default for memory).
   return traceCircle(ctx, x, y, r);
 }
 

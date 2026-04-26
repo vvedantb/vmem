@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
+import { PARSER_VERSION } from "../src/neo4j/codebase/types";
 
 // --- Crypto helpers (same pattern as apiKeys.ts, needed for token decryption in actions) ---
 
@@ -218,6 +219,8 @@ export const syncCodebase = authAction({
       status: "syncing",
       syncedFiles: 0,
       errorMessage: undefined,
+      lastParseError: undefined,
+      parseStage: "fetching",
     });
 
     try {
@@ -236,11 +239,19 @@ export const syncCodebase = authAction({
       await ctx.runMutation(internal.codebases.updateStatusInternal, {
         id: normalizedId,
         status: "synced",
-        totalFiles: result.totalFiles,
-        totalEdges: result.totalEdges,
-        syncedFiles: result.totalFiles,
+        totalFiles: result.fileCount,
+        totalEdges: result.importEdgeCount,
+        syncedFiles: result.fileCount,
         lastSyncedAt: Date.now(),
         errorMessage: undefined,
+        functionCount: result.functionCount,
+        classCount: result.classCount,
+        interfaceCount: result.interfaceCount,
+        callEdgeCount: result.callEdgeCount,
+        processCount: result.processCount,
+        parserVersion: PARSER_VERSION,
+        lastParseError: undefined,
+        parseStage: "done",
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown sync error";
@@ -248,9 +259,38 @@ export const syncCodebase = authAction({
         id: normalizedId,
         status: "error",
         errorMessage: message,
+        lastParseError: message,
       });
       throw err;
     }
+  },
+});
+
+/**
+ * Re-sync every codebase belonging to the current user. Fires when the
+ * user clicks the "Re-sync" banner that appears on `/codebases` after a
+ * `PARSER_VERSION` bump. We run them sequentially to avoid hammering
+ * GitHub rate limits.
+ */
+export const syncAllMy = authAction({
+  args: {},
+  handler: async (ctx) => {
+    const codebases: Array<{ _id: string }> = await ctx.runQuery(
+      internal.codebases.listMyInternal,
+      { userId: ctx.userId },
+    );
+    for (const cb of codebases) {
+      try {
+        // Re-entering the public sync action keeps all the auth/token
+        // wiring centralised — no need to duplicate it here.
+        await ctx.runAction(api.codebases.syncCodebase, { id: cb._id });
+      } catch (err) {
+        // Per-codebase errors are already recorded on the row by syncCodebase;
+        // continue to the next one rather than aborting the whole batch.
+        console.error("syncAllMy: codebase failed", cb._id, err);
+      }
+    }
+    return { synced: codebases.length };
   },
 });
 
@@ -314,42 +354,56 @@ export const getByIdInternal = internalQuery({
 export const updateStatusInternal = internalMutation({
   args: {
     id: v.id("codebases"),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("syncing"),
-      v.literal("synced"),
-      v.literal("error"),
+    status: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("syncing"),
+        v.literal("synced"),
+        v.literal("error"),
+      ),
     ),
     totalFiles: v.optional(v.number()),
     totalEdges: v.optional(v.number()),
     syncedFiles: v.optional(v.number()),
     lastSyncedAt: v.optional(v.number()),
     errorMessage: v.optional(v.string()),
+    // Phase 1 stats — present only on the final "synced" patch.
+    functionCount: v.optional(v.number()),
+    classCount: v.optional(v.number()),
+    interfaceCount: v.optional(v.number()),
+    callEdgeCount: v.optional(v.number()),
+    processCount: v.optional(v.number()),
+    parserVersion: v.optional(v.string()),
+    lastParseError: v.optional(v.string()),
+    parseStage: v.optional(
+      v.union(
+        v.literal("fetching"),
+        v.literal("parsing"),
+        v.literal("processes"),
+        v.literal("writing"),
+        v.literal("done"),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
-    const {
-      id,
-      status,
-      totalFiles,
-      totalEdges,
-      syncedFiles,
-      lastSyncedAt,
-      errorMessage,
-    } = args;
-    // Build patch object with only defined fields
-    const patch: {
-      status: typeof status;
-      totalFiles?: number;
-      totalEdges?: number;
-      syncedFiles?: number;
-      lastSyncedAt?: number;
-      errorMessage?: string;
-    } = { status };
-    if (totalFiles !== undefined) patch.totalFiles = totalFiles;
-    if (totalEdges !== undefined) patch.totalEdges = totalEdges;
-    if (syncedFiles !== undefined) patch.syncedFiles = syncedFiles;
-    if (lastSyncedAt !== undefined) patch.lastSyncedAt = lastSyncedAt;
-    if (errorMessage !== undefined) patch.errorMessage = errorMessage;
+    // Patch only the keys actually supplied so callers can update e.g.
+    // just `parseStage` mid-sync without clobbering counts/stats.
+    const { id, ...rest } = args;
+    const patch: Record<string, unknown> = {};
+    for (const [k, v2] of Object.entries(rest)) {
+      if (v2 !== undefined) patch[k] = v2;
+    }
     await ctx.db.patch(id, patch);
+  },
+});
+
+/** Internal lister — used by `syncAllMy` so it can iterate user codebases without the avatar join. */
+export const listMyInternal = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("codebases")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
   },
 });

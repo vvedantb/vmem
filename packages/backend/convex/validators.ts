@@ -70,6 +70,58 @@ export const userEnvVarFields = {
 };
 
 /**
+ * Single source of truth for codebases table fields.
+ * Used in schema.ts (defineTable) and anywhere a codebase row is described.
+ *
+ * Phase 1 added rich AST stats (functionCount, classCount, etc.) and a
+ * `parseStage` field used by the live sync UI. All Phase 1 fields are
+ * optional so pre-existing rows stay valid; bumping `parserVersion`
+ * triggers a re-sync banner on the codebases index page.
+ */
+export const codebaseFields = {
+  userId: v.id("users"),
+  githubConnectionId: v.id("githubConnections"),
+  repoOwner: v.string(),
+  repoName: v.string(),
+  repoFullName: v.string(),
+  defaultBranch: v.string(),
+  language: v.optional(v.string()),
+  description: v.optional(v.string()),
+  isPrivate: v.optional(v.boolean()),
+  status: v.union(
+    v.literal("pending"),
+    v.literal("syncing"),
+    v.literal("synced"),
+    v.literal("error"),
+  ),
+  totalFiles: v.number(),
+  totalEdges: v.optional(v.number()),
+  syncedFiles: v.number(),
+  lastSyncedAt: v.optional(v.number()),
+  errorMessage: v.optional(v.string()),
+  // ── Phase 1 AST stats ──────────────────────────────────────────────
+  functionCount: v.optional(v.number()),
+  classCount: v.optional(v.number()),
+  interfaceCount: v.optional(v.number()),
+  callEdgeCount: v.optional(v.number()),
+  processCount: v.optional(v.number()),
+  /** Bumped when parser semantics change — drives the re-sync banner. */
+  parserVersion: v.optional(v.string()),
+  /** Last parse error message (distinct from network/GitHub `errorMessage`). */
+  lastParseError: v.optional(v.string()),
+  /** Live sync stage for granular progress UI. */
+  parseStage: v.optional(
+    v.union(
+      v.literal("fetching"),
+      v.literal("parsing"),
+      v.literal("processes"),
+      v.literal("writing"),
+      v.literal("done"),
+    ),
+  ),
+};
+
+/**
  * Single source of truth for wikiNodes table fields.
  * Used in schema.ts (defineTable) and anywhere we need to describe a wikiNode row.
  *

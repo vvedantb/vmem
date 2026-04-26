@@ -2,26 +2,44 @@ import type { SimulationNodeDatum, SimulationLinkDatum } from "d3-force";
 
 /**
  * Kind of node shown on the graph. Merges Neo4j memory nodes, Convex wikiNode
- * rows, and Convex skills into one union so the renderer can dispatch a
- * different shape per kind:
- *  - memory        → circle
- *  - wiki-document → diamond
- *  - wiki-folder   → square
- *  - skill         → hexagon (flat-topped)
+ * rows, Convex skills, and Phase-1 codebase symbols into one union so the
+ * renderer can dispatch a different shape per kind:
+ *  - memory         → circle
+ *  - wiki-document  → diamond
+ *  - wiki-folder    → square
+ *  - skill          → hexagon (flat-topped)
+ *  - entity         → diamond
+ *  - code-file      → square
+ *  - code-function  → circle
+ *  - code-class     → hexagon
+ *  - code-interface → diamond
+ *  - code-process   → starburst
  */
 export type GraphNodeKind =
   | "memory"
   | "wiki-document"
   | "wiki-folder"
   | "skill"
-  | "entity";
+  | "entity"
+  | "code-file"
+  | "code-function"
+  | "code-class"
+  | "code-interface"
+  | "code-process";
 
 export type GraphEdgeType =
   | "tag"
   | "relates_to"
   | "imports"
   | "wiki_parent"
-  | "mentions";
+  | "mentions"
+  | "calls"
+  | "contains"
+  | "has_method"
+  | "extends"
+  | "implements"
+  | "starts_process"
+  | "includes";
 
 export interface GraphNode extends SimulationNodeDatum {
   id: string;
