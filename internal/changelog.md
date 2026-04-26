@@ -1,5 +1,13 @@
 # Changelog
 
+## Per-User Dream Mode Scheduling via Crons Component — 2026-04-26
+
+- **Runtime cron registration with `@convex-dev/crons`**: Replaced static daily 4am UTC broadcast with per-profile dynamic crons. Each profile that has scheduling enabled gets its own cron registered at `dream-mode:<profileId>`, allowing O(1) lookup when toggling.
+- **Per-profile schedule UI in settings**: Added `DreamModeSection` in the profile settings page with per-profile cards showing auto-accept toggle (unchanged) and a "Run daily at [HH:MM]" time picker + schedule toggle. UI converts user's local time to UTC before saving, stores on profile (`dreamModeScheduleEnabled`, `dreamModeScheduleHour`, `dreamModeScheduleMinute`).
+- **Browser↔UTC time conversion**: JavaScript `Date` API handles local-to-UTC conversion on the client side, avoiding server-side timezone library. Tradeoff: DST shifts the user's perceived local time by 1h on transitions, but cron always fires at the same absolute UTC moment (acceptable for daily synthesis).
+- **Delete-then-register pattern**: Since the crons component has no "update schedule" primitive, `setDreamSchedule` mutation deletes any existing cron and re-registers when saved. Name-based lookup (`dreamCrons.get(ctx, { name })`) enables efficient per-profile management.
+- **Profile-aware scheduling**: New `runDreamForProfileById` internal action resolves the profile's `userId` → `clerkId` at fire time, then delegates to `runDreamForProfileInternal`. Stores only `{ profileId }` in cron args to avoid stale clerkId snapshots.
+
 ## Dream Mode V2 — Background Reasoning Engine — 2026-04-26
 
 - **Surprisal-driven nightly synthesis**: Daily 4am UTC cron scans each profile's last 7 days of memories, scores them by k-NN cosine surprisal against existing embeddings, clusters the top anomalies via 1-hop graph neighborhoods (`RELATES_TO` + shared `MENTIONS`), and asks Qwen3-235B to label each cluster as an insight, connection, contradiction, or anomaly. Vmem now gets smarter about a user the longer it observes them — no explicit action required.

@@ -33,14 +33,6 @@ const MAX_CLUSTER_SIZE = 8;
 const CONFIDENCE_FLOOR = 0.6;
 const DEDUP_OVERLAP_THRESHOLD = 0.5;
 
-/**
- * Cron-mode batch size: how many profiles a single tick of the daily cron
- * processes before rescheduling itself. The cron action's wallclock is
- * bounded; one LLM-heavy profile ≈ 10 OpenRouter requests, so 20 keeps a
- * single tick under a few minutes.
- */
-const CRON_BATCH_SIZE = 20;
-
 /** Manual button rate-limit: at most one run per profile per hour. */
 const MANUAL_RATE_LIMIT_MS = 60 * 60 * 1000;
 
@@ -320,59 +312,54 @@ export const runDreamForProfileInternal = internalAction({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cron entry point — fans out per-profile runs.
-//
-// Self-rescheduling cursor: pulls a batch of profiles, schedules a run for
-// each, reschedules itself if more remain. Mirrors the embedding backfill
-// pattern (`backfillEmbeddingsInternal`).
+// Per-profile cron entry point — wired to dynamically-registered crons via
+// `@convex-dev/crons`. Each user-scheduled profile gets its own cron whose
+// args are just `{ profileId }`; we resolve the owner's clerkId at fire
+// time so a clerkId rotation doesn't leave a stale cron pointing at the
+// wrong identity.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const runDreamForAllUsersInternal = internalAction({
+export const runDreamForProfileById = internalAction({
   args: {
-    cursor: v.optional(v.string()),
+    profileId: v.id("profiles"),
   },
-  handler: async (ctx, args): Promise<{ scheduled: number; done: boolean }> => {
-    const page = await ctx.runQuery(
-      internal.profiles.listForDreamCronInternal,
+  handler: async (ctx, args): Promise<DreamRunResult> => {
+    const profile = await ctx.runQuery(internal.profiles.getByIdInternal, {
+      profileId: args.profileId,
+    });
+    if (!profile) {
+      console.warn(
+        `[dream] scheduled run: profile ${args.profileId} not found`,
+      );
+      return {
+        proposalsCreated: 0,
+        memoriesMaterialized: 0,
+        clustersScanned: 0,
+        reason: "no-recent-memories",
+      };
+    }
+    const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
+      userId: profile.userId,
+    });
+    if (!clerkId) {
+      console.warn(
+        `[dream] scheduled run: no clerkId for owner of ${args.profileId}`,
+      );
+      return {
+        proposalsCreated: 0,
+        memoriesMaterialized: 0,
+        clustersScanned: 0,
+        reason: "no-key",
+      };
+    }
+
+    return await ctx.runAction(
+      internal.neo4jActions.dreamMode.runDreamForProfileInternal,
       {
-        paginationOpts: {
-          cursor: args.cursor ?? null,
-          numItems: CRON_BATCH_SIZE,
-        },
+        clerkId,
+        profileId: args.profileId,
       },
     );
-
-    let scheduled = 0;
-    for (const profile of page.profiles) {
-      // Resolve clerkId once per profile owner.
-      const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
-        userId: profile.userId,
-      });
-      if (!clerkId) continue;
-
-      await ctx.scheduler.runAfter(
-        0,
-        internal.neo4jActions.dreamMode.runDreamForProfileInternal,
-        {
-          clerkId,
-          profileId: profile._id,
-        },
-      );
-      scheduled += 1;
-    }
-
-    if (!page.isDone) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.neo4jActions.dreamMode.runDreamForAllUsersInternal,
-        { cursor: page.continueCursor },
-      );
-    }
-
-    console.log(
-      `[dream] cron tick: scheduled ${String(scheduled)} profile runs, done=${String(page.isDone)}`,
-    );
-    return { scheduled, done: page.isDone };
   },
 });
 
