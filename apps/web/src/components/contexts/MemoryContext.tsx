@@ -1,11 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo } from "react";
-import {
-  useConvexAuth,
-  useAction,
-  useMutation as useConvexMutation,
-} from "convex/react";
+import { useConvexAuth, useAction } from "convex/react";
 import {
   useQuery as useTanstackQuery,
   useMutation,
@@ -14,8 +10,6 @@ import {
 } from "@tanstack/react-query";
 import type { Memory } from "@/lib/memories";
 import { api } from "@vmem/backend";
-import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
-import { runLocalFullEnrichment } from "@/lib/local-enrichment";
 
 interface CreateMemoryInput {
   title: string;
@@ -208,45 +202,6 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const createMemoryAction = useAction(api.memoryApi.createMemory);
   const updateMemoryAction = useAction(api.memoryApi.updateMemory);
   const deleteMemoryAction = useAction(api.memoryApi.deleteMemory);
-  const listRecentForEnrichment = useAction(
-    api.memoryApi.listRecentMemoryTitlesForEnrichment,
-  );
-  const applyEnrichmentAction = useAction(api.memoryApi.applyEnrichment);
-  const enqueuePendingEnrichment = useConvexMutation(
-    api.pendingEnrichment.enqueuePendingEnrichment,
-  );
-  const { model, engineState } = useLocalLLM();
-
-  const enrichAfterCreate = useCallback(
-    async (memoryId: string, title: string, content: string) => {
-      if (engineState !== "ready" || model === null) {
-        return;
-      }
-      try {
-        const existing = await listRecentForEnrichment({
-          excludeMemoryId: memoryId,
-        });
-        const parsed = await runLocalFullEnrichment(
-          model,
-          title,
-          content,
-          existing,
-        );
-        if (parsed === null) {
-          return;
-        }
-        await applyEnrichmentAction({
-          memoryId,
-          tags: parsed.tags,
-          relatedMemoryIds: parsed.relatedMemoryIds,
-        });
-      } catch (err) {
-        console.error("[enrichment] web local enrichment failed:", err);
-      }
-    },
-    [model, engineState, listRecentForEnrichment, applyEnrichmentAction],
-  );
-
   // Bounded single-query load for consumers that still want a broad slice
   // of memories (tag suggestions, filter-option derivation). This replaces
   // the old fetch-all loop that made 120 round trips for a 12k-memory user.
@@ -296,14 +251,8 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         updatedAt: created.updatedAt,
         expiresAt: created.expiresAt,
       });
-      if (engineState === "ready" && model !== null) {
-        void enrichAfterCreate(memory.id, memory.title, memory.content);
-      } else {
-        void enqueuePendingEnrichment({
-          memoryId: memory.id,
-          source: "web",
-        });
-      }
+      // Enrichment (tags, relations, entities) now runs server-side
+      // automatically after memory creation via ctx.scheduler.runAfter
       return memory;
     },
     onMutate: async (input) => {

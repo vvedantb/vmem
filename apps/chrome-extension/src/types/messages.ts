@@ -7,6 +7,9 @@ export type ContentMessage =
       url: string;
       title: string;
       content: string;
+      markdown?: string;
+      ogImage?: string;
+      ogDescription?: string;
       profileId?: string;
     }
   | {
@@ -16,11 +19,24 @@ export type ContentMessage =
       pageTitle: string;
       profileId?: string;
     }
+  | {
+      type: "SAVE_YOUTUBE_VIDEO";
+      url: string;
+      title: string;
+      channel: string;
+      transcript: string;
+      profileId?: string;
+    }
+  | {
+      type: "CAPTURE_PROMPT";
+      prompt: string;
+      url: string;
+      platform: string;
+      profileId?: string;
+    }
   | { type: "IMPORT_BOOKMARKS" }
   | { type: "IMPORT_HISTORY"; days: number }
-  | { type: "CANCEL_IMPORT" }
-  | { type: "GET_ENRICHMENT_STATUS" }
-  | { type: "LOAD_ENRICHMENT_MODEL" };
+  | { type: "CANCEL_IMPORT" };
 
 export type BackgroundResponse =
   | { type: "RETRIEVE_RESULT"; memories: MemoryCandidate[] }
@@ -37,23 +53,10 @@ export type BackgroundResponse =
       locked?: boolean;
       error?: string;
     }
-  | { type: "CANCEL_RESULT"; success: boolean }
-  | {
-      type: "ENRICHMENT_STATUS";
-      method: "chrome-ai" | "webllm" | null;
-      modelLoaded: boolean;
-      modelProgress?: number;
-    }
-  | { type: "MODEL_LOAD_RESULT"; success: boolean; error?: string };
+  | { type: "CANCEL_RESULT"; success: boolean };
 
-export type ProgressMessage =
-  | {
-      type: "IMPORT_PROGRESS";
-      current: number;
-      total: number;
-    }
-  | {
-      type: "MODEL_LOAD_PROGRESS";
-      progress: number;
-      text: string;
-    };
+export type ProgressMessage = {
+  type: "IMPORT_PROGRESS";
+  current: number;
+  total: number;
+};

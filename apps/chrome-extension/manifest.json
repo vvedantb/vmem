@@ -4,7 +4,7 @@
   "description": "Memory layer for your browser",
   "version": "0.1.0",
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "permissions": [
     "storage",
@@ -15,15 +15,25 @@
     "alarms",
     "scripting",
     "identity",
-    "cookies",
-    "offscreen"
+    "cookies"
   ],
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://chatgpt.com/*",
     "https://claude.ai/*",
+    "https://www.youtube.com/*",
+    "https://youtube.com/*",
     "<all_urls>"
   ],
+  "commands": {
+    "save-page": {
+      "suggested_key": {
+        "default": "Alt+S",
+        "mac": "Alt+S"
+      },
+      "description": "Save current page to vmem"
+    }
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -44,6 +54,11 @@
     {
       "matches": ["https://claude.ai/*"],
       "js": ["content-claude.js"]
+    },
+    {
+      "matches": ["https://www.youtube.com/*", "https://youtube.com/*"],
+      "js": ["content-youtube.js"],
+      "run_at": "document_idle"
     },
     {
       "matches": ["<all_urls>"],

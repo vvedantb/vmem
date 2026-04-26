@@ -21,7 +21,7 @@ interface WNode extends SimulationNodeDatum {
   size: number;
 }
 
-type WEdgeType = "tag" | "relates_to" | "imports" | "wiki_parent";
+type WEdgeType = "tag" | "relates_to" | "imports" | "wiki_parent" | "mentions";
 
 interface WEdge extends SimulationLinkDatum<WNode> {
   edgeType: WEdgeType;
@@ -144,19 +144,15 @@ function init(
   const chargeStrength = -scalingRatio * 8;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
-  // Obsidian-style springs: connected nodes cluster but keep enough slack that
-  // the collide force can always separate them without fighting the link pull.
-  // Tag edges pull less hard than explicit user-created relates_to links.
-  const linkForce = forceLink<WNode, WEdge>(edges)
+  // Only structural edges participate in physics — tag edges are visual-only.
+  // This prevents nodes from clustering just because they share tags, keeping
+  // the layout driven by meaningful semantic relationships.
+  const structuralEdges = edges.filter((e) => e.edgeType !== "tag");
+
+  const linkForce = forceLink<WNode, WEdge>(structuralEdges)
     .id((d) => d.id)
     .distance(70)
-    .strength((d) =>
-      d.edgeType === "relates_to" ||
-      d.edgeType === "imports" ||
-      d.edgeType === "wiki_parent"
-        ? 0.8
-        : 0.3,
-    );
+    .strength(0.6);
 
   chargeForceRef = forceManyBody<WNode>().strength(chargeStrength).theta(theta);
 

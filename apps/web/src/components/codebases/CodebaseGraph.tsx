@@ -159,7 +159,6 @@ export function CodebaseGraph({ controller }: CodebaseGraphProps) {
       {hoveredNode && !selectedNodeId && (
         <GraphNodeTooltip
           title={hoveredNode.title}
-          content={hoveredNode.content}
           viewportX={hoveredNode.viewportX}
           viewportY={hoveredNode.viewportY}
         />

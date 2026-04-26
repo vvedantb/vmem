@@ -83,6 +83,29 @@ function traceHexagon(
   ctx.closePath();
 }
 
+/**
+ * 8-pointed starburst shape for entity hub nodes. Alternates between outer
+ * vertices on the circle and inner vertices at half the radius, giving a
+ * spiky "sun" silhouette that reads as distinct from every other shape.
+ */
+function traceStarburst(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+): void {
+  const points = 8;
+  const inner = r * 0.5;
+  const step = Math.PI / points;
+  ctx.moveTo(x + r, y);
+  for (let i = 1; i < points * 2; i++) {
+    const angle = step * i;
+    const radius = i % 2 === 0 ? r : inner;
+    ctx.lineTo(x + radius * Math.cos(angle), y + radius * Math.sin(angle));
+  }
+  ctx.closePath();
+}
+
 function traceShape(
   ctx: CanvasRenderingContext2D,
   kind: GraphNodeKind,
@@ -93,6 +116,7 @@ function traceShape(
   if (kind === "wiki-folder") return traceSquare(ctx, x, y, r);
   if (kind === "wiki-document") return traceDiamond(ctx, x, y, r);
   if (kind === "skill") return traceHexagon(ctx, x, y, r);
+  if (kind === "entity") return traceStarburst(ctx, x, y, r);
   return traceCircle(ctx, x, y, r);
 }
 
@@ -173,7 +197,8 @@ export function render(
   ctx.scale(vp.scale, vp.scale);
 
   const nodeCount = nodes.length;
-  const hasHover = interaction.hoveredNodeId !== null;
+  const hasHover =
+    interaction.hoveredNodeId !== null || interaction.hoveredEdgeIndex !== null;
   // Edges only enter hover mode (dim non-connected, highlight connected) when
   // the hovered node actually has neighbors. Hovering an isolated node would
   // otherwise fade the entire graph to gray with nothing to highlight.
@@ -229,6 +254,17 @@ export function render(
         ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
       }
       ctx.stroke();
+
+      // mentions — teal-green entity edges.
+      ctx.strokeStyle = theme.edge.normalByType.mentions;
+      ctx.lineWidth = theme.edge.width * 2;
+      ctx.beginPath();
+      for (const edge of edges) {
+        if (edge.edgeType !== "mentions") continue;
+        ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
+        ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+      }
+      ctx.stroke();
     } else {
       // Hover active — two batched passes per edge type: dimmed non-connected
       // edges first (fade into background), then connected edges on top at
@@ -238,12 +274,14 @@ export function render(
         "relates_to",
         "imports",
         "wiki_parent",
+        "mentions",
       ] as const) {
         if (edgeType === "tag" && skipTagEdges) continue;
         const isStrongEdge =
           edgeType === "relates_to" ||
           edgeType === "imports" ||
-          edgeType === "wiki_parent";
+          edgeType === "wiki_parent" ||
+          edgeType === "mentions";
         const widthMultiplier = isStrongEdge ? 2 : 1;
         // `imports` reuses the relates_to palette slot (both are user-linked).
         const typeColor =
@@ -508,16 +546,22 @@ export function render(
   }
 
   // --- Edge labels ---
-  // Show relationship *category* ("relates to" / "tagged" / "imports") as a
-  // small chip centered on each edge. Always visible for every edge type so
-  // the user can see at-a-glance what kind of connection each line is.
+  const hoveredEdgeIdx = interaction.hoveredEdgeIndex;
   if (!lowZoom) {
     const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    for (const edge of edges) {
+    for (let i = 0; i < edges.length; i++) {
+      const edge = edges[i];
+      const isHoveredEdge = hoveredEdgeIdx === i;
+      const isHoveredNodeEdge =
+        hasHoveredNeighbors &&
+        neighborSet.has(edge.source.id) &&
+        neighborSet.has(edge.target.id);
+      if (!isHoveredEdge && !isHoveredNodeEdge) continue;
+
       const label =
         edge.edgeType === "relates_to"
           ? "relates to"
@@ -525,7 +569,9 @@ export function render(
             ? "imports"
             : edge.edgeType === "wiki_parent"
               ? "parent of"
-              : "tagged";
+              : edge.edgeType === "mentions"
+                ? "mentions"
+                : "tagged";
 
       const mx = ((edge.source.x ?? 0) + (edge.target.x ?? 0)) / 2;
       const my = ((edge.source.y ?? 0) + (edge.target.y ?? 0)) / 2;

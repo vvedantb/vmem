@@ -154,6 +154,12 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       const canvas: HTMLCanvasElement = maybeCanvas;
       const ctx: CanvasRenderingContext2D = maybeCtx;
 
+      // Reset viewport fit flag — a new simulation starts from scratch, so the
+      // viewport must re-fit once the layout settles. Without this, StrictMode
+      // (dev) keeps the flag true from the first (torn-down) run and the second
+      // run never fits, leaving the viewport aimed at the old clumped origin.
+      hasFittedRef.current = false;
+
       const sim = createSimulation(
         nodes,
         edges,
@@ -207,6 +213,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               sourceTitle: edge.source.title,
               targetTitle: edge.target.title,
               reason,
+              score: edge.score,
               viewportX: sx,
               viewportY: sy,
             });
@@ -252,13 +259,33 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       const resolvedEdgesCache: ResolvedEdge[] = [];
       resolvedEdgesRef.current = resolvedEdgesCache;
       function resolveEdges() {
+        // Build a node lookup so we can resolve string-based source/target
+        // refs ourselves. D3 only mutates edges that go through forceLink
+        // (structural edges), and in the Worker path it doesn't mutate the
+        // main-thread edge objects at all. This manual resolution handles
+        // both cases uniformly.
+        const nodeById = new Map<string, GraphNode>();
+        for (const n of nodesRef.current) nodeById.set(n.id, n);
+
         resolvedEdgesCache.length = 0;
         for (const edge of edgesRef.current) {
-          if (
-            typeof edge.source === "object" &&
+          const sourceNode =
+            typeof edge.source === "object"
+              ? edge.source
+              : nodeById.get(edge.source);
+          const targetNode =
             typeof edge.target === "object"
-          ) {
-            resolvedEdgesCache.push(edge as ResolvedEdge);
+              ? edge.target
+              : nodeById.get(edge.target);
+          if (sourceNode && targetNode) {
+            resolvedEdgesCache.push({
+              source: sourceNode,
+              target: targetNode,
+              edgeType: edge.edgeType,
+              weight: edge.weight,
+              reason: edge.reason,
+              score: edge.score,
+            });
           }
         }
       }
@@ -311,6 +338,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         }
 
         const hoveredId = interactionRef.current.hoveredNodeId;
+        const hoveredEdgeIndex = interactionRef.current.hoveredEdgeIndex;
         const neighborSet = new Set<string>();
         if (hoveredId) {
           neighborSet.add(hoveredId);
@@ -318,6 +346,13 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           if (neighbors) {
             for (const nId of neighbors) neighborSet.add(nId);
           }
+        } else if (
+          hoveredEdgeIndex !== null &&
+          hoveredEdgeIndex < resolvedEdgesCache.length
+        ) {
+          const hoveredEdge = resolvedEdgesCache[hoveredEdgeIndex];
+          neighborSet.add(hoveredEdge.source.id);
+          neighborSet.add(hoveredEdge.target.id);
         }
 
         render(

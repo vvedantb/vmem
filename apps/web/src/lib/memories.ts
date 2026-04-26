@@ -38,6 +38,8 @@ export function memoryMatchesProfileFilter(
 const MEMORY_SOURCE_LABELS: Record<string, string> = {
   web: "Web",
   "browser-extension": "Extension",
+  "prompt-capture": "Prompt Capture",
+  youtube: "YouTube",
   google_drive: "Google Drive",
   notion: "Notion",
   mcp: "MCP",

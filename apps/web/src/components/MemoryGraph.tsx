@@ -115,32 +115,15 @@ export default function MemoryGraph({
     };
   }, [selectedNodeId, graphNodes, contentCache]);
 
-  const hoveredNodeContent = useMemo(() => {
-    if (!hoveredNode) return undefined;
-    if (hoveredNode.content !== undefined) return hoveredNode.content;
-    return contentCache.get(hoveredNode.id);
-  }, [hoveredNode, contentCache]);
-
   const relatedNodes = useMemo(() => {
     if (!selectedNodeId) return [];
     return getRelatedNodes(selectedNodeId, graphEdges, graphNodes);
   }, [selectedNodeId, graphEdges, graphNodes]);
 
   // Canvas handlers
-  const handleHoverNode = useCallback(
-    (info: HoveredNodeInfo | null) => {
-      setHoveredNode(info);
-      if (info && info.content === undefined) {
-        // Memory nodes arrive without content in the graph payload; kick off
-        // the fetch eagerly so the tooltip populates before the user pauses.
-        const node = graphNodes.find((n) => n.id === info.id);
-        if (node && node.kind === "memory") {
-          ensureMemoryContent(info.id);
-        }
-      }
-    },
-    [graphNodes, ensureMemoryContent],
-  );
+  const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
+    setHoveredNode(info);
+  }, []);
 
   const handleClickNode = useCallback(
     (nodeId: string) => {
@@ -271,7 +254,6 @@ export default function MemoryGraph({
       {hoveredNode && !selectedNodeId && (
         <GraphNodeTooltip
           title={hoveredNode.title}
-          content={hoveredNodeContent}
           viewportX={hoveredNode.viewportX}
           viewportY={hoveredNode.viewportY}
         />
@@ -285,6 +267,7 @@ export default function MemoryGraph({
           sourceTitle={hoveredEdge.sourceTitle}
           targetTitle={hoveredEdge.targetTitle}
           reason={hoveredEdge.reason}
+          score={hoveredEdge.score}
           viewportX={hoveredEdge.viewportX}
           viewportY={hoveredEdge.viewportY}
         />

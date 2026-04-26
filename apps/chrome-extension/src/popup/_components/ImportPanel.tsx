@@ -31,6 +31,18 @@ function formatLastSync(epochMs: number): string {
   return `${Math.floor(diffHrs / 24)}d ago`;
 }
 
+function formatNextSync(scheduledTime: number): string {
+  const diffMs = scheduledTime - Date.now();
+  if (diffMs <= 0) return "any moment";
+  const diffMin = Math.ceil(diffMs / 60000);
+  if (diffMin === 1) return "in 1 min";
+  if (diffMin < 60) return `in ${diffMin} min`;
+  const diffHrs = Math.floor(diffMin / 60);
+  const remMin = diffMin % 60;
+  if (remMin === 0) return `in ${diffHrs}h`;
+  return `in ${diffHrs}h ${remMin}m`;
+}
+
 export function ImportPanel() {
   const { settings, update } = useExtensionUserSettings();
   const [historyDays, setHistoryDays] = useState("7");
@@ -43,12 +55,27 @@ export function ImportPanel() {
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [lastBookmarkSync, setLastBookmarkSync] = useState(0);
   const [lastHistorySync, setLastHistorySync] = useState(0);
+  const [nextSyncLabel, setNextSyncLabel] = useState<string | null>(null);
 
   useEffect(() => {
     void getStorage().then((storage) => {
       setLastBookmarkSync(storage.lastBookmarkSync);
       setLastHistorySync(storage.lastHistorySync);
     });
+
+    // Fetch the next scheduled alarm time and keep it updated
+    function updateNextSync() {
+      chrome.alarms.get("vmem-history-sync", (alarm) => {
+        if (alarm) {
+          setNextSyncLabel(formatNextSync(alarm.scheduledTime));
+        } else {
+          setNextSyncLabel(null);
+        }
+      });
+    }
+    updateNextSync();
+    const interval = setInterval(updateNextSync, 15_000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -151,13 +178,20 @@ export function ImportPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">Auto-sync</span>
-        <Switch
-          checked={settings?.extensionAutoSyncEnabled ?? true}
-          onCheckedChange={handleAutoSyncToggle}
-          disabled={settings === undefined}
-        />
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Auto-sync</span>
+          <Switch
+            checked={settings?.extensionAutoSyncEnabled ?? true}
+            onCheckedChange={handleAutoSyncToggle}
+            disabled={settings === undefined}
+          />
+        </div>
+        {settings?.extensionAutoSyncEnabled !== false && nextSyncLabel && (
+          <p className="text-xs text-muted-foreground">
+            Next sync {nextSyncLabel}
+          </p>
+        )}
       </div>
 
       <div className="space-y-3">
