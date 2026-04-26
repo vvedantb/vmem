@@ -1,5 +1,12 @@
 # Changelog
 
+## Graph Rendering & Interaction Improvements — 2026-04-26
+
+- **Fixed viewport fit in React StrictMode**: Reset `hasFittedRef` flag when simulation restarts to ensure viewport re-fits on layout settle. Prevents the second render in StrictMode (dev) from keeping the old fitted state and missing the canvas reset.
+- **Edge hover highlighting**: When hovering an edge, both endpoint nodes now highlight along with the edge, making it clear which nodes that edge connects. Matches behavior for hovering nodes and their neighbors.
+- **Extracted golden spiral seeding**: Moved position initialization into `seedNodePositions` function used by both worker and main-thread simulations, ensuring consistency and reducing code duplication.
+- **Proper TypeScript typing for worker messages**: Worker position messages now have explicit `WorkerPositionMessage` type, improving type safety and IDE intellisense.
+
 ## Memory Graph Popover Simplified — 2026-04-26
 
 - **Popover shows title only**: Removed description/content from memory graph node popovers to reduce visual clutter. Hovering a node now displays just the title.

@@ -197,7 +197,8 @@ export function render(
   ctx.scale(vp.scale, vp.scale);
 
   const nodeCount = nodes.length;
-  const hasHover = interaction.hoveredNodeId !== null;
+  const hasHover =
+    interaction.hoveredNodeId !== null || interaction.hoveredEdgeIndex !== null;
   // Edges only enter hover mode (dim non-connected, highlight connected) when
   // the hovered node actually has neighbors. Hovering an isolated node would
   // otherwise fade the entire graph to gray with nothing to highlight.
@@ -545,16 +546,22 @@ export function render(
   }
 
   // --- Edge labels ---
-  // Show relationship *category* ("relates to" / "tagged" / "imports") as a
-  // small chip centered on each edge. Always visible for every edge type so
-  // the user can see at-a-glance what kind of connection each line is.
+  const hoveredEdgeIdx = interaction.hoveredEdgeIndex;
   if (!lowZoom) {
     const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    for (const edge of edges) {
+    for (let i = 0; i < edges.length; i++) {
+      const edge = edges[i];
+      const isHoveredEdge = hoveredEdgeIdx === i;
+      const isHoveredNodeEdge =
+        hasHoveredNeighbors &&
+        neighborSet.has(edge.source.id) &&
+        neighborSet.has(edge.target.id);
+      if (!isHoveredEdge && !isHoveredNodeEdge) continue;
+
       const label =
         edge.edgeType === "relates_to"
           ? "relates to"
