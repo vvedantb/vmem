@@ -4,8 +4,8 @@ import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
 import { MemoryService } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
-import { generateEmbedding } from "../../src/neo4j/embeddingService";
-import { tryUserEnvVarByClerkId } from "../lib/envVars";
+import { generateEmbedding } from "../lib/openRouter";
+import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
 
 export const listProposedUpdatesInternal = internalAction({
   args: { clerkId: v.string() },
@@ -40,21 +40,25 @@ export const resolveProposalInternal = internalAction({
       action === "approve"
     ) {
       try {
-        const apiKey = await tryUserEnvVarByClerkId(
+        const auth = await tryUserAndApiKeyByClerkId(
           ctx,
           args.clerkId,
           "OPENROUTER_API_KEY",
         );
-        if (apiKey) {
+        if (auth) {
           const detail = await service.getMemory(
             args.clerkId,
             result.materializedMemoryId,
           );
           if (detail) {
-            const embedding = await generateEmbedding(
-              apiKey,
-              `${detail.title}\n\n${detail.content}`,
-            );
+            const embedding = await generateEmbedding({
+              ctx,
+              apiKey: auth.apiKey,
+              userId: auth.userId,
+              profileId: detail.profileId ?? undefined,
+              feature: "proposal-accept",
+              text: `${detail.title}\n\n${detail.content}`,
+            });
             await service.setEmbeddings([
               { id: result.materializedMemoryId, embedding },
             ]);

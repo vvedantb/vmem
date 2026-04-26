@@ -8,30 +8,41 @@ import {
   computeContentHash,
 } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
-import { generateEmbedding } from "../../src/neo4j/embeddingService";
+import { generateEmbedding } from "../lib/openRouter";
 import { verifyMcpJwt } from "../../src/neo4j/mcpAuth";
 import { normalizeUrl } from "../../src/neo4j/url";
-import { tryUserEnvVarByClerkId } from "../lib/envVars";
+import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
 
 /**
  * Best-effort embedding helper used by the MCP entry points. Returns null
  * when the user has no OPENROUTER_API_KEY set or the remote call fails —
  * downstream Cypher treats that as "no vector yet" and the retrieve/create
  * paths continue on the fulltext-only degraded path.
+ *
+ * `profileId` is threaded through so the resulting `openRouterLogs` row
+ * can be attributed to the workspace whose call triggered it.
  */
 async function tryEmbed(
   ctx: ActionCtx,
   clerkId: string,
+  profileId: string | undefined,
   text: string,
 ): Promise<number[] | null> {
   try {
-    const apiKey = await tryUserEnvVarByClerkId(
+    const auth = await tryUserAndApiKeyByClerkId(
       ctx,
       clerkId,
       "OPENROUTER_API_KEY",
     );
-    if (!apiKey) return null;
-    return await generateEmbedding(apiKey, text);
+    if (!auth) return null;
+    return await generateEmbedding({
+      ctx,
+      apiKey: auth.apiKey,
+      userId: auth.userId,
+      profileId,
+      feature: "mcp-embed",
+      text,
+    });
   } catch (e) {
     console.warn("mcp embedding failed", e);
     return null;
@@ -106,7 +117,7 @@ export const mcpRetrieveMemories = internalAction({
     const clerkId = verifyTokenOrThrow(args.token);
     const profileId = await resolveProfileId(ctx, clerkId, args.profileId);
     const service = new MemoryService(getDriver());
-    const queryEmbedding = await tryEmbed(ctx, clerkId, args.query);
+    const queryEmbedding = await tryEmbed(ctx, clerkId, profileId, args.query);
     return await service.retrieveMemories({
       userId: clerkId,
       profileId,
@@ -186,6 +197,7 @@ export const mcpCreateMemory = internalAction({
     const embedding = await tryEmbed(
       ctx,
       clerkId,
+      profileId,
       `${args.title}\n\n${args.content}`,
     );
 
@@ -239,6 +251,7 @@ export const mcpCreateMemory = internalAction({
         memoryId: result.id,
         title: args.title,
         content: args.content,
+        profileId,
       },
     );
 

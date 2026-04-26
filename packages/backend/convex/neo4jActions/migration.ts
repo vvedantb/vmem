@@ -8,8 +8,8 @@ import {
   computeContentHash,
 } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
-import { generateEmbeddings } from "../../src/neo4j/embeddingService";
-import { tryUserEnvVarByClerkId } from "../lib/envVars";
+import { callOpenRouterChat, generateEmbeddings } from "../lib/openRouter";
+import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
 import {
   buildFullEnrichmentPrompt,
   parseFullEnrichmentResponse,
@@ -180,21 +180,27 @@ export const backfillEmbeddingsInternal = internalAction({
     let processed = 0;
     for (const [clerkId, items] of byUser) {
       try {
-        const apiKey = await tryUserEnvVarByClerkId(
+        const auth = await tryUserAndApiKeyByClerkId(
           ctx,
           clerkId,
           "OPENROUTER_API_KEY",
         );
-        if (!apiKey) {
+        if (!auth) {
           console.warn(
             `embedding backfill: skipping user ${clerkId} (no OPENROUTER_API_KEY)`,
           );
           continue;
         }
-        const vectors = await generateEmbeddings(
-          apiKey,
-          items.map((x) => x.text),
-        );
+        // Backfill batches across mixed profileIds — attribution is at the
+        // user level, the openRouterLogs row is left without a profileId
+        // and surfaces under "uncategorised backfill" on the dashboard.
+        const vectors = await generateEmbeddings({
+          ctx,
+          apiKey: auth.apiKey,
+          userId: auth.userId,
+          feature: "embedding-backfill",
+          texts: items.map((x) => x.text),
+        });
         const writes: Array<{ id: string; embedding: number[] }> = [];
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
@@ -331,7 +337,6 @@ export const startSemanticEdgesBackfill = internalAction({
 //   internal.neo4jActions.migration.startEntityBackfill
 // ─────────────────────────────────────────────────────────────────────────────
 
-const LLM_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
 
 export const backfillEntitiesInternal = internalAction({
@@ -349,11 +354,21 @@ export const backfillEntitiesInternal = internalAction({
     // Group by userId so we resolve API keys once per user
     const byUser = new Map<
       string,
-      Array<{ id: string; title: string; content: string }>
+      Array<{
+        id: string;
+        profileId: string | null;
+        title: string;
+        content: string;
+      }>
     >();
     for (const r of rows) {
       const existing = byUser.get(r.userId) ?? [];
-      existing.push({ id: r.id, title: r.title, content: r.content });
+      existing.push({
+        id: r.id,
+        profileId: r.profileId,
+        title: r.title,
+        content: r.content,
+      });
       byUser.set(r.userId, existing);
     }
 
@@ -362,12 +377,12 @@ export const backfillEntitiesInternal = internalAction({
 
     for (const [clerkId, items] of byUser) {
       try {
-        const apiKey = await tryUserEnvVarByClerkId(
+        const auth = await tryUserAndApiKeyByClerkId(
           ctx,
           clerkId,
           "OPENROUTER_API_KEY",
         );
-        if (!apiKey) {
+        if (!auth) {
           console.warn(
             `entity backfill: skipping user ${clerkId} (no OPENROUTER_API_KEY)`,
           );
@@ -390,39 +405,25 @@ export const backfillEntitiesInternal = internalAction({
               existingMemories,
             );
 
-            const res = await fetch(LLM_ENDPOINT, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://vmem.vedantb.com",
-                "X-Title": "vmem",
-              },
-              body: JSON.stringify({
-                model: LLM_MODEL,
-                messages: [
-                  {
-                    role: "system",
-                    content:
-                      "You are a memory tagging and entity extraction system. Respond with ONLY valid JSON. No thinking, no markdown.",
-                  },
-                  { role: "user", content: prompt },
-                ],
-                temperature: 0.1,
-              }),
+            const { content: llmContent, ok } = await callOpenRouterChat(ctx, {
+              apiKey: auth.apiKey,
+              userId: auth.userId,
+              profileId: item.profileId ?? undefined,
+              feature: "entity-backfill",
+              model: LLM_MODEL,
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "You are a memory tagging and entity extraction system. Respond with ONLY valid JSON. No thinking, no markdown.",
+                },
+                { role: "user", content: prompt },
+              ],
+              temperature: 0.1,
             });
 
-            if (!res.ok) {
-              console.error(
-                `entity backfill: LLM ${res.status} for ${item.id}`,
-              );
-              processedIds.push(item.id);
-              continue;
-            }
-
-            const json = await res.json();
-            const llmContent = json?.choices?.[0]?.message?.content;
-            if (typeof llmContent !== "string") {
+            if (!ok || llmContent === null) {
+              console.error(`entity backfill: LLM failed for ${item.id}`);
               processedIds.push(item.id);
               continue;
             }

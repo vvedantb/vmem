@@ -10,23 +10,10 @@ import {
   buildFullEnrichmentPrompt,
   parseFullEnrichmentResponse,
 } from "../../src/enrichmentPrompt";
-import { tryUserEnvVarByClerkId } from "../lib/envVars";
+import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
+import { callOpenRouterChat } from "../lib/openRouter";
 
-const LLM_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
-
-/** Safely extract the text content from an OpenRouter chat completion response. */
-function extractLLMContent(json: unknown): string | undefined {
-  if (typeof json !== "object" || json === null) return undefined;
-  const choices = Reflect.get(json, "choices");
-  if (!Array.isArray(choices) || choices.length === 0) return undefined;
-  const first: unknown = choices[0];
-  if (typeof first !== "object" || first === null) return undefined;
-  const message: unknown = Reflect.get(first, "message");
-  if (typeof message !== "object" || message === null) return undefined;
-  const content: unknown = Reflect.get(message, "content");
-  return typeof content === "string" ? content : undefined;
-}
 
 /**
  * Server-side enrichment: generates tags + related memory links via OpenRouter.
@@ -39,15 +26,18 @@ export const enrichMemoryInternal = internalAction({
     memoryId: v.string(),
     title: v.string(),
     content: v.string(),
+    /** Profile that owns the memory — passed through to the OpenRouter
+     *  log row so /openrouter-logs can break spend down by profile. */
+    profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     try {
-      const apiKey = await tryUserEnvVarByClerkId(
+      const auth = await tryUserAndApiKeyByClerkId(
         ctx,
         args.clerkId,
         "OPENROUTER_API_KEY",
       );
-      if (!apiKey) {
+      if (!auth) {
         console.log(
           "[enrichment] No OPENROUTER_API_KEY configured, skipping enrichment",
         );
@@ -68,40 +58,24 @@ export const enrichMemoryInternal = internalAction({
         existingMemories,
       );
 
-      const res = await fetch(LLM_ENDPOINT, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://vmem.vedantb.com",
-          "X-Title": "vmem",
-        },
-        body: JSON.stringify({
-          model: LLM_MODEL,
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a memory tagging and entity extraction system. Respond with ONLY valid JSON. No thinking, no markdown.",
-            },
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.1,
-        }),
+      const { content: rawText } = await callOpenRouterChat(ctx, {
+        apiKey: auth.apiKey,
+        userId: auth.userId,
+        profileId: args.profileId,
+        feature: "enrichment",
+        model: LLM_MODEL,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a memory tagging and entity extraction system. Respond with ONLY valid JSON. No thinking, no markdown.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.1,
       });
 
-      if (!res.ok) {
-        console.error(
-          `[enrichment] OpenRouter ${String(res.status)} for ${args.memoryId}`,
-        );
-        return { enriched: false };
-      }
-
-      // Extract LLM content from OpenRouter response safely
-      const json: unknown = await res.json();
-      const rawText = extractLLMContent(json);
-
-      if (typeof rawText !== "string") {
+      if (rawText === null) {
         console.error(
           `[enrichment] No LLM content in response for ${args.memoryId}`,
         );

@@ -1,5 +1,17 @@
 # Changelog
 
+## OpenRouter Call Logging & Cost Dashboard — 2026-04-26
+
+- **Centralized OpenRouter wrapper (`convex/lib/openRouter.ts`)**: Single source of truth for chat completions and embeddings. Injects `usage:{include:true}` for inline cost, measures latency, schedules log rows for every HTTP attempt (including retries/errors), gates prompt/completion preview text on `OPENROUTER_LOG_PROMPTS=1` env var.
+- **Comprehensive logging schema**: `openRouterLogs` table captures endpoint, model, status, error class, tokens (prompt/completion/cached/reasoning), cost USD, latency ms, finish reason, and optional generation ID for OpenRouter lookup. Denormalises `teamId` from `profileId` at write-time so team-wide spend queries hit a single index without joins.
+- **All 13 call-sites refactored to flow through the wrapper**: 5 chat sites (`enrichment`, `dream-synthesis`, `context-prompt`, `fact-extraction`, `entity-backfill`) + 8 embedding sites (`memory-save`, `memory-search`, `mcp-embed`, `connector-sync`, `dream-materialize`, `proposal-accept`, `embedding-backfill`) now stamp `userId`, `profileId` (string at boundary, normalised to `Id<"profiles">` at insert), and feature on every row. Retries are logged separately so a 429-storm is visible without dedup.
+- **Per-workspace + team-wide spend attribution**: Every log row carries optional `profileId` (personal or workspace) and denormalised `teamId` (from profile at insert). Dashboard scope switcher (Personal / Team) controls which rows are visible; team members can see their team's aggregate spend without leaking individual prompts when preview opt-in is off.
+- **`/openrouter-logs` dashboard route**: Lists paginated call logs (50/page) with Virtuoso virtualisation, 4 stat cards (today's cost / tokens / avg latency / success rate), unified filters dropdown (range, status, features, models, profile), sort dropdown (newest/oldest), and scope selector (Personal/Team-N). Click any row to open detail panel with all fields + truncated prompt/completion previews.
+- **Sidebar entry under Account**: Added "OpenRouter Logs" badge with `IconReceipt2` icon (cost/billing metaphor) positioned between Activity and Proposals per spec.
+- **Backend queries**: `listMine` (paginated, scope/profile/feature/model/status/range filters with auth fence on team membership), `summaryMine` (today/7d/30d aggregates, 5k scan cap marked `isApprox:true`), `distinctModelsMine` (drives Models filter dropdown).
+- **Privacy default OFF**: `promptPreview` and `completionPreview` only populate when deploy sets `OPENROUTER_LOG_PROMPTS=1`. Without the flag, rows are logged but previews are absent from storage, so team members can't see prompts unless explicitly opted in.
+- **Deleted obsolete `embeddingService.ts`**: All embedding calls now thread through the unified wrapper. `generateEmbedding[s]` signatures gained `ctx`, `userId`, `profileId?`, `feature` parameters so call-sites flow `profileId` through the embedding stack.
+
 ## Per-User Dream Mode Scheduling via Crons Component — 2026-04-26
 
 - **Runtime cron registration with `@convex-dev/crons`**: Replaced static daily 4am UTC broadcast with per-profile dynamic crons. Each profile that has scheduling enabled gets its own cron registered at `dream-mode:<profileId>`, allowing O(1) lookup when toggling.

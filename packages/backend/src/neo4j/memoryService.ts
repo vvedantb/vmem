@@ -3242,26 +3242,37 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
    * `embeddingService.truncateForEmbedding` — no truncation here so callers
    * can choose their own strategy.
    */
-  async listMissingEmbeddings(
-    limit: number,
-  ): Promise<
-    Array<{ id: string; userId: string; title: string; content: string }>
+  async listMissingEmbeddings(limit: number): Promise<
+    Array<{
+      id: string;
+      userId: string;
+      profileId: string | null;
+      title: string;
+      content: string;
+    }>
   > {
     return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (m:Memory)
          WHERE m.embedding IS NULL
-         RETURN m.id AS id, m.userId AS userId, m.title AS title, m.content AS content
+         RETURN m.id AS id, m.userId AS userId, m.profileId AS profileId, m.title AS title, m.content AS content
          ORDER BY m.createdAt DESC
          LIMIT $limit`,
         { limit: neo4j.int(limit) },
       );
-      return result.records.map((r) => ({
-        id: String(r.get("id")),
-        userId: String(r.get("userId")),
-        title: String(r.get("title")),
-        content: String(r.get("content")),
-      }));
+      return result.records.map((r) => {
+        const rawProfileId = r.get("profileId");
+        return {
+          id: String(r.get("id")),
+          userId: String(r.get("userId")),
+          profileId:
+            typeof rawProfileId === "string" && rawProfileId.length > 0
+              ? rawProfileId
+              : null,
+          title: String(r.get("title")),
+          content: String(r.get("content")),
+        };
+      });
     });
   }
 
@@ -3566,27 +3577,38 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
   // ─────────────────────────────────────────────────────────────────────────────
 
   /** List memories that have not had entity extraction run yet. */
-  async listMissingEntities(
-    limit: number,
-  ): Promise<
-    Array<{ id: string; userId: string; title: string; content: string }>
+  async listMissingEntities(limit: number): Promise<
+    Array<{
+      id: string;
+      userId: string;
+      profileId: string | null;
+      title: string;
+      content: string;
+    }>
   > {
     return this.withSession(async (session) => {
       const result = await session.run(
         `MATCH (m:Memory)
          WHERE m.entityExtractedAt IS NULL
            AND coalesce(m.status, 'active') IN ['active', 'pinned']
-         RETURN m.id AS id, m.userId AS userId, m.title AS title, m.content AS content
+         RETURN m.id AS id, m.userId AS userId, m.profileId AS profileId, m.title AS title, m.content AS content
          ORDER BY m.createdAt DESC
          LIMIT $limit`,
         { limit: neo4j.int(limit) },
       );
-      return result.records.map((r) => ({
-        id: String(r.get("id")),
-        userId: String(r.get("userId")),
-        title: String(r.get("title")),
-        content: String(r.get("content") ?? ""),
-      }));
+      return result.records.map((r) => {
+        const rawProfileId = r.get("profileId");
+        return {
+          id: String(r.get("id")),
+          userId: String(r.get("userId")),
+          profileId:
+            typeof rawProfileId === "string" && rawProfileId.length > 0
+              ? rawProfileId
+              : null,
+          title: String(r.get("title")),
+          content: String(r.get("content") ?? ""),
+        };
+      });
     });
   }
 

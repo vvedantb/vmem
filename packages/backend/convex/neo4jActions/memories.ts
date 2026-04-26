@@ -9,11 +9,8 @@ import {
 } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { normalizeUrl } from "../../src/neo4j/url";
-import {
-  generateEmbedding,
-  generateEmbeddings,
-} from "../../src/neo4j/embeddingService";
-import { tryUserEnvVarByClerkId } from "../lib/envVars";
+import { generateEmbedding, generateEmbeddings } from "../lib/openRouter";
+import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
 import { chunkText, shouldChunk } from "../../src/neo4j/chunking";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
@@ -189,16 +186,20 @@ export const createMemoryInternal = internalAction({
     // can fill in nulls later.
     let embedding: number[] | null = null;
     try {
-      const apiKey = await tryUserEnvVarByClerkId(
+      const auth = await tryUserAndApiKeyByClerkId(
         ctx,
         args.clerkId,
         "OPENROUTER_API_KEY",
       );
-      if (apiKey) {
-        embedding = await generateEmbedding(
-          apiKey,
-          `${args.title}\n\n${args.content}`,
-        );
+      if (auth) {
+        embedding = await generateEmbedding({
+          ctx,
+          apiKey: auth.apiKey,
+          userId: auth.userId,
+          profileId: resolvedProfileId,
+          feature: "memory-save",
+          text: `${args.title}\n\n${args.content}`,
+        });
       }
     } catch (e) {
       console.warn("embedding failed on create", e);
@@ -262,6 +263,7 @@ export const createMemoryInternal = internalAction({
         memoryId: result.id,
         title: args.title,
         content: args.content,
+        profileId: resolvedProfileId,
       },
     );
 
@@ -278,6 +280,7 @@ export const createMemoryInternal = internalAction({
           clerkId: args.clerkId,
           memoryId: result.id,
           content: args.content,
+          profileId: resolvedProfileId,
         },
       );
     }
@@ -330,6 +333,11 @@ export const chunkMemoryInternal = internalAction({
     clerkId: v.string(),
     memoryId: v.string(),
     content: v.string(),
+    /** Optional — when supplied, threaded onto the openRouterLogs row so
+     *  spend attributes to the right workspace. When omitted (e.g. legacy
+     *  callers) the row is logged with no profileId and shows up as
+     *  "uncategorised" on the dashboard. */
+    profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const service = new MemoryService(getDriver());
@@ -337,18 +345,31 @@ export const chunkMemoryInternal = internalAction({
     const chunks = chunkText(args.content);
     if (chunks.length === 0) return;
 
+    // Resolve profileId from the parent memory when not passed by the
+    // caller — keeps the openRouterLogs row attributable even on
+    // backfill/update paths that don't already have it in scope.
+    let resolvedProfileId = args.profileId;
+    if (!resolvedProfileId) {
+      const parent = await service.getMemory(args.clerkId, args.memoryId);
+      resolvedProfileId = parent?.profileId ?? undefined;
+    }
+
     let embeddings: (number[] | null)[] = chunks.map(() => null);
     try {
-      const apiKey = await tryUserEnvVarByClerkId(
+      const auth = await tryUserAndApiKeyByClerkId(
         ctx,
         args.clerkId,
         "OPENROUTER_API_KEY",
       );
-      if (apiKey) {
-        const vectors = await generateEmbeddings(
-          apiKey,
-          chunks.map((c) => c.content),
-        );
+      if (auth) {
+        const vectors = await generateEmbeddings({
+          ctx,
+          apiKey: auth.apiKey,
+          userId: auth.userId,
+          profileId: resolvedProfileId,
+          feature: "memory-save",
+          texts: chunks.map((c) => c.content),
+        });
         embeddings = vectors;
       }
     } catch (e) {
@@ -572,6 +593,7 @@ export const searchMemoriesInternal = internalAction({
 export const retrieveMemoriesInternal = internalAction({
   args: {
     clerkId: v.string(),
+    profileId: v.optional(v.string()),
     query: v.string(),
     type: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
@@ -585,13 +607,20 @@ export const retrieveMemoriesInternal = internalAction({
     // — the service records the degraded state in the trace reason.
     let queryEmbedding: number[] | null = null;
     try {
-      const apiKey = await tryUserEnvVarByClerkId(
+      const auth = await tryUserAndApiKeyByClerkId(
         ctx,
         args.clerkId,
         "OPENROUTER_API_KEY",
       );
-      if (apiKey) {
-        queryEmbedding = await generateEmbedding(apiKey, args.query);
+      if (auth) {
+        queryEmbedding = await generateEmbedding({
+          ctx,
+          apiKey: auth.apiKey,
+          userId: auth.userId,
+          profileId: args.profileId,
+          feature: "memory-search",
+          text: args.query,
+        });
       }
     } catch (e) {
       console.warn("query embedding failed, falling back to fulltext", e);
