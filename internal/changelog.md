@@ -1,5 +1,15 @@
 # Changelog
 
+## Activity Route Semantics — Passive Logs (AI + Events) vs. Inbox (Attention) — 2026-04-27
+
+- **Separated Activity from Inbox**: Moved Activity tab out of Inbox (which was semantically mixed: Proposals + Notifications = "needs attention" vs. Activity = "stuff that happened"). Activity is now its own page at `/activity`.
+- **`/activity` unifies AI Logs + Events tabs**: Merged the AI Logs dashboard (platform-side LLM/embedding calls) with the user-action audit log (Events) under a single "passive log" concept. Both tabs are observation-only — no user action required.
+- **Inbox simplified to Proposals + Notifications**: Inbox now clearly means "stuff awaiting your review/action" (synthesis proposals to approve, unread notifications). Activity badge removed; Inbox badge remains as proposalsCount + unreadCount.
+- **Page titles hidden on desktop tabs**: Activity, Inbox, and API pages now use `showTitle={false}` since the tab bar in the header already communicates page identity. Mobile topbar still shows title via PageTitleContext for navigation clarity.
+- **Event filter params namespaced to avoid collisions**: Events and AI Logs both use `range` and `sortDir` with different value enums. Events params are prefixed (`eventRange`, `eventSortDir`, `eventTypes`) so stale URL state doesn't leak between tabs.
+- **Sidebar updated**: Account group now shows "Activity" (IconActivity) instead of "AI Logs" (reflecting the merged scope), pointing to `/activity`.
+- **Legacy redirects**: `/ai-logs` → `/activity?tab=ai-logs`; `/openrouter-logs` → `/activity?tab=ai-logs` (direct, skipping chain); `/activity` (old standalone) conceptually merged into Inbox then split back out to Activity.
+
 ## Sidebar & Route Restructure — Reduce Clutter, Group Settings — 2026-04-26
 
 - **Sidebar consolidation**: Reduced 13 main items → 11 by merging Proposals + Notifications + Activity into single "Inbox" entry (Account group now: AI Logs / Inbox / Settings). Inbox badge sums pending proposals + unread notifications.

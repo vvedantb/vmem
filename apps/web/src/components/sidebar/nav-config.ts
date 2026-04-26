@@ -21,7 +21,7 @@ import {
   IconUsers,
   IconBuilding,
   IconVariable,
-  IconReceipt2,
+  IconActivity,
   IconInbox,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavGroup } from "./types";
@@ -51,7 +51,7 @@ export const navGroups: NavGroup[] = [
     title: "Account",
     icon: IconUserCircle,
     items: [
-      { href: "/ai-logs", label: "AI Logs", icon: IconReceipt2 },
+      { href: "/activity", label: "Activity", icon: IconActivity },
       { href: "/inbox", label: "Inbox", icon: IconInbox },
       { href: "/settings", label: "Settings", icon: IconSettings },
     ],
