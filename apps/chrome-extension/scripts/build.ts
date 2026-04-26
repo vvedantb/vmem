@@ -5,7 +5,6 @@ import {
   createPopupConfig,
   createBackgroundConfig,
   createContentScriptConfig,
-  createOffscreenConfig,
 } from "../vite.config.js";
 
 const root = resolve(import.meta.dirname, "..");
@@ -16,6 +15,7 @@ rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
 cpSync(resolve(root, "manifest.json"), resolve(dist, "manifest.json"));
+cpSync(resolve(root, "src/welcome/index.html"), resolve(dist, "welcome.html"));
 
 const publicDir = resolve(root, "public");
 if (existsSync(publicDir)) {
@@ -55,7 +55,13 @@ await build(
   ),
 );
 
-console.log("Building offscreen document (WebLLM)...");
-await build(createOffscreenConfig(mode));
+console.log("Building YouTube content script...");
+await build(
+  createContentScriptConfig(
+    "content-youtube",
+    "src/content/youtube/index.ts",
+    mode,
+  ),
+);
 
 console.log("Build complete → dist/");

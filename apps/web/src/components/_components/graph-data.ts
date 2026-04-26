@@ -38,6 +38,13 @@ export interface ApiGraphNode {
    * hover/click.
    */
   content?: string;
+  /** Entity sub-type (person/organization/place/technology). Only for entity nodes. */
+  entityType?: string;
+}
+
+export interface ApiMentionsEdge {
+  source: string;
+  target: string;
 }
 
 export interface ApiTagEdge {
@@ -51,6 +58,7 @@ export interface ApiRelatesToEdge {
   source: string;
   target: string;
   reason: string;
+  score?: number;
 }
 
 export interface ApiWikiParentEdge {
@@ -88,6 +96,7 @@ export interface KindStat {
 /** Canonical display order for kinds — never shuffle regardless of data. */
 const KIND_ORDER: GraphNodeKind[] = [
   "memory",
+  "entity",
   "wiki-document",
   "wiki-folder",
   "skill",
@@ -176,6 +185,7 @@ export function buildGraphData(
   apiTagEdges: ApiTagEdge[],
   allRelatesToEdges: ApiRelatesToEdge[],
   apiWikiParentEdges: ApiWikiParentEdge[],
+  apiMentionsEdges: ApiMentionsEdge[],
   activeTags: Set<string>,
   activeKinds: Set<GraphNodeKind>,
   activeSources: Set<string>,
@@ -224,6 +234,10 @@ export function buildGraphData(
     degreeCount.set(wpe.source, (degreeCount.get(wpe.source) ?? 0) + 1);
     degreeCount.set(wpe.target, (degreeCount.get(wpe.target) ?? 0) + 1);
   }
+  for (const me of apiMentionsEdges) {
+    degreeCount.set(me.source, (degreeCount.get(me.source) ?? 0) + 1);
+    degreeCount.set(me.target, (degreeCount.get(me.target) ?? 0) + 1);
+  }
 
   const nodeSet = new Set(filteredNodes.map((n) => n.id));
 
@@ -232,8 +246,17 @@ export function buildGraphData(
     // Uncapped multiplicative scale so super-hubs visibly dominate.
     // Skills carry no edges today, so their degree-0 floor is lifted to 4
     // to keep them readable as distinct atoms.
+    // Entity nodes are hub nodes ("suns") — scale more aggressively so they
+    // visually dominate and memories orbit around them.
     const scaled = 3 * (1 + degree * 0.05);
-    const size = node.kind === "skill" ? Math.max(4, scaled) : scaled;
+    let size: number;
+    if (node.kind === "entity") {
+      size = Math.min(25, Math.max(6, 4 * (1 + degree * 0.08)));
+    } else if (node.kind === "skill") {
+      size = Math.max(4, scaled);
+    } else {
+      size = scaled;
+    }
     return {
       id: node.id,
       title: node.title,
@@ -244,6 +267,7 @@ export function buildGraphData(
       size,
       kind: node.kind,
       sourceType: node.sourceType,
+      entityType: node.entityType,
     } satisfies GraphNode;
   });
 
@@ -279,6 +303,7 @@ export function buildGraphData(
           weight: 1,
           edgeType: "relates_to",
           reason: rel.reason,
+          score: rel.score,
         });
         addedPairs.add(pairKey);
       }
@@ -294,6 +319,19 @@ export function buildGraphData(
         target: wpe.target,
         weight: 1,
         edgeType: "wiki_parent",
+      });
+    }
+  }
+
+  // Memory→Entity MENTIONS edges. Entity ids are namespaced with "entity:"
+  // so they never collide with memory/wiki/skill ids.
+  for (const me of apiMentionsEdges) {
+    if (nodeSet.has(me.source) && nodeSet.has(me.target)) {
+      graphEdges.push({
+        source: me.source,
+        target: me.target,
+        weight: 1,
+        edgeType: "mentions",
       });
     }
   }

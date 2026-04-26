@@ -79,7 +79,6 @@ export const createMemory = authAction({
     confidence: v.number(),
     expiresAt: v.optional(v.string()),
     url: v.optional(v.string()),
-    queueForLocalEnrichment: v.optional(v.boolean()),
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<MemoryWithTags> => {
@@ -111,7 +110,6 @@ export const createMemory = authAction({
         confidence: args.confidence,
         expiresAt: args.expiresAt,
         url: args.url,
-        queueForLocalEnrichment: args.queueForLocalEnrichment,
       },
     );
   },
@@ -293,48 +291,6 @@ export const getMemoryEvents = authAction({
       {
         clerkId,
         memoryId: args.memoryId,
-      },
-    );
-  },
-});
-
-export const listRecentMemoryTitlesForEnrichment = authAction({
-  args: { excludeMemoryId: v.string() },
-  handler: async (ctx, args): Promise<Array<{ id: string; title: string }>> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
-    return await ctx.runAction(
-      internal.neo4jActions.memories.getRecentMemoryTitlesInternal,
-      {
-        clerkId,
-        excludeMemoryId: args.excludeMemoryId,
-      },
-    );
-  },
-});
-
-export const applyEnrichment = authAction({
-  args: {
-    memoryId: v.string(),
-    tags: v.array(v.string()),
-    relatedMemoryIds: v.optional(v.array(v.string())),
-  },
-  handler: async (ctx, args): Promise<{ applied: boolean }> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
-    return await ctx.runAction(
-      internal.neo4jActions.enrichment.applyEnrichmentInternal,
-      {
-        clerkId,
-        memoryId: args.memoryId,
-        tags: args.tags,
-        relatedMemoryIds: args.relatedMemoryIds,
       },
     );
   },

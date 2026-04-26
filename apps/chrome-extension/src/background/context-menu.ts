@@ -1,4 +1,5 @@
 import { createMemory } from "./api-client";
+import { htmlToMarkdown } from "@/lib/page-extraction";
 
 export function registerContextMenu(): void {
   chrome.contextMenus.create({
@@ -9,20 +10,25 @@ export function registerContextMenu(): void {
 
   chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId !== "save-to-vmem") return;
-    if (!tab?.id || !tab.url) return;
+    if (!tab) return;
 
-    savePageFromTab(tab.id, tab.url, tab.title ?? "Untitled");
+    void savePageFromTab(tab);
   });
 }
 
+/**
+ * Save a page from a tab. Can be called from context menu or keyboard shortcut.
+ */
 export async function savePageFromTab(
-  tabId: number,
-  url: string,
-  fallbackTitle: string,
+  tab: chrome.tabs.Tab,
 ): Promise<{ success: boolean; memoryId?: string; error?: string }> {
+  if (!tab.id || !tab.url) {
+    return { success: false, error: "Invalid tab" };
+  }
+
   try {
     const results = await chrome.scripting.executeScript({
-      target: { tabId },
+      target: { tabId: tab.id },
       func: extractPageContent,
     });
 
@@ -31,15 +37,18 @@ export async function savePageFromTab(
       throw new Error("Failed to extract page content");
     }
 
-    const hostname = new URL(url).hostname;
+    // Convert HTML to markdown in the extension context
+    const markdown = htmlToMarkdown(extraction.html);
+
+    const hostname = new URL(tab.url).hostname;
     const result = await createMemory({
-      title: extraction.title || fallbackTitle,
-      content: truncate(extraction.content, 10000),
+      title: extraction.ogTitle || extraction.title || tab.title || "Untitled",
+      content: truncate(markdown || extraction.content, 10000),
       type: "knowledge",
       source: "browser-extension",
       tags: [hostname],
       confidence: 1.0,
-      url,
+      url: tab.url,
     });
 
     if (result.status === "duplicate") {
@@ -53,24 +62,76 @@ export async function savePageFromTab(
   }
 }
 
-function extractPageContent(): { title: string; content: string } {
-  try {
-    const doc = document.cloneNode(true) as Document;
-    // @ts-expect-error Readability injected separately if available
-    if (typeof Readability !== "undefined") {
-      // @ts-expect-error Readability injected separately
-      const article = new Readability(doc).parse();
-      if (article) {
-        return { title: article.title, content: article.textContent };
-      }
-    }
-  } catch {
-    // fallback below
-  }
+interface PageExtraction {
+  title: string;
+  ogTitle?: string;
+  content: string;
+  html: string;
+  ogImage?: string;
+  ogDescription?: string;
+}
+
+function extractPageContent(): PageExtraction {
+  // Get OG metadata
+  const ogImage =
+    document
+      .querySelector('meta[property="og:image"]')
+      ?.getAttribute("content") ||
+    document.querySelector('meta[name="og:image"]')?.getAttribute("content") ||
+    undefined;
+
+  const ogTitle =
+    document
+      .querySelector('meta[property="og:title"]')
+      ?.getAttribute("content") ||
+    document.querySelector('meta[name="og:title"]')?.getAttribute("content") ||
+    undefined;
+
+  const ogDescription =
+    document
+      .querySelector('meta[property="og:description"]')
+      ?.getAttribute("content") ||
+    document
+      .querySelector('meta[name="og:description"]')
+      ?.getAttribute("content") ||
+    document
+      .querySelector('meta[name="description"]')
+      ?.getAttribute("content") ||
+    undefined;
+
+  // Clone body and strip non-content elements
+  const bodyClone = document.body.cloneNode(true) as HTMLElement;
+
+  const removeSelectors = [
+    "script",
+    "style",
+    "noscript",
+    "iframe",
+    "nav",
+    "footer",
+    "header",
+    "aside",
+    "[role='banner']",
+    "[role='navigation']",
+    "[role='complementary']",
+    "[role='contentinfo']",
+    ".ad",
+    ".ads",
+    ".advertisement",
+    "[data-ad]",
+  ];
+
+  removeSelectors.forEach((selector) => {
+    bodyClone.querySelectorAll(selector).forEach((el) => el.remove());
+  });
 
   return {
     title: document.title,
-    content: document.body.innerText,
+    ogTitle,
+    content: bodyClone.innerText.trim().slice(0, 50000),
+    html: bodyClone.innerHTML,
+    ogImage,
+    ogDescription,
   };
 }
 

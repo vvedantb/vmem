@@ -1,5 +1,108 @@
 # Changelog
 
+## Content Deduplication Pipeline — 2026-04-26
+
+- **4-layer dedup on memory creation**: Every memory create (API + MCP) now runs through URL match → title+domain match (browsing-history only) → MD5 content hash → semantic similarity (≥0.95 cosine). All layers increment `visitCount` on the existing memory instead of creating a duplicate.
+- **Content hash (Mem0-style)**: MD5 of normalized `title+content` stored on every Memory node. Zero API cost, catches identical submissions. Composite index `(userId, contentHash)` for O(1) lookup.
+- **Semantic near-duplicate detection**: When an embedding is available, vector index query catches near-duplicates that differ by trivial edits but hash differently. No competitor does this at ingestion time.
+- **Title+domain dedup for browsing history**: Sites with a generic `<title>` across all routes (e.g. "vmem" on every page) no longer spawn N separate memories. Same title + same origin from browsing-history/bookmarks sources merge into one memory.
+- **Backfill + cleanup migrations**: `startContentHashBackfill` stamps hashes on existing memories (pure CPU, batch 200). `deduplicateBrowsingHistory` merges same-title browsing-history memories per user, transferring tags/relationships/entities to the oldest survivor.
+- **Competitor enrichment/dedup analysis doc**: `internal/docs/enrichment-dedup-comparison.md` — comparison of vmem vs Supermemory, Mem0, Honcho, Hermes, and IWE based on actual source code analysis (not docs/marketing).
+
+## Graph Rendering & Interaction Improvements — 2026-04-26
+
+- **Fixed viewport fit in React StrictMode**: Reset `hasFittedRef` flag when simulation restarts to ensure viewport re-fits on layout settle. Prevents the second render in StrictMode (dev) from keeping the old fitted state and missing the canvas reset.
+- **Edge hover highlighting**: When hovering an edge, both endpoint nodes now highlight along with the edge, making it clear which nodes that edge connects. Matches behavior for hovering nodes and their neighbors.
+- **Extracted golden spiral seeding**: Moved position initialization into `seedNodePositions` function used by both worker and main-thread simulations, ensuring consistency and reducing code duplication.
+- **Proper TypeScript typing for worker messages**: Worker position messages now have explicit `WorkerPositionMessage` type, improving type safety and IDE intellisense.
+
+## Memory Graph Popover Simplified — 2026-04-26
+
+- **Popover shows title only**: Removed description/content from memory graph node popovers to reduce visual clutter. Hovering a node now displays just the title.
+- **Removed content preload on hover**: Content is now fetched only when clicking to open the detail panel (not on hover), reducing unnecessary API calls while accepting a brief loading state in the detail panel.
+
+## Graph Physics: Tag Edges Visual-Only — 2026-04-25
+
+- **Excluded tag edges from D3 force simulation**: Tag edges (shared tag relationships) no longer participate in physics calculations. Only `relates_to`, `imports`, and `wiki_parent` edges pull nodes together, preventing artificial clustering from incidental tag matches.
+- **Cleaner semantic-driven layouts**: Graph layout now clusters nodes based on meaningful relationships rather than surface-level tag overlap — memories that share a "work" tag no longer get pulled together unless semantically related.
+- **Simplified link force strength**: Removed conditional strength branching (`0.3`/`0.12` vs `0.6`/`0.8`) since tag edges are excluded; all structural edges now use uniform `0.6` strength.
+
+## Server-Side Enrichment Migration — 2026-04-25
+
+- **Moved memory enrichment from local WebLLM to server-side OpenRouter**: Local Qwen3-0.6B was too small for reliable structured JSON output — tags were inconsistent, `<think>` tags broke parsing, and model downloads failed on poor connections. New `enrichMemoryInternal` Convex action calls Qwen3-235B-A22B via OpenRouter (~$0.00015/memory) with dramatically better quality.
+- **Fire-and-forget enrichment via `ctx.scheduler.runAfter`**: Memory creation returns instantly; enrichment runs asynchronously in the background. Graceful degradation — if no OPENROUTER_API_KEY is set, enrichment is silently skipped.
+- **Deleted entire local enrichment pipeline from Chrome extension**: Removed 8 files (offscreen document, WebLLM worker, enrichment router, pending drain, Chrome AI fallback), stripped offscreen permission, removed `@mlc-ai/web-llm` dependency, cleaned up settings UI and message types.
+- **Deleted `pendingMemoryEnrichment` Convex table and queue system**: Server-side enrichment is fire-and-forget, so the client-side queue (enqueue → poll → drain → apply) is no longer needed. Removed table from schema, deleted `pendingEnrichment.ts`, removed public `listRecentMemoryTitlesForEnrichment` and `applyEnrichment` API endpoints.
+- **Cleaned up all consumers across web app and MCP server**: Removed `PendingEnrichmentRunner`, `PendingEnrichmentBadge`, `useEnrichmentQueueDrain` hook, and enrichment-related imports from MemoryContext, SidebarFooter, ClientProvider, and MCP create action.
+- **Web app local LLM (chat/voice) intentionally preserved**: WebLLM in the web app serves a different purpose (interactive chat without third-party LLMs) and was not affected by this migration.
+
+## Entity Extraction + Graph-Augmented Retrieval — 2026-04-25
+
+- **Named entity extraction during enrichment**: LLM enrichment now extracts people, organizations, places, and technologies from memories — zero additional API cost (piggybacks on existing enrichment call). Entities stored as hub nodes in Neo4j with `MENTIONS` edges.
+- **Entity hub nodes on the graph canvas**: Entities render as gold 8-pointed starbursts that memories orbit around. Entity sizing scales with mention count. Filterable as a Kind in graph/list filters.
+- **MENTIONS edges in all 7 view themes**: Teal-green edges connect memories to their entities across Default, Satellite, Constellation, Blueprint, and Minimal themes (dark + light variants).
+- **Graph-augmented retrieval**: Retrieval now expands top-5 BM25/vector results through the knowledge graph (1-hop direct, 1-hop via entity hub, 2-hop RELATES_TO). Graph proximity contributes 10% of the final score — graph-only discoveries appear below strong text/semantic matches but above weak ones.
+- **Entity backfill migration**: `startEntityBackfill` action processes existing memories in self-rescheduling batches of 20, extracting entities via LLM. Run once from Convex dashboard.
+- **Full-stack entity threading**: Entities flow through enrichment prompt → parser → Convex actions → memoryService → graph API → frontend types → canvas renderer → chrome extension enrichment callers.
+
+## Colorful Brand Icons for Connectors — 2026-04-25
+
+- **Replaced monochrome Tabler icons with brand-colored SVGs**: Connector cards and browse modal now display logos with their official brand colors (Google Drive multicolor, OneDrive/Slack/Dropbox in brand blue, Linear in brand purple). GitHub and Notion remain monochrome per their official brands.
+- **New `brand-icons/` component library**: Created dedicated SVG components for each connector (`GoogleDriveIcon`, `OneDriveIcon`, `DropboxIcon`, `NotionIcon`, `SlackIcon`, `GitHubIcon`, `LinearIcon`) with proper viewBox and fills, indexed in `index.ts` for reusability.
+- **Updated icon map in ConnectorCard and BrowseConnectorsModal**: Both components now reference the colorful icons instead of Tabler's monochrome `IconBrand*` variants, improving visual identity and connector recognition on the settings page.
+
+## Embedding Auto-Linking: Semantic Memory Connections — 2026-04-25
+
+- **Automatic semantic edges**: New memories with embeddings now automatically link to up to 5 semantically similar existing memories (threshold ≥ 0.78 cosine similarity). Uses the existing Neo4j vector index; ~10–20ms added latency (negligible vs. embedding HTTP call).
+- **Backfill migration for existing memories**: Added `startSemanticEdgesBackfill` action to create semantic edges for all memories saved before this feature. Self-rescheduling in batches of 50 — kick off once from Convex dashboard and it drains the queue automatically.
+- **Similarity score in graph visualization**: Semantic edges display their cosine similarity score (0–1) as a percentage in the graph tooltip (e.g., "semantic similarity (84%)"). Edited `score` through Convex types + frontend types (zod schemas, canvas types, component props).
+- **Covers connector imports too**: Semantic edges created for memories from connectors (Google Drive, Notion) and MCP sources when they have embeddings. Non-semantic relationships (same-domain, content-similarity) coexist.
+- **Why Neo4j matters**: Flat vector stores (Mem0, Supermemory approach) can't do multi-hop traversal or cluster detection. Neo4j's graph structure enables future features: "find all memories related to this cluster," "show evidence chain for this conclusion," "detect entity networks."
+
+## Chrome Extension Resilience & Enrichment Fixes — 2026-04-25
+
+- **Safe messaging for content scripts**: All 6 `chrome.runtime.sendMessage` calls in content scripts now go through `safeSendMessage`, which guards against invalidated extension contexts (extension reload/update) instead of crashing with "Cannot read properties of undefined"
+- **Qwen3 thinking-tag parsing**: Enrichment LLM response parser now strips `<think>...</think>` blocks that Qwen3 models emit, fixing all "Failed to parse LLM response" errors. Also handles unclosed think blocks from token-limit truncation
+- **Enrichment prompt hardened**: Added explicit "no thinking, no markdown" instructions to both the prompt template and a system message, reducing wasted tokens on reasoning the model doesn't need to show
+- **Better WebLLM error messages**: Network failures during model download now show "check your internet connection" instead of a raw `TypeError: Failed to fetch`
+
+## AI Chat Integration UX Fixes — 2026-04-25
+
+- **Keyboard shortcut changed to Alt+S**: Replaced non-working Ctrl+Shift+S with Alt+S, now shows an in-page toast confirming save success or failure via `chrome.scripting.executeScript`
+- **Memory panel loading spinner**: Auto-search now shows a spinner with "Searching memories…" immediately when the search fires, replacing the 5-second blank wait before results appear
+- **Memory panel footer hint**: Added "Hit send to include context" footer so users understand the workflow — memories are auto-injected on send, no manual selection needed
+- **Source labels for prompt-capture and YouTube**: Added missing entries to `MEMORY_SOURCE_LABELS` so these sources display properly in the web dashboard filters
+
+## AI Chat Integration & Onboarding — 2026-04-25
+
+- **Auto-search memories in AI chats**: As users type in ChatGPT or Claude, vmem now automatically searches for relevant memories and displays them in a floating panel above the input. Memories are injected as context when the user sends their message. Turns vmem from "save and forget" into "save and automatically resurface."
+- **Auto-capture prompts**: Optionally saves prompts sent to ChatGPT/Claude as memories (off by default). Builds memory passively with deduplication and minimum-length guards so trivial messages are skipped.
+- **Memory panel with per-item removal**: Auto-search results appear in a Shadow DOM floating panel with individual remove buttons and "Clear all." Users control exactly which memories get injected before sending.
+- **In-page toast notifications**: New Shadow DOM toast system for showing save confirmations, errors, and loading states directly on the page — works without the popup open (keyboard shortcut saves, auto-capture, etc.).
+- **Welcome page on first install**: New onboarding page opens on extension install with feature highlights and getting-started instructions. Static HTML with dark mode support, no extra build target needed.
+- **Settings toggles**: Added "Auto-search memories in chats" (on by default) and "Auto-capture prompts" (off by default) to the popup settings panel.
+- **Removed unused `@anthropic-ai/sdk`**: Was installed but never imported anywhere. Cleaned up 247 packages from node_modules.
+
+## Chrome Extension Extraction Enhancements — 2026-04-25
+
+- **Full page markdown extraction**: Saved pages now preserve formatting (headings, lists, code blocks, links) via TurndownService HTML-to-Markdown conversion, instead of flat `innerText`. Strips nav, footer, ads, and other non-content elements before conversion.
+- **OpenGraph metadata extraction**: Page saves now use `og:title` when available (usually cleaner than `document.title`), and extract `og:image` / `og:description` for richer memory cards in the future.
+- **Keyboard shortcut (Ctrl+Shift+S)**: Quick-save the current page without opening the popup. Uses Chrome's commands API; Mac users get `Cmd+Shift+S`.
+- **YouTube transcript extraction**: New content script injects a "Save to vmem" button on YouTube video pages. Extracts video title, channel name, and full transcript from YouTube's timedtext API. Saved with `source: "youtube"` tag for filtering.
+- **Files affected**: `manifest.json`, `src/lib/page-extraction.ts` (new), `src/background/index.ts`, `src/background/context-menu.ts`, `src/background/message-handler.ts`, `src/types/messages.ts`, `src/popup/_components/QuickSave.tsx`, `src/content/youtube/index.ts` (new), `scripts/build.ts`
+- **Reason**: Compared Mem0 and Supermemory browser extensions — both had richer extraction than vmem. Supermemory uses Turndown for markdown; Mem0's YouTube assistant extracts transcripts. Adopted the best of both: markdown for all pages, plus dedicated YouTube support for video content.
+
+## Browser History Import Overhaul — 2026-04-25
+
+- **Stop creating junk "same session" edges for batch imports**: Browsing history, bookmarks, and connector imports (Google Drive, Notion, etc.) no longer create O(n²) RELATES_TO edges. Only interactive sources (manual, voice, chat) create same-session relationships.
+- **Visit count tracking instead of duplicates**: Revisiting the same URL now increments `visitCount`, `lastVisitAt` on the existing memory instead of silently skipping. Tracks browsing frequency without creating duplicates.
+- **Same-domain relationship edges**: URL-based memories now connect to other memories from the same domain (limited to 10 edges). Creates useful clustering (all GitHub pages, all Stack Overflow pages) without session spam.
+- **Extended URL normalization**: Added 20+ tracking parameters to strip (fbclid, gclid, msclkid, igshid, mkt_tok, \_ga, etc.). Reduces duplicate URLs from ad/social tracking.
+- **Migration to delete existing junk edges**: Added `deleteJunkSessionEdges` internal action to clean up existing "same session" edges from batch sources. Run via Convex dashboard per user.
+- **Referrer chain infrastructure**: Added visit map building for future referrer-based navigation edges (NAVIGATED_FROM relationships).
+- **Files affected**: `packages/backend/src/neo4j/memoryService.ts`, `packages/backend/src/neo4j/url.ts`, `packages/backend/convex/neo4jActions/memories.ts`, `packages/backend/convex/neo4jActions/migration.ts`, `apps/chrome-extension/src/background/import-history.ts`
+- **Reason**: Importing 500 browser history items created ~125,000 junk edges, making the graph unusable. The "same session" heuristic was designed for interactive use but applied to batch imports. New design: batch sources get domain-based clustering, interactive sources keep session proximity.
+
 ## Golden Spiral Graph Layout — 2026-04-25
 
 - **Golden spiral initial positions**: Graph nodes now start in a sunflower-seed spiral pattern instead of random positions. Eliminates the chaotic bouncing on load where overlapping nodes push apart violently.

@@ -20,6 +20,8 @@ type MemoryType = "profile" | "episodic" | "knowledge";
 const MAX_NODES = 2000;
 const MAX_EDGES = 4000;
 
+const ENTITY_PREFIX = "entity:";
+
 function capGraph(data: {
   nodes: {
     id: string;
@@ -30,13 +32,24 @@ function capGraph(data: {
     sourceType: string | null;
     type?: MemoryType;
   }[];
-  relatesToEdges: { source: string; target: string; reason: string }[];
+  relatesToEdges: {
+    source: string;
+    target: string;
+    reason: string;
+    score?: number;
+  }[];
   tagEdges: {
     source: string;
     target: string;
     weight: number;
     sharedTags: string[];
   }[];
+  entities: Array<{
+    normalizedName: string;
+    name: string;
+    type: string;
+    memoryIds: string[];
+  }>;
 }) {
   const nodes = data.nodes.slice(0, MAX_NODES);
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -49,7 +62,30 @@ function capGraph(data: {
     .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
     .slice(0, MAX_EDGES);
 
-  return { nodes, relatesToEdges, tagEdges };
+  // Filter entities to only include those with at least one surviving memory
+  const entities = data.entities
+    .map((e) => ({
+      ...e,
+      memoryIds: e.memoryIds.filter((id) => nodeIds.has(id)),
+    }))
+    .filter((e) => e.memoryIds.length > 0);
+
+  // Build mentions edges from entity data
+  const mentionsEdges: Array<{ source: string; target: string }> = [];
+  for (const e of entities) {
+    const entityNodeId = `${ENTITY_PREFIX}${e.normalizedName}:${e.type}`;
+    for (const mId of e.memoryIds) {
+      mentionsEdges.push({ source: mId, target: entityNodeId });
+    }
+  }
+
+  return {
+    nodes,
+    relatesToEdges,
+    tagEdges,
+    entities,
+    mentionsEdges: mentionsEdges.slice(0, MAX_EDGES),
+  };
 }
 
 export const getGraphDataInternal = internalAction({

@@ -11,6 +11,12 @@ import {
 } from "d3-force";
 import type { GraphNode, GraphEdge } from "./types";
 
+type WorkerPositionMessage = {
+  type: "positions";
+  buffer: Float64Array;
+  alpha: number;
+};
+
 export interface SimulationController {
   /** Current simulation alpha (convergence indicator, 0 = stable) */
   alpha: () => number;
@@ -71,12 +77,24 @@ function goldenSpiralPosition(
   };
 }
 
+function seedNodePositions(nodes: GraphNode[]): void {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].x === undefined || nodes[i].y === undefined) {
+      const spiral = goldenSpiralPosition(i, nodes.length);
+      nodes[i].x = spiral.x;
+      nodes[i].y = spiral.y;
+    }
+  }
+}
+
 function createWorkerSimulation(
   nodes: GraphNode[],
   edges: GraphEdge[],
   scalingRatio: number,
   gravity: number,
 ): SimulationController {
+  seedNodePositions(nodes);
+
   const worker = new Worker(new URL("./simulation-worker.ts", import.meta.url));
 
   let currentAlpha = 1;
@@ -115,9 +133,9 @@ function createWorkerSimulation(
   });
 
   // Apply position updates from worker to main-thread node objects
-  worker.onmessage = (e: MessageEvent) => {
+  worker.onmessage = (e: MessageEvent<WorkerPositionMessage>) => {
     const msg = e.data;
-    if (msg.type === "positions" && msg.buffer instanceof Float64Array) {
+    if (msg.type === "positions") {
       const buffer = msg.buffer;
       currentAlpha = msg.alpha;
       for (let i = 0; i < nodes.length; i++) {
@@ -211,28 +229,20 @@ function createMainThreadSimulation(
   scalingRatio: number,
   gravity: number,
 ): SimulationController {
-  // Initialize positions with golden spiral if not already set
-  for (let i = 0; i < nodes.length; i++) {
-    if (nodes[i].x === undefined || nodes[i].y === undefined) {
-      const spiral = goldenSpiralPosition(i, nodes.length);
-      nodes[i].x = spiral.x;
-      nodes[i].y = spiral.y;
-    }
-  }
+  seedNodePositions(nodes);
 
   const chargeStrength = -scalingRatio * 8;
   const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
-  const linkForce = forceLink<GraphNode, GraphEdge>(edges)
+  // Only structural edges participate in physics — tag edges are visual-only.
+  // This prevents nodes from clustering just because they share tags, keeping
+  // the layout driven by meaningful semantic relationships.
+  const structuralEdges = edges.filter((e) => e.edgeType !== "tag");
+
+  const linkForce = forceLink<GraphNode, GraphEdge>(structuralEdges)
     .id((d) => d.id)
     .distance(70)
-    .strength((d) =>
-      d.edgeType === "relates_to" ||
-      d.edgeType === "imports" ||
-      d.edgeType === "wiki_parent"
-        ? 0.6
-        : 0.12,
-    );
+    .strength(0.6);
 
   const chargeForce = forceManyBody<GraphNode>()
     .strength(chargeStrength)

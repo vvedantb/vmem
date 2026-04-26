@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@clerk/chrome-extension": "catalog:",
-    "@mlc-ai/web-llm": "^0.2.82",
     "@mozilla/readability": "^0.5.0",
     "@radix-ui/react-label": "catalog:",
     "@radix-ui/react-select": "catalog:",
@@ -25,13 +24,16 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwind-merge": "catalog:",
-    "usehooks-ts": "^3.1.1"
+    "turndown": "^7.2.4",
+    "usehooks-ts": "^3.1.1",
+    "youtube-transcript": "^1.3.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "catalog:tailwind4",
     "@types/chrome": "^0.0.304",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/turndown": "^5.0.6",
     "@vitejs/plugin-react": "^4.4.0",
     "tailwindcss": "catalog:tailwind4",
     "tsx": "catalog:",

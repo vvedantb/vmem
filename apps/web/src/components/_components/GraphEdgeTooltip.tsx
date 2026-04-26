@@ -7,6 +7,7 @@ interface GraphEdgeTooltipProps {
   sourceTitle: string;
   targetTitle: string;
   reason: string | null;
+  score?: number;
   viewportX: number;
   viewportY: number;
 }
@@ -19,6 +20,7 @@ const EDGE_TYPE_LABEL: Record<GraphEdgeType, string> = {
   relates_to: "Related",
   wiki_parent: "Parent folder",
   imports: "Imports",
+  mentions: "Mentions",
 };
 
 export default function GraphEdgeTooltip({
@@ -26,6 +28,7 @@ export default function GraphEdgeTooltip({
   sourceTitle,
   targetTitle,
   reason,
+  score,
   viewportX,
   viewportY,
 }: GraphEdgeTooltipProps) {
@@ -53,7 +56,11 @@ export default function GraphEdgeTooltip({
       </p>
       <p className="text-xs text-muted-foreground">
         {label}
-        {reason ? ` · ${reason}` : ""}
+        {reason === "semantic similarity" && score !== undefined
+          ? ` · semantic similarity (${Math.round(score * 100)}%)`
+          : reason
+            ? ` · ${reason}`
+            : ""}
       </p>
     </div>
   );

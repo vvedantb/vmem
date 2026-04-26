@@ -113,3 +113,9 @@ vscode extension foam
 
 - obsidian alternative
 - can create graphs too etc same as obsidian
+
+github knowledge graphs
+
+- https://github.com/tirth8205/code-review-graph
+- https://github.com/memgraph/memgraph
+- https://github.com/fallow-rs/fallow
