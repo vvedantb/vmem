@@ -7,6 +7,7 @@ import {
   teamMemberFields,
   userEnvVarFields,
   codebaseFields,
+  openRouterLogFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -208,6 +209,24 @@ const schema = defineSchema({
     }),
 
   userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
+
+  /**
+   * One row per OpenRouter API call. Powers the `/openrouter-logs`
+   * dashboard (per-call cost / latency / token breakdown) and aggregate
+   * spend queries by user, profile, or team.
+   *
+   * Indexes:
+   * - by_user / by_user_createdAt — personal-scope listing + recent feed
+   * - by_user_feature           — feature breakdown chart
+   * - by_profile_createdAt      — per-workspace breakdowns
+   * - by_team_createdAt         — team-wide spend across all members
+   */
+  openRouterLogs: defineTable(openRouterLogFields)
+    .index("by_user", ["userId"])
+    .index("by_user_createdAt", ["userId", "createdAt"])
+    .index("by_user_feature", ["userId", "feature"])
+    .index("by_profile_createdAt", ["profileId", "createdAt"])
+    .index("by_team_createdAt", ["teamId", "createdAt"]),
 
   /**
    * Cached "User Profile" prose for the MCP `vmem://context_prompt`
