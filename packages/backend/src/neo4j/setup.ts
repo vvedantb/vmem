@@ -80,6 +80,12 @@ export async function setupDatabase(driver: Driver): Promise<void> {
     await session.run(
       `CREATE INDEX entity_user_id IF NOT EXISTS FOR (e:Entity) ON (e.userId)`,
     );
+    // Composite index for content-hash deduplication — fast lookup by
+    // (userId, contentHash) so we can detect exact-duplicate memories in O(1).
+    await session.run(
+      `CREATE INDEX memory_user_content_hash IF NOT EXISTS
+       FOR (m:Memory) ON (m.userId, m.contentHash)`,
+    );
     console.log("neo4j indexes and constraints ready");
   } finally {
     await session.close();
