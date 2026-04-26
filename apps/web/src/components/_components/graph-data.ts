@@ -4,12 +4,8 @@
  */
 import type { MemoryType } from "@/lib/memories";
 import { MEMORY_TYPES } from "@/lib/memories";
-import type {
-  GraphNode,
-  GraphEdge,
-  GraphNodeKind,
-  RelatedNode,
-} from "./canvas/types";
+import type { ListItemKind } from "@/lib/list-items";
+import type { GraphNode, GraphEdge, RelatedNode } from "./canvas/types";
 
 // ---- API response shapes (mirrors Zod schemas in useGraphData) ----
 
@@ -27,7 +23,7 @@ export interface ApiGraphNode {
   title: string;
   tags: string[];
   createdAt: string;
-  kind: GraphNodeKind;
+  kind: ListItemKind;
   source?: string;
   sourceType: string | null;
   type?: MemoryType;
@@ -89,12 +85,12 @@ export function getAllTags(apiNodes: ApiGraphNode[]): TagStat[] {
 // ---- Kind stats ----
 
 export interface KindStat {
-  kind: GraphNodeKind;
+  kind: ListItemKind;
   count: number;
 }
 
 /** Canonical display order for kinds — never shuffle regardless of data. */
-const KIND_ORDER: GraphNodeKind[] = [
+const KIND_ORDER: ListItemKind[] = [
   "memory",
   "entity",
   "wiki-document",
@@ -108,7 +104,7 @@ const KIND_ORDER: GraphNodeKind[] = [
  * hasn't started using yet.
  */
 export function getAllKinds(apiNodes: ApiGraphNode[]): KindStat[] {
-  const counts = new Map<GraphNodeKind, number>();
+  const counts = new Map<ListItemKind, number>();
   for (const node of apiNodes) {
     counts.set(node.kind, (counts.get(node.kind) ?? 0) + 1);
   }
@@ -187,7 +183,7 @@ export function buildGraphData(
   apiWikiParentEdges: ApiWikiParentEdge[],
   apiMentionsEdges: ApiMentionsEdge[],
   activeTags: Set<string>,
-  activeKinds: Set<GraphNodeKind>,
+  activeKinds: Set<ListItemKind>,
   activeSources: Set<string>,
   activeTypes: Set<MemoryType>,
 ): { graphNodes: GraphNode[]; graphEdges: GraphEdge[] } {

@@ -90,7 +90,6 @@ function buildIndex(symbols: SymbolNode[]): SymbolIndex {
 /** Identify the function that contains a given call expression. */
 function findEnclosingFunctionId(
   call: CallExpression,
-  filePath: string,
   perFile: Map<string, string>,
 ): string | null {
   let ancestor: Node | undefined = call.getParent();
@@ -313,7 +312,6 @@ function patchHeritage(edges: RelationEdge[], index: SymbolIndex): void {
 function resolveCallsForSourceFile(
   source: SourceFile,
   callerFilePath: string,
-  codebaseId: string,
   index: SymbolIndex,
   emitted: RelationEdge[],
 ): void {
@@ -322,7 +320,7 @@ function resolveCallsForSourceFile(
   source.forEachDescendant((node) => {
     if (node.getKind() !== SyntaxKind.CallExpression) return;
     const call = node.asKindOrThrow(SyntaxKind.CallExpression);
-    const callerId = findEnclosingFunctionId(call, callerFilePath, perFile);
+    const callerId = findEnclosingFunctionId(call, perFile);
     if (!callerId) return; // top-level call in module init — skip in Phase 1
     const { ids, tier } = resolveCalleeIds(call, callerFilePath, index);
     for (const calleeId of ids) {
@@ -373,7 +371,7 @@ export function resolveCalls(
   for (const path of loadedPaths) {
     const source = project.getSourceFile(path);
     if (!source) continue;
-    resolveCallsForSourceFile(source, path, codebaseId, index, calls);
+    resolveCallsForSourceFile(source, path, index, calls);
   }
 
   // Drop placeholder edges that couldn't resolve.
