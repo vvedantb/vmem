@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Button,
   Input,
   Label,
   Skeleton,
+  Switch,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -39,6 +41,7 @@ import {
   IconLoader2,
   IconWorld,
   IconBrandChrome,
+  IconSparkles,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
@@ -498,6 +501,77 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   );
 }
 
+/**
+ * Per-profile Dream Mode auto-accept toggle. When enabled, the daily
+ * Dream Mode pass for that profile materializes high-confidence synthesis
+ * (insight / connection / anomaly) directly as new memories instead of
+ * queueing them in `/proposals`. Contradictions never auto-accept —
+ * they're always queued so the user can review the underlying conflict.
+ */
+function DreamModeSection({ profiles }: { profiles: Profile[] }) {
+  const setDreamModeAutoAccept = useMutation(
+    api.profiles.setDreamModeAutoAccept,
+  );
+
+  const handleToggle = async (
+    profileId: Id<"profiles">,
+    enabled: boolean,
+  ): Promise<void> => {
+    try {
+      await setDreamModeAutoAccept({ profileId, enabled });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update Dream Mode",
+      );
+    }
+  };
+
+  return (
+    <div className="rounded-xl bg-muted/40 p-4 space-y-4">
+      <div className="flex items-start gap-2">
+        <IconSparkles className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+        <div>
+          <h3 className="font-medium text-foreground">Dream Mode</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Synthesize insights, connections, and anomalies across your
+            memories. Auto-accept turns high-confidence synthesis into new
+            memories without review.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {profiles.map((profile) => (
+          <div
+            key={profile._id}
+            className="flex items-center justify-between gap-3 rounded-lg bg-background/40 px-3 py-2"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div
+                className="h-2 w-2 rounded-full shrink-0"
+                style={{ backgroundColor: profile.color }}
+              />
+              <Label
+                htmlFor={`dream-mode-${profile._id}`}
+                className="text-sm cursor-pointer truncate"
+              >
+                {profile.name}
+              </Label>
+            </div>
+            <Switch
+              id={`dream-mode-${profile._id}`}
+              checked={profile.dreamModeAutoAccept ?? false}
+              onCheckedChange={(checked) =>
+                void handleToggle(profile._id, checked)
+              }
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ProfilesPage() {
   const profiles = useQuery(api.profiles.list);
   const createProfile = useMutation(api.profiles.create);
@@ -562,6 +636,8 @@ function ProfilesPage() {
         </div>
 
         <DefaultProfilesSection profiles={profiles} />
+
+        <DreamModeSection profiles={profiles} />
 
         <div className="grid gap-4 sm:grid-cols-2">
           {profiles.map((profile) => (

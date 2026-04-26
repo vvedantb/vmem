@@ -2,6 +2,7 @@ import { parseAsArrayOf, parseAsStringLiteral } from "nuqs";
 
 export const ACTIVITY_TYPES = [
   "memory_created",
+  "memory_dream_created",
   "memory_updated",
   "memory_deleted",
   "file_uploaded",
@@ -13,6 +14,7 @@ export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 
 export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   memory_created: "Memory Created",
+  memory_dream_created: "Dream Mode Synthesis",
   memory_updated: "Memory Updated",
   memory_deleted: "Memory Deleted",
   file_uploaded: "File Uploaded",

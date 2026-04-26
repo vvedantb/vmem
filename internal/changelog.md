@@ -1,5 +1,15 @@
 # Changelog
 
+## Dream Mode V2 — Background Reasoning Engine — 2026-04-26
+
+- **Surprisal-driven nightly synthesis**: Daily 4am UTC cron scans each profile's last 7 days of memories, scores them by k-NN cosine surprisal against existing embeddings, clusters the top anomalies via 1-hop graph neighborhoods (`RELATES_TO` + shared `MENTIONS`), and asks Qwen3-235B to label each cluster as an insight, connection, contradiction, or anomaly. Vmem now gets smarter about a user the longer it observes them — no explicit action required.
+- **Synthesis routes through the existing proposals queue**: New `:ProposedUpdate` kinds (`insight | connection | contradiction | anomaly`) carry `sourceMemoryIds`, `proposedTitle`, `confidence`, and `source` so the user can review what was derived and from which source memories. Confidence floor 0.6 and 50% sourceMemoryIds-overlap dedup keep noise out of the inbox.
+- **Auto-accept opt-in per profile**: New `dreamModeAutoAccept` toggle on the profile settings page lets trusted profiles materialize synthesis directly as `:Memory` nodes (`source='dream-mode'`, `:DERIVED_FROM` edges to every source) instead of going through the approval step. Toggle lives in a dedicated `DreamModeSection` matching the existing `DefaultProfilesSection` pattern.
+- **Manual trigger button on `/proposals`**: `RunDreamModeButton` lets users kick off a run on demand against their default web profile. Rate-limited to 1/hr per profile via `lastDreamRunAt` with explicit toast feedback for `ok | no-key | no-recent-memories | rate-limited`.
+- **`SynthesisProposalCard` UI**: New card variant renders type badge with kind-specific icon/color, source memory list (linked to the memory graph view focused on each source), confidence progress bar, and reason. Contradictions show "Acknowledge"/"Dismiss" since V1 is dismiss-only — TODO comment marks the structured-resolution V2 path.
+- **Activity feed integration**: Synthesis events log with `actor='dream-mode'` and surface in the activity feed as a new `memory_dream_created` type with sparkles icon — distinguishing them from regular memory creates without a separate event table.
+- **Dedup, soft-fail, and batch caps**: Cron processes 20 profiles per tick (self-rescheduling cursor mirrors the embedding backfill pattern), skips users without `OPENROUTER_API_KEY`, and dedups against pending proposals before creating new ones. Cost target: ~$0.05–$0.10/user/day at Qwen3-235B prices.
+
 ## Codebase Parser Phase 1 — Symbol Graph + Processes + Blast Radius — 2026-04-26
 
 - **ts-morph AST parser replaces regex**: Codebase sync now extracts Functions, Classes, Interfaces, and call edges from a real TypeScript AST instead of regex-only imports. Per-edge confidence tiers (EXTRACTED 1.0 / INFERRED 0.7 / AMBIGUOUS 0.4) capture how the parser resolved each call — ready for Phase 2 hub/surprise scoring without a re-sync.

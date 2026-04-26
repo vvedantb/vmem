@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { authQuery, authMutation, authAction } from "./auth";
 import { internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -549,6 +550,99 @@ export const getDefaultByUserIdInternal = internalQuery({
         q.eq("userId", args.userId).eq("isDefault", true),
       )
       .first();
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dream Mode V2 — per-profile config + cron-friendly iteration
+//
+// `dreamModeAutoAccept` controls whether the Dreamer's high-confidence
+// synthesis proposals materialize as new memories directly (true) or are
+// queued for explicit user approval on /proposals (false, default).
+//
+// `lastDreamRunAt` is stamped after every Dream Mode pass and used by the
+// manual "Run Dream Mode" button to enforce a 1-run-per-hour rate limit.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Toggle the Dream Mode auto-accept flag for a profile. Personal profile owner only for V1. */
+export const setDreamModeAutoAccept = authMutation({
+  args: {
+    profileId: v.id("profiles"),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.profileId);
+    if (!profile) throw new Error("Profile not found");
+
+    if (profile.teamId) {
+      const teamId = profile.teamId;
+      const membership = await ctx.db
+        .query("teamMembers")
+        .withIndex("by_team_user", (q) =>
+          q.eq("teamId", teamId).eq("userId", ctx.userId),
+        )
+        .first();
+      if (!membership || membership.role !== "owner") {
+        throw new Error("Only team owners can configure Dream Mode");
+      }
+    } else if (profile.userId !== ctx.userId) {
+      throw new Error("Profile not found");
+    }
+
+    await ctx.db.patch(args.profileId, {
+      dreamModeAutoAccept: args.enabled,
+      updatedAt: Date.now(),
+    });
+
+    await auditLog.log(ctx, {
+      action: "profile.dream_mode_auto_accept_toggled",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.PROFILE,
+      resourceId: args.profileId,
+      metadata: { enabled: args.enabled },
+      severity: "info",
+    });
+
+    return await ctx.db.get(args.profileId);
+  },
+});
+
+/**
+ * Internal: stamp `lastDreamRunAt` on a profile. Called by the per-profile
+ * Dream Mode runner on every pass (success or empty) so the manual button's
+ * rate-limit accounting stays accurate.
+ */
+export const setLastDreamRunAtInternal = internalMutation({
+  args: {
+    profileId: v.id("profiles"),
+    timestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.profileId);
+    if (!profile) return null;
+    await ctx.db.patch(args.profileId, {
+      lastDreamRunAt: args.timestamp,
+    });
+    return null;
+  },
+});
+
+/**
+ * Internal: paginated iterator used by the daily Dream Mode cron. Returns
+ * one batch of profiles plus an `isDone` / `continueCursor` for the
+ * self-rescheduling fan-out.
+ */
+export const listForDreamCronInternal = internalQuery({
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const page = await ctx.db.query("profiles").paginate(args.paginationOpts);
+    return {
+      profiles: page.page,
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+    };
   },
 });
 
