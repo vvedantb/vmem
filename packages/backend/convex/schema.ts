@@ -6,6 +6,7 @@ import {
   teamFields,
   teamMemberFields,
   userEnvVarFields,
+  codebaseFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -179,28 +180,7 @@ const schema = defineSchema({
     .index("by_user_thread", ["userId", "threadId"])
     .index("by_user_bubble", ["userId", "bubbleKey"]),
 
-  codebases: defineTable({
-    userId: v.id("users"),
-    githubConnectionId: v.id("githubConnections"),
-    repoOwner: v.string(),
-    repoName: v.string(),
-    repoFullName: v.string(),
-    defaultBranch: v.string(),
-    language: v.optional(v.string()),
-    description: v.optional(v.string()),
-    isPrivate: v.optional(v.boolean()),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("syncing"),
-      v.literal("synced"),
-      v.literal("error"),
-    ),
-    totalFiles: v.number(),
-    totalEdges: v.optional(v.number()),
-    syncedFiles: v.number(),
-    lastSyncedAt: v.optional(v.number()),
-    errorMessage: v.optional(v.string()),
-  })
+  codebases: defineTable(codebaseFields)
     .index("by_user", ["userId"])
     .index("by_user_repo", ["userId", "repoFullName"]),
 

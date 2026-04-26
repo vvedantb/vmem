@@ -1,5 +1,21 @@
 # Changelog
 
+## Codebase Parser Phase 1 — Symbol Graph + Processes + Blast Radius — 2026-04-26
+
+- **ts-morph AST parser replaces regex**: Codebase sync now extracts Functions, Classes, Interfaces, and call edges from a real TypeScript AST instead of regex-only imports. Per-edge confidence tiers (EXTRACTED 1.0 / INFERRED 0.7 / AMBIGUOUS 0.4) capture how the parser resolved each call — ready for Phase 2 hub/surprise scoring without a re-sync.
+- **Stable qualified-name IDs**: Symbols use `<codebaseId>:<relPath>:<symbolPath>` (methods as `Class.method`) so re-syncs idempotently MERGE the same node, surviving renames don't, and raw Cypher stays debuggable.
+- **Entry-point–rooted Processes**: Detector recognises Convex (`query`/`mutation`/`action`/`httpAction`/`auth*`), TanStack (`createFileRoute`), and heuristic top-level entry points (`main`, `handler`, `on*`, exported zero-incoming functions). BFS forward to depth 8 produces `:Process` nodes with `INCLUDES` edges — answers "what does this HTTP route touch end-to-end?".
+- **Blast radius queries**: New `getImpact` action runs bounded variable-length Cypher (`<-[:CALLS*1..depth]-`) for upstream callers / downstream callees of any symbol. Frontend reuses the existing `searchMatchSet` highlight path — no new render code.
+- **Multi-kind graph canvas**: Files (squares), functions (circles), classes (hexagons), interfaces (diamonds), processes (starbursts) render side-by-side with theme-aware palette entries and degree-based size scaling. Edge types extended to `calls` / `contains` / `extends` / `implements` / `starts_process`.
+- **Consolidated nuqs filters per UI rules**: Single `Filters` dropdown with Kinds + Process picker + Directory sections, plus a separate Search popover. All filter state (`kinds`, `processId`, `blastRadiusOf`, `blastDirection`, `search`) lives in the URL via `useQueryStates` so deep-links and refreshes preserve the view. Active-count badge counts each non-default field as 1.
+- **Symbol detail panel**: Selecting a node opens a slide-in panel (URL `?blastRadiusOf=…` doubles as the selection pointer) showing file/lines/exported/async/test metadata, Calls In, Calls Out, Process membership, and an upstream/downstream flip toggle for functions and classes.
+- **AI memory consumer surface**: New `codebaseSymbols.{getOverview,getGraph,getContext,getImpact,searchSymbols}` Convex actions provide the queryable interface that `apps/mcp` will wrap — `vmem_codebase_search`, `vmem_codebase_context`, `vmem_codebase_impact` tools answer "what depends on X" against the graph.
+- **PARSER_VERSION re-sync banner**: `/codebases` index detects rows whose `parserVersion` mismatches the bundled constant and surfaces an amber banner with a one-click `syncAllMy` action — bumping the version on a deploy automatically lights up the prompt without server-side migration.
+- **Live `parseStage` feedback**: Sync action patches `parseStage` (`fetching` → `parsing` → `processes` → `writing` → `done`) and the detail-page status badge swaps to a friendly stage label mid-sync via the existing `useQuery` reactivity.
+- **Header stat line**: Codebase detail page header shows `<files> · <fns> · <classes> · <processes>` from a live overview query, falling back to the persisted counts so navigation doesn't flash empty values.
+- **Repo-size guard**: 3000-file hard cap surfaces as `lastParseError` instead of timing out the Convex action — chunked sync deferred to Phase 3.
+- **Memory subgraph untouched**: All new labels are scoped by `(userId, codebaseId)`; existing `(:Memory)`, `(:Tag)`, `(:Entity)` graph stays separate, so memory and codebase queries don't cross-contaminate.
+
 ## Memory Extraction & Import Upgrades (mem0 + supermemory adoption) — 2026-04-26
 
 - **Detail-preserving enrichment prompt**: Replaced the generic tag/entity extraction prompt with mem0-derived guidance (preserve specific names, no fabrication, no implicit attribute inference). Tags now keep proper nouns and specific tech ("ferrari-488-gtb" not "sports-cars"); entities use canonical full names.
