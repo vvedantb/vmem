@@ -12,6 +12,7 @@ import type * as apiKeys from "../apiKeys.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
+import type * as codebaseSymbols from "../codebaseSymbols.js";
 import type * as codebases from "../codebases.js";
 import type * as connectorOAuth from "../connectorOAuth.js";
 import type * as connectorSync from "../connectorSync.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   auditLog: typeof auditLog;
   auth: typeof auth;
   chat: typeof chat;
+  codebaseSymbols: typeof codebaseSymbols;
   codebases: typeof codebases;
   connectorOAuth: typeof connectorOAuth;
   connectorSync: typeof connectorSync;
