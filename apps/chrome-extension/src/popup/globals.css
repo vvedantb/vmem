@@ -145,6 +145,16 @@ body {
   color: var(--color-foreground);
 }
 
+/* Form elements reset to system fonts in most browsers — explicitly
+   inherit so all popup chrome (buttons, inputs, selects, textareas)
+   uses Instrument Sans like the rest of the body. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 button,
 a,
 input,

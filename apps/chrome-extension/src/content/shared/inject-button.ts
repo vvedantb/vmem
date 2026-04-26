@@ -2,7 +2,13 @@ import { VMEM_BUTTON_STYLES } from "@/lib/constants";
 
 let fontInjected = false;
 
-function injectInstrumentSansFont(): void {
+/**
+ * Injects the Instrument Sans Google Font stylesheet into the host page.
+ *
+ * Idempotent — safe to call from any content script that renders text in
+ * the host page (vs. inside a Shadow DOM, which doesn't see this link).
+ */
+export function injectInstrumentSansFont(): void {
   if (fontInjected) return;
   fontInjected = true;
 
