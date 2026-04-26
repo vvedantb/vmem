@@ -27,6 +27,16 @@ chrome.commands.onCommand.addListener(async (command) => {
       await chrome.scripting.executeScript({
         target: { tabId },
         func: () => {
+          // Ensure Instrument Sans is loaded on the host page so the toast
+          // matches the rest of the extension's typography. Idempotent.
+          if (!document.getElementById("vmem-instrument-sans-font")) {
+            const link = document.createElement("link");
+            link.id = "vmem-instrument-sans-font";
+            link.rel = "stylesheet";
+            link.href =
+              "https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap";
+            document.head.appendChild(link);
+          }
           const el = document.createElement("div");
           Object.assign(el.style, {
             position: "fixed",
@@ -37,7 +47,8 @@ chrome.commands.onCommand.addListener(async (command) => {
             color: "#4ade80",
             padding: "10px 18px",
             borderRadius: "10px",
-            fontFamily: "system-ui, sans-serif",
+            fontFamily:
+              "'Instrument Sans', system-ui, -apple-system, sans-serif",
             fontSize: "13px",
             fontWeight: "500",
             zIndex: "2147483647",
@@ -66,6 +77,14 @@ chrome.commands.onCommand.addListener(async (command) => {
         await chrome.scripting.executeScript({
           target: { tabId },
           func: () => {
+            if (!document.getElementById("vmem-instrument-sans-font")) {
+              const link = document.createElement("link");
+              link.id = "vmem-instrument-sans-font";
+              link.rel = "stylesheet";
+              link.href =
+                "https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap";
+              document.head.appendChild(link);
+            }
             const el = document.createElement("div");
             Object.assign(el.style, {
               position: "fixed",
@@ -76,7 +95,8 @@ chrome.commands.onCommand.addListener(async (command) => {
               color: "#f87171",
               padding: "10px 18px",
               borderRadius: "10px",
-              fontFamily: "system-ui, sans-serif",
+              fontFamily:
+                "'Instrument Sans', system-ui, -apple-system, sans-serif",
               fontSize: "13px",
               fontWeight: "500",
               zIndex: "2147483647",
