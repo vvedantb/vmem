@@ -6,10 +6,10 @@
 
 import {
   IconDownload,
-  IconLoader2,
   IconPlayerStop,
   IconWaveSine,
   IconMicrophone,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { Button, Progress } from "@vmem/ui";
 import type { VoiceModelInfo } from "@/lib/voice/voice-models";
@@ -74,7 +74,7 @@ export default function VoiceModelCard({
               className="group overflow-hidden transition-[transform,background-color,opacity] duration-200"
             >
               {isLoading ? (
-                <IconLoader2 className="h-3.5 w-3.5 animate-spin" />
+                <IconLoader2 size={14} className="animate-spin" />
               ) : (
                 <IconDownload className="h-3.5 w-3.5" />
               )}

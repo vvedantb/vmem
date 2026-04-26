@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { IconLoader2, IconClockHour4 } from "@tabler/icons-react";
+import { IconClockHour4 } from "@tabler/icons-react";
 import { useTimelineEvents } from "@/hooks/useTimelineEvents";
 import { useVersionChain } from "@/hooks/useVersionChain";
 import VersionChainBar from "./VersionChainBar";
 import VersionCard from "./VersionCard";
+import { VmemSpinner } from "@/components/svg-animations";
 
 interface HistoryTabProps {
   memoryId: string;
@@ -26,7 +27,7 @@ export default function HistoryTab({ memoryId }: HistoryTabProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <IconLoader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <VmemSpinner size={20} className="text-muted-foreground" />
       </div>
     );
   }

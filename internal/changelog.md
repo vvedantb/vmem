@@ -1,5 +1,14 @@
 # Changelog
 
+## Custom SVG Animations & Branded Loading States — 2026-04-26
+
+- **VmemDrawInIcon**: One-shot stroke draw-in animation for sidebar vmem logo (both desktop and mobile). Imports shared `VmemPaths` component and `vmem-anim.css` for animation orchestration.
+- **VmemSpinner**: Petal sequencer animation (3-petal rotating sequence) for page-level full-page loading states (10 locations: Chat thread init, Dashboard, MemoryGraph, MemorySearch, CodebaseGraph, FilesClient, ApiKeysLoadingSkeleton, ApiLogsLoadingSkeleton, HistoryTab, codebases/$id). Not used for button-level actions — those stay as IconLoader2 spinners for appropriate affordance.
+- **VmemThinkingLoader**: Stroke trace loop animation for chat thinking/reasoning indicator (component created, integration pending).
+- **Centralized animation infrastructure**: Moved shared path data (`VmemPaths`), keyframe animations (`vmem-anim.css`), and size normalization logic (`pathLength="100"`) to `apps/web/src/components/svg-animations/` folder. All three animated components import from there, reducing duplication.
+- **Sidebar logo migration**: Updated `Sidebar.tsx` to use `VmemDrawInIcon` instead of dual static image imports (light/dark), leveraging `currentColor` for theme-aware SVG fills.
+- **Clarified VmemSpinner scope**: Applied only to page-level loading (full-page spinners, skeleton states), not button-level micro-interactions, after user feedback on affordance appropriateness.
+
 ## Clear Chat History — 2026-04-26
 
 - **`clearChatHistory` authMutation**: Verifies thread ownership via the agent SDK's `getThreadMetadata`, drops every `chatMessageMemoryRefs` sidecar row scoped to `(userId, threadId)`, then kicks off the agent component's `deleteAllForThreadIdAsync` cascade (paginated tail-call delete that handles arbitrarily large threads). Returns a freshly-created thread id in the same round-trip so the UI swaps atomically with no "no thread" gap.

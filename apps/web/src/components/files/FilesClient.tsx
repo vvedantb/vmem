@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useQueryStates } from "nuqs";
-import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { VmemSpinner } from "@/components/svg-animations";
 import type { FileItem, FolderBreadcrumb } from "@/lib/file-types";
 import PageContainer from "@/components/PageContainer";
 import FileUploadModal from "@/components/FileUploadModal";
@@ -259,7 +259,7 @@ export default function FilesClient() {
     return (
       <PageContainer title="Files">
         <div className="flex h-full min-h-0 items-center justify-center">
-          <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <VmemSpinner size={24} className="text-muted-foreground" />
         </div>
       </PageContainer>
     );
