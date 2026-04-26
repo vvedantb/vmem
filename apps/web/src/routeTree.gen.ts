@@ -25,7 +25,9 @@ import { Route as MainSvgPlaygroundIndexRouteImport } from './routes/_main/svg-p
 import { Route as MainSettingsIndexRouteImport } from './routes/_main/settings/index'
 import { Route as MainOpenrouterLogsIndexRouteImport } from './routes/_main/openrouter-logs/index'
 import { Route as MainMemoriesIndexRouteImport } from './routes/_main/memories/index'
+import { Route as MainInboxIndexRouteImport } from './routes/_main/inbox/index'
 import { Route as MainCodebasesIndexRouteImport } from './routes/_main/codebases/index'
+import { Route as MainAiLogsIndexRouteImport } from './routes/_main/ai-logs/index'
 import { Route as MainActivityIndexRouteImport } from './routes/_main/activity/index'
 import { Route as MainWikiDocIdRouteImport } from './routes/_main/wiki/$docId'
 import { Route as MainSettingsUsageRouteImport } from './routes/_main/settings/usage'
@@ -42,6 +44,7 @@ import { Route as MainMemoriesTagsRouteImport } from './routes/_main/memories/ta
 import { Route as MainCodebasesIdRouteImport } from './routes/_main/codebases/$id'
 import { Route as MainTeamsTeamIdIndexRouteImport } from './routes/_main/teams/$teamId/index'
 import { Route as MainSettingsPlaygroundIndexRouteImport } from './routes/_main/settings/playground/index'
+import { Route as MainSettingsApiIndexRouteImport } from './routes/_main/settings/api/index'
 import { Route as MainSettingsPlaygroundCallbackRouteImport } from './routes/_main/settings/playground/callback'
 
 const AgentCallbackRoute = AgentCallbackRouteImport.update({
@@ -123,9 +126,19 @@ const MainMemoriesIndexRoute = MainMemoriesIndexRouteImport.update({
   path: '/memories/',
   getParentRoute: () => MainRouteRoute,
 } as any)
+const MainInboxIndexRoute = MainInboxIndexRouteImport.update({
+  id: '/inbox/',
+  path: '/inbox/',
+  getParentRoute: () => MainRouteRoute,
+} as any)
 const MainCodebasesIndexRoute = MainCodebasesIndexRouteImport.update({
   id: '/codebases/',
   path: '/codebases/',
+  getParentRoute: () => MainRouteRoute,
+} as any)
+const MainAiLogsIndexRoute = MainAiLogsIndexRouteImport.update({
+  id: '/ai-logs/',
+  path: '/ai-logs/',
   getParentRoute: () => MainRouteRoute,
 } as any)
 const MainActivityIndexRoute = MainActivityIndexRouteImport.update({
@@ -210,6 +223,11 @@ const MainSettingsPlaygroundIndexRoute =
     path: '/settings/playground/',
     getParentRoute: () => MainRouteRoute,
   } as any)
+const MainSettingsApiIndexRoute = MainSettingsApiIndexRouteImport.update({
+  id: '/settings/api/',
+  path: '/settings/api/',
+  getParentRoute: () => MainRouteRoute,
+} as any)
 const MainSettingsPlaygroundCallbackRoute =
   MainSettingsPlaygroundCallbackRouteImport.update({
     id: '/settings/playground/callback',
@@ -241,7 +259,9 @@ export interface FileRoutesByFullPath {
   '/settings/usage': typeof MainSettingsUsageRoute
   '/wiki/$docId': typeof MainWikiDocIdRoute
   '/activity/': typeof MainActivityIndexRoute
+  '/ai-logs/': typeof MainAiLogsIndexRoute
   '/codebases/': typeof MainCodebasesIndexRoute
+  '/inbox/': typeof MainInboxIndexRoute
   '/memories/': typeof MainMemoriesIndexRoute
   '/openrouter-logs/': typeof MainOpenrouterLogsIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
@@ -249,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/teams/': typeof MainTeamsIndexRoute
   '/wiki/': typeof MainWikiIndexRoute
   '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
+  '/settings/api/': typeof MainSettingsApiIndexRoute
   '/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
   '/teams/$teamId/': typeof MainTeamsTeamIdIndexRoute
 }
@@ -276,7 +297,9 @@ export interface FileRoutesByTo {
   '/settings/usage': typeof MainSettingsUsageRoute
   '/wiki/$docId': typeof MainWikiDocIdRoute
   '/activity': typeof MainActivityIndexRoute
+  '/ai-logs': typeof MainAiLogsIndexRoute
   '/codebases': typeof MainCodebasesIndexRoute
+  '/inbox': typeof MainInboxIndexRoute
   '/memories': typeof MainMemoriesIndexRoute
   '/openrouter-logs': typeof MainOpenrouterLogsIndexRoute
   '/settings': typeof MainSettingsIndexRoute
@@ -284,6 +307,7 @@ export interface FileRoutesByTo {
   '/teams': typeof MainTeamsIndexRoute
   '/wiki': typeof MainWikiIndexRoute
   '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
+  '/settings/api': typeof MainSettingsApiIndexRoute
   '/settings/playground': typeof MainSettingsPlaygroundIndexRoute
   '/teams/$teamId': typeof MainTeamsTeamIdIndexRoute
 }
@@ -313,7 +337,9 @@ export interface FileRoutesById {
   '/_main/settings/usage': typeof MainSettingsUsageRoute
   '/_main/wiki/$docId': typeof MainWikiDocIdRoute
   '/_main/activity/': typeof MainActivityIndexRoute
+  '/_main/ai-logs/': typeof MainAiLogsIndexRoute
   '/_main/codebases/': typeof MainCodebasesIndexRoute
+  '/_main/inbox/': typeof MainInboxIndexRoute
   '/_main/memories/': typeof MainMemoriesIndexRoute
   '/_main/openrouter-logs/': typeof MainOpenrouterLogsIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
@@ -321,6 +347,7 @@ export interface FileRoutesById {
   '/_main/teams/': typeof MainTeamsIndexRoute
   '/_main/wiki/': typeof MainWikiIndexRoute
   '/_main/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
+  '/_main/settings/api/': typeof MainSettingsApiIndexRoute
   '/_main/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
   '/_main/teams/$teamId/': typeof MainTeamsTeamIdIndexRoute
 }
@@ -350,7 +377,9 @@ export interface FileRouteTypes {
     | '/settings/usage'
     | '/wiki/$docId'
     | '/activity/'
+    | '/ai-logs/'
     | '/codebases/'
+    | '/inbox/'
     | '/memories/'
     | '/openrouter-logs/'
     | '/settings/'
@@ -358,6 +387,7 @@ export interface FileRouteTypes {
     | '/teams/'
     | '/wiki/'
     | '/settings/playground/callback'
+    | '/settings/api/'
     | '/settings/playground/'
     | '/teams/$teamId/'
   fileRoutesByTo: FileRoutesByTo
@@ -385,7 +415,9 @@ export interface FileRouteTypes {
     | '/settings/usage'
     | '/wiki/$docId'
     | '/activity'
+    | '/ai-logs'
     | '/codebases'
+    | '/inbox'
     | '/memories'
     | '/openrouter-logs'
     | '/settings'
@@ -393,6 +425,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/wiki'
     | '/settings/playground/callback'
+    | '/settings/api'
     | '/settings/playground'
     | '/teams/$teamId'
   id:
@@ -421,7 +454,9 @@ export interface FileRouteTypes {
     | '/_main/settings/usage'
     | '/_main/wiki/$docId'
     | '/_main/activity/'
+    | '/_main/ai-logs/'
     | '/_main/codebases/'
+    | '/_main/inbox/'
     | '/_main/memories/'
     | '/_main/openrouter-logs/'
     | '/_main/settings/'
@@ -429,6 +464,7 @@ export interface FileRouteTypes {
     | '/_main/teams/'
     | '/_main/wiki/'
     | '/_main/settings/playground/callback'
+    | '/_main/settings/api/'
     | '/_main/settings/playground/'
     | '/_main/teams/$teamId/'
   fileRoutesById: FileRoutesById
@@ -553,11 +589,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainMemoriesIndexRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/inbox/': {
+      id: '/_main/inbox/'
+      path: '/inbox'
+      fullPath: '/inbox/'
+      preLoaderRoute: typeof MainInboxIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/codebases/': {
       id: '/_main/codebases/'
       path: '/codebases'
       fullPath: '/codebases/'
       preLoaderRoute: typeof MainCodebasesIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/ai-logs/': {
+      id: '/_main/ai-logs/'
+      path: '/ai-logs'
+      fullPath: '/ai-logs/'
+      preLoaderRoute: typeof MainAiLogsIndexRouteImport
       parentRoute: typeof MainRouteRoute
     }
     '/_main/activity/': {
@@ -672,6 +722,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainSettingsPlaygroundIndexRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/settings/api/': {
+      id: '/_main/settings/api/'
+      path: '/settings/api'
+      fullPath: '/settings/api/'
+      preLoaderRoute: typeof MainSettingsApiIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/settings/playground/callback': {
       id: '/_main/settings/playground/callback'
       path: '/settings/playground/callback'
@@ -704,7 +761,9 @@ interface MainRouteRouteChildren {
   MainSettingsUsageRoute: typeof MainSettingsUsageRoute
   MainWikiDocIdRoute: typeof MainWikiDocIdRoute
   MainActivityIndexRoute: typeof MainActivityIndexRoute
+  MainAiLogsIndexRoute: typeof MainAiLogsIndexRoute
   MainCodebasesIndexRoute: typeof MainCodebasesIndexRoute
+  MainInboxIndexRoute: typeof MainInboxIndexRoute
   MainMemoriesIndexRoute: typeof MainMemoriesIndexRoute
   MainOpenrouterLogsIndexRoute: typeof MainOpenrouterLogsIndexRoute
   MainSettingsIndexRoute: typeof MainSettingsIndexRoute
@@ -712,6 +771,7 @@ interface MainRouteRouteChildren {
   MainTeamsIndexRoute: typeof MainTeamsIndexRoute
   MainWikiIndexRoute: typeof MainWikiIndexRoute
   MainSettingsPlaygroundCallbackRoute: typeof MainSettingsPlaygroundCallbackRoute
+  MainSettingsApiIndexRoute: typeof MainSettingsApiIndexRoute
   MainSettingsPlaygroundIndexRoute: typeof MainSettingsPlaygroundIndexRoute
   MainTeamsTeamIdIndexRoute: typeof MainTeamsTeamIdIndexRoute
 }
@@ -738,7 +798,9 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsUsageRoute: MainSettingsUsageRoute,
   MainWikiDocIdRoute: MainWikiDocIdRoute,
   MainActivityIndexRoute: MainActivityIndexRoute,
+  MainAiLogsIndexRoute: MainAiLogsIndexRoute,
   MainCodebasesIndexRoute: MainCodebasesIndexRoute,
+  MainInboxIndexRoute: MainInboxIndexRoute,
   MainMemoriesIndexRoute: MainMemoriesIndexRoute,
   MainOpenrouterLogsIndexRoute: MainOpenrouterLogsIndexRoute,
   MainSettingsIndexRoute: MainSettingsIndexRoute,
@@ -746,6 +808,7 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainTeamsIndexRoute: MainTeamsIndexRoute,
   MainWikiIndexRoute: MainWikiIndexRoute,
   MainSettingsPlaygroundCallbackRoute: MainSettingsPlaygroundCallbackRoute,
+  MainSettingsApiIndexRoute: MainSettingsApiIndexRoute,
   MainSettingsPlaygroundIndexRoute: MainSettingsPlaygroundIndexRoute,
   MainTeamsTeamIdIndexRoute: MainTeamsTeamIdIndexRoute,
 }

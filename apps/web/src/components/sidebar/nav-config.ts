@@ -2,13 +2,11 @@ import {
   IconMessageCircle,
   IconMicrophone,
   IconKey,
-  IconBell,
   IconSettings,
   IconFiles,
   IconDatabase,
   IconPlugConnected,
   IconBrain,
-  IconChartBar,
   IconStack2,
   IconPlug,
   IconUserCircle,
@@ -19,15 +17,14 @@ import {
   IconFileImport,
   IconBolt,
   IconNotebook,
-  IconActivity,
   IconCpu,
   IconUsers,
   IconBuilding,
   IconVariable,
-  IconChecklist,
   IconReceipt2,
+  IconInbox,
 } from "@tabler/icons-react";
-import type { NavGroup, SettingsNavItem } from "./types";
+import type { NavGroup, SettingsNavGroup } from "./types";
 
 export const navGroups: NavGroup[] = [
   {
@@ -54,73 +51,58 @@ export const navGroups: NavGroup[] = [
     title: "Account",
     icon: IconUserCircle,
     items: [
-      { href: "/activity", label: "Activity", icon: IconActivity },
-      {
-        href: "/openrouter-logs",
-        label: "OpenRouter Logs",
-        icon: IconReceipt2,
-      },
-      { href: "/proposals", label: "Proposals", icon: IconChecklist },
-      { href: "/notifications", label: "Notifications", icon: IconBell },
+      { href: "/ai-logs", label: "AI Logs", icon: IconReceipt2 },
+      { href: "/inbox", label: "Inbox", icon: IconInbox },
       { href: "/settings", label: "Settings", icon: IconSettings },
     ],
   },
 ];
 
-export const settingsNavItems: SettingsNavItem[] = [
+/**
+ * Settings sub-nav, grouped into 3 sections rendered with headers in the
+ * settings slide-out (mirroring the main nav group pattern). Routes are
+ * unchanged — this is purely a visual grouping for discoverability.
+ */
+export const settingsNavGroups: SettingsNavGroup[] = [
   {
-    href: "/settings/preferences",
-    label: "Preferences",
-    icon: IconAdjustments,
+    title: "General",
+    items: [
+      {
+        href: "/settings/preferences",
+        label: "Preferences",
+        icon: IconAdjustments,
+      },
+      { href: "/settings/profiles", label: "Profiles", icon: IconUsers },
+      { href: "/settings/models", label: "Models", icon: IconCpu },
+      {
+        href: "/settings/data-controls",
+        label: "Data Controls",
+        icon: IconShieldLock,
+      },
+    ],
   },
   {
-    href: "/settings/profiles",
-    label: "Profiles",
-    icon: IconUsers,
+    title: "Developer",
+    items: [
+      { href: "/settings/api", label: "API", icon: IconKey },
+      { href: "/settings/env-vars", label: "Env Vars", icon: IconVariable },
+      {
+        href: "/settings/playground",
+        label: "Playground",
+        icon: IconTerminal2,
+      },
+    ],
   },
   {
-    href: "/settings/models",
-    label: "Models",
-    icon: IconCpu,
-  },
-  {
-    href: "/settings/extension",
-    label: "Extension",
-    icon: IconPuzzle,
-  },
-  {
-    href: "/settings/import",
-    label: "Import",
-    icon: IconFileImport,
-  },
-  {
-    href: "/settings/data-controls",
-    label: "Data Controls",
-    icon: IconShieldLock,
-  },
-  {
-    href: "/settings/api-keys",
-    label: "API Keys",
-    icon: IconKey,
-  },
-  {
-    href: "/settings/env-vars",
-    label: "Env Vars",
-    icon: IconVariable,
-  },
-  {
-    href: "/settings/usage",
-    label: "Usage",
-    icon: IconChartBar,
-  },
-  {
-    href: "/settings/connectors",
-    label: "Connectors",
-    icon: IconPlugConnected,
-  },
-  {
-    href: "/settings/playground",
-    label: "Playground",
-    icon: IconTerminal2,
+    title: "Integrations",
+    items: [
+      {
+        href: "/settings/connectors",
+        label: "Connectors",
+        icon: IconPlugConnected,
+      },
+      { href: "/settings/extension", label: "Extension", icon: IconPuzzle },
+      { href: "/settings/import", label: "Import", icon: IconFileImport },
+    ],
   },
 ];

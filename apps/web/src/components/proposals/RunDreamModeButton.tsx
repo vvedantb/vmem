@@ -9,7 +9,7 @@ import { IconSparkles, IconLoader2 } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
 
 /**
- * "Run Dream Mode" button rendered in the `/proposals` page header.
+ * "Run Dream Mode" button rendered in the `/inbox` (proposals tab) page header.
  *
  * Triggers a one-shot synthesis pass for the user's default web profile
  * (per V1 spec — only personal profiles can fire manually; team profiles

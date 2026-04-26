@@ -1,0 +1,135 @@
+import { useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import {
+  Button,
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+} from "@vmem/ui";
+import { IconPlus } from "@tabler/icons-react";
+import { AnimatedKeyIcon } from "@/components/svg-animations";
+import ApiKeyModal from "@/components/ApiKeyModal";
+import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
+import { ApiKeysLoadingSkeleton } from "@/components/api-keys/ApiKeysLoadingSkeleton";
+import { RevokeKeyDialog } from "@/components/api-keys/RevokeKeyDialog";
+import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
+import { api } from "@vmem/backend";
+
+type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
+
+/**
+ * Keys panel for `/settings/api`. The "create" modal is controlled by
+ * the orchestrator so the right-section "New Key" button (in the page
+ * header) and the empty-state "New Key" button can both open it.
+ */
+export function KeysPanel({
+  isCreateModalOpen,
+  onCreateModalOpenChange,
+}: {
+  isCreateModalOpen: boolean;
+  onCreateModalOpenChange: (open: boolean) => void;
+}) {
+  const apiKeys = useQuery(api.apiKeys.listMy, {});
+
+  const {
+    revokeKeyId,
+    setRevokeKeyId,
+    isRevoking,
+    copiedKeyId,
+    copyingKeyId,
+    revealedKeys,
+    revealingKeyId,
+    handleCopyKey,
+    handleToggleReveal,
+    handleRevoke,
+  } = useApiKeyActions();
+
+  const isLoading = apiKeys === undefined;
+  const apiKeyList: ApiKey[] = apiKeys ?? [];
+  const keyToRevoke = apiKeyList.find((key) => key.id === revokeKeyId);
+
+  if (isLoading) return <ApiKeysLoadingSkeleton />;
+
+  return (
+    <>
+      {apiKeyList.length === 0 ? (
+        <div className="rounded-xl bg-muted/40 py-16 text-center">
+          <AnimatedKeyIcon
+            size={48}
+            className="mx-auto mb-4 text-muted-foreground"
+          />
+          <h3 className="mb-2 text-lg font-medium text-foreground text-balance">
+            No API keys yet
+          </h3>
+          <p className="mb-6 text-muted-foreground">
+            Create your first API key to start using vMemory programmatically.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onCreateModalOpenChange(true)}
+          >
+            <IconPlus size={16} />
+            New Key
+          </Button>
+        </div>
+      ) : (
+        <Table className="rounded-xl bg-muted/30 overflow-hidden">
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="font-medium text-muted-foreground">
+                NAME
+              </TableHead>
+              <TableHead className="hidden font-medium text-muted-foreground sm:table-cell">
+                STATUS
+              </TableHead>
+              <TableHead className="hidden font-medium text-muted-foreground md:table-cell">
+                KEY
+              </TableHead>
+              <TableHead className="hidden font-medium text-muted-foreground lg:table-cell">
+                REQUESTS
+              </TableHead>
+              <TableHead className="hidden font-medium text-muted-foreground sm:table-cell">
+                LAST USED
+              </TableHead>
+              <TableHead className="w-20 font-medium text-muted-foreground sm:w-auto">
+                ACTIONS
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {apiKeyList.map((apiKey) => (
+              <ApiKeyRow
+                key={apiKey.id}
+                apiKey={apiKey}
+                revealedKey={revealedKeys[apiKey.id]}
+                revealingKeyId={revealingKeyId}
+                copyingKeyId={copyingKeyId}
+                copiedKeyId={copiedKeyId}
+                onToggleReveal={handleToggleReveal}
+                onCopy={handleCopyKey}
+                onRevoke={setRevokeKeyId}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      )}
+
+      <ApiKeyModal
+        isOpen={isCreateModalOpen}
+        onClose={() => onCreateModalOpenChange(false)}
+        onKeyCreated={() => {}}
+      />
+
+      <RevokeKeyDialog
+        keyName={keyToRevoke?.name}
+        isOpen={!!revokeKeyId}
+        isRevoking={isRevoking}
+        onConfirm={handleRevoke}
+        onCancel={() => setRevokeKeyId(null)}
+      />
+    </>
+  );
+}
