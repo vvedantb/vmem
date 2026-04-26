@@ -14,7 +14,8 @@ import { useAuth } from "@clerk/clerk-react";
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import { Navigate } from "@tanstack/react-router";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
-import { SonnerToaster, TooltipProvider, Spinner } from "@vmem/ui";
+import { SonnerToaster, TooltipProvider } from "@vmem/ui";
+import { VmemSpinner } from "@/components/svg-animations";
 import { ThemeProvider } from "@/components/contexts/ThemeContext";
 import { NotificationProvider } from "@/components/contexts/NotificationContext";
 import { MemoryProvider } from "@/components/contexts/MemoryContext";
@@ -99,7 +100,7 @@ function EnsureUser() {
 function AppSkeleton() {
   return (
     <div className="flex h-screen items-center justify-center bg-background">
-      <Spinner size="lg" />
+      <VmemSpinner size={32} className="text-muted-foreground" />
     </div>
   );
 }
