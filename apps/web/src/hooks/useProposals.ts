@@ -10,23 +10,59 @@ import { api } from "@vmem/backend";
  * the server-side `ProposedUpdateNode` interface — duplicated here only
  * because Convex `authAction` return types aren't autoderivable from
  * `FunctionReturnType` cleanly today, and we want a strict client type.
+ *
+ * - `update`/`delete`: V2 fact-extraction proposals (rewrite or delete an
+ *   existing memory on approve).
+ * - `insight`/`connection`/`anomaly`: Dream Mode V2 synthesis proposals
+ *   (materialize a NEW memory with `:DERIVED_FROM` edges to sources on
+ *   approve).
+ * - `contradiction`: Dream Mode flagged two memories that disagree.
+ *   V1 dismiss-only — no automatic action on approve/reject.
  */
+export type ProposedUpdateKind =
+  | "update"
+  | "delete"
+  | "insight"
+  | "connection"
+  | "contradiction"
+  | "anomaly";
+
+const SYNTHESIS_KINDS = new Set<ProposedUpdateKind>([
+  "insight",
+  "connection",
+  "contradiction",
+  "anomaly",
+]);
+
+export function isSynthesisKind(kind: ProposedUpdateKind): boolean {
+  return SYNTHESIS_KINDS.has(kind);
+}
+
 export interface ProposedUpdate {
   id: string;
   memoryId: string;
   proposedContent: string;
+  proposedTitle: string | null;
   reason: string;
-  /** "update" rewrites memory.content. "delete" hard-deletes on approve. */
-  kind: "update" | "delete";
+  kind: ProposedUpdateKind;
   status: string;
   createdAt: string;
   resolvedAt: string | null;
+  sourceMemoryIds: string[];
+  confidence: number | null;
+  source: "v2-extraction" | "dream-mode";
   /**
    * Snapshot of the target memory's title + content at list time. Used by
    * the proposals UI to render diffs without needing a per-row memory
    * fetch. Null if the target was already deleted.
    */
   memorySnapshot: { title: string; content: string } | null;
+  /**
+   * Title + content snapshots for synthesis proposals' source memories,
+   * so the UI can render the "derived from" panel without a per-row
+   * fetch. Empty for non-synthesis kinds.
+   */
+  sourceMemorySnapshots: { id: string; title: string; content: string }[];
 }
 
 /**
@@ -48,18 +84,35 @@ export function useProposals() {
     queryFn: async (): Promise<ProposedUpdate[]> => {
       const data = await listAction({});
       // Convex action return shape is already structurally identical —
-      // we just map to clip any extra fields and pin the kind union.
-      return data.map((p) => ({
-        id: p.id,
-        memoryId: p.memoryId,
-        proposedContent: p.proposedContent,
-        reason: p.reason,
-        kind: p.kind === "delete" ? "delete" : "update",
-        status: p.status,
-        createdAt: p.createdAt,
-        resolvedAt: p.resolvedAt,
-        memorySnapshot: p.memorySnapshot,
-      }));
+      // we map to clip any extra fields and pin the kind/source unions.
+      return data.map((p): ProposedUpdate => {
+        const kind: ProposedUpdateKind =
+          p.kind === "delete" ||
+          p.kind === "insight" ||
+          p.kind === "connection" ||
+          p.kind === "contradiction" ||
+          p.kind === "anomaly"
+            ? p.kind
+            : "update";
+        const source: ProposedUpdate["source"] =
+          p.source === "dream-mode" ? "dream-mode" : "v2-extraction";
+        return {
+          id: p.id,
+          memoryId: p.memoryId,
+          proposedContent: p.proposedContent,
+          proposedTitle: p.proposedTitle,
+          reason: p.reason,
+          kind,
+          status: p.status,
+          createdAt: p.createdAt,
+          resolvedAt: p.resolvedAt,
+          sourceMemoryIds: p.sourceMemoryIds,
+          confidence: p.confidence,
+          source,
+          memorySnapshot: p.memorySnapshot,
+          sourceMemorySnapshots: p.sourceMemorySnapshots,
+        };
+      });
     },
   });
 

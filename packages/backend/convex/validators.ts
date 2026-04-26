@@ -21,6 +21,20 @@ export const profileFields = {
   teamId: v.optional(v.id("teams")),
   createdAt: v.number(),
   updatedAt: v.number(),
+  /**
+   * Dream Mode V2 — when true, derived insights produced by the background
+   * Dreamer auto-materialize as new :Memory nodes (with :DERIVED_FROM edges
+   * back to source memories) instead of being routed through the
+   * `/proposals` queue. Defaults to undefined/false; users opt in per
+   * profile once they trust the synthesis quality.
+   */
+  dreamModeAutoAccept: v.optional(v.boolean()),
+  /**
+   * Wall-clock ms of the last successful Dream Mode run for this profile.
+   * Used to rate-limit the manual "Run Dream Mode" button (1 run/hr) and
+   * to scope the Dreamer's "recent memories" window when desired.
+   */
+  lastDreamRunAt: v.optional(v.number()),
 };
 
 /**
