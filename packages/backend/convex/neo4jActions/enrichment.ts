@@ -13,7 +13,7 @@ import {
 import { tryUserEnvVarByClerkId } from "../lib/envVars";
 
 const LLM_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-const LLM_MODEL = "qwen/qwen3-235b-a22b-instruct-2507";
+const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
 
 /** Safely extract the text content from an OpenRouter chat completion response. */
 function extractLLMContent(json: unknown): string | undefined {
