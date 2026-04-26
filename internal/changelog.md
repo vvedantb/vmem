@@ -1,5 +1,14 @@
 # Changelog
 
+## Content Deduplication Pipeline — 2026-04-26
+
+- **4-layer dedup on memory creation**: Every memory create (API + MCP) now runs through URL match → title+domain match (browsing-history only) → MD5 content hash → semantic similarity (≥0.95 cosine). All layers increment `visitCount` on the existing memory instead of creating a duplicate.
+- **Content hash (Mem0-style)**: MD5 of normalized `title+content` stored on every Memory node. Zero API cost, catches identical submissions. Composite index `(userId, contentHash)` for O(1) lookup.
+- **Semantic near-duplicate detection**: When an embedding is available, vector index query catches near-duplicates that differ by trivial edits but hash differently. No competitor does this at ingestion time.
+- **Title+domain dedup for browsing history**: Sites with a generic `<title>` across all routes (e.g. "vmem" on every page) no longer spawn N separate memories. Same title + same origin from browsing-history/bookmarks sources merge into one memory.
+- **Backfill + cleanup migrations**: `startContentHashBackfill` stamps hashes on existing memories (pure CPU, batch 200). `deduplicateBrowsingHistory` merges same-title browsing-history memories per user, transferring tags/relationships/entities to the oldest survivor.
+- **Competitor enrichment/dedup analysis doc**: `internal/docs/enrichment-dedup-comparison.md` — comparison of vmem vs Supermemory, Mem0, Honcho, Hermes, and IWE based on actual source code analysis (not docs/marketing).
+
 ## Graph Rendering & Interaction Improvements — 2026-04-26
 
 - **Fixed viewport fit in React StrictMode**: Reset `hasFittedRef` flag when simulation restarts to ensure viewport re-fits on layout settle. Prevents the second render in StrictMode (dev) from keeping the old fitted state and missing the canvas reset.

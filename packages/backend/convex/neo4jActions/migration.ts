@@ -3,7 +3,10 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import { MemoryService } from "../../src/neo4j/memoryService";
+import {
+  MemoryService,
+  computeContentHash,
+} from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { generateEmbeddings } from "../../src/neo4j/embeddingService";
 import { tryUserEnvVarByClerkId } from "../lib/envVars";
@@ -476,5 +479,134 @@ export const startEntityBackfill = internalAction({
       {},
     );
     return { started: true };
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Content-hash backfill
+//
+// Computes and writes contentHash for all memories that don't have one yet.
+// Pure CPU work (MD5), no external API calls — safe to run with large batches.
+// Same self-rescheduling cursor pattern as the other backfills.
+//
+// Kick off via Convex dashboard:
+//   internal.neo4jActions.migration.startContentHashBackfill
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const backfillContentHashInternal = internalAction({
+  args: { batchSize: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const BATCH = args.batchSize ?? 200;
+    const service = new MemoryService(getDriver());
+
+    const rows = await service.listMissingContentHash(BATCH);
+    if (rows.length === 0) {
+      console.log("content-hash backfill: drained");
+      return { done: true, processed: 0 };
+    }
+
+    const updates: Array<{ id: string; contentHash: string }> = [];
+    for (const row of rows) {
+      updates.push({
+        id: row.id,
+        contentHash: computeContentHash(row.title, row.content),
+      });
+    }
+
+    await service.setContentHashes(updates);
+
+    console.log(
+      `content-hash backfill: processed ${updates.length}, rescheduling`,
+    );
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.neo4jActions.migration.backfillContentHashInternal,
+      { batchSize: BATCH },
+    );
+
+    return { done: false, processed: updates.length };
+  },
+});
+
+/**
+ * Convenience kickoff action for content-hash backfill.
+ * Call once from the Convex dashboard.
+ */
+export const startContentHashBackfill = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    await ctx.scheduler.runAfter(
+      0,
+      internal.neo4jActions.migration.backfillContentHashInternal,
+      {},
+    );
+    return { started: true };
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Deduplicate existing memories
+//
+// Merges memories that share the same (userId, contentHash). For each group:
+//   - Oldest memory survives (most enrichment time = most tags/entities/edges)
+//   - Unique tags, relationships, and entities transfer to the survivor
+//   - visitCount from duplicates is summed into the survivor
+//   - Duplicates are DETACH DELETEd
+//
+// Requires contentHash backfill to have run first.
+// Kick off via Convex dashboard:
+//   internal.neo4jActions.migration.deduplicateMemories({ clerkId: "..." })
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const deduplicateMemories = internalAction({
+  args: { clerkId: v.string() },
+  returns: v.object({ deleted: v.number() }),
+  handler: async (_ctx, args) => {
+    const service = new MemoryService(getDriver());
+    const deleted = await service.deduplicateMemories(args.clerkId);
+    console.log(
+      `deduplicateMemories: merged ${deleted} duplicates for ${args.clerkId}`,
+    );
+    return { deleted };
+  },
+});
+
+/**
+ * Diagnostic: find memories with the same title and show their content +
+ * contentHash so we can see why dedup didn't match them.
+ * Run via dashboard:
+ *   internal.neo4jActions.migration.diagnoseDuplicates({ clerkId: "...", title: "vmem" })
+ */
+export const diagnoseDuplicates = internalAction({
+  args: { clerkId: v.string(), title: v.string() },
+  handler: async (_ctx, args) => {
+    const service = new MemoryService(getDriver());
+    return await service.diagnoseDuplicates(args.clerkId, args.title);
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Browsing-history deduplication
+//
+// Merges browsing-history/bookmarks memories that share the same title for a
+// user. Every page on a site sharing a generic <title> (e.g. "vmem") collapses
+// into one survivor. Oldest memory survives, visitCounts are summed, unique
+// tags/relationships/entities transfer.
+//
+// Kick off via Convex dashboard:
+//   internal.neo4jActions.migration.deduplicateBrowsingHistory({ clerkId: "..." })
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const deduplicateBrowsingHistory = internalAction({
+  args: { clerkId: v.string() },
+  returns: v.object({ deleted: v.number() }),
+  handler: async (_ctx, args) => {
+    const service = new MemoryService(getDriver());
+    const deleted = await service.deduplicateBrowsingHistory(args.clerkId);
+    console.log(
+      `deduplicateBrowsingHistory: merged ${deleted} duplicates for ${args.clerkId}`,
+    );
+    return { deleted };
   },
 });

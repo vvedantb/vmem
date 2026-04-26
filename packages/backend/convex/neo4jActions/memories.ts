@@ -3,7 +3,10 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import { MemoryService } from "../../src/neo4j/memoryService";
+import {
+  MemoryService,
+  computeContentHash,
+} from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { normalizeUrl } from "../../src/neo4j/url";
 import { generateEmbedding } from "../../src/neo4j/embeddingService";
@@ -72,18 +75,56 @@ export const createMemoryInternal = internalAction({
       ? (normalizeUrl(args.url) ?? undefined)
       : undefined;
 
-    // Check for existing memory with same URL — increment visit count if found
+    // ── Dedup layer 1: URL match ──────────────────────────────────────────
     if (normalizedUrl) {
       const existing = await service.findMemoryByUrl(
         args.clerkId,
         normalizedUrl,
       );
       if (existing) {
-        // Increment visit tracking instead of creating duplicate
         await service.incrementVisitCount(args.clerkId, existing.id);
         const full = await service.getMemory(args.clerkId, existing.id);
         if (full) return full;
       }
+    }
+
+    // ── Dedup layer 1b: title + domain (browsing-history/bookmarks) ──────
+    // Many sites share a generic <title> across all pages (e.g. "vmem").
+    // For browsing-history sources, treat same-title same-origin as one memory.
+    const BROWSER_SOURCES: ReadonlySet<string> = new Set([
+      "browsing-history",
+      "bookmarks",
+    ]);
+    if (normalizedUrl && BROWSER_SOURCES.has(args.source)) {
+      try {
+        const origin = new URL(normalizedUrl).origin;
+        const titleMatch = await service.findMemoryByTitleAndOrigin(
+          args.clerkId,
+          args.title,
+          origin,
+        );
+        if (titleMatch) {
+          await service.incrementVisitCount(args.clerkId, titleMatch.id);
+          const full = await service.getMemory(args.clerkId, titleMatch.id);
+          if (full) return full;
+        }
+      } catch {
+        // Invalid URL, skip this check
+      }
+    }
+
+    // ── Dedup layer 2: exact content hash ────────────────────────────────
+    // MD5 of normalized(title+content). Zero API cost, catches identical
+    // duplicates like "vmem" submitted three times.
+    const contentHash = computeContentHash(args.title, args.content);
+    const hashMatch = await service.findMemoryByContentHash(
+      args.clerkId,
+      contentHash,
+    );
+    if (hashMatch) {
+      await service.incrementVisitCount(args.clerkId, hashMatch.id);
+      const full = await service.getMemory(args.clerkId, hashMatch.id);
+      if (full) return full;
     }
 
     // Best-effort embedding generation — memory still saves if this fails
@@ -106,6 +147,26 @@ export const createMemoryInternal = internalAction({
       console.warn("embedding failed on create", e);
     }
 
+    // ── Dedup layer 3: semantic similarity (near-duplicate) ──────────────
+    // Only runs when an embedding was successfully generated. Catches
+    // near-duplicates like "vmem is cool" vs "vmem is cool!" that differ
+    // by trivial edits but hash differently.
+    if (embedding) {
+      const semanticMatch = await service.findMemoryBySimilarity(
+        args.clerkId,
+        embedding,
+        0.95,
+      );
+      if (semanticMatch) {
+        console.log(
+          `[dedup] semantic near-duplicate (similarity=${semanticMatch.similarity.toFixed(3)}) → ${semanticMatch.id}`,
+        );
+        await service.incrementVisitCount(args.clerkId, semanticMatch.id);
+        const full = await service.getMemory(args.clerkId, semanticMatch.id);
+        if (full) return full;
+      }
+    }
+
     const result = await service.createMemory({
       userId: args.clerkId,
       profileId: resolvedProfileId,
@@ -118,6 +179,7 @@ export const createMemoryInternal = internalAction({
       expiresAt: args.expiresAt,
       url: normalizedUrl,
       embedding,
+      contentHash,
     });
 
     // Push memory event via direct mutation

@@ -225,6 +225,30 @@ function toTagEdge(record: NeoRecord): TagEdge {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Content-hash deduplication helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Normalize title+content into a stable string for hashing. Trims whitespace,
+ * collapses runs of whitespace to a single space, and lowercases — so trivial
+ * formatting differences ("  vmem " vs "vmem") produce the same hash.
+ */
+function normalizeForHash(title: string, content: string): string {
+  return `${title}\n${content}`.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/**
+ * MD5 hex digest of the normalized title+content. Used for exact-duplicate
+ * detection at creation time — Mem0-style hash dedup with zero API cost.
+ */
+export function computeContentHash(title: string, content: string): string {
+  return crypto
+    .createHash("md5")
+    .update(normalizeForHash(title, content))
+    .digest("hex");
+}
+
 export class MemoryService {
   constructor(private driver: Driver) {}
 
@@ -255,6 +279,9 @@ export class MemoryService {
     // Memories created without an embedding are still usable; the backfill
     // migration fills them later, and retrieval degrades to fulltext-only.
     embedding: number[] | null;
+    // MD5 hex digest of normalized(title + content). Used for exact-duplicate
+    // detection on subsequent creates.
+    contentHash: string;
   }): Promise<MemoryWithTags> {
     return this.withSession(async (session) => {
       const id = crypto.randomUUID();
@@ -276,6 +303,7 @@ export class MemoryService {
           expiresAt: $expiresAt,
           url: $url,
           embedding: $embedding,
+          contentHash: $contentHash,
           visitCount: 1,
           firstVisitAt: $now,
           lastVisitAt: $now
@@ -305,6 +333,7 @@ export class MemoryService {
           expiresAt: params.expiresAt ?? null,
           url: params.url ?? null,
           embedding: params.embedding,
+          contentHash: params.contentHash,
         },
       );
 
@@ -469,6 +498,225 @@ export class MemoryService {
       return {
         visitCount,
         lastVisitAt: String(r.get("lastVisitAt")),
+      };
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Browsing-history title+domain deduplication
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Find an existing browsing-history/bookmarks memory with the same title
+   * from the same origin (protocol+host). Catches the "every page on my app
+   * has &lt;title&gt;vmem&lt;/title&gt;" problem.
+   */
+  async findMemoryByTitleAndOrigin(
+    userId: string,
+    title: string,
+    origin: string,
+  ): Promise<{ id: string; title: string; updatedAt: string } | null> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId, title: $title})
+         WHERE m.status IN ['active', 'pinned']
+           AND m.source IN ['browsing-history', 'bookmarks']
+           AND m.url STARTS WITH $origin
+         RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
+         ORDER BY m.visitCount DESC, m.createdAt ASC
+         LIMIT 1`,
+        { userId, title, origin },
+      );
+      if (result.records.length === 0) return null;
+      const r = result.records[0];
+      if (!r) return null;
+      return {
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        updatedAt: String(r.get("updatedAt")),
+      };
+    });
+  }
+
+  /**
+   * Merge browsing-history memories that share the same (userId, title).
+   * Keeps the oldest survivor per title, sums visitCounts, transfers edges,
+   * and deletes the rest. Returns total duplicates deleted.
+   */
+  async deduplicateBrowsingHistory(userId: string): Promise<number> {
+    return this.withSession(async (session) => {
+      // Find all title groups with >1 browsing-history memory
+      const groups = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE m.source IN ['browsing-history', 'bookmarks']
+         WITH m.title AS title, m ORDER BY m.createdAt ASC
+         WITH title, collect(m) AS sorted
+         WHERE size(sorted) > 1
+         RETURN title,
+                head(sorted).id AS survivorId,
+                [m IN tail(sorted) | m.id] AS duplicateIds,
+                reduce(total = 0, m IN tail(sorted) | total + coalesce(m.visitCount, 1)) AS extraVisits`,
+        { userId },
+      );
+
+      if (groups.records.length === 0) return 0;
+
+      let totalDeleted = 0;
+
+      for (const record of groups.records) {
+        const survivorId = String(record.get("survivorId"));
+        const duplicateIds: string[] = (
+          record.get("duplicateIds") as string[]
+        ).map(String);
+        const rawVisits = record.get("extraVisits");
+        const extraVisits =
+          typeof rawVisits === "object" &&
+          rawVisits !== null &&
+          "toNumber" in rawVisits
+            ? (rawVisits as { toNumber: () => number }).toNumber()
+            : typeof rawVisits === "number"
+              ? rawVisits
+              : 0;
+
+        // Transfer unique tags
+        await session.run(
+          `MATCH (survivor:Memory {id: $survivorId})
+           UNWIND $duplicateIds AS dupId
+           MATCH (dup:Memory {id: dupId})-[:TAGGED_WITH]->(t:Tag)
+           WHERE NOT (survivor)-[:TAGGED_WITH]->(t)
+           MERGE (survivor)-[:TAGGED_WITH]->(t)`,
+          { survivorId, duplicateIds },
+        );
+
+        // Transfer unique RELATES_TO outgoing
+        await session.run(
+          `MATCH (survivor:Memory {id: $survivorId})
+           UNWIND $duplicateIds AS dupId
+           MATCH (dup:Memory {id: dupId})-[r:RELATES_TO]->(target)
+           WHERE target.id <> $survivorId
+             AND NOT (survivor)-[:RELATES_TO]->(target)
+           MERGE (survivor)-[nr:RELATES_TO]->(target)
+           ON CREATE SET nr.reason = r.reason, nr.score = r.score`,
+          { survivorId, duplicateIds },
+        );
+
+        // Transfer unique RELATES_TO incoming
+        await session.run(
+          `MATCH (survivor:Memory {id: $survivorId})
+           UNWIND $duplicateIds AS dupId
+           MATCH (source)-[r:RELATES_TO]->(dup:Memory {id: dupId})
+           WHERE source.id <> $survivorId
+             AND NOT (source)-[:RELATES_TO]->(survivor)
+           MERGE (source)-[nr:RELATES_TO]->(survivor)
+           ON CREATE SET nr.reason = r.reason, nr.score = r.score`,
+          { survivorId, duplicateIds },
+        );
+
+        // Transfer MENTIONS edges
+        await session.run(
+          `MATCH (survivor:Memory {id: $survivorId})
+           UNWIND $duplicateIds AS dupId
+           MATCH (dup:Memory {id: dupId})-[:MENTIONS]->(e:Entity)
+           WHERE NOT (survivor)-[:MENTIONS]->(e)
+           MERGE (survivor)-[:MENTIONS]->(e)`,
+          { survivorId, duplicateIds },
+        );
+
+        // Sum visitCounts
+        if (extraVisits > 0) {
+          await session.run(
+            `MATCH (m:Memory {id: $survivorId})
+             SET m.visitCount = coalesce(m.visitCount, 1) + $extraVisits`,
+            { survivorId, extraVisits },
+          );
+        }
+
+        // Delete duplicates
+        await session.run(
+          `UNWIND $duplicateIds AS dupId
+           MATCH (m:Memory {id: dupId})
+           DETACH DELETE m`,
+          { duplicateIds },
+        );
+
+        totalDeleted += duplicateIds.length;
+      }
+
+      return totalDeleted;
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Content deduplication lookups
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Find an active/pinned memory with the same content hash (exact duplicate).
+   * Uses the (userId, contentHash) composite index for O(1) lookup.
+   */
+  async findMemoryByContentHash(
+    userId: string,
+    contentHash: string,
+  ): Promise<{ id: string; title: string; updatedAt: string } | null> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId, contentHash: $contentHash})
+         WHERE m.status IN ['active', 'pinned']
+         RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
+         LIMIT 1`,
+        { userId, contentHash },
+      );
+      if (result.records.length === 0) return null;
+      const r = result.records[0];
+      if (!r) return null;
+      return {
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        updatedAt: String(r.get("updatedAt")),
+      };
+    });
+  }
+
+  /**
+   * Find the most semantically similar active/pinned memory above `threshold`.
+   * Uses the vector index — only callable when an embedding is available.
+   * Returns null when no memory exceeds the threshold.
+   */
+  async findMemoryBySimilarity(
+    userId: string,
+    embedding: number[],
+    threshold: number,
+  ): Promise<{
+    id: string;
+    title: string;
+    updatedAt: string;
+    similarity: number;
+  } | null> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
+         YIELD node AS m, score AS similarity
+         WHERE m.userId = $userId
+           AND m.status IN ['active', 'pinned']
+           AND similarity >= $threshold
+         RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt, similarity
+         ORDER BY similarity DESC
+         LIMIT 1`,
+        {
+          k: neo4j.int(5),
+          embedding,
+          userId,
+          threshold,
+        },
+      );
+      if (result.records.length === 0) return null;
+      const r = result.records[0];
+      if (!r) return null;
+      return {
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        updatedAt: String(r.get("updatedAt")),
+        similarity: Number(r.get("similarity")),
       };
     });
   }
@@ -2273,6 +2521,208 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
          SET m.embedding = r.embedding`,
         { rows },
       );
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Content-hash backfill helpers
+  //
+  // Used by the migration in `convex/neo4jActions/migration.ts` to retroactively
+  // compute and store contentHash for memories created before dedup shipped.
+  // Pure CPU work (MD5), no external API calls.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /** Return memories that don't have a contentHash yet. */
+  async listMissingContentHash(
+    limit: number,
+  ): Promise<Array<{ id: string; title: string; content: string }>> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory)
+         WHERE m.contentHash IS NULL
+         RETURN m.id AS id, m.title AS title, m.content AS content
+         ORDER BY m.createdAt DESC
+         LIMIT $limit`,
+        { limit: neo4j.int(limit) },
+      );
+      return result.records.map((r) => ({
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        content: String(r.get("content")),
+      }));
+    });
+  }
+
+  /**
+   * Bulk-set contentHash on existing memories by id. One round trip via
+   * UNWIND to avoid N queries per batch.
+   */
+  async setContentHashes(
+    rows: Array<{ id: string; contentHash: string }>,
+  ): Promise<void> {
+    if (rows.length === 0) return;
+    await this.withSession(async (session) => {
+      await session.run(
+        `UNWIND $rows AS r
+         MATCH (m:Memory {id: r.id})
+         SET m.contentHash = r.contentHash`,
+        { rows },
+      );
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Content-hash dedup cleanup
+  //
+  // Finds groups of memories sharing the same (userId, contentHash) and merges
+  // them: the oldest survives, accumulates visitCount from duplicates, inherits
+  // any unique relationships/tags, and the duplicates are detached + deleted.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Merge duplicate memories for a single user. Returns the number of
+   * duplicate nodes deleted. Safe to re-run (idempotent — no-ops when
+   * no duplicates remain).
+   */
+  async deduplicateMemories(userId: string): Promise<number> {
+    return this.withSession(async (session) => {
+      // Step 1: Find all duplicate groups. For each contentHash with >1 memory,
+      // collect the IDs ordered by createdAt ASC (oldest = survivor).
+      const groups = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE m.contentHash IS NOT NULL
+         WITH m.contentHash AS hash, m ORDER BY m.createdAt ASC
+         WITH hash, collect(m) AS sorted
+         WHERE size(sorted) > 1
+         RETURN hash,
+                head(sorted).id AS survivorId,
+                [m IN tail(sorted) | m.id] AS duplicateIds,
+                reduce(total = 0, m IN tail(sorted) | total + coalesce(m.visitCount, 1)) AS extraVisits`,
+        { userId },
+      );
+
+      if (groups.records.length === 0) return 0;
+
+      let totalDeleted = 0;
+
+      for (const record of groups.records) {
+        const survivorId = String(record.get("survivorId"));
+        const duplicateIds: string[] = (
+          record.get("duplicateIds") as string[]
+        ).map(String);
+        const rawVisits = record.get("extraVisits");
+        const extraVisits =
+          typeof rawVisits === "object" &&
+          rawVisits !== null &&
+          "toNumber" in rawVisits
+            ? (rawVisits as { toNumber: () => number }).toNumber()
+            : typeof rawVisits === "number"
+              ? rawVisits
+              : 0;
+
+        // Step 2: Transfer unique tags from duplicates → survivor
+        await session.run(
+          `MATCH (survivor:Memory {id: $survivorId})
+           UNWIND $duplicateIds AS dupId
+           MATCH (dup:Memory {id: dupId})-[:TAGGED_WITH]->(t:Tag)
+           WHERE NOT (survivor)-[:TAGGED_WITH]->(t)
+           MERGE (survivor)-[:TAGGED_WITH]->(t)`,
+          { survivorId, duplicateIds },
+        );
+
+        // Step 3: Transfer unique RELATES_TO edges from duplicates → survivor
+        // (both outgoing and incoming, excluding self-loops)
+        await session.run(
+          `MATCH (survivor:Memory {id: $survivorId})
+           UNWIND $duplicateIds AS dupId
+           MATCH (dup:Memory {id: dupId})-[r:RELATES_TO]->(target)
+           WHERE target.id <> $survivorId
+             AND NOT (survivor)-[:RELATES_TO]->(target)
+           MERGE (survivor)-[nr:RELATES_TO]->(target)
+           ON CREATE SET nr.reason = r.reason, nr.score = r.score`,
+          { survivorId, duplicateIds },
+        );
+        await session.run(
+          `MATCH (survivor:Memory {id: $survivorId})
+           UNWIND $duplicateIds AS dupId
+           MATCH (source)-[r:RELATES_TO]->(dup:Memory {id: dupId})
+           WHERE source.id <> $survivorId
+             AND NOT (source)-[:RELATES_TO]->(survivor)
+           MERGE (source)-[nr:RELATES_TO]->(survivor)
+           ON CREATE SET nr.reason = r.reason, nr.score = r.score`,
+          { survivorId, duplicateIds },
+        );
+
+        // Step 4: Transfer MENTIONS edges from duplicates → survivor
+        await session.run(
+          `MATCH (survivor:Memory {id: $survivorId})
+           UNWIND $duplicateIds AS dupId
+           MATCH (dup:Memory {id: dupId})-[:MENTIONS]->(e:Entity)
+           WHERE NOT (survivor)-[:MENTIONS]->(e)
+           MERGE (survivor)-[:MENTIONS]->(e)`,
+          { survivorId, duplicateIds },
+        );
+
+        // Step 5: Bump survivor's visitCount with the sum from duplicates
+        if (extraVisits > 0) {
+          await session.run(
+            `MATCH (m:Memory {id: $survivorId})
+             SET m.visitCount = coalesce(m.visitCount, 1) + $extraVisits`,
+            { survivorId, extraVisits },
+          );
+        }
+
+        // Step 6: Detach-delete all duplicates (removes all their edges too)
+        await session.run(
+          `UNWIND $duplicateIds AS dupId
+           MATCH (m:Memory {id: dupId})
+           DETACH DELETE m`,
+          { duplicateIds },
+        );
+
+        totalDeleted += duplicateIds.length;
+      }
+
+      return totalDeleted;
+    });
+  }
+
+  /**
+   * Diagnostic: find all memories matching a title (case-insensitive) and
+   * return their id, title, content (first 100 chars), and contentHash so
+   * we can see why hash-based dedup did or didn't group them.
+   */
+  async diagnoseDuplicates(
+    userId: string,
+    title: string,
+  ): Promise<
+    Array<{
+      id: string;
+      title: string;
+      contentPreview: string;
+      contentHash: string | null;
+      createdAt: string;
+    }>
+  > {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE toLower(m.title) = toLower($title)
+         RETURN m.id AS id,
+                m.title AS title,
+                left(m.content, 100) AS contentPreview,
+                m.contentHash AS contentHash,
+                m.createdAt AS createdAt
+         ORDER BY m.createdAt ASC`,
+        { userId, title },
+      );
+      return result.records.map((r) => ({
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        contentPreview: String(r.get("contentPreview")),
+        contentHash: r.get("contentHash") ? String(r.get("contentHash")) : null,
+        createdAt: String(r.get("createdAt")),
+      }));
     });
   }
 

@@ -3,7 +3,10 @@
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import { MemoryService } from "../../src/neo4j/memoryService";
+import {
+  MemoryService,
+  computeContentHash,
+} from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { generateEmbedding } from "../../src/neo4j/embeddingService";
 import { verifyMcpJwt } from "../../src/neo4j/mcpAuth";
@@ -135,6 +138,7 @@ export const mcpCreateMemory = internalAction({
       ? (normalizeUrl(args.url) ?? undefined)
       : undefined;
 
+    // ── Dedup layer 1: URL match ──────────────────────────────────────────
     if (normalizedUrl) {
       const existing = await service.findMemoryByUrl(clerkId, normalizedUrl);
       if (existing) {
@@ -143,11 +147,64 @@ export const mcpCreateMemory = internalAction({
       }
     }
 
+    // ── Dedup layer 1b: title + domain (browsing-history/bookmarks) ──────
+    const source = args.source ?? "mcp";
+    const BROWSER_SOURCES: ReadonlySet<string> = new Set([
+      "browsing-history",
+      "bookmarks",
+    ]);
+    if (normalizedUrl && BROWSER_SOURCES.has(source)) {
+      try {
+        const origin = new URL(normalizedUrl).origin;
+        const titleMatch = await service.findMemoryByTitleAndOrigin(
+          clerkId,
+          args.title,
+          origin,
+        );
+        if (titleMatch) {
+          await service.incrementVisitCount(clerkId, titleMatch.id);
+          const full = await service.getMemory(clerkId, titleMatch.id);
+          if (full) return full;
+        }
+      } catch {
+        // Invalid URL, skip this check
+      }
+    }
+
+    // ── Dedup layer 2: exact content hash ────────────────────────────────
+    const contentHash = computeContentHash(args.title, args.content);
+    const hashMatch = await service.findMemoryByContentHash(
+      clerkId,
+      contentHash,
+    );
+    if (hashMatch) {
+      await service.incrementVisitCount(clerkId, hashMatch.id);
+      const full = await service.getMemory(clerkId, hashMatch.id);
+      if (full) return full;
+    }
+
     const embedding = await tryEmbed(
       ctx,
       clerkId,
       `${args.title}\n\n${args.content}`,
     );
+
+    // ── Dedup layer 3: semantic similarity (near-duplicate) ──────────────
+    if (embedding) {
+      const semanticMatch = await service.findMemoryBySimilarity(
+        clerkId,
+        embedding,
+        0.95,
+      );
+      if (semanticMatch) {
+        console.log(
+          `[dedup] semantic near-duplicate (similarity=${semanticMatch.similarity.toFixed(3)}) → ${semanticMatch.id}`,
+        );
+        await service.incrementVisitCount(clerkId, semanticMatch.id);
+        const full = await service.getMemory(clerkId, semanticMatch.id);
+        if (full) return full;
+      }
+    }
 
     const result = await service.createMemory({
       userId: clerkId,
@@ -163,6 +220,7 @@ export const mcpCreateMemory = internalAction({
       confidence: args.confidence ?? 1.0,
       url: normalizedUrl,
       embedding,
+      contentHash,
     });
 
     await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
