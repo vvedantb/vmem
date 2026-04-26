@@ -27,7 +27,7 @@ import {
   IconPlayerPlay,
   IconShieldCheck,
   IconBolt,
-  IconBeaker,
+  IconFlask,
   IconArrowsLeftRight,
 } from "@tabler/icons-react";
 import { Badge, Button } from "@vmem/ui";
@@ -167,7 +167,7 @@ export function CodebaseSymbolPanel({
                       variant="outline"
                       className="bg-muted/40 text-[10px] h-5 px-1.5 border-0"
                     >
-                      <IconBeaker size={10} className="mr-1" />
+                      <IconFlask size={10} className="mr-1" />
                       test
                     </Badge>
                   )}

@@ -44,7 +44,7 @@ function CodebasesPage() {
     setResyncing(true);
     try {
       const result = await syncAllMy({});
-      toast.success(`Re-syncing ${result.scheduled} codebase(s)`);
+      toast.success(`Re-syncing ${result.synced} codebase(s)`);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to start re-sync";
