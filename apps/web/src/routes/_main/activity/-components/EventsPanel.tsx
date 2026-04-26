@@ -168,13 +168,13 @@ export function EventsPanel({
   const filteredAndSortedActivity = useMemo(() => {
     let result = [...activity];
 
-    if (params.eventTypes.length > 0) {
+    if (params.types.length > 0) {
       result = result.filter((item) =>
-        params.eventTypes.includes(item.type as EventType),
+        params.types.includes(item.type as EventType),
       );
     }
 
-    const threshold = getDateThreshold(params.eventRange);
+    const threshold = getDateThreshold(params.range);
     if (threshold !== null) {
       result = result.filter(
         (item) => new Date(item.timestamp).getTime() >= threshold,
@@ -184,14 +184,13 @@ export function EventsPanel({
     result.sort((a, b) => {
       const dateA = new Date(a.timestamp).getTime();
       const dateB = new Date(b.timestamp).getTime();
-      return params.eventSortDir === "desc" ? dateB - dateA : dateA - dateB;
+      return params.sortDir === "desc" ? dateB - dateA : dateA - dateB;
     });
 
     return result;
-  }, [activity, params.eventTypes, params.eventRange, params.eventSortDir]);
+  }, [activity, params.types, params.range, params.sortDir]);
 
-  const hasFilters =
-    params.eventTypes.length > 0 || params.eventRange !== "all";
+  const hasFilters = params.types.length > 0 || params.range !== "all";
 
   if (isLoading) return <LoadingSkeleton />;
 
@@ -259,15 +258,15 @@ export function EventsRightSection() {
   return (
     <div className="flex items-center gap-2">
       <EventsFiltersDropdown
-        types={params.eventTypes}
-        range={params.eventRange}
-        onTypesChange={(eventTypes) => setParams({ eventTypes })}
-        onRangeChange={(eventRange) => setParams({ eventRange })}
-        onReset={() => setParams({ eventTypes: [], eventRange: "all" })}
+        types={params.types}
+        range={params.range}
+        onTypesChange={(types) => setParams({ types })}
+        onRangeChange={(range) => setParams({ range })}
+        onReset={() => setParams({ types: [], range: "all" })}
       />
       <EventsSortDropdown
-        sortDir={params.eventSortDir}
-        onSortDirChange={(eventSortDir) => setParams({ eventSortDir })}
+        sortDir={params.sortDir}
+        onSortDirChange={(sortDir) => setParams({ sortDir })}
       />
     </div>
   );
