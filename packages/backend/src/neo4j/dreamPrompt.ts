@@ -95,23 +95,46 @@ The first memory in the cluster is the "anomaly seed" — it scored high on surp
 
 Pick ONE of these synthesis kinds, or skip:
 
-- **insight** — A distilled pattern, generalization, or learning that holds across ≥3 of these memories. Should add knowledge the user did not explicitly write down.
-- **connection** — A non-obvious link between exactly 2 memories that the user might not have noticed. The connection should be specific (not "both about programming").
-- **contradiction** — Two or more memories that disagree about the same fact (e.g. "I use VSCode" vs "I switched to Helix"). Be conservative — preferences can change without being contradictions.
-- **anomaly** — The seed memory is genuinely an outlier with no useful relationship to its neighbors. Worth flagging so the user can confirm it belongs in this profile.
+- **insight** — A distilled pattern, generalization, or learning that holds across ≥3 of these memories. Must add NEW knowledge the user did not explicitly write down. Becomes a permanent memory on accept.
+- **connection** — A non-obvious link between exactly 2 memories that the user might not have noticed. The connection should be specific (not "both about programming"). Becomes a permanent memory on accept.
+- **contradiction** — Two or more memories that disagree about the same fact (e.g. "I use VSCode" vs "I switched to Helix"). Be conservative — preferences can change without being contradictions. The user resolves the conflict manually; this is a flag, not new content.
+- **anomaly** — The seed memory is genuinely an outlier with no useful relationship to its neighbors. This is a FLAG (not new content) — the user reviews whether the memory belongs in this profile. Use sparingly: only when the seed has no plausible link to its neighbors.
 - **skip** — None of the above apply. The cluster is noisy, mundane, or already obvious. Prefer skip over a weak synthesis.
 
 # Output
 
 Respond with ONLY this JSON, no other text:
 
-{"type": "insight" | "connection" | "contradiction" | "anomaly" | "skip", "title": "short headline", "content": "1–3 sentences stating the synthesis as a fact about the user", "reason": "why this synthesis follows from the source memories", "sourceMemoryIds": ["id1", "id2"], "confidence": 0.0-1.0}
+{"type": "insight" | "connection" | "contradiction" | "anomaly" | "skip", "title": "short headline", "content": "1–3 sentences stating the synthesis", "reason": "why this synthesis follows from the source memories", "sourceMemoryIds": ["id1", "id2"], "confidence": 0.0-1.0}
 
-# Rules
+# Hard rules — content quality
 
-- \`title\`: <= 80 chars. First-person where natural ("I prefer ...", "My setup uses ..."). For contradictions, name the conflict ("Editor preference: VSCode vs Helix").
-- \`content\`: <= 400 chars. State the synthesis as a fact. For contradictions, lay out both sides.
-- \`reason\`: <= 300 chars. Reference the source memory titles or specifics — do not just restate the content.
+For \`insight\` and \`connection\` (becomes a memory on accept):
+
+  ❌ NEVER refer to the cluster as "memories" or use phrases like "the memory about X", "this memory", "the note on Y", "all other memories", "across these memories". The reader will not see the cluster — they will see ONLY your synthesis as a standalone fact.
+  ❌ NEVER use meta-descriptive words: "outlier", "unlike others", "stands out", "different from", "highly specific", "more technical than", "is generic compared to". These describe the cluster, not the user.
+  ❌ NEVER restate or summarize what each memory contains. The synthesis must be a NEW statement that follows FROM the cluster, not ABOUT the cluster.
+  ✅ State the synthesis as a self-contained fact about the user, their preferences, their work, or the world.
+  ✅ Use first-person where natural ("I prefer ...", "My setup uses ...").
+
+For \`contradiction\`: lay out both sides factually ("Earlier I noted X; more recently I noted Y").
+For \`anomaly\`: a one-sentence flag is fine — this is the only kind where mentioning the seed memory is acceptable, since the user is reviewing whether it belongs.
+
+# Examples
+
+INSIGHT — bad:  "The memory about Cloudflare's compute architecture is highly specific and technical, while all other memories are generic references to X."
+INSIGHT — good: "I gravitate toward edge-compute platforms — Cloudflare Workers and similar V8-isolate runtimes appear repeatedly in my reading."
+
+CONNECTION — bad: "The Helix note and the Cloudflare note are both about technical topics."
+CONNECTION — good: "Both Helix and Cloudflare Workers reflect a preference for performance-first tooling that minimizes overhead."
+
+ANOMALY — acceptable: "The Cloudflare technical note doesn't fit alongside the cluster of personal-life memories — confirm whether it belongs in this profile."
+
+# Field rules
+
+- \`title\`: <= 80 chars. First-person where natural for insight/connection; name the conflict for contradiction; describe the unusual seed for anomaly.
+- \`content\`: <= 400 chars. Follow the hard rules above per type.
+- \`reason\`: <= 300 chars. Reference the source memory titles or specifics — do not just restate the content. Reason is shown to the user; it CAN refer to the cluster (e.g. "Both [title A] and [title B] mention V8 isolates").
 - \`sourceMemoryIds\`: every id must literally appear in the cluster below. Empty array is invalid for non-skip types.
 - \`confidence\`: be strict. 0.9+ only when the synthesis is unambiguous. < 0.6 will be dropped automatically; if you're at all uncertain, prefer \`skip\`.
 - For \`skip\`, set confidence to 0 and sourceMemoryIds to []. Title and content can be empty strings.

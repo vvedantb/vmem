@@ -35,9 +35,13 @@ import type { ProposedUpdate, ProposedUpdateKind } from "@/hooks/useProposals";
  *  - the source memory list with deep links so the user can verify the
  *    derivation before approving
  *
- * V1 contradiction handling: both approve and reject simply dismiss the
- * proposal (no automatic resolution of the underlying conflict). Buttons
- * are relabeled to "Acknowledge" / "Dismiss" to make this explicit.
+ * Dismiss-only kinds: contradictions and anomalies are flags, not new
+ * knowledge. Both approve and reject simply clear the proposal — no new
+ * memory is created. For these the buttons read "Acknowledge" / "Dismiss"
+ * to make the no-op-on-the-graph behavior explicit. (Anomalies were
+ * previously materialized as memories, but the resulting "memory talking
+ * about a memory" had no tags or connections; V1 now treats them as a
+ * flag the user reviews against the source memory.)
  */
 interface SynthesisProposalCardProps {
   proposal: ProposedUpdate;
@@ -53,7 +57,9 @@ export default function SynthesisProposalCard({
   onReject,
 }: SynthesisProposalCardProps) {
   const meta = getKindMeta(proposal.kind);
-  const isContradiction = proposal.kind === "contradiction";
+  // Dismiss-only kinds — see component-level comment for rationale.
+  const isDismissOnly =
+    proposal.kind === "contradiction" || proposal.kind === "anomaly";
   const title = proposal.proposedTitle ?? "(untitled synthesis)";
   const confidencePct =
     proposal.confidence === null ? null : Math.round(proposal.confidence * 100);
@@ -87,7 +93,7 @@ export default function SynthesisProposalCard({
               className="text-muted-foreground hover:text-foreground"
             >
               <IconX size={14} />
-              {isContradiction ? "Dismiss" : "Reject"}
+              {isDismissOnly ? "Dismiss" : "Reject"}
             </Button>
             <Button
               type="button"
@@ -97,7 +103,7 @@ export default function SynthesisProposalCard({
               className="bg-primary text-primary-foreground"
             >
               <IconCheck size={14} />
-              {isContradiction ? "Acknowledge" : "Approve"}
+              {isDismissOnly ? "Acknowledge" : "Approve"}
             </Button>
           </div>
         </div>
