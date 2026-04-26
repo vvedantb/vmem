@@ -22,10 +22,10 @@ import { Route as MainChatRouteImport } from "./routes/_main/chat";
 import { Route as MainWikiIndexRouteImport } from "./routes/_main/wiki/index";
 import { Route as MainTeamsIndexRouteImport } from "./routes/_main/teams/index";
 import { Route as MainSettingsIndexRouteImport } from "./routes/_main/settings/index";
+import { Route as MainOpenrouterLogsIndexRouteImport } from "./routes/_main/openrouter-logs/index";
 import { Route as MainMemoriesIndexRouteImport } from "./routes/_main/memories/index";
 import { Route as MainCodebasesIndexRouteImport } from "./routes/_main/codebases/index";
 import { Route as MainActivityIndexRouteImport } from "./routes/_main/activity/index";
-import { Route as MainOpenrouterLogsIndexRouteImport } from "./routes/_main/openrouter-logs/index";
 import { Route as MainWikiDocIdRouteImport } from "./routes/_main/wiki/$docId";
 import { Route as MainSettingsUsageRouteImport } from "./routes/_main/settings/usage";
 import { Route as MainSettingsProfilesRouteImport } from "./routes/_main/settings/profiles";
@@ -107,6 +107,11 @@ const MainSettingsIndexRoute = MainSettingsIndexRouteImport.update({
   path: "/settings/",
   getParentRoute: () => MainRouteRoute,
 } as any);
+const MainOpenrouterLogsIndexRoute = MainOpenrouterLogsIndexRouteImport.update({
+  id: "/openrouter-logs/",
+  path: "/openrouter-logs/",
+  getParentRoute: () => MainRouteRoute,
+} as any);
 const MainMemoriesIndexRoute = MainMemoriesIndexRouteImport.update({
   id: "/memories/",
   path: "/memories/",
@@ -120,11 +125,6 @@ const MainCodebasesIndexRoute = MainCodebasesIndexRouteImport.update({
 const MainActivityIndexRoute = MainActivityIndexRouteImport.update({
   id: "/activity/",
   path: "/activity/",
-  getParentRoute: () => MainRouteRoute,
-} as any);
-const MainOpenrouterLogsIndexRoute = MainOpenrouterLogsIndexRouteImport.update({
-  id: "/openrouter-logs/",
-  path: "/openrouter-logs/",
   getParentRoute: () => MainRouteRoute,
 } as any);
 const MainWikiDocIdRoute = MainWikiDocIdRouteImport.update({
@@ -235,9 +235,9 @@ export interface FileRoutesByFullPath {
   "/settings/usage": typeof MainSettingsUsageRoute;
   "/wiki/$docId": typeof MainWikiDocIdRoute;
   "/activity/": typeof MainActivityIndexRoute;
-  "/openrouter-logs/": typeof MainOpenrouterLogsIndexRoute;
   "/codebases/": typeof MainCodebasesIndexRoute;
   "/memories/": typeof MainMemoriesIndexRoute;
+  "/openrouter-logs/": typeof MainOpenrouterLogsIndexRoute;
   "/settings/": typeof MainSettingsIndexRoute;
   "/teams/": typeof MainTeamsIndexRoute;
   "/wiki/": typeof MainWikiIndexRoute;
@@ -269,9 +269,9 @@ export interface FileRoutesByTo {
   "/settings/usage": typeof MainSettingsUsageRoute;
   "/wiki/$docId": typeof MainWikiDocIdRoute;
   "/activity": typeof MainActivityIndexRoute;
-  "/openrouter-logs": typeof MainOpenrouterLogsIndexRoute;
   "/codebases": typeof MainCodebasesIndexRoute;
   "/memories": typeof MainMemoriesIndexRoute;
+  "/openrouter-logs": typeof MainOpenrouterLogsIndexRoute;
   "/settings": typeof MainSettingsIndexRoute;
   "/teams": typeof MainTeamsIndexRoute;
   "/wiki": typeof MainWikiIndexRoute;
@@ -305,9 +305,9 @@ export interface FileRoutesById {
   "/_main/settings/usage": typeof MainSettingsUsageRoute;
   "/_main/wiki/$docId": typeof MainWikiDocIdRoute;
   "/_main/activity/": typeof MainActivityIndexRoute;
-  "/_main/openrouter-logs/": typeof MainOpenrouterLogsIndexRoute;
   "/_main/codebases/": typeof MainCodebasesIndexRoute;
   "/_main/memories/": typeof MainMemoriesIndexRoute;
+  "/_main/openrouter-logs/": typeof MainOpenrouterLogsIndexRoute;
   "/_main/settings/": typeof MainSettingsIndexRoute;
   "/_main/teams/": typeof MainTeamsIndexRoute;
   "/_main/wiki/": typeof MainWikiIndexRoute;
@@ -341,9 +341,9 @@ export interface FileRouteTypes {
     | "/settings/usage"
     | "/wiki/$docId"
     | "/activity/"
-    | "/openrouter-logs/"
     | "/codebases/"
     | "/memories/"
+    | "/openrouter-logs/"
     | "/settings/"
     | "/teams/"
     | "/wiki/"
@@ -375,9 +375,9 @@ export interface FileRouteTypes {
     | "/settings/usage"
     | "/wiki/$docId"
     | "/activity"
-    | "/openrouter-logs"
     | "/codebases"
     | "/memories"
+    | "/openrouter-logs"
     | "/settings"
     | "/teams"
     | "/wiki"
@@ -410,9 +410,9 @@ export interface FileRouteTypes {
     | "/_main/settings/usage"
     | "/_main/wiki/$docId"
     | "/_main/activity/"
-    | "/_main/openrouter-logs/"
     | "/_main/codebases/"
     | "/_main/memories/"
+    | "/_main/openrouter-logs/"
     | "/_main/settings/"
     | "/_main/teams/"
     | "/_main/wiki/"
@@ -520,6 +520,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof MainSettingsIndexRouteImport;
       parentRoute: typeof MainRouteRoute;
     };
+    "/_main/openrouter-logs/": {
+      id: "/_main/openrouter-logs/";
+      path: "/openrouter-logs";
+      fullPath: "/openrouter-logs/";
+      preLoaderRoute: typeof MainOpenrouterLogsIndexRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
     "/_main/memories/": {
       id: "/_main/memories/";
       path: "/memories";
@@ -539,13 +546,6 @@ declare module "@tanstack/react-router" {
       path: "/activity";
       fullPath: "/activity/";
       preLoaderRoute: typeof MainActivityIndexRouteImport;
-      parentRoute: typeof MainRouteRoute;
-    };
-    "/_main/openrouter-logs/": {
-      id: "/_main/openrouter-logs/";
-      path: "/openrouter-logs";
-      fullPath: "/openrouter-logs/";
-      preLoaderRoute: typeof MainOpenrouterLogsIndexRouteImport;
       parentRoute: typeof MainRouteRoute;
     };
     "/_main/wiki/$docId": {
@@ -685,9 +685,9 @@ interface MainRouteRouteChildren {
   MainSettingsUsageRoute: typeof MainSettingsUsageRoute;
   MainWikiDocIdRoute: typeof MainWikiDocIdRoute;
   MainActivityIndexRoute: typeof MainActivityIndexRoute;
-  MainOpenrouterLogsIndexRoute: typeof MainOpenrouterLogsIndexRoute;
   MainCodebasesIndexRoute: typeof MainCodebasesIndexRoute;
   MainMemoriesIndexRoute: typeof MainMemoriesIndexRoute;
+  MainOpenrouterLogsIndexRoute: typeof MainOpenrouterLogsIndexRoute;
   MainSettingsIndexRoute: typeof MainSettingsIndexRoute;
   MainTeamsIndexRoute: typeof MainTeamsIndexRoute;
   MainWikiIndexRoute: typeof MainWikiIndexRoute;
@@ -718,9 +718,9 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsUsageRoute: MainSettingsUsageRoute,
   MainWikiDocIdRoute: MainWikiDocIdRoute,
   MainActivityIndexRoute: MainActivityIndexRoute,
-  MainOpenrouterLogsIndexRoute: MainOpenrouterLogsIndexRoute,
   MainCodebasesIndexRoute: MainCodebasesIndexRoute,
   MainMemoriesIndexRoute: MainMemoriesIndexRoute,
+  MainOpenrouterLogsIndexRoute: MainOpenrouterLogsIndexRoute,
   MainSettingsIndexRoute: MainSettingsIndexRoute,
   MainTeamsIndexRoute: MainTeamsIndexRoute,
   MainWikiIndexRoute: MainWikiIndexRoute,
