@@ -41,11 +41,17 @@ import { Route as MainSettingsDataControlsRouteImport } from './routes/_main/set
 import { Route as MainSettingsConnectorsRouteImport } from './routes/_main/settings/connectors'
 import { Route as MainSettingsApiKeysRouteImport } from './routes/_main/settings/api-keys'
 import { Route as MainMemoriesTagsRouteImport } from './routes/_main/memories/tags'
+import { Route as MainInboxProposalsRouteImport } from './routes/_main/inbox/proposals'
+import { Route as MainInboxNotificationsRouteImport } from './routes/_main/inbox/notifications'
 import { Route as MainCodebasesIdRouteImport } from './routes/_main/codebases/$id'
+import { Route as MainActivityEventsRouteImport } from './routes/_main/activity/events'
+import { Route as MainActivityAiLogsRouteImport } from './routes/_main/activity/ai-logs'
 import { Route as MainTeamsTeamIdIndexRouteImport } from './routes/_main/teams/$teamId/index'
 import { Route as MainSettingsPlaygroundIndexRouteImport } from './routes/_main/settings/playground/index'
 import { Route as MainSettingsApiIndexRouteImport } from './routes/_main/settings/api/index'
 import { Route as MainSettingsPlaygroundCallbackRouteImport } from './routes/_main/settings/playground/callback'
+import { Route as MainSettingsApiUsageRouteImport } from './routes/_main/settings/api/usage'
+import { Route as MainSettingsApiKeysRouteImport } from './routes/_main/settings/api/keys'
 
 const AgentCallbackRoute = AgentCallbackRouteImport.update({
   id: '/agent-callback',
@@ -207,9 +213,29 @@ const MainMemoriesTagsRoute = MainMemoriesTagsRouteImport.update({
   path: '/memories/tags',
   getParentRoute: () => MainRouteRoute,
 } as any)
+const MainInboxProposalsRoute = MainInboxProposalsRouteImport.update({
+  id: '/inbox/proposals',
+  path: '/inbox/proposals',
+  getParentRoute: () => MainRouteRoute,
+} as any)
+const MainInboxNotificationsRoute = MainInboxNotificationsRouteImport.update({
+  id: '/inbox/notifications',
+  path: '/inbox/notifications',
+  getParentRoute: () => MainRouteRoute,
+} as any)
 const MainCodebasesIdRoute = MainCodebasesIdRouteImport.update({
   id: '/codebases/$id',
   path: '/codebases/$id',
+  getParentRoute: () => MainRouteRoute,
+} as any)
+const MainActivityEventsRoute = MainActivityEventsRouteImport.update({
+  id: '/activity/events',
+  path: '/activity/events',
+  getParentRoute: () => MainRouteRoute,
+} as any)
+const MainActivityAiLogsRoute = MainActivityAiLogsRouteImport.update({
+  id: '/activity/ai-logs',
+  path: '/activity/ai-logs',
   getParentRoute: () => MainRouteRoute,
 } as any)
 const MainTeamsTeamIdIndexRoute = MainTeamsTeamIdIndexRouteImport.update({
@@ -234,6 +260,16 @@ const MainSettingsPlaygroundCallbackRoute =
     path: '/settings/playground/callback',
     getParentRoute: () => MainRouteRoute,
   } as any)
+const MainSettingsApiUsageRoute = MainSettingsApiUsageRouteImport.update({
+  id: '/settings/api/usage',
+  path: '/settings/api/usage',
+  getParentRoute: () => MainRouteRoute,
+} as any)
+const MainSettingsApiKeysRoute = MainSettingsApiKeysRouteImport.update({
+  id: '/settings/api/keys',
+  path: '/settings/api/keys',
+  getParentRoute: () => MainRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -245,7 +281,11 @@ export interface FileRoutesByFullPath {
   '/proposals': typeof MainProposalsRoute
   '/skills': typeof MainSkillsRoute
   '/voice': typeof MainVoiceRoute
+  '/activity/ai-logs': typeof MainActivityAiLogsRoute
+  '/activity/events': typeof MainActivityEventsRoute
   '/codebases/$id': typeof MainCodebasesIdRoute
+  '/inbox/notifications': typeof MainInboxNotificationsRoute
+  '/inbox/proposals': typeof MainInboxProposalsRoute
   '/memories/tags': typeof MainMemoriesTagsRoute
   '/settings/api-keys': typeof MainSettingsApiKeysRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
@@ -268,6 +308,8 @@ export interface FileRoutesByFullPath {
   '/svg-playground/': typeof MainSvgPlaygroundIndexRoute
   '/teams/': typeof MainTeamsIndexRoute
   '/wiki/': typeof MainWikiIndexRoute
+  '/settings/api/keys': typeof MainSettingsApiKeysRoute
+  '/settings/api/usage': typeof MainSettingsApiUsageRoute
   '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
   '/settings/api/': typeof MainSettingsApiIndexRoute
   '/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
@@ -283,7 +325,11 @@ export interface FileRoutesByTo {
   '/proposals': typeof MainProposalsRoute
   '/skills': typeof MainSkillsRoute
   '/voice': typeof MainVoiceRoute
+  '/activity/ai-logs': typeof MainActivityAiLogsRoute
+  '/activity/events': typeof MainActivityEventsRoute
   '/codebases/$id': typeof MainCodebasesIdRoute
+  '/inbox/notifications': typeof MainInboxNotificationsRoute
+  '/inbox/proposals': typeof MainInboxProposalsRoute
   '/memories/tags': typeof MainMemoriesTagsRoute
   '/settings/api-keys': typeof MainSettingsApiKeysRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
@@ -306,6 +352,8 @@ export interface FileRoutesByTo {
   '/svg-playground': typeof MainSvgPlaygroundIndexRoute
   '/teams': typeof MainTeamsIndexRoute
   '/wiki': typeof MainWikiIndexRoute
+  '/settings/api/keys': typeof MainSettingsApiKeysRoute
+  '/settings/api/usage': typeof MainSettingsApiUsageRoute
   '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
   '/settings/api': typeof MainSettingsApiIndexRoute
   '/settings/playground': typeof MainSettingsPlaygroundIndexRoute
@@ -323,7 +371,11 @@ export interface FileRoutesById {
   '/_main/proposals': typeof MainProposalsRoute
   '/_main/skills': typeof MainSkillsRoute
   '/_main/voice': typeof MainVoiceRoute
+  '/_main/activity/ai-logs': typeof MainActivityAiLogsRoute
+  '/_main/activity/events': typeof MainActivityEventsRoute
   '/_main/codebases/$id': typeof MainCodebasesIdRoute
+  '/_main/inbox/notifications': typeof MainInboxNotificationsRoute
+  '/_main/inbox/proposals': typeof MainInboxProposalsRoute
   '/_main/memories/tags': typeof MainMemoriesTagsRoute
   '/_main/settings/api-keys': typeof MainSettingsApiKeysRoute
   '/_main/settings/connectors': typeof MainSettingsConnectorsRoute
@@ -346,6 +398,8 @@ export interface FileRoutesById {
   '/_main/svg-playground/': typeof MainSvgPlaygroundIndexRoute
   '/_main/teams/': typeof MainTeamsIndexRoute
   '/_main/wiki/': typeof MainWikiIndexRoute
+  '/_main/settings/api/keys': typeof MainSettingsApiKeysRoute
+  '/_main/settings/api/usage': typeof MainSettingsApiUsageRoute
   '/_main/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
   '/_main/settings/api/': typeof MainSettingsApiIndexRoute
   '/_main/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
@@ -363,7 +417,11 @@ export interface FileRouteTypes {
     | '/proposals'
     | '/skills'
     | '/voice'
+    | '/activity/ai-logs'
+    | '/activity/events'
     | '/codebases/$id'
+    | '/inbox/notifications'
+    | '/inbox/proposals'
     | '/memories/tags'
     | '/settings/api-keys'
     | '/settings/connectors'
@@ -386,6 +444,8 @@ export interface FileRouteTypes {
     | '/svg-playground/'
     | '/teams/'
     | '/wiki/'
+    | '/settings/api/keys'
+    | '/settings/api/usage'
     | '/settings/playground/callback'
     | '/settings/api/'
     | '/settings/playground/'
@@ -401,7 +461,11 @@ export interface FileRouteTypes {
     | '/proposals'
     | '/skills'
     | '/voice'
+    | '/activity/ai-logs'
+    | '/activity/events'
     | '/codebases/$id'
+    | '/inbox/notifications'
+    | '/inbox/proposals'
     | '/memories/tags'
     | '/settings/api-keys'
     | '/settings/connectors'
@@ -424,6 +488,8 @@ export interface FileRouteTypes {
     | '/svg-playground'
     | '/teams'
     | '/wiki'
+    | '/settings/api/keys'
+    | '/settings/api/usage'
     | '/settings/playground/callback'
     | '/settings/api'
     | '/settings/playground'
@@ -440,7 +506,11 @@ export interface FileRouteTypes {
     | '/_main/proposals'
     | '/_main/skills'
     | '/_main/voice'
+    | '/_main/activity/ai-logs'
+    | '/_main/activity/events'
     | '/_main/codebases/$id'
+    | '/_main/inbox/notifications'
+    | '/_main/inbox/proposals'
     | '/_main/memories/tags'
     | '/_main/settings/api-keys'
     | '/_main/settings/connectors'
@@ -463,6 +533,8 @@ export interface FileRouteTypes {
     | '/_main/svg-playground/'
     | '/_main/teams/'
     | '/_main/wiki/'
+    | '/_main/settings/api/keys'
+    | '/_main/settings/api/usage'
     | '/_main/settings/playground/callback'
     | '/_main/settings/api/'
     | '/_main/settings/playground/'
@@ -701,11 +773,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainMemoriesTagsRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/inbox/proposals': {
+      id: '/_main/inbox/proposals'
+      path: '/inbox/proposals'
+      fullPath: '/inbox/proposals'
+      preLoaderRoute: typeof MainInboxProposalsRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/inbox/notifications': {
+      id: '/_main/inbox/notifications'
+      path: '/inbox/notifications'
+      fullPath: '/inbox/notifications'
+      preLoaderRoute: typeof MainInboxNotificationsRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/codebases/$id': {
       id: '/_main/codebases/$id'
       path: '/codebases/$id'
       fullPath: '/codebases/$id'
       preLoaderRoute: typeof MainCodebasesIdRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/activity/events': {
+      id: '/_main/activity/events'
+      path: '/activity/events'
+      fullPath: '/activity/events'
+      preLoaderRoute: typeof MainActivityEventsRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/activity/ai-logs': {
+      id: '/_main/activity/ai-logs'
+      path: '/activity/ai-logs'
+      fullPath: '/activity/ai-logs'
+      preLoaderRoute: typeof MainActivityAiLogsRouteImport
       parentRoute: typeof MainRouteRoute
     }
     '/_main/teams/$teamId/': {
@@ -736,6 +836,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainSettingsPlaygroundCallbackRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/settings/api/usage': {
+      id: '/_main/settings/api/usage'
+      path: '/settings/api/usage'
+      fullPath: '/settings/api/usage'
+      preLoaderRoute: typeof MainSettingsApiUsageRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/settings/api/keys': {
+      id: '/_main/settings/api/keys'
+      path: '/settings/api/keys'
+      fullPath: '/settings/api/keys'
+      preLoaderRoute: typeof MainSettingsApiKeysRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
   }
 }
 
@@ -747,7 +861,11 @@ interface MainRouteRouteChildren {
   MainProposalsRoute: typeof MainProposalsRoute
   MainSkillsRoute: typeof MainSkillsRoute
   MainVoiceRoute: typeof MainVoiceRoute
+  MainActivityAiLogsRoute: typeof MainActivityAiLogsRoute
+  MainActivityEventsRoute: typeof MainActivityEventsRoute
   MainCodebasesIdRoute: typeof MainCodebasesIdRoute
+  MainInboxNotificationsRoute: typeof MainInboxNotificationsRoute
+  MainInboxProposalsRoute: typeof MainInboxProposalsRoute
   MainMemoriesTagsRoute: typeof MainMemoriesTagsRoute
   MainSettingsApiKeysRoute: typeof MainSettingsApiKeysRoute
   MainSettingsConnectorsRoute: typeof MainSettingsConnectorsRoute
@@ -770,6 +888,8 @@ interface MainRouteRouteChildren {
   MainSvgPlaygroundIndexRoute: typeof MainSvgPlaygroundIndexRoute
   MainTeamsIndexRoute: typeof MainTeamsIndexRoute
   MainWikiIndexRoute: typeof MainWikiIndexRoute
+  MainSettingsApiKeysRoute: typeof MainSettingsApiKeysRoute
+  MainSettingsApiUsageRoute: typeof MainSettingsApiUsageRoute
   MainSettingsPlaygroundCallbackRoute: typeof MainSettingsPlaygroundCallbackRoute
   MainSettingsApiIndexRoute: typeof MainSettingsApiIndexRoute
   MainSettingsPlaygroundIndexRoute: typeof MainSettingsPlaygroundIndexRoute
@@ -784,7 +904,11 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainProposalsRoute: MainProposalsRoute,
   MainSkillsRoute: MainSkillsRoute,
   MainVoiceRoute: MainVoiceRoute,
+  MainActivityAiLogsRoute: MainActivityAiLogsRoute,
+  MainActivityEventsRoute: MainActivityEventsRoute,
   MainCodebasesIdRoute: MainCodebasesIdRoute,
+  MainInboxNotificationsRoute: MainInboxNotificationsRoute,
+  MainInboxProposalsRoute: MainInboxProposalsRoute,
   MainMemoriesTagsRoute: MainMemoriesTagsRoute,
   MainSettingsApiKeysRoute: MainSettingsApiKeysRoute,
   MainSettingsConnectorsRoute: MainSettingsConnectorsRoute,
@@ -807,6 +931,8 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSvgPlaygroundIndexRoute: MainSvgPlaygroundIndexRoute,
   MainTeamsIndexRoute: MainTeamsIndexRoute,
   MainWikiIndexRoute: MainWikiIndexRoute,
+  MainSettingsApiKeysRoute: MainSettingsApiKeysRoute,
+  MainSettingsApiUsageRoute: MainSettingsApiUsageRoute,
   MainSettingsPlaygroundCallbackRoute: MainSettingsPlaygroundCallbackRoute,
   MainSettingsApiIndexRoute: MainSettingsApiIndexRoute,
   MainSettingsPlaygroundIndexRoute: MainSettingsPlaygroundIndexRoute,
