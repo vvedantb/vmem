@@ -1,7 +1,7 @@
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from "nuqs";
 
 /**
- * URL-state schema for the `/openrouter-logs` dashboard.
+ * URL-state schema for the `/ai-logs` dashboard.
  *
  * - `scope` toggles between the caller's own rows and a team they belong to.
  *   `team` requires a `teamId` query param to disambiguate which team.

@@ -25,7 +25,7 @@ import {
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import type { FunctionReturnType } from "convex/server";
-import { navGroups, settingsNavItems } from "@/components/sidebar/nav-config";
+import { navGroups, settingsNavGroups } from "@/components/sidebar/nav-config";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 
 type MemoryHit = FunctionReturnType<
@@ -122,21 +122,25 @@ export function CommandPalette({ onToggleSidebar }: Props) {
           </CommandGroup>
         ))}
 
-        <CommandGroup heading="Settings">
-          {settingsNavItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <CommandItem
-                key={item.href}
-                value={`settings ${item.label}`}
-                onSelect={() => runAndClose(() => navigate({ to: item.href }))}
-              >
-                <Icon />
-                <span>{item.label}</span>
-              </CommandItem>
-            );
-          })}
-        </CommandGroup>
+        {settingsNavGroups.map((group) => (
+          <CommandGroup key={group.title} heading={`Settings · ${group.title}`}>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <CommandItem
+                  key={item.href}
+                  value={`settings ${item.label}`}
+                  onSelect={() =>
+                    runAndClose(() => navigate({ to: item.href }))
+                  }
+                >
+                  <Icon />
+                  <span>{item.label}</span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        ))}
 
         <CommandSeparator />
 

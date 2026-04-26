@@ -25,7 +25,7 @@ import {
 } from "../-searchParams";
 
 /**
- * Filters dropdown for `/openrouter-logs`.
+ * Filters dropdown for `/ai-logs`.
  *
  * Per CLAUDE.md, the page consolidates real filters (range, status, features,
  * models, profile) into a single dropdown with a count badge. Sort and the

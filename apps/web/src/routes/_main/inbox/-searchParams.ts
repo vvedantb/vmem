@@ -1,5 +1,16 @@
 import { parseAsArrayOf, parseAsStringLiteral } from "nuqs";
 
+/**
+ * Inbox URL state.
+ *
+ * `tab` chooses which panel renders (proposals / notifications / activity).
+ * The activity-specific filter params live alongside it so a filtered
+ * activity view survives navigation back to the inbox via URL share.
+ */
+
+const inboxTabs = ["proposals", "notifications", "activity"] as const;
+export type InboxTab = (typeof inboxTabs)[number];
+
 export const ACTIVITY_TYPES = [
   "memory_created",
   "memory_dream_created",
@@ -33,6 +44,10 @@ export const DATE_PRESET_LABELS: Record<DatePreset, string> = {
   today: "Today",
   week: "This week",
   month: "This month",
+};
+
+export const inboxSearchParams = {
+  tab: parseAsStringLiteral(inboxTabs).withDefault("proposals"),
 };
 
 export const activitySearchParams = {

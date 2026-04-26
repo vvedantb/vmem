@@ -1,5 +1,15 @@
 # Changelog
 
+## Sidebar & Route Restructure — Reduce Clutter, Group Settings — 2026-04-26
+
+- **Sidebar consolidation**: Reduced 13 main items → 11 by merging Proposals + Notifications + Activity into single "Inbox" entry (Account group now: AI Logs / Inbox / Settings). Inbox badge sums pending proposals + unread notifications.
+- **Grouped settings sub-nav**: Replaced flat 11-item settings slide-out with 3 sub-sections (General: Preferences/Profiles/Models/Data Controls; Developer: API/Env Vars/Playground; Integrations: Connectors/Extension/Import). Settings nav now renders group headers and items in SidebarNavigation, mirroring MainNav pattern.
+- **Route merge: `/inbox` (Proposals + Notifications + Activity)**: New `/inbox` with 3 tabs (default: Proposals). Old routes redirect: `/proposals` → `/inbox?tab=proposals`, `/notifications` → `/inbox?tab=notifications`, `/activity` → `/inbox?tab=activity`. Tab switcher and right-section actions (Run Dream Mode on Proposals, Mark All Read on Notifications, date/type filters on Activity) live in orchestrator.
+- **Route merge: `/settings/api` (API Keys + Usage)**: New `/settings/api` with 2 tabs (default: Keys). Old routes redirect: `/settings/api-keys` → `/settings/api?tab=keys`, `/settings/usage` → `/settings/api?tab=usage`. Modal state (Create Key) lifted to orchestrator; "New Key" button only shown on Keys tab.
+- **Rename: `/openrouter-logs` → `/ai-logs`**: Renamed route path + page title to "AI Logs" (new folder `ai-logs/`, old route redirects). Kept semantically separate from `/settings/usage` — AI Logs is platform-side synthesis calls; API Usage is third-party key requests.
+- **Memories shared tab bar**: New `MemoriesTabs` component renders Graph | List | Tags tabs. Tags is a link to `/memories/tags` route (now discoverable). Both `/memories` and `/memories/tags` pages render the tab bar in page header.
+- **Updated quick-access references**: Dashboard quick-links + CommandPalette settings now point to merged routes (`/settings/api`, `/inbox?tab=...`). Updated docstrings in button/panel components to reflect new page homes.
+
 ## Codebase Graph — Edges Render, Cypher/Payload Fixes — 2026-04-26
 
 - **Fixed Cypher variable mismatch**: Renamed `rel.X` → `r.X` in two snippet constants (`CALLS_TIER`, `CALLS_CONF`) so they match the relationship binding name in all consuming `MATCH (a)-[r:TYPE]->(b)` patterns. This unblocked the graph payload from reaching the canvas.
