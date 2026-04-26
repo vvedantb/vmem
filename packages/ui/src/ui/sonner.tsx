@@ -1,20 +1,51 @@
 "use client";
 
-import { Toaster } from "sonner";
+import { Toaster, type ToasterProps } from "sonner";
 
-function SonnerToaster(props: React.ComponentProps<typeof Toaster>) {
+/**
+ * Glass-themed Sonner toaster aligned with our codebase tokens.
+ *
+ * `unstyled: true` strips Sonner's default visual styling so our classes are
+ * the single source of truth — no specificity battles with the library's
+ * own CSS. The toast surface uses `glass-panel-strong`, whose backdrop-blur,
+ * border, shadow, and translucent fill all reference oklch tokens that are
+ * redefined inside `.dark`, so the toast adapts to light/dark automatically.
+ *
+ * `!font-sans` is forced on the toaster section because Sonner sets its own
+ * `font-family` on `[data-sonner-toaster]` from a stylesheet that ships with
+ * the package (loaded after our globals), so plain inheritance from `<body>`
+ * loses the cascade. The `!important` here guarantees Instrument Sans wins
+ * — toasts inherit from the section, so this single class covers everything.
+ *
+ * Variant icons (success / error / warning / info) are tinted via a
+ * `data-icon` descendant selector, leaving the rest of the toast neutral.
+ *
+ * Callers should pass `theme` from `next-themes` so Sonner's internal
+ * `data-theme` attribute matches the active app theme (used by its focus
+ * ring and a few internal states that aren't reachable via classNames).
+ */
+function SonnerToaster(props: ToasterProps) {
   return (
     <Toaster
-      className="toaster group"
+      className="toaster group !font-sans"
       toastOptions={{
+        unstyled: true,
         classNames: {
           toast:
-            "group toast glass-panel-strong group-[.toaster]:rounded-xl group-[.toaster]:text-foreground",
-          description: "group-[.toast]:text-muted-foreground/95",
+            "group toast glass-panel-strong flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-foreground",
+          title: "font-medium leading-snug",
+          description: "text-[13px] leading-snug text-muted-foreground",
           actionButton:
-            "group-[.toast]:rounded-lg group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+            "rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90",
           cancelButton:
-            "group-[.toast]:rounded-lg group-[.toast]:bg-secondary group-[.toast]:text-secondary-foreground",
+            "rounded-lg bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/80",
+          closeButton:
+            "border border-border bg-background text-foreground hover:bg-muted",
+          loader: "text-muted-foreground",
+          success: "[&_[data-icon]]:text-success",
+          error: "[&_[data-icon]]:text-destructive",
+          warning: "[&_[data-icon]]:text-warning",
+          info: "[&_[data-icon]]:text-info",
         },
       }}
       {...props}

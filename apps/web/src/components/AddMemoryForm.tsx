@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input, Textarea, Button, Badge, Label } from "@vmem/ui";
 import { toast } from "sonner";
 import {
-  IconLoader2,
   IconMicrophone,
   IconPlayerStop,
   IconPlayerPlay,
@@ -14,14 +13,42 @@ import {
   IconTrash,
   IconCheck,
   IconX,
+  IconUpload,
+  IconFileText,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 import { ProfileDropdown } from "./ProfileDropdown";
 
+// Maximum upload size, mirrors the server cap in `convex/fileImport.ts` so
+// users see a friendly error before a 26 MB upload starts.
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const ACCEPTED_FILE_EXTENSIONS = ".pdf,.txt,.md,.markdown";
+const ACCEPTED_MIME_TYPES = ["application/pdf", "text/plain", "text/markdown"];
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function isAcceptedFile(file: File): boolean {
+  const lower = file.name.toLowerCase();
+  if (
+    lower.endsWith(".pdf") ||
+    lower.endsWith(".txt") ||
+    lower.endsWith(".md") ||
+    lower.endsWith(".markdown")
+  ) {
+    return true;
+  }
+  return ACCEPTED_MIME_TYPES.includes(file.type);
+}
+
 export default function AddMemoryForm() {
-  const { memories, createMemory } = useMemoryContext();
+  const { memories, createMemory, uploadMemoryFile } = useMemoryContext();
 
   const {
     register,
@@ -50,6 +77,10 @@ export default function AddMemoryForm() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcription, setTranscription] = useState<string | null>(null);
+
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -212,6 +243,55 @@ export default function AddMemoryForm() {
       });
     }
   }, [transcription, discardRecording, setValue, watch]);
+
+  const handleFileSelect = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      // Reset the input so the same file can be re-selected after dismissal.
+      event.target.value = "";
+      if (!file) return;
+      if (!isAcceptedFile(file)) {
+        toast.error("Unsupported file type", {
+          description: "Only .pdf, .txt, and .md files are supported.",
+        });
+        return;
+      }
+      if (file.size > MAX_UPLOAD_BYTES) {
+        toast.error("File too large", {
+          description: `Maximum size is ${formatFileSize(MAX_UPLOAD_BYTES)}.`,
+        });
+        return;
+      }
+      setPendingFile(file);
+    },
+    [],
+  );
+
+  const handleClearFile = useCallback(() => {
+    setPendingFile(null);
+  }, []);
+
+  const handleUploadFile = useCallback(async () => {
+    if (!pendingFile) return;
+    setIsUploading(true);
+    try {
+      await uploadMemoryFile({
+        file: pendingFile,
+        profileId: selectedProfileId,
+      });
+      toast.success("File imported", {
+        description: `${pendingFile.name} was added as a memory.`,
+      });
+      setPendingFile(null);
+    } catch (error) {
+      toast.error("Upload failed", {
+        description:
+          error instanceof Error ? error.message : "Could not import the file",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }, [pendingFile, selectedProfileId, uploadMemoryFile]);
 
   const handleAddTag = (
     e: React.KeyboardEvent<HTMLInputElement>,
@@ -392,7 +472,7 @@ export default function AddMemoryForm() {
                   >
                     {isTranscribing ? (
                       <>
-                        <IconLoader2 className="w-4 h-4 animate-spin mr-2" />
+                        <IconLoader2 size={16} className="mr-2 animate-spin" />
                         Transcribing...
                       </>
                     ) : (
@@ -436,6 +516,83 @@ export default function AddMemoryForm() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="p-4 rounded-lg bg-muted/50 border border-border">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPTED_FILE_EXTENSIONS}
+            onChange={handleFileSelect}
+            disabled={isSubmitting || isUploading}
+            className="hidden"
+          />
+          {!pendingFile ? (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isSubmitting || isUploading}
+                className="bg-muted"
+              >
+                <IconUpload className="w-4 h-4 mr-2" />
+                Upload file
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Import a PDF, .txt, or .md file as a memory
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <IconFileText className="w-5 h-5 text-muted-foreground shrink-0" />
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-sm font-medium truncate text-foreground">
+                    {pendingFile.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatFileSize(pendingFile.size)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleUploadFile}
+                  disabled={isUploading}
+                  className="bg-primary text-primary-foreground"
+                >
+                  {isUploading ? (
+                    <>
+                      <IconLoader2 size={16} className="mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <IconUpload className="w-4 h-4 mr-2" />
+                      Import as memory
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleClearFile}
+                  disabled={isUploading}
+                  className="bg-muted"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -521,7 +678,7 @@ export default function AddMemoryForm() {
         >
           {isSubmitting ? (
             <>
-              <IconLoader2 className="w-4 h-4 animate-spin mr-2" />
+              <IconLoader2 size={16} className="mr-2 animate-spin" />
               Saving...
             </>
           ) : (

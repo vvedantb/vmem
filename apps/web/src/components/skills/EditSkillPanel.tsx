@@ -5,7 +5,7 @@ import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc } from "@vmem/backend";
 import { Button, Input, Label, Textarea } from "@vmem/ui";
-import { IconLoader2, IconX, IconTrash } from "@tabler/icons-react";
+import { IconX, IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
 interface EditSkillPanelProps {

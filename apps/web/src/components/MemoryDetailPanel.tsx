@@ -14,7 +14,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@vmem/ui";
-import { IconTrash, IconLoader2, IconX } from "@tabler/icons-react";
+import { IconLoader2, IconTrash, IconX } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { toast } from "sonner";

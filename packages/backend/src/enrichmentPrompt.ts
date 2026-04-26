@@ -43,16 +43,96 @@ export function buildFullEnrichmentPrompt(
 
   return `You are a memory tagging and entity extraction system. Respond with ONLY a JSON object — no explanation, no thinking, no markdown.
 
-Given a memory and a list of existing memories:
+# Task
 
-1. Generate 3-5 semantic topic tags for this memory. Tags should be lowercase, specific, and reusable (e.g. "react", "authentication", "graph-algorithms", "typescript"). Avoid generic tags like "programming" or "article".
+Given a memory and a list of existing memories, produce three outputs:
 
-2. From the provided list, identify any memories that are semantically related to this one. Only include strong relationships — shared topic, continuation of the same work, or direct reference.
+1. **Tags** (3-5 items): semantic topic labels. Lowercase, specific, reusable.
+2. **Related memory IDs**: from the provided list only — strong topical/continuation relationships.
+3. **Named entities**: people, organizations, places, technologies mentioned by name.
 
-3. Extract named entities mentioned in this memory. For each, provide name and type.
-   Types: "person", "organization", "place", "technology".
-   Use canonical names (e.g. "TypeScript" not "TS", "Google" not "google LLC").
-   Only extract specific named entities, not vague references.
+# Core Rules
+
+## Preserve Specific Details
+
+Tags and entities must capture the SPECIFIC subject — never generalize away identifying detail.
+
+- If the memory mentions "Ferrari 488 GTB", the entity is "Ferrari 488 GTB" — NOT "sports car" and NOT just "Ferrari".
+- If the memory mentions "TypeScript 5.4 release notes", a tag should be "typescript" (the specific tech) — NOT "programming" and NOT "article".
+- If the memory mentions "OpenAI o1-preview", the entity is "OpenAI o1-preview" — NOT just "OpenAI" and NOT "AI model".
+- If the memory mentions "the React 19 useOptimistic hook", a tag should be "react" or "useoptimistic" — NOT "frontend" and NOT "hooks".
+
+Proper nouns, version numbers, model names, exact technologies, and qualifiers are the entire point. Strip them and the memory becomes useless.
+
+## No Fabrication
+
+Every tag and entity must trace to an explicit mention in the title or content. If a name, technology, or organization is not literally present, do NOT add it. Inferring "React" from a Next.js article is fabrication.
+
+## No Implicit Attribute Inference
+
+Do not infer attributes that are not stated. Do not guess gender, age, nationality, or affiliation from a person's name. If the content says "Ada wrote a paper", the entity is "Ada" with type "person" — do NOT add an "organization" entity for any university you assume Ada attended.
+
+## Canonical Entity Names
+
+Use the canonical full form when one is conventionally written.
+
+- "TypeScript" not "TS" or "typescript"
+- "Google" not "Google LLC" or "google"
+- "Ferrari 488 GTB" not "488" or "Ferrari"
+- "Sam Altman" not "altman" or "Sam A."
+
+If the memory uses an abbreviation that has an obvious canonical form (e.g. "JS" → "JavaScript"), expand it. If there is no clear canonical form, use what the memory says verbatim.
+
+## Tag Quality
+
+- Lowercase. Hyphenated for multi-word ("graph-algorithms", "machine-learning").
+- Specific over general — prefer "react-server-components" over "react", and "react" over "frontend".
+- Reusable — should plausibly apply to other memories on the same specific topic.
+- Reject generic categories: "programming", "tech", "article", "blog", "notes", "stuff".
+
+## Entity Quality
+
+- Only entities that are explicitly named in the text.
+- Use full canonical name when conventional.
+- Skip vague references ("a startup", "some library", "the company") — these are not named entities.
+- Cap at 10 entities; pick the most specific and identifying ones if there are more.
+
+# Worked Examples
+
+## Example 1
+
+Memory:
+Title: Ferrari 488 GTB review by Top Gear
+Content: Top Gear's Chris Harris reviewed the Ferrari 488 GTB in 2016. He praised its 3.9L twin-turbo V8 engine and compared it to the McLaren 675LT.
+
+Expected:
+{"tags": ["ferrari-488-gtb", "supercars", "top-gear", "twin-turbo-v8"], "relatedMemoryIds": [], "entities": [{"name": "Ferrari 488 GTB", "type": "technology"}, {"name": "Top Gear", "type": "organization"}, {"name": "Chris Harris", "type": "person"}, {"name": "McLaren 675LT", "type": "technology"}]}
+
+Note: "supercars" is acceptable because it is a specific category — NOT "cars" which would be generic. The 488 GTB is preserved with its full model name. Chris Harris is included because he is named. We do NOT add "United Kingdom" as a place even though Top Gear is British.
+
+## Example 2
+
+Memory:
+Title: TypeScript 5.4 useOptimistic types
+Content: TypeScript 5.4 ships with improved type inference for React 19's useOptimistic hook. The Microsoft team highlighted the NoInfer utility type as part of the same release.
+
+Expected:
+{"tags": ["typescript", "react", "useoptimistic", "noinfer", "type-inference"], "relatedMemoryIds": [], "entities": [{"name": "TypeScript", "type": "technology"}, {"name": "React", "type": "technology"}, {"name": "Microsoft", "type": "organization"}]}
+
+Note: We do NOT generalize to "programming" or "frontend". Version numbers do not become entities (TypeScript is the entity, "5.4" is just qualifier). NoInfer is a tag (concept) not an entity (not a proper noun).
+
+## Example 3
+
+Memory:
+Title: Anthropic releases Claude 3.5 Sonnet
+Content: Anthropic announced Claude 3.5 Sonnet on June 20, 2024. CEO Dario Amodei said it outperforms GPT-4o on coding benchmarks.
+
+Expected:
+{"tags": ["anthropic", "claude-3-5-sonnet", "llm", "ai-models"], "relatedMemoryIds": [], "entities": [{"name": "Anthropic", "type": "organization"}, {"name": "Claude 3.5 Sonnet", "type": "technology"}, {"name": "Dario Amodei", "type": "person"}, {"name": "GPT-4o", "type": "technology"}]}
+
+Note: "Claude 3.5 Sonnet" preserved with the full model name — NOT just "Claude". GPT-4o is included as a technology (it is named). We do NOT infer "OpenAI" as an organization because it was not literally mentioned.
+
+# Input
 
 Memory:
 Title: ${title}
@@ -61,7 +141,9 @@ Content: ${truncateAtWord(content, MAX_CONTENT_LENGTH)}
 Existing memories:
 ${memoryList || "(none)"}
 
-Respond with ONLY this JSON format, nothing else:
+# Output
+
+Respond with ONLY this JSON, no other text:
 {"tags": ["tag1", "tag2"], "relatedMemoryIds": ["id1"], "entities": [{"name": "React", "type": "technology"}]}`;
 }
 

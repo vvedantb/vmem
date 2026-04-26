@@ -11,11 +11,11 @@ import {
 } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { useAuth } from "@clerk/clerk-react";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import { Navigate } from "@tanstack/react-router";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
-import { Toaster } from "sonner";
-import { TooltipProvider, Spinner } from "@vmem/ui";
+import { SonnerToaster, TooltipProvider } from "@vmem/ui";
+import { VmemSpinner } from "@/components/svg-animations";
 import { ThemeProvider } from "@/components/contexts/ThemeContext";
 import { NotificationProvider } from "@/components/contexts/NotificationContext";
 import { MemoryProvider } from "@/components/contexts/MemoryContext";
@@ -100,7 +100,7 @@ function EnsureUser() {
 function AppSkeleton() {
   return (
     <div className="flex h-screen items-center justify-center bg-background">
-      <Spinner size="lg" />
+      <VmemSpinner size={32} className="text-muted-foreground" />
     </div>
   );
 }
@@ -125,6 +125,24 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Reads the resolved theme from `next-themes` and forwards it to Sonner so
+ * the toast's `data-theme` attribute (which Sonner uses for its internal
+ * focus / hover states) matches our app's active light/dark mode.
+ *
+ * `resolvedTheme` is `undefined` until `next-themes` hydrates — fall back to
+ * "light" during that brief window to avoid a flash of the wrong palette.
+ */
+function ThemedSonnerToaster() {
+  const { resolvedTheme } = useTheme();
+  return (
+    <SonnerToaster
+      position="top-center"
+      theme={resolvedTheme === "dark" ? "dark" : "light"}
+    />
+  );
+}
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
   return (
     <>
@@ -145,7 +163,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               </LocalLLMProvider>
             </NotificationProvider>
           </TooltipProvider>
-          <Toaster position="top-center" />
+          <ThemedSonnerToaster />
         </ThemeProvider>
       </Authenticated>
     </>

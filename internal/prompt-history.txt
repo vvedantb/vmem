@@ -1,3 +1,16 @@
+sunset the api keys,  api usage, developer focus, they can just use mcp
+sunset mobile app too, too complex to setup
+just focus on the web, backend, extension, and mcp server - only things that matter
+
+[02:07, 24/04/2026] V: Give agent its own email
+[02:09, 24/04/2026] V: Memory + Context + OS
+[02:09, 24/04/2026] V: Give agent its own browser own sandbox
+[02:34, 25/04/2026] V: Report 
+Testing + benchmarks
+Orchestration layer
+Mobile app
+[02:44, 25/04/2026] V: Tanstack ai
+
 https://www.convex.dev/components/djpanda/convex-tenants
 https://www.convex.dev/components/convex-api-keys
 https://www.convex.dev/components/convex-invite-links

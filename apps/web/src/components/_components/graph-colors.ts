@@ -32,15 +32,21 @@ export function tagToColor(tag: string, isDark: boolean): string {
 }
 
 /**
- * Fixed colors for tagless node kinds (wiki docs, wiki folders, skills). Picks
- * from the same HSL space used by `tagToColor` to stay visually coherent with
- * the rest of the palette:
+ * Fixed colors for tagless node kinds. Picks from the same HSL space used by
+ * `tagToColor` to stay visually coherent with the rest of the palette.
+ * Hue cheat-sheet:
  *  - wiki-document: warm amber (content accent)
  *  - wiki-folder:   cool slate (structural)
  *  - skill:         purple (tool/capability)
+ *  - entity:        gold (named-entity accent)
+ *  - code-file:      teal     (structural file surface)
+ *  - code-function:  green    (executable behaviour)
+ *  - code-class:     indigo   (type/abstraction)
+ *  - code-interface: pink     (contract/abstraction)
+ *  - code-process:   orange   (entry-point burst — high salience)
  */
 function kindColor(
-  kind: "wiki-document" | "wiki-folder" | "skill" | "entity",
+  kind: Exclude<GraphNodeKind, "memory">,
   isDark: boolean,
 ): string {
   if (kind === "wiki-folder") {
@@ -52,6 +58,22 @@ function kindColor(
   if (kind === "entity") {
     return isDark ? hslToHex(45, 70, 65) : hslToHex(45, 75, 45);
   }
+  if (kind === "code-file") {
+    return isDark ? hslToHex(180, 40, 65) : hslToHex(180, 45, 42);
+  }
+  if (kind === "code-function") {
+    return isDark ? hslToHex(150, 45, 62) : hslToHex(150, 50, 40);
+  }
+  if (kind === "code-class") {
+    return isDark ? hslToHex(245, 50, 70) : hslToHex(245, 55, 50);
+  }
+  if (kind === "code-interface") {
+    return isDark ? hslToHex(330, 55, 70) : hslToHex(330, 60, 52);
+  }
+  if (kind === "code-process") {
+    return isDark ? hslToHex(25, 70, 65) : hslToHex(25, 75, 50);
+  }
+  // wiki-document fallback
   return isDark ? hslToHex(35, 55, 70) : hslToHex(35, 60, 50);
 }
 
@@ -59,7 +81,7 @@ function kindColor(
  * Color for a node based on its kind, tags, and theme. Used by renderer and UI.
  *
  * - Memory nodes: first tag drives the hue (falls back to a theme-aware grey).
- * - Non-memory kinds (wiki docs, wiki folders, skills): fixed kind-based color.
+ * - Non-memory kinds: fixed kind-based color.
  * - `nodeColorOverride` from a view theme (e.g. monochrome themes) wins for all.
  */
 export function nodeColor(

@@ -117,6 +117,13 @@ function traceShape(
   if (kind === "wiki-document") return traceDiamond(ctx, x, y, r);
   if (kind === "skill") return traceHexagon(ctx, x, y, r);
   if (kind === "entity") return traceStarburst(ctx, x, y, r);
+  // Codebase symbols use the same shape vocabulary as the rest of the
+  // graph — this keeps the visual language consistent across views.
+  if (kind === "code-file") return traceSquare(ctx, x, y, r);
+  if (kind === "code-class") return traceHexagon(ctx, x, y, r);
+  if (kind === "code-interface") return traceDiamond(ctx, x, y, r);
+  if (kind === "code-process") return traceStarburst(ctx, x, y, r);
+  // code-function falls through to circle (default for memory).
   return traceCircle(ctx, x, y, r);
 }
 
@@ -232,35 +239,56 @@ export function render(
         ctx.stroke();
       }
 
-      // relates_to + imports — same hue ("user-forged" warm).
+      // relates_to + imports + calls — "user-forged" warm hue. Memory
+      // relates_to, file imports, and function calls all read as
+      // semantic connections so they share the warm slot.
       ctx.strokeStyle = theme.edge.normalByType.relates_to;
       ctx.lineWidth = theme.edge.width * 2;
       ctx.beginPath();
       for (const edge of edges) {
-        if (edge.edgeType !== "relates_to" && edge.edgeType !== "imports")
+        if (
+          edge.edgeType !== "relates_to" &&
+          edge.edgeType !== "imports" &&
+          edge.edgeType !== "calls"
+        )
           continue;
         ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
         ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
       }
       ctx.stroke();
 
-      // wiki_parent — structural cool hue.
+      // wiki_parent + codebase structural edges — cool blue hue.
+      // File→symbol containment, class→method, extends, implements
+      // all describe structural hierarchy.
       ctx.strokeStyle = theme.edge.normalByType.wiki_parent;
       ctx.lineWidth = theme.edge.width * 2;
       ctx.beginPath();
       for (const edge of edges) {
-        if (edge.edgeType !== "wiki_parent") continue;
+        if (
+          edge.edgeType !== "wiki_parent" &&
+          edge.edgeType !== "contains" &&
+          edge.edgeType !== "has_method" &&
+          edge.edgeType !== "extends" &&
+          edge.edgeType !== "implements"
+        )
+          continue;
         ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
         ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
       }
       ctx.stroke();
 
-      // mentions — teal-green entity edges.
+      // mentions + process flow — teal-green hue. Entity mentions and
+      // codebase process membership both signal "associated with X".
       ctx.strokeStyle = theme.edge.normalByType.mentions;
       ctx.lineWidth = theme.edge.width * 2;
       ctx.beginPath();
       for (const edge of edges) {
-        if (edge.edgeType !== "mentions") continue;
+        if (
+          edge.edgeType !== "mentions" &&
+          edge.edgeType !== "starts_process" &&
+          edge.edgeType !== "includes"
+        )
+          continue;
         ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
         ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
       }
@@ -269,25 +297,44 @@ export function render(
       // Hover active — two batched passes per edge type: dimmed non-connected
       // edges first (fade into background), then connected edges on top at
       // full opacity so the hover highlight reads as a clear "lit up" line.
+      //
+      // Codebase edges piggyback on the memory palette slots so the renderer
+      // doesn't need a per-codebase-type theme entry: behavioral edges
+      // (calls/imports) ride the warm `relates_to` slot, structural edges
+      // (contains/has_method/extends/implements) ride the cool `wiki_parent`
+      // slot, and process flow (starts_process/includes) rides `mentions`.
       for (const edgeType of [
         "tag",
         "relates_to",
         "imports",
         "wiki_parent",
         "mentions",
+        "calls",
+        "contains",
+        "has_method",
+        "extends",
+        "implements",
+        "starts_process",
+        "includes",
       ] as const) {
         if (edgeType === "tag" && skipTagEdges) continue;
-        const isStrongEdge =
-          edgeType === "relates_to" ||
-          edgeType === "imports" ||
-          edgeType === "wiki_parent" ||
-          edgeType === "mentions";
+        // Tag is the only "weak" edge type — everything else is strong so it
+        // reads through the dim pass at full opacity.
+        const isStrongEdge = edgeType !== "tag";
         const widthMultiplier = isStrongEdge ? 2 : 1;
-        // `imports` reuses the relates_to palette slot (both are user-linked).
+        // Codebase types reuse the existing palette slots — see the comment
+        // on the loop. Memory types use their own slot directly.
         const typeColor =
-          edgeType === "imports"
+          edgeType === "imports" || edgeType === "calls"
             ? theme.edge.normalByType.relates_to
-            : theme.edge.normalByType[edgeType];
+            : edgeType === "contains" ||
+                edgeType === "has_method" ||
+                edgeType === "extends" ||
+                edgeType === "implements"
+              ? theme.edge.normalByType.wiki_parent
+              : edgeType === "starts_process" || edgeType === "includes"
+                ? theme.edge.normalByType.mentions
+                : theme.edge.normalByType[edgeType];
 
         // Pass 1: dimmed edges (everything not connected to the hovered node).
         // Use the per-type hue at reduced alpha so you can still tell the

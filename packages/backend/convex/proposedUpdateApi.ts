@@ -3,19 +3,50 @@ import { authAction } from "./auth";
 import { internal } from "./_generated/api";
 import { auditLog, ResourceTypes } from "./auditLog";
 
+/**
+ * Mirror of the server-side `ProposedUpdateNode` interface. Kept
+ * structurally identical so the action handler can pass through without
+ * remapping. Synthesis kinds (insight/connection/contradiction/anomaly)
+ * are produced by Dream Mode V2; legacy kinds (update/delete) come from
+ * V2 fact-extraction.
+ */
+type ProposedUpdateKind =
+  | "update"
+  | "delete"
+  | "insight"
+  | "connection"
+  | "contradiction"
+  | "anomaly";
+
 interface ProposedUpdateNode {
   id: string;
   memoryId: string;
   proposedContent: string;
+  proposedTitle: string | null;
   reason: string;
+  kind: ProposedUpdateKind;
   status: string;
   createdAt: string;
   resolvedAt: string | null;
+  sourceMemoryIds: string[];
+  confidence: number | null;
+  source: "v2-extraction" | "dream-mode";
+  /**
+   * Title + content of the target memory at the time of listing. The
+   * proposals UI uses this to render the diff (UPDATE) or the
+   * to-be-deleted body (DELETE) without needing a separate
+   * memory-detail fetch per row.
+   */
+  memorySnapshot: { title: string; content: string } | null;
+  sourceMemorySnapshots: { id: string; title: string; content: string }[];
 }
 
 interface ResolveResult {
   status: string;
   memoryId: string;
+  kind: ProposedUpdateKind;
+  /** Set when approve materialized a NEW memory (synthesis kinds). */
+  materializedMemoryId?: string;
 }
 
 export const listProposedUpdates = authAction({
@@ -76,9 +107,33 @@ export const resolveProposal = authAction({
           memoryId: result.memoryId,
           resolutionAction: normalized,
           status: result.status,
+          materializedMemoryId: result.materializedMemoryId ?? null,
+          kind: result.kind,
         },
         severity: "info",
       });
+
+      // Synthesis approve materialized a brand-new memory — emit a
+      // memory_created event so the live graph view picks it up alongside
+      // the dream_synthesis_materialized event.
+      if (result.materializedMemoryId && result.status === "approved") {
+        const clerkId: string | null = await ctx.runQuery(
+          internal.auth.getClerkIdInternal,
+          { userId: ctx.userId },
+        );
+        if (clerkId) {
+          await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+            clerkId,
+            eventType: "dream_synthesis_materialized",
+            memoryId: result.materializedMemoryId,
+            payload: JSON.stringify({
+              kind: result.kind,
+              source: "proposal-approve",
+              proposalId: args.proposalId,
+            }),
+          });
+        }
+      }
     }
 
     return result;

@@ -3,11 +3,11 @@
 import type { FunctionReturnType } from "convex/server";
 import { TableRow, TableCell, Badge, Button } from "@vmem/ui";
 import {
-  IconLoader2,
   IconCopy,
   IconCheck,
   IconEye,
   IconEyeOff,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { formatRelativeTime, formatDate, formatNumber } from "@/lib/formatters";

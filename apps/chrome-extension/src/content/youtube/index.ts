@@ -5,6 +5,7 @@
 
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { safeSendMessage } from "@/lib/safe-message";
+import { injectInstrumentSansFont } from "@/content/shared/inject-button";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -108,12 +109,17 @@ async function getTranscript(videoId: string): Promise<string | null> {
 // ── Button injection ──────────────────────────────────────────────────────────
 
 function createSaveButton(): HTMLButtonElement {
+  // Make sure Instrument Sans is loaded on the YouTube page before we
+  // render the button; cheap + idempotent.
+  injectInstrumentSansFont();
+
   const button = document.createElement("button");
   button.id = "vmem-youtube-save";
   button.title = "Save video to vmem";
   button.innerHTML = `${VMEM_ICON}<span>Save to vmem</span>`;
 
-  // YouTube-style button styling
+  // Button shape mirrors YouTube's chip style for visual fit, but the
+  // typography stays on-brand with Instrument Sans.
   button.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -124,7 +130,7 @@ function createSaveButton(): HTMLButtonElement {
     border-radius: 18px;
     background: var(--yt-spec-badge-chip-background, #f2f2f2);
     color: var(--yt-spec-text-primary, #0f0f0f);
-    font-family: "Roboto", "Arial", sans-serif;
+    font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;

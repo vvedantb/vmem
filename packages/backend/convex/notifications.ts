@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internalMutation } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
 
 export const listMy = authQuery({
@@ -82,6 +83,45 @@ export const markAllAsRead = authMutation({
     for (const notification of unread) {
       await ctx.db.patch(notification._id, { read: true });
     }
+    return null;
+  },
+});
+
+/**
+ * Internal helper used by background actions (e.g. V2 fact-extraction
+ * pipeline) to surface a notification on the user's bell. clerkId is
+ * resolved to the Convex `users._id` here; callers in `"use node"`
+ * actions don't need to do that themselves. Silently no-ops if no user
+ * record exists for the clerkId — keeps best-effort callers simple.
+ */
+export const pushForClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    title: v.string(),
+    description: v.string(),
+    type: v.union(
+      v.literal("success"),
+      v.literal("warning"),
+      v.literal("error"),
+      v.literal("info"),
+    ),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) return null;
+
+    await ctx.db.insert("notifications", {
+      userId: user._id,
+      title: args.title,
+      description: args.description,
+      type: args.type,
+      read: false,
+      createdAt: Date.now(),
+    });
     return null;
   },
 });

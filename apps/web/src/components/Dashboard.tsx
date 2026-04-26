@@ -17,9 +17,8 @@ import {
   IconUpload,
   IconPlugConnected,
   IconCheck,
-  IconLoader2,
 } from "@tabler/icons-react";
-import { AnimatedCounter } from "./svg-animations";
+import { AnimatedCounter, VmemSpinner } from "./svg-animations";
 import { api } from "@vmem/backend";
 
 interface StatsData {
@@ -73,7 +72,7 @@ const quickActions = [
   },
   {
     label: "API Keys",
-    href: "/settings/api-keys",
+    href: "/settings/api",
     icon: IconKey,
     description: "Manage access",
   },
@@ -131,7 +130,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
-        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <VmemSpinner size={24} className="text-muted-foreground" />
       </div>
     );
   }

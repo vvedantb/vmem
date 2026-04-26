@@ -86,6 +86,77 @@ export async function setupDatabase(driver: Driver): Promise<void> {
       `CREATE INDEX memory_user_content_hash IF NOT EXISTS
        FOR (m:Memory) ON (m.userId, m.contentHash)`,
     );
+    // ── Chunk-level retrieval infrastructure ────────────────────────────
+    // Long memories (>2 KB content) are split into ~500-token sliding-window
+    // chunks; each chunk is its own node with its own embedding so retrieval
+    // can pinpoint paragraph-level matches inside a long PDF/article. Memory
+    // node embeddings are still kept (used for whole-memory dedup + recall).
+    await session.run(
+      "CREATE CONSTRAINT chunk_id IF NOT EXISTS FOR (c:Chunk) REQUIRE c.id IS UNIQUE",
+    );
+    await session.run(
+      `CREATE INDEX chunk_user_memory IF NOT EXISTS
+       FOR (c:Chunk) ON (c.userId, c.memoryId)`,
+    );
+    await session.run(
+      `CREATE FULLTEXT INDEX chunk_content IF NOT EXISTS
+       FOR (c:Chunk) ON EACH [c.content]`,
+    );
+    await session.run(
+      `CREATE VECTOR INDEX chunk_embedding IF NOT EXISTS
+       FOR (c:Chunk) ON (c.embedding)
+       OPTIONS {indexConfig: {\`vector.dimensions\`: 1536, \`vector.similarity_function\`: 'cosine'}}`,
+    );
+    // ── Codebase parser (Phase 1) ─────────────────────────────────────
+    // Stable IDs across CodeFile/Function/Class/Interface/Process so MERGE
+    // re-syncs idempotently. Scoping indexes on (userId, codebaseId) keep
+    // queries fast even with many users sharing the cluster. Symbol search
+    // uses a single fulltext index across all named symbols.
+    await session.run(
+      `CREATE CONSTRAINT codefile_id IF NOT EXISTS FOR (n:CodeFile) REQUIRE n.id IS UNIQUE`,
+    );
+    await session.run(
+      `CREATE CONSTRAINT function_id IF NOT EXISTS FOR (n:Function) REQUIRE n.id IS UNIQUE`,
+    );
+    await session.run(
+      `CREATE CONSTRAINT class_id IF NOT EXISTS FOR (n:Class) REQUIRE n.id IS UNIQUE`,
+    );
+    await session.run(
+      `CREATE CONSTRAINT interface_id IF NOT EXISTS FOR (n:Interface) REQUIRE n.id IS UNIQUE`,
+    );
+    await session.run(
+      `CREATE CONSTRAINT process_id IF NOT EXISTS FOR (n:Process) REQUIRE n.id IS UNIQUE`,
+    );
+    await session.run(
+      `CREATE INDEX codefile_scope IF NOT EXISTS FOR (n:CodeFile) ON (n.userId, n.codebaseId)`,
+    );
+    await session.run(
+      `CREATE INDEX function_scope IF NOT EXISTS FOR (n:Function) ON (n.userId, n.codebaseId)`,
+    );
+    await session.run(
+      `CREATE INDEX class_scope IF NOT EXISTS FOR (n:Class) ON (n.userId, n.codebaseId)`,
+    );
+    await session.run(
+      `CREATE INDEX iface_scope IF NOT EXISTS FOR (n:Interface) ON (n.userId, n.codebaseId)`,
+    );
+    await session.run(
+      `CREATE INDEX proc_scope IF NOT EXISTS FOR (n:Process) ON (n.userId, n.codebaseId)`,
+    );
+    await session.run(
+      `CREATE INDEX function_qname IF NOT EXISTS FOR (n:Function) ON (n.userId, n.codebaseId, n.qualifiedName)`,
+    );
+    await session.run(
+      `CREATE INDEX function_name IF NOT EXISTS FOR (n:Function) ON (n.userId, n.codebaseId, n.name)`,
+    );
+    await session.run(
+      `CREATE INDEX class_name IF NOT EXISTS FOR (n:Class) ON (n.userId, n.codebaseId, n.name)`,
+    );
+    // Combined fulltext index spanning Function/Class/Interface so the
+    // search box can hit one index regardless of symbol kind.
+    await session.run(
+      `CREATE FULLTEXT INDEX code_symbol_search IF NOT EXISTS
+       FOR (n:Function|Class|Interface) ON EACH [n.name, n.qualifiedName]`,
+    );
     console.log("neo4j indexes and constraints ready");
   } finally {
     await session.close();

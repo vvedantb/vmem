@@ -1,0 +1,36 @@
+import { Link, useMatchRoute } from "@tanstack/react-router";
+import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
+import { IconKey, IconChartBar } from "@tabler/icons-react";
+
+/**
+ * Tab bar for the `/settings/api` page header. Each tab is a real
+ * subroute so the tabs are wired as `<Link>`s; active state comes from
+ * `useMatchRoute`.
+ *
+ * - Keys  → manage credentials (third parties use these)
+ * - Usage → see analytics on what those credentials called
+ */
+export function ApiTabs() {
+  const matchRoute = useMatchRoute();
+  const isUsage = Boolean(matchRoute({ to: "/settings/api/usage" }));
+  const activeValue = isUsage ? "usage" : "keys";
+
+  return (
+    <Tabs value={activeValue}>
+      <TabsList>
+        <TabsTrigger value="keys" asChild>
+          <Link to="/settings/api/keys">
+            <IconKey size={16} className="mr-1.5" />
+            Keys
+          </Link>
+        </TabsTrigger>
+        <TabsTrigger value="usage" asChild>
+          <Link to="/settings/api/usage">
+            <IconChartBar size={16} className="mr-1.5" />
+            Usage
+          </Link>
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
+  );
+}

@@ -6,6 +6,8 @@ import {
   teamFields,
   teamMemberFields,
   userEnvVarFields,
+  codebaseFields,
+  openRouterLogFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -179,28 +181,7 @@ const schema = defineSchema({
     .index("by_user_thread", ["userId", "threadId"])
     .index("by_user_bubble", ["userId", "bubbleKey"]),
 
-  codebases: defineTable({
-    userId: v.id("users"),
-    githubConnectionId: v.id("githubConnections"),
-    repoOwner: v.string(),
-    repoName: v.string(),
-    repoFullName: v.string(),
-    defaultBranch: v.string(),
-    language: v.optional(v.string()),
-    description: v.optional(v.string()),
-    isPrivate: v.optional(v.boolean()),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("syncing"),
-      v.literal("synced"),
-      v.literal("error"),
-    ),
-    totalFiles: v.number(),
-    totalEdges: v.optional(v.number()),
-    syncedFiles: v.number(),
-    lastSyncedAt: v.optional(v.number()),
-    errorMessage: v.optional(v.string()),
-  })
+  codebases: defineTable(codebaseFields)
     .index("by_user", ["userId"])
     .index("by_user_repo", ["userId", "repoFullName"]),
 
@@ -228,6 +209,49 @@ const schema = defineSchema({
     }),
 
   userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
+
+  /**
+   * One row per OpenRouter API call. Powers the `/openrouter-logs`
+   * dashboard (per-call cost / latency / token breakdown) and aggregate
+   * spend queries by user, profile, or team.
+   *
+   * Indexes:
+   * - by_user / by_user_createdAt — personal-scope listing + recent feed
+   * - by_user_feature           — feature breakdown chart
+   * - by_profile_createdAt      — per-workspace breakdowns
+   * - by_team_createdAt         — team-wide spend across all members
+   */
+  openRouterLogs: defineTable(openRouterLogFields)
+    .index("by_user", ["userId"])
+    .index("by_user_createdAt", ["userId", "createdAt"])
+    .index("by_user_feature", ["userId", "feature"])
+    .index("by_profile_createdAt", ["profileId", "createdAt"])
+    .index("by_team_createdAt", ["teamId", "createdAt"]),
+
+  /**
+   * Cached "User Profile" prose for the MCP `vmem://context_prompt`
+   * resource. AI clients (Claude, Cursor) read this once per conversation
+   * to prime their understanding of the user without making N memory
+   * tool calls.
+   *
+   * Regenerated via debounced scheduler: any memory write flips
+   * `pendingRegeneration = true` and schedules a regen check 60s out.
+   * The check runs the LLM only if the flag is set, keeping cost
+   * bounded under bursty write patterns.
+   */
+  contextPromptCache: defineTable({
+    userId: v.id("users"),
+    /** Markdown-formatted profile prose served to MCP clients. */
+    content: v.string(),
+    /** Wall-clock ms when the LLM last regenerated `content`. */
+    generatedAt: v.number(),
+    /** Snapshot of the user's memory count at generation time — used to
+     *  detect "lots changed since last regen" for staleness UX later. */
+    memoryCountAtGeneration: v.number(),
+    /** True when a memory write happened since the last regen and a
+     *  regen-check is scheduled. The check clears the flag on success. */
+    pendingRegeneration: v.boolean(),
+  }).index("by_user", ["userId"]),
 });
 
 export default schema;
