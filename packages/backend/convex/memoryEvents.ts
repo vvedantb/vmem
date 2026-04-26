@@ -9,6 +9,8 @@ const eventTypeValidator = v.union(
   v.literal("memory_deleted"),
   v.literal("relationship_created"),
   v.literal("relationship_deleted"),
+  v.literal("dream_synthesis_proposed"),
+  v.literal("dream_synthesis_materialized"),
 );
 
 export type MemoryEventType =
@@ -16,7 +18,11 @@ export type MemoryEventType =
   | "memory_updated"
   | "memory_deleted"
   | "relationship_created"
-  | "relationship_deleted";
+  | "relationship_deleted"
+  /** Dream Mode created a synthesis proposal (kind ∈ insight/connection/contradiction/anomaly). */
+  | "dream_synthesis_proposed"
+  /** Dream Mode auto-materialized a synthesis as a real :Memory (auto-accept on). */
+  | "dream_synthesis_materialized";
 
 /**
  * Maps the short change-feed event type to a stable, dotted audit-log action.
@@ -28,6 +34,8 @@ export const ACTION_FOR_EVENT: Record<MemoryEventType, string> = {
   memory_deleted: "memory.deleted",
   relationship_created: "memory.relationship.created",
   relationship_deleted: "memory.relationship.deleted",
+  dream_synthesis_proposed: "memory.dream.synthesis_proposed",
+  dream_synthesis_materialized: "memory.dream.synthesis_materialized",
 };
 
 type MemoryEventArgs = {

@@ -96,13 +96,56 @@ interface MemoryCandidate extends MemoryWithTags {
  * - "update": replace `memory.content` with `proposedContent` on approve.
  * - "delete": delete the memory on approve. `proposedContent` is empty
  *    string; UI uses the linked memory's current content for the diff.
+ * - "insight": Dream Mode synthesized a pattern across multiple memories.
+ *    Approve creates a NEW :Memory + :DERIVED_FROM edges to sources.
+ * - "connection": Bridge across two+ memories that share an entity/theme
+ *    but weren't explicitly linked. Approve creates a NEW :Memory.
+ * - "contradiction": Two memories disagree. V1 dismiss-only (user
+ *    manually resolves the underlying conflict). No new memory on
+ *    approve in V1 — this is informational.
+ * - "anomaly": A single memory stands out from related memories. Approve
+ *    creates a NEW :Memory summarizing the anomaly.
  */
-type ProposedUpdateKind = "update" | "delete";
+type ProposedUpdateKind =
+  | "update"
+  | "delete"
+  | "insight"
+  | "connection"
+  | "contradiction"
+  | "anomaly";
+
+const ALL_PROPOSED_UPDATE_KINDS: ReadonlySet<string> = new Set<string>([
+  "update",
+  "delete",
+  "insight",
+  "connection",
+  "contradiction",
+  "anomaly",
+]);
+
+function isProposedUpdateKind(value: string): value is ProposedUpdateKind {
+  return ALL_PROPOSED_UPDATE_KINDS.has(value);
+}
+
+/** Origin of a proposal — used for attribution + filtering in the UI/audit log. */
+type ProposalSource = "v2-extraction" | "dream-mode";
 
 interface ProposedUpdateNode {
   id: string;
+  /**
+   * Target memory the proposal is "about" (update/delete: the one being
+   * mutated; synthesis: the primary source memory). Empty string for
+   * synthesis proposals that aren't tied to a single memory — callers
+   * should use `sourceMemoryIds` instead in those cases.
+   */
   memoryId: string;
+  /** New body for update kind / synthesized text for synthesis kinds / "" for delete. */
   proposedContent: string;
+  /**
+   * Synthesis proposals carry their own title (a new memory needs one);
+   * update/delete proposals leave this null and reuse the target's title.
+   */
+  proposedTitle: string | null;
   reason: string;
   /**
    * Default "update" for proposals created before V2 (the field is
@@ -114,13 +157,31 @@ interface ProposedUpdateNode {
   createdAt: string;
   resolvedAt: string | null;
   /**
+   * Memory IDs the proposal derives from. Empty array for legacy
+   * update/delete proposals (those reuse `memoryId` as the single source).
+   * Synthesis proposals always have ≥1 entry.
+   */
+  sourceMemoryIds: string[];
+  /** LLM-reported confidence 0..1. Null on legacy update/delete proposals. */
+  confidence: number | null;
+  /** Where this proposal came from. Defaults to "v2-extraction" on legacy rows. */
+  source: ProposalSource;
+  /**
    * Snapshot of the target memory at list time. Lets the proposals UI
    * render the old text for a diff (UPDATE) or the body to be deleted
    * (DELETE) without an extra round-trip per proposal. Null when the
    * memory is missing (extremely rare — the UPDATE_FOR edge ought to
-   * keep them paired; but a concurrent delete mid-query would do it).
+   * keep them paired; but a concurrent delete mid-query would do it),
+   * or when the proposal is a synthesis kind not bound to a single target.
    */
   memorySnapshot: { title: string; content: string } | null;
+  /**
+   * Title + content snapshots of the source memories. Populated for
+   * synthesis proposals so the UI can render the "derived from N
+   * memories" panel without an extra round-trip per source. Empty for
+   * non-synthesis proposals.
+   */
+  sourceMemorySnapshots: { id: string; title: string; content: string }[];
 }
 
 function parseJsonField<T>(val: string | null): T | null {
@@ -1698,11 +1759,15 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
            id: $id,
            memoryId: $memoryId,
            proposedContent: $proposedContent,
+           proposedTitle: null,
            reason: $reason,
            kind: 'update',
            status: 'pending',
            createdAt: $now,
-           resolvedAt: null
+           resolvedAt: null,
+           sourceMemoryIds: [],
+           confidence: null,
+           source: 'v2-extraction'
          })
          CREATE (p)-[:UPDATE_FOR]->(m)
          RETURN p`,
@@ -1722,15 +1787,20 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         id: props.id,
         memoryId: props.memoryId,
         proposedContent: props.proposedContent,
+        proposedTitle: null,
         reason: props.reason,
         kind: "update",
         status: props.status,
         createdAt: props.createdAt,
         resolvedAt: null,
+        sourceMemoryIds: [],
+        confidence: null,
+        source: "v2-extraction",
         // The create paths don't pre-fetch the memory snapshot — list/
         // resolve callers don't need it on the return of a create. The
         // listProposedUpdates query joins it back when it's needed.
         memorySnapshot: null,
+        sourceMemorySnapshots: [],
       };
     });
   }
@@ -1756,11 +1826,15 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
            id: $id,
            memoryId: $memoryId,
            proposedContent: '',
+           proposedTitle: null,
            reason: $reason,
            kind: 'delete',
            status: 'pending',
            createdAt: $now,
-           resolvedAt: null
+           resolvedAt: null,
+           sourceMemoryIds: [],
+           confidence: null,
+           source: 'v2-extraction'
          })
          CREATE (p)-[:UPDATE_FOR]->(m)
          RETURN p`,
@@ -1779,12 +1853,17 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         id: props.id,
         memoryId: props.memoryId,
         proposedContent: "",
+        proposedTitle: null,
         reason: props.reason,
         kind: "delete",
         status: props.status,
         createdAt: props.createdAt,
         resolvedAt: null,
+        sourceMemoryIds: [],
+        confidence: null,
+        source: "v2-extraction",
         memorySnapshot: null,
+        sourceMemorySnapshots: [],
       };
     });
   }
@@ -1793,12 +1872,28 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     return this.withSession(async (session) => {
       // Pull the target memory's title + content alongside each proposal
       // so the proposals UI can render a diff without a round-trip per
-      // row. A LEFT-join via OPTIONAL MATCH would be redundant here
-      // because UPDATE_FOR is required on creation; we still defensive-
-      // check below in case a memory is deleted out from under us.
+      // row. For synthesis proposals (sourceMemoryIds non-empty), also
+      // collect the source memories so the UI can render the "derived
+      // from" panel without a per-row fetch.
+      //
+      // We OPTIONAL MATCH the UPDATE_FOR target because synthesis
+      // proposals carry an empty memoryId / no UPDATE_FOR edge — the
+      // ownership filter then falls through to the source memories'
+      // userId via the sourceMemoryIds lookup below.
       const result = await session.run(
-        `MATCH (p:ProposedUpdate {status: 'pending'})-[:UPDATE_FOR]->(m:Memory {userId: $userId})
-         RETURN p, m.title AS memoryTitle, m.content AS memoryContent
+        `MATCH (p:ProposedUpdate {status: 'pending'})
+         OPTIONAL MATCH (p)-[:UPDATE_FOR]->(m:Memory)
+         WITH p, m
+         OPTIONAL MATCH (src:Memory {userId: $userId})
+           WHERE src.id IN coalesce(p.sourceMemoryIds, [])
+         WITH p, m,
+              collect(DISTINCT { id: src.id, title: src.title, content: src.content }) AS sources
+         WHERE (m IS NOT NULL AND m.userId = $userId)
+            OR size([s IN sources WHERE s.id IS NOT NULL]) > 0
+         RETURN p,
+                m.title AS memoryTitle,
+                m.content AS memoryContent,
+                [s IN sources WHERE s.id IS NOT NULL] AS sourceSnaps
          ORDER BY p.createdAt DESC`,
         { userId },
       );
@@ -1806,40 +1901,100 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       return result.records.map((record) => {
         const props = record.get("p").properties;
         // `kind` is absent on pre-V2 proposals — coerce to "update".
-        const rawKind = props.kind;
-        const kind: ProposedUpdateKind =
-          rawKind === "delete" ? "delete" : "update";
+        const rawKind = String(props.kind ?? "update");
+        const kind: ProposedUpdateKind = isProposedUpdateKind(rawKind)
+          ? rawKind
+          : "update";
+
         const titleRaw = record.get("memoryTitle");
         const contentRaw = record.get("memoryContent");
         const memorySnapshot =
           typeof titleRaw === "string" && typeof contentRaw === "string"
             ? { title: titleRaw, content: contentRaw }
             : null;
+
+        const rawSources = record.get("sourceSnaps");
+        const sourceMemorySnapshots: {
+          id: string;
+          title: string;
+          content: string;
+        }[] = Array.isArray(rawSources)
+          ? rawSources.flatMap((s: unknown) => {
+              if (typeof s !== "object" || s === null) return [];
+              const id = Reflect.get(s, "id");
+              const title = Reflect.get(s, "title");
+              const content = Reflect.get(s, "content");
+              if (
+                typeof id === "string" &&
+                typeof title === "string" &&
+                typeof content === "string"
+              ) {
+                return [{ id, title, content }];
+              }
+              return [];
+            })
+          : [];
+
+        const rawSourceIds = props.sourceMemoryIds;
+        const sourceMemoryIds: string[] = Array.isArray(rawSourceIds)
+          ? rawSourceIds.filter(
+              (x: unknown): x is string => typeof x === "string",
+            )
+          : [];
+
+        const rawConfidence: unknown = props.confidence;
+        const confidence: number | null =
+          typeof rawConfidence === "number" ? rawConfidence : null;
+
+        const rawSource = props.source;
+        const source: ProposalSource =
+          rawSource === "dream-mode" ? "dream-mode" : "v2-extraction";
+
         return {
           id: props.id,
-          memoryId: props.memoryId,
-          proposedContent: props.proposedContent,
-          reason: props.reason,
+          memoryId: props.memoryId ?? "",
+          proposedContent: props.proposedContent ?? "",
+          proposedTitle:
+            typeof props.proposedTitle === "string"
+              ? props.proposedTitle
+              : null,
+          reason: props.reason ?? "",
           kind,
           status: props.status,
           createdAt: props.createdAt,
           resolvedAt: props.resolvedAt ?? null,
+          sourceMemoryIds,
+          confidence,
+          source,
           memorySnapshot,
+          sourceMemorySnapshots,
         };
       });
     });
   }
 
   /**
-   * Approve or reject a proposed update OR deletion.
+   * Approve or reject a proposed update / delete / synthesis.
    *
-   * - Update + approve: copy `proposedContent` onto the memory.
-   * - Delete + approve: hard-delete the memory (and its chunks).
-   * - Reject: just mark the proposal rejected; the memory is untouched.
+   * Legacy V2 fact-extraction kinds (UPDATE_FOR-bound):
+   * - Update + approve: copy `proposedContent` onto the existing memory.
+   * - Delete + approve: hard-delete the existing memory + its chunks.
    *
-   * Returns null when the proposal id doesn't exist or doesn't belong to
-   * the caller (the calling Convex action verifies the proposal targets a
-   * memory owned by the user before invoking this).
+   * Dream Mode V2 synthesis kinds (DERIVED_FROM-bound, no UPDATE_FOR):
+   * - insight / connection / anomaly + approve: materialize a NEW :Memory
+   *   (type='knowledge', source='dream-mode') with :DERIVED_FROM edges
+   *   pointing back to each source memory. The new memory's id is
+   *   returned in `memoryId` so the caller can backfill its embedding.
+   * - contradiction + approve OR reject: V1 just marks the proposal
+   *   resolved. The user is expected to manually edit / delete the
+   *   conflicting memories; we don't try to auto-resolve. (V2 TODO:
+   *   structured "pick one" UI that hard-deletes the loser.)
+   *
+   * Reject (any kind): mark resolved, no graph mutation.
+   *
+   * Returns null when the proposal id doesn't exist or doesn't belong
+   * to the caller. The calling Convex action verifies ownership before
+   * invoking this.
    */
   async resolveProposal(
     proposalId: string,
@@ -1848,24 +2003,65 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     status: string;
     memoryId: string;
     kind: ProposedUpdateKind;
+    /** Set when approve materialized a new memory (synthesis kinds). */
+    materializedMemoryId?: string;
   } | null> {
     return this.withSession(async (session) => {
       const now = new Date().toISOString();
 
-      // Look up the proposal's kind first — we branch on it for approve.
+      // Lookup: find the proposal by id. For legacy update/delete kinds
+      // we expect a UPDATE_FOR edge to the target memory; synthesis
+      // proposals have no UPDATE_FOR edge but carry sourceMemoryIds — we
+      // resolve the userId/profileId from the first source.
       const lookup = await session.run(
-        `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
-         RETURN coalesce(p.kind, 'update') AS kind, m.id AS memoryId, m.userId AS userId`,
+        `MATCH (p:ProposedUpdate {id: $proposalId})
+         OPTIONAL MATCH (p)-[:UPDATE_FOR]->(target:Memory)
+         OPTIONAL MATCH (firstSource:Memory)
+           WHERE firstSource.id = head(coalesce(p.sourceMemoryIds, []))
+         RETURN
+           coalesce(p.kind, 'update') AS kind,
+           p.proposedTitle AS proposedTitle,
+           p.proposedContent AS proposedContent,
+           coalesce(p.sourceMemoryIds, []) AS sourceMemoryIds,
+           p.confidence AS confidence,
+           target.id AS targetId,
+           target.userId AS targetUserId,
+           firstSource.userId AS sourceUserId,
+           firstSource.profileId AS sourceProfileId`,
         { proposalId },
       );
       if (lookup.records.length === 0) return null;
       const lookupRecord = lookup.records[0];
       if (!lookupRecord) return null;
+
       const rawKind = String(lookupRecord.get("kind"));
-      const kind: ProposedUpdateKind =
-        rawKind === "delete" ? "delete" : "update";
-      const memoryId = String(lookupRecord.get("memoryId"));
-      const userId = String(lookupRecord.get("userId"));
+      const kind: ProposedUpdateKind = isProposedUpdateKind(rawKind)
+        ? rawKind
+        : "update";
+
+      // Pick the userId/memoryId we'll log against. For legacy kinds
+      // it's the UPDATE_FOR target; for synthesis it's the first source.
+      const targetIdRaw = lookupRecord.get("targetId");
+      const targetUserIdRaw = lookupRecord.get("targetUserId");
+      const sourceUserIdRaw = lookupRecord.get("sourceUserId");
+      const sourceProfileIdRaw = lookupRecord.get("sourceProfileId");
+      const sourceIdsRawForLookup: unknown =
+        lookupRecord.get("sourceMemoryIds");
+      const firstSourceId: string =
+        Array.isArray(sourceIdsRawForLookup) &&
+        typeof sourceIdsRawForLookup[0] === "string"
+          ? sourceIdsRawForLookup[0]
+          : "";
+      const memoryId =
+        typeof targetIdRaw === "string" && targetIdRaw.length > 0
+          ? targetIdRaw
+          : firstSourceId;
+      const userId =
+        typeof targetUserIdRaw === "string" && targetUserIdRaw.length > 0
+          ? targetUserIdRaw
+          : typeof sourceUserIdRaw === "string"
+            ? sourceUserIdRaw
+            : "";
 
       if (action === "reject") {
         await session.run(
@@ -1873,16 +2069,20 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
            SET p.status = 'rejected', p.resolvedAt = $now`,
           { proposalId, now },
         );
-        await this.logEvent(
-          session,
-          memoryId,
-          "proposal_rejected",
-          "api",
-          { kind },
-          null,
-        );
+        if (memoryId.length > 0) {
+          await this.logEvent(
+            session,
+            memoryId,
+            "proposal_rejected",
+            "api",
+            { kind },
+            null,
+          );
+        }
         return { status: "rejected", memoryId, kind };
       }
+
+      // ── APPROVE branches ────────────────────────────────────────────
 
       if (kind === "delete") {
         // Approving a delete proposal hard-deletes the memory and all its
@@ -1911,34 +2111,171 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         return { status: "approved", memoryId, kind };
       }
 
-      // kind === "update"
-      const result = await session.run(
-        `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
-         SET p.status = 'approved', p.resolvedAt = $now,
-             m.content = p.proposedContent, m.updatedAt = $now
-         WITH p, m
-         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-         RETURN p.status AS status, m, collect(t.name) AS tags`,
-        { proposalId, now },
+      if (kind === "update") {
+        const result = await session.run(
+          `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
+           SET p.status = 'approved', p.resolvedAt = $now,
+               m.content = p.proposedContent, m.updatedAt = $now
+           WITH p, m
+           OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+           RETURN p.status AS status, m, collect(t.name) AS tags`,
+          { proposalId, now },
+        );
+        if (result.records.length === 0) return null;
+        const firstRecord = result.records[0];
+        if (!firstRecord) return null;
+        const memory = toMemoryWithTags(firstRecord);
+
+        await this.logEvent(
+          session,
+          memory.id,
+          "proposal_approved",
+          "api",
+          { kind: "update" },
+          toSnapshot(memory),
+        );
+
+        return {
+          status: String(firstRecord.get("status")),
+          memoryId: memory.id,
+          kind: "update",
+        };
+      }
+
+      if (kind === "contradiction") {
+        // V1: contradictions are dismiss-only. Approve and reject are
+        // both no-op against the underlying memories — the user resolves
+        // the conflict manually by editing/deleting one side. We still
+        // mark the proposal resolved so it leaves the queue.
+        // TODO(V2): structured "pick winner" UI that hard-deletes the
+        // memory the user did not pick.
+        await session.run(
+          `MATCH (p:ProposedUpdate {id: $proposalId})
+           SET p.status = 'approved', p.resolvedAt = $now`,
+          { proposalId, now },
+        );
+        if (memoryId.length > 0) {
+          await this.logEvent(
+            session,
+            memoryId,
+            "proposal_approved",
+            "api",
+            { kind: "contradiction" },
+            null,
+          );
+        }
+        return { status: "approved", memoryId, kind };
+      }
+
+      // kind ∈ { insight, connection, anomaly } — synthesis materialization.
+      // Create a NEW :Memory carrying the proposal's title/content with
+      // type='knowledge' and source='dream-mode', then attach
+      // :DERIVED_FROM edges to every source memory.
+      const proposedTitleRaw = lookupRecord.get("proposedTitle");
+      const proposedContentRaw = lookupRecord.get("proposedContent");
+      const confidenceRaw = lookupRecord.get("confidence");
+
+      const proposedTitle =
+        typeof proposedTitleRaw === "string" && proposedTitleRaw.length > 0
+          ? proposedTitleRaw
+          : "Untitled synthesis";
+      const proposedContent =
+        typeof proposedContentRaw === "string" ? proposedContentRaw : "";
+      const sourceMemoryIds: string[] = Array.isArray(sourceIdsRawForLookup)
+        ? sourceIdsRawForLookup.filter(
+            (x: unknown): x is string => typeof x === "string",
+          )
+        : [];
+      const confidence: number | null =
+        typeof confidenceRaw === "number" ? confidenceRaw : null;
+
+      if (sourceMemoryIds.length === 0) {
+        // Malformed synthesis proposal — no sources to derive from.
+        // Reject silently rather than create an orphaned memory.
+        await session.run(
+          `MATCH (p:ProposedUpdate {id: $proposalId})
+           SET p.status = 'rejected', p.resolvedAt = $now`,
+          { proposalId, now },
+        );
+        return { status: "rejected", memoryId, kind };
+      }
+
+      const newMemoryId = crypto.randomUUID();
+      const profileId =
+        typeof sourceProfileIdRaw === "string" ? sourceProfileIdRaw : null;
+      const contentHash = computeContentHash(proposedTitle, proposedContent);
+
+      await session.run(
+        `MATCH (p:ProposedUpdate {id: $proposalId})
+         SET p.status = 'approved', p.resolvedAt = $now
+         WITH p
+         CREATE (m:Memory {
+           id: $newMemoryId,
+           userId: $userId,
+           profileId: $profileId,
+           title: $title,
+           content: $content,
+           type: 'knowledge',
+           source: 'dream-mode',
+           confidence: $confidence,
+           status: 'active',
+           createdAt: $now,
+           updatedAt: $now,
+           expiresAt: null,
+           url: null,
+           embedding: null,
+           contentHash: $contentHash,
+           sourceType: null,
+           sourceId: null,
+           storageId: null,
+           mimeType: null,
+           originalFilename: null,
+           visitCount: 1,
+           firstVisitAt: $now,
+           lastVisitAt: $now
+         })
+         WITH m
+         MERGE (s:Source {name: 'dream-mode'})
+         CREATE (m)-[:FROM_SOURCE]->(s)
+         WITH m
+         UNWIND $sourceMemoryIds AS sid
+         MATCH (src:Memory {id: sid, userId: $userId})
+         MERGE (m)-[:DERIVED_FROM]->(src)`,
+        {
+          proposalId,
+          now,
+          newMemoryId,
+          userId,
+          profileId,
+          title: proposedTitle,
+          content: proposedContent,
+          confidence,
+          contentHash,
+          sourceMemoryIds,
+        },
       );
-      if (result.records.length === 0) return null;
-      const firstRecord = result.records[0];
-      if (!firstRecord) return null;
-      const memory = toMemoryWithTags(firstRecord);
 
       await this.logEvent(
         session,
-        memory.id,
-        "proposal_approved",
-        "api",
-        { kind: "update" },
-        toSnapshot(memory),
+        newMemoryId,
+        "created",
+        "dream-mode",
+        { kind, source: "synthesis-approve" },
+        toSnapshot({
+          title: proposedTitle,
+          content: proposedContent,
+          type: "knowledge",
+          status: "active",
+          confidence: confidence ?? 0,
+          tags: [],
+        }),
       );
 
       return {
-        status: String(firstRecord.get("status")),
-        memoryId: memory.id,
-        kind: "update",
+        status: "approved",
+        memoryId: newMemoryId,
+        materializedMemoryId: newMemoryId,
+        kind,
       };
     });
   }
@@ -2120,6 +2457,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           props.memoryTitle ?? record.get("memoryTitle"),
         );
         const action = String(props.action);
+        const actor = String(props.actor ?? "");
         const createdAt = String(props.createdAt);
         const diffMs = now - new Date(createdAt).getTime();
         const diffMins = Math.floor(diffMs / 60000);
@@ -2132,14 +2470,21 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         else if (diffHours < 24) relativeTime = `${diffHours}h ago`;
         else relativeTime = `${diffDays}d ago`;
 
+        // Dream Mode-materialized memories use actor='dream-mode' on the
+        // logEvent call. We promote those into a distinct activity type so
+        // the feed can filter / icon them separately from manual creates.
+        const isDreamMode = actor === "dream-mode";
+
         const typeMap: Record<string, string> = {
-          created: "memory_created",
+          created: isDreamMode ? "memory_dream_created" : "memory_created",
           updated: "memory_updated",
           deleted: "memory_deleted",
         };
 
         const descMap: Record<string, string> = {
-          created: `Created "${memoryTitle}"`,
+          created: isDreamMode
+            ? `Dream Mode synthesized "${memoryTitle}"`
+            : `Created "${memoryTitle}"`,
           updated: `Updated "${memoryTitle}"`,
           deleted: `Deleted "${memoryTitle}"`,
         };
@@ -3504,6 +3849,431 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       const firstRecord = result.records[0];
       if (!firstRecord) return false;
       return toNeoInt(firstRecord.get("deleted")) > 0;
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Dream Mode V2 — background reasoning helpers
+  //
+  // The Dreamer is an asynchronous worker (daily cron + manual trigger) that
+  // scans a profile's recent memories, finds anomalous ones via surprisal
+  // scoring (mean cosine distance to k-nearest neighbors), clusters each
+  // anomaly with its 1-hop graph neighborhood, and ships each cluster to
+  // the LLM for synthesis. The result is a synthesis :ProposedUpdate
+  // (insight/connection/contradiction/anomaly) routed through the existing
+  // /proposals queue, OR (if the profile has dreamModeAutoAccept) a new
+  // :Memory + :DERIVED_FROM edges materialized directly.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Fetch memories created in a given time window for a profile, restricted
+   * to those that have an embedding (no embedding ⇒ no surprisal score
+   * possible). Used as the candidate pool for Dream Mode synthesis.
+   */
+  async findRecentMemoriesForDream(params: {
+    userId: string;
+    profileId: string;
+    sinceMs: number;
+    limit: number;
+  }): Promise<
+    Array<{
+      id: string;
+      title: string;
+      content: string;
+      embedding: number[];
+      createdAt: string;
+    }>
+  > {
+    return this.withSession(async (session) => {
+      const sinceIso = new Date(params.sinceMs).toISOString();
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId, profileId: $profileId})
+         WHERE m.embedding IS NOT NULL
+           AND m.createdAt >= $sinceIso
+           AND m.status IN ['active', 'pinned']
+         RETURN m.id AS id, m.title AS title, m.content AS content,
+                m.embedding AS embedding, m.createdAt AS createdAt
+         ORDER BY m.createdAt DESC
+         LIMIT $limit`,
+        {
+          userId: params.userId,
+          profileId: params.profileId,
+          sinceIso,
+          limit: neo4j.int(params.limit),
+        },
+      );
+      return result.records.flatMap((r) => {
+        const rawEmbedding: unknown = r.get("embedding");
+        if (!Array.isArray(rawEmbedding)) return [];
+        const embedding: number[] = rawEmbedding.filter(
+          (x: unknown): x is number => typeof x === "number",
+        );
+        if (embedding.length === 0) return [];
+        return [
+          {
+            id: String(r.get("id")),
+            title: String(r.get("title")),
+            content: String(r.get("content")),
+            embedding,
+            createdAt: String(r.get("createdAt")),
+          },
+        ];
+      });
+    });
+  }
+
+  /**
+   * Compute surprisal score for one memory against the user's full memory
+   * corpus. surprisal = 1 - mean(cosineSimilarity to k nearest neighbors).
+   * Higher = more anomalous = more interesting for the Dreamer to expand on.
+   *
+   * Uses the existing `memory_embedding` vector index. We request k+1
+   * results because the index returns the memory itself as its own closest
+   * match (similarity 1.0); we drop that and average the rest.
+   *
+   * Returns null when fewer than 2 neighbors are available — not enough
+   * signal to make a meaningful comparison.
+   */
+  async computeSurprisalScore(params: {
+    userId: string;
+    memoryId: string;
+    embedding: number[];
+    k: number;
+  }): Promise<number | null> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
+         YIELD node, score
+         WHERE node.userId = $userId
+           AND node.id <> $memoryId
+           AND node.status IN ['active', 'pinned']
+         WITH score
+         ORDER BY score DESC
+         LIMIT $kInner
+         RETURN collect(score) AS scores`,
+        {
+          k: neo4j.int(params.k + 5),
+          kInner: neo4j.int(params.k),
+          embedding: params.embedding,
+          userId: params.userId,
+          memoryId: params.memoryId,
+        },
+      );
+      const firstRecord = result.records[0];
+      if (!firstRecord) return null;
+      const rawScores: unknown = firstRecord.get("scores");
+      if (!Array.isArray(rawScores) || rawScores.length < 2) return null;
+      const scores: number[] = rawScores.filter(
+        (x: unknown): x is number => typeof x === "number",
+      );
+      if (scores.length < 2) return null;
+      const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+      return 1 - mean;
+    });
+  }
+
+  /**
+   * For an anomaly memory, fetch its 1-hop graph neighborhood:
+   *   - Memories linked via RELATES_TO (either direction)
+   *   - Memories that MENTIONS the same entity
+   * Caps at `maxClusterSize` neighbors. The anomaly itself is always
+   * included as the first element so the LLM has a clear focal point.
+   */
+  async fetchAnomalyCluster(params: {
+    userId: string;
+    anomalyId: string;
+    maxClusterSize: number;
+  }): Promise<
+    Array<{
+      id: string;
+      title: string;
+      content: string;
+      tags: string[];
+      relation: "anomaly" | "related" | "shared-entity";
+    }>
+  > {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (a:Memory {id: $anomalyId, userId: $userId})
+         OPTIONAL MATCH (a)-[:RELATES_TO]-(rel:Memory {userId: $userId})
+           WHERE rel.id <> a.id AND rel.status IN ['active', 'pinned']
+         WITH a, collect(DISTINCT rel) AS relMems
+         OPTIONAL MATCH (a)-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(em:Memory {userId: $userId})
+           WHERE em.id <> a.id AND em.status IN ['active', 'pinned']
+         WITH a, relMems, collect(DISTINCT em) AS entityMems
+         OPTIONAL MATCH (a)-[:TAGGED_WITH]->(at:Tag)
+         WITH a, relMems, entityMems, collect(DISTINCT at.name) AS aTags
+         RETURN a, aTags, relMems, entityMems`,
+        { userId: params.userId, anomalyId: params.anomalyId },
+      );
+      const firstRecord = result.records[0];
+      if (!firstRecord) return [];
+
+      const aNode = firstRecord.get("a");
+      const aTagsRaw: unknown = firstRecord.get("aTags");
+      const aTags: string[] = Array.isArray(aTagsRaw)
+        ? aTagsRaw.filter((x: unknown): x is string => typeof x === "string")
+        : [];
+
+      const cluster: Array<{
+        id: string;
+        title: string;
+        content: string;
+        tags: string[];
+        relation: "anomaly" | "related" | "shared-entity";
+      }> = [
+        {
+          id: String(aNode.properties.id),
+          title: String(aNode.properties.title),
+          content: String(aNode.properties.content),
+          tags: aTags,
+          relation: "anomaly",
+        },
+      ];
+
+      const seen = new Set<string>([cluster[0]?.id ?? ""]);
+      const append = (
+        nodes: unknown,
+        relation: "related" | "shared-entity",
+      ): void => {
+        if (!Array.isArray(nodes)) return;
+        for (const n of nodes) {
+          if (cluster.length >= params.maxClusterSize) return;
+          if (typeof n !== "object" || n === null) continue;
+          const props = Reflect.get(n, "properties");
+          if (typeof props !== "object" || props === null) continue;
+          const id = Reflect.get(props, "id");
+          const title = Reflect.get(props, "title");
+          const content = Reflect.get(props, "content");
+          if (
+            typeof id !== "string" ||
+            typeof title !== "string" ||
+            typeof content !== "string"
+          ) {
+            continue;
+          }
+          if (seen.has(id)) continue;
+          seen.add(id);
+          cluster.push({ id, title, content, tags: [], relation });
+        }
+      };
+
+      append(firstRecord.get("relMems"), "related");
+      append(firstRecord.get("entityMems"), "shared-entity");
+
+      return cluster;
+    });
+  }
+
+  /**
+   * Dedup check: returns true if a pending proposal already exists whose
+   * sourceMemoryIds overlap by at least `overlapThreshold` (default 0.5)
+   * with the candidate. Prevents the Dreamer from re-proposing the same
+   * insight on consecutive runs.
+   */
+  async hasOverlappingPendingProposal(params: {
+    userId: string;
+    sourceMemoryIds: string[];
+    overlapThreshold: number;
+  }): Promise<boolean> {
+    if (params.sourceMemoryIds.length === 0) return false;
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (p:ProposedUpdate {status: 'pending'})
+         WHERE p.source = 'dream-mode'
+           AND p.sourceMemoryIds IS NOT NULL
+           AND size(p.sourceMemoryIds) > 0
+         WITH p,
+              [x IN p.sourceMemoryIds WHERE x IN $candidateIds] AS overlap,
+              p.sourceMemoryIds AS existing
+         WITH p, size(overlap) AS overlapCount, size(existing) AS existingSize
+         WHERE overlapCount > 0
+           AND (toFloat(overlapCount) / toFloat(existingSize)) >= $threshold
+         WITH p
+         MATCH (m:Memory {userId: $userId})
+         WHERE m.id IN p.sourceMemoryIds
+         RETURN p.id AS id
+         LIMIT 1`,
+        {
+          candidateIds: params.sourceMemoryIds,
+          threshold: params.overlapThreshold,
+          userId: params.userId,
+        },
+      );
+      return result.records.length > 0;
+    });
+  }
+
+  /**
+   * Create a synthesis :ProposedUpdate (insight/connection/contradiction/anomaly).
+   * Synthesis proposals carry their own title and a sourceMemoryIds list — they
+   * are NOT bound via UPDATE_FOR to a single memory like update/delete proposals.
+   * The proposals UI uses sourceMemoryIds + sourceMemorySnapshots to render the
+   * "derived from" panel.
+   */
+  async createSynthesisProposal(params: {
+    userId: string;
+    kind: "insight" | "connection" | "contradiction" | "anomaly";
+    proposedTitle: string;
+    proposedContent: string;
+    reason: string;
+    sourceMemoryIds: string[];
+    confidence: number;
+  }): Promise<ProposedUpdateNode> {
+    return this.withSession(async (session) => {
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      // primaryMemoryId is used for the legacy `memoryId` field so existing
+      // queries that look up "proposals affecting memory X" still surface
+      // synthesis proposals where X is one of the sources. Picks the first
+      // source by convention.
+      const primaryMemoryId = params.sourceMemoryIds[0] ?? "";
+
+      const result = await session.run(
+        `CREATE (p:ProposedUpdate {
+           id: $id,
+           memoryId: $primaryMemoryId,
+           proposedTitle: $proposedTitle,
+           proposedContent: $proposedContent,
+           reason: $reason,
+           kind: $kind,
+           status: 'pending',
+           createdAt: $now,
+           resolvedAt: null,
+           sourceMemoryIds: $sourceMemoryIds,
+           confidence: $confidence,
+           source: 'dream-mode'
+         })
+         WITH p
+         UNWIND $sourceMemoryIds AS sid
+         MATCH (m:Memory {id: sid, userId: $userId})
+         MERGE (p)-[:DERIVED_FROM]->(m)
+         RETURN p`,
+        {
+          id,
+          primaryMemoryId,
+          proposedTitle: params.proposedTitle,
+          proposedContent: params.proposedContent,
+          reason: params.reason,
+          kind: params.kind,
+          now,
+          sourceMemoryIds: params.sourceMemoryIds,
+          confidence: params.confidence,
+          userId: params.userId,
+        },
+      );
+
+      const firstRecord = result.records[0];
+      if (!firstRecord) {
+        throw new Error("Failed to create synthesis proposal");
+      }
+
+      return {
+        id,
+        memoryId: primaryMemoryId,
+        proposedContent: params.proposedContent,
+        proposedTitle: params.proposedTitle,
+        reason: params.reason,
+        kind: params.kind,
+        status: "pending",
+        createdAt: now,
+        resolvedAt: null,
+        sourceMemoryIds: params.sourceMemoryIds,
+        confidence: params.confidence,
+        source: "dream-mode",
+        memorySnapshot: null,
+        sourceMemorySnapshots: [],
+      };
+    });
+  }
+
+  /**
+   * Auto-accept path: directly create a new :Memory of type 'knowledge'
+   * with `source: 'dream-mode'` and :DERIVED_FROM edges to each source.
+   * Used when the profile has `dreamModeAutoAccept = true`.
+   *
+   * Mirrors `createMemory` but skips the same-session/same-domain edge
+   * scaffolding (synthesis memories aren't from a "session") and skips
+   * the URL/file-upload metadata.
+   */
+  async materializeSynthesisAsMemory(params: {
+    userId: string;
+    profileId: string;
+    title: string;
+    content: string;
+    embedding: number[] | null;
+    contentHash: string;
+    sourceMemoryIds: string[];
+    confidence: number;
+  }): Promise<{ id: string }> {
+    return this.withSession(async (session) => {
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      await session.run(
+        `CREATE (m:Memory {
+           id: $id,
+           userId: $userId,
+           profileId: $profileId,
+           title: $title,
+           content: $content,
+           type: 'knowledge',
+           source: 'dream-mode',
+           confidence: $confidence,
+           status: 'active',
+           createdAt: $now,
+           updatedAt: $now,
+           expiresAt: null,
+           url: null,
+           embedding: $embedding,
+           contentHash: $contentHash,
+           sourceType: null,
+           sourceId: null,
+           storageId: null,
+           mimeType: null,
+           originalFilename: null,
+           visitCount: 1,
+           firstVisitAt: $now,
+           lastVisitAt: $now
+         })
+         WITH m
+         MERGE (s:Source {name: 'dream-mode'})
+         CREATE (m)-[:FROM_SOURCE]->(s)
+         WITH m
+         UNWIND $sourceMemoryIds AS sid
+         MATCH (src:Memory {id: sid, userId: $userId})
+         MERGE (m)-[:DERIVED_FROM]->(src)`,
+        {
+          id,
+          userId: params.userId,
+          profileId: params.profileId,
+          title: params.title,
+          content: params.content,
+          confidence: params.confidence,
+          now,
+          embedding: params.embedding,
+          contentHash: params.contentHash,
+          sourceMemoryIds: params.sourceMemoryIds,
+        },
+      );
+
+      await this.logEvent(
+        session,
+        id,
+        "created",
+        "dream-mode",
+        { type: "knowledge", autoAccepted: "true" },
+        toSnapshot({
+          title: params.title,
+          content: params.content,
+          type: "knowledge",
+          status: "active",
+          confidence: params.confidence,
+          tags: [],
+        }),
+      );
+
+      return { id };
     });
   }
 }

@@ -30,6 +30,7 @@ import {
   IconSortDescending,
   IconSortAscending,
   IconActivity,
+  IconSparkles,
   IconX,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
@@ -62,6 +63,8 @@ function getActivityIcon(type: string) {
     case "memory_created":
     case "memory_updated":
       return IconBrain;
+    case "memory_dream_created":
+      return IconSparkles;
     case "file_uploaded":
       return IconUpload;
     case "sync_completed":

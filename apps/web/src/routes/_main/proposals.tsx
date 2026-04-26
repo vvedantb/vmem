@@ -13,7 +13,13 @@ import {
 import { IconCheck, IconX, IconPencil, IconTrash } from "@tabler/icons-react";
 import { toast } from "sonner";
 import PageContainer from "@/components/PageContainer";
-import { useProposals, type ProposedUpdate } from "@/hooks/useProposals";
+import RunDreamModeButton from "@/components/proposals/RunDreamModeButton";
+import SynthesisProposalCard from "@/components/proposals/SynthesisProposalCard";
+import {
+  isSynthesisKind,
+  useProposals,
+  type ProposedUpdate,
+} from "@/hooks/useProposals";
 
 export const Route = createFileRoute("/_main/proposals")({
   component: ProposalsPage,
@@ -34,16 +40,37 @@ function ProposalsPage() {
   const { proposals, pendingCount, isLoading, isResolving, approve, reject } =
     useProposals();
 
+  const handleApprove = async (p: ProposedUpdate) => {
+    try {
+      await approve(p.id);
+      toast.success(approveMessage(p));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to approve");
+    }
+  };
+
+  const handleReject = async (p: ProposedUpdate) => {
+    try {
+      await reject(p.id);
+      toast.success("Proposal dismissed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reject");
+    }
+  };
+
   return (
     <PageContainer
       title="Proposals"
       centeredMaxWidth
       rightSection={
-        pendingCount > 0 ? (
-          <Badge variant="outline" className="text-xs tabular-nums">
-            {pendingCount} pending
-          </Badge>
-        ) : null
+        <div className="flex items-center gap-2">
+          {pendingCount > 0 && (
+            <Badge variant="outline" className="text-xs tabular-nums">
+              {pendingCount} pending
+            </Badge>
+          )}
+          <RunDreamModeButton />
+        </div>
       }
     >
       {isLoading ? (
@@ -52,39 +79,51 @@ function ProposalsPage() {
         <EmptyState />
       ) : (
         <div className="space-y-3">
-          {proposals.map((p) => (
-            <ProposalCard
-              key={p.id}
-              proposal={p}
-              isResolving={isResolving}
-              onApprove={async () => {
-                try {
-                  await approve(p.id);
-                  toast.success(
-                    p.kind === "delete" ? "Memory deleted" : "Memory updated",
-                  );
-                } catch (err) {
-                  toast.error(
-                    err instanceof Error ? err.message : "Failed to approve",
-                  );
-                }
-              }}
-              onReject={async () => {
-                try {
-                  await reject(p.id);
-                  toast.success("Proposal dismissed");
-                } catch (err) {
-                  toast.error(
-                    err instanceof Error ? err.message : "Failed to reject",
-                  );
-                }
-              }}
-            />
-          ))}
+          {proposals.map((p) =>
+            isSynthesisKind(p.kind) ? (
+              <SynthesisProposalCard
+                key={p.id}
+                proposal={p}
+                isResolving={isResolving}
+                onApprove={() => void handleApprove(p)}
+                onReject={() => void handleReject(p)}
+              />
+            ) : (
+              <ProposalCard
+                key={p.id}
+                proposal={p}
+                isResolving={isResolving}
+                onApprove={() => void handleApprove(p)}
+                onReject={() => void handleReject(p)}
+              />
+            ),
+          )}
         </div>
       )}
     </PageContainer>
   );
+}
+
+/**
+ * Pick the success-toast message for an approved proposal. Synthesis
+ * kinds materialize a new memory (or just dismiss for contradictions),
+ * so the messaging is distinct from the V2 update/delete path.
+ */
+function approveMessage(p: ProposedUpdate): string {
+  switch (p.kind) {
+    case "delete":
+      return "Memory deleted";
+    case "update":
+      return "Memory updated";
+    case "insight":
+      return "Insight saved as a new memory";
+    case "connection":
+      return "Connection saved as a new memory";
+    case "anomaly":
+      return "Anomaly saved as a new memory";
+    case "contradiction":
+      return "Contradiction acknowledged";
+  }
 }
 
 function ProposalCard({
@@ -249,8 +288,9 @@ function EmptyState() {
         No pending proposals
       </h3>
       <p className="text-sm text-muted-foreground max-w-sm">
-        When vmem detects that a new fact contradicts something you said
-        earlier, it surfaces a proposal here for review.
+        Proposals show up here when vmem spots a conflict in a new fact, or when
+        Dream Mode synthesizes insights, connections, or anomalies across your
+        memories.
       </p>
     </div>
   );
