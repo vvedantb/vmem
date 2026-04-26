@@ -1,23 +1,15 @@
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from "nuqs";
 
 /**
- * URL state for the unified `/activity` page.
+ * URL filter state for the `/activity` subroutes.
  *
- * Two tabs share this URL — AI Logs (platform-side LLM/embedding calls)
- * and Events (user-action audit log). Their filter sets don't overlap by
- * key: events params are prefixed `event*` so a stale `range=7d` from the
- * AI Logs tab doesn't try to apply against the events range enum (which
- * uses different values).
+ * Each subroute owns a separate `useQueryStates` schema. Because the tabs
+ * are now real subroutes (`/activity/ai-logs` and `/activity/events`),
+ * their filter params live on different URLs — there's no key-collision
+ * concern, so each schema uses the natural names (`range`, `sortDir`).
  */
 
-const activityTabs = ["ai-logs", "events"] as const;
-export type ActivityTab = (typeof activityTabs)[number];
-
-export const activitySearchParams = {
-  tab: parseAsStringLiteral(activityTabs).withDefault("ai-logs"),
-};
-
-// ── AI Logs (formerly /openrouter-logs, then /ai-logs) ────────────────────
+// ── AI Logs subroute ──────────────────────────────────────────────────────
 
 export const FEATURES = [
   "enrichment",
@@ -57,8 +49,8 @@ export type Scope = (typeof scopes)[number];
 const statuses = ["all", "success", "error"] as const;
 export type StatusFilter = (typeof statuses)[number];
 
-const ranges = ["today", "7d", "30d", "all"] as const;
-export type Range = (typeof ranges)[number];
+const aiLogsRanges = ["today", "7d", "30d", "all"] as const;
+export type Range = (typeof aiLogsRanges)[number];
 
 export const RANGE_LABELS: Record<Range, string> = {
   today: "Today",
@@ -77,11 +69,11 @@ export const aiLogsSearchParams = {
   features: parseAsArrayOf(parseAsStringLiteral(FEATURES), ",").withDefault([]),
   models: parseAsArrayOf(parseAsString, ",").withDefault([]),
   status: parseAsStringLiteral(statuses).withDefault("all"),
-  range: parseAsStringLiteral(ranges).withDefault("7d"),
+  range: parseAsStringLiteral(aiLogsRanges).withDefault("7d"),
   sortDir: parseAsStringLiteral(sortDirections).withDefault("desc"),
 };
 
-// ── Events (formerly the /activity page, then inbox activity tab) ─────────
+// ── Events subroute ───────────────────────────────────────────────────────
 
 export const EVENT_TYPES = [
   "memory_created",
@@ -116,10 +108,7 @@ export const EVENT_DATE_PRESET_LABELS: Record<EventDatePreset, string> = {
 };
 
 export const eventsSearchParams = {
-  eventTypes: parseAsArrayOf(
-    parseAsStringLiteral(EVENT_TYPES),
-    ",",
-  ).withDefault([]),
-  eventSortDir: parseAsStringLiteral(sortDirections).withDefault("desc"),
-  eventRange: parseAsStringLiteral(eventDatePresets).withDefault("all"),
+  types: parseAsArrayOf(parseAsStringLiteral(EVENT_TYPES), ",").withDefault([]),
+  sortDir: parseAsStringLiteral(sortDirections).withDefault("desc"),
+  range: parseAsStringLiteral(eventDatePresets).withDefault("all"),
 };

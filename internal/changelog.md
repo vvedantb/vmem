@@ -1,5 +1,12 @@
 # Changelog
 
+## Tab Subroutes — Native Browser Navigation for Activity / Inbox / Settings API — 2026-04-26
+
+- **Each tab is now a real subroute**: `/activity`, `/inbox`, and `/settings/api` no longer use a `?tab=` URL param with conditional panel rendering. Each tab is its own route file (`/activity/ai-logs`, `/activity/events`, `/inbox/proposals`, `/inbox/notifications`, `/settings/api/keys`, `/settings/api/usage`) with its own `PageContainer`. The shared tab bar component is rendered in the `leftSection` of each subroute and wires tabs as `<Link>`s with active state derived from `useMatchRoute` — same pattern already used by `/memories` Tags.
+- **Cleaner URLs and per-tab state**: Filter params (range, sort, types, etc.) live on different URLs per tab so they never collide. Dropped the `event*` prefix workaround that was needed when both tabs shared one URL.
+- **Parent routes redirect to defaults**: `/activity` → `/activity/ai-logs`, `/inbox` → `/inbox/proposals`, `/settings/api` → `/settings/api/keys`. Legacy routes (`/proposals`, `/notifications`, `/ai-logs`, `/openrouter-logs`, `/settings/api-keys`, `/settings/usage`) updated to redirect directly to the new concrete URLs.
+- **Why subroutes over searchparam-driven tabs**: Browser back/forward navigation works as expected; each tab gets its own scroll state, focus, and route-level type safety; no conditional rendering branch in the orchestrator; bookmarks land on a specific URL rather than a generic page that mounts the right panel client-side.
+
 ## Activity Route Semantics — Passive Logs (AI + Events) vs. Inbox (Attention) — 2026-04-27
 
 - **Separated Activity from Inbox**: Moved Activity tab out of Inbox (which was semantically mixed: Proposals + Notifications = "needs attention" vs. Activity = "stuff that happened"). Activity is now its own page at `/activity`.

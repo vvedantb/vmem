@@ -1,28 +1,30 @@
+import { Link, useMatchRoute } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
 import { IconChecklist, IconBell } from "@tabler/icons-react";
-import type { InboxTab } from "../-searchParams";
 
 /**
- * Tab bar for the Inbox header. Lives in `PageContainer.leftSection`.
- * Drives the `?tab=` URL param via the orchestrator's setter.
+ * Tab bar for the `/inbox` page header. Each tab is a real subroute so
+ * the tabs are wired as `<Link>`s; active state comes from `useMatchRoute`.
  */
-export function InboxTabs({
-  value,
-  onChange,
-}: {
-  value: InboxTab;
-  onChange: (tab: InboxTab) => void;
-}) {
+export function InboxTabs() {
+  const matchRoute = useMatchRoute();
+  const isNotifications = Boolean(matchRoute({ to: "/inbox/notifications" }));
+  const activeValue = isNotifications ? "notifications" : "proposals";
+
   return (
-    <Tabs value={value} onValueChange={(v) => onChange(v as InboxTab)}>
+    <Tabs value={activeValue}>
       <TabsList>
-        <TabsTrigger value="proposals">
-          <IconChecklist size={16} className="mr-1.5" />
-          Proposals
+        <TabsTrigger value="proposals" asChild>
+          <Link to="/inbox/proposals">
+            <IconChecklist size={16} className="mr-1.5" />
+            Proposals
+          </Link>
         </TabsTrigger>
-        <TabsTrigger value="notifications">
-          <IconBell size={16} className="mr-1.5" />
-          Notifications
+        <TabsTrigger value="notifications" asChild>
+          <Link to="/inbox/notifications">
+            <IconBell size={16} className="mr-1.5" />
+            Notifications
+          </Link>
         </TabsTrigger>
       </TabsList>
     </Tabs>
