@@ -64,4 +64,13 @@ await build(
   ),
 );
 
+console.log("Building Readability content script...");
+await build(
+  createContentScriptConfig(
+    "content-readability",
+    "src/content/readability/index.ts",
+    mode,
+  ),
+);
+
 console.log("Build complete → dist/");

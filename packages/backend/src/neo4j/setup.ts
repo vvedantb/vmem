@@ -86,6 +86,27 @@ export async function setupDatabase(driver: Driver): Promise<void> {
       `CREATE INDEX memory_user_content_hash IF NOT EXISTS
        FOR (m:Memory) ON (m.userId, m.contentHash)`,
     );
+    // ── Chunk-level retrieval infrastructure ────────────────────────────
+    // Long memories (>2 KB content) are split into ~500-token sliding-window
+    // chunks; each chunk is its own node with its own embedding so retrieval
+    // can pinpoint paragraph-level matches inside a long PDF/article. Memory
+    // node embeddings are still kept (used for whole-memory dedup + recall).
+    await session.run(
+      "CREATE CONSTRAINT chunk_id IF NOT EXISTS FOR (c:Chunk) REQUIRE c.id IS UNIQUE",
+    );
+    await session.run(
+      `CREATE INDEX chunk_user_memory IF NOT EXISTS
+       FOR (c:Chunk) ON (c.userId, c.memoryId)`,
+    );
+    await session.run(
+      `CREATE FULLTEXT INDEX chunk_content IF NOT EXISTS
+       FOR (c:Chunk) ON EACH [c.content]`,
+    );
+    await session.run(
+      `CREATE VECTOR INDEX chunk_embedding IF NOT EXISTS
+       FOR (c:Chunk) ON (c.embedding)
+       OPTIONS {indexConfig: {\`vector.dimensions\`: 1536, \`vector.similarity_function\`: 'cosine'}}`,
+    );
     console.log("neo4j indexes and constraints ready");
   } finally {
     await session.close();
