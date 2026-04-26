@@ -46,8 +46,8 @@ import {
 import type {
   GraphNode,
   GraphEdge,
-  GraphNodeKind,
 } from "@/components/_components/canvas/types";
+import type { ListItemKind } from "@/lib/list-items";
 import {
   DEFAULT_GRAPH_SETTINGS,
   type GraphSettings,
@@ -66,9 +66,13 @@ const EMPTY_SET = new Set<string>();
  * (rather than only present kinds) so a user's first wiki doc, folder, or
  * skill appears automatically without them having to re-enable the filter.
  */
-const DEFAULT_ACTIVE_KINDS: ReadonlySet<GraphNodeKind> = new Set<GraphNodeKind>(
-  ["memory", "entity", "wiki-document", "wiki-folder", "skill"],
-);
+const DEFAULT_ACTIVE_KINDS: ReadonlySet<ListItemKind> = new Set<ListItemKind>([
+  "memory",
+  "entity",
+  "wiki-document",
+  "wiki-folder",
+  "skill",
+]);
 
 export interface MemoryGraphController {
   // ----- Raw data -----
@@ -97,7 +101,7 @@ export interface MemoryGraphController {
   // ----- Filter state (URL) -----
   profileId: string | null;
   activeTags: Set<string>;
-  activeKinds: Set<GraphNodeKind>;
+  activeKinds: Set<ListItemKind>;
   activeSources: Set<string>;
   activeTypes: Set<MemoryType>;
 
@@ -113,7 +117,7 @@ export interface MemoryGraphController {
   // ----- Handlers -----
   onProfileChange: (id: string | null) => void;
   onToggleTag: (tag: string) => void;
-  onToggleKind: (kind: GraphNodeKind) => void;
+  onToggleKind: (kind: ListItemKind) => void;
   onToggleSource: (source: string) => void;
   onToggleType: (type: MemoryType) => void;
   /** Reset every URL-backed filter in a single `setParams` write. */
@@ -160,7 +164,7 @@ export function useMemoryGraphController({
   // Set semantics. An empty `kinds` array means "all kinds visible" so a
   // fresh URL shows everything by default.
   const activeTags = useMemo(() => new Set(params.tags), [params.tags]);
-  const activeKinds = useMemo<Set<GraphNodeKind>>(
+  const activeKinds = useMemo<Set<ListItemKind>>(
     () =>
       params.kinds.length > 0
         ? new Set(params.kinds)
@@ -272,7 +276,7 @@ export function useMemoryGraphController({
   // activeKinds memo). Toggling off every kind results in an empty array,
   // which widens back to "show all" — matches how nuqs filters work elsewhere.
   const onToggleKind = useCallback(
-    (kind: GraphNodeKind) => {
+    (kind: ListItemKind) => {
       const current =
         params.kinds.length > 0
           ? params.kinds

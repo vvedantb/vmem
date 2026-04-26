@@ -119,3 +119,6 @@ github knowledge graphs
 - https://github.com/tirth8205/code-review-graph
 - https://github.com/memgraph/memgraph
 - https://github.com/fallow-rs/fallow
+- https://github.com/ngxson/wllama
+- https://huggingface.co/docs/transformers.js/index
+- https://memorilabs.ai/#hero

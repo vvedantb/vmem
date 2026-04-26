@@ -1,0 +1,396 @@
+/*
+ * vmem logo animation library.
+ *
+ * Imported once via `VmemPaths.tsx` so any caller of <VmemPaths> picks it up
+ * automatically. Used both by the /svg-playground demo page (which previews
+ * every animation in this file) and by the production wrappers
+ * <VmemDrawInIcon>, <VmemSpinner>, and <VmemThinkingLoader>.
+ *
+ * The vmem logo SVG inherits its color from `currentColor`, so per-petal
+ * tinting comes from CSS `color` on the parent. `transform-box: fill-box`
+ * + `transform-origin: center` is used wherever per-petal transforms need
+ * to pivot around each petal's bounding box (rather than the SVG origin).
+ *
+ * `@media (prefers-reduced-motion: reduce)` at the bottom disables every
+ * animation in this file in one place — required for accessibility.
+ */
+
+/* ============================================================ */
+/* Shared                                                       */
+/* ============================================================ */
+
+.vmem-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.vmem-petal {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* ============================================================ */
+/* 1. Idle / always-on                                          */
+/* ============================================================ */
+
+/* 1. Breathing pulse */
+@keyframes vmem-breathing {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.92;
+  }
+}
+.vmem-breathing {
+  animation: vmem-breathing 3.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* ============================================================ */
+/* 2. Loading / processing                                      */
+/* ============================================================ */
+
+/* 2. Petal sequencer — opacity rotates between petals */
+@keyframes vmem-fade-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  20% {
+    opacity: 1;
+  }
+}
+.vmem-sequencer .vmem-petal:nth-child(1) {
+  animation: vmem-fade-pulse 1.5s ease-in-out infinite;
+}
+.vmem-sequencer .vmem-petal:nth-child(2) {
+  animation: vmem-fade-pulse 1.5s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+.vmem-sequencer .vmem-petal:nth-child(3) {
+  animation: vmem-fade-pulse 1.5s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+/* 3. Stroke trace loop — outline draws then erases, looped */
+@keyframes vmem-trace {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  50% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -100;
+  }
+}
+.vmem-trace path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: vmem-trace 4s ease-in-out infinite;
+}
+.vmem-trace path:nth-child(2) {
+  animation-delay: 0.5s;
+}
+.vmem-trace path:nth-child(3) {
+  animation-delay: 1s;
+}
+
+/* ============================================================ */
+/* 3. Intro / first paint (one-shot)                            */
+/* ============================================================ */
+
+/* 4. Stroke draw-in — strokes draw, then fill fades in */
+@keyframes vmem-draw-in {
+  0% {
+    stroke-dashoffset: 100;
+    fill-opacity: 0;
+  }
+  60% {
+    stroke-dashoffset: 0;
+    fill-opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    fill-opacity: 1;
+  }
+}
+.vmem-draw-in path {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  fill-opacity: 0;
+  animation: vmem-draw-in 1.6s ease-out forwards;
+}
+.vmem-draw-in path:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.vmem-draw-in path:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+/* 5. Petal blossom — each petal scales 0→1 with overshoot, staggered */
+@keyframes vmem-blossom {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.vmem-blossom .vmem-petal {
+  transform: scale(0);
+  opacity: 0;
+  animation: vmem-blossom 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.vmem-blossom .vmem-petal:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.vmem-blossom .vmem-petal:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* 6. Convergence — petals slide in from edges */
+@keyframes vmem-conv-left {
+  0% {
+    transform: translateX(-90px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes vmem-conv-right {
+  0% {
+    transform: translateX(90px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes vmem-conv-top {
+  0% {
+    transform: translateY(-70px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.vmem-converge .conv-left {
+  transform: translateX(-90px);
+  opacity: 0;
+  animation: vmem-conv-left 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.vmem-converge .conv-right {
+  transform: translateX(90px);
+  opacity: 0;
+  animation: vmem-conv-right 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.vmem-converge .conv-top {
+  transform: translateY(-70px);
+  opacity: 0;
+  animation: vmem-conv-top 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
+}
+
+/* 7. Flicker tune-in — staccato opacity then settle */
+@keyframes vmem-tune-in {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  20% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0;
+  }
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.vmem-tune-in path {
+  opacity: 0;
+  animation: vmem-tune-in 1s ease-out forwards;
+}
+.vmem-tune-in path:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.vmem-tune-in path:nth-child(3) {
+  animation-delay: 0.1s;
+}
+
+/* ============================================================ */
+/* 4. Action feedback (one-shot, click to replay)               */
+/* ============================================================ */
+
+/* 8. Memory absorb — squish toward center then snap back */
+@keyframes vmem-absorb {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(0.92);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.vmem-absorb {
+  animation: vmem-absorb 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: center;
+}
+
+/* 9. Pulse-and-glow — scale + glow */
+@keyframes vmem-pulse-glow {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 currentColor);
+  }
+  50% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 14px currentColor);
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 currentColor);
+  }
+}
+.vmem-pulse-glow {
+  animation: vmem-pulse-glow 0.7s ease-out forwards;
+  transform-origin: center;
+}
+
+/* 10. Fork-and-snap — petals jump outward and back */
+@keyframes vmem-fork-left {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-8px);
+  }
+}
+@keyframes vmem-fork-right {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(8px);
+  }
+}
+@keyframes vmem-fork-top {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+.vmem-fork .conv-left {
+  animation: vmem-fork-left 0.5s ease-out;
+}
+.vmem-fork .conv-right {
+  animation: vmem-fork-right 0.5s ease-out;
+}
+.vmem-fork .conv-top {
+  animation: vmem-fork-top 0.5s ease-out;
+}
+
+/* ============================================================ */
+/* 5. Hover / interactive                                       */
+/* ============================================================ */
+
+/* 11. Magnetic separation — petals spread on hover */
+.vmem-magnetic .conv-left,
+.vmem-magnetic .conv-right,
+.vmem-magnetic .conv-top {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.vmem-magnetic:hover .conv-left {
+  transform: translateX(-7px);
+}
+.vmem-magnetic:hover .conv-right {
+  transform: translateX(7px);
+}
+.vmem-magnetic:hover .conv-top {
+  transform: translateY(-6px);
+}
+
+/* ============================================================ */
+/* 6. Aesthetic / showpiece                                     */
+/* ============================================================ */
+
+/* 12. Trail-following dot — handled inline via SMIL <animateMotion> */
+/* 13. Glow aura pulse — handled inline via SMIL on filter feGaussianBlur */
+
+/* ============================================================ */
+/* Reduced-motion accessibility                                 */
+/* ============================================================ */
+/* @media (prefers-reduced-motion: reduce) {
+  .vmem-breathing,
+  .vmem-sequencer .vmem-petal,
+  .vmem-trace path,
+  .vmem-draw-in path,
+  .vmem-blossom .vmem-petal,
+  .vmem-converge .conv-left,
+  .vmem-converge .conv-right,
+  .vmem-converge .conv-top,
+  .vmem-tune-in path,
+  .vmem-absorb,
+  .vmem-pulse-glow,
+  .vmem-fork .conv-left,
+  .vmem-fork .conv-right,
+  .vmem-fork .conv-top {
+    animation: none !important;
+  }
+  .vmem-magnetic .conv-left,
+  .vmem-magnetic .conv-right,
+  .vmem-magnetic .conv-top {
+    transition: none !important;
+  }
+} */

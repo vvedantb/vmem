@@ -96,3 +96,28 @@ export async function tryUserEnvVarByClerkId(
   const all = await resolveUserEnvVars(ctx, userId);
   return all[key] ?? null;
 }
+
+/**
+ * Companion to `tryUserEnvVarByClerkId` that returns BOTH the resolved
+ * Convex `userId` and the plaintext env var value in a single call.
+ *
+ * Use this from actions that need the userId for downstream logging
+ * (e.g. the OpenRouter wrapper stamps `userId` on every log row). Avoids
+ * the redundant clerkId→userId lookup that two separate helper calls
+ * would otherwise trigger.
+ *
+ * Returns null when either the user record or the env var is missing —
+ * same soft-fail contract as `tryUserEnvVarByClerkId`.
+ */
+export async function tryUserAndApiKeyByClerkId(
+  ctx: ActionCtx,
+  clerkId: string,
+  key: string,
+): Promise<{ userId: Id<"users">; apiKey: string } | null> {
+  const userId = await lookupUserIdByClerkId(ctx, clerkId);
+  if (!userId) return null;
+  const all = await resolveUserEnvVars(ctx, userId);
+  const apiKey = all[key];
+  if (!apiKey) return null;
+  return { userId, apiKey };
+}

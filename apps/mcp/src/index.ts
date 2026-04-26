@@ -12,6 +12,7 @@ import {
   extractBearerToken,
 } from "./auth.js";
 import { registerTools } from "./tools.js";
+import { registerResources } from "./resources.js";
 import type { AuthenticatedUser } from "./auth.js";
 import type { Request, Response } from "express";
 
@@ -21,6 +22,7 @@ function createMcpServer(user: AuthenticatedUser): McpServer {
     version: "1.0.0",
   });
   registerTools(server, user);
+  registerResources(server, user);
   return server;
 }
 

@@ -4,8 +4,8 @@ import { useState } from "react";
 import {
   IconX,
   IconTrash,
-  IconLoader2,
   IconFocusCentered,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { Badge, Button } from "@vmem/ui";
 import { AnimatePresence, motion } from "motion/react";

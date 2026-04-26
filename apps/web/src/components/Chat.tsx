@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback } from "react";
-import { IconCpu, IconLoader2 } from "@tabler/icons-react";
+import { useCallback, useState } from "react";
+import {
+  IconAlertTriangle,
+  IconCpu,
+  IconLoader2,
+  IconTrash,
+} from "@tabler/icons-react";
+import { toast } from "sonner";
+import { VmemSpinner } from "@/components/svg-animations";
 import {
   Conversation,
   ConversationContent,
@@ -18,6 +25,13 @@ import {
   type PromptInputMessage,
 } from "@vmem/ui/ai";
 import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuLabel,
@@ -118,11 +132,15 @@ export default function Chat() {
     isThreadReady,
     messages,
     sendMessage,
+    clearHistory,
     isStreaming,
+    isClearing,
     usageByMessageKey,
     memoryRefsByMessageKey,
   } = useLocalChat();
   const { engineState, loadedModelId } = useLocalLLM();
+
+  const [clearOpen, setClearOpen] = useState(false);
 
   const promptStatus = isStreaming ? "streaming" : "ready";
 
@@ -144,11 +162,22 @@ export default function Chat() {
     [handleSubmit],
   );
 
+  const handleConfirmClear = useCallback(async () => {
+    try {
+      await clearHistory();
+      setClearOpen(false);
+      toast.success("Chat history cleared");
+    } catch (error) {
+      console.error("Failed to clear chat history:", error);
+      toast.error("Failed to clear chat history");
+    }
+  }, [clearHistory]);
+
   // Show loader while thread is being created
   if (!isThreadReady) {
     return (
       <div className="flex h-full items-center justify-center">
-        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <VmemSpinner size={24} className="text-muted-foreground" />
       </div>
     );
   }
@@ -156,8 +185,31 @@ export default function Chat() {
   // No model loaded — prompt user to load one
   const needsModel = engineState !== "ready";
 
+  // Show the clear-chat affordance only when there's something to clear —
+  // keeps the empty state quiet.
+  const hasMessages = messages.length > 0;
+
   return (
     <div className="flex flex-col h-full min-h-0">
+      {hasMessages && (
+        <div className="flex-shrink-0 max-w-4xl mx-auto w-full px-1 sm:px-0 flex justify-end pt-1 pb-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setClearOpen(true)}
+            disabled={isClearing || isStreaming}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {isClearing ? (
+              <IconLoader2 className="size-4 animate-spin" />
+            ) : (
+              <IconTrash className="size-4" stroke={1.5} />
+            )}
+            Clear chat
+          </Button>
+        </div>
+      )}
+
       <Conversation className="flex-1 min-h-0">
         <ConversationContent className="pb-4 max-w-4xl mx-auto w-full px-1 sm:px-0">
           {messages.length === 0 && needsModel && (
@@ -262,6 +314,63 @@ export default function Chat() {
           </PromptInputFooter>
         </PromptInput>
       </div>
+
+      <Dialog
+        open={clearOpen}
+        onOpenChange={(open) => {
+          if (!open && !isClearing) setClearOpen(false);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm bg-card border border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              Clear chat history
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Confirm deleting the current chat thread and all its messages.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-start gap-3 py-4">
+            <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+              <IconAlertTriangle size={20} className="text-destructive" />
+            </div>
+            <div>
+              <p className="text-foreground">
+                Are you sure you want to clear this chat?
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                This deletes every message in the thread. This action cannot be
+                undone — but you can keep chatting in a fresh thread right
+                after.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setClearOpen(false)}
+              disabled={isClearing}
+              className="text-muted-foreground"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmClear}
+              disabled={isClearing}
+              className="bg-destructive text-primary-foreground"
+            >
+              {isClearing ? (
+                <>
+                  <IconLoader2 className="size-4 animate-spin" />
+                  Clearing...
+                </>
+              ) : (
+                "Clear chat"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

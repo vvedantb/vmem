@@ -17,9 +17,10 @@
 
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
-import { IconMoodEmpty, IconLoader2, IconArrowBack } from "@tabler/icons-react";
+import { IconMoodEmpty, IconArrowBack } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
+import { VmemSpinner } from "@/components/svg-animations";
 import { api } from "@vmem/backend";
 import type {
   HoveredEdgeInfo,
@@ -172,7 +173,7 @@ export default function MemoryGraph({
   if (isLoading) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
-        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <VmemSpinner size={24} className="text-muted-foreground" />
       </div>
     );
   }

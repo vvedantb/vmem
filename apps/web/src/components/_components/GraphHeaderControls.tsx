@@ -35,7 +35,6 @@ import SearchPopover from "./SearchPopover";
 import UnifiedFilterPanel from "./UnifiedFilterPanel";
 import GraphLegend from "./GraphLegend";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
-import type { GraphNodeKind } from "./canvas/types";
 import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
 import { VIEW_MODE_LABELS, type ViewMode } from "./graph-view-themes";
@@ -165,7 +164,7 @@ function FiltersPopover({ controller }: { controller: MemoryGraphController }) {
 
   const handleKindsChange = useCallback(
     (kinds: ListItemKind[]) => {
-      const newSet = new Set<GraphNodeKind>(kinds);
+      const newSet = new Set<ListItemKind>(kinds);
       for (const kind of kinds) {
         if (!activeKinds.has(kind)) onToggleKind(kind);
       }

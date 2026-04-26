@@ -1,35 +1,45 @@
 "use client";
 
 /**
- * Codebase file dependency graph — orchestrates the canvas, tooltip, and
- * detail panel. Filter/search chrome now lives in the page header; this
- * component consumes filtered/derived state via a controller prop.
+ * Codebase symbol-graph canvas. Renders the multi-kind payload (files +
+ * functions + classes + interfaces + processes) using the shared graph
+ * canvas. Filter / search chrome lives in the page header — this component
+ * just consumes the controller's derived state.
+ *
+ * Selection lives in the URL (`?blastRadiusOf=…`) via the controller, so
+ * navigating between symbols and refreshing both Just Work without local
+ * state management here.
  */
 
-import { useState, useMemo, useCallback, useRef } from "react";
-import { IconLoader2, IconMoodEmpty } from "@tabler/icons-react";
+import { useMemo, useCallback, useRef } from "react";
+import { IconAlertTriangle, IconMoodEmpty } from "@tabler/icons-react";
 import GraphCanvas from "@/components/_components/GraphCanvas";
+import { VmemSpinner } from "@/components/svg-animations";
 import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
 import GraphNavControls from "@/components/_components/GraphNavControls";
 import GraphNodeTooltip from "@/components/_components/GraphNodeTooltip";
+import GraphEdgeTooltip from "@/components/_components/GraphEdgeTooltip";
 import { getViewTheme } from "@/components/_components/graph-view-themes";
 import {
   DEFAULT_GRAPH_SETTINGS,
+  type HoveredEdgeInfo,
   type HoveredNodeInfo,
 } from "@/components/_components/graph-types";
-import { getRelatedFiles } from "./codebase-graph-data";
-import { CodebaseDetailPanel } from "./CodebaseDetailPanel";
+import { useState } from "react";
+import { CodebaseSymbolPanel } from "./CodebaseSymbolPanel";
 import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 
 interface CodebaseGraphProps {
+  codebaseId: string;
   controller: CodebaseGraphController;
 }
 
-export function CodebaseGraph({ controller }: CodebaseGraphProps) {
+export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
   const canvasRef = useRef<GraphCanvasHandle>(null);
 
   const {
     apiNodes,
+    truncated,
     isLoading,
     isError,
     error,
@@ -37,52 +47,37 @@ export function CodebaseGraph({ controller }: CodebaseGraphProps) {
     graphEdges,
     searchMatchSet,
     isDark,
+    selectedSymbolId,
+    blastDirection,
+    onSelectSymbol,
+    onToggleBlastDirection,
   } = controller;
 
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  // Hovered-node / hovered-edge state stays canvas-local: it's high-
+  // frequency and not worth putting in the controller (or the URL).
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
 
   const viewTheme = useMemo(() => getViewTheme("default", isDark), [isDark]);
-
-  const selectedNodeData = useMemo(() => {
-    if (!selectedNodeId) return null;
-    const node = graphNodes.find((n) => n.id === selectedNodeId);
-    if (!node) return null;
-    // Codebase nodes always populate `content` with the file path (see
-    // codebase-graph-data.buildCodebaseGraphData). The `?? ""` is only here
-    // because `GraphNode.content` was made optional to support lazy-loading
-    // memory bodies — codebase data never actually produces undefined.
-    return {
-      id: node.id,
-      filename: node.title,
-      path: node.content ?? "",
-      directory: node.tags[0] ?? "",
-    };
-  }, [selectedNodeId, graphNodes]);
-
-  const relatedFiles = useMemo(() => {
-    if (!selectedNodeId) return [];
-    return getRelatedFiles(selectedNodeId, graphEdges, graphNodes);
-  }, [selectedNodeId, graphEdges, graphNodes]);
 
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
   }, []);
 
-  const handleClickNode = useCallback((nodeId: string) => {
-    setSelectedNodeId(nodeId);
-    setHoveredNode(null);
-  }, []);
+  const handleClickNode = useCallback(
+    (nodeId: string) => {
+      onSelectSymbol(nodeId);
+      setHoveredNode(null);
+    },
+    [onSelectSymbol],
+  );
 
   const handleCloseDetail = useCallback(() => {
-    setSelectedNodeId(null);
-  }, []);
+    onSelectSymbol(null);
+  }, [onSelectSymbol]);
 
-  const handleNavigateNode = useCallback((nodeId: string) => {
-    setSelectedNodeId(nodeId);
-  }, []);
-
-  // No-op for link nodes — codebase graph doesn't support manual linking
+  // Codebase graph doesn't support manual link creation — symbols are
+  // structural. The canvas still asks for this callback though.
   const handleLinkNodes = useCallback(
     (_sourceId: string, _targetId: string) => {},
     [],
@@ -91,7 +86,7 @@ export function CodebaseGraph({ controller }: CodebaseGraphProps) {
   if (isLoading) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
-        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <VmemSpinner size={24} className="text-muted-foreground" />
       </div>
     );
   }
@@ -115,10 +110,10 @@ export function CodebaseGraph({ controller }: CodebaseGraphProps) {
       <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
         <IconMoodEmpty className="w-8 h-8 text-muted-foreground mb-3" />
         <p className="text-sm font-medium text-foreground mb-1">
-          No files to visualize
+          No symbols to visualise
         </p>
         <p className="text-xs text-muted-foreground">
-          Sync the repository to see its file dependency graph.
+          Sync the repository to see its symbol graph.
         </p>
       </div>
     );
@@ -136,16 +131,32 @@ export function CodebaseGraph({ controller }: CodebaseGraphProps) {
         searchMatchSet={searchMatchSet}
         showLabels={DEFAULT_GRAPH_SETTINGS.showLabels}
         onHoverNode={handleHoverNode}
+        onHoverEdge={setHoveredEdge}
         onClickNode={handleClickNode}
         onLinkNodes={handleLinkNodes}
       />
 
       {/* Stats badge (top-right) */}
       <div className="absolute top-2 right-2 z-10 hidden md:block">
-        <div className="text-[10px] text-muted-foreground bg-background/60 backdrop-blur-sm rounded px-2 py-1 border border-border/30">
-          {graphNodes.length} files / {graphEdges.length} imports
+        <div className="text-[10px] text-muted-foreground bg-background/60 backdrop-blur-sm rounded px-2 py-1">
+          {graphNodes.length} symbols / {graphEdges.length} edges
         </div>
       </div>
+
+      {/* Truncation banner — server caps the payload at 8192 entries to
+          fit Convex's action limit. Show this so the user knows the graph
+          isn't the full picture and can narrow down via filters. */}
+      {truncated && (
+        <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-10 max-w-md px-3">
+          <div className="flex items-start gap-2 rounded-md bg-warning/10 px-3 py-2 text-xs text-foreground backdrop-blur-md">
+            <IconAlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+            <span>
+              Graph too large to fully display — showing a representative slice.
+              Apply filters (kinds, process, blast radius) to narrow down.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Zoom controls */}
       <GraphNavControls
@@ -155,21 +166,39 @@ export function CodebaseGraph({ controller }: CodebaseGraphProps) {
         isDarkCanvas={viewTheme.isDarkCanvas}
       />
 
-      {/* Hover tooltip */}
-      {hoveredNode && !selectedNodeId && (
+      {/* Hover tooltips — node takes priority when both are present, and
+          we suppress them entirely while a symbol is selected so they
+          don't fight the detail panel for attention. */}
+      {hoveredNode && !selectedSymbolId && (
         <GraphNodeTooltip
           title={hoveredNode.title}
           viewportX={hoveredNode.viewportX}
           viewportY={hoveredNode.viewportY}
         />
       )}
+      {hoveredEdge && !selectedSymbolId && !hoveredNode && (
+        <GraphEdgeTooltip
+          edgeType={hoveredEdge.edgeType}
+          sourceTitle={hoveredEdge.sourceTitle}
+          targetTitle={hoveredEdge.targetTitle}
+          reason={hoveredEdge.reason}
+          score={hoveredEdge.score}
+          viewportX={hoveredEdge.viewportX}
+          viewportY={hoveredEdge.viewportY}
+        />
+      )}
 
-      {/* File detail panel (right side) */}
-      <CodebaseDetailPanel
-        nodeData={selectedNodeData}
-        relatedFiles={relatedFiles}
+      {/* Right-side detail panel — visible whenever a symbol is selected
+          (`blastRadiusOf` URL param). The graph filters to that symbol's
+          blast radius automatically because the API call uses the same
+          param, so the panel and canvas stay in sync. */}
+      <CodebaseSymbolPanel
+        codebaseId={codebaseId}
+        selectedSymbolId={selectedSymbolId}
+        blastDirection={blastDirection}
         onClose={handleCloseDetail}
-        onNavigate={handleNavigateNode}
+        onSelectSymbol={onSelectSymbol}
+        onToggleBlastDirection={onToggleBlastDirection}
       />
     </div>
   );

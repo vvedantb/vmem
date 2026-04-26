@@ -18,6 +18,7 @@
     "@convex-dev/action-cache": "^0.3.0",
     "@convex-dev/action-retrier": "^0.3.0",
     "@convex-dev/agent": "catalog:",
+    "@convex-dev/crons": "^0.2.0",
     "@neo4j/cypher-builder": "^3.0.1",
     "@notionhq/client": "^2.2.15",
     "ai": "catalog:",
@@ -26,11 +27,14 @@
     "convex-helpers": "catalog:",
     "googleapis": "^144.0.0",
     "jsonwebtoken": "catalog:",
-    "neo4j-driver": "^5.28.3"
+    "neo4j-driver": "^5.28.3",
+    "pdf-parse": "^1.1.1",
+    "ts-morph": "^24.0.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "catalog:",
     "@types/node": "catalog:node-types-22",
+    "@types/pdf-parse": "^1.1.4",
     "@typescript/native-preview": "catalog:",
     "typescript": "catalog:"
   }

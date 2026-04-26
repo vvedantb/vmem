@@ -1,7 +1,83 @@
-import { parseAsArrayOf, parseAsStringLiteral } from "nuqs";
+import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from "nuqs";
 
-export const ACTIVITY_TYPES = [
+/**
+ * URL filter state for the `/activity` subroutes.
+ *
+ * Each subroute owns a separate `useQueryStates` schema. Because the tabs
+ * are now real subroutes (`/activity/ai-logs` and `/activity/events`),
+ * their filter params live on different URLs — there's no key-collision
+ * concern, so each schema uses the natural names (`range`, `sortDir`).
+ */
+
+// ── AI Logs subroute ──────────────────────────────────────────────────────
+
+export const FEATURES = [
+  "enrichment",
+  "dream-synthesis",
+  "context-prompt",
+  "fact-extraction",
+  "entity-backfill",
+  "memory-save",
+  "memory-search",
+  "mcp-embed",
+  "connector-sync",
+  "dream-materialize",
+  "proposal-accept",
+  "embedding-backfill",
+] as const;
+
+export type Feature = (typeof FEATURES)[number];
+
+export const FEATURE_LABELS: Record<Feature, string> = {
+  enrichment: "Memory Enrichment",
+  "dream-synthesis": "Dream Synthesis",
+  "context-prompt": "Context Prompt",
+  "fact-extraction": "Fact Extraction",
+  "entity-backfill": "Entity Backfill",
+  "memory-save": "Memory Save",
+  "memory-search": "Memory Search",
+  "mcp-embed": "MCP Embed",
+  "connector-sync": "Connector Sync",
+  "dream-materialize": "Dream Materialize",
+  "proposal-accept": "Proposal Accept",
+  "embedding-backfill": "Embedding Backfill",
+};
+
+const scopes = ["personal", "team"] as const;
+export type Scope = (typeof scopes)[number];
+
+const statuses = ["all", "success", "error"] as const;
+export type StatusFilter = (typeof statuses)[number];
+
+const aiLogsRanges = ["today", "7d", "30d", "all"] as const;
+export type Range = (typeof aiLogsRanges)[number];
+
+export const RANGE_LABELS: Record<Range, string> = {
+  today: "Today",
+  "7d": "Past 7 days",
+  "30d": "Past 30 days",
+  all: "All time",
+};
+
+const sortDirections = ["desc", "asc"] as const;
+export type SortDirection = (typeof sortDirections)[number];
+
+export const aiLogsSearchParams = {
+  scope: parseAsStringLiteral(scopes).withDefault("personal"),
+  teamId: parseAsString.withDefault(""),
+  profileId: parseAsString.withDefault(""),
+  features: parseAsArrayOf(parseAsStringLiteral(FEATURES), ",").withDefault([]),
+  models: parseAsArrayOf(parseAsString, ",").withDefault([]),
+  status: parseAsStringLiteral(statuses).withDefault("all"),
+  range: parseAsStringLiteral(aiLogsRanges).withDefault("7d"),
+  sortDir: parseAsStringLiteral(sortDirections).withDefault("desc"),
+};
+
+// ── Events subroute ───────────────────────────────────────────────────────
+
+export const EVENT_TYPES = [
   "memory_created",
+  "memory_dream_created",
   "memory_updated",
   "memory_deleted",
   "file_uploaded",
@@ -9,10 +85,11 @@ export const ACTIVITY_TYPES = [
   "api_key_created",
 ] as const;
 
-export type ActivityType = (typeof ACTIVITY_TYPES)[number];
+export type EventType = (typeof EVENT_TYPES)[number];
 
-export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
+export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   memory_created: "Memory Created",
+  memory_dream_created: "Dream Mode Synthesis",
   memory_updated: "Memory Updated",
   memory_deleted: "Memory Deleted",
   file_uploaded: "File Uploaded",
@@ -20,23 +97,18 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   api_key_created: "API Key Created",
 };
 
-const sortDirections = ["desc", "asc"] as const;
-export type SortDirection = (typeof sortDirections)[number];
+const eventDatePresets = ["all", "today", "week", "month"] as const;
+export type EventDatePreset = (typeof eventDatePresets)[number];
 
-const datePresets = ["all", "today", "week", "month"] as const;
-export type DatePreset = (typeof datePresets)[number];
-
-export const DATE_PRESET_LABELS: Record<DatePreset, string> = {
+export const EVENT_DATE_PRESET_LABELS: Record<EventDatePreset, string> = {
   all: "All time",
   today: "Today",
   week: "This week",
   month: "This month",
 };
 
-export const activitySearchParams = {
-  types: parseAsArrayOf(parseAsStringLiteral(ACTIVITY_TYPES), ",").withDefault(
-    [],
-  ),
+export const eventsSearchParams = {
+  types: parseAsArrayOf(parseAsStringLiteral(EVENT_TYPES), ",").withDefault([]),
   sortDir: parseAsStringLiteral(sortDirections).withDefault("desc"),
-  range: parseAsStringLiteral(datePresets).withDefault("all"),
+  range: parseAsStringLiteral(eventDatePresets).withDefault("all"),
 };

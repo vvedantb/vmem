@@ -1,7 +1,11 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo } from "react";
-import { useConvexAuth, useAction } from "convex/react";
+import {
+  useConvexAuth,
+  useAction,
+  useMutation as useConvexMutation,
+} from "convex/react";
 import {
   useQuery as useTanstackQuery,
   useMutation,
@@ -9,7 +13,7 @@ import {
   useInfiniteQuery,
 } from "@tanstack/react-query";
 import type { Memory } from "@/lib/memories";
-import { api } from "@vmem/backend";
+import { api, type Id } from "@vmem/backend";
 
 interface CreateMemoryInput {
   title: string;
@@ -25,12 +29,18 @@ interface UpdateMemoryInput {
   tags?: string[];
 }
 
+interface UploadMemoryFileInput {
+  file: File;
+  profileId?: string;
+}
+
 interface MemoryContextType {
   memories: Memory[];
   isLoading: boolean;
   createMemory: (input: CreateMemoryInput) => Promise<Memory>;
   updateMemory: (input: UpdateMemoryInput) => Promise<Memory | null>;
   deleteMemory: (id: string) => Promise<boolean>;
+  uploadMemoryFile: (input: UploadMemoryFileInput) => Promise<Memory>;
   refreshMemories: () => Promise<void>;
 }
 
@@ -202,6 +212,10 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const createMemoryAction = useAction(api.memoryApi.createMemory);
   const updateMemoryAction = useAction(api.memoryApi.updateMemory);
   const deleteMemoryAction = useAction(api.memoryApi.deleteMemory);
+  const generateUploadUrl = useConvexMutation(
+    api.memoryApi.generateMemoryUploadUrl,
+  );
+  const importFromFile = useAction(api.fileImport.importMemoryFromFile);
   // Bounded single-query load for consumers that still want a broad slice
   // of memories (tag suggestions, filter-option derivation). This replaces
   // the old fetch-all loop that made 120 round trips for a 12k-memory user.
@@ -329,6 +343,57 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     onSettled: invalidateMemories,
   });
 
+  const uploadMutation = useMutation({
+    mutationFn: async (input: UploadMemoryFileInput): Promise<Memory> => {
+      // 1. Get a one-shot upload URL from Convex storage.
+      const uploadUrl = await generateUploadUrl();
+
+      // 2. POST the raw file bytes. Convex returns `{ storageId }` on
+      //    success — that ID is the handle we forward to the import action.
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": input.file.type || "application/octet-stream",
+        },
+        body: input.file,
+      });
+      if (!uploadResponse.ok) {
+        throw new Error(`File upload failed: ${uploadResponse.statusText}`);
+      }
+      // Convex's signed-upload endpoint returns the storage ID as a JSON
+      // string. The runtime value is just a string — `Id<"_storage">` is a
+      // compile-time brand. We annotate the parse result here so the typed
+      // ID flows into `importFromFile` without an `as` cast.
+      const uploadJson: { storageId: Id<"_storage"> } =
+        await uploadResponse.json();
+
+      // 3. Hand the storageId to the server action which extracts text,
+      //    hashes it, and calls createMemoryInternal (with chunking
+      //    automatically scheduled for long PDFs).
+      const created = await importFromFile({
+        storageId: uploadJson.storageId,
+        filename: input.file.name,
+        mimeType: input.file.type,
+        profileId: input.profileId,
+      });
+      return apiToMemory({
+        id: created.id,
+        userId: created.userId,
+        title: created.title,
+        content: created.content,
+        type: created.type,
+        source: created.source,
+        confidence: created.confidence,
+        status: created.status,
+        tags: created.tags,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+        expiresAt: created.expiresAt,
+      });
+    },
+    onSettled: invalidateMemories,
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string): Promise<string> => {
       await deleteMemoryAction({ memoryId: id });
@@ -387,6 +452,14 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     [isAuthenticated, deleteMutation],
   );
 
+  const uploadMemoryFile = useCallback(
+    async (input: UploadMemoryFileInput): Promise<Memory> => {
+      if (!isAuthenticated) throw new Error("Not authenticated");
+      return uploadMutation.mutateAsync(input);
+    },
+    [isAuthenticated, uploadMutation],
+  );
+
   const refreshMemories = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["memories"] });
   }, [queryClient]);
@@ -398,6 +471,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       createMemory,
       updateMemory,
       deleteMemory,
+      uploadMemoryFile,
       refreshMemories,
     }),
     [
@@ -406,6 +480,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       createMemory,
       updateMemory,
       deleteMemory,
+      uploadMemoryFile,
       refreshMemories,
     ],
   );

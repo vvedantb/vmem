@@ -421,4 +421,32 @@ http.route({
   }),
 });
 
+// --- Context prompt (MCP resource) ---
+
+/**
+ * Backs the `vmem://context_prompt` MCP resource. AI clients read this
+ * once per conversation to prime context (about / preferences / pinned
+ * memories / recent-activity prose summary). See
+ * `convex/contextPromptApi.ts` for cache/staleness semantics.
+ */
+http.route({
+  path: "/api/mcp/context-prompt",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const token = extractBearerToken(req);
+    if (!token) return jsonResponse({ error: "Missing token" }, 401);
+
+    try {
+      const result = await ctx.runAction(
+        internal.contextPromptApi.mcpGetContextPrompt,
+        { token },
+      );
+      return jsonResponse({ data: result });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Internal error";
+      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
+    }
+  }),
+});
+
 export default http;

@@ -18,8 +18,8 @@ import {
   IconFileTypePdf,
   IconFileTypeDoc,
   IconFileTypeXls,
-  IconLoader2,
   IconX,
+  IconLoader2,
 } from "@tabler/icons-react";
 import type { FileItem } from "@/lib/file-types";
 

@@ -4,12 +4,13 @@ import { AnimatePresence, motion } from "motion/react";
 import { Separator, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconArrowLeft } from "@tabler/icons-react";
 import type { NavIcon } from "./types";
-import { navGroups, settingsNavItems } from "./nav-config";
+import { navGroups, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
 
 export type SidebarNavigationProps = {
   pathname: string;
   unreadCount: number;
+  proposalsCount: number;
   isCollapsed: boolean;
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
@@ -18,6 +19,7 @@ export type SidebarNavigationProps = {
 function MainNav({
   pathname,
   unreadCount,
+  proposalsCount,
   isIconOnly,
   isMobile,
   onNavigate,
@@ -25,6 +27,7 @@ function MainNav({
 }: {
   pathname: string;
   unreadCount: number;
+  proposalsCount: number;
   isIconOnly: boolean;
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
@@ -116,6 +119,7 @@ function MainNav({
                       isIconOnly={isIconOnly}
                       isMobile={isMobile}
                       unreadCount={unreadCount}
+                      proposalsCount={proposalsCount}
                       onNavigate={onNavigate}
                     />
                   </li>
@@ -188,51 +192,71 @@ function SettingsNav({
               </AnimatePresence>
             </button>
           </li>
-          {settingsNavItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
-            const Icon = item.icon as NavIcon;
-            return (
-              <li key={item.href}>
-                <Link
-                  to={item.href}
-                  onClick={onNavigate}
-                  title={isIconOnly ? item.label : undefined}
-                  className={cn(
-                    "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
-                    isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
-                    isMobile ? "py-3.5" : "py-2.5",
-                    isActive
-                      ? "glass-interactive text-foreground"
-                      : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
-                  )}
-                >
-                  <span className="flex h-5 w-5 items-center justify-center text-current">
-                    <Icon size={18} stroke={1.7} />
-                  </span>
-                  <AnimatePresence initial={false}>
-                    {!isIconOnly ? (
-                      <motion.span
-                        key={`${item.href}-label`}
-                        className="flex-1"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{
-                          duration: motionDuration.fast,
-                          ease: motionEase,
-                        }}
-                      >
-                        {item.label}
-                      </motion.span>
-                    ) : null}
-                  </AnimatePresence>
-                </Link>
-              </li>
-            );
-          })}
         </ul>
       </div>
+      {settingsNavGroups.map((group) => (
+        <div key={group.title} className="px-1 mb-4">
+          {!isIconOnly ? (
+            <div className="flex items-center gap-2 px-3.5 mb-2">
+              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                {group.title}
+              </span>
+              <Separator className="flex-1 bg-border/40" />
+            </div>
+          ) : (
+            <div className="flex justify-center mb-2">
+              <Separator className="w-6 bg-border/40" />
+            </div>
+          )}
+          <ul className={cn("space-y-1", !isIconOnly && "pl-3")}>
+            {group.items.map((item) => {
+              const isActive =
+                pathname === item.href || pathname.startsWith(item.href + "/");
+              const Icon = item.icon as NavIcon;
+              return (
+                <li key={item.href}>
+                  <Link
+                    to={item.href}
+                    onClick={onNavigate}
+                    title={isIconOnly ? item.label : undefined}
+                    className={cn(
+                      "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
+                      isIconOnly
+                        ? "justify-center px-2 py-2.5"
+                        : "gap-3 px-3.5",
+                      isMobile ? "py-3.5" : "py-2.5",
+                      isActive
+                        ? "glass-interactive text-foreground"
+                        : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
+                    )}
+                  >
+                    <span className="flex h-5 w-5 items-center justify-center text-current">
+                      <Icon size={18} stroke={1.7} />
+                    </span>
+                    <AnimatePresence initial={false}>
+                      {!isIconOnly ? (
+                        <motion.span
+                          key={`${item.href}-label`}
+                          className="flex-1"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{
+                            duration: motionDuration.fast,
+                            ease: motionEase,
+                          }}
+                        >
+                          {item.label}
+                        </motion.span>
+                      ) : null}
+                    </AnimatePresence>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
     </motion.nav>
   );
 }
@@ -240,6 +264,7 @@ function SettingsNav({
 export function SidebarNavigation({
   pathname,
   unreadCount,
+  proposalsCount,
   isCollapsed,
   isMobile,
   onNavigate,
@@ -269,6 +294,7 @@ export function SidebarNavigation({
           key="main"
           pathname={pathname}
           unreadCount={unreadCount}
+          proposalsCount={proposalsCount}
           isIconOnly={isIconOnly}
           isMobile={isMobile}
           onNavigate={onNavigate}

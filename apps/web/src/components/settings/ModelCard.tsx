@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { IconDownload, IconLoader2, IconPlayerStop } from "@tabler/icons-react";
+import { IconDownload, IconPlayerStop, IconLoader2 } from "@tabler/icons-react";
 import { Button, Progress, Badge } from "@vmem/ui";
 import type { LocalModelInfo } from "@/lib/local-models";
 import type { EngineState } from "@/components/contexts/LocalLLMContext";
@@ -84,7 +84,7 @@ export default function ModelCard({
               className="group overflow-hidden transition-[transform,background-color,opacity] duration-200"
             >
               {isThisModelLoading ? (
-                <IconLoader2 className="h-3.5 w-3.5 animate-spin" />
+                <IconLoader2 size={14} className="animate-spin" />
               ) : (
                 <IconDownload className="h-3.5 w-3.5" />
               )}

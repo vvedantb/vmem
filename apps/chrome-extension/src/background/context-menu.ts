@@ -1,5 +1,6 @@
 import { createMemory } from "./api-client";
 import { htmlToMarkdown } from "@/lib/page-extraction";
+import { extractPageFromTab } from "@/lib/extract-page";
 
 export function registerContextMenu(): void {
   chrome.contextMenus.create({
@@ -27,22 +28,21 @@ export async function savePageFromTab(
   }
 
   try {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: extractPageContent,
-    });
-
-    const extraction = results[0]?.result;
+    const extraction = await extractPageFromTab(tab.id);
     if (!extraction) {
       throw new Error("Failed to extract page content");
     }
 
-    // Convert HTML to markdown in the extension context
-    const markdown = htmlToMarkdown(extraction.html);
+    // Convert Readability-extracted HTML to markdown in the extension
+    // context (Turndown lives here, not in the content script). When the
+    // fallback path produced no HTML we fall back to the plain text.
+    const markdown = extraction.html
+      ? htmlToMarkdown(extraction.html)
+      : extraction.content;
 
     const hostname = new URL(tab.url).hostname;
     const result = await createMemory({
-      title: extraction.ogTitle || extraction.title || tab.title || "Untitled",
+      title: extraction.ogTitle ?? extraction.title ?? tab.title ?? "Untitled",
       content: truncate(markdown || extraction.content, 10000),
       type: "knowledge",
       source: "browser-extension",
@@ -60,79 +60,6 @@ export async function savePageFromTab(
     const message = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: message };
   }
-}
-
-interface PageExtraction {
-  title: string;
-  ogTitle?: string;
-  content: string;
-  html: string;
-  ogImage?: string;
-  ogDescription?: string;
-}
-
-function extractPageContent(): PageExtraction {
-  // Get OG metadata
-  const ogImage =
-    document
-      .querySelector('meta[property="og:image"]')
-      ?.getAttribute("content") ||
-    document.querySelector('meta[name="og:image"]')?.getAttribute("content") ||
-    undefined;
-
-  const ogTitle =
-    document
-      .querySelector('meta[property="og:title"]')
-      ?.getAttribute("content") ||
-    document.querySelector('meta[name="og:title"]')?.getAttribute("content") ||
-    undefined;
-
-  const ogDescription =
-    document
-      .querySelector('meta[property="og:description"]')
-      ?.getAttribute("content") ||
-    document
-      .querySelector('meta[name="og:description"]')
-      ?.getAttribute("content") ||
-    document
-      .querySelector('meta[name="description"]')
-      ?.getAttribute("content") ||
-    undefined;
-
-  // Clone body and strip non-content elements
-  const bodyClone = document.body.cloneNode(true) as HTMLElement;
-
-  const removeSelectors = [
-    "script",
-    "style",
-    "noscript",
-    "iframe",
-    "nav",
-    "footer",
-    "header",
-    "aside",
-    "[role='banner']",
-    "[role='navigation']",
-    "[role='complementary']",
-    "[role='contentinfo']",
-    ".ad",
-    ".ads",
-    ".advertisement",
-    "[data-ad]",
-  ];
-
-  removeSelectors.forEach((selector) => {
-    bodyClone.querySelectorAll(selector).forEach((el) => el.remove());
-  });
-
-  return {
-    title: document.title,
-    ogTitle,
-    content: bodyClone.innerText.trim().slice(0, 50000),
-    html: bodyClone.innerHTML,
-    ogImage,
-    ogDescription,
-  };
 }
 
 function truncate(text: string, maxLength: number): string {

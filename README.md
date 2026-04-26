@@ -1,3 +1,20 @@
+┌─────────────────────────────────────────────────┐
+│ AI Agent │
+└─────────────────────┬───────────────────────────┘
+│
+┌─────────────────────▼───────────────────────────┐
+│ vmem MCP │
+│ ┌───────────┬───────────┬───────────┬────────┐ │
+│ │ memory*\* │ codebase*_│ email\__ │browser\_\*│ │
+│ │ (native) │ (proxy) │ (proxy) │(proxy) │ │
+│ └─────┬─────┴─────┬─────┴─────┬─────┴────┬───┘ │
+└────────┼───────────┼───────────┼──────────┼─────┘
+│ │ │ │
+┌────▼────┐ ┌────▼────┐ ┌────▼────┐ ┌───▼────┐
+│ Convex │ │ CRG │ │ Nylas │ │Playwright│
+│ Neo4j │ │ MCP │ │ MCP │ │ MCP │
+└─────────┘ └─────────┘ └─────────┘ └─────────┘
+
 # vmem — LLM Memory Layer
 
 A universal, model-agnostic memory layer that lets any AI store, retrieve, and update user knowledge across sessions and platforms. Built as a Final Year Project at City, University of London.

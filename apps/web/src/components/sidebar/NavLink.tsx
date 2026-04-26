@@ -4,12 +4,22 @@ import { AnimatePresence, motion } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
 import type { NavItem, NavIcon } from "./types";
 
+/**
+ * Sidebar nav link.
+ *
+ * Carries a single optional badge whose source depends on the route:
+ * - `/inbox` → pending proposals + unread notifications (sum)
+ *
+ * Both counts come in as separate props so the parent doesn't have to
+ * predict which the link cares about. Routes without a badge ignore them.
+ */
 export function NavLink({
   item,
   pathname,
   isIconOnly,
   isMobile,
   unreadCount,
+  proposalsCount,
   onNavigate,
 }: {
   item: NavItem;
@@ -17,13 +27,17 @@ export function NavLink({
   isIconOnly: boolean;
   isMobile: boolean;
   unreadCount: number;
+  proposalsCount: number;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }) {
   const isActive =
     pathname === item.href || pathname.startsWith(item.href + "/");
   const Icon = item.icon as NavIcon;
-  const isNotifications = item.href === "/notifications";
-  const showBadge = isNotifications && unreadCount > 0;
+
+  // Resolve the badge count for this route. Adding a new badge route =
+  // new branch here + corresponding prop on this component.
+  const badgeCount = item.href === "/inbox" ? proposalsCount + unreadCount : 0;
+  const showBadge = badgeCount > 0;
 
   return (
     <Link
@@ -72,7 +86,7 @@ export function NavLink({
               ease: motionEase,
             }}
           >
-            {unreadCount > 99 ? "99+" : unreadCount}
+            {badgeCount > 99 ? "99+" : badgeCount}
           </motion.span>
         ) : null}
       </AnimatePresence>

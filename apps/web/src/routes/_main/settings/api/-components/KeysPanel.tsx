@@ -1,5 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
@@ -17,18 +15,23 @@ import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
 import { ApiKeysLoadingSkeleton } from "@/components/api-keys/ApiKeysLoadingSkeleton";
 import { RevokeKeyDialog } from "@/components/api-keys/RevokeKeyDialog";
 import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
-import PageContainer from "@/components/PageContainer";
 import { api } from "@vmem/backend";
 
 type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
 
-export const Route = createFileRoute("/_main/settings/api-keys")({
-  component: ApiKeysPage,
-});
-
-function ApiKeysPage() {
+/**
+ * Keys panel for `/settings/api`. The "create" modal is controlled by
+ * the orchestrator so the right-section "New Key" button (in the page
+ * header) and the empty-state "New Key" button can both open it.
+ */
+export function KeysPanel({
+  isCreateModalOpen,
+  onCreateModalOpenChange,
+}: {
+  isCreateModalOpen: boolean;
+  onCreateModalOpenChange: (open: boolean) => void;
+}) {
   const apiKeys = useQuery(api.apiKeys.listMy, {});
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const {
     revokeKeyId,
@@ -47,29 +50,10 @@ function ApiKeysPage() {
   const apiKeyList: ApiKey[] = apiKeys ?? [];
   const keyToRevoke = apiKeyList.find((key) => key.id === revokeKeyId);
 
-  if (isLoading) {
-    return (
-      <PageContainer title="API Keys" centeredMaxWidth>
-        <ApiKeysLoadingSkeleton />
-      </PageContainer>
-    );
-  }
+  if (isLoading) return <ApiKeysLoadingSkeleton />;
 
   return (
-    <PageContainer
-      title="API Keys"
-      centeredMaxWidth
-      rightSection={
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsCreateModalOpen(true)}
-        >
-          <IconPlus size={16} />
-          New Key
-        </Button>
-      }
-    >
+    <>
       {apiKeyList.length === 0 ? (
         <div className="rounded-xl bg-muted/40 py-16 text-center">
           <AnimatedKeyIcon
@@ -85,7 +69,7 @@ function ApiKeysPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => onCreateModalOpenChange(true)}
           >
             <IconPlus size={16} />
             New Key
@@ -135,7 +119,7 @@ function ApiKeysPage() {
 
       <ApiKeyModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => onCreateModalOpenChange(false)}
         onKeyCreated={() => {}}
       />
 
@@ -146,6 +130,6 @@ function ApiKeysPage() {
         onConfirm={handleRevoke}
         onCancel={() => setRevokeKeyId(null)}
       />
-    </PageContainer>
+    </>
   );
 }

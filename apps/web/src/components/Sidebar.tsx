@@ -20,12 +20,13 @@ import { useUser } from "@clerk/clerk-react";
 import { useConvexAuth, useAction } from "convex/react";
 import { api } from "@vmem/backend";
 import { useNotifications } from "./contexts/NotificationContext";
+import { useProposals } from "@/hooks/useProposals";
 import {
   IconX,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpandFilled,
 } from "@tabler/icons-react";
-import { MorphingMenuIcon } from "./svg-animations";
+import { MorphingMenuIcon, VmemDrawInIcon } from "./svg-animations";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarFooter, type SidebarStats } from "./sidebar/SidebarFooter";
 import { usePageTitle } from "./contexts/PageTitleContext";
@@ -46,6 +47,7 @@ export default function Sidebar({
   const { isLoaded } = useUser();
   const isAuthLoading = !isLoaded;
   const { unreadCount } = useNotifications();
+  const { pendingCount: proposalsCount } = useProposals();
   const { pageTitle } = usePageTitle();
 
   const isDark = theme === "dark";
@@ -149,20 +151,7 @@ export default function Sidebar({
                   onClick={() => setMobileMenuOpen(false)}
                   className="absolute left-1/2 -translate-x-1/2 flex flex-row items-center gap-2"
                 >
-                  <img
-                    width={22}
-                    height={22}
-                    alt="vmem icon"
-                    src="/icon-dark.svg"
-                    className="block dark:hidden"
-                  />
-                  <img
-                    width={22}
-                    height={22}
-                    src="/icon-light.svg"
-                    alt="vmem icon"
-                    className="hidden dark:block"
-                  />
+                  <VmemDrawInIcon size={22} className="text-foreground" />
                   <h1 className="text-xl leading-none font-instrumentSerif text-foreground">
                     v<span className="italic">mem</span>
                   </h1>
@@ -171,6 +160,7 @@ export default function Sidebar({
               <SidebarNavigation
                 pathname={pathname}
                 unreadCount={unreadCount}
+                proposalsCount={proposalsCount}
                 isCollapsed={false}
                 isMobile
                 onNavigate={() => setMobileMenuOpen(false)}
@@ -210,20 +200,7 @@ export default function Sidebar({
                 !isCollapsed && "gap-2",
               )}
             >
-              <img
-                width={22}
-                height={22}
-                alt="vmem icon"
-                src="/icon-dark.svg"
-                className="mt-1 block dark:hidden"
-              />
-              <img
-                width={22}
-                height={22}
-                src="/icon-light.svg"
-                alt="vmem icon"
-                className="mt-1 hidden dark:block"
-              />
+              <VmemDrawInIcon size={22} className="mt-1 text-foreground" />
               <AnimatePresence initial={false}>
                 {!isCollapsed ? (
                   <motion.h1
@@ -268,6 +245,7 @@ export default function Sidebar({
           <SidebarNavigation
             pathname={pathname}
             unreadCount={unreadCount}
+            proposalsCount={proposalsCount}
             isCollapsed={isCollapsed}
             isMobile={false}
           />

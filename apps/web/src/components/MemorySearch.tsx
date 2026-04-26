@@ -3,13 +3,14 @@ import { useQueryStates } from "nuqs";
 import { useSearch } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { cn } from "@vmem/ui";
-import { IconMoodEmpty, IconLoader2 } from "@tabler/icons-react";
+import { IconMoodEmpty } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Virtuoso } from "react-virtuoso";
 import { api } from "@vmem/backend";
 import MemoryDetailPanel from "./MemoryDetailPanel";
 import ListItemRow from "./_components/ListItemRow";
 import AnimatedSearchIcon from "./_components/AnimatedSearchIcon";
+import { VmemSpinner } from "@/components/svg-animations";
 import { type Memory } from "@/lib/memories";
 import {
   listItemMatchesKindFilter,
@@ -295,7 +296,7 @@ export default function MemorySearch() {
   if (isMemoriesLoading && memoryResults.length === 0) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
-        <IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <VmemSpinner size={24} className="text-muted-foreground" />
       </div>
     );
   }
