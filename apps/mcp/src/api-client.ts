@@ -104,3 +104,7 @@ export function listProfiles(token: string): Promise<ApiResult> {
 export function getActiveProfile(token: string): Promise<ApiResult> {
   return apiRequest("/api/mcp/profiles/active", token);
 }
+
+export function getContextPrompt(token: string): Promise<ApiResult> {
+  return apiRequest("/api/mcp/context-prompt", token);
+}

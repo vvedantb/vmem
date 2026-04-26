@@ -14,6 +14,7 @@ import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import type { Profile } from "@/types/api";
 import { updateMemory, listProfiles } from "@/background/api-client";
 import { getStorage } from "@/lib/storage";
+import { extractPageFromTab } from "@/lib/extract-page";
 
 interface PageInfo {
   title: string;
@@ -103,121 +104,56 @@ export function QuickSave() {
         return;
       }
 
-      chrome.scripting.executeScript(
-        {
-          target: { tabId: tab.id },
-          func: extractPageData,
-        },
-        (results) => {
-          const extraction = results?.[0]?.result;
-          if (!extraction) {
+      void (async () => {
+        const tabId = tab.id;
+        if (!tabId) {
+          setSaving(false);
+          setResult({ success: false, message: "No active tab found" });
+          return;
+        }
+        const extraction = await extractPageFromTab(tabId);
+        if (!extraction) {
+          setSaving(false);
+          setResult({ success: false, message: "Failed to extract page" });
+          return;
+        }
+
+        const message: ContentMessage = {
+          type: "SAVE_PAGE",
+          url: tab.url ?? "",
+          title:
+            extraction.ogTitle ?? extraction.title ?? tab.title ?? "Untitled",
+          content: extraction.content,
+          markdown: extraction.html, // Will be converted to markdown in background
+          ogImage: extraction.ogImage,
+          ogDescription: extraction.ogDescription,
+          profileId: selectedProfileId || undefined,
+        };
+
+        chrome.runtime.sendMessage(
+          message,
+          (response: BackgroundResponse | undefined) => {
             setSaving(false);
-            setResult({ success: false, message: "Failed to extract page" });
-            return;
-          }
-
-          const message: ContentMessage = {
-            type: "SAVE_PAGE",
-            url: tab.url ?? "",
-            title:
-              extraction.ogTitle || extraction.title || tab.title || "Untitled",
-            content: extraction.content,
-            markdown: extraction.html, // Will be converted to markdown in background
-            ogImage: extraction.ogImage,
-            ogDescription: extraction.ogDescription,
-            profileId: selectedProfileId || undefined,
-          };
-
-          chrome.runtime.sendMessage(
-            message,
-            (response: BackgroundResponse | undefined) => {
-              setSaving(false);
-              if (response?.type === "SAVE_RESULT") {
-                setResult(
-                  response.success
-                    ? { success: true, message: "Page saved to vmem" }
-                    : {
-                        success: false,
-                        message: response.error ?? "Failed to save",
-                      },
-                );
-              } else if (response?.type === "SAVE_DUPLICATE") {
-                setPendingUpdate({
-                  memoryId: response.existingMemory.id,
-                  title: tab.title ?? "Untitled",
-                  content: extraction.content.slice(0, 10000),
-                });
-              }
-            },
-          );
-        },
-      );
+            if (response?.type === "SAVE_RESULT") {
+              setResult(
+                response.success
+                  ? { success: true, message: "Page saved to vmem" }
+                  : {
+                      success: false,
+                      message: response.error ?? "Failed to save",
+                    },
+              );
+            } else if (response?.type === "SAVE_DUPLICATE") {
+              setPendingUpdate({
+                memoryId: response.existingMemory.id,
+                title: tab.title ?? "Untitled",
+                content: extraction.content.slice(0, 10000),
+              });
+            }
+          },
+        );
+      })();
     });
-  }
-
-  // Page extraction function - runs in page context
-  function extractPageData() {
-    const ogImage =
-      document
-        .querySelector('meta[property="og:image"]')
-        ?.getAttribute("content") ||
-      document
-        .querySelector('meta[name="og:image"]')
-        ?.getAttribute("content") ||
-      undefined;
-
-    const ogTitle =
-      document
-        .querySelector('meta[property="og:title"]')
-        ?.getAttribute("content") ||
-      document
-        .querySelector('meta[name="og:title"]')
-        ?.getAttribute("content") ||
-      undefined;
-
-    const ogDescription =
-      document
-        .querySelector('meta[property="og:description"]')
-        ?.getAttribute("content") ||
-      document
-        .querySelector('meta[name="og:description"]')
-        ?.getAttribute("content") ||
-      document
-        .querySelector('meta[name="description"]')
-        ?.getAttribute("content") ||
-      undefined;
-
-    const bodyClone = document.body.cloneNode(true) as HTMLElement;
-    const removeSelectors = [
-      "script",
-      "style",
-      "noscript",
-      "iframe",
-      "nav",
-      "footer",
-      "header",
-      "aside",
-      "[role='banner']",
-      "[role='navigation']",
-      "[role='complementary']",
-      "[role='contentinfo']",
-      ".ad",
-      ".ads",
-      ".advertisement",
-      "[data-ad]",
-    ];
-    removeSelectors.forEach((sel) => {
-      bodyClone.querySelectorAll(sel).forEach((el) => el.remove());
-    });
-
-    return {
-      title: document.title,
-      ogTitle,
-      content: bodyClone.innerText.trim().slice(0, 50000),
-      html: bodyClone.innerHTML,
-      ogImage,
-      ogDescription,
-    };
   }
 
   async function handleUpdate() {

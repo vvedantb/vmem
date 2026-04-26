@@ -68,22 +68,59 @@ interface ScoreBreakdown {
   graphBoost: number;
 }
 
+interface MatchedChunk {
+  /** Chunk text content — the passage that matched. */
+  content: string;
+  /** 0-indexed position within the parent memory (for "result 3 of 12" style UX). */
+  position: number;
+}
+
 interface MemoryCandidate extends MemoryWithTags {
   trace: {
     score: number;
     scoreBreakdown: ScoreBreakdown;
     reason: string;
   };
+  /**
+   * When the retrieval was driven (or augmented) by a paragraph-level
+   * chunk match instead of the whole-memory embedding, the matched chunk
+   * is surfaced here so UIs can show which passage of a long article
+   * triggered the match. Absent when retrieval matched on the whole
+   * memory only.
+   */
+  matchedChunk?: MatchedChunk;
 }
+
+/**
+ * Kind of proposal:
+ * - "update": replace `memory.content` with `proposedContent` on approve.
+ * - "delete": delete the memory on approve. `proposedContent` is empty
+ *    string; UI uses the linked memory's current content for the diff.
+ */
+type ProposedUpdateKind = "update" | "delete";
 
 interface ProposedUpdateNode {
   id: string;
   memoryId: string;
   proposedContent: string;
   reason: string;
+  /**
+   * Default "update" for proposals created before V2 (the field is
+   * absent on those Neo4j nodes; we coerce on read). New proposals
+   * always set kind explicitly.
+   */
+  kind: ProposedUpdateKind;
   status: "pending" | "approved" | "rejected";
   createdAt: string;
   resolvedAt: string | null;
+  /**
+   * Snapshot of the target memory at list time. Lets the proposals UI
+   * render the old text for a diff (UPDATE) or the body to be deleted
+   * (DELETE) without an extra round-trip per proposal. Null when the
+   * memory is missing (extremely rare — the UPDATE_FOR edge ought to
+   * keep them paired; but a concurrent delete mid-query would do it).
+   */
+  memorySnapshot: { title: string; content: string } | null;
 }
 
 function parseJsonField<T>(val: string | null): T | null {
@@ -282,6 +319,18 @@ export class MemoryService {
     // MD5 hex digest of normalized(title + content). Used for exact-duplicate
     // detection on subsequent creates.
     contentHash: string;
+    // External ID idempotency. When both are provided, the memory node is
+    // tagged with `sourceType` + `sourceId` properties so the same external
+    // entity (file upload, Twitter bookmark, etc.) can be recognized across
+    // re-imports. The composite index `memory_source_id` (setup.ts) covers
+    // these. Reuses the same shape that `upsertFromSource` writes for
+    // connectors.
+    sourceType?: string;
+    sourceId?: string;
+    // File-upload metadata. Optional; only populated by the file-upload pipeline.
+    storageId?: string;
+    mimeType?: string;
+    originalFilename?: string;
   }): Promise<MemoryWithTags> {
     return this.withSession(async (session) => {
       const id = crypto.randomUUID();
@@ -304,6 +353,11 @@ export class MemoryService {
           url: $url,
           embedding: $embedding,
           contentHash: $contentHash,
+          sourceType: $sourceType,
+          sourceId: $sourceId,
+          storageId: $storageId,
+          mimeType: $mimeType,
+          originalFilename: $originalFilename,
           visitCount: 1,
           firstVisitAt: $now,
           lastVisitAt: $now
@@ -334,6 +388,11 @@ export class MemoryService {
           url: params.url ?? null,
           embedding: params.embedding,
           contentHash: params.contentHash,
+          sourceType: params.sourceType ?? null,
+          sourceId: params.sourceId ?? null,
+          storageId: params.storageId ?? null,
+          mimeType: params.mimeType ?? null,
+          originalFilename: params.originalFilename ?? null,
         },
       );
 
@@ -665,6 +724,37 @@ export class MemoryService {
          RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
          LIMIT 1`,
         { userId, contentHash },
+      );
+      if (result.records.length === 0) return null;
+      const r = result.records[0];
+      if (!r) return null;
+      return {
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        updatedAt: String(r.get("updatedAt")),
+      };
+    });
+  }
+
+  /**
+   * Find an existing memory by its (sourceType, sourceId) tuple — the
+   * external-ID idempotency lookup. Used by callers who can supply a stable
+   * external identifier (file content hash, Twitter bookmark ID, etc.) so
+   * re-imports return the same memory without going through hash/URL/semantic
+   * dedup. Backed by the composite index `memory_source_id` in setup.ts.
+   */
+  async findMemoryByExternalId(
+    userId: string,
+    sourceType: string,
+    sourceId: string,
+  ): Promise<{ id: string; title: string; updatedAt: string } | null> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId, sourceType: $sourceType, sourceId: $sourceId})
+         WHERE m.status IN ['active', 'pinned']
+         RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
+         LIMIT 1`,
+        { userId, sourceType, sourceId },
       );
       if (result.records.length === 0) return null;
       const r = result.records[0];
@@ -1083,6 +1173,15 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
 
   async deleteMemory(userId: string, memoryId: string): Promise<boolean> {
     return this.withSession(async (session) => {
+      // Cascade-delete chunks first — they are :Chunk nodes linked via
+      // HAS_CHUNK and DETACH DELETE on the parent only severs the edge,
+      // it does not remove the chunk node. Done in two passes on the
+      // same session so we never DETACH DELETE before removing chunks.
+      await session.run(
+        `MATCH (c:Chunk {memoryId: $memoryId, userId: $userId})
+         DETACH DELETE c`,
+        { memoryId, userId },
+      );
       const result = await session.run(
         `MATCH (m:Memory {id: $memoryId, userId: $userId})
          DETACH DELETE m
@@ -1092,6 +1191,105 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
       const firstRecord = result.records[0];
       if (!firstRecord) return false;
       return toNeoInt(firstRecord.get("deleted")) > 0;
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Chunk-level storage and retrieval
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Insert chunk nodes for a memory. Each chunk gets its own `:Chunk` node
+   * with its own embedding, linked via `(:Memory)-[:HAS_CHUNK]->(:Chunk)`.
+   * Single Cypher round-trip via UNWIND so a 50-chunk PDF is one query.
+   *
+   * Caller is responsible for chunking the text and generating embeddings
+   * (see `chunking.ts` and `embeddingService.generateEmbeddings`).
+   */
+  async createChunksForMemory(params: {
+    memoryId: string;
+    userId: string;
+    chunks: { content: string; startOffset: number; endOffset: number }[];
+    embeddings: (number[] | null)[];
+  }): Promise<void> {
+    if (params.chunks.length === 0) return;
+    return this.withSession(async (session) => {
+      const now = new Date().toISOString();
+      const rows = params.chunks.map((chunk, idx) => ({
+        id: crypto.randomUUID(),
+        position: idx,
+        content: chunk.content,
+        startOffset: chunk.startOffset,
+        endOffset: chunk.endOffset,
+        embedding: params.embeddings[idx] ?? null,
+      }));
+      await session.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})
+         UNWIND $rows AS row
+         CREATE (c:Chunk {
+           id: row.id,
+           memoryId: $memoryId,
+           userId: $userId,
+           position: row.position,
+           content: row.content,
+           startOffset: row.startOffset,
+           endOffset: row.endOffset,
+           embedding: row.embedding,
+           createdAt: $now
+         })
+         CREATE (m)-[:HAS_CHUNK {position: row.position}]->(c)`,
+        {
+          memoryId: params.memoryId,
+          userId: params.userId,
+          rows,
+          now,
+        },
+      );
+    });
+  }
+
+  /**
+   * Delete all chunks for a memory. Used by the chunk-rebuild path when a
+   * memory's content changes and chunks need re-emitting. The standalone
+   * `deleteMemory` already inlines this query so the cleanup is local.
+   */
+  async deleteChunksForMemory(userId: string, memoryId: string): Promise<void> {
+    return this.withSession(async (session) => {
+      await session.run(
+        `MATCH (c:Chunk {memoryId: $memoryId, userId: $userId})
+         DETACH DELETE c`,
+        { memoryId, userId },
+      );
+    });
+  }
+
+  /**
+   * Return memories whose `content` exceeds the given length and that have
+   * not yet been chunked (no outgoing `HAS_CHUNK` edge). Used by the
+   * one-shot backfill action to chunk pre-existing long memories.
+   */
+  async findUnchunkedLongMemories(
+    userId: string,
+    minLength: number,
+    limit: number,
+  ): Promise<{ id: string; content: string }[]> {
+    return this.withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         WHERE size(m.content) > $minLength
+           AND NOT (m)-[:HAS_CHUNK]->(:Chunk)
+         RETURN m.id AS id, m.content AS content
+         LIMIT $limit`,
+        {
+          userId,
+          minLength: neo4j.int(minLength),
+          limit: neo4j.int(limit),
+        },
+      );
+      return result.records.map((r) => ({
+        id: String(r.get("id")),
+        content: String(r.get("content")),
+      }));
     });
   }
 
@@ -1196,17 +1394,47 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           )
         : null;
 
+      // Leg 2b: chunk-level vector search — finds paragraph-level matches
+      // inside long memories. Each chunk hit contributes its parent memory
+      // plus the matched passage so the UI can show "result 3 of 12" style
+      // breakdown. Slightly down-weighted vs whole-memory matches (0.85x in
+      // RRF) so a chunk-only hit cannot beat a strong whole-memory match.
+      const chunkResult = params.queryEmbedding
+        ? await session.run(
+            `CALL db.index.vector.queryNodes('chunk_embedding', $k, $queryVector)
+             YIELD node AS c, score AS chunkScore
+             WHERE c.userId = $userId
+             MATCH (m:Memory {id: c.memoryId})
+             WHERE m.userId = $userId ${profileFilter}
+             OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+             WITH m, collect(t.name) AS tags, chunkScore, c.content AS chunkContent,
+                  c.position AS chunkPosition,
+                  duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
+             RETURN m, tags, chunkScore, chunkContent, chunkPosition, ageInDays
+             ORDER BY chunkScore DESC`,
+            {
+              k: neo4j.int(legLimit),
+              queryVector: params.queryEmbedding,
+              userId: params.userId,
+              profileId: params.profileId ?? null,
+            },
+          )
+        : null;
+
       // Merge by memory id. Each entry holds enough state to compute RRF
       // plus the final weighted score and the reason-string inputs.
       interface MergedEntry {
         memory: MemoryWithTags;
         fulltextScore: number;
         vectorScore: number;
+        chunkScore: number;
         recencyScore: number;
         confidenceScore: number;
         ftRank: number | null;
         vecRank: number | null;
+        chunkRank: number | null;
         graphHops: number | null;
+        matchedChunk: MatchedChunk | null;
       }
       const merged = new Map<string, MergedEntry>();
 
@@ -1218,11 +1446,14 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           memory,
           fulltextScore,
           vectorScore: 0,
+          chunkScore: 0,
           recencyScore: recencyFromAgeDays(ageInDays),
           confidenceScore: memory.confidence,
           ftRank: idx + 1,
           vecRank: null,
+          chunkRank: null,
           graphHops: null,
+          matchedChunk: null,
         });
       });
 
@@ -1240,29 +1471,73 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
               memory,
               fulltextScore: 0,
               vectorScore,
+              chunkScore: 0,
               recencyScore: recencyFromAgeDays(ageInDays),
               confidenceScore: memory.confidence,
               ftRank: null,
               vecRank: idx + 1,
+              chunkRank: null,
               graphHops: null,
+              matchedChunk: null,
+            });
+          }
+        });
+      }
+
+      if (chunkResult) {
+        // Group by parent memory id and keep the highest-scoring chunk per
+        // memory — we surface only one "matchedChunk" per result, even if
+        // multiple chunks of the same memory matched.
+        const seenMemoryIds = new Set<string>();
+        chunkResult.records.forEach((record, idx) => {
+          const memory = toMemoryWithTags(record);
+          if (seenMemoryIds.has(memory.id)) return;
+          seenMemoryIds.add(memory.id);
+          const chunkScore = Number(record.get("chunkScore"));
+          const ageInDays = toNeoInt(record.get("ageInDays"));
+          const chunkContent = String(record.get("chunkContent") ?? "");
+          const chunkPosition = toNeoInt(record.get("chunkPosition"));
+          const matchedChunk: MatchedChunk = {
+            content: chunkContent,
+            position: chunkPosition,
+          };
+          const existing = merged.get(memory.id);
+          if (existing) {
+            existing.chunkScore = chunkScore;
+            existing.chunkRank = idx + 1;
+            // Only attach matched chunk if not already set (unlikely since
+            // we dedupe via seenMemoryIds, but defensive).
+            existing.matchedChunk ??= matchedChunk;
+          } else {
+            merged.set(memory.id, {
+              memory,
+              fulltextScore: 0,
+              vectorScore: 0,
+              chunkScore,
+              recencyScore: recencyFromAgeDays(ageInDays),
+              confidenceScore: memory.confidence,
+              ftRank: null,
+              vecRank: null,
+              chunkRank: idx + 1,
+              graphHops: null,
+              matchedChunk,
             });
           }
         });
       }
 
       // Leg 3: Graph expansion — discover memories 1-2 hops from the top
-      // initial BM25/vector matches via RELATES_TO and MENTIONS edges.
+      // initial BM25/vector/chunk matches via RELATES_TO and MENTIONS edges.
       const TOP_N_SEEDS = 5;
+      const CHUNK_RRF_WEIGHT = 0.85;
+      const computeRrf = (entry: MergedEntry): number =>
+        (entry.ftRank === null ? 0 : rrfScore(entry.ftRank)) +
+        (entry.vecRank === null ? 0 : rrfScore(entry.vecRank)) +
+        (entry.chunkRank === null
+          ? 0
+          : rrfScore(entry.chunkRank) * CHUNK_RRF_WEIGHT);
       const topSeeds = Array.from(merged.entries())
-        .sort((a, b) => {
-          const aRrf =
-            (a[1].ftRank === null ? 0 : rrfScore(a[1].ftRank)) +
-            (a[1].vecRank === null ? 0 : rrfScore(a[1].vecRank));
-          const bRrf =
-            (b[1].ftRank === null ? 0 : rrfScore(b[1].ftRank)) +
-            (b[1].vecRank === null ? 0 : rrfScore(b[1].vecRank));
-          return bRrf - aRrf;
-        })
+        .sort((a, b) => computeRrf(b[1]) - computeRrf(a[1]))
         .slice(0, TOP_N_SEEDS)
         .map(([id]) => id);
 
@@ -1297,20 +1572,21 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
             memory: meta.memory,
             fulltextScore: 0,
             vectorScore: 0,
+            chunkScore: 0,
             recencyScore: recencyFromAgeDays(meta.ageInDays),
             confidenceScore: meta.memory.confidence,
             ftRank: null,
             vecRank: null,
+            chunkRank: null,
             graphHops: gn.hops,
+            matchedChunk: null,
           });
         }
       }
 
       const candidates: MemoryCandidate[] = Array.from(merged.values()).map(
         (entry) => {
-          const rrfCombined =
-            (entry.ftRank === null ? 0 : rrfScore(entry.ftRank)) +
-            (entry.vecRank === null ? 0 : rrfScore(entry.vecRank));
+          const rrfCombined = computeRrf(entry);
           const graphBoost =
             entry.graphHops === null
               ? 0
@@ -1334,6 +1610,19 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
             reasons.push("strong semantic match");
           } else if (entry.fulltextScore > 0.5) {
             reasons.push("strong content match");
+          }
+          // Chunk-level match: a specific paragraph in a long memory matched
+          // even if the whole-memory embedding/fulltext didn't rank it
+          // highly. Surface this so users see "matched on a passage" as a
+          // distinct reason from whole-memory match.
+          if (
+            entry.chunkScore > 0 &&
+            entry.vecRank === null &&
+            entry.ftRank === null
+          ) {
+            reasons.push("matched specific passage in long content");
+          } else if (entry.chunkScore > 0) {
+            reasons.push("matched specific passage");
           }
           if (entry.graphHops === 1) {
             reasons.push("directly connected in knowledge graph");
@@ -1366,6 +1655,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
                   ? `Matched because: ${reasons.join(", ")}`
                   : "Weak match across all signals",
             },
+            matchedChunk: entry.matchedChunk ?? undefined,
           };
         },
       );
@@ -1409,6 +1699,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
            memoryId: $memoryId,
            proposedContent: $proposedContent,
            reason: $reason,
+           kind: 'update',
            status: 'pending',
            createdAt: $now,
            resolvedAt: null
@@ -1432,99 +1723,222 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         memoryId: props.memoryId,
         proposedContent: props.proposedContent,
         reason: props.reason,
+        kind: "update",
         status: props.status,
         createdAt: props.createdAt,
         resolvedAt: null,
+        // The create paths don't pre-fetch the memory snapshot — list/
+        // resolve callers don't need it on the return of a create. The
+        // listProposedUpdates query joins it back when it's needed.
+        memorySnapshot: null,
+      };
+    });
+  }
+
+  /**
+   * V2 fact-extraction emits "delete this old memory because the user just
+   * stated a contradicting fact" → recorded as a `:ProposedUpdate` with
+   * `kind: 'delete'` so the user explicitly approves before destructive
+   * action. Mirrors `createProposedUpdate` shape so the existing list /
+   * resolve plumbing handles both.
+   */
+  async createProposedDelete(params: {
+    memoryId: string;
+    reason: string;
+  }): Promise<ProposedUpdateNode> {
+    return this.withSession(async (session) => {
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      const result = await session.run(
+        `MATCH (m:Memory {id: $memoryId})
+         CREATE (p:ProposedUpdate {
+           id: $id,
+           memoryId: $memoryId,
+           proposedContent: '',
+           reason: $reason,
+           kind: 'delete',
+           status: 'pending',
+           createdAt: $now,
+           resolvedAt: null
+         })
+         CREATE (p)-[:UPDATE_FOR]->(m)
+         RETURN p`,
+        {
+          id,
+          memoryId: params.memoryId,
+          reason: params.reason,
+          now,
+        },
+      );
+
+      const firstRecord = result.records[0];
+      if (!firstRecord) throw new Error("Failed to create proposed delete");
+      const props = firstRecord.get("p").properties;
+      return {
+        id: props.id,
+        memoryId: props.memoryId,
+        proposedContent: "",
+        reason: props.reason,
+        kind: "delete",
+        status: props.status,
+        createdAt: props.createdAt,
+        resolvedAt: null,
+        memorySnapshot: null,
       };
     });
   }
 
   async listProposedUpdates(userId: string): Promise<ProposedUpdateNode[]> {
     return this.withSession(async (session) => {
+      // Pull the target memory's title + content alongside each proposal
+      // so the proposals UI can render a diff without a round-trip per
+      // row. A LEFT-join via OPTIONAL MATCH would be redundant here
+      // because UPDATE_FOR is required on creation; we still defensive-
+      // check below in case a memory is deleted out from under us.
       const result = await session.run(
         `MATCH (p:ProposedUpdate {status: 'pending'})-[:UPDATE_FOR]->(m:Memory {userId: $userId})
-         RETURN p
+         RETURN p, m.title AS memoryTitle, m.content AS memoryContent
          ORDER BY p.createdAt DESC`,
         { userId },
       );
 
       return result.records.map((record) => {
         const props = record.get("p").properties;
+        // `kind` is absent on pre-V2 proposals — coerce to "update".
+        const rawKind = props.kind;
+        const kind: ProposedUpdateKind =
+          rawKind === "delete" ? "delete" : "update";
+        const titleRaw = record.get("memoryTitle");
+        const contentRaw = record.get("memoryContent");
+        const memorySnapshot =
+          typeof titleRaw === "string" && typeof contentRaw === "string"
+            ? { title: titleRaw, content: contentRaw }
+            : null;
         return {
           id: props.id,
           memoryId: props.memoryId,
           proposedContent: props.proposedContent,
           reason: props.reason,
+          kind,
           status: props.status,
           createdAt: props.createdAt,
           resolvedAt: props.resolvedAt ?? null,
+          memorySnapshot,
         };
       });
     });
   }
 
+  /**
+   * Approve or reject a proposed update OR deletion.
+   *
+   * - Update + approve: copy `proposedContent` onto the memory.
+   * - Delete + approve: hard-delete the memory (and its chunks).
+   * - Reject: just mark the proposal rejected; the memory is untouched.
+   *
+   * Returns null when the proposal id doesn't exist or doesn't belong to
+   * the caller (the calling Convex action verifies the proposal targets a
+   * memory owned by the user before invoking this).
+   */
   async resolveProposal(
     proposalId: string,
     action: "approve" | "reject",
-  ): Promise<{ status: string; memoryId: string } | null> {
+  ): Promise<{
+    status: string;
+    memoryId: string;
+    kind: ProposedUpdateKind;
+  } | null> {
     return this.withSession(async (session) => {
       const now = new Date().toISOString();
 
-      if (action === "approve") {
-        const result = await session.run(
-          `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
-           SET p.status = 'approved', p.resolvedAt = $now,
-               m.content = p.proposedContent, m.updatedAt = $now
-           WITH p, m
-           OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-           RETURN p.status AS status, m, collect(t.name) AS tags`,
+      // Look up the proposal's kind first — we branch on it for approve.
+      const lookup = await session.run(
+        `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
+         RETURN coalesce(p.kind, 'update') AS kind, m.id AS memoryId, m.userId AS userId`,
+        { proposalId },
+      );
+      if (lookup.records.length === 0) return null;
+      const lookupRecord = lookup.records[0];
+      if (!lookupRecord) return null;
+      const rawKind = String(lookupRecord.get("kind"));
+      const kind: ProposedUpdateKind =
+        rawKind === "delete" ? "delete" : "update";
+      const memoryId = String(lookupRecord.get("memoryId"));
+      const userId = String(lookupRecord.get("userId"));
+
+      if (action === "reject") {
+        await session.run(
+          `MATCH (p:ProposedUpdate {id: $proposalId})
+           SET p.status = 'rejected', p.resolvedAt = $now`,
           { proposalId, now },
         );
-
-        if (result.records.length === 0) return null;
-        const firstRecord = result.records[0];
-        if (!firstRecord) return null;
-        const memory = toMemoryWithTags(firstRecord);
-
         await this.logEvent(
           session,
-          memory.id,
-          "proposal_approved",
+          memoryId,
+          "proposal_rejected",
           "api",
-          {},
-          toSnapshot(memory),
+          { kind },
+          null,
         );
-
-        return {
-          status: String(firstRecord.get("status")),
-          memoryId: memory.id,
-        };
+        return { status: "rejected", memoryId, kind };
       }
 
+      if (kind === "delete") {
+        // Approving a delete proposal hard-deletes the memory and all its
+        // chunks. The proposal itself is also removed (DETACH DELETE on
+        // the memory takes its UPDATE_FOR edge with it).
+        await session.run(
+          `MATCH (c:Chunk {memoryId: $memoryId, userId: $userId})
+           DETACH DELETE c`,
+          { memoryId, userId },
+        );
+        await session.run(
+          `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
+           SET p.status = 'approved', p.resolvedAt = $now
+           WITH m
+           DETACH DELETE m`,
+          { proposalId, now },
+        );
+        await this.logEvent(
+          session,
+          memoryId,
+          "proposal_approved",
+          "api",
+          { kind: "delete" },
+          null,
+        );
+        return { status: "approved", memoryId, kind };
+      }
+
+      // kind === "update"
       const result = await session.run(
         `MATCH (p:ProposedUpdate {id: $proposalId})-[:UPDATE_FOR]->(m:Memory)
-         SET p.status = 'rejected', p.resolvedAt = $now
-         RETURN p.status AS status, m.id AS memoryId`,
+         SET p.status = 'approved', p.resolvedAt = $now,
+             m.content = p.proposedContent, m.updatedAt = $now
+         WITH p, m
+         OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+         RETURN p.status AS status, m, collect(t.name) AS tags`,
         { proposalId, now },
       );
-
       if (result.records.length === 0) return null;
-      const record = result.records[0];
-      if (!record) return null;
-      const memoryId = String(record.get("memoryId"));
+      const firstRecord = result.records[0];
+      if (!firstRecord) return null;
+      const memory = toMemoryWithTags(firstRecord);
 
       await this.logEvent(
         session,
-        memoryId,
-        "proposal_rejected",
+        memory.id,
+        "proposal_approved",
         "api",
-        {},
-        null,
+        { kind: "update" },
+        toSnapshot(memory),
       );
 
       return {
-        status: String(record.get("status")),
-        memoryId,
+        status: String(firstRecord.get("status")),
+        memoryId: memory.id,
+        kind: "update",
       };
     });
   }

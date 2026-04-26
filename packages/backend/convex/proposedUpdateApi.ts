@@ -8,14 +8,24 @@ interface ProposedUpdateNode {
   memoryId: string;
   proposedContent: string;
   reason: string;
+  /** "update" rewrites memory.content. "delete" hard-deletes the memory on approve. */
+  kind: "update" | "delete";
   status: string;
   createdAt: string;
   resolvedAt: string | null;
+  /**
+   * Title + content of the target memory at the time of listing. The
+   * proposals UI uses this to render the diff (UPDATE) or the
+   * to-be-deleted body (DELETE) without needing a separate
+   * memory-detail fetch per row.
+   */
+  memorySnapshot: { title: string; content: string } | null;
 }
 
 interface ResolveResult {
   status: string;
   memoryId: string;
+  kind: "update" | "delete";
 }
 
 export const listProposedUpdates = authAction({

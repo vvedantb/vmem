@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { authAction } from "./auth";
+import { authAction, authMutation } from "./auth";
 import { internal } from "./_generated/api";
 
 // --- Return type interfaces (match MemoryService shapes) ---
@@ -29,6 +29,13 @@ interface ScoreBreakdown {
   vector: number;
   recency: number;
   confidence: number;
+  /** Graph proximity boost. 1.0 for 1-hop, 0.5 for 2-hop, 0 otherwise. */
+  graphBoost: number;
+}
+
+interface MatchedChunk {
+  content: string;
+  position: number;
 }
 
 interface MemoryCandidate extends MemoryWithTags {
@@ -37,6 +44,12 @@ interface MemoryCandidate extends MemoryWithTags {
     scoreBreakdown: ScoreBreakdown;
     reason: string;
   };
+  /**
+   * Set when retrieval matched a paragraph-level chunk inside a long memory
+   * instead of (or in addition to) the whole-memory embedding. UIs can use
+   * this to highlight the specific passage that triggered the match.
+   */
+  matchedChunk?: MatchedChunk;
 }
 
 interface UserContext {
@@ -69,6 +82,21 @@ interface MemoryEvent {
 
 // --- Actions ---
 
+/**
+ * Generate a signed URL the client can POST a memory upload to. Backed by
+ * Convex storage — the URL is valid for ~1 hour. Returns the URL only;
+ * the client receives `{ storageId }` from Convex when the POST completes
+ * and forwards it to `fileImport.importMemoryFromFile` for processing.
+ *
+ * Auth-gated so anonymous callers can't generate upload URLs.
+ */
+export const generateMemoryUploadUrl = authMutation({
+  args: {},
+  handler: async (ctx): Promise<string> => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
 export const createMemory = authAction({
   args: {
     title: v.string(),
@@ -80,6 +108,12 @@ export const createMemory = authAction({
     expiresAt: v.optional(v.string()),
     url: v.optional(v.string()),
     profileId: v.optional(v.string()),
+    // External ID idempotency. Callers that have a stable upstream
+    // identifier (file content hash, Twitter bookmark id, …) can pass
+    // both `externalId` and `sourceType`; the backend short-circuits to
+    // the existing memory on re-import instead of duplicating.
+    externalId: v.optional(v.string()),
+    sourceType: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId: string | null = await ctx.runQuery(
@@ -110,6 +144,8 @@ export const createMemory = authAction({
         confidence: args.confidence,
         expiresAt: args.expiresAt,
         url: args.url,
+        externalId: args.externalId,
+        sourceType: args.sourceType,
       },
     );
   },

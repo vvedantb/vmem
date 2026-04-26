@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -17,23 +17,54 @@ import {
   Badge,
   Label,
 } from "@vmem/ui";
-import { IconLoader2, IconPlus, IconX } from "@tabler/icons-react";
+import {
+  IconLoader2,
+  IconPlus,
+  IconX,
+  IconUpload,
+  IconFileText,
+} from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 import { ProfileDropdown } from "./ProfileDropdown";
+
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const ACCEPTED_FILE_EXTENSIONS = ".pdf,.txt,.md,.markdown";
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function isAcceptedFile(file: File): boolean {
+  const lower = file.name.toLowerCase();
+  return (
+    lower.endsWith(".pdf") ||
+    lower.endsWith(".txt") ||
+    lower.endsWith(".md") ||
+    lower.endsWith(".markdown") ||
+    file.type === "application/pdf" ||
+    file.type === "text/plain" ||
+    file.type === "text/markdown"
+  );
+}
 
 export default function AddMemoryModal({
   trigger,
 }: {
   trigger?: React.ReactNode;
 }) {
-  const { createMemory } = useMemoryContext();
+  const { createMemory, uploadMemoryFile } = useMemoryContext();
   const [open, setOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [selectedProfileId, setSelectedProfileId] = useState<
     string | undefined
   >();
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const {
     register,
@@ -73,6 +104,44 @@ export default function AddMemoryModal({
     reset();
     setTagInput("");
     setSelectedProfileId(undefined);
+    setPendingFile(null);
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!isAcceptedFile(file)) {
+      toast.error("Only .pdf, .txt, and .md files are supported");
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      toast.error(`File too large — max ${formatFileSize(MAX_UPLOAD_BYTES)}`);
+      return;
+    }
+    setPendingFile(file);
+  };
+
+  const handleUploadFile = async () => {
+    if (!pendingFile) return;
+    setIsUploading(true);
+    try {
+      await uploadMemoryFile({
+        file: pendingFile,
+        profileId: selectedProfileId,
+      });
+      toast.success("File imported", {
+        description: `${pendingFile.name} added as a memory`,
+      });
+      setPendingFile(null);
+      setOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not import file",
+      );
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const onSubmit = async (data: MemoryFormValues) => {
@@ -152,6 +221,68 @@ export default function AddMemoryModal({
               <p className="text-sm text-destructive">
                 {errors.content.message}
               </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED_FILE_EXTENSIONS}
+              onChange={handleFileSelect}
+              disabled={isSubmitting || isUploading}
+              className="hidden"
+            />
+            {pendingFile ? (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+                <IconFileText className="w-5 h-5 text-muted-foreground shrink-0" />
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-sm font-medium truncate text-foreground">
+                    {pendingFile.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatFileSize(pendingFile.size)}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleUploadFile}
+                  disabled={isUploading}
+                  className="bg-primary text-primary-foreground"
+                >
+                  {isUploading ? (
+                    <>
+                      <IconLoader2 size={14} className="animate-spin mr-1" />
+                      Importing
+                    </>
+                  ) : (
+                    "Import"
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  size="icon-xs"
+                  variant="ghost"
+                  onClick={() => setPendingFile(null)}
+                  disabled={isUploading}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <IconX size={14} />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isSubmitting || isUploading}
+                className="w-full justify-start text-muted-foreground hover:text-foreground"
+              >
+                <IconUpload size={16} />
+                <span className="ml-2">Or upload a PDF, .txt, or .md file</span>
+              </Button>
             )}
           </div>
 

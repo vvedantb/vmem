@@ -14,6 +14,7 @@ import { Route as MainRouteRouteImport } from './routes/_main/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MainVoiceRouteImport } from './routes/_main/voice'
 import { Route as MainSkillsRouteImport } from './routes/_main/skills'
+import { Route as MainProposalsRouteImport } from './routes/_main/proposals'
 import { Route as MainNotificationsRouteImport } from './routes/_main/notifications'
 import { Route as MainHomeRouteImport } from './routes/_main/home'
 import { Route as MainFilesRouteImport } from './routes/_main/files'
@@ -63,6 +64,11 @@ const MainVoiceRoute = MainVoiceRouteImport.update({
 const MainSkillsRoute = MainSkillsRouteImport.update({
   id: '/skills',
   path: '/skills',
+  getParentRoute: () => MainRouteRoute,
+} as any)
+const MainProposalsRoute = MainProposalsRouteImport.update({
+  id: '/proposals',
+  path: '/proposals',
   getParentRoute: () => MainRouteRoute,
 } as any)
 const MainNotificationsRoute = MainNotificationsRouteImport.update({
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/files': typeof MainFilesRoute
   '/home': typeof MainHomeRoute
   '/notifications': typeof MainNotificationsRoute
+  '/proposals': typeof MainProposalsRoute
   '/skills': typeof MainSkillsRoute
   '/voice': typeof MainVoiceRoute
   '/codebases/$id': typeof MainCodebasesIdRoute
@@ -238,6 +245,7 @@ export interface FileRoutesByTo {
   '/files': typeof MainFilesRoute
   '/home': typeof MainHomeRoute
   '/notifications': typeof MainNotificationsRoute
+  '/proposals': typeof MainProposalsRoute
   '/skills': typeof MainSkillsRoute
   '/voice': typeof MainVoiceRoute
   '/codebases/$id': typeof MainCodebasesIdRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/_main/files': typeof MainFilesRoute
   '/_main/home': typeof MainHomeRoute
   '/_main/notifications': typeof MainNotificationsRoute
+  '/_main/proposals': typeof MainProposalsRoute
   '/_main/skills': typeof MainSkillsRoute
   '/_main/voice': typeof MainVoiceRoute
   '/_main/codebases/$id': typeof MainCodebasesIdRoute
@@ -306,6 +315,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/home'
     | '/notifications'
+    | '/proposals'
     | '/skills'
     | '/voice'
     | '/codebases/$id'
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/home'
     | '/notifications'
+    | '/proposals'
     | '/skills'
     | '/voice'
     | '/codebases/$id'
@@ -371,6 +382,7 @@ export interface FileRouteTypes {
     | '/_main/files'
     | '/_main/home'
     | '/_main/notifications'
+    | '/_main/proposals'
     | '/_main/skills'
     | '/_main/voice'
     | '/_main/codebases/$id'
@@ -438,6 +450,13 @@ declare module '@tanstack/react-router' {
       path: '/skills'
       fullPath: '/skills'
       preLoaderRoute: typeof MainSkillsRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/proposals': {
+      id: '/_main/proposals'
+      path: '/proposals'
+      fullPath: '/proposals'
+      preLoaderRoute: typeof MainProposalsRouteImport
       parentRoute: typeof MainRouteRoute
     }
     '/_main/notifications': {
@@ -630,6 +649,7 @@ interface MainRouteRouteChildren {
   MainFilesRoute: typeof MainFilesRoute
   MainHomeRoute: typeof MainHomeRoute
   MainNotificationsRoute: typeof MainNotificationsRoute
+  MainProposalsRoute: typeof MainProposalsRoute
   MainSkillsRoute: typeof MainSkillsRoute
   MainVoiceRoute: typeof MainVoiceRoute
   MainCodebasesIdRoute: typeof MainCodebasesIdRoute
@@ -661,6 +681,7 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainFilesRoute: MainFilesRoute,
   MainHomeRoute: MainHomeRoute,
   MainNotificationsRoute: MainNotificationsRoute,
+  MainProposalsRoute: MainProposalsRoute,
   MainSkillsRoute: MainSkillsRoute,
   MainVoiceRoute: MainVoiceRoute,
   MainCodebasesIdRoute: MainCodebasesIdRoute,
