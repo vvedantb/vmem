@@ -228,6 +228,31 @@ const schema = defineSchema({
     }),
 
   userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
+
+  /**
+   * Cached "User Profile" prose for the MCP `vmem://context_prompt`
+   * resource. AI clients (Claude, Cursor) read this once per conversation
+   * to prime their understanding of the user without making N memory
+   * tool calls.
+   *
+   * Regenerated via debounced scheduler: any memory write flips
+   * `pendingRegeneration = true` and schedules a regen check 60s out.
+   * The check runs the LLM only if the flag is set, keeping cost
+   * bounded under bursty write patterns.
+   */
+  contextPromptCache: defineTable({
+    userId: v.id("users"),
+    /** Markdown-formatted profile prose served to MCP clients. */
+    content: v.string(),
+    /** Wall-clock ms when the LLM last regenerated `content`. */
+    generatedAt: v.number(),
+    /** Snapshot of the user's memory count at generation time — used to
+     *  detect "lots changed since last regen" for staleness UX later. */
+    memoryCountAtGeneration: v.number(),
+    /** True when a memory write happened since the last regen and a
+     *  regen-check is scheduled. The check clears the flag on success. */
+    pendingRegeneration: v.boolean(),
+  }).index("by_user", ["userId"]),
 });
 
 export default schema;

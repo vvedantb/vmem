@@ -10,6 +10,7 @@ import { NavLink } from "./NavLink";
 export type SidebarNavigationProps = {
   pathname: string;
   unreadCount: number;
+  proposalsCount: number;
   isCollapsed: boolean;
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
@@ -18,6 +19,7 @@ export type SidebarNavigationProps = {
 function MainNav({
   pathname,
   unreadCount,
+  proposalsCount,
   isIconOnly,
   isMobile,
   onNavigate,
@@ -25,6 +27,7 @@ function MainNav({
 }: {
   pathname: string;
   unreadCount: number;
+  proposalsCount: number;
   isIconOnly: boolean;
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
@@ -116,6 +119,7 @@ function MainNav({
                       isIconOnly={isIconOnly}
                       isMobile={isMobile}
                       unreadCount={unreadCount}
+                      proposalsCount={proposalsCount}
                       onNavigate={onNavigate}
                     />
                   </li>
@@ -240,6 +244,7 @@ function SettingsNav({
 export function SidebarNavigation({
   pathname,
   unreadCount,
+  proposalsCount,
   isCollapsed,
   isMobile,
   onNavigate,
@@ -269,6 +274,7 @@ export function SidebarNavigation({
           key="main"
           pathname={pathname}
           unreadCount={unreadCount}
+          proposalsCount={proposalsCount}
           isIconOnly={isIconOnly}
           isMobile={isMobile}
           onNavigate={onNavigate}

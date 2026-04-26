@@ -20,6 +20,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useConvexAuth, useAction } from "convex/react";
 import { api } from "@vmem/backend";
 import { useNotifications } from "./contexts/NotificationContext";
+import { useProposals } from "@/hooks/useProposals";
 import {
   IconX,
   IconLayoutSidebarLeftCollapse,
@@ -46,6 +47,7 @@ export default function Sidebar({
   const { isLoaded } = useUser();
   const isAuthLoading = !isLoaded;
   const { unreadCount } = useNotifications();
+  const { pendingCount: proposalsCount } = useProposals();
   const { pageTitle } = usePageTitle();
 
   const isDark = theme === "dark";
@@ -171,6 +173,7 @@ export default function Sidebar({
               <SidebarNavigation
                 pathname={pathname}
                 unreadCount={unreadCount}
+                proposalsCount={proposalsCount}
                 isCollapsed={false}
                 isMobile
                 onNavigate={() => setMobileMenuOpen(false)}
@@ -268,6 +271,7 @@ export default function Sidebar({
           <SidebarNavigation
             pathname={pathname}
             unreadCount={unreadCount}
+            proposalsCount={proposalsCount}
             isCollapsed={isCollapsed}
             isMobile={false}
           />
