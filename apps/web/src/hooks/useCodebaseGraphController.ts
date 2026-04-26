@@ -58,6 +58,8 @@ export interface CodebaseGraphController {
   // ----- Raw data -----
   apiNodes: CodeNode[];
   apiEdges: CodeEdge[];
+  /** True when the API capped the payload to fit Convex's array limit. */
+  truncated: boolean;
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
@@ -138,6 +140,7 @@ export function useCodebaseGraphController(
   const {
     nodes: apiNodes,
     edges: apiEdges,
+    truncated,
     isLoading,
     isError,
     error,
@@ -268,6 +271,7 @@ export function useCodebaseGraphController(
   return {
     apiNodes,
     apiEdges,
+    truncated,
     isLoading,
     isError,
     error,
