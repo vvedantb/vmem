@@ -1981,14 +1981,18 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
    * - Delete + approve: hard-delete the existing memory + its chunks.
    *
    * Dream Mode V2 synthesis kinds (DERIVED_FROM-bound, no UPDATE_FOR):
-   * - insight / connection / anomaly + approve: materialize a NEW :Memory
+   * - insight / connection + approve: materialize a NEW :Memory
    *   (type='knowledge', source='dream-mode') with :DERIVED_FROM edges
    *   pointing back to each source memory. The new memory's id is
-   *   returned in `memoryId` so the caller can backfill its embedding.
-   * - contradiction + approve OR reject: V1 just marks the proposal
-   *   resolved. The user is expected to manually edit / delete the
-   *   conflicting memories; we don't try to auto-resolve. (V2 TODO:
-   *   structured "pick one" UI that hard-deletes the loser.)
+   *   returned in `memoryId` so the caller can backfill its embedding
+   *   and run enrichment.
+   * - contradiction / anomaly + approve OR reject: V1 just marks the
+   *   proposal resolved. These are flags rather than new knowledge —
+   *   contradictions need a human to pick a winning side, and anomalies
+   *   ask the user to confirm whether the seed memory belongs in the
+   *   profile. (Materialising anomalies as memories produced
+   *   "memory talking about a memory" with no tags or graph edges, so
+   *   that path was removed.)
    *
    * Reject (any kind): mark resolved, no graph mutation.
    *
@@ -2142,13 +2146,21 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
         };
       }
 
-      if (kind === "contradiction") {
-        // V1: contradictions are dismiss-only. Approve and reject are
-        // both no-op against the underlying memories — the user resolves
-        // the conflict manually by editing/deleting one side. We still
-        // mark the proposal resolved so it leaves the queue.
+      if (kind === "contradiction" || kind === "anomaly") {
+        // V1: contradictions and anomalies are dismiss-only.
+        //
+        // Contradiction — approve and reject are both no-op against the
+        // underlying memories; the user resolves the conflict manually by
+        // editing/deleting one side. We still mark the proposal resolved
+        // so it leaves the queue.
         // TODO(V2): structured "pick winner" UI that hard-deletes the
         // memory the user did not pick.
+        //
+        // Anomaly — by definition a flag, not new knowledge. Materializing
+        // it as a memory produced "memory talking about a memory" with no
+        // tags or connections, which was useless. The user reviews the
+        // seed memory itself (linked from the card) and decides whether
+        // it belongs in the profile; the proposal just clears.
         await session.run(
           `MATCH (p:ProposedUpdate {id: $proposalId})
            SET p.status = 'approved', p.resolvedAt = $now`,
@@ -2160,14 +2172,14 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
             memoryId,
             "proposal_approved",
             "api",
-            { kind: "contradiction" },
+            { kind },
             null,
           );
         }
         return { status: "approved", memoryId, kind };
       }
 
-      // kind ∈ { insight, connection, anomaly } — synthesis materialization.
+      // kind ∈ { insight, connection } — synthesis materialization.
       // Create a NEW :Memory carrying the proposal's title/content with
       // type='knowledge' and source='dream-mode', then attach
       // :DERIVED_FROM edges to every source memory.

@@ -1,6 +1,7 @@
 "use node";
 
 import { internalAction } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { MemoryService } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
@@ -30,43 +31,71 @@ export const resolveProposalInternal = internalAction({
     const result = await service.resolveProposal(args.proposalId, action);
 
     // Synthesis approval materializes a NEW memory without an embedding
-    // (resolveProposal is pure Cypher — has no OpenRouter access). Embed
-    // it here best-effort; if the user has no API key, leave it null and
-    // a future embedding backfill run will pick it up.
+    // and without enrichment (resolveProposal is pure Cypher — has no
+    // OpenRouter access). Embed + enrich it here so it ends up
+    // searchable, tagged, and linked via RELATES_TO like a regular
+    // memory. Without this the materialized memory was a dead-end node
+    // with only DERIVED_FROM edges — useless in graph view.
     if (
       result &&
       result.status === "approved" &&
       result.materializedMemoryId &&
       action === "approve"
     ) {
+      const materializedMemoryId = result.materializedMemoryId;
       try {
-        const auth = await tryUserAndApiKeyByClerkId(
-          ctx,
+        const detail = await service.getMemory(
           args.clerkId,
-          "OPENROUTER_API_KEY",
+          materializedMemoryId,
         );
-        if (auth) {
-          const detail = await service.getMemory(
+        if (detail) {
+          const auth = await tryUserAndApiKeyByClerkId(
+            ctx,
             args.clerkId,
-            result.materializedMemoryId,
+            "OPENROUTER_API_KEY",
           );
-          if (detail) {
-            const embedding = await generateEmbedding({
-              ctx,
-              apiKey: auth.apiKey,
-              userId: auth.userId,
-              profileId: detail.profileId ?? undefined,
-              feature: "proposal-accept",
-              text: `${detail.title}\n\n${detail.content}`,
-            });
-            await service.setEmbeddings([
-              { id: result.materializedMemoryId, embedding },
-            ]);
+          if (auth) {
+            // Embed the materialized memory so it shows up in vector
+            // search. Best-effort — leave null on failure; backfill can
+            // pick it up later.
+            try {
+              const embedding = await generateEmbedding({
+                ctx,
+                apiKey: auth.apiKey,
+                userId: auth.userId,
+                profileId: detail.profileId ?? undefined,
+                feature: "proposal-accept",
+                text: `${detail.title}\n\n${detail.content}`,
+              });
+              await service.setEmbeddings([
+                { id: materializedMemoryId, embedding },
+              ]);
+            } catch (e) {
+              console.error(
+                `[proposedUpdates] embedding for materialized memory ${materializedMemoryId} failed`,
+                e,
+              );
+            }
+
+            // Run the same enrichment pipeline regular memories get —
+            // tags, entities, RELATES_TO edges. Scheduled async; the
+            // approve mutation returns immediately.
+            await ctx.scheduler.runAfter(
+              0,
+              internal.neo4jActions.enrichment.enrichMemoryInternal,
+              {
+                clerkId: args.clerkId,
+                memoryId: materializedMemoryId,
+                title: detail.title,
+                content: detail.content,
+                profileId: detail.profileId ?? undefined,
+              },
+            );
           }
         }
       } catch (e) {
         console.error(
-          `[proposedUpdates] embedding for materialized memory ${result.materializedMemoryId} failed`,
+          `[proposedUpdates] post-materialize enrichment for ${materializedMemoryId} failed`,
           e,
         );
       }

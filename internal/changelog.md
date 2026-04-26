@@ -1,5 +1,13 @@
 # Changelog
 
+## Dream Mode V2 — Synthesis Materialization & Enrichment Fixes — 2026-04-26
+
+- **Materialized synthesis memories now fully enriched**: Previously, accepting an insight/connection proposal created a bare memory with only `:DERIVED_FROM` edges and no embedding, tags, entities, or `:RELATES_TO` links — useless in graph view. Now synthesis materialize runs through the same enrichment pipeline as regular memory creates, gaining full graph context.
+- **Anomaly reclassified as dismiss-only flag**: Anomalies were materializing as memories with meta-content ("memory about a memory") because by definition an anomaly is a flag ("confirm this belongs"), not new knowledge. Now anomalies and contradictions both clear the proposal on approve/reject with "Acknowledge"/"Dismiss" buttons — the user reviews the anomaly seed memory itself, not a re-wrapped summary.
+- **Strict synthesis prompt with meta-language rules**: Updated Dream Mode prompt with hard rules banning "outlier", "unlike others", "the memory about X" phrasing and added bad/good example pairs (e.g., bad: "Cloudflare note is outlier vs generic X", good: "I gravitate toward edge-compute platforms — Cloudflare Workers..."). Reason field kept as metadata reference so users see which sources drove the synthesis.
+- **Auto-accept now insight/connection only**: The auto-accept toggle applies only to materializable kinds (insight, connection). Contradictions and anomalies always route through proposals for human review, even with auto-accept enabled.
+- **Post-materialize enrichment scheduling**: Both auto-accept path (`dreamMode.ts`) and manual approve path (`proposedUpdates.ts`) schedule `enrichMemoryInternal` after materialization so tags, entities, and `:RELATES_TO` edges populate asynchronously.
+
 ## OpenRouter Call Logging & Cost Dashboard — 2026-04-26
 
 - **Centralized OpenRouter wrapper (`convex/lib/openRouter.ts`)**: Single source of truth for chat completions and embeddings. Injects `usage:{include:true}` for inline cost, measures latency, schedules log rows for every HTTP attempt (including retries/errors), gates prompt/completion preview text on `OPENROUTER_LOG_PROMPTS=1` env var.
