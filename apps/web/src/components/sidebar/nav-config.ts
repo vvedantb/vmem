@@ -25,6 +25,7 @@ import {
   IconBuilding,
   IconVariable,
   IconChecklist,
+  IconReceipt2,
 } from "@tabler/icons-react";
 import type { NavGroup, SettingsNavItem } from "./types";
 
@@ -54,6 +55,11 @@ export const navGroups: NavGroup[] = [
     icon: IconUserCircle,
     items: [
       { href: "/activity", label: "Activity", icon: IconActivity },
+      {
+        href: "/openrouter-logs",
+        label: "OpenRouter Logs",
+        icon: IconReceipt2,
+      },
       { href: "/proposals", label: "Proposals", icon: IconChecklist },
       { href: "/notifications", label: "Notifications", icon: IconBell },
       { href: "/settings", label: "Settings", icon: IconSettings },

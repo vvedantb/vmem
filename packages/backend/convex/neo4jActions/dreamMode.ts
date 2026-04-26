@@ -1,23 +1,23 @@
 "use node";
 
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { v } from "convex/values";
 import {
   MemoryService,
   computeContentHash,
 } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
-import { generateEmbedding } from "../../src/neo4j/embeddingService";
+import { callOpenRouterChat, generateEmbedding } from "../lib/openRouter";
 import {
   buildDreamSynthesisPrompt,
   parseDreamSynthesisResponse,
   type DreamClusterMember,
   type ParsedSynthesis,
 } from "../../src/neo4j/dreamPrompt";
-import { tryUserEnvVarByClerkId } from "../lib/envVars";
+import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
 
-const LLM_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
 
 /**
@@ -43,54 +43,32 @@ interface DreamRunResult {
   reason: "ok" | "no-key" | "no-recent-memories" | "rate-limited";
 }
 
-/** Safely extract the text content from an OpenRouter chat completion. */
-function extractLLMContent(json: unknown): string | undefined {
-  if (typeof json !== "object" || json === null) return undefined;
-  const choices = Reflect.get(json, "choices");
-  if (!Array.isArray(choices) || choices.length === 0) return undefined;
-  const first: unknown = choices[0];
-  if (typeof first !== "object" || first === null) return undefined;
-  const message: unknown = Reflect.get(first, "message");
-  if (typeof message !== "object" || message === null) return undefined;
-  const content: unknown = Reflect.get(message, "content");
-  return typeof content === "string" ? content : undefined;
-}
-
 async function callSynthesisLLM(
+  ctx: ActionCtx,
   apiKey: string,
+  userId: Id<"users">,
+  profileId: Id<"profiles">,
   cluster: DreamClusterMember[],
 ): Promise<ParsedSynthesis | null> {
   const prompt = buildDreamSynthesisPrompt(cluster);
-  const res = await fetch(LLM_ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "https://vmem.vedantb.com",
-      "X-Title": "vmem",
-    },
-    body: JSON.stringify({
-      model: LLM_MODEL,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a memory-graph synthesis system. Respond with ONLY valid JSON. No thinking, no markdown.",
-        },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.2,
-    }),
+  const { content: rawText, ok } = await callOpenRouterChat(ctx, {
+    apiKey,
+    userId,
+    profileId,
+    feature: "dream-synthesis",
+    model: LLM_MODEL,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a memory-graph synthesis system. Respond with ONLY valid JSON. No thinking, no markdown.",
+      },
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.2,
   });
 
-  if (!res.ok) {
-    console.error(`[dream] OpenRouter ${String(res.status)}`);
-    return null;
-  }
-
-  const json: unknown = await res.json();
-  const rawText = extractLLMContent(json);
-  if (typeof rawText !== "string") return null;
+  if (!ok || rawText === null) return null;
 
   return parseDreamSynthesisResponse(
     rawText,
@@ -129,12 +107,12 @@ export const runDreamForProfileInternal = internalAction({
     };
 
     // Resolve API key — graceful skip if user hasn't configured one.
-    const apiKey = await tryUserEnvVarByClerkId(
+    const auth = await tryUserAndApiKeyByClerkId(
       ctx,
       args.clerkId,
       "OPENROUTER_API_KEY",
     );
-    if (!apiKey) {
+    if (!auth) {
       console.log(
         `[dream] No OPENROUTER_API_KEY for ${args.clerkId}, skipping`,
       );
@@ -207,7 +185,13 @@ export const runDreamForProfileInternal = internalAction({
 
         result.clustersScanned += 1;
 
-        const synthesis = await callSynthesisLLM(apiKey, cluster);
+        const synthesis = await callSynthesisLLM(
+          ctx,
+          auth.apiKey,
+          auth.userId,
+          args.profileId,
+          cluster,
+        );
         if (!synthesis) continue;
         if (synthesis.type === "skip") continue;
         if (synthesis.confidence < CONFIDENCE_FLOOR) continue;
@@ -232,10 +216,14 @@ export const runDreamForProfileInternal = internalAction({
           // pick a side.
           let embedding: number[] | null = null;
           try {
-            embedding = await generateEmbedding(
-              apiKey,
-              `${synthesis.title}\n\n${synthesis.content}`,
-            );
+            embedding = await generateEmbedding({
+              ctx,
+              apiKey: auth.apiKey,
+              userId: auth.userId,
+              profileId: args.profileId,
+              feature: "dream-materialize",
+              text: `${synthesis.title}\n\n${synthesis.content}`,
+            });
           } catch (e) {
             console.warn(
               `[dream] embedding failed for materialized memory, continuing without`,

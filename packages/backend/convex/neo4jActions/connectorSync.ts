@@ -1,12 +1,13 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { MemoryService } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
-import { generateEmbedding } from "../../src/neo4j/embeddingService";
-import { tryUserEnvVarByClerkId } from "../lib/envVars";
+import { generateEmbedding } from "../lib/openRouter";
+import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
 import { google } from "googleapis";
 import { Client as NotionClient } from "@notionhq/client";
 import type {
@@ -15,20 +16,39 @@ import type {
   RichTextItemResponse,
 } from "@notionhq/client/build/src/api-endpoints";
 
+/** Resolved auth pair carried through a sync — `null` if the user has no
+ *  OPENROUTER_API_KEY configured. */
+interface SyncAuth {
+  apiKey: string;
+  userId: Id<"users">;
+}
+
 /**
  * Best-effort embedding for a connector-sourced memory. Returns null when
  * the user has no OPENROUTER_API_KEY set or when the embedding request
  * itself fails — sync continues uninterrupted; the backfill migration
  * will fill these in later once a key is configured.
+ *
+ * Threads `userId` + `profileId` through to the wrapper so the resulting
+ * `openRouterLogs` row attributes spend to the right workspace.
  */
 async function embedSyncedDoc(
-  apiKey: string | null,
+  ctx: ActionCtx,
+  auth: SyncAuth | null,
+  profileId: string,
   title: string,
   content: string,
 ): Promise<number[] | null> {
-  if (!apiKey) return null;
+  if (!auth) return null;
   try {
-    return await generateEmbedding(apiKey, `${title}\n\n${content}`);
+    return await generateEmbedding({
+      ctx,
+      apiKey: auth.apiKey,
+      userId: auth.userId,
+      profileId,
+      feature: "connector-sync",
+      text: `${title}\n\n${content}`,
+    });
   } catch (e) {
     console.warn("connector sync embedding failed", e);
     return null;
@@ -55,7 +75,7 @@ export const syncGoogleDriveInternal = internalAction({
 
     // Resolve the user's OpenRouter key once per sync — reused for every
     // file's embedding. Null if not configured; syncs continue without it.
-    const apiKey = await tryUserEnvVarByClerkId(
+    const openRouterAuth = await tryUserAndApiKeyByClerkId(
       ctx,
       args.clerkId,
       "OPENROUTER_API_KEY",
@@ -63,9 +83,9 @@ export const syncGoogleDriveInternal = internalAction({
 
     try {
       // Setup Google Drive client
-      const auth = new google.auth.OAuth2();
-      auth.setCredentials({ access_token: args.accessToken });
-      const drive = google.drive({ version: "v3", auth });
+      const oauth = new google.auth.OAuth2();
+      oauth.setCredentials({ access_token: args.accessToken });
+      const drive = google.drive({ version: "v3", auth: oauth });
 
       // List Google Docs, Sheets, Slides
       const mimeTypes = [
@@ -106,7 +126,9 @@ export const syncGoogleDriveInternal = internalAction({
 
             const truncatedContent = content.slice(0, 50000);
             const embedding = await embedSyncedDoc(
-              apiKey,
+              ctx,
+              openRouterAuth,
+              profileId,
               file.name,
               truncatedContent,
             );
@@ -227,7 +249,7 @@ export const syncOneDriveInternal = internalAction({
     );
     const profileId = defaultProfile._id;
 
-    const apiKey = await tryUserEnvVarByClerkId(
+    const openRouterAuth = await tryUserAndApiKeyByClerkId(
       ctx,
       args.clerkId,
       "OPENROUTER_API_KEY",
@@ -276,7 +298,9 @@ export const syncOneDriveInternal = internalAction({
             const text = await contentRes.text();
             const truncatedText = text.slice(0, 50000);
             const embedding = await embedSyncedDoc(
-              apiKey,
+              ctx,
+              openRouterAuth,
+              profileId,
               item.name,
               truncatedText,
             );
@@ -489,7 +513,7 @@ export const syncLinearInternal = internalAction({
     );
     const profileId = defaultProfile._id;
 
-    const apiKey = await tryUserEnvVarByClerkId(
+    const openRouterAuth = await tryUserAndApiKeyByClerkId(
       ctx,
       args.clerkId,
       "OPENROUTER_API_KEY",
@@ -544,7 +568,9 @@ export const syncLinearInternal = internalAction({
 
             const truncatedContent = content.slice(0, 50000);
             const embedding = await embedSyncedDoc(
-              apiKey,
+              ctx,
+              openRouterAuth,
+              profileId,
               title,
               truncatedContent,
             );
@@ -611,7 +637,9 @@ export const syncLinearInternal = internalAction({
             const content = `${description}\nState: ${project.state}`;
             const truncatedContent = content.slice(0, 50000);
             const embedding = await embedSyncedDoc(
-              apiKey,
+              ctx,
+              openRouterAuth,
+              profileId,
               title,
               truncatedContent,
             );
@@ -743,7 +771,7 @@ export const syncNotionInternal = internalAction({
     );
     const profileId = defaultProfile._id;
 
-    const apiKey = await tryUserEnvVarByClerkId(
+    const openRouterAuth = await tryUserAndApiKeyByClerkId(
       ctx,
       args.clerkId,
       "OPENROUTER_API_KEY",
@@ -810,7 +838,13 @@ export const syncNotionInternal = internalAction({
                 ? page.url
                 : `https://notion.so/${page.id.replace(/-/g, "")}`;
 
-            const embedding = await embedSyncedDoc(apiKey, title, content);
+            const embedding = await embedSyncedDoc(
+              ctx,
+              openRouterAuth,
+              profileId,
+              title,
+              content,
+            );
 
             // Upsert to Neo4j
             await memoryService.upsertFromSource({

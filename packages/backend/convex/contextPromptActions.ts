@@ -1,11 +1,13 @@
 "use node";
 
-import { internalAction } from "./_generated/server";
+import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { MemoryService } from "../src/neo4j/memoryService";
 import { getDriver } from "../src/neo4j/driver";
-import { tryUserEnvVarByClerkId } from "./lib/envVars";
+import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
+import { callOpenRouterChat } from "./lib/openRouter";
 
 /**
  * Regenerates the cached `vmem://context_prompt` markdown for one user.
@@ -26,7 +28,6 @@ import { tryUserEnvVarByClerkId } from "./lib/envVars";
  * - `getContextPrompt` on first call when no cache row exists yet
  */
 
-const LLM_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
 
 /** Number of pinned memories to embed verbatim in the prompt. */
@@ -35,19 +36,6 @@ const PINNED_LIMIT = 20;
 const RECENT_LIMIT = 50;
 /** Per-memory char cap when feeding the summarizer — keeps prompt finite. */
 const RECENT_CONTENT_CHAR_CAP = 400;
-
-/** Same OpenRouter response shape extractor used everywhere else. */
-function extractLLMContent(json: unknown): string | undefined {
-  if (typeof json !== "object" || json === null) return undefined;
-  const choices = Reflect.get(json, "choices");
-  if (!Array.isArray(choices) || choices.length === 0) return undefined;
-  const first: unknown = choices[0];
-  if (typeof first !== "object" || first === null) return undefined;
-  const message: unknown = Reflect.get(first, "message");
-  if (typeof message !== "object" || message === null) return undefined;
-  const content: unknown = Reflect.get(message, "content");
-  return typeof content === "string" ? content : undefined;
-}
 
 interface MemorySnippet {
   title: string;
@@ -84,38 +72,30 @@ function buildSummaryPrompt(recent: MemorySnippet[]): string {
 }
 
 async function callSummarizer(
+  ctx: ActionCtx,
   apiKey: string,
+  userId: Id<"users">,
   recent: MemorySnippet[],
 ): Promise<string | null> {
   if (recent.length === 0) return null;
   try {
-    const res = await fetch(LLM_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://vmem.vedantb.com",
-        "X-Title": "vmem",
-      },
-      body: JSON.stringify({
-        model: LLM_MODEL,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You write concise prose summaries. Plain text only, no markdown.",
-          },
-          { role: "user", content: buildSummaryPrompt(recent) },
-        ],
-        temperature: 0.3,
-      }),
+    const { content } = await callOpenRouterChat(ctx, {
+      apiKey,
+      userId,
+      // No profileId — context-prompt cache is a single user-wide row,
+      // not bound to any one profile.
+      feature: "context-prompt",
+      model: LLM_MODEL,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You write concise prose summaries. Plain text only, no markdown.",
+        },
+        { role: "user", content: buildSummaryPrompt(recent) },
+      ],
+      temperature: 0.3,
     });
-    if (!res.ok) {
-      console.warn(`[context-prompt] summarizer HTTP ${String(res.status)}`);
-      return null;
-    }
-    const json: unknown = await res.json();
-    const content = extractLLMContent(json);
     return content ? content.trim() : null;
   } catch (err) {
     console.warn("[context-prompt] summarizer call failed", err);
@@ -178,13 +158,13 @@ export const regenerateContextPromptInternal = internalAction({
 
     // Profile summary is best-effort. Without an OpenRouter key we still
     // produce a useful prompt (about/preferences/pinned).
-    const apiKey = await tryUserEnvVarByClerkId(
+    const auth = await tryUserAndApiKeyByClerkId(
       ctx,
       args.clerkId,
       "OPENROUTER_API_KEY",
     );
-    const summary = apiKey
-      ? await callSummarizer(apiKey, recentSnippets)
+    const summary = auth
+      ? await callSummarizer(ctx, auth.apiKey, auth.userId, recentSnippets)
       : null;
 
     const sections: string[] = [];

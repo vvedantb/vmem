@@ -149,6 +149,98 @@ export const codebaseFields = {
 };
 
 /**
+ * Single source of truth for openRouterLogs table fields.
+ *
+ * Every OpenRouter API call (chat completions + embeddings) writes one row.
+ * Fields cover identity (userId/profileId/teamId/feature/endpoint/model),
+ * outcome (status/ok/errorClass/errorMessage/latencyMs), token + cost
+ * accounting (returned by OpenRouter when `usage:{include:true}` is set on
+ * chat; computed from a price table for embeddings), and optional
+ * prompt/completion previews (only populated when the deploy sets
+ * OPENROUTER_LOG_PROMPTS=1).
+ *
+ * Split into two consts so the `recordInternal` mutation can re-use the
+ * caller-provided subset without re-declaring fields. Schema uses the
+ * full `openRouterLogFields`; `recordInternal` uses
+ * `openRouterLogRecordFields` and derives `teamId`/`createdAt` itself.
+ */
+export const openRouterLogRecordFields = {
+  userId: v.id("users"),
+  /** Profile this call was made in context of. Optional — some paths
+   *  (e.g. MCP query embed before profile resolution) don't know yet.
+   *
+   *  Accepted as a plain string at the mutation boundary because most
+   *  call-sites carry a `string` profileId (the Neo4j actions thread
+   *  the id through string-typed args). `recordInternal` normalises
+   *  via `ctx.db.normalizeId("profiles", …)` before insert; the
+   *  schema column is the strict `v.id("profiles")` form. */
+  profileId: v.optional(v.string()),
+  feature: v.union(
+    // Chat completions
+    v.literal("enrichment"),
+    v.literal("dream-synthesis"),
+    v.literal("context-prompt"),
+    v.literal("fact-extraction"),
+    v.literal("entity-backfill"),
+    // Embeddings
+    v.literal("memory-save"),
+    v.literal("memory-search"),
+    v.literal("mcp-embed"),
+    v.literal("connector-sync"),
+    v.literal("dream-materialize"),
+    v.literal("proposal-accept"),
+    v.literal("embedding-backfill"),
+  ),
+  endpoint: v.union(v.literal("chat"), v.literal("embedding")),
+  model: v.string(),
+  status: v.number(), // HTTP status (0 on network/timeout)
+  ok: v.boolean(),
+  errorClass: v.optional(
+    v.union(
+      v.literal("network"),
+      v.literal("http_4xx"),
+      v.literal("http_5xx"),
+      v.literal("parse"),
+      v.literal("timeout"),
+    ),
+  ),
+  errorMessage: v.optional(v.string()),
+  latencyMs: v.number(),
+  /** OpenRouter generation id (`gen-...`) — used to link to /generation lookup later. */
+  generationId: v.optional(v.string()),
+  provider: v.optional(v.string()),
+  finishReason: v.optional(v.string()),
+  nativeFinishReason: v.optional(v.string()),
+  promptTokens: v.optional(v.number()),
+  completionTokens: v.optional(v.number()),
+  totalTokens: v.optional(v.number()),
+  cachedTokens: v.optional(v.number()),
+  cacheWriteTokens: v.optional(v.number()),
+  reasoningTokens: v.optional(v.number()),
+  /** Effective USD cost charged via OpenRouter (`usage.cost`). */
+  costUsd: v.optional(v.number()),
+  /** Underlying provider cost when BYOK (`usage.cost_details.upstream_inference_cost`). */
+  upstreamCostUsd: v.optional(v.number()),
+  isByok: v.optional(v.boolean()),
+  /** Truncated prompt — only set when OPENROUTER_LOG_PROMPTS=1 on the deploy. */
+  promptPreview: v.optional(v.string()),
+  /** Truncated completion — only set when OPENROUTER_LOG_PROMPTS=1 on the deploy. */
+  completionPreview: v.optional(v.string()),
+};
+
+export const openRouterLogFields = {
+  ...openRouterLogRecordFields,
+  /** Stored as a typed Convex Id<"profiles"> on the row even though the
+   *  mutation accepts a plain string at the boundary. `recordInternal`
+   *  normalises before insert. */
+  profileId: v.optional(v.id("profiles")),
+  /** Denormalised from profile.teamId at log-write time so team-wide spend
+   *  queries hit a single index. Undefined = personal profile or unknown. */
+  teamId: v.optional(v.id("teams")),
+  createdAt: v.number(),
+};
+
+/**
  * Single source of truth for wikiNodes table fields.
  * Used in schema.ts (defineTable) and anywhere we need to describe a wikiNode row.
  *

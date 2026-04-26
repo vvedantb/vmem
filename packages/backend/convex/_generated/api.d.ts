@@ -30,6 +30,7 @@ import type * as graphApi from "../graphApi.js";
 import type * as http from "../http.js";
 import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_envVars from "../lib/envVars.js";
+import type * as lib_openRouter from "../lib/openRouter.js";
 import type * as mcpProfiles from "../mcpProfiles.js";
 import type * as mcpSkills from "../mcpSkills.js";
 import type * as memoryApi from "../memoryApi.js";
@@ -49,6 +50,7 @@ import type * as neo4jActions_proposedUpdates from "../neo4jActions/proposedUpda
 import type * as neo4jActions_relationships from "../neo4jActions/relationships.js";
 import type * as neo4jActions_timeline from "../neo4jActions/timeline.js";
 import type * as notifications from "../notifications.js";
+import type * as openRouterLogs from "../openRouterLogs.js";
 import type * as profiles from "../profiles.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
 import type * as relationshipApi from "../relationshipApi.js";
@@ -92,6 +94,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/crypto": typeof lib_crypto;
   "lib/envVars": typeof lib_envVars;
+  "lib/openRouter": typeof lib_openRouter;
   mcpProfiles: typeof mcpProfiles;
   mcpSkills: typeof mcpSkills;
   memoryApi: typeof memoryApi;
@@ -111,6 +114,7 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/relationships": typeof neo4jActions_relationships;
   "neo4jActions/timeline": typeof neo4jActions_timeline;
   notifications: typeof notifications;
+  openRouterLogs: typeof openRouterLogs;
   profiles: typeof profiles;
   proposedUpdateApi: typeof proposedUpdateApi;
   relationshipApi: typeof relationshipApi;
