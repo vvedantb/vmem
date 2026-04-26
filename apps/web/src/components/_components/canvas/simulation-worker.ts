@@ -21,7 +21,7 @@ interface WNode extends SimulationNodeDatum {
   size: number;
 }
 
-type WEdgeType = "tag" | "relates_to" | "imports" | "wiki_parent";
+type WEdgeType = "tag" | "relates_to" | "imports" | "wiki_parent" | "mentions";
 
 interface WEdge extends SimulationLinkDatum<WNode> {
   edgeType: WEdgeType;
