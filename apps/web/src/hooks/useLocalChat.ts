@@ -116,7 +116,15 @@ function getHighestOrder(messages: UIMessage[]): number {
 interface LocalChatResult {
   messages: UIMessage[];
   sendMessage: (text: string) => Promise<void>;
+  /**
+   * Wipe the current thread (messages + memory-ref sidecar) and swap to a
+   * fresh thread so the user can keep chatting. Resolves once the swap is
+   * applied — the cascade delete may still be running in the background.
+   */
+  clearHistory: () => Promise<void>;
   isStreaming: boolean;
+  /** True while clearHistory is in flight (used to disable the button). */
+  isClearing: boolean;
   /** Thread loaded (may still need a model to send messages). */
   isThreadReady: boolean;
   /** Thread loaded AND WebLLM engine ready. */
@@ -136,10 +144,12 @@ export function useLocalChat(): LocalChatResult {
     Record<string, ChatMemoryRef[]>
   >({});
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const orderRef = useRef(0);
 
   const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
+  const clearChatHistory = useMutation(api.chat.clearChatHistory);
   const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
 
   // Load or create the chat thread on mount
@@ -386,6 +396,25 @@ export function useLocalChat(): LocalChatResult {
     ],
   );
 
+  const clearHistory = useCallback(async () => {
+    // Need a thread to clear, and bail if a stream is mid-flight so we don't
+    // delete a thread we're actively writing to.
+    if (!threadId || isStreaming || isClearing) {
+      return;
+    }
+    setIsClearing(true);
+    try {
+      const newThreadId = await clearChatHistory({ threadId });
+      // Swap to the fresh thread. The threadId-change effect resets draft
+      // state and orderRef; explicitly clearing usage drafts here covers
+      // the (rare) case where a draft summary is still pending.
+      setDraftUsageByKey({});
+      setThreadId(newThreadId);
+    } finally {
+      setIsClearing(false);
+    }
+  }, [clearChatHistory, isClearing, isStreaming, threadId]);
+
   const usageByMessageKey: Record<string, MessageUsageSummary> = {
     ...persistedUsageByKey,
     ...draftUsageByKey,
@@ -402,7 +431,9 @@ export function useLocalChat(): LocalChatResult {
   return {
     messages,
     sendMessage,
+    clearHistory,
     isStreaming,
+    isClearing,
     isThreadReady,
     isReady: isThreadReady && isModelReady,
     usageByMessageKey,
