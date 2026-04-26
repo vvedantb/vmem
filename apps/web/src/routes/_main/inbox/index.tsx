@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryStates } from "nuqs";
 import PageContainer from "@/components/PageContainer";
@@ -12,57 +11,44 @@ import {
   NotificationsPanel,
   NotificationsRightSection,
 } from "./-components/NotificationsPanel";
-import {
-  ActivityPanel,
-  ActivityRightSection,
-} from "./-components/ActivityPanel";
 
 export const Route = createFileRoute("/_main/inbox/")({
   component: InboxPage,
 });
 
 /**
- * `/inbox` — unified inbox combining what used to be three separate
- * routes: proposals, notifications, and activity. The merge is purely
- * presentational; each panel still drives its own data sources and
- * filters via independent nuqs params.
+ * `/inbox` — items that need the user's attention. Two tabs: Proposals
+ * (synthesis suggestions awaiting review) and Notifications (unread
+ * mentions / pings).
  *
- * The orchestrator owns:
- * - the `tab` URL param
- * - the scroll container ref (Activity uses Virtuoso with the page's
- *   scroll surface as its parent)
- * - which `rightSection` is active (each panel ships its own actions)
+ * Each panel ships its own body + right-section component. The
+ * orchestrator just owns the `tab` URL param and switches which pair is
+ * rendered.
+ *
+ * Title is hidden on desktop because the tab bar already communicates
+ * identity; mobile topbar still uses it via PageTitleContext.
  */
 function InboxPage() {
   const [params, setParams] = useQueryStates(inboxSearchParams);
-  const [scrollParent, setScrollParent] = useState<HTMLDivElement | null>(null);
 
   const rightSection =
     params.tab === "proposals" ? (
       <ProposalsRightSection />
-    ) : params.tab === "notifications" ? (
-      <NotificationsRightSection />
     ) : (
-      <ActivityRightSection />
+      <NotificationsRightSection />
     );
 
   return (
     <PageContainer
       title="Inbox"
+      showTitle={false}
       centeredMaxWidth
-      scrollRef={setScrollParent}
       leftSection={
         <InboxTabs value={params.tab} onChange={(tab) => setParams({ tab })} />
       }
       rightSection={rightSection}
     >
-      {params.tab === "proposals" ? (
-        <ProposalsPanel />
-      ) : params.tab === "notifications" ? (
-        <NotificationsPanel />
-      ) : (
-        <ActivityPanel scrollParent={scrollParent} />
-      )}
+      {params.tab === "proposals" ? <ProposalsPanel /> : <NotificationsPanel />}
     </PageContainer>
   );
 }

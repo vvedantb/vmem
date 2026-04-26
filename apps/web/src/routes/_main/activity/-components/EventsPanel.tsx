@@ -34,12 +34,12 @@ import {
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import {
-  activitySearchParams,
-  ACTIVITY_TYPES,
-  ACTIVITY_TYPE_LABELS,
-  DATE_PRESET_LABELS,
-  type ActivityType,
-  type DatePreset,
+  eventsSearchParams,
+  EVENT_TYPES,
+  EVENT_TYPE_LABELS,
+  EVENT_DATE_PRESET_LABELS,
+  type EventType,
+  type EventDatePreset,
   type SortDirection,
 } from "../-searchParams";
 
@@ -70,7 +70,7 @@ function getActivityIcon(type: string) {
   }
 }
 
-function getDateThreshold(preset: DatePreset): number | null {
+function getDateThreshold(preset: EventDatePreset): number | null {
   const now = Date.now();
   switch (preset) {
     case "today":
@@ -120,17 +120,18 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   );
 }
 
-const DATE_PRESETS: DatePreset[] = ["all", "today", "week", "month"];
+const DATE_PRESETS: EventDatePreset[] = ["all", "today", "week", "month"];
 
 /**
- * Activity panel for the Inbox.
+ * Events panel for `/activity` — the user-action audit log (memory created,
+ * file uploaded, sync completed, etc.).
  *
  * Renders the list/Virtuoso virtualised table. The orchestrator owns the
  * scroll container and passes its ref in via `scrollParent` so Virtuoso
  * can hook into PageContainer's scroll surface (rather than introducing
  * a nested scroller).
  */
-export function ActivityPanel({
+export function EventsPanel({
   scrollParent,
 }: {
   scrollParent: HTMLDivElement | null;
@@ -138,7 +139,7 @@ export function ActivityPanel({
   const { isAuthenticated } = useConvexAuth();
   const getRecentActivity = useAction(api.dashboardApi.getRecentActivity);
 
-  const [params] = useQueryStates(activitySearchParams);
+  const [params] = useQueryStates(eventsSearchParams);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -167,13 +168,13 @@ export function ActivityPanel({
   const filteredAndSortedActivity = useMemo(() => {
     let result = [...activity];
 
-    if (params.types.length > 0) {
+    if (params.eventTypes.length > 0) {
       result = result.filter((item) =>
-        params.types.includes(item.type as ActivityType),
+        params.eventTypes.includes(item.type as EventType),
       );
     }
 
-    const threshold = getDateThreshold(params.range);
+    const threshold = getDateThreshold(params.eventRange);
     if (threshold !== null) {
       result = result.filter(
         (item) => new Date(item.timestamp).getTime() >= threshold,
@@ -183,13 +184,14 @@ export function ActivityPanel({
     result.sort((a, b) => {
       const dateA = new Date(a.timestamp).getTime();
       const dateB = new Date(b.timestamp).getTime();
-      return params.sortDir === "desc" ? dateB - dateA : dateA - dateB;
+      return params.eventSortDir === "desc" ? dateB - dateA : dateA - dateB;
     });
 
     return result;
-  }, [activity, params.types, params.range, params.sortDir]);
+  }, [activity, params.eventTypes, params.eventRange, params.eventSortDir]);
 
-  const hasFilters = params.types.length > 0 || params.range !== "all";
+  const hasFilters =
+    params.eventTypes.length > 0 || params.eventRange !== "all";
 
   if (isLoading) return <LoadingSkeleton />;
 
@@ -244,47 +246,47 @@ export function ActivityPanel({
 }
 
 /**
- * Activity-specific filters + sort dropdowns. Lives in the right-section
- * of the inbox header when the activity tab is active.
+ * Events-specific filters + sort dropdowns. Lives in the right-section
+ * of the activity page header when the Events tab is active.
  *
- * Filters dropdown consolidates Date Range + Activity Types with an
+ * Filters dropdown consolidates Date Range + Event Types with an
  * active-filter count badge. Sort is intentionally separate — it doesn't
  * change which items are visible, only their order.
  */
-export function ActivityRightSection() {
-  const [params, setParams] = useQueryStates(activitySearchParams);
+export function EventsRightSection() {
+  const [params, setParams] = useQueryStates(eventsSearchParams);
 
   return (
     <div className="flex items-center gap-2">
-      <ActivityFiltersDropdown
-        types={params.types}
-        range={params.range}
-        onTypesChange={(types) => setParams({ types })}
-        onRangeChange={(range) => setParams({ range })}
-        onReset={() => setParams({ types: [], range: "all" })}
+      <EventsFiltersDropdown
+        types={params.eventTypes}
+        range={params.eventRange}
+        onTypesChange={(eventTypes) => setParams({ eventTypes })}
+        onRangeChange={(eventRange) => setParams({ eventRange })}
+        onReset={() => setParams({ eventTypes: [], eventRange: "all" })}
       />
-      <ActivitySortDropdown
-        sortDir={params.sortDir}
-        onSortDirChange={(sortDir) => setParams({ sortDir })}
+      <EventsSortDropdown
+        sortDir={params.eventSortDir}
+        onSortDirChange={(eventSortDir) => setParams({ eventSortDir })}
       />
     </div>
   );
 }
 
-function ActivityFiltersDropdown({
+function EventsFiltersDropdown({
   types,
   range,
   onTypesChange,
   onRangeChange,
   onReset,
 }: {
-  types: ActivityType[];
-  range: DatePreset;
-  onTypesChange: (types: ActivityType[]) => void;
-  onRangeChange: (range: DatePreset) => void;
+  types: EventType[];
+  range: EventDatePreset;
+  onTypesChange: (types: EventType[]) => void;
+  onRangeChange: (range: EventDatePreset) => void;
   onReset: () => void;
 }) {
-  const toggleType = (type: ActivityType) => {
+  const toggleType = (type: EventType) => {
     if (types.includes(type)) {
       onTypesChange(types.filter((t) => t !== type));
     } else {
@@ -321,22 +323,22 @@ function ActivityFiltersDropdown({
             >
               {DATE_PRESETS.map((preset) => (
                 <DropdownMenuRadioItem key={preset} value={preset}>
-                  {DATE_PRESET_LABELS[preset]}
+                  {EVENT_DATE_PRESET_LABELS[preset]}
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Activity Types</DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger>Event Types</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            {ACTIVITY_TYPES.map((type) => (
+            {EVENT_TYPES.map((type) => (
               <DropdownMenuCheckboxItem
                 key={type}
                 checked={types.includes(type)}
                 onCheckedChange={() => toggleType(type)}
               >
-                {ACTIVITY_TYPE_LABELS[type]}
+                {EVENT_TYPE_LABELS[type]}
               </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuSubContent>
@@ -358,7 +360,7 @@ function ActivityFiltersDropdown({
   );
 }
 
-function ActivitySortDropdown({
+function EventsSortDropdown({
   sortDir,
   onSortDirChange,
 }: {
