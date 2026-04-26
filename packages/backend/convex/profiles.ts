@@ -1,5 +1,4 @@
 import { v } from "convex/values";
-import { paginationOptsValidator } from "convex/server";
 import { authQuery, authMutation, authAction } from "./auth";
 import { internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -624,25 +623,6 @@ export const setLastDreamRunAtInternal = internalMutation({
       lastDreamRunAt: args.timestamp,
     });
     return null;
-  },
-});
-
-/**
- * Internal: paginated iterator used by the daily Dream Mode cron. Returns
- * one batch of profiles plus an `isDone` / `continueCursor` for the
- * self-rescheduling fan-out.
- */
-export const listForDreamCronInternal = internalQuery({
-  args: {
-    paginationOpts: paginationOptsValidator,
-  },
-  handler: async (ctx, args) => {
-    const page = await ctx.db.query("profiles").paginate(args.paginationOpts);
-    return {
-      profiles: page.page,
-      isDone: page.isDone,
-      continueCursor: page.continueCursor,
-    };
   },
 });
 

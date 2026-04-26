@@ -18,6 +18,7 @@
     "@convex-dev/action-cache": "^0.3.0",
     "@convex-dev/action-retrier": "^0.3.0",
     "@convex-dev/agent": "catalog:",
+    "@convex-dev/crons": "^0.2.0",
     "@neo4j/cypher-builder": "^3.0.1",
     "@notionhq/client": "^2.2.15",
     "ai": "catalog:",

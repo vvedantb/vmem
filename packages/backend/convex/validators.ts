@@ -35,6 +35,19 @@ export const profileFields = {
    * to scope the Dreamer's "recent memories" window when desired.
    */
   lastDreamRunAt: v.optional(v.number()),
+  /**
+   * Per-profile Dream Mode schedule. When `dreamModeScheduleEnabled` is
+   * true, a cron is registered via `@convex-dev/crons` that fires daily at
+   * `dreamModeScheduleHour:dreamModeScheduleMinute` UTC. The user picks a
+   * local time in the UI; the browser converts to UTC before saving so the
+   * cron always fires at a stable moment regardless of DST.
+   *
+   * Defaults: undefined / false — Dream Mode is opt-in to avoid surprising
+   * the user with LLM costs.
+   */
+  dreamModeScheduleEnabled: v.optional(v.boolean()),
+  dreamModeScheduleHour: v.optional(v.number()), // 0-23 UTC
+  dreamModeScheduleMinute: v.optional(v.number()), // 0-59 UTC
 };
 
 /**
