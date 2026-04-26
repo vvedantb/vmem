@@ -39,6 +39,7 @@ function ApiPage() {
   return (
     <PageContainer
       title="API"
+      showTitle={false}
       centeredMaxWidth
       leftSection={
         <ApiTabs value={params.tab} onChange={(tab) => setParams({ tab })} />

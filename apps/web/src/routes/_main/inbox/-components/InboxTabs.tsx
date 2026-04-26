@@ -1,5 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
-import { IconChecklist, IconBell, IconActivity } from "@tabler/icons-react";
+import { IconChecklist, IconBell } from "@tabler/icons-react";
 import type { InboxTab } from "../-searchParams";
 
 /**
@@ -23,10 +23,6 @@ export function InboxTabs({
         <TabsTrigger value="notifications">
           <IconBell size={16} className="mr-1.5" />
           Notifications
-        </TabsTrigger>
-        <TabsTrigger value="activity">
-          <IconActivity size={16} className="mr-1.5" />
-          Activity
         </TabsTrigger>
       </TabsList>
     </Tabs>
