@@ -154,6 +154,12 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       const canvas: HTMLCanvasElement = maybeCanvas;
       const ctx: CanvasRenderingContext2D = maybeCtx;
 
+      // Reset viewport fit flag — a new simulation starts from scratch, so the
+      // viewport must re-fit once the layout settles. Without this, StrictMode
+      // (dev) keeps the flag true from the first (torn-down) run and the second
+      // run never fits, leaving the viewport aimed at the old clumped origin.
+      hasFittedRef.current = false;
+
       const sim = createSimulation(
         nodes,
         edges,
@@ -332,6 +338,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         }
 
         const hoveredId = interactionRef.current.hoveredNodeId;
+        const hoveredEdgeIndex = interactionRef.current.hoveredEdgeIndex;
         const neighborSet = new Set<string>();
         if (hoveredId) {
           neighborSet.add(hoveredId);
@@ -339,6 +346,13 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           if (neighbors) {
             for (const nId of neighbors) neighborSet.add(nId);
           }
+        } else if (
+          hoveredEdgeIndex !== null &&
+          hoveredEdgeIndex < resolvedEdgesCache.length
+        ) {
+          const hoveredEdge = resolvedEdgesCache[hoveredEdgeIndex];
+          neighborSet.add(hoveredEdge.source.id);
+          neighborSet.add(hoveredEdge.target.id);
         }
 
         render(
