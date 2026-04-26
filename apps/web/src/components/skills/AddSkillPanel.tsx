@@ -4,7 +4,7 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import { Button, Input, Label, Textarea } from "@vmem/ui";
-import { IconUpload, IconLoader2, IconX } from "@tabler/icons-react";
+import { IconUpload, IconX, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
 interface AddSkillPanelProps {

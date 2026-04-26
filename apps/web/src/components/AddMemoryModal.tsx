@@ -18,11 +18,11 @@ import {
   Label,
 } from "@vmem/ui";
 import {
-  IconLoader2,
   IconPlus,
   IconX,
   IconUpload,
   IconFileText,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
@@ -254,7 +254,7 @@ export default function AddMemoryModal({
                 >
                   {isUploading ? (
                     <>
-                      <IconLoader2 size={14} className="animate-spin mr-1" />
+                      <IconLoader2 size={14} className="mr-1 animate-spin" />
                       Importing
                     </>
                   ) : (

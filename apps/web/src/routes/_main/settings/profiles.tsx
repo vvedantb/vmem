@@ -38,10 +38,10 @@ import {
   IconMusic,
   IconCamera,
   IconDeviceGamepad,
-  IconLoader2,
   IconWorld,
   IconBrandChrome,
   IconSparkles,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
@@ -253,7 +253,7 @@ function CreateEditProfileDialog({
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving && <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {saving && <IconLoader2 size={16} className="mr-2 animate-spin" />}
             {profile ? "Save Changes" : "Create Profile"}
           </Button>
         </DialogFooter>
@@ -371,7 +371,9 @@ function DeleteProfileDialog({
             onClick={handleDelete}
             disabled={deleting}
           >
-            {deleting && <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {deleting && (
+              <IconLoader2 size={16} className="mr-2 animate-spin" />
+            )}
             Delete Profile
           </Button>
         </DialogFooter>

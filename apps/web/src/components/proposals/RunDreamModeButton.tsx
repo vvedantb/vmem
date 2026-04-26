@@ -5,7 +5,7 @@ import { useAction, useConvexAuth, useQuery } from "convex/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@vmem/ui";
-import { IconLoader2, IconSparkles } from "@tabler/icons-react";
+import { IconSparkles, IconLoader2 } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
 
 /**
