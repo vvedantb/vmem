@@ -1,5 +1,11 @@
 # Changelog
 
+## Clear Chat History — 2026-04-26
+
+- **`clearChatHistory` authMutation**: Verifies thread ownership via the agent SDK's `getThreadMetadata`, drops every `chatMessageMemoryRefs` sidecar row scoped to `(userId, threadId)`, then kicks off the agent component's `deleteAllForThreadIdAsync` cascade (paginated tail-call delete that handles arbitrarily large threads). Returns a freshly-created thread id in the same round-trip so the UI swaps atomically with no "no thread" gap.
+- **`useLocalChat` exposes `clearHistory()` + `isClearing`**: Hook now owns the thread swap. Bails if a stream is mid-flight so we never delete a thread we're actively writing to. The existing threadId-change effect handles draft state reset; usage drafts are explicitly cleared to cover pending-summary edge cases.
+- **Trash button + confirmation dialog in `Chat.tsx`**: Right-aligned "Clear chat" affordance only appears when `messages.length > 0` so the empty state stays quiet. Click opens a destructive-styled `Dialog` with `IconAlertTriangle`, explicit "cannot be undone" copy, and a loading state during deletion. Toast feedback on success/error.
+
 ## Dream Mode V2 — Synthesis Materialization & Enrichment Fixes — 2026-04-26
 
 - **Materialized synthesis memories now fully enriched**: Previously, accepting an insight/connection proposal created a bare memory with only `:DERIVED_FROM` edges and no embedding, tags, entities, or `:RELATES_TO` links — useless in graph view. Now synthesis materialize runs through the same enrichment pipeline as regular memory creates, gaining full graph context.

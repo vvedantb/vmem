@@ -2,6 +2,7 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import {
   createThread,
+  getThreadMetadata,
   listMessages,
   listUIMessages,
   saveMessage,
@@ -49,6 +50,60 @@ export const getOrCreateThread = authMutation({
       userId: ctx.userId,
     });
     return threadId;
+  },
+});
+
+/**
+ * Wipe the user's chat thread and start a fresh one.
+ *
+ * Deletes:
+ *   - every message + stream record under the thread (via the agent
+ *     component's async cascade — kicks off a paginated tail-call delete)
+ *   - every `chatMessageMemoryRefs` row scoped to (userId, threadId), so
+ *     the popover trace doesn't outlive the bubbles it described
+ *   - the thread document itself (handled by deleteAllForThreadIdAsync)
+ *
+ * Then immediately creates a new empty thread for the same user and
+ * returns its id, so the UI can swap `threadId` without an extra
+ * round-trip and the user can keep chatting.
+ *
+ * Ownership is verified via the agent's `getThread` — calling clear on
+ * someone else's thread (or a non-existent one) throws.
+ */
+export const clearChatHistory = authMutation({
+  args: { threadId: v.string() },
+  handler: async (ctx, { threadId }) => {
+    // Defense-in-depth: confirm the caller actually owns this thread before
+    // we cascade-delete its history.
+    const thread = await getThreadMetadata(ctx, components.agent, { threadId });
+    if (thread.userId !== ctx.userId) {
+      throw new Error("Thread not found or not owned by user");
+    }
+
+    // Drop our own per-thread sidecar rows. These live in our schema, not
+    // in the agent component, so they wouldn't be touched by the cascade.
+    const refRows = await ctx.db
+      .query("chatMessageMemoryRefs")
+      .withIndex("by_user_thread", (q) =>
+        q.eq("userId", ctx.userId).eq("threadId", threadId),
+      )
+      .collect();
+    for (const row of refRows) {
+      await ctx.db.delete(row._id);
+    }
+
+    // Async cascade delete: this mutation paginates one batch and schedules
+    // itself to continue. Returns immediately even for very large threads.
+    await ctx.runMutation(components.agent.threads.deleteAllForThreadIdAsync, {
+      threadId,
+    });
+
+    // Hand back a fresh thread so the client can swap atomically with no
+    // visible "no thread" state.
+    const newThreadId = await createThread(ctx, components.agent, {
+      userId: ctx.userId,
+    });
+    return newThreadId;
   },
 });
 
