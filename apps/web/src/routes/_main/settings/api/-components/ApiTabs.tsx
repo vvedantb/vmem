@@ -1,7 +1,6 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
+import { Tabs, TabsList, TabsTrigger, AnimatedTabLabel } from "@vmem/ui";
 import { IconKey, IconChartBar } from "@tabler/icons-react";
-import { AnimatedTabLabel } from "@/components/AnimatedTabLabel";
 
 /**
  * Tab bar for the `/settings/api` page header. Each tab is a real

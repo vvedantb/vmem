@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { AnimatePresence, motion } from "motion/react";
+import { motionDuration, motionEase } from "../motion/presets";
 import { cn } from "../utils/cn";
 
 const Tabs = TabsPrimitive.Root;
@@ -59,4 +61,36 @@ TabsContent.displayName = TabsPrimitive.Content.displayName;
  */
 export { TabsPrimitive };
 
-export { Tabs, TabsList, TabsTrigger, TabsContent };
+/**
+ * Animated label slot for icon-only tab triggers. Renders nothing when
+ * `isActive` is false; when it flips true the label slides in (width
+ * grows from 0 + fade in) so the active pill expands smoothly instead
+ * of snapping. Compose alongside an icon inside any `<TabsTrigger>` to
+ * get the "icon-only when inactive, icon + label when active" pattern.
+ */
+function AnimatedTabLabel({
+  isActive,
+  label,
+}: {
+  isActive: boolean;
+  label: string;
+}) {
+  return (
+    <AnimatePresence initial={false}>
+      {isActive ? (
+        <motion.span
+          key={label}
+          className="ml-1.5 overflow-hidden whitespace-nowrap"
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: "auto", opacity: 1 }}
+          exit={{ width: 0, opacity: 0 }}
+          transition={{ duration: motionDuration.fast, ease: motionEase }}
+        >
+          {label}
+        </motion.span>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
+export { Tabs, TabsList, TabsTrigger, TabsContent, AnimatedTabLabel };
