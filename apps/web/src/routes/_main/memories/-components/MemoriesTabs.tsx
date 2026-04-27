@@ -29,20 +29,29 @@ export function MemoriesTabs({
       <TabsList>
         <TabsTrigger value="graph" asChild>
           <Link to="/memories" search={(prev) => ({ ...prev, view: "graph" })}>
-            <IconTopologyStar3 size={16} className="mr-1.5" />
-            Graph
+            <IconTopologyStar3
+              size={16}
+              className={activeValue === "graph" ? "mr-1.5" : ""}
+            />
+            {activeValue === "graph" && "Graph"}
           </Link>
         </TabsTrigger>
         <TabsTrigger value="list" asChild>
           <Link to="/memories" search={(prev) => ({ ...prev, view: "list" })}>
-            <IconList size={16} className="mr-1.5" />
-            List
+            <IconList
+              size={16}
+              className={activeValue === "list" ? "mr-1.5" : ""}
+            />
+            {activeValue === "list" && "List"}
           </Link>
         </TabsTrigger>
         <TabsTrigger value="tags" asChild>
           <Link to="/memories/tags">
-            <IconHash size={16} className="mr-1.5" />
-            Tags
+            <IconHash
+              size={16}
+              className={activeValue === "tags" ? "mr-1.5" : ""}
+            />
+            {activeValue === "tags" && "Tags"}
           </Link>
         </TabsTrigger>
       </TabsList>
