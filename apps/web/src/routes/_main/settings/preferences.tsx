@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { Label, Switch, Skeleton, Textarea } from "@vmem/ui";
 import { api } from "@vmem/backend";
-import { IconBrain, IconBell, IconUser } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 
@@ -50,10 +49,7 @@ function PreferencesPage() {
     <PageContainer title="Preferences" centeredMaxWidth showTitle>
       <div className="space-y-12">
         <section className="space-y-6">
-          <div className="flex items-center gap-2">
-            <IconUser className="h-5 w-5 text-muted-foreground" />
-            <h3 className="text-base font-medium text-foreground">About You</h3>
-          </div>
+          <h3 className="text-base font-medium text-foreground">About You</h3>
           <p className="-mt-3 text-xs text-muted-foreground">
             Shared automatically with AI apps alongside retrieved memories, so
             they can tailor responses to you.
@@ -99,12 +95,9 @@ function PreferencesPage() {
         </section>
 
         <section className="space-y-6">
-          <div className="flex items-center gap-2">
-            <IconBrain className="h-5 w-5 text-muted-foreground" />
-            <h3 className="text-base font-medium text-foreground">
-              Memory Behavior
-            </h3>
-          </div>
+          <h3 className="text-base font-medium text-foreground">
+            Memory Behavior
+          </h3>
           <div className="space-y-6">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -133,12 +126,9 @@ function PreferencesPage() {
         </section>
 
         <section className="space-y-6">
-          <div className="flex items-center gap-2">
-            <IconBell className="h-5 w-5 text-muted-foreground" />
-            <h3 className="text-base font-medium text-foreground">
-              Notification Preferences
-            </h3>
-          </div>
+          <h3 className="text-base font-medium text-foreground">
+            Notification Preferences
+          </h3>
           <div className="space-y-6">
             <div className="flex items-center justify-between gap-3">
               <div>
