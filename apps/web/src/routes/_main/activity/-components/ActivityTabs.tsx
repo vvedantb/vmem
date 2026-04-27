@@ -22,14 +22,20 @@ export function ActivityTabs() {
       <TabsList>
         <TabsTrigger value="ai-logs" asChild>
           <Link to="/activity/ai-logs">
-            <IconReceipt2 size={16} className="mr-1.5" />
-            AI Logs
+            <IconReceipt2
+              size={16}
+              className={activeValue === "ai-logs" ? "mr-1.5" : ""}
+            />
+            {activeValue === "ai-logs" && "AI Logs"}
           </Link>
         </TabsTrigger>
         <TabsTrigger value="events" asChild>
           <Link to="/activity/events">
-            <IconActivity size={16} className="mr-1.5" />
-            Events
+            <IconActivity
+              size={16}
+              className={activeValue === "events" ? "mr-1.5" : ""}
+            />
+            {activeValue === "events" && "Events"}
           </Link>
         </TabsTrigger>
       </TabsList>

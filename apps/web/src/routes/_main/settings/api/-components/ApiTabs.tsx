@@ -20,14 +20,20 @@ export function ApiTabs() {
       <TabsList>
         <TabsTrigger value="keys" asChild>
           <Link to="/settings/api/keys">
-            <IconKey size={16} className="mr-1.5" />
-            Keys
+            <IconKey
+              size={16}
+              className={activeValue === "keys" ? "mr-1.5" : ""}
+            />
+            {activeValue === "keys" && "Keys"}
           </Link>
         </TabsTrigger>
         <TabsTrigger value="usage" asChild>
           <Link to="/settings/api/usage">
-            <IconChartBar size={16} className="mr-1.5" />
-            Usage
+            <IconChartBar
+              size={16}
+              className={activeValue === "usage" ? "mr-1.5" : ""}
+            />
+            {activeValue === "usage" && "Usage"}
           </Link>
         </TabsTrigger>
       </TabsList>
