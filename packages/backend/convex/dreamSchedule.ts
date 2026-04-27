@@ -8,19 +8,20 @@ import { auditLog, ResourceTypes } from "./auditLog";
  * Dream Mode V2 — user-wide schedule manager.
  *
  * One cron per user (named `dream-mode:user:<userId>`) fires
- * `runDreamForUserById` daily at the saved UTC HH:MM. The user-level
- * action then iterates every personal profile the user owns and runs a
- * synthesis pass on each, writing proposals (or auto-accepting memories
- * if `userSettings.dreamModeAutoAccept` is true).
+ * `runDreamForUserById` daily at the saved UTC time. The user-level action
+ * then iterates every personal profile the user owns and runs a synthesis
+ * pass on each, writing proposals (or auto-accepting memories if
+ * `userSettings.dreamModeAutoAccept` is true).
  *
  * Schedule fields and the auto-accept flag live in `userSettings` —
  * Dream Mode is a system behavior, not a per-profile attribute. Team
  * profiles keep their own per-profile schedule (see
  * `setDreamScheduleForTeamProfile`).
  *
- * Hour/minute are stored AND scheduled in UTC; the UI converts the user's
- * local time before calling. This keeps the cron firing time stable
- * across DST transitions.
+ * Time is stored as "HH:MM" UTC — the same shape `<input type="time">`
+ * produces, so the UI never has to split it. The browser converts the
+ * user's local time to UTC before saving so the cron fires at a stable
+ * moment regardless of DST.
  */
 export const dreamCrons = new Crons(components.crons);
 
@@ -33,29 +34,40 @@ function teamProfileCronName(profileId: string): string {
 }
 
 /**
+ * Parse "HH:MM" → numeric hour/minute. Returns null on any malformed input
+ * so callers can throw a single user-facing error rather than spreading
+ * format checks across every entry point.
+ */
+function parseHHMM(time: string): { hour: number; minute: number } | null {
+  const match = /^(\d{2}):(\d{2})$/.exec(time);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return { hour, minute };
+}
+
+/** Build a daily cronspec ("M H * * *") from "HH:MM". */
+function cronspecForTime(hour: number, minute: number): string {
+  return `${String(minute)} ${String(hour)} * * *`;
+}
+
+/**
  * Set or clear the user's daily Dream Mode schedule. `enabled=false`
  * clears any registered cron and stores `dreamModeScheduleEnabled=false`.
- * `enabled=true` requires `hour` and `minute` (UTC) — re-registers the
- * cron and persists the saved time on `userSettings`.
+ * `enabled=true` requires a `time` ("HH:MM" UTC) — re-registers the cron
+ * and persists the saved time on `userSettings`.
  */
 export const setDreamSchedule = authMutation({
   args: {
     enabled: v.boolean(),
-    /** UTC hour 0-23. Required when enabled=true. */
-    hour: v.optional(v.number()),
-    /** UTC minute 0-59. Required when enabled=true. */
-    minute: v.optional(v.number()),
+    /** "HH:MM" in UTC. Required when enabled=true. */
+    time: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (
-      args.enabled &&
-      (args.hour === undefined ||
-        args.minute === undefined ||
-        args.hour < 0 ||
-        args.hour > 23 ||
-        args.minute < 0 ||
-        args.minute > 59)
-    ) {
+    const parsed =
+      args.enabled && args.time !== undefined ? parseHHMM(args.time) : null;
+    if (args.enabled && parsed === null) {
       throw new Error("Pick a valid time (HH:MM)");
     }
 
@@ -74,8 +86,7 @@ export const setDreamSchedule = authMutation({
       .first();
     const patch = {
       dreamModeScheduleEnabled: args.enabled,
-      dreamModeScheduleHour: args.enabled ? args.hour : undefined,
-      dreamModeScheduleMinute: args.enabled ? args.minute : undefined,
+      dreamModeScheduleTime: args.enabled ? args.time : undefined,
     };
     if (settings) {
       await ctx.db.patch(settings._id, patch);
@@ -83,12 +94,10 @@ export const setDreamSchedule = authMutation({
       await ctx.db.insert("userSettings", { userId: ctx.userId, ...patch });
     }
 
-    if (args.enabled && args.hour !== undefined && args.minute !== undefined) {
-      // Cronspec: "minute hour day-of-month month day-of-week"
-      const cronspec = `${String(args.minute)} ${String(args.hour)} * * *`;
+    if (args.enabled && parsed !== null) {
       await dreamCrons.register(
         ctx,
-        { kind: "cron", cronspec },
+        { kind: "cron", cronspec: cronspecForTime(parsed.hour, parsed.minute) },
         internal.neo4jActions.dreamMode.runDreamForUserById,
         { userId: ctx.userId },
         name,
@@ -102,8 +111,7 @@ export const setDreamSchedule = authMutation({
       resourceId: ctx.userId,
       metadata: {
         enabled: args.enabled,
-        hour: args.hour ?? null,
-        minute: args.minute ?? null,
+        time: args.time ?? null,
       },
       severity: "info",
     });
@@ -122,8 +130,8 @@ export const setDreamScheduleForTeamProfile = authMutation({
   args: {
     profileId: v.id("profiles"),
     enabled: v.boolean(),
-    hour: v.optional(v.number()),
-    minute: v.optional(v.number()),
+    /** "HH:MM" in UTC. Required when enabled=true. */
+    time: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.profileId);
@@ -145,15 +153,9 @@ export const setDreamScheduleForTeamProfile = authMutation({
       throw new Error("Only team owners can configure Dream Mode");
     }
 
-    if (
-      args.enabled &&
-      (args.hour === undefined ||
-        args.minute === undefined ||
-        args.hour < 0 ||
-        args.hour > 23 ||
-        args.minute < 0 ||
-        args.minute > 59)
-    ) {
+    const parsed =
+      args.enabled && args.time !== undefined ? parseHHMM(args.time) : null;
+    if (args.enabled && parsed === null) {
       throw new Error("Pick a valid time (HH:MM)");
     }
 
@@ -165,16 +167,14 @@ export const setDreamScheduleForTeamProfile = authMutation({
 
     await ctx.db.patch(args.profileId, {
       dreamModeScheduleEnabled: args.enabled,
-      dreamModeScheduleHour: args.enabled ? args.hour : undefined,
-      dreamModeScheduleMinute: args.enabled ? args.minute : undefined,
+      dreamModeScheduleTime: args.enabled ? args.time : undefined,
       updatedAt: Date.now(),
     });
 
-    if (args.enabled && args.hour !== undefined && args.minute !== undefined) {
-      const cronspec = `${String(args.minute)} ${String(args.hour)} * * *`;
+    if (args.enabled && parsed !== null) {
       await dreamCrons.register(
         ctx,
-        { kind: "cron", cronspec },
+        { kind: "cron", cronspec: cronspecForTime(parsed.hour, parsed.minute) },
         internal.neo4jActions.dreamMode.runDreamForProfileById,
         { profileId: args.profileId },
         name,
@@ -188,8 +188,7 @@ export const setDreamScheduleForTeamProfile = authMutation({
       resourceId: args.profileId,
       metadata: {
         enabled: args.enabled,
-        hour: args.hour ?? null,
-        minute: args.minute ?? null,
+        time: args.time ?? null,
       },
       severity: "info",
     });

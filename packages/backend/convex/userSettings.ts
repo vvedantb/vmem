@@ -26,8 +26,7 @@ const defaults: {
   defaultProfiles: DefaultProfilesValue;
   dreamModeAutoAccept: boolean;
   dreamModeScheduleEnabled: boolean;
-  dreamModeScheduleHour: number | null;
-  dreamModeScheduleMinute: number | null;
+  dreamModeScheduleTime: string | null;
   lastDreamRunAt: number | null;
 } = {
   theme: "system",
@@ -46,8 +45,7 @@ const defaults: {
   defaultProfiles: null,
   dreamModeAutoAccept: false,
   dreamModeScheduleEnabled: false,
-  dreamModeScheduleHour: null,
-  dreamModeScheduleMinute: null,
+  dreamModeScheduleTime: null,
   lastDreamRunAt: null,
 };
 
@@ -87,10 +85,8 @@ export const get = authQuery({
         doc?.dreamModeAutoAccept ?? defaults.dreamModeAutoAccept,
       dreamModeScheduleEnabled:
         doc?.dreamModeScheduleEnabled ?? defaults.dreamModeScheduleEnabled,
-      dreamModeScheduleHour:
-        doc?.dreamModeScheduleHour ?? defaults.dreamModeScheduleHour,
-      dreamModeScheduleMinute:
-        doc?.dreamModeScheduleMinute ?? defaults.dreamModeScheduleMinute,
+      dreamModeScheduleTime:
+        doc?.dreamModeScheduleTime ?? defaults.dreamModeScheduleTime,
       lastDreamRunAt: doc?.lastDreamRunAt ?? defaults.lastDreamRunAt,
     };
   },
