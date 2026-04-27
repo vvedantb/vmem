@@ -774,18 +774,18 @@ function ProfilesPage() {
   };
 
   return (
-    <PageContainer title="Profiles" centeredMaxWidth showTitle>
+    <PageContainer
+      title="Profiles"
+      centeredMaxWidth
+      showTitle
+      rightSection={
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <IconPlus className="h-4 w-4 mr-1.5" />
+          New Profile
+        </Button>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Organize your memories into separate workspaces
-          </p>
-          <Button onClick={() => setCreateOpen(true)}>
-            <IconPlus className="h-4 w-4 mr-2" />
-            New Profile
-          </Button>
-        </div>
-
         <DefaultProfilesSection profiles={profiles} />
 
         <DreamModeSection profiles={profiles} />
