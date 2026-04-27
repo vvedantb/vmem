@@ -16,14 +16,20 @@ export function InboxTabs() {
       <TabsList>
         <TabsTrigger value="proposals" asChild>
           <Link to="/inbox/proposals">
-            <IconChecklist size={16} className="mr-1.5" />
-            Proposals
+            <IconChecklist
+              size={16}
+              className={activeValue === "proposals" ? "mr-1.5" : ""}
+            />
+            {activeValue === "proposals" && "Proposals"}
           </Link>
         </TabsTrigger>
         <TabsTrigger value="notifications" asChild>
           <Link to="/inbox/notifications">
-            <IconBell size={16} className="mr-1.5" />
-            Notifications
+            <IconBell
+              size={16}
+              className={activeValue === "notifications" ? "mr-1.5" : ""}
+            />
+            {activeValue === "notifications" && "Notifications"}
           </Link>
         </TabsTrigger>
       </TabsList>
