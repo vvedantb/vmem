@@ -1,5 +1,5 @@
 import { authQuery, authMutation } from "./auth";
-import { internalQuery } from "./_generated/server";
+import { internalQuery, internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
@@ -24,6 +24,11 @@ const defaults: {
   aboutMe: string;
   preferences: string;
   defaultProfiles: DefaultProfilesValue;
+  dreamModeAutoAccept: boolean;
+  dreamModeScheduleEnabled: boolean;
+  dreamModeScheduleHour: number | null;
+  dreamModeScheduleMinute: number | null;
+  lastDreamRunAt: number | null;
 } = {
   theme: "system",
   language: "en",
@@ -39,6 +44,11 @@ const defaults: {
   aboutMe: "",
   preferences: "",
   defaultProfiles: null,
+  dreamModeAutoAccept: false,
+  dreamModeScheduleEnabled: false,
+  dreamModeScheduleHour: null,
+  dreamModeScheduleMinute: null,
+  lastDreamRunAt: null,
 };
 
 export const get = authQuery({
@@ -73,6 +83,15 @@ export const get = authQuery({
       aboutMe: doc?.aboutMe ?? defaults.aboutMe,
       preferences: doc?.preferences ?? defaults.preferences,
       defaultProfiles: doc?.defaultProfiles ?? defaults.defaultProfiles,
+      dreamModeAutoAccept:
+        doc?.dreamModeAutoAccept ?? defaults.dreamModeAutoAccept,
+      dreamModeScheduleEnabled:
+        doc?.dreamModeScheduleEnabled ?? defaults.dreamModeScheduleEnabled,
+      dreamModeScheduleHour:
+        doc?.dreamModeScheduleHour ?? defaults.dreamModeScheduleHour,
+      dreamModeScheduleMinute:
+        doc?.dreamModeScheduleMinute ?? defaults.dreamModeScheduleMinute,
+      lastDreamRunAt: doc?.lastDreamRunAt ?? defaults.lastDreamRunAt,
     };
   },
 });
@@ -118,6 +137,7 @@ export const update = authMutation({
     notifyMemoriesExpiring: v.optional(v.boolean()),
     aboutMe: v.optional(v.string()),
     preferences: v.optional(v.string()),
+    dreamModeAutoAccept: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -149,6 +169,8 @@ export const update = authMutation({
       fields.notifyMemoriesExpiring = args.notifyMemoriesExpiring;
     if (args.aboutMe !== undefined) fields.aboutMe = args.aboutMe;
     if (args.preferences !== undefined) fields.preferences = args.preferences;
+    if (args.dreamModeAutoAccept !== undefined)
+      fields.dreamModeAutoAccept = args.dreamModeAutoAccept;
 
     if (existing) {
       await ctx.db.patch(existing._id, fields);
@@ -159,6 +181,55 @@ export const update = authMutation({
       userId: ctx.userId,
       ...args,
     });
+  },
+});
+
+/**
+ * Internal: stamp `lastDreamRunAt` on the user's settings row. Called by
+ * `runDreamForUserInternal` after every Dream Mode pass — used to enforce
+ * the 1-run-per-hour rate-limit on the manual button.
+ */
+export const setLastDreamRunAtInternal = internalMutation({
+  args: {
+    userId: v.id("users"),
+    timestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, { lastDreamRunAt: args.timestamp });
+      return existing._id;
+    }
+    return await ctx.db.insert("userSettings", {
+      userId: args.userId,
+      lastDreamRunAt: args.timestamp,
+    });
+  },
+});
+
+/**
+ * Internal: read the user's Dream Mode config (auto-accept + last run).
+ * Used by the dream pipeline to decide auto-accept vs proposals and to
+ * gate the manual button rate-limit.
+ */
+export const getDreamConfigInternal = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.object({
+    dreamModeAutoAccept: v.boolean(),
+    lastDreamRunAt: v.union(v.number(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+    return {
+      dreamModeAutoAccept: doc?.dreamModeAutoAccept ?? false,
+      lastDreamRunAt: doc?.lastDreamRunAt ?? null,
+    };
   },
 });
 

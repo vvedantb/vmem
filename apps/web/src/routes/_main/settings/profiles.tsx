@@ -1,13 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { useState } from "react";
-import { toast } from "sonner";
 import {
   Button,
   Input,
   Label,
   Skeleton,
-  Switch,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -40,7 +38,6 @@ import {
   IconDeviceGamepad,
   IconWorld,
   IconBrandChrome,
-  IconSparkles,
   IconLoader2,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
@@ -503,226 +500,6 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   );
 }
 
-/**
- * Convert a UTC hour/minute pair to the user's local "HH:MM" string for
- * the time picker. Uses today's date as the reference so DST is applied
- * consistently with the picker's view.
- */
-function utcToLocalHHMM(utcHour: number, utcMinute: number): string {
-  const d = new Date();
-  d.setUTCHours(utcHour, utcMinute, 0, 0);
-  const h = String(d.getHours()).padStart(2, "0");
-  const m = String(d.getMinutes()).padStart(2, "0");
-  return `${h}:${m}`;
-}
-
-/**
- * Convert a local "HH:MM" string from the time picker back to UTC
- * hour/minute for storage + cron registration.
- */
-function localHHMMToUtc(hhmm: string): { hour: number; minute: number } | null {
-  const match = /^(\d{2}):(\d{2})$/.exec(hhmm);
-  if (!match) return null;
-  const h = Number(match[1]);
-  const m = Number(match[2]);
-  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  return { hour: d.getUTCHours(), minute: d.getUTCMinutes() };
-}
-
-/**
- * Default UTC time for a freshly-enabled schedule, derived from the
- * preferred local default of 04:00. Computing this dynamically (rather
- * than hard-coding "04:00 UTC") means a user in PST sees 4 AM in their
- * picker, not 8 PM.
- */
-function defaultLocalTime(): string {
-  return "04:00";
-}
-
-/**
- * Per-profile Dream Mode controls.
- *
- * Two toggles per profile:
- *   1. Auto-accept — materialize synthesis directly as memories instead
- *      of routing through the proposals queue.
- *   2. Daily schedule — pick a local time; the cron component fires
- *      daily at that time (stored as UTC, so DST shifts the local time
- *      by 1h when the user's offset changes).
- *
- * Contradictions never auto-accept; they always queue for human review.
- */
-function DreamModeSection({ profiles }: { profiles: Profile[] }) {
-  const setDreamModeAutoAccept = useMutation(
-    api.profiles.setDreamModeAutoAccept,
-  );
-  const setDreamSchedule = useMutation(api.dreamSchedule.setDreamSchedule);
-
-  const handleAutoAcceptToggle = async (
-    profileId: Id<"profiles">,
-    enabled: boolean,
-  ): Promise<void> => {
-    try {
-      await setDreamModeAutoAccept({ profileId, enabled });
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update Dream Mode",
-      );
-    }
-  };
-
-  const handleScheduleToggle = async (
-    profile: Profile,
-    enabled: boolean,
-  ): Promise<void> => {
-    try {
-      if (!enabled) {
-        await setDreamSchedule({ profileId: profile._id, enabled: false });
-        toast.success("Daily schedule disabled");
-        return;
-      }
-      // Use the saved time if present, otherwise convert the local default.
-      const savedHour = profile.dreamModeScheduleHour;
-      const savedMinute = profile.dreamModeScheduleMinute;
-      const utc =
-        typeof savedHour === "number" && typeof savedMinute === "number"
-          ? { hour: savedHour, minute: savedMinute }
-          : localHHMMToUtc(defaultLocalTime());
-      if (!utc) throw new Error("Invalid default time");
-      await setDreamSchedule({
-        profileId: profile._id,
-        enabled: true,
-        hour: utc.hour,
-        minute: utc.minute,
-      });
-      toast.success(
-        `Scheduled daily at ${utcToLocalHHMM(utc.hour, utc.minute)}`,
-      );
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update schedule",
-      );
-    }
-  };
-
-  const handleScheduleTimeChange = async (
-    profile: Profile,
-    hhmm: string,
-  ): Promise<void> => {
-    const utc = localHHMMToUtc(hhmm);
-    if (!utc) {
-      toast.error("Invalid time");
-      return;
-    }
-    try {
-      await setDreamSchedule({
-        profileId: profile._id,
-        enabled: profile.dreamModeScheduleEnabled ?? false,
-        hour: utc.hour,
-        minute: utc.minute,
-      });
-      // Only show the toast when the schedule is actually live; changing
-      // the time while disabled is just persisting a future default.
-      if (profile.dreamModeScheduleEnabled === true) {
-        toast.success(`Schedule updated to ${hhmm}`);
-      }
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update schedule",
-      );
-    }
-  };
-
-  return (
-    <div className="rounded-xl bg-muted/40 p-4 space-y-4">
-      <div className="flex items-start gap-2">
-        <IconSparkles className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-        <div>
-          <h3 className="font-medium text-foreground">Dream Mode</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Synthesize insights, connections, and anomalies across your
-            memories. Schedule a daily run per profile and choose whether
-            high-confidence synthesis auto-saves or queues for review.
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        {profiles.map((profile) => {
-          const scheduleEnabled = profile.dreamModeScheduleEnabled ?? false;
-          const savedHour = profile.dreamModeScheduleHour;
-          const savedMinute = profile.dreamModeScheduleMinute;
-          const timeValue =
-            typeof savedHour === "number" && typeof savedMinute === "number"
-              ? utcToLocalHHMM(savedHour, savedMinute)
-              : defaultLocalTime();
-
-          return (
-            <div
-              key={profile._id}
-              className="rounded-lg bg-background/40 p-3 space-y-2"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className="h-2.5 w-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: profile.color }}
-                />
-                <span className="text-sm font-medium text-foreground truncate">
-                  {profile.name}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 pl-4">
-                <Label
-                  htmlFor={`dream-mode-auto-${profile._id}`}
-                  className="text-xs text-muted-foreground cursor-pointer"
-                >
-                  Auto-accept high-confidence synthesis
-                </Label>
-                <Switch
-                  id={`dream-mode-auto-${profile._id}`}
-                  checked={profile.dreamModeAutoAccept ?? false}
-                  onCheckedChange={(checked) =>
-                    void handleAutoAcceptToggle(profile._id, checked)
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-3 pl-4">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Label
-                    htmlFor={`dream-mode-schedule-${profile._id}`}
-                    className="text-xs text-muted-foreground cursor-pointer"
-                  >
-                    Run daily at
-                  </Label>
-                  <Input
-                    type="time"
-                    value={timeValue}
-                    onChange={(e) =>
-                      void handleScheduleTimeChange(profile, e.target.value)
-                    }
-                    className="h-7 w-[110px] text-xs"
-                    aria-label={`Dream Mode schedule time for ${profile.name}`}
-                  />
-                </div>
-                <Switch
-                  id={`dream-mode-schedule-${profile._id}`}
-                  checked={scheduleEnabled}
-                  onCheckedChange={(checked) =>
-                    void handleScheduleToggle(profile, checked)
-                  }
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function ProfilesPage() {
   const profiles = useQuery(api.profiles.list);
   const createProfile = useMutation(api.profiles.create);
@@ -787,8 +564,6 @@ function ProfilesPage() {
     >
       <div className="space-y-6">
         <DefaultProfilesSection profiles={profiles} />
-
-        <DreamModeSection profiles={profiles} />
 
         <div className="grid gap-4 sm:grid-cols-2">
           {profiles.map((profile) => (

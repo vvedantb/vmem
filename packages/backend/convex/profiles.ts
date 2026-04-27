@@ -539,6 +539,22 @@ export const listByClerkIdInternal = internalQuery({
   },
 });
 
+/**
+ * List personal (non-team) profiles owned by a user. Used by the
+ * user-level Dream Mode orchestrator to iterate every personal profile
+ * in one pass.
+ */
+export const listPersonalByUserIdInternal = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const all = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    return all.filter((p) => p.teamId === undefined);
+  },
+});
+
 /** Get default profile by user ID (internal) */
 export const getDefaultByUserIdInternal = internalQuery({
   args: { userId: v.id("users") },
@@ -563,7 +579,11 @@ export const getDefaultByUserIdInternal = internalQuery({
 // manual "Run Dream Mode" button to enforce a 1-run-per-hour rate limit.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Toggle the Dream Mode auto-accept flag for a profile. Personal profile owner only for V1. */
+/**
+ * Toggle the Dream Mode auto-accept flag for a TEAM profile only.
+ * Personal profiles use the user-wide setting on `userSettings.dreamModeAutoAccept`
+ * — call `userSettings.update` for those.
+ */
 export const setDreamModeAutoAccept = authMutation({
   args: {
     profileId: v.id("profiles"),
@@ -573,19 +593,21 @@ export const setDreamModeAutoAccept = authMutation({
     const profile = await ctx.db.get(args.profileId);
     if (!profile) throw new Error("Profile not found");
 
-    if (profile.teamId) {
-      const teamId = profile.teamId;
-      const membership = await ctx.db
-        .query("teamMembers")
-        .withIndex("by_team_user", (q) =>
-          q.eq("teamId", teamId).eq("userId", ctx.userId),
-        )
-        .first();
-      if (!membership || membership.role !== "owner") {
-        throw new Error("Only team owners can configure Dream Mode");
-      }
-    } else if (profile.userId !== ctx.userId) {
-      throw new Error("Profile not found");
+    if (!profile.teamId) {
+      throw new Error(
+        "Personal profiles use the user-wide Dream Mode auto-accept setting",
+      );
+    }
+
+    const teamId = profile.teamId;
+    const membership = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_team_user", (q) =>
+        q.eq("teamId", teamId).eq("userId", ctx.userId),
+      )
+      .first();
+    if (!membership || membership.role !== "owner") {
+      throw new Error("Only team owners can configure Dream Mode");
     }
 
     await ctx.db.patch(args.profileId, {
