@@ -2,8 +2,6 @@
 
 import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { AnimatePresence, motion } from "motion/react";
-import { motionDuration, motionEase } from "../motion/presets";
 import { cn } from "../utils/cn";
 
 const Tabs = TabsPrimitive.Root;
@@ -30,7 +28,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "glass-tab-trigger inline-flex items-center justify-center whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium ring-offset-background transition-[background-color,color,box-shadow,transform] duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-foreground active:scale-[0.96]",
+      "group/tab glass-tab-trigger inline-flex items-center justify-center whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium ring-offset-background transition-[background-color,color,box-shadow,transform] duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-foreground active:scale-[0.96]",
       className,
     )}
     {...props}
@@ -62,11 +60,17 @@ TabsContent.displayName = TabsPrimitive.Content.displayName;
 export { TabsPrimitive };
 
 /**
- * Animated label slot for icon-only tab triggers. Renders nothing when
- * `isActive` is false; when it flips true the label slides in (width
- * grows from 0 + fade in) so the active pill expands smoothly instead
- * of snapping. Compose alongside an icon inside any `<TabsTrigger>` to
- * get the "icon-only when inactive, icon + label when active" pattern.
+ * Animated label slot for icon-only tab triggers.
+ *
+ * Always rendered, but collapsed to width 0 (and faded out) when the tab
+ * is inactive. Expands when the tab is active OR when its parent
+ * `<TabsTrigger>` is hovered, so users get a label preview before
+ * committing. Driven by CSS (`grid-template-columns 0fr → 1fr` + opacity
+ * + margin) rather than `AnimatePresence` — this lets `group-hover/tab`
+ * drive the hover state without per-trigger React state.
+ *
+ * Compose alongside an icon inside any `<TabsTrigger>` to get the
+ * "icon-only when inactive, icon + label when active or hovered" pattern.
  */
 function AnimatedTabLabel({
   isActive,
@@ -76,20 +80,16 @@ function AnimatedTabLabel({
   label: string;
 }) {
   return (
-    <AnimatePresence initial={false}>
-      {isActive ? (
-        <motion.span
-          key={label}
-          className="ml-1.5 overflow-hidden whitespace-nowrap"
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: "auto", opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
-          transition={{ duration: motionDuration.fast, ease: motionEase }}
-        >
-          {label}
-        </motion.span>
-      ) : null}
-    </AnimatePresence>
+    <span
+      className={cn(
+        "grid transition-[grid-template-columns,margin-left,opacity] duration-200 ease-smooth",
+        isActive
+          ? "ml-1.5 grid-cols-[1fr] opacity-100"
+          : "ml-0 grid-cols-[0fr] opacity-0 group-hover/tab:ml-1.5 group-hover/tab:grid-cols-[1fr] group-hover/tab:opacity-100",
+      )}
+    >
+      <span className="overflow-hidden whitespace-nowrap">{label}</span>
+    </span>
   );
 }
 
