@@ -26,5 +26,4 @@ export * from "./ui/switch";
 export * from "./ui/table";
 export * from "./ui/tabs";
 export * from "./ui/textarea";
-export * from "./ui/time-picker";
 export * from "./ui/tooltip";
