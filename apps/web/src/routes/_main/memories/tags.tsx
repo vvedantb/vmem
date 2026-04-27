@@ -50,8 +50,8 @@ function TagsPage() {
   const handleTagClick = useCallback(
     (tag: string) => {
       navigate({
-        to: "/memories",
-        search: { view: "list", tags: tag },
+        to: "/memories/list",
+        search: (prev) => ({ ...prev, tags: [tag] }),
       });
     },
     [navigate],
@@ -148,7 +148,7 @@ function TagsPage() {
       <PageContainer
         title="Memories"
         showTitle={false}
-        leftSection={<MemoriesTabs currentView="list" />}
+        leftSection={<MemoriesTabs />}
       >
         <div className="space-y-8">
           <div>
@@ -168,7 +168,7 @@ function TagsPage() {
     <PageContainer
       title="Memories"
       showTitle={false}
-      leftSection={<MemoriesTabs currentView="list" />}
+      leftSection={<MemoriesTabs />}
     >
       <div className="space-y-8">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">

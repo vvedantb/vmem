@@ -42,19 +42,19 @@ interface ActivityItem {
 const quickActions = [
   {
     label: "Add Memory",
-    href: "/memories?view=list",
+    href: "/memories/list",
     icon: IconPlus,
     description: "Create a new memory",
   },
   {
     label: "Search",
-    href: "/memories?view=list",
+    href: "/memories/list",
     icon: IconSearch,
     description: "Find memories",
   },
   {
     label: "Graph View",
-    href: "/memories",
+    href: "/memories/graph",
     icon: IconNetwork,
     description: "Visualize connections",
   },
