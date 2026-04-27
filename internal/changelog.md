@@ -1,5 +1,12 @@
 # Changelog
 
+## Dream Mode Becomes User-Wide for Personal Profiles — 2026-04-27
+
+- **Schedule + auto-accept move from per-profile to per-user**: Personal profiles no longer carry their own Dream Mode config. The user owns one schedule (HH:MM in UTC) and one auto-accept flag in `userSettings`; a single daily cron (`dream-mode:user:<userId>`) iterates every personal profile in one pass. Team profiles keep their per-profile cron and config because team membership cuts across users.
+- **One manual run per hour, user-wide**: The "Start Dreaming" button (renamed from "Run Dream Mode") now scans all personal profiles in one pass and rate-limits at the user level, so users with many profiles can't bypass the limit.
+- **Settings UX matches the new scope**: Dream Mode controls moved out of `/settings/profiles` (which mixed personal + team rows) into a dedicated section on `/settings/preferences`. Two controls: an auto-accept switch and a daily-schedule switch with a native `<input type="time">` time picker.
+- **Internal: per-profile orchestrator accepts `autoAcceptOverride`** so the user-level wrapper can pass `userSettings.dreamModeAutoAccept` without depending on the deprecated `profile.dreamModeAutoAccept` field.
+
 ## Tab Subroutes — Native Browser Navigation for Activity / Inbox / Settings API — 2026-04-26
 
 - **Each tab is now a real subroute**: `/activity`, `/inbox`, and `/settings/api` no longer use a `?tab=` URL param with conditional panel rendering. Each tab is its own route file (`/activity/ai-logs`, `/activity/events`, `/inbox/proposals`, `/inbox/notifications`, `/settings/api/keys`, `/settings/api/usage`) with its own `PageContainer`. The shared tab bar component is rendered in the `leftSection` of each subroute and wires tabs as `<Link>`s with active state derived from `useMatchRoute` — same pattern already used by `/memories` Tags.
