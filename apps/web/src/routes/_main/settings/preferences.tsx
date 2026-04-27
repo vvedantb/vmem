@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
-import { Input, Label, Switch, Skeleton, Textarea } from "@vmem/ui";
+import { Label, Switch, Skeleton, Textarea, TimePicker } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
@@ -243,18 +243,16 @@ function PreferencesPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Input
-                  type="time"
+                <TimePicker
                   value={
                     settings.dreamModeScheduleTime !== null
                       ? utcTimeToLocal(settings.dreamModeScheduleTime)
                       : DEFAULT_LOCAL_TIME
                   }
-                  onChange={(e) => {
-                    void handleScheduleTimeChange(e.target.value);
+                  onChange={(next) => {
+                    void handleScheduleTimeChange(next);
                   }}
-                  className="h-8 w-[110px] text-xs"
-                  aria-label="Dream Mode schedule time"
+                  ariaLabel="Dream Mode schedule time"
                 />
                 <Switch
                   id="dream-schedule"
