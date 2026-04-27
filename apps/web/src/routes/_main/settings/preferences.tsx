@@ -6,25 +6,30 @@ import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 
-/** Convert a stored UTC HH/MM into the user's local "HH:MM" picker string. */
-function utcToLocalHHMM(utcHour: number, utcMinute: number): string {
+/**
+ * Storage is "HH:MM" UTC; the picker renders local time. These helpers
+ * shift between the two via today's date, so DST is applied consistently
+ * with what the user sees at scheduling time.
+ */
+function utcTimeToLocal(utcTime: string): string {
+  const match = /^(\d{2}):(\d{2})$/.exec(utcTime);
+  if (!match) return DEFAULT_LOCAL_TIME;
   const d = new Date();
-  d.setUTCHours(utcHour, utcMinute, 0, 0);
+  d.setUTCHours(Number(match[1]), Number(match[2]), 0, 0);
   const h = String(d.getHours()).padStart(2, "0");
   const m = String(d.getMinutes()).padStart(2, "0");
   return `${h}:${m}`;
 }
 
-/** Convert a local "HH:MM" picker value into a UTC hour/minute pair. */
-function localHHMMToUtc(hhmm: string): { hour: number; minute: number } | null {
-  const match = /^(\d{2}):(\d{2})$/.exec(hhmm);
+function localTimeToUtc(localTime: string): string | null {
+  const match = /^(\d{2}):(\d{2})$/.exec(localTime);
   if (!match) return null;
   const h = Number(match[1]);
   const m = Number(match[2]);
   if (h < 0 || h > 23 || m < 0 || m > 59) return null;
   const d = new Date();
   d.setHours(h, m, 0, 0);
-  return { hour: d.getUTCHours(), minute: d.getUTCMinutes() };
+  return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 }
 
 const DEFAULT_LOCAL_TIME = "04:00";
@@ -55,20 +60,12 @@ function PreferencesPage() {
         toast.success("Daily Dream Mode disabled");
         return;
       }
-      const savedHour = settings.dreamModeScheduleHour;
-      const savedMinute = settings.dreamModeScheduleMinute;
-      const utc =
-        typeof savedHour === "number" && typeof savedMinute === "number"
-          ? { hour: savedHour, minute: savedMinute }
-          : localHHMMToUtc(DEFAULT_LOCAL_TIME);
-      if (!utc) throw new Error("Invalid default time");
-      await setDreamSchedule({
-        enabled: true,
-        hour: utc.hour,
-        minute: utc.minute,
-      });
+      const savedTime = settings.dreamModeScheduleTime;
+      const utcTime = savedTime ?? localTimeToUtc(DEFAULT_LOCAL_TIME);
+      if (utcTime === null) throw new Error("Invalid default time");
+      await setDreamSchedule({ enabled: true, time: utcTime });
       toast.success(
-        `Daily Dream Mode scheduled for ${utcToLocalHHMM(utc.hour, utc.minute)}`,
+        `Daily Dream Mode scheduled for ${utcTimeToLocal(utcTime)}`,
       );
     } catch (err) {
       toast.error(
@@ -77,10 +74,10 @@ function PreferencesPage() {
     }
   };
 
-  const handleScheduleTimeChange = async (hhmm: string): Promise<void> => {
+  const handleScheduleTimeChange = async (localTime: string): Promise<void> => {
     if (settings === undefined) return;
-    const utc = localHHMMToUtc(hhmm);
-    if (!utc) {
+    const utcTime = localTimeToUtc(localTime);
+    if (utcTime === null) {
       toast.error("Invalid time");
       return;
     }
@@ -89,11 +86,10 @@ function PreferencesPage() {
       // it so flipping the toggle on later picks up the user's chosen time.
       await setDreamSchedule({
         enabled: settings.dreamModeScheduleEnabled,
-        hour: utc.hour,
-        minute: utc.minute,
+        time: utcTime,
       });
       if (settings.dreamModeScheduleEnabled) {
-        toast.success(`Schedule updated to ${hhmm}`);
+        toast.success(`Schedule updated to ${localTime}`);
       }
     } catch (err) {
       toast.error(
@@ -250,12 +246,8 @@ function PreferencesPage() {
                 <Input
                   type="time"
                   value={
-                    typeof settings.dreamModeScheduleHour === "number" &&
-                    typeof settings.dreamModeScheduleMinute === "number"
-                      ? utcToLocalHHMM(
-                          settings.dreamModeScheduleHour,
-                          settings.dreamModeScheduleMinute,
-                        )
+                    settings.dreamModeScheduleTime !== null
+                      ? utcTimeToLocal(settings.dreamModeScheduleTime)
                       : DEFAULT_LOCAL_TIME
                   }
                   onChange={(e) => {

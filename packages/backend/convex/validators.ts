@@ -38,16 +38,16 @@ export const profileFields = {
   /**
    * Per-profile Dream Mode schedule. When `dreamModeScheduleEnabled` is
    * true, a cron is registered via `@convex-dev/crons` that fires daily at
-   * `dreamModeScheduleHour:dreamModeScheduleMinute` UTC. The user picks a
-   * local time in the UI; the browser converts to UTC before saving so the
-   * cron always fires at a stable moment regardless of DST.
+   * `dreamModeScheduleTime` UTC ("HH:MM" — same shape the `<input
+   * type="time">` picker produces, so the UI never has to split). The user
+   * picks a local time in the browser; the browser converts to UTC before
+   * saving so the cron always fires at a stable moment regardless of DST.
    *
    * Defaults: undefined / false — Dream Mode is opt-in to avoid surprising
    * the user with LLM costs.
    */
   dreamModeScheduleEnabled: v.optional(v.boolean()),
-  dreamModeScheduleHour: v.optional(v.number()), // 0-23 UTC
-  dreamModeScheduleMinute: v.optional(v.number()), // 0-59 UTC
+  dreamModeScheduleTime: v.optional(v.string()), // "HH:MM" UTC
 };
 
 /**
