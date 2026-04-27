@@ -37,6 +37,7 @@ export const ResourceTypes = {
   TEAM_MEMBER: "team_member",
   PROFILE: "profile",
   CONNECTOR: "connector",
+  USER: "user",
 } as const;
 
 export type ResourceType = (typeof ResourceTypes)[keyof typeof ResourceTypes];
