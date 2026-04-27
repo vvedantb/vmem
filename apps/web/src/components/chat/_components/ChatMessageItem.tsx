@@ -94,8 +94,8 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
 function MemoryRefChip({ ref }: { ref: ChatMemoryRef }) {
   const chip = (
     <Link
-      to="/memories"
-      search={{ view: "graph", focus: ref.id }}
+      to="/memories/graph"
+      search={(prev) => ({ ...prev, focus: ref.id })}
       className="inline-flex max-w-[220px] items-center rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
       <span className="truncate">{ref.title}</span>

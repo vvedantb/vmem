@@ -39,6 +39,8 @@ import { Route as MainSettingsExtensionRouteImport } from './routes/_main/settin
 import { Route as MainSettingsEnvVarsRouteImport } from './routes/_main/settings/env-vars'
 import { Route as MainSettingsConnectorsRouteImport } from './routes/_main/settings/connectors'
 import { Route as MainMemoriesTagsRouteImport } from './routes/_main/memories/tags'
+import { Route as MainMemoriesListRouteImport } from './routes/_main/memories/list'
+import { Route as MainMemoriesGraphRouteImport } from './routes/_main/memories/graph'
 import { Route as MainInboxProposalsRouteImport } from './routes/_main/inbox/proposals'
 import { Route as MainInboxNotificationsRouteImport } from './routes/_main/inbox/notifications'
 import { Route as MainCodebasesIdRouteImport } from './routes/_main/codebases/$id'
@@ -200,6 +202,16 @@ const MainMemoriesTagsRoute = MainMemoriesTagsRouteImport.update({
   path: '/memories/tags',
   getParentRoute: () => MainRouteRoute,
 } as any)
+const MainMemoriesListRoute = MainMemoriesListRouteImport.update({
+  id: '/memories/list',
+  path: '/memories/list',
+  getParentRoute: () => MainRouteRoute,
+} as any)
+const MainMemoriesGraphRoute = MainMemoriesGraphRouteImport.update({
+  id: '/memories/graph',
+  path: '/memories/graph',
+  getParentRoute: () => MainRouteRoute,
+} as any)
 const MainInboxProposalsRoute = MainInboxProposalsRouteImport.update({
   id: '/inbox/proposals',
   path: '/inbox/proposals',
@@ -273,6 +285,8 @@ export interface FileRoutesByFullPath {
   '/codebases/$id': typeof MainCodebasesIdRoute
   '/inbox/notifications': typeof MainInboxNotificationsRoute
   '/inbox/proposals': typeof MainInboxProposalsRoute
+  '/memories/graph': typeof MainMemoriesGraphRoute
+  '/memories/list': typeof MainMemoriesListRoute
   '/memories/tags': typeof MainMemoriesTagsRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
   '/settings/env-vars': typeof MainSettingsEnvVarsRoute
@@ -315,6 +329,8 @@ export interface FileRoutesByTo {
   '/codebases/$id': typeof MainCodebasesIdRoute
   '/inbox/notifications': typeof MainInboxNotificationsRoute
   '/inbox/proposals': typeof MainInboxProposalsRoute
+  '/memories/graph': typeof MainMemoriesGraphRoute
+  '/memories/list': typeof MainMemoriesListRoute
   '/memories/tags': typeof MainMemoriesTagsRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
   '/settings/env-vars': typeof MainSettingsEnvVarsRoute
@@ -359,6 +375,8 @@ export interface FileRoutesById {
   '/_main/codebases/$id': typeof MainCodebasesIdRoute
   '/_main/inbox/notifications': typeof MainInboxNotificationsRoute
   '/_main/inbox/proposals': typeof MainInboxProposalsRoute
+  '/_main/memories/graph': typeof MainMemoriesGraphRoute
+  '/_main/memories/list': typeof MainMemoriesListRoute
   '/_main/memories/tags': typeof MainMemoriesTagsRoute
   '/_main/settings/connectors': typeof MainSettingsConnectorsRoute
   '/_main/settings/env-vars': typeof MainSettingsEnvVarsRoute
@@ -403,6 +421,8 @@ export interface FileRouteTypes {
     | '/codebases/$id'
     | '/inbox/notifications'
     | '/inbox/proposals'
+    | '/memories/graph'
+    | '/memories/list'
     | '/memories/tags'
     | '/settings/connectors'
     | '/settings/env-vars'
@@ -445,6 +465,8 @@ export interface FileRouteTypes {
     | '/codebases/$id'
     | '/inbox/notifications'
     | '/inbox/proposals'
+    | '/memories/graph'
+    | '/memories/list'
     | '/memories/tags'
     | '/settings/connectors'
     | '/settings/env-vars'
@@ -488,6 +510,8 @@ export interface FileRouteTypes {
     | '/_main/codebases/$id'
     | '/_main/inbox/notifications'
     | '/_main/inbox/proposals'
+    | '/_main/memories/graph'
+    | '/_main/memories/list'
     | '/_main/memories/tags'
     | '/_main/settings/connectors'
     | '/_main/settings/env-vars'
@@ -734,6 +758,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainMemoriesTagsRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/memories/list': {
+      id: '/_main/memories/list'
+      path: '/memories/list'
+      fullPath: '/memories/list'
+      preLoaderRoute: typeof MainMemoriesListRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/memories/graph': {
+      id: '/_main/memories/graph'
+      path: '/memories/graph'
+      fullPath: '/memories/graph'
+      preLoaderRoute: typeof MainMemoriesGraphRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/inbox/proposals': {
       id: '/_main/inbox/proposals'
       path: '/inbox/proposals'
@@ -827,6 +865,8 @@ interface MainRouteRouteChildren {
   MainCodebasesIdRoute: typeof MainCodebasesIdRoute
   MainInboxNotificationsRoute: typeof MainInboxNotificationsRoute
   MainInboxProposalsRoute: typeof MainInboxProposalsRoute
+  MainMemoriesGraphRoute: typeof MainMemoriesGraphRoute
+  MainMemoriesListRoute: typeof MainMemoriesListRoute
   MainMemoriesTagsRoute: typeof MainMemoriesTagsRoute
   MainSettingsConnectorsRoute: typeof MainSettingsConnectorsRoute
   MainSettingsEnvVarsRoute: typeof MainSettingsEnvVarsRoute
@@ -868,6 +908,8 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainCodebasesIdRoute: MainCodebasesIdRoute,
   MainInboxNotificationsRoute: MainInboxNotificationsRoute,
   MainInboxProposalsRoute: MainInboxProposalsRoute,
+  MainMemoriesGraphRoute: MainMemoriesGraphRoute,
+  MainMemoriesListRoute: MainMemoriesListRoute,
   MainMemoriesTagsRoute: MainMemoriesTagsRoute,
   MainSettingsConnectorsRoute: MainSettingsConnectorsRoute,
   MainSettingsEnvVarsRoute: MainSettingsEnvVarsRoute,
