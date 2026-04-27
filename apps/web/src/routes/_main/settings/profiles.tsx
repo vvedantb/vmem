@@ -19,6 +19,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  TimePicker,
   cn,
 } from "@vmem/ui";
 import {
@@ -697,14 +698,12 @@ function DreamModeSection({ profiles }: { profiles: Profile[] }) {
                   >
                     Run daily at
                   </Label>
-                  <Input
-                    type="time"
+                  <TimePicker
                     value={timeValue}
-                    onChange={(e) =>
-                      void handleScheduleTimeChange(profile, e.target.value)
+                    onChange={(hhmm) =>
+                      void handleScheduleTimeChange(profile, hhmm)
                     }
-                    className="h-7 w-[110px] text-xs"
-                    aria-label={`Dream Mode schedule time for ${profile.name}`}
+                    ariaLabel={`Dream Mode schedule time for ${profile.name}`}
                   />
                 </div>
                 <Switch
