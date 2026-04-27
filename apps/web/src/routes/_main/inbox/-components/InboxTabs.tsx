@@ -1,6 +1,7 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
 import { IconChecklist, IconBell } from "@tabler/icons-react";
+import { AnimatedTabLabel } from "@/components/AnimatedTabLabel";
 
 /**
  * Tab bar for the `/inbox` page header. Each tab is a real subroute so
@@ -16,20 +17,20 @@ export function InboxTabs() {
       <TabsList>
         <TabsTrigger value="proposals" asChild>
           <Link to="/inbox/proposals">
-            <IconChecklist
-              size={16}
-              className={activeValue === "proposals" ? "mr-1.5" : ""}
+            <IconChecklist size={16} />
+            <AnimatedTabLabel
+              isActive={activeValue === "proposals"}
+              label="Proposals"
             />
-            {activeValue === "proposals" && "Proposals"}
           </Link>
         </TabsTrigger>
         <TabsTrigger value="notifications" asChild>
           <Link to="/inbox/notifications">
-            <IconBell
-              size={16}
-              className={activeValue === "notifications" ? "mr-1.5" : ""}
+            <IconBell size={16} />
+            <AnimatedTabLabel
+              isActive={activeValue === "notifications"}
+              label="Notifications"
             />
-            {activeValue === "notifications" && "Notifications"}
           </Link>
         </TabsTrigger>
       </TabsList>

@@ -1,6 +1,7 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
 import { IconTopologyStar3, IconList, IconHash } from "@tabler/icons-react";
+import { AnimatedTabLabel } from "@/components/AnimatedTabLabel";
 
 /**
  * Shared tab bar for the memories surface.
@@ -29,29 +30,23 @@ export function MemoriesTabs({
       <TabsList>
         <TabsTrigger value="graph" asChild>
           <Link to="/memories" search={(prev) => ({ ...prev, view: "graph" })}>
-            <IconTopologyStar3
-              size={16}
-              className={activeValue === "graph" ? "mr-1.5" : ""}
+            <IconTopologyStar3 size={16} />
+            <AnimatedTabLabel
+              isActive={activeValue === "graph"}
+              label="Graph"
             />
-            {activeValue === "graph" && "Graph"}
           </Link>
         </TabsTrigger>
         <TabsTrigger value="list" asChild>
           <Link to="/memories" search={(prev) => ({ ...prev, view: "list" })}>
-            <IconList
-              size={16}
-              className={activeValue === "list" ? "mr-1.5" : ""}
-            />
-            {activeValue === "list" && "List"}
+            <IconList size={16} />
+            <AnimatedTabLabel isActive={activeValue === "list"} label="List" />
           </Link>
         </TabsTrigger>
         <TabsTrigger value="tags" asChild>
           <Link to="/memories/tags">
-            <IconHash
-              size={16}
-              className={activeValue === "tags" ? "mr-1.5" : ""}
-            />
-            {activeValue === "tags" && "Tags"}
+            <IconHash size={16} />
+            <AnimatedTabLabel isActive={activeValue === "tags"} label="Tags" />
           </Link>
         </TabsTrigger>
       </TabsList>
