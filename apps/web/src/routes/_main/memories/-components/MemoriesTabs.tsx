@@ -1,48 +1,51 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
+import { Tabs, TabsList, TabsTrigger, AnimatedTabLabel } from "@vmem/ui";
 import { IconTopologyStar3, IconList, IconHash } from "@tabler/icons-react";
 
 /**
  * Shared tab bar for the memories surface.
  *
- * Three destinations live behind this control:
- * - Graph → /memories?view=graph (default)
- * - List  → /memories?view=list
- * - Tags  → /memories/tags (separate route)
- *
- * Active state is derived from the current route + `view` param so the
- * same component renders correctly on both `/memories` and `/memories/tags`.
- * Tabs are wired as `<Link>`s rather than controlled `<TabsTrigger>`s to
- * keep navigation a single source of truth (the URL).
+ * Each tab is a real subroute now — Graph (`/memories/graph`), List
+ * (`/memories/list`), Tags (`/memories/tags`) — so active state is
+ * derived purely from the URL via `useMatchRoute`. Tabs are wired as
+ * `<Link>`s so navigation is a single source of truth and browser
+ * back/forward Just Works.
  */
-export function MemoriesTabs({
-  currentView,
-}: {
-  currentView: "graph" | "list";
-}) {
+export function MemoriesTabs() {
   const matchRoute = useMatchRoute();
-  const isOnTags = Boolean(matchRoute({ to: "/memories/tags" }));
-  const activeValue = isOnTags ? "tags" : currentView;
+  const isGraph = Boolean(matchRoute({ to: "/memories/graph" }));
+  const isList = Boolean(matchRoute({ to: "/memories/list" }));
+  const isTags = Boolean(matchRoute({ to: "/memories/tags" }));
+  const activeValue = isTags
+    ? "tags"
+    : isList
+      ? "list"
+      : isGraph
+        ? "graph"
+        : "";
 
   return (
     <Tabs value={activeValue}>
       <TabsList>
         <TabsTrigger value="graph" asChild>
-          <Link to="/memories" search={(prev) => ({ ...prev, view: "graph" })}>
-            <IconTopologyStar3 size={16} className="mr-1.5" />
-            Graph
+          <Link to="/memories/graph">
+            <IconTopologyStar3 size={16} />
+            <AnimatedTabLabel
+              isActive={activeValue === "graph"}
+              label="Graph"
+            />
           </Link>
         </TabsTrigger>
         <TabsTrigger value="list" asChild>
-          <Link to="/memories" search={(prev) => ({ ...prev, view: "list" })}>
-            <IconList size={16} className="mr-1.5" />
-            List
+          <Link to="/memories/list">
+            <IconList size={16} />
+            <AnimatedTabLabel isActive={activeValue === "list"} label="List" />
           </Link>
         </TabsTrigger>
         <TabsTrigger value="tags" asChild>
           <Link to="/memories/tags">
-            <IconHash size={16} className="mr-1.5" />
-            Tags
+            <IconHash size={16} />
+            <AnimatedTabLabel isActive={activeValue === "tags"} label="Tags" />
           </Link>
         </TabsTrigger>
       </TabsList>

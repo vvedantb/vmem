@@ -198,8 +198,8 @@ export function CommandPalette({ onToggleSidebar }: Props) {
                   onSelect={() =>
                     runAndClose(() =>
                       navigate({
-                        to: "/memories",
-                        search: { focus: m.id, view: "graph", q: "" },
+                        to: "/memories/graph",
+                        search: (prev) => ({ ...prev, focus: m.id }),
                       }),
                     )
                   }

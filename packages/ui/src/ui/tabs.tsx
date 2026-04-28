@@ -28,7 +28,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "glass-tab-trigger inline-flex items-center justify-center whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium ring-offset-background transition-[background-color,color,box-shadow,transform] duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-foreground active:scale-[0.96]",
+      "group/tab glass-tab-trigger inline-flex items-center justify-center whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium ring-offset-background transition-[background-color,color,box-shadow,transform] duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-foreground active:scale-[0.96]",
       className,
     )}
     {...props}
@@ -59,4 +59,38 @@ TabsContent.displayName = TabsPrimitive.Content.displayName;
  */
 export { TabsPrimitive };
 
-export { Tabs, TabsList, TabsTrigger, TabsContent };
+/**
+ * Animated label slot for icon-only tab triggers.
+ *
+ * Always rendered, but collapsed to width 0 (and faded out) when the tab
+ * is inactive. Expands when the tab is active OR when its parent
+ * `<TabsTrigger>` is hovered, so users get a label preview before
+ * committing. Driven by CSS (`grid-template-columns 0fr → 1fr` + opacity
+ * + margin) rather than `AnimatePresence` — this lets `group-hover/tab`
+ * drive the hover state without per-trigger React state.
+ *
+ * Compose alongside an icon inside any `<TabsTrigger>` to get the
+ * "icon-only when inactive, icon + label when active or hovered" pattern.
+ */
+function AnimatedTabLabel({
+  isActive,
+  label,
+}: {
+  isActive: boolean;
+  label: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "grid transition-[grid-template-columns,margin-left,opacity] duration-200 ease-smooth",
+        isActive
+          ? "ml-1.5 grid-cols-[1fr] opacity-100"
+          : "ml-0 grid-cols-[0fr] opacity-0 group-hover/tab:ml-1.5 group-hover/tab:grid-cols-[1fr] group-hover/tab:opacity-100",
+      )}
+    >
+      <span className="overflow-hidden whitespace-nowrap">{label}</span>
+    </span>
+  );
+}
+
+export { Tabs, TabsList, TabsTrigger, TabsContent, AnimatedTabLabel };

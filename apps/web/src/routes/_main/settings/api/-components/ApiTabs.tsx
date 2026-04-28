@@ -1,5 +1,5 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
+import { Tabs, TabsList, TabsTrigger, AnimatedTabLabel } from "@vmem/ui";
 import { IconKey, IconChartBar } from "@tabler/icons-react";
 
 /**
@@ -20,14 +20,17 @@ export function ApiTabs() {
       <TabsList>
         <TabsTrigger value="keys" asChild>
           <Link to="/settings/api/keys">
-            <IconKey size={16} className="mr-1.5" />
-            Keys
+            <IconKey size={16} />
+            <AnimatedTabLabel isActive={activeValue === "keys"} label="Keys" />
           </Link>
         </TabsTrigger>
         <TabsTrigger value="usage" asChild>
           <Link to="/settings/api/usage">
-            <IconChartBar size={16} className="mr-1.5" />
-            Usage
+            <IconChartBar size={16} />
+            <AnimatedTabLabel
+              isActive={activeValue === "usage"}
+              label="Usage"
+            />
           </Link>
         </TabsTrigger>
       </TabsList>

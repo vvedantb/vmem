@@ -11,7 +11,6 @@ import {
   IconPlug,
   IconUserCircle,
   IconAdjustments,
-  IconShieldLock,
   IconTerminal2,
   IconPuzzle,
   IconFileImport,
@@ -74,11 +73,6 @@ export const settingsNavGroups: SettingsNavGroup[] = [
       },
       { href: "/settings/profiles", label: "Profiles", icon: IconUsers },
       { href: "/settings/models", label: "Models", icon: IconCpu },
-      {
-        href: "/settings/data-controls",
-        label: "Data Controls",
-        icon: IconShieldLock,
-      },
     ],
   },
   {

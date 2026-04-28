@@ -139,8 +139,8 @@ export default function SynthesisProposalCard({
               {proposal.sourceMemorySnapshots.map((src) => (
                 <Link
                   key={src.id}
-                  to="/memories"
-                  search={{ view: "graph", focus: src.id }}
+                  to="/memories/graph"
+                  search={(prev) => ({ ...prev, focus: src.id })}
                   className="group flex min-w-0 items-baseline gap-2 text-sm transition-colors hover:bg-muted/40 rounded px-1 py-0.5 -mx-1"
                 >
                   <span className="truncate text-foreground/80 group-hover:text-foreground">

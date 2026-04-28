@@ -19,7 +19,7 @@ https://www.convex.dev/components/convex-api-tokens
 https://www.convex.dev/components/hamzasaleem2/convex-comments
 https://www.convex.dev/components/convex-audit-log
 https://www.convex.dev/components/retrier
-https://www.convex.dev/components/clipin/convex-wearables
+https://www.convex.dev/components/clipin/convex-wearablesp
 https://www.convex.dev/components/convex-secret-store
 
 can any of these components be useful for us in this app, search web for all links

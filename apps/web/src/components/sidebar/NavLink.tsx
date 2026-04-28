@@ -77,7 +77,7 @@ export function NavLink({
         {showBadge && !isIconOnly ? (
           <motion.span
             key={`${item.href}-badge`}
-            className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground"
+            className="flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-xs font-medium text-muted-foreground"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -94,7 +94,7 @@ export function NavLink({
         {showBadge && isIconOnly ? (
           <motion.span
             key={`${item.href}-dot`}
-            className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary"
+            className="absolute right-2 top-2 h-2 w-2 rounded-full bg-muted-foreground"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}

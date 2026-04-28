@@ -2,10 +2,7 @@ import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from "nuqs";
 import { MEMORY_TYPES } from "@/lib/memories";
 import { LIST_ITEM_KINDS } from "@/lib/list-items";
 
-const memoryViews = ["graph", "list"] as const;
-
 const memoriesSearchParams = {
-  view: parseAsStringLiteral(memoryViews).withDefault("graph"),
   /** When set, graph shows 2-hop local subgraph around this memory ID */
   focus: parseAsString,
   /** Profile filter — when set, only show memories from this profile */
