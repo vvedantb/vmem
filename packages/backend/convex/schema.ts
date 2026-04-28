@@ -102,6 +102,18 @@ const schema = defineSchema({
         extension: v.optional(v.id("profiles")),
       }),
     ),
+    // ── Dream Mode (user-wide; applies to personal profiles only) ──────
+    /** When true, the Dreamer's high-confidence synthesis materializes
+     *  directly as new memories instead of routing through /proposals. */
+    dreamModeAutoAccept: v.optional(v.boolean()),
+    /** When true, a daily cron fires `runDreamForUserById` at
+     *  `dreamModeScheduleTime` UTC and scans every personal profile in one
+     *  pass. Time stored as "HH:MM" — same shape the time picker produces. */
+    dreamModeScheduleEnabled: v.optional(v.boolean()),
+    dreamModeScheduleTime: v.optional(v.string()), // "HH:MM" UTC
+    /** Wall-clock ms of the last successful Dream Mode run. Used to
+     *  rate-limit the manual "Start Dreaming" button (1 run/hour). */
+    lastDreamRunAt: v.optional(v.number()),
   }).index("by_user", ["userId"]),
 
   profiles: defineTable(profileFields)

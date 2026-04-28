@@ -1,5 +1,5 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
+import { Tabs, TabsList, TabsTrigger, AnimatedTabLabel } from "@vmem/ui";
 import { IconReceipt2, IconActivity } from "@tabler/icons-react";
 
 /**
@@ -22,14 +22,20 @@ export function ActivityTabs() {
       <TabsList>
         <TabsTrigger value="ai-logs" asChild>
           <Link to="/activity/ai-logs">
-            <IconReceipt2 size={16} className="mr-1.5" />
-            AI Logs
+            <IconReceipt2 size={16} />
+            <AnimatedTabLabel
+              isActive={activeValue === "ai-logs"}
+              label="AI Logs"
+            />
           </Link>
         </TabsTrigger>
         <TabsTrigger value="events" asChild>
           <Link to="/activity/events">
-            <IconActivity size={16} className="mr-1.5" />
-            Events
+            <IconActivity size={16} />
+            <AnimatedTabLabel
+              isActive={activeValue === "events"}
+              label="Events"
+            />
           </Link>
         </TabsTrigger>
       </TabsList>
