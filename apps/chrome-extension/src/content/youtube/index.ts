@@ -51,34 +51,48 @@ function getChannelName(): string {
 
 // ── Transcript extraction ─────────────────────────────────────────────────────
 
-async function getTranscript(videoId: string): Promise<string | null> {
+/**
+ * Find a `timedtext` baseUrl already embedded in the live page.
+ *
+ * YouTube hydrates `ytInitialPlayerResponse` into an inline `<script>` tag on
+ * every watch page. The previous implementation re-fetched the watch URL from
+ * the content script, but that response is served as a partial SPA shell and
+ * did not always contain the captions blob — so the regex fell over silently.
+ * Reading the already-parsed script tag avoids the round-trip and is much
+ * more reliable.
+ */
+function findTimedTextUrlInPage(): string | null {
+  const scripts = document.querySelectorAll("script");
+  for (const script of scripts) {
+    const text = script.textContent;
+    if (!text || !text.includes("ytInitialPlayerResponse")) continue;
+    const baseUrlMatch = text.match(
+      /"baseUrl":\s*"(https:\/\/www\.youtube\.com\/api\/timedtext[^"]+)"/,
+    );
+    if (baseUrlMatch && baseUrlMatch[1]) {
+      // YouTube JSON-encodes the URL, so unicode escapes need decoding.
+      return baseUrlMatch[1].replace(/\\u0026/g, "&").replace(/\\\//g, "/");
+    }
+  }
+  return null;
+}
+
+async function getTranscript(): Promise<string | null> {
   try {
-    // YouTube stores transcript data in the page - we need to fetch it
-    const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
-    const html = await response.text();
-
-    // Extract captions URL from the page data
-    const captionsMatch = html.match(/"captions":\s*({[^}]+})/);
-    if (!captionsMatch) {
-      console.log("[vmem] No captions found in page data");
+    const timedTextUrl = findTimedTextUrlInPage();
+    if (!timedTextUrl) {
+      console.log("[vmem] No timedtext URL found in page scripts");
       return null;
     }
 
-    // Try to find timedtext URL
-    const timedTextMatch = html.match(/"baseUrl":\s*"([^"]*timedtext[^"]*)"/);
-    if (!timedTextMatch || !timedTextMatch[1]) {
-      console.log("[vmem] No timedtext URL found");
-      return null;
-    }
-
-    // Decode the URL
-    let timedTextUrl = timedTextMatch[1].replace(/\\u0026/g, "&");
-
-    // Fetch the transcript
     const transcriptResponse = await fetch(timedTextUrl);
+    if (!transcriptResponse.ok) {
+      console.log("[vmem] timedtext fetch failed:", transcriptResponse.status);
+      return null;
+    }
     const transcriptXml = await transcriptResponse.text();
+    if (!transcriptXml.trim()) return null;
 
-    // Parse XML and extract text
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(transcriptXml, "text/xml");
     const textElements = xmlDoc.querySelectorAll("text");
@@ -87,7 +101,6 @@ async function getTranscript(videoId: string): Promise<string | null> {
     textElements.forEach((el) => {
       const text = el.textContent?.trim();
       if (text) {
-        // Decode HTML entities
         const decoded = text
           .replace(/&amp;/g, "&")
           .replace(/&lt;/g, "<")
@@ -171,44 +184,58 @@ async function handleSaveClick(): Promise<void> {
   try {
     const title = getVideoTitle();
     const channel = getChannelName();
-    const transcript = await getTranscript(videoId);
+    const rawTranscript = await getTranscript();
+    // Cap before sending — chrome.runtime messages have to round-trip through
+    // structured-clone, and the backend slices to 10k anyway. Keeping a small
+    // headroom lets the channel prefix fit in the final payload.
+    const transcript = rawTranscript
+      ? rawTranscript.slice(0, 12000)
+      : "(No transcript available)";
 
     const message: ContentMessage = {
       type: "SAVE_YOUTUBE_VIDEO",
       url: window.location.href,
       title,
       channel,
-      transcript: transcript || "(No transcript available)",
+      transcript,
     };
 
     safeSendMessage<BackgroundResponse>(message, (response) => {
       if (response?.type === "SAVE_RESULT" && response.success) {
         button.innerHTML = `<span style="color: #16a34a;">✓ Saved!</span>`;
-        setTimeout(() => {
-          button.innerHTML = originalContent;
-          button.disabled = false;
-        }, 2000);
+        button.title = "Save video to vmem";
       } else if (response?.type === "SAVE_DUPLICATE") {
         button.innerHTML = `<span style="color: #ca8a04;">Already saved</span>`;
-        setTimeout(() => {
-          button.innerHTML = originalContent;
-          button.disabled = false;
-        }, 2000);
+        button.title = "Save video to vmem";
       } else {
+        // Surface the real reason: backend error message, or a generic note
+        // when the response was dropped (extension reload, channel closed).
+        const reason =
+          response?.type === "SAVE_RESULT" && response.error
+            ? response.error
+            : response === undefined
+              ? "Extension context unavailable — reload the page"
+              : "Unknown error";
+        console.error("[vmem] Save to vmem failed:", reason, response);
         button.innerHTML = `<span style="color: #dc2626;">Failed</span>`;
-        setTimeout(() => {
-          button.innerHTML = originalContent;
-          button.disabled = false;
-        }, 2000);
+        button.title = `Save failed: ${reason}`;
       }
+      setTimeout(() => {
+        button.innerHTML = originalContent;
+        button.title = "Save video to vmem";
+        button.disabled = false;
+      }, 2500);
     });
   } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
     console.error("[vmem] Save failed:", err);
     button.innerHTML = `<span style="color: #dc2626;">Error</span>`;
+    button.title = `Save failed: ${reason}`;
     setTimeout(() => {
       button.innerHTML = originalContent;
+      button.title = "Save video to vmem";
       button.disabled = false;
-    }, 2000);
+    }, 2500);
   }
 }
 
