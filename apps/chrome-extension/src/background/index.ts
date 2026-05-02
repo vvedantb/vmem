@@ -1,4 +1,8 @@
-import { registerContextMenu, savePageFromTab } from "./context-menu";
+import {
+  registerContextMenu,
+  registerContextMenuClickListener,
+  savePageFromTab,
+} from "./context-menu";
 import { registerMessageHandler } from "./message-handler";
 import {
   startAutoSync,
@@ -9,8 +13,34 @@ import {
 import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
 import { getStorage } from "@/lib/storage";
 
+/**
+ * Send the START_SCREENSHOT signal to the content script in a tab.
+ * The screenshot content script is registered for `<all_urls>` so it
+ * should already be present after `document_idle`. If it isn't (e.g. an
+ * internal chrome:// page or a freshly-loaded tab), the message will
+ * fail silently — that's fine; capture isn't supported on those pages
+ * anyway.
+ */
+async function triggerScreenshot(tabId: number): Promise<void> {
+  try {
+    await chrome.tabs.sendMessage(tabId, { type: "START_SCREENSHOT" });
+  } catch (err) {
+    console.warn("[vmem] Could not start screenshot on tab:", err);
+  }
+}
+
 // Handle keyboard shortcut commands
 chrome.commands.onCommand.addListener(async (command) => {
+  if (command === "take-screenshot") {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (!tab?.id) return;
+    await triggerScreenshot(tab.id);
+    return;
+  }
+
   if (command === "save-page") {
     const [tab] = await chrome.tabs.query({
       active: true,
@@ -130,6 +160,12 @@ chrome.commands.onCommand.addListener(async (command) => {
 // at any time, but alarms persist — listener must be registered synchronously.
 registerAlarmListener();
 
+// Same rule for context-menu clicks — Chrome wakes the SW on click but
+// only delivers the event if the listener was wired during the
+// synchronous SW startup pass. Wiring it inside onInstalled/onStartup is
+// not enough because those don't fire on every wake-up.
+registerContextMenuClickListener();
+
 chrome.runtime.onInstalled.addListener(async (details) => {
   // Open welcome page on first install
   if (details.reason === "install") {
@@ -143,6 +179,11 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
+  // Re-register on every browser start. Safe due to removeAll inside
+  // registerContextMenu — without this, users who installed the extension
+  // before a context-menu addition wouldn't see the new entry until the
+  // next install/update event.
+  registerContextMenu();
   await refreshUserSettingsMirrorFromConvex();
   ensureSettingsMirrorAlarm();
   await initAutoSync();

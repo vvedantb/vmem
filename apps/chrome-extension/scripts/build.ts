@@ -55,6 +55,15 @@ await build(
   ),
 );
 
+console.log("Building screenshot content script...");
+await build(
+  createContentScriptConfig(
+    "content-screenshot",
+    "src/content/screenshot/index.ts",
+    mode,
+  ),
+);
+
 console.log("Building YouTube content script...");
 await build(
   createContentScriptConfig(

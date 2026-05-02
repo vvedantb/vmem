@@ -32,6 +32,13 @@
         "mac": "Alt+S"
       },
       "description": "Save current page to vmem"
+    },
+    "take-screenshot": {
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Alt+Shift+S"
+      },
+      "description": "Capture a region screenshot to vmem"
     }
   },
   "background": {
@@ -65,6 +72,12 @@
       "js": ["content-selection.js"],
       "run_at": "document_idle",
       "all_frames": true
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-screenshot.js"],
+      "run_at": "document_idle",
+      "all_frames": false
     },
     {
       "matches": ["<all_urls>"],

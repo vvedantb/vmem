@@ -1,3 +1,8 @@
+can i use just bash for the files it creates and skills?
+inspired from https://x.com/DhravyaShah/status/2049324612635562492
+
+Add tool to screenshot images then save to memory . Like text selection but taking screenshots instead. Shows input bar on selection with send button
+
 sunset the api keys,  api usage, developer focus, they can just use mcp
 sunset mobile app too, too complex to setup
 just focus on the web, backend, extension, and mcp server - only things that matter

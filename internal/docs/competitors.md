@@ -104,10 +104,18 @@ zep
 
 - https://www.getzep.com/
 
-Joe Rogan and Matthew McConaughey https://youtu.be/z_bX3runikk
+Joe Rogan and Matthew McConaughey
 
+- https://youtu.be/z_bX3runikk
 - local llms
 - user controls what they upload, context is not corrupted by data from the outside world
+- customised taste maker
+- what is joe rogan gonna do on a friday night
+- powerful recommendation system like youtube
+- to get there you would need to give away all privacy - or would you?
+- private LLM, can upload 3 books you've written, heres 3 other articles ive been reading, and log all this information so the user can ask it questions based on that and use that to learn more about yourself
+- based on what you know on me, what do you think i'd like ...
+- humans forget, agents remember
 
 vscode extension foam
 
@@ -122,3 +130,9 @@ github knowledge graphs
 - https://github.com/ngxson/wllama
 - https://huggingface.co/docs/transformers.js/index
 - https://memorilabs.ai/#hero
+
+honcho
+
+hindsight
+
+-

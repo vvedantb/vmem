@@ -1,5 +1,14 @@
 # Changelog
 
+## Chrome Extension: Screenshot Region Capture to Memory — 2026-05-02
+
+- **New screenshot-to-memory tool**: Added full UX for capturing visible page regions and saving as memories. Triggered via `Alt+Shift+S` keyboard shortcut or right-click context menu "Screenshot region to vmem".
+- **Region selection with visual feedback**: Drag-to-select overlay with crosshair, punched-out selection rect, and fixed hint pill ("Drag to capture · Esc to cancel"). Esc cancels at any stage; 8px minimum drag prevents accidental captures.
+- **Floating preview + caption input**: After region capture, shows thumbnail preview + optional caption field + Save button in Shadow-DOM popup (matches selection-popup styling, dark-mode aware). Caption auto-focuses after popup transitions in; Enter key saves directly.
+- **Image storage integration**: Screenshot PNG uploaded via existing `generateMemoryUploadUrl` flow to Convex storage. Backend `importImageMemory` action (new) attaches `storageId`/`mimeType` to memory node while skipping text extraction. Page URL preserved in memory content but not as `url` field, so Layer-1 dedup doesn't collapse multiple screenshots from the same page.
+- **Robust error surfacing**: Screenshot save failures now show on the Save button's `title` attribute (hover to see error) and are logged in service worker console with step-by-step context (e.g. "importImageMemory action failed: ..."). Helps diagnose missing backend deployments.
+- **Fixed context-menu listener registration**: Moved `chrome.contextMenus.onClicked.addListener()` to top-level service worker startup (alongside existing `registerAlarmListener()`) so MV3 context-menu clicks wake the SW with the listener pre-attached. Context-menu item creation still lives in idempotent `registerContextMenu()`.
+
 ## Dream Mode Becomes User-Wide for Personal Profiles — 2026-04-27
 
 - **Schedule + auto-accept move from per-profile to per-user**: Personal profiles no longer carry their own Dream Mode config. The user owns one schedule (HH:MM in UTC) and one auto-accept flag in `userSettings`; a single daily cron (`dream-mode:user:<userId>`) iterates every personal profile in one pass. Team profiles keep their per-profile cron and config because team membership cuts across users.
