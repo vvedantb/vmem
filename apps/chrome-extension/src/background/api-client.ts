@@ -115,6 +115,74 @@ export async function getMemory(
   return await client.action(api.memoryApi.getMemory, { memoryId });
 }
 
+/**
+ * Upload a screenshot blob to Convex storage and create a memory pointing
+ * at it. Three steps:
+ *   1. Action `generateMemoryUploadUrl` returns a signed POST URL.
+ *   2. POST the PNG bytes to that URL → `{ storageId }`.
+ *   3. Action `importImageMemory` attaches the storage object to a new
+ *      memory with image-aware metadata (skips text extraction).
+ */
+export async function saveScreenshot(params: {
+  blob: Blob;
+  caption?: string;
+  pageUrl: string;
+  pageTitle: string;
+  profileId?: string;
+}): Promise<MemoryWithTags> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  console.log(
+    "[vmem] saveScreenshot: requesting upload URL, blob size",
+    params.blob.size,
+  );
+
+  let uploadUrl: string;
+  try {
+    uploadUrl = await client.action(api.memoryApi.generateMemoryUploadUrl, {});
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`generateMemoryUploadUrl failed: ${msg}`);
+  }
+
+  const uploadRes = await fetch(uploadUrl, {
+    method: "POST",
+    headers: { "Content-Type": params.blob.type || "image/png" },
+    body: params.blob,
+  });
+  if (!uploadRes.ok) {
+    throw new Error(
+      `Screenshot upload POST failed: ${uploadRes.status} ${uploadRes.statusText}`,
+    );
+  }
+  const uploadJson: { storageId: Id<"_storage"> } = await uploadRes.json();
+  console.log("[vmem] saveScreenshot: uploaded", uploadJson.storageId);
+
+  try {
+    const memory = await client.action(api.fileImport.importImageMemory, {
+      storageId: uploadJson.storageId,
+      mimeType: params.blob.type || "image/png",
+      caption: params.caption,
+      pageUrl: params.pageUrl,
+      pageTitle: params.pageTitle,
+      profileId: params.profileId,
+    });
+    console.log("[vmem] saveScreenshot: memory created", memory.id);
+    return memory;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // Most common failure mode here: the action hasn't been deployed to
+    // Convex yet. After editing fileImport.ts, run `npx convex dev` in
+    // packages/backend (or `npx convex deploy` for prod).
+    throw new Error(`importImageMemory action failed: ${msg}`);
+  }
+}
+
 export async function listProfiles(): Promise<Profile[]> {
   const client = await getAuthenticatedClient();
   if (!client) {
