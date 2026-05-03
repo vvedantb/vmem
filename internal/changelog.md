@@ -1,5 +1,13 @@
 # Changelog
 
+## Memories Surface: Expand Graph Legend & Move Tags to List View — 2026-05-04
+
+- **Merge Info + Options popovers on graph header**: Removed standalone Info button; folded legend into the Options popover and added `max-h-[80vh] overflow-y-auto` for scrollable content on small screens. Reduces graph header from 5 icons to 4 (Search, Filters, Options, Add), improving mobile density.
+- **Comprehensive graph legend**: Expanded GraphLegend to document all node shapes (circle/diamond/square/hexagon/starburst), all edge types grouped into 4 color buckets (tag/relates_to/wiki_parent/mentions), visual states (hover/dim/focused), and source logos. Each edge category lists the underlying type names for reference.
+- **Replace `/memories/tags` route with `?view=tags` parameter**: Deleted the standalone Tags route and TagCloud component; Tags is now a view mode in the list route. Old `/memories/tags` bookmarks redirect to `/memories/list?view=tags` for backward compatibility.
+- **Tag management via list view**: Added View dropdown (Memories / Tags) in MemoryListHeaderControls; Tags view renders tag rows as Cards with inline rename (via Input) and delete (via Dialog) via kebab DropdownMenu. Changes fan across all affected memories automatically. Click a tag row body navigates to Memories view with that tag pre-filtered.
+- **Simplified memories tab bar**: Removed Tags tab from MemoriesTabs; only Graph and List remain (tag management is now embedded in list).
+
 ## Chrome Extension: Screenshot Region Capture to Memory — 2026-05-02
 
 - **New screenshot-to-memory tool**: Added full UX for capturing visible page regions and saving as memories. Triggered via `Alt+Shift+S` keyboard shortcut or right-click context menu "Screenshot region to vmem".
