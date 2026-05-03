@@ -1,33 +1,32 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogTrigger,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
   DialogClose,
   Button,
-  Input,
-  Textarea,
   Badge,
-  Label,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
 } from "@vmem/ui";
 import {
   IconPlus,
   IconX,
-  IconUpload,
-  IconFileText,
+  IconPaperclip,
+  IconHash,
   IconLoader2,
+  IconFileText,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 import { ProfileDropdown } from "./ProfileDropdown";
+import { buildTagStats } from "@/lib/memories";
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const ACCEPTED_FILE_EXTENSIONS = ".pdf,.txt,.md,.markdown";
@@ -51,14 +50,22 @@ function isAcceptedFile(file: File): boolean {
   );
 }
 
+/**
+ * Linear-style memory creation modal: a borderless title + description
+ * canvas, with all metadata (profile, tags, attachment) consolidated into
+ * a single icon-led toolbar at the bottom. The toolbar uses a tonal
+ * surface shift instead of a border for separation, in line with the
+ * project's UI design rules.
+ */
 export default function AddMemoryModal({
   trigger,
 }: {
   trigger?: React.ReactNode;
 }) {
-  const { createMemory, uploadMemoryFile } = useMemoryContext();
+  const { memories, createMemory, uploadMemoryFile } = useMemoryContext();
   const [open, setOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<
     string | undefined
   >();
@@ -79,30 +86,41 @@ export default function AddMemoryModal({
   });
 
   const currentTags = watch("tags");
+  const allTags = useMemo(() => buildTagStats(memories ?? []), [memories]);
+  const normalizedTagInput = tagInput.trim().toLowerCase();
 
-  const handleAddTag = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    onChange: (tags: string[]) => void,
-  ) => {
-    if (e.key === "Enter" && tagInput.trim()) {
-      e.preventDefault();
-      if (!currentTags.includes(tagInput.trim().toLowerCase())) {
-        onChange([...currentTags, tagInput.trim().toLowerCase()]);
-      }
-      setTagInput("");
-    }
+  // Suggestions hide tags already on the memory and (when typing) filter by
+  // substring match — same behaviour as the legacy AddMemoryForm.
+  const filteredSuggestions = useMemo(() => {
+    const available = allTags.filter((t) => !currentTags.includes(t.tag));
+    if (!normalizedTagInput) return available;
+    return available.filter((t) => t.tag.includes(normalizedTagInput));
+  }, [normalizedTagInput, allTags, currentTags]);
+
+  // Show "Create …" only when the typed string is brand-new (not in the
+  // existing tag corpus and not already on this memory).
+  const canCreateTag =
+    normalizedTagInput.length > 0 &&
+    !currentTags.includes(normalizedTagInput) &&
+    !allTags.some((t) => t.tag === normalizedTagInput);
+
+  const addTag = (raw: string, onChange: (tags: string[]) => void) => {
+    const tag = raw.trim().toLowerCase();
+    if (!tag || currentTags.includes(tag)) return;
+    onChange([...currentTags, tag]);
+    setTagInput("");
   };
 
-  const removeTag = (
-    tagToRemove: string,
-    onChange: (tags: string[]) => void,
-  ) => {
-    onChange(currentTags.filter((tag) => tag !== tagToRemove));
+  const removeTag = (tag: string, onChange: (tags: string[]) => void) => {
+    onChange(currentTags.filter((t) => t !== tag));
   };
 
-  const handleClose = () => {
+  // Single source of truth for "the modal closed" — fires for cancel,
+  // escape, click-outside, and post-submit success paths.
+  const resetForm = () => {
     reset();
     setTagInput("");
+    setTagPopoverOpen(false);
     setSelectedProfileId(undefined);
     setPendingFile(null);
   };
@@ -122,7 +140,7 @@ export default function AddMemoryModal({
     setPendingFile(file);
   };
 
-  const handleUploadFile = async () => {
+  const handleImportFile = async () => {
     if (!pendingFile) return;
     setIsUploading(true);
     try {
@@ -133,7 +151,7 @@ export default function AddMemoryModal({
       toast.success("File imported", {
         description: `${pendingFile.name} added as a memory`,
       });
-      setPendingFile(null);
+      resetForm();
       setOpen(false);
     } catch (error) {
       toast.error(
@@ -144,16 +162,14 @@ export default function AddMemoryModal({
     }
   };
 
-  const onSubmit = async (data: MemoryFormValues) => {
+  const handleCreateMemory = async (data: MemoryFormValues) => {
     try {
       await createMemory({
         ...data,
         profileId: selectedProfileId,
       });
       toast.success("Memory saved");
-      reset();
-      setTagInput("");
-      setSelectedProfileId(undefined);
+      resetForm();
       setOpen(false);
     } catch (error) {
       toast.error(
@@ -162,11 +178,14 @@ export default function AddMemoryModal({
     }
   };
 
+  const isBusy = isSubmitting || isUploading;
+  const fieldError = errors.title?.message ?? errors.content?.message;
+
   return (
     <Dialog
       open={open}
       onOpenChange={(value) => {
-        if (!value) handleClose();
+        if (!value) resetForm();
         setOpen(value);
       }}
     >
@@ -179,179 +198,255 @@ export default function AddMemoryModal({
         )}
       </DialogTrigger>
 
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-foreground">
-            Add Memory
-          </DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-2">
-          <div className="flex items-center gap-3">
-            <Label className="text-sm text-muted-foreground">Save to</Label>
-            <ProfileDropdown
-              value={selectedProfileId}
-              onChange={setSelectedProfileId}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Input
-              type="text"
-              {...register("title")}
-              placeholder="Title"
-              disabled={isSubmitting}
-              className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
-            />
-            {errors.title && (
-              <p className="text-sm text-destructive">{errors.title.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Textarea
-              {...register("content")}
-              placeholder="Content"
-              rows={6}
-              disabled={isSubmitting}
-              className="bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
-            />
-            {errors.content && (
-              <p className="text-sm text-destructive">
-                {errors.content.message}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPTED_FILE_EXTENSIONS}
-              onChange={handleFileSelect}
-              disabled={isSubmitting || isUploading}
-              className="hidden"
-            />
+      <DialogContent
+        className="max-w-xl gap-0 overflow-hidden p-0"
+        hideCloseButton
+      >
+        <form
+          onSubmit={handleSubmit(handleCreateMemory)}
+          className="flex flex-col"
+        >
+          {/* Body — title + description live as borderless text on the
+              modal surface. When a file is staged for import we swap them
+              for a single attachment chip so the action is unambiguous. */}
+          <div className="flex flex-col gap-2 px-5 pt-5 pb-4">
             {pendingFile ? (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
-                <IconFileText className="w-5 h-5 text-muted-foreground shrink-0" />
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-sm font-medium truncate text-foreground">
+              <div className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-3">
+                <IconFileText className="size-5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">
                     {pendingFile.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatFileSize(pendingFile.size)}
-                  </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatFileSize(pendingFile.size)} · ready to import
+                  </p>
                 </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleUploadFile}
-                  disabled={isUploading}
-                  className="bg-primary text-primary-foreground"
-                >
-                  {isUploading ? (
-                    <>
-                      <IconLoader2 size={14} className="mr-1 animate-spin" />
-                      Importing
-                    </>
-                  ) : (
-                    "Import"
-                  )}
-                </Button>
                 <Button
                   type="button"
                   size="icon-xs"
                   variant="ghost"
                   onClick={() => setPendingFile(null)}
-                  disabled={isUploading}
+                  disabled={isBusy}
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <IconX size={14} />
                 </Button>
               </div>
             ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isSubmitting || isUploading}
-                className="w-full justify-start text-muted-foreground hover:text-foreground"
-              >
-                <IconUpload size={16} />
-                <span className="ml-2">Or upload a PDF, .txt, or .md file</span>
-              </Button>
+              <>
+                <input
+                  type="text"
+                  {...register("title")}
+                  placeholder="Memory title"
+                  disabled={isBusy}
+                  autoFocus
+                  className="w-full bg-transparent text-lg font-medium text-foreground outline-none placeholder:text-muted-foreground/60 disabled:opacity-60"
+                />
+                <textarea
+                  {...register("content")}
+                  placeholder="Add a description…"
+                  rows={5}
+                  disabled={isBusy}
+                  className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60 disabled:opacity-60"
+                />
+                {fieldError && (
+                  <p className="text-xs text-destructive">{fieldError}</p>
+                )}
+              </>
             )}
           </div>
 
-          <Controller
-            name="tags"
-            control={control}
-            render={({ field }) => (
-              <div className="space-y-2">
-                <Input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => handleAddTag(e, field.onChange)}
-                  placeholder="Tags (press Enter to add)"
-                  disabled={isSubmitting}
-                  className="h-10 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
-                />
-                {field.value.length > 0 && (
-                  <div className="flex gap-2 flex-wrap mt-3">
-                    {field.value.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="outline"
-                        className="bg-muted border-border text-foreground gap-1 pr-1"
+          {/* Selected tag chips sit between the body and the toolbar so
+              they read as part of the memory, not as a control. */}
+          {currentTags.length > 0 && (
+            <Controller
+              name="tags"
+              control={control}
+              render={({ field }) => (
+                <div className="flex flex-wrap gap-1.5 px-5 pb-3">
+                  {field.value.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="gap-1 bg-muted px-2 py-0.5 font-normal"
+                    >
+                      <IconHash size={11} className="text-muted-foreground" />
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag, field.onChange)}
+                        className="-mr-1 ml-0.5 rounded p-0.5 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
                       >
-                        {tag}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => removeTag(tag, field.onChange)}
-                          className="h-5 w-5 p-0.5 -mr-0.5 text-muted-foreground hover:text-foreground"
-                        >
-                          <IconX size={12} />
-                        </Button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          />
+                        <IconX size={11} />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            />
+          )}
 
-          <DialogFooter className="pt-4">
-            <DialogClose asChild>
+          {/* Toolbar — tonal surface shift (no border) carries metadata
+              badges on the left and primary actions on the right. */}
+          <div className="flex items-center justify-between gap-2 bg-muted/40 px-3 py-2">
+            <div className="flex items-center gap-1">
+              {/* Profile picker styled as a borderless badge. */}
+              <ProfileDropdown
+                value={selectedProfileId}
+                onChange={setSelectedProfileId}
+                disabled={isBusy}
+                className="h-7 min-w-0 gap-1.5 border-0 bg-transparent px-2 text-xs font-normal text-foreground shadow-none hover:bg-muted [&[data-state=open]]:bg-muted [&>svg]:size-3.5"
+              />
+
+              {/* Tags badge → popover with search + suggestions + create. */}
+              <Controller
+                name="tags"
+                control={control}
+                render={({ field }) => (
+                  <Popover
+                    open={tagPopoverOpen}
+                    onOpenChange={(value) => {
+                      setTagPopoverOpen(value);
+                      if (!value) setTagInput("");
+                    }}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={isBusy}
+                        className="h-7 gap-1.5 px-2 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground"
+                      >
+                        <IconHash size={13} />
+                        {field.value.length > 0
+                          ? `${field.value.length} tag${field.value.length > 1 ? "s" : ""}`
+                          : "Tags"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-64 p-2">
+                      <input
+                        autoFocus
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && normalizedTagInput) {
+                            e.preventDefault();
+                            addTag(tagInput, field.onChange);
+                          }
+                        }}
+                        placeholder="Add or search tags…"
+                        className="h-8 w-full rounded-md bg-muted/50 px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/60 focus-visible:bg-muted"
+                      />
+                      <div className="mt-2 flex max-h-56 flex-col gap-0.5 overflow-y-auto">
+                        {filteredSuggestions.slice(0, 10).map((item) => (
+                          <button
+                            key={item.tag}
+                            type="button"
+                            onClick={() => addTag(item.tag, field.onChange)}
+                            className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-muted"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <IconHash
+                                size={12}
+                                className="text-muted-foreground"
+                              />
+                              {item.tag}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {item.count}
+                            </span>
+                          </button>
+                        ))}
+                        {canCreateTag && (
+                          <button
+                            type="button"
+                            onClick={() => addTag(tagInput, field.onChange)}
+                            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-muted"
+                          >
+                            <IconPlus
+                              size={12}
+                              className="text-muted-foreground"
+                            />
+                            Create &ldquo;{normalizedTagInput}&rdquo;
+                          </button>
+                        )}
+                        {!canCreateTag && filteredSuggestions.length === 0 && (
+                          <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                            {allTags.length === 0
+                              ? "Type to create a tag"
+                              : "All matching tags added"}
+                          </p>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              />
+
+              {/* Attach badge — disabled once a file is staged. */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED_FILE_EXTENSIONS}
+                onChange={handleFileSelect}
+                disabled={isBusy}
+                className="hidden"
+              />
               <Button
                 type="button"
                 variant="ghost"
-                className="bg-muted text-foreground"
-                disabled={isSubmitting}
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isBusy || pendingFile !== null}
+                className="h-7 gap-1.5 px-2 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
               >
-                Cancel
+                <IconPaperclip size={13} />
+                Attach
               </Button>
-            </DialogClose>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-primary text-primary-foreground font-medium"
-            >
-              {isSubmitting ? (
-                <>
-                  <IconLoader2 size={16} className="animate-spin" />
-                  Saving...
-                </>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <DialogClose asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={isBusy}
+                  className="h-7 px-3 text-xs"
+                >
+                  Cancel
+                </Button>
+              </DialogClose>
+              {pendingFile ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleImportFile}
+                  disabled={isBusy}
+                  className="h-7 gap-1.5 px-3 text-xs"
+                >
+                  {isUploading && (
+                    <IconLoader2 size={12} className="animate-spin" />
+                  )}
+                  {isUploading ? "Importing…" : "Import file"}
+                </Button>
               ) : (
-                "Save Memory"
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isBusy}
+                  className="h-7 gap-1.5 px-3 text-xs"
+                >
+                  {isSubmitting && (
+                    <IconLoader2 size={12} className="animate-spin" />
+                  )}
+                  {isSubmitting ? "Saving…" : "Save memory"}
+                </Button>
               )}
-            </Button>
-          </DialogFooter>
+            </div>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
