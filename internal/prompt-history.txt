@@ -1,3 +1,8 @@
+
+
+[] add email for agents, payment for agents, browser for agents, sandbox for agents
+[] add create memory tool in mcp that can 
+
 can i use just bash for the files it creates and skills?
 inspired from https://x.com/DhravyaShah/status/2049324612635562492
 
