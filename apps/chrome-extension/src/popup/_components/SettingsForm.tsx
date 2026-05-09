@@ -26,6 +26,10 @@ import { listProfiles, setDefaultProfile } from "@/background/api-client";
 
 type Theme = "light" | "dark" | "system";
 
+function isTheme(value: string): value is Theme {
+  return value === "light" || value === "dark" || value === "system";
+}
+
 export function SettingsForm() {
   const { signOut } = useClerk();
   const { settings, update } = useExtensionUserSettings();
@@ -61,7 +65,9 @@ export function SettingsForm() {
   }, []);
 
   function handleThemeChange(value: string) {
-    void update({ theme: value as Theme });
+    if (isTheme(value)) {
+      void update({ theme: value });
+    }
   }
 
   function handleSelectionPopupToggle(checked: boolean) {
@@ -81,9 +87,11 @@ export function SettingsForm() {
   async function handleProfileChange(profileId: string) {
     setSelectedProfileId(profileId);
     await setStorage({ defaultProfileId: profileId });
-    // Also sync to backend
+    const profile = profiles?.find((candidate) => candidate._id === profileId);
+    if (!profile) return;
+
     try {
-      await setDefaultProfile(profileId);
+      await setDefaultProfile(profile._id);
     } catch {
       // Backend sync failed, but local storage is updated
     }
