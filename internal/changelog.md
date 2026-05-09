@@ -1,5 +1,11 @@
 # Changelog
 
+## Chrome Extension: Centralized Clerk Auth in Background Worker — 2026-05-10
+
+- **New `background/auth.ts` module**: Single source of truth for Clerk session retrieval and authenticated Convex client creation. Wraps `createClerkClient` (with `background: true`) behind a memoized client and exposes `createAuthenticatedConvexClient()` + `hasActiveClerkSession()`. Stale tokens are refreshed live via `session.getToken({ template: "convex" })` instead of relying on whatever happened to be in `chrome.storage`.
+- **Background modules switched to live token refresh**: `api-client.ts`, `user-settings-mirror.ts`, `import-bookmarks.ts`, and `sync-scheduler.ts` no longer read `authToken` directly from storage. They call into `auth.ts`, so a sync that runs while the popup has been closed for hours still gets a fresh JWT instead of failing with the cached/expired one.
+- **Tightened types around profile IDs**: `Profile._id` is now `Id<"profiles">` instead of `string`, and `setDefaultProfile` accepts the branded ID directly. `SettingsForm` resolves the profile from the dropdown value via lookup before calling the mutation, replacing the previous `as Id<"profiles">` cast. Theme dropdown also gets a real `isTheme` type guard in place of the `as Theme` cast.
+
 ## Memories Surface: Expand Graph Legend & Move Tags to List View — 2026-05-04
 
 - **Merge Info + Options popovers on graph header**: Removed standalone Info button; folded legend into the Options popover and added `max-h-[80vh] overflow-y-auto` for scrollable content on small screens. Reduces graph header from 5 icons to 4 (Search, Filters, Options, Add), improving mobile density.
