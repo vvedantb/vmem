@@ -1,7 +1,5 @@
-import { ConvexHttpClient } from "convex/browser";
 import { api, type Id } from "@vmem/backend";
-import { getStorage } from "@/lib/storage";
-import { CONVEX_URL } from "@/lib/constants";
+import { createAuthenticatedConvexClient } from "./auth";
 import type {
   CreateMemoryParams,
   MemoryWithTags,
@@ -9,20 +7,8 @@ import type {
   Profile,
 } from "@/types/api";
 
-/**
- * Get an authenticated ConvexHttpClient with the stored Clerk JWT.
- * Returns null if no auth token is available.
- */
-async function getAuthenticatedClient(): Promise<ConvexHttpClient | null> {
-  const { authToken } = await getStorage();
-  if (!authToken) {
-    console.warn("[vmem] No auth token available for Convex client");
-    return null;
-  }
-
-  const client = new ConvexHttpClient(CONVEX_URL);
-  client.setAuth(authToken);
-  return client;
+async function getAuthenticatedClient() {
+  return await createAuthenticatedConvexClient();
 }
 
 export interface DuplicateInfo {
@@ -144,7 +130,10 @@ export async function saveScreenshot(params: {
 
   let uploadUrl: string;
   try {
-    uploadUrl = await client.action(api.memoryApi.generateMemoryUploadUrl, {});
+    uploadUrl = await client.mutation(
+      api.memoryApi.generateMemoryUploadUrl,
+      {},
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     throw new Error(`generateMemoryUploadUrl failed: ${msg}`);
@@ -201,7 +190,9 @@ export async function listProfiles(): Promise<Profile[]> {
   }));
 }
 
-export async function setDefaultProfile(profileId: string): Promise<void> {
+export async function setDefaultProfile(
+  profileId: Id<"profiles">,
+): Promise<void> {
   const client = await getAuthenticatedClient();
   if (!client) {
     throw new Error(
@@ -210,7 +201,7 @@ export async function setDefaultProfile(profileId: string): Promise<void> {
   }
 
   await client.mutation(api.userSettings.setDefaultProfile, {
-    source: "extension" as const,
-    profileId: profileId as Id<"profiles">,
+    source: "extension",
+    profileId,
   });
 }
