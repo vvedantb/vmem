@@ -1,4 +1,5 @@
 import { createMemory } from "./api-client";
+import { hasActiveClerkSession } from "./auth";
 import { isCancelled, resetCancel } from "./import-cancel";
 import { acquireBookmarkLock, releaseBookmarkLock } from "./sync-lock";
 import { getStorage, setStorage } from "@/lib/storage";
@@ -135,8 +136,9 @@ export async function syncSingleBookmark(
 ): Promise<void> {
   if (!bookmark.url) return; // folders have no URL
 
-  const { autoSyncEnabled, authToken } = await getStorage();
-  if (!autoSyncEnabled || !authToken) return;
+  const { autoSyncEnabled } = await getStorage();
+  if (!autoSyncEnabled) return;
+  if (!(await hasActiveClerkSession())) return;
 
   if (!acquireBookmarkLock()) return;
 

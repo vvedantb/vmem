@@ -1,6 +1,7 @@
 import { syncSingleBookmark } from "./import-bookmarks";
 import { importHistory } from "./import-history";
 import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
+import { hasActiveClerkSession } from "./auth";
 import { getStorage } from "@/lib/storage";
 
 const HISTORY_ALARM_NAME = "vmem-history-sync";
@@ -77,8 +78,9 @@ export function stopAutoSync(): void {
 
 /** Called by alarm — checks auth + auto-sync setting before syncing. */
 async function handleHistoryAlarm(): Promise<void> {
-  const { autoSyncEnabled, authToken } = await getStorage();
-  if (!autoSyncEnabled || !authToken) return;
+  const { autoSyncEnabled } = await getStorage();
+  if (!autoSyncEnabled) return;
+  if (!(await hasActiveClerkSession())) return;
 
   // silent=true: popup is likely closed, skip progress messages
   await importHistory(undefined, true);

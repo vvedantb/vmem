@@ -173,3 +173,120 @@ export const importMemoryFromFile = authAction({
     return memory;
   },
 });
+
+/**
+ * Process an uploaded screenshot/image (already in Convex storage):
+ *   1. Verify the storage object exists and isn't oversized.
+ *   2. Skip text extraction — screenshots are stored as the image blob,
+ *      with the optional caption used as the memory's text content.
+ *   3. Forward to `createMemoryInternal` with `storageId`/`mimeType` so
+ *      the Memory node points at the stored image. Source-type
+ *      `screenshot` (not the file-upload Layer 0 dedup tuple) so multiple
+ *      screenshots on the same page don't collapse into one.
+ *
+ * Used by the Chrome extension's region screenshot tool.
+ */
+export const importImageMemory = authAction({
+  args: {
+    storageId: v.id("_storage"),
+    mimeType: v.string(),
+    caption: v.optional(v.string()),
+    pageUrl: v.optional(v.string()),
+    pageTitle: v.optional(v.string()),
+    profileId: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<MemoryWithTags> => {
+    const clerkId: string | null = await ctx.runQuery(
+      internal.auth.getClerkIdInternal,
+      { userId: ctx.userId },
+    );
+    if (!clerkId) throw new Error("User not found");
+
+    if (args.profileId) {
+      await ctx.runQuery(internal.teams.assertProfileAccessInternal, {
+        profileId: args.profileId,
+        userId: ctx.userId,
+      });
+    }
+
+    if (!args.mimeType.startsWith("image/")) {
+      throw new Error(
+        `Unsupported screenshot mime type: ${args.mimeType}. Expected image/*.`,
+      );
+    }
+
+    const storageId: Id<"_storage"> = args.storageId;
+    const blob = await ctx.storage.get(storageId);
+    if (!blob) throw new Error("Uploaded screenshot not found in storage");
+
+    if (blob.size > MAX_UPLOAD_BYTES) {
+      await ctx.storage.delete(storageId);
+      throw new Error(
+        `Screenshot too large: ${(blob.size / (1024 * 1024)).toFixed(1)} MB. Maximum is 25 MB.`,
+      );
+    }
+
+    const caption = args.caption?.trim() ?? "";
+    const hostname = args.pageUrl
+      ? (safeHostname(args.pageUrl) ?? "screenshot")
+      : "screenshot";
+
+    // Title preference: caption (truncated) → page title → "Screenshot from <host>".
+    let title: string;
+    if (caption.length > 0) {
+      title = caption.length > 80 ? caption.slice(0, 80) + "…" : caption;
+    } else if (args.pageTitle && args.pageTitle.trim().length > 0) {
+      const t = args.pageTitle.trim();
+      title = `Screenshot · ${t.length > 70 ? t.slice(0, 70) + "…" : t}`;
+    } else {
+      title = `Screenshot from ${hostname}`;
+    }
+
+    // Use the storageId as the externalId so re-saving the exact same blob
+    // (same upload flow) is idempotent — but each new screenshot has a
+    // fresh storageId, so visually-similar screenshots from the same page
+    // don't dedupe (unlike pages, which dedupe on URL).
+    const externalId = crypto
+      .createHash("sha256")
+      .update(storageId)
+      .digest("hex");
+
+    // Screenshots intentionally don't pass `url` to createMemoryInternal:
+    // Layer-1 URL dedup would collapse a screenshot into a prior
+    // page-save memory at the same URL. The page URL is preserved in the
+    // memory body for context.
+    const contentParts: string[] = [];
+    if (caption.length > 0) contentParts.push(caption);
+    if (args.pageUrl) contentParts.push(`Source: ${args.pageUrl}`);
+    const content = contentParts.join("\n\n");
+
+    const memory: MemoryWithTags = await ctx.runAction(
+      internal.neo4jActions.memories.createMemoryInternal,
+      {
+        clerkId,
+        profileId: args.profileId,
+        title,
+        content,
+        type: "knowledge",
+        source: "browser-extension",
+        tags: [hostname, "screenshot"],
+        confidence: 1.0,
+        externalId,
+        sourceType: "screenshot",
+        storageId,
+        mimeType: args.mimeType,
+        originalFilename: `screenshot-${Date.now()}.png`,
+      },
+    );
+
+    return memory;
+  },
+});
+
+function safeHostname(url: string): string | null {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
+}

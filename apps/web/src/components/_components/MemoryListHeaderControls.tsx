@@ -3,23 +3,41 @@
 /**
  * List-view controls rendered in the page header.
  *
- * Renders Search + Filters popovers and the Add Memory trigger. Mirrors the
- * graph's header pattern but with list-specific filter data (memories + wiki
- * + skills merged). Graph-only controls (Options, Legend) are intentionally
- * omitted.
+ * Renders View + Search + Filters popovers and the Add Memory trigger. The
+ * View dropdown switches between the unified memory/wiki/skill list and the
+ * tag-rows view (formerly the standalone /memories/tags route). Mirrors the
+ * graph's header pattern but with list-specific filter data; graph-only
+ * controls (graph Options, Legend) are intentionally omitted.
  */
 
 import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
 import { useQuery } from "convex/react";
-import { IconFilter, IconPlus } from "@tabler/icons-react";
-import { Button, Popover, PopoverContent, PopoverTrigger } from "@vmem/ui";
+import {
+  IconCheck,
+  IconChevronDown,
+  IconFilter,
+  IconHash,
+  IconList,
+  IconPlus,
+} from "@tabler/icons-react";
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@vmem/ui";
 import { api } from "@vmem/backend";
 import AddMemoryModal from "@/components/AddMemoryModal";
 import SearchPopover from "./SearchPopover";
 import UnifiedFilterPanel from "./UnifiedFilterPanel";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
+import type { ListViewMode } from "@/routes/_main/memories/-searchParams";
 import {
   listItemMatchesKindFilter,
   listItemMatchesProfileFilter,
@@ -81,12 +99,20 @@ export default function MemoryListHeaderControls() {
     params.sources.length +
     params.types.length;
 
+  const isTagsView = params.view === "tags";
+
   return (
     <div className="flex items-center gap-1.5">
+      <ViewDropdown
+        view={params.view}
+        onChange={(view) => setParams({ view })}
+      />
       <SearchPopover
         value={params.q}
         onChange={(q) => setParams({ q })}
-        placeholder="Search memories, wiki, and skills..."
+        placeholder={
+          isTagsView ? "Search tags..." : "Search memories, wiki, and skills..."
+        }
         label="Search"
       />
       <Popover>
@@ -146,5 +172,68 @@ export default function MemoryListHeaderControls() {
         }
       />
     </div>
+  );
+}
+
+// ---- View dropdown ----
+//
+// Two options today (memories / tags) but kept as a dropdown rather than a
+// segmented toggle so adding a third view later (e.g. sources) doesn't
+// require a layout rethink. Per the project's UI rules: prefer dropdowns
+// with explicit options over toggle buttons when a control has ≥2 states.
+
+const VIEW_OPTIONS: {
+  value: ListViewMode;
+  label: string;
+  Icon: typeof IconList;
+}[] = [
+  { value: "memories", label: "Memories", Icon: IconList },
+  { value: "tags", label: "Tags", Icon: IconHash },
+];
+
+function ViewDropdown({
+  view,
+  onChange,
+}: {
+  view: ListViewMode;
+  onChange: (next: ListViewMode) => void;
+}) {
+  const current = VIEW_OPTIONS.find((o) => o.value === view) ?? VIEW_OPTIONS[0];
+  const CurrentIcon = current.Icon;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 px-2 text-xs"
+          aria-label={`Change view (current: ${current.label})`}
+        >
+          <CurrentIcon size={14} />
+          <span className="hidden sm:inline">{current.label}</span>
+          <IconChevronDown size={12} className="text-muted-foreground" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[160px]">
+        {VIEW_OPTIONS.map(({ value, label, Icon }) => {
+          const isActive = value === view;
+          return (
+            <DropdownMenuItem
+              key={value}
+              onSelect={() => onChange(value)}
+              className="justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <Icon size={14} stroke={1.5} />
+                {label}
+              </span>
+              {isActive && (
+                <IconCheck size={14} className="text-muted-foreground" />
+              )}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

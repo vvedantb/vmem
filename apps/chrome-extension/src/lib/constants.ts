@@ -4,7 +4,7 @@ export const CLERK_PUBLISHABLE_KEY =
 export const CONVEX_URL =
   "https://outgoing-reindeer-268.eu-west-1.convex.cloud";
 
-export const CLERK_SYNC_HOST = "http://localhost:3000";
+export const CLERK_SYNC_HOST = "https://vmem-git-staging-vedantb.vercel.app";
 
 export const EXPORT_PROMPT = `Please save a comprehensive summary of our entire conversation to vmem. Include:
 - All key decisions made
