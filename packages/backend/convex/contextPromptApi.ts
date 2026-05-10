@@ -4,7 +4,6 @@ import { authAction } from "./auth";
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { verifyMcpJwt } from "../src/neo4j/mcpAuth";
 
 /**
  * Day in milliseconds — used as the "max staleness" threshold below
@@ -115,21 +114,18 @@ export const getContextPrompt = authAction({
 });
 
 /**
- * MCP-side action. The MCP server calls this over its existing
- * `/api/mcp/...` HTTP surface using the user's bearer JWT, which we
- * verify with `verifyMcpJwt` (same helper used by every other
- * `mcp*Internal` action).
+ * MCP-side action. The Convex MCP server (httpAction → "use node" action
+ * pipeline) verifies the bearer JWT up front and passes the resolved
+ * `clerkId` directly here — no per-action token verification.
  */
 export const mcpGetContextPrompt = internalAction({
-  args: { token: v.string() },
+  args: { clerkId: v.string() },
   returns: v.object({
     content: v.string(),
     generatedAt: v.number(),
     isPlaceholder: v.boolean(),
   }),
   handler: async (ctx, args): Promise<ContextPromptResponse> => {
-    const clerkId = verifyMcpJwt(args.token);
-    if (!clerkId) throw new Error("Invalid or expired token");
-    return await getOrSchedule(ctx, clerkId);
+    return await getOrSchedule(ctx, args.clerkId);
   },
 });

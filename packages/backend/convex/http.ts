@@ -1,6 +1,15 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import {
+  oauthMetadata,
+  protectedResourceMetadata,
+  register as mcpRegister,
+  authorizeGet as mcpAuthorizeGet,
+  token as mcpToken,
+  mcpHandler,
+  health as mcpHealth,
+} from "./mcp/native";
 
 const http = httpRouter();
 
@@ -162,291 +171,60 @@ function callbackHtml(
 </html>`;
 }
 
-// --- MCP REST endpoints ---
-
-function extractBearerToken(req: Request): string | null {
-  const auth = req.headers.get("Authorization");
-  if (!auth) return null;
-  const parts = auth.split(" ");
-  if (parts.length !== 2 || parts[0] !== "Bearer") return null;
-  return parts[1] ?? null;
-}
-
-function jsonResponse(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+// --- MCP server (OAuth + tools/resources) ---
 
 http.route({
-  path: "/api/mcp/memories/search",
-  method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const token = extractBearerToken(req);
-    if (!token) return jsonResponse({ error: "Missing token" }, 401);
-
-    try {
-      const body = await req.json();
-      const result = await ctx.runAction(
-        internal.neo4jActions.mcp.mcpSearchMemories,
-        {
-          token,
-          query: body.query,
-          type: body.type,
-          tags: body.tags,
-          limit: body.limit,
-          offset: body.offset,
-          profileId: body.profileId,
-        },
-      );
-      return jsonResponse({ data: result });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Internal error";
-      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
-    }
-  }),
+  path: "/.well-known/oauth-authorization-server",
+  method: "GET",
+  handler: oauthMetadata,
 });
 
 http.route({
-  path: "/api/mcp/memories/retrieve",
-  method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const token = extractBearerToken(req);
-    if (!token) return jsonResponse({ error: "Missing token" }, 401);
-
-    try {
-      const body = await req.json();
-      const result = await ctx.runAction(
-        internal.neo4jActions.mcp.mcpRetrieveMemories,
-        {
-          token,
-          query: body.query,
-          limit: body.limit,
-          profileId: body.profileId,
-        },
-      );
-      return jsonResponse({ data: result });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Internal error";
-      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
-    }
-  }),
+  path: "/.well-known/oauth-protected-resource",
+  method: "GET",
+  handler: protectedResourceMetadata,
 });
 
 http.route({
-  path: "/api/mcp/memories/create",
+  path: "/mcp/oauth/register",
   method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const token = extractBearerToken(req);
-    if (!token) return jsonResponse({ error: "Missing token" }, 401);
-
-    try {
-      const body = await req.json();
-      const result = await ctx.runAction(
-        internal.neo4jActions.mcp.mcpCreateMemory,
-        {
-          token,
-          title: body.title,
-          content: body.content,
-          type: body.type,
-          source: body.source,
-          tags: body.tags,
-          confidence: body.confidence,
-          url: body.url,
-          profileId: body.profileId,
-        },
-      );
-      return jsonResponse({ data: result });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Internal error";
-      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
-    }
-  }),
+  handler: mcpRegister,
 });
 
 http.route({
-  path: "/api/mcp/memories/update",
-  method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const token = extractBearerToken(req);
-    if (!token) return jsonResponse({ error: "Missing token" }, 401);
-
-    try {
-      const body = await req.json();
-      const result = await ctx.runAction(
-        internal.neo4jActions.mcp.mcpUpdateMemory,
-        {
-          token,
-          memoryId: body.memoryId,
-          title: body.title,
-          content: body.content,
-          tags: body.tags,
-        },
-      );
-      return jsonResponse({ data: result });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Internal error";
-      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
-    }
-  }),
+  path: "/mcp/oauth/authorize",
+  method: "GET",
+  handler: mcpAuthorizeGet,
 });
 
 http.route({
-  path: "/api/mcp/memories/delete",
+  path: "/mcp/oauth/token",
   method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const token = extractBearerToken(req);
-    if (!token) return jsonResponse({ error: "Missing token" }, 401);
-
-    try {
-      const body = await req.json();
-      const result = await ctx.runAction(
-        internal.neo4jActions.mcp.mcpDeleteMemory,
-        {
-          token,
-          memoryId: body.memoryId,
-        },
-      );
-      return jsonResponse({ data: { deleted: result } });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Internal error";
-      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
-    }
-  }),
-});
-
-// --- Skills (read-only from MCP) ---
-
-http.route({
-  path: "/api/mcp/skills/list",
-  method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const token = extractBearerToken(req);
-    if (!token) return jsonResponse({ error: "Missing token" }, 401);
-
-    try {
-      const result = await ctx.runAction(internal.mcpSkills.mcpListSkills, {
-        token,
-      });
-      return jsonResponse({ data: result });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Internal error";
-      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
-    }
-  }),
+  handler: mcpToken,
 });
 
 http.route({
-  path: "/api/mcp/skills/get",
+  path: "/mcp",
   method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const token = extractBearerToken(req);
-    if (!token) return jsonResponse({ error: "Missing token" }, 401);
-
-    try {
-      const body = await req.json();
-      if (typeof body.name !== "string" || body.name.length === 0) {
-        return jsonResponse({ error: "Missing skill name" }, 400);
-      }
-      const result = await ctx.runAction(internal.mcpSkills.mcpGetSkill, {
-        token,
-        name: body.name,
-      });
-      return jsonResponse({ data: result });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Internal error";
-      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
-    }
-  }),
-});
-
-// --- Profile endpoints (for MCP) ---
-
-http.route({
-  path: "/api/mcp/profiles/list",
-  method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const token = extractBearerToken(req);
-    if (!token) return jsonResponse({ error: "Missing token" }, 401);
-
-    try {
-      const result = await ctx.runAction(internal.mcpProfiles.mcpListProfiles, {
-        token,
-      });
-      return jsonResponse({ data: result });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Internal error";
-      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
-    }
-  }),
+  handler: mcpHandler,
 });
 
 http.route({
-  path: "/api/mcp/profiles/active",
-  method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const token = extractBearerToken(req);
-    if (!token) return jsonResponse({ error: "Missing token" }, 401);
-
-    try {
-      const result = await ctx.runAction(
-        internal.mcpProfiles.mcpGetActiveProfile,
-        { token },
-      );
-      return jsonResponse({ data: result });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Internal error";
-      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
-    }
-  }),
+  path: "/mcp",
+  method: "GET",
+  handler: mcpHandler,
 });
 
 http.route({
-  path: "/api/mcp/whoami",
-  method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const token = extractBearerToken(req);
-    if (!token) return jsonResponse({ error: "Missing token" }, 401);
-
-    try {
-      const result = await ctx.runAction(internal.mcpProfiles.mcpWhoami, {
-        token,
-      });
-      return jsonResponse({ data: result });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Internal error";
-      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
-    }
-  }),
+  path: "/mcp",
+  method: "DELETE",
+  handler: mcpHandler,
 });
 
-// --- Context prompt (MCP resource) ---
-
-/**
- * Backs the `vmem://context_prompt` MCP resource. AI clients read this
- * once per conversation to prime context (about / preferences / pinned
- * memories / recent-activity prose summary). See
- * `convex/contextPromptApi.ts` for cache/staleness semantics.
- */
 http.route({
-  path: "/api/mcp/context-prompt",
-  method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    const token = extractBearerToken(req);
-    if (!token) return jsonResponse({ error: "Missing token" }, 401);
-
-    try {
-      const result = await ctx.runAction(
-        internal.contextPromptApi.mcpGetContextPrompt,
-        { token },
-      );
-      return jsonResponse({ data: result });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Internal error";
-      return jsonResponse({ error: msg }, msg.includes("Invalid") ? 401 : 500);
-    }
-  }),
+  path: "/health",
+  method: "GET",
+  handler: mcpHealth,
 });
 
 export default http;

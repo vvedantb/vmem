@@ -29,6 +29,7 @@ import { Route as MainInboxIndexRouteImport } from './routes/_main/inbox/index'
 import { Route as MainCodebasesIndexRouteImport } from './routes/_main/codebases/index'
 import { Route as MainAiLogsIndexRouteImport } from './routes/_main/ai-logs/index'
 import { Route as MainActivityIndexRouteImport } from './routes/_main/activity/index'
+import { Route as McpOauthAuthorizeRouteImport } from './routes/mcp/oauth/authorize'
 import { Route as MainWikiDocIdRouteImport } from './routes/_main/wiki/$docId'
 import { Route as MainSettingsUsageRouteImport } from './routes/_main/settings/usage'
 import { Route as MainSettingsProfilesRouteImport } from './routes/_main/settings/profiles'
@@ -151,6 +152,11 @@ const MainActivityIndexRoute = MainActivityIndexRouteImport.update({
   id: '/activity/',
   path: '/activity/',
   getParentRoute: () => MainRouteRoute,
+} as any)
+const McpOauthAuthorizeRoute = McpOauthAuthorizeRouteImport.update({
+  id: '/mcp/oauth/authorize',
+  path: '/mcp/oauth/authorize',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const MainWikiDocIdRoute = MainWikiDocIdRouteImport.update({
   id: '/wiki/$docId',
@@ -297,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/settings/profiles': typeof MainSettingsProfilesRoute
   '/settings/usage': typeof MainSettingsUsageRoute
   '/wiki/$docId': typeof MainWikiDocIdRoute
+  '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/activity/': typeof MainActivityIndexRoute
   '/ai-logs/': typeof MainAiLogsIndexRoute
   '/codebases/': typeof MainCodebasesIndexRoute
@@ -341,6 +348,7 @@ export interface FileRoutesByTo {
   '/settings/profiles': typeof MainSettingsProfilesRoute
   '/settings/usage': typeof MainSettingsUsageRoute
   '/wiki/$docId': typeof MainWikiDocIdRoute
+  '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/activity': typeof MainActivityIndexRoute
   '/ai-logs': typeof MainAiLogsIndexRoute
   '/codebases': typeof MainCodebasesIndexRoute
@@ -387,6 +395,7 @@ export interface FileRoutesById {
   '/_main/settings/profiles': typeof MainSettingsProfilesRoute
   '/_main/settings/usage': typeof MainSettingsUsageRoute
   '/_main/wiki/$docId': typeof MainWikiDocIdRoute
+  '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/_main/activity/': typeof MainActivityIndexRoute
   '/_main/ai-logs/': typeof MainAiLogsIndexRoute
   '/_main/codebases/': typeof MainCodebasesIndexRoute
@@ -433,6 +442,7 @@ export interface FileRouteTypes {
     | '/settings/profiles'
     | '/settings/usage'
     | '/wiki/$docId'
+    | '/mcp/oauth/authorize'
     | '/activity/'
     | '/ai-logs/'
     | '/codebases/'
@@ -477,6 +487,7 @@ export interface FileRouteTypes {
     | '/settings/profiles'
     | '/settings/usage'
     | '/wiki/$docId'
+    | '/mcp/oauth/authorize'
     | '/activity'
     | '/ai-logs'
     | '/codebases'
@@ -522,6 +533,7 @@ export interface FileRouteTypes {
     | '/_main/settings/profiles'
     | '/_main/settings/usage'
     | '/_main/wiki/$docId'
+    | '/mcp/oauth/authorize'
     | '/_main/activity/'
     | '/_main/ai-logs/'
     | '/_main/codebases/'
@@ -544,6 +556,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MainRouteRoute: typeof MainRouteRouteWithChildren
   AgentCallbackRoute: typeof AgentCallbackRoute
+  McpOauthAuthorizeRoute: typeof McpOauthAuthorizeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -687,6 +700,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/activity/'
       preLoaderRoute: typeof MainActivityIndexRouteImport
       parentRoute: typeof MainRouteRoute
+    }
+    '/mcp/oauth/authorize': {
+      id: '/mcp/oauth/authorize'
+      path: '/mcp/oauth/authorize'
+      fullPath: '/mcp/oauth/authorize'
+      preLoaderRoute: typeof McpOauthAuthorizeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_main/wiki/$docId': {
       id: '/_main/wiki/$docId'
@@ -946,6 +966,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MainRouteRoute: MainRouteRouteWithChildren,
   AgentCallbackRoute: AgentCallbackRoute,
+  McpOauthAuthorizeRoute: McpOauthAuthorizeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -9,7 +9,6 @@ import {
 } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { generateEmbedding } from "../lib/openRouter";
-import { verifyMcpJwt } from "../../src/neo4j/mcpAuth";
 import { normalizeUrl } from "../../src/neo4j/url";
 import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
 
@@ -49,12 +48,6 @@ async function tryEmbed(
   }
 }
 
-function verifyTokenOrThrow(token: string): string {
-  const clerkId = verifyMcpJwt(token);
-  if (!clerkId) throw new Error("Invalid or expired token");
-  return clerkId;
-}
-
 /**
  * Resolve the profileId to use for a request.
  * Priority: explicit profileId > active profile > default profile
@@ -84,7 +77,7 @@ async function resolveProfileId(
 
 export const mcpSearchMemories = internalAction({
   args: {
-    token: v.string(),
+    clerkId: v.string(),
     query: v.optional(v.string()),
     type: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
@@ -93,11 +86,10 @@ export const mcpSearchMemories = internalAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const clerkId = verifyTokenOrThrow(args.token);
-    const profileId = await resolveProfileId(ctx, clerkId, args.profileId);
+    const profileId = await resolveProfileId(ctx, args.clerkId, args.profileId);
     const service = new MemoryService(getDriver());
     return await service.searchMemories({
-      userId: clerkId,
+      userId: args.clerkId,
       profileId,
       query: args.query,
       limit: args.limit ?? 20,
@@ -108,18 +100,22 @@ export const mcpSearchMemories = internalAction({
 
 export const mcpRetrieveMemories = internalAction({
   args: {
-    token: v.string(),
+    clerkId: v.string(),
     query: v.string(),
     limit: v.optional(v.number()),
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const clerkId = verifyTokenOrThrow(args.token);
-    const profileId = await resolveProfileId(ctx, clerkId, args.profileId);
+    const profileId = await resolveProfileId(ctx, args.clerkId, args.profileId);
     const service = new MemoryService(getDriver());
-    const queryEmbedding = await tryEmbed(ctx, clerkId, profileId, args.query);
+    const queryEmbedding = await tryEmbed(
+      ctx,
+      args.clerkId,
+      profileId,
+      args.query,
+    );
     return await service.retrieveMemories({
-      userId: clerkId,
+      userId: args.clerkId,
       profileId,
       query: args.query,
       queryEmbedding,
@@ -130,7 +126,7 @@ export const mcpRetrieveMemories = internalAction({
 
 export const mcpCreateMemory = internalAction({
   args: {
-    token: v.string(),
+    clerkId: v.string(),
     title: v.string(),
     content: v.string(),
     type: v.optional(v.string()),
@@ -141,7 +137,7 @@ export const mcpCreateMemory = internalAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const clerkId = verifyTokenOrThrow(args.token);
+    const clerkId = args.clerkId;
     const profileId = await resolveProfileId(ctx, clerkId, args.profileId);
     const service = new MemoryService(getDriver());
 
@@ -261,16 +257,15 @@ export const mcpCreateMemory = internalAction({
 
 export const mcpUpdateMemory = internalAction({
   args: {
-    token: v.string(),
+    clerkId: v.string(),
     memoryId: v.string(),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const clerkId = verifyTokenOrThrow(args.token);
     const service = new MemoryService(getDriver());
-    const result = await service.updateMemory(clerkId, args.memoryId, {
+    const result = await service.updateMemory(args.clerkId, args.memoryId, {
       title: args.title,
       content: args.content,
       tags: args.tags,
@@ -278,7 +273,7 @@ export const mcpUpdateMemory = internalAction({
 
     if (result) {
       await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
-        clerkId,
+        clerkId: args.clerkId,
         eventType: "memory_updated",
         memoryId: args.memoryId,
         payload: JSON.stringify({ title: result.title }),
@@ -291,17 +286,16 @@ export const mcpUpdateMemory = internalAction({
 
 export const mcpDeleteMemory = internalAction({
   args: {
-    token: v.string(),
+    clerkId: v.string(),
     memoryId: v.string(),
   },
   handler: async (ctx, args) => {
-    const clerkId = verifyTokenOrThrow(args.token);
     const service = new MemoryService(getDriver());
-    const deleted = await service.deleteMemory(clerkId, args.memoryId);
+    const deleted = await service.deleteMemory(args.clerkId, args.memoryId);
 
     if (deleted) {
       await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
-        clerkId,
+        clerkId: args.clerkId,
         eventType: "memory_deleted",
         memoryId: args.memoryId,
         payload: JSON.stringify({}),

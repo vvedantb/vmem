@@ -7,7 +7,15 @@ import { env } from "./env";
 import { convex } from "./components/providers/ClientProvider";
 import { AppSkeleton } from "./components/AppSkeleton";
 import { isChunkLoadError } from "./lib/utils/isChunkLoadError";
+import { saveMcpOauthParamsFromUrl } from "./lib/mcpOauthStorage";
 import "./globals.css";
+
+// Snapshot MCP OAuth params before ClerkProvider mounts. With prod Clerk live
+// keys, the cross-domain session handshake on the popup's first paint can
+// redirect `/mcp/oauth/authorize` to `/home`, stripping the search params we
+// need to mint the auth code. Stashing them in sessionStorage here lets the
+// `/home` route detect a pending flow and bounce back into it.
+saveMcpOauthParamsFromUrl();
 
 /**
  * Handles stale deployment detection: closes the Convex WebSocket to prevent
