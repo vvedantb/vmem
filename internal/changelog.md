@@ -1,5 +1,14 @@
 # Changelog
 
+## MCP Server: Railway → Convex Migration — 2026-05-10
+
+- **Consolidated MCP server into Convex backend**: Replaced separate Railway Express deployment with inline `httpAction`s and `"use node"` actions in `packages/backend/convex/mcp/`. Single source of truth eliminates cold starts and dual-deployment overhead.
+- **New MCP OAuth flow**: Added `mcpAuthCodes` + `mcpClientRegistrations` tables to track 5-minute auth codes and 24h client registrations. OAuth mutations + queries live in `convex/mcp/oauth.ts`; httpActions in `native.ts` handle metadata/register/authorize/token endpoints. Existing `MCP_JWT_SECRET` reused verbatim so Railway-issued tokens survive cutover without re-auth.
+- **JWT verification centralized**: Moved token verification from per-action helpers into single `verifyAccessToken` internalAction in `nodeActions.ts`. All 5 memory/profile/skill actions now accept `clerkId` directly instead of `token`, simplifying the call chain and removing scattered JWT logic.
+- **Web app OAuth recovery flow**: Added `mcpOauthStorage.ts` for sessionStorage-backed param recovery — when Clerk's prod session handshake bounces the authorize popup to `/home`, the stored params let us redirect back without user friction. `main.tsx` snapshots params before ClerkProvider mounts; `/home` route consumes them on entry.
+- **New authorize route**: TanStack route at `/mcp/oauth/authorize` gates on Clerk sign-in (not Convex), then calls `api.mcp.oauth.authorize` mutation to mint the auth code. Redirects to client's redirect_uri with `?code=&state=`.
+- **Deprecated apps/mcp**: Added deprecation banner pointing at new Convex URL. Folder stays for production soak; deleted in follow-up after cutover is stable.
+
 ## Chrome Extension: Centralized Clerk Auth in Background Worker — 2026-05-10
 
 - **New `background/auth.ts` module**: Single source of truth for Clerk session retrieval and authenticated Convex client creation. Wraps `createClerkClient` (with `background: true`) behind a memoized client and exposes `createAuthenticatedConvexClient()` + `hasActiveClerkSession()`. Stale tokens are refreshed live via `session.getToken({ template: "convex" })` instead of relying on whatever happened to be in `chrome.storage`.
