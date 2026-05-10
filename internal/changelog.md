@@ -1,6 +1,11 @@
 # Changelog
 
-## MCP Server: Railway → Convex Migration — 2026-05-10
+## Settings: Import Page → Data Controls With Wipe-All Tab — 2026-05-10
+
+- **Renamed `/settings/import` to `/settings/data-controls`**: Promoted the single import page into a tabbed surface so import isn't the only data operation that lives there. Sidebar entry renamed from "Import" to "Data Controls"; old route removed (no redirect — greenfield project, breaking changes are fine).
+- **Three tabs share one header**: Each tab is a real subroute (`/import`, `/export`, `/danger`) wired through `DataControlsTabs` mirroring the `/settings/api` tab pattern. Visiting the bare `/settings/data-controls` redirects to the Import tab. Existing import flow (provider grid, upload modal, row picker) lifted into the Import tab unchanged; `ImportPageClient` now renders the panel only — the route owns the page chrome.
+- **Export tab placeholder**: Empty-state card ("Export coming soon") so the tab lights up but doesn't pretend to work yet. Gives a future export pipeline a home to land in.
+- **Data Control tab — irreversible wipe-all**: New "Delete all memories" action sitting behind a type-to-confirm dialog (must type `delete all memories` before the destructive button enables, GitHub repo-deletion style). Wires through new `memoryApi.deleteAllMemories` action → `deleteAllMemoriesForUser(userId)` on `MemoryService`, which DETACH-DELETEs the user's memories, chunks, memory events, proposed updates, and per-user entities, then prunes orphan `:Tag` and `:Source` nodes — same ordering as `unseed.ts`. Returns the count for the success toast.
 
 - **Consolidated MCP server into Convex backend**: Replaced separate Railway Express deployment with inline `httpAction`s and `"use node"` actions in `packages/backend/convex/mcp/`. Single source of truth eliminates cold starts and dual-deployment overhead.
 - **New MCP OAuth flow**: Added `mcpAuthCodes` + `mcpClientRegistrations` tables to track 5-minute auth codes and 24h client registrations. OAuth mutations + queries live in `convex/mcp/oauth.ts`; httpActions in `native.ts` handle metadata/register/authorize/token endpoints. Existing `MCP_JWT_SECRET` reused verbatim so Railway-issued tokens survive cutover without re-auth.

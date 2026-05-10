@@ -566,6 +566,27 @@ export const deleteMemoryInternal = internalAction({
   },
 });
 
+/**
+ * Wipe every memory the user owns plus all per-user dependents (chunks,
+ * events, proposed updates, entities, orphan tags/sources). Used by the
+ * settings → Data Controls "delete all memories" action. Skips per-memory
+ * audit events since the source rows are gone — the action that calls
+ * this is itself audit-logged at the API layer.
+ */
+export const deleteAllMemoriesInternal = internalAction({
+  args: {
+    clerkId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const service = new MemoryService(getDriver());
+    const deleted = await service.deleteAllMemoriesForUser(args.clerkId);
+    if (deleted > 0) {
+      await scheduleContextPromptInvalidation(ctx, args.clerkId);
+    }
+    return deleted;
+  },
+});
+
 export const searchMemoriesInternal = internalAction({
   args: {
     clerkId: v.string(),

@@ -1255,6 +1255,60 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
     });
   }
 
+  /**
+   * Wipe every memory the user owns and every node that exists only to
+   * support those memories: chunks, memory events, proposed updates, and
+   * per-user entities. Tags and sources are global (`UNIQUE` on name) so
+   * we only prune the orphans — names other users still reference stay.
+   *
+   * Mirrors `unseed.ts`'s ordering: child rows first, then memories, then
+   * orphan cleanup, so DETACH DELETE never has to walk into a child it
+   * was supposed to remove on its own.
+   */
+  async deleteAllMemoriesForUser(userId: string): Promise<number> {
+    return this.withSession(async (session) => {
+      await session.run(
+        `MATCH (c:Chunk {userId: $userId})
+         DETACH DELETE c`,
+        { userId },
+      );
+      await session.run(
+        `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
+         DETACH DELETE e`,
+        { userId },
+      );
+      await session.run(
+        `MATCH (p:ProposedUpdate)-[:UPDATE_FOR]->(m:Memory {userId: $userId})
+         DETACH DELETE p`,
+        { userId },
+      );
+      await session.run(
+        `MATCH (e:Entity {userId: $userId})
+         DETACH DELETE e`,
+        { userId },
+      );
+      const result = await session.run(
+        `MATCH (m:Memory {userId: $userId})
+         DETACH DELETE m
+         RETURN count(m) AS deleted`,
+        { userId },
+      );
+      await session.run(
+        `MATCH (t:Tag)
+         WHERE NOT EXISTS { MATCH (:Memory)-[:TAGGED_WITH]->(t) }
+         DELETE t`,
+      );
+      await session.run(
+        `MATCH (s:Source)
+         WHERE NOT EXISTS { MATCH (:Memory)-[:FROM_SOURCE]->(s) }
+         DELETE s`,
+      );
+      const firstRecord = result.records[0];
+      if (!firstRecord) return 0;
+      return toNeoInt(firstRecord.get("deleted"));
+    });
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Chunk-level storage and retrieval
   // ─────────────────────────────────────────────────────────────────────────
