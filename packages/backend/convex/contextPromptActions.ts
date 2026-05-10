@@ -4,7 +4,7 @@ import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { MemoryService } from "../src/neo4j/memoryService";
+import { listMemories } from "../src/neo4j/memoryService";
 import { getDriver } from "../src/neo4j/driver";
 import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
 import { callOpenRouterChat } from "./lib/openRouter";
@@ -131,17 +131,17 @@ export const regenerateContextPromptInternal = internalAction({
       { userId },
     );
 
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
     // Pull pinned (verbatim) and recent (for summarizer). Two cheap
     // index-backed Cypher calls — no fanout per memory.
-    const pinnedPage = await service.listMemories({
+    const pinnedPage = await listMemories(driver, {
       userId: args.clerkId,
       status: "pinned",
       limit: PINNED_LIMIT,
       offset: 0,
     });
-    const recentPage = await service.listMemories({
+    const recentPage = await listMemories(driver, {
       userId: args.clerkId,
       limit: RECENT_LIMIT,
       offset: 0,

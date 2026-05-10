@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { MemoryService } from "../../src/neo4j/memoryService";
+import { upsertFromSource } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { generateEmbedding } from "../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
@@ -64,7 +64,7 @@ export const syncGoogleDriveInternal = internalAction({
     accessToken: v.string(),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
     // Get or create default profile for synced content
     const defaultProfile = await ctx.runMutation(
@@ -134,7 +134,7 @@ export const syncGoogleDriveInternal = internalAction({
             );
 
             // Upsert to Neo4j
-            await service.upsertFromSource({
+            await upsertFromSource(driver, {
               userId: args.clerkId,
               profileId,
               title: file.name,
@@ -241,7 +241,7 @@ export const syncOneDriveInternal = internalAction({
     accessToken: v.string(),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
     const defaultProfile = await ctx.runMutation(
       internal.profiles.getOrCreateDefaultByClerkIdInternal,
@@ -305,7 +305,7 @@ export const syncOneDriveInternal = internalAction({
               truncatedText,
             );
 
-            await service.upsertFromSource({
+            await upsertFromSource(driver, {
               userId: args.clerkId,
               profileId,
               title: item.name,
@@ -505,7 +505,7 @@ export const syncLinearInternal = internalAction({
     fullHistory: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
     const defaultProfile = await ctx.runMutation(
       internal.profiles.getOrCreateDefaultByClerkIdInternal,
@@ -575,7 +575,7 @@ export const syncLinearInternal = internalAction({
               truncatedContent,
             );
 
-            await service.upsertFromSource({
+            await upsertFromSource(driver, {
               userId: args.clerkId,
               profileId,
               title,
@@ -644,7 +644,7 @@ export const syncLinearInternal = internalAction({
               truncatedContent,
             );
 
-            await service.upsertFromSource({
+            await upsertFromSource(driver, {
               userId: args.clerkId,
               profileId,
               title,
@@ -762,7 +762,7 @@ export const syncNotionInternal = internalAction({
     accessToken: v.string(),
   },
   handler: async (ctx, args) => {
-    const memoryService = new MemoryService(getDriver());
+    const driver = getDriver();
 
     // Get or create default profile for synced content
     const defaultProfile = await ctx.runMutation(
@@ -847,7 +847,7 @@ export const syncNotionInternal = internalAction({
             );
 
             // Upsert to Neo4j
-            await memoryService.upsertFromSource({
+            await upsertFromSource(driver, {
               userId: args.clerkId,
               profileId,
               title,
