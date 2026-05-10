@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useAuth } from "@clerk/chrome-extension";
-import { setStorage } from "@/lib/storage";
+import { setAuthToken } from "@/lib/storage";
 
 export function TokenSync() {
   const { getToken, isSignedIn, isLoaded } = useAuth();
@@ -11,7 +11,7 @@ export function TokenSync() {
     if (!isLoaded) return;
 
     if (!isSignedIn) {
-      setStorage({ authToken: "" });
+      setAuthToken("");
       return;
     }
 
@@ -21,7 +21,7 @@ export function TokenSync() {
       // Get token with "convex" template so Convex can verify it
       const token = await getToken({ template: "convex" });
       if (active) {
-        setStorage({ authToken: token ?? "" });
+        setAuthToken(token ?? "");
       }
     }
 

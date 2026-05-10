@@ -1,6 +1,6 @@
 import { ConvexHttpClient } from "convex/browser";
 import { CONVEX_URL } from "@/lib/constants";
-import { getStorage, setStorage } from "@/lib/storage";
+import { getAuthToken, setAuthToken } from "@/lib/storage";
 
 const OFFSCREEN_PATH = "offscreen/offscreen.html";
 const REFRESH_TIMEOUT_MS = 15_000;
@@ -13,8 +13,7 @@ let pendingRefresh: Promise<string | null> | null = null;
  * refresh. Returns "" when no token is stored.
  */
 async function getStoredToken(): Promise<string> {
-  const { authToken } = await getStorage();
-  return authToken;
+  return getAuthToken();
 }
 
 /**
@@ -53,10 +52,10 @@ async function refreshTokenViaOffscreen(): Promise<string | null> {
 
       const response = await sendOffscreenMessage();
       if (response.token) {
-        await setStorage({ authToken: response.token });
+        await setAuthToken(response.token);
         return response.token;
       }
-      await setStorage({ authToken: "" });
+      await setAuthToken("");
       return null;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
