@@ -1,5 +1,13 @@
 # Changelog
 
+## Chrome Extension: Fix Auto-Sync & Add Offscreen Token Refresh — 2026-05-10
+
+- **Fixed service worker crash (81k → 2.1k bundle)**: Removed Clerk SDK from `background/auth.ts`; was bundling Clerk UI code that uses `document` API at module-top-level, causing CSP violation (status code 15). Auth now storage-only with offscreen refresh fallback.
+- **Introduced `chrome.offscreen` document for token refresh**: New `src/offscreen/` with HTML + Clerk client that runs in a real DOM context. SW spawns on-demand when cached token is missing or expired, mints fresh JWT via `session.getToken({ template: "convex" })`, writes to `chrome.storage`, then closes. Handles cold-start after laptop restart without user opening popup.
+- **Fixed popup CSP violation**: Moved inline theme-init script from `popup/index.html` to `theme-init.ts` module, imported at top of `index.tsx` before React hydration. Prevents flash of unstyled dark/light mode on cold load.
+- **Added dev-host sign-in banner**: Popup's signed-out view now displays info note with link to `CLERK_SYNC_HOST` explaining that Clerk dev instances require host sign-in so the extension can read syncHost cookies. Saves users from silently-failing modal.
+- **Build improvements**: Updated `vite.config.ts` with `createOffscreenConfig`, updated `scripts/build.ts` to compile offscreen bundle, added `"offscreen"` to manifest permissions.
+
 ## Refactor: Split Five Oversized Files Into Topic-Grouped Subdirs — 2026-05-10
 
 - **`convex/memoryApi.ts` (563 LOC) → thin barrel + `memoryApi/` subdir**: Personal handlers (9 actions: create/get/list/update/delete/deleteAll/search/retrieve/events) move to `personal.ts`; team-scoped handlers (5 actions including the creator-vs-owner authorization branches) to `team.ts`; shared `requireClerkId` + `assertTeamAccess` to `auth.ts`; local interfaces (`MemoryWithTags`, `MemoryListResult`, `RetrieveMemoriesResult`, etc.) to `types.ts`. The barrel keeps the Convex API path `api.memoryApi.*` unchanged so all 16 caller files in `apps/` and `packages/` keep their existing imports.

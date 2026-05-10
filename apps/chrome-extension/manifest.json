@@ -15,7 +15,8 @@
     "alarms",
     "scripting",
     "identity",
-    "cookies"
+    "cookies",
+    "offscreen"
   ],
   "host_permissions": [
     "https://chat.openai.com/*",

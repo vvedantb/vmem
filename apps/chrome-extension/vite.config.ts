@@ -37,6 +37,31 @@ export function createPopupConfig(mode: string): UserConfig {
   };
 }
 
+export function createOffscreenConfig(mode: string): UserConfig {
+  return {
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(mode),
+    },
+    resolve: sharedResolve,
+    root: resolve(root, "src/offscreen"),
+    base: "./",
+    build: {
+      outDir: resolve(root, "dist/offscreen"),
+      emptyOutDir: false,
+      sourcemap: mode === "development",
+      rollupOptions: {
+        input: { offscreen: resolve(root, "src/offscreen/offscreen.html") },
+        output: {
+          entryFileNames: "[name].js",
+          chunkFileNames: "chunks/[name].js",
+          assetFileNames: "[name].[ext]",
+        },
+      },
+    },
+    publicDir: false,
+  };
+}
+
 export function createBackgroundConfig(mode: string): UserConfig {
   return {
     define: {

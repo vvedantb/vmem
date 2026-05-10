@@ -1,3 +1,4 @@
+import "./theme-init";
 import "@/popup/globals.css";
 import { createRoot } from "react-dom/client";
 import { Providers } from "./providers";
