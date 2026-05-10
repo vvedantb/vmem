@@ -3,9 +3,10 @@
 /**
  * Graph-view controls rendered in the page header.
  *
- * Renders four popover buttons — Search, Filters, Options, Legend — plus the
- * Add Memory trigger. Keeps the graph canvas visually clean; all chrome lives
- * here. State flows in through a single `controller` prop (see
+ * Renders three popover buttons — Search, Filters, Options — plus the Add
+ * Memory trigger. The Options popover absorbs the legend (counts, shapes,
+ * edge colours, dim states, source logos) so the toolbar stays compact on
+ * mobile. State flows in through a single `controller` prop (see
  * `useMemoryGraphController`).
  */
 
@@ -13,7 +14,6 @@ import { useCallback, useMemo } from "react";
 import {
   IconFilter,
   IconAdjustmentsHorizontal,
-  IconInfoCircle,
   IconPlus,
   IconRefresh,
   IconGraph,
@@ -102,8 +102,6 @@ export default function GraphHeaderControls({
         settings={controller.graphSettings}
         onSettingsChange={controller.onSettingsChange}
         onReset={controller.onResetSettings}
-      />
-      <LegendPopover
         totalNodeCount={controller.totalNodeCount}
         visibleNodeCount={controller.visibleNodeCount}
         edgeCount={controller.edgeCount}
@@ -315,12 +313,18 @@ function OptionsPopover({
   settings,
   onSettingsChange,
   onReset,
+  totalNodeCount,
+  visibleNodeCount,
+  edgeCount,
 }: {
   viewMode: ViewMode;
   onViewModeChange: (m: ViewMode) => void;
   settings: GraphSettings;
   onSettingsChange: (s: GraphSettings) => void;
   onReset: () => void;
+  totalNodeCount: number;
+  visibleNodeCount: number;
+  edgeCount: number;
 }) {
   const handleSliderChange = useCallback(
     (key: "scalingRatio" | "gravity", value: number) => {
@@ -347,7 +351,10 @@ function OptionsPopover({
           <IconAdjustmentsHorizontal size={16} />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 p-3 space-y-4">
+      <PopoverContent
+        align="end"
+        className="w-72 p-3 space-y-4 max-h-[80vh] overflow-y-auto"
+      >
         {/* View mode */}
         <div className="space-y-1.5">
           <span className="text-[11px] text-muted-foreground">View</span>
@@ -418,30 +425,12 @@ function OptionsPopover({
             </div>
           ))}
         </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
-// ---- Legend popover ----
+        <Separator />
 
-function LegendPopover({
-  totalNodeCount,
-  visibleNodeCount,
-  edgeCount,
-}: {
-  totalNodeCount: number;
-  visibleNodeCount: number;
-  edgeCount: number;
-}) {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="icon-sm" aria-label="Graph legend">
-          <IconInfoCircle size={16} />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-60 p-3">
+        {/* Legend — counts, shapes, edge categories, dim states, source logos.
+            Folded into Options instead of a sibling button so the toolbar stays
+            compact on mobile. */}
         <GraphLegend
           nodeCount={totalNodeCount}
           edgeCount={edgeCount}

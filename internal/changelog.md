@@ -1,5 +1,28 @@
 # Changelog
 
+## Chrome Extension: Centralized Clerk Auth in Background Worker — 2026-05-10
+
+- **New `background/auth.ts` module**: Single source of truth for Clerk session retrieval and authenticated Convex client creation. Wraps `createClerkClient` (with `background: true`) behind a memoized client and exposes `createAuthenticatedConvexClient()` + `hasActiveClerkSession()`. Stale tokens are refreshed live via `session.getToken({ template: "convex" })` instead of relying on whatever happened to be in `chrome.storage`.
+- **Background modules switched to live token refresh**: `api-client.ts`, `user-settings-mirror.ts`, `import-bookmarks.ts`, and `sync-scheduler.ts` no longer read `authToken` directly from storage. They call into `auth.ts`, so a sync that runs while the popup has been closed for hours still gets a fresh JWT instead of failing with the cached/expired one.
+- **Tightened types around profile IDs**: `Profile._id` is now `Id<"profiles">` instead of `string`, and `setDefaultProfile` accepts the branded ID directly. `SettingsForm` resolves the profile from the dropdown value via lookup before calling the mutation, replacing the previous `as Id<"profiles">` cast. Theme dropdown also gets a real `isTheme` type guard in place of the `as Theme` cast.
+
+## Memories Surface: Expand Graph Legend & Move Tags to List View — 2026-05-04
+
+- **Merge Info + Options popovers on graph header**: Removed standalone Info button; folded legend into the Options popover and added `max-h-[80vh] overflow-y-auto` for scrollable content on small screens. Reduces graph header from 5 icons to 4 (Search, Filters, Options, Add), improving mobile density.
+- **Comprehensive graph legend**: Expanded GraphLegend to document all node shapes (circle/diamond/square/hexagon/starburst), all edge types grouped into 4 color buckets (tag/relates_to/wiki_parent/mentions), visual states (hover/dim/focused), and source logos. Each edge category lists the underlying type names for reference.
+- **Replace `/memories/tags` route with `?view=tags` parameter**: Deleted the standalone Tags route and TagCloud component; Tags is now a view mode in the list route. Old `/memories/tags` bookmarks redirect to `/memories/list?view=tags` for backward compatibility.
+- **Tag management via list view**: Added View dropdown (Memories / Tags) in MemoryListHeaderControls; Tags view renders tag rows as Cards with inline rename (via Input) and delete (via Dialog) via kebab DropdownMenu. Changes fan across all affected memories automatically. Click a tag row body navigates to Memories view with that tag pre-filtered.
+- **Simplified memories tab bar**: Removed Tags tab from MemoriesTabs; only Graph and List remain (tag management is now embedded in list).
+
+## Chrome Extension: Screenshot Region Capture to Memory — 2026-05-02
+
+- **New screenshot-to-memory tool**: Added full UX for capturing visible page regions and saving as memories. Triggered via `Alt+Shift+S` keyboard shortcut or right-click context menu "Screenshot region to vmem".
+- **Region selection with visual feedback**: Drag-to-select overlay with crosshair, punched-out selection rect, and fixed hint pill ("Drag to capture · Esc to cancel"). Esc cancels at any stage; 8px minimum drag prevents accidental captures.
+- **Floating preview + caption input**: After region capture, shows thumbnail preview + optional caption field + Save button in Shadow-DOM popup (matches selection-popup styling, dark-mode aware). Caption auto-focuses after popup transitions in; Enter key saves directly.
+- **Image storage integration**: Screenshot PNG uploaded via existing `generateMemoryUploadUrl` flow to Convex storage. Backend `importImageMemory` action (new) attaches `storageId`/`mimeType` to memory node while skipping text extraction. Page URL preserved in memory content but not as `url` field, so Layer-1 dedup doesn't collapse multiple screenshots from the same page.
+- **Robust error surfacing**: Screenshot save failures now show on the Save button's `title` attribute (hover to see error) and are logged in service worker console with step-by-step context (e.g. "importImageMemory action failed: ..."). Helps diagnose missing backend deployments.
+- **Fixed context-menu listener registration**: Moved `chrome.contextMenus.onClicked.addListener()` to top-level service worker startup (alongside existing `registerAlarmListener()`) so MV3 context-menu clicks wake the SW with the listener pre-attached. Context-menu item creation still lives in idempotent `registerContextMenu()`.
+
 ## Dream Mode Becomes User-Wide for Personal Profiles — 2026-04-27
 
 - **Schedule + auto-accept move from per-profile to per-user**: Personal profiles no longer carry their own Dream Mode config. The user owns one schedule (HH:MM in UTC) and one auto-accept flag in `userSettings`; a single daily cron (`dream-mode:user:<userId>`) iterates every personal profile in one pass. Team profiles keep their per-profile cron and config because team membership cuts across users.

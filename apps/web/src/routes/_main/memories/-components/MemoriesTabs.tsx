@@ -1,28 +1,24 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsTrigger, AnimatedTabLabel } from "@vmem/ui";
-import { IconTopologyStar3, IconList, IconHash } from "@tabler/icons-react";
+import { IconTopologyStar3, IconList } from "@tabler/icons-react";
 
 /**
  * Shared tab bar for the memories surface.
  *
- * Each tab is a real subroute now — Graph (`/memories/graph`), List
- * (`/memories/list`), Tags (`/memories/tags`) — so active state is
- * derived purely from the URL via `useMatchRoute`. Tabs are wired as
- * `<Link>`s so navigation is a single source of truth and browser
+ * Two routes today: Graph (`/memories/graph`) and List (`/memories/list`).
+ * The previous Tags tab folded into the list route as `?view=tags` — both
+ * forms (memory rows and tag rows) share the same header chrome and switch
+ * via the View dropdown in `MemoryListHeaderControls`.
+ *
+ * Active state is derived from the URL via `useMatchRoute`; tabs are wired
+ * as `<Link>`s so navigation is the single source of truth and browser
  * back/forward Just Works.
  */
 export function MemoriesTabs() {
   const matchRoute = useMatchRoute();
   const isGraph = Boolean(matchRoute({ to: "/memories/graph" }));
   const isList = Boolean(matchRoute({ to: "/memories/list" }));
-  const isTags = Boolean(matchRoute({ to: "/memories/tags" }));
-  const activeValue = isTags
-    ? "tags"
-    : isList
-      ? "list"
-      : isGraph
-        ? "graph"
-        : "";
+  const activeValue = isList ? "list" : isGraph ? "graph" : "";
 
   return (
     <Tabs value={activeValue}>
@@ -40,12 +36,6 @@ export function MemoriesTabs() {
           <Link to="/memories/list">
             <IconList size={16} />
             <AnimatedTabLabel isActive={activeValue === "list"} label="List" />
-          </Link>
-        </TabsTrigger>
-        <TabsTrigger value="tags" asChild>
-          <Link to="/memories/tags">
-            <IconHash size={16} />
-            <AnimatedTabLabel isActive={activeValue === "tags"} label="Tags" />
           </Link>
         </TabsTrigger>
       </TabsList>

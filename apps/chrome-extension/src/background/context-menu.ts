@@ -2,18 +2,63 @@ import { createMemory } from "./api-client";
 import { htmlToMarkdown } from "@/lib/page-extraction";
 import { extractPageFromTab } from "@/lib/extract-page";
 
+/**
+ * Idempotently (re-)create the menu items themselves. Chrome auto-clears
+ * context menus on extension reload, but we also call removeAll defensively
+ * so calling this from both onInstalled and onStartup is safe.
+ *
+ * The click listener is registered separately at module top-level (see
+ * `registerContextMenuClickListener`) — MV3 service workers wake on event
+ * dispatch only if the matching listener was attached synchronously at SW
+ * startup, so listeners can't live inside async event handlers.
+ */
 export function registerContextMenu(): void {
-  chrome.contextMenus.create({
-    id: "save-to-vmem",
-    title: "Save page to vmem",
-    contexts: ["page"],
-  });
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: "save-to-vmem",
+      title: "Save page to vmem",
+      contexts: ["page"],
+    });
 
+    chrome.contextMenus.create({
+      id: "screenshot-to-vmem",
+      title: "Screenshot region to vmem",
+      // `["all"]` so the entry shows up regardless of what the user
+      // right-clicked on (link, image, selection, etc.). Screenshots
+      // operate on the visible viewport, so the click target doesn't
+      // constrain the action.
+      contexts: ["all"],
+    });
+  });
+}
+
+/**
+ * Register the contextMenus click listener. MUST be called synchronously
+ * at the top level of the service worker entry — otherwise an idle SW that
+ * gets woken by a context-menu click will not have the listener attached
+ * in time, and the click event is lost.
+ */
+export function registerContextMenuClickListener(): void {
   chrome.contextMenus.onClicked.addListener((info, tab) => {
-    if (info.menuItemId !== "save-to-vmem") return;
+    console.log("[vmem] Context menu clicked:", info.menuItemId);
     if (!tab) return;
 
-    void savePageFromTab(tab);
+    if (info.menuItemId === "save-to-vmem") {
+      void savePageFromTab(tab);
+      return;
+    }
+
+    if (info.menuItemId === "screenshot-to-vmem") {
+      if (typeof tab.id !== "number") return;
+      // Asks the screenshot content script to enter region-select mode.
+      // Fire-and-forget — failures are surfaced as a console warning.
+      void chrome.tabs
+        .sendMessage(tab.id, { type: "START_SCREENSHOT" })
+        .catch((err) => {
+          console.warn("[vmem] Could not start screenshot on tab:", err);
+        });
+      return;
+    }
   });
 }
 

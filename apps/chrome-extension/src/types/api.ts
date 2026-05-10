@@ -1,3 +1,5 @@
+import type { Id } from "@vmem/backend";
+
 export type MemoryType = "profile" | "episodic" | "knowledge";
 export type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
 
@@ -47,7 +49,7 @@ export interface CreateMemoryParams {
 }
 
 export interface Profile {
-  _id: string;
+  _id: Id<"profiles">;
   name: string;
   color: string;
   icon: string;

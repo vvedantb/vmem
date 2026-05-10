@@ -1,5 +1,5 @@
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { createMemory, retrieveMemories } from "./api-client";
+import { createMemory, retrieveMemories, saveScreenshot } from "./api-client";
 import { savePageFromTab } from "./context-menu";
 import { importBookmarks } from "./import-bookmarks";
 import { importHistory } from "./import-history";
@@ -12,6 +12,8 @@ const HANDLED_TYPES = new Set<string>([
   "SAVE_SELECTION",
   "SAVE_YOUTUBE_VIDEO",
   "CAPTURE_PROMPT",
+  "SAVE_SCREENSHOT",
+  "CAPTURE_VISIBLE_TAB",
   "IMPORT_BOOKMARKS",
   "IMPORT_HISTORY",
   "CANCEL_IMPORT",
@@ -38,6 +40,21 @@ export function registerMessageHandler(): void {
       return true;
     },
   );
+}
+
+/**
+ * Decode a base64 PNG payload (no data URL prefix) into a Blob suitable
+ * for upload. atob is available in service workers; using a Uint8Array
+ * avoids the subtle bug where wrapping a binary string directly in a
+ * Blob produces UTF-8-mangled output.
+ */
+function base64PngToBlob(base64: string): Blob {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: "image/png" });
 }
 
 async function handleMessage(
@@ -191,6 +208,44 @@ async function handleMessage(
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";
         console.error("[vmem] SAVE_SELECTION failed:", error);
+        return { type: "SAVE_RESULT", success: false, error };
+      }
+    }
+
+    case "CAPTURE_VISIBLE_TAB": {
+      try {
+        // Omitting windowId targets the currently-focused window, which
+        // is the one the user is interacting with when they triggered
+        // the screenshot shortcut.
+        const dataUrl = await chrome.tabs.captureVisibleTab({
+          format: "png",
+        });
+        return { type: "CAPTURE_RESULT", dataUrl };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "Unknown error";
+        console.error("[vmem] CAPTURE_VISIBLE_TAB failed:", error);
+        return { type: "CAPTURE_ERROR", error };
+      }
+    }
+
+    case "SAVE_SCREENSHOT": {
+      try {
+        const blob = base64PngToBlob(message.base64Png);
+        const memory = await saveScreenshot({
+          blob,
+          caption: message.caption,
+          pageUrl: message.pageUrl,
+          pageTitle: message.pageTitle,
+          profileId: message.profileId,
+        });
+        return {
+          type: "SAVE_RESULT",
+          success: true,
+          memoryId: memory.id,
+        };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "Unknown error";
+        console.error("[vmem] SAVE_SCREENSHOT failed:", error);
         return { type: "SAVE_RESULT", success: false, error };
       }
     }
