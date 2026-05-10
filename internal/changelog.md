@@ -7,6 +7,7 @@
 - **Fixed popup CSP violation**: Moved inline theme-init script from `popup/index.html` to `theme-init.ts` module, imported at top of `index.tsx` before React hydration. Prevents flash of unstyled dark/light mode on cold load.
 - **Added dev-host sign-in banner**: Popup's signed-out view now displays info note with link to `CLERK_SYNC_HOST` explaining that Clerk dev instances require host sign-in so the extension can read syncHost cookies. Saves users from silently-failing modal.
 - **Build improvements**: Updated `vite.config.ts` with `createOffscreenConfig`, updated `scripts/build.ts` to compile offscreen bundle, added `"offscreen"` to manifest permissions.
+- **Moved auth token to `chrome.storage.session`**: Token no longer persists to disk — in-memory only, cleared on browser restart. JWT has a ~60s TTL so disk persistence cached mostly-expired tokens while leaving them readable at rest. New `getAuthToken` / `setAuthToken` helpers in `lib/storage.ts` keep everything else on local storage.
 
 ## Refactor: Split Five Oversized Files Into Topic-Grouped Subdirs — 2026-05-10
 
