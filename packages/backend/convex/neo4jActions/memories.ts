@@ -4,8 +4,30 @@ import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import {
-  MemoryService,
   computeContentHash,
+  createChunksForMemory,
+  createMemory,
+  deleteAllMemoriesForUser,
+  deleteChunksForMemory,
+  deleteMemory,
+  deleteTeamMemoryAsOwner,
+  findMemoryByContentHash,
+  findMemoryByExternalId,
+  findMemoryBySimilarity,
+  findMemoryByTitleAndOrigin,
+  findMemoryByUrl,
+  findUnchunkedLongMemories,
+  getMemory,
+  getMemoryEvents,
+  getMemoryForTeam,
+  getRecentMemoryTitles,
+  incrementVisitCount,
+  listMemories,
+  listMemoriesForTeam,
+  retrieveMemories,
+  searchMemories,
+  searchMemoriesForTeam,
+  updateMemory,
 } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { normalizeUrl } from "../../src/neo4j/url";
@@ -87,7 +109,7 @@ export const createMemoryInternal = internalAction({
     originalFilename: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
     // Get profileId - use provided or get default
     let resolvedProfileId: string;
@@ -117,27 +139,29 @@ export const createMemoryInternal = internalAction({
     // any prior import with the same tuple short-circuits the rest of the
     // dedup pipeline. Backed by the composite index `memory_source_id`.
     if (args.externalId && args.sourceType) {
-      const existing = await service.findMemoryByExternalId(
+      const existing = await findMemoryByExternalId(
+        driver,
         args.clerkId,
         args.sourceType,
         args.externalId,
       );
       if (existing) {
-        await service.incrementVisitCount(args.clerkId, existing.id);
-        const full = await service.getMemory(args.clerkId, existing.id);
+        await incrementVisitCount(driver, args.clerkId, existing.id);
+        const full = await getMemory(driver, args.clerkId, existing.id);
         if (full) return full;
       }
     }
 
     // ── Dedup layer 1: URL match ──────────────────────────────────────────
     if (normalizedUrl) {
-      const existing = await service.findMemoryByUrl(
+      const existing = await findMemoryByUrl(
+        driver,
         args.clerkId,
         normalizedUrl,
       );
       if (existing) {
-        await service.incrementVisitCount(args.clerkId, existing.id);
-        const full = await service.getMemory(args.clerkId, existing.id);
+        await incrementVisitCount(driver, args.clerkId, existing.id);
+        const full = await getMemory(driver, args.clerkId, existing.id);
         if (full) return full;
       }
     }
@@ -152,14 +176,15 @@ export const createMemoryInternal = internalAction({
     if (normalizedUrl && BROWSER_SOURCES.has(args.source)) {
       try {
         const origin = new URL(normalizedUrl).origin;
-        const titleMatch = await service.findMemoryByTitleAndOrigin(
+        const titleMatch = await findMemoryByTitleAndOrigin(
+          driver,
           args.clerkId,
           args.title,
           origin,
         );
         if (titleMatch) {
-          await service.incrementVisitCount(args.clerkId, titleMatch.id);
-          const full = await service.getMemory(args.clerkId, titleMatch.id);
+          await incrementVisitCount(driver, args.clerkId, titleMatch.id);
+          const full = await getMemory(driver, args.clerkId, titleMatch.id);
           if (full) return full;
         }
       } catch {
@@ -171,13 +196,14 @@ export const createMemoryInternal = internalAction({
     // MD5 of normalized(title+content). Zero API cost, catches identical
     // duplicates like "vmem" submitted three times.
     const contentHash = computeContentHash(args.title, args.content);
-    const hashMatch = await service.findMemoryByContentHash(
+    const hashMatch = await findMemoryByContentHash(
+      driver,
       args.clerkId,
       contentHash,
     );
     if (hashMatch) {
-      await service.incrementVisitCount(args.clerkId, hashMatch.id);
-      const full = await service.getMemory(args.clerkId, hashMatch.id);
+      await incrementVisitCount(driver, args.clerkId, hashMatch.id);
+      const full = await getMemory(driver, args.clerkId, hashMatch.id);
       if (full) return full;
     }
 
@@ -210,7 +236,8 @@ export const createMemoryInternal = internalAction({
     // near-duplicates like "vmem is cool" vs "vmem is cool!" that differ
     // by trivial edits but hash differently.
     if (embedding) {
-      const semanticMatch = await service.findMemoryBySimilarity(
+      const semanticMatch = await findMemoryBySimilarity(
+        driver,
         args.clerkId,
         embedding,
         0.95,
@@ -219,13 +246,13 @@ export const createMemoryInternal = internalAction({
         console.log(
           `[dedup] semantic near-duplicate (similarity=${semanticMatch.similarity.toFixed(3)}) → ${semanticMatch.id}`,
         );
-        await service.incrementVisitCount(args.clerkId, semanticMatch.id);
-        const full = await service.getMemory(args.clerkId, semanticMatch.id);
+        await incrementVisitCount(driver, args.clerkId, semanticMatch.id);
+        const full = await getMemory(driver, args.clerkId, semanticMatch.id);
         if (full) return full;
       }
     }
 
-    const result = await service.createMemory({
+    const result = await createMemory(driver, {
       userId: args.clerkId,
       profileId: resolvedProfileId,
       title: args.title,
@@ -340,7 +367,7 @@ export const chunkMemoryInternal = internalAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
     const chunks = chunkText(args.content);
     if (chunks.length === 0) return;
@@ -350,7 +377,7 @@ export const chunkMemoryInternal = internalAction({
     // backfill/update paths that don't already have it in scope.
     let resolvedProfileId = args.profileId;
     if (!resolvedProfileId) {
-      const parent = await service.getMemory(args.clerkId, args.memoryId);
+      const parent = await getMemory(driver, args.clerkId, args.memoryId);
       resolvedProfileId = parent?.profileId ?? undefined;
     }
 
@@ -381,8 +408,8 @@ export const chunkMemoryInternal = internalAction({
 
     // Replace any existing chunks (e.g. backfill re-run) before inserting
     // fresh ones so we don't duplicate.
-    await service.deleteChunksForMemory(args.clerkId, args.memoryId);
-    await service.createChunksForMemory({
+    await deleteChunksForMemory(driver, args.clerkId, args.memoryId);
+    await createChunksForMemory(driver, {
       memoryId: args.memoryId,
       userId: args.clerkId,
       chunks,
@@ -405,10 +432,11 @@ export const backfillChunksInternal = internalAction({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
     const limit = args.limit ?? 25;
 
-    const candidates = await service.findUnchunkedLongMemories(
+    const candidates = await findUnchunkedLongMemories(
+      driver,
       args.clerkId,
       2000,
       limit,
@@ -447,8 +475,8 @@ export const getMemoryInternal = internalAction({
     memoryId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getMemory(args.clerkId, args.memoryId);
+    const driver = getDriver();
+    return await getMemory(driver, args.clerkId, args.memoryId);
   },
 });
 
@@ -465,8 +493,8 @@ export const listMemoriesInternal = internalAction({
     offset: v.number(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.listMemories({
+    const driver = getDriver();
+    return await listMemories(driver, {
       userId: args.clerkId,
       profileId: args.profileId,
       type: toMemoryType(args.type),
@@ -493,8 +521,8 @@ export const updateMemoryInternal = internalAction({
     expiresAt: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
-    const result = await service.updateMemory(args.clerkId, args.memoryId, {
+    const driver = getDriver();
+    const result = await updateMemory(driver, args.clerkId, args.memoryId, {
       title: args.title,
       content: args.content,
       type: toMemoryType(args.type),
@@ -531,7 +559,7 @@ export const updateMemoryInternal = internalAction({
         } else {
           // Content shrank below the chunking threshold — clean up chunks
           // so retrieval doesn't surface stale long-content matches.
-          await service.deleteChunksForMemory(args.clerkId, args.memoryId);
+          await deleteChunksForMemory(driver, args.clerkId, args.memoryId);
         }
       }
 
@@ -548,8 +576,8 @@ export const deleteMemoryInternal = internalAction({
     memoryId: v.string(),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
-    const deleted = await service.deleteMemory(args.clerkId, args.memoryId);
+    const driver = getDriver();
+    const deleted = await deleteMemory(driver, args.clerkId, args.memoryId);
 
     if (deleted) {
       await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
@@ -578,8 +606,8 @@ export const deleteAllMemoriesInternal = internalAction({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
-    const deleted = await service.deleteAllMemoriesForUser(args.clerkId);
+    const driver = getDriver();
+    const deleted = await deleteAllMemoriesForUser(driver, args.clerkId);
     if (deleted > 0) {
       await scheduleContextPromptInvalidation(ctx, args.clerkId);
     }
@@ -598,8 +626,8 @@ export const searchMemoriesInternal = internalAction({
     offset: v.number(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.searchMemories({
+    const driver = getDriver();
+    return await searchMemories(driver, {
       userId: args.clerkId,
       query: args.query,
       type: toMemoryType(args.type),
@@ -621,7 +649,7 @@ export const retrieveMemoriesInternal = internalAction({
     limit: v.number(),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
     // Best-effort query embedding. If the user has no OPENROUTER_API_KEY
     // set (or the request fails), we fall back to fulltext-only retrieval
@@ -647,7 +675,7 @@ export const retrieveMemoriesInternal = internalAction({
       console.warn("query embedding failed, falling back to fulltext", e);
     }
 
-    return await service.retrieveMemories({
+    return await retrieveMemories(driver, {
       userId: args.clerkId,
       query: args.query,
       queryEmbedding,
@@ -664,8 +692,8 @@ export const getMemoryEventsInternal = internalAction({
     memoryId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getMemoryEvents(args.clerkId, args.memoryId);
+    const driver = getDriver();
+    return await getMemoryEvents(driver, args.clerkId, args.memoryId);
   },
 });
 
@@ -675,8 +703,9 @@ export const getRecentMemoryTitlesInternal = internalAction({
     excludeMemoryId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getRecentMemoryTitles(
+    const driver = getDriver();
+    return await getRecentMemoryTitles(
+      driver,
       args.clerkId,
       args.excludeMemoryId,
     );
@@ -699,8 +728,8 @@ export const listMemoriesForTeamInternal = internalAction({
     offset: v.number(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.listMemoriesForTeam({
+    const driver = getDriver();
+    return await listMemoriesForTeam(driver, {
       profileId: args.profileId,
       type: toMemoryType(args.type),
       status: toMemoryStatus(args.status),
@@ -717,8 +746,8 @@ export const getMemoryForTeamInternal = internalAction({
     memoryId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getMemoryForTeam(args.profileId, args.memoryId);
+    const driver = getDriver();
+    return await getMemoryForTeam(driver, args.profileId, args.memoryId);
   },
 });
 
@@ -733,8 +762,8 @@ export const searchMemoriesForTeamInternal = internalAction({
     offset: v.number(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.searchMemoriesForTeam({
+    const driver = getDriver();
+    return await searchMemoriesForTeam(driver, {
       profileId: args.profileId,
       query: args.query,
       type: toMemoryType(args.type),
@@ -753,8 +782,9 @@ export const deleteTeamMemoryAsOwnerInternal = internalAction({
     ownerClerkId: v.string(), // for event logging
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
-    const deleted = await service.deleteTeamMemoryAsOwner(
+    const driver = getDriver();
+    const deleted = await deleteTeamMemoryAsOwner(
+      driver,
       args.profileId,
       args.memoryId,
     );

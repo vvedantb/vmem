@@ -5,8 +5,13 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { v } from "convex/values";
 import {
-  MemoryService,
   computeContentHash,
+  computeSurprisalScore,
+  createSynthesisProposal,
+  fetchAnomalyCluster,
+  findRecentMemoriesForDream,
+  hasOverlappingPendingProposal,
+  materializeSynthesisAsMemory,
 } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { callOpenRouterChat, generateEmbedding } from "../lib/openRouter";
@@ -142,11 +147,11 @@ export const runDreamForProfileInternal = internalAction({
           ? args.autoAcceptOverride
           : profile.dreamModeAutoAccept === true;
 
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
     // 1. Recent memories with embeddings.
     const sinceMs = Date.now() - RECENT_WINDOW_MS;
-    const recent = await service.findRecentMemoriesForDream({
+    const recent = await findRecentMemoriesForDream(driver, {
       userId: args.clerkId,
       profileId: args.profileId,
       sinceMs,
@@ -166,7 +171,7 @@ export const runDreamForProfileInternal = internalAction({
     // 2. Surprisal scoring — vector queries are cheap, do all of them.
     const scored: Array<{ id: string; surprisal: number }> = [];
     for (const m of recent) {
-      const surprisal = await service.computeSurprisalScore({
+      const surprisal = await computeSurprisalScore(driver, {
         userId: args.clerkId,
         memoryId: m.id,
         embedding: m.embedding,
@@ -185,7 +190,7 @@ export const runDreamForProfileInternal = internalAction({
     // 3-7. Cluster + LLM + dedup + materialize/propose.
     for (const anomaly of topAnomalies) {
       try {
-        const cluster = await service.fetchAnomalyCluster({
+        const cluster = await fetchAnomalyCluster(driver, {
           userId: args.clerkId,
           anomalyId: anomaly.id,
           maxClusterSize: MAX_CLUSTER_SIZE,
@@ -207,7 +212,7 @@ export const runDreamForProfileInternal = internalAction({
         if (synthesis.sourceMemoryIds.length === 0) continue;
 
         // Dedup against pending dream-mode proposals.
-        const overlaps = await service.hasOverlappingPendingProposal({
+        const overlaps = await hasOverlappingPendingProposal(driver, {
           userId: args.clerkId,
           sourceMemoryIds: synthesis.sourceMemoryIds,
           overlapThreshold: DEDUP_OVERLAP_THRESHOLD,
@@ -247,8 +252,9 @@ export const runDreamForProfileInternal = internalAction({
             synthesis.title,
             synthesis.content,
           );
-          const { id: newMemoryId } =
-            await service.materializeSynthesisAsMemory({
+          const { id: newMemoryId } = await materializeSynthesisAsMemory(
+            driver,
+            {
               userId: args.clerkId,
               profileId: args.profileId,
               title: synthesis.title,
@@ -257,7 +263,8 @@ export const runDreamForProfileInternal = internalAction({
               contentHash,
               sourceMemoryIds: synthesis.sourceMemoryIds,
               confidence: synthesis.confidence,
-            });
+            },
+          );
           result.memoriesMaterialized += 1;
 
           // Run the same enrichment pipeline regular memories get — tags,
@@ -288,7 +295,7 @@ export const runDreamForProfileInternal = internalAction({
           });
         } else {
           // Default path: file a synthesis :ProposedUpdate.
-          const proposal = await service.createSynthesisProposal({
+          const proposal = await createSynthesisProposal(driver, {
             userId: args.clerkId,
             kind: synthesis.type,
             proposedTitle: synthesis.title,

@@ -3,7 +3,10 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import { MemoryService } from "../../src/neo4j/memoryService";
+import {
+  applyEnrichment,
+  getRecentMemoryTitles,
+} from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import {
   sanitizeTag,
@@ -44,10 +47,11 @@ export const enrichMemoryInternal = internalAction({
         return { enriched: false };
       }
 
-      const service = new MemoryService(getDriver());
+      const driver = getDriver();
 
       // Get recent memories for the LLM to find relationships
-      const existingMemories = await service.getRecentMemoryTitles(
+      const existingMemories = await getRecentMemoryTitles(
+        driver,
         args.clerkId,
         args.memoryId,
       );
@@ -105,7 +109,8 @@ export const enrichMemoryInternal = internalAction({
       );
 
       // Apply enrichment to Neo4j
-      await service.applyEnrichment(
+      await applyEnrichment(
+        driver,
         args.memoryId,
         args.clerkId,
         sanitizedTags,
@@ -153,7 +158,7 @@ export const applyEnrichmentInternal = internalAction({
     ),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
     const sanitizedTags = args.tags
       .map(sanitizeTag)
@@ -165,7 +170,8 @@ export const applyEnrichmentInternal = internalAction({
       return { applied: false };
     }
 
-    const existing = await service.getRecentMemoryTitles(
+    const existing = await getRecentMemoryTitles(
+      driver,
       args.clerkId,
       args.memoryId,
     );
@@ -175,7 +181,8 @@ export const applyEnrichmentInternal = internalAction({
     const requested = args.relatedMemoryIds ?? [];
     const relatedIds = requested.filter((id) => validIds.has(id));
 
-    await service.applyEnrichment(
+    await applyEnrichment(
+      driver,
       args.memoryId,
       args.clerkId,
       sanitizedTags,

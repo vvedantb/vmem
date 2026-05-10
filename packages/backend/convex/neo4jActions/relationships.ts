@@ -3,7 +3,12 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import { MemoryService } from "../../src/neo4j/memoryService";
+import {
+  getAllRelationships,
+  getRelatedMemories,
+  linkMemories,
+  unlinkMemories,
+} from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 
 export const linkMemoriesInternal = internalAction({
@@ -14,8 +19,9 @@ export const linkMemoriesInternal = internalAction({
     reason: v.string(),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
-    const linked = await service.linkMemories(
+    const driver = getDriver();
+    const linked = await linkMemories(
+      driver,
       args.clerkId,
       args.memoryIdA,
       args.memoryIdB,
@@ -45,8 +51,9 @@ export const unlinkMemoriesInternal = internalAction({
     memoryIdB: v.string(),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
-    const unlinked = await service.unlinkMemories(
+    const driver = getDriver();
+    const unlinked = await unlinkMemories(
+      driver,
       args.clerkId,
       args.memoryIdA,
       args.memoryIdB,
@@ -71,8 +78,8 @@ export const getRelatedMemoriesInternal = internalAction({
     memoryId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getRelatedMemories(args.clerkId, args.memoryId);
+    const driver = getDriver();
+    return await getRelatedMemories(driver, args.clerkId, args.memoryId);
   },
 });
 
@@ -82,7 +89,7 @@ export const getAllRelationshipsInternal = internalAction({
     limit: v.optional(v.number()),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getAllRelationships(args.clerkId, args.limit ?? 500);
+    const driver = getDriver();
+    return await getAllRelationships(driver, args.clerkId, args.limit ?? 500);
   },
 });

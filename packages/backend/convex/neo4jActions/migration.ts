@@ -4,8 +4,27 @@ import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import {
-  MemoryService,
+  applyEntitiesOnly,
   computeContentHash,
+  countMemoriesByProfile as svcCountMemoriesByProfile,
+  countMemoriesWithoutProfile as svcCountMemoriesWithoutProfile,
+  createSemanticEdgesForMemory,
+  deduplicateBrowsingHistory as svcDeduplicateBrowsingHistory,
+  deduplicateMemories as svcDeduplicateMemories,
+  deleteJunkSessionEdges as svcDeleteJunkSessionEdges,
+  deleteMemoriesByProfile as svcDeleteMemoriesByProfile,
+  diagnoseDuplicates as svcDiagnoseDuplicates,
+  getRecentMemoryTitles,
+  listMissingContentHash,
+  listMissingEmbeddings,
+  listMissingEntities,
+  listMissingSemanticEdges,
+  markEntityExtracted,
+  markSemanticEdgesProcessed,
+  migrateMemoriesToProfile,
+  moveMemoriesBetweenProfiles as svcMoveMemoriesBetweenProfiles,
+  setContentHashes,
+  setEmbeddings,
 } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { callOpenRouterChat, generateEmbeddings } from "../lib/openRouter";
@@ -48,8 +67,9 @@ export const migrateMemoriesToDefaultProfile = internalAction({
     );
 
     // Migrate memories
-    const service = new MemoryService(getDriver());
-    const migrated = await service.migrateMemoriesToProfile(
+    const driver = getDriver();
+    const migrated = await migrateMemoriesToProfile(
+      driver,
       clerkId,
       defaultProfile._id,
     );
@@ -68,8 +88,8 @@ export const migrateMemoriesToDefaultProfile = internalAction({
 export const countMemoriesWithoutProfile = internalAction({
   args: { clerkId: v.string() },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.countMemoriesWithoutProfile(args.clerkId);
+    const driver = getDriver();
+    return await svcCountMemoriesWithoutProfile(driver, args.clerkId);
   },
 });
 
@@ -82,8 +102,12 @@ export const countMemoriesByProfile = internalAction({
     profileId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.countMemoriesByProfile(args.clerkId, args.profileId);
+    const driver = getDriver();
+    return await svcCountMemoriesByProfile(
+      driver,
+      args.clerkId,
+      args.profileId,
+    );
   },
 });
 
@@ -97,8 +121,9 @@ export const moveMemoriesBetweenProfiles = internalAction({
     toProfileId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.moveMemoriesBetweenProfiles(
+    const driver = getDriver();
+    return await svcMoveMemoriesBetweenProfiles(
+      driver,
       args.clerkId,
       args.fromProfileId,
       args.toProfileId,
@@ -115,8 +140,12 @@ export const deleteMemoriesByProfile = internalAction({
     profileId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.deleteMemoriesByProfile(args.clerkId, args.profileId);
+    const driver = getDriver();
+    return await svcDeleteMemoriesByProfile(
+      driver,
+      args.clerkId,
+      args.profileId,
+    );
   },
 });
 
@@ -129,8 +158,8 @@ export const deleteJunkSessionEdges = internalAction({
   args: { clerkId: v.string() },
   returns: v.object({ deleted: v.number() }),
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    const deleted = await service.deleteJunkSessionEdges(args.clerkId);
+    const driver = getDriver();
+    const deleted = await svcDeleteJunkSessionEdges(driver, args.clerkId);
     console.log(
       `deleteJunkSessionEdges: removed ${deleted} edges for ${args.clerkId}`,
     );
@@ -160,9 +189,9 @@ export const backfillEmbeddingsInternal = internalAction({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const BATCH = args.batchSize ?? 50;
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
-    const rows = await service.listMissingEmbeddings(BATCH);
+    const rows = await listMissingEmbeddings(driver, BATCH);
     if (rows.length === 0) {
       console.log("embedding backfill: drained");
       return { done: true, processed: 0 };
@@ -209,7 +238,7 @@ export const backfillEmbeddingsInternal = internalAction({
             writes.push({ id: item.id, embedding: vec });
           }
         }
-        await service.setEmbeddings(writes);
+        await setEmbeddings(driver, writes);
         processed += writes.length;
       } catch (e) {
         console.error(`embedding backfill: user ${clerkId} batch failed`, e);
@@ -265,9 +294,9 @@ export const backfillSemanticEdgesInternal = internalAction({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const BATCH = args.batchSize ?? 50;
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
-    const rows = await service.listMissingSemanticEdges(BATCH);
+    const rows = await listMissingSemanticEdges(driver, BATCH);
     if (rows.length === 0) {
       console.log("semantic-edge backfill: drained");
       return { done: true, processed: 0 };
@@ -278,7 +307,8 @@ export const backfillSemanticEdgesInternal = internalAction({
 
     for (const row of rows) {
       try {
-        await service.createSemanticEdgesForMemory(
+        await createSemanticEdgesForMemory(
+          driver,
           row.id,
           row.userId,
           row.embedding,
@@ -293,7 +323,7 @@ export const backfillSemanticEdgesInternal = internalAction({
     }
 
     if (processedIds.length > 0) {
-      await service.markSemanticEdgesProcessed(processedIds);
+      await markSemanticEdgesProcessed(driver, processedIds);
     }
 
     console.log(
@@ -343,9 +373,9 @@ export const backfillEntitiesInternal = internalAction({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const BATCH = args.batchSize ?? 20;
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
-    const rows = await service.listMissingEntities(BATCH);
+    const rows = await listMissingEntities(driver, BATCH);
     if (rows.length === 0) {
       console.log("entity backfill: drained");
       return { done: true, processed: 0 };
@@ -392,7 +422,8 @@ export const backfillEntitiesInternal = internalAction({
         }
 
         // Get recent memory titles for the enrichment prompt context
-        const existingMemories = await service.getRecentMemoryTitles(
+        const existingMemories = await getRecentMemoryTitles(
+          driver,
           clerkId,
           "",
         );
@@ -430,7 +461,8 @@ export const backfillEntitiesInternal = internalAction({
 
             const parsed = parseFullEnrichmentResponse(llmContent);
             if (parsed && parsed.entities.length > 0) {
-              await service.applyEntitiesOnly(
+              await applyEntitiesOnly(
+                driver,
                 item.id,
                 clerkId,
                 parsed.entities,
@@ -450,7 +482,7 @@ export const backfillEntitiesInternal = internalAction({
     }
 
     if (processedIds.length > 0) {
-      await service.markEntityExtracted(processedIds);
+      await markEntityExtracted(driver, processedIds);
     }
 
     console.log(
@@ -498,9 +530,9 @@ export const backfillContentHashInternal = internalAction({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const BATCH = args.batchSize ?? 200;
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
-    const rows = await service.listMissingContentHash(BATCH);
+    const rows = await listMissingContentHash(driver, BATCH);
     if (rows.length === 0) {
       console.log("content-hash backfill: drained");
       return { done: true, processed: 0 };
@@ -514,7 +546,7 @@ export const backfillContentHashInternal = internalAction({
       });
     }
 
-    await service.setContentHashes(updates);
+    await setContentHashes(driver, updates);
 
     console.log(
       `content-hash backfill: processed ${updates.length}, rescheduling`,
@@ -564,8 +596,8 @@ export const deduplicateMemories = internalAction({
   args: { clerkId: v.string() },
   returns: v.object({ deleted: v.number() }),
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    const deleted = await service.deduplicateMemories(args.clerkId);
+    const driver = getDriver();
+    const deleted = await svcDeduplicateMemories(driver, args.clerkId);
     console.log(
       `deduplicateMemories: merged ${deleted} duplicates for ${args.clerkId}`,
     );
@@ -582,8 +614,8 @@ export const deduplicateMemories = internalAction({
 export const diagnoseDuplicates = internalAction({
   args: { clerkId: v.string(), title: v.string() },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.diagnoseDuplicates(args.clerkId, args.title);
+    const driver = getDriver();
+    return await svcDiagnoseDuplicates(driver, args.clerkId, args.title);
   },
 });
 
@@ -603,8 +635,8 @@ export const deduplicateBrowsingHistory = internalAction({
   args: { clerkId: v.string() },
   returns: v.object({ deleted: v.number() }),
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    const deleted = await service.deduplicateBrowsingHistory(args.clerkId);
+    const driver = getDriver();
+    const deleted = await svcDeduplicateBrowsingHistory(driver, args.clerkId);
     console.log(
       `deduplicateBrowsingHistory: merged ${deleted} duplicates for ${args.clerkId}`,
     );

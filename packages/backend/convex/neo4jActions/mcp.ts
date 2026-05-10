@@ -4,8 +4,18 @@ import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import {
-  MemoryService,
   computeContentHash,
+  createMemory,
+  deleteMemory,
+  findMemoryByContentHash,
+  findMemoryBySimilarity,
+  findMemoryByTitleAndOrigin,
+  findMemoryByUrl,
+  getMemory,
+  incrementVisitCount,
+  retrieveMemories,
+  searchMemories,
+  updateMemory,
 } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { generateEmbedding } from "../lib/openRouter";
@@ -87,8 +97,8 @@ export const mcpSearchMemories = internalAction({
   },
   handler: async (ctx, args) => {
     const profileId = await resolveProfileId(ctx, args.clerkId, args.profileId);
-    const service = new MemoryService(getDriver());
-    return await service.searchMemories({
+    const driver = getDriver();
+    return await searchMemories(driver, {
       userId: args.clerkId,
       profileId,
       query: args.query,
@@ -107,14 +117,14 @@ export const mcpRetrieveMemories = internalAction({
   },
   handler: async (ctx, args) => {
     const profileId = await resolveProfileId(ctx, args.clerkId, args.profileId);
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
     const queryEmbedding = await tryEmbed(
       ctx,
       args.clerkId,
       profileId,
       args.query,
     );
-    return await service.retrieveMemories({
+    return await retrieveMemories(driver, {
       userId: args.clerkId,
       profileId,
       query: args.query,
@@ -139,7 +149,7 @@ export const mcpCreateMemory = internalAction({
   handler: async (ctx, args) => {
     const clerkId = args.clerkId;
     const profileId = await resolveProfileId(ctx, clerkId, args.profileId);
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
 
     const normalizedUrl = args.url
       ? (normalizeUrl(args.url) ?? undefined)
@@ -147,9 +157,9 @@ export const mcpCreateMemory = internalAction({
 
     // ── Dedup layer 1: URL match ──────────────────────────────────────────
     if (normalizedUrl) {
-      const existing = await service.findMemoryByUrl(clerkId, normalizedUrl);
+      const existing = await findMemoryByUrl(driver, clerkId, normalizedUrl);
       if (existing) {
-        const full = await service.getMemory(clerkId, existing.id);
+        const full = await getMemory(driver, clerkId, existing.id);
         if (full) return full;
       }
     }
@@ -163,14 +173,15 @@ export const mcpCreateMemory = internalAction({
     if (normalizedUrl && BROWSER_SOURCES.has(source)) {
       try {
         const origin = new URL(normalizedUrl).origin;
-        const titleMatch = await service.findMemoryByTitleAndOrigin(
+        const titleMatch = await findMemoryByTitleAndOrigin(
+          driver,
           clerkId,
           args.title,
           origin,
         );
         if (titleMatch) {
-          await service.incrementVisitCount(clerkId, titleMatch.id);
-          const full = await service.getMemory(clerkId, titleMatch.id);
+          await incrementVisitCount(driver, clerkId, titleMatch.id);
+          const full = await getMemory(driver, clerkId, titleMatch.id);
           if (full) return full;
         }
       } catch {
@@ -180,13 +191,14 @@ export const mcpCreateMemory = internalAction({
 
     // ── Dedup layer 2: exact content hash ────────────────────────────────
     const contentHash = computeContentHash(args.title, args.content);
-    const hashMatch = await service.findMemoryByContentHash(
+    const hashMatch = await findMemoryByContentHash(
+      driver,
       clerkId,
       contentHash,
     );
     if (hashMatch) {
-      await service.incrementVisitCount(clerkId, hashMatch.id);
-      const full = await service.getMemory(clerkId, hashMatch.id);
+      await incrementVisitCount(driver, clerkId, hashMatch.id);
+      const full = await getMemory(driver, clerkId, hashMatch.id);
       if (full) return full;
     }
 
@@ -199,7 +211,8 @@ export const mcpCreateMemory = internalAction({
 
     // ── Dedup layer 3: semantic similarity (near-duplicate) ──────────────
     if (embedding) {
-      const semanticMatch = await service.findMemoryBySimilarity(
+      const semanticMatch = await findMemoryBySimilarity(
+        driver,
         clerkId,
         embedding,
         0.95,
@@ -208,13 +221,13 @@ export const mcpCreateMemory = internalAction({
         console.log(
           `[dedup] semantic near-duplicate (similarity=${semanticMatch.similarity.toFixed(3)}) → ${semanticMatch.id}`,
         );
-        await service.incrementVisitCount(clerkId, semanticMatch.id);
-        const full = await service.getMemory(clerkId, semanticMatch.id);
+        await incrementVisitCount(driver, clerkId, semanticMatch.id);
+        const full = await getMemory(driver, clerkId, semanticMatch.id);
         if (full) return full;
       }
     }
 
-    const result = await service.createMemory({
+    const result = await createMemory(driver, {
       userId: clerkId,
       profileId,
       title: args.title,
@@ -264,8 +277,8 @@ export const mcpUpdateMemory = internalAction({
     tags: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
-    const result = await service.updateMemory(args.clerkId, args.memoryId, {
+    const driver = getDriver();
+    const result = await updateMemory(driver, args.clerkId, args.memoryId, {
       title: args.title,
       content: args.content,
       tags: args.tags,
@@ -290,8 +303,8 @@ export const mcpDeleteMemory = internalAction({
     memoryId: v.string(),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
-    const deleted = await service.deleteMemory(args.clerkId, args.memoryId);
+    const driver = getDriver();
+    const deleted = await deleteMemory(driver, args.clerkId, args.memoryId);
 
     if (deleted) {
       await ctx.runMutation(internal.memoryEvents.pushEventInternal, {

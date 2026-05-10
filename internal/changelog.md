@@ -1,5 +1,12 @@
 # Changelog
 
+## Refactor: Split `memoryService.ts` into `memory/` Subdir (4.4k → 19 modules) — 2026-05-10
+
+- **Strangler pattern extraction**: Collapsed 4,367-line `MemoryService` class into 19 topic-grouped free-function modules (`crud`, `chunks`, `dedup`, `retrieve`, `graph`, `proposals`, `dreamMode`, etc.) under `src/neo4j/memory/`. All 70+ methods became driver-first free functions with identical signatures; callers still import from `./memoryService` (now a pure re-export barrel at 139 LOC).
+- **Decomposed three large functions**: `retrieveMemories` (~350L) split into 5 legs + orchestrator for BM25/vector/chunk/graph/RRF fusion; `resolveProposal` (~330L) decomposed into 5 kind-handlers (update/delete/dismiss/synthesis paths); `getGraphData` (~170L) split into 2 parallel-session legs. Each decomposition preserves orchestrator logic at ~40–50L with helpers handling domain specifics.
+- **Refactored 13 caller files** from class instantiation (`new MemoryService(driver)`) to direct free-function calls. `migration.ts` uses aliased imports to avoid collisions with public action exports referenced by `profiles.ts` and `teams.ts` via `internal.neo4jActions.migration.*`. No breaking changes to Convex action signatures or external APIs.
+- **Benefits**: Clear module responsibilities (CRUD, graph traversal, synthesis, analytics, backfill), easier testing (free functions don't require mocking a class), reduced cognitive load (no implicit state beyond the driver), and a precedent for future service-layer refactors (mirrors existing `codebaseService.ts` pattern).
+
 ## Settings: Import Page → Data Controls With Wipe-All Tab — 2026-05-10
 
 - **Renamed `/settings/import` to `/settings/data-controls`**: Promoted the single import page into a tabbed surface so import isn't the only data operation that lives there. Sidebar entry renamed from "Import" to "Data Controls"; old route removed (no redirect — greenfield project, breaking changes are fine).
