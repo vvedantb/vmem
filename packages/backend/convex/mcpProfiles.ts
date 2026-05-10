@@ -3,14 +3,7 @@
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { verifyMcpJwt } from "../src/neo4j/mcpAuth";
 import type { Doc } from "./_generated/dataModel";
-
-function verifyTokenOrThrow(token: string): string {
-  const clerkId = verifyMcpJwt(token);
-  if (!clerkId) throw new Error("Invalid or expired token");
-  return clerkId;
-}
 
 interface ProfileResponse {
   id: string;
@@ -22,7 +15,7 @@ interface ProfileResponse {
 
 /** List all profiles for the authenticated user */
 export const mcpListProfiles = internalAction({
-  args: { token: v.string() },
+  args: { clerkId: v.string() },
   returns: v.array(
     v.object({
       id: v.string(),
@@ -33,10 +26,9 @@ export const mcpListProfiles = internalAction({
     }),
   ),
   handler: async (ctx, args): Promise<ProfileResponse[]> => {
-    const clerkId = verifyTokenOrThrow(args.token);
     const profiles = await ctx.runQuery(
       internal.profiles.listByClerkIdInternal,
-      { clerkId },
+      { clerkId: args.clerkId },
     );
     return profiles.map((p: Doc<"profiles">) => ({
       id: p._id,
@@ -50,7 +42,7 @@ export const mcpListProfiles = internalAction({
 
 /** Get the active profile for the authenticated user */
 export const mcpGetActiveProfile = internalAction({
-  args: { token: v.string() },
+  args: { clerkId: v.string() },
   returns: v.object({
     id: v.string(),
     name: v.string(),
@@ -59,16 +51,15 @@ export const mcpGetActiveProfile = internalAction({
     isDefault: v.boolean(),
   }),
   handler: async (ctx, args): Promise<ProfileResponse> => {
-    const clerkId = verifyTokenOrThrow(args.token);
     const profile = await ctx.runQuery(
       internal.profiles.getActiveByClerkIdInternal,
-      { clerkId },
+      { clerkId: args.clerkId },
     );
     if (!profile) {
       // Create default profile if none exists
       const defaultProfile = await ctx.runMutation(
         internal.profiles.getOrCreateDefaultByClerkIdInternal,
-        { clerkId },
+        { clerkId: args.clerkId },
       );
       return {
         id: defaultProfile._id,
@@ -106,7 +97,7 @@ interface WhoamiResponse {
 
 /** Enhanced whoami that includes profile info */
 export const mcpWhoami = internalAction({
-  args: { token: v.string() },
+  args: { clerkId: v.string() },
   returns: v.object({
     authenticated: v.boolean(),
     clerkUserId: v.string(),
@@ -128,7 +119,7 @@ export const mcpWhoami = internalAction({
     ),
   }),
   handler: async (ctx, args): Promise<WhoamiResponse> => {
-    const clerkId = verifyTokenOrThrow(args.token);
+    const clerkId = args.clerkId;
 
     // Get profiles
     const profiles = await ctx.runQuery(

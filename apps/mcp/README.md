@@ -1,5 +1,14 @@
 # vmem MCP Server
 
+> **⚠️ DEPRECATED — DO NOT USE**
+>
+> This Express/Railway deployment has been replaced by the inline Convex MCP
+> server. New URL: `https://<your-convex-slug>.convex.site/mcp`.
+>
+> All OAuth, tools, and resources now live in
+> `packages/backend/convex/mcp/`. This folder is kept only to support the
+> production cutover; it will be deleted in a follow-up PR after prod soak.
+
 Auth-first MCP server for connector onboarding in Claude/ChatGPT. It handles OAuth 2.0 + PKCE with Clerk and exposes basic MCP tools to confirm authenticated sessions.
 
 Memory storage tools are intentionally not wired yet.
