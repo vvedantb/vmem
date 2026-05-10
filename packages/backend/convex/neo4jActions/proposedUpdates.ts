@@ -3,7 +3,14 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import { MemoryService } from "../../src/neo4j/memoryService";
+import {
+  createProposedDelete,
+  createProposedUpdate,
+  getMemory,
+  listProposedUpdates,
+  resolveProposal,
+  setEmbeddings,
+} from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 import { generateEmbedding } from "../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
@@ -11,8 +18,8 @@ import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
 export const listProposedUpdatesInternal = internalAction({
   args: { clerkId: v.string() },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.listProposedUpdates(args.clerkId);
+    const driver = getDriver();
+    return await listProposedUpdates(driver, args.clerkId);
   },
 });
 
@@ -23,12 +30,12 @@ export const resolveProposalInternal = internalAction({
     action: v.string(),
   },
   handler: async (ctx, args) => {
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
     const action =
       args.action === "approve" || args.action === "reject"
         ? args.action
         : "reject";
-    const result = await service.resolveProposal(args.proposalId, action);
+    const result = await resolveProposal(driver, args.proposalId, action);
 
     // Synthesis approval materializes a NEW memory without an embedding
     // and without enrichment (resolveProposal is pure Cypher — has no
@@ -44,7 +51,8 @@ export const resolveProposalInternal = internalAction({
     ) {
       const materializedMemoryId = result.materializedMemoryId;
       try {
-        const detail = await service.getMemory(
+        const detail = await getMemory(
+          driver,
           args.clerkId,
           materializedMemoryId,
         );
@@ -67,7 +75,7 @@ export const resolveProposalInternal = internalAction({
                 feature: "proposal-accept",
                 text: `${detail.title}\n\n${detail.content}`,
               });
-              await service.setEmbeddings([
+              await setEmbeddings(driver, [
                 { id: materializedMemoryId, embedding },
               ]);
             } catch (e) {
@@ -107,7 +115,7 @@ export const resolveProposalInternal = internalAction({
 
 /**
  * Internal helper used by the V2 fact-extraction pipeline to record an
- * ADD/UPDATE/DELETE proposal in Neo4j. Wraps `MemoryService` calls; the
+ * ADD/UPDATE/DELETE proposal in Neo4j. Wraps `memoryService` calls; the
  * caller (`factExtraction.ts`) is responsible for the LLM decision.
  */
 export const createProposedUpdateInternal = internalAction({
@@ -117,8 +125,8 @@ export const createProposedUpdateInternal = internalAction({
     reason: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.createProposedUpdate({
+    const driver = getDriver();
+    return await createProposedUpdate(driver, {
       memoryId: args.memoryId,
       proposedContent: args.proposedContent,
       reason: args.reason,
@@ -132,8 +140,8 @@ export const createProposedDeleteInternal = internalAction({
     reason: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.createProposedDelete({
+    const driver = getDriver();
+    return await createProposedDelete(driver, {
       memoryId: args.memoryId,
       reason: args.reason,
     });

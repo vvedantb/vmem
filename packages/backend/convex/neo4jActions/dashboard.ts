@@ -2,14 +2,14 @@
 
 import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
-import { MemoryService } from "../../src/neo4j/memoryService";
+import { getRecentActivity, getStats } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 
 export const getStatsInternal = internalAction({
   args: { clerkId: v.string(), profileId: v.optional(v.string()) },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getStats(args.clerkId, args.profileId ?? null);
+    const driver = getDriver();
+    return await getStats(driver, args.clerkId, args.profileId ?? null);
   },
 });
 
@@ -19,12 +19,12 @@ export const getProfilesStatsInternal = internalAction({
     profileIds: v.array(v.string()),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
     const results: Record<string, { total: number; today: number }> = {};
     // Fetch stats for each profile in parallel
     await Promise.all(
       args.profileIds.map(async (profileId) => {
-        const stats = await service.getStats(args.clerkId, profileId);
+        const stats = await getStats(driver, args.clerkId, profileId);
         results[profileId] = {
           total: stats.totalMemories,
           today: stats.memoriesAddedToday,
@@ -42,8 +42,9 @@ export const getRecentActivityInternal = internalAction({
     limit: v.optional(v.number()),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getRecentActivity(
+    const driver = getDriver();
+    return await getRecentActivity(
+      driver,
       args.clerkId,
       args.profileId ?? null,
       args.limit ?? 10,
