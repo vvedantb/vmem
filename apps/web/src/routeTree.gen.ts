@@ -35,7 +35,6 @@ import { Route as MainSettingsUsageRouteImport } from './routes/_main/settings/u
 import { Route as MainSettingsProfilesRouteImport } from './routes/_main/settings/profiles'
 import { Route as MainSettingsPreferencesRouteImport } from './routes/_main/settings/preferences'
 import { Route as MainSettingsModelsRouteImport } from './routes/_main/settings/models'
-import { Route as MainSettingsImportRouteImport } from './routes/_main/settings/import'
 import { Route as MainSettingsExtensionRouteImport } from './routes/_main/settings/extension'
 import { Route as MainSettingsEnvVarsRouteImport } from './routes/_main/settings/env-vars'
 import { Route as MainSettingsConnectorsRouteImport } from './routes/_main/settings/connectors'
@@ -49,8 +48,12 @@ import { Route as MainActivityEventsRouteImport } from './routes/_main/activity/
 import { Route as MainActivityAiLogsRouteImport } from './routes/_main/activity/ai-logs'
 import { Route as MainTeamsTeamIdIndexRouteImport } from './routes/_main/teams/$teamId/index'
 import { Route as MainSettingsPlaygroundIndexRouteImport } from './routes/_main/settings/playground/index'
+import { Route as MainSettingsDataControlsIndexRouteImport } from './routes/_main/settings/data-controls/index'
 import { Route as MainSettingsApiIndexRouteImport } from './routes/_main/settings/api/index'
 import { Route as MainSettingsPlaygroundCallbackRouteImport } from './routes/_main/settings/playground/callback'
+import { Route as MainSettingsDataControlsImportRouteImport } from './routes/_main/settings/data-controls/import'
+import { Route as MainSettingsDataControlsExportRouteImport } from './routes/_main/settings/data-controls/export'
+import { Route as MainSettingsDataControlsDangerRouteImport } from './routes/_main/settings/data-controls/danger'
 import { Route as MainSettingsApiUsageRouteImport } from './routes/_main/settings/api/usage'
 import { Route as MainSettingsApiKeysRouteImport } from './routes/_main/settings/api/keys'
 
@@ -183,11 +186,6 @@ const MainSettingsModelsRoute = MainSettingsModelsRouteImport.update({
   path: '/settings/models',
   getParentRoute: () => MainRouteRoute,
 } as any)
-const MainSettingsImportRoute = MainSettingsImportRouteImport.update({
-  id: '/settings/import',
-  path: '/settings/import',
-  getParentRoute: () => MainRouteRoute,
-} as any)
 const MainSettingsExtensionRoute = MainSettingsExtensionRouteImport.update({
   id: '/settings/extension',
   path: '/settings/extension',
@@ -254,6 +252,12 @@ const MainSettingsPlaygroundIndexRoute =
     path: '/settings/playground/',
     getParentRoute: () => MainRouteRoute,
   } as any)
+const MainSettingsDataControlsIndexRoute =
+  MainSettingsDataControlsIndexRouteImport.update({
+    id: '/settings/data-controls/',
+    path: '/settings/data-controls/',
+    getParentRoute: () => MainRouteRoute,
+  } as any)
 const MainSettingsApiIndexRoute = MainSettingsApiIndexRouteImport.update({
   id: '/settings/api/',
   path: '/settings/api/',
@@ -263,6 +267,24 @@ const MainSettingsPlaygroundCallbackRoute =
   MainSettingsPlaygroundCallbackRouteImport.update({
     id: '/settings/playground/callback',
     path: '/settings/playground/callback',
+    getParentRoute: () => MainRouteRoute,
+  } as any)
+const MainSettingsDataControlsImportRoute =
+  MainSettingsDataControlsImportRouteImport.update({
+    id: '/settings/data-controls/import',
+    path: '/settings/data-controls/import',
+    getParentRoute: () => MainRouteRoute,
+  } as any)
+const MainSettingsDataControlsExportRoute =
+  MainSettingsDataControlsExportRouteImport.update({
+    id: '/settings/data-controls/export',
+    path: '/settings/data-controls/export',
+    getParentRoute: () => MainRouteRoute,
+  } as any)
+const MainSettingsDataControlsDangerRoute =
+  MainSettingsDataControlsDangerRouteImport.update({
+    id: '/settings/data-controls/danger',
+    path: '/settings/data-controls/danger',
     getParentRoute: () => MainRouteRoute,
   } as any)
 const MainSettingsApiUsageRoute = MainSettingsApiUsageRouteImport.update({
@@ -297,7 +319,6 @@ export interface FileRoutesByFullPath {
   '/settings/connectors': typeof MainSettingsConnectorsRoute
   '/settings/env-vars': typeof MainSettingsEnvVarsRoute
   '/settings/extension': typeof MainSettingsExtensionRoute
-  '/settings/import': typeof MainSettingsImportRoute
   '/settings/models': typeof MainSettingsModelsRoute
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
@@ -316,8 +337,12 @@ export interface FileRoutesByFullPath {
   '/wiki/': typeof MainWikiIndexRoute
   '/settings/api/keys': typeof MainSettingsApiKeysRoute
   '/settings/api/usage': typeof MainSettingsApiUsageRoute
+  '/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
+  '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
+  '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
   '/settings/api/': typeof MainSettingsApiIndexRoute
+  '/settings/data-controls/': typeof MainSettingsDataControlsIndexRoute
   '/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
   '/teams/$teamId/': typeof MainTeamsTeamIdIndexRoute
 }
@@ -342,7 +367,6 @@ export interface FileRoutesByTo {
   '/settings/connectors': typeof MainSettingsConnectorsRoute
   '/settings/env-vars': typeof MainSettingsEnvVarsRoute
   '/settings/extension': typeof MainSettingsExtensionRoute
-  '/settings/import': typeof MainSettingsImportRoute
   '/settings/models': typeof MainSettingsModelsRoute
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
@@ -361,8 +385,12 @@ export interface FileRoutesByTo {
   '/wiki': typeof MainWikiIndexRoute
   '/settings/api/keys': typeof MainSettingsApiKeysRoute
   '/settings/api/usage': typeof MainSettingsApiUsageRoute
+  '/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
+  '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
+  '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
   '/settings/api': typeof MainSettingsApiIndexRoute
+  '/settings/data-controls': typeof MainSettingsDataControlsIndexRoute
   '/settings/playground': typeof MainSettingsPlaygroundIndexRoute
   '/teams/$teamId': typeof MainTeamsTeamIdIndexRoute
 }
@@ -389,7 +417,6 @@ export interface FileRoutesById {
   '/_main/settings/connectors': typeof MainSettingsConnectorsRoute
   '/_main/settings/env-vars': typeof MainSettingsEnvVarsRoute
   '/_main/settings/extension': typeof MainSettingsExtensionRoute
-  '/_main/settings/import': typeof MainSettingsImportRoute
   '/_main/settings/models': typeof MainSettingsModelsRoute
   '/_main/settings/preferences': typeof MainSettingsPreferencesRoute
   '/_main/settings/profiles': typeof MainSettingsProfilesRoute
@@ -408,8 +435,12 @@ export interface FileRoutesById {
   '/_main/wiki/': typeof MainWikiIndexRoute
   '/_main/settings/api/keys': typeof MainSettingsApiKeysRoute
   '/_main/settings/api/usage': typeof MainSettingsApiUsageRoute
+  '/_main/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
+  '/_main/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
+  '/_main/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/_main/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
   '/_main/settings/api/': typeof MainSettingsApiIndexRoute
+  '/_main/settings/data-controls/': typeof MainSettingsDataControlsIndexRoute
   '/_main/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
   '/_main/teams/$teamId/': typeof MainTeamsTeamIdIndexRoute
 }
@@ -436,7 +467,6 @@ export interface FileRouteTypes {
     | '/settings/connectors'
     | '/settings/env-vars'
     | '/settings/extension'
-    | '/settings/import'
     | '/settings/models'
     | '/settings/preferences'
     | '/settings/profiles'
@@ -455,8 +485,12 @@ export interface FileRouteTypes {
     | '/wiki/'
     | '/settings/api/keys'
     | '/settings/api/usage'
+    | '/settings/data-controls/danger'
+    | '/settings/data-controls/export'
+    | '/settings/data-controls/import'
     | '/settings/playground/callback'
     | '/settings/api/'
+    | '/settings/data-controls/'
     | '/settings/playground/'
     | '/teams/$teamId/'
   fileRoutesByTo: FileRoutesByTo
@@ -481,7 +515,6 @@ export interface FileRouteTypes {
     | '/settings/connectors'
     | '/settings/env-vars'
     | '/settings/extension'
-    | '/settings/import'
     | '/settings/models'
     | '/settings/preferences'
     | '/settings/profiles'
@@ -500,8 +533,12 @@ export interface FileRouteTypes {
     | '/wiki'
     | '/settings/api/keys'
     | '/settings/api/usage'
+    | '/settings/data-controls/danger'
+    | '/settings/data-controls/export'
+    | '/settings/data-controls/import'
     | '/settings/playground/callback'
     | '/settings/api'
+    | '/settings/data-controls'
     | '/settings/playground'
     | '/teams/$teamId'
   id:
@@ -527,7 +564,6 @@ export interface FileRouteTypes {
     | '/_main/settings/connectors'
     | '/_main/settings/env-vars'
     | '/_main/settings/extension'
-    | '/_main/settings/import'
     | '/_main/settings/models'
     | '/_main/settings/preferences'
     | '/_main/settings/profiles'
@@ -546,8 +582,12 @@ export interface FileRouteTypes {
     | '/_main/wiki/'
     | '/_main/settings/api/keys'
     | '/_main/settings/api/usage'
+    | '/_main/settings/data-controls/danger'
+    | '/_main/settings/data-controls/export'
+    | '/_main/settings/data-controls/import'
     | '/_main/settings/playground/callback'
     | '/_main/settings/api/'
+    | '/_main/settings/data-controls/'
     | '/_main/settings/playground/'
     | '/_main/teams/$teamId/'
   fileRoutesById: FileRoutesById
@@ -743,13 +783,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainSettingsModelsRouteImport
       parentRoute: typeof MainRouteRoute
     }
-    '/_main/settings/import': {
-      id: '/_main/settings/import'
-      path: '/settings/import'
-      fullPath: '/settings/import'
-      preLoaderRoute: typeof MainSettingsImportRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
     '/_main/settings/extension': {
       id: '/_main/settings/extension'
       path: '/settings/extension'
@@ -841,6 +874,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainSettingsPlaygroundIndexRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/settings/data-controls/': {
+      id: '/_main/settings/data-controls/'
+      path: '/settings/data-controls'
+      fullPath: '/settings/data-controls/'
+      preLoaderRoute: typeof MainSettingsDataControlsIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/settings/api/': {
       id: '/_main/settings/api/'
       path: '/settings/api'
@@ -853,6 +893,27 @@ declare module '@tanstack/react-router' {
       path: '/settings/playground/callback'
       fullPath: '/settings/playground/callback'
       preLoaderRoute: typeof MainSettingsPlaygroundCallbackRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/settings/data-controls/import': {
+      id: '/_main/settings/data-controls/import'
+      path: '/settings/data-controls/import'
+      fullPath: '/settings/data-controls/import'
+      preLoaderRoute: typeof MainSettingsDataControlsImportRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/settings/data-controls/export': {
+      id: '/_main/settings/data-controls/export'
+      path: '/settings/data-controls/export'
+      fullPath: '/settings/data-controls/export'
+      preLoaderRoute: typeof MainSettingsDataControlsExportRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/settings/data-controls/danger': {
+      id: '/_main/settings/data-controls/danger'
+      path: '/settings/data-controls/danger'
+      fullPath: '/settings/data-controls/danger'
+      preLoaderRoute: typeof MainSettingsDataControlsDangerRouteImport
       parentRoute: typeof MainRouteRoute
     }
     '/_main/settings/api/usage': {
@@ -891,7 +952,6 @@ interface MainRouteRouteChildren {
   MainSettingsConnectorsRoute: typeof MainSettingsConnectorsRoute
   MainSettingsEnvVarsRoute: typeof MainSettingsEnvVarsRoute
   MainSettingsExtensionRoute: typeof MainSettingsExtensionRoute
-  MainSettingsImportRoute: typeof MainSettingsImportRoute
   MainSettingsModelsRoute: typeof MainSettingsModelsRoute
   MainSettingsPreferencesRoute: typeof MainSettingsPreferencesRoute
   MainSettingsProfilesRoute: typeof MainSettingsProfilesRoute
@@ -909,8 +969,12 @@ interface MainRouteRouteChildren {
   MainWikiIndexRoute: typeof MainWikiIndexRoute
   MainSettingsApiKeysRoute: typeof MainSettingsApiKeysRoute
   MainSettingsApiUsageRoute: typeof MainSettingsApiUsageRoute
+  MainSettingsDataControlsDangerRoute: typeof MainSettingsDataControlsDangerRoute
+  MainSettingsDataControlsExportRoute: typeof MainSettingsDataControlsExportRoute
+  MainSettingsDataControlsImportRoute: typeof MainSettingsDataControlsImportRoute
   MainSettingsPlaygroundCallbackRoute: typeof MainSettingsPlaygroundCallbackRoute
   MainSettingsApiIndexRoute: typeof MainSettingsApiIndexRoute
+  MainSettingsDataControlsIndexRoute: typeof MainSettingsDataControlsIndexRoute
   MainSettingsPlaygroundIndexRoute: typeof MainSettingsPlaygroundIndexRoute
   MainTeamsTeamIdIndexRoute: typeof MainTeamsTeamIdIndexRoute
 }
@@ -934,7 +998,6 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsConnectorsRoute: MainSettingsConnectorsRoute,
   MainSettingsEnvVarsRoute: MainSettingsEnvVarsRoute,
   MainSettingsExtensionRoute: MainSettingsExtensionRoute,
-  MainSettingsImportRoute: MainSettingsImportRoute,
   MainSettingsModelsRoute: MainSettingsModelsRoute,
   MainSettingsPreferencesRoute: MainSettingsPreferencesRoute,
   MainSettingsProfilesRoute: MainSettingsProfilesRoute,
@@ -952,8 +1015,12 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainWikiIndexRoute: MainWikiIndexRoute,
   MainSettingsApiKeysRoute: MainSettingsApiKeysRoute,
   MainSettingsApiUsageRoute: MainSettingsApiUsageRoute,
+  MainSettingsDataControlsDangerRoute: MainSettingsDataControlsDangerRoute,
+  MainSettingsDataControlsExportRoute: MainSettingsDataControlsExportRoute,
+  MainSettingsDataControlsImportRoute: MainSettingsDataControlsImportRoute,
   MainSettingsPlaygroundCallbackRoute: MainSettingsPlaygroundCallbackRoute,
   MainSettingsApiIndexRoute: MainSettingsApiIndexRoute,
+  MainSettingsDataControlsIndexRoute: MainSettingsDataControlsIndexRoute,
   MainSettingsPlaygroundIndexRoute: MainSettingsPlaygroundIndexRoute,
   MainTeamsTeamIdIndexRoute: MainTeamsTeamIdIndexRoute,
 }

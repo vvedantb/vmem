@@ -96,7 +96,11 @@ export const settingsNavGroups: SettingsNavGroup[] = [
         icon: IconPlugConnected,
       },
       { href: "/settings/extension", label: "Extension", icon: IconPuzzle },
-      { href: "/settings/import", label: "Import", icon: IconFileImport },
+      {
+        href: "/settings/data-controls",
+        label: "Data Controls",
+        icon: IconFileImport,
+      },
     ],
   },
 ];

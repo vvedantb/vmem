@@ -255,6 +255,29 @@ export const deleteMemory = authAction({
   },
 });
 
+/**
+ * Delete every memory the calling user owns, along with all per-user
+ * dependents (chunks, events, proposed updates, entities) and orphaned
+ * tag/source nodes. Returns the number of memories that were deleted.
+ *
+ * Destructive and irreversible — the UI gates this behind a confirmation
+ * dialog in /settings/data-controls.
+ */
+export const deleteAllMemories = authAction({
+  args: {},
+  handler: async (ctx): Promise<number> => {
+    const clerkId: string | null = await ctx.runQuery(
+      internal.auth.getClerkIdInternal,
+      { userId: ctx.userId },
+    );
+    if (!clerkId) throw new Error("User not found");
+    return await ctx.runAction(
+      internal.neo4jActions.memories.deleteAllMemoriesInternal,
+      { clerkId },
+    );
+  },
+});
+
 export const searchMemories = authAction({
   args: {
     query: v.optional(v.string()),
