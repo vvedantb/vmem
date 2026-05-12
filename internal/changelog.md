@@ -1,5 +1,9 @@
 # Changelog
 
+## Chore: Add `minimumReleaseAge` to pnpm-workspace.yaml — 2026-05-12
+
+- **Set `minimumReleaseAge: 10080` (7 days) in `pnpm-workspace.yaml`**: pnpm now refuses to install package versions less than a week old, giving the ecosystem time to flag compromised or malicious releases before they enter the workspace. Mitigates supply-chain risk from typo-squat / hijacked-maintainer attacks that are usually identified and yanked within days of publication.
+
 ## Chrome Extension: Fix Auto-Sync & Add Offscreen Token Refresh — 2026-05-10
 
 - **Fixed service worker crash (81k → 2.1k bundle)**: Removed Clerk SDK from `background/auth.ts`; was bundling Clerk UI code that uses `document` API at module-top-level, causing CSP violation (status code 15). Auth now storage-only with offscreen refresh fallback.
