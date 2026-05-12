@@ -2,6 +2,8 @@ packages:
   - apps/*
   - packages/*
 
+minimumReleaseAge: 10080
+
 catalog:
   '@ai-sdk/provider-utils': ^4.0.6
   '@clerk/backend': ^2.30.1
