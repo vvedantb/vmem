@@ -1,5 +1,12 @@
 # Changelog
 
+## Chrome Extension: Fix Background Sync Persistence Across Browser Restarts — 2026-05-16
+
+- **Idempotent alarm creation**: `startAutoSync` now checks for existing alarm via `chrome.alarms.get()` before creating, preventing timer reset on every browser startup. Previously, `chrome.alarms.create()` with an existing name would cancel and replace the alarm, resetting its timer and causing sync to never fire if user restarted more often than the 30-minute interval.
+- **Top-level bookmark listener**: Moved `registerBookmarkListener()` to synchronous service worker startup (top-level in `background/index.ts`). Listener registration must happen at SW init time so Chrome can revive the worker when bookmarks are created while SW is dormant (~30s idle). Prior implementation registered inside `startAutoSync` (async), losing the listener after SW eviction.
+- **Catch-up sync on startup**: Added `catchUpHistorySyncIfOverdue()` called after browser restart and browser window open events. If last history sync is older than the 30-minute interval (or never happened), fires an immediate sync — prevents users from waiting up to 30 minutes after a restart if restarts happen frequently.
+- **Offscreen token refresh diagnostics**: Distinguished "no active Clerk session" (user hasn't signed in on syncHost) from Clerk SDK errors via `console.info` log message. Background sync remains paused until user authenticates, making the cause clearer than a generic token-refresh failure.
+
 ## Chore: Add `minimumReleaseAge` to pnpm-workspace.yaml — 2026-05-12
 
 - **Set `minimumReleaseAge: 10080` (7 days) in `pnpm-workspace.yaml`**: pnpm now refuses to install package versions less than a week old, giving the ecosystem time to flag compromised or malicious releases before they enter the workspace. Mitigates supply-chain risk from typo-squat / hijacked-maintainer attacks that are usually identified and yanked within days of publication.
