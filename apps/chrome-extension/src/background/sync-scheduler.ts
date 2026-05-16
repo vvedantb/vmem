@@ -10,12 +10,8 @@ const HISTORY_SYNC_INTERVAL_MINUTES = 30;
 const SETTINGS_MIRROR_ALARM_NAME = "vmem-user-settings-mirror";
 const SETTINGS_MIRROR_INTERVAL_MINUTES = 5;
 
-/** Stored so stopAutoSync can remove the exact listener reference. */
-let bookmarkListener:
-  | ((id: string, bookmark: chrome.bookmarks.BookmarkTreeNode) => void)
-  | null = null;
-
 let alarmListenerRegistered = false;
+let bookmarkListenerRegistered = false;
 
 /**
  * Register alarm listener at service worker top level.
@@ -38,6 +34,33 @@ export function registerAlarmListener(): void {
   });
 }
 
+/**
+ * Register bookmark listener at service worker top level. The handler
+ * checks `autoSyncEnabled` at call time so the listener can stay wired
+ * even when sync is disabled. Must be called synchronously on every SW
+ * wake — without this, Chrome's aggressive SW eviction (~30s idle) means
+ * bookmarks created while the SW was dormant get silently dropped.
+ * Idempotent.
+ */
+export function registerBookmarkListener(): void {
+  if (bookmarkListenerRegistered) return;
+  bookmarkListenerRegistered = true;
+
+  chrome.bookmarks.onCreated.addListener((id, bookmark) => {
+    void handleBookmarkCreated(id, bookmark);
+  });
+}
+
+async function handleBookmarkCreated(
+  id: string,
+  bookmark: chrome.bookmarks.BookmarkTreeNode,
+): Promise<void> {
+  const { autoSyncEnabled } = await getStorage();
+  if (!autoSyncEnabled) return;
+  if (!(await hasActiveClerkSession())) return;
+  await syncSingleBookmark(id, bookmark);
+}
+
 export function ensureSettingsMirrorAlarm(): void {
   void chrome.alarms.create(SETTINGS_MIRROR_ALARM_NAME, {
     periodInMinutes: SETTINGS_MIRROR_INTERVAL_MINUTES,
@@ -45,43 +68,58 @@ export function ensureSettingsMirrorAlarm(): void {
 }
 
 /**
- * Start auto-sync: real-time bookmark listener + periodic history alarm.
- * Idempotent — safe to call on every startup.
+ * Ensure the history-sync alarm is scheduled. `chrome.alarms.create` with
+ * an existing name CANCELS and REPLACES the alarm, resetting its timer.
+ * If the user restarts Chrome more often than the sync interval (e.g.
+ * laptop reboot, profile reload), repeatedly calling create would mean
+ * the alarm never reaches its fire time — so we only create when absent.
+ *
+ * Idempotent.
  */
-export function startAutoSync(): void {
-  // Bookmark: event-driven, sync on creation
-  if (!bookmarkListener) {
-    bookmarkListener = (id, bookmark) => {
-      void syncSingleBookmark(id, bookmark);
-    };
-    chrome.bookmarks.onCreated.addListener(bookmarkListener);
-  }
-
-  // History: alarm-driven, every 30 min
-  // Alarm listener is registered separately at SW top level
-  chrome.alarms.create(HISTORY_ALARM_NAME, {
+export async function startAutoSync(): Promise<void> {
+  const existing = await chrome.alarms.get(HISTORY_ALARM_NAME);
+  if (existing) return;
+  await chrome.alarms.create(HISTORY_ALARM_NAME, {
     periodInMinutes: HISTORY_SYNC_INTERVAL_MINUTES,
   });
 }
 
-/** Stop auto-sync: remove bookmark listener + clear history alarm. */
-export function stopAutoSync(): void {
-  if (bookmarkListener) {
-    chrome.bookmarks.onCreated.removeListener(bookmarkListener);
-    bookmarkListener = null;
-  }
+/** Clear the periodic history alarm. Bookmark listener stays wired —
+ * its handler checks the autoSyncEnabled flag at call time. */
+export async function stopAutoSync(): Promise<void> {
+  await chrome.alarms.clear(HISTORY_ALARM_NAME);
+}
 
-  // Clear the alarm but keep listener registered — alarm listener
-  // checks autoSyncEnabled before acting, so it's safe to leave.
-  void chrome.alarms.clear(HISTORY_ALARM_NAME);
+/**
+ * If the last history sync is older than the sync interval (or never
+ * happened), fire one immediately. Called after SW startup so users
+ * don't wait up to 30 minutes for a sync after a browser restart.
+ */
+export async function catchUpHistorySyncIfOverdue(): Promise<void> {
+  const { autoSyncEnabled, lastHistorySync } = await getStorage();
+  if (!autoSyncEnabled) return;
+
+  const intervalMs = HISTORY_SYNC_INTERVAL_MINUTES * 60 * 1000;
+  const overdue =
+    lastHistorySync === 0 || Date.now() - lastHistorySync > intervalMs;
+  if (!overdue) return;
+
+  await handleHistoryAlarm();
 }
 
 /** Called by alarm — checks auth + auto-sync setting before syncing. */
 async function handleHistoryAlarm(): Promise<void> {
   const { autoSyncEnabled } = await getStorage();
   if (!autoSyncEnabled) return;
-  if (!(await hasActiveClerkSession())) return;
+  if (!(await hasActiveClerkSession())) {
+    console.warn(
+      "[vmem] History sync skipped — no active Clerk session " +
+        "(open the popup and ensure you're signed in on the syncHost).",
+    );
+    return;
+  }
 
-  // silent=true: popup is likely closed, skip progress messages
+  // silent=true: popup is likely closed, skip progress messages.
+  // importHistory writes lastHistorySync internally on successful import.
   await importHistory(undefined, true);
 }

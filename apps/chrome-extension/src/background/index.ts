@@ -8,7 +8,9 @@ import {
   startAutoSync,
   stopAutoSync,
   registerAlarmListener,
+  registerBookmarkListener,
   ensureSettingsMirrorAlarm,
+  catchUpHistorySyncIfOverdue,
 } from "./sync-scheduler";
 import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
 import { getStorage } from "@/lib/storage";
@@ -166,6 +168,12 @@ registerAlarmListener();
 // not enough because those don't fire on every wake-up.
 registerContextMenuClickListener();
 
+// Same rule again for bookmark events — bookmarks fire any time the user
+// adds one, including when the SW has been dormant. Listener must be
+// synchronously wired so Chrome can revive the SW with the event. The
+// handler itself checks the autoSyncEnabled flag at call time.
+registerBookmarkListener();
+
 chrome.runtime.onInstalled.addListener(async (details) => {
   // Open welcome page on first install
   if (details.reason === "install") {
@@ -176,6 +184,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   await refreshUserSettingsMirrorFromConvex();
   ensureSettingsMirrorAlarm();
   await initAutoSync();
+  void catchUpHistorySyncIfOverdue();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
@@ -187,6 +196,11 @@ chrome.runtime.onStartup.addListener(async () => {
   await refreshUserSettingsMirrorFromConvex();
   ensureSettingsMirrorAlarm();
   await initAutoSync();
+  // Trigger an immediate sync if the alarm hasn't fired recently. The
+  // 30-min periodic alarm survives browser restart, but if the user
+  // restarts more often than that, they could go a long time between
+  // syncs — this fills the gap.
+  void catchUpHistorySyncIfOverdue();
 });
 
 // React to user toggling auto-sync in the popup.
@@ -196,9 +210,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (!autoSyncChange) return;
 
   if (autoSyncChange.newValue === true) {
-    startAutoSync();
+    void startAutoSync();
   } else {
-    stopAutoSync();
+    void stopAutoSync();
   }
 });
 
@@ -207,6 +221,6 @@ registerMessageHandler();
 async function initAutoSync(): Promise<void> {
   const { autoSyncEnabled } = await getStorage();
   if (autoSyncEnabled) {
-    startAutoSync();
+    await startAutoSync();
   }
 }
