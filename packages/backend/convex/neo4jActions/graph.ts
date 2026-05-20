@@ -107,20 +107,6 @@ export const getGraphDataInternal = internalAction({
   },
 });
 
-export const getLocalGraphInternal = internalAction({
-  args: {
-    clerkId: v.string(),
-    focusId: v.string(),
-    profileId: v.optional(v.string()),
-  },
-  handler: async (_ctx, args) => {
-    const driver = getDriver();
-    return capGraph(
-      await getLocalGraph(driver, args.clerkId, args.focusId, args.profileId),
-    );
-  },
-});
-
 // Lazy content fetch. The graph/local-graph endpoints drop `content` from
 // their payload (it was the biggest single contributor to the 1.13 MiB graph
 // size), so the UI pulls content on-demand when the user hovers a node or

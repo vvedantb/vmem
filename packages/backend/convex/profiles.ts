@@ -5,7 +5,6 @@ import { getOrCreateDefaultProfile } from "./profiles/helpers";
 import {
   runCreate,
   runGet,
-  runGetActive,
   runGetOrCreateDefault,
   runList,
   runUpdate,
@@ -15,10 +14,7 @@ import {
   runRemoveInternalMutation,
   runRemoveWithMemories,
 } from "./profiles/lifecycle";
-import {
-  runSetDreamModeAutoAccept,
-  runSetLastDreamRunAtInternal,
-} from "./profiles/dream";
+import { runSetLastDreamRunAtInternal } from "./profiles/dream";
 
 export { PROFILE_COLORS, PROFILE_ICONS } from "./profiles/helpers";
 
@@ -107,15 +103,6 @@ export const removeInternalMutation = internalMutation({
     movedMemoriesToProfileId: v.optional(v.id("profiles")),
   },
   handler: async (ctx, args) => runRemoveInternalMutation(ctx, args),
-});
-
-/**
- * Get the user's default profile.
- * @deprecated Use specific source defaults from userSettings instead
- */
-export const getActive = authQuery({
-  args: {},
-  handler: async (ctx) => runGetActive(ctx),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -218,28 +205,11 @@ export const getDefaultByUserIdInternal = internalQuery({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dream Mode V2 — per-profile config + cron-friendly iteration
-//
-// `dreamModeAutoAccept` controls whether the Dreamer's high-confidence
-// synthesis proposals materialize as new memories directly (true) or are
-// queued for explicit user approval on /proposals (false, default).
+// Dream Mode V2 — per-profile rate-limit stamp
 //
 // `lastDreamRunAt` is stamped after every Dream Mode pass and used by the
 // manual "Run Dream Mode" button to enforce a 1-run-per-hour rate limit.
 // ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Toggle the Dream Mode auto-accept flag for a TEAM profile only.
- * Personal profiles use the user-wide setting on `userSettings.dreamModeAutoAccept`
- * — call `userSettings.update` for those.
- */
-export const setDreamModeAutoAccept = authMutation({
-  args: {
-    profileId: v.id("profiles"),
-    enabled: v.boolean(),
-  },
-  handler: async (ctx, args) => runSetDreamModeAutoAccept(ctx, args),
-});
 
 /**
  * Internal: stamp `lastDreamRunAt` on a profile. Called by the per-profile

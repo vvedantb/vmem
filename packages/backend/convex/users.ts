@@ -1,5 +1,5 @@
 import { query, internalQuery } from "./_generated/server";
-import { authQuery, authMutation } from "./auth";
+import { authQuery } from "./auth";
 import { v } from "convex/values";
 
 export const getMe = query({
@@ -12,13 +12,6 @@ export const getMe = query({
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
-  },
-});
-
-export const setTheme = authMutation({
-  args: { theme: v.union(v.literal("light"), v.literal("dark")) },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(ctx.userId, { theme: args.theme });
   },
 });
 

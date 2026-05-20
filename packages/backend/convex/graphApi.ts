@@ -221,46 +221,6 @@ export const getGraphData = authAction({
   },
 });
 
-export const getLocalGraph = authAction({
-  args: {
-    focusId: v.string(),
-    profileId: v.optional(v.string()),
-  },
-  handler: async (ctx, args): Promise<GraphResult> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
-    const memoryGraph: MemoryGraph = await ctx.runAction(
-      internal.neo4jActions.graph.getLocalGraphInternal,
-      {
-        clerkId,
-        focusId: args.focusId,
-        profileId: args.profileId,
-      },
-    );
-
-    const entityNodes: GraphNodeEntry[] = memoryGraph.entities.map((e) => ({
-      id: `${ENTITY_PREFIX}${e.normalizedName}:${e.type}`,
-      title: e.name,
-      tags: [],
-      createdAt: new Date().toISOString(),
-      kind: "entity",
-      sourceType: null,
-      entityType: e.type,
-    }));
-
-    return {
-      nodes: [...annotateMemoryNodes(memoryGraph.nodes), ...entityNodes],
-      relatesToEdges: memoryGraph.relatesToEdges,
-      tagEdges: memoryGraph.tagEdges,
-      wikiParentEdges: [],
-      mentionsEdges: memoryGraph.mentionsEdges,
-    };
-  },
-});
-
 /**
  * Lazy-fetch the content body for a single memory node. Called from the graph
  * tooltip/detail panel when the user hovers or clicks a memory — memories
