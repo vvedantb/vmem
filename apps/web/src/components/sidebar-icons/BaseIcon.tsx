@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import "./sidebar-icons.css";
 
 export interface SidebarIconProps {
   className?: string;
@@ -24,7 +23,7 @@ export function BaseIcon({
       strokeWidth={stroke}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className}
+      className={className ? `sb-icon-root ${className}` : "sb-icon-root"}
       aria-hidden="true"
     >
       {children}
