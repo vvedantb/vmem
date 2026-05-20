@@ -1,0 +1,272 @@
+/*
+ * Custom sidebar nav-icon hover animations.
+ *
+ * Every <NavLink> renders with Tailwind's `group` class, so we hang all
+ * triggers off `.group:hover .sb-*`. Class names are namespaced (`sb-`) so
+ * these rules only fire for our custom icons -- not every `.group` in the app.
+ *
+ * Defaults at rest = static, polished icon. Hover = signature motion per icon.
+ * `transform-box: fill-box; transform-origin: center` is set wherever we
+ * scale/rotate a child element so the pivot is the element's own bbox center,
+ * not the SVG origin (0,0).
+ */
+
+/* ============ Chat: typing dots bounce in sequence ============ */
+.sb-chat-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes sb-chat-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(-2px);
+  }
+}
+.group:hover .sb-chat-dot-1 {
+  animation: sb-chat-bounce 0.55s ease-out 0s;
+}
+.group:hover .sb-chat-dot-2 {
+  animation: sb-chat-bounce 0.55s ease-out 0.09s;
+}
+.group:hover .sb-chat-dot-3 {
+  animation: sb-chat-bounce 0.55s ease-out 0.18s;
+}
+
+/* ============ Voice: sound waves emanate from the mic ============ */
+.sb-voice-wave {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes sb-voice-wave {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+.group:hover .sb-voice-wave-l {
+  animation: sb-voice-wave 0.75s ease-out 0s;
+}
+.group:hover .sb-voice-wave-r {
+  animation: sb-voice-wave 0.75s ease-out 0s;
+}
+
+/* ============ Memories: central node pulses (graph "fires") ============ */
+.sb-mem-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes sb-mem-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.55);
+    opacity: 0.65;
+  }
+}
+.group:hover .sb-mem-pulse {
+  animation: sb-mem-pulse 0.8s ease-in-out;
+}
+
+/* ============ Teams: building windows light up sequentially ============ */
+.sb-team-w {
+  opacity: 0.3;
+  transition: opacity 0.25s ease-out;
+}
+.group:hover .sb-team-w-1 {
+  opacity: 1;
+  transition-delay: 0s;
+}
+.group:hover .sb-team-w-2 {
+  opacity: 1;
+  transition-delay: 0.08s;
+}
+.group:hover .sb-team-w-3 {
+  opacity: 1;
+  transition-delay: 0.18s;
+}
+.group:hover .sb-team-w-4 {
+  opacity: 1;
+  transition-delay: 0.26s;
+}
+
+/* ============ Files: back sheet slides out to reveal stack ============ */
+.sb-file-back {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.group:hover .sb-file-back {
+  transform: translate(2px, -2px);
+}
+
+/* ============ Codebases: top ellipse pings (data ingest) ============ */
+.sb-db-top {
+  fill: currentColor;
+  fill-opacity: 0;
+}
+@keyframes sb-db-ping {
+  0%,
+  100% {
+    fill-opacity: 0;
+  }
+  45% {
+    fill-opacity: 0.32;
+  }
+}
+.group:hover .sb-db-top {
+  animation: sb-db-ping 0.75s ease-out;
+}
+
+/* ============ Skills: bolt flashes with quick scale ============ */
+.sb-bolt {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes sb-bolt-flash {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.18);
+  }
+  65% {
+    transform: scale(0.96);
+  }
+}
+.group:hover .sb-bolt {
+  animation: sb-bolt-flash 0.5s ease-out;
+}
+
+/* ============ Wiki: page lines draw left-to-right ============ */
+.sb-wiki-line {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+}
+@keyframes sb-wiki-draw {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+.group:hover .sb-wiki-line-1 {
+  animation: sb-wiki-draw 0.4s ease-out 0s both;
+}
+.group:hover .sb-wiki-line-2 {
+  animation: sb-wiki-draw 0.4s ease-out 0.1s both;
+}
+.group:hover .sb-wiki-line-3 {
+  animation: sb-wiki-draw 0.4s ease-out 0.2s both;
+}
+
+/* ============ Activity: heartbeat redraws across ============ */
+.sb-activity-line {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+}
+@keyframes sb-activity-draw {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+.group:hover .sb-activity-line {
+  animation: sb-activity-draw 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ============ Inbox: letter drops in through the slot ============ */
+.sb-inbox-letter {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes sb-inbox-drop {
+  0% {
+    transform: translateY(-7px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(1px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(4px);
+    opacity: 0;
+  }
+}
+.group:hover .sb-inbox-letter {
+  animation: sb-inbox-drop 0.75s ease-out;
+}
+
+/* ============ Settings: gear spins one revolution ============ */
+.sb-gear {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes sb-gear-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.group:hover .sb-gear {
+  animation: sb-gear-spin 0.65s ease-out;
+}
+
+/* ============ Reduced motion: disable everything ============ */
+@media (prefers-reduced-motion: reduce) {
+  .group:hover .sb-chat-dot-1,
+  .group:hover .sb-chat-dot-2,
+  .group:hover .sb-chat-dot-3,
+  .group:hover .sb-voice-wave-l,
+  .group:hover .sb-voice-wave-r,
+  .group:hover .sb-mem-pulse,
+  .group:hover .sb-db-top,
+  .group:hover .sb-bolt,
+  .group:hover .sb-wiki-line-1,
+  .group:hover .sb-wiki-line-2,
+  .group:hover .sb-wiki-line-3,
+  .group:hover .sb-activity-line,
+  .group:hover .sb-inbox-letter,
+  .group:hover .sb-gear {
+    animation: none !important;
+  }
+  .sb-file-back {
+    transition: none !important;
+  }
+  .group:hover .sb-file-back {
+    transform: none !important;
+  }
+  .sb-team-w {
+    transition: none !important;
+    opacity: 1 !important;
+  }
+  .sb-wiki-line,
+  .sb-activity-line {
+    stroke-dashoffset: 0 !important;
+  }
+  .sb-voice-wave,
+  .sb-inbox-letter {
+    opacity: 1 !important;
+  }
+}
