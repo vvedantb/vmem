@@ -41,22 +41,15 @@ These are injected automatically — no tool call required:
 
 ## Setup
 
-Add vmem as an MCP server in your client's configuration:
+Add vmem as a remote MCP connector in Claude (Settings → Connectors) or any client that supports OAuth + streamable HTTP:
 
-```json
-{
-  "mcpServers": {
-    "vmem": {
-      "command": "node",
-      "args": ["path/to/vmem/apps/mcp/dist/index.js"],
-      "env": {
-        "VMEM_API_URL": "http://localhost:3000",
-        "VMEM_USER_ID": "your-user-id"
-      }
-    }
-  }
-}
 ```
+https://<your-convex-slug>.<region>.convex.site/mcp
+```
+
+Copy the full site URL from your Convex dashboard. Sign in with your vmem account when prompted.
+
+For local testing, use the MCP Playground at `/settings/playground` in the web app.
 
 ## Next Steps
 
