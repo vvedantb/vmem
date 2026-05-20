@@ -1,5 +1,11 @@
 # Changelog
 
+## Fix MCP memory_retrieve + memory_update — 2026-05-20
+
+- **`memory_retrieve` no longer hard-fails without chunk index**: If Neo4j is missing the `chunk_embedding` vector index, retrieval skips the chunk leg and continues on fulltext + whole-memory vector. Run `npx convex run neo4jActions/dbSetup:ensureNeo4jSetup` once to create chunk indexes for long-memory passage search.
+- **`memory_update` forwards status/type/confidence**: MCP tool schema already accepted these fields but `mcpUpdateMemory` dropped them — `pinned` and other status changes now persist.
+- **Tag duplication on update fixed**: `updateMemory` used `CREATE` for `TAGGED_WITH` edges (vs `MERGE` elsewhere) and `collect()` without `DISTINCT`, so duplicate edges showed as multiplied tags. Now uses `MERGE`, dedupes input tags, and returns `collect(DISTINCT ...)`.
+
 ## Remove Unused Legacy Code — 2026-05-20
 
 - **Deleted orphan client enrichment module**: Removed `apps/web/src/lib/local-enrichment.ts` (`runLocalFullEnrichment`) — enrichment is server-side via `enrichMemoryInternal`; nothing imported the file.

@@ -235,7 +235,10 @@ export function registerTools(
           memoryId: params.id,
           title: params.title,
           content: params.content,
+          type: params.type,
+          status: params.status,
           tags: params.tags,
+          confidence: params.confidence,
         }),
       );
       if (!result.ok) return errorContent(`Update failed: ${result.message}`);
