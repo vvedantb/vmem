@@ -37,8 +37,6 @@ chrome.runtime.onMessage.addListener(
         const clerk = await getClerk();
         const session = clerk.session;
         if (!session) {
-          // Distinct from a Clerk error — the user has not signed in on the
-          // syncHost, so the background sync should stay paused until they do.
           console.info(
             "[vmem-offscreen] No active Clerk session on syncHost — " +
               "sign in at the vmem site to enable background sync.",
@@ -58,3 +56,5 @@ chrome.runtime.onMessage.addListener(
     return true;
   },
 );
+
+void chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" });

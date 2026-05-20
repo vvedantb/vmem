@@ -3,7 +3,9 @@ import { CONVEX_URL } from "@/lib/constants";
 import { getAuthToken, setAuthToken } from "@/lib/storage";
 
 const OFFSCREEN_PATH = "offscreen/offscreen.html";
-const REFRESH_TIMEOUT_MS = 15_000;
+const REFRESH_TIMEOUT_MS = 60_000;
+const OFFSCREEN_READY_TIMEOUT_MS = 45_000;
+const REFRESH_MAX_ATTEMPTS = 3;
 
 // Module-level guard so concurrent sync ticks share one refresh.
 let pendingRefresh: Promise<string | null> | null = null;
@@ -50,27 +52,31 @@ async function refreshTokenViaOffscreen(): Promise<string | null> {
     try {
       await ensureOffscreenDocument();
 
-      const response = await sendOffscreenMessage();
-      if (response.token) {
-        await setAuthToken(response.token);
-        return response.token;
+      for (let attempt = 1; attempt <= REFRESH_MAX_ATTEMPTS; attempt++) {
+        try {
+          const response = await sendOffscreenMessage();
+          if (response.token) {
+            await setAuthToken(response.token);
+            return response.token;
+          }
+          await setAuthToken("");
+          return null;
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          if (attempt === REFRESH_MAX_ATTEMPTS) {
+            console.warn("[vmem] Offscreen token refresh failed:", message);
+            return null;
+          }
+          console.warn(
+            `[vmem] Offscreen token refresh attempt ${attempt} failed, retrying:`,
+            message,
+          );
+          await delay(500 * attempt);
+        }
       }
-      await setAuthToken("");
-      return null;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.warn("[vmem] Offscreen token refresh failed:", message);
       return null;
     } finally {
-      // Close the offscreen doc to reclaim resources — next refresh will
-      // recreate it. Cheap because Clerk uses cached cookies on second run.
-      try {
-        if (await chrome.offscreen.hasDocument()) {
-          await chrome.offscreen.closeDocument();
-        }
-      } catch {
-        // ignore — doc may have closed itself
-      }
       pendingRefresh = null;
     }
   })();
@@ -78,13 +84,38 @@ async function refreshTokenViaOffscreen(): Promise<string | null> {
   return pendingRefresh;
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function ensureOffscreenDocument(): Promise<void> {
   if (await chrome.offscreen.hasDocument()) return;
+
+  const readyPromise = waitForOffscreenReady();
   await chrome.offscreen.createDocument({
     url: OFFSCREEN_PATH,
     reasons: [chrome.offscreen.Reason.IFRAME_SCRIPTING],
     justification:
       "Run Clerk in a DOM context to refresh the Convex auth token for periodic background sync.",
+  });
+  await readyPromise;
+}
+
+function waitForOffscreenReady(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      chrome.runtime.onMessage.removeListener(listener);
+      reject(new Error("Offscreen document ready timeout"));
+    }, OFFSCREEN_READY_TIMEOUT_MS);
+
+    function listener(message: { type?: string } | undefined): void {
+      if (message?.type !== "OFFSCREEN_READY") return;
+      chrome.runtime.onMessage.removeListener(listener);
+      clearTimeout(timer);
+      resolve();
+    }
+
+    chrome.runtime.onMessage.addListener(listener);
   });
 }
 
@@ -121,6 +152,12 @@ async function getConvexAuthToken(): Promise<string | null> {
   const stored = await getStoredToken();
   if (stored && !isTokenExpired(stored)) return stored;
   return refreshTokenViaOffscreen();
+}
+
+export async function warmBackgroundAuth(): Promise<void> {
+  const stored = await getStoredToken();
+  if (stored && !isTokenExpired(stored)) return;
+  await getConvexAuthToken();
 }
 
 export async function createAuthenticatedConvexClient(): Promise<ConvexHttpClient | null> {

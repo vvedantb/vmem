@@ -1,7 +1,7 @@
 import { syncSingleBookmark } from "./import-bookmarks";
 import { importHistory } from "./import-history";
 import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
-import { hasActiveClerkSession } from "./auth";
+import { hasActiveClerkSession, warmBackgroundAuth } from "./auth";
 import { getStorage } from "@/lib/storage";
 
 const HISTORY_ALARM_NAME = "vmem-history-sync";
@@ -9,8 +9,10 @@ const HISTORY_SYNC_INTERVAL_MINUTES = 30;
 
 const SETTINGS_MIRROR_ALARM_NAME = "vmem-user-settings-mirror";
 const SETTINGS_MIRROR_INTERVAL_MINUTES = 5;
+const CATCHUP_MIN_INTERVAL_MS = 5 * 60 * 1000;
 
 let alarmListenerRegistered = false;
+let lastCatchUpAttemptMs = 0;
 let bookmarkListenerRegistered = false;
 
 /**
@@ -61,10 +63,28 @@ async function handleBookmarkCreated(
   await syncSingleBookmark(id, bookmark);
 }
 
-export function ensureSettingsMirrorAlarm(): void {
-  void chrome.alarms.create(SETTINGS_MIRROR_ALARM_NAME, {
+export async function ensureSettingsMirrorAlarm(): Promise<void> {
+  const existing = await chrome.alarms.get(SETTINGS_MIRROR_ALARM_NAME);
+  if (existing) return;
+  await chrome.alarms.create(SETTINGS_MIRROR_ALARM_NAME, {
     periodInMinutes: SETTINGS_MIRROR_INTERVAL_MINUTES,
   });
+}
+
+/**
+ * Ensure periodic alarms exist whenever the service worker starts.
+ * MV3 workers are ephemeral — onInstalled/onStartup alone miss wakes from
+ * alarms, messages, and dev reloads, leaving auto-sync scheduled but with
+ * no active alarm if it was ever lost.
+ */
+export async function bootstrapSyncSchedulers(): Promise<void> {
+  await ensureSettingsMirrorAlarm();
+  const { autoSyncEnabled } = await getStorage();
+  if (!autoSyncEnabled) return;
+
+  await startAutoSync();
+  void warmBackgroundAuth();
+  void catchUpHistorySyncIfOverdue();
 }
 
 /**
@@ -104,22 +124,28 @@ export async function catchUpHistorySyncIfOverdue(): Promise<void> {
     lastHistorySync === 0 || Date.now() - lastHistorySync > intervalMs;
   if (!overdue) return;
 
+  const now = Date.now();
+  if (now - lastCatchUpAttemptMs < CATCHUP_MIN_INTERVAL_MS) return;
+  lastCatchUpAttemptMs = now;
+
   await handleHistoryAlarm();
 }
 
 /** Called by alarm — checks auth + auto-sync setting before syncing. */
 async function handleHistoryAlarm(): Promise<void> {
+  console.info("[vmem] History sync alarm fired");
   const { autoSyncEnabled } = await getStorage();
   if (!autoSyncEnabled) return;
   if (!(await hasActiveClerkSession())) {
     console.warn(
       "[vmem] History sync skipped — no active Clerk session " +
-        "(open the popup and ensure you're signed in on the syncHost).",
+        "(sign in on the vmem site so the extension can read your syncHost session).",
     );
     return;
   }
 
-  // silent=true: popup is likely closed, skip progress messages.
-  // importHistory writes lastHistorySync internally on successful import.
-  await importHistory(undefined, true);
+  const result = await importHistory(undefined, true);
+  console.info(
+    `[vmem] History sync finished — imported ${result.imported} new entries`,
+  );
 }
