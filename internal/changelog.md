@@ -1,5 +1,12 @@
 # Changelog
 
+## Custom Animated Sidebar Icons — 2026-05-20
+
+- **11 hand-crafted SVG icons for main-nav tabs**: Chat, Voice, Memories, Teams, Files, Codebases, Skills, Wiki, Activity, Inbox, Settings replaced tabler defaults with custom components matching the tabler aesthetic (24×24 viewBox, 1.7 stroke, currentColor).
+- **Hover-triggered signature animations via shared CSS**: Each icon has a unique motion on hover (chat dots bounce, voice waves radiate, memories pulse, teams light up, etc.). Grouped into single `sidebar-icons.css` with `.group:hover .sb-*` selectors and `prefers-reduced-motion` fallback.
+- **New `sidebar-icons/` folder with BaseIcon wrapper**: Lightweight SVG factory + per-icon components keep individual files focused on path content. All 11 icons export the same `NavIcon` shape so they drop in as replacements with zero downstream changes.
+- **Settings + group headers untouched**: Settings sub-nav and the 3 group headers (Workspace, Data, Account) remain as tabler icons per scope — custom set focuses on the high-traffic main-nav items.
+
 ## Chrome Extension: Reliable 30-Minute Background Auto-Sync — 2026-05-20
 
 - **Bootstrap alarms on every service worker wake**: `bootstrapSyncSchedulers()` ensures the history-sync alarm exists whenever the MV3 worker starts, not only on browser launch — fixes sync going dormant after extension reloads without a full Chrome restart.
