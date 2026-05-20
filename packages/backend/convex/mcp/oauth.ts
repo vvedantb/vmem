@@ -139,37 +139,3 @@ export const getClient = internalQuery({
     };
   },
 });
-
-/**
- * Cleanup expired auth codes and client registrations. Manual-trigger only
- * in v1 (no cron wired up); add a cron if these tables start to bloat.
- */
-export const cleanupExpired = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    const now = Date.now();
-
-    const expiredCodes = await ctx.db
-      .query("mcpAuthCodes")
-      .filter((q) => q.lt(q.field("expiresAt"), now))
-      .collect();
-
-    for (const code of expiredCodes) {
-      await ctx.db.delete(code._id);
-    }
-
-    const expiredClients = await ctx.db
-      .query("mcpClientRegistrations")
-      .filter((q) => q.lt(q.field("registeredAt"), now - CLIENT_TTL_MS))
-      .collect();
-
-    for (const client of expiredClients) {
-      await ctx.db.delete(client._id);
-    }
-
-    return {
-      deletedCodes: expiredCodes.length,
-      deletedClients: expiredClients.length,
-    };
-  },
-});
