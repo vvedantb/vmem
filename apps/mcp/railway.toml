@@ -1,7 +1,0 @@
-[build]
-builder = "railpack"
-buildCommand = "pnpm --filter mcp build"
-watchPatterns = ["apps/mcp/**"]
-
-[deploy]
-startCommand = "pnpm --filter mcp start"
