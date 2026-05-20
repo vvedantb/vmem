@@ -1,4 +1,4 @@
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internalMutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { auditLog, ResourceTypes } from "./auditLog";
@@ -47,7 +47,6 @@ type MemoryEventArgs = {
 
 /**
  * Writes a single memory/relationship event to the permanent audit-log trail.
- * Shared between the public (secret-guarded) and internal memory-event mutations.
  */
 async function recordMemoryEvent(
   ctx: MutationCtx,
@@ -62,32 +61,6 @@ async function recordMemoryEvent(
     severity: "info",
   });
 }
-
-export const pushEvent = mutation({
-  args: {
-    secret: v.string(),
-    clerkId: v.string(),
-    eventType: eventTypeValidator,
-    memoryId: v.string(),
-    payload: v.string(),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const expected = process.env.CONVEX_EVENT_SECRET;
-    if (!expected || args.secret !== expected) {
-      throw new Error("Unauthorized");
-    }
-
-    await recordMemoryEvent(ctx, {
-      clerkId: args.clerkId,
-      eventType: args.eventType,
-      memoryId: args.memoryId,
-      payload: args.payload,
-    });
-
-    return null;
-  },
-});
 
 export const pushEventInternal = internalMutation({
   args: {
