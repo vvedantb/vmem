@@ -21,6 +21,7 @@ import { getDriver } from "../../src/neo4j/driver";
 import { generateEmbedding } from "../lib/openRouter";
 import { normalizeUrl } from "../../src/neo4j/url";
 import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
+import { toMemoryStatus, toMemoryType } from "./memories/shared";
 
 /**
  * Best-effort embedding helper used by the MCP entry points. Returns null
@@ -274,14 +275,20 @@ export const mcpUpdateMemory = internalAction({
     memoryId: v.string(),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
+    type: v.optional(v.string()),
+    status: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
+    confidence: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const driver = getDriver();
     const result = await updateMemory(driver, args.clerkId, args.memoryId, {
       title: args.title,
       content: args.content,
+      type: toMemoryType(args.type),
+      status: toMemoryStatus(args.status),
       tags: args.tags,
+      confidence: args.confidence,
     });
 
     if (result) {
