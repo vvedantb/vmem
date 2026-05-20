@@ -40,45 +40,6 @@ export const mcpListProfiles = internalAction({
   },
 });
 
-/** Get the active profile for the authenticated user */
-export const mcpGetActiveProfile = internalAction({
-  args: { clerkId: v.string() },
-  returns: v.object({
-    id: v.string(),
-    name: v.string(),
-    color: v.string(),
-    icon: v.string(),
-    isDefault: v.boolean(),
-  }),
-  handler: async (ctx, args): Promise<ProfileResponse> => {
-    const profile = await ctx.runQuery(
-      internal.profiles.getActiveByClerkIdInternal,
-      { clerkId: args.clerkId },
-    );
-    if (!profile) {
-      // Create default profile if none exists
-      const defaultProfile = await ctx.runMutation(
-        internal.profiles.getOrCreateDefaultByClerkIdInternal,
-        { clerkId: args.clerkId },
-      );
-      return {
-        id: defaultProfile._id,
-        name: defaultProfile.name,
-        color: defaultProfile.color,
-        icon: defaultProfile.icon,
-        isDefault: defaultProfile.isDefault,
-      };
-    }
-    return {
-      id: profile._id,
-      name: profile.name,
-      color: profile.color,
-      icon: profile.icon,
-      isDefault: profile.isDefault,
-    };
-  },
-});
-
 interface WhoamiResponse {
   authenticated: boolean;
   clerkUserId: string;

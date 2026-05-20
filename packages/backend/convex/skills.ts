@@ -17,21 +17,6 @@ export const listMy = authQuery({
 });
 
 /**
- * Fetch a single skill by id, scoped to the authenticated user.
- * Accepts a string id to match the pattern used by codebases.getById.
- */
-export const getById = authQuery({
-  args: { id: v.string() },
-  handler: async (ctx, args) => {
-    const normalizedId = ctx.db.normalizeId("skills", args.id);
-    if (!normalizedId) return null;
-    const skill = await ctx.db.get(normalizedId);
-    if (!skill || skill.userId !== ctx.userId) return null;
-    return skill;
-  },
-});
-
-/**
  * Create a new skill. Duplicate names per user are rejected.
  */
 export const createSkill = authMutation({

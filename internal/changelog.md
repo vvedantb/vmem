@@ -1,5 +1,10 @@
 # Changelog
 
+## Remove Unused Legacy Code — 2026-05-20
+
+- **Deleted orphan client enrichment module**: Removed `apps/web/src/lib/local-enrichment.ts` (`runLocalFullEnrichment`) — enrichment is server-side via `enrichMemoryInternal`; nothing imported the file.
+- **Removed dead Convex APIs**: Dropped `applyEnrichmentInternal`, `profiles.getActive`, `setDreamModeAutoAccept`, `mcpGetActiveProfile`, `graphApi.getLocalGraph` (+ `getLocalGraphInternal`), `users.setTheme`, `skills.getById`, and `mcp.oauth.cleanupExpired` — all had zero callers after prior migrations (local enrichment queue, active-profile UX, client theme on `users` table).
+
 ## Remove Legacy Memory Event Bus Secret — 2026-05-20
 
 - **Deleted public `memoryEvents.pushEvent`**: Leftover from the deleted Hono `apps/api` — it accepted a shared `CONVEX_EVENT_SECRET` so Railway could push graph events over HTTP. All callers already use `pushEventInternal` after the Convex migration; nothing referenced the public mutation.

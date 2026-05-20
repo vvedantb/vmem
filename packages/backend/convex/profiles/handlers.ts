@@ -193,19 +193,3 @@ export async function runUpdate(
 
   return await ctx.db.get(args.profileId);
 }
-
-/**
- * Returns the user's default profile.
- * @deprecated Use specific source defaults from userSettings instead.
- */
-export async function runGetActive(
-  ctx: AuthQueryCtx,
-): Promise<Doc<"profiles"> | null> {
-  const defaultProfile = await ctx.db
-    .query("profiles")
-    .withIndex("by_user_default", (q) =>
-      q.eq("userId", ctx.userId).eq("isDefault", true),
-    )
-    .first();
-  return defaultProfile ?? null;
-}
