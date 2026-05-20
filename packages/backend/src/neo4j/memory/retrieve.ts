@@ -123,25 +123,40 @@ async function runChunkLeg(
 ) {
   if (!params.queryEmbedding) return null;
   const pf = profileFilter(params.profileId, "m");
-  return session.run(
-    `CALL db.index.vector.queryNodes('chunk_embedding', $k, $queryVector)
+  try {
+    return await session.run(
+      `CALL db.index.vector.queryNodes('chunk_embedding', $k, $queryVector)
      YIELD node AS c, score AS chunkScore
      WHERE c.userId = $userId
      MATCH (m:Memory {id: c.memoryId})
      WHERE m.userId = $userId ${pf.clause}
      OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-     WITH m, collect(t.name) AS tags, chunkScore, c.content AS chunkContent,
+     WITH m, collect(DISTINCT t.name) AS tags, chunkScore, c.content AS chunkContent,
           c.position AS chunkPosition,
           duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
      RETURN m, tags, chunkScore, chunkContent, chunkPosition, ageInDays
      ORDER BY chunkScore DESC`,
-    {
-      k: neo4j.int(legLimit),
-      queryVector: params.queryEmbedding,
-      userId: params.userId,
-      ...pf.params,
-    },
-  );
+      {
+        k: neo4j.int(legLimit),
+        queryVector: params.queryEmbedding,
+        userId: params.userId,
+        ...pf.params,
+      },
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (
+      message.includes("chunk_embedding") ||
+      message.includes("no such vector schema index")
+    ) {
+      console.warn(
+        "[retrieve] chunk_embedding index missing — skipping chunk leg. Run ensureNeo4jSetup to create it.",
+        message,
+      );
+      return null;
+    }
+    throw err;
+  }
 }
 
 /**

@@ -420,19 +420,20 @@ export async function updateMemory(
       }),
     ).set(...setParams);
 
-    const tagUpdate =
-      updates.tags !== undefined
-        ? new Cypher.Raw(() => [
-            `WITH m
+    let tagUpdate: Cypher.Raw | undefined;
+    if (updates.tags !== undefined) {
+      const newTags = Array.from(new Set(updates.tags));
+      tagUpdate = new Cypher.Raw(() => [
+        `WITH m
 OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
 DELETE r
 WITH m
 UNWIND $newTags AS tagName
 MERGE (tag:Tag {name: tagName})
-CREATE (m)-[:TAGGED_WITH]->(tag)`,
-            { newTags: updates.tags },
-          ])
-        : undefined;
+MERGE (m)-[:TAGGED_WITH]->(tag)`,
+        { newTags },
+      ]);
+    }
 
     const returnPart = new Cypher.With(m)
       .optionalMatch(
@@ -440,7 +441,7 @@ CREATE (m)-[:TAGGED_WITH]->(tag)`,
           .related({ type: "TAGGED_WITH", direction: "right" })
           .to(t, { labels: ["Tag"] }),
       )
-      .return(m, [Cypher.collect(t.property("name")), "tags"]);
+      .return(m, [Cypher.collect(t.property("name")).distinct(), "tags"]);
 
     const query = Cypher.utils.concat(matchWithSet, tagUpdate, returnPart);
     const result = await buildAndRun(session, query);
