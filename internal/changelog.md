@@ -1,5 +1,13 @@
 # Changelog
 
+## Chrome Extension: Reliable 30-Minute Background Auto-Sync — 2026-05-20
+
+- **Bootstrap alarms on every service worker wake**: `bootstrapSyncSchedulers()` ensures the history-sync alarm exists whenever the MV3 worker starts, not only on browser launch — fixes sync going dormant after extension reloads without a full Chrome restart.
+- **Offscreen auth reliability**: Offscreen document stays warm between refreshes with a ready handshake, retries, and a longer timeout so background sync no longer depends on opening the popup for a fresh JWT.
+- **Sync cursor advances on empty passes**: `lastHistorySync` updates after every successful auto-sync run even when all history entries were already imported — the Import tab last-sync time reflects periodic checks instead of staying stale.
+- **Immediate local toggle for auto-sync**: Enabling auto-sync in the Import panel writes local storage right away so the alarm is scheduled without waiting for the Convex settings roundtrip.
+- **Settings mirror reconciles alarm state**: Convex user-settings refresh explicitly starts or stops the history alarm when `extensionAutoSyncEnabled` changes server-side.
+
 ## Chrome Extension: Fix Background Sync Persistence Across Browser Restarts — 2026-05-16
 
 - **Idempotent alarm creation**: `startAutoSync` now checks for existing alarm via `chrome.alarms.get()` before creating, preventing timer reset on every browser startup. Previously, `chrome.alarms.create()` with an existing name would cancel and replace the alarm, resetting its timer and causing sync to never fire if user restarted more often than the 30-minute interval.
