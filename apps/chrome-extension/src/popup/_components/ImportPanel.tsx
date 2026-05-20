@@ -90,6 +90,7 @@ export function ImportPanel() {
   }, []);
 
   function handleAutoSyncToggle(checked: boolean) {
+    void setStorage({ autoSyncEnabled: checked });
     void update({ extensionAutoSyncEnabled: checked });
   }
 
