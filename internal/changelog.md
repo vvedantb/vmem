@@ -1,5 +1,10 @@
 # Changelog
 
+## Remove Legacy Memory Event Bus Secret — 2026-05-20
+
+- **Deleted public `memoryEvents.pushEvent`**: Leftover from the deleted Hono `apps/api` — it accepted a shared `CONVEX_EVENT_SECRET` so Railway could push graph events over HTTP. All callers already use `pushEventInternal` after the Convex migration; nothing referenced the public mutation.
+- **`CONVEX_EVENT_SECRET` no longer required**: Safe to remove from the Convex dashboard — it was manually generated and duplicated in the old API env, not provisioned by Convex.
+
 ## Remove Legacy `apps/mcp` Railway Server — 2026-05-20
 
 - **Deleted `apps/mcp/`**: The Express/Railway MCP deployment is fully replaced by inline Convex handlers in `packages/backend/convex/mcp/`. Removed the deprecated app, root `mcp:*` scripts, and stale docs references to `apps/mcp/dist/index.js`.
