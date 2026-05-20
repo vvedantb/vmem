@@ -102,7 +102,7 @@ Tool args (Zod schemas) copied verbatim from `apps/mcp/src/tools.ts` lines 36–
 ## Convex env vars
 
 - `MCP_JWT_SECRET` — must equal current Railway value (existing tokens stay valid).
-- `CLERK_SECRET_KEY` — already set.
+- `CLERK_SECRET_KEY` — required for MCP bearer verification (`verifyAccessToken` re-checks the Clerk user exists). Without it, OAuth succeeds but `/mcp` returns 401 and Claude shows "Authorization with the MCP server failed".
 - `WEB_APP_URL` — used by `authorizeGet` to build redirect target. Add for prod + dev.
 
 (Plan does NOT need `CLERK_PUBLISHABLE_KEY` in Convex env because the inline-HTML approach is gone.)

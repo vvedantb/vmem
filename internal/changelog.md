@@ -1,5 +1,12 @@
 # Changelog
 
+## Fix Claude MCP OAuth + Simplify Web Env Vars — 2026-05-20
+
+- **Root cause: missing `CLERK_SECRET_KEY` on Convex**: OAuth completed and tokens were issued, but every authenticated `/mcp` request returned 401 because `verifyAccessToken` re-checks the Clerk user and the secret was never set on the dev deployment. Claude showed "Authorization with the MCP server failed" even though the authorize flow looked fine. **Action required**: ensure `CLERK_SECRET_KEY` is set on every Convex deployment that serves MCP (alongside existing `MCP_JWT_SECRET` and `WEB_APP_URL`).
+- **Dropped redundant web env vars**: Removed `VITE_MCP_URL` and `VITE_ENV` — Vercel only needs `VITE_CONVEX_URL` + `VITE_CLERK_PUBLISHABLE_KEY`, matching the conductor pattern. Playground derives the MCP site URL inline via `.convex.cloud` → `.convex.site`.
+- **Landing page always shows Clerk sign-in**: Removed the production gate that disabled Sign In/Sign Up and showed a self-hosted-only message — all deployments now use the same auth UI.
+- **MCP URL docs**: Deprecated Railway README and migration notes now call out the full regional Convex site URL (omitting the region segment 404s).
+
 ## Custom Animated Sidebar Icons — 2026-05-20
 
 - **11 hand-crafted SVG icons for main-nav tabs**: Chat, Voice, Memories, Teams, Files, Codebases, Skills, Wiki, Activity, Inbox, Settings replaced tabler defaults with custom components matching the tabler aesthetic (24×24 viewBox, 1.7 stroke, currentColor).

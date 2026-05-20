@@ -3,7 +3,8 @@
 > **⚠️ DEPRECATED — DO NOT USE**
 >
 > This Express/Railway deployment has been replaced by the inline Convex MCP
-> server. New URL: `https://<your-convex-slug>.convex.site/mcp`.
+> server. New URL: `https://<your-convex-slug>.<region>.convex.site/mcp`  
+> (Copy the full site URL from the Convex dashboard — URLs without the region segment return 404.)
 >
 > All OAuth, tools, and resources now live in
 > `packages/backend/convex/mcp/`. This folder is kept only to support the
