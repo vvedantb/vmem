@@ -9,7 +9,7 @@ import {
   stopAutoSync,
   registerAlarmListener,
   registerBookmarkListener,
-  ensureSettingsMirrorAlarm,
+  bootstrapSyncSchedulers,
   catchUpHistorySyncIfOverdue,
 } from "./sync-scheduler";
 import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
@@ -174,6 +174,8 @@ registerContextMenuClickListener();
 // handler itself checks the autoSyncEnabled flag at call time.
 registerBookmarkListener();
 
+void bootstrapSyncSchedulers();
+
 chrome.runtime.onInstalled.addListener(async (details) => {
   // Open welcome page on first install
   if (details.reason === "install") {
@@ -182,8 +184,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
   registerContextMenu();
   await refreshUserSettingsMirrorFromConvex();
-  ensureSettingsMirrorAlarm();
-  await initAutoSync();
+  await bootstrapSyncSchedulers();
   void catchUpHistorySyncIfOverdue();
 });
 
@@ -194,8 +195,7 @@ chrome.runtime.onStartup.addListener(async () => {
   // next install/update event.
   registerContextMenu();
   await refreshUserSettingsMirrorFromConvex();
-  ensureSettingsMirrorAlarm();
-  await initAutoSync();
+  await bootstrapSyncSchedulers();
   // Trigger an immediate sync if the alarm hasn't fired recently. The
   // 30-min periodic alarm survives browser restart, but if the user
   // restarts more often than that, they could go a long time between
@@ -217,10 +217,3 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 registerMessageHandler();
-
-async function initAutoSync(): Promise<void> {
-  const { autoSyncEnabled } = await getStorage();
-  if (autoSyncEnabled) {
-    await startAutoSync();
-  }
-}

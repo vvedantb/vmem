@@ -2,6 +2,15 @@ import { api } from "@vmem/backend";
 import { setStorage } from "@/lib/storage";
 import { createAuthenticatedConvexClient } from "./auth";
 
+async function reconcileAutoSyncAlarm(enabled: boolean): Promise<void> {
+  const { startAutoSync, stopAutoSync } = await import("./sync-scheduler");
+  if (enabled) {
+    await startAutoSync();
+  } else {
+    await stopAutoSync();
+  }
+}
+
 export async function refreshUserSettingsMirrorFromConvex(): Promise<void> {
   const client = await createAuthenticatedConvexClient();
   if (!client) {
@@ -14,6 +23,11 @@ export async function refreshUserSettingsMirrorFromConvex(): Promise<void> {
       autoSyncEnabled: settings.extensionAutoSyncEnabled,
       selectionPopupEnabled: settings.extensionSelectionPopupEnabled,
     });
+    if (settings.extensionAutoSyncEnabled) {
+      await reconcileAutoSyncAlarm(true);
+    } else {
+      await reconcileAutoSyncAlarm(false);
+    }
   } catch {
     return;
   }
