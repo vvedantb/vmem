@@ -13,7 +13,7 @@ import {
 import PageContainer from "@/components/PageContainer";
 import { env } from "@/env";
 
-const MCP_BASE = env.VITE_MCP_URL;
+const MCP_BASE = env.VITE_CONVEX_URL.replace(".convex.cloud", ".convex.site");
 
 interface ToolInfo {
   name: string;
