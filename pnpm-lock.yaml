@@ -262,37 +262,6 @@ importers:
 
   apps/docs: {}
 
-  apps/mcp:
-    dependencies:
-      '@clerk/backend':
-        specifier: 'catalog:'
-        version: 2.33.2(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
-      '@modelcontextprotocol/sdk':
-        specifier: 'catalog:'
-        version: 1.29.0(zod@3.25.76)
-      express:
-        specifier: ^5.1.0
-        version: 5.2.1
-      jsonwebtoken:
-        specifier: 'catalog:'
-        version: 9.0.3
-      zod:
-        specifier: 'catalog:'
-        version: 3.25.76
-    devDependencies:
-      '@types/express':
-        specifier: ^5.0.0
-        version: 5.0.6
-      '@types/jsonwebtoken':
-        specifier: 'catalog:'
-        version: 9.0.10
-      tsx:
-        specifier: 'catalog:'
-        version: 4.21.0
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-
   apps/mobile:
     dependencies:
       '@clerk/clerk-expo':
@@ -4106,9 +4075,6 @@ packages:
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
-  '@types/body-parser@1.19.6':
-    resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
-
   '@types/chrome@0.0.304':
     resolution: {integrity: sha512-ms9CLILU+FEMK7gcmgz/Mtn2E81YQWiMIzCFF8ktp98EVNIIfoqaDTD4+ailOCq1sGjbnEmfJxQ1FAsQtk5M3A==}
 
@@ -4221,12 +4187,6 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
-  '@types/express-serve-static-core@5.1.1':
-    resolution: {integrity: sha512-v4zIMr/cX7/d2BpAEX3KNKL/JrT1s43s96lLvvdTmza1oEvDudCqK9aF/djc/SWgy8Yh0h30TZx5VpzqFCxk5A==}
-
-  '@types/express@5.0.6':
-    resolution: {integrity: sha512-sKYVuV7Sv9fbPIt/442koC7+IIwK5olP1KWeD88e/idgoJqDm3JV/YUiPwkoKK92ylff2MGxSz1CSjsXelx0YA==}
-
   '@types/filesystem@0.0.36':
     resolution: {integrity: sha512-vPDXOZuannb9FZdxgHnqSwAG/jvdGM8Wq+6N4D/d80z+D4HWH+bItqsZaVRQykAn6WEVeEkLm2oQigyHtgb0RA==}
 
@@ -4247,9 +4207,6 @@ packages:
 
   '@types/hast@3.0.4':
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
-
-  '@types/http-errors@2.0.5':
-    resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
 
   '@types/istanbul-lib-coverage@2.0.6':
     resolution: {integrity: sha512-2QF/t/auWm0lsy8XtKVPG19v3sSOQlJe/YHZgfjb/KBBHOGSV+J2q/S671rcq9uTBrLAXmZpqJiaQbMT+zNU1w==}
@@ -4311,12 +4268,6 @@ packages:
   '@types/pdf-parse@1.1.5':
     resolution: {integrity: sha512-kBfrSXsloMnUJOKi25s3+hRmkycHfLK6A09eRGqF/N8BkQoPUmaCr+q8Cli5FnfohEz/rsv82zAiPz/LXtOGhA==}
 
-  '@types/qs@6.15.0':
-    resolution: {integrity: sha512-JawvT8iBVWpzTrz3EGw9BTQFg3BQNmwERdKE22vlTxawwtbyUSlMppvZYKLZzB5zgACXdXxbD3m1bXaMqP/9ow==}
-
-  '@types/range-parser@1.2.7':
-    resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
-
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
     peerDependencies:
@@ -4324,12 +4275,6 @@ packages:
 
   '@types/react@19.2.14':
     resolution: {integrity: sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==}
-
-  '@types/send@1.2.1':
-    resolution: {integrity: sha512-arsCikDvlU99zl1g69TcAB3mzZPpxgw0UQnaHeC1Nwb015xp8bknZv5rIfri9xTOcMuaVgvabfIRA7PSZVuZIQ==}
-
-  '@types/serve-static@2.2.0':
-    resolution: {integrity: sha512-8mam4H1NHLtu7nmtalF7eyBH14QyOASmcxHhSfEoRyr0nP/YdoesEtU+uSRvMe96TW/HPTtkoKqQLl53N7UXMQ==}
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
@@ -12501,7 +12446,7 @@ snapshots:
       debug: 4.4.3
       invariant: 2.2.4
       metro: 0.83.6(bufferutil@4.1.0)
-      metro-config: 0.83.6(bufferutil@4.1.0)
+      metro-config: 0.83.6(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       metro-core: 0.83.6
       semver: 7.7.4
     transitivePeerDependencies:
@@ -13621,11 +13566,6 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.0
 
-  '@types/body-parser@1.19.6':
-    dependencies:
-      '@types/connect': 3.4.38
-      '@types/node': 25.6.0
-
   '@types/chrome@0.0.304':
     dependencies:
       '@types/filesystem': 0.0.36
@@ -13766,19 +13706,6 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
-  '@types/express-serve-static-core@5.1.1':
-    dependencies:
-      '@types/node': 25.6.0
-      '@types/qs': 6.15.0
-      '@types/range-parser': 1.2.7
-      '@types/send': 1.2.1
-
-  '@types/express@5.0.6':
-    dependencies:
-      '@types/body-parser': 1.19.6
-      '@types/express-serve-static-core': 5.1.1
-      '@types/serve-static': 2.2.0
-
   '@types/filesystem@0.0.36':
     dependencies:
       '@types/filewriter': 0.0.33
@@ -13798,8 +13725,6 @@ snapshots:
   '@types/hast@3.0.4':
     dependencies:
       '@types/unist': 3.0.3
-
-  '@types/http-errors@2.0.5': {}
 
   '@types/istanbul-lib-coverage@2.0.6': {}
 
@@ -13867,10 +13792,6 @@ snapshots:
     dependencies:
       '@types/node': 25.6.0
 
-  '@types/qs@6.15.0': {}
-
-  '@types/range-parser@1.2.7': {}
-
   '@types/react-dom@19.2.3(@types/react@19.2.14)':
     dependencies:
       '@types/react': 19.2.14
@@ -13878,15 +13799,6 @@ snapshots:
   '@types/react@19.2.14':
     dependencies:
       csstype: 3.2.3
-
-  '@types/send@1.2.1':
-    dependencies:
-      '@types/node': 25.6.0
-
-  '@types/serve-static@2.2.0':
-    dependencies:
-      '@types/http-errors': 2.0.5
-      '@types/node': 25.6.0
 
   '@types/stack-utils@2.0.3': {}
 
@@ -16934,21 +16846,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  metro-config@0.83.6(bufferutil@4.1.0):
-    dependencies:
-      connect: 3.7.0
-      flow-enums-runtime: 0.0.6
-      jest-validate: 29.7.0
-      metro: 0.83.6(bufferutil@4.1.0)
-      metro-cache: 0.83.6
-      metro-core: 0.83.6
-      metro-runtime: 0.83.6
-      yaml: 2.8.3
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
   metro-config@0.83.6(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     dependencies:
       connect: 3.7.0
@@ -17237,7 +17134,7 @@ snapshots:
       metro-babel-transformer: 0.83.6
       metro-cache: 0.83.6
       metro-cache-key: 0.83.6
-      metro-config: 0.83.6(bufferutil@4.1.0)
+      metro-config: 0.83.6(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       metro-core: 0.83.6
       metro-file-map: 0.83.6
       metro-resolver: 0.83.6

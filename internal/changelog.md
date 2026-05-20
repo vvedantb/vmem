@@ -1,5 +1,10 @@
 # Changelog
 
+## Remove Legacy `apps/mcp` Railway Server — 2026-05-20
+
+- **Deleted `apps/mcp/`**: The Express/Railway MCP deployment is fully replaced by inline Convex handlers in `packages/backend/convex/mcp/`. Removed the deprecated app, root `mcp:*` scripts, and stale docs references to `apps/mcp/dist/index.js`.
+- **Docs updated**: MCP overview now points at the Convex site URL + OAuth flow instead of a local Node process.
+
 ## Fix Claude MCP OAuth + Simplify Web Env Vars — 2026-05-20
 
 - **Root cause: missing `CLERK_SECRET_KEY` on Convex**: OAuth completed and tokens were issued, but every authenticated `/mcp` request returned 401 because `verifyAccessToken` re-checks the Clerk user and the secret was never set on the dev deployment. Claude showed "Authorization with the MCP server failed" even though the authorize flow looked fine. **Action required**: ensure `CLERK_SECRET_KEY` is set on every Convex deployment that serves MCP (alongside existing `MCP_JWT_SECRET` and `WEB_APP_URL`).
