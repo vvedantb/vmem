@@ -5,7 +5,6 @@ import {
   createPopupConfig,
   createBackgroundConfig,
   createContentScriptConfig,
-  createOffscreenConfig,
 } from "../vite.config.js";
 
 const root = resolve(import.meta.dirname, "..");
@@ -25,9 +24,6 @@ if (existsSync(publicDir)) {
 
 console.log("Building popup...");
 await build(createPopupConfig(mode));
-
-console.log("Building offscreen...");
-await build(createOffscreenConfig(mode));
 
 console.log("Building background service worker...");
 await build(createBackgroundConfig(mode));
