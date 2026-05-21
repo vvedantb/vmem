@@ -54,14 +54,14 @@ export interface TimelineEvent extends MemoryEvent {
 
 export interface ScoreBreakdown {
   fulltext: number;
-  // Semantic (vector) similarity from Neo4j cosine-distance search over
-  // OpenAI-style embeddings. 0 when embeddings are unavailable (user has
-  // no OPENROUTER_API_KEY set, or fulltext-only fallback is active).
   vector: number;
+  chunk: number;
+  entity: number;
+  rrf: number;
   recency: number;
   confidence: number;
-  /** Graph proximity boost. 1.0 for 1-hop, 0.5 for 2-hop, 0 otherwise. */
-  graphBoost: number;
+  graphPath?: GraphPathTrace;
+  rerankerScore?: number;
 }
 
 export interface MatchedChunk {
@@ -85,6 +85,43 @@ export interface MemoryCandidate extends MemoryWithTags {
    * memory only.
    */
   matchedChunk?: MatchedChunk;
+}
+
+export interface GraphExpansion {
+  id: string;
+  hops: number;
+  seedCount: number;
+  bridgingEntity: string | null;
+  seedId: string | null;
+}
+
+export interface GraphPathTrace {
+  seedTitle: string;
+  bridgingEntity: string | null;
+  hops: number;
+}
+
+export interface MergedEntry {
+  memory: MemoryWithTags;
+  fulltextScore: number;
+  vectorScore: number;
+  chunkScore: number;
+  entityScore: number;
+  recencyScore: number;
+  confidenceScore: number;
+  ftRank: number | null;
+  vecRank: number | null;
+  chunkRank: number | null;
+  entityRank: number | null;
+  graphRank: number | null;
+  graphHops: number | null;
+  seedCount: number;
+  graphSeedId: string | null;
+  graphSeedTitle: string | null;
+  bridgingEntity: string | null;
+  embedding: number[] | null;
+  rerankerScore: number | null;
+  matchedChunk: MatchedChunk | null;
 }
 
 /**

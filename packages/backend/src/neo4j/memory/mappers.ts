@@ -38,8 +38,15 @@ export function rrfScore(rank: number, k = 60): number {
  * knowledge (last week) near the top while not penalising older
  * reference memories too harshly.
  */
-export function recencyFromAgeDays(age: number): number {
+export function recencyFromAgeDays(age: number, type: MemoryType): number {
+  if (type === "profile") return 1.0;
   if (age < 1) return 1.0;
+  if (type === "knowledge") {
+    if (age < 7) return 1.0;
+    if (age < 30) return 0.9;
+    if (age < 90) return 0.7;
+    return 0.5;
+  }
   if (age < 7) return 0.9;
   if (age < 30) return 0.7;
   if (age < 90) return 0.5;
