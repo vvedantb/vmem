@@ -11,7 +11,8 @@
     "dev": "npx convex dev",
     "deploy": "npx convex deploy",
     "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed.ts",
-    "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts"
+    "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts",
+    "eval:retrieval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/run.ts"
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "catalog:",

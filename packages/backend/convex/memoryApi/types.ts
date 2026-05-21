@@ -30,10 +30,17 @@ export interface MemoryListResult {
 export interface ScoreBreakdown {
   fulltext: number;
   vector: number;
+  chunk: number;
+  entity: number;
+  rrf: number;
   recency: number;
   confidence: number;
-  /** Graph proximity boost. 1.0 for 1-hop, 0.5 for 2-hop, 0 otherwise. */
-  graphBoost: number;
+  graphPath?: {
+    seedTitle: string;
+    bridgingEntity: string | null;
+    hops: number;
+  };
+  rerankerScore?: number;
 }
 
 export interface MatchedChunk {
