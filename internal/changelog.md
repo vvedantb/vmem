@@ -1,5 +1,19 @@
 # Changelog
 
+## Hybrid Retrieval Ranking Improvements - 2026-05-22
+
+- **1. Eval scaffold**: Added seed-derived retrieval queries, runner script, package command, and saved baseline output.
+- **2. Parallel legs**: Fulltext, whole-memory vector, chunk vector, and entity legs now run concurrently with one Neo4j session per leg.
+- **3. Type-aware recency**: Profile memories no longer decay, knowledge memories decay more slowly, and episodic decay stays unchanged.
+- **4. Graph RRF**: Graph expansion now contributes a ranked RRF leg with path trace details instead of a flat boost.
+- **5. Entity match**: Added an entity-overlap RRF leg with rarity scoring and a count-only fallback when entity counts are absent.
+- **6. Query expansion**: Added `VMEM_ENABLE_QUERY_EXPANSION` behind a default-off flag using the existing logged OpenRouter client.
+- **7. MMR diversity**: Added post-score MMR selection with 0.7 relevance and 0.3 diversity when embeddings exist.
+- **8. Rerank**: Added `VMEM_ENABLE_RERANK` behind a default-off flag with reranker scores surfaced in traces.
+- **9. Eval rerun**: recall@5 stayed `0.0000 -> 0.0000`; MRR stayed `0.0000 -> 0.0000` because local Neo4j lacks the seed eval user memories.
+- **Partial note**: Query-side entity extraction uses deterministic token/bigram candidates instead of a new LLM call to preserve default no-extra-LLM behavior.
+- **Dependencies**: No new packages were added.
+
 ## Chrome Extension: Reliable Alarm-Driven Sync Auth - 2026-05-22
 
 - **Background sync no longer depends on popup activity**: 30-minute alarm wakes can refresh auth directly, so history sync continues after the MV3 service worker is evicted.
