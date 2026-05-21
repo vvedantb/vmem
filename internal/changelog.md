@@ -1,5 +1,10 @@
 # Changelog
 
+## Chrome Extension: Reliable Alarm-Driven Sync Auth - 2026-05-22
+
+- **Background sync no longer depends on popup activity**: 30-minute alarm wakes can refresh auth directly, so history sync continues after the MV3 service worker is evicted.
+- **Removed obsolete offscreen auth path**: The extension no longer ships an offscreen document solely for token refresh, reducing background moving parts.
+
 ## Fix MCP memory_retrieve + memory_update — 2026-05-20
 
 - **`memory_retrieve` no longer hard-fails without chunk index**: If Neo4j is missing the `chunk_embedding` vector index, retrieval skips the chunk leg and continues on fulltext + whole-memory vector. Run `npx convex run neo4jActions/dbSetup:ensureNeo4jSetup` once to create chunk indexes for long-memory passage search.
