@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { authAction } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 
 interface MemorySnapshot {
@@ -26,11 +26,7 @@ interface TimelineEvent {
 export const getMemoryTimeline = authAction({
   args: { memoryId: v.string() },
   handler: async (ctx, args): Promise<TimelineEvent[]> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.timeline.getMemoryTimelineInternal,
       {
@@ -48,11 +44,7 @@ export const getTopicTimeline = authAction({
     offset: v.number(),
   },
   handler: async (ctx, args): Promise<TimelineEvent[]> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.timeline.getTopicTimelineInternal,
       {
@@ -72,11 +64,7 @@ export const getSearchTimeline = authAction({
     offset: v.number(),
   },
   handler: async (ctx, args): Promise<TimelineEvent[]> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.timeline.getSearchTimelineInternal,
       {

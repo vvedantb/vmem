@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { authAction } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
@@ -133,11 +133,7 @@ export const getGraphData = authAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<GraphResult> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
 
     const memoryGraph: MemoryGraph = await ctx.runAction(
       internal.neo4jActions.graph.getGraphDataInternal,
@@ -234,11 +230,7 @@ export const getNodeContent = authAction({
     memoryId: v.string(),
   },
   handler: async (ctx, args): Promise<string> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.graph.getMemoryContentInternal,
       { clerkId, memoryId: args.memoryId },

@@ -128,6 +128,7 @@ export const deleteAllMemoriesInternal = internalAction({
 export const searchMemoriesInternal = internalAction({
   args: {
     clerkId: v.string(),
+    profileId: v.optional(v.string()),
     query: v.optional(v.string()),
     type: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),

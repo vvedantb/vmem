@@ -1,0 +1,51 @@
+import { v } from "convex/values";
+import { internalMutation } from "./_generated/server";
+
+export const insertOAuthStateInternal = internalMutation({
+  args: {
+    state: v.string(),
+    userId: v.id("users"),
+    returnUrl: v.string(),
+    expiresAt: v.number(),
+    connectorId: v.optional(v.id("connectors")),
+    provider: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("oauthStates", args);
+  },
+});
+
+/**
+ * Atomically consumes an OAuth state entry (read + delete).
+ * Returns the entry data if found, null otherwise.
+ * Being a mutation ensures no two callbacks can consume the same state.
+ */
+export const consumeOAuthStateInternal = internalMutation({
+  args: { state: v.string() },
+  returns: v.union(
+    v.object({
+      userId: v.id("users"),
+      returnUrl: v.string(),
+      expiresAt: v.number(),
+      connectorId: v.optional(v.id("connectors")),
+      provider: v.optional(v.string()),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const entry = await ctx.db
+      .query("oauthStates")
+      .withIndex("by_state", (q) => q.eq("state", args.state))
+      .first();
+    if (!entry) return null;
+
+    await ctx.db.delete(entry._id);
+    return {
+      userId: entry.userId,
+      returnUrl: entry.returnUrl,
+      expiresAt: entry.expiresAt,
+      connectorId: entry.connectorId,
+      provider: entry.provider,
+    };
+  },
+});

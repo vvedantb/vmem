@@ -46,6 +46,25 @@ export function toMemoryStatus(
 }
 
 /**
+ * Resolve the profileId for a memory operation.
+ * Priority: explicit profileId > default profile (created if missing).
+ */
+export async function resolveProfileIdForClerkId(
+  ctx: ActionCtx,
+  clerkId: string,
+  explicitProfileId?: string,
+): Promise<string> {
+  if (explicitProfileId) {
+    return explicitProfileId;
+  }
+  const profile = await ctx.runMutation(
+    internal.profiles.getOrCreateDefaultByClerkIdInternal,
+    { clerkId },
+  );
+  return profile._id;
+}
+
+/**
  * Mark the user's context_prompt cache as pending and — only on the
  * first invalidation in a burst — schedule the 60s debounce check.
  * Memory writes (create / update / delete) all funnel through here so

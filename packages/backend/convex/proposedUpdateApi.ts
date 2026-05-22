@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { authAction } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import { auditLog, ResourceTypes } from "./auditLog";
 
@@ -52,11 +52,7 @@ interface ResolveResult {
 export const listProposedUpdates = authAction({
   args: {},
   handler: async (ctx): Promise<ProposedUpdateNode[]> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.proposedUpdates.listProposedUpdatesInternal,
       {
@@ -72,11 +68,7 @@ export const resolveProposal = authAction({
     action: v.string(),
   },
   handler: async (ctx, args): Promise<ResolveResult | null> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
 
     const result: ResolveResult | null = await ctx.runAction(
       internal.neo4jActions.proposedUpdates.resolveProposalInternal,
@@ -117,22 +109,16 @@ export const resolveProposal = authAction({
       // memory_created event so the live graph view picks it up alongside
       // the dream_synthesis_materialized event.
       if (result.materializedMemoryId && result.status === "approved") {
-        const clerkId: string | null = await ctx.runQuery(
-          internal.auth.getClerkIdInternal,
-          { userId: ctx.userId },
-        );
-        if (clerkId) {
-          await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
-            clerkId,
-            eventType: "dream_synthesis_materialized",
-            memoryId: result.materializedMemoryId,
-            payload: JSON.stringify({
-              kind: result.kind,
-              source: "proposal-approve",
-              proposalId: args.proposalId,
-            }),
-          });
-        }
+        await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+          clerkId,
+          eventType: "dream_synthesis_materialized",
+          memoryId: result.materializedMemoryId,
+          payload: JSON.stringify({
+            kind: result.kind,
+            source: "proposal-approve",
+            proposalId: args.proposalId,
+          }),
+        });
       }
     }
 
