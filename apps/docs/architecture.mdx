@@ -1,0 +1,85 @@
+---
+title: "Architecture"
+description: "How vmem's components fit together"
+---
+
+## Overview
+
+vmem is a monorepo with a Convex backend, Neo4j graph store, Vite web dashboard, Chrome extension, and Expo mobile app. All first-party clients talk to Convex via the SDK — there is no standalone REST server.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Clients                                                    │
+│  ┌──────────┐  ┌──────────────┐  ┌────────┐  ┌─────────┐ │
+│  │ Web App  │  │ Chrome Ext.  │  │ Mobile │  │ MCP     │ │
+│  │ (Vite)   │  │              │  │ (Expo) │  │ Clients │ │
+│  └────┬─────┘  └──────┬───────┘  └───┬────┘  └────┬────┘ │
+└───────┼───────────────┼──────────────┼────────────┼───────┘
+        │               │              │            │
+        └───────────────┴──────────────┴────────────┘
+                                │
+                    ┌───────────▼───────────┐
+                    │  Convex               │
+                    │  • Clerk auth         │
+                    │  • authAction API     │
+                    │  • MCP HTTP (/mcp)    │
+                    │  • File storage       │
+                    │  • Profiles, teams    │
+                    └───────────┬───────────┘
+                                │
+                    ┌───────────▼───────────┐
+                    │  Neo4j                │
+                    │  • Memory graph       │
+                    │  • Semantic search    │
+                    │  • Context trace      │
+                    │  • Proposed updates   │
+                    └───────────────────────┘
+```
+
+## Monorepo Layout
+
+| Path | Purpose |
+| --- | --- |
+| `apps/web` | Vite + React + TanStack Router dashboard |
+| `apps/mobile` | Expo React Native app with offline local LLM |
+| `apps/chrome-extension` | Browser extension for ChatGPT/Claude/page saves |
+| `apps/docs` | Mintlify documentation site |
+| `packages/backend` | Convex functions, Neo4j actions, MCP server |
+| `packages/ui` | Shared shadcn/ui component library (`@vmem/ui`) |
+
+## Data Flow
+
+### Writing a Memory
+
+1. Client calls `memoryApi.createMemory` (Convex `authAction`)
+2. Convex verifies Clerk identity, resolves active profile
+3. Neo4j action creates the memory node with tags and embedding
+4. Context prompt regeneration is scheduled (60s debounce)
+5. If local enrichment is enabled, tags and related-memory links are applied client-side
+
+### Retrieving Memories
+
+1. Client calls `memoryApi.retrieveMemories` with a natural language query
+2. Neo4j runs hybrid retrieval: fulltext + vector + chunk + entity + graph expansion
+3. Results are fused with RRF, scored for recency and confidence
+4. Each result includes a **context trace** explaining the score
+5. User settings (`aboutMe`, `preferences`) are merged in parallel
+
+### MCP Implicit Memory
+
+1. MCP client reads `vmem://context_prompt` at conversation start
+2. Convex returns cached markdown profile (or placeholder on first read)
+3. Background job regenerates the profile from pinned memories + recent activity
+4. LLM sees user context without any tool call
+
+## Authentication
+
+All Convex functions use **Clerk** for identity. Protected functions use `authAction`, `authMutation`, or `authQuery` builders that inject `ctx.userId`.
+
+MCP clients authenticate via **OAuth + PKCE** and receive a Bearer JWT signed with `MCP_JWT_SECRET`.
+
+API keys (`vmem_sk_*`) can be created in the dashboard for future programmatic access. They are AES-GCM encrypted at rest but are not yet wired to a public HTTP API.
+
+## Local LLM
+
+Chat and voice on web, and chat on mobile, run **local models** (WebLLM / llama.cpp) in the browser. Before each turn, relevant memories are retrieved from Convex and injected into the system prompt. Enrichment (semantic tags, related-memory links) also runs locally when a model is available.

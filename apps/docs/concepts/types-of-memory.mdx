@@ -19,7 +19,7 @@ Stable facts about the user that persist across all sessions.
 **Characteristics:**
 - Rarely changes
 - Always relevant regardless of conversation topic
-- Injected via `user://profile` MCP Resource
+- Included in the synthesized `vmem://context_prompt` MCP resource
 - High priority in retrieval ranking
 
 ## Episodic Memory
@@ -35,13 +35,14 @@ Session-specific or temporal events tied to a point in time.
 - Time-stamped and contextual
 - Relevance decays over time (recency-weighted)
 - Most likely to trigger proposed updates when new info conflicts
+- Common source for import workflows (ChatGPT/Claude exports)
 
 ## Knowledge Memory
 
 Learned information, skills, and domain knowledge.
 
 **Examples:**
-- "The vmem API uses Hono on Node.js"
+- "The vmem backend uses Convex actions backed by Neo4j"
 - "MCP Resources are injected before LLM inference"
 - "Neo4j Cypher uses MATCH for pattern matching"
 
@@ -49,6 +50,7 @@ Learned information, skills, and domain knowledge.
 - Categorical rather than temporal
 - Grows as the user works across sessions
 - Useful for building up a user's knowledge graph
+- Common type for bookmark and page-save imports
 
 ## Memory Lifecycle
 
@@ -57,8 +59,23 @@ Every memory goes through a lifecycle with these possible states:
 | Status | Description |
 | --- | --- |
 | `active` | Normal state — included in retrieval |
-| `pinned` | Protected from expiry, boosted in ranking |
+| `pinned` | Protected from expiry, boosted in ranking, always included in context prompt |
 | `suppressed` | Hidden from retrieval but preserved |
 | `expired` | Past its expiry date, excluded from results |
 
 Transitions between states are tracked in the memory's **event trail**, providing a full audit history of when and why a memory changed.
+
+## Memory Fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | string | Unique memory ID |
+| `title` | string | Short title |
+| `content` | string | Full memory content |
+| `type` | string | `profile`, `episodic`, or `knowledge` |
+| `source` | string | Origin (e.g. `manual`, `mcp`, `chatgpt`, `claude`) |
+| `tags` | string[] | Categorisation tags |
+| `confidence` | number | 0–1 confidence score |
+| `status` | string | `active`, `pinned`, `suppressed`, or `expired` |
+| `expiresAt` | string \| null | Optional ISO 8601 expiry date |
+| `profileId` | string \| null | Profile the memory belongs to |

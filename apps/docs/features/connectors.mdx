@@ -1,0 +1,45 @@
+---
+title: "Connectors"
+description: "Sync data from external services into vmem"
+---
+
+## Overview
+
+Connectors integrate external data sources with vmem. Connect services from **Settings → Connectors** (`/settings/connectors`).
+
+## Available Connectors
+
+| Connector | Status | Auth |
+| --- | --- | --- |
+| Google Drive | Available | OAuth |
+| OneDrive | Available | OAuth |
+| Notion | Available | OAuth |
+| Linear | Available | OAuth |
+| Dropbox | Coming soon | — |
+| Slack | Coming soon | — |
+| GitHub | Separate integration | See [Codebases](/features/codebases) |
+
+## OAuth Setup
+
+Each connector requires client ID and secret in Convex environment variables:
+
+| Connector | Variables |
+| --- | --- |
+| Google Drive | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| OneDrive | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` |
+| Notion | `NOTION_CLIENT_ID`, `NOTION_CLIENT_SECRET` |
+| Linear | `LINEAR_CLIENT_ID`, `LINEAR_CLIENT_SECRET` |
+
+Also required: `CONVEX_SITE_URL` for OAuth callback redirects.
+
+## How Connectors Work
+
+1. User initiates OAuth from the connectors settings page
+2. Convex handles the OAuth flow via `connectorOAuth.ts`
+3. Tokens are encrypted at rest (AES-GCM, same as API keys)
+4. Sync jobs pull data from the connected service
+5. Imported content can become memories in the graph
+
+## MCP Playground
+
+Test connector and MCP tool behavior from **Settings → Playground** (`/settings/playground`).
