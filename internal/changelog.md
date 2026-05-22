@@ -1,5 +1,10 @@
 # Changelog
 
+## NPM SDK Publish — 2026-05-22
+
+- **GitHub Actions publish workflow**: Version bumps to `packages/sdk/package.json` on `main` trigger a build and npm publish of `@vmem/sdk` with provenance.
+- **Package metadata**: Added `publishConfig`, `repository`, and `license` so the scoped package can publish publicly.
+
 ## VMemory SDK — 2026-05-22
 
 - **`@vmem/sdk` package**: JavaScript SDK with `VMemory` class — agentic `store()`, `update()`, `retrieve()` plus structured escape hatches over existing API key HTTP routes.
