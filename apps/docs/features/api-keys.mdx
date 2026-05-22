@@ -27,7 +27,7 @@ vmem_sk_a1b2c3d4e5f6...
 
 Keys are hashed for lookup and AES-GCM encrypted at rest (`v1:` format). Requires `ENCRYPTION_KEY` in Convex environment variables.
 
-## Operations
+## Dashboard Operations
 
 | Function | Description |
 | --- | --- |
@@ -36,14 +36,35 @@ Keys are hashed for lookup and AES-GCM encrypted at rest (`v1:` format). Require
 | `apiKeys.revokeMy` | Revoke a key |
 | `apiKeys.revealMy` | Decrypt and reveal a key |
 
-## Current Limitations
+## HTTP API
 
-API keys are created and managed in the dashboard but are **not yet wired to a public HTTP REST API**. All first-party clients (web, extension, mobile) authenticate via Clerk through the Convex SDK.
+Use API keys as Bearer tokens against the Convex HTTP deployment:
 
-MCP clients authenticate via OAuth + Bearer JWT, not API keys.
+```
+Authorization: Bearer vmem_sk_...
+```
 
-Usage recording (`recordUsageInternal`) exists for future metering but has no active callers.
+Base URL: `https://<your-deployment>.convex.site`
 
-## Future
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/api/v1/memories` | `POST` | Store (create) a memory |
+| `/api/v1/memories/retrieve` | `POST` | Semantic retrieve |
+| `/api/v1/memories` | `PATCH` | Update a memory |
 
-When a public REST API is exposed, API keys will authenticate requests with Bearer token auth. The key management UI and encryption infrastructure are already in place.
+Example:
+
+```bash
+curl -X POST "https://<deployment>.convex.site/api/v1/memories" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Note","content":"Hello","type":"knowledge","source":"api","tags":[],"confidence":1}'
+```
+
+Full request/response reference: [HTTP Memories API](/api-reference/http-memories).
+
+## Other Clients
+
+First-party apps (web, extension, mobile) use Clerk via the Convex SDK. MCP clients use OAuth + Bearer JWT at `/mcp`, not API keys.
+
+Each HTTP request increments the key's `requestCount` and updates `lastUsedAt`.

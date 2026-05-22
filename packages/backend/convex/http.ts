@@ -10,6 +10,7 @@ import {
   mcpHandler,
   health as mcpHealth,
 } from "./mcp/native";
+import { storeMemory, retrieveMemories, updateMemory } from "./http/v1Memories";
 
 const http = httpRouter();
 
@@ -170,6 +171,26 @@ function callbackHtml(
 </body>
 </html>`;
 }
+
+// --- API key REST (vmem_sk_* Bearer) ---
+
+http.route({
+  path: "/api/v1/memories",
+  method: "POST",
+  handler: storeMemory,
+});
+
+http.route({
+  path: "/api/v1/memories/retrieve",
+  method: "POST",
+  handler: retrieveMemories,
+});
+
+http.route({
+  path: "/api/v1/memories",
+  method: "PATCH",
+  handler: updateMemory,
+});
 
 // --- MCP server (OAuth + tools/resources) ---
 
