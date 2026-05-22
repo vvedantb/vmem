@@ -1,5 +1,11 @@
 # Changelog
 
+## API Key HTTP Endpoints - 2026-05-22
+
+- **Programmatic memory access via API keys**: Added Convex HTTP routes `POST /api/v1/memories`, `POST /api/v1/memories/retrieve`, and `PATCH /api/v1/memories` so `vmem_sk_*` keys work outside the Clerk SDK.
+- **Bearer auth + metering**: Requests authenticate by hashing the key and resolving the owner’s Clerk id; each call records usage on the key for dashboard stats.
+- **Docs**: Updated API keys feature page, architecture overview, and added HTTP Memories API reference with curl examples.
+
 ## Hybrid Retrieval Ranking Improvements - 2026-05-22
 
 - **1. Eval scaffold**: Added seed-derived retrieval queries, runner script, package command, and saved baseline output.
