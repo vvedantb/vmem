@@ -63,6 +63,7 @@
           {
             "group": "Memories",
             "pages": [
+              "api-reference/http-memories",
               "api-reference/memories",
               "api-reference/proposed-updates",
               "api-reference/file-import",

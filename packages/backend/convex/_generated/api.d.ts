@@ -28,6 +28,7 @@ import type * as fileImport from "../fileImport.js";
 import type * as github from "../github.js";
 import type * as graphApi from "../graphApi.js";
 import type * as http from "../http.js";
+import type * as http_v1Memories from "../http/v1Memories.js";
 import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_envVars from "../lib/envVars.js";
 import type * as lib_openRouter from "../lib/openRouter.js";
@@ -124,6 +125,7 @@ declare const fullApi: ApiFromModules<{
   github: typeof github;
   graphApi: typeof graphApi;
   http: typeof http;
+  "http/v1Memories": typeof http_v1Memories;
   "lib/crypto": typeof lib_crypto;
   "lib/envVars": typeof lib_envVars;
   "lib/openRouter": typeof lib_openRouter;

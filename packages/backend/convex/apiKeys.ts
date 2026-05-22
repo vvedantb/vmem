@@ -41,7 +41,7 @@ function generateApiKey(): string {
   return `vmem_sk_${b64url}`;
 }
 
-async function hashApiKey(rawKey: string): Promise<string> {
+export async function hashApiKey(rawKey: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(rawKey),
@@ -198,6 +198,39 @@ export const revealMy = authAction({
 });
 
 // --- Internal queries and mutations ---
+
+export const resolveByKeyHashInternal = internalQuery({
+  args: { keyHash: v.string() },
+  returns: v.union(
+    v.object({
+      userId: v.id("users"),
+      clerkId: v.string(),
+      apiKeyId: v.id("apiKeys"),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const apiKey = await ctx.db
+      .query("apiKeys")
+      .withIndex("by_key_hash", (q) => q.eq("keyHash", args.keyHash))
+      .first();
+
+    if (!apiKey || apiKey.status !== "active") {
+      return null;
+    }
+
+    const user = await ctx.db.get(apiKey.userId);
+    if (!user?.clerkId) {
+      return null;
+    }
+
+    return {
+      userId: apiKey.userId,
+      clerkId: user.clerkId,
+      apiKeyId: apiKey._id,
+    };
+  },
+});
 
 export const getEncryptedKeyInternal = internalQuery({
   args: { id: v.id("apiKeys"), userId: v.id("users") },

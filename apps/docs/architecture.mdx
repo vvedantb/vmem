@@ -5,7 +5,7 @@ description: "How vmem's components fit together"
 
 ## Overview
 
-vmem is a monorepo with a Convex backend, Neo4j graph store, Vite web dashboard, Chrome extension, and Expo mobile app. All first-party clients talk to Convex via the SDK — there is no standalone REST server.
+vmem is a monorepo with a Convex backend, Neo4j graph store, Vite web dashboard, Chrome extension, and Expo mobile app. First-party clients talk to Convex via the SDK; programmatic third-party access uses API key Bearer auth on Convex HTTP routes (`/api/v1/memories/*`).
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -78,7 +78,7 @@ All Convex functions use **Clerk** for identity. Protected functions use `authAc
 
 MCP clients authenticate via **OAuth + PKCE** and receive a Bearer JWT signed with `MCP_JWT_SECRET`.
 
-API keys (`vmem_sk_*`) can be created in the dashboard for future programmatic access. They are AES-GCM encrypted at rest but are not yet wired to a public HTTP API.
+API keys (`vmem_sk_*`) are created in the dashboard and authenticate HTTP requests to `/api/v1/memories` (store, retrieve, update). Keys are AES-GCM encrypted at rest.
 
 ## Local LLM
 

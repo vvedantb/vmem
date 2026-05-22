@@ -5,7 +5,12 @@ description: "Convex SDK API for the vmem memory engine"
 
 ## Access Model
 
-vmem does not expose a standalone REST API. All memory operations are **Convex `authAction`s** called via the Convex SDK with Clerk authentication.
+vmem exposes two programmatic surfaces:
+
+1. **Convex SDK** (first-party) — `authAction`s with Clerk authentication
+2. **HTTP API** (API keys) — `POST`/`PATCH` on `https://<deployment>.convex.site` with `Authorization: Bearer vmem_sk_...`
+
+### Convex SDK (Clerk)
 
 ```typescript
 import { ConvexHttpClient } from "convex/browser";
@@ -21,6 +26,10 @@ const memories = await client.action(api.memoryApi.listMemories, {
 
 First-party clients (web, extension, mobile) use `useAction(api.memoryApi.*)` with live Clerk sessions.
 
+### HTTP API (API keys)
+
+Store, retrieve, and update memories without the Convex SDK. See [HTTP Memories API](/api-reference/http-memories).
+
 ## Authentication
 
 All public API functions require a signed-in Clerk user. Protected functions use `authAction`, `authMutation`, or `authQuery` builders that verify identity and inject `ctx.userId`.
@@ -29,7 +38,7 @@ There is no `userId` parameter — identity is resolved from the Clerk session a
 
 ## MCP HTTP Endpoint
 
-The only public HTTP surface is the MCP server:
+MCP is a separate HTTP surface (OAuth + JWT, not API keys):
 
 ```
 POST https://<your-deployment>.convex.site/mcp
@@ -49,7 +58,8 @@ Returns server status with Neo4j connection info and timestamp.
 
 | Module | Description |
 | --- | --- |
-| [Memories](/api-reference/memories) | CRUD, search, retrieval, events |
+| [HTTP Memories](/api-reference/http-memories) | Store, retrieve, update via API key Bearer auth |
+| [Memories](/api-reference/memories) | CRUD, search, retrieval, events (Convex SDK) |
 | [Proposed Updates](/api-reference/proposed-updates) | Review and resolve conflicts |
 | [Dashboard](/api-reference/dashboard) | Statistics and activity |
 | [Profiles](/api-reference/profiles) | Profile management |

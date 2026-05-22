@@ -1,0 +1,116 @@
+---
+title: "HTTP Memories API"
+description: "Store, retrieve, and update memories via API key Bearer auth"
+---
+
+Programmatic memory access over HTTP. Authenticate with a dashboard API key (`vmem_sk_*`) — not Clerk or MCP OAuth.
+
+**Base URL:** `https://<your-deployment>.convex.site`
+
+**Auth header:** `Authorization: Bearer vmem_sk_...`
+
+All successful responses use `{ "data": ... }`. Errors return `{ "error": "..." }` (validation errors include `issues`).
+
+## Store (create)
+
+`POST /api/v1/memories`
+
+```bash
+curl -X POST "https://<deployment>.convex.site/api/v1/memories" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Preferred stack",
+    "content": "User prefers Next.js with Convex backend",
+    "type": "profile",
+    "source": "api",
+    "tags": ["tech"],
+    "confidence": 0.95
+  }'
+```
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `title` | string | yes |
+| `content` | string | yes |
+| `type` | string | yes (`profile`, `episodic`, `knowledge`) |
+| `source` | string | yes |
+| `tags` | string[] | yes |
+| `confidence` | number | yes |
+| `expiresAt` | string | no (ISO 8601) |
+| `url` | string | no |
+| `profileId` | string | no |
+| `externalId` | string | no |
+| `sourceType` | string | no |
+
+**Returns:** `MemoryWithTags` (same shape as [Convex createMemory](/api-reference/memories))
+
+---
+
+## Retrieve
+
+`POST /api/v1/memories/retrieve`
+
+Semantic search over the caller's memories.
+
+```bash
+curl -X POST "https://<deployment>.convex.site/api/v1/memories/retrieve" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What stack does the user prefer?",
+    "limit": 10
+  }'
+```
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `query` | string | yes |
+| `limit` | number | no (default `10`) |
+| `type` | string | no |
+| `tags` | string[] | no |
+| `profileId` | string | no |
+
+**Returns:** `RetrieveMemoriesResult` (same shape as [Convex retrieveMemories](/api-reference/memories))
+
+---
+
+## Update
+
+`PATCH /api/v1/memories`
+
+```bash
+curl -X PATCH "https://<deployment>.convex.site/api/v1/memories" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "memoryId": "mem_abc",
+    "status": "pinned"
+  }'
+```
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `memoryId` | string | yes |
+| `title` | string | no |
+| `content` | string | no |
+| `type` | string | no |
+| `status` | string | no |
+| `tags` | string[] | no |
+| `confidence` | number | no |
+| `expiresAt` | string \| null | no |
+
+**Returns:** `MemoryWithTags | null`
+
+---
+
+## Errors
+
+| Status | Meaning |
+| --- | --- |
+| `401` | Missing/invalid Bearer token or revoked key |
+| `400` | Invalid JSON or request body |
+| `403` | No access to the given `profileId` |
+| `500` | Server error (generic message, no stack trace) |
+
+Usage is recorded per request (`requestCount`, `lastUsedAt` on the key). See [API Keys](/features/api-keys).
