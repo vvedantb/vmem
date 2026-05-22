@@ -9,48 +9,63 @@ The Model Context Protocol (MCP) is a standard for connecting AI models to exter
 
 ## How vmem Uses MCP
 
-vmem uses all three MCP primitives differently:
+vmem uses MCP primitives differently from most memory tools:
 
 | Primitive | Standard Usage | vmem Usage |
 | --- | --- | --- |
-| **Resources** | Context injected before LLM responds | Relevant memories auto-loaded into context |
-| **Tools** | LLM explicitly calls them | `memory_write`, `memory_search` — intentional actions |
-| **Prompts** | System prompt templates | User profile, preferences, active project context |
+| **Resources** | Context injected before LLM responds | Synthesized user profile auto-loaded via `vmem://context_prompt` |
+| **Tools** | LLM explicitly calls them | `memory_add`, `memory_search`, `memory_retrieve` — intentional actions |
+| **Prompts** | System prompt templates | Not used — context is delivered via the Resource |
 
 The key insight: **reading memories is implicit, writing is explicit.**
 
-## MCP Tools
+## MCP Endpoint
 
-These are actions the LLM can explicitly invoke:
+```
+POST https://<your-deployment>.convex.site/mcp
+```
+
+Authenticated via OAuth + Bearer JWT. See [MCP Setup](/mcp/setup) for configuration steps.
+
+## Quick Tool Reference
 
 | Tool | Description |
 | --- | --- |
-| `memory_write` | Store a new memory |
-| `memory_search` | Direct search (for dashboard/human use) |
-| `memory_update_proposal_review` | Approve or reject a conflicting update |
+| `ping` | Health check |
+| `whoami` | Authenticated user ID and active profile |
+| `list_profiles` | List available profiles |
+| `memory_search` | Search memories by query, type, tags |
+| `memory_retrieve` | Semantic retrieval with context trace |
+| `memory_add` | Store a new memory |
+| `memory_update` | Update an existing memory |
+| `memory_delete` | Delete a memory |
+| `skills_list` | List user's skills |
+| `skills_get` | Fetch a skill by name |
 
-## MCP Resources
+See [MCP Tools Reference](/mcp/tools) for full parameter details.
 
-These are injected automatically — no tool call required:
+## MCP Resource
 
-| Resource URI | Description |
+| URI | Description |
 | --- | --- |
-| `user://memories/relevant` | Top N memories for current context |
-| `user://profile` | Stable user facts and preferences |
-| `user://project/{name}` | Active project context |
+| `vmem://context_prompt` | Synthesized user profile (about, preferences, pinned memories, activity summary) |
 
-## Setup
+See [Implicit Memory](/mcp/implicit-memory) for how this works.
 
-Add vmem as a remote MCP connector in Claude (Settings → Connectors) or any client that supports OAuth + streamable HTTP:
+## Testing
 
-```
-https://<your-convex-slug>.<region>.convex.site/mcp
-```
-
-Copy the full site URL from your Convex dashboard. Sign in with your vmem account when prompted.
-
-For local testing, use the MCP Playground at `/settings/playground` in the web app.
+Use the MCP Playground at `/settings/playground` in the web app to test tools and OAuth flow locally.
 
 ## Next Steps
 
-Learn about [implicit memory](/mcp/implicit-memory) — the core pattern that makes vmem different from other memory solutions.
+<CardGroup cols={2}>
+  <Card title="Setup" icon="wrench" href="/mcp/setup">
+    Configure Claude, Cursor, or other MCP clients
+  </Card>
+  <Card title="Implicit Memory" icon="brain" href="/mcp/implicit-memory">
+    How context injection works without tool calls
+  </Card>
+  <Card title="Tools Reference" icon="code" href="/mcp/tools">
+    Full tool parameter documentation
+  </Card>
+</CardGroup>

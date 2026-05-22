@@ -1,0 +1,56 @@
+---
+title: "Enrichment"
+description: "Local semantic tagging and related-memory linking"
+---
+
+## What is Enrichment?
+
+After a memory is created, vmem can automatically add semantic tags and discover related memories. This runs **locally** in the browser using your downloaded LLM — no data is sent to external enrichment APIs.
+
+## What Enrichment Does
+
+1. **Semantic tags** — Generates relevant tags based on memory content
+2. **Related memories** — Finds and links to existing memories via `:RELATES_TO` edges in Neo4j
+
+## When Enrichment Runs
+
+| Source | Trigger |
+| --- | --- |
+| Web app create | Immediately if local model is ready; otherwise queued |
+| MCP `memory_add` | Queued for background drain |
+| Import | Queued (`queueForLocalEnrichment: true`) |
+| Chrome extension | After WebLLM init or successful model load |
+
+## Deferred Enrichment Queue
+
+When a memory is created but the local model isn't ready (MCP, import, or web create without a loaded model), it is enqueued in Convex table `pendingMemoryEnrichment`.
+
+The queue is drained automatically:
+- **Web**: `PendingEnrichmentRunner` in `ClientProvider` drains up to 50 items when WebLLM becomes ready
+- **Chrome extension**: `pending-enrichment-drain.ts` runs after enrichment init
+
+The sidebar shows a pending enrichment count above memory stats. Sonner toasts notify when a batch starts and completes.
+
+## Pipeline
+
+```
+Fetch memory from Neo4j
+  → Build enrichment prompt (shared @vmem/backend/enrichmentPrompt)
+  → Run local LLM
+  → Parse tags + related memory IDs
+  → Call applyEnrichment Convex action
+  → Remove from pending queue
+```
+
+## Requirements
+
+Enrichment requires a downloaded local model. Configure one in **Settings → Models** (`/settings/models`). Without a model, memories are still saved — enrichment is deferred until one is available.
+
+## API
+
+Enrichment uses these Convex functions (called internally, not typically by third-party clients):
+
+- `pendingEnrichment.enqueue` — add to queue
+- `pendingEnrichment.listPending` — list queue items
+- `memoryApi.listRecentMemoryTitlesForEnrichment` — titles for prompt context
+- `memoryApi.applyEnrichment` — apply tags and related-memory links
