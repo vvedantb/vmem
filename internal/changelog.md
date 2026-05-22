@@ -1,5 +1,14 @@
 # Changelog
 
+## VMemory SDK — 2026-05-22
+
+- **`@vmem/sdk` package**: JavaScript SDK with `VMemory` class — agentic `store()`, `update()`, `retrieve()` plus structured escape hatches over existing API key HTTP routes.
+- **Instruction mode on existing HTTP routes**: `POST`/`PATCH /api/v1/memories` accept `{ instruction }` for agentic store/update (no new URLs). Requires OpenRouter key (`422` if missing).
+- **Retrieve enhancements**: Returns `{ memories, userContext }`; optional `summarize: true` for a natural-language answer.
+- **HTTP polish**: Default profile resolution aligned with MCP; structured PATCH returns `404` when memory not found; error logging on HTTP 500s.
+- **Agent orchestration**: `neo4jActions/agent/*` reuses V2 fact extraction — store creates memories; update applies direct adds and proposals for conflicts.
+- **Docs**: SDK quickstart, updated HTTP Memories reference, and API overview SDK example.
+
 ## Code-Structure Audit Implementation - 2026-05-22
 
 - **MCP uses canonical memory handlers**: `mcpCreateMemory` / update / delete now delegate to the same `run*` pipeline as UI and HTTP v1 — fixes dedup, chunking, V2 facts, and context-prompt invalidation drift.

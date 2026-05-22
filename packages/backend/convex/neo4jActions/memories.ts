@@ -32,6 +32,7 @@ import {
   runListMemoriesForTeam,
   runSearchMemoriesForTeam,
 } from "./memories/team";
+import { resolveProfileIdForClerkId } from "./memories/shared";
 
 export const createMemoryInternal = internalAction({
   args: {
@@ -148,7 +149,14 @@ export const retrieveMemoriesInternal = internalAction({
     tags: v.optional(v.array(v.string())),
     limit: v.number(),
   },
-  handler: async (ctx, args) => runRetrieveMemories(ctx, args),
+  handler: async (ctx, args) => {
+    const profileId = await resolveProfileIdForClerkId(
+      ctx,
+      args.clerkId,
+      args.profileId,
+    );
+    return await runRetrieveMemories(ctx, { ...args, profileId });
+  },
 });
 
 export const getMemoryEventsInternal = internalAction({
