@@ -1,44 +1,9 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { api, internal } from "./_generated/api";
-import { authAction, authMutation, authQuery } from "./auth";
+import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
 import { PARSER_VERSION } from "../src/neo4j/codebase/types";
-
-// --- Crypto helpers (same pattern as apiKeys.ts, needed for token decryption in actions) ---
-
-function getEnvOrThrow(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing ${name} environment variable`);
-  }
-  return value;
-}
-
-async function getEncryptionKey(): Promise<CryptoKey> {
-  const keyB64 = getEnvOrThrow("ENCRYPTION_KEY");
-  const keyBytes = Uint8Array.from(atob(keyB64), (c) => c.charCodeAt(0));
-  return crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, [
-    "encrypt",
-    "decrypt",
-  ]);
-}
-
-async function decryptToken(encryptedToken: string): Promise<string> {
-  const parts = encryptedToken.split(":");
-  if (parts.length !== 3 || parts[0] !== "v1") {
-    throw new Error("Invalid encrypted token format");
-  }
-  const [, ivB64, encB64] = parts;
-  const key = await getEncryptionKey();
-  const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0));
-  const enc = Uint8Array.from(atob(encB64), (c) => c.charCodeAt(0));
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    key,
-    enc,
-  );
-  return new TextDecoder().decode(decrypted);
-}
+import { decryptToken } from "./lib/crypto";
 
 // --- GitHub API response shape for repos ---
 
@@ -201,10 +166,7 @@ export const syncCodebase = authAction({
     });
     if (!codebase) throw new Error("Codebase not found");
 
-    const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
-      userId: ctx.userId,
-    });
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
 
     const encryptedToken = await ctx.runQuery(
       internal.github.getDecryptedTokenInternal,
@@ -317,11 +279,7 @@ interface CodebaseGraphResult {
 export const getCodebaseGraph = authAction({
   args: { codebaseId: v.string() },
   handler: async (ctx, args): Promise<CodebaseGraphResult> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.codebases.getCodebaseGraphInternal,
       {

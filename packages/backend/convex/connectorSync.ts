@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { authAction } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import { decryptToken, encryptToken, getEnvOrThrow } from "./lib/crypto";
 import { retrier } from "./retrier";
@@ -31,12 +31,7 @@ export const startSync = authAction({
     }
 
     // 2. Get clerkId for Neo4j operations
-    const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
-      userId: ctx.userId,
-    });
-    if (!clerkId) {
-      throw new Error("User not found");
-    }
+    const clerkId = await requireClerkId(ctx);
 
     // 3. Get tokens
     const tokens = await ctx.runQuery(

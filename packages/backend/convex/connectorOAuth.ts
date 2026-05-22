@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalAction, internalMutation } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authAction } from "./auth";
 import { encryptToken, decryptToken, getEnvOrThrow } from "./lib/crypto";
@@ -79,7 +79,7 @@ export const startOAuth = authAction({
     const state = crypto.randomUUID();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-    await ctx.runMutation(internal.connectorOAuth.insertOAuthStateInternal, {
+    await ctx.runMutation(internal.oauthState.insertOAuthStateInternal, {
       state,
       userId: ctx.userId,
       returnUrl: args.returnUrl,
@@ -269,7 +269,7 @@ export const handleCallbackInternal = internalAction({
   handler: async (ctx, args): Promise<OAuthCallbackResult> => {
     // 1. Consume and validate state
     const stateEntry = await ctx.runMutation(
-      internal.connectorOAuth.consumeOAuthStateInternal,
+      internal.oauthState.consumeOAuthStateInternal,
       { state: args.state },
     );
     if (!stateEntry) {
@@ -508,52 +508,6 @@ export const handleCallbackInternal = internalAction({
       error: null,
       frontendUrl: stateEntry.returnUrl,
       connectorId: stateEntry.connectorId,
-    };
-  },
-});
-
-// --- Internal mutations for OAuth state management ---
-
-export const insertOAuthStateInternal = internalMutation({
-  args: {
-    state: v.string(),
-    userId: v.id("users"),
-    returnUrl: v.string(),
-    expiresAt: v.number(),
-    connectorId: v.id("connectors"),
-    provider: v.string(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("oauthStates", args);
-  },
-});
-
-export const consumeOAuthStateInternal = internalMutation({
-  args: { state: v.string() },
-  returns: v.union(
-    v.object({
-      userId: v.id("users"),
-      returnUrl: v.string(),
-      expiresAt: v.number(),
-      connectorId: v.optional(v.id("connectors")),
-      provider: v.optional(v.string()),
-    }),
-    v.null(),
-  ),
-  handler: async (ctx, args) => {
-    const entry = await ctx.db
-      .query("oauthStates")
-      .withIndex("by_state", (q) => q.eq("state", args.state))
-      .first();
-    if (!entry) return null;
-
-    await ctx.db.delete(entry._id);
-    return {
-      userId: entry.userId,
-      returnUrl: entry.returnUrl,
-      expiresAt: entry.expiresAt,
-      connectorId: entry.connectorId,
-      provider: entry.provider,
     };
   },
 });

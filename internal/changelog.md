@@ -1,5 +1,12 @@
 # Changelog
 
+## Code-Structure Audit Implementation - 2026-05-22
+
+- **MCP uses canonical memory handlers**: `mcpCreateMemory` / update / delete now delegate to the same `run*` pipeline as UI and HTTP v1 — fixes dedup, chunking, V2 facts, and context-prompt invalidation drift.
+- **Shared backend mechanics consolidated**: Crypto helpers, OAuth state mutations, and `requireClerkId` centralized so GitHub, connectors, and API barrels no longer duplicate AES-GCM or clerk resolution.
+- **Large node actions split**: `migration/` and `dreamMode/` submodules with thin barrels — same public Convex paths, easier navigation.
+- **Frontend tab + files cleanup**: Generic `RouteTabs` replaces five copy-paste tab bars; files REST logic extracted to `filesApi` + `useFilesData`; `MemoryContext` documented as intentional facade.
+
 ## HTTP Route Module Split - 2026-05-22
 
 - **Thin `http.ts` router**: Convex HTTP registration now lives in one file; handler logic moved into `convex/http/` modules so routes are easier to find and extend.

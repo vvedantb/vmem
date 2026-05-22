@@ -1,34 +1,15 @@
 /**
- * Auth helpers for the memoryApi action handlers. Centralises the two
- * patterns repeated across every entry point:
+ * Auth helpers for the memoryApi action handlers.
  *
- *   1. `requireClerkId(ctx)` — fetch the Clerk subject id for the
- *      current Convex user and throw "User not found" if it's missing.
- *      Called from every personal-scoped action (9 sites pre-split).
- *
- *   2. `assertTeamAccess(ctx, profileId)` — verify membership on a team
- *      profile. No-op for the personal-profile happy path because the
- *      underlying Cypher is already userId-scoped; only invoked when a
- *      profileId is provided.
- *
- * Helpers accept an `AuthActionCtx` so the same pair works for both
- * personal and team handler bodies.
+ * `requireClerkId` lives in `auth.ts` and is re-exported here so personal
+ * and team memory handlers share one import path. `assertTeamAccess`
+ * verifies membership on a team profile before team-scoped operations.
  */
 
-import type { ActionCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { AuthActionCtx } from "../auth";
+export type { AuthActionCtx };
+export { requireClerkId } from "../auth";
 import { internal } from "../_generated/api";
-
-export type AuthActionCtx = ActionCtx & { userId: Id<"users"> };
-
-export async function requireClerkId(ctx: AuthActionCtx): Promise<string> {
-  const clerkId: string | null = await ctx.runQuery(
-    internal.auth.getClerkIdInternal,
-    { userId: ctx.userId },
-  );
-  if (!clerkId) throw new Error("User not found");
-  return clerkId;
-}
 
 export async function assertTeamAccess(
   ctx: AuthActionCtx,
