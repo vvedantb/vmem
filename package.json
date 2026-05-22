@@ -21,7 +21,9 @@
     "prepare": "husky",
     "lint:deps": "syncpack lint",
     "fix:deps": "syncpack fix-mismatches",
-    "check:expo": "pnpm --filter mobile exec expo install --check"
+    "check:expo": "pnpm --filter mobile exec expo install --check",
+    "sdk:build": "pnpm --filter @vmem/sdk build",
+    "sdk:typecheck": "pnpm --filter @vmem/sdk typecheck"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css,md}": "prettier --write"
