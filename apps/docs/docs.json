@@ -23,7 +23,8 @@
               "introduction",
               "quickstart",
               "architecture",
-              "environment"
+              "environment",
+              "sdk/quickstart"
             ]
           },
           {

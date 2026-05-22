@@ -30,6 +30,16 @@ First-party clients (web, extension, mobile) use `useAction(api.memoryApi.*)` wi
 
 Store, retrieve, and update memories without the Convex SDK. See [HTTP Memories API](/api-reference/http-memories).
 
+For third-party integrations, use the [`@vmem/sdk`](/sdk/quickstart) package:
+
+```typescript
+import { VMemory } from "@vmem/sdk";
+
+const vmem = new VMemory({ apiKey: "vmem_sk_...", baseUrl: "https://<deployment>.convex.site" });
+await vmem.store("User prefers TypeScript");
+const result = await vmem.retrieve("What language does the user prefer?");
+```
+
 ## Authentication
 
 All public API functions require a signed-in Clerk user. Protected functions use `authAction`, `authMutation`, or `authQuery` builders that verify identity and inject `ctx.userId`.

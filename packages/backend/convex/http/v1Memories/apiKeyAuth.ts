@@ -148,7 +148,8 @@ export function withApiKeyAuth<T>(
 
       await recordUsage(ctx, auth, endpoint, method, 200, durationMs);
       return jsonResponse({ data: result }, 200);
-    } catch {
+    } catch (err) {
+      console.error(`[HTTP][${endpoint}]`, err);
       const durationMs = Date.now() - startedAt;
       await recordUsage(ctx, auth, endpoint, method, 500, durationMs);
       return jsonResponse({ error: "internal_error" }, 500);
