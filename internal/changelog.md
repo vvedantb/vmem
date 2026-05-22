@@ -1,5 +1,11 @@
 # Changelog
 
+## HTTP Route Module Split - 2026-05-22
+
+- **Thin `http.ts` router**: Convex HTTP registration now lives in one file; handler logic moved into `convex/http/` modules so routes are easier to find and extend.
+- **API key memory routes split**: `v1Memories/` separates Bearer auth, Zod schemas, and store/retrieve/update handlers instead of one monolithic file.
+- **OAuth callbacks extracted**: GitHub and connector OAuth callback handlers (plus connector popup HTML) moved out of `http.ts` into `http/auth/`.
+
 ## API Key HTTP Endpoints - 2026-05-22
 
 - **Programmatic memory access via API keys**: Added Convex HTTP routes `POST /api/v1/memories`, `POST /api/v1/memories/retrieve`, and `PATCH /api/v1/memories` so `vmem_sk_*` keys work outside the Clerk SDK.
