@@ -2,6 +2,15 @@
   "name": "@vmem/sdk",
   "version": "0.1.0",
   "description": "Official JavaScript SDK for the vmem memory API",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vedantb2/vmem.git",
+    "directory": "packages/sdk"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
