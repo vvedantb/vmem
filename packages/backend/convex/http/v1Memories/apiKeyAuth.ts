@@ -1,46 +1,13 @@
-import { httpAction } from "../_generated/server";
-import type { ActionCtx } from "../_generated/server";
-import { internal } from "../_generated/api";
-import { hashApiKey } from "../apiKeys";
-import type { Id } from "../_generated/dataModel";
-import { z } from "zod";
+import { httpAction } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
+import { internal } from "../../_generated/api";
+import { hashApiKey } from "../../apiKeys";
+import type { Id } from "../../_generated/dataModel";
+import type { z } from "zod";
 
 const API_KEY_PREFIX = "vmem_sk_";
 
-const storeBodySchema = z.object({
-  title: z.string(),
-  content: z.string(),
-  type: z.string(),
-  source: z.string(),
-  tags: z.array(z.string()),
-  confidence: z.number(),
-  expiresAt: z.string().optional(),
-  url: z.string().optional(),
-  profileId: z.string().optional(),
-  externalId: z.string().optional(),
-  sourceType: z.string().optional(),
-});
-
-const retrieveBodySchema = z.object({
-  query: z.string(),
-  type: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  limit: z.number().int().positive().default(10),
-  profileId: z.string().optional(),
-});
-
-const updateBodySchema = z.object({
-  memoryId: z.string(),
-  title: z.string().optional(),
-  content: z.string().optional(),
-  type: z.string().optional(),
-  status: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  confidence: z.number().optional(),
-  expiresAt: z.union([z.string(), z.null()]).optional(),
-});
-
-type ApiKeyAuth = {
+export type ApiKeyAuth = {
   userId: Id<"users">;
   clerkId: string;
   keyHash: string;
@@ -73,9 +40,7 @@ async function resolveApiKeyAuth(
   const keyHash = await hashApiKey(rawToken);
   const resolved = await ctx.runQuery(
     internal.apiKeys.resolveByKeyHashInternal,
-    {
-      keyHash,
-    },
+    { keyHash },
   );
 
   if (!resolved) {
@@ -89,7 +54,7 @@ async function resolveApiKeyAuth(
   };
 }
 
-async function assertProfileAccess(
+export async function assertProfileAccess(
   ctx: ActionCtx,
   userId: Id<"users">,
   profileId: string,
@@ -123,7 +88,7 @@ async function recordUsage(
   });
 }
 
-function withApiKeyAuth<T>(
+export function withApiKeyAuth<T>(
   endpoint: string,
   method: string,
   schema: z.ZodType<T>,
@@ -190,91 +155,3 @@ function withApiKeyAuth<T>(
     }
   });
 }
-
-export const storeMemory = withApiKeyAuth(
-  "/api/v1/memories",
-  "POST",
-  storeBodySchema,
-  async (ctx, auth, body) => {
-    if (body.profileId) {
-      const forbidden = await assertProfileAccess(
-        ctx,
-        auth.userId,
-        body.profileId,
-      );
-      if (forbidden) {
-        return forbidden;
-      }
-    }
-
-    return await ctx.runAction(
-      internal.neo4jActions.memories.createMemoryInternal,
-      {
-        clerkId: auth.clerkId,
-        profileId: body.profileId,
-        title: body.title,
-        content: body.content,
-        type: body.type,
-        source: body.source,
-        tags: body.tags,
-        confidence: body.confidence,
-        expiresAt: body.expiresAt,
-        url: body.url,
-        externalId: body.externalId,
-        sourceType: body.sourceType,
-      },
-    );
-  },
-);
-
-export const retrieveMemories = withApiKeyAuth(
-  "/api/v1/memories/retrieve",
-  "POST",
-  retrieveBodySchema,
-  async (ctx, auth, body) => {
-    if (body.profileId) {
-      const forbidden = await assertProfileAccess(
-        ctx,
-        auth.userId,
-        body.profileId,
-      );
-      if (forbidden) {
-        return forbidden;
-      }
-    }
-
-    return await ctx.runAction(
-      internal.neo4jActions.memories.retrieveMemoriesInternal,
-      {
-        clerkId: auth.clerkId,
-        profileId: body.profileId,
-        query: body.query,
-        type: body.type,
-        tags: body.tags,
-        limit: body.limit,
-      },
-    );
-  },
-);
-
-export const updateMemory = withApiKeyAuth(
-  "/api/v1/memories",
-  "PATCH",
-  updateBodySchema,
-  async (ctx, auth, body) => {
-    return await ctx.runAction(
-      internal.neo4jActions.memories.updateMemoryInternal,
-      {
-        clerkId: auth.clerkId,
-        memoryId: body.memoryId,
-        title: body.title,
-        content: body.content,
-        type: body.type,
-        status: body.status,
-        tags: body.tags,
-        confidence: body.confidence,
-        expiresAt: body.expiresAt,
-      },
-    );
-  },
-);
