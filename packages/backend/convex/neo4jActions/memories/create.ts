@@ -23,7 +23,11 @@ import {
 import { getDriver } from "../../../src/neo4j/driver";
 import { normalizeUrl } from "../../../src/neo4j/url";
 import { shouldChunk } from "../../../src/neo4j/chunking";
-import { scheduleContextPromptInvalidation, tryEmbedOne } from "./shared";
+import {
+  resolveProfileIdForClerkId,
+  scheduleContextPromptInvalidation,
+  tryEmbedOne,
+} from "./shared";
 
 export interface CreateMemoryArgs {
   clerkId: string;
@@ -74,7 +78,11 @@ export async function runCreateMemory(
 ): Promise<MemoryWithTags> {
   const driver = getDriver();
 
-  const resolvedProfileId = await resolveProfileId(ctx, args);
+  const resolvedProfileId = await resolveProfileIdForClerkId(
+    ctx,
+    args.clerkId,
+    args.profileId,
+  );
   const memoryType =
     args.type === "profile" || args.type === "episodic"
       ? args.type
@@ -211,18 +219,6 @@ export async function runCreateMemory(
   });
 
   return result;
-}
-
-async function resolveProfileId(
-  ctx: ActionCtx,
-  args: CreateMemoryArgs,
-): Promise<string> {
-  if (args.profileId) return args.profileId;
-  const defaultProfile = await ctx.runMutation(
-    internal.profiles.getOrCreateDefaultByClerkIdInternal,
-    { clerkId: args.clerkId },
-  );
-  return defaultProfile._id;
 }
 
 interface PostCreateParams {

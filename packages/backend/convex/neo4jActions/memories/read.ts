@@ -149,6 +149,7 @@ export async function runListMemories(args: ListMemoriesArgs) {
 
 export interface SearchMemoriesArgs {
   clerkId: string;
+  profileId?: string;
   query?: string;
   type?: string;
   tags?: string[];
@@ -161,6 +162,7 @@ export async function runSearchMemories(args: SearchMemoriesArgs) {
   const driver = getDriver();
   return await searchMemories(driver, {
     userId: args.clerkId,
+    profileId: args.profileId,
     query: args.query,
     type: toMemoryType(args.type),
     tags: args.tags,

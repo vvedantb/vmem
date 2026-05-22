@@ -1,6 +1,6 @@
 "use node";
 
-import { authAction } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
@@ -104,11 +104,7 @@ export const getContextPrompt = authAction({
     isPlaceholder: v.boolean(),
   }),
   handler: async (ctx): Promise<ContextPromptResponse> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await getOrSchedule(ctx, clerkId);
   },
 });

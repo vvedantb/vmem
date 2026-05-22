@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { ActionCache } from "@convex-dev/action-cache";
-import { authAction } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 import { components, internal } from "./_generated/api";
 
 interface StatsResult {
@@ -46,11 +46,7 @@ const recentActivityCache = new ActionCache(components.actionCache, {
 export const getStats = authAction({
   args: { profileId: v.optional(v.string()) },
   handler: async (ctx, args): Promise<StatsResult> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await statsCache.fetch(ctx, {
       clerkId,
       profileId: args.profileId,
@@ -66,11 +62,7 @@ interface ProfileStats {
 export const getProfilesStats = authAction({
   args: { profileIds: v.array(v.string()) },
   handler: async (ctx, args): Promise<Record<string, ProfileStats>> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.dashboard.getProfilesStatsInternal,
       { clerkId, profileIds: args.profileIds },
@@ -81,11 +73,7 @@ export const getProfilesStats = authAction({
 export const getRecentActivity = authAction({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args): Promise<ActivityItem[]> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await recentActivityCache.fetch(ctx, {
       clerkId,
       limit: args.limit,

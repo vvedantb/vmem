@@ -1,6 +1,5 @@
 /**
  * Shared AES-GCM encryption helpers for OAuth tokens and API keys.
- * Extracted from github.ts and apiKeys.ts to avoid duplication.
  */
 
 export function getEnvOrThrow(name: string): string {

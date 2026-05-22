@@ -66,6 +66,8 @@ import type * as neo4jActions_connectors_shared from "../neo4jActions/connectors
 import type * as neo4jActions_dashboard from "../neo4jActions/dashboard.js";
 import type * as neo4jActions_dbSetup from "../neo4jActions/dbSetup.js";
 import type * as neo4jActions_dreamMode from "../neo4jActions/dreamMode.js";
+import type * as neo4jActions_dreamMode_entryPoints from "../neo4jActions/dreamMode/entryPoints.js";
+import type * as neo4jActions_dreamMode_runProfile from "../neo4jActions/dreamMode/runProfile.js";
 import type * as neo4jActions_enrichment from "../neo4jActions/enrichment.js";
 import type * as neo4jActions_factExtraction from "../neo4jActions/factExtraction.js";
 import type * as neo4jActions_graph from "../neo4jActions/graph.js";
@@ -79,10 +81,14 @@ import type * as neo4jActions_memories_shared from "../neo4jActions/memories/sha
 import type * as neo4jActions_memories_team from "../neo4jActions/memories/team.js";
 import type * as neo4jActions_memories_update from "../neo4jActions/memories/update.js";
 import type * as neo4jActions_migration from "../neo4jActions/migration.js";
+import type * as neo4jActions_migration_backfill from "../neo4jActions/migration/backfill.js";
+import type * as neo4jActions_migration_dedup from "../neo4jActions/migration/dedup.js";
+import type * as neo4jActions_migration_profiles from "../neo4jActions/migration/profiles.js";
 import type * as neo4jActions_proposedUpdates from "../neo4jActions/proposedUpdates.js";
 import type * as neo4jActions_relationships from "../neo4jActions/relationships.js";
 import type * as neo4jActions_timeline from "../neo4jActions/timeline.js";
 import type * as notifications from "../notifications.js";
+import type * as oauthState from "../oauthState.js";
 import type * as openRouterLogs from "../openRouterLogs.js";
 import type * as profiles from "../profiles.js";
 import type * as profiles_dream from "../profiles/dream.js";
@@ -171,6 +177,8 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/dashboard": typeof neo4jActions_dashboard;
   "neo4jActions/dbSetup": typeof neo4jActions_dbSetup;
   "neo4jActions/dreamMode": typeof neo4jActions_dreamMode;
+  "neo4jActions/dreamMode/entryPoints": typeof neo4jActions_dreamMode_entryPoints;
+  "neo4jActions/dreamMode/runProfile": typeof neo4jActions_dreamMode_runProfile;
   "neo4jActions/enrichment": typeof neo4jActions_enrichment;
   "neo4jActions/factExtraction": typeof neo4jActions_factExtraction;
   "neo4jActions/graph": typeof neo4jActions_graph;
@@ -184,10 +192,14 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/memories/team": typeof neo4jActions_memories_team;
   "neo4jActions/memories/update": typeof neo4jActions_memories_update;
   "neo4jActions/migration": typeof neo4jActions_migration;
+  "neo4jActions/migration/backfill": typeof neo4jActions_migration_backfill;
+  "neo4jActions/migration/dedup": typeof neo4jActions_migration_dedup;
+  "neo4jActions/migration/profiles": typeof neo4jActions_migration_profiles;
   "neo4jActions/proposedUpdates": typeof neo4jActions_proposedUpdates;
   "neo4jActions/relationships": typeof neo4jActions_relationships;
   "neo4jActions/timeline": typeof neo4jActions_timeline;
   notifications: typeof notifications;
+  oauthState: typeof oauthState;
   openRouterLogs: typeof openRouterLogs;
   profiles: typeof profiles;
   "profiles/dream": typeof profiles_dream;

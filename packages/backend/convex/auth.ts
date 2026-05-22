@@ -14,7 +14,7 @@ import {
   customQuery,
 } from "convex-helpers/server/customFunctions";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 
 export async function getCurrentUserId(
@@ -92,6 +92,17 @@ export const authQuery = authQueryBuilder;
 export const authMutation = authMutationBuilder;
 export const authAction = authActionBuilder;
 export const authInternalAction = authInternalActionBuilder;
+
+export type AuthActionCtx = ActionCtx & { userId: Id<"users"> };
+
+/** Returns the Clerk subject ID for an authenticated action context. */
+export async function requireClerkId(ctx: AuthActionCtx): Promise<string> {
+  const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
+    userId: ctx.userId,
+  });
+  if (!clerkId) throw new Error("User not found");
+  return clerkId;
+}
 
 export const ensureUserExists = mutation({
   args: {},

@@ -10,7 +10,7 @@
 
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { authAction } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 
 const kindValidator = v.union(
   v.literal("code-file"),
@@ -39,11 +39,7 @@ interface OverviewStatsResult {
 export const getOverview = authAction({
   args: { codebaseId: v.string() },
   handler: async (ctx, args): Promise<OverviewStatsResult> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.codebases.getOverviewStatsInternal,
       { clerkId, codebaseId: args.codebaseId },
@@ -98,11 +94,7 @@ export const getGraph = authAction({
     blastDepth: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<GraphResult> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.codebases.getGraphInternal,
       {
@@ -143,11 +135,7 @@ interface SymbolContextResult {
 export const getContext = authAction({
   args: { codebaseId: v.string(), symbolId: v.string() },
   handler: async (ctx, args): Promise<SymbolContextResult | null> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.codebases.getSymbolContextInternal,
       {
@@ -172,11 +160,7 @@ export const getImpact = authAction({
     depth: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<ImpactResult> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.codebases.getImpactInternal,
       {
@@ -214,11 +198,7 @@ export const searchSymbols = authAction({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<SearchResult> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.codebases.searchSymbolsInternal,
       {
