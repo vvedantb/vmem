@@ -10,7 +10,7 @@ import {
   IconFileImport,
   IconCpu,
   IconUsers,
-  IconVariable,
+  IconLock,
 } from "@tabler/icons-react";
 import {
   IconChat,
@@ -81,7 +81,7 @@ export const settingsNavGroups: SettingsNavGroup[] = [
     title: "Developer",
     items: [
       { href: "/settings/api", label: "API", icon: IconKey },
-      { href: "/settings/env-vars", label: "Env Vars", icon: IconVariable },
+      { href: "/settings/secrets", label: "Secrets", icon: IconLock },
       {
         href: "/settings/playground",
         label: "Playground",
