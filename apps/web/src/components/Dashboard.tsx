@@ -3,7 +3,6 @@ import { Button } from "@vmem/ui";
 import { useConvexAuth, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";
-import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import { DashboardLoadingSkeleton } from "./dashboard/DashboardLoadingSkeleton";
 import { DashboardStatCards } from "./dashboard/DashboardStatCards";
@@ -77,15 +76,6 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-8">
-      <motion.p
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className="text-sm text-muted-foreground"
-      >
-        Your memory workspace at a glance
-      </motion.p>
-
       <DashboardStatCards stats={stats} />
 
       <MemoryGrowthChart growthData={stats.growthData} />
