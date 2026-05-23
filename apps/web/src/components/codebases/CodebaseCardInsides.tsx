@@ -118,15 +118,13 @@ export function CodebaseCardInsides({
                   </span>
                   {codebase.repoName}
                 </h3>
-                {codebase.isPrivate && (
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] px-1.5 py-0 h-4 shrink-0"
-                  >
-                    <IconLock size={10} className="mr-0.5" />
-                    Private
-                  </Badge>
-                )}
+                {codebase.isPrivate ? (
+                  <IconLock
+                    size={14}
+                    className="shrink-0 text-muted-foreground"
+                    aria-label="Private repository"
+                  />
+                ) : null}
               </div>
               {codebase.description && (
                 <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -137,13 +135,17 @@ export function CodebaseCardInsides({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <Badge variant={status.variant}>
-              <StatusIcon
-                size={12}
-                className={codebase.status === "syncing" ? "animate-spin" : ""}
-              />
-              {status.label}
-            </Badge>
+            {codebase.status === "synced" && codebase.lastSyncedAt ? null : (
+              <Badge variant={status.variant}>
+                <StatusIcon
+                  size={12}
+                  className={
+                    codebase.status === "syncing" ? "animate-spin" : ""
+                  }
+                />
+                {status.label}
+              </Badge>
+            )}
             {headerMenuSlot}
           </div>
         </div>
