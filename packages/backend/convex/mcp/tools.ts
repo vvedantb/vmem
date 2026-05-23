@@ -11,6 +11,16 @@ const memoryStatusSchema = z.enum([
   "expired",
 ]);
 
+const codebaseSymbolKindSchema = z.enum([
+  "code-file",
+  "code-function",
+  "code-class",
+  "code-interface",
+  "code-process",
+]);
+
+const codebaseImpactDirectionSchema = z.enum(["upstream", "downstream"]);
+
 function textContent(text: string) {
   return { content: [{ type: "text" as const, text }] };
 }
@@ -295,6 +305,173 @@ export function registerTools(
       );
       if (!result.ok)
         return errorContent(`Get skill failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebases_list",
+    "List GitHub repositories connected to vmem. Returns codebase IDs, repo names, sync status, and parser stats. Call this first to discover codebaseId values for the other codebase_* tools. Only repos with status 'synced' have graph data in Neo4j.",
+    {},
+    async () => {
+      const result = await safe("codebases_list", () =>
+        ctx.runAction(internal.mcpCodebases.mcpListCodebases, {
+          clerkId: clerkUserId,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`List codebases failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebase_overview",
+    "Get aggregate stats for a synced codebase: file, function, class, interface, and process counts plus CALLS and IMPORTS edge counts.",
+    {
+      codebaseId: z.string().describe("Codebase ID from codebases_list"),
+    },
+    async (params) => {
+      const result = await safe("codebase_overview", () =>
+        ctx.runAction(internal.mcpCodebases.mcpGetCodebaseOverview, {
+          clerkId: clerkUserId,
+          codebaseId: params.codebaseId,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Codebase overview failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebase_search",
+    "Search symbols (files, functions, classes, interfaces, processes) inside a synced codebase. Use the returned symbol id with codebase_context or codebase_impact.",
+    {
+      codebaseId: z.string().describe("Codebase ID from codebases_list"),
+      query: z.string().describe("Search text (name, path, or qualified name)"),
+      kind: codebaseSymbolKindSchema
+        .optional()
+        .describe("Optional symbol kind filter"),
+      limit: z
+        .number()
+        .min(1)
+        .max(50)
+        .optional()
+        .describe("Max results (default 20)"),
+    },
+    async (params) => {
+      const result = await safe("codebase_search", () =>
+        ctx.runAction(internal.mcpCodebases.mcpSearchCodebaseSymbols, {
+          clerkId: clerkUserId,
+          codebaseId: params.codebaseId,
+          query: params.query,
+          kind: params.kind,
+          limit: params.limit,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Codebase search failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebase_context",
+    "Get a symbol's metadata plus its direct CALLS relationships (callers and callees) and linked processes.",
+    {
+      codebaseId: z.string().describe("Codebase ID from codebases_list"),
+      symbolId: z
+        .string()
+        .describe("Symbol id from codebase_search or codebase_graph"),
+    },
+    async (params) => {
+      const result = await safe("codebase_context", () =>
+        ctx.runAction(internal.mcpCodebases.mcpGetCodebaseSymbolContext, {
+          clerkId: clerkUserId,
+          codebaseId: params.codebaseId,
+          symbolId: params.symbolId,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Codebase context failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebase_impact",
+    "Traverse CALLS edges upstream (callers) or downstream (callees) from a symbol to estimate blast radius.",
+    {
+      codebaseId: z.string().describe("Codebase ID from codebases_list"),
+      symbolId: z.string().describe("Starting symbol id"),
+      direction: codebaseImpactDirectionSchema.describe(
+        "upstream = who calls this symbol; downstream = what this symbol calls",
+      ),
+      depth: z
+        .number()
+        .min(1)
+        .max(6)
+        .optional()
+        .describe("Hop depth (default 3)"),
+    },
+    async (params) => {
+      const result = await safe("codebase_impact", () =>
+        ctx.runAction(internal.mcpCodebases.mcpGetCodebaseImpact, {
+          clerkId: clerkUserId,
+          codebaseId: params.codebaseId,
+          symbolId: params.symbolId,
+          direction: params.direction,
+          depth: params.depth,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Codebase impact failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebase_graph",
+    "Fetch a filtered subgraph of a synced codebase: nodes plus relationship edges (imports, calls, contains, extends, implements, process links). Response may be truncated on large repos — use kinds, processId, or blastRadiusOf to narrow scope.",
+    {
+      codebaseId: z.string().describe("Codebase ID from codebases_list"),
+      kinds: z
+        .array(codebaseSymbolKindSchema)
+        .optional()
+        .describe("Limit node kinds in the payload"),
+      processId: z
+        .string()
+        .optional()
+        .describe("Return only nodes/edges for one process"),
+      blastRadiusOf: z
+        .string()
+        .optional()
+        .describe("Center the graph on this symbol's blast radius"),
+      blastDirection: codebaseImpactDirectionSchema
+        .optional()
+        .describe("Direction when blastRadiusOf is set"),
+      blastDepth: z
+        .number()
+        .min(1)
+        .max(6)
+        .optional()
+        .describe("Hop depth when blastRadiusOf is set (default 2)"),
+    },
+    async (params) => {
+      const result = await safe("codebase_graph", () =>
+        ctx.runAction(internal.mcpCodebases.mcpGetCodebaseGraph, {
+          clerkId: clerkUserId,
+          codebaseId: params.codebaseId,
+          kinds: params.kinds,
+          processId: params.processId,
+          blastRadiusOf: params.blastRadiusOf,
+          blastDirection: params.blastDirection,
+          blastDepth: params.blastDepth,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Codebase graph failed: ${result.message}`);
       return textContent(jsonText(result.value));
     },
   );
