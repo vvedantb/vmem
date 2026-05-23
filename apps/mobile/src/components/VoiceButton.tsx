@@ -81,7 +81,7 @@ export default function VoiceButton({
 
   useSpeechRecognitionEvent("result", (event) => {
     const lastResult = event.results[event.results.length - 1];
-    if (lastResult && lastResult.isFinal && lastResult.transcript) {
+    if (event.isFinal && lastResult?.transcript) {
       onTranscriptionChange(lastResult.transcript);
     }
   });

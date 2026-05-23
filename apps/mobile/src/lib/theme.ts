@@ -1,4 +1,8 @@
-import { DarkTheme, DefaultTheme, type Theme } from "@react-navigation/native";
+import {
+  DarkTheme,
+  DefaultTheme,
+  type Theme,
+} from "expo-router/react-navigation";
 
 const LIGHT = {
   background: "hsl(0, 0%, 96%)",

@@ -10,7 +10,7 @@ import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Slot } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as WebBrowser from "expo-web-browser";
-import { ThemeProvider } from "@react-navigation/native";
+import { ThemeProvider } from "expo-router/react-navigation";
 import { useColorScheme } from "nativewind";
 import {
   useFonts,
