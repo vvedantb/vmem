@@ -15,7 +15,6 @@ import {
 } from "@vmem/ui";
 import { toast } from "sonner";
 import {
-  IconCheck,
   IconLoader2,
   IconRefresh,
   IconAlertCircle,
@@ -145,12 +144,6 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                 <h3 className="font-medium text-foreground">
                   {connector.name}
                 </h3>
-                {isConnected && (
-                  <Badge className="bg-primary/5 dark:bg-card/10 text-muted-foreground gap-1">
-                    <IconCheck size={12} stroke={2} />
-                    Connected
-                  </Badge>
-                )}
                 {!hasProvider && !isConnected && (
                   <Badge className="bg-muted text-muted-foreground gap-1">
                     <IconClockHour4 size={12} stroke={2} />
