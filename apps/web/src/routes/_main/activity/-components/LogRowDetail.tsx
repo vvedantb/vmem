@@ -8,7 +8,7 @@ import {
   Badge,
 } from "@vmem/ui";
 import type { Doc } from "@vmem/backend";
-import { FEATURE_LABELS, type Feature } from "../-searchParams";
+import { featureLabelFor } from "./_aiLogsUtils";
 
 /**
  * Side-style detail panel for a single log row.
@@ -59,7 +59,7 @@ function LogRowDetailBody({
   row: LogRow;
   profile: ProfileLite | undefined;
 }) {
-  const featureLabel = FEATURE_LABELS[row.feature as Feature] ?? row.feature;
+  const featureLabel = featureLabelFor(row.feature);
   return (
     <>
       <DialogHeader>
