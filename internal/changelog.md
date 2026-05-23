@@ -1,5 +1,10 @@
 # Changelog
 
+## AI Logs Page Polish — 2026-05-23
+
+- **Overview cards**: Instrument Serif metrics, tonal stat cards, and 7-day sparklines for cost, tokens, latency, and success rate.
+- **Call list**: Card-style rows with section header and count; improved empty and loading states aligned with API usage.
+
 ## Home Dashboard Polish — 2026-05-23
 
 - **Dashboard stats**: Tonal stat cards with Instrument Serif numbers, 7-day sparklines on total and daily adds, and an "Added today" metric.
