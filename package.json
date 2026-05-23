@@ -23,7 +23,8 @@
     "fix:deps": "syncpack fix-mismatches",
     "check:expo": "pnpm --filter mobile exec expo install --check",
     "sdk:build": "pnpm --filter @vmem/sdk build",
-    "sdk:typecheck": "pnpm --filter @vmem/sdk typecheck"
+    "sdk:typecheck": "pnpm --filter @vmem/sdk typecheck",
+    "test": "pnpm --filter @vmem/backend test"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css,md}": "prettier --write"
