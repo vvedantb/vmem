@@ -116,6 +116,12 @@
       "sourceType": "github",
       "computedHash": "870f0fec11aa994c446c418b538229bb6a7b6b99c74bed57ec03b9cc5b677697"
     },
+    "upgrading-expo": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/upgrading-expo/SKILL.md",
+      "computedHash": "282ba7b614f3901a482977d62c29539095a4d929dbc06b0eac89ae8cbf001815"
+    },
     "write-a-prd": {
       "source": "mattpocock/skills",
       "sourceType": "github",
