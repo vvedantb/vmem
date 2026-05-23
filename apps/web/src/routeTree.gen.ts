@@ -34,11 +34,11 @@ import { Route as McpOauthAuthorizeRouteImport } from './routes/mcp/oauth/author
 import { Route as MainWikiDocIdRouteImport } from './routes/_main/wiki/$docId'
 import { Route as MainSkillsIdRouteImport } from './routes/_main/skills/$id'
 import { Route as MainSettingsUsageRouteImport } from './routes/_main/settings/usage'
+import { Route as MainSettingsSecretsRouteImport } from './routes/_main/settings/secrets'
 import { Route as MainSettingsProfilesRouteImport } from './routes/_main/settings/profiles'
 import { Route as MainSettingsPreferencesRouteImport } from './routes/_main/settings/preferences'
 import { Route as MainSettingsModelsRouteImport } from './routes/_main/settings/models'
 import { Route as MainSettingsExtensionRouteImport } from './routes/_main/settings/extension'
-import { Route as MainSettingsEnvVarsRouteImport } from './routes/_main/settings/env-vars'
 import { Route as MainSettingsConnectorsRouteImport } from './routes/_main/settings/connectors'
 import { Route as MainMemoriesTagsRouteImport } from './routes/_main/memories/tags'
 import { Route as MainMemoriesListRouteImport } from './routes/_main/memories/list'
@@ -183,6 +183,11 @@ const MainSettingsUsageRoute = MainSettingsUsageRouteImport.update({
   path: '/settings/usage',
   getParentRoute: () => MainRouteRoute,
 } as any)
+const MainSettingsSecretsRoute = MainSettingsSecretsRouteImport.update({
+  id: '/settings/secrets',
+  path: '/settings/secrets',
+  getParentRoute: () => MainRouteRoute,
+} as any)
 const MainSettingsProfilesRoute = MainSettingsProfilesRouteImport.update({
   id: '/settings/profiles',
   path: '/settings/profiles',
@@ -201,11 +206,6 @@ const MainSettingsModelsRoute = MainSettingsModelsRouteImport.update({
 const MainSettingsExtensionRoute = MainSettingsExtensionRouteImport.update({
   id: '/settings/extension',
   path: '/settings/extension',
-  getParentRoute: () => MainRouteRoute,
-} as any)
-const MainSettingsEnvVarsRoute = MainSettingsEnvVarsRouteImport.update({
-  id: '/settings/env-vars',
-  path: '/settings/env-vars',
   getParentRoute: () => MainRouteRoute,
 } as any)
 const MainSettingsConnectorsRoute = MainSettingsConnectorsRouteImport.update({
@@ -329,11 +329,11 @@ export interface FileRoutesByFullPath {
   '/memories/list': typeof MainMemoriesListRoute
   '/memories/tags': typeof MainMemoriesTagsRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
-  '/settings/env-vars': typeof MainSettingsEnvVarsRoute
   '/settings/extension': typeof MainSettingsExtensionRoute
   '/settings/models': typeof MainSettingsModelsRoute
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
+  '/settings/secrets': typeof MainSettingsSecretsRoute
   '/settings/usage': typeof MainSettingsUsageRoute
   '/skills/$id': typeof MainSkillsIdRoute
   '/wiki/$docId': typeof MainWikiDocIdRoute
@@ -378,11 +378,11 @@ export interface FileRoutesByTo {
   '/memories/list': typeof MainMemoriesListRoute
   '/memories/tags': typeof MainMemoriesTagsRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
-  '/settings/env-vars': typeof MainSettingsEnvVarsRoute
   '/settings/extension': typeof MainSettingsExtensionRoute
   '/settings/models': typeof MainSettingsModelsRoute
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
+  '/settings/secrets': typeof MainSettingsSecretsRoute
   '/settings/usage': typeof MainSettingsUsageRoute
   '/skills/$id': typeof MainSkillsIdRoute
   '/wiki/$docId': typeof MainWikiDocIdRoute
@@ -430,11 +430,11 @@ export interface FileRoutesById {
   '/_main/memories/list': typeof MainMemoriesListRoute
   '/_main/memories/tags': typeof MainMemoriesTagsRoute
   '/_main/settings/connectors': typeof MainSettingsConnectorsRoute
-  '/_main/settings/env-vars': typeof MainSettingsEnvVarsRoute
   '/_main/settings/extension': typeof MainSettingsExtensionRoute
   '/_main/settings/models': typeof MainSettingsModelsRoute
   '/_main/settings/preferences': typeof MainSettingsPreferencesRoute
   '/_main/settings/profiles': typeof MainSettingsProfilesRoute
+  '/_main/settings/secrets': typeof MainSettingsSecretsRoute
   '/_main/settings/usage': typeof MainSettingsUsageRoute
   '/_main/skills/$id': typeof MainSkillsIdRoute
   '/_main/wiki/$docId': typeof MainWikiDocIdRoute
@@ -482,11 +482,11 @@ export interface FileRouteTypes {
     | '/memories/list'
     | '/memories/tags'
     | '/settings/connectors'
-    | '/settings/env-vars'
     | '/settings/extension'
     | '/settings/models'
     | '/settings/preferences'
     | '/settings/profiles'
+    | '/settings/secrets'
     | '/settings/usage'
     | '/skills/$id'
     | '/wiki/$docId'
@@ -531,11 +531,11 @@ export interface FileRouteTypes {
     | '/memories/list'
     | '/memories/tags'
     | '/settings/connectors'
-    | '/settings/env-vars'
     | '/settings/extension'
     | '/settings/models'
     | '/settings/preferences'
     | '/settings/profiles'
+    | '/settings/secrets'
     | '/settings/usage'
     | '/skills/$id'
     | '/wiki/$docId'
@@ -582,11 +582,11 @@ export interface FileRouteTypes {
     | '/_main/memories/list'
     | '/_main/memories/tags'
     | '/_main/settings/connectors'
-    | '/_main/settings/env-vars'
     | '/_main/settings/extension'
     | '/_main/settings/models'
     | '/_main/settings/preferences'
     | '/_main/settings/profiles'
+    | '/_main/settings/secrets'
     | '/_main/settings/usage'
     | '/_main/skills/$id'
     | '/_main/wiki/$docId'
@@ -798,6 +798,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainSettingsUsageRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/settings/secrets': {
+      id: '/_main/settings/secrets'
+      path: '/settings/secrets'
+      fullPath: '/settings/secrets'
+      preLoaderRoute: typeof MainSettingsSecretsRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/settings/profiles': {
       id: '/_main/settings/profiles'
       path: '/settings/profiles'
@@ -824,13 +831,6 @@ declare module '@tanstack/react-router' {
       path: '/settings/extension'
       fullPath: '/settings/extension'
       preLoaderRoute: typeof MainSettingsExtensionRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/settings/env-vars': {
-      id: '/_main/settings/env-vars'
-      path: '/settings/env-vars'
-      fullPath: '/settings/env-vars'
-      preLoaderRoute: typeof MainSettingsEnvVarsRouteImport
       parentRoute: typeof MainRouteRoute
     }
     '/_main/settings/connectors': {
@@ -1000,11 +1000,11 @@ interface MainRouteRouteChildren {
   MainMemoriesListRoute: typeof MainMemoriesListRoute
   MainMemoriesTagsRoute: typeof MainMemoriesTagsRoute
   MainSettingsConnectorsRoute: typeof MainSettingsConnectorsRoute
-  MainSettingsEnvVarsRoute: typeof MainSettingsEnvVarsRoute
   MainSettingsExtensionRoute: typeof MainSettingsExtensionRoute
   MainSettingsModelsRoute: typeof MainSettingsModelsRoute
   MainSettingsPreferencesRoute: typeof MainSettingsPreferencesRoute
   MainSettingsProfilesRoute: typeof MainSettingsProfilesRoute
+  MainSettingsSecretsRoute: typeof MainSettingsSecretsRoute
   MainSettingsUsageRoute: typeof MainSettingsUsageRoute
   MainWikiDocIdRoute: typeof MainWikiDocIdRoute
   MainActivityIndexRoute: typeof MainActivityIndexRoute
@@ -1046,11 +1046,11 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainMemoriesListRoute: MainMemoriesListRoute,
   MainMemoriesTagsRoute: MainMemoriesTagsRoute,
   MainSettingsConnectorsRoute: MainSettingsConnectorsRoute,
-  MainSettingsEnvVarsRoute: MainSettingsEnvVarsRoute,
   MainSettingsExtensionRoute: MainSettingsExtensionRoute,
   MainSettingsModelsRoute: MainSettingsModelsRoute,
   MainSettingsPreferencesRoute: MainSettingsPreferencesRoute,
   MainSettingsProfilesRoute: MainSettingsProfilesRoute,
+  MainSettingsSecretsRoute: MainSettingsSecretsRoute,
   MainSettingsUsageRoute: MainSettingsUsageRoute,
   MainWikiDocIdRoute: MainWikiDocIdRoute,
   MainActivityIndexRoute: MainActivityIndexRoute,
