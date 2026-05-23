@@ -1,5 +1,11 @@
 # Changelog
 
+## Home Dashboard Polish — 2026-05-23
+
+- **Dashboard stats**: Tonal stat cards with Instrument Serif numbers, 7-day sparklines on total and daily adds, and an "Added today" metric.
+- **Growth chart**: Cleaner bar chart on muted surfaces without divider borders; empty state when there is no data yet.
+- **Activity & shortcuts**: Card-style recent activity rows and quick actions with background-only hovers; layout skeleton while loading.
+
 ## API Usage & Connectors Polish — 2026-05-23
 
 - **API usage dashboard**: Summary cards use tonal surfaces, real 7-day trend charts from your logs, and a card-based request list instead of a bordered table.
