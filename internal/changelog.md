@@ -1,5 +1,9 @@
 # Changelog
 
+## Codebase MCP Tools — 2026-05-23
+
+- **MCP codebase access**: Agents can list connected repos and query synced code graphs — search symbols, read call relationships, blast radius, and filtered subgraphs via six new tools.
+
 ## AI Logs Page Polish — 2026-05-23
 
 - **Overview cards**: Instrument Serif metrics, tonal stat cards, and 7-day sparklines for cost, tokens, latency, and success rate.
