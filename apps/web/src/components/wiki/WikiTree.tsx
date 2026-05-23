@@ -9,13 +9,11 @@ import {
   IconFolder,
   IconFolderOpen,
   IconFileText,
-  IconPlus,
   IconFolderPlus,
   IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
 import {
-  Button,
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
@@ -66,17 +64,6 @@ export default function WikiTree({
     null,
   );
 
-  const handleCreateRoot = useCallback(
-    async (kind: "folder" | "document") => {
-      const title = kind === "folder" ? "Untitled folder" : "Untitled";
-      const newId = await createNode({ parentId: undefined, kind, title });
-      if (kind === "document") {
-        onSelect(newId);
-      }
-    },
-    [createNode, onSelect],
-  );
-
   const handleCreateInFolder = useCallback(
     async (parentId: Id<"wikiNodes">, kind: "folder" | "document") => {
       const title = kind === "folder" ? "Untitled folder" : "Untitled";
@@ -90,34 +77,10 @@ export default function WikiTree({
 
   return (
     <div className="flex flex-col min-h-0 flex-1 w-full">
-      <div className="flex items-center justify-between mb-2 gap-2 px-1 shrink-0">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          Documents
-        </span>
-        <div className="flex shrink-0 gap-1">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => void handleCreateRoot("folder")}
-            title="New folder"
-          >
-            <IconFolder size={14} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => void handleCreateRoot("document")}
-            title="New document"
-          >
-            <IconPlus size={14} />
-          </Button>
-        </div>
-      </div>
-
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
         {tree.length === 0 ? (
           <p className="px-2 py-3 text-xs text-muted-foreground">
-            No documents yet. Click + to create one.
+            No documents yet. Use + in the header to create one.
           </p>
         ) : (
           <ul className="flex flex-col">
