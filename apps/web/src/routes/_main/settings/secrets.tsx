@@ -4,11 +4,11 @@ import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
 import { EnvVarsTable } from "@/components/EnvVarsTable";
 
-export const Route = createFileRoute("/_main/settings/env-vars")({
-  component: EnvVarsPage,
+export const Route = createFileRoute("/_main/settings/secrets")({
+  component: SecretsPage,
 });
 
-function EnvVarsPage() {
+function SecretsPage() {
   const vars = useQuery(api.userEnvVars.list, {});
   const upsert = useAction(api.userEnvVarsActions.upsertVar);
   const edit = useAction(api.userEnvVarsActions.editVar);
@@ -17,7 +17,7 @@ function EnvVarsPage() {
   const bulkImport = useAction(api.userEnvVarsActions.bulkUpsert);
 
   return (
-    <PageContainer title="Env Vars" centeredMaxWidth showTitle>
+    <PageContainer title="Secrets" centeredMaxWidth showTitle>
       <EnvVarsTable
         vars={vars}
         onUpsert={async (key, value) => {
@@ -33,7 +33,7 @@ function EnvVarsPage() {
         onBulkImport={async (entries) => {
           await bulkImport({ entries });
         }}
-        description="Variables (e.g. OPENROUTER_API_KEY) used by server-side actions when calling third-party providers on your behalf. Values are encrypted at rest."
+        description="Secrets (e.g. OPENROUTER_API_KEY) used by server-side actions when calling third-party providers on your behalf. Values are encrypted at rest."
       />
     </PageContainer>
   );

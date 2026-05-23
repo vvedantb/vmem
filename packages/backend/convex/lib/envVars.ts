@@ -41,7 +41,7 @@ export async function requireUserEnvVar(
   const value = all[key];
   if (!value) {
     throw new Error(
-      `Env var "${key}" is not configured. Set it in Settings → Env Vars.`,
+      `Env var "${key}" is not configured. Set it in Settings → Secrets.`,
     );
   }
   return value;
