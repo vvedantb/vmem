@@ -26,10 +26,34 @@ function ConnectorsPage() {
     }
   }, [connectors, seedDefaults]);
 
-  const connectedConnectors = useMemo(
-    () => connectors?.filter((c) => c.connectionStatus === "connected") ?? [],
-    [connectors],
-  );
+  const githubConnection = useQuery(api.github.getConnection);
+
+  const sortedConnectors = useMemo(() => {
+    if (!connectors) return [];
+    return [...connectors].sort((a, b) => {
+      const aConnected =
+        a.name === "GitHub"
+          ? Boolean(githubConnection)
+          : a.connectionStatus === "connected";
+      const bConnected =
+        b.name === "GitHub"
+          ? Boolean(githubConnection)
+          : b.connectionStatus === "connected";
+      if (aConnected === bConnected) return a.name.localeCompare(b.name);
+      return aConnected ? -1 : 1;
+    });
+  }, [connectors, githubConnection]);
+
+  const hasAnyConnection = useMemo(() => {
+    if (!connectors) return false;
+    return connectors.some(
+      (c) =>
+        c.connectionStatus === "connected" ||
+        (c.name === "GitHub" &&
+          githubConnection !== undefined &&
+          githubConnection !== null),
+    );
+  }, [connectors, githubConnection]);
 
   if (connectors === undefined) {
     return (
@@ -72,7 +96,7 @@ function ConnectorsPage() {
           </Button>
         }
       >
-        {connectedConnectors.length === 0 ? (
+        {sortedConnectors.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <IconPlug
               size={40}
@@ -80,19 +104,22 @@ function ConnectorsPage() {
               className="mb-3 text-muted-foreground"
             />
             <p className="mb-4 text-sm text-muted-foreground">
-              No connectors linked yet
+              No connectors available yet
             </p>
-            <Button size="sm" onClick={() => setShowBrowse(true)}>
-              <IconPlus size={16} />
-              Browse Connectors
-            </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {connectedConnectors.map((connector) => (
-              <ConnectorCard key={connector._id} connector={connector} />
-            ))}
-          </div>
+          <>
+            {!hasAnyConnection ? (
+              <p className="mb-4 text-sm text-muted-foreground">
+                Connect a source below to start syncing.
+              </p>
+            ) : null}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {sortedConnectors.map((connector) => (
+                <ConnectorCard key={connector._id} connector={connector} />
+              ))}
+            </div>
+          </>
         )}
       </PageContainer>
 

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useAction } from "convex/react";
 import { api, PARSER_VERSION } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
@@ -11,7 +11,6 @@ import {
   IconLoader2,
 } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
-import { ConnectGitHubButton } from "@/components/codebases/ConnectGitHubButton";
 import { AddRepoModal } from "@/components/codebases/AddRepoModal";
 import { CodebaseCard } from "@/components/codebases/CodebaseCard";
 import { toast } from "sonner";
@@ -58,19 +57,16 @@ function CodebasesPage() {
     <PageContainer
       title="Codebases"
       rightSection={
-        <div className="flex items-center gap-2">
-          {isConnected && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAddModalOpen(true)}
-            >
-              <IconPlus size={16} />
-              Add Repository
-            </Button>
-          )}
-          <ConnectGitHubButton connection={connection ?? null} />
-        </div>
+        isConnected ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAddModalOpen(true)}
+          >
+            <IconPlus size={16} />
+            Add Repository
+          </Button>
+        ) : undefined
       }
     >
       {showResyncBanner && (
@@ -114,9 +110,20 @@ function CodebasesPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <IconDatabase size={40} className="mb-3 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            {isConnected
-              ? "No repositories synced yet. Add one to get started."
-              : "Connect your GitHub account to start syncing repositories."}
+            {isConnected ? (
+              "No repositories synced yet. Add one to get started."
+            ) : (
+              <>
+                Connect GitHub in{" "}
+                <Link
+                  to="/settings/connectors"
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                >
+                  Settings → Connectors
+                </Link>{" "}
+                to sync repositories.
+              </>
+            )}
           </p>
         </div>
       ) : (
