@@ -1,5 +1,12 @@
 # Changelog
 
+## Skills Page Redesign — 2026-05-23
+
+- **Add & edit via modals**: Add Skill dropdown offers Write skill or Upload skill (.md drop zone); editing happens in a modal instead of the side panel.
+- **View-only panel**: Selecting a skill opens a read-only detail panel; full description and instructions live there, not on list cards.
+- **1/3–2/3 layout**: Desktop list uses one third width in a single column; the detail panel uses two thirds.
+- **Minimal list cards**: Cards show only the skill name; selected state is a background tint, unselected cards have no fill.
+
 ## Settings Save Feedback & Filter Icons — 2026-05-23
 
 - **Preferences save toasts**: Text fields confirm on blur; toggles and sliders show "Saved!" after successful mutations so autosave feels acknowledged.
