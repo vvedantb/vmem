@@ -13,24 +13,21 @@ import {
   Input,
   Textarea,
 } from "@vmem/ui";
-import { IconLoader2, IconTrash } from "@tabler/icons-react";
+import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
 interface EditSkillDialogProps {
   skill: Doc<"skills"> | undefined;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDeleted: () => void;
 }
 
 export function EditSkillDialog({
   skill,
   open,
   onOpenChange,
-  onDeleted,
 }: EditSkillDialogProps) {
   const updateSkill = useMutation(api.skills.updateSkill);
-  const deleteSkill = useMutation(api.skills.deleteSkill);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -76,21 +73,6 @@ export function EditSkillDialog({
     }
   };
 
-  const handleDelete = async () => {
-    if (!skill) return;
-    if (!window.confirm(`Delete skill "${skill.name}"?`)) return;
-
-    try {
-      await deleteSkill({ id: skill._id });
-      toast.success(`Deleted ${skill.name}`);
-      onOpenChange(false);
-      onDeleted();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Delete failed";
-      toast.error(msg);
-    }
-  };
-
   if (!skill) return null;
 
   return (
@@ -132,34 +114,22 @@ export function EditSkillDialog({
             className="min-h-[240px] font-mono text-xs"
           />
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-end gap-2 pt-2">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={handleDelete}
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => onOpenChange(false)}
+              disabled={submitting}
             >
-              <IconTrash size={14} />
-              Delete
+              Cancel
             </Button>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" disabled={submitting}>
-                {submitting ? (
-                  <IconLoader2 size={14} className="animate-spin" />
-                ) : null}
-                Save
-              </Button>
-            </div>
+            <Button type="submit" size="sm" disabled={submitting}>
+              {submitting ? (
+                <IconLoader2 size={14} className="animate-spin" />
+              ) : null}
+              Save
+            </Button>
           </div>
         </form>
       </DialogContent>
