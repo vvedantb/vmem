@@ -1,6 +1,11 @@
 "use client";
 
-import { createFileRoute } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  useNavigate,
+  useParams,
+} from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
@@ -27,10 +32,8 @@ import { UploadSkillDialog } from "@/components/skills/UploadSkillDialog";
 import { EditSkillDialog } from "@/components/skills/EditSkillDialog";
 
 export const Route = createFileRoute("/_main/skills")({
-  component: SkillsPage,
+  component: SkillsLayout,
 });
-
-type PanelState = { mode: "none" } | { mode: "view"; skillId: Id<"skills"> };
 
 type ModalState =
   | { mode: "none" }
@@ -38,41 +41,68 @@ type ModalState =
   | { mode: "upload" }
   | { mode: "edit"; skillId: Id<"skills"> };
 
-function SkillsPage() {
+function SkillsLayout() {
+  const navigate = useNavigate();
+  const params = useParams({ strict: false });
+  const skillId = typeof params.id === "string" ? params.id : undefined;
+
   const skills = useQuery(api.skills.listMy);
-  const [panel, setPanel] = useState<PanelState>({ mode: "none" });
   const [modal, setModal] = useState<ModalState>({ mode: "none" });
 
   useEffect(() => {
-    if (!skills) return;
+    if (!skills || !skillId) return;
 
-    if (panel.mode === "view" && !skills.some((s) => s._id === panel.skillId)) {
-      setPanel({ mode: "none" });
+    if (!skills.some((s) => s._id === skillId)) {
+      void navigate({
+        to: "/skills/$id",
+        params: { id: skills[0]._id },
+        replace: true,
+      });
     }
+  }, [skills, skillId, navigate]);
 
+  useEffect(() => {
+    if (!skills) return;
     if (modal.mode === "edit" && !skills.some((s) => s._id === modal.skillId)) {
       setModal({ mode: "none" });
     }
-  }, [skills, panel, modal]);
+  }, [skills, modal]);
 
-  const viewedSkill =
-    panel.mode === "view"
-      ? skills?.find((s) => s._id === panel.skillId)
-      : undefined;
+  const viewedSkill = skillId
+    ? skills?.find((s) => s._id === skillId)
+    : undefined;
 
   const editingSkill =
     modal.mode === "edit"
       ? skills?.find((s) => s._id === modal.skillId)
       : undefined;
 
-  const isPanelOpen = panel.mode === "view";
+  const isDetailRoute = skillId !== undefined;
 
-  const openView = (skillId: Id<"skills">) => {
-    setPanel({ mode: "view", skillId });
+  const openSkill = (id: Id<"skills">) => {
+    void navigate({ to: "/skills/$id", params: { id } });
   };
 
-  const handleSkillCreated = (skillId: Id<"skills">) => {
-    setPanel({ mode: "view", skillId });
+  const handleSkillCreated = (id: Id<"skills">) => {
+    openSkill(id);
+  };
+
+  const handleSkillDeleted = () => {
+    setModal({ mode: "none" });
+    if (!skills) {
+      void navigate({ to: "/skills", replace: true });
+      return;
+    }
+    const remaining = skills.filter((s) => s._id !== skillId);
+    if (remaining.length === 0) {
+      void navigate({ to: "/skills", replace: true });
+      return;
+    }
+    void navigate({
+      to: "/skills/$id",
+      params: { id: remaining[0]._id },
+      replace: true,
+    });
   };
 
   return (
@@ -102,7 +132,7 @@ function SkillsPage() {
     >
       <div className="flex h-full min-h-0 flex-col gap-4 md:flex-row">
         <div
-          className={`min-h-0 overflow-y-auto md:w-1/3 md:shrink-0 ${isPanelOpen ? "hidden md:block" : "block w-full"}`}
+          className={`min-h-0 overflow-y-auto md:w-1/3 md:shrink-0 ${isDetailRoute ? "hidden md:block" : "block w-full"}`}
         >
           {skills === undefined ? (
             <div className="flex items-center justify-center py-20">
@@ -121,28 +151,22 @@ function SkillsPage() {
                 <SkillCard
                   key={skill._id}
                   skill={skill}
-                  selected={
-                    panel.mode === "view" && panel.skillId === skill._id
-                  }
-                  onSelect={() => openView(skill._id)}
+                  selected={skillId === skill._id}
+                  onSelect={() => openSkill(skill._id)}
                 />
               ))}
             </div>
           )}
         </div>
 
-        {isPanelOpen && viewedSkill ? (
+        {isDetailRoute && viewedSkill ? (
           <div className="flex min-h-0 w-full flex-col md:w-2/3 md:rounded-xl md:bg-muted/40">
             <ViewSkillPanel
               skill={viewedSkill}
-              onClose={() => setPanel({ mode: "none" })}
               onEdit={() =>
                 setModal({ mode: "edit", skillId: viewedSkill._id })
               }
-              onDeleted={() => {
-                setPanel({ mode: "none" });
-                setModal({ mode: "none" });
-              }}
+              onDeleted={handleSkillDeleted}
             />
           </div>
         ) : (
@@ -153,6 +177,8 @@ function SkillsPage() {
           </div>
         )}
       </div>
+
+      <Outlet />
 
       <WriteSkillDialog
         open={modal.mode === "write"}
@@ -176,9 +202,7 @@ function SkillsPage() {
         onOpenChange={(open) => {
           if (!open) setModal({ mode: "none" });
         }}
-        onDeleted={() => {
-          setPanel({ mode: "none" });
-        }}
+        onDeleted={handleSkillDeleted}
       />
     </PageContainer>
   );

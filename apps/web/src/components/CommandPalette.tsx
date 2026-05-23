@@ -242,7 +242,11 @@ export function CommandPalette({ onToggleSidebar }: Props) {
               <CommandItem
                 key={s._id}
                 value={`skill ${s.name} ${s._id}`}
-                onSelect={() => runAndClose(() => navigate({ to: "/skills" }))}
+                onSelect={() =>
+                  runAndClose(() =>
+                    navigate({ to: "/skills/$id", params: { id: s._id } }),
+                  )
+                }
               >
                 <IconBolt />
                 <span className="truncate">{s.name}</span>
