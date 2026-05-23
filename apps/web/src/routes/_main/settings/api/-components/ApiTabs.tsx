@@ -6,16 +6,16 @@ export function ApiTabs() {
     <RouteTabs
       tabs={[
         {
-          value: "keys",
-          to: "/settings/api/keys",
-          label: "Keys",
-          icon: <IconKey size={16} />,
-        },
-        {
           value: "usage",
           to: "/settings/api/usage",
           label: "Usage",
           icon: <IconChartBar size={16} />,
+        },
+        {
+          value: "keys",
+          to: "/settings/api/keys",
+          label: "Keys",
+          icon: <IconKey size={16} />,
         },
       ]}
       getActiveValue={(matchRoute) =>

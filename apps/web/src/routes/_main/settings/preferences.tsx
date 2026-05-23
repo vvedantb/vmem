@@ -103,10 +103,13 @@ function PreferencesPage() {
       <PageContainer title="Preferences" centeredMaxWidth showTitle>
         <div className="space-y-12">
           <section className="space-y-6">
-            <Skeleton className="h-5 w-48" />
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-24 w-full" />
             </div>
           </section>
           <section className="space-y-6">
@@ -126,48 +129,45 @@ function PreferencesPage() {
     <PageContainer title="Preferences" centeredMaxWidth showTitle>
       <div className="space-y-12">
         <section className="space-y-6">
-          <h3 className="text-base font-medium text-foreground">About You</h3>
-          <p className="-mt-3 text-xs text-muted-foreground">
-            Shared automatically with AI apps alongside retrieved memories, so
-            they can tailor responses to you.
-          </p>
-          <div className="space-y-6">
-            <div className="space-y-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
               <Label htmlFor="about-me" className="text-sm font-medium">
                 About me
               </Label>
-              <Textarea
-                id="about-me"
-                placeholder="A few lines on who you are, what you do, and what you're working toward."
-                value={settings.aboutMe}
-                onChange={(e) => {
-                  void updateSettings({ aboutMe: e.target.value });
-                }}
-                rows={4}
-                maxLength={500}
-              />
-              <p className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground tabular-nums">
                 {settings.aboutMe.length}/500
-              </p>
+              </span>
             </div>
-            <div className="space-y-2">
+            <Textarea
+              id="about-me"
+              placeholder="A few lines on who you are, what you do, and what you're working toward."
+              value={settings.aboutMe}
+              onChange={(e) => {
+                void updateSettings({ aboutMe: e.target.value });
+              }}
+              rows={4}
+              maxLength={500}
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
               <Label htmlFor="preferences" className="text-sm font-medium">
                 Preferences
               </Label>
-              <Textarea
-                id="preferences"
-                placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
-                value={settings.preferences}
-                onChange={(e) => {
-                  void updateSettings({ preferences: e.target.value });
-                }}
-                rows={4}
-                maxLength={500}
-              />
-              <p className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground tabular-nums">
                 {settings.preferences.length}/500
-              </p>
+              </span>
             </div>
+            <Textarea
+              id="preferences"
+              placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
+              value={settings.preferences}
+              onChange={(e) => {
+                void updateSettings({ preferences: e.target.value });
+              }}
+              rows={4}
+              maxLength={500}
+            />
           </div>
         </section>
 
@@ -204,11 +204,6 @@ function PreferencesPage() {
 
         <section className="space-y-6">
           <h3 className="text-base font-medium text-foreground">Dream Mode</h3>
-          <p className="-mt-3 text-xs text-muted-foreground">
-            Synthesize insights, connections, and anomalies across your personal
-            memories. Applies to every personal profile. Team profiles keep
-            their own per-team Dream Mode settings.
-          </p>
           <div className="space-y-6">
             <div className="flex items-center justify-between gap-3">
               <div>

@@ -135,12 +135,45 @@
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
   fill-opacity: 0;
+}
+.vmem-draw-in:not(.vmem-draw-in-mounted) path {
   animation: vmem-draw-in 1.6s ease-out forwards;
 }
-.vmem-draw-in path:nth-child(2) {
+.vmem-draw-in:not(.vmem-draw-in-mounted) path:nth-child(2) {
   animation-delay: 0.3s;
 }
-.vmem-draw-in path:nth-child(3) {
+.vmem-draw-in:not(.vmem-draw-in-mounted) path:nth-child(3) {
+  animation-delay: 0.6s;
+}
+.vmem-draw-in-mounted path {
+  stroke-dashoffset: 0;
+  fill-opacity: 1;
+  animation: none;
+}
+
+/* Replay draw-in on hover-in only. After mount, paths stay settled so
+   removing :hover does not retrigger the intro animation. */
+@keyframes vmem-draw-in-hover {
+  0% {
+    stroke-dashoffset: 100;
+    fill-opacity: 0;
+  }
+  60% {
+    stroke-dashoffset: 0;
+    fill-opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    fill-opacity: 1;
+  }
+}
+.group:hover .vmem-draw-in-mounted path {
+  animation: vmem-draw-in-hover 1.6s ease-out forwards;
+}
+.group:hover .vmem-draw-in-mounted path:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.group:hover .vmem-draw-in-mounted path:nth-child(3) {
   animation-delay: 0.6s;
 }
 
@@ -375,7 +408,9 @@
   .vmem-breathing,
   .vmem-sequencer .vmem-petal,
   .vmem-trace path,
-  .vmem-draw-in path,
+  .vmem-draw-in:not(.vmem-draw-in-mounted) path,
+  .vmem-draw-in-mounted path,
+  .group:hover .vmem-draw-in-mounted path,
   .vmem-blossom .vmem-petal,
   .vmem-converge .conv-left,
   .vmem-converge .conv-right,
