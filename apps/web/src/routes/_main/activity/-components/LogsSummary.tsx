@@ -1,49 +1,108 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { Skeleton } from "@vmem/ui";
-import { api, type Id } from "@vmem/backend";
+import type { FunctionReturnType } from "convex/server";
+import type { TablerIcon } from "@tabler/icons-react";
 import {
-  IconCoin,
   IconActivityHeartbeat,
-  IconStack,
   IconCircleCheck,
+  IconCoin,
+  IconStack,
 } from "@tabler/icons-react";
-import type { Range, Scope } from "../-searchParams";
-import { RANGE_LABELS } from "../-searchParams";
+import { motion } from "motion/react";
+import { cn } from "@vmem/ui";
+import { api } from "@vmem/backend";
+import { Sparkline } from "@/components/dashboard/Sparkline";
+import { RANGE_LABELS, type Range } from "../-searchParams";
+import {
+  formatCostUsd,
+  formatTokens,
+  hasTrendActivity,
+  type AiLogsTrends,
+} from "./_aiLogsUtils";
 
-/**
- * Four stat cards above the logs table. Mirrors the table's `scope` so the
- * summary always describes the same row population the user is browsing.
- *
- * The summary endpoint caps at 5k rows; when that cap fires it returns
- * `isApprox: true` and we surface a small label so users know totals
- * understate true spend on huge windows.
- */
+type SummaryData = FunctionReturnType<typeof api.openRouterLogs.summaryMine>;
+
 interface LogsSummaryProps {
-  scope: Scope;
-  teamId: Id<"teams"> | undefined;
+  summary: SummaryData | undefined;
   range: Range;
+  trends: AiLogsTrends;
 }
 
-export function LogsSummary({ scope, teamId, range }: LogsSummaryProps) {
-  // `useQuery` returns `undefined` while loading, so `summary === undefined`
-  // is the loading branch (NOT `summary === null`, which would be returned
-  // if the query argued itself out of running).
-  const summary = useQuery(
-    api.openRouterLogs.summaryMine,
-    scope === "team"
-      ? teamId
-        ? { scope, teamId, range }
-        : "skip"
-      : { scope, range },
+function SummaryCard({
+  label,
+  value,
+  icon: Icon,
+  valueClassName,
+  trendData,
+  strokeClassName,
+  fillClassName,
+  showSparkline,
+  index,
+}: {
+  label: string;
+  value: string;
+  icon: TablerIcon;
+  valueClassName?: string;
+  trendData: number[];
+  strokeClassName: string;
+  fillClassName: string;
+  showSparkline: boolean;
+  index: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.35,
+        delay: index * 0.06,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-muted/40 p-5"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60">
+          <Icon size={16} className="text-muted-foreground" stroke={1.5} />
+        </div>
+      </div>
+      <p
+        className={cn(
+          "font-instrumentSerif text-3xl leading-none tabular-nums text-foreground",
+          valueClassName,
+        )}
+      >
+        {value}
+      </p>
+      {showSparkline ? (
+        <div className="mt-auto pt-1">
+          <Sparkline
+            data={trendData}
+            strokeClassName={strokeClassName}
+            fillClassName={fillClassName}
+          />
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Last 7 days
+          </p>
+        </div>
+      ) : (
+        <div className="mt-auto" />
+      )}
+    </motion.div>
   );
+}
 
+export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
   if (summary === undefined) {
     return (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+        {[0, 1, 2, 3].map((index) => (
+          <div
+            key={index}
+            className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-muted/40 p-5"
+          >
+            <div className="h-16 animate-pulse rounded-lg bg-muted/60" />
+          </div>
         ))}
       </div>
     );
@@ -57,76 +116,86 @@ export function LogsSummary({ scope, teamId, range }: LogsSummaryProps) {
       ? `${summary.avgLatencyMs.toLocaleString()}ms`
       : "—";
 
+  const hasTrends =
+    hasTrendActivity(trends.calls) ||
+    hasTrendActivity(trends.costs) ||
+    hasTrendActivity(trends.tokens);
+
+  const cards = [
+    {
+      label: "Total cost",
+      value: formattedCost,
+      icon: IconCoin,
+      trendData: trends.costs,
+      strokeClassName: "text-primary",
+      fillClassName: "fill-primary/10",
+    },
+    {
+      label: "Total tokens",
+      value: formattedTokens,
+      icon: IconStack,
+      trendData: trends.tokens,
+      strokeClassName: "text-foreground/70",
+      fillClassName: "fill-foreground/10",
+    },
+    {
+      label: "Avg latency",
+      value: latency,
+      icon: IconActivityHeartbeat,
+      trendData: trends.latencies,
+      strokeClassName: "text-muted-foreground",
+      fillClassName: "fill-foreground/5",
+    },
+    {
+      label: "Success rate",
+      value: successPercent,
+      icon: IconCircleCheck,
+      valueClassName: "text-success",
+      trendData: trends.successRates,
+      strokeClassName: "text-success",
+      fillClassName: "fill-success/10",
+    },
+  ] as const satisfies ReadonlyArray<{
+    label: string;
+    value: string;
+    icon: TablerIcon;
+    valueClassName?: string;
+    trendData: number[];
+    strokeClassName: string;
+    fillClassName: string;
+  }>;
+
   return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
-          label="Total cost"
-          value={formattedCost}
-          icon={<IconCoin size={18} className="text-muted-foreground" />}
-        />
-        <StatCard
-          label="Total tokens"
-          value={formattedTokens}
-          icon={<IconStack size={18} className="text-muted-foreground" />}
-        />
-        <StatCard
-          label="Avg latency"
-          value={latency}
-          icon={
-            <IconActivityHeartbeat
-              size={18}
-              className="text-muted-foreground"
-            />
-          }
-        />
-        <StatCard
-          label="Success rate"
-          value={successPercent}
-          icon={<IconCircleCheck size={18} className="text-muted-foreground" />}
-        />
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-2 px-0.5">
+        <div>
+          <h2 className="text-sm font-medium text-foreground">Overview</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {RANGE_LABELS[range]} · {summary.totalCalls.toLocaleString()} call
+            {summary.totalCalls === 1 ? "" : "s"}
+            {summary.isApprox
+              ? " (approx — based on most recent 5,000 calls)"
+              : ""}
+          </p>
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground">
-        {RANGE_LABELS[range]} · {summary.totalCalls.toLocaleString()} call
-        {summary.totalCalls === 1 ? "" : "s"}
-        {summary.isApprox ? " (approx — based on most recent 5,000 calls)" : ""}
-      </p>
-    </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+        {cards.map((card, index) => (
+          <SummaryCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            icon={card.icon}
+            valueClassName={card.valueClassName}
+            trendData={card.trendData}
+            strokeClassName={card.strokeClassName}
+            fillClassName={card.fillClassName}
+            showSparkline={hasTrends}
+            index={index}
+          />
+        ))}
+      </div>
+    </section>
   );
-}
-
-function StatCard({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-xl bg-muted/40 p-4">
-      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        {icon}
-        {label}
-      </div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums text-foreground">
-        {value}
-      </div>
-    </div>
-  );
-}
-
-/** Format a USD amount with the precision OpenRouter quotes (4dp). */
-function formatCostUsd(amount: number): string {
-  if (amount === 0) return "$0";
-  if (amount < 0.0001) return "<$0.0001";
-  if (amount < 1) return `$${amount.toFixed(4)}`;
-  return `$${amount.toFixed(2)}`;
-}
-
-function formatTokens(tokens: number): string {
-  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(2)}M`;
-  if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}k`;
-  return tokens.toLocaleString();
 }

@@ -26,6 +26,8 @@ import {
 import { LogsSummary } from "./LogsSummary";
 import { LogsFiltersDropdown } from "./LogsFiltersDropdown";
 import { LogsTable } from "./LogsTable";
+import { computeAiLogsTrends } from "./_aiLogsUtils";
+import { AiLogsLoadingSkeleton } from "./AiLogsLoadingSkeleton";
 
 const PAGE_SIZE = 50;
 
@@ -88,6 +90,22 @@ export function AiLogsPanel({
     return paged.results;
   }, [paged.results, params.sortDir]);
 
+  const summaryArgs = useMemo(() => {
+    if (params.scope === "team" && !teamId) return "skip" as const;
+    return {
+      scope: params.scope,
+      teamId,
+      range: params.range,
+    };
+  }, [params.scope, teamId, params.range]);
+
+  const summary = useQuery(api.openRouterLogs.summaryMine, summaryArgs);
+
+  const trends = useMemo(
+    () => computeAiLogsTrends(paged.results),
+    [paged.results],
+  );
+
   const profilesById = useMemo(() => {
     const map = new Map<
       string,
@@ -116,9 +134,13 @@ export function AiLogsPanel({
     });
   };
 
+  if (summary === undefined && paged.status === "LoadingFirstPage") {
+    return <AiLogsLoadingSkeleton />;
+  }
+
   return (
-    <div className="space-y-6">
-      <LogsSummary scope={params.scope} teamId={teamId} range={params.range} />
+    <div className="flex flex-col gap-8">
+      <LogsSummary summary={summary} range={params.range} trends={trends} />
       <LogsTable
         rows={orderedRows}
         isLoading={
@@ -130,6 +152,7 @@ export function AiLogsPanel({
         hasActiveFilters={hasActiveFilters}
         scrollParent={scrollParent}
         profilesById={profilesById}
+        totalCalls={summary?.totalCalls}
       />
     </div>
   );
