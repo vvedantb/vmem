@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc } from "@vmem/backend";
-import { Button, Input, Label, Textarea } from "@vmem/ui";
+import { Button, Input, Textarea } from "@vmem/ui";
 import { IconX, IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
@@ -90,34 +90,32 @@ export function EditSkillPanel({ skill, onClose }: EditSkillPanelProps) {
         onSubmit={handleSubmit}
         className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4"
       >
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="edit-skill-name">Name</Label>
-          <Input
-            id="edit-skill-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
+        <Input
+          id="edit-skill-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Name"
+          aria-label="Name"
+        />
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="edit-skill-description">Description</Label>
-          <Input
-            id="edit-skill-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What this skill is for"
-          />
-        </div>
+        <Textarea
+          id="edit-skill-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What this skill is for"
+          aria-label="Description"
+          rows={3}
+          className="min-h-[4.5rem] resize-y"
+        />
 
-        <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="edit-skill-instructions">Instructions</Label>
-          <Textarea
-            id="edit-skill-instructions"
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            className="min-h-[240px] flex-1 font-mono text-xs"
-          />
-        </div>
+        <Textarea
+          id="edit-skill-instructions"
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          placeholder="Instructions"
+          aria-label="Instructions"
+          className="min-h-[240px] flex-1 font-mono text-xs"
+        />
 
         <div className="flex items-center justify-between pt-2">
           <Button

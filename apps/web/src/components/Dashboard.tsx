@@ -94,6 +94,13 @@ function getActivityIcon(type: string) {
   }
 }
 
+/** Pull the memory title out of descriptions like `Created "My title"`. */
+function getActivityLabel(description: string): string {
+  const quoted = /"([^"]+)"/.exec(description);
+  if (quoted) return quoted[1];
+  return description;
+}
+
 export default function Dashboard() {
   const { isAuthenticated } = useConvexAuth();
   const getStats = useAction(api.dashboardApi.getStats);
@@ -312,18 +319,20 @@ export default function Dashboard() {
                   return (
                     <li
                       key={item.id}
-                      className="flex items-start gap-3 rounded-xl bg-background/60 px-3 py-2.5"
+                      className="flex items-center gap-3 rounded-xl bg-background/60 px-3 py-2.5"
                     >
                       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary">
                         <Icon size={16} className="text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground truncate">
-                          {item.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.title} &middot; {item.relativeTime}
-                        </p>
+                        <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                          <p className="truncate text-sm text-foreground">
+                            {getActivityLabel(item.description)}
+                          </p>
+                          <p className="flex-shrink-0 text-xs text-muted-foreground tabular-nums">
+                            {item.relativeTime}
+                          </p>
+                        </div>
                       </div>
                     </li>
                   );
