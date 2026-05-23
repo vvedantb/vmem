@@ -9,7 +9,8 @@
  * `searchSymbols` powers the search box.
  */
 
-import type { Driver } from "neo4j-driver";
+import { type Driver } from "neo4j-driver";
+import { clampNeo4jLimit } from "../intParams";
 
 export interface OverviewNode {
   id: string;
@@ -225,7 +226,7 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
 
     // Blast radius subset
     if (args.blastRadiusOf) {
-      const depth = Math.max(1, Math.min(8, args.blastDepth ?? 5));
+      const depth = Math.max(1, Math.min(8, Math.trunc(args.blastDepth ?? 5)));
       const arrow =
         args.blastDirection === "downstream" ? "-[:CALLS*1.." : "<-[:CALLS*1..";
       const tail = args.blastDirection === "downstream" ? "]->" : "]-";
@@ -451,7 +452,7 @@ export async function searchSymbols(
     limit?: number;
   },
 ): Promise<SearchSymbolsResult[]> {
-  const limit = Math.max(1, Math.min(100, args.limit ?? 25));
+  const limit = clampNeo4jLimit(args.limit, 25, 100);
   const session = args.driver.session();
   try {
     // Fulltext index supports Lucene syntax — escape special chars and add a

@@ -8,6 +8,12 @@ import type { ActionCtx } from "./_generated/server";
 
 type CodebaseStatus = Doc<"codebases">["status"];
 
+/** MCP/JSON may deliver floats (e.g. 25.0); normalize before Neo4j hops. */
+function normalizeOptionalInt(value: number | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  return Math.trunc(value);
+}
+
 interface McpCodebaseSummary {
   id: string;
   repoFullName: string;
@@ -240,7 +246,7 @@ export const mcpSearchCodebaseSymbols = internalAction({
         codebaseId: ownedId,
         query: args.query,
         kind: args.kind,
-        limit: args.limit,
+        limit: normalizeOptionalInt(args.limit),
       },
     );
   },
@@ -292,7 +298,7 @@ export const mcpGetCodebaseImpact = internalAction({
         codebaseId: ownedId,
         symbolId: args.symbolId,
         direction: args.direction,
-        depth: args.depth,
+        depth: normalizeOptionalInt(args.depth),
       },
     );
   },
@@ -324,7 +330,7 @@ export const mcpGetCodebaseGraph = internalAction({
         processId: args.processId,
         blastRadiusOf: args.blastRadiusOf,
         blastDirection: args.blastDirection,
-        blastDepth: args.blastDepth,
+        blastDepth: normalizeOptionalInt(args.blastDepth),
       },
     );
   },
