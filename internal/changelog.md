@@ -1,8 +1,17 @@
 # Changelog
 
+## Daily Codebase Sync — 2026-05-23
+
+- **Automatic graph refresh**: Connected GitHub repos re-sync once per day (04:00 UTC) so MCP and canvas views stay current without manual Re-sync.
+- **Durable orchestration**: Each repository sync runs as its own Convex Workflow step, so large repos get a full action timeout instead of sharing one limit across a batch.
+- **Stale-only scheduling**: Skips repos synced within the last 24 hours, repos already syncing, and users without GitHub connected — avoids redundant GitHub API and parse work.
+- **Shared sync path**: Manual sync, sync-all, and the cron all call the same internal action; failures record on the codebase row without aborting the rest of the daily run.
+- **Workflow component**: `@convex-dev/workflow` added to the backend; kickoff is `internal.codebaseSync.kickoffDailyCodebaseSync` for manual runs from the dashboard.
+
 ## Codebase MCP Tools — 2026-05-23
 
 - **MCP codebase access**: Agents can list connected repos and query synced code graphs — search symbols, read call relationships, blast radius, and filtered subgraphs via six new tools.
+- **Neo4j limit fix**: MCP search no longer fails when `limit` arrives as a float (e.g. `25.0`); integer params are coerced before Cypher `LIMIT`.
 
 ## AI Logs Page Polish — 2026-05-23
 

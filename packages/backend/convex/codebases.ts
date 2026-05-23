@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
-import { PARSER_VERSION } from "../src/neo4j/codebase/types";
+import { DAILY_SYNC_STALE_MS } from "./codebaseSyncConstants";
+import type { Id } from "./_generated/dataModel";
 import { decryptToken } from "./lib/crypto";
 
 // --- GitHub API response shape for repos ---
@@ -166,64 +167,12 @@ export const syncCodebase = authAction({
     });
     if (!codebase) throw new Error("Codebase not found");
 
-    const clerkId = await requireClerkId(ctx);
-
-    const encryptedToken = await ctx.runQuery(
-      internal.github.getDecryptedTokenInternal,
-      { userId: ctx.userId },
+    const result = await ctx.runAction(
+      internal.codebaseSyncActions.syncOneCodebaseInternal,
+      { codebaseId: normalizedId },
     );
-    if (!encryptedToken) throw new Error("GitHub not connected");
-
-    const token = await decryptToken(encryptedToken);
-
-    await ctx.runMutation(internal.codebases.updateStatusInternal, {
-      id: normalizedId,
-      status: "syncing",
-      syncedFiles: 0,
-      errorMessage: undefined,
-      lastParseError: undefined,
-      parseStage: "fetching",
-    });
-
-    try {
-      const result = await ctx.runAction(
-        internal.neo4jActions.codebases.syncCodebaseInternal,
-        {
-          clerkId,
-          codebaseId: normalizedId,
-          repoOwner: codebase.repoOwner,
-          repoName: codebase.repoName,
-          branch: codebase.defaultBranch,
-          githubToken: token,
-        },
-      );
-
-      await ctx.runMutation(internal.codebases.updateStatusInternal, {
-        id: normalizedId,
-        status: "synced",
-        totalFiles: result.fileCount,
-        totalEdges: result.importEdgeCount,
-        syncedFiles: result.fileCount,
-        lastSyncedAt: Date.now(),
-        errorMessage: undefined,
-        functionCount: result.functionCount,
-        classCount: result.classCount,
-        interfaceCount: result.interfaceCount,
-        callEdgeCount: result.callEdgeCount,
-        processCount: result.processCount,
-        parserVersion: PARSER_VERSION,
-        lastParseError: undefined,
-        parseStage: "done",
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown sync error";
-      await ctx.runMutation(internal.codebases.updateStatusInternal, {
-        id: normalizedId,
-        status: "error",
-        errorMessage: message,
-        lastParseError: message,
-      });
-      throw err;
+    if (!result.ok) {
+      throw new Error(result.message);
     }
   },
 });
@@ -363,5 +312,44 @@ export const listMyInternal = internalQuery({
       .query("codebases")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
+  },
+});
+
+/** Load a codebase row for internal sync (no user scoping). */
+export const getByIdForSyncInternal = internalQuery({
+  args: { id: v.id("codebases") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
+/**
+ * Codebases eligible for the global daily sync workflow.
+ * Skips in-progress syncs, fresh syncs, and users without GitHub connected.
+ */
+export const listForDailySyncInternal = internalQuery({
+  args: {},
+  returns: v.array(v.object({ codebaseId: v.id("codebases") })),
+  handler: async (ctx) => {
+    const cutoff = Date.now() - DAILY_SYNC_STALE_MS;
+    const all = await ctx.db.query("codebases").collect();
+    const out: Array<{ codebaseId: Id<"codebases"> }> = [];
+
+    for (const cb of all) {
+      if (cb.status === "syncing") continue;
+      if (cb.lastSyncedAt !== undefined && cb.lastSyncedAt >= cutoff) {
+        continue;
+      }
+
+      const connection = await ctx.db
+        .query("githubConnections")
+        .withIndex("by_user", (q) => q.eq("userId", cb.userId))
+        .first();
+      if (!connection) continue;
+
+      out.push({ codebaseId: cb._id });
+    }
+
+    return out;
   },
 });

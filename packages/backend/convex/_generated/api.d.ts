@@ -13,6 +13,9 @@ import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as codebaseSymbols from "../codebaseSymbols.js";
+import type * as codebaseSync from "../codebaseSync.js";
+import type * as codebaseSyncActions from "../codebaseSyncActions.js";
+import type * as codebaseSyncConstants from "../codebaseSyncConstants.js";
 import type * as codebases from "../codebases.js";
 import type * as connectorOAuth from "../connectorOAuth.js";
 import type * as connectorSync from "../connectorSync.js";
@@ -21,6 +24,7 @@ import type * as connectors from "../connectors.js";
 import type * as contextPromptActions from "../contextPromptActions.js";
 import type * as contextPromptApi from "../contextPromptApi.js";
 import type * as contextPromptCache from "../contextPromptCache.js";
+import type * as crons from "../crons.js";
 import type * as dashboardApi from "../dashboardApi.js";
 import type * as dreamMode from "../dreamMode.js";
 import type * as dreamSchedule from "../dreamSchedule.js";
@@ -118,6 +122,7 @@ import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
 import type * as wiki from "../wiki.js";
+import type * as workflow from "../workflow.js";
 
 import type {
   ApiFromModules,
@@ -131,6 +136,9 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   chat: typeof chat;
   codebaseSymbols: typeof codebaseSymbols;
+  codebaseSync: typeof codebaseSync;
+  codebaseSyncActions: typeof codebaseSyncActions;
+  codebaseSyncConstants: typeof codebaseSyncConstants;
   codebases: typeof codebases;
   connectorOAuth: typeof connectorOAuth;
   connectorSync: typeof connectorSync;
@@ -139,6 +147,7 @@ declare const fullApi: ApiFromModules<{
   contextPromptActions: typeof contextPromptActions;
   contextPromptApi: typeof contextPromptApi;
   contextPromptCache: typeof contextPromptCache;
+  crons: typeof crons;
   dashboardApi: typeof dashboardApi;
   dreamMode: typeof dreamMode;
   dreamSchedule: typeof dreamSchedule;
@@ -236,6 +245,7 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   validators: typeof validators;
   wiki: typeof wiki;
+  workflow: typeof workflow;
 }>;
 
 /**
@@ -269,5 +279,6 @@ export declare const components: {
   actionRetrier: import("@convex-dev/action-retrier/_generated/component.js").ComponentApi<"actionRetrier">;
   actionCache: import("@convex-dev/action-cache/_generated/component.js").ComponentApi<"actionCache">;
   crons: import("@convex-dev/crons/_generated/component.js").ComponentApi<"crons">;
+  workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
   auditLog: import("convex-audit-log/_generated/component.js").ComponentApi<"auditLog">;
 };
