@@ -17,24 +17,30 @@ import {
 import {
   IconCheck,
   IconChevronDown,
+  IconCalendar,
   IconLayoutGrid,
+  IconLetterA,
   IconList,
   IconPlus,
+  IconRuler2,
   IconSortAscending,
   IconSortDescending,
   IconFolderPlus,
   IconUpload,
 } from "@tabler/icons-react";
+import type { TablerIcon } from "@tabler/icons-react";
 import type { FileView, FileSortField, SortDirection } from "./-searchParams";
 
 const SORT_FIELDS: ReadonlyArray<{
   sort: FileSortField;
   label: string;
+  icon: TablerIcon;
   directions: ReadonlyArray<{ sortDir: SortDirection; label: string }>;
 }> = [
   {
     sort: "name",
     label: "Name",
+    icon: IconLetterA,
     directions: [
       { sortDir: "asc", label: "A–Z" },
       { sortDir: "desc", label: "Z–A" },
@@ -43,6 +49,7 @@ const SORT_FIELDS: ReadonlyArray<{
   {
     sort: "size",
     label: "Size",
+    icon: IconRuler2,
     directions: [
       { sortDir: "asc", label: "Smallest first" },
       { sortDir: "desc", label: "Largest first" },
@@ -51,6 +58,7 @@ const SORT_FIELDS: ReadonlyArray<{
   {
     sort: "date",
     label: "Date",
+    icon: IconCalendar,
     directions: [
       { sortDir: "asc", label: "Oldest first" },
       { sortDir: "desc", label: "Newest first" },
@@ -111,31 +119,37 @@ export default function FileToolbar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-36">
-          {SORT_FIELDS.map((field) => (
-            <DropdownMenuSub key={field.sort}>
-              <DropdownMenuSubTrigger>{field.label}</DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {field.directions.map((direction) => {
-                  const isActive =
-                    sort === field.sort && sortDir === direction.sortDir;
-                  return (
-                    <DropdownMenuItem
-                      key={direction.sortDir}
-                      onSelect={() =>
-                        onSortSelect(field.sort, direction.sortDir)
-                      }
-                      className={cn(isActive && "bg-muted/80")}
-                    >
-                      {direction.label}
-                      {isActive ? (
-                        <IconCheck size={16} className="ml-auto" />
-                      ) : null}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          ))}
+          {SORT_FIELDS.map((field) => {
+            const FieldIcon = field.icon;
+            return (
+              <DropdownMenuSub key={field.sort}>
+                <DropdownMenuSubTrigger>
+                  <FieldIcon size={16} className="text-muted-foreground" />
+                  {field.label}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {field.directions.map((direction) => {
+                    const isActive =
+                      sort === field.sort && sortDir === direction.sortDir;
+                    return (
+                      <DropdownMenuItem
+                        key={direction.sortDir}
+                        onSelect={() =>
+                          onSortSelect(field.sort, direction.sortDir)
+                        }
+                        className={cn(isActive && "bg-muted/80")}
+                      >
+                        {direction.label}
+                        {isActive ? (
+                          <IconCheck size={16} className="ml-auto" />
+                        ) : null}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            );
+          })}
         </DropdownMenuContent>
       </DropdownMenu>
 
