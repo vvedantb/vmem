@@ -26,12 +26,25 @@ export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex min-w-0 items-center gap-2 rounded-xl px-3 py-3 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        "flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
         selected ? "bg-muted/80" : "hover:bg-muted/40",
       )}
     >
-      <IconBolt size={16} className="shrink-0 text-muted-foreground" />
-      <span className="truncate text-sm font-semibold text-foreground">
+      <IconBolt
+        size={16}
+        className={cn(
+          "shrink-0",
+          skill.enabled === false
+            ? "text-muted-foreground/50"
+            : "text-muted-foreground",
+        )}
+      />
+      <span
+        className={cn(
+          "truncate text-sm font-semibold",
+          skill.enabled === false ? "text-muted-foreground" : "text-foreground",
+        )}
+      >
         {skill.name}
       </span>
     </div>

@@ -116,7 +116,7 @@ function SkillsPage() {
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-0.5">
               {skills.map((skill) => (
                 <SkillCard
                   key={skill._id}
@@ -139,6 +139,10 @@ function SkillsPage() {
               onEdit={() =>
                 setModal({ mode: "edit", skillId: viewedSkill._id })
               }
+              onDeleted={() => {
+                setPanel({ mode: "none" });
+                setModal({ mode: "none" });
+              }}
             />
           </div>
         ) : (
