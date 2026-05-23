@@ -1,7 +1,6 @@
 import { View, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { usePathname, router } from "expo-router";
-import type { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { useColorScheme } from "nativewind";
 import {
@@ -77,7 +76,7 @@ function NavItem({
   );
 }
 
-export default function DrawerContent(props: DrawerContentComponentProps) {
+export default function DrawerContent({ onClose }: { onClose: () => void }) {
   const pathname = usePathname();
   const { user } = useUser();
   const { signOut } = useAuth();
@@ -124,7 +123,7 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
               theme={theme}
               onPress={() => {
                 router.navigate(item.route);
-                props.navigation.closeDrawer();
+                onClose();
               }}
             />
           ))}

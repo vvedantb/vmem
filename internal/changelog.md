@@ -1,5 +1,11 @@
 # Changelog
 
+## Mobile Expo SDK 56 Upgrade — 2026-05-23
+
+- **Expo SDK 56**: Upgraded mobile app from SDK 55 to 56 (React Native 0.85, React 19.2.3) with aligned expo-\* package versions.
+- **React Navigation migration**: Repointed `@react-navigation/native` imports to `expo-router/react-navigation` and removed direct `@react-navigation/drawer` dependency.
+- **SDK 56 config**: Moved splash screen to `expo-splash-screen` plugin config, added required config plugins, and enabled React Compiler.
+
 ## NPM SDK Publish — 2026-05-22
 
 - **GitHub Actions publish workflow**: Version bumps to `packages/sdk/package.json` on `main` trigger a build and npm publish of `@vmem/sdk` with provenance.

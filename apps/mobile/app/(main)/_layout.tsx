@@ -73,7 +73,7 @@ export default function MainLayout() {
       drawerContent={(props) => (
         <>
           <OfflineBanner />
-          <DrawerContent {...props} />
+          <DrawerContent onClose={() => props.navigation.closeDrawer()} />
         </>
       )}
       screenOptions={{

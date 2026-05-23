@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { View, Alert, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, DrawerActions } from "@react-navigation/native";
+import { useNavigation, DrawerActions } from "expo-router/react-navigation";
 import {
   MODELS,
   checkModelStatus,
