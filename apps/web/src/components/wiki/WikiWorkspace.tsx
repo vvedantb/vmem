@@ -96,7 +96,6 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
 
   const hasDoc = docId !== null && docId.length > 0;
   const showMobileEditor = hasDoc && !mobileShowList;
-  const showMobileList = !hasDoc || mobileShowList;
 
   useEffect(() => {
     if (!hasDoc) {
