@@ -51,6 +51,17 @@ function PreferencesPage() {
   });
   const setDreamSchedule = useMutation(api.dreamSchedule.setDreamSchedule);
 
+  const saveSettings = async (
+    patch: Parameters<typeof updateSettings>[0],
+  ): Promise<void> => {
+    try {
+      await updateSettings(patch);
+      toast.success("Saved!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+    }
+  };
+
   // Pulled out so the schedule section below stays readable.
   const handleScheduleToggle = async (enabled: boolean): Promise<void> => {
     if (settings === undefined) return;
@@ -145,6 +156,9 @@ function PreferencesPage() {
               onChange={(e) => {
                 void updateSettings({ aboutMe: e.target.value });
               }}
+              onBlur={() => {
+                toast.success("Saved!");
+              }}
               rows={4}
               maxLength={500}
             />
@@ -164,6 +178,9 @@ function PreferencesPage() {
               value={settings.preferences}
               onChange={(e) => {
                 void updateSettings({ preferences: e.target.value });
+              }}
+              onBlur={() => {
+                toast.success("Saved!");
               }}
               rows={4}
               maxLength={500}
@@ -189,14 +206,14 @@ function PreferencesPage() {
                 id="auto-extract"
                 checked={settings.memoryAutoExtract}
                 onCheckedChange={(checked) => {
-                  void updateSettings({ memoryAutoExtract: checked });
+                  void saveSettings({ memoryAutoExtract: checked });
                 }}
               />
             </div>
             <ConfidenceThresholdSlider
               value={settings.memoryConfidenceThreshold}
               onChange={(value) => {
-                void updateSettings({ memoryConfidenceThreshold: value });
+                void saveSettings({ memoryConfidenceThreshold: value });
               }}
             />
           </div>
@@ -223,7 +240,7 @@ function PreferencesPage() {
                 id="dream-auto-accept"
                 checked={settings.dreamModeAutoAccept}
                 onCheckedChange={(checked) => {
-                  void updateSettings({ dreamModeAutoAccept: checked });
+                  void saveSettings({ dreamModeAutoAccept: checked });
                 }}
               />
             </div>
@@ -282,7 +299,7 @@ function PreferencesPage() {
                 id="notify-conflicts"
                 checked={settings.notifyMemoryConflicts}
                 onCheckedChange={(checked) => {
-                  void updateSettings({ notifyMemoryConflicts: checked });
+                  void saveSettings({ notifyMemoryConflicts: checked });
                 }}
               />
             </div>
@@ -302,7 +319,7 @@ function PreferencesPage() {
                 id="notify-new-memories"
                 checked={settings.notifyNewMemories}
                 onCheckedChange={(checked) => {
-                  void updateSettings({ notifyNewMemories: checked });
+                  void saveSettings({ notifyNewMemories: checked });
                 }}
               />
             </div>
@@ -322,7 +339,7 @@ function PreferencesPage() {
                 id="notify-expiring"
                 checked={settings.notifyMemoriesExpiring}
                 onCheckedChange={(checked) => {
-                  void updateSettings({ notifyMemoriesExpiring: checked });
+                  void saveSettings({ notifyMemoriesExpiring: checked });
                 }}
               />
             </div>

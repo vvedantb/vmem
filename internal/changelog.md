@@ -1,5 +1,11 @@
 # Changelog
 
+## Settings Save Feedback & Filter Icons — 2026-05-23
+
+- **Preferences save toasts**: Text fields confirm on blur; toggles and sliders show "Saved!" after successful mutations so autosave feels acknowledged.
+- **Global toast position**: Sonner toasts moved to top-right so confirmations don't compete with page headers.
+- **AI Logs filter icons**: Every Filters submenu trigger and option now has a Tabler icon for faster scanning.
+
 ## Activity & Settings UI Polish — 2026-05-23
 
 - **AI Logs filters consolidated**: Scope, profile, range, status, features, and models live in one Filters dropdown; profile defaults to All with an explicit All option.
