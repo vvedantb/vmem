@@ -165,7 +165,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
       <div className="flex h-full min-h-0 flex-col gap-4 md:flex-row">
         <div
           className={cn(
-            "flex min-h-0 flex-col gap-2 overflow-y-auto md:w-1/3 md:shrink-0",
+            "flex min-h-0 flex-col gap-2 overflow-hidden md:w-1/3 md:shrink-0",
             showMobileEditor ? "hidden md:flex" : "flex flex-1 w-full",
           )}
         >
