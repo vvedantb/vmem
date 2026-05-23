@@ -135,3 +135,10 @@ export function docToPlainText(doc: JSONContent): string {
   }
   return walk(doc).trim();
 }
+
+/** Count words in plain text (whitespace-separated tokens). */
+export function countWords(text: string): number {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return 0;
+  return trimmed.split(/\s+/).length;
+}

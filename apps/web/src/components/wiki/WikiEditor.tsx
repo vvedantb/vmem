@@ -11,13 +11,19 @@ import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 import WikiBreadcrumb from "./WikiBreadcrumb";
-import { docToPlainText, extractHeadings, findAncestors } from "./_utils";
+import {
+  countWords,
+  docToPlainText,
+  extractHeadings,
+  findAncestors,
+} from "./_utils";
 import type { OutlineHeading } from "./_utils";
 
 interface WikiEditorProps {
   docId: string | null;
   allNodes: Array<Doc<"wikiNodes">>;
   onHeadingsChange: (headings: OutlineHeading[]) => void;
+  onWordCountChange: (count: number) => void;
   /** Bumped whenever the outline pane requests a jump. `n` forces effect re-runs. */
   jumpRequest: { pos: number; n: number };
 }
@@ -42,6 +48,7 @@ export default function WikiEditor({
   docId,
   allNodes,
   onHeadingsChange,
+  onWordCountChange,
   jumpRequest,
 }: WikiEditorProps) {
   const doc = useQuery(api.wiki.getNode, docId ? { id: docId } : "skip");
@@ -103,6 +110,7 @@ export default function WikiEditor({
       }
       const jsonDoc = instance.getJSON();
       onHeadingsChange(extractHeadings(jsonDoc));
+      onWordCountChange(countWords(docToPlainText(jsonDoc)));
       const activeId = loadedDocIdRef.current;
       if (activeId) {
         debouncedSave(activeId, jsonDoc);
@@ -121,6 +129,7 @@ export default function WikiEditor({
         editor.commands.setContent(EMPTY_DOC);
         loadedDocIdRef.current = null;
         onHeadingsChange([]);
+        onWordCountChange(0);
         setTitleDraft("");
       }
       return;
@@ -144,8 +153,9 @@ export default function WikiEditor({
     editor.commands.setContent(parsed);
     loadedDocIdRef.current = doc._id;
     onHeadingsChange(extractHeadings(parsed));
+    onWordCountChange(countWords(docToPlainText(parsed)));
     setTitleDraft(doc.title);
-  }, [doc, editor, onHeadingsChange]);
+  }, [doc, editor, onHeadingsChange, onWordCountChange]);
 
   // Handle outline jumps.
   useEffect(() => {
