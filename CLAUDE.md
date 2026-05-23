@@ -47,6 +47,10 @@ Neo4j:
 - Never run parallel `session.run()` calls on the same session — use separate sessions for concurrent queries
 - Cypher integer params (`LIMIT`, `SKIP`, hop depth, etc.) must use `neo4j.int()` after `Math.trunc` — MCP/JSON/Convex hops can pass floats like `25.0` and Neo4j rejects them. Use `clampNeo4jLimit()` / `toNeo4jIntParam()` from `packages/backend/src/neo4j/intParams.ts` (see `intParams.test.ts`)
 
+Codebases:
+
+- Global daily sync: `convex/crons.ts` → `codebaseSync.dailyCodebaseSyncWorkflow` via `@convex-dev/workflow` (one `syncOneCodebaseInternal` step per repo, full action timeout each). Stale = `lastSyncedAt` older than 24h; skips `syncing` and users without GitHub.
+
 Profiles:
 
 - Profiles are for **organizing where memories get saved**
