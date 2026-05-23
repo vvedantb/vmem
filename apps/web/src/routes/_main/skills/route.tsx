@@ -52,7 +52,7 @@ function SkillsLayout() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredSkills = useMemo(() => {
-    if (!skills) return undefined;
+    if (!skills) return [];
     const query = searchQuery.trim().toLowerCase();
     if (query.length === 0) return skills;
     return skills.filter(
@@ -63,7 +63,7 @@ function SkillsLayout() {
   }, [skills, searchQuery]);
 
   useEffect(() => {
-    if (!filteredSkills || !skillId) return;
+    if (!skills || !skillId) return;
     if (filteredSkills.length === 0) return;
 
     if (!filteredSkills.some((s) => s._id === skillId)) {
@@ -73,7 +73,7 @@ function SkillsLayout() {
         replace: true,
       });
     }
-  }, [filteredSkills, skillId, navigate]);
+  }, [filteredSkills, skillId, navigate, skills]);
 
   useEffect(() => {
     if (!skills) return;
