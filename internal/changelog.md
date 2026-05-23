@@ -3,6 +3,8 @@
 ## Settings Save Feedback & Filter Icons — 2026-05-23
 
 - **Preferences save toasts**: Text fields confirm on blur; toggles and sliders show "Saved!" after successful mutations so autosave feels acknowledged.
+- **Extension & profile defaults**: Extension switches and default-profile selects now show the same save confirmation.
+- **Wiki autosave feedback**: Document title renames and debounced body saves toast "Saved!" so wiki editing matches settings autosave UX.
 - **Global toast position**: Sonner toasts moved to top-right so confirmations don't compete with page headers.
 - **AI Logs filter icons**: Every Filters submenu trigger and option now has a Tabler icon for faster scanning.
 
