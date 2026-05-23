@@ -19,7 +19,7 @@ export function SkillsSearchBar({ value, onChange }: SkillsSearchBarProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Search skills"
-        className="h-8 pl-8 text-sm"
+        className="h-8 pl-8 text-sm shadow-none focus-visible:ring-0 focus-visible:shadow-none"
         aria-label="Search skills"
       />
     </div>
