@@ -1,5 +1,11 @@
 # Changelog
 
+## Skills Enable & Panel Actions — 2026-05-23
+
+- **Enable toggle**: View panel header switch turns a skill on or off without opening the edit modal.
+- **Disabled skills excluded from agents**: Graph, MCP, command palette, and memory search omit disabled skills; the skills list still shows them muted so you can re-enable.
+- **Panel actions menu**: Dots menu holds Edit and Delete; delete asks for confirmation before removing the skill.
+
 ## Skills Page Redesign — 2026-05-23
 
 - **Add & edit via modals**: Add Skill dropdown offers Write skill or Upload skill (.md drop zone); editing happens in a modal instead of the side panel.
