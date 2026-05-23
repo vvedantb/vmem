@@ -355,6 +355,7 @@ export function registerTools(
         .describe("Optional symbol kind filter"),
       limit: z
         .number()
+        .int()
         .min(1)
         .max(50)
         .optional()
@@ -410,6 +411,7 @@ export function registerTools(
       ),
       depth: z
         .number()
+        .int()
         .min(1)
         .max(6)
         .optional()
@@ -453,6 +455,7 @@ export function registerTools(
         .describe("Direction when blastRadiusOf is set"),
       blastDepth: z
         .number()
+        .int()
         .min(1)
         .max(6)
         .optional()
