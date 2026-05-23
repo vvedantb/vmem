@@ -1,5 +1,10 @@
 # Changelog
 
+## API Usage & Connectors Polish — 2026-05-23
+
+- **API usage dashboard**: Summary cards use tonal surfaces, real 7-day trend charts from your logs, and a card-based request list instead of a bordered table.
+- **Connectors**: Removed redundant Connected badge when Disconnect is already shown.
+
 ## GitHub Connection in Connectors — 2026-05-23
 
 - **Connectors owns GitHub auth**: GitHub username and connect/disconnect live on the GitHub card in Settings → Connectors; the connectors page lists all sources so GitHub is always reachable.
