@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Button,
   Input,
@@ -392,18 +393,22 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   const extensionDefault =
     profiles.find((p) => p._id === extensionDefaultId) ?? defaultProfile;
 
-  const handleWebDefaultChange = (profileId: string) => {
-    void setDefaultProfile({
-      source: "web",
-      profileId: profileId as Id<"profiles">,
-    });
-  };
+  const handleDefaultProfileChange = async (
+    source: "web" | "extension",
+    profileId: string,
+  ) => {
+    const profile = profiles.find((p) => p._id === profileId);
+    if (!profile) return;
 
-  const handleExtensionDefaultChange = (profileId: string) => {
-    void setDefaultProfile({
-      source: "extension",
-      profileId: profileId as Id<"profiles">,
-    });
+    try {
+      await setDefaultProfile({
+        source,
+        profileId: profile._id,
+      });
+      toast.success("Saved!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+    }
   };
 
   return (
@@ -423,7 +428,9 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
           </div>
           <Select
             value={webDefault?._id ?? ""}
-            onValueChange={handleWebDefaultChange}
+            onValueChange={(profileId) => {
+              void handleDefaultProfileChange("web", profileId);
+            }}
           >
             <SelectTrigger className="w-[160px]">
               <SelectValue>
@@ -461,7 +468,9 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
           </div>
           <Select
             value={extensionDefault?._id ?? ""}
-            onValueChange={handleExtensionDefaultChange}
+            onValueChange={(profileId) => {
+              void handleDefaultProfileChange("extension", profileId);
+            }}
           >
             <SelectTrigger className="w-[160px]">
               <SelectValue>
