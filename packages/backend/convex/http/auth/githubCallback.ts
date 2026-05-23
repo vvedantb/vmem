@@ -20,13 +20,14 @@ export const githubCallback = httpAction(async (ctx, req) => {
     { code, state },
   );
 
-  const appUrl = result.returnUrl ?? "http://localhost:3000";
+  const baseUrl = result.returnUrl ?? "http://localhost:3000";
+  const redirectTo = new URL(baseUrl);
 
   if (result.error) {
-    return Response.redirect(
-      `${appUrl}/codebases?error=${encodeURIComponent(result.error)}`,
-    );
+    redirectTo.searchParams.set("error", result.error);
+    return Response.redirect(redirectTo.toString());
   }
 
-  return Response.redirect(`${appUrl}/codebases?connected=true`);
+  redirectTo.searchParams.set("connected", "true");
+  return Response.redirect(redirectTo.toString());
 });

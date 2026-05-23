@@ -1,5 +1,11 @@
 # Changelog
 
+## GitHub Connection in Connectors — 2026-05-23
+
+- **Connectors owns GitHub auth**: GitHub username and connect/disconnect live on the GitHub card in Settings → Connectors; the connectors page lists all sources so GitHub is always reachable.
+- **Codebases stays focused on repos**: The codebases page only adds repositories; when GitHub is not linked it points users to Connectors instead.
+- **OAuth return path**: After GitHub sign-in, you land back on the page that started the flow (e.g. Connectors), not always Codebases.
+
 ## Wiki, Skills & Codebases UX — 2026-05-23
 
 - **Wiki outline toggle**: "View outline" switch in the document tree replaces the right-pane header and collapse strip; outline is hidden by default.
