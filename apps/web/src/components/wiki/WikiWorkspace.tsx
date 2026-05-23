@@ -46,6 +46,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const [isTreeCollapsed, setIsTreeCollapsed] = useState(false);
   const [isOutlineVisible, setIsOutlineVisible] = useState(false);
   const [isMobileOutlineOpen, setIsMobileOutlineOpen] = useState(false);
+  const [wordCount, setWordCount] = useState(0);
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
 
@@ -79,6 +80,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   useEffect(() => {
     if (!hasDoc) {
       setIsOutlineVisible(false);
+      setWordCount(0);
     }
   }, [hasDoc]);
 
@@ -119,7 +121,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
                   <IconLayoutSidebarLeftCollapse size={14} />
                 </button>
               </div>
-              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin -mr-1 pr-1">
+              <div className="flex flex-1 min-h-0 -mr-1 pr-1">
                 <WikiTree
                   tree={tree}
                   selectedId={docId}
@@ -127,6 +129,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
                   outlineVisible={isOutlineVisible}
                   onOutlineVisibleChange={setIsOutlineVisible}
                   hasDoc={hasDoc}
+                  wordCount={wordCount}
                 />
               </div>
             </>
@@ -170,6 +173,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
             docId={docId}
             allNodes={nodes ?? []}
             onHeadingsChange={setHeadings}
+            onWordCountChange={setWordCount}
             jumpRequest={jumpRequest}
           />
         </div>

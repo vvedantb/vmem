@@ -36,6 +36,7 @@ interface WikiTreeProps {
   outlineVisible: boolean;
   onOutlineVisibleChange: (visible: boolean) => void;
   hasDoc: boolean;
+  wordCount: number;
 }
 
 /**
@@ -52,6 +53,7 @@ export default function WikiTree({
   outlineVisible,
   onOutlineVisibleChange,
   hasDoc,
+  wordCount,
 }: WikiTreeProps) {
   const createNode = useMutation(api.wiki.createNode);
   const renameNode = useMutation(api.wiki.renameNode);
@@ -87,26 +89,11 @@ export default function WikiTree({
   );
 
   return (
-    <div className="flex flex-col min-h-0">
-      <div className="flex items-center justify-between mb-2 gap-2 px-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <Switch
-            id="wiki-view-outline"
-            checked={outlineVisible}
-            disabled={!hasDoc}
-            onCheckedChange={onOutlineVisibleChange}
-            aria-label="View outline"
-          />
-          <Label
-            htmlFor="wiki-view-outline"
-            className={cn(
-              "cursor-pointer text-sm font-medium",
-              hasDoc ? "text-foreground" : "text-muted-foreground",
-            )}
-          >
-            View outline
-          </Label>
-        </div>
+    <div className="flex flex-col min-h-0 flex-1 w-full">
+      <div className="flex items-center justify-between mb-2 gap-2 px-1 shrink-0">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Documents
+        </span>
         <div className="flex shrink-0 gap-1">
           <Button
             variant="ghost"
@@ -127,26 +114,54 @@ export default function WikiTree({
         </div>
       </div>
 
-      {tree.length === 0 ? (
-        <p className="px-2 py-3 text-xs text-muted-foreground">
-          No documents yet. Click + to create one.
-        </p>
-      ) : (
-        <ul className="flex flex-col">
-          {tree.map((item) => (
-            <TreeItem
-              key={item.node._id}
-              item={item}
-              depth={0}
-              selectedId={selectedId}
-              onSelect={onSelect}
-              onCreateInside={handleCreateInFolder}
-              onRequestRename={setRenameTarget}
-              onRequestDelete={setDeleteTarget}
-            />
-          ))}
-        </ul>
-      )}
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+        {tree.length === 0 ? (
+          <p className="px-2 py-3 text-xs text-muted-foreground">
+            No documents yet. Click + to create one.
+          </p>
+        ) : (
+          <ul className="flex flex-col">
+            {tree.map((item) => (
+              <TreeItem
+                key={item.node._id}
+                item={item}
+                depth={0}
+                selectedId={selectedId}
+                onSelect={onSelect}
+                onCreateInside={handleCreateInFolder}
+                onRequestRename={setRenameTarget}
+                onRequestDelete={setDeleteTarget}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between gap-2 mt-2 px-1 pt-2 shrink-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <Switch
+            id="wiki-view-outline"
+            checked={outlineVisible}
+            disabled={!hasDoc}
+            onCheckedChange={onOutlineVisibleChange}
+            aria-label="View outline"
+          />
+          <Label
+            htmlFor="wiki-view-outline"
+            className={cn(
+              "cursor-pointer text-sm font-medium",
+              hasDoc ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            View outline
+          </Label>
+        </div>
+        {hasDoc ? (
+          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+            {wordCount.toLocaleString()} {wordCount === 1 ? "word" : "words"}
+          </span>
+        ) : null}
+      </div>
 
       <RenameDialog
         target={renameTarget}
