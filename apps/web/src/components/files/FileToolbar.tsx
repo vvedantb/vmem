@@ -8,11 +8,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
+  cn,
 } from "@vmem/ui";
 import {
+  IconCheck,
   IconChevronDown,
   IconLayoutGrid,
   IconList,
@@ -24,31 +27,36 @@ import {
 } from "@tabler/icons-react";
 import type { FileView, FileSortField, SortDirection } from "./-searchParams";
 
-const SORT_OPTIONS: ReadonlyArray<{
+const SORT_FIELDS: ReadonlyArray<{
   sort: FileSortField;
-  sortDir: SortDirection;
   label: string;
+  directions: ReadonlyArray<{ sortDir: SortDirection; label: string }>;
 }> = [
-  { sort: "name", sortDir: "asc", label: "Name (A–Z)" },
-  { sort: "name", sortDir: "desc", label: "Name (Z–A)" },
-  { sort: "size", sortDir: "asc", label: "Size (smallest first)" },
-  { sort: "size", sortDir: "desc", label: "Size (largest first)" },
-  { sort: "date", sortDir: "asc", label: "Date (oldest first)" },
-  { sort: "date", sortDir: "desc", label: "Date (newest first)" },
+  {
+    sort: "name",
+    label: "Name",
+    directions: [
+      { sortDir: "asc", label: "A–Z" },
+      { sortDir: "desc", label: "Z–A" },
+    ],
+  },
+  {
+    sort: "size",
+    label: "Size",
+    directions: [
+      { sortDir: "asc", label: "Smallest first" },
+      { sortDir: "desc", label: "Largest first" },
+    ],
+  },
+  {
+    sort: "date",
+    label: "Date",
+    directions: [
+      { sortDir: "asc", label: "Oldest first" },
+      { sortDir: "desc", label: "Newest first" },
+    ],
+  },
 ];
-
-function sortOptionKey(sort: FileSortField, sortDir: SortDirection): string {
-  return `${sort}:${sortDir}`;
-}
-
-function parseSortOptionKey(
-  key: string,
-): { sort: FileSortField; sortDir: SortDirection } | null {
-  const match = SORT_OPTIONS.find(
-    (option) => sortOptionKey(option.sort, option.sortDir) === key,
-  );
-  return match ?? null;
-}
 
 const SORT_FIELD_LABELS: Record<FileSortField, string> = {
   name: "Name",
@@ -102,25 +110,32 @@ export default function FileToolbar({
             <IconChevronDown size={14} className="text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-44">
-          <DropdownMenuRadioGroup
-            value={sortOptionKey(sort, sortDir)}
-            onValueChange={(key) => {
-              const parsed = parseSortOptionKey(key);
-              if (parsed) {
-                onSortSelect(parsed.sort, parsed.sortDir);
-              }
-            }}
-          >
-            {SORT_OPTIONS.map((option) => (
-              <DropdownMenuRadioItem
-                key={sortOptionKey(option.sort, option.sortDir)}
-                value={sortOptionKey(option.sort, option.sortDir)}
-              >
-                {option.label}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
+        <DropdownMenuContent align="end" className="min-w-36">
+          {SORT_FIELDS.map((field) => (
+            <DropdownMenuSub key={field.sort}>
+              <DropdownMenuSubTrigger>{field.label}</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {field.directions.map((direction) => {
+                  const isActive =
+                    sort === field.sort && sortDir === direction.sortDir;
+                  return (
+                    <DropdownMenuItem
+                      key={direction.sortDir}
+                      onSelect={() =>
+                        onSortSelect(field.sort, direction.sortDir)
+                      }
+                      className={cn(isActive && "bg-muted/80")}
+                    >
+                      {direction.label}
+                      {isActive ? (
+                        <IconCheck size={16} className="ml-auto" />
+                      ) : null}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
 
