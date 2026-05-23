@@ -3,7 +3,7 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button, Input, Label, Textarea } from "@vmem/ui";
+import { Button, Input, Textarea } from "@vmem/ui";
 import { IconUpload, IconX, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
@@ -110,37 +110,33 @@ export function AddSkillPanel({ onClose, onCreated }: AddSkillPanelProps) {
           </span>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="skill-name">Name</Label>
-          <Input
-            id="skill-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. refactor-typescript"
-            autoFocus
-          />
-        </div>
+        <Input
+          id="skill-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Name"
+          aria-label="Name"
+          autoFocus
+        />
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="skill-description">Description</Label>
-          <Input
-            id="skill-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What this skill is for"
-          />
-        </div>
+        <Textarea
+          id="skill-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What this skill is for"
+          aria-label="Description"
+          rows={3}
+          className="min-h-[4.5rem] resize-y"
+        />
 
-        <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="skill-instructions">Instructions</Label>
-          <Textarea
-            id="skill-instructions"
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            placeholder="Markdown body — the instructions the agent should follow."
-            className="min-h-[240px] flex-1 font-mono text-xs"
-          />
-        </div>
+        <Textarea
+          id="skill-instructions"
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          placeholder="Instructions"
+          aria-label="Instructions"
+          className="min-h-[240px] flex-1 font-mono text-xs"
+        />
 
         <div className="flex items-center justify-end gap-2 pt-2">
           <Button
