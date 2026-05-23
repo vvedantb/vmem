@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   Button,
   DropdownMenu,
@@ -14,31 +15,102 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@vmem/ui";
-import { IconFilter, IconX } from "@tabler/icons-react";
+import {
+  IconAlertCircle,
+  IconCalendar,
+  IconCalendarMonth,
+  IconCalendarWeek,
+  IconCheck,
+  IconCircleCheck,
+  IconCpu,
+  IconDatabase,
+  IconDeviceFloppy,
+  IconFilter,
+  IconInfinity,
+  IconList,
+  IconListDetails,
+  IconMessage,
+  IconMoon,
+  IconPlug,
+  IconRefresh,
+  IconSearch,
+  IconSparkles,
+  IconSun,
+  IconUser,
+  IconUsers,
+  IconUsersGroup,
+  IconVectorBezier,
+  IconWand,
+  IconX,
+} from "@tabler/icons-react";
 import {
   FEATURES,
   FEATURE_LABELS,
+  PROFILE_FILTER_ALL,
   RANGE_LABELS,
+  isAllProfilesFilter,
   type Feature,
   type Range,
+  type Scope,
   type StatusFilter,
 } from "../-searchParams";
 
 /**
  * Filters dropdown for `/ai-logs`.
  *
- * Per CLAUDE.md, the page consolidates real filters (range, status, features,
- * models, profile) into a single dropdown with a count badge. Sort and the
- * scope selector live as their own controls — they don't change *which* rows
- * appear, only the population (scope) or order (sort).
+ * Consolidates scope (when teams exist), range, status, features, models,
+ * and profile into one dropdown. Sort stays separate — it only changes order.
  *
- * Active count = number of filter fields currently non-default. Multi-value
- * arrays count as 1 if non-empty, not their length, so toggling several
- * features on doesn't inflate the badge.
+ * Scope switches the row population (personal vs team); it does not count
+ * toward the active-filter badge. Active count = non-default filter fields.
+ * Multi-value arrays count as 1 if non-empty, not their length.
  */
 const RANGE_OPTIONS: Range[] = ["today", "7d", "30d", "all"];
 
+const RANGE_ICONS: Record<Range, typeof IconSun> = {
+  today: IconSun,
+  "7d": IconCalendarWeek,
+  "30d": IconCalendarMonth,
+  all: IconInfinity,
+};
+
+const FEATURE_ICONS: Record<Feature, typeof IconSparkles> = {
+  enrichment: IconSparkles,
+  "dream-synthesis": IconMoon,
+  "context-prompt": IconMessage,
+  "fact-extraction": IconListDetails,
+  "entity-backfill": IconDatabase,
+  "memory-save": IconDeviceFloppy,
+  "memory-search": IconSearch,
+  "mcp-embed": IconPlug,
+  "connector-sync": IconRefresh,
+  "dream-materialize": IconWand,
+  "proposal-accept": IconCheck,
+  "embedding-backfill": IconVectorBezier,
+};
+
+function FilterOptionContent({
+  icon,
+  children,
+}: {
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <span className="flex items-center gap-2">
+      <span className="flex shrink-0 text-muted-foreground [&>svg]:size-4">
+        {icon}
+      </span>
+      {children}
+    </span>
+  );
+}
+
 interface LogsFiltersDropdownProps {
+  scope: Scope;
+  teamId: string;
+  teams: readonly { _id: string; name: string }[];
+  onScopeChange: (scope: Scope, teamId: string | null) => void;
   range: Range;
   status: StatusFilter;
   features: readonly Feature[];
@@ -61,6 +133,10 @@ interface LogsFiltersDropdownProps {
 }
 
 export function LogsFiltersDropdown({
+  scope,
+  teamId,
+  teams,
+  onScopeChange,
   range,
   status,
   features,
@@ -80,7 +156,7 @@ export function LogsFiltersDropdown({
     (status !== "all" ? 1 : 0) +
     (features.length > 0 ? 1 : 0) +
     (models.length > 0 ? 1 : 0) +
-    (profileId.length > 0 ? 1 : 0);
+    (!isAllProfilesFilter(profileId) ? 1 : 0);
 
   const toggleFeature = (feat: Feature) => {
     if (features.includes(feat)) {
@@ -112,8 +188,44 @@ export function LogsFiltersDropdown({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
+        {teams.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <IconUsersGroup size={16} />
+              Scope
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuRadioGroup
+                value={scope === "team" ? `team:${teamId}` : "personal"}
+                onValueChange={(value) => {
+                  if (value === "personal") onScopeChange("personal", null);
+                  else if (value.startsWith("team:")) {
+                    onScopeChange("team", value.slice("team:".length));
+                  }
+                }}
+              >
+                <DropdownMenuRadioItem value="personal">
+                  <FilterOptionContent icon={<IconUser size={16} />}>
+                    Personal
+                  </FilterOptionContent>
+                </DropdownMenuRadioItem>
+                {teams.map((t) => (
+                  <DropdownMenuRadioItem key={t._id} value={`team:${t._id}`}>
+                    <FilterOptionContent icon={<IconUsers size={16} />}>
+                      {t.name}
+                    </FilterOptionContent>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Date range</DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger>
+            <IconCalendar size={16} />
+            Date range
+          </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuRadioGroup
               value={range}
@@ -122,17 +234,25 @@ export function LogsFiltersDropdown({
                 if (next) onRangeChange(next);
               }}
             >
-              {RANGE_OPTIONS.map((preset) => (
-                <DropdownMenuRadioItem key={preset} value={preset}>
-                  {RANGE_LABELS[preset]}
-                </DropdownMenuRadioItem>
-              ))}
+              {RANGE_OPTIONS.map((preset) => {
+                const RangeIcon = RANGE_ICONS[preset];
+                return (
+                  <DropdownMenuRadioItem key={preset} value={preset}>
+                    <FilterOptionContent icon={<RangeIcon size={16} />}>
+                      {RANGE_LABELS[preset]}
+                    </FilterOptionContent>
+                  </DropdownMenuRadioItem>
+                );
+              })}
             </DropdownMenuRadioGroup>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Status</DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger>
+            <IconCircleCheck size={16} />
+            Status
+          </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuRadioGroup
               value={status}
@@ -146,36 +266,55 @@ export function LogsFiltersDropdown({
                 }
               }}
             >
-              <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="all">
+                <FilterOptionContent icon={<IconList size={16} />}>
+                  All
+                </FilterOptionContent>
+              </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="success">
-                Success only
+                <FilterOptionContent icon={<IconCircleCheck size={16} />}>
+                  Success only
+                </FilterOptionContent>
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="error">
-                Errors only
+                <FilterOptionContent icon={<IconAlertCircle size={16} />}>
+                  Errors only
+                </FilterOptionContent>
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Features</DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger>
+            <IconSparkles size={16} />
+            Features
+          </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="max-h-80 overflow-y-auto">
-            {FEATURES.map((feat) => (
-              <DropdownMenuCheckboxItem
-                key={feat}
-                checked={features.includes(feat)}
-                onCheckedChange={() => toggleFeature(feat)}
-                onSelect={(e) => e.preventDefault()}
-              >
-                {FEATURE_LABELS[feat]}
-              </DropdownMenuCheckboxItem>
-            ))}
+            {FEATURES.map((feat) => {
+              const FeatureIcon = FEATURE_ICONS[feat];
+              return (
+                <DropdownMenuCheckboxItem
+                  key={feat}
+                  checked={features.includes(feat)}
+                  onCheckedChange={() => toggleFeature(feat)}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <FilterOptionContent icon={<FeatureIcon size={16} />}>
+                    {FEATURE_LABELS[feat]}
+                  </FilterOptionContent>
+                </DropdownMenuCheckboxItem>
+              );
+            })}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
         {availableModels.length > 0 && (
           <DropdownMenuSub>
-            <DropdownMenuSubTrigger>Models</DropdownMenuSubTrigger>
+            <DropdownMenuSubTrigger>
+              <IconCpu size={16} />
+              Models
+            </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="max-h-80 overflow-y-auto">
               {availableModels.map((model) => (
                 <DropdownMenuCheckboxItem
@@ -184,41 +323,48 @@ export function LogsFiltersDropdown({
                   onCheckedChange={() => toggleModel(model)}
                   onSelect={(e) => e.preventDefault()}
                 >
-                  <span className="truncate font-mono text-xs">{model}</span>
+                  <FilterOptionContent icon={<IconCpu size={16} />}>
+                    <span className="truncate font-mono text-xs">{model}</span>
+                  </FilterOptionContent>
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         )}
 
-        {profiles && profiles.length > 0 && (
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>Profile</DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuRadioGroup
-                value={profileId}
-                onValueChange={(value) => onProfileChange(value)}
-              >
-                <DropdownMenuRadioItem value="">
-                  All profiles
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <IconUser size={16} />
+            Profile
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup
+              value={
+                isAllProfilesFilter(profileId) ? PROFILE_FILTER_ALL : profileId
+              }
+              onValueChange={(value) => onProfileChange(value)}
+            >
+              <DropdownMenuRadioItem value={PROFILE_FILTER_ALL}>
+                <FilterOptionContent icon={<IconUsersGroup size={16} />}>
+                  All
+                </FilterOptionContent>
+              </DropdownMenuRadioItem>
+              {(profiles ?? []).map((p) => (
+                <DropdownMenuRadioItem key={p._id} value={p._id}>
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: p.color ?? "var(--muted-foreground)",
+                      }}
+                    />
+                    {p.name}
+                  </span>
                 </DropdownMenuRadioItem>
-                {profiles.map((p) => (
-                  <DropdownMenuRadioItem key={p._id} value={p._id}>
-                    <span className="flex items-center gap-2">
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{
-                          backgroundColor: p.color ?? "var(--muted-foreground)",
-                        }}
-                      />
-                      {p.name}
-                    </span>
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-        )}
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
 
         {activeFilterCount > 0 && (
           <>

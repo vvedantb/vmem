@@ -1,45 +1,91 @@
 ---
 title: "API Overview"
-description: "REST API for the vmem memory engine"
+description: "Convex SDK API for the vmem memory engine"
 ---
 
-## Base URL
+## Access Model
 
-```
-http://localhost:3000/v1
+vmem exposes two programmatic surfaces:
+
+1. **Convex SDK** (first-party) — `authAction`s with Clerk authentication
+2. **HTTP API** (API keys) — `POST`/`PATCH` on `https://<deployment>.convex.site` with `Authorization: Bearer vmem_sk_...`
+
+### Convex SDK (Clerk)
+
+```typescript
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@vmem/backend/convex/_generated/api";
+
+const client = new ConvexHttpClient(process.env.VITE_CONVEX_URL);
+// Authenticate with Clerk token before calling actions
+const memories = await client.action(api.memoryApi.listMemories, {
+  limit: 20,
+  offset: 0,
+});
 ```
 
-All endpoints are prefixed with `/v1`.
+First-party clients (web, extension, mobile) use `useAction(api.memoryApi.*)` with live Clerk sessions.
+
+### HTTP API (API keys)
+
+Store, retrieve, and update memories without the Convex SDK. See [HTTP Memories API](/api-reference/http-memories).
+
+For third-party integrations, use the [`@vmem/sdk`](/sdk/quickstart) package:
+
+```typescript
+import { VMemory } from "@vmem/sdk";
+
+const vmem = new VMemory({ apiKey: "vmem_sk_...", baseUrl: "https://<deployment>.convex.site" });
+await vmem.store("User prefers TypeScript");
+const result = await vmem.retrieve("What language does the user prefer?");
+```
 
 ## Authentication
 
-All requests require a `userId` parameter (query string for GET/DELETE, request body for POST/PATCH). API key authentication is planned for production.
+All public API functions require a signed-in Clerk user. Protected functions use `authAction`, `authMutation`, or `authQuery` builders that verify identity and inject `ctx.userId`.
+
+There is no `userId` parameter — identity is resolved from the Clerk session automatically.
+
+## MCP HTTP Endpoint
+
+MCP is a separate HTTP surface (OAuth + JWT, not API keys):
+
+```
+POST https://<your-deployment>.convex.site/mcp
+```
+
+Authenticated via OAuth + Bearer JWT. See [MCP Setup](/mcp/setup).
 
 ## Health Check
 
 ```
-GET /health
+GET https://<your-deployment>.convex.site/health
 ```
 
 Returns server status with Neo4j connection info and timestamp.
 
-## Route Groups
+## API Modules
 
-| Group | Base Path | Description |
-| --- | --- | --- |
-| [Memories](/api-reference/memories) | `/v1/memories` | CRUD, search, and retrieval of memories |
-| [Proposed Updates](/api-reference/proposed-updates) | `/v1/proposed-updates` | Review and resolve memory conflicts |
-| [Dashboard](/api-reference/dashboard) | `/v1/dashboard` | Statistics and activity data |
+| Module | Description |
+| --- | --- |
+| [HTTP Memories](/api-reference/http-memories) | Store, retrieve, update via API key Bearer auth |
+| [Memories](/api-reference/memories) | CRUD, search, retrieval, events (Convex SDK) |
+| [Proposed Updates](/api-reference/proposed-updates) | Review and resolve conflicts |
+| [Dashboard](/api-reference/dashboard) | Statistics and activity |
+| [Profiles](/api-reference/profiles) | Profile management |
+| [Teams](/api-reference/teams) | Team management |
+| [Skills](/api-reference/skills) | Skill CRUD |
+| [File Import](/api-reference/file-import) | Upload and import files |
+| [Context Prompt](/api-reference/context-prompt) | Synthesized user profile |
 
 ## Common Patterns
 
 ### Pagination
 
-List endpoints accept `limit` (default: 20) and `offset` (default: 0) parameters.
+List endpoints accept `limit` and `offset` parameters.
 
 ### Memory Types
 
-Memories are classified as one of:
 - `profile` — stable user facts and preferences
 - `episodic` — session-specific or temporal events
 - `knowledge` — learned information and skills
@@ -47,22 +93,24 @@ Memories are classified as one of:
 ### Memory Status
 
 - `active` — normal state
-- `pinned` — protected from expiry
+- `pinned` — protected from expiry, boosted in ranking
 - `suppressed` — hidden from retrieval but not deleted
 - `expired` — past its expiry date
 
-### Error Responses
+### Error Handling
 
-All errors follow this shape:
+Convex actions throw standard JavaScript errors with descriptive messages. Unauthenticated calls fail with an auth error.
 
-```json
-{
-  "error": "Description of what went wrong"
-}
+## TypeScript Types
+
+Import return types from generated Convex API:
+
+```typescript
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@vmem/backend/convex/_generated/api";
+
+type Memory = FunctionReturnType<typeof api.memoryApi.getMemory>;
+type RetrieveResult = FunctionReturnType<typeof api.memoryApi.retrieveMemories>;
 ```
 
-| Status | Meaning |
-| --- | --- |
-| 400 | Missing or invalid parameters |
-| 404 | Memory or resource not found |
-| 500 | Internal server error |
+Shared memory types are also exported from `@vmem/backend` packages where applicable.

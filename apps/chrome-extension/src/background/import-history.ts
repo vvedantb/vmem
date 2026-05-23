@@ -137,9 +137,7 @@ export async function importHistory(
       await delay(100);
     }
 
-    // Only update lastHistorySync if we actually imported something,
-    // so failed syncs don't prevent future retries
-    if (imported > 0) {
+    if (!isCancelled()) {
       await setStorage({ lastHistorySync: Date.now() });
     }
     return { imported, locked: false };

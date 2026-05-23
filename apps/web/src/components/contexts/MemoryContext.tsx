@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * App-wide memory data facade for chat, extension flows, and legacy views.
+ *
+ * Combines Convex actions (mutations/retrieve) with TanStack Query caching
+ * so multiple surfaces share one API without each route re-wiring auth and
+ * optimistic updates. New graph/list views should prefer controller hooks +
+ * direct Convex queries where live data is enough.
+ */
+
 import { createContext, useCallback, useContext, useMemo } from "react";
 import {
   useConvexAuth,

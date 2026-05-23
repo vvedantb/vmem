@@ -1,0 +1,42 @@
+﻿
+> @vmem/backend@1.0.0 eval:retrieval C:\Vedant\Personal\GitHub\vmem\packages\backend
+> npx tsx --env-file=.env.local src/neo4j/memory/eval/run.ts
+
+retrieval eval
+user: user_39IXNJeQM9vlRyQ9IdCvKbsqsti
+queries: 8
+
+query: strict null hooks server components
+expected: TypeScript strict mode benefits | React Server Components mental model | React useEffect cleanup patterns
+recall@5: 0.0000 mrr: 0.0000
+
+query: mcp oauth resources integration
+expected: Decision: MCP over REST for LLM integration | Sprint review: MCP server progress | Decided to migrate auth to Clerk
+recall@5: 0.0000 mrr: 0.0000
+
+query: graph visualization stutter sigma canvas
+expected: Sprint planning: graph visualization | Bug triage: graph rendering stutter | Sigma.js WebGL rendering
+recall@5: 0.0000 mrr: 0.0000
+
+query: Neo4j traversal batch inserts APOC GDS
+expected: PostgreSQL vs Neo4j for graph queries | Neo4j Cypher UNWIND for batch inserts | Neo4j APOC procedures | Learning Neo4j graph data science library
+recall@5: 0.0000 mrr: 0.0000
+
+query: Japan travel metro ramen Kyoto
+expected: Tokyo metro tip: get a Suica card | Loved the ramen in Shibuya | Kyoto temple etiquette | Japanese phrase: sumimasen
+recall@5: 0.0000 mrr: 0.0000
+
+query: health routine deadlift running jet lag
+expected: Started 5x5 deadlift program | Running: 5K three times a week | Jet lag strategy: no sleep on plane
+recall@5: 0.0000 mrr: 0.0000
+
+query: personal coding preferences dark mode vim typescript
+expected: Prefers dark mode in all editors | IDE setup: VS Code with Vim keybindings | Prefers TypeScript over JavaScript
+recall@5: 0.0000 mrr: 0.0000
+
+query: thesis advisor benchmarks publication defense
+expected: Thesis advisor feedback | Goal: publish thesis by December | Thesis defense preparation | Demo prep for thesis committee
+recall@5: 0.0000 mrr: 0.0000
+
+overall recall@5: 0.0000
+overall mrr: 0.0000

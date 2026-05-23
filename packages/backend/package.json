@@ -10,15 +10,20 @@
   "scripts": {
     "dev": "npx convex dev",
     "deploy": "npx convex deploy",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed.ts",
-    "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts"
+    "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts",
+    "eval:retrieval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/run.ts"
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "catalog:",
+    "@clerk/backend": "catalog:",
     "@convex-dev/action-cache": "^0.3.0",
     "@convex-dev/action-retrier": "^0.3.0",
     "@convex-dev/agent": "catalog:",
     "@convex-dev/crons": "^0.2.0",
+    "@modelcontextprotocol/sdk": "catalog:",
     "@neo4j/cypher-builder": "^3.0.1",
     "@notionhq/client": "^2.2.15",
     "ai": "catalog:",
@@ -29,13 +34,15 @@
     "jsonwebtoken": "catalog:",
     "neo4j-driver": "^5.28.3",
     "pdf-parse": "^1.1.1",
-    "ts-morph": "^24.0.0"
+    "ts-morph": "^24.0.0",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "catalog:",
     "@types/node": "catalog:node-types-22",
     "@types/pdf-parse": "^1.1.4",
     "@typescript/native-preview": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^3.2.4"
   }
 }

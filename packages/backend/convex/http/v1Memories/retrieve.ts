@@ -1,0 +1,86 @@
+import type { ActionCtx } from "../../_generated/server";
+import { internal } from "../../_generated/api";
+import {
+  assertProfileAccess,
+  withApiKeyAuth,
+  type ApiKeyAuth,
+} from "./apiKeyAuth";
+import { retrieveBodySchema, type RetrieveBody } from "./schemas";
+import {
+  isOpenRouterRequired,
+  type RetrieveHttpResult,
+  type RetrieveMemoriesActionResult,
+  type SummarizeRetrieveActionResult,
+  type UserContextResult,
+} from "./types";
+
+async function runRetrieveHandler(
+  ctx: ActionCtx,
+  auth: ApiKeyAuth,
+  body: RetrieveBody,
+): Promise<Response | RetrieveHttpResult> {
+  if (body.profileId) {
+    const forbidden = await assertProfileAccess(
+      ctx,
+      auth.userId,
+      body.profileId,
+    );
+    if (forbidden) {
+      return forbidden;
+    }
+  }
+
+  const memories: RetrieveMemoriesActionResult = await ctx.runAction(
+    internal.neo4jActions.memories.retrieveMemoriesInternal,
+    {
+      clerkId: auth.clerkId,
+      profileId: body.profileId,
+      query: body.query,
+      type: body.type,
+      tags: body.tags,
+      limit: body.limit ?? 10,
+    },
+  );
+
+  const userContext: UserContextResult = await ctx.runQuery(
+    internal.userSettings.getUserContextInternal,
+    {
+      userId: auth.userId,
+    },
+  );
+
+  if (!body.summarize) {
+    return { memories, userContext };
+  }
+
+  const summaryResult: SummarizeRetrieveActionResult = await ctx.runAction(
+    internal.neo4jActions.agent.summarizeRetrieveInternal,
+    {
+      clerkId: auth.clerkId,
+      profileId: body.profileId,
+      query: body.query,
+      memories: memories.map((memory) => ({
+        id: memory.id,
+        title: memory.title,
+        content: memory.content,
+      })),
+    },
+  );
+
+  if (isOpenRouterRequired(summaryResult)) {
+    return Response.json({ error: "openrouter_required" }, { status: 422 });
+  }
+
+  return {
+    memories,
+    userContext,
+    summary: summaryResult.summary,
+  };
+}
+
+export const retrieveMemories = withApiKeyAuth(
+  "/api/v1/memories/retrieve",
+  "POST",
+  retrieveBodySchema,
+  runRetrieveHandler,
+);

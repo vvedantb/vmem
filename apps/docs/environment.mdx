@@ -1,0 +1,80 @@
+---
+title: "Environment Variables"
+description: "Configuration for local development and deployment"
+---
+
+## Web App (`apps/web`)
+
+Create `apps/web/.env.local`:
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `VITE_CONVEX_URL` | Yes | Convex deployment URL (e.g. `https://happy-animal-123.convex.cloud`) |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Yes | Clerk publishable key (starts with `pk_`) |
+
+Optional for agent auto-login during development:
+
+| Variable | Description |
+| --- | --- |
+| `CLERK_SECRET_KEY` | Used by the Vite dev-server agent-login middleware |
+| `AGENT_CLERK_USER_ID` | Clerk user ID to sign in as when visiting `/?agent` |
+
+## Convex Backend (`packages/backend`)
+
+Set these in the **Convex dashboard** (Settings → Environment Variables):
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `CLERK_FRONTEND_API_URL` | Yes | Clerk JWKS domain for Convex auth |
+| `CLERK_SECRET_KEY` | Yes | Clerk secret key (MCP OAuth flow) |
+| `ENCRYPTION_KEY` | Yes | Base64-encoded AES-256 key for API key encryption |
+| `MCP_JWT_SECRET` | Yes | Secret for signing MCP Bearer tokens |
+| `NEO4J_URI` | Yes | Neo4j connection URI |
+| `NEO4J_PASSWORD` | Yes | Neo4j password |
+| `NEO4J_USERNAME` | No | Defaults to `neo4j` |
+| `CONVEX_SITE_URL` | Yes | Your `.convex.site` URL (OAuth redirects) |
+| `WEB_APP_URL` | Yes | Web app origin (MCP OAuth callbacks) |
+| `OPENROUTER_API_KEY` | No | Used for embeddings and context prompt generation |
+
+### Connector OAuth (optional)
+
+| Variable | Integration |
+| --- | --- |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Drive |
+| `NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` | Notion |
+| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | OneDrive |
+| `LINEAR_CLIENT_ID` / `LINEAR_CLIENT_SECRET` | Linear |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub (codebases) |
+
+## Neo4j Local Scripts
+
+Create `packages/backend/.env.local` for seed/eval CLI commands:
+
+```env
+NEO4J_URI=neo4j+s://your-instance.neo4j.io
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=your-password
+```
+
+Used by `pnpm db:seed`, `pnpm db:unseed`, and `pnpm eval:retrieval`.
+
+## Mobile App (`apps/mobile`)
+
+Copy `apps/mobile/.env.example` to `apps/mobile/.env`:
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `EXPO_PUBLIC_CONVEX_URL` | Yes | Convex deployment URL |
+| `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Yes | Clerk publishable key |
+
+## Chrome Extension
+
+The extension reads Convex URL and Clerk key from build-time constants in `apps/chrome-extension/src/lib/constants.ts`. Update these before building for your deployment.
+
+## Generating ENCRYPTION_KEY
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Copy the output into your Convex environment variables.

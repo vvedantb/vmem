@@ -1,5 +1,203 @@
 # Changelog
 
+## Skills Enable & Panel Actions — 2026-05-23
+
+- **Enable toggle**: View panel header switch turns a skill on or off without opening the edit modal.
+- **Disabled skills excluded from agents**: Graph, MCP, command palette, and memory search omit disabled skills; the skills list still shows them muted so you can re-enable.
+- **Panel actions menu**: Dots menu holds Edit and Delete; delete asks for confirmation before removing the skill.
+
+## Skills Page Redesign — 2026-05-23
+
+- **Add & edit via modals**: Add Skill dropdown offers Write skill or Upload skill (.md drop zone); editing happens in a modal instead of the side panel.
+- **View-only panel**: Selecting a skill opens a read-only detail panel; full description and instructions live there, not on list cards.
+- **1/3–2/3 layout**: Desktop list uses one third width in a single column; the detail panel uses two thirds.
+- **Minimal list cards**: Cards show only the skill name; selected state is a background tint, unselected cards have no fill.
+
+## Settings Save Feedback & Filter Icons — 2026-05-23
+
+- **Preferences save toasts**: Text fields confirm on blur; toggles and sliders show "Saved!" after successful mutations so autosave feels acknowledged.
+- **Extension & profile defaults**: Extension switches and default-profile selects now show the same save confirmation.
+- **Wiki autosave feedback**: Document title renames and debounced body saves toast "Saved!" so wiki editing matches settings autosave UX.
+- **Global toast position**: Sonner toasts moved to top-right so confirmations don't compete with page headers.
+- **AI Logs filter icons**: Every Filters submenu trigger and option now has a Tabler icon for faster scanning.
+
+## Activity & Settings UI Polish — 2026-05-23
+
+- **AI Logs filters consolidated**: Scope, profile, range, status, features, and models live in one Filters dropdown; profile defaults to All with an explicit All option.
+- **Events row layout**: Event timestamps sit on the same row as the description, right-aligned, for a tighter scan pattern.
+- **Sidebar logo hover**: vmem draw-in animation replays on hover without double-firing on hover-out.
+- **Settings preferences cleanup**: Removed redundant section copy; character counts inline with field labels.
+- **Settings API default tab**: `/settings/api` opens Usage first; tab order matches (Usage, then Keys).
+
+## Backend Unit Tests & Plan Doc Cleanup — 2026-05-23
+
+- **Vitest in backend**: First automated tests in `packages/backend` — run via `pnpm test` from repo root.
+- **URL normalization tests**: Lock in dedup behavior (tracking params stripped, canonical HTTPS URLs).
+- **Content-hash tests**: Lock in duplicate-memory detection across whitespace and casing differences.
+- **Plan docs relocated**: Root implementation plans moved into `internal/plans/implemented/` alongside other completed work.
+
+## Mobile Expo SDK 56 Upgrade — 2026-05-23
+
+- **Expo SDK 56**: Upgraded mobile app from SDK 55 to 56 (React Native 0.85, React 19.2.3) with aligned expo-\* package versions.
+- **React Navigation migration**: Repointed `@react-navigation/native` imports to `expo-router/react-navigation` and removed direct `@react-navigation/drawer` dependency.
+- **SDK 56 config**: Moved splash screen to `expo-splash-screen` plugin config, added required config plugins, and enabled React Compiler.
+
+## NPM SDK Publish — 2026-05-22
+
+- **GitHub Actions publish workflow**: Version bumps to `packages/sdk/package.json` on `main` trigger a build and npm publish of `@vmem/sdk` with provenance.
+- **Package metadata**: Added `publishConfig`, `repository`, and `license` so the scoped package can publish publicly.
+
+## VMemory SDK — 2026-05-22
+
+- **`@vmem/sdk` package**: JavaScript SDK with `VMemory` class — agentic `store()`, `update()`, `retrieve()` plus structured escape hatches over existing API key HTTP routes.
+- **Instruction mode on existing HTTP routes**: `POST`/`PATCH /api/v1/memories` accept `{ instruction }` for agentic store/update (no new URLs). Requires OpenRouter key (`422` if missing).
+- **Retrieve enhancements**: Returns `{ memories, userContext }`; optional `summarize: true` for a natural-language answer.
+- **HTTP polish**: Default profile resolution aligned with MCP; structured PATCH returns `404` when memory not found; error logging on HTTP 500s.
+- **Agent orchestration**: `neo4jActions/agent/*` reuses V2 fact extraction — store creates memories; update applies direct adds and proposals for conflicts.
+- **Docs**: SDK quickstart, updated HTTP Memories reference, and API overview SDK example.
+
+## Code-Structure Audit Implementation - 2026-05-22
+
+- **MCP uses canonical memory handlers**: `mcpCreateMemory` / update / delete now delegate to the same `run*` pipeline as UI and HTTP v1 — fixes dedup, chunking, V2 facts, and context-prompt invalidation drift.
+- **Shared backend mechanics consolidated**: Crypto helpers, OAuth state mutations, and `requireClerkId` centralized so GitHub, connectors, and API barrels no longer duplicate AES-GCM or clerk resolution.
+- **Large node actions split**: `migration/` and `dreamMode/` submodules with thin barrels — same public Convex paths, easier navigation.
+- **Frontend tab + files cleanup**: Generic `RouteTabs` replaces five copy-paste tab bars; files REST logic extracted to `filesApi` + `useFilesData`; `MemoryContext` documented as intentional facade.
+
+## HTTP Route Module Split - 2026-05-22
+
+- **Thin `http.ts` router**: Convex HTTP registration now lives in one file; handler logic moved into `convex/http/` modules so routes are easier to find and extend.
+- **API key memory routes split**: `v1Memories/` separates Bearer auth, Zod schemas, and store/retrieve/update handlers instead of one monolithic file.
+- **OAuth callbacks extracted**: GitHub and connector OAuth callback handlers (plus connector popup HTML) moved out of `http.ts` into `http/auth/`.
+
+## API Key HTTP Endpoints - 2026-05-22
+
+- **Programmatic memory access via API keys**: Added Convex HTTP routes `POST /api/v1/memories`, `POST /api/v1/memories/retrieve`, and `PATCH /api/v1/memories` so `vmem_sk_*` keys work outside the Clerk SDK.
+- **Bearer auth + metering**: Requests authenticate by hashing the key and resolving the owner’s Clerk id; each call records usage on the key for dashboard stats.
+- **Docs**: Updated API keys feature page, architecture overview, and added HTTP Memories API reference with curl examples.
+
+## Hybrid Retrieval Ranking Improvements - 2026-05-22
+
+- **1. Eval scaffold**: Added seed-derived retrieval queries, runner script, package command, and saved baseline output.
+- **2. Parallel legs**: Fulltext, whole-memory vector, chunk vector, and entity legs now run concurrently with one Neo4j session per leg.
+- **3. Type-aware recency**: Profile memories no longer decay, knowledge memories decay more slowly, and episodic decay stays unchanged.
+- **4. Graph RRF**: Graph expansion now contributes a ranked RRF leg with path trace details instead of a flat boost.
+- **5. Entity match**: Added an entity-overlap RRF leg with rarity scoring and a count-only fallback when entity counts are absent.
+- **6. Query expansion**: Added `VMEM_ENABLE_QUERY_EXPANSION` behind a default-off flag using the existing logged OpenRouter client.
+- **7. MMR diversity**: Added post-score MMR selection with 0.7 relevance and 0.3 diversity when embeddings exist.
+- **8. Rerank**: Added `VMEM_ENABLE_RERANK` behind a default-off flag with reranker scores surfaced in traces.
+- **9. Eval rerun**: recall@5 stayed `0.0000 -> 0.0000`; MRR stayed `0.0000 -> 0.0000` because local Neo4j lacks the seed eval user memories.
+- **Partial note**: Query-side entity extraction uses deterministic token/bigram candidates instead of a new LLM call to preserve default no-extra-LLM behavior.
+- **Dependencies**: No new packages were added.
+
+## Chrome Extension: Reliable Alarm-Driven Sync Auth - 2026-05-22
+
+- **Background sync no longer depends on popup activity**: 30-minute alarm wakes can refresh auth directly, so history sync continues after the MV3 service worker is evicted.
+- **Removed obsolete offscreen auth path**: The extension no longer ships an offscreen document solely for token refresh, reducing background moving parts.
+
+## Fix MCP memory_retrieve + memory_update — 2026-05-20
+
+- **`memory_retrieve` no longer hard-fails without chunk index**: If Neo4j is missing the `chunk_embedding` vector index, retrieval skips the chunk leg and continues on fulltext + whole-memory vector. Run `npx convex run neo4jActions/dbSetup:ensureNeo4jSetup` once to create chunk indexes for long-memory passage search.
+- **`memory_update` forwards status/type/confidence**: MCP tool schema already accepted these fields but `mcpUpdateMemory` dropped them — `pinned` and other status changes now persist.
+- **Tag duplication on update fixed**: `updateMemory` used `CREATE` for `TAGGED_WITH` edges (vs `MERGE` elsewhere) and `collect()` without `DISTINCT`, so duplicate edges showed as multiplied tags. Now uses `MERGE`, dedupes input tags, and returns `collect(DISTINCT ...)`.
+
+## Remove Unused Legacy Code — 2026-05-20
+
+- **Deleted orphan client enrichment module**: Removed `apps/web/src/lib/local-enrichment.ts` (`runLocalFullEnrichment`) — enrichment is server-side via `enrichMemoryInternal`; nothing imported the file.
+- **Removed dead Convex APIs**: Dropped `applyEnrichmentInternal`, `profiles.getActive`, `setDreamModeAutoAccept`, `mcpGetActiveProfile`, `graphApi.getLocalGraph` (+ `getLocalGraphInternal`), `users.setTheme`, `skills.getById`, and `mcp.oauth.cleanupExpired` — all had zero callers after prior migrations (local enrichment queue, active-profile UX, client theme on `users` table).
+
+## Remove Legacy Memory Event Bus Secret — 2026-05-20
+
+- **Deleted public `memoryEvents.pushEvent`**: Leftover from the deleted Hono `apps/api` — it accepted a shared `CONVEX_EVENT_SECRET` so Railway could push graph events over HTTP. All callers already use `pushEventInternal` after the Convex migration; nothing referenced the public mutation.
+- **`CONVEX_EVENT_SECRET` no longer required**: Safe to remove from the Convex dashboard — it was manually generated and duplicated in the old API env, not provisioned by Convex.
+
+## Remove Legacy `apps/mcp` Railway Server — 2026-05-20
+
+- **Deleted `apps/mcp/`**: The Express/Railway MCP deployment is fully replaced by inline Convex handlers in `packages/backend/convex/mcp/`. Removed the deprecated app, root `mcp:*` scripts, and stale docs references to `apps/mcp/dist/index.js`.
+- **Docs updated**: MCP overview now points at the Convex site URL + OAuth flow instead of a local Node process.
+
+## Fix Claude MCP OAuth + Simplify Web Env Vars — 2026-05-20
+
+- **Root cause: missing `CLERK_SECRET_KEY` on Convex**: OAuth completed and tokens were issued, but every authenticated `/mcp` request returned 401 because `verifyAccessToken` re-checks the Clerk user and the secret was never set on the dev deployment. Claude showed "Authorization with the MCP server failed" even though the authorize flow looked fine. **Action required**: ensure `CLERK_SECRET_KEY` is set on every Convex deployment that serves MCP (alongside existing `MCP_JWT_SECRET` and `WEB_APP_URL`).
+- **Dropped redundant web env vars**: Removed `VITE_MCP_URL` and `VITE_ENV` — Vercel only needs `VITE_CONVEX_URL` + `VITE_CLERK_PUBLISHABLE_KEY`, matching the conductor pattern. Playground derives the MCP site URL inline via `.convex.cloud` → `.convex.site`.
+- **Landing page always shows Clerk sign-in**: Removed the production gate that disabled Sign In/Sign Up and showed a self-hosted-only message — all deployments now use the same auth UI.
+- **MCP URL docs**: Deprecated Railway README and migration notes now call out the full regional Convex site URL (omitting the region segment 404s).
+
+## Custom Animated Sidebar Icons — 2026-05-20
+
+- **11 hand-crafted SVG icons for main-nav tabs**: Chat, Voice, Memories, Teams, Files, Codebases, Skills, Wiki, Activity, Inbox, Settings replaced tabler defaults with custom components matching the tabler aesthetic (24×24 viewBox, 1.7 stroke, currentColor).
+- **Hover-triggered signature animations via shared CSS**: Each icon has a unique motion on hover (chat dots bounce, voice waves radiate, memories pulse, teams light up, etc.). Grouped into single `sidebar-icons.css` with `.group:hover .sb-*` selectors and `prefers-reduced-motion` fallback.
+- **New `sidebar-icons/` folder with BaseIcon wrapper**: Lightweight SVG factory + per-icon components keep individual files focused on path content. All 11 icons export the same `NavIcon` shape so they drop in as replacements with zero downstream changes.
+- **Settings + group headers untouched**: Settings sub-nav and the 3 group headers (Workspace, Data, Account) remain as tabler icons per scope — custom set focuses on the high-traffic main-nav items.
+
+## Chrome Extension: Reliable 30-Minute Background Auto-Sync — 2026-05-20
+
+- **Bootstrap alarms on every service worker wake**: `bootstrapSyncSchedulers()` ensures the history-sync alarm exists whenever the MV3 worker starts, not only on browser launch — fixes sync going dormant after extension reloads without a full Chrome restart.
+- **Offscreen auth reliability**: Offscreen document stays warm between refreshes with a ready handshake, retries, and a longer timeout so background sync no longer depends on opening the popup for a fresh JWT.
+- **Sync cursor advances on empty passes**: `lastHistorySync` updates after every successful auto-sync run even when all history entries were already imported — the Import tab last-sync time reflects periodic checks instead of staying stale.
+- **Immediate local toggle for auto-sync**: Enabling auto-sync in the Import panel writes local storage right away so the alarm is scheduled without waiting for the Convex settings roundtrip.
+- **Settings mirror reconciles alarm state**: Convex user-settings refresh explicitly starts or stops the history alarm when `extensionAutoSyncEnabled` changes server-side.
+
+## Chrome Extension: Fix Background Sync Persistence Across Browser Restarts — 2026-05-16
+
+- **Idempotent alarm creation**: `startAutoSync` now checks for existing alarm via `chrome.alarms.get()` before creating, preventing timer reset on every browser startup. Previously, `chrome.alarms.create()` with an existing name would cancel and replace the alarm, resetting its timer and causing sync to never fire if user restarted more often than the 30-minute interval.
+- **Top-level bookmark listener**: Moved `registerBookmarkListener()` to synchronous service worker startup (top-level in `background/index.ts`). Listener registration must happen at SW init time so Chrome can revive the worker when bookmarks are created while SW is dormant (~30s idle). Prior implementation registered inside `startAutoSync` (async), losing the listener after SW eviction.
+- **Catch-up sync on startup**: Added `catchUpHistorySyncIfOverdue()` called after browser restart and browser window open events. If last history sync is older than the 30-minute interval (or never happened), fires an immediate sync — prevents users from waiting up to 30 minutes after a restart if restarts happen frequently.
+- **Offscreen token refresh diagnostics**: Distinguished "no active Clerk session" (user hasn't signed in on syncHost) from Clerk SDK errors via `console.info` log message. Background sync remains paused until user authenticates, making the cause clearer than a generic token-refresh failure.
+
+## Chore: Add `minimumReleaseAge` to pnpm-workspace.yaml — 2026-05-12
+
+- **Set `minimumReleaseAge: 10080` (7 days) in `pnpm-workspace.yaml`**: pnpm now refuses to install package versions less than a week old, giving the ecosystem time to flag compromised or malicious releases before they enter the workspace. Mitigates supply-chain risk from typo-squat / hijacked-maintainer attacks that are usually identified and yanked within days of publication.
+
+## Chrome Extension: Fix Auto-Sync & Add Offscreen Token Refresh — 2026-05-10
+
+- **Fixed service worker crash (81k → 2.1k bundle)**: Removed Clerk SDK from `background/auth.ts`; was bundling Clerk UI code that uses `document` API at module-top-level, causing CSP violation (status code 15). Auth now storage-only with offscreen refresh fallback.
+- **Introduced `chrome.offscreen` document for token refresh**: New `src/offscreen/` with HTML + Clerk client that runs in a real DOM context. SW spawns on-demand when cached token is missing or expired, mints fresh JWT via `session.getToken({ template: "convex" })`, writes to `chrome.storage`, then closes. Handles cold-start after laptop restart without user opening popup.
+- **Fixed popup CSP violation**: Moved inline theme-init script from `popup/index.html` to `theme-init.ts` module, imported at top of `index.tsx` before React hydration. Prevents flash of unstyled dark/light mode on cold load.
+- **Added dev-host sign-in banner**: Popup's signed-out view now displays info note with link to `CLERK_SYNC_HOST` explaining that Clerk dev instances require host sign-in so the extension can read syncHost cookies. Saves users from silently-failing modal.
+- **Build improvements**: Updated `vite.config.ts` with `createOffscreenConfig`, updated `scripts/build.ts` to compile offscreen bundle, added `"offscreen"` to manifest permissions.
+- **Moved auth token to `chrome.storage.session`**: Token no longer persists to disk — in-memory only, cleared on browser restart. JWT has a ~60s TTL so disk persistence cached mostly-expired tokens while leaving them readable at rest. New `getAuthToken` / `setAuthToken` helpers in `lib/storage.ts` keep everything else on local storage.
+
+## Refactor: Split Five Oversized Files Into Topic-Grouped Subdirs — 2026-05-10
+
+- **`convex/memoryApi.ts` (563 LOC) → thin barrel + `memoryApi/` subdir**: Personal handlers (9 actions: create/get/list/update/delete/deleteAll/search/retrieve/events) move to `personal.ts`; team-scoped handlers (5 actions including the creator-vs-owner authorization branches) to `team.ts`; shared `requireClerkId` + `assertTeamAccess` to `auth.ts`; local interfaces (`MemoryWithTags`, `MemoryListResult`, `RetrieveMemoriesResult`, etc.) to `types.ts`. The barrel keeps the Convex API path `api.memoryApi.*` unchanged so all 16 caller files in `apps/` and `packages/` keep their existing imports.
+- **`convex/profiles.ts` (692 LOC) + `convex/teams.ts` (627 LOC) → thin barrels**: `profiles/` splits into `helpers.ts` (PROFILE_COLORS, PROFILE_ICONS, `getOrCreateDefaultProfile`), `handlers.ts` (list/get/create/update/getActive), `lifecycle.ts` (remove + remove-with-memories + the cascade that clears connector-source defaults), and `dream.ts` (auto-accept + last-run timestamp). `teams/` splits into `auth.ts` (membership lookup + `assertProfileAccess` / `resolveMemoryScope` / `assertMemoryMutablePermission` internals), `handlers.ts` (list/get with member rollups), `membership.ts` (add/remove/leave with last-owner protection), and `lifecycle.ts` (create + rename + 2-phase delete around Neo4j cascade). Shared `requireTeamRole` consolidates role checks that were duplicated across mutations.
+- **`apps/web/src/components/_components/UnifiedFilterPanel.tsx` (634 LOC) → folder with index + 5 tab components**: Each filter (Profile, Kind, Tags, Source, Type) becomes its own client component with its own toggle helper; shared types + tag-sort constants live in `types.ts`. The orchestrator (`index.tsx`) owns the tab list, the per-tab badge counts, and the memoized count records — drop from a 250-state-line render into a layout shell. Both callers (`GraphHeaderControls`, `MemoryListHeaderControls`) keep `import UnifiedFilterPanel from "./UnifiedFilterPanel"` because folder + index resolves the same path.
+- **`apps/chrome-extension/src/content/screenshot/index.ts` (696 LOC) → 6 modules under `screenshot/`**: `icons.ts` (3 inline SVG strings), `styles.ts` (the 165-line shadow-DOM CSS), `types.ts` (Mode + SelectionRect + CroppedImage), `dom.ts` (singleton Shadow-DOM tree construction + `mountOverlay`), `capture.ts` (pure capture/crop/blob-to-base64 pipeline). The orchestrator collapses to state machine + drag handlers + event wiring + save flow. Removed unused `croppedDataUrl` module-state along the way.
+- **All four packages typecheck clean** post-refactor (`packages/backend`, `apps/web`, `apps/chrome-extension`, plus the Convex codegen pass). No public API changes; every external caller keeps its existing import path. Each barrel preserves JSDoc on public-facing symbols so DX in the editor is unchanged.
+
+## Refactor: Split `openRouter.ts` (611 LOC) and `memories.ts` (803 LOC) Into Capability Modules — 2026-05-10
+
+- **`convex/lib/openRouter/` — split LLM provider helpers by capability**: `chat.ts` owns `callOpenRouterChat` + types, `embedding.ts` owns `generateEmbedding` / `generateEmbeddings` plus the 20-per-batch chunking and 429 retry, `shared.ts` owns the cross-cutting plumbing (`scheduleLog`, `openRouterHeaders`, `classifyHttpStatus`, `truncate`, error-body readers). `convex/lib/openRouter.ts` collapses to a 25-line re-export barrel — every existing caller keeps its `import … from "../lib/openRouter"` line untouched. Adding a new endpoint (e.g. structured outputs) is now a new file alongside `chat.ts` instead of more inline branches in one mega-module.
+- **`convex/neo4jActions/memories/` — group 16 memory actions by lifecycle**: Implementations move into `create.ts` (4-layer dedup pipeline + post-create fan-out), `read.ts` (6 lookup/search/retrieve handlers), `update.ts`, `delete.ts`, `chunks.ts` (chunk pipeline + backfill), `team.ts` (4 team-scoped variants), and `shared.ts` (type guards replacing the prior `as MemoryType` casts, plus `tryEmbedOne` / `tryEmbedMany` boilerplate that was duplicated 3×). `memories.ts` shrinks from 803 LOC to ~190 LOC of `internalAction` declarations whose handlers are one-line delegates to `run*` free functions — Convex API path `internal.neo4jActions.memories.*` is preserved verbatim, including self-references like `chunkMemoryInternal` scheduled by the create + update + backfill paths.
+- **CLAUDE.md compliance**: Removed `as MemoryType` and `as MemoryStatus` casts via `isMemoryType` / `isMemoryStatus` type guards in `memories/shared.ts`; deleted the unused `MEMORY_TYPES` / `MEMORY_STATUSES` Sets that only existed to support those casts. The 4-layer dedup decomposition (`resolveProfileId`, `schedulePostCreate`) keeps each path under 60 LOC instead of one 230-LOC handler.
+
+## Refactor: Split `connectorSync.ts` (915 LOC) Into Per-Connector Modules — 2026-05-10
+
+- **Extracted 4 connector handlers into `convex/neo4jActions/connectors/`**: Google Drive, OneDrive, Linear, and Notion sync logic each moved to its own module (`googleDrive.ts`, `oneDrive.ts`, `linear.ts`, `notion.ts`) with a free `runFooSync(ctx, args)` function. Connector-specific types (Linear GraphQL response shapes, OneDrive list response, Notion block extractors) co-locate with their connector instead of polluting the shared file.
+- **`shared.ts` owns the lifecycle framing**: `setupSync` (resolve profile + OpenRouter auth), `embedSyncedDoc` (best-effort embedding), `maybeReportProgress` (every-10-items update), `markSyncComplete`, `markSyncError`. Each connector now delegates the boilerplate that was duplicated 4× before — adding a 5th connector means writing only the list/fetch loop, not re-implementing progress reporting.
+- **`connectorSync.ts` shrinks to ~60 LOC of `internalAction` wrappers**: API path (`internal.neo4jActions.connectorSync.sync*Internal`) preserved verbatim, so the 4 call sites in `convex/connectorSync.ts` need zero changes. Each handler is now a one-line delegate to its `runFooSync` free function.
+
+## Refactor: Split `memoryService.ts` into `memory/` Subdir (4.4k → 19 modules) — 2026-05-10
+
+- **Strangler pattern extraction**: Collapsed 4,367-line `MemoryService` class into 19 topic-grouped free-function modules (`crud`, `chunks`, `dedup`, `retrieve`, `graph`, `proposals`, `dreamMode`, etc.) under `src/neo4j/memory/`. All 70+ methods became driver-first free functions with identical signatures; callers still import from `./memoryService` (now a pure re-export barrel at 139 LOC).
+- **Decomposed three large functions**: `retrieveMemories` (~350L) split into 5 legs + orchestrator for BM25/vector/chunk/graph/RRF fusion; `resolveProposal` (~330L) decomposed into 5 kind-handlers (update/delete/dismiss/synthesis paths); `getGraphData` (~170L) split into 2 parallel-session legs. Each decomposition preserves orchestrator logic at ~40–50L with helpers handling domain specifics.
+- **Refactored 13 caller files** from class instantiation (`new MemoryService(driver)`) to direct free-function calls. `migration.ts` uses aliased imports to avoid collisions with public action exports referenced by `profiles.ts` and `teams.ts` via `internal.neo4jActions.migration.*`. No breaking changes to Convex action signatures or external APIs.
+- **Benefits**: Clear module responsibilities (CRUD, graph traversal, synthesis, analytics, backfill), easier testing (free functions don't require mocking a class), reduced cognitive load (no implicit state beyond the driver), and a precedent for future service-layer refactors (mirrors existing `codebaseService.ts` pattern).
+
+## Settings: Import Page → Data Controls With Wipe-All Tab — 2026-05-10
+
+- **Renamed `/settings/import` to `/settings/data-controls`**: Promoted the single import page into a tabbed surface so import isn't the only data operation that lives there. Sidebar entry renamed from "Import" to "Data Controls"; old route removed (no redirect — greenfield project, breaking changes are fine).
+- **Three tabs share one header**: Each tab is a real subroute (`/import`, `/export`, `/danger`) wired through `DataControlsTabs` mirroring the `/settings/api` tab pattern. Visiting the bare `/settings/data-controls` redirects to the Import tab. Existing import flow (provider grid, upload modal, row picker) lifted into the Import tab unchanged; `ImportPageClient` now renders the panel only — the route owns the page chrome.
+- **Export tab placeholder**: Empty-state card ("Export coming soon") so the tab lights up but doesn't pretend to work yet. Gives a future export pipeline a home to land in.
+- **Data Control tab — irreversible wipe-all**: New "Delete all memories" action sitting behind a type-to-confirm dialog (must type `delete all memories` before the destructive button enables, GitHub repo-deletion style). Wires through new `memoryApi.deleteAllMemories` action → `deleteAllMemoriesForUser(userId)` on `MemoryService`, which DETACH-DELETEs the user's memories, chunks, memory events, proposed updates, and per-user entities, then prunes orphan `:Tag` and `:Source` nodes — same ordering as `unseed.ts`. Returns the count for the success toast.
+
+- **Consolidated MCP server into Convex backend**: Replaced separate Railway Express deployment with inline `httpAction`s and `"use node"` actions in `packages/backend/convex/mcp/`. Single source of truth eliminates cold starts and dual-deployment overhead.
+- **New MCP OAuth flow**: Added `mcpAuthCodes` + `mcpClientRegistrations` tables to track 5-minute auth codes and 24h client registrations. OAuth mutations + queries live in `convex/mcp/oauth.ts`; httpActions in `native.ts` handle metadata/register/authorize/token endpoints. Existing `MCP_JWT_SECRET` reused verbatim so Railway-issued tokens survive cutover without re-auth.
+- **JWT verification centralized**: Moved token verification from per-action helpers into single `verifyAccessToken` internalAction in `nodeActions.ts`. All 5 memory/profile/skill actions now accept `clerkId` directly instead of `token`, simplifying the call chain and removing scattered JWT logic.
+- **Web app OAuth recovery flow**: Added `mcpOauthStorage.ts` for sessionStorage-backed param recovery — when Clerk's prod session handshake bounces the authorize popup to `/home`, the stored params let us redirect back without user friction. `main.tsx` snapshots params before ClerkProvider mounts; `/home` route consumes them on entry.
+- **New authorize route**: TanStack route at `/mcp/oauth/authorize` gates on Clerk sign-in (not Convex), then calls `api.mcp.oauth.authorize` mutation to mint the auth code. Redirects to client's redirect_uri with `?code=&state=`.
+- **Deprecated apps/mcp**: Added deprecation banner pointing at new Convex URL. Folder stays for production soak; deleted in follow-up after cutover is stable.
+
 ## Chrome Extension: Centralized Clerk Auth in Background Worker — 2026-05-10
 
 - **New `background/auth.ts` module**: Single source of truth for Clerk session retrieval and authenticated Convex client creation. Wraps `createClerkClient` (with `background: true`) behind a memoized client and exposes `createAuthenticatedConvexClient()` + `hasActiveClerkSession()`. Stale tokens are refreshed live via `session.getToken({ template: "convex" })` instead of relying on whatever happened to be in `chrome.storage`.

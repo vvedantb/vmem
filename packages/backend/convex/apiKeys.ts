@@ -4,33 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes, severityForStatus } from "./auditLog";
-
-// --- Crypto helpers ---
-
-function getEnvOrThrow(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing ${name} environment variable`);
-  }
-  return value;
-}
-
-async function getEncryptionKey(): Promise<CryptoKey> {
-  const keyB64 = getEnvOrThrow("ENCRYPTION_KEY");
-  const keyBytes = Uint8Array.from(atob(keyB64), (c) => c.charCodeAt(0));
-  return crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, [
-    "encrypt",
-    "decrypt",
-  ]);
-}
-
-function uint8ToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
-}
+import { decryptToken, encryptToken } from "./lib/crypto";
 
 function generateApiKey(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
@@ -41,7 +15,7 @@ function generateApiKey(): string {
   return `vmem_sk_${b64url}`;
 }
 
-async function hashApiKey(rawKey: string): Promise<string> {
+export async function hashApiKey(rawKey: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(rawKey),
@@ -52,31 +26,11 @@ async function hashApiKey(rawKey: string): Promise<string> {
 }
 
 async function encryptApiKey(rawKey: string): Promise<string> {
-  const key = await getEncryptionKey();
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    key,
-    new TextEncoder().encode(rawKey),
-  );
-  return `v1:${uint8ToBase64(iv)}:${uint8ToBase64(new Uint8Array(encrypted))}`;
+  return encryptToken(rawKey);
 }
 
 export async function decryptApiKey(encryptedKey: string): Promise<string> {
-  const parts = encryptedKey.split(":");
-  if (parts.length !== 3 || parts[0] !== "v1") {
-    throw new Error("Invalid encrypted key format");
-  }
-  const [, ivB64, encB64] = parts;
-  const key = await getEncryptionKey();
-  const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0));
-  const enc = Uint8Array.from(atob(encB64), (c) => c.charCodeAt(0));
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    key,
-    enc,
-  );
-  return new TextDecoder().decode(decrypted);
+  return decryptToken(encryptedKey);
 }
 
 function maskApiKey(rawKey: string): string {
@@ -198,6 +152,39 @@ export const revealMy = authAction({
 });
 
 // --- Internal queries and mutations ---
+
+export const resolveByKeyHashInternal = internalQuery({
+  args: { keyHash: v.string() },
+  returns: v.union(
+    v.object({
+      userId: v.id("users"),
+      clerkId: v.string(),
+      apiKeyId: v.id("apiKeys"),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const apiKey = await ctx.db
+      .query("apiKeys")
+      .withIndex("by_key_hash", (q) => q.eq("keyHash", args.keyHash))
+      .first();
+
+    if (!apiKey || apiKey.status !== "active") {
+      return null;
+    }
+
+    const user = await ctx.db.get(apiKey.userId);
+    if (!user?.clerkId) {
+      return null;
+    }
+
+    return {
+      userId: apiKey.userId,
+      clerkId: user.clerkId,
+      apiKeyId: apiKey._id,
+    };
+  },
+});
 
 export const getEncryptedKeyInternal = internalQuery({
   args: { id: v.id("apiKeys"), userId: v.id("users") },

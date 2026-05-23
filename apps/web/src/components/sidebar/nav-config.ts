@@ -1,12 +1,6 @@
 import {
-  IconMessageCircle,
-  IconMicrophone,
   IconKey,
-  IconSettings,
-  IconFiles,
-  IconDatabase,
   IconPlugConnected,
-  IconBrain,
   IconStack2,
   IconPlug,
   IconUserCircle,
@@ -14,15 +8,23 @@ import {
   IconTerminal2,
   IconPuzzle,
   IconFileImport,
-  IconBolt,
-  IconNotebook,
   IconCpu,
   IconUsers,
-  IconBuilding,
   IconVariable,
+} from "@tabler/icons-react";
+import {
+  IconChat,
+  IconVoice,
+  IconMemories,
+  IconTeams,
+  IconFiles,
+  IconCodebases,
+  IconSkills,
+  IconWiki,
   IconActivity,
   IconInbox,
-} from "@tabler/icons-react";
+  IconSettings,
+} from "../sidebar-icons";
 import type { NavGroup, SettingsNavGroup } from "./types";
 
 export const navGroups: NavGroup[] = [
@@ -30,10 +32,10 @@ export const navGroups: NavGroup[] = [
     title: "Workspace",
     icon: IconStack2,
     items: [
-      { href: "/chat", label: "Chat", icon: IconMessageCircle },
-      { href: "/voice", label: "Voice", icon: IconMicrophone },
-      { href: "/memories", label: "Memories", icon: IconBrain },
-      { href: "/teams", label: "Teams", icon: IconBuilding },
+      { href: "/chat", label: "Chat", icon: IconChat },
+      { href: "/voice", label: "Voice", icon: IconVoice },
+      { href: "/memories", label: "Memories", icon: IconMemories },
+      { href: "/teams", label: "Teams", icon: IconTeams },
     ],
   },
   {
@@ -41,9 +43,9 @@ export const navGroups: NavGroup[] = [
     icon: IconPlug,
     items: [
       { href: "/files", label: "Files", icon: IconFiles },
-      { href: "/codebases", label: "Codebases", icon: IconDatabase },
-      { href: "/skills", label: "Skills", icon: IconBolt },
-      { href: "/wiki", label: "Wiki", icon: IconNotebook },
+      { href: "/codebases", label: "Codebases", icon: IconCodebases },
+      { href: "/skills", label: "Skills", icon: IconSkills },
+      { href: "/wiki", label: "Wiki", icon: IconWiki },
     ],
   },
   {
@@ -96,7 +98,11 @@ export const settingsNavGroups: SettingsNavGroup[] = [
         icon: IconPlugConnected,
       },
       { href: "/settings/extension", label: "Extension", icon: IconPuzzle },
-      { href: "/settings/import", label: "Import", icon: IconFileImport },
+      {
+        href: "/settings/data-controls",
+        label: "Data Controls",
+        icon: IconFileImport,
+      },
     ],
   },
 ];

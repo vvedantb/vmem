@@ -13,25 +13,26 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true,
     bundleIdentifier: "com.vis1.vmem",
   },
-  splash: {
-    image: "./assets/icon.png",
-    resizeMode: "contain",
-    backgroundColor: "#000000",
-  },
   android: {
     package: "com.vis1.vmem",
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#000000",
     },
-    splash: {
-      image: "./assets/icon.png",
-      resizeMode: "contain",
-      backgroundColor: "#000000",
-    },
   },
   plugins: [
     "expo-router",
+    "expo-font",
+    [
+      "expo-splash-screen",
+      {
+        image: "./assets/icon.png",
+        resizeMode: "contain",
+        backgroundColor: "#000000",
+      },
+    ],
+    "expo-status-bar",
+    "expo-web-browser",
     [
       "expo-secure-store",
       {
@@ -50,5 +51,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ],
   experiments: {
     typedRoutes: false,
+    reactCompiler: true,
   },
 });

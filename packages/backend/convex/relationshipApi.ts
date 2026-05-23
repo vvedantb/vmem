@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { authAction } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 
 interface MemoryWithTags {
@@ -35,11 +35,7 @@ export const linkMemories = authAction({
     reason: v.string(),
   },
   handler: async (ctx, args): Promise<boolean> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.relationships.linkMemoriesInternal,
       {
@@ -58,11 +54,7 @@ export const unlinkMemories = authAction({
     memoryIdB: v.string(),
   },
   handler: async (ctx, args): Promise<boolean> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.relationships.unlinkMemoriesInternal,
       {
@@ -77,11 +69,7 @@ export const unlinkMemories = authAction({
 export const getRelatedMemories = authAction({
   args: { memoryId: v.string() },
   handler: async (ctx, args): Promise<RelatedMemory[]> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.relationships.getRelatedMemoriesInternal,
       {
@@ -95,11 +83,7 @@ export const getRelatedMemories = authAction({
 export const getAllRelationships = authAction({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args): Promise<RelationshipEdge[]> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.relationships.getAllRelationshipsInternal,
       {

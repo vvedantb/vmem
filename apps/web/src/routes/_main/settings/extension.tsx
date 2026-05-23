@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
+import { toast } from "sonner";
 import { Label, Switch, Skeleton } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
@@ -12,11 +13,21 @@ function ExtensionSettingsPage() {
   const settings = useQuery(api.userSettings.get);
   const updateSettings = useMutation(api.userSettings.update);
 
+  const saveSettings = async (
+    patch: Parameters<typeof updateSettings>[0],
+  ): Promise<void> => {
+    try {
+      await updateSettings(patch);
+      toast.success("Saved!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+    }
+  };
+
   if (settings === undefined) {
     return (
       <PageContainer title="Extension" centeredMaxWidth showTitle>
         <div className="space-y-6">
-          <Skeleton className="h-4 w-64" />
           <div className="flex items-center justify-between gap-3">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-6 w-10 rounded-full" />
@@ -33,10 +44,6 @@ function ExtensionSettingsPage() {
   return (
     <PageContainer title="Extension" centeredMaxWidth showTitle>
       <div className="space-y-6">
-        <p className="text-sm text-muted-foreground">
-          Browser extension settings. The same preferences apply when you change
-          them in the extension popup.
-        </p>
         <div className="flex items-center justify-between gap-3">
           <div>
             <Label htmlFor="ext-auto-sync" className="text-sm font-medium">
@@ -50,7 +57,7 @@ function ExtensionSettingsPage() {
             id="ext-auto-sync"
             checked={settings.extensionAutoSyncEnabled}
             onCheckedChange={(checked) => {
-              void updateSettings({ extensionAutoSyncEnabled: checked });
+              void saveSettings({ extensionAutoSyncEnabled: checked });
             }}
           />
         </div>
@@ -70,7 +77,7 @@ function ExtensionSettingsPage() {
             id="ext-selection-popup"
             checked={settings.extensionSelectionPopupEnabled}
             onCheckedChange={(checked) => {
-              void updateSettings({ extensionSelectionPopupEnabled: checked });
+              void saveSettings({ extensionSelectionPopupEnabled: checked });
             }}
           />
         </div>

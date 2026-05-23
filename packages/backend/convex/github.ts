@@ -6,61 +6,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
-
-// --- Crypto helpers (same pattern as apiKeys.ts) ---
-
-function getEnvOrThrow(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing ${name} environment variable`);
-  }
-  return value;
-}
-
-async function getEncryptionKey(): Promise<CryptoKey> {
-  const keyB64 = getEnvOrThrow("ENCRYPTION_KEY");
-  const keyBytes = Uint8Array.from(atob(keyB64), (c) => c.charCodeAt(0));
-  return crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, [
-    "encrypt",
-    "decrypt",
-  ]);
-}
-
-function uint8ToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
-}
-
-async function encryptToken(token: string): Promise<string> {
-  const key = await getEncryptionKey();
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    key,
-    new TextEncoder().encode(token),
-  );
-  return `v1:${uint8ToBase64(iv)}:${uint8ToBase64(new Uint8Array(encrypted))}`;
-}
-
-export async function decryptToken(encryptedToken: string): Promise<string> {
-  const parts = encryptedToken.split(":");
-  if (parts.length !== 3 || parts[0] !== "v1") {
-    throw new Error("Invalid encrypted token format");
-  }
-  const [, ivB64, encB64] = parts;
-  const key = await getEncryptionKey();
-  const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0));
-  const enc = Uint8Array.from(atob(encB64), (c) => c.charCodeAt(0));
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    key,
-    enc,
-  );
-  return new TextDecoder().decode(decrypted);
-}
+import { encryptToken, getEnvOrThrow } from "./lib/crypto";
 
 // --- Public functions ---
 
@@ -95,7 +41,7 @@ export const startGitHubOAuth = authAction({
     const state = crypto.randomUUID();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-    await ctx.runMutation(internal.github.insertOAuthStateInternal, {
+    await ctx.runMutation(internal.oauthState.insertOAuthStateInternal, {
       state,
       userId: ctx.userId,
       returnUrl: args.returnUrl,
@@ -141,7 +87,7 @@ export const handleGitHubCallbackInternal = internalAction({
   handler: async (ctx, args): Promise<OAuthCallbackResult> => {
     // 1. Consume and validate state
     const stateEntry = await ctx.runMutation(
-      internal.github.consumeOAuthStateInternal,
+      internal.oauthState.consumeOAuthStateInternal,
       { state: args.state },
     );
     if (!stateEntry) {
@@ -277,51 +223,6 @@ export const updateConnectionInternal = internalMutation({
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, fields);
-  },
-});
-
-// --- OAuth state helpers ---
-
-export const insertOAuthStateInternal = internalMutation({
-  args: {
-    state: v.string(),
-    userId: v.id("users"),
-    returnUrl: v.string(),
-    expiresAt: v.number(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("oauthStates", args);
-  },
-});
-
-/**
- * Atomically consumes an OAuth state entry (read + delete).
- * Returns the entry data if found, null otherwise.
- * Being a mutation ensures no two callbacks can consume the same state.
- */
-export const consumeOAuthStateInternal = internalMutation({
-  args: { state: v.string() },
-  returns: v.union(
-    v.object({
-      userId: v.id("users"),
-      returnUrl: v.string(),
-      expiresAt: v.number(),
-    }),
-    v.null(),
-  ),
-  handler: async (ctx, args) => {
-    const entry = await ctx.db
-      .query("oauthStates")
-      .withIndex("by_state", (q) => q.eq("state", args.state))
-      .first();
-    if (!entry) return null;
-
-    await ctx.db.delete(entry._id);
-    return {
-      userId: entry.userId,
-      returnUrl: entry.returnUrl,
-      expiresAt: entry.expiresAt,
-    };
   },
 });
 

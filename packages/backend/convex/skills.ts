@@ -2,6 +2,11 @@ import { v } from "convex/values";
 import { internalQuery } from "./_generated/server";
 import { authQuery, authMutation } from "./auth";
 
+/** Missing `enabled` is treated as enabled for existing rows. */
+function isSkillEnabled(skill: { enabled?: boolean }): boolean {
+  return skill.enabled !== false;
+}
+
 /**
  * List all skills owned by the authenticated user, newest-first.
  */
@@ -13,21 +18,6 @@ export const listMy = authQuery({
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .order("desc")
       .collect();
-  },
-});
-
-/**
- * Fetch a single skill by id, scoped to the authenticated user.
- * Accepts a string id to match the pattern used by codebases.getById.
- */
-export const getById = authQuery({
-  args: { id: v.string() },
-  handler: async (ctx, args) => {
-    const normalizedId = ctx.db.normalizeId("skills", args.id);
-    if (!normalizedId) return null;
-    const skill = await ctx.db.get(normalizedId);
-    if (!skill || skill.userId !== ctx.userId) return null;
-    return skill;
   },
 });
 
@@ -62,6 +52,7 @@ export const createSkill = authMutation({
       name: trimmedName,
       description: args.description,
       instructions: args.instructions,
+      enabled: true,
       createdAt: now,
       updatedAt: now,
     });
@@ -77,6 +68,7 @@ export const updateSkill = authMutation({
     name: v.optional(v.string()),
     description: v.optional(v.string()),
     instructions: v.optional(v.string()),
+    enabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const normalizedId = ctx.db.normalizeId("skills", args.id);
@@ -90,6 +82,7 @@ export const updateSkill = authMutation({
       name?: string;
       description?: string;
       instructions?: string;
+      enabled?: boolean;
       updatedAt: number;
     } = { updatedAt: Date.now() };
 
@@ -114,6 +107,7 @@ export const updateSkill = authMutation({
     }
     if (args.description !== undefined) patch.description = args.description;
     if (args.instructions !== undefined) patch.instructions = args.instructions;
+    if (args.enabled !== undefined) patch.enabled = args.enabled;
 
     await ctx.db.patch(normalizedId, patch);
   },
@@ -149,11 +143,12 @@ export const listByClerkIdInternal = internalQuery({
       .first();
     if (!user) return [];
 
-    return await ctx.db
+    const rows = await ctx.db
       .query("skills")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
       .collect();
+    return rows.filter(isSkillEnabled);
   },
 });
 
@@ -169,11 +164,13 @@ export const getByNameInternal = internalQuery({
       .first();
     if (!user) return null;
 
-    return await ctx.db
+    const skill = await ctx.db
       .query("skills")
       .withIndex("by_user_name", (q) =>
         q.eq("userId", user._id).eq("name", args.name),
       )
       .first();
+    if (!skill || !isSkillEnabled(skill)) return null;
+    return skill;
   },
 });

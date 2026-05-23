@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, DrawerActions } from "@react-navigation/native";
+import { useNavigation, DrawerActions } from "expo-router/react-navigation";
 import { useColorScheme } from "nativewind";
 import { IconMenu2 } from "@tabler/icons-react-native";
 import type { UIMessage } from "@convex-dev/agent/react";

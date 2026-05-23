@@ -2,7 +2,11 @@
 
 import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
-import { MemoryService } from "../../src/neo4j/memoryService";
+import {
+  getMemoryTimeline,
+  getSearchTimeline,
+  getTopicTimeline,
+} from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 
 export const getMemoryTimelineInternal = internalAction({
@@ -11,8 +15,8 @@ export const getMemoryTimelineInternal = internalAction({
     memoryId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getMemoryTimeline(args.clerkId, args.memoryId);
+    const driver = getDriver();
+    return await getMemoryTimeline(driver, args.clerkId, args.memoryId);
   },
 });
 
@@ -24,8 +28,9 @@ export const getTopicTimelineInternal = internalAction({
     offset: v.number(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getTopicTimeline(
+    const driver = getDriver();
+    return await getTopicTimeline(
+      driver,
       args.clerkId,
       args.tag,
       args.limit,
@@ -42,8 +47,9 @@ export const getSearchTimelineInternal = internalAction({
     offset: v.number(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getSearchTimeline(
+    const driver = getDriver();
+    return await getSearchTimeline(
+      driver,
       args.clerkId,
       args.query,
       args.limit,

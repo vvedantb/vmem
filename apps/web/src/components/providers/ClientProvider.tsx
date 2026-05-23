@@ -137,7 +137,7 @@ function ThemedSonnerToaster() {
   const { resolvedTheme } = useTheme();
   return (
     <SonnerToaster
-      position="top-center"
+      position="top-right"
       theme={resolvedTheme === "dark" ? "dark" : "light"}
     />
   );

@@ -1,0 +1,44 @@
+---
+title: "Codebases"
+description: "Connect GitHub repositories for code-aware memory"
+---
+
+## Overview
+
+Codebases let you connect GitHub repositories to vmem. Synced code structure and metadata feed into the memory graph for code-aware retrieval.
+
+Route: `/codebases`
+
+## Setup
+
+1. Connect your GitHub account (requires `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` in Convex env)
+2. Go to **Codebases** in the sidebar
+3. Click **Connect GitHub** if not already connected
+4. Add a repository from your GitHub account
+5. Sync to index the codebase structure
+
+## Features
+
+- List connected codebases
+- Sync individual or all codebases
+- View codebase graph visualization
+- Browse repository structure
+
+## API
+
+Convex functions in `codebases.ts`:
+
+| Function | Description |
+| --- | --- |
+| `listMy` | List user's connected codebases |
+| `getById` | Get codebase details |
+| `listRepos` | List GitHub repos (requires connection) |
+| `addCodebase` | Connect a repository |
+| `removeCodebase` | Disconnect a repository |
+| `syncCodebase` | Sync a single codebase |
+| `syncAllMy` | Sync all connected codebases |
+| `getCodebaseGraph` | Get graph data for visualization |
+
+## MCP Proxy
+
+Codebase-related MCP tools are proxied through the vmem MCP server alongside memory tools. See the architecture diagram in the root README for the proxy pattern.

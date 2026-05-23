@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import crypto from "node:crypto";
-import { authAction } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import { extractPdfText } from "../src/parsers/pdf";
 import { extractTextFromBlob } from "../src/parsers/text";
@@ -91,11 +91,7 @@ export const importMemoryFromFile = authAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<MemoryWithTags> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
 
     if (args.profileId) {
       await ctx.runQuery(internal.teams.assertProfileAccessInternal, {
@@ -196,11 +192,7 @@ export const importImageMemory = authAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<MemoryWithTags> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
 
     if (args.profileId) {
       await ctx.runQuery(internal.teams.assertProfileAccessInternal, {

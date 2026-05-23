@@ -26,32 +26,27 @@ export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "group relative flex flex-col gap-2 rounded-xl px-4 py-4 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
-        selected
-          ? "bg-muted/80 ring-2 ring-ring/30"
-          : "bg-muted/40 hover:bg-muted/60",
+        "flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        selected ? "bg-muted/80" : "hover:bg-muted/40",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <IconBolt size={16} className="text-muted-foreground shrink-0" />
-          <span className="text-sm font-semibold text-foreground truncate">
-            {skill.name}
-          </span>
-        </div>
-      </div>
-
-      {skill.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2">
-          {skill.description}
-        </p>
-      )}
-
-      {skill.instructions && (
-        <p className="text-xs text-muted-foreground/80 line-clamp-3 whitespace-pre-wrap font-mono">
-          {skill.instructions}
-        </p>
-      )}
+      <IconBolt
+        size={16}
+        className={cn(
+          "shrink-0",
+          skill.enabled === false
+            ? "text-muted-foreground/50"
+            : "text-muted-foreground",
+        )}
+      />
+      <span
+        className={cn(
+          "truncate text-sm font-semibold",
+          skill.enabled === false ? "text-muted-foreground" : "text-foreground",
+        )}
+      >
+        {skill.name}
+      </span>
     </div>
   );
 }

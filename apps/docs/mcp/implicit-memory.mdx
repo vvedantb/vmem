@@ -10,24 +10,50 @@ Memory should be implicit, not explicit. The LLM should never have to "decide" t
 ## How It Works
 
 ```
-User sends message to Claude/Cursor/ChatGPT
-  → MCP client asks vmem: "what's relevant for this user?"
-  → vmem returns top memories as Resources
-  → LLM sees them as part of system prompt — no tool call
-  → LLM responds with full memory context
+User sends message to Claude/Cursor
+  → MCP client reads vmem://context_prompt Resource
+  → vmem returns synthesized user profile (markdown)
+  → LLM sees it as part of system context — no tool call
+  → LLM responds with full user context
 ```
 
-The user and the LLM never explicitly "fetch" memories. They're just there.
+The user and the LLM never explicitly "fetch" memories for reading. Context is just there.
+
+## The Context Prompt Resource
+
+### `vmem://context_prompt`
+
+A single MCP Resource that delivers a synthesized markdown profile:
+
+- **About me** — from user settings
+- **Preferences** — from user settings
+- **Pinned memories** — up to 20 verbatim pinned memory contents
+- **Profile summary** — LLM-generated prose from recent activity
+
+MIME type: `text/markdown`
+
+### Caching Behavior
+
+| Scenario | Behavior |
+| --- | --- |
+| First read (no cache) | Returns placeholder markdown, schedules background regeneration |
+| Cache < 24h old | Returns cached content immediately |
+| Cache > 24h old | Returns stale content, schedules refresh in background |
+| Memory write | Schedules regeneration after 60s debounce |
+
+The read is always non-blocking — MCP clients never wait on LLM generation.
 
 ## Reading vs Writing
 
 | Operation | Mode | How |
 | --- | --- | --- |
-| **Reading** | Implicit | Memories auto-injected via MCP Resources |
-| **Writing (deliberate)** | Explicit | LLM calls `memory_write` tool |
-| **Writing (automatic)** | Background | Observer process extracts memories from conversations |
+| **Reading (profile context)** | Implicit | `vmem://context_prompt` Resource |
+| **Reading (query-specific)** | Explicit | `memory_retrieve` tool |
+| **Searching** | Explicit | `memory_search` tool |
+| **Writing (deliberate)** | Explicit | `memory_add` tool |
+| **Writing (automatic)** | Background | Enrichment queue after create |
 
-Reading should **always** be implicit. Writing can be either intentional or automatic.
+For general conversation context, reading is implicit. For query-specific retrieval (e.g. "what did we discuss about Neo4j?"), the LLM can call `memory_retrieve` explicitly.
 
 ## Why This Matters
 
@@ -40,22 +66,12 @@ Mem0 and Supermemory require the LLM to explicitly call `mem0.search()` or `memo
 
 ### vmem: Resource-Based Approach
 
-vmem injects memory via MCP Resources before the LLM even starts generating. The model always has relevant context. No tool call overhead. No "forgetting to remember."
+vmem injects a synthesized profile via MCP Resource before the LLM starts generating. The model always has baseline user context. No tool call overhead. No "forgetting to remember."
 
-## MCP Resources in Detail
+For deeper, query-specific retrieval, `memory_retrieve` is available as an explicit tool with full context trace scoring.
 
-### `user://memories/relevant`
+## Profiles in Context
 
-Returns the top N memories most relevant to the current conversation context. Ranking uses:
-- Semantic similarity to the current message
-- Recency weighting
-- Memory status (pinned memories are boosted)
-- Tag relevance
+The context prompt reflects the user's active profile. Use `list_profiles` and pass `profileId` to memory tools to work with a specific profile's memories.
 
-### `user://profile`
-
-Returns stable user facts — preferences, role, tools, recurring context. This is always injected regardless of the conversation topic.
-
-### `user://project/{name}`
-
-Returns context specific to an active project — goals, decisions, constraints. Useful when the user is working within a known project scope.
+The `whoami` tool returns the current active profile ID.
