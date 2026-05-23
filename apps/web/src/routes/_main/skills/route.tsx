@@ -23,9 +23,10 @@ import {
   IconPlus,
   IconUpload,
 } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PageContainer from "@/components/PageContainer";
 import { SkillCard } from "@/components/skills/SkillCard";
+import { SkillsSearchBar } from "@/components/skills/SkillsSearchBar";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { WriteSkillDialog } from "@/components/skills/WriteSkillDialog";
 import { UploadSkillDialog } from "@/components/skills/UploadSkillDialog";
@@ -48,18 +49,31 @@ function SkillsLayout() {
 
   const skills = useQuery(api.skills.listMy);
   const [modal, setModal] = useState<ModalState>({ mode: "none" });
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredSkills = useMemo(() => {
+    if (!skills) return undefined;
+    const query = searchQuery.trim().toLowerCase();
+    if (query.length === 0) return skills;
+    return skills.filter(
+      (skill) =>
+        skill.name.toLowerCase().includes(query) ||
+        skill.description.toLowerCase().includes(query),
+    );
+  }, [skills, searchQuery]);
 
   useEffect(() => {
-    if (!skills || !skillId) return;
+    if (!filteredSkills || !skillId) return;
+    if (filteredSkills.length === 0) return;
 
-    if (!skills.some((s) => s._id === skillId)) {
+    if (!filteredSkills.some((s) => s._id === skillId)) {
       void navigate({
         to: "/skills/$id",
-        params: { id: skills[0]._id },
+        params: { id: filteredSkills[0]._id },
         replace: true,
       });
     }
-  }, [skills, skillId, navigate]);
+  }, [filteredSkills, skillId, navigate]);
 
   useEffect(() => {
     if (!skills) return;
@@ -146,16 +160,25 @@ function SkillsLayout() {
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-0.5">
-              {skills.map((skill) => (
-                <SkillCard
-                  key={skill._id}
-                  skill={skill}
-                  selected={skillId === skill._id}
-                  onSelect={() => openSkill(skill._id)}
-                />
-              ))}
-            </div>
+            <>
+              <SkillsSearchBar value={searchQuery} onChange={setSearchQuery} />
+              {filteredSkills.length === 0 ? (
+                <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                  No skills match your search.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-0.5">
+                  {filteredSkills.map((skill) => (
+                    <SkillCard
+                      key={skill._id}
+                      skill={skill}
+                      selected={skillId === skill._id}
+                      onSelect={() => openSkill(skill._id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 

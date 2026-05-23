@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   IconLayoutSidebarLeftCollapse,
-  IconLayoutSidebarRightCollapse,
   IconArrowLeft,
   IconListDetails,
 } from "@tabler/icons-react";
@@ -45,16 +44,18 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     n: 0,
   });
   const [isTreeCollapsed, setIsTreeCollapsed] = useState(false);
-  const [isOutlineCollapsed, setIsOutlineCollapsed] = useState(false);
+  const [isOutlineVisible, setIsOutlineVisible] = useState(false);
   const [isMobileOutlineOpen, setIsMobileOutlineOpen] = useState(false);
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
 
   const gridCols = useMemo(() => {
     const left = isTreeCollapsed ? "40px" : "280px";
-    const right = isOutlineCollapsed ? "40px" : "220px";
-    return `${left} 1fr ${right}`;
-  }, [isTreeCollapsed, isOutlineCollapsed]);
+    if (!isOutlineVisible) {
+      return `${left} 1fr`;
+    }
+    return `${left} 1fr 220px`;
+  }, [isTreeCollapsed, isOutlineVisible]);
 
   const handleSelectNode = useCallback(
     (id: string) => {
@@ -74,6 +75,12 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   };
 
   const hasDoc = docId !== null && docId.length > 0;
+
+  useEffect(() => {
+    if (!hasDoc) {
+      setIsOutlineVisible(false);
+    }
+  }, [hasDoc]);
 
   return (
     <PageContainer title="Wiki" noScroll>
@@ -117,6 +124,9 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
                   tree={tree}
                   selectedId={docId}
                   onSelect={handleSelectNode}
+                  outlineVisible={isOutlineVisible}
+                  onOutlineVisibleChange={setIsOutlineVisible}
+                  hasDoc={hasDoc}
                 />
               </div>
             </>
@@ -152,7 +162,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
                 className="gap-1.5"
               >
                 <IconListDetails size={16} />
-                Outline
+                View outline
               </Button>
             </div>
           )}
@@ -164,30 +174,15 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           />
         </div>
 
-        {/* Right pane: outline. Hidden on mobile (accessed via dialog). */}
-        <div className="hidden md:block min-h-0 rounded-lg bg-muted/40 p-3 overflow-y-auto scrollbar-thin">
-          {isOutlineCollapsed ? (
-            <button
-              type="button"
-              onClick={() => setIsOutlineCollapsed(false)}
-              className="w-full flex justify-center pt-1 text-muted-foreground hover:text-foreground transition-colors"
-              title="Expand outline"
-              aria-label="Expand outline"
-            >
-              <IconLayoutSidebarRightCollapse
-                size={16}
-                className="rotate-180"
-              />
-            </button>
-          ) : (
+        {isOutlineVisible && hasDoc ? (
+          <div className="hidden md:block min-h-0 rounded-lg bg-muted/40 p-3 overflow-y-auto scrollbar-thin">
             <WikiOutline
               headings={headings}
               onJump={handleJumpToHeading}
               hasDoc={hasDoc}
-              onCollapse={() => setIsOutlineCollapsed(true)}
             />
-          )}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       {/* Mobile outline dialog */}
@@ -199,7 +194,6 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
               headings={headings}
               onJump={handleJumpToHeading}
               hasDoc={hasDoc}
-              onCollapse={() => setIsMobileOutlineOpen(false)}
             />
           </div>
         </DialogContent>

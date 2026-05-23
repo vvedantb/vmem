@@ -21,6 +21,8 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
+  Label,
+  Switch,
   cn,
 } from "@vmem/ui";
 import type { WikiTreeNode } from "./_utils";
@@ -31,6 +33,9 @@ interface WikiTreeProps {
   tree: WikiTreeNode[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  outlineVisible: boolean;
+  onOutlineVisibleChange: (visible: boolean) => void;
+  hasDoc: boolean;
 }
 
 /**
@@ -44,6 +49,9 @@ export default function WikiTree({
   tree,
   selectedId,
   onSelect,
+  outlineVisible,
+  onOutlineVisibleChange,
+  hasDoc,
 }: WikiTreeProps) {
   const createNode = useMutation(api.wiki.createNode);
   const renameNode = useMutation(api.wiki.renameNode);
@@ -80,11 +88,26 @@ export default function WikiTree({
 
   return (
     <div className="flex flex-col min-h-0">
-      <div className="flex items-center justify-between mb-2 px-1">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          Documents
-        </span>
-        <div className="flex gap-1">
+      <div className="flex items-center justify-between mb-2 gap-2 px-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <Switch
+            id="wiki-view-outline"
+            checked={outlineVisible}
+            disabled={!hasDoc}
+            onCheckedChange={onOutlineVisibleChange}
+            aria-label="View outline"
+          />
+          <Label
+            htmlFor="wiki-view-outline"
+            className={cn(
+              "cursor-pointer text-sm font-medium",
+              hasDoc ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            View outline
+          </Label>
+        </div>
+        <div className="flex shrink-0 gap-1">
           <Button
             variant="ghost"
             size="icon-xs"
