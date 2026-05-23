@@ -202,7 +202,6 @@ function SkillsLayout() {
         onOpenChange={(open) => {
           if (!open) setModal({ mode: "none" });
         }}
-        onDeleted={handleSkillDeleted}
       />
     </PageContainer>
   );
