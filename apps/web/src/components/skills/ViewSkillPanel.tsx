@@ -25,20 +25,17 @@ import {
   IconLoader2,
   IconPencil,
   IconTrash,
-  IconX,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
 interface ViewSkillPanelProps {
   skill: Doc<"skills">;
-  onClose: () => void;
   onEdit: () => void;
   onDeleted: () => void;
 }
 
 export function ViewSkillPanel({
   skill,
-  onClose,
   onEdit,
   onDeleted,
 }: ViewSkillPanelProps) {
@@ -134,14 +131,6 @@ export function ViewSkillPanel({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Close panel"
-            >
-              <IconX size={18} />
-            </button>
           </div>
         </div>
 

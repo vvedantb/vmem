@@ -13,15 +13,16 @@ import { Route as AgentCallbackRouteImport } from './routes/agent-callback'
 import { Route as MainRouteRouteImport } from './routes/_main/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MainVoiceRouteImport } from './routes/_main/voice'
-import { Route as MainSkillsRouteImport } from './routes/_main/skills'
 import { Route as MainProposalsRouteImport } from './routes/_main/proposals'
 import { Route as MainNotificationsRouteImport } from './routes/_main/notifications'
 import { Route as MainHomeRouteImport } from './routes/_main/home'
 import { Route as MainFilesRouteImport } from './routes/_main/files'
 import { Route as MainChatRouteImport } from './routes/_main/chat'
+import { Route as MainSkillsRouteRouteImport } from './routes/_main/skills/route'
 import { Route as MainWikiIndexRouteImport } from './routes/_main/wiki/index'
 import { Route as MainTeamsIndexRouteImport } from './routes/_main/teams/index'
 import { Route as MainSvgPlaygroundIndexRouteImport } from './routes/_main/svg-playground/index'
+import { Route as MainSkillsIndexRouteImport } from './routes/_main/skills/index'
 import { Route as MainSettingsIndexRouteImport } from './routes/_main/settings/index'
 import { Route as MainOpenrouterLogsIndexRouteImport } from './routes/_main/openrouter-logs/index'
 import { Route as MainMemoriesIndexRouteImport } from './routes/_main/memories/index'
@@ -31,6 +32,7 @@ import { Route as MainAiLogsIndexRouteImport } from './routes/_main/ai-logs/inde
 import { Route as MainActivityIndexRouteImport } from './routes/_main/activity/index'
 import { Route as McpOauthAuthorizeRouteImport } from './routes/mcp/oauth/authorize'
 import { Route as MainWikiDocIdRouteImport } from './routes/_main/wiki/$docId'
+import { Route as MainSkillsIdRouteImport } from './routes/_main/skills/$id'
 import { Route as MainSettingsUsageRouteImport } from './routes/_main/settings/usage'
 import { Route as MainSettingsProfilesRouteImport } from './routes/_main/settings/profiles'
 import { Route as MainSettingsPreferencesRouteImport } from './routes/_main/settings/preferences'
@@ -76,11 +78,6 @@ const MainVoiceRoute = MainVoiceRouteImport.update({
   path: '/voice',
   getParentRoute: () => MainRouteRoute,
 } as any)
-const MainSkillsRoute = MainSkillsRouteImport.update({
-  id: '/skills',
-  path: '/skills',
-  getParentRoute: () => MainRouteRoute,
-} as any)
 const MainProposalsRoute = MainProposalsRouteImport.update({
   id: '/proposals',
   path: '/proposals',
@@ -106,6 +103,11 @@ const MainChatRoute = MainChatRouteImport.update({
   path: '/chat',
   getParentRoute: () => MainRouteRoute,
 } as any)
+const MainSkillsRouteRoute = MainSkillsRouteRouteImport.update({
+  id: '/skills',
+  path: '/skills',
+  getParentRoute: () => MainRouteRoute,
+} as any)
 const MainWikiIndexRoute = MainWikiIndexRouteImport.update({
   id: '/wiki/',
   path: '/wiki/',
@@ -120,6 +122,11 @@ const MainSvgPlaygroundIndexRoute = MainSvgPlaygroundIndexRouteImport.update({
   id: '/svg-playground/',
   path: '/svg-playground/',
   getParentRoute: () => MainRouteRoute,
+} as any)
+const MainSkillsIndexRoute = MainSkillsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MainSkillsRouteRoute,
 } as any)
 const MainSettingsIndexRoute = MainSettingsIndexRouteImport.update({
   id: '/settings/',
@@ -165,6 +172,11 @@ const MainWikiDocIdRoute = MainWikiDocIdRouteImport.update({
   id: '/wiki/$docId',
   path: '/wiki/$docId',
   getParentRoute: () => MainRouteRoute,
+} as any)
+const MainSkillsIdRoute = MainSkillsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => MainSkillsRouteRoute,
 } as any)
 const MainSettingsUsageRoute = MainSettingsUsageRouteImport.update({
   id: '/settings/usage',
@@ -301,12 +313,12 @@ const MainSettingsApiKeysRoute = MainSettingsApiKeysRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agent-callback': typeof AgentCallbackRoute
+  '/skills': typeof MainSkillsRouteRouteWithChildren
   '/chat': typeof MainChatRoute
   '/files': typeof MainFilesRoute
   '/home': typeof MainHomeRoute
   '/notifications': typeof MainNotificationsRoute
   '/proposals': typeof MainProposalsRoute
-  '/skills': typeof MainSkillsRoute
   '/voice': typeof MainVoiceRoute
   '/activity/ai-logs': typeof MainActivityAiLogsRoute
   '/activity/events': typeof MainActivityEventsRoute
@@ -323,6 +335,7 @@ export interface FileRoutesByFullPath {
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
   '/settings/usage': typeof MainSettingsUsageRoute
+  '/skills/$id': typeof MainSkillsIdRoute
   '/wiki/$docId': typeof MainWikiDocIdRoute
   '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/activity/': typeof MainActivityIndexRoute
@@ -332,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/memories/': typeof MainMemoriesIndexRoute
   '/openrouter-logs/': typeof MainOpenrouterLogsIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
+  '/skills/': typeof MainSkillsIndexRoute
   '/svg-playground/': typeof MainSvgPlaygroundIndexRoute
   '/teams/': typeof MainTeamsIndexRoute
   '/wiki/': typeof MainWikiIndexRoute
@@ -354,7 +368,6 @@ export interface FileRoutesByTo {
   '/home': typeof MainHomeRoute
   '/notifications': typeof MainNotificationsRoute
   '/proposals': typeof MainProposalsRoute
-  '/skills': typeof MainSkillsRoute
   '/voice': typeof MainVoiceRoute
   '/activity/ai-logs': typeof MainActivityAiLogsRoute
   '/activity/events': typeof MainActivityEventsRoute
@@ -371,6 +384,7 @@ export interface FileRoutesByTo {
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
   '/settings/usage': typeof MainSettingsUsageRoute
+  '/skills/$id': typeof MainSkillsIdRoute
   '/wiki/$docId': typeof MainWikiDocIdRoute
   '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/activity': typeof MainActivityIndexRoute
@@ -380,6 +394,7 @@ export interface FileRoutesByTo {
   '/memories': typeof MainMemoriesIndexRoute
   '/openrouter-logs': typeof MainOpenrouterLogsIndexRoute
   '/settings': typeof MainSettingsIndexRoute
+  '/skills': typeof MainSkillsIndexRoute
   '/svg-playground': typeof MainSvgPlaygroundIndexRoute
   '/teams': typeof MainTeamsIndexRoute
   '/wiki': typeof MainWikiIndexRoute
@@ -399,12 +414,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_main': typeof MainRouteRouteWithChildren
   '/agent-callback': typeof AgentCallbackRoute
+  '/_main/skills': typeof MainSkillsRouteRouteWithChildren
   '/_main/chat': typeof MainChatRoute
   '/_main/files': typeof MainFilesRoute
   '/_main/home': typeof MainHomeRoute
   '/_main/notifications': typeof MainNotificationsRoute
   '/_main/proposals': typeof MainProposalsRoute
-  '/_main/skills': typeof MainSkillsRoute
   '/_main/voice': typeof MainVoiceRoute
   '/_main/activity/ai-logs': typeof MainActivityAiLogsRoute
   '/_main/activity/events': typeof MainActivityEventsRoute
@@ -421,6 +436,7 @@ export interface FileRoutesById {
   '/_main/settings/preferences': typeof MainSettingsPreferencesRoute
   '/_main/settings/profiles': typeof MainSettingsProfilesRoute
   '/_main/settings/usage': typeof MainSettingsUsageRoute
+  '/_main/skills/$id': typeof MainSkillsIdRoute
   '/_main/wiki/$docId': typeof MainWikiDocIdRoute
   '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/_main/activity/': typeof MainActivityIndexRoute
@@ -430,6 +446,7 @@ export interface FileRoutesById {
   '/_main/memories/': typeof MainMemoriesIndexRoute
   '/_main/openrouter-logs/': typeof MainOpenrouterLogsIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
+  '/_main/skills/': typeof MainSkillsIndexRoute
   '/_main/svg-playground/': typeof MainSvgPlaygroundIndexRoute
   '/_main/teams/': typeof MainTeamsIndexRoute
   '/_main/wiki/': typeof MainWikiIndexRoute
@@ -449,12 +466,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agent-callback'
+    | '/skills'
     | '/chat'
     | '/files'
     | '/home'
     | '/notifications'
     | '/proposals'
-    | '/skills'
     | '/voice'
     | '/activity/ai-logs'
     | '/activity/events'
@@ -471,6 +488,7 @@ export interface FileRouteTypes {
     | '/settings/preferences'
     | '/settings/profiles'
     | '/settings/usage'
+    | '/skills/$id'
     | '/wiki/$docId'
     | '/mcp/oauth/authorize'
     | '/activity/'
@@ -480,6 +498,7 @@ export interface FileRouteTypes {
     | '/memories/'
     | '/openrouter-logs/'
     | '/settings/'
+    | '/skills/'
     | '/svg-playground/'
     | '/teams/'
     | '/wiki/'
@@ -502,7 +521,6 @@ export interface FileRouteTypes {
     | '/home'
     | '/notifications'
     | '/proposals'
-    | '/skills'
     | '/voice'
     | '/activity/ai-logs'
     | '/activity/events'
@@ -519,6 +537,7 @@ export interface FileRouteTypes {
     | '/settings/preferences'
     | '/settings/profiles'
     | '/settings/usage'
+    | '/skills/$id'
     | '/wiki/$docId'
     | '/mcp/oauth/authorize'
     | '/activity'
@@ -528,6 +547,7 @@ export interface FileRouteTypes {
     | '/memories'
     | '/openrouter-logs'
     | '/settings'
+    | '/skills'
     | '/svg-playground'
     | '/teams'
     | '/wiki'
@@ -546,12 +566,12 @@ export interface FileRouteTypes {
     | '/'
     | '/_main'
     | '/agent-callback'
+    | '/_main/skills'
     | '/_main/chat'
     | '/_main/files'
     | '/_main/home'
     | '/_main/notifications'
     | '/_main/proposals'
-    | '/_main/skills'
     | '/_main/voice'
     | '/_main/activity/ai-logs'
     | '/_main/activity/events'
@@ -568,6 +588,7 @@ export interface FileRouteTypes {
     | '/_main/settings/preferences'
     | '/_main/settings/profiles'
     | '/_main/settings/usage'
+    | '/_main/skills/$id'
     | '/_main/wiki/$docId'
     | '/mcp/oauth/authorize'
     | '/_main/activity/'
@@ -577,6 +598,7 @@ export interface FileRouteTypes {
     | '/_main/memories/'
     | '/_main/openrouter-logs/'
     | '/_main/settings/'
+    | '/_main/skills/'
     | '/_main/svg-playground/'
     | '/_main/teams/'
     | '/_main/wiki/'
@@ -629,13 +651,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainVoiceRouteImport
       parentRoute: typeof MainRouteRoute
     }
-    '/_main/skills': {
-      id: '/_main/skills'
-      path: '/skills'
-      fullPath: '/skills'
-      preLoaderRoute: typeof MainSkillsRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
     '/_main/proposals': {
       id: '/_main/proposals'
       path: '/proposals'
@@ -671,6 +686,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainChatRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/skills': {
+      id: '/_main/skills'
+      path: '/skills'
+      fullPath: '/skills'
+      preLoaderRoute: typeof MainSkillsRouteRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/wiki/': {
       id: '/_main/wiki/'
       path: '/wiki'
@@ -691,6 +713,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/svg-playground/'
       preLoaderRoute: typeof MainSvgPlaygroundIndexRouteImport
       parentRoute: typeof MainRouteRoute
+    }
+    '/_main/skills/': {
+      id: '/_main/skills/'
+      path: '/'
+      fullPath: '/skills/'
+      preLoaderRoute: typeof MainSkillsIndexRouteImport
+      parentRoute: typeof MainSkillsRouteRoute
     }
     '/_main/settings/': {
       id: '/_main/settings/'
@@ -754,6 +783,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/wiki/$docId'
       preLoaderRoute: typeof MainWikiDocIdRouteImport
       parentRoute: typeof MainRouteRoute
+    }
+    '/_main/skills/$id': {
+      id: '/_main/skills/$id'
+      path: '/$id'
+      fullPath: '/skills/$id'
+      preLoaderRoute: typeof MainSkillsIdRouteImport
+      parentRoute: typeof MainSkillsRouteRoute
     }
     '/_main/settings/usage': {
       id: '/_main/settings/usage'
@@ -933,13 +969,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface MainSkillsRouteRouteChildren {
+  MainSkillsIdRoute: typeof MainSkillsIdRoute
+  MainSkillsIndexRoute: typeof MainSkillsIndexRoute
+}
+
+const MainSkillsRouteRouteChildren: MainSkillsRouteRouteChildren = {
+  MainSkillsIdRoute: MainSkillsIdRoute,
+  MainSkillsIndexRoute: MainSkillsIndexRoute,
+}
+
+const MainSkillsRouteRouteWithChildren = MainSkillsRouteRoute._addFileChildren(
+  MainSkillsRouteRouteChildren,
+)
+
 interface MainRouteRouteChildren {
+  MainSkillsRouteRoute: typeof MainSkillsRouteRouteWithChildren
   MainChatRoute: typeof MainChatRoute
   MainFilesRoute: typeof MainFilesRoute
   MainHomeRoute: typeof MainHomeRoute
   MainNotificationsRoute: typeof MainNotificationsRoute
   MainProposalsRoute: typeof MainProposalsRoute
-  MainSkillsRoute: typeof MainSkillsRoute
   MainVoiceRoute: typeof MainVoiceRoute
   MainActivityAiLogsRoute: typeof MainActivityAiLogsRoute
   MainActivityEventsRoute: typeof MainActivityEventsRoute
@@ -980,12 +1030,12 @@ interface MainRouteRouteChildren {
 }
 
 const MainRouteRouteChildren: MainRouteRouteChildren = {
+  MainSkillsRouteRoute: MainSkillsRouteRouteWithChildren,
   MainChatRoute: MainChatRoute,
   MainFilesRoute: MainFilesRoute,
   MainHomeRoute: MainHomeRoute,
   MainNotificationsRoute: MainNotificationsRoute,
   MainProposalsRoute: MainProposalsRoute,
-  MainSkillsRoute: MainSkillsRoute,
   MainVoiceRoute: MainVoiceRoute,
   MainActivityAiLogsRoute: MainActivityAiLogsRoute,
   MainActivityEventsRoute: MainActivityEventsRoute,

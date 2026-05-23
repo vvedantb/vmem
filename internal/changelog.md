@@ -1,5 +1,11 @@
 # Changelog
 
+## Skills URL Routing — 2026-05-23
+
+- **Shareable skill URLs**: The selected skill lives at `/skills/[id]` so links, refresh, and browser history work instead of in-page-only state.
+- **Auto-open first skill**: Visiting `/skills` redirects to the first skill when any exist.
+- **Simpler panel chrome**: Removed the panel close control; pick another skill from the list to switch.
+
 ## Skills Enable & Panel Actions — 2026-05-23
 
 - **Enable toggle**: View panel header switch turns a skill on or off without opening the edit modal.
