@@ -7,9 +7,6 @@
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
     "start": "pnpm --filter web start",
-    "mcp:dev": "pnpm --filter mcp dev",
-    "mcp:build": "pnpm --filter mcp build",
-    "mcp:start": "pnpm --filter mcp start",
     "ext:dev": "pnpm --filter @vmem/chrome-extension dev",
     "ext:build": "pnpm --filter @vmem/chrome-extension build",
     "mobile": "pnpm --filter mobile start",
@@ -24,7 +21,10 @@
     "prepare": "husky",
     "lint:deps": "syncpack lint",
     "fix:deps": "syncpack fix-mismatches",
-    "check:expo": "pnpm --filter mobile exec expo install --check"
+    "check:expo": "pnpm --filter mobile exec expo install --check",
+    "sdk:build": "pnpm --filter @vmem/sdk build",
+    "sdk:typecheck": "pnpm --filter @vmem/sdk typecheck",
+    "test": "pnpm --filter @vmem/backend test"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css,md}": "prettier --write"

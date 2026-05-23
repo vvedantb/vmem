@@ -7,6 +7,7 @@ import type { JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 import { useDebounceCallback } from "usehooks-ts";
+import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 import WikiBreadcrumb from "./WikiBreadcrumb";
@@ -22,6 +23,7 @@ interface WikiEditorProps {
 }
 
 const AUTOSAVE_MS = 800;
+const SAVE_TOAST_MS = 2000;
 
 const EMPTY_DOC: JSONContent = {
   type: "doc",
@@ -56,13 +58,22 @@ export default function WikiEditor({
 
   const [titleDraft, setTitleDraft] = useState<string>("");
 
+  const debouncedSaveToast = useDebounceCallback(() => {
+    toast.success("Saved!");
+  }, SAVE_TOAST_MS);
+
   const debouncedSave = useDebounceCallback(
-    (id: Id<"wikiNodes">, jsonDoc: JSONContent) => {
-      void updateContent({
-        id,
-        contentJson: JSON.stringify(jsonDoc),
-        contentText: docToPlainText(jsonDoc),
-      });
+    async (id: Id<"wikiNodes">, jsonDoc: JSONContent) => {
+      try {
+        await updateContent({
+          id,
+          contentJson: JSON.stringify(jsonDoc),
+          contentText: docToPlainText(jsonDoc),
+        });
+        debouncedSaveToast();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to save");
+      }
     },
     AUTOSAVE_MS,
   );
@@ -153,8 +164,9 @@ export default function WikiEditor({
   useEffect(() => {
     return () => {
       debouncedSave.cancel();
+      debouncedSaveToast.cancel();
     };
-  }, [debouncedSave]);
+  }, [debouncedSave, debouncedSaveToast]);
 
   const ancestors = useMemo(
     () => (doc ? findAncestors(doc, allNodes) : []),
@@ -168,7 +180,13 @@ export default function WikiEditor({
       setTitleDraft(doc.title);
       return;
     }
-    await renameNode({ id: doc._id, title: trimmed });
+    try {
+      await renameNode({ id: doc._id, title: trimmed });
+      toast.success("Saved!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+      setTitleDraft(doc.title);
+    }
   };
 
   if (docId === null || docId.length === 0) {

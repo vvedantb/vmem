@@ -3,54 +3,77 @@ title: "Proposed Updates"
 description: "Review and resolve conflicting memory updates"
 ---
 
-When vmem detects that new information conflicts with an existing memory, it creates a **proposed update** instead of silently overwriting. This preserves data integrity and gives you control over what changes.
+Convex `authAction`s in `proposedUpdateApi`.
 
 ## List Proposed Updates
 
-```bash
-GET /v1/proposed-updates?userId=user_123
+Returns all pending and resolved proposals for the authenticated user.
+
+```typescript
+await client.action(api.proposedUpdateApi.listProposedUpdates, {});
 ```
 
-<ParamField query="userId" type="string" required />
+**Returns:** `ProposedUpdateNode[]`
 
-**Response:**
-
-```json
-{
-  "proposals": [
-    {
-      "id": "proposal_abc",
-      "memoryId": "mem_123",
-      "originalContent": "User prefers Python",
-      "proposedContent": "User prefers TypeScript",
-      "reason": "Conflicting preference detected",
-      "status": "pending",
-      "createdAt": "2026-03-15T10:00:00Z"
-    }
-  ]
+```typescript
+interface ProposedUpdateNode {
+  id: string;
+  memoryId: string;
+  proposedContent: string;
+  proposedTitle: string | null;
+  reason: string;
+  kind: "update" | "delete" | "insight" | "connection" | "contradiction" | "anomaly";
+  status: string;
+  createdAt: string;
+  resolvedAt: string | null;
+  sourceMemoryIds: string[];
+  confidence: number | null;
+  source: "v2-extraction" | "dream-mode";
+  memorySnapshot: { title: string; content: string } | null;
+  sourceMemorySnapshots: { id: string; title: string; content: string }[];
 }
 ```
 
 ---
 
-## Approve Proposed Update
+## Resolve Proposal
 
-Applies the proposed change to the original memory.
+Approve or reject a pending proposal.
 
-```bash
-POST /v1/proposed-updates/:id/approve
+<ParamField body="proposalId" type="string" required>
+  The proposal ID
+</ParamField>
+<ParamField body="action" type="string" required>
+  `"approve"` or `"reject"`
+</ParamField>
+
+```typescript
+await client.action(api.proposedUpdateApi.resolveProposal, {
+  proposalId: "proposal_abc",
+  action: "approve",
+});
 ```
 
-**Response:** The updated proposal with `status: "approved"`, or `404` if not found.
+**Returns:**
 
----
-
-## Reject Proposed Update
-
-Discards the proposed change. The original memory remains unchanged.
-
-```bash
-POST /v1/proposed-updates/:id/reject
+```typescript
+{
+  status: string;
+  memoryId: string;
+  kind: ProposedUpdateKind;
+  materializedMemoryId?: string; // set when approve creates a new memory (synthesis kinds)
+}
 ```
 
-**Response:** The updated proposal with `status: "rejected"`, or `404` if not found.
+### Behavior by Kind
+
+| Kind | Approve | Reject |
+| --- | --- | --- |
+| `update` | Replace memory content | Original preserved |
+| `delete` | Hard-delete memory | Original preserved |
+| `insight` | Materialize new memory | Proposal discarded |
+| `connection` | Create relationship edge | Proposal discarded |
+| `contradiction` | Flag for review | Proposal discarded |
+| `anomaly` | Surface anomaly | Proposal discarded |
+
+See [Proposed Updates concept](/concepts/proposed-updates) for the full lifecycle.

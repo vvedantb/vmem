@@ -2,7 +2,11 @@
 
 import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
-import { MemoryService } from "../../src/neo4j/memoryService";
+import {
+  getGraphData,
+  getLocalGraph,
+  getMemoryContent,
+} from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
@@ -95,25 +99,11 @@ export const getGraphDataInternal = internalAction({
     profileId: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
+    const driver = getDriver();
     const raw = args.focus
-      ? await service.getLocalGraph(args.clerkId, args.focus, args.profileId)
-      : await service.getGraphData(args.clerkId, args.profileId);
+      ? await getLocalGraph(driver, args.clerkId, args.focus, args.profileId)
+      : await getGraphData(driver, args.clerkId, args.profileId);
     return capGraph(raw);
-  },
-});
-
-export const getLocalGraphInternal = internalAction({
-  args: {
-    clerkId: v.string(),
-    focusId: v.string(),
-    profileId: v.optional(v.string()),
-  },
-  handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return capGraph(
-      await service.getLocalGraph(args.clerkId, args.focusId, args.profileId),
-    );
   },
 });
 
@@ -128,7 +118,7 @@ export const getMemoryContentInternal = internalAction({
     memoryId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const service = new MemoryService(getDriver());
-    return await service.getMemoryContent(args.clerkId, args.memoryId);
+    const driver = getDriver();
+    return await getMemoryContent(driver, args.clerkId, args.memoryId);
   },
 });

@@ -24,8 +24,19 @@ const memoryRefValidator = v.object({
       scoreBreakdown: v.object({
         fulltext: v.number(),
         vector: v.number(),
+        chunk: v.optional(v.number()),
+        entity: v.optional(v.number()),
+        rrf: v.optional(v.number()),
         recency: v.number(),
         confidence: v.number(),
+        graphPath: v.optional(
+          v.object({
+            seedTitle: v.string(),
+            bridgingEntity: v.union(v.string(), v.null()),
+            hops: v.number(),
+          }),
+        ),
+        rerankerScore: v.optional(v.number()),
       }),
       reason: v.string(),
     }),

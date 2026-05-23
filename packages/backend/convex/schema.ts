@@ -181,8 +181,19 @@ const schema = defineSchema({
             scoreBreakdown: v.object({
               fulltext: v.number(),
               vector: v.number(),
+              chunk: v.optional(v.number()),
+              entity: v.optional(v.number()),
+              rrf: v.optional(v.number()),
               recency: v.number(),
               confidence: v.number(),
+              graphPath: v.optional(
+                v.object({
+                  seedTitle: v.string(),
+                  bridgingEntity: v.union(v.string(), v.null()),
+                  hops: v.number(),
+                }),
+              ),
+              rerankerScore: v.optional(v.number()),
             }),
             reason: v.string(),
           }),
@@ -202,6 +213,7 @@ const schema = defineSchema({
     name: v.string(),
     description: v.string(),
     instructions: v.string(),
+    enabled: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -264,6 +276,34 @@ const schema = defineSchema({
      *  regen-check is scheduled. The check clears the flag on success. */
     pendingRegeneration: v.boolean(),
   }).index("by_user", ["userId"]),
+
+  /**
+   * Short-lived OAuth authorization codes for the MCP `/mcp/oauth/token`
+   * exchange. Inserted by `mcp.oauth.authorize` (called from the web app
+   * after Clerk sign-in) and consumed atomically by the token endpoint.
+   * 5-minute TTL; expired rows are deleted on consumption regardless.
+   */
+  mcpAuthCodes: defineTable({
+    code: v.string(),
+    clerkUserId: v.string(),
+    codeChallenge: v.string(),
+    codeChallengeMethod: v.string(),
+    redirectUri: v.string(),
+    clientId: v.string(),
+    expiresAt: v.number(),
+  }).index("by_code", ["code"]),
+
+  /**
+   * Dynamic OAuth client registrations issued via `/mcp/oauth/register`.
+   * `clientSecret` is optional — Claude.ai uses the public-client (no
+   * secret) flow with PKCE. 24h soft TTL applied at the query layer.
+   */
+  mcpClientRegistrations: defineTable({
+    clientId: v.string(),
+    clientSecret: v.optional(v.string()),
+    redirectUris: v.array(v.string()),
+    registeredAt: v.number(),
+  }).index("by_clientId", ["clientId"]),
 });
 
 export default schema;

@@ -89,11 +89,11 @@ function LoadingSkeleton() {
     <div className="space-y-3">
       {[1, 2, 3, 4].map((i) => (
         <div key={i} className="rounded-xl bg-muted/40 p-4 sm:p-6">
-          <div className="flex items-start gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Skeleton className="h-10 w-10 rounded-xl" />
-            <div className="flex-1 space-y-2">
+            <div className="flex flex-1 items-center justify-between gap-3">
               <Skeleton className="h-4 w-48 rounded" />
-              <Skeleton className="h-3 w-24 rounded" />
+              <Skeleton className="h-3 w-16 rounded" />
             </div>
           </div>
         </div>
@@ -217,21 +217,21 @@ export function EventsPanel({
       data={filteredAndSortedActivity}
       customScrollParent={scrollParent}
       computeItemKey={(_index, item) => item.id}
-      defaultItemHeight={72}
+      defaultItemHeight={64}
       itemContent={(_index, item) => {
         const Icon = getActivityIcon(item.type);
         return (
           <div className="pb-3">
             <div className="rounded-xl bg-muted/40 p-3 transition-colors sm:p-4">
-              <div className="flex items-start gap-3 sm:gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
                   <Icon size={20} className="text-primary" />
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
                   <p className="text-sm font-medium text-foreground sm:text-base">
                     {item.description}
                   </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm tabular-nums">
+                  <p className="flex-shrink-0 text-xs text-muted-foreground sm:text-sm tabular-nums">
                     {item.relativeTime}
                   </p>
                 </div>

@@ -20,31 +20,50 @@ Context trace answers all of these questions.
 
 ## How Retrieval Works
 
-When you call the retrieve endpoint, vmem scores each candidate memory across multiple signals:
+When you call `memoryApi.retrieveMemories`, vmem scores each candidate memory across multiple signals:
 
-1. **Semantic similarity** — How closely the memory's embedding matches the query
-2. **Recency** — How recently the memory was created or updated
-3. **Status boost** — Pinned memories receive a ranking boost
-4. **Tag relevance** — Whether the memory's tags align with the query context
+1. **Fulltext** — Keyword match against memory title and content
+2. **Vector** — Embedding similarity to the query
+3. **Chunk** — Paragraph-level match within long memories
+4. **Entity** — Named entity overlap between query and memory
+5. **RRF** — Reciprocal rank fusion combining the above signals
+6. **Recency** — How recently the memory was created or updated
+7. **Confidence** — The memory's stored confidence score
+8. **Graph path** (optional) — Multi-hop traversal through related memories
+9. **Reranker** (optional) — Cross-encoder reranking score
 
 Each signal contributes to a final composite score, and the trace shows the contribution of each.
 
-## Using Context Trace
+## Response Shape
 
-Call the retrieve endpoint:
-
-```bash
-POST /v1/memories/retrieve
-```
+Each retrieved memory includes a `trace` object:
 
 ```json
 {
-  "userId": "user_123",
-  "query": "What tech stack does the user prefer?"
+  "id": "mem_abc123",
+  "title": "Preferred stack",
+  "content": "User prefers Next.js with Convex backend",
+  "trace": {
+    "score": 0.87,
+    "reason": "Strong vector match + recent update",
+    "scoreBreakdown": {
+      "fulltext": 0.3,
+      "vector": 0.85,
+      "chunk": 0.0,
+      "entity": 0.1,
+      "rrf": 0.72,
+      "recency": 0.9,
+      "confidence": 0.95
+    }
+  },
+  "matchedChunk": {
+    "content": "User prefers Next.js with Convex backend",
+    "position": 0
+  }
 }
 ```
 
-The response includes memories with scoring details, letting you understand and audit every retrieval decision.
+When retrieval matches a specific paragraph inside a long memory, `matchedChunk` shows which passage triggered the match.
 
 ## Use Cases
 
@@ -52,3 +71,9 @@ The response includes memories with scoring details, letting you understand and 
 - **Tuning** — adjust scoring weights based on trace analysis
 - **Transparency** — show end users why certain context was used
 - **Audit** — maintain a record of what informed each LLM response
+
+Chat and voice surfaces memory title badges under assistant messages, with traces persisted in `chatMessageMemoryRefs` for reload.
+
+## API
+
+See [Retrieve Memories](/api-reference/memories#retrieve-memories) for the Convex action signature.

@@ -87,8 +87,10 @@ export function CommandPalette({ onToggleSidebar }: Props) {
   const normalizedQuery = query.trim().toLowerCase();
   const filteredSkills =
     normalizedQuery.length >= 2
-      ? (skills ?? []).filter((s) =>
-          s.name.toLowerCase().includes(normalizedQuery),
+      ? (skills ?? []).filter(
+          (s) =>
+            s.enabled !== false &&
+            s.name.toLowerCase().includes(normalizedQuery),
         )
       : [];
 

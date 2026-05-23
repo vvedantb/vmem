@@ -217,17 +217,19 @@ export function wikiRowsToListItems(rows: WikiRows): ListItem[] {
 type SkillRows = FunctionReturnType<typeof api.skills.listMy>;
 
 export function skillRowsToListItems(rows: SkillRows): ListItem[] {
-  return rows.map(
-    (row): ListItem => ({
-      kind: "skill",
-      id: `${SKILL_PREFIX}${row._id}`,
-      skillId: row._id,
-      title: row.name,
-      content: row.description,
-      tags: [],
-      createdAt: new Date(row.createdAt).toISOString(),
-    }),
-  );
+  return rows
+    .filter((row) => row.enabled !== false)
+    .map(
+      (row): ListItem => ({
+        kind: "skill",
+        id: `${SKILL_PREFIX}${row._id}`,
+        skillId: row._id,
+        title: row.name,
+        content: row.description,
+        tags: [],
+        createdAt: new Date(row.createdAt).toISOString(),
+      }),
+    );
 }
 
 // ---- Search ---------------------------------------------------------------

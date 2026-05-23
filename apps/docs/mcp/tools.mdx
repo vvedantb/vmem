@@ -1,0 +1,185 @@
+---
+title: "MCP Tools"
+description: "Complete reference for all vmem MCP tools"
+---
+
+All tools are registered in `packages/backend/convex/mcp/tools.ts` and require Bearer JWT authentication.
+
+## ping
+
+Health check for connector validation.
+
+**Parameters:** none
+
+**Returns:**
+```json
+{ "ok": true, "timestamp": "2026-05-22T12:00:00.000Z" }
+```
+
+---
+
+## whoami
+
+Returns the authenticated user ID and active profile.
+
+**Parameters:** none
+
+**Returns:** User ID and active profile object.
+
+---
+
+## list_profiles
+
+List all profiles available to the user. Returns profile IDs, names, colors, and icons.
+
+**Parameters:** none
+
+Use a profile ID with `memory_add` to save to a specific profile. Ask the user which profile they want before saving.
+
+---
+
+## memory_search
+
+Search memories by query text, type, tags, or source.
+
+<ParamField body="query" type="string">
+  Text to search for
+</ParamField>
+<ParamField body="type" type="string">
+  Filter: `profile`, `episodic`, or `knowledge`
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Filter by tags
+</ParamField>
+<ParamField body="source" type="string">
+  Filter by source
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to search in (defaults to active profile)
+</ParamField>
+<ParamField body="limit" type="number">
+  Max results, 1–100 (default 20)
+</ParamField>
+<ParamField body="offset" type="number">
+  Pagination offset (default 0)
+</ParamField>
+
+**Returns:** `{ memories: [...], total: number }`
+
+---
+
+## memory_retrieve
+
+Retrieve the most relevant memories for a natural language query. Returns scored results with Context Trace.
+
+<ParamField body="query" type="string" required>
+  Natural language query
+</ParamField>
+<ParamField body="type" type="string">
+  Filter by memory type
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Filter by tags
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to search in (defaults to active profile)
+</ParamField>
+<ParamField body="limit" type="number">
+  Max results, 1–50 (default 5)
+</ParamField>
+
+**Returns:** Ranked memories with `trace.scoreBreakdown` (fulltext, vector, chunk, entity, rrf, recency, confidence).
+
+See [Context Trace](/concepts/context-trace) for score field details.
+
+---
+
+## memory_add
+
+Store a new memory.
+
+<ParamField body="title" type="string" required>
+  Short title
+</ParamField>
+<ParamField body="content" type="string" required>
+  Memory content
+</ParamField>
+<ParamField body="type" type="string" required>
+  `profile`, `episodic`, or `knowledge`
+</ParamField>
+<ParamField body="source" type="string" required>
+  Origin (e.g. `claude`, `chatgpt`, `manual`)
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Tags for categorization
+</ParamField>
+<ParamField body="confidence" type="number">
+  0–1 (default 1.0)
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to add to (defaults to active profile)
+</ParamField>
+
+**Returns:** Created memory object.
+
+Enrichment is queued for background processing after create.
+
+---
+
+## memory_update
+
+Update an existing memory. Only include fields you want to change.
+
+<ParamField body="id" type="string" required>
+  Memory ID
+</ParamField>
+<ParamField body="title" type="string" />
+<ParamField body="content" type="string" />
+<ParamField body="type" type="string" />
+<ParamField body="status" type="string">
+  `active`, `pinned`, `suppressed`, or `expired`
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Replaces all existing tags
+</ParamField>
+<ParamField body="confidence" type="number">
+  0–1
+</ParamField>
+
+**Returns:** Updated memory object.
+
+---
+
+## memory_delete
+
+Permanently delete a memory.
+
+<ParamField body="id" type="string" required>
+  Memory ID
+</ParamField>
+
+**Returns:** `{ deleted: true }`
+
+---
+
+## skills_list
+
+List all skills authored by the authenticated user.
+
+**Parameters:** none
+
+**Returns:** Array of skills with name, description (no full instructions).
+
+---
+
+## skills_get
+
+Fetch a single skill by exact name, including full markdown instructions.
+
+<ParamField body="name" type="string" required>
+  Exact skill name (case sensitive)
+</ParamField>
+
+**Returns:** Full skill object with instructions.
+
+See [Skills feature](/features/skills) for creating and managing skills.

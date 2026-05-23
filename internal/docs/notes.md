@@ -1,3 +1,7 @@
+https://www.geeksforgeeks.org/nlp/what-is-bm25-best-matching-25-algorithm/
+
+- bm25 best matching algorithm
+
 modelled after the brain would - smart forgetting, decay, recency bias, context rewriting, etc
 your own memory database, polished version of graphrag
 https://www.youtube.com/watch?v=GETMfbGWc0k&t=4s
@@ -80,10 +84,15 @@ local model for unified schema based information extraction
 
 neo4j agent memory package (python only)
 
+- https://www.youtube.com/watch?v=qMV64p-4Deo
 - https://github.com/neo4j-labs/agent-memory
 - https://create-context-graph.dev/
 - https://neo4j.com/blog/developer/meet-lennys-memory-building-context-graphs-for-ai-agents/
 - https://create-context-graph.dev/docs/tutorials/customizing-domain-ontology
+- https://neo4j.com/labs/agent-memory/
+- https://github.com/neo4j-labs/agent-memory/tree/main/examples/full-stack-chat-agent
+- https://github.com/neo4j-labs/agent-memory/tree/main/examples/lennys-memory
+- https://neo4j.com/blog/developer/meet-lennys-memory-building-context-graphs-for-ai-agents/
 - Every domain ontology inherits from \_base.yaml, which defines shared POLE+O (Person, Organization, Location, Event, Object) entity types. When the ontology is loaded, base entities and relationships are merged into your domain definition automatically.
 - What Is a Domain Ontology? The ontology is the blueprint for your entire application. It determines:
   - Entity types -- the kinds of nodes in your graph (e.g., Patient, Provider, Facility).
@@ -104,4 +113,73 @@ model on openrouter for reranking/searching through data and finding answers, 0.
 - step 1 retrieval -> prompt augmentation -> generation
 - search systems fail to retrieve relevant info when users ask what they want returned - this is due to trad systems lacking the ability to reason
 - apparently 23% better than hybrid search and 30% better than BM25
--
+
+graph based long term memory - how agentic workflows adapt through experience
+
+- https://www.youtube.com/watch?v=qMV64p-4Deo&t=8s
+
+building ai agents with long term memory - a neo4j implementation of mem0
+
+- https://medium.com/@jayanthnenavath2k19/building-ai-agents-with-long-term-memory-a-neo4j-implementation-of-mem0-ef56ae240e1b
+- The difference between information and intelligence is memory
+- Mem0 bridges this gap by creating AI systems that don’t just process queries — they understand, remember, and evolve with their users.
+
+memory architecture for ai agents - from first principles
+
+- https://atlasforge.me/writing/memory-architecture-for-agents/
+- basically goes over his openclaw setup then memory architecture
+- 3 ways to organise files - behavioral, relational, and technical
+- 4 types of agent memory, unlike what most memory system implement - semantic (factual knowledge)
+  - episodic memory - what happened
+    - time stamped records of events, conversations, and decisions
+    - this is the daily logs
+    - episodic memory is when aware - not just what you know, but when you learned it and in what context
+    - decisions without context are random rules
+    - episodes memory preserves teh why
+    - when i see "use static HTML for articles", the episodic entry tells me it was a performance decision, not an aesthetic one
+  - semantic memory - what you know
+    - domain knowledge, research findings, facts
+    - this is the type most systems implement - and implement badly as they treat it as a KV store
+    - key addition - confidence scores and sources
+    - not all knowledge is equally reliable
+    - a fact from direct observation is different from soemthing mentioned in passing
+    - tracking this prevents stale or unreliable information from being treated as ground truth
+  - procedural memory - how to do things
+    - learned workflows, tool preferences, optimised sequences
+    - this is the most undervalued types
+    - everytime an agent figures out the right way to do something, that knowledge should persist
+    - proc memory is a scar tissue - its the accumulated "how to actually do this" that prevents repeating mistakes
+    - without it, every session rediscovers the deployment process from scratch
+  - relational memory - who you know
+    - people, their preferenes, your history with them, how they communicate
+    - this is the memory type that makes an agent feel like it actually knows you
+    - most agent memory systems ignore relational memory, resulting in every interaction that feels like talking to a stranger who read your file
+    - the relationship resets every session, but with relational memory, the agent knows not just about you but what working with you is like
+- memory decay and curation
+  - not all memories are equal, and memories that aren't maintained eventually rot
+  - a decision made yesterday is more relevant than once made 3 months ago
+  - a frequently referenced integration detail matters more than one used once
+  - memory without decay becomes noise - a growing pile where important things get buried under trivial ones
+  - but the curation problem is real, someone has to decide what is worth keeping. we have tried 3 approaches:
+    - manual curation
+      - jonny periodically reviews memory and removes stale entries
+      - this produces the highest quality memory but doesn't scale
+      - it happens when it happens, which means it sometimes doesn't happen for hours
+    - auto summarisation
+      - at the end of each day, the daily log gets a summary
+      - weekly, the daily summaries get rolled up
+      - monthly, the weekly summaries get compressed
+      - each level of compression loses detail but preserves decisions and outcomes
+    - the memory decay review
+      - a period pass where every entry in memory list gets asked if it is still true? is it still relevant? when was this last useful?
+      - entries that fail all 3 get pruned, this is the "forget" mechanism that most systems lack entirely
+      - forgetting is a feature, not a bug
+      - an agent that remembers everything performs worse than one that remembers the right things
+      - the context window is finite
+      - every stale entry displaces a relevant one
+- multi-agent memory. everything above works for a single agent, when you have multiple agents, this breaks
+  - scenario: agent A handles customer emails and learns that a user is frustrated about billing, agent B handles the support queue and has no idea.
+  - agent A's relational memory about this customer is invisible to agent B - this is an issue with file based memory, you need shared memory across these agents
+- only 3 api methods: remember, recall, forget
+- https://atlasforge.me/engram/
+- memory is the diff between agent vs chatbot. chatbots answer questions. agents build on yesterdays work but only if it can remember yesterdays work

@@ -17,8 +17,21 @@ When vmem detects that new information conflicts with an existing memory, it cre
 New memory extracted: "User prefers TypeScript"
   → vmem detects conflict with: "User prefers Python"
   → Creates a proposed update (pending)
-  → User reviews and approves/rejects via API or dashboard
+  → User reviews and approves/rejects via Inbox or API
 ```
+
+## Proposal Kinds
+
+| Kind | Description |
+| --- | --- |
+| `update` | Replace memory content with proposed content on approve |
+| `delete` | Delete the target memory on approve |
+| `insight` | Synthesize a new memory from connected sources (Dream Mode) |
+| `connection` | Link related memories with a new relationship |
+| `contradiction` | Flag conflicting information for review |
+| `anomaly` | Surface unusual patterns in memory data |
+
+Legacy kinds (`update`, `delete`) come from fact extraction. Synthesis kinds (`insight`, `connection`, `contradiction`, `anomaly`) are produced by Dream Mode V2.
 
 ## Why This Matters
 
@@ -29,29 +42,27 @@ New memory extracted: "User prefers TypeScript"
 ## Proposed Update Lifecycle
 
 ```
-pending → approved (memory updated)
+pending → approved (memory updated or materialized)
         → rejected (original preserved)
 ```
 
 ## Managing Proposals
 
-### Via API
-
-List pending proposals:
-```bash
-GET /v1/proposed-updates?userId=user_123
-```
-
-Approve:
-```bash
-POST /v1/proposed-updates/:id/approve
-```
-
-Reject:
-```bash
-POST /v1/proposed-updates/:id/reject
-```
-
 ### Via Dashboard
 
-The vmem web dashboard shows pending proposals with a side-by-side diff of the original and proposed content, with approve/reject buttons.
+Go to **Inbox → Proposals** (`/inbox/proposals`). Each card shows the target memory title, proposed change, and reason, with approve/reject buttons.
+
+### Via API
+
+```typescript
+// List pending proposals
+const proposals = await convex.action(api.proposedUpdateApi.listProposedUpdates, {});
+
+// Approve or reject
+await convex.action(api.proposedUpdateApi.resolveProposal, {
+  proposalId: "proposal_abc",
+  action: "approve", // or "reject"
+});
+```
+
+See [Proposed Updates API](/api-reference/proposed-updates) for response shapes.

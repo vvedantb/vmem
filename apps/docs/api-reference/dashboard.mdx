@@ -3,62 +3,77 @@ title: "Dashboard"
 description: "Memory statistics and activity data"
 ---
 
-These endpoints power the vmem web dashboard.
+Convex `authAction`s in `dashboardApi`. Results are cached for 30 seconds.
 
 ## Get Stats
 
-Returns aggregate statistics for a user's memory collection.
+Returns aggregate statistics for the authenticated user's memory collection.
 
-```bash
-GET /v1/dashboard/stats?userId=user_123
+<ParamField body="profileId" type="string">
+  Optional profile filter
+</ParamField>
+
+```typescript
+await client.action(api.dashboardApi.getStats, {});
 ```
 
-<ParamField query="userId" type="string" required />
-
-**Response:**
+**Returns:**
 
 ```json
 {
-  "data": {
-    "totalMemories": 142,
-    "byType": {
-      "profile": 28,
-      "episodic": 89,
-      "knowledge": 25
-    },
-    "byStatus": {
-      "active": 120,
-      "pinned": 12,
-      "suppressed": 5,
-      "expired": 5
-    }
-  }
+  "totalMemories": 142,
+  "memoriesThisWeek": 12,
+  "memoriesThisMonth": 45,
+  "memoriesAddedToday": 3,
+  "totalTags": 28,
+  "growthData": [
+    { "date": "2026-05-01", "total": 100, "new": 5 },
+    { "date": "2026-05-02", "total": 105, "new": 5 }
+  ]
 }
 ```
 
 ---
 
-## Get Activity
+## Get Profiles Stats
 
-Returns recent memory activity for a user.
+Returns per-profile memory counts.
 
-```bash
-GET /v1/dashboard/activity?userId=user_123
+<ParamField body="profileIds" type="string[]" required>
+  Array of profile IDs to fetch stats for
+</ParamField>
+
+```typescript
+await client.action(api.dashboardApi.getProfilesStats, {
+  profileIds: ["profile_abc", "profile_def"],
+});
 ```
 
-<ParamField query="userId" type="string" required />
+---
 
-**Response:**
+## Get Recent Activity
 
-```json
-{
-  "data": [
-    {
-      "type": "created",
-      "memoryId": "mem_456",
-      "title": "New project context",
-      "timestamp": "2026-03-15T09:30:00Z"
-    }
-  ]
+Returns recent memory activity for the authenticated user.
+
+<ParamField body="limit" type="number">
+  Max items to return
+</ParamField>
+
+```typescript
+await client.action(api.dashboardApi.getRecentActivity, { limit: 20 });
+```
+
+**Returns:** `ActivityItem[]`
+
+```typescript
+interface ActivityItem {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  timestamp: string;
+  relativeTime: string;
 }
 ```
+
+Dashboard stats in the sidebar always show user-wide totals, not filtered by the active profile.

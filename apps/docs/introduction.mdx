@@ -5,7 +5,7 @@ description: "A universal, model-agnostic memory layer for AI"
 
 ## What is vmem?
 
-vmem is a persistent memory layer that lets any AI model store, retrieve, and update user knowledge across sessions and platforms. Instead of each LLM maintaining its own siloed memory, vmem provides a single source of truth that any model can connect to via REST API or MCP.
+vmem is a persistent memory layer that lets any AI model store, retrieve, and update user knowledge across sessions and platforms. Instead of each LLM maintaining its own siloed memory, vmem provides a single source of truth that any model can connect to via the Convex SDK or MCP.
 
 ## The Problem
 
@@ -14,40 +14,46 @@ LLMs lack persistent long-term memory. Users repeatedly provide the same informa
 ## How vmem is Different
 
 ### Context Trace
-Every memory retrieval explains **why** it matched — with a full score breakdown across recency, relevance, and metadata signals. No black-box retrieval.
+Every memory retrieval explains **why** it matched — with a full score breakdown across fulltext, vector, chunk, entity, recency, and graph signals. No black-box retrieval.
 
 ### Proposed Updates
 When new information conflicts with existing memories, vmem doesn't silently overwrite. It creates a **proposed update** that you can approve or reject, preserving an audit trail.
 
 ### Implicit Memory via MCP
-Competitors require the LLM to explicitly call tools to fetch memories. vmem injects relevant context **before** the LLM responds using MCP Resources — the model never has to "decide" to remember.
+Competitors require the LLM to explicitly call tools to fetch memories. vmem injects a synthesized user profile via the `vmem://context_prompt` MCP Resource — relevant context is present before the model responds.
 
 ### Memory Lifecycle
 Memories can be pinned, suppressed, expired, or audited. Full lifecycle management with event trails.
+
+### Profiles
+Organize memories into profiles (personal or team-scoped). Switch profiles when saving or browsing without changing routes.
 
 ## Architecture
 
 | Component | Role |
 | --- | --- |
-| **Hono API** | REST memory engine — CRUD, search, retrieval |
-| **Neo4j** | Memory graph — nodes, edges, traversal |
-| **Convex** | Users, preferences, API keys, auth |
-| **MCP Server** | Implicit memory via Resources, explicit writes via Tools |
-| **Next.js** | Web dashboard for browsing and managing memories |
+| **Convex** | Auth, API keys, profiles, teams, skills, file storage, MCP HTTP |
+| **Neo4j** | Memory graph — nodes, edges, semantic search, retrieval scoring |
+| **Vite Web App** | Dashboard for browsing, chat, voice, and managing memories |
+| **MCP Server** | Implicit context via Resources, explicit writes via Tools |
+| **Chrome Extension** | Save pages, export chats, inject memories into ChatGPT/Claude |
+| **Mobile App** | Expo chat with offline local LLM and memory retrieval |
+
+See [Architecture](/architecture) for a detailed breakdown.
 
 ## Next Steps
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Get up and running in 5 minutes
+    Get up and running locally
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    Understand how the pieces fit together
   </Card>
   <Card title="Concepts" icon="brain" href="/concepts/types-of-memory">
-    Understand memory types and how vmem thinks
-  </Card>
-  <Card title="API Reference" icon="code" href="/api-reference/overview">
-    Explore the REST API
+    Memory types, profiles, and retrieval
   </Card>
   <Card title="MCP Integration" icon="plug" href="/mcp/overview">
-    Connect vmem to any MCP-compatible client
+    Connect vmem to Claude, Cursor, and more
   </Card>
 </CardGroup>

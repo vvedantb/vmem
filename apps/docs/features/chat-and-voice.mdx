@@ -1,0 +1,38 @@
+---
+title: "Chat & Voice"
+description: "Local LLM chat with automatic memory retrieval"
+---
+
+## Overview
+
+vmem includes built-in chat and voice interfaces that run **local models** in your browser. Before each turn, relevant memories are retrieved from Neo4j and injected into the system prompt.
+
+Routes: `/chat` and `/voice`
+
+## How Memory Retrieval Works
+
+1. User sends a message (text or voice)
+2. Client calls `memoryApi.retrieveMemories` with the message text (limit: 8)
+3. Convex returns ranked memories with context traces + user settings context
+4. `buildMemoryRagAddition` formats memories into the system prompt
+5. Local LLM streams a response with full memory context
+6. Memory title badges appear under the assistant message
+7. References are persisted in `chatMessageMemoryRefs` for reload/history
+
+## Local Models
+
+Models are downloaded and run via WebLLM in the browser. Configure available models in **Settings → Models** (`/settings/models`).
+
+Chat uses `VMEM_LOCAL_CHAT_CORE` as the base system prompt. Voice uses `VMEM_VOICE_CORE` with the same retrieval pipeline.
+
+## Memory Badges
+
+Assistant messages show badges linking to the memories that informed the response. Click a badge to open the memory detail view.
+
+## Mobile
+
+The Expo mobile app (`apps/mobile`) includes the same chat + retrieval pattern with offline local LLM support. See [Mobile](/features/mobile).
+
+## No Server LLM Required
+
+Chat and voice do not require OpenRouter or any external LLM API for inference. Embeddings for retrieval still use OpenRouter when configured on the backend, but the conversational model runs entirely locally.

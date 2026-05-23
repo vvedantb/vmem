@@ -1,4 +1,4 @@
-import { authAction } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import { auditLog, ResourceTypes } from "./auditLog";
 
@@ -24,11 +24,7 @@ interface RunResult {
 export const runDreamForUser = authAction({
   args: {},
   handler: async (ctx): Promise<RunResult> => {
-    const clerkId: string | null = await ctx.runQuery(
-      internal.auth.getClerkIdInternal,
-      { userId: ctx.userId },
-    );
-    if (!clerkId) throw new Error("User not found");
+    const clerkId = await requireClerkId(ctx);
 
     const result: RunResult = await ctx.runAction(
       internal.neo4jActions.dreamMode.runDreamForActiveUser,

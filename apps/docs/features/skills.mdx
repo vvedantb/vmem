@@ -1,0 +1,41 @@
+---
+title: "Skills"
+description: "Reusable instruction modules for AI agents"
+---
+
+## Overview
+
+Skills are reusable instruction modules — a name, description, and markdown instructions that AI agents can consult during conversations.
+
+Route: `/skills`
+
+## Creating a Skill
+
+1. Go to **Skills** in the sidebar
+2. Click **Create skill**
+3. Enter name, description, and markdown instructions
+4. Save
+
+Skills are stored in Convex and associated with your user account.
+
+## MCP Integration
+
+Skills are exposed to MCP clients via two tools:
+
+| Tool | Description |
+| --- | --- |
+| `skills_list` | List all skills authored by the authenticated user |
+| `skills_get` | Fetch a single skill by exact name, including full markdown instructions |
+
+An agent can call `skills_list` to discover available skills, then `skills_get` to load instructions before following them.
+
+## API
+
+See [Skills API Reference](/api-reference/skills) for Convex function details.
+
+## Use Cases
+
+- Coding standards and style guides
+- Project-specific workflows
+- Personal assistant personas
+- Domain expertise modules
