@@ -1,5 +1,12 @@
 # Changelog
 
+## Backend Unit Tests & Plan Doc Cleanup — 2026-05-23
+
+- **Vitest in backend**: First automated tests in `packages/backend` — run via `pnpm test` from repo root.
+- **URL normalization tests**: Lock in dedup behavior (tracking params stripped, canonical HTTPS URLs).
+- **Content-hash tests**: Lock in duplicate-memory detection across whitespace and casing differences.
+- **Plan docs relocated**: Root implementation plans moved into `internal/plans/implemented/` alongside other completed work.
+
 ## Mobile Expo SDK 56 Upgrade — 2026-05-23
 
 - **Expo SDK 56**: Upgraded mobile app from SDK 55 to 56 (React Native 0.85, React 19.2.3) with aligned expo-\* package versions.

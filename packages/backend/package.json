@@ -10,6 +10,8 @@
   "scripts": {
     "dev": "npx convex dev",
     "deploy": "npx convex deploy",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed.ts",
     "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts",
     "eval:retrieval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/run.ts"
@@ -40,6 +42,7 @@
     "@types/node": "catalog:node-types-22",
     "@types/pdf-parse": "^1.1.4",
     "@typescript/native-preview": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^3.2.4"
   }
 }

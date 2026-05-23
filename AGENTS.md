@@ -73,6 +73,10 @@ Husky:
 
 - If the codebase uses Nextjs/React, make sure husky is setup with the default prettier configuration to format code before it gets committed.
 
+Testing:
+
+- Backend unit tests: Vitest in `packages/backend` (`pnpm test` from repo root). Colocate as `*.test.ts` next to source. Assert behavior (inputs → outputs), not implementation details.
+
 Verification Rules after implementation:
 
 - Ensure no `any`, `unknown`, or `as` exists.
