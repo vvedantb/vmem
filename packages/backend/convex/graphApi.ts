@@ -182,15 +182,17 @@ export const getGraphData = authAction({
           clerkId,
         });
 
-    const skillNodes: GraphNodeEntry[] = skillRows.map((s) => ({
-      id: `${SKILL_PREFIX}${s._id}`,
-      title: s.name,
-      content: s.description,
-      tags: [],
-      createdAt: new Date(s.createdAt).toISOString(),
-      kind: "skill",
-      sourceType: null,
-    }));
+    const skillNodes: GraphNodeEntry[] = skillRows
+      .filter((s) => s.enabled !== false)
+      .map((s) => ({
+        id: `${SKILL_PREFIX}${s._id}`,
+        title: s.name,
+        content: s.description,
+        tags: [],
+        createdAt: new Date(s.createdAt).toISOString(),
+        kind: "skill",
+        sourceType: null,
+      }));
 
     const entityNodes: GraphNodeEntry[] = memoryGraph.entities.map((e) => ({
       id: `${ENTITY_PREFIX}${e.normalizedName}:${e.type}`,

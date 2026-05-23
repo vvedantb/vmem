@@ -213,6 +213,7 @@ const schema = defineSchema({
     name: v.string(),
     description: v.string(),
     instructions: v.string(),
+    enabled: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
