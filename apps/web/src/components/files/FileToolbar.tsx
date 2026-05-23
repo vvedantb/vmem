@@ -5,15 +5,18 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
 } from "@vmem/ui";
 import {
+  IconChevronDown,
   IconLayoutGrid,
   IconList,
+  IconPlus,
   IconSortAscending,
   IconSortDescending,
   IconFolderPlus,
@@ -21,13 +24,44 @@ import {
 } from "@tabler/icons-react";
 import type { FileView, FileSortField, SortDirection } from "./-searchParams";
 
+const SORT_OPTIONS: ReadonlyArray<{
+  sort: FileSortField;
+  sortDir: SortDirection;
+  label: string;
+}> = [
+  { sort: "name", sortDir: "asc", label: "Name (A–Z)" },
+  { sort: "name", sortDir: "desc", label: "Name (Z–A)" },
+  { sort: "size", sortDir: "asc", label: "Size (smallest first)" },
+  { sort: "size", sortDir: "desc", label: "Size (largest first)" },
+  { sort: "date", sortDir: "asc", label: "Date (oldest first)" },
+  { sort: "date", sortDir: "desc", label: "Date (newest first)" },
+];
+
+function sortOptionKey(sort: FileSortField, sortDir: SortDirection): string {
+  return `${sort}:${sortDir}`;
+}
+
+function parseSortOptionKey(
+  key: string,
+): { sort: FileSortField; sortDir: SortDirection } | null {
+  const match = SORT_OPTIONS.find(
+    (option) => sortOptionKey(option.sort, option.sortDir) === key,
+  );
+  return match ?? null;
+}
+
+const SORT_FIELD_LABELS: Record<FileSortField, string> = {
+  name: "Name",
+  size: "Size",
+  date: "Date",
+};
+
 interface FileToolbarProps {
   view: FileView;
   sort: FileSortField;
   sortDir: SortDirection;
   onViewChange: (view: FileView) => void;
-  onSortChange: (sort: FileSortField) => void;
-  onSortDirToggle: () => void;
+  onSortSelect: (sort: FileSortField, sortDir: SortDirection) => void;
   onNewFolder: () => void;
   onUpload: () => void;
 }
@@ -37,76 +71,78 @@ export default function FileToolbar({
   sort,
   sortDir,
   onViewChange,
-  onSortChange,
-  onSortDirToggle,
+  onSortSelect,
   onNewFolder,
   onUpload,
 }: FileToolbarProps) {
+  const SortIcon = sortDir === "asc" ? IconSortAscending : IconSortDescending;
+
   return (
     <div className="flex items-center gap-2">
-      {/* View toggle */}
       <Tabs value={view} onValueChange={(v) => onViewChange(v as FileView)}>
         <TabsList className="h-8">
-          <TabsTrigger value="grid" className="px-2 h-6">
+          <TabsTrigger value="grid" className="h-6 px-2">
             <IconLayoutGrid size={15} />
           </TabsTrigger>
-          <TabsTrigger value="list" className="px-2 h-6">
+          <TabsTrigger value="list" className="h-6 px-2">
             <IconList size={15} />
           </TabsTrigger>
         </TabsList>
       </Tabs>
 
-      {/* Sort field */}
-      <Select
-        value={sort}
-        onValueChange={(v) => onSortChange(v as FileSortField)}
-      >
-        <SelectTrigger className="h-8 w-28 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="name">Name</SelectItem>
-          <SelectItem value="size">Size</SelectItem>
-          <SelectItem value="date">Date</SelectItem>
-        </SelectContent>
-      </Select>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            <SortIcon
+              size={16}
+              stroke={1.5}
+              className="text-muted-foreground"
+            />
+            {SORT_FIELD_LABELS[sort]}
+            <IconChevronDown size={14} className="text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-44">
+          <DropdownMenuRadioGroup
+            value={sortOptionKey(sort, sortDir)}
+            onValueChange={(key) => {
+              const parsed = parseSortOptionKey(key);
+              if (parsed) {
+                onSortSelect(parsed.sort, parsed.sortDir);
+              }
+            }}
+          >
+            {SORT_OPTIONS.map((option) => (
+              <DropdownMenuRadioItem
+                key={sortOptionKey(option.sort, option.sortDir)}
+                value={sortOptionKey(option.sort, option.sortDir)}
+              >
+                {option.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-      {/* Sort direction */}
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={onSortDirToggle}
-        className="text-muted-foreground"
-      >
-        {sortDir === "asc" ? (
-          <IconSortAscending size={16} stroke={1.5} />
-        ) : (
-          <IconSortDescending size={16} stroke={1.5} />
-        )}
-      </Button>
-
-      <div className="w-px h-5 bg-border mx-1" />
-
-      {/* New folder */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onNewFolder}
-        className="text-muted-foreground"
-      >
-        <IconFolderPlus size={16} stroke={1.5} />
-        <span className="hidden sm:inline">New Folder</span>
-      </Button>
-
-      {/* Upload */}
-      <Button
-        size="sm"
-        onClick={onUpload}
-        className="bg-primary text-primary-foreground"
-      >
-        <IconUpload size={16} stroke={1.5} />
-        <span className="hidden sm:inline">Upload</span>
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            <IconPlus size={16} />
+            Add
+            <IconChevronDown size={14} className="text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onNewFolder}>
+            <IconFolderPlus size={16} />
+            New folder
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onUpload}>
+            <IconUpload size={16} />
+            Upload files
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

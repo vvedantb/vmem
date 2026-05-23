@@ -256,10 +256,7 @@ export default function FilesClient() {
           sort={params.sort}
           sortDir={params.sortDir}
           onViewChange={(view) => setParams({ view })}
-          onSortChange={(sort) => setParams({ sort })}
-          onSortDirToggle={() =>
-            setParams({ sortDir: params.sortDir === "asc" ? "desc" : "asc" })
-          }
+          onSortSelect={(sort, sortDir) => setParams({ sort, sortDir })}
           onNewFolder={() => setIsCreatingFolder(true)}
           onUpload={() => setIsUploadModalOpen(true)}
         />
