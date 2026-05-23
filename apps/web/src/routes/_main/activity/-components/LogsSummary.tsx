@@ -121,7 +121,15 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
     hasTrendActivity(trends.costs) ||
     hasTrendActivity(trends.tokens);
 
-  const cards = [
+  const cards: {
+    label: string;
+    value: string;
+    icon: TablerIcon;
+    valueClassName?: string;
+    trendData: number[];
+    strokeClassName: string;
+    fillClassName: string;
+  }[] = [
     {
       label: "Total cost",
       value: formattedCost,
@@ -155,15 +163,7 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       strokeClassName: "text-success",
       fillClassName: "fill-success/10",
     },
-  ] as const satisfies ReadonlyArray<{
-    label: string;
-    value: string;
-    icon: TablerIcon;
-    valueClassName?: string;
-    trendData: number[];
-    strokeClassName: string;
-    fillClassName: string;
-  }>;
+  ];
 
   return (
     <section className="flex flex-col gap-3">
