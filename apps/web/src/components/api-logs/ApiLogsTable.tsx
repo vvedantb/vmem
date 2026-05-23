@@ -1,9 +1,9 @@
 "use client";
 
+import { IconChartBar } from "@tabler/icons-react";
+import { cn } from "@vmem/ui";
 import { formatRelativeTime, formatDuration } from "@/lib/formatters";
 
-// Row shape produced by the caller (`usage.tsx`). Kept local to decouple
-// the table from the backend's audit-log response shape.
 export interface ApiLogItem {
   id: string;
   endpoint: string;
@@ -20,68 +20,84 @@ function getStatusClassName(status: number): string {
 
 interface ApiLogsTableProps {
   logs: ApiLogItem[];
+  totalCount: number;
 }
 
-export function ApiLogsTable({ logs }: ApiLogsTableProps) {
+function ApiLogsEmptyState() {
   return (
-    <div className="border border-border rounded-xl overflow-x-auto">
-      <table className="w-full min-w-0">
-        <thead>
-          <tr className="border-b border-border bg-muted/50">
-            <th className="text-left px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Endpoint
-            </th>
-            <th className="text-left px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Status
-            </th>
-            <th className="text-left px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
-              Duration
-            </th>
-            <th className="text-left px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">
-              Time
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {logs.length === 0 ? (
-            <tr>
-              <td
-                colSpan={4}
-                className="px-6 py-10 text-sm text-muted-foreground text-center"
-              >
-                No API request logs yet.
-              </td>
-            </tr>
-          ) : (
-            logs.map((log: ApiLogItem) => (
-              <tr key={log.id} className="border-b border-border last:border-0">
-                <td className="px-3 sm:px-6 py-3 sm:py-5">
-                  <code className="text-xs sm:text-sm text-foreground font-mono break-all sm:break-normal">
-                    {log.endpoint}
-                  </code>
-                </td>
-                <td className="px-3 sm:px-6 py-3 sm:py-5">
-                  <span
-                    className={`inline-flex px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-medium ${getStatusClassName(log.status)}`}
-                  >
-                    {log.status}
-                  </span>
-                </td>
-                <td className="px-3 sm:px-6 py-3 sm:py-5 hidden md:table-cell">
-                  <span className="text-sm text-muted-foreground">
-                    {formatDuration(log.durationMs)}
-                  </span>
-                </td>
-                <td className="px-3 sm:px-6 py-3 sm:py-5 hidden sm:table-cell">
-                  <span className="text-sm text-muted-foreground">
-                    {formatRelativeTime(log.timestamp)}
-                  </span>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+    <div className="flex flex-col items-center justify-center rounded-xl bg-muted/40 px-6 py-14 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/60">
+        <IconChartBar
+          size={28}
+          className="text-muted-foreground"
+          stroke={1.5}
+        />
+      </div>
+      <h3 className="mb-1 text-base font-medium text-foreground">
+        No API requests yet
+      </h3>
+      <p className="max-w-sm text-sm text-muted-foreground text-balance">
+        Calls made with your API keys will show up here with status, latency,
+        and timing.
+      </p>
     </div>
+  );
+}
+
+function ApiLogRow({ log }: { log: ApiLogItem }) {
+  return (
+    <li className="rounded-xl bg-muted/40 px-4 py-3 transition-[background-color] hover:bg-muted/60">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <code className="min-w-0 break-all font-mono text-sm text-foreground sm:break-normal">
+          {log.endpoint}
+        </code>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span
+            className={cn(
+              "inline-flex rounded-lg px-2 py-0.5 text-xs font-medium tabular-nums",
+              getStatusClassName(log.status),
+            )}
+          >
+            {log.status}
+          </span>
+          <span className="text-xs text-muted-foreground tabular-nums md:hidden">
+            {formatDuration(log.durationMs)}
+          </span>
+          <span className="hidden text-sm text-muted-foreground tabular-nums md:inline">
+            {formatDuration(log.durationMs)}
+          </span>
+          <span className="hidden text-sm text-muted-foreground sm:inline">
+            {formatRelativeTime(log.timestamp)}
+          </span>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+export function ApiLogsTable({ logs, totalCount }: ApiLogsTableProps) {
+  if (logs.length === 0) {
+    return <ApiLogsEmptyState />;
+  }
+
+  const showingLabel =
+    totalCount > logs.length
+      ? `Showing ${logs.length} of ${totalCount.toLocaleString()}`
+      : `${logs.length.toLocaleString()} request${logs.length === 1 ? "" : "s"}`;
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3 px-0.5">
+        <h2 className="text-sm font-medium text-foreground">Recent requests</h2>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {showingLabel}
+        </span>
+      </div>
+      <ul className="flex flex-col gap-1">
+        {logs.map((log) => (
+          <ApiLogRow key={log.id} log={log} />
+        ))}
+      </ul>
+    </section>
   );
 }

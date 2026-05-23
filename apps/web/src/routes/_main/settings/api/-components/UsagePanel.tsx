@@ -4,8 +4,8 @@ import { api } from "@vmem/backend";
 import { ApiLogsSummary } from "@/components/api-logs/ApiLogsSummary";
 import { ApiLogsTable } from "@/components/api-logs/ApiLogsTable";
 import { ApiLogsLoadingSkeleton } from "@/components/api-logs/ApiLogsLoadingSkeleton";
+import { computeApiUsageMetrics } from "@/components/api-logs/_utils";
 
-// Max rows rendered in the table. Backend caps at 1000; we slice client-side.
 const DISPLAY_LIMIT = 100;
 
 /**
@@ -18,30 +18,11 @@ export function UsagePanel() {
     limit: 1000,
   });
 
-  // Summary aggregates the full result set so the counts + success rate +
-  // avg duration stay consistent with what the backend returned (not just
-  // the visible slice).
-  const summary = useMemo(() => {
+  const metrics = useMemo(() => {
     if (!entries) return null;
-    let totalRequests = 0;
-    let successCount = 0;
-    let totalDuration = 0;
-    for (const entry of entries) {
-      totalRequests += 1;
-      if (entry.status >= 200 && entry.status < 300) successCount += 1;
-      totalDuration += entry.durationMs;
-    }
-    return {
-      totalRequests,
-      successRate:
-        totalRequests === 0 ? 0 : (successCount / totalRequests) * 100,
-      avgResponseMs: totalRequests === 0 ? 0 : totalDuration / totalRequests,
-    };
+    return computeApiUsageMetrics(entries);
   }, [entries]);
 
-  // Sort by the source event time (backfilled rows interleave correctly
-  // with live rows), then slice to the display window and format the
-  // timestamp once for the renderer.
   const logs = useMemo(() => {
     if (!entries) return null;
     return [...entries]
@@ -56,16 +37,17 @@ export function UsagePanel() {
       }));
   }, [entries]);
 
-  if (!summary || !logs) return <ApiLogsLoadingSkeleton />;
+  if (!metrics || !logs) return <ApiLogsLoadingSkeleton />;
 
   return (
-    <>
+    <div className="flex flex-col gap-8">
       <ApiLogsSummary
-        totalRequests={summary.totalRequests}
-        successRate={summary.successRate}
-        avgResponseMs={summary.avgResponseMs}
+        totalRequests={metrics.totalRequests}
+        successRate={metrics.successRate}
+        avgResponseMs={metrics.avgResponseMs}
+        trends={metrics.trends}
       />
-      <ApiLogsTable logs={logs} />
-    </>
+      <ApiLogsTable logs={logs} totalCount={metrics.totalRequests} />
+    </div>
   );
 }
