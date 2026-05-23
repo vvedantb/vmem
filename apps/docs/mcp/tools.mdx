@@ -183,3 +183,111 @@ Fetch a single skill by exact name, including full markdown instructions.
 **Returns:** Full skill object with instructions.
 
 See [Skills feature](/features/skills) for creating and managing skills.
+
+---
+
+## codebases_list
+
+List GitHub repositories connected to vmem. Returns codebase IDs, repo names, sync status, and parser stats. Call this first to discover `codebaseId` values for the other `codebase_*` tools.
+
+**Parameters:** none
+
+**Returns:** Array of codebase summaries. Only repos with `status: "synced"` have graph data.
+
+---
+
+## codebase_overview
+
+Aggregate stats for a synced codebase.
+
+<ParamField body="codebaseId" type="string" required>
+  Codebase ID from `codebases_list`
+</ParamField>
+
+**Returns:** File, function, class, interface, and process counts plus `callEdgeCount` and `importEdgeCount`.
+
+---
+
+## codebase_search
+
+Search symbols inside a synced codebase.
+
+<ParamField body="codebaseId" type="string" required>
+  Codebase ID
+</ParamField>
+<ParamField body="query" type="string" required>
+  Search text (name, path, or qualified name)
+</ParamField>
+<ParamField body="kind" type="string">
+  Filter: `code-file`, `code-function`, `code-class`, `code-interface`, or `code-process`
+</ParamField>
+<ParamField body="limit" type="number">
+  Max results, 1–50 (default 20)
+</ParamField>
+
+**Returns:** `{ results: [...] }` with symbol ids for use in `codebase_context` / `codebase_impact`.
+
+---
+
+## codebase_context
+
+Symbol metadata plus direct `CALLS` relationships and linked processes.
+
+<ParamField body="codebaseId" type="string" required>
+  Codebase ID
+</ParamField>
+<ParamField body="symbolId" type="string" required>
+  Symbol id from search or graph
+</ParamField>
+
+**Returns:** Symbol detail with `callsIn`, `callsOut`, and `processes`.
+
+---
+
+## codebase_impact
+
+Traverse `CALLS` edges upstream or downstream from a symbol.
+
+<ParamField body="codebaseId" type="string" required>
+  Codebase ID
+</ParamField>
+<ParamField body="symbolId" type="string" required>
+  Starting symbol id
+</ParamField>
+<ParamField body="direction" type="string" required>
+  `upstream` (callers) or `downstream` (callees)
+</ParamField>
+<ParamField body="depth" type="number">
+  Hop depth, 1–6 (default 3)
+</ParamField>
+
+**Returns:** `{ nodes: [{ id, distance }] }`
+
+---
+
+## codebase_graph
+
+Filtered subgraph: nodes and relationship edges (`imports`, `calls`, `contains`, `extends`, `implements`, process links). May truncate on large repos — narrow with filters.
+
+<ParamField body="codebaseId" type="string" required>
+  Codebase ID
+</ParamField>
+<ParamField body="kinds" type="string[]">
+  Limit node kinds
+</ParamField>
+<ParamField body="processId" type="string">
+  Scope to one process
+</ParamField>
+<ParamField body="blastRadiusOf" type="string">
+  Center on a symbol's blast radius
+</ParamField>
+<ParamField body="blastDirection" type="string">
+  `upstream` or `downstream` when using `blastRadiusOf`
+</ParamField>
+<ParamField body="blastDepth" type="number">
+  Hop depth when using `blastRadiusOf`, 1–6 (default 2)
+</ParamField>
+
+**Returns:** `{ nodes, edges, truncated }`
+
+See [Codebases feature](/features/codebases) for connecting and syncing repos.

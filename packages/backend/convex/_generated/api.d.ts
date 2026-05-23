@@ -44,6 +44,7 @@ import type * as lib_openRouter from "../lib/openRouter.js";
 import type * as lib_openRouter_chat from "../lib/openRouter/chat.js";
 import type * as lib_openRouter_embedding from "../lib/openRouter/embedding.js";
 import type * as lib_openRouter_shared from "../lib/openRouter/shared.js";
+import type * as mcpCodebases from "../mcpCodebases.js";
 import type * as mcpProfiles from "../mcpProfiles.js";
 import type * as mcpSkills from "../mcpSkills.js";
 import type * as mcp_native from "../mcp/native.js";
@@ -161,6 +162,7 @@ declare const fullApi: ApiFromModules<{
   "lib/openRouter/chat": typeof lib_openRouter_chat;
   "lib/openRouter/embedding": typeof lib_openRouter_embedding;
   "lib/openRouter/shared": typeof lib_openRouter_shared;
+  mcpCodebases: typeof mcpCodebases;
   mcpProfiles: typeof mcpProfiles;
   mcpSkills: typeof mcpSkills;
   "mcp/native": typeof mcp_native;
