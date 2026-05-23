@@ -149,7 +149,7 @@ export default function Sidebar({
                 <Link
                   to="/home"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="absolute left-1/2 -translate-x-1/2 flex flex-row items-center gap-2"
+                  className="group absolute left-1/2 -translate-x-1/2 flex flex-row items-center gap-2"
                 >
                   <VmemDrawInIcon size={22} className="text-foreground" />
                   <h1 className="text-xl leading-none font-instrumentSerif text-foreground">
@@ -196,7 +196,7 @@ export default function Sidebar({
             <Link
               to="/home"
               className={cn(
-                "flex flex-row items-center",
+                "group flex flex-row items-center",
                 !isCollapsed && "gap-2",
               )}
             >
