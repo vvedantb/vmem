@@ -1,5 +1,11 @@
 # Changelog
 
+## Wiki, Skills & Codebases UX — 2026-05-23
+
+- **Wiki outline toggle**: "View outline" switch in the document tree replaces the right-pane header and collapse strip; outline is hidden by default.
+- **Skills search**: Search bar above the skills list filters by name and description.
+- **Codebase cards**: Drop the redundant Synced badge when sync time is already shown; private repos use a lock icon only.
+
 ## Skills URL Routing — 2026-05-23
 
 - **Shareable skill URLs**: The selected skill lives at `/skills/[id]` so links, refresh, and browser history work instead of in-page-only state.
