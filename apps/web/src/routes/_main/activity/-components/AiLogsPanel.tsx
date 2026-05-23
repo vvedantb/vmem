@@ -12,18 +12,14 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@vmem/ui";
-import {
-  IconSortDescending,
-  IconSortAscending,
-  IconUser,
-  IconUsers,
-} from "@tabler/icons-react";
+import { IconSortDescending, IconSortAscending } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
 import {
   aiLogsSearchParams,
+  isAllProfilesFilter,
+  PROFILE_FILTER_ALL,
   type Feature,
   type Range,
-  type Scope,
   type SortDirection,
   type StatusFilter,
 } from "../-searchParams";
@@ -64,10 +60,9 @@ export function AiLogsPanel({
     return {
       scope: params.scope,
       teamId,
-      profileId:
-        params.profileId.length > 0
-          ? normalizeProfileId(params.profileId, profiles)
-          : undefined,
+      profileId: isAllProfilesFilter(params.profileId)
+        ? undefined
+        : normalizeProfileId(params.profileId, profiles),
       features: params.features.length > 0 ? params.features : undefined,
       models: params.models.length > 0 ? params.models : undefined,
       status: params.status,
@@ -109,7 +104,7 @@ export function AiLogsPanel({
     params.status !== "all" ||
     params.features.length > 0 ||
     params.models.length > 0 ||
-    params.profileId.length > 0;
+    !isAllProfilesFilter(params.profileId);
 
   const resetFilters = () => {
     setParams({
@@ -117,7 +112,7 @@ export function AiLogsPanel({
       status: "all",
       features: [],
       models: [],
-      profileId: "",
+      profileId: PROFILE_FILTER_ALL,
     });
   };
 
@@ -141,9 +136,8 @@ export function AiLogsPanel({
 }
 
 /**
- * Right-section actions for the AI Logs tab — scope selector, filters
- * dropdown, sort dropdown. Reads/writes the same `aiLogsSearchParams` as
- * `AiLogsPanel`.
+ * Right-section actions for the AI Logs tab — filters dropdown and sort
+ * dropdown. Reads/writes the same `aiLogsSearchParams` as `AiLogsPanel`.
  */
 export function AiLogsRightSection() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
@@ -173,28 +167,24 @@ export function AiLogsRightSection() {
       status: "all",
       features: [],
       models: [],
-      profileId: "",
+      profileId: PROFILE_FILTER_ALL,
     });
   };
 
-  const hasTeams = (teams ?? []).length > 0;
+  const teamOptions = (teams ?? []).map((t) => ({
+    _id: t.team._id,
+    name: t.team.name,
+  }));
 
   return (
     <div className="flex items-center gap-2">
-      {hasTeams && (
-        <ScopeDropdown
-          scope={params.scope}
-          teamId={params.teamId}
-          teams={(teams ?? []).map((t) => ({
-            _id: t.team._id,
-            name: t.team.name,
-          }))}
-          onChange={(scope, nextTeamId) =>
-            setParams({ scope, teamId: nextTeamId ?? "" })
-          }
-        />
-      )}
       <LogsFiltersDropdown
+        scope={params.scope}
+        teamId={params.teamId}
+        teams={teamOptions}
+        onScopeChange={(scope, nextTeamId) =>
+          setParams({ scope, teamId: nextTeamId ?? "" })
+        }
         range={params.range}
         status={params.status}
         features={params.features}
@@ -218,60 +208,6 @@ export function AiLogsRightSection() {
         onChange={(sortDir) => setParams({ sortDir })}
       />
     </div>
-  );
-}
-
-/**
- * Personal / Team(name) selector. Listed as a top-level control next to
- * the filters dropdown — per CLAUDE.md scope changes the population, not
- * which rows from a population are visible, so it doesn't belong in the
- * filters dropdown's count.
- */
-function ScopeDropdown({
-  scope,
-  teamId,
-  teams,
-  onChange,
-}: {
-  scope: Scope;
-  teamId: string;
-  teams: { _id: string; name: string }[];
-  onChange: (scope: Scope, teamId: string | null) => void;
-}) {
-  const Icon = scope === "team" ? IconUsers : IconUser;
-  const activeTeam = teams.find((t) => t._id === teamId);
-  const label = scope === "team" && activeTeam ? activeTeam.name : "Personal";
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2">
-          <Icon size={16} />
-          <span className="hidden sm:inline">{label}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Scope</DropdownMenuLabel>
-        <DropdownMenuRadioGroup
-          value={scope === "team" ? `team:${teamId}` : "personal"}
-          onValueChange={(value) => {
-            if (value === "personal") onChange("personal", null);
-            else if (value.startsWith("team:")) {
-              onChange("team", value.slice("team:".length));
-            }
-          }}
-        >
-          <DropdownMenuRadioItem value="personal">
-            Personal
-          </DropdownMenuRadioItem>
-          {teams.map((t) => (
-            <DropdownMenuRadioItem key={t._id} value={`team:${t._id}`}>
-              {t.name}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
 

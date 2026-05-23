@@ -62,10 +62,17 @@ export const RANGE_LABELS: Record<Range, string> = {
 const sortDirections = ["desc", "asc"] as const;
 export type SortDirection = (typeof sortDirections)[number];
 
+/** URL value when no single profile is selected — show logs from all profiles. */
+export const PROFILE_FILTER_ALL = "all";
+
+export function isAllProfilesFilter(profileId: string): boolean {
+  return profileId === PROFILE_FILTER_ALL || profileId === "";
+}
+
 export const aiLogsSearchParams = {
   scope: parseAsStringLiteral(scopes).withDefault("personal"),
   teamId: parseAsString.withDefault(""),
-  profileId: parseAsString.withDefault(""),
+  profileId: parseAsString.withDefault(PROFILE_FILTER_ALL),
   features: parseAsArrayOf(parseAsStringLiteral(FEATURES), ",").withDefault([]),
   models: parseAsArrayOf(parseAsString, ",").withDefault([]),
   status: parseAsStringLiteral(statuses).withDefault("all"),

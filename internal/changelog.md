@@ -1,5 +1,13 @@
 # Changelog
 
+## Activity & Settings UI Polish — 2026-05-23
+
+- **AI Logs filters consolidated**: Scope, profile, range, status, features, and models live in one Filters dropdown; profile defaults to All with an explicit All option.
+- **Events row layout**: Event timestamps sit on the same row as the description, right-aligned, for a tighter scan pattern.
+- **Sidebar logo hover**: vmem draw-in animation replays on hover without double-firing on hover-out.
+- **Settings preferences cleanup**: Removed redundant section copy; character counts inline with field labels.
+- **Settings API default tab**: `/settings/api` opens Usage first; tab order matches (Usage, then Keys).
+
 ## Backend Unit Tests & Plan Doc Cleanup — 2026-05-23
 
 - **Vitest in backend**: First automated tests in `packages/backend` — run via `pnpm test` from repo root.
