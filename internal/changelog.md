@@ -1,5 +1,10 @@
 # Changelog
 
+## Fix MCP memory_retrieve embed ctx — 2026-05-24
+
+- **Bug**: `tryEmbedOne`/`tryEmbedMany` were aliased to `bestEffortEmbed*` but callers still used `(ctx, args)`; `ctx` was undefined inside embed auth → `runQuery` crash on `memory_retrieve`.
+- **Fix**: Wrapper functions in `memories/shared.ts` pass `{ ctx, ...args }` correctly.
+
 ## MCP skills_create & skills_update — 2026-05-23
 
 - **`skills_create`**: Agents create skills when a repeatable problem or automatable workflow has no matching skill yet (`skills_list` / context prompt first).
