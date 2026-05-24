@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalQuery } from "./_generated/server";
 import { authQuery, authMutation } from "./auth";
+import { scheduleContextPromptInvalidationForUser } from "./lib/contextPromptInvalidate";
 
 /** Missing `enabled` is treated as enabled for existing rows. */
 function isSkillEnabled(skill: { enabled?: boolean }): boolean {
@@ -47,7 +48,7 @@ export const createSkill = authMutation({
     }
 
     const now = Date.now();
-    return await ctx.db.insert("skills", {
+    const id = await ctx.db.insert("skills", {
       userId: ctx.userId,
       name: trimmedName,
       description: args.description,
@@ -56,6 +57,8 @@ export const createSkill = authMutation({
       createdAt: now,
       updatedAt: now,
     });
+    await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
+    return id;
   },
 });
 
@@ -110,6 +113,7 @@ export const updateSkill = authMutation({
     if (args.enabled !== undefined) patch.enabled = args.enabled;
 
     await ctx.db.patch(normalizedId, patch);
+    await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
   },
 });
 
@@ -126,6 +130,7 @@ export const deleteSkill = authMutation({
       throw new Error("Skill not found");
     }
     await ctx.db.delete(normalizedId);
+    await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
   },
 });
 

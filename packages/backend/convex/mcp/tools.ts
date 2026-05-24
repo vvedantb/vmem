@@ -276,7 +276,7 @@ export function registerTools(
 
   server.tool(
     "skills_list",
-    "List all skills authored by the authenticated user. A skill is a reusable instruction module (name, description, markdown instructions) that the agent can consult. Returns the full list so you can decide which skill to apply.",
+    "List enabled skills (name + description only). The skills index is also in the vmem://context_prompt resource — check there first. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them.",
     {},
     async () => {
       const result = await safe("skills_list", () =>
@@ -292,7 +292,7 @@ export function registerTools(
 
   server.tool(
     "skills_get",
-    "Fetch a single skill by its exact name. Returns the full skill including its markdown instructions so you can follow them.",
+    "Fetch a single enabled skill by exact name, including full markdown instructions. Call this after identifying a matching skill from the Available Skills section in vmem://context_prompt or from skills_list.",
     {
       name: z.string().describe("Exact skill name (case sensitive)"),
     },

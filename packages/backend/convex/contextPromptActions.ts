@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { listMemories } from "../src/neo4j/memoryService";
 import { getDriver } from "../src/neo4j/driver";
+import { buildSkillsIndexAddition } from "../src/memoryRagPrompt";
 import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
 import { callOpenRouterChat } from "./lib/openRouter";
 
@@ -181,6 +182,23 @@ export const regenerateContextPromptInternal = internalAction({
     sections.push("");
     sections.push("## Profile Summary");
     sections.push(summary ?? "_(summary unavailable)_");
+
+    const skillRows = await ctx.runQuery(
+      internal.skills.listByClerkIdInternal,
+      { clerkId: args.clerkId },
+    );
+    const skillsIndex = buildSkillsIndexAddition(
+      skillRows.map((skill) => ({
+        name: skill.name,
+        description: skill.description,
+      })),
+      { mcpClient: true },
+    );
+    if (skillsIndex.length > 0) {
+      sections.push("");
+      sections.push("## Available Skills");
+      sections.push(skillsIndex);
+    }
 
     const content = sections.join("\n");
 

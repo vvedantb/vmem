@@ -60,6 +60,13 @@ Profiles:
 - Profile filter uses nuqs like other filters (tags, sources, types) — persists to URL for shareability
 - Switching profiles in save forms changes which profile new memories are saved to
 
+Skills:
+
+- Push model (Claude-like): enabled skills index (name + description) is injected into MCP `vmem://context_prompt`, local chat, voice, and mobile system prompts via `buildSkillsIndexAddition` in `packages/backend/src/memoryRagPrompt.ts`
+- Full instructions are lazy: MCP clients call `skills_get`; local chat loads instructions when the user message mentions a skill by name (`findSkillsReferencedInMessage`)
+- Skill CRUD invalidates `contextPromptCache` (same 60s debounce as memory writes)
+- `skills_list` MCP tool returns index only (no instructions)
+
 FOLLOW ALL OF THESE RULES
 
 UI Design System — Tonal Surface Hierarchy:
