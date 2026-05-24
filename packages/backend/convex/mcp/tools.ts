@@ -311,7 +311,7 @@ export function registerTools(
 
   server.tool(
     "skills_create",
-    "Create a new enabled skill when you have identified a repeatable problem or a workflow that could be automated with a skill, and no existing skill already covers it (check Available Skills in vmem://context_prompt or call skills_list first). Write markdown instructions so future sessions can follow the same fix or automation. Do not create duplicates — if a similar skill exists, use skills_get instead. Names must be unique per user (trimmed).",
+    "Create a new enabled skill when you have identified a repeatable problem or a workflow that could be automated with a skill, and no existing skill already covers it (check Available Skills in vmem://context_prompt or call skills_list first). Write markdown instructions so future sessions can follow the same fix or automation. Do not create duplicates — if a similar skill exists, use skills_get and skills_update instead. Names must be unique per user (trimmed).",
     {
       name: z.string().describe("Unique skill name"),
       description: z
@@ -336,6 +336,39 @@ export function registerTools(
       );
       if (!result.ok)
         return errorContent(`Create skill failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "skills_update",
+    "Update an existing skill when its playbook should change — e.g. after fixing a repeatable problem, refining steps, or improving an automation. Call skills_get first to read the current skill. Provide the skill's current exact name (case sensitive) plus at least one field to change. Use newName to rename; use enabled false to disable without deleting.",
+    {
+      name: z.string().describe("Current skill name (exact, case sensitive)"),
+      newName: z.string().optional().describe("New unique name (rename)"),
+      description: z
+        .string()
+        .optional()
+        .describe("Updated when-to-use description for the skills index"),
+      instructions: z.string().optional().describe("Updated markdown playbook"),
+      enabled: z
+        .boolean()
+        .optional()
+        .describe("Set false to disable the skill, true to re-enable"),
+    },
+    async (params) => {
+      const result = await safe("skills_update", () =>
+        ctx.runAction(internal.mcpSkills.mcpUpdateSkill, {
+          clerkId: clerkUserId,
+          name: params.name,
+          newName: params.newName,
+          description: params.description,
+          instructions: params.instructions,
+          enabled: params.enabled,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Update skill failed: ${result.message}`);
       return textContent(jsonText(result.value));
     },
   );

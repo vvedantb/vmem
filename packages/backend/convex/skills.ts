@@ -212,6 +212,87 @@ export const createByClerkIdInternal = internalMutation({
 });
 
 /**
+ * Update a skill for a given Clerk user id (MCP after JWT verification).
+ */
+export const updateByClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    newName: v.optional(v.string()),
+    description: v.optional(v.string()),
+    instructions: v.optional(v.string()),
+    enabled: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const hasPatch =
+      args.newName !== undefined ||
+      args.description !== undefined ||
+      args.instructions !== undefined ||
+      args.enabled !== undefined;
+    if (!hasPatch) {
+      throw new Error("At least one field to update is required");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const skill = await ctx.db
+      .query("skills")
+      .withIndex("by_user_name", (q) =>
+        q.eq("userId", user._id).eq("name", args.name),
+      )
+      .first();
+    if (!skill) {
+      throw new Error("Skill not found");
+    }
+
+    const patch: {
+      name?: string;
+      description?: string;
+      instructions?: string;
+      enabled?: boolean;
+      updatedAt: number;
+    } = { updatedAt: Date.now() };
+
+    if (args.newName !== undefined) {
+      const trimmedName = args.newName.trim();
+      if (trimmedName.length === 0) {
+        throw new Error("Name is required");
+      }
+      if (trimmedName !== skill.name) {
+        const duplicate = await ctx.db
+          .query("skills")
+          .withIndex("by_user_name", (q) =>
+            q.eq("userId", user._id).eq("name", trimmedName),
+          )
+          .first();
+        if (duplicate) {
+          throw new Error("A skill with this name already exists");
+        }
+      }
+      patch.name = trimmedName;
+    }
+    if (args.description !== undefined) patch.description = args.description;
+    if (args.instructions !== undefined) patch.instructions = args.instructions;
+    if (args.enabled !== undefined) patch.enabled = args.enabled;
+
+    await ctx.db.patch(skill._id, patch);
+    await scheduleContextPromptInvalidationForUser(ctx, user._id);
+
+    const updated = await ctx.db.get(skill._id);
+    if (!updated) {
+      throw new Error("Failed to update skill");
+    }
+    return updated;
+  },
+});
+
+/**
  * Fetch a single skill by name for a given Clerk user id.
  */
 export const getByNameInternal = internalQuery({
