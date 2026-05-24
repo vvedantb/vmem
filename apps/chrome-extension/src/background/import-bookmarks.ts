@@ -65,7 +65,7 @@ async function getBookmarkPath(
  * Bulk import bookmarks — only imports items added since last sync.
  * First run (lastBookmarkSync === 0) imports everything.
  */
-export async function importBookmarks(): Promise<ImportResult> {
+export async function importBookmarks(silent = false): Promise<ImportResult> {
   if (!acquireBookmarkLock()) {
     return { imported: 0, locked: true };
   }
@@ -103,11 +103,13 @@ export async function importBookmarks(): Promise<ImportResult> {
           imported++;
         }
 
-        chrome.runtime.sendMessage({
-          type: "IMPORT_PROGRESS",
-          current: processed,
-          total: bookmarks.length,
-        });
+        if (!silent) {
+          chrome.runtime.sendMessage({
+            type: "IMPORT_PROGRESS",
+            current: processed,
+            total: bookmarks.length,
+          });
+        }
       } catch {
         // skip failed bookmarks, continue importing
       }
@@ -115,13 +117,11 @@ export async function importBookmarks(): Promise<ImportResult> {
       await delay(100);
     }
 
-    // Only update lastBookmarkSync if we actually imported something,
-    // so failed syncs don't prevent future retries
-    if (imported > 0) {
-      await setStorage({ lastBookmarkSync: Date.now() });
-    }
     return { imported, locked: false };
   } finally {
+    if (!isCancelled()) {
+      await setStorage({ lastBookmarkSync: Date.now() });
+    }
     releaseBookmarkLock();
   }
 }
@@ -157,7 +157,6 @@ export async function syncSingleBookmark(
 
     await setStorage({ lastBookmarkSync: Date.now() });
   } catch {
-    // silently ignore — will be picked up by next bulk sync
   } finally {
     releaseBookmarkLock();
   }

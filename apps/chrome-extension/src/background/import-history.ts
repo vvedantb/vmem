@@ -137,11 +137,11 @@ export async function importHistory(
       await delay(100);
     }
 
+    return { imported, locked: false };
+  } finally {
     if (!isCancelled()) {
       await setStorage({ lastHistorySync: Date.now() });
     }
-    return { imported, locked: false };
-  } finally {
     releaseHistoryLock();
   }
 }

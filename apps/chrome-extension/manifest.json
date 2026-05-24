@@ -13,6 +13,7 @@
     "bookmarks",
     "history",
     "alarms",
+    "offscreen",
     "scripting",
     "identity",
     "cookies"

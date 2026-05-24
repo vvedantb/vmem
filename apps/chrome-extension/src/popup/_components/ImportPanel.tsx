@@ -16,6 +16,10 @@ import type {
   ProgressMessage,
 } from "@/types/messages";
 import { getStorage, setStorage } from "@/lib/storage";
+import {
+  buildExtensionDebugReport,
+  formatExtensionDebugReport,
+} from "@/lib/extension-debug-report";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 
 type ImportStatus = "idle" | "importing" | "done" | "error" | "cancelled";
@@ -56,12 +60,48 @@ export function ImportPanel() {
   const [lastBookmarkSync, setLastBookmarkSync] = useState(0);
   const [lastHistorySync, setLastHistorySync] = useState(0);
   const [nextSyncLabel, setNextSyncLabel] = useState<string | null>(null);
+  const [backgroundReachable, setBackgroundReachable] = useState<
+    "checking" | "ok" | "error"
+  >("checking");
+  const [swBootPhase, setSwBootPhase] = useState<string | null>(null);
+  const [copyReportMessage, setCopyReportMessage] = useState<string | null>(
+    null,
+  );
 
-  useEffect(() => {
+  function refreshSyncTimestamps() {
     void getStorage().then((storage) => {
       setLastBookmarkSync(storage.lastBookmarkSync);
       setLastHistorySync(storage.lastHistorySync);
     });
+    void chrome.storage.local.get(["vmemSwBootPhase"]).then((stored) => {
+      const phase = stored.vmemSwBootPhase;
+      setSwBootPhase(typeof phase === "string" ? phase : null);
+    });
+  }
+
+  function pingBackground() {
+    setBackgroundReachable("checking");
+    chrome.runtime.sendMessage(
+      { type: "DEBUG_PING" },
+      (response: BackgroundResponse | undefined) => {
+        const runtimeError = chrome.runtime.lastError;
+        if (runtimeError) {
+          setBackgroundReachable("error");
+          return;
+        }
+        if (response?.type === "DEBUG_PING_RESULT") {
+          setBackgroundReachable("ok");
+          refreshSyncTimestamps();
+          return;
+        }
+        setBackgroundReachable("error");
+      },
+    );
+  }
+
+  useEffect(() => {
+    pingBackground();
+    refreshSyncTimestamps();
 
     // Fetch the next scheduled alarm time and keep it updated
     function updateNextSync() {
@@ -168,6 +208,51 @@ export function ImportPanel() {
   const isImporting =
     bookmarkStatus === "importing" || historyStatus === "importing";
 
+  function handleRunAutoSyncNow() {
+    setResultMessage(null);
+    setBackgroundReachable("checking");
+    chrome.runtime.sendMessage(
+      { type: "DEBUG_RUN_AUTO_SYNC" },
+      (response: BackgroundResponse | undefined) => {
+        const runtimeError = chrome.runtime.lastError;
+        refreshSyncTimestamps();
+        if (runtimeError) {
+          setBackgroundReachable("error");
+          setResultMessage(
+            `Background error: ${runtimeError.message}. Reload the extension at chrome://extensions`,
+          );
+          return;
+        }
+        if (response?.type === "DEBUG_SYNC_RESULT") {
+          setBackgroundReachable("ok");
+          setLastHistorySync(response.lastHistorySync);
+          setLastBookmarkSync(response.lastBookmarkSync);
+          setResultMessage(
+            "Auto-sync run finished — check last-sync times above",
+          );
+          return;
+        }
+        setBackgroundReachable("error");
+        setResultMessage(
+          "No response from background — reload the extension and try again",
+        );
+      },
+    );
+  }
+
+  async function handleCopyDebugReport() {
+    setCopyReportMessage(null);
+    const report = await buildExtensionDebugReport();
+    const text = formatExtensionDebugReport(report);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyReportMessage("Debug report copied — paste it in chat");
+      pingBackground();
+    } catch {
+      setCopyReportMessage("Could not copy to clipboard");
+    }
+  }
+
   function handleResetSync() {
     void setStorage({ lastBookmarkSync: 0, lastHistorySync: 0 });
     setLastBookmarkSync(0);
@@ -179,6 +264,17 @@ export function ImportPanel() {
 
   return (
     <div className="space-y-6">
+      <p className="text-xs text-muted-foreground">
+        &quot;Service worker (inactive)&quot; on chrome://extensions is normal
+        when idle. Background:{" "}
+        {backgroundReachable === "checking"
+          ? "checking…"
+          : backgroundReachable === "ok"
+            ? "reachable"
+            : "not reachable — reload extension"}
+        {swBootPhase ? ` · SW boot: ${swBootPhase}` : ""}
+      </p>
+
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Auto-sync</span>
@@ -280,6 +376,29 @@ export function ImportPanel() {
           {resultMessage}
         </p>
       )}
+
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full"
+        onClick={handleRunAutoSyncNow}
+        disabled={isImporting}
+      >
+        Run auto-sync now
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full text-muted-foreground"
+        onClick={() => void handleCopyDebugReport()}
+        disabled={isImporting}
+      >
+        Copy debug report for support
+      </Button>
+      {copyReportMessage ? (
+        <p className="text-xs text-muted-foreground">{copyReportMessage}</p>
+      ) : null}
 
       <Button
         variant="ghost"

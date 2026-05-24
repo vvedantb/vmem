@@ -1,19 +1,20 @@
-import { syncSingleBookmark } from "./import-bookmarks";
+import { importBookmarks, syncSingleBookmark } from "./import-bookmarks";
 import { importHistory } from "./import-history";
 import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
 import { hasActiveClerkSession, warmBackgroundAuth } from "./auth";
 import { getStorage } from "@/lib/storage";
 
-const HISTORY_ALARM_NAME = "vmem-history-sync";
+export const HISTORY_ALARM_NAME = "vmem-history-sync";
 const HISTORY_SYNC_INTERVAL_MINUTES = 30;
 
-const SETTINGS_MIRROR_ALARM_NAME = "vmem-user-settings-mirror";
+export const SETTINGS_MIRROR_ALARM_NAME = "vmem-user-settings-mirror";
 const SETTINGS_MIRROR_INTERVAL_MINUTES = 5;
 const CATCHUP_MIN_INTERVAL_MS = 5 * 60 * 1000;
 
 let alarmListenerRegistered = false;
 let lastCatchUpAttemptMs = 0;
 let bookmarkListenerRegistered = false;
+let historySyncInProgress = false;
 
 /**
  * Register alarm listener at service worker top level.
@@ -53,13 +54,14 @@ export function registerBookmarkListener(): void {
   });
 }
 
-async function handleBookmarkCreated(
+export async function handleBookmarkCreated(
   id: string,
   bookmark: chrome.bookmarks.BookmarkTreeNode,
 ): Promise<void> {
   const { autoSyncEnabled } = await getStorage();
+  const hasSession = await hasActiveClerkSession();
   if (!autoSyncEnabled) return;
-  if (!(await hasActiveClerkSession())) return;
+  if (!hasSession) return;
   await syncSingleBookmark(id, bookmark);
 }
 
@@ -131,21 +133,50 @@ export async function catchUpHistorySyncIfOverdue(): Promise<void> {
   await handleHistoryAlarm();
 }
 
+/** Manual/debug entry — same path as the 30-min alarm. */
+export async function runAutoSyncNow(): Promise<void> {
+  await handleHistoryAlarm();
+}
+
 /** Called by alarm — checks auth + auto-sync setting before syncing. */
 async function handleHistoryAlarm(): Promise<void> {
-  console.info("[vmem] History sync alarm fired");
-  const { autoSyncEnabled } = await getStorage();
-  if (!autoSyncEnabled) return;
-  if (!(await hasActiveClerkSession())) {
-    console.warn(
-      "[vmem] History sync skipped — no active Clerk session " +
-        "(sign in on the vmem site so the extension can read your syncHost session).",
-    );
+  if (historySyncInProgress) {
     return;
   }
 
-  const result = await importHistory(undefined, true);
-  console.info(
-    `[vmem] History sync finished — imported ${result.imported} new entries`,
-  );
+  historySyncInProgress = true;
+
+  try {
+    console.info("[vmem] History sync alarm fired");
+    const { autoSyncEnabled } = await getStorage();
+    if (!autoSyncEnabled) return;
+
+    await warmBackgroundAuth();
+    const hasSession = await hasActiveClerkSession();
+    if (!hasSession) {
+      console.warn(
+        "[vmem] History sync skipped — no active Clerk session " +
+          "(sign in on the vmem site so the extension can read your syncHost session).",
+      );
+      return;
+    }
+
+    const result = await importHistory(undefined, true);
+    const bookmarkResult = await importBookmarks(true);
+    console.info(
+      `[vmem] History sync finished — imported ${result.imported} new entries; bookmarks ${bookmarkResult.imported} new`,
+    );
+  } finally {
+    historySyncInProgress = false;
+  }
+}
+
+export function dispatchAlarm(alarmName: string): void {
+  if (alarmName === HISTORY_ALARM_NAME) {
+    void handleHistoryAlarm();
+    return;
+  }
+  if (alarmName === SETTINGS_MIRROR_ALARM_NAME) {
+    void refreshUserSettingsMirrorFromConvex();
+  }
 }
