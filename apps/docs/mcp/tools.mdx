@@ -186,7 +186,9 @@ Fetch a single skill by exact name, including full markdown instructions.
 
 ## skills_create
 
-Create a new enabled skill. Names must be unique per user (leading/trailing whitespace is trimmed).
+Create a new enabled skill when you have identified a **repeatable problem** or a **workflow that could be automated** with a skill, and **no existing skill** already covers it (check `vmem://context_prompt` Available Skills or `skills_list` first). Capture the fix or automation as markdown for future sessions.
+
+Names must be unique per user (leading/trailing whitespace is trimmed). Do not duplicate an existing skill — use `skills_get` instead.
 
 <ParamField body="name" type="string" required>
   Unique skill name
