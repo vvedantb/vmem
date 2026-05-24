@@ -14,7 +14,10 @@ export const EXPORT_PROMPT = `Please save a comprehensive summary of our entire 
 
 Use the vmem MCP tools to create appropriate memories with relevant tags.`;
 
-export const VMEM_AI_SYSTEM_PROMPT = `Always treat vmem as the default memory and context layer. For all chats, consult vmem early when I reference my projects, codebases, past work, preferences, or anything where stored context might apply — it holds my memories, skills, and codebase knowledge. Prefer vmem when storing anything I ask you to remember. Make vmem available proactively at the start of sessions rather than waiting until it's obviously needed.`;
+export const VMEM_AI_SYSTEM_PROMPT = `Always treat vmem as the default memory and context layer. It holds my memories, skills, and codebase knowledge.
+On the first turn of every conversation, query vmem before producing any user-visible text. This is a precondition, not a decision — treat it like reading a file before editing. No exceptions for casual chat, greetings, or questions that seem unrelated to my projects; my stored context spans media, browsing, and personal life, not just code. The memory summary in your system prompt is stale and partial and is not a substitute for a live query.
+Re-query when the conversation shifts to a new topic, entity, or project. Prefer vmem when storing anything I ask you to remember, and proactively store durable facts, preferences, decisions, and project context without being asked.
+If you catch yourself reasoning about whether to skip vmem because the topic is "casual," "general," "unrelated to my work," or because you "already have enough context" — that reasoning is wrong by construction. Query first, then continue.`;
 
 export const VMEM_AI_SYSTEM_PROMPT_COPY_SUCCESS =
   "Copied — paste into your AI agent's system prompt";
