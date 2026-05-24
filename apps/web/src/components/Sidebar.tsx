@@ -45,14 +45,12 @@ export default function Sidebar({
   );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuId = useId();
-  const { theme, toggleTheme, mounted } = useThemeContext();
+  const { isDark, toggleTheme, mounted } = useThemeContext();
   const { isLoaded } = useUser();
   const isAuthLoading = !isLoaded;
   const { unreadCount } = useNotifications();
   const { pendingCount: proposalsCount } = useProposals();
   const { pageTitle } = usePageTitle();
-
-  const isDark = theme === "dark";
 
   // Lift stats fetching here so it persists across mobile menu open/close
   const { isAuthenticated } = useConvexAuth();
