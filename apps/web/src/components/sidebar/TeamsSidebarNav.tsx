@@ -1,15 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { motion } from "motion/react";
 import { api } from "@vmem/backend";
-import type { Id } from "@vmem/backend";
 import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconBuilding, IconPlus } from "@tabler/icons-react";
-import { TeamSidebarCard } from "@/components/teams/TeamSidebarCard";
+import { TeamSidebarGroup } from "@/components/teams/TeamSidebarGroup";
+import { useActiveTeamSection } from "@/components/teams/use-active-team-section";
 import { TeamsSearchBar } from "@/components/teams/TeamsSearchBar";
 import { CreateTeamDialog } from "@/routes/_main/teams/_components/CreateTeamDialog";
 import { teamsSearchParams } from "@/routes/_main/teams/-searchParams";
@@ -23,9 +23,9 @@ export function TeamsSidebarNav({
   isIconOnly,
   isMobile,
 }: TeamsSidebarNavProps) {
-  const navigate = useNavigate();
   const params = useParams({ strict: false });
   const teamId = typeof params.teamId === "string" ? params.teamId : undefined;
+  const activeSection = useActiveTeamSection();
 
   const teams = useQuery(api.teams.list);
   const [{ q: searchQuery }, setSearchParams] =
@@ -42,10 +42,6 @@ export function TeamsSidebarNav({
         entry.role.toLowerCase().includes(query),
     );
   }, [teams, searchQuery]);
-
-  const openTeam = (id: Id<"teams">) => {
-    void navigate({ to: "/teams/$teamId/overview", params: { teamId: id } });
-  };
 
   return (
     <motion.nav
@@ -89,11 +85,14 @@ export function TeamsSidebarNav({
             ) : (
               <div className="flex flex-col gap-0.5">
                 {filteredTeams.map((entry) => (
-                  <TeamSidebarCard
+                  <TeamSidebarGroup
                     key={entry.team._id}
                     entry={entry}
-                    selected={teamId === entry.team._id}
-                    onSelect={() => openTeam(entry.team._id)}
+                    isSelected={teamId === entry.team._id}
+                    isIconOnly={isIconOnly}
+                    activeSection={
+                      teamId === entry.team._id ? activeSection : null
+                    }
                   />
                 ))}
               </div>

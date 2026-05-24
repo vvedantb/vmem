@@ -1,5 +1,11 @@
 # Changelog
 
+## Team sections in sidebar — 2026-05-24
+
+- **Indented sub-nav**: Overview, Knowledge, Members, and Settings (owners) appear under the selected team in the Teams sidebar with section icons; header tab bar removed.
+- **Breadcrumb**: Detail header shows `Team name / Section` (team name links to Overview).
+- **Default section**: Clicking a team opens Overview; collapsed sidebar hides sub-links until expanded.
+
 ## Codebases sidebar navigation — 2026-05-24
 
 - **Settings-style sidebar**: Clicking Codebases swaps the root sidebar to a searchable repo list with header back, matching Skills, Wiki, and Teams.
