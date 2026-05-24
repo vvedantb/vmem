@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { authQuery, authMutation } from "./auth";
+import { scheduleContextPromptInvalidationForUser } from "./lib/contextPromptInvalidate";
 
 /** Missing `enabled` is treated as enabled for existing rows. */
 function isSkillEnabled(skill: { enabled?: boolean }): boolean {
@@ -47,7 +48,7 @@ export const createSkill = authMutation({
     }
 
     const now = Date.now();
-    return await ctx.db.insert("skills", {
+    const id = await ctx.db.insert("skills", {
       userId: ctx.userId,
       name: trimmedName,
       description: args.description,
@@ -56,6 +57,8 @@ export const createSkill = authMutation({
       createdAt: now,
       updatedAt: now,
     });
+    await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
+    return id;
   },
 });
 
@@ -110,6 +113,7 @@ export const updateSkill = authMutation({
     if (args.enabled !== undefined) patch.enabled = args.enabled;
 
     await ctx.db.patch(normalizedId, patch);
+    await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
   },
 });
 
@@ -126,6 +130,7 @@ export const deleteSkill = authMutation({
       throw new Error("Skill not found");
     }
     await ctx.db.delete(normalizedId);
+    await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
   },
 });
 
@@ -153,6 +158,142 @@ export const listByClerkIdInternal = internalQuery({
 });
 
 /**
+ * Create a skill for a given Clerk user id (MCP after JWT verification).
+ */
+export const createByClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    description: v.string(),
+    instructions: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const trimmedName = args.name.trim();
+    if (trimmedName.length === 0) {
+      throw new Error("Name is required");
+    }
+
+    const existing = await ctx.db
+      .query("skills")
+      .withIndex("by_user_name", (q) =>
+        q.eq("userId", user._id).eq("name", trimmedName),
+      )
+      .first();
+    if (existing) {
+      throw new Error("A skill with this name already exists");
+    }
+
+    const now = Date.now();
+    const id = await ctx.db.insert("skills", {
+      userId: user._id,
+      name: trimmedName,
+      description: args.description,
+      instructions: args.instructions,
+      enabled: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await scheduleContextPromptInvalidationForUser(ctx, user._id);
+
+    const created = await ctx.db.get(id);
+    if (!created) {
+      throw new Error("Failed to create skill");
+    }
+    return created;
+  },
+});
+
+/**
+ * Update a skill for a given Clerk user id (MCP after JWT verification).
+ */
+export const updateByClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    newName: v.optional(v.string()),
+    description: v.optional(v.string()),
+    instructions: v.optional(v.string()),
+    enabled: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const hasPatch =
+      args.newName !== undefined ||
+      args.description !== undefined ||
+      args.instructions !== undefined ||
+      args.enabled !== undefined;
+    if (!hasPatch) {
+      throw new Error("At least one field to update is required");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const lookupName = args.name.trim();
+    const skill = await ctx.db
+      .query("skills")
+      .withIndex("by_user_name", (q) =>
+        q.eq("userId", user._id).eq("name", lookupName),
+      )
+      .first();
+    if (!skill) {
+      throw new Error("Skill not found");
+    }
+
+    const patch: {
+      name?: string;
+      description?: string;
+      instructions?: string;
+      enabled?: boolean;
+      updatedAt: number;
+    } = { updatedAt: Date.now() };
+
+    if (args.newName !== undefined) {
+      const trimmedName = args.newName.trim();
+      if (trimmedName.length === 0) {
+        throw new Error("Name is required");
+      }
+      if (trimmedName !== skill.name) {
+        const duplicate = await ctx.db
+          .query("skills")
+          .withIndex("by_user_name", (q) =>
+            q.eq("userId", user._id).eq("name", trimmedName),
+          )
+          .first();
+        if (duplicate) {
+          throw new Error("A skill with this name already exists");
+        }
+      }
+      patch.name = trimmedName;
+    }
+    if (args.description !== undefined) patch.description = args.description;
+    if (args.instructions !== undefined) patch.instructions = args.instructions;
+    if (args.enabled !== undefined) patch.enabled = args.enabled;
+
+    await ctx.db.patch(skill._id, patch);
+    await scheduleContextPromptInvalidationForUser(ctx, user._id);
+
+    const updated = await ctx.db.get(skill._id);
+    if (!updated) {
+      throw new Error("Failed to update skill");
+    }
+    return updated;
+  },
+});
+
+/**
  * Fetch a single skill by name for a given Clerk user id.
  */
 export const getByNameInternal = internalQuery({
@@ -164,10 +305,11 @@ export const getByNameInternal = internalQuery({
       .first();
     if (!user) return null;
 
+    const lookupName = args.name.trim();
     const skill = await ctx.db
       .query("skills")
       .withIndex("by_user_name", (q) =>
-        q.eq("userId", user._id).eq("name", args.name),
+        q.eq("userId", user._id).eq("name", lookupName),
       )
       .first();
     if (!skill || !isSkillEnabled(skill)) return null;

@@ -5,18 +5,27 @@ import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 
+export interface SkillIndexRow {
+  name: string;
+  description: string;
+}
+
 /**
- * MCP entry point: list all skills for the authenticated user.
- *
- * The explicit return type is required because `internal` indirectly references
- * this action, which would otherwise trip Convex's type inference (TS7022).
+ * MCP entry point: list enabled skills (index only — no instructions).
  */
 export const mcpListSkills = internalAction({
   args: { clerkId: v.string() },
-  handler: async (ctx, args): Promise<Doc<"skills">[]> => {
-    return await ctx.runQuery(internal.skills.listByClerkIdInternal, {
-      clerkId: args.clerkId,
-    });
+  handler: async (ctx, args): Promise<SkillIndexRow[]> => {
+    const rows: Doc<"skills">[] = await ctx.runQuery(
+      internal.skills.listByClerkIdInternal,
+      {
+        clerkId: args.clerkId,
+      },
+    );
+    return rows.map((skill) => ({
+      name: skill.name,
+      description: skill.description,
+    }));
   },
 });
 
@@ -29,6 +38,50 @@ export const mcpGetSkill = internalAction({
     return await ctx.runQuery(internal.skills.getByNameInternal, {
       clerkId: args.clerkId,
       name: args.name,
+    });
+  },
+});
+
+/**
+ * MCP entry point: create a new enabled skill for the authenticated user.
+ */
+export const mcpCreateSkill = internalAction({
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    description: v.string(),
+    instructions: v.string(),
+  },
+  handler: async (ctx, args): Promise<Doc<"skills">> => {
+    return await ctx.runMutation(internal.skills.createByClerkIdInternal, {
+      clerkId: args.clerkId,
+      name: args.name,
+      description: args.description,
+      instructions: args.instructions,
+    });
+  },
+});
+
+/**
+ * MCP entry point: update an existing skill (partial patch by current name).
+ */
+export const mcpUpdateSkill = internalAction({
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    newName: v.optional(v.string()),
+    description: v.optional(v.string()),
+    instructions: v.optional(v.string()),
+    enabled: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args): Promise<Doc<"skills">> => {
+    return await ctx.runMutation(internal.skills.updateByClerkIdInternal, {
+      clerkId: args.clerkId,
+      name: args.name,
+      newName: args.newName,
+      description: args.description,
+      instructions: args.instructions,
+      enabled: args.enabled,
     });
   },
 });

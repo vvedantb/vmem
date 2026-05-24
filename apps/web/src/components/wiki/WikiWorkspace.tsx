@@ -1,18 +1,30 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
-import { useQuery } from "convex/react";
+import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import {
-  IconLayoutSidebarLeftCollapse,
-  IconLayoutSidebarRightCollapse,
   IconArrowLeft,
+  IconChevronDown,
+  IconFileText,
+  IconFolderPlus,
   IconListDetails,
+  IconPlus,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import { Button, Dialog, DialogContent, DialogTitle, cn } from "@vmem/ui";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  cn,
+} from "@vmem/ui";
 import PageContainer from "@/components/PageContainer";
-import { buildTree } from "./_utils";
+import { buildTree, findFirstDocumentId } from "./_utils";
 import type { OutlineHeading } from "./_utils";
 import WikiTree from "./WikiTree";
 import WikiEditor from "./WikiEditor";
@@ -27,170 +39,210 @@ interface WikiWorkspaceProps {
  * Three-pane shell for /wiki. Tree on the left, editor center, outline right.
  * Selected document id lives in `/wiki/:docId` path param.
  *
- * Outline state is lifted here because the editor emits headings on update
- * but the outline pane needs them for rendering/jumping — keeping it here lets
- * the outline pane stay stateless and re-render whenever editor emits.
- *
- * On mobile (< md), the layout collapses to a single column. The tree fills
- * the screen when no document is selected; selecting a document swaps to the
- * editor view with a back button and an outline trigger that opens a dialog.
+ * Visiting `/wiki` redirects to the first document when one exists.
+ * Layout mirrors skills: plain list column, document pane on muted surface.
  */
 export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const navigate = useNavigate();
   const nodes = useQuery(api.wiki.listTree);
+  const createNode = useMutation(api.wiki.createNode);
 
   const [headings, setHeadings] = useState<OutlineHeading[]>([]);
   const [jumpRequest, setJumpRequest] = useState<{ pos: number; n: number }>({
     pos: 0,
     n: 0,
   });
-  const [isTreeCollapsed, setIsTreeCollapsed] = useState(false);
-  const [isOutlineCollapsed, setIsOutlineCollapsed] = useState(false);
+  const [isOutlineVisible, setIsOutlineVisible] = useState(false);
   const [isMobileOutlineOpen, setIsMobileOutlineOpen] = useState(false);
+  const [mobileShowList, setMobileShowList] = useState(false);
+  const [wordCount, setWordCount] = useState(0);
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
-
-  const gridCols = useMemo(() => {
-    const left = isTreeCollapsed ? "40px" : "280px";
-    const right = isOutlineCollapsed ? "40px" : "220px";
-    return `${left} 1fr ${right}`;
-  }, [isTreeCollapsed, isOutlineCollapsed]);
 
   const handleSelectNode = useCallback(
     (id: string) => {
       if (id.length > 0) {
+        setMobileShowList(false);
         void navigate({ to: "/wiki/$docId", params: { docId: id } });
-      } else {
-        void navigate({ to: "/wiki" });
+        return;
+      }
+      const firstId = findFirstDocumentId(tree);
+      if (firstId !== null) {
+        void navigate({
+          to: "/wiki/$docId",
+          params: { docId: firstId },
+          replace: true,
+        });
       }
     },
-    [navigate],
+    [navigate, tree],
+  );
+
+  const handleCreateRoot = useCallback(
+    async (kind: "folder" | "document") => {
+      const title = kind === "folder" ? "Untitled folder" : "Untitled";
+      const newId = await createNode({ parentId: undefined, kind, title });
+      if (kind === "document") {
+        handleSelectNode(newId);
+      }
+    },
+    [createNode, handleSelectNode],
   );
 
   const handleJumpToHeading = (pos: number) => {
-    // Bump `n` so React treats each click as a new effect tick even if pos is identical.
     setJumpRequest((prev) => ({ pos, n: prev.n + 1 }));
     setIsMobileOutlineOpen(false);
   };
 
   const hasDoc = docId !== null && docId.length > 0;
+  const showMobileEditor = hasDoc && !mobileShowList;
+
+  useEffect(() => {
+    if (!hasDoc) {
+      setIsOutlineVisible(false);
+      setWordCount(0);
+      return;
+    }
+    setMobileShowList(false);
+  }, [hasDoc, docId]);
+
+  useEffect(() => {
+    if (hasDoc || !nodes) return;
+    const firstId = findFirstDocumentId(tree);
+    if (firstId !== null) {
+      void navigate({
+        to: "/wiki/$docId",
+        params: { docId: firstId },
+        replace: true,
+      });
+    }
+  }, [hasDoc, nodes, tree, navigate]);
+
+  useEffect(() => {
+    if (!hasDoc || !nodes) return;
+    const current = nodes.find((node) => node._id === docId);
+    if (current?.kind === "document") return;
+    const firstId = findFirstDocumentId(tree);
+    if (firstId !== null && firstId !== docId) {
+      void navigate({
+        to: "/wiki/$docId",
+        params: { docId: firstId },
+        replace: true,
+      });
+    }
+  }, [hasDoc, docId, nodes, tree, navigate]);
 
   return (
-    <PageContainer title="Wiki" noScroll>
-      <div
-        className="flex flex-col gap-2 h-full min-h-0 md:grid md:gap-4 md:transition-[grid-template-columns] md:duration-200"
-        style={{ gridTemplateColumns: gridCols }}
-      >
-        {/* Left pane: search + tree. Hidden on mobile when a doc is open. */}
+    <PageContainer
+      title="Wiki"
+      showTitle
+      noScroll
+      rightSection={
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <IconPlus size={16} />
+              Add
+              <IconChevronDown size={14} className="text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onSelect={() => void handleCreateRoot("document")}
+            >
+              <IconFileText size={16} />
+              New document
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => void handleCreateRoot("folder")}>
+              <IconFolderPlus size={16} />
+              New folder
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      }
+    >
+      <div className="flex h-full min-h-0 flex-col gap-4 md:flex-row">
         <div
           className={cn(
-            "flex-col min-h-0 rounded-lg bg-muted/40 p-3 gap-3 flex-1 md:flex-initial md:flex",
-            hasDoc ? "hidden md:flex" : "flex",
+            "flex min-h-0 flex-col gap-2 overflow-hidden md:w-1/3 md:shrink-0",
+            showMobileEditor ? "hidden md:flex" : "flex flex-1 w-full",
           )}
         >
-          {isTreeCollapsed ? (
-            <button
-              type="button"
-              onClick={() => setIsTreeCollapsed(false)}
-              className="hidden md:flex w-full justify-center pt-1 text-muted-foreground hover:text-foreground transition-colors"
-              title="Expand tree"
-              aria-label="Expand document tree"
+          <WikiSearch onSelect={handleSelectNode} />
+          <div className="flex min-h-0 flex-1">
+            <WikiTree
+              tree={tree}
+              selectedId={docId}
+              onSelect={handleSelectNode}
+              outlineVisible={isOutlineVisible}
+              onOutlineVisibleChange={setIsOutlineVisible}
+              hasDoc={hasDoc}
+              wordCount={wordCount}
+            />
+          </div>
+        </div>
+
+        {hasDoc ? (
+          <div
+            className={cn(
+              "flex min-h-0 min-w-0 gap-4",
+              showMobileEditor
+                ? "flex flex-1 w-full"
+                : "hidden md:flex md:flex-1",
+            )}
+          >
+            <div
+              className={cn(
+                "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+                "md:rounded-xl md:bg-muted/40",
+              )}
             >
-              <IconLayoutSidebarLeftCollapse size={16} className="rotate-180" />
-            </button>
-          ) : (
-            <>
-              <div className="flex items-center gap-2">
-                <WikiSearch onSelect={handleSelectNode} />
-                <button
+              <div className="flex items-center justify-between gap-2 p-2 md:hidden">
+                <Button
                   type="button"
-                  onClick={() => setIsTreeCollapsed(true)}
-                  className="hidden md:inline-flex shrink-0 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded hover:bg-muted/70"
-                  title="Collapse tree"
-                  aria-label="Collapse document tree"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMobileShowList(true)}
+                  aria-label="Back to documents"
+                  className="gap-1.5"
                 >
-                  <IconLayoutSidebarLeftCollapse size={14} />
-                </button>
+                  <IconArrowLeft size={16} />
+                  Docs
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsMobileOutlineOpen(true)}
+                  aria-label="Open outline"
+                  className="gap-1.5"
+                >
+                  <IconListDetails size={16} />
+                  View outline
+                </Button>
               </div>
-              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin -mr-1 pr-1">
-                <WikiTree
-                  tree={tree}
-                  selectedId={docId}
-                  onSelect={handleSelectNode}
+              <WikiEditor
+                docId={docId}
+                allNodes={nodes ?? []}
+                onHeadingsChange={setHeadings}
+                onWordCountChange={setWordCount}
+                jumpRequest={jumpRequest}
+              />
+            </div>
+
+            {isOutlineVisible ? (
+              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto scrollbar-thin md:block">
+                <WikiOutline
+                  headings={headings}
+                  onJump={handleJumpToHeading}
+                  hasDoc={hasDoc}
                 />
               </div>
-            </>
-          )}
-        </div>
-
-        {/* Center pane: editor. Hidden on mobile when no doc is open. */}
-        <div
-          className={cn(
-            "min-h-0 overflow-hidden flex-col flex-1 md:flex-initial md:flex",
-            hasDoc ? "flex" : "hidden md:flex",
-          )}
-        >
-          {hasDoc && (
-            <div className="md:hidden flex items-center justify-between gap-2 pb-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => handleSelectNode("")}
-                aria-label="Back to documents"
-                className="gap-1.5"
-              >
-                <IconArrowLeft size={16} />
-                Docs
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsMobileOutlineOpen(true)}
-                aria-label="Open outline"
-                className="gap-1.5"
-              >
-                <IconListDetails size={16} />
-                Outline
-              </Button>
-            </div>
-          )}
-          <WikiEditor
-            docId={docId}
-            allNodes={nodes ?? []}
-            onHeadingsChange={setHeadings}
-            jumpRequest={jumpRequest}
-          />
-        </div>
-
-        {/* Right pane: outline. Hidden on mobile (accessed via dialog). */}
-        <div className="hidden md:block min-h-0 rounded-lg bg-muted/40 p-3 overflow-y-auto scrollbar-thin">
-          {isOutlineCollapsed ? (
-            <button
-              type="button"
-              onClick={() => setIsOutlineCollapsed(false)}
-              className="w-full flex justify-center pt-1 text-muted-foreground hover:text-foreground transition-colors"
-              title="Expand outline"
-              aria-label="Expand outline"
-            >
-              <IconLayoutSidebarRightCollapse
-                size={16}
-                className="rotate-180"
-              />
-            </button>
-          ) : (
-            <WikiOutline
-              headings={headings}
-              onJump={handleJumpToHeading}
-              hasDoc={hasDoc}
-              onCollapse={() => setIsOutlineCollapsed(true)}
-            />
-          )}
-        </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
-      {/* Mobile outline dialog */}
       <Dialog open={isMobileOutlineOpen} onOpenChange={setIsMobileOutlineOpen}>
         <DialogContent className="md:hidden sm:max-w-sm">
           <DialogTitle className="sr-only">Outline</DialogTitle>
@@ -199,7 +251,6 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
               headings={headings}
               onJump={handleJumpToHeading}
               hasDoc={hasDoc}
-              onCollapse={() => setIsMobileOutlineOpen(false)}
             />
           </div>
         </DialogContent>

@@ -2,6 +2,7 @@ import { httpAction } from "../../_generated/server";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { hashApiKey } from "../../apiKeys";
+import { extractBearerToken } from "../../lib/bearerToken";
 import type { Id } from "../../_generated/dataModel";
 import type { z } from "zod";
 
@@ -19,14 +20,6 @@ function jsonResponse(body: unknown, status: number): Response {
 
 function unauthorized(): Response {
   return jsonResponse({ error: "unauthorized" }, 401);
-}
-
-function extractBearerToken(authHeader: string | null): string | null {
-  if (!authHeader) return null;
-  const parts = authHeader.split(" ");
-  if (parts.length !== 2) return null;
-  if (parts[0]?.toLowerCase() !== "bearer") return null;
-  return parts[1] ?? null;
 }
 
 async function resolveApiKeyAuth(

@@ -7,6 +7,7 @@ import {
   IconLogout,
   IconBrain,
   IconSend,
+  IconCopy,
 } from "@tabler/icons-react";
 import {
   Button,
@@ -20,6 +21,8 @@ import {
   SelectItem,
 } from "@vmem/ui";
 import { getStorage, setStorage } from "@/lib/storage";
+import { VMEM_AI_SYSTEM_PROMPT } from "@/lib/constants";
+import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import type { Profile } from "@/types/api";
 import { listProfiles, setDefaultProfile } from "@/background/api-client";
@@ -37,6 +40,7 @@ export function SettingsForm() {
   const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
+  const [promptCopied, setPromptCopied] = useState(false);
 
   useEffect(() => {
     getStorage().then((s) => {
@@ -95,6 +99,13 @@ export function SettingsForm() {
     } catch {
       // Backend sync failed, but local storage is updated
     }
+  }
+
+  async function handleCopyAiPrompt() {
+    const copied = await copyTextToClipboard(VMEM_AI_SYSTEM_PROMPT);
+    if (!copied) return;
+    setPromptCopied(true);
+    setTimeout(() => setPromptCopied(false), 2000);
   }
 
   return (
@@ -203,6 +214,22 @@ export function SettingsForm() {
           checked={autoCaptureEnabled}
           onCheckedChange={handleAutoCaptureToggle}
         />
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm font-medium">System prompt</p>
+        <p className="text-xs text-muted-foreground text-pretty">
+          Copy the recommended vmem prompt and paste it into your AI
+          agent&apos;s system prompt settings.
+        </p>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => void handleCopyAiPrompt()}
+        >
+          <IconCopy size={16} stroke={1.8} />
+          {promptCopied ? "Copied!" : "Copy vmem prompt"}
+        </Button>
       </div>
 
       <Button

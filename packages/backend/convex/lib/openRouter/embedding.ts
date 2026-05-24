@@ -1,27 +1,28 @@
 /**
  * OpenRouter embedding wrapper. Splits inputs into batches of 20,
- * fires one HTTP call per batch, retries on 429 with exponential
+ * fires one SDK call per batch, retries on 429 with exponential
  * backoff (each retry logs as its own row). Throws on any
  * non-recoverable failure — callers wrap in try/catch and degrade
  * to fulltext-only / no-embedding.
  */
 
+import type { CreateEmbeddingsResponseBody } from "@openrouter/sdk/models/operations";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
+import {
+  createOpenRouterClient,
+  readOpenRouterError,
+} from "../../../src/openRouter/client";
 import {
   PROMPT_PREVIEW_BYTES,
   classifyHttpStatus,
   numberOrUndef,
-  openRouterHeaders,
   previewsEnabled,
-  readErrorBody,
   scheduleLog,
   truncate,
   type ErrorClass,
   type OpenRouterFeature,
 } from "./shared";
-
-const EMBEDDING_ENDPOINT = "https://openrouter.ai/api/v1/embeddings";
 
 /**
  * Hardcoded embedding model — the only one the codebase has ever used.
@@ -31,9 +32,8 @@ const EMBEDDING_ENDPOINT = "https://openrouter.ai/api/v1/embeddings";
 const EMBEDDING_MODEL = "openai/text-embedding-3-small";
 export const EMBEDDING_DIMENSIONS = 1536;
 
-/** Per-1k-token USD cost per embedding model — used to compute `costUsd`
- *  on logged rows since OpenRouter's embedding endpoint doesn't return
- *  cost inline. Numbers from openrouter.ai/models on 2026-04. */
+/** Per-1k-token USD cost per embedding model — fallback when the API
+ *  does not return inline cost. Numbers from openrouter.ai/models. */
 const EMBEDDING_PRICE_USD_PER_1K: Record<string, number> = {
   "openai/text-embedding-3-small": 0.00002,
 };
@@ -47,18 +47,6 @@ const EMBEDDING_MAX_INPUT_CHARS = 6000;
 interface EmbeddingItem {
   embedding: number[];
   index: number;
-}
-
-interface EmbeddingUsage {
-  prompt_tokens?: number;
-  total_tokens?: number;
-}
-
-interface EmbeddingCompletionResponse {
-  id?: string;
-  provider?: string;
-  data?: EmbeddingItem[];
-  usage?: EmbeddingUsage;
 }
 
 export interface EmbeddingCallArgs {
@@ -86,7 +74,7 @@ export async function generateEmbedding(
 }
 
 /**
- * Generate embeddings for many inputs. Splits into 20-input HTTP
+ * Generate embeddings for many inputs. Splits into 20-input SDK
  * requests internally; each chunk is one log row + one retry envelope.
  * Returned vectors are in the same order as the `texts` input.
  */
@@ -127,7 +115,7 @@ interface EmbeddingChunkArgs {
 }
 
 /**
- * Fire one embedding HTTP call, log the outcome, return validated
+ * Fire one embedding SDK call, log the outcome, return validated
  * vectors. Retries on 429 with exponential backoff; each retry is its
  * own log row (so the dashboard reflects actual provider load).
  */
@@ -147,45 +135,41 @@ async function postEmbeddingChunkWithRetry(
   let errorMessage: string | undefined;
   let items: EmbeddingItem[] | null = null;
   let generationId: string | undefined;
-  let provider: string | undefined;
   let promptTokens: number | undefined;
   let totalTokens: number | undefined;
+  let inlineCostUsd: number | undefined;
 
   try {
-    const res = await fetch(EMBEDDING_ENDPOINT, {
-      method: "POST",
-      headers: openRouterHeaders(args.apiKey),
-      body: JSON.stringify({ model: EMBEDDING_MODEL, input: args.input }),
+    const client = createOpenRouterClient(args.apiKey);
+    const response = await client.embeddings.generate({
+      requestBody: {
+        model: EMBEDDING_MODEL,
+        input: args.input,
+      },
     });
 
-    status = res.status;
-    ok = res.ok;
-    if (!res.ok) {
-      errorClass = classifyHttpStatus(status);
-      errorMessage = await readErrorBody(res, status);
-    } else {
-      try {
-        const json: EmbeddingCompletionResponse = await res.json();
-        items = validateEmbeddingItems(json.data, args.input.length);
-        generationId = typeof json.id === "string" ? json.id : undefined;
-        provider =
-          typeof json.provider === "string" ? json.provider : undefined;
-        promptTokens = numberOrUndef(json.usage?.prompt_tokens);
-        totalTokens = numberOrUndef(json.usage?.total_tokens);
-      } catch (e) {
-        ok = false;
-        errorClass = "parse";
-        errorMessage = e instanceof Error ? e.message : "parse failed";
-      }
+    if (typeof response === "string") {
+      throw new Error("embedding response: unexpected string body");
     }
+
+    status = 200;
+    ok = true;
+    items = validateEmbeddingItems(response.data, args.input.length);
+    generationId = response.id;
+    promptTokens = numberOrUndef(response.usage?.promptTokens);
+    totalTokens = numberOrUndef(response.usage?.totalTokens);
+    inlineCostUsd = numberOrUndef(response.usage?.cost);
   } catch (e) {
     ok = false;
-    errorClass = "network";
-    errorMessage = e instanceof Error ? e.message : "network error";
+    const err = readOpenRouterError(e);
+    status = err.status;
+    errorMessage = err.message;
+    errorClass =
+      status > 0 ? (classifyHttpStatus(status) ?? "network") : "network";
   }
 
   const latencyMs = Math.round(performance.now() - start);
-  const costUsd = computeEmbeddingCost(totalTokens);
+  const costUsd = inlineCostUsd ?? computeEmbeddingCost(totalTokens);
 
   await scheduleLog(args.ctx, {
     userId: args.userId,
@@ -199,7 +183,6 @@ async function postEmbeddingChunkWithRetry(
     errorMessage,
     latencyMs,
     generationId,
-    provider,
     promptTokens,
     totalTokens,
     costUsd,
@@ -225,31 +208,35 @@ async function postEmbeddingChunkWithRetry(
 }
 
 function validateEmbeddingItems(
-  data: EmbeddingItem[] | undefined,
+  data: CreateEmbeddingsResponseBody["data"],
   expectedCount: number,
 ): EmbeddingItem[] {
-  if (!Array.isArray(data)) {
-    throw new Error("embedding response: missing data array");
-  }
   if (data.length !== expectedCount) {
     throw new Error(
-      `embedding response: expected ${String(expectedCount)} items, got ${String(data.length)}`,
+      `embedding response: expected ${String(expectedCount)} and got ${String(data.length)}`,
     );
   }
+
+  const items: EmbeddingItem[] = [];
   for (const item of data) {
-    if (!Array.isArray(item.embedding)) {
-      throw new Error("embedding response: item missing embedding array");
-    }
-    if (typeof item.index !== "number") {
-      throw new Error("embedding response: item missing numeric index");
-    }
-    if (item.embedding.length !== EMBEDDING_DIMENSIONS) {
+    const embedding = readFloatEmbedding(item.embedding);
+    const index = item.index ?? items.length;
+    if (embedding.length !== EMBEDDING_DIMENSIONS) {
       throw new Error(
-        `embedding response: expected ${String(EMBEDDING_DIMENSIONS)} dims, got ${String(item.embedding.length)}`,
+        `embedding response: expected ${String(EMBEDDING_DIMENSIONS)} dims, got ${String(embedding.length)}`,
       );
     }
+    items.push({ embedding, index });
   }
-  return data;
+
+  return items;
+}
+
+function readFloatEmbedding(embedding: Array<number> | string): number[] {
+  if (Array.isArray(embedding)) {
+    return embedding;
+  }
+  throw new Error("embedding response: expected float array");
 }
 
 function truncateForEmbedding(text: string): string {

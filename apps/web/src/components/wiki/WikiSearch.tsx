@@ -38,7 +38,7 @@ export default function WikiSearch({ onSelect }: WikiSearchProps) {
           value={raw}
           onChange={(e) => setRaw(e.target.value)}
           placeholder="Search"
-          className="h-8 pl-8 text-sm"
+          className="h-8 pl-8 text-sm shadow-none focus-visible:ring-0 focus-visible:shadow-none"
         />
       </div>
       {isSearching && (

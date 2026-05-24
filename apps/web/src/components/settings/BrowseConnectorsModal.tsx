@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { api, type Doc } from "@vmem/backend";
 import { IconLoader2 } from "@tabler/icons-react";
 import OAuthModal from "@/components/OAuthModal";
+import { GitHubConnectorControls } from "./GitHubConnectorControls";
 import {
   GoogleDriveIcon,
   OneDriveIcon,
@@ -56,6 +57,7 @@ export default function BrowseConnectorsModal({
     useState<Doc<"connectors"> | null>(null);
 
   const disconnectAction = useAction(api.connectorOAuth.disconnect);
+  const githubConnection = useQuery(api.github.getConnection);
 
   const handleConnect = (connector: Doc<"connectors">) => {
     if (!connector.provider) {
@@ -97,8 +99,11 @@ export default function BrowseConnectorsModal({
           <div className="space-y-1 overflow-hidden">
             {connectors.map((connector) => {
               const Icon = iconMap[connector.icon] || GoogleDriveIcon;
-              const isConnected = connector.connectionStatus === "connected";
-              const hasProvider = !!connector.provider;
+              const isGitHub = connector.name === "GitHub";
+              const isConnected = isGitHub
+                ? githubConnection !== undefined && githubConnection !== null
+                : connector.connectionStatus === "connected";
+              const hasProvider = isGitHub || !!connector.provider;
 
               return (
                 <div
@@ -117,7 +122,9 @@ export default function BrowseConnectorsModal({
                     </p>
                   </div>
                   <div className="flex-shrink-0">
-                    {isConnected ? (
+                    {isGitHub ? (
+                      <GitHubConnectorControls connection={githubConnection} />
+                    ) : isConnected ? (
                       <Button
                         variant="ghost"
                         size="sm"

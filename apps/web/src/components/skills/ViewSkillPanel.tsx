@@ -20,25 +20,21 @@ import {
   Switch,
 } from "@vmem/ui";
 import {
-  IconBolt,
   IconDots,
   IconLoader2,
   IconPencil,
   IconTrash,
-  IconX,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
 interface ViewSkillPanelProps {
   skill: Doc<"skills">;
-  onClose: () => void;
   onEdit: () => void;
   onDeleted: () => void;
 }
 
 export function ViewSkillPanel({
   skill,
-  onClose,
   onEdit,
   onDeleted,
 }: ViewSkillPanelProps) {
@@ -92,9 +88,8 @@ export function ViewSkillPanel({
   return (
     <>
       <div className="flex h-full min-h-0 flex-col">
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <IconBolt size={16} className="shrink-0 text-muted-foreground" />
             <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">
               {skill.name}
             </h2>
@@ -134,18 +129,10 @@ export function ViewSkillPanel({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Close panel"
-            >
-              <IconX size={18} />
-            </button>
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scrollbar-thin px-4 pb-4">
           {skill.description ? (
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground">

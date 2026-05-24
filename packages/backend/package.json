@@ -12,7 +12,9 @@
     "deploy": "npx convex deploy",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed.ts",
+    "test:retrieval": "cross-env RUN_RETRIEVAL_EVAL=1 vitest run src/neo4j/memory/eval/retrieval.integration.test.ts",
+    "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed/run.ts",
+    "db:seed:eval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/seed.ts",
     "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts",
     "eval:retrieval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/run.ts"
   },
@@ -23,9 +25,11 @@
     "@convex-dev/action-retrier": "^0.3.0",
     "@convex-dev/agent": "catalog:",
     "@convex-dev/crons": "^0.2.0",
+    "@convex-dev/workflow": "^0.4.2",
     "@modelcontextprotocol/sdk": "catalog:",
     "@neo4j/cypher-builder": "^3.0.1",
     "@notionhq/client": "^2.2.15",
+    "@openrouter/sdk": "^0.12.35",
     "ai": "catalog:",
     "convex": "catalog:",
     "convex-audit-log": "^0.2.0",
@@ -34,6 +38,7 @@
     "jsonwebtoken": "catalog:",
     "neo4j-driver": "^5.28.3",
     "pdf-parse": "^1.1.1",
+    "tar-stream": "^3.2.0",
     "ts-morph": "^24.0.0",
     "zod": "catalog:"
   },
@@ -41,8 +46,12 @@
     "@types/jsonwebtoken": "catalog:",
     "@types/node": "catalog:node-types-22",
     "@types/pdf-parse": "^1.1.4",
+    "@types/tar-stream": "^3.1.4",
     "@typescript/native-preview": "catalog:",
     "typescript": "catalog:",
+    "@edge-runtime/vm": "^5.0.0",
+    "convex-test": "^0.0.38",
+    "cross-env": "^7.0.3",
     "vitest": "^3.2.4"
   }
 }

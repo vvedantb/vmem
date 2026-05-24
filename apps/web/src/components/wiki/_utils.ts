@@ -37,6 +37,22 @@ export function buildTree(nodes: Array<Doc<"wikiNodes">>): WikiTreeNode[] {
   return build(ROOT_KEY);
 }
 
+/** First document in tree display order (depth-first), or null if none exist. */
+export function findFirstDocumentId(
+  tree: WikiTreeNode[],
+): Id<"wikiNodes"> | null {
+  for (const item of tree) {
+    if (item.node.kind === "document") {
+      return item.node._id;
+    }
+    const childId = findFirstDocumentId(item.children);
+    if (childId !== null) {
+      return childId;
+    }
+  }
+  return null;
+}
+
 /**
  * Walk up `parentId` chain for the given node, returning ancestors from root → parent.
  * Excludes the node itself. Used for breadcrumb rendering.
@@ -134,4 +150,11 @@ export function docToPlainText(doc: JSONContent): string {
     return children;
   }
   return walk(doc).trim();
+}
+
+/** Count words in plain text (whitespace-separated tokens). */
+export function countWords(text: string): number {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return 0;
+  return trimmed.split(/\s+/).length;
 }

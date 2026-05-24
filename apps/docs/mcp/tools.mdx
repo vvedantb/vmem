@@ -182,4 +182,240 @@ Fetch a single skill by exact name, including full markdown instructions.
 
 **Returns:** Full skill object with instructions.
 
-See [Skills feature](/features/skills) for creating and managing skills.
+---
+
+## skills_create
+
+Create a new enabled skill when you have identified a **repeatable problem** or a **workflow that could be automated** with a skill, and **no existing skill** already covers it (check `vmem://context_prompt` Available Skills or `skills_list` first). Capture the fix or automation as markdown for future sessions.
+
+Names must be unique per user (leading/trailing whitespace is trimmed). Do not duplicate an existing skill — use `skills_get` instead.
+
+<ParamField body="name" type="string" required>
+  Unique skill name
+</ParamField>
+
+<ParamField body="description" type="string" required>
+  When to use this skill (shown in the skills index and context prompt)
+</ParamField>
+
+<ParamField body="instructions" type="string" required>
+  Full markdown instructions the agent should follow
+</ParamField>
+
+**Returns:** Full skill object (including `_id`, name, description, instructions).
+
+See [Skills feature](/features/skills) for managing skills in the web app.
+
+---
+
+## skills_update
+
+Update an existing skill when its playbook should change (refined fix, better automation, disable without deleting). Call `skills_get` first to read the current skill.
+
+<ParamField body="name" type="string" required>
+  Current skill name (exact, case sensitive)
+</ParamField>
+
+<ParamField body="newName" type="string">
+  New unique name (rename)
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated when-to-use description
+</ParamField>
+
+<ParamField body="instructions" type="string">
+  Updated markdown playbook
+</ParamField>
+
+<ParamField body="enabled" type="boolean">
+  `false` to disable, `true` to re-enable
+</ParamField>
+
+At least one of `newName`, `description`, `instructions`, or `enabled` is required.
+
+**Returns:** Full updated skill object.
+
+---
+
+## wiki_list
+
+Flat index of all wiki folders and documents (no body). Call this before `wiki_get` or `wiki_update` when you do not have a node id.
+
+**Parameters:** none
+
+**Returns:** Array of `{ id, title, kind, parentId, order, updatedAt }`
+
+---
+
+## wiki_get
+
+Fetch a single wiki node by id. Documents include `contentMarkdown` (derived from stored TipTap JSON).
+
+<ParamField body="id" type="string" required>
+  Wiki node id from `wiki_list`
+</ParamField>
+
+**Returns:** Node metadata plus `contentMarkdown` for documents.
+
+---
+
+## wiki_search
+
+Full-text search over wiki titles and document plain-text mirrors.
+
+<ParamField body="query" type="string" required>
+  Search text
+</ParamField>
+
+**Returns:** Array of `{ id, title, kind, excerpt }`
+
+---
+
+## wiki_create
+
+Create a wiki folder or document. Markdown bodies are stored as-is; `contentText` is derived for search.
+
+<ParamField body="kind" type="string" required>
+  `folder` or `document`
+</ParamField>
+<ParamField body="title" type="string" required>
+  Node title
+</ParamField>
+<ParamField body="parentId" type="string">
+  Parent folder id (omit for root)
+</ParamField>
+<ParamField body="contentMarkdown" type="string">
+  Initial markdown body (documents only)
+</ParamField>
+
+**Returns:** Created node with `contentMarkdown` when kind is `document`.
+
+---
+
+## wiki_update
+
+Update a wiki node by id. Supports rename and body replace or append.
+
+<ParamField body="id" type="string" required>
+  Wiki node id from `wiki_list`
+</ParamField>
+<ParamField body="title" type="string">
+  New title
+</ParamField>
+<ParamField body="contentMarkdown" type="string">
+  Markdown to write or append
+</ParamField>
+<ParamField body="contentMode" type="string">
+  `replace` (default) or `append` when `contentMarkdown` is set
+</ParamField>
+
+**Returns:** Updated node with fresh `contentMarkdown` for documents.
+
+---
+
+## codebases_list
+
+List GitHub repositories connected to vmem. Returns codebase IDs, repo names, sync status, and parser stats. Call this first to discover `codebaseId` values for the other `codebase_*` tools.
+
+**Parameters:** none
+
+**Returns:** Array of codebase summaries. Only repos with `status: "synced"` have graph data.
+
+---
+
+## codebase_overview
+
+Aggregate stats for a synced codebase.
+
+<ParamField body="codebaseId" type="string" required>
+  Codebase ID from `codebases_list`
+</ParamField>
+
+**Returns:** File, function, class, interface, and process counts plus `callEdgeCount` and `importEdgeCount`.
+
+---
+
+## codebase_search
+
+Search symbols inside a synced codebase.
+
+<ParamField body="codebaseId" type="string" required>
+  Codebase ID
+</ParamField>
+<ParamField body="query" type="string" required>
+  Search text (name, path, or qualified name)
+</ParamField>
+<ParamField body="kind" type="string">
+  Filter: `code-file`, `code-function`, `code-class`, `code-interface`, or `code-process`
+</ParamField>
+<ParamField body="limit" type="number">
+  Max results, 1–50 (default 20)
+</ParamField>
+
+**Returns:** `{ results: [...] }` with symbol ids for use in `codebase_context` / `codebase_impact`.
+
+---
+
+## codebase_context
+
+Symbol metadata plus direct `CALLS` relationships and linked processes.
+
+<ParamField body="codebaseId" type="string" required>
+  Codebase ID
+</ParamField>
+<ParamField body="symbolId" type="string" required>
+  Symbol id from search or graph
+</ParamField>
+
+**Returns:** Symbol detail with `callsIn`, `callsOut`, and `processes`.
+
+---
+
+## codebase_impact
+
+Traverse `CALLS` edges upstream or downstream from a symbol.
+
+<ParamField body="codebaseId" type="string" required>
+  Codebase ID
+</ParamField>
+<ParamField body="symbolId" type="string" required>
+  Starting symbol id
+</ParamField>
+<ParamField body="direction" type="string" required>
+  `upstream` (callers) or `downstream` (callees)
+</ParamField>
+<ParamField body="depth" type="number">
+  Hop depth, 1–6 (default 3)
+</ParamField>
+
+**Returns:** `{ nodes: [{ id, distance }] }`
+
+---
+
+## codebase_graph
+
+Filtered subgraph: nodes and relationship edges (`imports`, `calls`, `contains`, `extends`, `implements`, process links). May truncate on large repos — narrow with filters.
+
+<ParamField body="codebaseId" type="string" required>
+  Codebase ID
+</ParamField>
+<ParamField body="kinds" type="string[]">
+  Limit node kinds
+</ParamField>
+<ParamField body="processId" type="string">
+  Scope to one process
+</ParamField>
+<ParamField body="blastRadiusOf" type="string">
+  Center on a symbol's blast radius
+</ParamField>
+<ParamField body="blastDirection" type="string">
+  `upstream` or `downstream` when using `blastRadiusOf`
+</ParamField>
+<ParamField body="blastDepth" type="number">
+  Hop depth when using `blastRadiusOf`, 1–6 (default 2)
+</ParamField>
+
+**Returns:** `{ nodes, edges, truncated }`
+
+See [Codebases feature](/features/codebases) for connecting and syncing repos.

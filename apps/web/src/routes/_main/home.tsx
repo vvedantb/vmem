@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_main/home")({
 
 function DashboardPage() {
   return (
-    <PageContainer title="Dashboard">
+    <PageContainer title="Dashboard" centeredMaxWidth showTitle>
       <Dashboard />
     </PageContainer>
   );

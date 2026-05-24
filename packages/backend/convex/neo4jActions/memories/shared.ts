@@ -5,22 +5,17 @@
  *
  * - Type validators (`toMemoryType`, `toMemoryStatus`) for the
  *   string-typed `type`/`status` action args.
- * - `scheduleContextPromptInvalidation` — debounced context-prompt
- *   regeneration trigger called from create/update/delete paths.
- * - `tryEmbedOne` / `tryEmbedMany` — best-effort OpenRouter embedding
- *   wrappers. Return null (or array of null) when the user has no API
- *   key or the call fails. Memory writes still succeed; backfill
- *   migration fills in nulls later.
+ * - Re-exports for context-prompt invalidation and best-effort embeddings.
  */
 
 import { type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import {
-  generateEmbedding,
-  generateEmbeddings,
-  type OpenRouterFeature,
-} from "../../lib/openRouter";
-import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
+  bestEffortEmbedMany,
+  bestEffortEmbedOne,
+  type BestEffortEmbedParams,
+} from "../../lib/openRouter/bestEffortEmbed";
+import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
 
 export type MemoryType = "profile" | "episodic" | "knowledge";
 export type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
@@ -64,94 +59,25 @@ export async function resolveProfileIdForClerkId(
   return profile._id;
 }
 
-/**
- * Mark the user's context_prompt cache as pending and — only on the
- * first invalidation in a burst — schedule the 60s debounce check.
- * Memory writes (create / update / delete) all funnel through here so
- * the MCP profile prompt eventually catches up without us regenerating
- * once per write.
- */
-export async function scheduleContextPromptInvalidation(
-  ctx: ActionCtx,
-  clerkId: string,
-): Promise<void> {
-  const shouldSchedule = await ctx.runMutation(
-    internal.contextPromptCache.markPendingByClerkIdInternal,
-    { clerkId },
-  );
-  if (shouldSchedule) {
-    await ctx.scheduler.runAfter(
-      60_000,
-      internal.contextPromptActions.regenerateIfPendingInternal,
-      { clerkId },
-    );
-  }
-}
+export const scheduleContextPromptInvalidation =
+  scheduleContextPromptInvalidationByClerkId;
 
-interface EmbedParams {
-  clerkId: string;
-  profileId?: string;
-  feature: OpenRouterFeature;
-  failureLog: string;
-}
+type EmbedArgs = Omit<BestEffortEmbedParams, "ctx">;
 
 /**
- * Best-effort single embedding. Returns null when the user has no
- * OPENROUTER_API_KEY or the call fails — caller falls back to a
- * fulltext-only path or skips the embedding entirely.
+ * Memory actions use `(ctx, args)`; `bestEffortEmbed*` expects `{ ctx, ...args }`.
+ * Do not alias these to `bestEffortEmbedOne` directly — that breaks `ctx.runQuery`.
  */
-export async function tryEmbedOne(
+export function tryEmbedOne(
   ctx: ActionCtx,
-  params: EmbedParams & { text: string },
+  args: EmbedArgs & { text: string },
 ): Promise<number[] | null> {
-  try {
-    const auth = await tryUserAndApiKeyByClerkId(
-      ctx,
-      params.clerkId,
-      "OPENROUTER_API_KEY",
-    );
-    if (!auth) return null;
-    return await generateEmbedding({
-      ctx,
-      apiKey: auth.apiKey,
-      userId: auth.userId,
-      profileId: params.profileId,
-      feature: params.feature,
-      text: params.text,
-    });
-  } catch (e) {
-    console.warn(params.failureLog, e);
-    return null;
-  }
+  return bestEffortEmbedOne({ ctx, ...args });
 }
 
-/**
- * Best-effort batch embedding. Returns an array of `texts.length` —
- * either all real vectors (success) or all null (no API key / failure).
- * Mirrors the original chunk-pipeline semantic where chunks without
- * embeddings still persist; backfill fills them in later.
- */
-export async function tryEmbedMany(
+export function tryEmbedMany(
   ctx: ActionCtx,
-  params: EmbedParams & { texts: string[] },
+  args: EmbedArgs & { texts: string[] },
 ): Promise<(number[] | null)[]> {
-  try {
-    const auth = await tryUserAndApiKeyByClerkId(
-      ctx,
-      params.clerkId,
-      "OPENROUTER_API_KEY",
-    );
-    if (!auth) return params.texts.map(() => null);
-    return await generateEmbeddings({
-      ctx,
-      apiKey: auth.apiKey,
-      userId: auth.userId,
-      profileId: params.profileId,
-      feature: params.feature,
-      texts: params.texts,
-    });
-  } catch (e) {
-    console.warn(params.failureLog, e);
-    return params.texts.map(() => null);
-  }
+  return bestEffortEmbedMany({ ctx, ...args });
 }

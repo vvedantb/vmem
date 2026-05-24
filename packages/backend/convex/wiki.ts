@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { authMutation, authQuery } from "./auth";
-import { internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { wikiNodeFields } from "./validators";
 
@@ -103,7 +104,7 @@ export const createNode = authMutation({
       parentId: args.parentId,
       kind: args.kind,
       title: args.title,
-      contentJson: args.kind === "document" ? "" : undefined,
+      content: args.kind === "document" ? "" : undefined,
       contentText: args.kind === "document" ? "" : undefined,
       order: nextOrder,
       createdAt: now,
@@ -134,7 +135,7 @@ export const renameNode = authMutation({
 export const updateContent = authMutation({
   args: {
     id: v.id("wikiNodes"),
-    contentJson: v.string(),
+    content: v.string(),
     contentText: v.string(),
   },
   handler: async (ctx, args) => {
@@ -146,7 +147,7 @@ export const updateContent = authMutation({
       throw new Error("Cannot write content to a folder");
     }
     await ctx.db.patch(args.id, {
-      contentJson: args.contentJson,
+      content: args.content,
       contentText: args.contentText,
       updatedAt: Date.now(),
     });
@@ -272,5 +273,176 @@ export const search = authQuery({
       if (merged.length >= MAX_SEARCH_RESULTS) break;
     }
     return merged;
+  },
+});
+
+// --- Internal helpers (MCP after JWT verification) ---
+
+async function getUserIdByClerkId(
+  ctx: QueryCtx | MutationCtx,
+  clerkId: string,
+): Promise<Id<"users">> {
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+    .first();
+  if (!user) {
+    throw new Error("User not found");
+  }
+  return user._id;
+}
+
+async function getOwnedNode(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  id: string,
+): Promise<Doc<"wikiNodes"> | null> {
+  const normalized = ctx.db.normalizeId("wikiNodes", id);
+  if (!normalized) return null;
+  const node = await ctx.db.get(normalized);
+  if (!node || node.userId !== userId) return null;
+  return node;
+}
+
+export const listByClerkIdInternal = internalQuery({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const userId = await getUserIdByClerkId(ctx, args.clerkId);
+    const nodes = await ctx.db
+      .query("wikiNodes")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    return nodes.sort((a, b) => a.order - b.order);
+  },
+});
+
+export const getByIdInternal = internalQuery({
+  args: { clerkId: v.string(), id: v.string() },
+  handler: async (ctx, args) => {
+    const userId = await getUserIdByClerkId(ctx, args.clerkId);
+    return await getOwnedNode(ctx, userId, args.id);
+  },
+});
+
+export const searchByClerkIdInternal = internalQuery({
+  args: { clerkId: v.string(), queryText: v.string() },
+  handler: async (ctx, args) => {
+    const userId = await getUserIdByClerkId(ctx, args.clerkId);
+    const trimmed = args.queryText.trim();
+    if (trimmed.length === 0) return [];
+
+    const titleMatches = await ctx.db
+      .query("wikiNodes")
+      .withSearchIndex("search_title", (q) =>
+        q.search("title", trimmed).eq("userId", userId),
+      )
+      .take(MAX_SEARCH_RESULTS);
+
+    const contentMatches = await ctx.db
+      .query("wikiNodes")
+      .withSearchIndex("search_content", (q) =>
+        q.search("contentText", trimmed).eq("userId", userId),
+      )
+      .take(MAX_SEARCH_RESULTS);
+
+    const seen = new Set<string>();
+    const merged: Array<Doc<"wikiNodes">> = [];
+    for (const node of [...titleMatches, ...contentMatches]) {
+      if (seen.has(node._id)) continue;
+      seen.add(node._id);
+      merged.push(node);
+      if (merged.length >= MAX_SEARCH_RESULTS) break;
+    }
+    return merged;
+  },
+});
+
+export const createByClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    parentId: v.optional(v.id("wikiNodes")),
+    kind: v.union(v.literal("folder"), v.literal("document")),
+    title: v.string(),
+    content: v.optional(v.string()),
+    contentText: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserIdByClerkId(ctx, args.clerkId);
+
+    if (args.parentId !== undefined) {
+      const parent = await ctx.db.get(args.parentId);
+      if (!parent || parent.userId !== userId) {
+        throw new Error("Parent not found");
+      }
+      if (parent.kind !== "folder") {
+        throw new Error("Parent must be a folder");
+      }
+    }
+
+    const siblings = await ctx.db
+      .query("wikiNodes")
+      .withIndex("by_user_parent", (q) =>
+        q.eq("userId", userId).eq("parentId", args.parentId),
+      )
+      .collect();
+    const nextOrder =
+      siblings.length === 0 ? 0 : Math.max(...siblings.map((s) => s.order)) + 1;
+
+    const now = Date.now();
+    const isDocument = args.kind === "document";
+    return await ctx.db.insert("wikiNodes", {
+      userId,
+      parentId: args.parentId,
+      kind: args.kind,
+      title: args.title,
+      content: isDocument ? (args.content ?? "") : undefined,
+      contentText: isDocument ? (args.contentText ?? "") : undefined,
+      order: nextOrder,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+export const updateByClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    id: v.string(),
+    title: v.optional(v.string()),
+    content: v.optional(v.string()),
+    contentText: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserIdByClerkId(ctx, args.clerkId);
+    const node = await getOwnedNode(ctx, userId, args.id);
+    if (!node) {
+      throw new Error("Not found");
+    }
+
+    const patch: {
+      title?: string;
+      content?: string;
+      contentText?: string;
+      updatedAt: number;
+    } = { updatedAt: Date.now() };
+
+    if (args.title !== undefined) {
+      patch.title = args.title;
+    }
+
+    if (args.content !== undefined || args.contentText !== undefined) {
+      if (node.kind !== "document") {
+        throw new Error("Cannot write content to a folder");
+      }
+      if (args.content !== undefined) {
+        patch.content = args.content;
+      }
+      if (args.contentText !== undefined) {
+        patch.contentText = args.contentText;
+      }
+    }
+
+    await ctx.db.patch(node._id, patch);
+    return node._id;
   },
 });

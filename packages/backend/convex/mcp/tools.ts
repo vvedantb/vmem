@@ -11,6 +11,16 @@ const memoryStatusSchema = z.enum([
   "expired",
 ]);
 
+const codebaseSymbolKindSchema = z.enum([
+  "code-file",
+  "code-function",
+  "code-class",
+  "code-interface",
+  "code-process",
+]);
+
+const codebaseImpactDirectionSchema = z.enum(["upstream", "downstream"]);
+
 function textContent(text: string) {
   return { content: [{ type: "text" as const, text }] };
 }
@@ -266,7 +276,7 @@ export function registerTools(
 
   server.tool(
     "skills_list",
-    "List all skills authored by the authenticated user. A skill is a reusable instruction module (name, description, markdown instructions) that the agent can consult. Returns the full list so you can decide which skill to apply.",
+    "List enabled skills (name + description only). The skills index is also in the vmem://context_prompt resource — check there first. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them. Before skills_create, confirm no listed skill already covers the workflow.",
     {},
     async () => {
       const result = await safe("skills_list", () =>
@@ -282,7 +292,7 @@ export function registerTools(
 
   server.tool(
     "skills_get",
-    "Fetch a single skill by its exact name. Returns the full skill including its markdown instructions so you can follow them.",
+    "Fetch a single enabled skill by exact name, including full markdown instructions. Call this after identifying a matching skill from the Available Skills section in vmem://context_prompt or from skills_list.",
     {
       name: z.string().describe("Exact skill name (case sensitive)"),
     },
@@ -295,6 +305,358 @@ export function registerTools(
       );
       if (!result.ok)
         return errorContent(`Get skill failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "skills_create",
+    "Create a new enabled skill when you have identified a repeatable problem or a workflow that could be automated with a skill, and no existing skill already covers it (check Available Skills in vmem://context_prompt or call skills_list first). Write markdown instructions so future sessions can follow the same fix or automation. Do not create duplicates — if a similar skill exists, use skills_get and skills_update instead. Names must be unique per user (trimmed).",
+    {
+      name: z.string().describe("Unique skill name"),
+      description: z
+        .string()
+        .describe(
+          "When to trigger this skill — the repeatable problem or workflow (shown in skills index)",
+        ),
+      instructions: z
+        .string()
+        .describe(
+          "Markdown playbook: steps, checks, or automation the agent should follow when this skill applies",
+        ),
+    },
+    async (params) => {
+      const result = await safe("skills_create", () =>
+        ctx.runAction(internal.mcpSkills.mcpCreateSkill, {
+          clerkId: clerkUserId,
+          name: params.name,
+          description: params.description,
+          instructions: params.instructions,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Create skill failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "skills_update",
+    "Update an existing skill when its playbook should change — e.g. after fixing a repeatable problem, refining steps, or improving an automation. Call skills_get first to read the current skill. Provide the skill's current exact name (case sensitive) plus at least one field to change. Use newName to rename; use enabled false to disable without deleting.",
+    {
+      name: z.string().describe("Current skill name (exact, case sensitive)"),
+      newName: z.string().optional().describe("New unique name (rename)"),
+      description: z
+        .string()
+        .optional()
+        .describe("Updated when-to-use description for the skills index"),
+      instructions: z.string().optional().describe("Updated markdown playbook"),
+      enabled: z
+        .boolean()
+        .optional()
+        .describe("Set false to disable the skill, true to re-enable"),
+    },
+    async (params) => {
+      const result = await safe("skills_update", () =>
+        ctx.runAction(internal.mcpSkills.mcpUpdateSkill, {
+          clerkId: clerkUserId,
+          name: params.name,
+          newName: params.newName,
+          description: params.description,
+          instructions: params.instructions,
+          enabled: params.enabled,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Update skill failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "wiki_list",
+    "List all wiki folders and documents (flat index, no body). Use returned ids with wiki_get. Call this before wiki_get or wiki_update when you do not already have a node id.",
+    {},
+    async () => {
+      const result = await safe("wiki_list", () =>
+        ctx.runAction(internal.mcpWiki.mcpListWiki, {
+          clerkId: clerkUserId,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Wiki list failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "wiki_get",
+    "Fetch a single wiki node by id. Returns metadata and contentMarkdown for documents. Call wiki_list first if you do not have the id.",
+    {
+      id: z.string().describe("Wiki node id from wiki_list"),
+    },
+    async (params) => {
+      const result = await safe("wiki_get", () =>
+        ctx.runAction(internal.mcpWiki.mcpGetWiki, {
+          clerkId: clerkUserId,
+          id: params.id,
+        }),
+      );
+      if (!result.ok) return errorContent(`Wiki get failed: ${result.message}`);
+      if (result.value === null) {
+        return errorContent("Wiki node not found");
+      }
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "wiki_search",
+    "Full-text search wiki titles and document bodies. Returns id, title, kind, and excerpt.",
+    {
+      query: z.string().describe("Search text"),
+    },
+    async (params) => {
+      const result = await safe("wiki_search", () =>
+        ctx.runAction(internal.mcpWiki.mcpSearchWiki, {
+          clerkId: clerkUserId,
+          query: params.query,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Wiki search failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "wiki_create",
+    "Create a wiki folder or document. Documents accept contentMarkdown stored as canonical markdown (same as the web editor). Optional parentId must be a folder id from wiki_list.",
+    {
+      kind: z.enum(["folder", "document"]).describe("folder or document"),
+      title: z.string().describe("Node title"),
+      parentId: z
+        .string()
+        .optional()
+        .describe("Parent folder id (omit for root)"),
+      contentMarkdown: z
+        .string()
+        .optional()
+        .describe("Initial markdown body (documents only)"),
+    },
+    async (params) => {
+      const result = await safe("wiki_create", () =>
+        ctx.runAction(internal.mcpWiki.mcpCreateWiki, {
+          clerkId: clerkUserId,
+          kind: params.kind,
+          title: params.title,
+          parentId: params.parentId,
+          contentMarkdown: params.contentMarkdown,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Wiki create failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "wiki_update",
+    "Update a wiki node by id. Optional title and/or contentMarkdown. contentMode append concatenates new markdown after existing body; replace (default) overwrites the body.",
+    {
+      id: z.string().describe("Wiki node id from wiki_list"),
+      title: z.string().optional().describe("New title"),
+      contentMarkdown: z
+        .string()
+        .optional()
+        .describe("Markdown body to write or append"),
+      contentMode: z
+        .enum(["replace", "append"])
+        .optional()
+        .describe("replace (default) or append when contentMarkdown is set"),
+    },
+    async (params) => {
+      const result = await safe("wiki_update", () =>
+        ctx.runAction(internal.mcpWiki.mcpUpdateWiki, {
+          clerkId: clerkUserId,
+          id: params.id,
+          title: params.title,
+          contentMarkdown: params.contentMarkdown,
+          contentMode: params.contentMode,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Wiki update failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebases_list",
+    "List GitHub repositories connected to vmem. Returns codebase IDs, repo names, sync status, and parser stats. Call this first to discover codebaseId values for the other codebase_* tools. Only repos with status 'synced' have graph data in Neo4j.",
+    {},
+    async () => {
+      const result = await safe("codebases_list", () =>
+        ctx.runAction(internal.mcpCodebases.mcpListCodebases, {
+          clerkId: clerkUserId,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`List codebases failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebase_overview",
+    "Get aggregate stats for a synced codebase: file, function, class, interface, and process counts plus CALLS and IMPORTS edge counts.",
+    {
+      codebaseId: z.string().describe("Codebase ID from codebases_list"),
+    },
+    async (params) => {
+      const result = await safe("codebase_overview", () =>
+        ctx.runAction(internal.mcpCodebases.mcpGetCodebaseOverview, {
+          clerkId: clerkUserId,
+          codebaseId: params.codebaseId,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Codebase overview failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebase_search",
+    "Search symbols (files, functions, classes, interfaces, processes) inside a synced codebase. Use the returned symbol id with codebase_context or codebase_impact.",
+    {
+      codebaseId: z.string().describe("Codebase ID from codebases_list"),
+      query: z.string().describe("Search text (name, path, or qualified name)"),
+      kind: codebaseSymbolKindSchema
+        .optional()
+        .describe("Optional symbol kind filter"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .optional()
+        .describe("Max results (default 20)"),
+    },
+    async (params) => {
+      const result = await safe("codebase_search", () =>
+        ctx.runAction(internal.mcpCodebases.mcpSearchCodebaseSymbols, {
+          clerkId: clerkUserId,
+          codebaseId: params.codebaseId,
+          query: params.query,
+          kind: params.kind,
+          limit: params.limit,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Codebase search failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebase_context",
+    "Get a symbol's metadata plus its direct CALLS relationships (callers and callees) and linked processes.",
+    {
+      codebaseId: z.string().describe("Codebase ID from codebases_list"),
+      symbolId: z
+        .string()
+        .describe("Symbol id from codebase_search or codebase_graph"),
+    },
+    async (params) => {
+      const result = await safe("codebase_context", () =>
+        ctx.runAction(internal.mcpCodebases.mcpGetCodebaseSymbolContext, {
+          clerkId: clerkUserId,
+          codebaseId: params.codebaseId,
+          symbolId: params.symbolId,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Codebase context failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebase_impact",
+    "Traverse CALLS edges upstream (callers) or downstream (callees) from a symbol to estimate blast radius.",
+    {
+      codebaseId: z.string().describe("Codebase ID from codebases_list"),
+      symbolId: z.string().describe("Starting symbol id"),
+      direction: codebaseImpactDirectionSchema.describe(
+        "upstream = who calls this symbol; downstream = what this symbol calls",
+      ),
+      depth: z
+        .number()
+        .int()
+        .min(1)
+        .max(6)
+        .optional()
+        .describe("Hop depth (default 3)"),
+    },
+    async (params) => {
+      const result = await safe("codebase_impact", () =>
+        ctx.runAction(internal.mcpCodebases.mcpGetCodebaseImpact, {
+          clerkId: clerkUserId,
+          codebaseId: params.codebaseId,
+          symbolId: params.symbolId,
+          direction: params.direction,
+          depth: params.depth,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Codebase impact failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "codebase_graph",
+    "Fetch a filtered subgraph of a synced codebase: nodes plus relationship edges (imports, calls, contains, extends, implements, process links). Response may be truncated on large repos — use kinds, processId, or blastRadiusOf to narrow scope.",
+    {
+      codebaseId: z.string().describe("Codebase ID from codebases_list"),
+      kinds: z
+        .array(codebaseSymbolKindSchema)
+        .optional()
+        .describe("Limit node kinds in the payload"),
+      processId: z
+        .string()
+        .optional()
+        .describe("Return only nodes/edges for one process"),
+      blastRadiusOf: z
+        .string()
+        .optional()
+        .describe("Center the graph on this symbol's blast radius"),
+      blastDirection: codebaseImpactDirectionSchema
+        .optional()
+        .describe("Direction when blastRadiusOf is set"),
+      blastDepth: z
+        .number()
+        .int()
+        .min(1)
+        .max(6)
+        .optional()
+        .describe("Hop depth when blastRadiusOf is set (default 2)"),
+    },
+    async (params) => {
+      const result = await safe("codebase_graph", () =>
+        ctx.runAction(internal.mcpCodebases.mcpGetCodebaseGraph, {
+          clerkId: clerkUserId,
+          codebaseId: params.codebaseId,
+          kinds: params.kinds,
+          processId: params.processId,
+          blastRadiusOf: params.blastRadiusOf,
+          blastDirection: params.blastDirection,
+          blastDepth: params.blastDepth,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Codebase graph failed: ${result.message}`);
       return textContent(jsonText(result.value));
     },
   );
