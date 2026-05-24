@@ -179,21 +179,30 @@ function screenToWorld(sx: number, sy: number): { x: number; y: number } {
 
 function buildSimulation(data: GraphPayload) {
   const count = data.nodes.length;
-  const radius = Math.max(120, Math.sqrt(count) * 28);
+  const radius = Math.max(200, Math.sqrt(count) * 42);
   graphNodes = data.nodes.map((n, i) => {
     const angle = (i / Math.max(count, 1)) * Math.PI * 2;
     return {
       id: n.id,
       title: n.title,
       tags: n.tags,
-      x: Math.cos(angle) * radius * 0.35,
-      y: Math.sin(angle) * radius * 0.35,
+      x: Math.cos(angle) * radius * 0.55,
+      y: Math.sin(angle) * radius * 0.55,
       vx: 0,
       vy: 0,
     };
   });
   relatesEdges = data.relatesToEdges;
   tagEdges = data.tagEdges;
+}
+
+function simulationParams(nodeCount: number) {
+  return {
+    repulsion: Math.min(1600, 650 + nodeCount * 10),
+    relatesDistance: 130,
+    tagDistance: 170,
+    centerPull: 0.008,
+  };
 }
 
 function nodeById(): Map<string, SimNode> {
@@ -203,8 +212,8 @@ function nodeById(): Map<string, SimNode> {
 function simulateStep() {
   const nodes = graphNodes;
   const byId = nodeById();
-  const repulsion = 420;
-  const centerPull = 0.02;
+  const { repulsion, relatesDistance, tagDistance, centerPull } =
+    simulationParams(nodes.length);
 
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
@@ -251,10 +260,10 @@ function simulateStep() {
   };
 
   for (const edge of relatesEdges) {
-    link(edge.source, edge.target, 0.08, 90);
+    link(edge.source, edge.target, 0.06, relatesDistance);
   }
   for (const edge of tagEdges) {
-    link(edge.source, edge.target, 0.04, 120);
+    link(edge.source, edge.target, 0.03, tagDistance);
   }
 
   for (const n of nodes) {
@@ -283,6 +292,36 @@ function paintCanvasBackground(w: number, h: number) {
     g.addColorStop(1, "transparent");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
+  }
+}
+
+const NODE_RADIUS = 5;
+const LABEL_FONT_PX = 9;
+const LABEL_MAX_WIDTH = 72;
+
+function truncateLabel(title: string, maxWidth: number): string {
+  if (ctx.measureText(title).width <= maxWidth) return title;
+  const ellipsis = "…";
+  let end = title.length;
+  while (end > 0) {
+    const candidate = `${title.slice(0, end)}${ellipsis}`;
+    if (ctx.measureText(candidate).width <= maxWidth) return candidate;
+    end -= 1;
+  }
+  return ellipsis;
+}
+
+function drawNodeLabels() {
+  if (zoom < 0.45) return;
+
+  ctx.font = `${LABEL_FONT_PX}px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`;
+  ctx.fillStyle = canvasTheme.label;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+
+  for (const n of graphNodes) {
+    const label = truncateLabel(n.title, LABEL_MAX_WIDTH);
+    ctx.fillText(label, n.x, n.y + NODE_RADIUS + 3);
   }
 }
 
@@ -340,27 +379,19 @@ function draw() {
   const showGlow = graphNodes.length <= 120 && zoom >= 0.5;
   if (showGlow) {
     for (const n of graphNodes) {
-      drawNodeGlow(n, nodeColor(n.tags), 7);
+      drawNodeGlow(n, nodeColor(n.tags), NODE_RADIUS);
     }
   }
 
   for (const n of graphNodes) {
-    const r = 7;
     const color = nodeColor(n.tags);
     ctx.beginPath();
     ctx.fillStyle = color;
-    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+    ctx.arc(n.x, n.y, NODE_RADIUS, 0, Math.PI * 2);
     ctx.fill();
-    if (zoom >= 0.85) {
-      const label = n.title.length > 28 ? `${n.title.slice(0, 28)}…` : n.title;
-      ctx.font =
-        '11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
-      ctx.fillStyle = canvasTheme.label;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.fillText(label, n.x, n.y + r + 4);
-    }
   }
+
+  drawNodeLabels();
 
   ctx.restore();
 }
@@ -378,7 +409,7 @@ function fitToView() {
     maxY = Math.max(maxY, n.y);
   }
   const rect = canvas.getBoundingClientRect();
-  const padding = 48;
+  const padding = 64;
   const graphW = Math.max(maxX - minX, 40);
   const graphH = Math.max(maxY - minY, 40);
   const scaleX = (rect.width - padding * 2) / graphW;
@@ -403,7 +434,7 @@ function zoomBy(factor: number) {
 }
 
 function runSimulation() {
-  for (let i = 0; i < 80; i++) simulateStep();
+  for (let i = 0; i < 140; i++) simulateStep();
   fitToView();
   draw();
 }
@@ -412,7 +443,7 @@ function startLoop() {
   if (animationFrame) cancelAnimationFrame(animationFrame);
   let ticks = 0;
   const tick = () => {
-    if (ticks < 30) {
+    if (ticks < 50) {
       simulateStep();
       draw();
       ticks += 1;
