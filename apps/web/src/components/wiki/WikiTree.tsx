@@ -9,18 +9,18 @@ import {
   IconFolder,
   IconFolderOpen,
   IconFileText,
-  IconPlus,
   IconFolderPlus,
   IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
 import {
-  Button,
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
+  Label,
+  Switch,
   cn,
 } from "@vmem/ui";
 import type { WikiTreeNode } from "./_utils";
@@ -31,6 +31,10 @@ interface WikiTreeProps {
   tree: WikiTreeNode[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  outlineVisible: boolean;
+  onOutlineVisibleChange: (visible: boolean) => void;
+  hasDoc: boolean;
+  wordCount: number;
 }
 
 /**
@@ -44,6 +48,10 @@ export default function WikiTree({
   tree,
   selectedId,
   onSelect,
+  outlineVisible,
+  onOutlineVisibleChange,
+  hasDoc,
+  wordCount,
 }: WikiTreeProps) {
   const createNode = useMutation(api.wiki.createNode);
   const renameNode = useMutation(api.wiki.renameNode);
@@ -54,17 +62,6 @@ export default function WikiTree({
   );
   const [deleteTarget, setDeleteTarget] = useState<Doc<"wikiNodes"> | null>(
     null,
-  );
-
-  const handleCreateRoot = useCallback(
-    async (kind: "folder" | "document") => {
-      const title = kind === "folder" ? "Untitled folder" : "Untitled";
-      const newId = await createNode({ parentId: undefined, kind, title });
-      if (kind === "document") {
-        onSelect(newId);
-      }
-    },
-    [createNode, onSelect],
   );
 
   const handleCreateInFolder = useCallback(
@@ -79,51 +76,55 @@ export default function WikiTree({
   );
 
   return (
-    <div className="flex flex-col min-h-0">
-      <div className="flex items-center justify-between mb-2 px-1">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          Documents
-        </span>
-        <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => void handleCreateRoot("folder")}
-            title="New folder"
-          >
-            <IconFolder size={14} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => void handleCreateRoot("document")}
-            title="New document"
-          >
-            <IconPlus size={14} />
-          </Button>
-        </div>
+    <div className="flex flex-col min-h-0 flex-1 w-full">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+        {tree.length === 0 ? (
+          <p className="px-2 py-3 text-xs text-muted-foreground">
+            No documents yet. Use + in the header to create one.
+          </p>
+        ) : (
+          <ul className="flex flex-col">
+            {tree.map((item) => (
+              <TreeItem
+                key={item.node._id}
+                item={item}
+                depth={0}
+                selectedId={selectedId}
+                onSelect={onSelect}
+                onCreateInside={handleCreateInFolder}
+                onRequestRename={setRenameTarget}
+                onRequestDelete={setDeleteTarget}
+              />
+            ))}
+          </ul>
+        )}
       </div>
 
-      {tree.length === 0 ? (
-        <p className="px-2 py-3 text-xs text-muted-foreground">
-          No documents yet. Click + to create one.
-        </p>
-      ) : (
-        <ul className="flex flex-col">
-          {tree.map((item) => (
-            <TreeItem
-              key={item.node._id}
-              item={item}
-              depth={0}
-              selectedId={selectedId}
-              onSelect={onSelect}
-              onCreateInside={handleCreateInFolder}
-              onRequestRename={setRenameTarget}
-              onRequestDelete={setDeleteTarget}
-            />
-          ))}
-        </ul>
-      )}
+      <div className="flex items-center justify-between gap-2 mt-2 px-1 pt-2 shrink-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <Switch
+            id="wiki-view-outline"
+            checked={outlineVisible}
+            disabled={!hasDoc}
+            onCheckedChange={onOutlineVisibleChange}
+            aria-label="View outline"
+          />
+          <Label
+            htmlFor="wiki-view-outline"
+            className={cn(
+              "cursor-pointer text-sm font-medium",
+              hasDoc ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            View outline
+          </Label>
+        </div>
+        {hasDoc ? (
+          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+            {wordCount.toLocaleString()} {wordCount === 1 ? "word" : "words"}
+          </span>
+        ) : null}
+      </div>
 
       <RenameDialog
         target={renameTarget}
@@ -188,10 +189,10 @@ function TreeItem({
             type="button"
             onClick={handleActivate}
             className={cn(
-              "group w-full flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
-              "hover:bg-muted/70",
-              isSelected && "bg-muted text-foreground",
-              !isSelected && "text-foreground/80",
+              "group w-full flex items-center gap-1.5 rounded-xl px-3 py-2 text-left text-sm transition-[background-color]",
+              isSelected
+                ? "bg-muted/80 text-foreground"
+                : "text-foreground/80 hover:bg-muted/40",
             )}
             style={{ paddingLeft: `${depth * 12 + 8}px` }}
           >

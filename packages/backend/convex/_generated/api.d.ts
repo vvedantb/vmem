@@ -13,6 +13,9 @@ import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as codebaseSymbols from "../codebaseSymbols.js";
+import type * as codebaseSync from "../codebaseSync.js";
+import type * as codebaseSyncActions from "../codebaseSyncActions.js";
+import type * as codebaseSyncConstants from "../codebaseSyncConstants.js";
 import type * as codebases from "../codebases.js";
 import type * as connectorOAuth from "../connectorOAuth.js";
 import type * as connectorSync from "../connectorSync.js";
@@ -21,6 +24,7 @@ import type * as connectors from "../connectors.js";
 import type * as contextPromptActions from "../contextPromptActions.js";
 import type * as contextPromptApi from "../contextPromptApi.js";
 import type * as contextPromptCache from "../contextPromptCache.js";
+import type * as crons from "../crons.js";
 import type * as dashboardApi from "../dashboardApi.js";
 import type * as dreamMode from "../dreamMode.js";
 import type * as dreamSchedule from "../dreamSchedule.js";
@@ -38,14 +42,20 @@ import type * as http_v1Memories_schemas from "../http/v1Memories/schemas.js";
 import type * as http_v1Memories_store from "../http/v1Memories/store.js";
 import type * as http_v1Memories_types from "../http/v1Memories/types.js";
 import type * as http_v1Memories_update from "../http/v1Memories/update.js";
+import type * as lib_bearerToken from "../lib/bearerToken.js";
+import type * as lib_contextPromptInvalidate from "../lib/contextPromptInvalidate.js";
 import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_envVars from "../lib/envVars.js";
 import type * as lib_openRouter from "../lib/openRouter.js";
+import type * as lib_openRouter_bestEffortEmbed from "../lib/openRouter/bestEffortEmbed.js";
 import type * as lib_openRouter_chat from "../lib/openRouter/chat.js";
 import type * as lib_openRouter_embedding from "../lib/openRouter/embedding.js";
 import type * as lib_openRouter_shared from "../lib/openRouter/shared.js";
+import type * as lib_wikiContent from "../lib/wikiContent.js";
+import type * as mcpCodebases from "../mcpCodebases.js";
 import type * as mcpProfiles from "../mcpProfiles.js";
 import type * as mcpSkills from "../mcpSkills.js";
+import type * as mcpWiki from "../mcpWiki.js";
 import type * as mcp_native from "../mcp/native.js";
 import type * as mcp_nodeActions from "../mcp/nodeActions.js";
 import type * as mcp_oauth from "../mcp/oauth.js";
@@ -117,6 +127,7 @@ import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
 import type * as wiki from "../wiki.js";
+import type * as workflow from "../workflow.js";
 
 import type {
   ApiFromModules,
@@ -130,6 +141,9 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   chat: typeof chat;
   codebaseSymbols: typeof codebaseSymbols;
+  codebaseSync: typeof codebaseSync;
+  codebaseSyncActions: typeof codebaseSyncActions;
+  codebaseSyncConstants: typeof codebaseSyncConstants;
   codebases: typeof codebases;
   connectorOAuth: typeof connectorOAuth;
   connectorSync: typeof connectorSync;
@@ -138,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   contextPromptActions: typeof contextPromptActions;
   contextPromptApi: typeof contextPromptApi;
   contextPromptCache: typeof contextPromptCache;
+  crons: typeof crons;
   dashboardApi: typeof dashboardApi;
   dreamMode: typeof dreamMode;
   dreamSchedule: typeof dreamSchedule;
@@ -155,14 +170,20 @@ declare const fullApi: ApiFromModules<{
   "http/v1Memories/store": typeof http_v1Memories_store;
   "http/v1Memories/types": typeof http_v1Memories_types;
   "http/v1Memories/update": typeof http_v1Memories_update;
+  "lib/bearerToken": typeof lib_bearerToken;
+  "lib/contextPromptInvalidate": typeof lib_contextPromptInvalidate;
   "lib/crypto": typeof lib_crypto;
   "lib/envVars": typeof lib_envVars;
   "lib/openRouter": typeof lib_openRouter;
+  "lib/openRouter/bestEffortEmbed": typeof lib_openRouter_bestEffortEmbed;
   "lib/openRouter/chat": typeof lib_openRouter_chat;
   "lib/openRouter/embedding": typeof lib_openRouter_embedding;
   "lib/openRouter/shared": typeof lib_openRouter_shared;
+  "lib/wikiContent": typeof lib_wikiContent;
+  mcpCodebases: typeof mcpCodebases;
   mcpProfiles: typeof mcpProfiles;
   mcpSkills: typeof mcpSkills;
+  mcpWiki: typeof mcpWiki;
   "mcp/native": typeof mcp_native;
   "mcp/nodeActions": typeof mcp_nodeActions;
   "mcp/oauth": typeof mcp_oauth;
@@ -234,6 +255,7 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   validators: typeof validators;
   wiki: typeof wiki;
+  workflow: typeof workflow;
 }>;
 
 /**
@@ -267,5 +289,6 @@ export declare const components: {
   actionRetrier: import("@convex-dev/action-retrier/_generated/component.js").ComponentApi<"actionRetrier">;
   actionCache: import("@convex-dev/action-cache/_generated/component.js").ComponentApi<"actionCache">;
   crons: import("@convex-dev/crons/_generated/component.js").ComponentApi<"crons">;
+  workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
   auditLog: import("convex-audit-log/_generated/component.js").ComponentApi<"auditLog">;
 };

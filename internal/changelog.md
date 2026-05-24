@@ -1,5 +1,114 @@
 # Changelog
 
+## Skills detail panel scroll — 2026-05-24
+
+- **Contained scroll**: Skills detail view scrolls inside the panel (`noScroll` layout + `scrollbar-thin`), not the whole page.
+
+## Fix MCP memory_retrieve embed ctx — 2026-05-24
+
+- **Bug**: `tryEmbedOne`/`tryEmbedMany` were aliased to `bestEffortEmbed*` but callers still used `(ctx, args)`; `ctx` was undefined inside embed auth → `runQuery` crash on `memory_retrieve`, `memory_add`, and chunk embedding.
+- **Fix**: Wrapper functions in `memories/shared.ts` pass `{ ctx, ...args }` correctly; Vitest guards against re-aliasing.
+- **Also**: MCP skill get/update trim names on lookup (matches create).
+
+## MCP skills_create & skills_update — 2026-05-23
+
+- **`skills_create`**: Agents create skills when a repeatable problem or automatable workflow has no matching skill yet (`skills_list` / context prompt first).
+- **`skills_update`**: Patch an existing skill by current name — description, instructions, rename (`newName`), or disable (`enabled: false`).
+- **Context prompt**: Create/update invalidates context prompt cache; MCP prompt text guides when to create vs update.
+
+## Backend Code-Structure Refactor — 2026-05-23
+
+- **Best-effort embeddings**: Shared `bestEffortEmbed*` helpers replace duplicated OpenRouter try/catch blocks in memory actions and connector sync.
+- **Context prompt invalidation**: Single `scheduleContextPromptInvalidationByClerkId` path; memory handlers re-export it.
+- **Dedup hits**: `finalizeDedupHit` consolidates visit-count bump + reload after content-hash / URL / embedding matches.
+- **Profile defaults**: List and search memory actions resolve default profile like retrieve already did.
+- **Team search**: `searchMemoriesForTeam` delegates to `listMemoriesForTeam` with fulltext + filters and correct `total`.
+
+## Behavior Test Suite — 2026-05-23
+
+- **Vitest coverage**: Backend and web unit tests for chunking, LLM response parsers (V2 + enrichment), retrieval ranking, URL/hash dedup, list/memory filters, bearer auth, and API key hashing.
+- **Convex isolation tests**: `convex-test` verifies unauthenticated access fails and user-owned skills cannot cross tenants.
+- **Retrieval regression hook**: Shared eval metrics plus opt-in live Neo4j suite (`pnpm test:retrieval` after `pnpm db:seed:eval`).
+- **Run via** `pnpm test` from repo root.
+
+## Wiki Markdown Storage — 2026-05-23
+
+- **Markdown is canonical**: Wiki documents store markdown in `content` (eva-style); TipTap is edit-time only in the web app.
+- **MCP simplified**: Wiki tools read/write markdown directly — no server-side JSON conversion.
+- **Search mirror**: `contentText` remains a derived plain-text field for Convex full-text search.
+
+## Wiki MCP Tools — 2026-05-23
+
+- **Wiki CRUD via MCP**: Five tools (`wiki_list`, `wiki_get`, `wiki_search`, `wiki_create`, `wiki_update`) let agents browse and edit the personal wiki without the web UI.
+- **Markdown on write**: MCP accepts and stores markdown; the web editor loads the same string via `@tiptap/markdown`.
+- **Append mode**: `wiki_update` supports `contentMode: append` to concatenate new markdown after the existing body.
+
+## Extension System Prompt Copy — 2026-05-23
+
+- **Copy vmem prompt**: Chrome extension adds a button on Claude (chat header), ChatGPT (Personalization settings), and the popup Settings tab to copy the recommended vmem system prompt to the clipboard.
+- **Agent-agnostic copy**: UI and toasts refer to "AI agent system prompt" — no per-product setup instructions in the extension.
+
+## Skills Discovery & Prompt Injection — 2026-05-23
+
+- **Skills index in every conversation**: Enabled skills (name + description) are injected into MCP `vmem://context_prompt`, local chat, voice, and mobile system prompts so agents can discover them without already knowing a skill name.
+- **Lazy full instructions**: MCP clients load markdown via `skills_get`; local chat auto-loads instructions when the user message mentions a skill by name.
+- **Cache invalidation on skill changes**: Creating, updating, or deleting a skill marks the context prompt stale (same 60s debounce as memory writes).
+
+## Codebase Sync Reliability — 2026-05-24
+
+- **Large-repo sync (eva)**: GitHub tarball download replaces hundreds of per-file API calls; fetch + parse + write run in one action so nested timeouts and lost errors no longer break big repos.
+- **Stuck sync recovery**: `syncStartedAt` plus stale-fetch detection lets retries proceed when a sync dies mid-fetch; daily cron can pick up abandoned `syncing` rows after 20 minutes.
+- **Neo4j auto-provision**: First codebase sync creates missing indexes/constraints (checks `code_symbol_search`) — no manual `ensureNeo4jSetup` on fresh databases.
+- **Clearer failures**: Sync errors surface real messages instead of "Unknown sync error"; success toasts say "eva synced" after completion, not "Syncing…".
+- **MCP E2E harness**: `scripts/test-vmem-mcp.mjs` runs 3×16 tool rounds; report in `MCP-E2E-RESULTS.md`.
+
+## Daily Codebase Sync — 2026-05-23
+
+- **Automatic graph refresh**: Connected GitHub repos re-sync once per day (04:00 UTC) so MCP and canvas views stay current without manual Re-sync.
+- **Durable orchestration**: Each repository sync runs as its own Convex Workflow step, so large repos get a full action timeout instead of sharing one limit across a batch.
+- **Stale-only scheduling**: Skips repos synced within the last 24 hours, repos already syncing, and users without GitHub connected — avoids redundant GitHub API and parse work.
+- **Shared sync path**: Manual sync, sync-all, and the cron all call the same internal action; failures record on the codebase row without aborting the rest of the daily run.
+- **Workflow component**: `@convex-dev/workflow` added to the backend; kickoff is `internal.codebaseSync.kickoffDailyCodebaseSync` for manual runs from the dashboard.
+
+## Codebase MCP Tools — 2026-05-23
+
+- **MCP codebase access**: Agents can list connected repos and query synced code graphs — search symbols, read call relationships, blast radius, and filtered subgraphs via six new tools.
+- **Neo4j limit fix**: MCP search no longer fails when `limit` arrives as a float (e.g. `25.0`); integer params are coerced before Cypher `LIMIT`.
+
+## AI Logs Page Polish — 2026-05-23
+
+- **Overview cards**: Instrument Serif metrics, tonal stat cards, and 7-day sparklines for cost, tokens, latency, and success rate.
+- **Call list**: Card-style rows with section header and count; improved empty and loading states aligned with API usage.
+
+## Home Dashboard Polish — 2026-05-23
+
+- **Dashboard stats**: Tonal stat cards with Instrument Serif numbers, 7-day sparklines on total and daily adds, and an "Added today" metric.
+- **Growth chart**: Cleaner bar chart on muted surfaces without divider borders; empty state when there is no data yet.
+- **Activity & shortcuts**: Card-style recent activity rows and quick actions with background-only hovers; layout skeleton while loading.
+
+## API Usage & Connectors Polish — 2026-05-23
+
+- **API usage dashboard**: Summary cards use tonal surfaces, real 7-day trend charts from your logs, and a card-based request list instead of a bordered table.
+- **Connectors**: Removed redundant Connected badge when Disconnect is already shown.
+
+## GitHub Connection in Connectors — 2026-05-23
+
+- **Connectors owns GitHub auth**: GitHub username and connect/disconnect live on the GitHub card in Settings → Connectors; the connectors page lists all sources so GitHub is always reachable.
+- **Codebases stays focused on repos**: The codebases page only adds repositories; when GitHub is not linked it points users to Connectors instead.
+- **OAuth return path**: After GitHub sign-in, you land back on the page that started the flow (e.g. Connectors), not always Codebases.
+
+## Wiki, Skills & Codebases UX — 2026-05-23
+
+- **Wiki outline toggle**: "View outline" switch in the document tree replaces the right-pane header and collapse strip; outline is hidden by default.
+- **Skills search**: Search bar above the skills list filters by name and description.
+- **Codebase cards**: Drop the redundant Synced badge when sync time is already shown; private repos use a lock icon only.
+
+## Skills URL Routing — 2026-05-23
+
+- **Shareable skill URLs**: The selected skill lives at `/skills/[id]` so links, refresh, and browser history work instead of in-page-only state.
+- **Auto-open first skill**: Visiting `/skills` redirects to the first skill when any exist.
+- **Simpler panel chrome**: Removed the panel close control; pick another skill from the list to switch.
+
 ## Skills Enable & Panel Actions — 2026-05-23
 
 - **Enable toggle**: View panel header switch turns a skill on or off without opening the edit modal.

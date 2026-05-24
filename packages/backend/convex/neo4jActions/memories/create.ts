@@ -15,9 +15,8 @@ import {
   findMemoryByExternalId,
   findMemoryBySimilarity,
   findMemoryByTitleAndOrigin,
+  finalizeDedupHit,
   findMemoryByUrl,
-  getMemory,
-  incrementVisitCount,
   type MemoryWithTags,
 } from "../../../src/neo4j/memoryService";
 import { getDriver } from "../../../src/neo4j/driver";
@@ -104,8 +103,7 @@ export async function runCreateMemory(
       args.externalId,
     );
     if (existing) {
-      await incrementVisitCount(driver, args.clerkId, existing.id);
-      const full = await getMemory(driver, args.clerkId, existing.id);
+      const full = await finalizeDedupHit(driver, args.clerkId, existing.id);
       if (full) return full;
     }
   }
@@ -114,8 +112,7 @@ export async function runCreateMemory(
   if (normalizedUrl) {
     const existing = await findMemoryByUrl(driver, args.clerkId, normalizedUrl);
     if (existing) {
-      await incrementVisitCount(driver, args.clerkId, existing.id);
-      const full = await getMemory(driver, args.clerkId, existing.id);
+      const full = await finalizeDedupHit(driver, args.clerkId, existing.id);
       if (full) return full;
     }
   }
@@ -133,8 +130,11 @@ export async function runCreateMemory(
         origin,
       );
       if (titleMatch) {
-        await incrementVisitCount(driver, args.clerkId, titleMatch.id);
-        const full = await getMemory(driver, args.clerkId, titleMatch.id);
+        const full = await finalizeDedupHit(
+          driver,
+          args.clerkId,
+          titleMatch.id,
+        );
         if (full) return full;
       }
     } catch {
@@ -152,8 +152,7 @@ export async function runCreateMemory(
     contentHash,
   );
   if (hashMatch) {
-    await incrementVisitCount(driver, args.clerkId, hashMatch.id);
-    const full = await getMemory(driver, args.clerkId, hashMatch.id);
+    const full = await finalizeDedupHit(driver, args.clerkId, hashMatch.id);
     if (full) return full;
   }
 
@@ -182,8 +181,11 @@ export async function runCreateMemory(
       console.log(
         `[dedup] semantic near-duplicate (similarity=${semanticMatch.similarity.toFixed(3)}) → ${semanticMatch.id}`,
       );
-      await incrementVisitCount(driver, args.clerkId, semanticMatch.id);
-      const full = await getMemory(driver, args.clerkId, semanticMatch.id);
+      const full = await finalizeDedupHit(
+        driver,
+        args.clerkId,
+        semanticMatch.id,
+      );
       if (full) return full;
     }
   }

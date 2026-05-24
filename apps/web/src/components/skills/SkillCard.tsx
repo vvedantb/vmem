@@ -2,7 +2,6 @@
 
 import type { KeyboardEvent } from "react";
 import type { Doc } from "@vmem/backend";
-import { IconBolt } from "@tabler/icons-react";
 import { cn } from "@vmem/ui";
 
 interface SkillCardProps {
@@ -12,6 +11,8 @@ interface SkillCardProps {
 }
 
 export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
+  const isEnabled = skill.enabled !== false;
+
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -23,6 +24,7 @@ export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
     <div
       role="button"
       tabIndex={0}
+      aria-label={`${skill.name}, ${isEnabled ? "active" : "disabled"}`}
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
@@ -30,19 +32,17 @@ export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
         selected ? "bg-muted/80" : "hover:bg-muted/40",
       )}
     >
-      <IconBolt
-        size={16}
+      <span
+        aria-hidden
         className={cn(
-          "shrink-0",
-          skill.enabled === false
-            ? "text-muted-foreground/50"
-            : "text-muted-foreground",
+          "size-2 shrink-0 rounded-full",
+          isEnabled ? "bg-emerald-500" : "bg-muted-foreground/50",
         )}
       />
       <span
         className={cn(
-          "truncate text-sm font-semibold",
-          skill.enabled === false ? "text-muted-foreground" : "text-foreground",
+          "min-w-0 truncate text-sm font-semibold",
+          isEnabled ? "text-foreground" : "text-muted-foreground",
         )}
       >
         {skill.name}

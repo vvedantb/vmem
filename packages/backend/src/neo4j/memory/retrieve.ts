@@ -510,15 +510,38 @@ function buildReasons(
   return reasons;
 }
 
+const FULLTEXT_SIGNAL_THRESHOLD = 1.0;
+const VECTOR_SIGNAL_THRESHOLD = 0.72;
+const CHUNK_SIGNAL_THRESHOLD = 0.5;
+
+function hasStrongDirectMatch(entry: MergedEntry): boolean {
+  if (
+    entry.ftRank !== null &&
+    entry.fulltextScore > FULLTEXT_SIGNAL_THRESHOLD
+  ) {
+    return true;
+  }
+  if (entry.vecRank !== null && entry.vectorScore > VECTOR_SIGNAL_THRESHOLD) {
+    return true;
+  }
+  if (entry.chunkRank !== null && entry.chunkScore > CHUNK_SIGNAL_THRESHOLD) {
+    return true;
+  }
+  if (entry.entityRank !== null && entry.entityScore > 0) {
+    return true;
+  }
+  return false;
+}
+
 function scoreEntry(
   entry: MergedEntry,
   queryEmbedding: number[] | null,
 ): MemoryCandidate {
   const rrfCombined = computeRrf(entry);
-  const totalScore =
-    rrfCombined * 0.55 +
-    entry.recencyScore * 0.225 +
-    entry.confidenceScore * 0.225;
+  const signalBoost = hasStrongDirectMatch(entry)
+    ? entry.recencyScore * 0.225 + entry.confidenceScore * 0.225
+    : 0;
+  const totalScore = rrfCombined * 0.55 + signalBoost;
 
   const reasons = buildReasons(entry, queryEmbedding);
   const scoreBreakdown: ScoreBreakdown = {
@@ -756,7 +779,7 @@ export async function retrieveMemories(
   driver: Driver,
   params: RetrieveParams,
 ): Promise<MemoryCandidate[]> {
-  const legLimit = params.limit * 2;
+  const legLimit = Math.max(params.limit * 4, 20);
   const queryEmbeddings = await queryEmbeddingsForRetrieval(params);
 
   const [ftResult, vectorRanked, chunkRanked, entityRanked] = await Promise.all(

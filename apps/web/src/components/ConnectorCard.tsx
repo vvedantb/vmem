@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import {
   Card,
   CardContent,
@@ -15,7 +15,6 @@ import {
 } from "@vmem/ui";
 import { toast } from "sonner";
 import {
-  IconCheck,
   IconLoader2,
   IconRefresh,
   IconAlertCircle,
@@ -25,6 +24,7 @@ import {
 } from "@tabler/icons-react";
 import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
+import { GitHubConnectorControls } from "./settings/GitHubConnectorControls";
 import {
   GoogleDriveIcon,
   OneDriveIcon,
@@ -77,10 +77,18 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
   const disconnectAction = useAction(api.connectorOAuth.disconnect);
   const startSyncAction = useAction(api.connectorSync.startSync);
 
+  const isGitHub = connector.name === "GitHub";
+  const githubConnection = useQuery(
+    api.github.getConnection,
+    isGitHub ? {} : "skip",
+  );
+
   const Icon = iconMap[connector.icon] || GoogleDriveIcon;
-  const isConnected = connector.connectionStatus === "connected";
-  const isSyncing = connector.syncStatus === "syncing";
-  const hasProvider = !!connector.provider;
+  const isConnected = isGitHub
+    ? githubConnection !== undefined && githubConnection !== null
+    : connector.connectionStatus === "connected";
+  const isSyncing = !isGitHub && connector.syncStatus === "syncing";
+  const hasProvider = isGitHub || !!connector.provider;
 
   const handleConnect = () => {
     if (!hasProvider) {
@@ -136,12 +144,6 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                 <h3 className="font-medium text-foreground">
                   {connector.name}
                 </h3>
-                {isConnected && (
-                  <Badge className="bg-primary/5 dark:bg-card/10 text-muted-foreground gap-1">
-                    <IconCheck size={12} stroke={2} />
-                    Connected
-                  </Badge>
-                )}
                 {!hasProvider && !isConnected && (
                   <Badge className="bg-muted text-muted-foreground gap-1">
                     <IconClockHour4 size={12} stroke={2} />
@@ -169,7 +171,16 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                 {connector.description}
               </p>
 
-              {isConnected && (
+              {isGitHub && githubConnection ? (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Connected as{" "}
+                  <span className="font-medium text-foreground">
+                    {githubConnection.githubUsername}
+                  </span>
+                </p>
+              ) : null}
+
+              {isConnected && !isGitHub && (
                 <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <IconClock size={14} />
@@ -202,7 +213,9 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
           </div>
 
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            {isConnected ? (
+            {isGitHub ? (
+              <GitHubConnectorControls connection={githubConnection} />
+            ) : isConnected ? (
               <>
                 {isLinear ? (
                   // Split-button: primary fires "Sync recent (30d)" directly;
@@ -297,7 +310,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
         </CardContent>
       </Card>
 
-      {hasProvider && (
+      {hasProvider && !isGitHub && (
         <OAuthModal
           isOpen={showOAuthModal}
           onClose={() => setShowOAuthModal(false)}

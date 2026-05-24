@@ -56,6 +56,7 @@ export {
   findMemoryBySimilarity,
   findMemoryByTitleAndOrigin,
   findMemoryByUrl,
+  finalizeDedupHit,
   getMemory,
   incrementVisitCount,
   listMemories,

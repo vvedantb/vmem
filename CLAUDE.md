@@ -45,6 +45,12 @@ Convex:
 Neo4j:
 
 - Never run parallel `session.run()` calls on the same session — use separate sessions for concurrent queries
+- Cypher integer params (`LIMIT`, `SKIP`, hop depth, etc.) must use `neo4j.int()` after `Math.trunc` — MCP/JSON/Convex hops can pass floats like `25.0` and Neo4j rejects them. Use `clampNeo4jLimit()` / `toNeo4jIntParam()` from `packages/backend/src/neo4j/intParams.ts` (see `intParams.test.ts`)
+- Indexes/constraints auto-provision on first codebase sync via `ensureNeo4jSetupIfNeeded` (checks `code_symbol_search` index). Manual full re-run after new indexes ship: `npx convex run internal.neo4jActions.dbSetup.ensureNeo4jSetup`
+
+Codebases:
+
+- Global daily sync: `convex/crons.ts` → `codebaseSync.dailyCodebaseSyncWorkflow` via `@convex-dev/workflow` (one `syncOneCodebaseInternal` step per repo, full action timeout each). Stale = `lastSyncedAt` older than 24h; skips `syncing` and users without GitHub.
 
 Profiles:
 
@@ -53,6 +59,15 @@ Profiles:
 - Dashboard stats, sidebar stats, activity feed always show user-wide totals (not filtered by profile)
 - Profile filter uses nuqs like other filters (tags, sources, types) — persists to URL for shareability
 - Switching profiles in save forms changes which profile new memories are saved to
+
+Skills:
+
+- Push model (Claude-like): enabled skills index (name + description) is injected into MCP `vmem://context_prompt`, local chat, voice, and mobile system prompts via `buildSkillsIndexAddition` in `packages/backend/src/memoryRagPrompt.ts`
+- Full instructions are lazy: MCP clients call `skills_get`; local chat loads instructions when the user message mentions a skill by name (`findSkillsReferencedInMessage`)
+- Skill CRUD invalidates `contextPromptCache` (same 60s debounce as memory writes)
+- `skills_list` MCP tool returns index only (no instructions)
+- `skills_create` MCP tool: use when a repeatable problem or automatable workflow was identified and no existing skill covers it (check context prompt / `skills_list` first)
+- `skills_update` MCP tool: patch an existing skill by current name (`skills_get` first); at least one of newName, description, instructions, enabled
 
 FOLLOW ALL OF THESE RULES
 

@@ -1,34 +1,44 @@
 "use client";
 
+import type { TablerIcon } from "@tabler/icons-react";
+import { IconActivity, IconCircleCheck, IconClock } from "@tabler/icons-react";
+import { cn } from "@vmem/ui";
 import { formatDuration } from "@/lib/formatters";
+import { hasTrendActivity, type ApiUsageTrends } from "./_utils";
 
 interface ApiLogsSummaryProps {
   totalRequests: number;
   successRate: number;
   avgResponseMs: number;
+  trends: ApiUsageTrends;
 }
-
-const mockRequestsTrend = [120, 145, 132, 168, 155, 190, 178, 210, 195, 230];
-const mockSuccessRateTrend = [
-  98.2, 97.8, 99.1, 98.5, 99.3, 98.9, 99.5, 99.2, 98.7, 99.4,
-];
-const mockResponseTimeTrend = [
-  142, 135, 158, 128, 145, 132, 120, 138, 125, 118,
-];
 
 function Sparkline({
   data,
-  color,
-  fillColor,
+  strokeClassName,
+  fillClassName,
 }: {
-  data: Array<number>;
-  color: string;
-  fillColor: string;
+  data: number[];
+  strokeClassName: string;
+  fillClassName: string;
 }) {
-  const width = 200;
-  const height = 48;
-  const padding = 2;
+  if (!hasTrendActivity(data)) {
+    return (
+      <div aria-hidden className="flex h-10 items-end gap-0.5 opacity-40">
+        {data.map((_, index) => (
+          <span
+            key={index}
+            className="flex-1 rounded-sm bg-muted-foreground/20"
+            style={{ height: 4 }}
+          />
+        ))}
+      </div>
+    );
+  }
 
+  const width = 200;
+  const height = 40;
+  const padding = 2;
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
@@ -46,14 +56,16 @@ function Sparkline({
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="w-full h-12"
+      className="h-10 w-full"
       preserveAspectRatio="none"
+      aria-hidden
     >
-      <path d={areaPath} fill={fillColor} />
+      <path d={areaPath} className={fillClassName} />
       <path
         d={linePath}
         fill="none"
-        stroke={color}
+        stroke="currentColor"
+        className={strokeClassName}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -65,34 +77,43 @@ function Sparkline({
 function SummaryCard({
   label,
   value,
-  className,
+  icon: Icon,
+  valueClassName,
   trendData,
-  chartColor,
-  chartFillColor,
+  strokeClassName,
+  fillClassName,
 }: {
   label: string;
   value: string;
-  className?: string;
-  trendData: Array<number>;
-  chartColor: string;
-  chartFillColor: string;
+  icon: TablerIcon;
+  valueClassName?: string;
+  trendData: number[];
+  strokeClassName: string;
+  fillClassName: string;
 }) {
   return (
-    <div className="p-4 sm:p-8 rounded-xl border border-border bg-muted/50 flex flex-col gap-3 sm:gap-4">
-      <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider">
-        {label}
-      </p>
+    <div className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-muted/40 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60">
+          <Icon size={16} className="text-muted-foreground" stroke={1.5} />
+        </div>
+      </div>
       <p
-        className={`text-2xl sm:text-4xl font-bold ${className ?? "text-foreground"}`}
+        className={cn(
+          "font-instrumentSerif text-3xl leading-none tabular-nums text-foreground",
+          valueClassName,
+        )}
       >
         {value}
       </p>
-      <div className="mt-auto">
+      <div className="mt-auto pt-1">
         <Sparkline
           data={trendData}
-          color={chartColor}
-          fillColor={chartFillColor}
+          strokeClassName={strokeClassName}
+          fillClassName={fillClassName}
         />
+        <p className="mt-1.5 text-[11px] text-muted-foreground">Last 7 days</p>
       </div>
     </div>
   );
@@ -102,30 +123,34 @@ export function ApiLogsSummary({
   totalRequests,
   successRate,
   avgResponseMs,
+  trends,
 }: ApiLogsSummaryProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
       <SummaryCard
-        label="Total Requests"
+        label="Total requests"
         value={totalRequests.toLocaleString()}
-        trendData={mockRequestsTrend}
-        chartColor="hsl(var(--primary))"
-        chartFillColor="hsl(var(--primary) / 0.1)"
+        icon={IconActivity}
+        trendData={trends.requests}
+        strokeClassName="text-primary"
+        fillClassName="fill-primary/10"
       />
       <SummaryCard
-        label="Success Rate"
+        label="Success rate"
         value={`${successRate.toFixed(1)}%`}
-        className="text-success"
-        trendData={mockSuccessRateTrend}
-        chartColor="hsl(var(--success))"
-        chartFillColor="hsl(var(--success) / 0.1)"
+        icon={IconCircleCheck}
+        valueClassName="text-success"
+        trendData={trends.successRates}
+        strokeClassName="text-success"
+        fillClassName="fill-success/10"
       />
       <SummaryCard
-        label="Avg Response"
+        label="Avg response"
         value={formatDuration(avgResponseMs)}
-        trendData={mockResponseTimeTrend}
-        chartColor="hsl(var(--warning, var(--primary)))"
-        chartFillColor="hsl(var(--warning, var(--primary)) / 0.1)"
+        icon={IconClock}
+        trendData={trends.avgDurations}
+        strokeClassName="text-muted-foreground"
+        fillClassName="fill-foreground/5"
       />
     </div>
   );

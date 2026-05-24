@@ -1,0 +1,82 @@
+/**
+ * Best-effort OpenRouter embeddings — returns null when the user has no
+ * API key or the provider call fails. Callers degrade to fulltext-only
+ * or skip vectors; backfill fills gaps later.
+ */
+
+import type { ActionCtx } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
+import { tryUserAndApiKeyByClerkId } from "../envVars";
+import { generateEmbedding, generateEmbeddings } from "./embedding";
+import type { OpenRouterFeature } from "./shared";
+
+export interface BestEffortEmbedAuth {
+  apiKey: string;
+  userId: Id<"users">;
+}
+
+export interface BestEffortEmbedParams {
+  ctx: ActionCtx;
+  clerkId: string;
+  profileId?: string;
+  feature: OpenRouterFeature;
+  failureLog: string;
+}
+
+export async function resolveBestEffortEmbedAuth(
+  ctx: ActionCtx,
+  clerkId: string,
+): Promise<BestEffortEmbedAuth | null> {
+  return tryUserAndApiKeyByClerkId(ctx, clerkId, "OPENROUTER_API_KEY");
+}
+
+export async function bestEffortEmbedOne(
+  params: BestEffortEmbedParams & { text: string },
+): Promise<number[] | null> {
+  const auth = await resolveBestEffortEmbedAuth(params.ctx, params.clerkId);
+  return bestEffortEmbedOneWithAuth({ ...params, auth });
+}
+
+export async function bestEffortEmbedMany(
+  params: BestEffortEmbedParams & { texts: string[] },
+): Promise<(number[] | null)[]> {
+  try {
+    const auth = await resolveBestEffortEmbedAuth(params.ctx, params.clerkId);
+    if (!auth) return params.texts.map(() => null);
+    return await generateEmbeddings({
+      ctx: params.ctx,
+      apiKey: auth.apiKey,
+      userId: auth.userId,
+      profileId: params.profileId,
+      feature: params.feature,
+      texts: params.texts,
+    });
+  } catch (e) {
+    console.warn(params.failureLog, e);
+    return params.texts.map(() => null);
+  }
+}
+
+export async function bestEffortEmbedOneWithAuth(params: {
+  ctx: ActionCtx;
+  auth: BestEffortEmbedAuth | null;
+  profileId?: string;
+  feature: OpenRouterFeature;
+  text: string;
+  failureLog: string;
+}): Promise<number[] | null> {
+  if (!params.auth) return null;
+  try {
+    return await generateEmbedding({
+      ctx: params.ctx,
+      apiKey: params.auth.apiKey,
+      userId: params.auth.userId,
+      profileId: params.profileId,
+      feature: params.feature,
+      text: params.text,
+    });
+  } catch (e) {
+    console.warn(params.failureLog, e);
+    return null;
+  }
+}

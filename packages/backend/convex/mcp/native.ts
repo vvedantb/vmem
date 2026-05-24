@@ -1,5 +1,6 @@
 import { httpAction } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { extractBearerToken } from "../lib/bearerToken";
 import { z } from "zod";
 
 function getWebAppUrl(): string {
@@ -274,14 +275,6 @@ export const token = httpAction(async (ctx, request) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // MCP Endpoint
 // ─────────────────────────────────────────────────────────────────────────────
-
-function extractBearerToken(authHeader: string | null): string | null {
-  if (!authHeader) return null;
-  const parts = authHeader.split(" ");
-  if (parts.length !== 2) return null;
-  if (parts[0]?.toLowerCase() !== "bearer") return null;
-  return parts[1] ?? null;
-}
 
 export const mcpHandler = httpAction(async (ctx, request) => {
   const baseUrl = new URL(request.url).origin;

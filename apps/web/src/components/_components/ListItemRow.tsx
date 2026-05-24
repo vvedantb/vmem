@@ -34,7 +34,7 @@ interface ListItemRowProps {
  *  - memory       → toggles the inline detail panel via onMemoryClick
  *  - wiki-doc     → navigates to /wiki/<id>
  *  - wiki-folder  → navigates to /wiki (no deep-link to folder yet)
- *  - skill        → navigates to /skills
+ *  - skill        → navigates to /skills/[id]
  *
  * Edit/Delete context menu actions only exist for memories; non-memory rows
  * render without the ContextMenu wrapper so right-click falls through to the
@@ -77,7 +77,7 @@ export default function ListItemRow({
         navigate({ to: "/wiki" });
         return;
       case "skill":
-        navigate({ to: "/skills" });
+        navigate({ to: "/skills/$id", params: { id: item.skillId } });
         return;
     }
   };

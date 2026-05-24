@@ -41,6 +41,19 @@ Authenticated via OAuth + Bearer JWT. See [MCP Setup](/mcp/setup) for configurat
 | `memory_delete` | Delete a memory |
 | `skills_list` | List user's skills |
 | `skills_get` | Fetch a skill by name |
+| `skills_create` | Create a skill for a new repeatable workflow (when none exists yet) |
+| `skills_update` | Patch an existing skill's name, description, instructions, or enabled state |
+| `wiki_list` | Flat wiki index (folders + documents) |
+| `wiki_get` | Fetch wiki node by id with markdown body |
+| `wiki_search` | Full-text search wiki titles and bodies |
+| `wiki_create` | Create folder or document (markdown in) |
+| `wiki_update` | Rename or replace/append document body |
+| `codebases_list` | List connected GitHub repos |
+| `codebase_search` | Search symbols in a synced codebase |
+| `codebase_context` | Symbol detail and call relationships |
+| `codebase_impact` | Upstream/downstream blast radius |
+| `codebase_graph` | Filtered code graph subgraph |
+| `codebase_overview` | Aggregate codebase stats |
 
 See [MCP Tools Reference](/mcp/tools) for full parameter details.
 
