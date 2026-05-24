@@ -7,6 +7,18 @@
 
 vmem ships interactive MCP views (e.g. `memory_graph`) inside the **existing Convex MCP server**, using **`@modelcontextprotocol/ext-apps`** directly and a **prebundled HTML** asset. We evaluated Skybridge (Alpic’s React framework for ChatGPT + MCP Apps) and **rejected adoption** for this stack: wrong project shape, extra bundle weight, and no fix for problems we already solved (SSE, payload size, viewport height).
 
+## Dev deployment (only)
+
+Use the **cloud dev** Convex deployment — not prod.
+
+| Setting                    | Value                                                     |
+| -------------------------- | --------------------------------------------------------- |
+| MCP URL                    | `https://outgoing-reindeer-268.eu-west-1.convex.site/mcp` |
+| Convex cloud               | `https://outgoing-reindeer-268.eu-west-1.convex.cloud`    |
+| `WEB_APP_URL` (Convex env) | `https://vmem-git-staging-vedantb.vercel.app`             |
+
+`WEB_APP_URL` is for OAuth redirects only (`mcp/webAppUrl.ts`).
+
 ## What Skybridge optimizes for
 
 Per `.claude/skills/skybridge/SKILL.md`:
@@ -28,7 +40,6 @@ vmem is a **memory layer** with 20+ tools on one endpoint — not a greenfield S
 | Ship to hosts       | `scripts/build-*-mcp-app.mjs` → `convex/mcp/bundled/*Html.ts` (inlined in tool/resource) |
 | Graph data          | `mcpGraph.ts` internal action → tool `structuredContent` + short `content` for the model |
 | Claude reachability | SSE keepalive on authenticated `GET /mcp` (`mcp/mcpSse.ts`)                              |
-| Connector icon      | SEP-973 `icons` + bundled favicon (`mcp/branding.ts`, `build-mcp-favicon.mjs`)           |
 | Small tool results  | No duplicate full JSON in `content`; caps in `mcpGraph.ts`                               |
 | Taller iframe       | `sendSizeChanged({ height })` + CSS min-height (not Skybridge-specific)                  |
 
@@ -66,7 +77,7 @@ Until then, prefer **ext-apps only**, or **React + ext-apps** inside `mcp-ui/` w
 ## Do not expect Skybridge to fix
 
 - **“Unable to reach vmem”** — transport/SSE on `/mcp`, not UI framework
-- **Wrong favicon** — host favicon heuristics + SEP-973 icons on server metadata
+- **Wrong favicon in Claude custom connectors** — client UI ignores SEP-973 icons; not worth server-side workarounds
 - **Tool result too large** — payload shape and caps in `mcpGraph.ts` / tool handlers
 - **Short iframe** — host limits; use `sendSizeChanged` / `getHostContext().maxHeight` / `requestDisplayMode('fullscreen')` where supported
 
