@@ -66,6 +66,7 @@ Skills:
 - Full instructions are lazy: MCP clients call `skills_get`; local chat loads instructions when the user message mentions a skill by name (`findSkillsReferencedInMessage`)
 - Skill CRUD invalidates `contextPromptCache` (same 60s debounce as memory writes)
 - `skills_list` MCP tool returns index only (no instructions)
+- `skills_create` MCP tool: use when a repeatable problem or automatable workflow was identified and no existing skill covers it (check context prompt / `skills_list` first)
 
 FOLLOW ALL OF THESE RULES
 

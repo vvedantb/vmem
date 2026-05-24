@@ -3,7 +3,8 @@
 ## MCP skills_create Tool — 2026-05-23
 
 - **New MCP tool**: `skills_create` lets agents create skills (name, description, markdown instructions) without the web UI.
-- **Context prompt**: New skills invalidate the context prompt cache like web-created skills.
+- **When to use**: Only after identifying a repeatable problem or automatable workflow, when no existing skill covers it (`skills_list` / context prompt first).
+- **Context prompt**: New skills invalidate the context prompt cache like web-created skills; MCP context prompt text guides agents to create skills in that case.
 
 ## Backend Code-Structure Refactor — 2026-05-23
 
