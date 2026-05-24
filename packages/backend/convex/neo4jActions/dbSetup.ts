@@ -1,13 +1,26 @@
 "use node";
 
+import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
-import { setupDatabase } from "../../src/neo4j/setup";
+import { ensureNeo4jSetupIfNeeded, setupDatabase } from "../../src/neo4j/setup";
 import { getDriver } from "../../src/neo4j/driver";
 
+/** Force full Neo4j DDL (manual / after new indexes ship in setup.ts). */
 export const ensureNeo4jSetup = internalAction({
   args: {},
+  returns: v.null(),
   handler: async (_ctx) => {
     await setupDatabase(getDriver());
     return null;
+  },
+});
+
+/** Cheap check + setup only when indexes are missing (auto on first codebase sync). */
+export const ensureNeo4jSetupIfNeededInternal = internalAction({
+  args: {},
+  returns: v.object({ ranSetup: v.boolean() }),
+  handler: async (_ctx) => {
+    const ranSetup = await ensureNeo4jSetupIfNeeded(getDriver());
+    return { ranSetup };
   },
 });

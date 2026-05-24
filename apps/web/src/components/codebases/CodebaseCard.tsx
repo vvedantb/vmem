@@ -36,7 +36,7 @@ export function CodebaseCard({ codebase }: CodebaseCardProps) {
     e.stopPropagation();
     try {
       await syncCodebase({ id: codebase._id });
-      toast.success(`Syncing ${codebase.repoName}...`);
+      toast.success(`${codebase.repoName} synced`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Sync failed";
       toast.error(msg);

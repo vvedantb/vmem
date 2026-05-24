@@ -1,4 +1,45 @@
-import type { Driver } from "neo4j-driver";
+import neo4j, { type Driver, type Integer } from "neo4j-driver";
+
+/** Fulltext index created by setup — cheap sentinel for "has setup run?". */
+const SETUP_SENTINEL_INDEX = "code_symbol_search";
+
+function readCountParam(value: Integer | number | null | undefined): number {
+  if (value === null || value === undefined) return 0;
+  if (neo4j.isInt(value)) return value.toNumber();
+  return value;
+}
+
+/** True when core Neo4j indexes/constraints from `setupDatabase` exist. */
+export async function isNeo4jSetupComplete(driver: Driver): Promise<boolean> {
+  const session = driver.session();
+  try {
+    const result = await session.run(
+      `
+      SHOW INDEXES
+      YIELD name
+      WHERE name = $name
+      RETURN count(*) AS c
+      `,
+      { name: SETUP_SENTINEL_INDEX },
+    );
+    const count = readCountParam(result.records[0]?.get("c"));
+    return count > 0;
+  } finally {
+    await session.close();
+  }
+}
+
+/**
+ * Idempotent setup for fresh or partially-provisioned Neo4j instances.
+ * Returns whether `setupDatabase` ran (false when indexes already existed).
+ */
+export async function ensureNeo4jSetupIfNeeded(
+  driver: Driver,
+): Promise<boolean> {
+  if (await isNeo4jSetupComplete(driver)) return false;
+  await setupDatabase(driver);
+  return true;
+}
 
 export async function setupDatabase(driver: Driver): Promise<void> {
   const session = driver.session();

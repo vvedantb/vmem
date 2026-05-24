@@ -46,6 +46,7 @@ Neo4j:
 
 - Never run parallel `session.run()` calls on the same session — use separate sessions for concurrent queries
 - Cypher integer params (`LIMIT`, `SKIP`, hop depth, etc.) must use `neo4j.int()` after `Math.trunc` — MCP/JSON/Convex hops can pass floats like `25.0` and Neo4j rejects them. Use `clampNeo4jLimit()` / `toNeo4jIntParam()` from `packages/backend/src/neo4j/intParams.ts` (see `intParams.test.ts`)
+- Indexes/constraints auto-provision on first codebase sync via `ensureNeo4jSetupIfNeeded` (checks `code_symbol_search` index). Manual full re-run after new indexes ship: `npx convex run internal.neo4jActions.dbSetup.ensureNeo4jSetup`
 
 Codebases:
 

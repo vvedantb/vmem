@@ -1,5 +1,13 @@
 # Changelog
 
+## Codebase Sync Reliability — 2026-05-24
+
+- **Large-repo sync (eva)**: GitHub tarball download replaces hundreds of per-file API calls; fetch + parse + write run in one action so nested timeouts and lost errors no longer break big repos.
+- **Stuck sync recovery**: `syncStartedAt` plus stale-fetch detection lets retries proceed when a sync dies mid-fetch; daily cron can pick up abandoned `syncing` rows after 20 minutes.
+- **Neo4j auto-provision**: First codebase sync creates missing indexes/constraints (checks `code_symbol_search`) — no manual `ensureNeo4jSetup` on fresh databases.
+- **Clearer failures**: Sync errors surface real messages instead of "Unknown sync error"; success toasts say "eva synced" after completion, not "Syncing…".
+- **MCP E2E harness**: `scripts/test-vmem-mcp.mjs` runs 3×16 tool rounds; report in `MCP-E2E-RESULTS.md`.
+
 ## Daily Codebase Sync — 2026-05-23
 
 - **Automatic graph refresh**: Connected GitHub repos re-sync once per day (04:00 UTC) so MCP and canvas views stay current without manual Re-sync.

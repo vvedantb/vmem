@@ -5,6 +5,12 @@ import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { decryptToken } from "./lib/crypto";
 import { PARSER_VERSION } from "../src/neo4j/codebase/types";
+import { STALE_SYNCING_MS } from "./codebaseSyncConstants";
+import { formatSyncError } from "../src/codebase/formatSyncError";
+import { runCodebaseSync } from "../src/codebase/runCodebaseSync";
+import { ensureNeo4jSetupIfNeeded } from "../src/neo4j/setup";
+import { getDriver } from "../src/neo4j/driver";
+import type { SyncStage } from "../src/neo4j/codebaseService";
 
 const syncOneResult = v.union(
   v.object({ ok: v.literal(true) }),
@@ -49,27 +55,66 @@ export const syncOneCodebaseInternal = internalAction({
     const token = await decryptToken(encryptedToken);
     const normalizedId = args.codebaseId;
 
-    await ctx.runMutation(internal.codebases.updateStatusInternal, {
-      id: normalizedId,
-      status: "syncing",
-      syncedFiles: 0,
-      errorMessage: undefined,
-      lastParseError: undefined,
-      parseStage: "fetching",
-    });
-
     try {
-      const result = await ctx.runAction(
-        internal.neo4jActions.codebases.syncCodebaseInternal,
-        {
-          clerkId,
-          codebaseId: normalizedId,
-          repoOwner: codebase.repoOwner,
-          repoName: codebase.repoName,
-          branch: codebase.defaultBranch,
-          githubToken: token,
-        },
-      );
+      const fetchNotStarted =
+        codebase.syncedFiles === 0 &&
+        (codebase.parseStage === "fetching" ||
+          codebase.parseStage === undefined);
+
+      if (
+        codebase.status === "syncing" &&
+        codebase.syncStartedAt !== undefined &&
+        Date.now() - codebase.syncStartedAt < STALE_SYNCING_MS &&
+        !fetchNotStarted
+      ) {
+        return { ok: false, message: "Sync already in progress" };
+      }
+
+      const syncStartedStale =
+        codebase.status === "syncing" &&
+        (codebase.syncStartedAt === undefined ||
+          Date.now() - codebase.syncStartedAt >= STALE_SYNCING_MS ||
+          fetchNotStarted);
+
+      if (syncStartedStale) {
+        await ctx.runMutation(internal.codebases.updateStatusInternal, {
+          id: normalizedId,
+          status: "error",
+          errorMessage:
+            "Previous sync timed out or was interrupted. Retrying now.",
+          lastParseError:
+            "Previous sync timed out or was interrupted. Retrying now.",
+        });
+      }
+
+      await ensureNeo4jSetupIfNeeded(getDriver());
+
+      await ctx.runMutation(internal.codebases.updateStatusInternal, {
+        id: normalizedId,
+        status: "syncing",
+        syncedFiles: 0,
+        syncStartedAt: Date.now(),
+        errorMessage: undefined,
+        lastParseError: undefined,
+        parseStage: "fetching",
+      });
+
+      const patchStage = async (stage: SyncStage): Promise<void> => {
+        await ctx.runMutation(internal.codebases.updateStatusInternal, {
+          id: normalizedId,
+          parseStage: stage,
+        });
+      };
+
+      const result = await runCodebaseSync({
+        clerkId,
+        codebaseId: normalizedId,
+        repoOwner: codebase.repoOwner,
+        repoName: codebase.repoName,
+        branch: codebase.defaultBranch,
+        githubToken: token,
+        onStage: patchStage,
+      });
 
       await ctx.runMutation(internal.codebases.updateStatusInternal, {
         id: normalizedId,
@@ -91,7 +136,19 @@ export const syncOneCodebaseInternal = internalAction({
 
       return { ok: true };
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown sync error";
+      const narrowed =
+        typeof err === "string" || err instanceof Error
+          ? err
+          : typeof err === "object" && err !== null
+            ? err
+            : null;
+      const message = formatSyncError(narrowed);
+      console.error(
+        "[codebase-sync]",
+        normalizedId,
+        codebase.repoFullName,
+        err,
+      );
       await ctx.runMutation(internal.codebases.updateStatusInternal, {
         id: normalizedId,
         status: "error",

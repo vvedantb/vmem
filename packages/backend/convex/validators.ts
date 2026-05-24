@@ -146,6 +146,8 @@ export const codebaseFields = {
       v.literal("done"),
     ),
   ),
+  /** Set when status becomes `syncing`; used to recover stuck syncs. */
+  syncStartedAt: v.optional(v.number()),
 };
 
 /**

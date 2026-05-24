@@ -16,7 +16,6 @@ import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import {
-  syncCodebase,
   getOverviewStats,
   getGraphOverview,
   getSymbolContext,
@@ -24,88 +23,10 @@ import {
   getDownstreamImpact,
   getUpstreamImpact,
   deleteCodebase,
-  MAX_FILES_PER_SYNC,
   type SyncStage,
 } from "../../src/neo4j/codebaseService";
 import { getDriver } from "../../src/neo4j/driver";
-import type { SourceFileBlob } from "../../src/neo4j/codebase/parse";
-
-const TS_JS_EXTENSIONS = new Set([
-  ".ts",
-  ".tsx",
-  ".js",
-  ".jsx",
-  ".mjs",
-  ".cjs",
-]);
-
-interface GitHubTreeFile {
-  path: string;
-  type: string;
-  size?: number;
-}
-
-/**
- * Pull the repo tree + blobs from GitHub. Throws on non-2xx so the
- * outer action can surface a clear error message via `lastParseError`.
- */
-async function fetchRepository(
-  repoOwner: string,
-  repoName: string,
-  branch: string,
-  githubToken: string,
-): Promise<SourceFileBlob[]> {
-  const treeUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/git/trees/${branch}?recursive=1`;
-  const treeResponse = await fetch(treeUrl, {
-    headers: {
-      Authorization: `Bearer ${githubToken}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-  });
-  if (!treeResponse.ok) {
-    const text = await treeResponse.text();
-    throw new Error(`GitHub tree API error: ${treeResponse.status} ${text}`);
-  }
-  const treeData: { tree: GitHubTreeFile[] } = await treeResponse.json();
-  const files = treeData.tree.filter((item) => {
-    if (item.type !== "blob") return false;
-    const ext = item.path.substring(item.path.lastIndexOf("."));
-    return TS_JS_EXTENSIONS.has(ext);
-  });
-
-  if (files.length > MAX_FILES_PER_SYNC) {
-    throw new Error(
-      `Repository too large for Phase 1 sync (${files.length} files; limit ${MAX_FILES_PER_SYNC}).`,
-    );
-  }
-
-  // Fetch in batches of 20 to respect GitHub rate limits + keep memory bounded.
-  const BATCH_SIZE = 20;
-  const blobs: SourceFileBlob[] = [];
-  for (let i = 0; i < files.length; i += BATCH_SIZE) {
-    const batch = files.slice(i, i + BATCH_SIZE);
-    const results = await Promise.all(
-      batch.map(async (file) => {
-        const contentUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${file.path}?ref=${branch}`;
-        const resp = await fetch(contentUrl, {
-          headers: {
-            Authorization: `Bearer ${githubToken}`,
-            Accept: "application/vnd.github.raw+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-          },
-        });
-        if (!resp.ok) return null;
-        const content = await resp.text();
-        return { path: file.path, content };
-      }),
-    );
-    for (const result of results) {
-      if (result) blobs.push(result);
-    }
-  }
-  return blobs;
-}
+import { runCodebaseSync } from "../../src/codebase/runCodebaseSync";
 
 export const syncCodebaseInternal = internalAction({
   args: {
@@ -117,15 +38,6 @@ export const syncCodebaseInternal = internalAction({
     githubToken: v.string(),
   },
   handler: async (ctx, args) => {
-    // Step 1: Fetch.
-    const files = await fetchRepository(
-      args.repoOwner,
-      args.repoName,
-      args.branch,
-      args.githubToken,
-    );
-
-    // Resolve the codebases doc id from the string id so we can patch progress.
     const docId = await ctx.runQuery(internal.codebases.normalizeCodebaseId, {
       id: args.codebaseId,
     });
@@ -138,14 +50,13 @@ export const syncCodebaseInternal = internalAction({
       });
     };
 
-    // Steps 2–5 happen inside `syncCodebase`. The onStage callback
-    // patches the codebases row so the live useQuery on the page can
-    // show "parsing… → processes… → writing… → done" mid-sync.
-    return await syncCodebase({
-      driver: getDriver(),
-      userId: args.clerkId,
+    return await runCodebaseSync({
+      clerkId: args.clerkId,
       codebaseId: args.codebaseId,
-      files,
+      repoOwner: args.repoOwner,
+      repoName: args.repoName,
+      branch: args.branch,
+      githubToken: args.githubToken,
       onStage: patchStage,
     });
   },
