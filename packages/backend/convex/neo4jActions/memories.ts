@@ -93,7 +93,14 @@ export const listMemoriesInternal = internalAction({
     limit: v.number(),
     offset: v.number(),
   },
-  handler: async (_ctx, args) => runListMemories(args),
+  handler: async (ctx, args) => {
+    const profileId = await resolveProfileIdForClerkId(
+      ctx,
+      args.clerkId,
+      args.profileId,
+    );
+    return await runListMemories({ ...args, profileId });
+  },
 });
 
 export const updateMemoryInternal = internalAction({
@@ -137,7 +144,14 @@ export const searchMemoriesInternal = internalAction({
     limit: v.number(),
     offset: v.number(),
   },
-  handler: async (_ctx, args) => runSearchMemories(args),
+  handler: async (ctx, args) => {
+    const profileId = await resolveProfileIdForClerkId(
+      ctx,
+      args.clerkId,
+      args.profileId,
+    );
+    return await runSearchMemories({ ...args, profileId });
+  },
 });
 
 export const retrieveMemoriesInternal = internalAction({
