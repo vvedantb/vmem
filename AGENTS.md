@@ -75,7 +75,9 @@ Husky:
 
 Testing:
 
-- Backend unit tests: Vitest in `packages/backend` (`pnpm test` from repo root). Colocate as `*.test.ts` next to source. Assert behavior (inputs → outputs), not implementation details.
+- Unit tests: `pnpm test` runs backend (`packages/backend`) + web filter tests (`apps/web`). Colocate as `*.test.ts`. Assert behavior (inputs → outputs), not implementation details.
+- Live retrieval regression: `pnpm test:retrieval` after `pnpm db:seed:eval` (sets `RUN_RETRIEVAL_EVAL=1`, needs Neo4j + embeddings).
+- Convex isolation tests live in `packages/backend/convex/*.test.ts` (edge-runtime via `convex-test`).
 
 Verification Rules after implementation:
 

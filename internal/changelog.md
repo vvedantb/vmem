@@ -1,5 +1,12 @@
 # Changelog
 
+## Behavior Test Suite — 2026-05-23
+
+- **Vitest coverage**: Backend and web unit tests for chunking, LLM response parsers (V2 + enrichment), retrieval ranking, URL/hash dedup, list/memory filters, bearer auth, and API key hashing.
+- **Convex isolation tests**: `convex-test` verifies unauthenticated access fails and user-owned skills cannot cross tenants.
+- **Retrieval regression hook**: Shared eval metrics plus opt-in live Neo4j suite (`pnpm test:retrieval` after `pnpm db:seed:eval`).
+- **Run via** `pnpm test` from repo root.
+
 ## Wiki Markdown Storage — 2026-05-23
 
 - **Markdown is canonical**: Wiki documents store markdown in `content` (eva-style); TipTap is edit-time only in the web app.
