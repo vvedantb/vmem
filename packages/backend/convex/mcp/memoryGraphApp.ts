@@ -11,10 +11,6 @@ import { MEMORY_GRAPH_MCP_APP_HTML } from "./bundled/memoryGraphHtml";
 
 export const MEMORY_GRAPH_RESOURCE_URI = "ui://vmem/memory-graph";
 
-function jsonText(data: unknown): string {
-  return JSON.stringify(data, null, 2);
-}
-
 function buildSummaryText(
   graph: {
     stats: {
@@ -98,9 +94,11 @@ export function registerMemoryGraphApp(
           .number()
           .int()
           .min(1)
-          .max(400)
+          .max(150)
           .optional()
-          .describe("Max memory nodes (default 250)"),
+          .describe(
+            "Max memory nodes (default 80; keeps tool result small for Claude context)",
+          ),
       },
       _meta: {
         ui: { resourceUri: MEMORY_GRAPH_RESOURCE_URI },
@@ -134,10 +132,6 @@ export function registerMemoryGraphApp(
           {
             type: "text" as const,
             text: buildSummaryText(graph, params.profileId),
-          },
-          {
-            type: "text" as const,
-            text: jsonText(graph),
           },
         ],
         structuredContent: graph,

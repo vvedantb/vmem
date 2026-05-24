@@ -1,5 +1,9 @@
 # Changelog
 
+## MCP memory graph payload limits — 2026-05-24
+
+- **Smaller `memory_graph` tool results**: Dropped duplicate full JSON from model-facing `content` (widget still uses `structuredContent`); default cap lowered to 80 nodes with tighter edge/tag limits so Claude no longer rejects oversized tool results.
+
 ## MCP Claude SSE handshake — 2026-05-24
 
 - **GET `/mcp` SSE keepalive**: Claude Web/Desktop opens `Accept: text/event-stream` after OAuth; we previously returned 405 and broke the connector ("Unable to reach vmem"). Stateless POST handling unchanged; GET returns a comment keepalive stream.
