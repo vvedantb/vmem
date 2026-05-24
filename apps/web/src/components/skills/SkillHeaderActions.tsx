@@ -13,13 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  Label,
-  Switch,
-  cn,
 } from "@vmem/ui";
 import {
   IconCopy,
@@ -100,59 +98,51 @@ export function SkillHeaderActions({
 
   return (
     <>
-      <div className="flex items-center gap-1 rounded-lg bg-muted/40 px-2 py-1">
-        <div className="flex items-center gap-2 pr-1">
-          <Switch
-            id={`skill-enabled-${skill._id}`}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 text-muted-foreground"
+            aria-label="Skill actions"
+          >
+            <IconDots size={16} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuCheckboxItem
             checked={isEnabled}
             onCheckedChange={(checked) => {
               void handleEnabledChange(checked);
             }}
-            aria-label={isEnabled ? "Disable skill" : "Enable skill"}
-          />
-          <Label
-            htmlFor={`skill-enabled-${skill._id}`}
-            className="cursor-pointer text-sm font-medium text-foreground"
+            onSelect={(e) => e.preventDefault()}
           >
-            <span className="hidden sm:inline">Enabled</span>
-          </Label>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className={cn("shrink-0 text-muted-foreground")}
-              aria-label="Skill actions"
-            >
-              <IconDots size={16} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onSelect={() => {
-                void handleCopy();
-              }}
-            >
-              <IconCopy size={14} />
-              Copy skill
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onEdit}>
-              <IconPencil size={14} />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onSelect={() => setDeleteConfirmOpen(true)}
-            >
-              <IconTrash size={14} />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+            Enabled
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => {
+              void handleCopy();
+            }}
+          >
+            <IconCopy size={14} />
+            Copy skill
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onEdit}>
+            <IconPencil size={14} />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onSelect={() => setDeleteConfirmOpen(true)}
+          >
+            <IconTrash size={14} />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <Dialog
         open={deleteConfirmOpen}
