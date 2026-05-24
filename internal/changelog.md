@@ -1,5 +1,11 @@
 # Changelog
 
+## Teams sidebar navigation — 2026-05-24
+
+- **Settings-style sidebar**: Clicking Teams swaps the root sidebar to a searchable team list with header back, matching Skills, Wiki, and Settings.
+- **Overview-first routing**: `/teams` redirects to the first team’s overview when you have teams; empty state stays in the main pane with create actions.
+- **Shareable search**: Team list filter uses `?q=` in the URL; sidebar includes Create team.
+
 ## Sub-sidebar header chrome — 2026-05-24
 
 - **Header swap**: Settings, Skills, and Wiki replace the vmem logo with a centered section title; back is an icon button in the header, not a list row.
