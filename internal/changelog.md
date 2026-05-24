@@ -1,5 +1,11 @@
 # Changelog
 
+## Wiki MCP Tools — 2026-05-23
+
+- **Wiki CRUD via MCP**: Five tools (`wiki_list`, `wiki_get`, `wiki_search`, `wiki_create`, `wiki_update`) let agents browse and edit the personal wiki without the web UI.
+- **Markdown on write**: MCP accepts markdown; the server converts to TipTap JSON + plain text so documents stay compatible with the web editor and Convex search.
+- **Append mode**: `wiki_update` supports `contentMode: append` to concatenate new markdown after the existing body.
+
 ## Extension System Prompt Copy — 2026-05-23
 
 - **Copy vmem prompt**: Chrome extension adds a button on Claude (chat header), ChatGPT (Personalization settings), and the popup Settings tab to copy the recommended vmem system prompt to the clipboard.

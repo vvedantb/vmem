@@ -186,6 +186,82 @@ See [Skills feature](/features/skills) for creating and managing skills.
 
 ---
 
+## wiki_list
+
+Flat index of all wiki folders and documents (no body). Call this before `wiki_get` or `wiki_update` when you do not have a node id.
+
+**Parameters:** none
+
+**Returns:** Array of `{ id, title, kind, parentId, order, updatedAt }`
+
+---
+
+## wiki_get
+
+Fetch a single wiki node by id. Documents include `contentMarkdown` (derived from stored TipTap JSON).
+
+<ParamField body="id" type="string" required>
+  Wiki node id from `wiki_list`
+</ParamField>
+
+**Returns:** Node metadata plus `contentMarkdown` for documents.
+
+---
+
+## wiki_search
+
+Full-text search over wiki titles and document plain-text mirrors.
+
+<ParamField body="query" type="string" required>
+  Search text
+</ParamField>
+
+**Returns:** Array of `{ id, title, kind, excerpt }`
+
+---
+
+## wiki_create
+
+Create a wiki folder or document. Markdown bodies are converted to TipTap JSON + plain text so the web editor can load them.
+
+<ParamField body="kind" type="string" required>
+  `folder` or `document`
+</ParamField>
+<ParamField body="title" type="string" required>
+  Node title
+</ParamField>
+<ParamField body="parentId" type="string">
+  Parent folder id (omit for root)
+</ParamField>
+<ParamField body="contentMarkdown" type="string">
+  Initial markdown body (documents only)
+</ParamField>
+
+**Returns:** Created node with `contentMarkdown` when kind is `document`.
+
+---
+
+## wiki_update
+
+Update a wiki node by id. Supports rename and body replace or append.
+
+<ParamField body="id" type="string" required>
+  Wiki node id from `wiki_list`
+</ParamField>
+<ParamField body="title" type="string">
+  New title
+</ParamField>
+<ParamField body="contentMarkdown" type="string">
+  Markdown to write or append
+</ParamField>
+<ParamField body="contentMode" type="string">
+  `replace` (default) or `append` when `contentMarkdown` is set
+</ParamField>
+
+**Returns:** Updated node with fresh `contentMarkdown` for documents.
+
+---
+
 ## codebases_list
 
 List GitHub repositories connected to vmem. Returns codebase IDs, repo names, sync status, and parser stats. Call this first to discover `codebaseId` values for the other `codebase_*` tools.
