@@ -1,5 +1,11 @@
 # Changelog
 
+## Wiki document header — 2026-05-24
+
+- **Inline title in header**: Open documents show folder breadcrumb + editable page title in the page header instead of a static “Wiki” label and duplicate title in the editor.
+- **Doc chrome in header**: View outline toggle, word count, and document actions (copy) live in the page header; the editor pane is content only.
+- **Add in sidebar**: New document/folder creation moved to the wiki sidebar footer, matching Teams and Codebases.
+
 ## Team sections in sidebar — 2026-05-24
 
 - **Indented sub-nav**: Overview, Knowledge, Members, and Settings (owners) appear under the selected team in the Teams sidebar with section icons; header tab bar removed.
