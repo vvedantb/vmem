@@ -1,5 +1,17 @@
 # Changelog
 
+## MCP Claude SSE handshake — 2026-05-24
+
+- **GET `/mcp` SSE keepalive**: Claude Web/Desktop opens `Accept: text/event-stream` after OAuth; we previously returned 405 and broke the connector ("Unable to reach vmem"). Stateless POST handling unchanged; GET returns a comment keepalive stream.
+- **DELETE `/mcp`**: Returns 200 for session teardown (no-op in stateless mode).
+
+## MCP connector branding — 2026-05-24
+
+- **Favicon on Convex site origin**: `/favicon.png` and `/favicon.ico` serve the vmem PNG from the MCP deployment URL.
+- **SEP-973 `serverInfo`**: `initialize` returns `title`, `description`, `websiteUrl`, and `icons` — primary icon is inline `data:image/png;base64` (Claude’s Google favicon fallback collapses `*.eu-west-1.convex.site` to `eu-west-1.convex.site`); secondary icons use `WEB_APP_URL` and Convex site.
+- **OAuth discovery**: `service_documentation` and `resource_documentation` link to `WEB_APP_URL`.
+- **Rebuild**: `pnpm --filter @vmem/backend build:mcp-favicon` (included in `build:mcp-assets` / deploy).
+
 ## MCP memory graph app — 2026-05-24
 
 - **`memory_graph` MCP App tool**: Interactive pan/zoom canvas of memory nodes and RELATES_TO / shared-tag links, rendered in Claude Desktop and other MCP Apps hosts via ext-apps (`ui://vmem/memory-graph`).

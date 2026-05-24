@@ -1,13 +1,10 @@
 import { httpAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
+import { getMcpResourceDocumentationUrl, getWebAppUrl } from "./branding";
+import { mcpFaviconResponse } from "./favicon";
+import { mcpSseKeepaliveResponse } from "./mcpSse";
 import { z } from "zod";
-
-function getWebAppUrl(): string {
-  const url = process.env.WEB_APP_URL;
-  if (!url) throw new Error("WEB_APP_URL is not set in Convex env");
-  return url.replace(/\/$/, "");
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OAuth Metadata
@@ -20,6 +17,7 @@ export const oauthMetadata = httpAction(async (_ctx, request) => {
     authorization_endpoint: `${baseUrl}/mcp/oauth/authorize`,
     token_endpoint: `${baseUrl}/mcp/oauth/token`,
     registration_endpoint: `${baseUrl}/mcp/oauth/register`,
+    service_documentation: getMcpResourceDocumentationUrl(),
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code", "refresh_token"],
     code_challenge_methods_supported: ["S256"],
@@ -33,8 +31,13 @@ export const protectedResourceMetadata = httpAction(async (_ctx, request) => {
     resource: `${baseUrl}/mcp`,
     authorization_servers: [baseUrl],
     bearer_methods_supported: ["header"],
+    resource_documentation: getMcpResourceDocumentationUrl(),
   });
 });
+
+export const faviconPng = httpAction(async () => mcpFaviconResponse());
+
+export const faviconIco = httpAction(async () => mcpFaviconResponse());
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OAuth Client Registration
@@ -310,11 +313,19 @@ export const mcpHandler = httpAction(async (ctx, request) => {
     });
   }
 
-  if (request.method === "GET" || request.method === "DELETE") {
+  if (request.method === "GET") {
+    const accept = request.headers.get("accept") ?? "";
+    if (accept.includes("text/event-stream")) {
+      return mcpSseKeepaliveResponse();
+    }
     return Response.json(
-      { error: "Method not supported in stateless mode" },
-      { status: 405 },
+      { error: "GET requires Accept: text/event-stream for MCP SSE" },
+      { status: 406 },
     );
+  }
+
+  if (request.method === "DELETE") {
+    return new Response(null, { status: 200 });
   }
 
   let body: unknown;
@@ -330,6 +341,7 @@ export const mcpHandler = httpAction(async (ctx, request) => {
     {
       clerkUserId: credentials.clerkUserId,
       body: JSON.stringify(body),
+      siteOrigin: baseUrl,
     },
   );
 

@@ -10,6 +10,8 @@ import {
   token as mcpToken,
   mcpHandler,
   health as mcpHealth,
+  faviconPng as mcpFaviconPng,
+  faviconIco as mcpFaviconIco,
 } from "./mcp/native";
 
 const http = httpRouter();
@@ -96,6 +98,18 @@ http.route({
   path: "/health",
   method: "GET",
   handler: mcpHealth,
+});
+
+http.route({
+  path: "/favicon.png",
+  method: "GET",
+  handler: mcpFaviconPng,
+});
+
+http.route({
+  path: "/favicon.ico",
+  method: "GET",
+  handler: mcpFaviconIco,
 });
 
 export default http;
