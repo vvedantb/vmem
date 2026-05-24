@@ -1,27 +1,9 @@
-import { createClerkClient } from "@clerk/chrome-extension/client";
 import { ConvexHttpClient } from "convex/browser";
-import {
-  CLERK_PUBLISHABLE_KEY,
-  CLERK_SYNC_HOST,
-  CONVEX_URL,
-} from "@/lib/constants";
+import { CONVEX_URL } from "@/lib/constants";
 import { getAuthToken, setAuthToken } from "@/lib/storage";
+import { refreshConvexTokenViaOffscreen } from "./offscreen-auth";
 
-type ClerkClient = Awaited<ReturnType<typeof createClerkClient>>;
-
-let clerkPromise: Promise<ClerkClient> | null = null;
 let pendingRefresh: Promise<string | null> | null = null;
-
-function getClerk(): Promise<ClerkClient> {
-  if (!clerkPromise) {
-    clerkPromise = createClerkClient({
-      publishableKey: CLERK_PUBLISHABLE_KEY,
-      syncHost: CLERK_SYNC_HOST,
-      background: true,
-    });
-  }
-  return clerkPromise;
-}
 
 async function getStoredToken(): Promise<string> {
   return getAuthToken();
@@ -43,25 +25,23 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-async function refreshTokenFromClerk(): Promise<string | null> {
+async function refreshTokenFromOffscreen(): Promise<string | null> {
   if (pendingRefresh) return pendingRefresh;
 
   pendingRefresh = (async () => {
     try {
-      const clerk = await getClerk();
-      const session = clerk.session;
-      if (!session) {
-        await setAuthToken("");
-        return null;
+      const token = await refreshConvexTokenViaOffscreen();
+      if (token) {
+        await setAuthToken(token);
+        return token;
       }
 
-      const token = await session.getToken({ template: "convex" });
-      await setAuthToken(token ?? "");
-      return token ?? null;
+      // Do not clear chrome.storage.session — popup TokenSync may have a
+      // valid token; offscreen often cannot read syncHost cookies.
+      return null;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn("[vmem] Background token refresh failed:", message);
-      await setAuthToken("");
+      console.warn("[vmem] Offscreen token refresh failed:", message);
       return null;
     } finally {
       pendingRefresh = null;
@@ -73,8 +53,16 @@ async function refreshTokenFromClerk(): Promise<string | null> {
 
 async function getConvexAuthToken(): Promise<string | null> {
   const stored = await getStoredToken();
-  if (stored && !isTokenExpired(stored)) return stored;
-  return refreshTokenFromClerk();
+  if (stored && !isTokenExpired(stored)) {
+    return stored;
+  }
+
+  const refreshed = await refreshTokenFromOffscreen();
+  if (refreshed) {
+    return refreshed;
+  }
+
+  return null;
 }
 
 export async function warmBackgroundAuth(): Promise<void> {

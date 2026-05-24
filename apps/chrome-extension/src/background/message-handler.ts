@@ -4,6 +4,8 @@ import { savePageFromTab } from "./context-menu";
 import { importBookmarks } from "./import-bookmarks";
 import { importHistory } from "./import-history";
 import { cancelImport } from "./import-cancel";
+import { runAutoSyncNow } from "./sync-scheduler";
+import { getStorage } from "@/lib/storage";
 import { htmlToMarkdown } from "@/lib/page-extraction";
 
 const HANDLED_TYPES = new Set<string>([
@@ -17,6 +19,8 @@ const HANDLED_TYPES = new Set<string>([
   "IMPORT_BOOKMARKS",
   "IMPORT_HISTORY",
   "CANCEL_IMPORT",
+  "DEBUG_RUN_AUTO_SYNC",
+  "DEBUG_PING",
 ]);
 
 export function registerMessageHandler(): void {
@@ -57,9 +61,11 @@ function base64PngToBlob(base64: string): Blob {
   return new Blob([bytes], { type: "image/png" });
 }
 
-async function handleMessage(
+export async function handleMessage(
   message: ContentMessage,
 ): Promise<BackgroundResponse> {
+  await chrome.storage.local.remove("vmemSwLastMessageError");
+
   switch (message.type) {
     case "RETRIEVE_MEMORIES": {
       try {
@@ -283,6 +289,20 @@ async function handleMessage(
     case "CANCEL_IMPORT": {
       cancelImport();
       return { type: "CANCEL_RESULT", success: true };
+    }
+
+    case "DEBUG_RUN_AUTO_SYNC": {
+      await runAutoSyncNow();
+      const storage = await getStorage();
+      return {
+        type: "DEBUG_SYNC_RESULT",
+        lastHistorySync: storage.lastHistorySync,
+        lastBookmarkSync: storage.lastBookmarkSync,
+      };
+    }
+
+    case "DEBUG_PING": {
+      return { type: "DEBUG_PING_RESULT", timestamp: Date.now() };
     }
   }
 }

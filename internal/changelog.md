@@ -1,5 +1,12 @@
 # Changelog
 
+## Chrome extension auto-sync reliability — 2026-05-23
+
+- **Lightweight service worker**: Removed Clerk from the background bundle (~3.7MB → ~70KB) and dropped dynamic `import()` so the worker starts reliably instead of staying inactive.
+- **Offscreen auth**: Token refresh runs in an offscreen document with Clerk; background no longer clears a valid popup session when offscreen has no cookies.
+- **Sync cursors & concurrency**: History/bookmark `last*Sync` advances after every completed run (including zero imports); catch-up and alarms debounce overlapping runs.
+- **Popup diagnostics**: Background reachability ping, SW boot phase, manual “run auto-sync now”, and copyable support report.
+
 ## Skills detail panel scroll — 2026-05-24
 
 - **Contained scroll**: Skills detail view scrolls inside the panel (`noScroll` layout + `scrollbar-thin`), not the whole page.
