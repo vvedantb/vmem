@@ -3,7 +3,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Button } from "@vmem/ui";
+import { Breadcrumb, BreadcrumbPage, Button } from "@vmem/ui";
 import { IconArrowLeft, IconLoader2 } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import { TeamDetailProvider } from "./-team-context";
@@ -54,9 +54,6 @@ function TeamLayout() {
         title={data.team.name}
         breadcrumb={
           <Breadcrumb>
-            <BreadcrumbLink asChild>
-              <Link to="/teams">Teams</Link>
-            </BreadcrumbLink>
             <BreadcrumbPage>{data.team.name}</BreadcrumbPage>
           </Breadcrumb>
         }
