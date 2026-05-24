@@ -11,8 +11,8 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import type { TeamDetail } from "../index";
-import { teamRouteSearchParams } from "../-searchParams";
+import type { TeamDetail } from "../-team-detail";
+import { teamKnowledgeSearchParams } from "../-searchParams";
 
 type MemoryListResult = FunctionReturnType<
   typeof api.memoryApi.listTeamMemories
@@ -25,7 +25,7 @@ type TeamMemory = MemoryListResult["memories"][number];
  * at. Creators and team owners get a delete action.
  */
 export function TeamKnowledge({ data }: { data: TeamDetail }) {
-  const [params, setParams] = useQueryStates(teamRouteSearchParams);
+  const [params, setParams] = useQueryStates(teamKnowledgeSearchParams);
   const listTeamMemories = useAction(api.memoryApi.listTeamMemories);
   const deleteTeamMemory = useAction(api.memoryApi.deleteTeamMemory);
   const currentUser = useQuery(api.users.getMe);

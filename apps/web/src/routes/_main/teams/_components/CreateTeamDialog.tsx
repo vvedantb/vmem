@@ -41,7 +41,7 @@ export function CreateTeamDialog({
       onOpenChange(false);
       setName("");
       // Navigate into the new team dashboard.
-      await navigate({ to: "/teams/$teamId", params: { teamId } });
+      await navigate({ to: "/teams/$teamId/overview", params: { teamId } });
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to create team";

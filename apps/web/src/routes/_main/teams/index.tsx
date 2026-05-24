@@ -67,7 +67,7 @@ function TeamCard({ entry }: { entry: TeamListItem }) {
   const { team, role, profile, memberCount } = entry;
   return (
     <Link
-      to="/teams/$teamId"
+      to="/teams/$teamId/overview"
       params={{ teamId: team._id }}
       className="group flex flex-col gap-3 rounded-lg bg-muted/40 p-4 transition-[background-color] hover:bg-muted/70"
     >
