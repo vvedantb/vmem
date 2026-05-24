@@ -1,6 +1,7 @@
 "use client";
 
 import { Toaster, type ToasterProps } from "sonner";
+import "./sonner.css";
 
 /**
  * Glass-themed Sonner toaster aligned with our codebase tokens.
@@ -23,10 +24,17 @@ import { Toaster, type ToasterProps } from "sonner";
  * Callers should pass `theme` from `next-themes` so Sonner's internal
  * `data-theme` attribute matches the active app theme (used by its focus
  * ring and a few internal states that aren't reachable via classNames).
+ *
+ * Stacking: `expand={false}` keeps toasts collapsed (offset + scale). Hovering
+ * the stack expands them. `sonner.css` hides back-toast content while collapsed
+ * because `unstyled` disables Sonner's built-in `data-styled` stack rules.
  */
 function SonnerToaster(props: ToasterProps) {
   return (
     <Toaster
+      expand={false}
+      visibleToasts={4}
+      gap={12}
       className="toaster group !font-sans"
       toastOptions={{
         unstyled: true,
