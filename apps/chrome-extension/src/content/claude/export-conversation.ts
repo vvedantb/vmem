@@ -12,7 +12,7 @@ export async function injectExportButton(): Promise<void> {
   const header = await waitForElement(SELECTORS.headerActions);
   if (!header) return;
 
-  if (header.querySelector("[data-vmem]")) return;
+  if (header.querySelector("[data-vmem-action='export']")) return;
 
   const button = createVmemButton("Export to vmem", () => {
     const input = document.querySelector(SELECTORS.inputField);
@@ -22,5 +22,6 @@ export async function injectExportButton(): Promise<void> {
     }
   });
 
+  button.setAttribute("data-vmem-action", "export");
   header.appendChild(button);
 }
