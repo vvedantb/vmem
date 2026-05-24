@@ -22,10 +22,6 @@ interface ProviderConfig {
   scopes: string[];
 }
 
-function isConnectorOAuthProvider(value: string): value is Provider {
-  return Object.hasOwn(PROVIDER_CONFIGS, value);
-}
-
 const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
   google_drive: {
     authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
@@ -58,6 +54,10 @@ const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
     scopes: ["read"],
   },
 };
+
+function isConnectorOAuthProvider(value: string): value is Provider {
+  return value in PROVIDER_CONFIGS;
+}
 
 // --- Public actions ---
 

@@ -13,7 +13,7 @@ export const CONNECTOR_PROVIDER_SOURCE_TYPES = {
 export type ConnectorProviderKey = keyof typeof CONNECTOR_PROVIDER_SOURCE_TYPES;
 
 function isConnectorProviderKey(value: string): value is ConnectorProviderKey {
-  return Object.hasOwn(CONNECTOR_PROVIDER_SOURCE_TYPES, value);
+  return value in CONNECTOR_PROVIDER_SOURCE_TYPES;
 }
 
 export function sourceTypesForProvider(
