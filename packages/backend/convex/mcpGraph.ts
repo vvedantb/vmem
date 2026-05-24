@@ -45,8 +45,12 @@ export const mcpMemoryGraphResultValidator = v.object({
   }),
 });
 
-const DEFAULT_NODE_LIMIT = 250;
-const MAX_NODE_LIMIT = 400;
+const DEFAULT_NODE_LIMIT = 80;
+const MAX_NODE_LIMIT = 150;
+const MAX_RELATES_EDGES_PER_NODE = 4;
+const MAX_TAG_EDGES_PER_NODE = 3;
+const MAX_EDGE_REASON_CHARS = 120;
+const MAX_TAGS_PER_NODE = 12;
 
 type MemoryGraphNode = {
   id: string;
@@ -122,6 +126,57 @@ function expandMemoryIdSeeds(
   return { nodes, relatesToEdges, tagEdges: toMcpTagEdges(tagEdges) };
 }
 
+function slimNodeForMcp(node: MemoryGraphNode): MemoryGraphNode {
+  return {
+    id: node.id,
+    title: node.title,
+    type: node.type,
+    tags: node.tags.slice(0, MAX_TAGS_PER_NODE),
+    createdAt: node.createdAt,
+  };
+}
+
+function slimRelatesEdgeForMcp(edge: RelatesToEdge): RelatesToEdge {
+  const reason =
+    edge.reason.length > MAX_EDGE_REASON_CHARS
+      ? `${edge.reason.slice(0, MAX_EDGE_REASON_CHARS)}…`
+      : edge.reason;
+  return {
+    source: edge.source,
+    target: edge.target,
+    reason,
+    score: edge.score,
+  };
+}
+
+function capEdgesForNodes(
+  edges: RelatesToEdge[],
+  nodeIds: Set<string>,
+  maxEdges: number,
+): RelatesToEdge[] {
+  const capped: RelatesToEdge[] = [];
+  for (const edge of edges) {
+    if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) continue;
+    capped.push(slimRelatesEdgeForMcp(edge));
+    if (capped.length >= maxEdges) break;
+  }
+  return capped;
+}
+
+function capTagEdgesForNodes(
+  edges: McpTagEdge[],
+  nodeIds: Set<string>,
+  maxEdges: number,
+): McpTagEdge[] {
+  const capped: McpTagEdge[] = [];
+  for (const edge of edges) {
+    if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) continue;
+    capped.push(edge);
+    if (capped.length >= maxEdges) break;
+  }
+  return capped;
+}
+
 function capMemoryGraph(
   graph: McpGraphSlice,
   limit: number,
@@ -130,24 +185,27 @@ function capMemoryGraph(
   totalNodesBeforeCap: number;
 } {
   const totalNodesBeforeCap = graph.nodes.length;
-  if (graph.nodes.length <= limit) {
-    return { ...graph, truncated: false, totalNodesBeforeCap };
-  }
-
-  const nodes = graph.nodes.slice(0, limit);
-  const nodeIds = new Set(nodes.map((n) => n.id));
-  const relatesToEdges = graph.relatesToEdges
-    .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
-    .slice(0, limit * 2);
-  const tagEdges = graph.tagEdges
-    .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
-    .slice(0, limit * 2);
+  const nodeSlice = graph.nodes.slice(0, limit);
+  const nodeIds = new Set(nodeSlice.map((n) => n.id));
+  const maxRelates = limit * MAX_RELATES_EDGES_PER_NODE;
+  const maxTag = limit * MAX_TAG_EDGES_PER_NODE;
+  const nodes = nodeSlice.map(slimNodeForMcp);
+  const relatesToEdges = capEdgesForNodes(
+    graph.relatesToEdges,
+    nodeIds,
+    maxRelates,
+  );
+  const tagEdges = capTagEdgesForNodes(graph.tagEdges, nodeIds, maxTag);
+  const truncated =
+    totalNodesBeforeCap > limit ||
+    graph.relatesToEdges.length > relatesToEdges.length ||
+    graph.tagEdges.length > tagEdges.length;
 
   return {
     nodes,
     relatesToEdges,
     tagEdges,
-    truncated: true,
+    truncated,
     totalNodesBeforeCap,
   };
 }
@@ -204,13 +262,7 @@ export const mcpGetMemoryGraph = internalAction({
     const capped = capMemoryGraph(working, limit);
 
     return {
-      nodes: capped.nodes.map((n) => ({
-        id: n.id,
-        title: n.title,
-        type: n.type,
-        tags: n.tags,
-        createdAt: n.createdAt,
-      })),
+      nodes: capped.nodes,
       relatesToEdges: capped.relatesToEdges,
       tagEdges: capped.tagEdges,
       truncated: capped.truncated,
