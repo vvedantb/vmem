@@ -1,5 +1,5 @@
 /**
- * End-to-end vmem MCP tool tester (3 rounds × 16 tools).
+ * End-to-end vmem MCP tool tester (3 rounds × 21 tools).
  * Uses mcp-remote OAuth token from ~/.mcp-auth (same as Cursor).
  *
  * Usage: node scripts/test-vmem-mcp.mjs
@@ -239,6 +239,49 @@ async function runRound(headers, round, roundIndex) {
     `Show me the skill called "${skillName}"`,
   );
 
+  const wikiList = await callTool(headers, "wiki_list", {});
+  log(wikiList, "List my wiki folders and documents");
+
+  const wikiTitle = `MCP E2E Wiki R${roundIndex + 1} ${Date.now()}`;
+  const wikiCreate = await callTool(headers, "wiki_create", {
+    kind: "document",
+    title: wikiTitle,
+    contentMarkdown: `# ${wikiTitle}\n\nRound ${roundIndex + 1} wiki body.`,
+  });
+  log(wikiCreate, `Create a wiki document for round ${roundIndex + 1}`);
+
+  const wikiId =
+    wikiCreate.ok && wikiCreate.data?.id ? wikiCreate.data.id : undefined;
+
+  if (wikiId) {
+    log(
+      await callTool(headers, "wiki_get", { id: wikiId }),
+      `Read the wiki document we just created`,
+    );
+    log(
+      await callTool(headers, "wiki_search", { query: wikiTitle }),
+      `Search wiki for "${wikiTitle}"`,
+    );
+    log(
+      await callTool(headers, "wiki_update", {
+        id: wikiId,
+        contentMarkdown: `\n\nAppended in round ${roundIndex + 1}.`,
+        contentMode: "append",
+      }),
+      `Append to the wiki document body`,
+    );
+  } else {
+    for (const t of ["wiki_get", "wiki_search", "wiki_update"]) {
+      results.push({
+        tool: t,
+        ok: false,
+        ms: 0,
+        error: "Skipped: wiki_create did not return id",
+        prompt: t,
+      });
+    }
+  }
+
   const codebases = await callTool(headers, "codebases_list", {});
   log(codebases, "Which GitHub repos are connected for codebase graph?");
   const vmemCb =
@@ -334,7 +377,7 @@ function writeMarkdownReport(allRounds, meta) {
     "",
     `Generated: ${meta.generatedAt}`,
     `MCP URL: \`${MCP_URL}\``,
-    `Summary: **${meta.passed}/${meta.total} passed** across 3 rounds × 16 tools`,
+    `Summary: **${meta.passed}/${meta.total} passed** across 3 rounds × 21 tools`,
     "",
     "## Fixes applied during this session",
     "",
@@ -372,10 +415,10 @@ function writeMarkdownReport(allRounds, meta) {
     lines.push("");
   }
 
-  lines.push("## Tool inventory (16 tools)");
+  lines.push("## Tool inventory (21 tools)");
   lines.push("");
   lines.push(
-    "`ping`, `whoami`, `list_profiles`, `memory_search`, `memory_retrieve`, `memory_add`, `memory_update`, `memory_delete`, `skills_list`, `skills_get`, `codebases_list`, `codebase_overview`, `codebase_search`, `codebase_context`, `codebase_impact`, `codebase_graph`",
+    "`ping`, `whoami`, `list_profiles`, `memory_search`, `memory_retrieve`, `memory_add`, `memory_update`, `memory_delete`, `skills_list`, `skills_get`, `wiki_list`, `wiki_get`, `wiki_search`, `wiki_create`, `wiki_update`, `codebases_list`, `codebase_overview`, `codebase_search`, `codebase_context`, `codebase_impact`, `codebase_graph`",
   );
   lines.push("");
   lines.push("## How to re-run");
