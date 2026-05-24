@@ -14,6 +14,7 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { optimisticId } from "@/lib/optimisticId";
 
 interface AddMemberDialogProps {
   teamId: string;
@@ -33,7 +34,7 @@ export function AddMemberDialog({
       });
       if (detail) {
         const now = Date.now();
-        const tempUserId: Id<"users"> = crypto.randomUUID();
+        const tempUserId = optimisticId("users");
         localStore.setQuery(
           api.teams.get,
           { teamId: args.teamId },

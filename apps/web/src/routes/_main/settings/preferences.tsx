@@ -60,7 +60,7 @@ function PreferencesPage() {
       {
         ...current,
         dreamModeScheduleEnabled: args.enabled,
-        dreamModeScheduleTime: args.enabled ? args.time : undefined,
+        dreamModeScheduleTime: args.enabled ? (args.time ?? null) : null,
       },
     );
   });

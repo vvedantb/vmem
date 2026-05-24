@@ -24,6 +24,7 @@ import {
 import type { WikiTreeNode } from "./_utils";
 import RenameDialog from "./RenameDialog";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import { optimisticId } from "@/lib/optimisticId";
 
 interface WikiTreeProps {
   tree: WikiTreeNode[];
@@ -53,7 +54,7 @@ export default function WikiTree({
           ? 0
           : Math.max(...siblings.map((s) => s.order)) + 1;
       const now = Date.now();
-      const tempId: Id<"wikiNodes"> = crypto.randomUUID();
+      const tempId = optimisticId("wikiNodes");
       const row: Doc<"wikiNodes"> = {
         _id: tempId,
         _creationTime: now,

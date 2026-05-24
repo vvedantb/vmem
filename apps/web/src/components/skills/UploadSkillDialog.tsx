@@ -13,6 +13,7 @@ import {
 } from "@vmem/ui";
 import { IconLoader2, IconUpload } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { optimisticId } from "@/lib/optimisticId";
 
 interface UploadSkillDialogProps {
   open: boolean;
@@ -53,7 +54,7 @@ export function UploadSkillDialog({
       const current = localStore.getQuery(api.skills.listMy, {});
       if (!current || current.length === 0) return;
       const now = Date.now();
-      const tempId: Id<"skills"> = crypto.randomUUID();
+      const tempId = optimisticId("skills");
       const row: Doc<"skills"> = {
         _id: tempId,
         _creationTime: now,
