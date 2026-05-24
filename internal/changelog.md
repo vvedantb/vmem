@@ -1,5 +1,11 @@
 # Changelog
 
+## Codebases sidebar navigation — 2026-05-24
+
+- **Settings-style sidebar**: Clicking Codebases swaps the root sidebar to a searchable repo list with header back, matching Skills, Wiki, and Teams.
+- **Graph-first routing**: `/codebases` redirects to the first repository graph when you have repos; empty state stays in the main pane with add/connect actions.
+- **Parser re-sync in sidebar**: Stale-parser banner and Re-sync all moved from the grid index into the sidebar list.
+
 ## Teams sidebar navigation — 2026-05-24
 
 - **Settings-style sidebar**: Clicking Teams swaps the root sidebar to a searchable team list with header back, matching Skills, Wiki, and Settings.
