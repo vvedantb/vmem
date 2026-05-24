@@ -158,3 +158,26 @@ export function countWords(text: string): number {
   if (trimmed.length === 0) return 0;
   return trimmed.split(/\s+/).length;
 }
+
+export function formatWikiDocForClipboard(
+  title: string,
+  markdown: string,
+): string {
+  const trimmedTitle = title.trim();
+  const trimmedMarkdown = markdown.trim();
+
+  if (trimmedMarkdown.length === 0) {
+    return trimmedTitle.length > 0 ? `# ${trimmedTitle}` : "";
+  }
+
+  const firstLine = trimmedMarkdown.split("\n")[0] ?? "";
+  if (trimmedTitle.length > 0 && firstLine === `# ${trimmedTitle}`) {
+    return trimmedMarkdown;
+  }
+
+  if (trimmedTitle.length === 0) {
+    return trimmedMarkdown;
+  }
+
+  return `# ${trimmedTitle}\n\n${trimmedMarkdown}`;
+}
