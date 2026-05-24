@@ -22,3 +22,10 @@ export {
   generateEmbeddings,
   type EmbeddingCallArgs,
 } from "./openRouter/embedding";
+export {
+  bestEffortEmbedMany,
+  bestEffortEmbedOne,
+  bestEffortEmbedOneWithAuth,
+  resolveBestEffortEmbedAuth,
+  type BestEffortEmbedAuth,
+} from "./openRouter/bestEffortEmbed";

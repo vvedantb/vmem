@@ -1,5 +1,13 @@
 # Changelog
 
+## Backend Code-Structure Refactor — 2026-05-23
+
+- **Best-effort embeddings**: Shared `bestEffortEmbed*` helpers replace duplicated OpenRouter try/catch blocks in memory actions and connector sync.
+- **Context prompt invalidation**: Single `scheduleContextPromptInvalidationByClerkId` path; memory handlers re-export it.
+- **Dedup hits**: `finalizeDedupHit` consolidates visit-count bump + reload after content-hash / URL / embedding matches.
+- **Profile defaults**: List and search memory actions resolve default profile like retrieve already did.
+- **Team search**: `searchMemoriesForTeam` delegates to `listMemoriesForTeam` with fulltext + filters and correct `total`.
+
 ## Behavior Test Suite — 2026-05-23
 
 - **Vitest coverage**: Backend and web unit tests for chunking, LLM response parsers (V2 + enrichment), retrieval ranking, URL/hash dedup, list/memory filters, bearer auth, and API key hashing.
