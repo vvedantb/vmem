@@ -52,6 +52,7 @@ import type * as lib_openRouter_shared from "../lib/openRouter/shared.js";
 import type * as mcpCodebases from "../mcpCodebases.js";
 import type * as mcpProfiles from "../mcpProfiles.js";
 import type * as mcpSkills from "../mcpSkills.js";
+import type * as mcpWiki from "../mcpWiki.js";
 import type * as mcp_native from "../mcp/native.js";
 import type * as mcp_nodeActions from "../mcp/nodeActions.js";
 import type * as mcp_oauth from "../mcp/oauth.js";
@@ -176,6 +177,7 @@ declare const fullApi: ApiFromModules<{
   mcpCodebases: typeof mcpCodebases;
   mcpProfiles: typeof mcpProfiles;
   mcpSkills: typeof mcpSkills;
+  mcpWiki: typeof mcpWiki;
   "mcp/native": typeof mcp_native;
   "mcp/nodeActions": typeof mcp_nodeActions;
   "mcp/oauth": typeof mcp_oauth;

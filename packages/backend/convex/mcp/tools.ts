@@ -310,6 +310,124 @@ export function registerTools(
   );
 
   server.tool(
+    "wiki_list",
+    "List all wiki folders and documents (flat index, no body). Use returned ids with wiki_get. Call this before wiki_get or wiki_update when you do not already have a node id.",
+    {},
+    async () => {
+      const result = await safe("wiki_list", () =>
+        ctx.runAction(internal.mcpWiki.mcpListWiki, {
+          clerkId: clerkUserId,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Wiki list failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "wiki_get",
+    "Fetch a single wiki node by id. Returns metadata and contentMarkdown for documents. Call wiki_list first if you do not have the id.",
+    {
+      id: z.string().describe("Wiki node id from wiki_list"),
+    },
+    async (params) => {
+      const result = await safe("wiki_get", () =>
+        ctx.runAction(internal.mcpWiki.mcpGetWiki, {
+          clerkId: clerkUserId,
+          id: params.id,
+        }),
+      );
+      if (!result.ok) return errorContent(`Wiki get failed: ${result.message}`);
+      if (result.value === null) {
+        return errorContent("Wiki node not found");
+      }
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "wiki_search",
+    "Full-text search wiki titles and document bodies. Returns id, title, kind, and excerpt.",
+    {
+      query: z.string().describe("Search text"),
+    },
+    async (params) => {
+      const result = await safe("wiki_search", () =>
+        ctx.runAction(internal.mcpWiki.mcpSearchWiki, {
+          clerkId: clerkUserId,
+          query: params.query,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Wiki search failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "wiki_create",
+    "Create a wiki folder or document. Documents accept contentMarkdown (converted to TipTap JSON for the web editor). Optional parentId must be a folder id from wiki_list.",
+    {
+      kind: z.enum(["folder", "document"]).describe("folder or document"),
+      title: z.string().describe("Node title"),
+      parentId: z
+        .string()
+        .optional()
+        .describe("Parent folder id (omit for root)"),
+      contentMarkdown: z
+        .string()
+        .optional()
+        .describe("Initial markdown body (documents only)"),
+    },
+    async (params) => {
+      const result = await safe("wiki_create", () =>
+        ctx.runAction(internal.mcpWiki.mcpCreateWiki, {
+          clerkId: clerkUserId,
+          kind: params.kind,
+          title: params.title,
+          parentId: params.parentId,
+          contentMarkdown: params.contentMarkdown,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Wiki create failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "wiki_update",
+    "Update a wiki node by id. Optional title and/or contentMarkdown. contentMode append concatenates new markdown after existing body; replace (default) overwrites the body.",
+    {
+      id: z.string().describe("Wiki node id from wiki_list"),
+      title: z.string().optional().describe("New title"),
+      contentMarkdown: z
+        .string()
+        .optional()
+        .describe("Markdown body to write or append"),
+      contentMode: z
+        .enum(["replace", "append"])
+        .optional()
+        .describe("replace (default) or append when contentMarkdown is set"),
+    },
+    async (params) => {
+      const result = await safe("wiki_update", () =>
+        ctx.runAction(internal.mcpWiki.mcpUpdateWiki, {
+          clerkId: clerkUserId,
+          id: params.id,
+          title: params.title,
+          contentMarkdown: params.contentMarkdown,
+          contentMode: params.contentMode,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Wiki update failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
     "codebases_list",
     "List GitHub repositories connected to vmem. Returns codebase IDs, repo names, sync status, and parser stats. Call this first to discover codebaseId values for the other codebase_* tools. Only repos with status 'synced' have graph data in Neo4j.",
     {},
