@@ -241,10 +241,11 @@ export const updateByClerkIdInternal = internalMutation({
       throw new Error("User not found");
     }
 
+    const lookupName = args.name.trim();
     const skill = await ctx.db
       .query("skills")
       .withIndex("by_user_name", (q) =>
-        q.eq("userId", user._id).eq("name", args.name),
+        q.eq("userId", user._id).eq("name", lookupName),
       )
       .first();
     if (!skill) {
@@ -304,10 +305,11 @@ export const getByNameInternal = internalQuery({
       .first();
     if (!user) return null;
 
+    const lookupName = args.name.trim();
     const skill = await ctx.db
       .query("skills")
       .withIndex("by_user_name", (q) =>
-        q.eq("userId", user._id).eq("name", args.name),
+        q.eq("userId", user._id).eq("name", lookupName),
       )
       .first();
     if (!skill || !isSkillEnabled(skill)) return null;
