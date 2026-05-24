@@ -1,15 +1,15 @@
 "use client";
 
-import { IconCopy, IconDots, IconListDetails } from "@tabler/icons-react";
+import { IconCopy, IconDots } from "@tabler/icons-react";
 import {
   Button,
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Switch,
 } from "@vmem/ui";
 
 interface WikiDocActionsMenuProps {
@@ -43,19 +43,23 @@ export function WikiDocActionsMenu({
           <IconDots size={16} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="min-w-52 w-52">
         <DropdownMenuLabel className="text-xs font-normal text-muted-foreground tabular-nums">
           {wordCountLabel}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuCheckboxItem
-          checked={outlineVisible}
-          onCheckedChange={onOutlineVisibleChange}
+        <DropdownMenuItem
+          className="flex items-center justify-between gap-4"
           onSelect={(e) => e.preventDefault()}
         >
-          <IconListDetails size={14} />
-          View outline
-        </DropdownMenuCheckboxItem>
+          <span>View outline</span>
+          <Switch
+            checked={outlineVisible}
+            onCheckedChange={onOutlineVisibleChange}
+            aria-label="View outline"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() => {

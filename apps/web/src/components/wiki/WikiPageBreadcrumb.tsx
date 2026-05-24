@@ -17,13 +17,15 @@ export function WikiPageBreadcrumb({
   onTitleCommit,
 }: WikiPageBreadcrumbProps) {
   return (
-    <Breadcrumb>
+    <Breadcrumb className="w-full min-w-0">
       {ancestors.map((node) => (
         <BreadcrumbLink key={node._id} asChild>
-          <span className="max-w-[120px] cursor-default">{node.title}</span>
+          <span className="max-w-[120px] shrink-0 cursor-default truncate">
+            {node.title}
+          </span>
         </BreadcrumbLink>
       ))}
-      <BreadcrumbPage className="min-w-0 flex-1 truncate">
+      <BreadcrumbPage className="min-w-0 flex-1">
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
