@@ -13,7 +13,7 @@ import {
   IconLock,
 } from "@tabler/icons-react";
 
-const languageColors: Record<string, string> = {
+export const codebaseLanguageColors: Record<string, string> = {
   TypeScript: "#3178c6",
   JavaScript: "#f1e05a",
   Python: "#3572A5",
@@ -89,7 +89,7 @@ export function CodebaseCardInsides({
   const status = statusConfig[codebase.status];
   const StatusIcon = status.icon;
   const langColor = codebase.language
-    ? (languageColors[codebase.language] ?? "#8b8b8b")
+    ? (codebaseLanguageColors[codebase.language] ?? "#8b8b8b")
     : null;
   const progress =
     codebase.totalFiles > 0
