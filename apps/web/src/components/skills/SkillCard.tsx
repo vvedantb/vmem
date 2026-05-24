@@ -29,7 +29,9 @@ export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
       onKeyDown={handleKeyDown}
       className={cn(
         "flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
-        selected ? "bg-muted/80" : "hover:bg-muted/40",
+        selected
+          ? "glass-interactive text-foreground dark:bg-muted/80 dark:border-transparent dark:shadow-none"
+          : "hover:bg-card/45 dark:hover:bg-muted/40",
       )}
     >
       <span
