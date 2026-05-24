@@ -122,7 +122,7 @@ function CodebaseDetailView({
     setSyncing(true);
     try {
       await syncCodebase({ id });
-      toast.success("Sync started");
+      toast.success(`${codebase.repoName} synced`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sync failed";
       toast.error(message);
