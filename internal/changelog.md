@@ -1,5 +1,11 @@
 # Changelog
 
+## Skills sidebar navigation — 2026-05-24
+
+- **Settings-style sidebar**: Clicking Skills swaps the root sidebar to a searchable skill list with Back, matching Settings navigation.
+- **Full-width detail**: The skills page main area shows only the selected skill (or empty state); list no longer duplicates in a split column.
+- **Shareable search**: Skill list filter uses `?q=` in the URL so sidebar and layout stay in sync.
+
 ## Fix memory fulltext Lucene parse errors — 2026-05-24
 
 - **Slash-safe retrieval**: `memory_retrieve` / `memory_search` escape Lucene special characters (e.g. `/debrief` commands) before `db.index.fulltext.queryNodes`; fulltext leg degrades gracefully on parse failure instead of failing the whole MCP call.
