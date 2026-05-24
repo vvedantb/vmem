@@ -78,10 +78,15 @@ export default function PageContainer({
               centeredMaxWidth && "max-w-5xl",
             )}
           >
-            <div className="flex min-w-0 items-center gap-4">
+            <div
+              className={cn(
+                "flex min-w-0 items-center gap-4",
+                breadcrumb && !centerSection && "min-w-0 flex-1",
+              )}
+            >
               {breadcrumb ? (
                 <motion.div
-                  className="hidden min-w-0 md:flex"
+                  className="hidden min-w-0 flex-1 md:flex"
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={childTransition}
@@ -106,8 +111,8 @@ export default function PageContainer({
                 </motion.div>
               )}
             </div>
-            <div className="hidden md:flex md:flex-1 md:justify-center">
-              {centerSection && (
+            {centerSection ? (
+              <div className="hidden min-w-0 md:flex md:flex-1 md:justify-center">
                 <motion.div
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -115,8 +120,8 @@ export default function PageContainer({
                 >
                   {centerSection}
                 </motion.div>
-              )}
-            </div>
+              </div>
+            ) : null}
             {rightSection && (
               <motion.div
                 className="flex-shrink-0 ml-auto"

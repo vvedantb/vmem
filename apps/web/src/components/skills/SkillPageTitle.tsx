@@ -14,8 +14,8 @@ export function SkillPageTitle({
   onNameCommit,
 }: SkillPageTitleProps) {
   return (
-    <Breadcrumb>
-      <BreadcrumbPage className="min-w-0 flex-1 truncate">
+    <Breadcrumb className="w-full min-w-0">
+      <BreadcrumbPage className="min-w-0 flex-1">
         <input
           value={name}
           onChange={(e) => onNameChange(e.target.value)}

@@ -1,5 +1,10 @@
 # Changelog
 
+## Wiki and skills header polish — 2026-05-24
+
+- **Toggles in ⋯ menu**: View outline and Enabled use switch rows inside the actions dropdown (wider wiki menu, no outline icon).
+- **Full-width titles**: Breadcrumb title inputs expand across the header; PageContainer no longer reserves empty center space when centerSection is unset.
+
 ## Skills layout polish — 2026-05-24
 
 - **Inline name in header**: Open skills show an editable title in the page header instead of a static “Skills” label and duplicate name in the panel.

@@ -13,11 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Switch,
 } from "@vmem/ui";
 import {
   IconCopy,
@@ -111,15 +111,20 @@ export function SkillHeaderActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuCheckboxItem
-            checked={isEnabled}
-            onCheckedChange={(checked) => {
-              void handleEnabledChange(checked);
-            }}
+          <DropdownMenuItem
+            className="flex items-center justify-between gap-4"
             onSelect={(e) => e.preventDefault()}
           >
-            Enabled
-          </DropdownMenuCheckboxItem>
+            <span>Enabled</span>
+            <Switch
+              checked={isEnabled}
+              onCheckedChange={(checked) => {
+                void handleEnabledChange(checked);
+              }}
+              aria-label={isEnabled ? "Disable skill" : "Enable skill"}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onSelect={() => {
