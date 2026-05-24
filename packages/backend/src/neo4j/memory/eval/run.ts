@@ -1,54 +1,7 @@
+import { embeddingMode, generateCliEmbedding } from "../../cliEmbeddings";
 import { closeDriver, getDriver } from "../../driver";
 import { retrieveMemories } from "../retrieve";
 import { RETRIEVAL_EVAL_QUERIES, RETRIEVAL_EVAL_USER_ID } from "./queries";
-
-const EMBEDDING_MODEL = "openai/text-embedding-3-small";
-const EMBEDDING_ENDPOINT = "https://openrouter.ai/api/v1/embeddings";
-
-function extractJsonArray(source: string, startIndex: number): string | null {
-  const start = source.indexOf("[", startIndex);
-  if (start === -1) return null;
-
-  let depth = 0;
-  for (let i = start; i < source.length; i++) {
-    const char = source[i];
-    if (char === "[") depth++;
-    if (char === "]") depth--;
-    if (depth === 0) return source.slice(start + 1, i);
-  }
-
-  return null;
-}
-
-function parseEmbedding(body: string): number[] | null {
-  const markerIndex = body.indexOf('"embedding"');
-  if (markerIndex === -1) return null;
-  const rawArray = extractJsonArray(body, markerIndex);
-  if (rawArray === null) return null;
-
-  const values = rawArray
-    .split(",")
-    .map((value) => Number(value.trim()))
-    .filter((value) => Number.isFinite(value));
-
-  return values.length > 0 ? values : null;
-}
-
-async function embedQuery(query: string): Promise<number[] | null> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) return null;
-
-  const response = await fetch(EMBEDDING_ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model: EMBEDDING_MODEL, input: [query] }),
-  });
-  if (!response.ok) return null;
-  return parseEmbedding(await response.text());
-}
 
 function reciprocalRank(titles: string[], expectedTitles: string[]): number {
   const expected = new Set(expectedTitles);
@@ -75,10 +28,11 @@ async function main(): Promise<void> {
     console.log("retrieval eval");
     console.log(`user: ${RETRIEVAL_EVAL_USER_ID}`);
     console.log(`queries: ${String(RETRIEVAL_EVAL_QUERIES.length)}`);
+    console.log(`embeddings: ${embeddingMode()}`);
     console.log("");
 
     for (const item of RETRIEVAL_EVAL_QUERIES) {
-      const queryEmbedding = await embedQuery(item.query);
+      const queryEmbedding = await generateCliEmbedding(item.query);
       const candidates = await retrieveMemories(driver, {
         userId: RETRIEVAL_EVAL_USER_ID,
         query: item.query,
@@ -105,8 +59,18 @@ async function main(): Promise<void> {
     }
 
     const count = RETRIEVAL_EVAL_QUERIES.length;
-    console.log(`overall recall@5: ${formatNumber(recallTotal / count)}`);
-    console.log(`overall mrr: ${formatNumber(reciprocalRankTotal / count)}`);
+    const overallRecall = recallTotal / count;
+    const overallMrr = reciprocalRankTotal / count;
+
+    console.log(`overall recall@5: ${formatNumber(overallRecall)}`);
+    console.log(`overall mrr: ${formatNumber(overallMrr)}`);
+
+    if (overallRecall < 1 || overallMrr < 1) {
+      console.error(
+        "\neval failed: expected recall@5=1.0000 and mrr=1.0000. Run `pnpm db:seed:eval` first.",
+      );
+      process.exit(1);
+    }
   } finally {
     await closeDriver();
   }

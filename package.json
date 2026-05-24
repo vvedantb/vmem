@@ -24,7 +24,12 @@
     "check:expo": "pnpm --filter mobile exec expo install --check",
     "sdk:build": "pnpm --filter @vmem/sdk build",
     "sdk:typecheck": "pnpm --filter @vmem/sdk typecheck",
-    "test": "pnpm --filter @vmem/backend test"
+    "test": "pnpm --filter @vmem/backend test",
+    "test:mcp": "node scripts/test-vmem-mcp.mjs",
+    "eval:retrieval": "pnpm --filter @vmem/backend eval:retrieval",
+    "db:seed": "pnpm --filter @vmem/backend db:seed",
+    "db:seed:eval": "pnpm --filter @vmem/backend db:seed:eval",
+    "db:unseed": "pnpm --filter @vmem/backend db:unseed"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css,md}": "prettier --write"
