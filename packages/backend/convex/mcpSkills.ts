@@ -41,3 +41,23 @@ export const mcpGetSkill = internalAction({
     });
   },
 });
+
+/**
+ * MCP entry point: create a new enabled skill for the authenticated user.
+ */
+export const mcpCreateSkill = internalAction({
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    description: v.string(),
+    instructions: v.string(),
+  },
+  handler: async (ctx, args): Promise<Doc<"skills">> => {
+    return await ctx.runMutation(internal.skills.createByClerkIdInternal, {
+      clerkId: args.clerkId,
+      name: args.name,
+      description: args.description,
+      instructions: args.instructions,
+    });
+  },
+});
