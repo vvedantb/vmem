@@ -13,6 +13,7 @@ import { internal } from "../../_generated/api";
 import {
   bestEffortEmbedMany,
   bestEffortEmbedOne,
+  type BestEffortEmbedParams,
 } from "../../lib/openRouter/bestEffortEmbed";
 import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
 
@@ -61,5 +62,19 @@ export async function resolveProfileIdForClerkId(
 export const scheduleContextPromptInvalidation =
   scheduleContextPromptInvalidationByClerkId;
 
-export const tryEmbedOne = bestEffortEmbedOne;
-export const tryEmbedMany = bestEffortEmbedMany;
+type EmbedArgs = Omit<BestEffortEmbedParams, "ctx">;
+
+/** Memory actions call embed helpers as `(ctx, args)` — not a single params bag. */
+export function tryEmbedOne(
+  ctx: ActionCtx,
+  args: EmbedArgs & { text: string },
+): Promise<number[] | null> {
+  return bestEffortEmbedOne({ ctx, ...args });
+}
+
+export function tryEmbedMany(
+  ctx: ActionCtx,
+  args: EmbedArgs & { texts: string[] },
+): Promise<(number[] | null)[]> {
+  return bestEffortEmbedMany({ ctx, ...args });
+}
