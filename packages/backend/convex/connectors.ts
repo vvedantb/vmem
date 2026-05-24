@@ -284,6 +284,20 @@ export const markDisconnectedInternal = internalMutation({
   },
 });
 
+export const resetSyncStatsInternal = internalMutation({
+  args: { id: v.id("connectors") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      syncStatus: "idle",
+      syncProgress: 0,
+      itemsSynced: 0,
+      lastSyncAt: undefined,
+      syncStartedAt: undefined,
+      errorMessage: undefined,
+    });
+  },
+});
+
 export const updateSyncProgressInternal = internalMutation({
   args: {
     id: v.id("connectors"),
