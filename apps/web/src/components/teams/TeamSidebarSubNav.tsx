@@ -33,20 +33,20 @@ export function TeamSidebarSubNav({
   const sections = getTeamSections(isOwner);
 
   return (
-    <ul className="mb-1 ml-9 flex flex-col gap-0.5">
+    <ul className="flex flex-col gap-0.5 pb-0.5 pl-4">
       {sections.map((section) => (
         <li key={section.id}>
           <Link
             to={section.to}
             params={{ teamId }}
             className={cn(
-              "flex items-center gap-2 rounded-lg py-1.5 pl-3 pr-2 text-xs font-medium transition-[background-color]",
+              "flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium transition-[background-color]",
               activeSection === section.id
-                ? "glass-interactive text-foreground dark:bg-muted/80 dark:border-transparent dark:shadow-none"
-                : "text-muted-foreground hover:bg-card/45 hover:text-foreground dark:hover:bg-muted/40",
+                ? "bg-muted/70 text-foreground"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
             )}
           >
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center opacity-80">
               {teamSectionIcons[section.id]}
             </span>
             {section.label}
