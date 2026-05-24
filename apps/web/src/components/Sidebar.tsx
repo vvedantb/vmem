@@ -27,7 +27,11 @@ import {
   IconLayoutSidebarLeftExpandFilled,
 } from "@tabler/icons-react";
 import { MorphingMenuIcon, VmemDrawInIcon } from "./svg-animations";
-import { SidebarNavigation } from "./sidebar/SidebarNavigation";
+import {
+  SidebarNavigation,
+  navViewFromPathname,
+  type SidebarNavView,
+} from "./sidebar/SidebarNavigation";
 import { SidebarFooter, type SidebarStats } from "./sidebar/SidebarFooter";
 import { usePageTitle } from "./contexts/PageTitleContext";
 
@@ -41,6 +45,9 @@ export default function Sidebar({
   onToggleCollapse,
 }: SidebarProps) {
   const { pathname } = useLocation();
+  const [navView, setNavView] = useState<SidebarNavView>(() =>
+    navViewFromPathname(pathname),
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuId = useId();
   const { theme, toggleTheme, mounted } = useThemeContext();
@@ -163,6 +170,8 @@ export default function Sidebar({
                 proposalsCount={proposalsCount}
                 isCollapsed={false}
                 isMobile
+                navView={navView}
+                onNavViewChange={setNavView}
                 onNavigate={() => setMobileMenuOpen(false)}
               />
               <SidebarFooter
@@ -173,6 +182,7 @@ export default function Sidebar({
                 toggleTheme={toggleTheme}
                 isAuthLoading={isAuthLoading}
                 stats={stats}
+                showStats={navView === "main"}
               />
             </motion.div>
           </DialogRawContent>
@@ -248,6 +258,8 @@ export default function Sidebar({
             proposalsCount={proposalsCount}
             isCollapsed={isCollapsed}
             isMobile={false}
+            navView={navView}
+            onNavViewChange={setNavView}
           />
 
           <SidebarFooter
@@ -258,6 +270,7 @@ export default function Sidebar({
             toggleTheme={toggleTheme}
             isAuthLoading={isAuthLoading}
             stats={stats}
+            showStats={navView === "main"}
           />
         </div>
       </motion.aside>
