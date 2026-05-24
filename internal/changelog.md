@@ -1,5 +1,9 @@
 # Changelog
 
+## Connector brand icons — 2026-05-23
+
+- **Gmail & OneDrive**: Settings connector cards use official SVGL marks instead of simplified placeholders.
+
 ## Memory detail provenance — 2026-05-23
 
 - **Connector memories**: Detail panel shows import source, last synced time, and an “Open in …” link when Neo4j has `sourceUrl` / `sourceSyncedAt` from connector ingest.
