@@ -2,7 +2,7 @@ import { type MouseEventHandler } from "react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { Separator, cn, motionDuration, motionEase } from "@vmem/ui";
-import { IconArrowLeft, IconChevronRight } from "@tabler/icons-react";
+import { IconChevronRight } from "@tabler/icons-react";
 import type { NavIcon, NavItem } from "./types";
 import { navGroups, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
@@ -199,13 +199,11 @@ function SettingsNav({
   pathname,
   isIconOnly,
   isMobile,
-  onBack,
   onNavigate,
 }: {
   pathname: string;
   isIconOnly: boolean;
   isMobile: boolean;
-  onBack: () => void;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }) {
   return (
@@ -219,43 +217,6 @@ function SettingsNav({
       exit={{ opacity: 0, x: 12 }}
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
-      <div className="px-1 mb-4">
-        <ul className="space-y-1">
-          <li>
-            <button
-              type="button"
-              onClick={onBack}
-              title={isIconOnly ? "Back" : undefined}
-              className={cn(
-                "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98] text-muted-foreground hover:bg-card/45 hover:text-foreground",
-                isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
-                isMobile ? "py-3.5" : "py-2.5",
-              )}
-            >
-              <span className="flex h-5 w-5 items-center justify-center text-current">
-                <IconArrowLeft size={18} stroke={1.7} />
-              </span>
-              <AnimatePresence initial={false}>
-                {!isIconOnly ? (
-                  <motion.span
-                    key="back-label"
-                    className="flex-1 text-left"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{
-                      duration: motionDuration.fast,
-                      ease: motionEase,
-                    }}
-                  >
-                    Back
-                  </motion.span>
-                ) : null}
-              </AnimatePresence>
-            </button>
-          </li>
-        </ul>
-      </div>
       {settingsNavGroups.map((group) => (
         <div key={group.title} className="px-1 mb-4">
           {!isIconOnly ? (
@@ -343,7 +304,6 @@ export function SidebarNavigation({
           pathname={pathname}
           isIconOnly={isIconOnly}
           isMobile={isMobile}
-          onBack={() => onNavViewChange("main")}
           onNavigate={onNavigate}
         />
       ) : navView === "skills" ? (
@@ -351,14 +311,12 @@ export function SidebarNavigation({
           key="skills"
           isIconOnly={isIconOnly}
           isMobile={isMobile}
-          onBack={() => onNavViewChange("main")}
         />
       ) : navView === "wiki" ? (
         <WikiSidebarNav
           key="wiki"
           isIconOnly={isIconOnly}
           isMobile={isMobile}
-          onBack={() => onNavViewChange("main")}
         />
       ) : (
         <MainNav

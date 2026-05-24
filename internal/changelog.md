@@ -1,5 +1,10 @@
 # Changelog
 
+## Sub-sidebar header chrome — 2026-05-24
+
+- **Header swap**: Settings, Skills, and Wiki replace the vmem logo with a centered section title; back is an icon button in the header, not a list row.
+- **Centered main logo**: Root sidebar keeps vmem centered with collapse aligned on the same row.
+
 ## Wiki sidebar navigation — 2026-05-24
 
 - **Settings-style sidebar**: Clicking Wiki swaps the root sidebar to search + document tree with Back, matching Skills and Settings.
