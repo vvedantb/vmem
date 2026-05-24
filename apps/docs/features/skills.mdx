@@ -26,6 +26,7 @@ Skills appear in the **Available Skills** section of the `vmem://context_prompt`
 | --- | --- |
 | `skills_list` | List enabled skills (name + description only) |
 | `skills_get` | Fetch a single skill by exact name, including full markdown instructions |
+| `skills_create` | Create a new skill (name, description, markdown instructions) |
 
 When a task matches a skill's description, call `skills_get` to load full instructions before following them.
 

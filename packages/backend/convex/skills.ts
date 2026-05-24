@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { authQuery, authMutation } from "./auth";
 import { scheduleContextPromptInvalidationForUser } from "./lib/contextPromptInvalidate";
 
@@ -154,6 +154,60 @@ export const listByClerkIdInternal = internalQuery({
       .order("desc")
       .collect();
     return rows.filter(isSkillEnabled);
+  },
+});
+
+/**
+ * Create a skill for a given Clerk user id (MCP after JWT verification).
+ */
+export const createByClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    description: v.string(),
+    instructions: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const trimmedName = args.name.trim();
+    if (trimmedName.length === 0) {
+      throw new Error("Name is required");
+    }
+
+    const existing = await ctx.db
+      .query("skills")
+      .withIndex("by_user_name", (q) =>
+        q.eq("userId", user._id).eq("name", trimmedName),
+      )
+      .first();
+    if (existing) {
+      throw new Error("A skill with this name already exists");
+    }
+
+    const now = Date.now();
+    const id = await ctx.db.insert("skills", {
+      userId: user._id,
+      name: trimmedName,
+      description: args.description,
+      instructions: args.instructions,
+      enabled: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await scheduleContextPromptInvalidationForUser(ctx, user._id);
+
+    const created = await ctx.db.get(id);
+    if (!created) {
+      throw new Error("Failed to create skill");
+    }
+    return created;
   },
 });
 
