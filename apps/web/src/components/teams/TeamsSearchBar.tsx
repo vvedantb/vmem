@@ -2,6 +2,7 @@
 
 import { IconSearch } from "@tabler/icons-react";
 import { Input } from "@vmem/ui";
+import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
 
 interface TeamsSearchBarProps {
   value: string;
@@ -19,7 +20,7 @@ export function TeamsSearchBar({ value, onChange }: TeamsSearchBarProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Search teams"
-        className="h-8 pl-8 text-sm shadow-none focus-visible:ring-0 focus-visible:shadow-none"
+        className={sidebarSearchInputClassName}
         aria-label="Search teams"
       />
     </div>
