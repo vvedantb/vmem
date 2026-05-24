@@ -1,5 +1,13 @@
 # Changelog
 
+## MCP memory graph UI — 2026-05-24
+
+- **Web-aligned MCP App chrome**: oklch tokens, graph canvas palette (tag hue nodes, amber relates-to / muted tag edges, glow), toolbar + legend + zoom/fit controls matching the memories graph view.
+
+## MCP Apps architecture — 2026-05-23
+
+- **Skybridge decision**: Documented in `internal/mcp-apps.md` — keep `ext-apps` + Convex-bundled HTML for embedded views; do not adopt Skybridge unless multi-app / ChatGPT parity / separate MCP product.
+
 ## MCP memory graph viewport — 2026-05-24
 
 - **Taller MCP App canvas**: Graph widget requests ~560px height via ext-apps `sendSizeChanged` and CSS min-heights (no Skybridge — already on the MCP Apps SDK).

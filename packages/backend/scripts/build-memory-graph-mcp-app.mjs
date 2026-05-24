@@ -34,14 +34,40 @@ const html = `<!DOCTYPE html>
 </head>
 <body data-theme="dark">
   <div id="root">
-    <div id="toolbar">
-      <span id="stats">Waiting for tool result…</span>
-      <span id="hint"></span>
-    </div>
+    <header id="toolbar">
+      <div class="toolbar-left">
+        <span class="app-title">Memory graph</span>
+        <span id="stats">Waiting for tool result…</span>
+      </div>
+      <div class="toolbar-right">
+        <span id="hint">Drag to pan · Scroll to zoom</span>
+      </div>
+    </header>
     <div id="canvas-wrap">
-      <div id="loading">Loading graph…</div>
+      <div id="loading" class="hidden">
+        <div class="spinner" aria-hidden="true"></div>
+        <span>Loading graph…</span>
+      </div>
       <canvas id="graph-canvas"></canvas>
-      <div id="banner"></div>
+      <div id="nav-controls">
+        <button type="button" class="nav-btn" id="btn-zoom-in" title="Zoom in" aria-label="Zoom in">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button type="button" class="nav-btn" id="btn-zoom-out" title="Zoom out" aria-label="Zoom out">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+        </button>
+        <button type="button" class="nav-btn" id="btn-fit" title="Fit to view" aria-label="Fit to view">
+          <svg viewBox="0 0 24 24"><path d="M9 4H4v5M20 4h-5v5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
+      </div>
+      <aside id="legend" aria-label="Graph legend">
+        <p class="legend-title">Legend</p>
+        <p id="legend-stats" class="tabular-nums">—</p>
+        <div class="legend-row"><span class="swatch swatch-node"></span><span>Colour = first tag</span></div>
+        <div class="legend-row"><span class="swatch swatch-relates"></span><span>Relates-to</span></div>
+        <div class="legend-row"><span class="swatch swatch-tag"></span><span>Shared tag</span></div>
+      </aside>
+      <div id="banner" role="status"></div>
     </div>
   </div>
   <script>${js}</script>
