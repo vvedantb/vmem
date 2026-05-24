@@ -4,20 +4,15 @@
  * synthetic vectors so eval can run offline.
  */
 
+import {
+  createOpenRouterClient,
+  readOpenRouterError,
+} from "../../../openRouter/client";
+
 const EMBEDDING_MODEL = "openai/text-embedding-3-small";
-const EMBEDDING_ENDPOINT = "https://openrouter.ai/api/v1/embeddings";
 const EMBEDDING_DIMENSIONS = 1536;
 const EMBEDDING_BATCH_SIZE = 20;
 const EMBEDDING_MAX_INPUT_CHARS = 6000;
-
-interface EmbeddingItem {
-  embedding: number[];
-  index: number;
-}
-
-interface EmbeddingResponse {
-  data?: EmbeddingItem[];
-}
 
 function truncateForEmbedding(text: string): string {
   return text.length > EMBEDDING_MAX_INPUT_CHARS
@@ -70,12 +65,9 @@ function syntheticEmbed(text: string): number[] {
 }
 
 function validateEmbeddingItems(
-  data: EmbeddingItem[] | undefined,
+  data: Array<{ embedding: Array<number> | string; index?: number }>,
   expectedCount: number,
 ): number[][] {
-  if (!Array.isArray(data)) {
-    throw new Error("embedding response: missing data array");
-  }
   if (data.length !== expectedCount) {
     throw new Error(
       `embedding response: expected ${String(expectedCount)} items, got ${String(data.length)}`,
@@ -87,15 +79,13 @@ function validateEmbeddingItems(
     if (!Array.isArray(item.embedding)) {
       throw new Error("embedding response: item missing embedding array");
     }
-    if (typeof item.index !== "number") {
-      throw new Error("embedding response: item missing numeric index");
-    }
+    const index = item.index ?? 0;
     if (item.embedding.length !== EMBEDDING_DIMENSIONS) {
       throw new Error(
         `embedding response: expected ${String(EMBEDDING_DIMENSIONS)} dims, got ${String(item.embedding.length)}`,
       );
     }
-    out[item.index] = item.embedding;
+    out[index] = item.embedding;
   }
 
   for (let i = 0; i < out.length; i++) {
@@ -117,33 +107,35 @@ async function generateOpenRouterEmbeddings(
     throw new Error("OPENROUTER_API_KEY is not set");
   }
 
+  const client = createOpenRouterClient(apiKey);
   const out: number[][] = new Array(texts.length);
   for (let offset = 0; offset < texts.length; offset += EMBEDDING_BATCH_SIZE) {
     const input = texts
       .slice(offset, offset + EMBEDDING_BATCH_SIZE)
       .map(truncateForEmbedding);
 
-    const response = await fetch(EMBEDDING_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ model: EMBEDDING_MODEL, input }),
-    });
+    try {
+      const response = await client.embeddings.generate({
+        requestBody: {
+          model: EMBEDDING_MODEL,
+          input,
+        },
+      });
 
-    if (!response.ok) {
-      const body = await response.text();
+      if (typeof response === "string") {
+        throw new Error("embedding response: unexpected string body");
+      }
+
+      const vectors = validateEmbeddingItems(response.data, input.length);
+      for (let i = 0; i < vectors.length; i++) {
+        const vector = vectors[i];
+        if (vector) out[offset + i] = vector;
+      }
+    } catch (err) {
+      const { status, message } = readOpenRouterError(err);
       throw new Error(
-        `openRouter embedding ${String(response.status)}: ${body.slice(0, 200)}`,
+        `openRouter embedding ${String(status)}: ${message.slice(0, 200)}`,
       );
-    }
-
-    const json: EmbeddingResponse = await response.json();
-    const vectors = validateEmbeddingItems(json.data, input.length);
-    for (let i = 0; i < vectors.length; i++) {
-      const vector = vectors[i];
-      if (vector) out[offset + i] = vector;
     }
   }
 
