@@ -11,15 +11,23 @@ type TeamListEntry = FunctionReturnType<typeof api.teams.list>[number];
 interface TeamSidebarCardProps {
   entry: TeamListEntry;
   selected?: boolean;
+  /** Selected team with expanded section links — header sits inside the group surface. */
+  inGroup?: boolean;
   onSelect: () => void;
+}
+
+function memberCountLabel(count: number): string {
+  return `${count} ${count === 1 ? "member" : "members"}`;
 }
 
 export function TeamSidebarCard({
   entry,
   selected,
+  inGroup = false,
   onSelect,
 }: TeamSidebarCardProps) {
-  const { team, role, profile } = entry;
+  const { team, role, profile, memberCount } = entry;
+  const profileColor = profile?.color;
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -36,30 +44,35 @@ export function TeamSidebarCard({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
-        selected
-          ? "glass-interactive text-foreground dark:bg-muted/80 dark:border-transparent dark:shadow-none"
-          : "hover:bg-card/45 dark:hover:bg-muted/40",
+        "flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        selected && inGroup
+          ? "text-foreground"
+          : selected
+            ? "glass-interactive text-foreground dark:bg-muted/80 dark:border-transparent dark:shadow-none"
+            : "text-muted-foreground hover:bg-card/45 hover:text-foreground dark:hover:bg-muted/40",
       )}
     >
-      <div
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-        style={{
-          backgroundColor: profile?.color ? `${profile.color}22` : undefined,
-        }}
-      >
-        <IconBuilding
-          size={16}
-          style={{ color: profile?.color }}
-          className="text-muted-foreground"
+      {profileColor ? (
+        <span
+          aria-hidden
+          className="size-2.5 shrink-0 rounded-full"
+          style={{ backgroundColor: profileColor }}
         />
-      </div>
+      ) : (
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground">
+          <IconBuilding size={14} stroke={1.7} />
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-foreground">
           {team.name}
         </div>
-        <div className="truncate text-xs capitalize text-muted-foreground">
+        <div className="truncate text-xs text-muted-foreground capitalize">
           {role}
+          <span className="normal-case">
+            {" "}
+            · {memberCountLabel(memberCount)}
+          </span>
         </div>
       </div>
     </div>

@@ -83,7 +83,7 @@ export function TeamsSidebarNav({
                 </p>
               ) : null
             ) : (
-              <div className="flex flex-col gap-0.5">
+              <div className="flex flex-col gap-1">
                 {filteredTeams.map((entry) => (
                   <TeamSidebarGroup
                     key={entry.team._id}

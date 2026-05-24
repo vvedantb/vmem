@@ -3,6 +3,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
+import { cn } from "@vmem/ui";
 import { TeamSidebarCard } from "./TeamSidebarCard";
 import { TeamSidebarSubNav } from "./TeamSidebarSubNav";
 import type { TeamSectionId } from "./team-sidebar-sections";
@@ -24,12 +25,19 @@ export function TeamSidebarGroup({
 }: TeamSidebarGroupProps) {
   const navigate = useNavigate();
   const isOwner = entry.role === "owner";
+  const isExpanded = isSelected && !isIconOnly && activeSection !== null;
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div
+      className={cn(
+        "flex flex-col",
+        isExpanded ? "gap-0.5 rounded-xl bg-muted/40 p-1" : undefined,
+      )}
+    >
       <TeamSidebarCard
         entry={entry}
         selected={isSelected}
+        inGroup={isExpanded}
         onSelect={() => {
           void navigate({
             to: "/teams/$teamId/overview",
@@ -37,7 +45,7 @@ export function TeamSidebarGroup({
           });
         }}
       />
-      {isSelected && !isIconOnly && activeSection !== null ? (
+      {isExpanded ? (
         <TeamSidebarSubNav
           teamId={entry.team._id}
           isOwner={isOwner}
