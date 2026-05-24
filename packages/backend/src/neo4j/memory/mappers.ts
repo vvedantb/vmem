@@ -106,6 +106,13 @@ export function toEventFromNode(props: {
   };
 }
 
+function optionalNeo4jString(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return String(value);
+}
+
 export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
   const obj = record.toObject();
   const props = obj.m.properties;
@@ -117,6 +124,10 @@ export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
     content: props.content,
     type: props.type,
     source: props.source,
+    sourceType: optionalNeo4jString(props.sourceType),
+    sourceId: optionalNeo4jString(props.sourceId),
+    sourceUrl: optionalNeo4jString(props.sourceUrl),
+    sourceSyncedAt: optionalNeo4jString(props.sourceSyncedAt),
     confidence: props.confidence,
     status: props.status,
     createdAt: props.createdAt,

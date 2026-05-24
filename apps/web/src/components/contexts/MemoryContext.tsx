@@ -62,6 +62,8 @@ interface ApiMemory {
   content: string;
   type: string;
   source: string;
+  sourceUrl?: string | null;
+  sourceSyncedAt?: string | null;
   confidence: number;
   status: string;
   tags: string[];
@@ -106,6 +108,8 @@ function apiToMemory(m: ApiMemory): Memory {
     content: m.content,
     type: isMemoryType(m.type) ? m.type : "knowledge",
     source: m.source,
+    sourceUrl: m.sourceUrl ?? null,
+    sourceSyncedAt: m.sourceSyncedAt ?? null,
     tags: m.tags,
     createdAt: m.createdAt,
     profileId: m.profileId,
@@ -290,6 +294,8 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         content: input.content.trim(),
         type: "knowledge",
         source: "web",
+        sourceUrl: null,
+        sourceSyncedAt: null,
         tags: input.tags ?? [],
         createdAt: new Date().toISOString(),
       };

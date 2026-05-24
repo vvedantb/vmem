@@ -15,6 +15,10 @@ export interface MemoryNode {
   content: string;
   type: MemoryType;
   source: string;
+  sourceType: string | null;
+  sourceId: string | null;
+  sourceUrl: string | null;
+  sourceSyncedAt: string | null;
   confidence: number;
   status: MemoryStatus;
   createdAt: string;

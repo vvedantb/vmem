@@ -1,5 +1,10 @@
 # Changelog
 
+## Memory detail provenance — 2026-05-23
+
+- **Connector memories**: Detail panel shows import source, last synced time, and an “Open in …” link when Neo4j has `sourceUrl` / `sourceSyncedAt` from connector ingest.
+- **API plumbing**: `toMemoryWithTags` maps provenance fields through list/get so the web client receives them without duplicating schema types.
+
 ## Daily connector sync — 2026-05-23
 
 - **04:00 UTC cron**: Connected Drive, Gmail, Notion, OneDrive, and Linear connectors run a full ingest via the Convex workflow component (one action per connector, same pattern as codebase daily sync).
