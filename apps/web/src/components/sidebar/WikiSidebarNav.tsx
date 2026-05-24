@@ -2,14 +2,14 @@
 
 import { useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconBook } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
 import WikiSearch from "@/components/wiki/WikiSearch";
-import { useWikiSidebar } from "@/components/wiki/WikiSidebarContext";
+import { WikiAddMenu } from "@/components/wiki/WikiAddMenu";
 import { buildTree, findFirstDocumentId } from "@/components/wiki/_utils";
 
 export type WikiSidebarNavProps = {
@@ -26,8 +26,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       : null;
 
   const nodes = useQuery(api.wiki.listTree);
-  const { outlineVisible, setOutlineVisible, wordCount, hasDoc } =
-    useWikiSidebar();
+  const createNode = useMutation(api.wiki.createNode);
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
 
@@ -47,6 +46,19 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       }
     },
     [navigate, tree],
+  );
+
+  const handleCreateRoot = useCallback(
+    (kind: "folder" | "document") => {
+      void (async () => {
+        const title = kind === "folder" ? "Untitled folder" : "Untitled";
+        const newId = await createNode({ parentId: undefined, kind, title });
+        if (kind === "document") {
+          void navigate({ to: "/wiki/$docId", params: { docId: newId } });
+        }
+      })();
+    },
+    [createNode, navigate],
   );
 
   return (
@@ -79,14 +91,20 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
               tree={tree}
               selectedId={docId}
               onSelect={handleSelectNode}
-              outlineVisible={outlineVisible}
-              onOutlineVisibleChange={setOutlineVisible}
-              hasDoc={hasDoc}
-              wordCount={wordCount}
             />
           </>
         )}
       </div>
+
+      {!isIconOnly ? (
+        <div className="shrink-0 px-1 pt-2">
+          <WikiAddMenu
+            className="w-full gap-2"
+            onCreateDocument={() => handleCreateRoot("document")}
+            onCreateFolder={() => handleCreateRoot("folder")}
+          />
+        </div>
+      ) : null}
     </motion.nav>
   );
 }
