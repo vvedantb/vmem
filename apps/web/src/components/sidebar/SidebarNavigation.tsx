@@ -1,11 +1,20 @@
 import { type MouseEventHandler, useState, useEffect } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { Separator, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconArrowLeft } from "@tabler/icons-react";
 import type { NavIcon } from "./types";
 import { navGroups, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
+import { SkillsSidebarNav } from "./SkillsSidebarNav";
+
+type SidebarNavView = "main" | "settings" | "skills";
+
+function navViewFromPathname(pathname: string): SidebarNavView {
+  if (pathname.startsWith("/settings")) return "settings";
+  if (pathname.startsWith("/skills")) return "skills";
+  return "main";
+}
 
 export type SidebarNavigationProps = {
   pathname: string;
@@ -24,6 +33,7 @@ function MainNav({
   isMobile,
   onNavigate,
   onSettingsClick,
+  onSkillsClick,
 }: {
   pathname: string;
   unreadCount: number;
@@ -32,6 +42,7 @@ function MainNav({
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
   onSettingsClick: () => void;
+  onSkillsClick: () => void;
 }) {
   return (
     <motion.nav
@@ -67,6 +78,50 @@ function MainNav({
             )}
             <ul className={cn("space-y-1", !isIconOnly && "pl-3")}>
               {group.items.map((item) => {
+                if (item.href === "/skills") {
+                  const isActive = pathname.startsWith("/skills");
+                  const Icon = item.icon as NavIcon;
+                  return (
+                    <li key={item.href}>
+                      <button
+                        type="button"
+                        onClick={onSkillsClick}
+                        title={isIconOnly ? item.label : undefined}
+                        className={cn(
+                          "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
+                          isIconOnly
+                            ? "justify-center px-2 py-2.5"
+                            : "gap-3 px-3.5",
+                          isMobile ? "py-3.5" : "py-2.5",
+                          isActive
+                            ? "glass-interactive text-foreground"
+                            : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
+                        )}
+                      >
+                        <span className="flex h-5 w-5 items-center justify-center text-current">
+                          <Icon size={18} stroke={1.7} />
+                        </span>
+                        <AnimatePresence initial={false}>
+                          {!isIconOnly ? (
+                            <motion.span
+                              key="skills-label"
+                              className="flex-1 text-left"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{
+                                duration: motionDuration.fast,
+                                ease: motionEase,
+                              }}
+                            >
+                              {item.label}
+                            </motion.span>
+                          ) : null}
+                        </AnimatePresence>
+                      </button>
+                    </li>
+                  );
+                }
                 if (item.href === "/settings") {
                   const isActive = pathname.startsWith("/settings");
                   const Icon = item.icon as NavIcon;
@@ -269,25 +324,33 @@ export function SidebarNavigation({
   isMobile,
   onNavigate,
 }: SidebarNavigationProps) {
+  const navigate = useNavigate();
   const isIconOnly = !isMobile && isCollapsed;
-  const [showSettings, setShowSettings] = useState(
-    pathname.startsWith("/settings"),
+  const [navView, setNavView] = useState<SidebarNavView>(() =>
+    navViewFromPathname(pathname),
   );
 
   useEffect(() => {
-    setShowSettings(pathname.startsWith("/settings"));
+    setNavView(navViewFromPathname(pathname));
   }, [pathname]);
 
   return (
     <AnimatePresence mode="wait" initial={false}>
-      {showSettings ? (
+      {navView === "settings" ? (
         <SettingsNav
           key="settings"
           pathname={pathname}
           isIconOnly={isIconOnly}
           isMobile={isMobile}
-          onBack={() => setShowSettings(false)}
+          onBack={() => setNavView("main")}
           onNavigate={onNavigate}
+        />
+      ) : navView === "skills" ? (
+        <SkillsSidebarNav
+          key="skills"
+          isIconOnly={isIconOnly}
+          isMobile={isMobile}
+          onBack={() => setNavView("main")}
         />
       ) : (
         <MainNav
@@ -298,7 +361,13 @@ export function SidebarNavigation({
           isIconOnly={isIconOnly}
           isMobile={isMobile}
           onNavigate={onNavigate}
-          onSettingsClick={() => setShowSettings(true)}
+          onSettingsClick={() => setNavView("settings")}
+          onSkillsClick={() => {
+            setNavView("skills");
+            if (!pathname.startsWith("/skills")) {
+              void navigate({ to: "/skills" });
+            }
+          }}
         />
       )}
     </AnimatePresence>
