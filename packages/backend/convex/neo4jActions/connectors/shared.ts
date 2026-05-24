@@ -113,6 +113,7 @@ export async function markSyncComplete(
     syncProgress: 100,
     itemsSynced: params.totalSynced,
     lastSyncAt: Date.now(),
+    syncStartedAt: undefined,
   });
 }
 
