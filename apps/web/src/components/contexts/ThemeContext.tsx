@@ -9,6 +9,8 @@ type Theme = "light" | "dark" | "system";
 
 interface ThemeContextType {
   theme: Theme;
+  /** Matches the active document class (respects system preference). */
+  isDark: boolean;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   mounted: boolean;
@@ -17,25 +19,41 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { theme: nextTheme, setTheme: setNextTheme } = useTheme();
+  const {
+    theme: nextTheme,
+    resolvedTheme,
+    setTheme: setNextTheme,
+  } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Use userSettings (same as extension) - single source of truth
   const settings = useQuery(api.userSettings.get);
-  const updateSettings = useMutation(api.userSettings.update);
+  const updateSettings = useMutation(
+    api.userSettings.update,
+  ).withOptimisticUpdate((localStore, args) => {
+    if (args.theme === undefined) return;
+    const current = localStore.getQuery(api.userSettings.get, {});
+    if (!current) return;
+    localStore.setQuery(
+      api.userSettings.get,
+      {},
+      {
+        ...current,
+        theme: args.theme,
+      },
+    );
+  });
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Sync next-themes with Convex userSettings (reactive)
+  // Apply Convex theme to the document when settings load or change externally.
+  // Do not depend on nextTheme — that caused a revert flicker while mutations were in flight.
   useEffect(() => {
     if (!mounted || settings === undefined) return;
     const convexTheme = settings.theme ?? "system";
-    if (nextTheme !== convexTheme) {
-      setNextTheme(convexTheme);
-    }
-  }, [mounted, settings, nextTheme, setNextTheme]);
+    setNextTheme(convexTheme);
+  }, [mounted, settings?.theme, setNextTheme]);
 
   const theme: Theme = (settings?.theme as Theme) ?? "system";
 
@@ -45,15 +63,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleTheme = () => {
-    // Toggle between light and dark (skip system in toggle)
-    const resolved = nextTheme === "dark" ? "light" : "dark";
+    const resolved = resolvedTheme === "dark" ? "light" : "dark";
     handleSetTheme(resolved);
   };
+
+  const isDark = mounted && resolvedTheme === "dark";
 
   return (
     <ThemeContext.Provider
       value={{
         theme,
+        isDark,
         setTheme: handleSetTheme,
         toggleTheme,
         mounted,

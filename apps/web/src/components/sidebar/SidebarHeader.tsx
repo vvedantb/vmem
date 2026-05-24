@@ -169,7 +169,7 @@ export function SidebarHeader({
 
   if (isCollapsed) {
     return (
-      <div className="mb-6 flex flex-col items-center gap-3 px-2 pb-4">
+      <div className="mb-6 flex flex-col items-center gap-3 px-2 pb-2">
         {isSubView ? (
           <BackButton onClick={onBack} />
         ) : (
@@ -185,7 +185,7 @@ export function SidebarHeader({
 
   if (isSubView) {
     return (
-      <div className="mb-6 grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 pb-4">
+      <div className="mb-6 grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 pb-2">
         <BackButton onClick={onBack} className="col-start-1" />
         <div className="col-start-2 min-w-0 px-1">
           <SubSidebarTitle title={subTitle} />
@@ -200,7 +200,7 @@ export function SidebarHeader({
   }
 
   return (
-    <div className="mb-6 grid grid-cols-[1fr_auto_1fr] items-center px-2 pb-4">
+    <div className="mb-6 grid grid-cols-[1fr_auto_1fr] items-center px-2 pb-2">
       <MainLogoLink isCollapsed={false} />
       <CollapseButton
         isCollapsed={isCollapsed}
