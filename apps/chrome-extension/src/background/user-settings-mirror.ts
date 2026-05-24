@@ -1,9 +1,9 @@
 import { api } from "@vmem/backend";
 import { setStorage } from "@/lib/storage";
 import { createAuthenticatedConvexClient } from "./auth";
+import { startAutoSync, stopAutoSync } from "./sync-scheduler";
 
 async function reconcileAutoSyncAlarm(enabled: boolean): Promise<void> {
-  const { startAutoSync, stopAutoSync } = await import("./sync-scheduler");
   if (enabled) {
     await startAutoSync();
   } else {

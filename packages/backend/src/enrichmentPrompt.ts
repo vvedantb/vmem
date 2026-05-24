@@ -1,3 +1,5 @@
+import { extractJsonString } from "./llm/extractJsonString";
+
 const MAX_CONTENT_LENGTH = 2000;
 
 export function truncateAtWord(text: string, maxLen: number): string {
@@ -145,33 +147,6 @@ ${memoryList || "(none)"}
 
 Respond with ONLY this JSON, no other text:
 {"tags": ["tag1", "tag2"], "relatedMemoryIds": ["id1"], "entities": [{"name": "React", "type": "technology"}]}`;
-}
-
-function extractJsonString(raw: string): string {
-  let jsonStr = raw.trim();
-
-  // Strip <think>...</think> blocks (Qwen3 and other thinking models)
-  jsonStr = jsonStr.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-
-  // Strip unclosed <think> blocks (model hit token limit mid-thought)
-  if (jsonStr.startsWith("<think>")) {
-    const closeIdx = jsonStr.indexOf("</think>");
-    if (closeIdx === -1) {
-      // Entire response is inside an unclosed think block — try to
-      // salvage JSON after the tag if there's any
-      jsonStr = jsonStr.slice(7).trim();
-    }
-  }
-
-  // Strip markdown code blocks
-  if (jsonStr.startsWith("```")) {
-    const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (match) {
-      jsonStr = match[1].trim();
-    }
-  }
-
-  return jsonStr;
 }
 
 function isNonEmptyStringArray(value: unknown): value is string[] {

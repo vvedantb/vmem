@@ -20,12 +20,14 @@ import {
   Switch,
 } from "@vmem/ui";
 import {
+  IconCopy,
   IconDots,
   IconLoader2,
   IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { formatSkillForClipboard } from "./_utils";
 
 interface ViewSkillPanelProps {
   skill: Doc<"skills">;
@@ -68,6 +70,15 @@ export function ViewSkillPanel({
       toast.error(
         err instanceof Error ? err.message : "Failed to update skill",
       );
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(formatSkillForClipboard(skill));
+      toast.success("Skill copied to clipboard");
+    } catch {
+      toast.error("Failed to copy to clipboard");
     }
   };
 
@@ -115,6 +126,14 @@ export function ViewSkillPanel({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={() => {
+                    void handleCopy();
+                  }}
+                >
+                  <IconCopy size={14} />
+                  Copy skill
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={onEdit}>
                   <IconPencil size={14} />
                   Edit

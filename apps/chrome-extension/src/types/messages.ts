@@ -54,7 +54,9 @@ export type ContentMessage =
     }
   | { type: "IMPORT_BOOKMARKS" }
   | { type: "IMPORT_HISTORY"; days: number }
-  | { type: "CANCEL_IMPORT" };
+  | { type: "CANCEL_IMPORT" }
+  | { type: "DEBUG_RUN_AUTO_SYNC" }
+  | { type: "DEBUG_PING" };
 
 export type BackgroundResponse =
   | { type: "RETRIEVE_RESULT"; memories: MemoryCandidate[] }
@@ -73,7 +75,13 @@ export type BackgroundResponse =
     }
   | { type: "CANCEL_RESULT"; success: boolean }
   | { type: "CAPTURE_RESULT"; dataUrl: string }
-  | { type: "CAPTURE_ERROR"; error: string };
+  | { type: "CAPTURE_ERROR"; error: string }
+  | {
+      type: "DEBUG_SYNC_RESULT";
+      lastHistorySync: number;
+      lastBookmarkSync: number;
+    }
+  | { type: "DEBUG_PING_RESULT"; timestamp: number };
 
 export type ProgressMessage = {
   type: "IMPORT_PROGRESS";

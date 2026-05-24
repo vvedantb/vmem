@@ -1,7 +1,9 @@
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes } from "./auditLog";
+import { STALE_SYNCING_MS } from "./codebaseSyncConstants";
 
 type ConnectorProvider =
   | "google_drive"
@@ -23,6 +25,12 @@ const DEFAULT_CONNECTORS: DefaultConnector[] = [
     description: "Sync documents, spreadsheets, and files from Google Drive",
     icon: "IconBrandGoogleDrive",
     provider: "google_drive",
+  },
+  {
+    name: "Gmail",
+    description: "Sync emails from your Gmail inbox into memories",
+    icon: "IconBrandGmail",
+    provider: "gmail",
   },
   {
     name: "OneDrive",
@@ -182,6 +190,7 @@ export const sync = authMutation({
     await ctx.db.patch(args.id, {
       syncStatus: "syncing",
       syncProgress: 0,
+      syncStartedAt: Date.now(),
       errorMessage: undefined,
     });
   },
@@ -193,6 +202,78 @@ export const getByIdInternal = internalQuery({
   args: { id: v.id("connectors") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
+  },
+});
+
+const DAILY_SYNC_PROVIDERS = new Set<ConnectorProvider>([
+  "google_drive",
+  "gmail",
+  "notion",
+  "onedrive",
+  "linear",
+]);
+
+/**
+ * Connected connectors eligible for the global 04:00 UTC daily workflow.
+ * Skips in-progress syncs; always runs a full ingest (no lastSyncAt cutoff).
+ */
+export const listForDailyConnectorSyncInternal = internalQuery({
+  args: {},
+  returns: v.array(v.object({ connectorId: v.id("connectors") })),
+  handler: async (ctx) => {
+    const all = await ctx.db.query("connectors").collect();
+    const out: Array<{ connectorId: Id<"connectors"> }> = [];
+
+    for (const row of all) {
+      if (row.connectionStatus !== "connected") continue;
+      if (!row.provider || !DAILY_SYNC_PROVIDERS.has(row.provider)) continue;
+
+      const syncingFresh =
+        row.syncStatus === "syncing" &&
+        row.syncStartedAt !== undefined &&
+        Date.now() - row.syncStartedAt < STALE_SYNCING_MS;
+      if (row.syncStatus === "syncing" && syncingFresh) continue;
+
+      out.push({ connectorId: row._id });
+    }
+
+    return out;
+  },
+});
+
+const googleConnectorRowValidator = v.object({
+  _id: v.id("connectors"),
+  provider: v.union(v.literal("google_drive"), v.literal("gmail")),
+  connectionStatus: v.union(v.literal("connected"), v.literal("disconnected")),
+});
+
+export const listGoogleConnectorsForUserInternal = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.array(googleConnectorRowValidator),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("connectors")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const googleRows: Array<{
+      _id: Id<"connectors">;
+      provider: "google_drive" | "gmail";
+      connectionStatus: "connected" | "disconnected";
+    }> = [];
+
+    for (const row of rows) {
+      if (row.provider !== "google_drive" && row.provider !== "gmail") {
+        continue;
+      }
+      googleRows.push({
+        _id: row._id,
+        provider: row.provider,
+        connectionStatus: row.connectionStatus,
+      });
+    }
+
+    return googleRows;
   },
 });
 
@@ -219,6 +300,20 @@ export const markDisconnectedInternal = internalMutation({
   },
 });
 
+export const resetSyncStatsInternal = internalMutation({
+  args: { id: v.id("connectors") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      syncStatus: "idle",
+      syncProgress: 0,
+      itemsSynced: 0,
+      lastSyncAt: undefined,
+      syncStartedAt: undefined,
+      errorMessage: undefined,
+    });
+  },
+});
+
 export const updateSyncProgressInternal = internalMutation({
   args: {
     id: v.id("connectors"),
@@ -228,11 +323,11 @@ export const updateSyncProgressInternal = internalMutation({
       v.union(v.literal("idle"), v.literal("syncing"), v.literal("error")),
     ),
     lastSyncAt: v.optional(v.number()),
+    syncStartedAt: v.optional(v.number()),
     errorMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    // Filter out undefined values
     const filteredUpdates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
@@ -263,6 +358,8 @@ export const migrateAddProviders = internalMutation({
           provider = "onedrive";
         } else if (connector.name === "Linear") {
           provider = "linear";
+        } else if (connector.name === "Gmail") {
+          provider = "gmail";
         }
         if (provider) {
           await ctx.db.patch(connector._id, { provider });

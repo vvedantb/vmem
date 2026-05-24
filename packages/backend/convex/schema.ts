@@ -61,6 +61,7 @@ const schema = defineSchema({
       v.literal("error"),
     ),
     lastSyncAt: v.optional(v.number()),
+    syncStartedAt: v.optional(v.number()),
     syncProgress: v.number(),
     itemsSynced: v.number(),
     errorMessage: v.optional(v.string()),
@@ -100,6 +101,7 @@ const schema = defineSchema({
       v.object({
         web: v.optional(v.id("profiles")),
         extension: v.optional(v.id("profiles")),
+        mcp: v.optional(v.id("profiles")),
       }),
     ),
     // ── Dream Mode (user-wide; applies to personal profiles only) ──────

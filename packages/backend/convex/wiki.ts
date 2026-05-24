@@ -160,42 +160,52 @@ export const updateContent = authMutation({
  * Builds a parentId → children map over a single user-scoped collect(), then
  * walks the tree in-memory — avoiding N recursive queries.
  */
+async function deleteWikiSubtree(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  rootId: Id<"wikiNodes">,
+): Promise<number> {
+  const root = await ctx.db.get(rootId);
+  if (!root || root.userId !== userId) {
+    throw new Error("Not found");
+  }
+
+  const allNodes = await ctx.db
+    .query("wikiNodes")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  const childrenByParent = new Map<string, Array<Doc<"wikiNodes">>>();
+  for (const node of allNodes) {
+    const key = node.parentId ?? "__root__";
+    const list = childrenByParent.get(key) ?? [];
+    list.push(node);
+    childrenByParent.set(key, list);
+  }
+
+  const toDelete: Array<Id<"wikiNodes">> = [];
+  const stack: Array<Id<"wikiNodes">> = [root._id];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) break;
+    toDelete.push(current);
+    const children = childrenByParent.get(current) ?? [];
+    for (const child of children) {
+      stack.push(child._id);
+    }
+  }
+
+  for (const id of toDelete) {
+    await ctx.db.delete(id);
+  }
+
+  return toDelete.length;
+}
+
 export const deleteNode = authMutation({
   args: { id: v.id("wikiNodes") },
   handler: async (ctx, args) => {
-    const root = await ctx.db.get(args.id);
-    if (!root || root.userId !== ctx.userId) {
-      throw new Error("Not found");
-    }
-
-    const allNodes = await ctx.db
-      .query("wikiNodes")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .collect();
-
-    const childrenByParent = new Map<string, Array<Doc<"wikiNodes">>>();
-    for (const node of allNodes) {
-      const key = node.parentId ?? "__root__";
-      const list = childrenByParent.get(key) ?? [];
-      list.push(node);
-      childrenByParent.set(key, list);
-    }
-
-    const toDelete: Array<Id<"wikiNodes">> = [];
-    const stack: Array<Id<"wikiNodes">> = [root._id];
-    while (stack.length > 0) {
-      const current = stack.pop();
-      if (!current) break;
-      toDelete.push(current);
-      const children = childrenByParent.get(current) ?? [];
-      for (const child of children) {
-        stack.push(child._id);
-      }
-    }
-
-    for (const id of toDelete) {
-      await ctx.db.delete(id);
-    }
+    await deleteWikiSubtree(ctx, ctx.userId, args.id);
   },
 });
 
@@ -444,5 +454,18 @@ export const updateByClerkIdInternal = internalMutation({
 
     await ctx.db.patch(node._id, patch);
     return node._id;
+  },
+});
+
+export const deleteByClerkIdInternal = internalMutation({
+  args: { clerkId: v.string(), id: v.string() },
+  returns: v.number(),
+  handler: async (ctx, args): Promise<number> => {
+    const userId = await getUserIdByClerkId(ctx, args.clerkId);
+    const node = await getOwnedNode(ctx, userId, args.id);
+    if (!node) {
+      throw new Error("Not found");
+    }
+    return await deleteWikiSubtree(ctx, userId, node._id);
   },
 });

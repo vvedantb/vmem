@@ -13,6 +13,17 @@ import { runUpdateMemory } from "./memories/update";
 import { runDeleteMemory } from "./memories/delete";
 import { runRetrieveMemories, runSearchMemories } from "./memories/read";
 import { resolveProfileIdForClerkId } from "./memories/shared";
+import { runStoreFromInstruction } from "./agent/storeFromInstruction";
+import type { OpenRouterRequired } from "./agent/shared";
+import type { StoreFromInstructionResult } from "./agent/storeFromInstruction";
+import type { MemoryWithTags } from "../../src/neo4j/memoryService";
+import { getRelatedMemories } from "../../src/neo4j/memoryService";
+import { getDriver } from "../../src/neo4j/driver";
+
+export interface RelatedMemoryRow {
+  memory: MemoryWithTags;
+  linkReason: string;
+}
 
 export const mcpSearchMemories = internalAction({
   args: {
@@ -113,4 +124,32 @@ export const mcpDeleteMemory = internalAction({
     memoryId: v.string(),
   },
   handler: async (ctx, args) => runDeleteMemory(ctx, args),
+});
+
+export const mcpAddFromInstruction = internalAction({
+  args: {
+    clerkId: v.string(),
+    instruction: v.string(),
+    profileId: v.optional(v.string()),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<StoreFromInstructionResult | OpenRouterRequired> =>
+    runStoreFromInstruction(ctx, args),
+});
+
+export const mcpGetRelatedMemories = internalAction({
+  args: {
+    clerkId: v.string(),
+    memoryId: v.string(),
+  },
+  handler: async (_ctx, args): Promise<RelatedMemoryRow[]> => {
+    const driver = getDriver();
+    const rows = await getRelatedMemories(driver, args.clerkId, args.memoryId);
+    return rows.map((row) => ({
+      memory: row.memory,
+      linkReason: row.reason,
+    }));
+  },
 });

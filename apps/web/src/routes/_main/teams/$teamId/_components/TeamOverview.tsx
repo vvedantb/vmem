@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@vmem/backend";
 import type { FunctionReturnType } from "convex/server";
 import { IconBrain, IconUsers, IconClock } from "@tabler/icons-react";
-import type { TeamDetail } from "../index";
+import type { TeamDetail } from "../-team-detail";
 
 type MemoryListResult = FunctionReturnType<
   typeof api.memoryApi.listTeamMemories

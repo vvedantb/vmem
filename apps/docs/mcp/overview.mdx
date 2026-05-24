@@ -34,20 +34,25 @@ Authenticated via OAuth + Bearer JWT. See [MCP Setup](/mcp/setup) for configurat
 | `ping` | Health check |
 | `whoami` | Authenticated user ID and active profile |
 | `list_profiles` | List available profiles |
+| `set_active_profile` | Set default profile for MCP memory tools |
 | `memory_search` | Search memories by query, type, tags |
 | `memory_retrieve` | Semantic retrieval with context trace |
 | `memory_add` | Store a new memory |
+| `memory_add_instruction` | Extract and store facts from natural language (OpenRouter) |
 | `memory_update` | Update an existing memory |
 | `memory_delete` | Delete a memory |
+| `memory_related` | 1-hop linked memories for a memory id |
 | `skills_list` | List user's skills |
 | `skills_get` | Fetch a skill by name |
 | `skills_create` | Create a skill for a new repeatable workflow (when none exists yet) |
 | `skills_update` | Patch an existing skill's name, description, instructions, or enabled state |
+| `skills_delete` | Permanently delete a skill by name |
 | `wiki_list` | Flat wiki index (folders + documents) |
 | `wiki_get` | Fetch wiki node by id with markdown body |
 | `wiki_search` | Full-text search wiki titles and bodies |
 | `wiki_create` | Create folder or document (markdown in) |
 | `wiki_update` | Rename or replace/append document body |
+| `wiki_delete` | Delete a wiki node and all descendants |
 | `codebases_list` | List connected GitHub repos |
 | `codebase_search` | Search symbols in a synced codebase |
 | `codebase_context` | Symbol detail and call relationships |

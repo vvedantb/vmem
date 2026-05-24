@@ -66,6 +66,8 @@ export default function ListItemRow({
           createdAt: item.createdAt,
           type: item.type,
           source: item.source,
+          sourceUrl: item.sourceUrl,
+          sourceSyncedAt: item.sourceSyncedAt,
         };
         onMemoryClick(memory);
         return;
@@ -137,6 +139,8 @@ export default function ListItemRow({
     createdAt: item.createdAt,
     type: item.type,
     source: item.source,
+    sourceUrl: item.sourceUrl,
+    sourceSyncedAt: item.sourceSyncedAt,
   };
 
   return (

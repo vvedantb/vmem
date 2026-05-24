@@ -38,27 +38,31 @@ export function registerContextMenu(): void {
  * gets woken by a context-menu click will not have the listener attached
  * in time, and the click event is lost.
  */
+export async function handleContextMenuClick(
+  info: chrome.contextMenus.OnClickData,
+  tab: chrome.tabs.Tab | undefined,
+): Promise<void> {
+  console.log("[vmem] Context menu clicked:", info.menuItemId);
+  if (!tab) return;
+
+  if (info.menuItemId === "save-to-vmem") {
+    void savePageFromTab(tab);
+    return;
+  }
+
+  if (info.menuItemId === "screenshot-to-vmem") {
+    if (typeof tab.id !== "number") return;
+    void chrome.tabs
+      .sendMessage(tab.id, { type: "START_SCREENSHOT" })
+      .catch((err) => {
+        console.warn("[vmem] Could not start screenshot on tab:", err);
+      });
+  }
+}
+
 export function registerContextMenuClickListener(): void {
   chrome.contextMenus.onClicked.addListener((info, tab) => {
-    console.log("[vmem] Context menu clicked:", info.menuItemId);
-    if (!tab) return;
-
-    if (info.menuItemId === "save-to-vmem") {
-      void savePageFromTab(tab);
-      return;
-    }
-
-    if (info.menuItemId === "screenshot-to-vmem") {
-      if (typeof tab.id !== "number") return;
-      // Asks the screenshot content script to enter region-select mode.
-      // Fire-and-forget — failures are surfaced as a console warning.
-      void chrome.tabs
-        .sendMessage(tab.id, { type: "START_SCREENSHOT" })
-        .catch((err) => {
-          console.warn("[vmem] Could not start screenshot on tab:", err);
-        });
-      return;
-    }
+    void handleContextMenuClick(info, tab);
   });
 }
 

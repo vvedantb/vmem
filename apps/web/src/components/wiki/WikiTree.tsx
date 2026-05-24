@@ -191,8 +191,8 @@ function TreeItem({
             className={cn(
               "group w-full flex items-center gap-1.5 rounded-xl px-3 py-2 text-left text-sm transition-[background-color]",
               isSelected
-                ? "bg-muted/80 text-foreground"
-                : "text-foreground/80 hover:bg-muted/40",
+                ? "glass-interactive text-foreground dark:bg-muted/80 dark:border-transparent dark:shadow-none"
+                : "text-foreground/80 hover:bg-card/45 dark:hover:bg-muted/40",
             )}
             style={{ paddingLeft: `${depth * 12 + 8}px` }}
           >

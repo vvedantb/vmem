@@ -59,6 +59,8 @@ interface MemoryRowItem extends BaseListItem {
   kind: "memory";
   type: MemoryType;
   source: string;
+  sourceUrl: string | null;
+  sourceSyncedAt: string | null;
   profileId?: string;
 }
 
@@ -171,6 +173,8 @@ export function memoryToListItem(memory: Memory): ListItem {
     createdAt: memory.createdAt,
     type: memory.type,
     source: memory.source,
+    sourceUrl: memory.sourceUrl,
+    sourceSyncedAt: memory.sourceSyncedAt,
     profileId: memory.profileId,
   };
 }

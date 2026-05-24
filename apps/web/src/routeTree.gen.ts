@@ -18,6 +18,7 @@ import { Route as MainNotificationsRouteImport } from './routes/_main/notificati
 import { Route as MainHomeRouteImport } from './routes/_main/home'
 import { Route as MainFilesRouteImport } from './routes/_main/files'
 import { Route as MainChatRouteImport } from './routes/_main/chat'
+import { Route as MainWikiRouteRouteImport } from './routes/_main/wiki/route'
 import { Route as MainSkillsRouteRouteImport } from './routes/_main/skills/route'
 import { Route as MainWikiIndexRouteImport } from './routes/_main/wiki/index'
 import { Route as MainTeamsIndexRouteImport } from './routes/_main/teams/index'
@@ -48,10 +49,15 @@ import { Route as MainInboxNotificationsRouteImport } from './routes/_main/inbox
 import { Route as MainCodebasesIdRouteImport } from './routes/_main/codebases/$id'
 import { Route as MainActivityEventsRouteImport } from './routes/_main/activity/events'
 import { Route as MainActivityAiLogsRouteImport } from './routes/_main/activity/ai-logs'
+import { Route as MainTeamsTeamIdRouteRouteImport } from './routes/_main/teams/$teamId/route'
 import { Route as MainTeamsTeamIdIndexRouteImport } from './routes/_main/teams/$teamId/index'
 import { Route as MainSettingsPlaygroundIndexRouteImport } from './routes/_main/settings/playground/index'
 import { Route as MainSettingsDataControlsIndexRouteImport } from './routes/_main/settings/data-controls/index'
 import { Route as MainSettingsApiIndexRouteImport } from './routes/_main/settings/api/index'
+import { Route as MainTeamsTeamIdSettingsRouteImport } from './routes/_main/teams/$teamId/settings'
+import { Route as MainTeamsTeamIdOverviewRouteImport } from './routes/_main/teams/$teamId/overview'
+import { Route as MainTeamsTeamIdMembersRouteImport } from './routes/_main/teams/$teamId/members'
+import { Route as MainTeamsTeamIdKnowledgeRouteImport } from './routes/_main/teams/$teamId/knowledge'
 import { Route as MainSettingsPlaygroundCallbackRouteImport } from './routes/_main/settings/playground/callback'
 import { Route as MainSettingsDataControlsImportRouteImport } from './routes/_main/settings/data-controls/import'
 import { Route as MainSettingsDataControlsExportRouteImport } from './routes/_main/settings/data-controls/export'
@@ -103,15 +109,20 @@ const MainChatRoute = MainChatRouteImport.update({
   path: '/chat',
   getParentRoute: () => MainRouteRoute,
 } as any)
+const MainWikiRouteRoute = MainWikiRouteRouteImport.update({
+  id: '/wiki',
+  path: '/wiki',
+  getParentRoute: () => MainRouteRoute,
+} as any)
 const MainSkillsRouteRoute = MainSkillsRouteRouteImport.update({
   id: '/skills',
   path: '/skills',
   getParentRoute: () => MainRouteRoute,
 } as any)
 const MainWikiIndexRoute = MainWikiIndexRouteImport.update({
-  id: '/wiki/',
-  path: '/wiki/',
-  getParentRoute: () => MainRouteRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => MainWikiRouteRoute,
 } as any)
 const MainTeamsIndexRoute = MainTeamsIndexRouteImport.update({
   id: '/teams/',
@@ -169,9 +180,9 @@ const McpOauthAuthorizeRoute = McpOauthAuthorizeRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const MainWikiDocIdRoute = MainWikiDocIdRouteImport.update({
-  id: '/wiki/$docId',
-  path: '/wiki/$docId',
-  getParentRoute: () => MainRouteRoute,
+  id: '/$docId',
+  path: '/$docId',
+  getParentRoute: () => MainWikiRouteRoute,
 } as any)
 const MainSkillsIdRoute = MainSkillsIdRouteImport.update({
   id: '/$id',
@@ -253,10 +264,15 @@ const MainActivityAiLogsRoute = MainActivityAiLogsRouteImport.update({
   path: '/activity/ai-logs',
   getParentRoute: () => MainRouteRoute,
 } as any)
-const MainTeamsTeamIdIndexRoute = MainTeamsTeamIdIndexRouteImport.update({
-  id: '/teams/$teamId/',
-  path: '/teams/$teamId/',
+const MainTeamsTeamIdRouteRoute = MainTeamsTeamIdRouteRouteImport.update({
+  id: '/teams/$teamId',
+  path: '/teams/$teamId',
   getParentRoute: () => MainRouteRoute,
+} as any)
+const MainTeamsTeamIdIndexRoute = MainTeamsTeamIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MainTeamsTeamIdRouteRoute,
 } as any)
 const MainSettingsPlaygroundIndexRoute =
   MainSettingsPlaygroundIndexRouteImport.update({
@@ -275,6 +291,27 @@ const MainSettingsApiIndexRoute = MainSettingsApiIndexRouteImport.update({
   path: '/settings/api/',
   getParentRoute: () => MainRouteRoute,
 } as any)
+const MainTeamsTeamIdSettingsRoute = MainTeamsTeamIdSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => MainTeamsTeamIdRouteRoute,
+} as any)
+const MainTeamsTeamIdOverviewRoute = MainTeamsTeamIdOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => MainTeamsTeamIdRouteRoute,
+} as any)
+const MainTeamsTeamIdMembersRoute = MainTeamsTeamIdMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => MainTeamsTeamIdRouteRoute,
+} as any)
+const MainTeamsTeamIdKnowledgeRoute =
+  MainTeamsTeamIdKnowledgeRouteImport.update({
+    id: '/knowledge',
+    path: '/knowledge',
+    getParentRoute: () => MainTeamsTeamIdRouteRoute,
+  } as any)
 const MainSettingsPlaygroundCallbackRoute =
   MainSettingsPlaygroundCallbackRouteImport.update({
     id: '/settings/playground/callback',
@@ -314,12 +351,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agent-callback': typeof AgentCallbackRoute
   '/skills': typeof MainSkillsRouteRouteWithChildren
+  '/wiki': typeof MainWikiRouteRouteWithChildren
   '/chat': typeof MainChatRoute
   '/files': typeof MainFilesRoute
   '/home': typeof MainHomeRoute
   '/notifications': typeof MainNotificationsRoute
   '/proposals': typeof MainProposalsRoute
   '/voice': typeof MainVoiceRoute
+  '/teams/$teamId': typeof MainTeamsTeamIdRouteRouteWithChildren
   '/activity/ai-logs': typeof MainActivityAiLogsRoute
   '/activity/events': typeof MainActivityEventsRoute
   '/codebases/$id': typeof MainCodebasesIdRoute
@@ -355,6 +394,10 @@ export interface FileRoutesByFullPath {
   '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
+  '/teams/$teamId/knowledge': typeof MainTeamsTeamIdKnowledgeRoute
+  '/teams/$teamId/members': typeof MainTeamsTeamIdMembersRoute
+  '/teams/$teamId/overview': typeof MainTeamsTeamIdOverviewRoute
+  '/teams/$teamId/settings': typeof MainTeamsTeamIdSettingsRoute
   '/settings/api/': typeof MainSettingsApiIndexRoute
   '/settings/data-controls/': typeof MainSettingsDataControlsIndexRoute
   '/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
@@ -404,6 +447,10 @@ export interface FileRoutesByTo {
   '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
+  '/teams/$teamId/knowledge': typeof MainTeamsTeamIdKnowledgeRoute
+  '/teams/$teamId/members': typeof MainTeamsTeamIdMembersRoute
+  '/teams/$teamId/overview': typeof MainTeamsTeamIdOverviewRoute
+  '/teams/$teamId/settings': typeof MainTeamsTeamIdSettingsRoute
   '/settings/api': typeof MainSettingsApiIndexRoute
   '/settings/data-controls': typeof MainSettingsDataControlsIndexRoute
   '/settings/playground': typeof MainSettingsPlaygroundIndexRoute
@@ -415,12 +462,14 @@ export interface FileRoutesById {
   '/_main': typeof MainRouteRouteWithChildren
   '/agent-callback': typeof AgentCallbackRoute
   '/_main/skills': typeof MainSkillsRouteRouteWithChildren
+  '/_main/wiki': typeof MainWikiRouteRouteWithChildren
   '/_main/chat': typeof MainChatRoute
   '/_main/files': typeof MainFilesRoute
   '/_main/home': typeof MainHomeRoute
   '/_main/notifications': typeof MainNotificationsRoute
   '/_main/proposals': typeof MainProposalsRoute
   '/_main/voice': typeof MainVoiceRoute
+  '/_main/teams/$teamId': typeof MainTeamsTeamIdRouteRouteWithChildren
   '/_main/activity/ai-logs': typeof MainActivityAiLogsRoute
   '/_main/activity/events': typeof MainActivityEventsRoute
   '/_main/codebases/$id': typeof MainCodebasesIdRoute
@@ -456,6 +505,10 @@ export interface FileRoutesById {
   '/_main/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/_main/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/_main/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
+  '/_main/teams/$teamId/knowledge': typeof MainTeamsTeamIdKnowledgeRoute
+  '/_main/teams/$teamId/members': typeof MainTeamsTeamIdMembersRoute
+  '/_main/teams/$teamId/overview': typeof MainTeamsTeamIdOverviewRoute
+  '/_main/teams/$teamId/settings': typeof MainTeamsTeamIdSettingsRoute
   '/_main/settings/api/': typeof MainSettingsApiIndexRoute
   '/_main/settings/data-controls/': typeof MainSettingsDataControlsIndexRoute
   '/_main/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
@@ -467,12 +520,14 @@ export interface FileRouteTypes {
     | '/'
     | '/agent-callback'
     | '/skills'
+    | '/wiki'
     | '/chat'
     | '/files'
     | '/home'
     | '/notifications'
     | '/proposals'
     | '/voice'
+    | '/teams/$teamId'
     | '/activity/ai-logs'
     | '/activity/events'
     | '/codebases/$id'
@@ -508,6 +563,10 @@ export interface FileRouteTypes {
     | '/settings/data-controls/export'
     | '/settings/data-controls/import'
     | '/settings/playground/callback'
+    | '/teams/$teamId/knowledge'
+    | '/teams/$teamId/members'
+    | '/teams/$teamId/overview'
+    | '/teams/$teamId/settings'
     | '/settings/api/'
     | '/settings/data-controls/'
     | '/settings/playground/'
@@ -557,6 +616,10 @@ export interface FileRouteTypes {
     | '/settings/data-controls/export'
     | '/settings/data-controls/import'
     | '/settings/playground/callback'
+    | '/teams/$teamId/knowledge'
+    | '/teams/$teamId/members'
+    | '/teams/$teamId/overview'
+    | '/teams/$teamId/settings'
     | '/settings/api'
     | '/settings/data-controls'
     | '/settings/playground'
@@ -567,12 +630,14 @@ export interface FileRouteTypes {
     | '/_main'
     | '/agent-callback'
     | '/_main/skills'
+    | '/_main/wiki'
     | '/_main/chat'
     | '/_main/files'
     | '/_main/home'
     | '/_main/notifications'
     | '/_main/proposals'
     | '/_main/voice'
+    | '/_main/teams/$teamId'
     | '/_main/activity/ai-logs'
     | '/_main/activity/events'
     | '/_main/codebases/$id'
@@ -608,6 +673,10 @@ export interface FileRouteTypes {
     | '/_main/settings/data-controls/export'
     | '/_main/settings/data-controls/import'
     | '/_main/settings/playground/callback'
+    | '/_main/teams/$teamId/knowledge'
+    | '/_main/teams/$teamId/members'
+    | '/_main/teams/$teamId/overview'
+    | '/_main/teams/$teamId/settings'
     | '/_main/settings/api/'
     | '/_main/settings/data-controls/'
     | '/_main/settings/playground/'
@@ -686,6 +755,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainChatRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/wiki': {
+      id: '/_main/wiki'
+      path: '/wiki'
+      fullPath: '/wiki'
+      preLoaderRoute: typeof MainWikiRouteRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/skills': {
       id: '/_main/skills'
       path: '/skills'
@@ -695,10 +771,10 @@ declare module '@tanstack/react-router' {
     }
     '/_main/wiki/': {
       id: '/_main/wiki/'
-      path: '/wiki'
+      path: '/'
       fullPath: '/wiki/'
       preLoaderRoute: typeof MainWikiIndexRouteImport
-      parentRoute: typeof MainRouteRoute
+      parentRoute: typeof MainWikiRouteRoute
     }
     '/_main/teams/': {
       id: '/_main/teams/'
@@ -779,10 +855,10 @@ declare module '@tanstack/react-router' {
     }
     '/_main/wiki/$docId': {
       id: '/_main/wiki/$docId'
-      path: '/wiki/$docId'
+      path: '/$docId'
       fullPath: '/wiki/$docId'
       preLoaderRoute: typeof MainWikiDocIdRouteImport
-      parentRoute: typeof MainRouteRoute
+      parentRoute: typeof MainWikiRouteRoute
     }
     '/_main/skills/$id': {
       id: '/_main/skills/$id'
@@ -896,12 +972,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainActivityAiLogsRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/teams/$teamId': {
+      id: '/_main/teams/$teamId'
+      path: '/teams/$teamId'
+      fullPath: '/teams/$teamId'
+      preLoaderRoute: typeof MainTeamsTeamIdRouteRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/teams/$teamId/': {
       id: '/_main/teams/$teamId/'
-      path: '/teams/$teamId'
+      path: '/'
       fullPath: '/teams/$teamId/'
       preLoaderRoute: typeof MainTeamsTeamIdIndexRouteImport
-      parentRoute: typeof MainRouteRoute
+      parentRoute: typeof MainTeamsTeamIdRouteRoute
     }
     '/_main/settings/playground/': {
       id: '/_main/settings/playground/'
@@ -923,6 +1006,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/api/'
       preLoaderRoute: typeof MainSettingsApiIndexRouteImport
       parentRoute: typeof MainRouteRoute
+    }
+    '/_main/teams/$teamId/settings': {
+      id: '/_main/teams/$teamId/settings'
+      path: '/settings'
+      fullPath: '/teams/$teamId/settings'
+      preLoaderRoute: typeof MainTeamsTeamIdSettingsRouteImport
+      parentRoute: typeof MainTeamsTeamIdRouteRoute
+    }
+    '/_main/teams/$teamId/overview': {
+      id: '/_main/teams/$teamId/overview'
+      path: '/overview'
+      fullPath: '/teams/$teamId/overview'
+      preLoaderRoute: typeof MainTeamsTeamIdOverviewRouteImport
+      parentRoute: typeof MainTeamsTeamIdRouteRoute
+    }
+    '/_main/teams/$teamId/members': {
+      id: '/_main/teams/$teamId/members'
+      path: '/members'
+      fullPath: '/teams/$teamId/members'
+      preLoaderRoute: typeof MainTeamsTeamIdMembersRouteImport
+      parentRoute: typeof MainTeamsTeamIdRouteRoute
+    }
+    '/_main/teams/$teamId/knowledge': {
+      id: '/_main/teams/$teamId/knowledge'
+      path: '/knowledge'
+      fullPath: '/teams/$teamId/knowledge'
+      preLoaderRoute: typeof MainTeamsTeamIdKnowledgeRouteImport
+      parentRoute: typeof MainTeamsTeamIdRouteRoute
     }
     '/_main/settings/playground/callback': {
       id: '/_main/settings/playground/callback'
@@ -983,14 +1094,49 @@ const MainSkillsRouteRouteWithChildren = MainSkillsRouteRoute._addFileChildren(
   MainSkillsRouteRouteChildren,
 )
 
+interface MainWikiRouteRouteChildren {
+  MainWikiDocIdRoute: typeof MainWikiDocIdRoute
+  MainWikiIndexRoute: typeof MainWikiIndexRoute
+}
+
+const MainWikiRouteRouteChildren: MainWikiRouteRouteChildren = {
+  MainWikiDocIdRoute: MainWikiDocIdRoute,
+  MainWikiIndexRoute: MainWikiIndexRoute,
+}
+
+const MainWikiRouteRouteWithChildren = MainWikiRouteRoute._addFileChildren(
+  MainWikiRouteRouteChildren,
+)
+
+interface MainTeamsTeamIdRouteRouteChildren {
+  MainTeamsTeamIdKnowledgeRoute: typeof MainTeamsTeamIdKnowledgeRoute
+  MainTeamsTeamIdMembersRoute: typeof MainTeamsTeamIdMembersRoute
+  MainTeamsTeamIdOverviewRoute: typeof MainTeamsTeamIdOverviewRoute
+  MainTeamsTeamIdSettingsRoute: typeof MainTeamsTeamIdSettingsRoute
+  MainTeamsTeamIdIndexRoute: typeof MainTeamsTeamIdIndexRoute
+}
+
+const MainTeamsTeamIdRouteRouteChildren: MainTeamsTeamIdRouteRouteChildren = {
+  MainTeamsTeamIdKnowledgeRoute: MainTeamsTeamIdKnowledgeRoute,
+  MainTeamsTeamIdMembersRoute: MainTeamsTeamIdMembersRoute,
+  MainTeamsTeamIdOverviewRoute: MainTeamsTeamIdOverviewRoute,
+  MainTeamsTeamIdSettingsRoute: MainTeamsTeamIdSettingsRoute,
+  MainTeamsTeamIdIndexRoute: MainTeamsTeamIdIndexRoute,
+}
+
+const MainTeamsTeamIdRouteRouteWithChildren =
+  MainTeamsTeamIdRouteRoute._addFileChildren(MainTeamsTeamIdRouteRouteChildren)
+
 interface MainRouteRouteChildren {
   MainSkillsRouteRoute: typeof MainSkillsRouteRouteWithChildren
+  MainWikiRouteRoute: typeof MainWikiRouteRouteWithChildren
   MainChatRoute: typeof MainChatRoute
   MainFilesRoute: typeof MainFilesRoute
   MainHomeRoute: typeof MainHomeRoute
   MainNotificationsRoute: typeof MainNotificationsRoute
   MainProposalsRoute: typeof MainProposalsRoute
   MainVoiceRoute: typeof MainVoiceRoute
+  MainTeamsTeamIdRouteRoute: typeof MainTeamsTeamIdRouteRouteWithChildren
   MainActivityAiLogsRoute: typeof MainActivityAiLogsRoute
   MainActivityEventsRoute: typeof MainActivityEventsRoute
   MainCodebasesIdRoute: typeof MainCodebasesIdRoute
@@ -1006,7 +1152,6 @@ interface MainRouteRouteChildren {
   MainSettingsProfilesRoute: typeof MainSettingsProfilesRoute
   MainSettingsSecretsRoute: typeof MainSettingsSecretsRoute
   MainSettingsUsageRoute: typeof MainSettingsUsageRoute
-  MainWikiDocIdRoute: typeof MainWikiDocIdRoute
   MainActivityIndexRoute: typeof MainActivityIndexRoute
   MainAiLogsIndexRoute: typeof MainAiLogsIndexRoute
   MainCodebasesIndexRoute: typeof MainCodebasesIndexRoute
@@ -1016,7 +1161,6 @@ interface MainRouteRouteChildren {
   MainSettingsIndexRoute: typeof MainSettingsIndexRoute
   MainSvgPlaygroundIndexRoute: typeof MainSvgPlaygroundIndexRoute
   MainTeamsIndexRoute: typeof MainTeamsIndexRoute
-  MainWikiIndexRoute: typeof MainWikiIndexRoute
   MainSettingsApiKeysRoute: typeof MainSettingsApiKeysRoute
   MainSettingsApiUsageRoute: typeof MainSettingsApiUsageRoute
   MainSettingsDataControlsDangerRoute: typeof MainSettingsDataControlsDangerRoute
@@ -1026,17 +1170,18 @@ interface MainRouteRouteChildren {
   MainSettingsApiIndexRoute: typeof MainSettingsApiIndexRoute
   MainSettingsDataControlsIndexRoute: typeof MainSettingsDataControlsIndexRoute
   MainSettingsPlaygroundIndexRoute: typeof MainSettingsPlaygroundIndexRoute
-  MainTeamsTeamIdIndexRoute: typeof MainTeamsTeamIdIndexRoute
 }
 
 const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSkillsRouteRoute: MainSkillsRouteRouteWithChildren,
+  MainWikiRouteRoute: MainWikiRouteRouteWithChildren,
   MainChatRoute: MainChatRoute,
   MainFilesRoute: MainFilesRoute,
   MainHomeRoute: MainHomeRoute,
   MainNotificationsRoute: MainNotificationsRoute,
   MainProposalsRoute: MainProposalsRoute,
   MainVoiceRoute: MainVoiceRoute,
+  MainTeamsTeamIdRouteRoute: MainTeamsTeamIdRouteRouteWithChildren,
   MainActivityAiLogsRoute: MainActivityAiLogsRoute,
   MainActivityEventsRoute: MainActivityEventsRoute,
   MainCodebasesIdRoute: MainCodebasesIdRoute,
@@ -1052,7 +1197,6 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsProfilesRoute: MainSettingsProfilesRoute,
   MainSettingsSecretsRoute: MainSettingsSecretsRoute,
   MainSettingsUsageRoute: MainSettingsUsageRoute,
-  MainWikiDocIdRoute: MainWikiDocIdRoute,
   MainActivityIndexRoute: MainActivityIndexRoute,
   MainAiLogsIndexRoute: MainAiLogsIndexRoute,
   MainCodebasesIndexRoute: MainCodebasesIndexRoute,
@@ -1062,7 +1206,6 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsIndexRoute: MainSettingsIndexRoute,
   MainSvgPlaygroundIndexRoute: MainSvgPlaygroundIndexRoute,
   MainTeamsIndexRoute: MainTeamsIndexRoute,
-  MainWikiIndexRoute: MainWikiIndexRoute,
   MainSettingsApiKeysRoute: MainSettingsApiKeysRoute,
   MainSettingsApiUsageRoute: MainSettingsApiUsageRoute,
   MainSettingsDataControlsDangerRoute: MainSettingsDataControlsDangerRoute,
@@ -1072,7 +1215,6 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsApiIndexRoute: MainSettingsApiIndexRoute,
   MainSettingsDataControlsIndexRoute: MainSettingsDataControlsIndexRoute,
   MainSettingsPlaygroundIndexRoute: MainSettingsPlaygroundIndexRoute,
-  MainTeamsTeamIdIndexRoute: MainTeamsTeamIdIndexRoute,
 }
 
 const MainRouteRouteWithChildren = MainRouteRoute._addFileChildren(

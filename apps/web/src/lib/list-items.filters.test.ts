@@ -24,6 +24,8 @@ const memoryItem: ListItem = {
   createdAt: "2026-01-01T00:00:00.000Z",
   type: "knowledge",
   source: "web",
+  sourceUrl: null,
+  sourceSyncedAt: null,
   profileId: "profile-a",
 };
 
@@ -43,6 +45,8 @@ const sampleMemory: Memory = {
   content: "Body",
   type: "episodic",
   source: "browser-extension",
+  sourceUrl: null,
+  sourceSyncedAt: null,
   tags: ["react"],
   createdAt: "2026-01-01T00:00:00.000Z",
   profileId: "profile-a",

@@ -205,3 +205,14 @@ export const mcpUpdateWiki = internalAction({
     return toGetResult(node);
   },
 });
+
+export const mcpDeleteWiki = internalAction({
+  args: { clerkId: v.string(), id: v.string() },
+  handler: async (ctx, args): Promise<{ deletedCount: number }> => {
+    const deletedCount: number = await ctx.runMutation(
+      internal.wiki.deleteByClerkIdInternal,
+      { clerkId: args.clerkId, id: args.id },
+    );
+    return { deletedCount };
+  },
+});

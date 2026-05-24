@@ -2,31 +2,23 @@
 
 import { useState } from "react";
 import { useAction, useQuery } from "convex/react";
-import {
-  Card,
-  CardContent,
-  Button,
-  Badge,
-  Progress,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@vmem/ui";
+import { Card, CardContent, Button, Badge, Progress } from "@vmem/ui";
 import { toast } from "sonner";
 import {
   IconLoader2,
-  IconRefresh,
   IconAlertCircle,
-  IconChevronDown,
   IconClock,
   IconClockHour4,
 } from "@tabler/icons-react";
 import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
 import { GitHubConnectorControls } from "./settings/GitHubConnectorControls";
+import DeleteConnectorDataDialog from "./settings/DeleteConnectorDataDialog";
+import DisconnectConnectorDialog from "./settings/DisconnectConnectorDialog";
+import ConnectorActionsMenu from "./settings/ConnectorActionsMenu";
 import {
   GoogleDriveIcon,
+  GmailIcon,
   OneDriveIcon,
   DropboxIcon,
   NotionIcon,
@@ -34,12 +26,14 @@ import {
   GitHubIcon,
   LinearIcon,
 } from "./brand-icons";
+import { formatRelativeTime } from "@/lib/formatters";
 
 const iconMap: Record<
   string,
   React.ComponentType<{ size?: number; className?: string }>
 > = {
   IconBrandGoogleDrive: GoogleDriveIcon,
+  IconBrandGmail: GmailIcon,
   IconBrandOnedrive: OneDriveIcon,
   IconBrandDropbox: DropboxIcon,
   IconBrandNotion: NotionIcon,
@@ -52,29 +46,11 @@ interface ConnectorCardProps {
   connector: Doc<"connectors">;
 }
 
-function formatRelativeTime(timestamp: number | undefined): string {
-  if (!timestamp) return "Never";
-
-  const now = Date.now();
-  const diffMs = now - timestamp;
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return new Date(timestamp).toLocaleDateString();
-}
-
 export default function ConnectorCard({ connector }: ConnectorCardProps) {
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showOAuthModal, setShowOAuthModal] = useState(false);
+  const [showDeleteDataDialog, setShowDeleteDataDialog] = useState(false);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
 
-  const disconnectAction = useAction(api.connectorOAuth.disconnect);
   const startSyncAction = useAction(api.connectorSync.startSync);
 
   const isGitHub = connector.name === "GitHub";
@@ -89,6 +65,13 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
     : connector.connectionStatus === "connected";
   const isSyncing = !isGitHub && connector.syncStatus === "syncing";
   const hasProvider = isGitHub || !!connector.provider;
+  const isLinear = connector.provider === "linear";
+  const canDeleteImportedData =
+    hasProvider &&
+    !isGitHub &&
+    (isConnected ||
+      connector.itemsSynced > 0 ||
+      connector.lastSyncAt !== undefined);
 
   const handleConnect = () => {
     if (!hasProvider) {
@@ -99,23 +82,9 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
   };
 
   const handleOAuthComplete = () => {
-    // Connection is handled by the OAuth callback — Convex live query updates UI
     toast.success(`Successfully connected to ${connector.name}`);
   };
 
-  const handleDisconnect = async () => {
-    setIsDisconnecting(true);
-    try {
-      await disconnectAction({ connectorId: connector._id });
-      toast(`Disconnected from ${connector.name}`);
-    } catch {
-      toast.error("Failed to disconnect");
-    } finally {
-      setIsDisconnecting(false);
-    }
-  };
-
-  // `fullHistory` is only meaningful for Linear — backend ignores it otherwise.
   const handleSync = async (fullHistory = false) => {
     try {
       await startSyncAction({ connectorId: connector._id, fullHistory });
@@ -128,8 +97,6 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
       toast.error(err instanceof Error ? err.message : "Failed to start sync");
     }
   };
-
-  const isLinear = connector.provider === "linear";
 
   return (
     <>
@@ -216,109 +183,75 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
             {isGitHub ? (
               <GitHubConnectorControls connection={githubConnection} />
             ) : isConnected ? (
+              <ConnectorActionsMenu
+                connectorName={connector.name}
+                isLinear={isLinear}
+                isSyncing={isSyncing}
+                isBusy={isSyncing}
+                showSyncActions
+                showDisconnect
+                showDeleteData={canDeleteImportedData}
+                onSync={handleSync}
+                onDisconnect={() => setShowDisconnectDialog(true)}
+                onDeleteData={() => setShowDeleteDataDialog(true)}
+              />
+            ) : (
               <>
-                {isLinear ? (
-                  // Split-button: primary fires "Sync recent (30d)" directly;
-                  // chevron opens menu with both options including full-history backfill.
-                  <div className="inline-flex">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSync(false)}
-                      disabled={isSyncing || isDisconnecting}
-                      className="border-border text-muted-foreground rounded-r-none border-r-0"
-                    >
-                      {isSyncing ? (
-                        <IconLoader2 size={14} className="animate-spin" />
-                      ) : (
-                        <IconRefresh size={14} />
-                      )}
-                      {isSyncing ? "Syncing..." : "Sync recent (30d)"}
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={isSyncing || isDisconnecting}
-                          aria-label="More sync options"
-                          className="border-border text-muted-foreground rounded-l-none px-2"
-                        >
-                          <IconChevronDown size={14} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onSelect={() => handleSync(false)}
-                          disabled={isSyncing || isDisconnecting}
-                        >
-                          Sync recent (30d)
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => handleSync(true)}
-                          disabled={isSyncing || isDisconnecting}
-                        >
-                          Sync all history
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSync(false)}
-                    disabled={isSyncing || isDisconnecting}
-                    className="border-border text-muted-foreground"
-                  >
-                    {isSyncing ? (
-                      <IconLoader2 size={14} className="animate-spin" />
-                    ) : (
-                      <IconRefresh size={14} />
-                    )}
-                    {isSyncing ? "Syncing..." : "Sync Now"}
-                  </Button>
-                )}
+                {canDeleteImportedData ? (
+                  <ConnectorActionsMenu
+                    connectorName={connector.name}
+                    isLinear={isLinear}
+                    isSyncing={false}
+                    isBusy={false}
+                    showSyncActions={false}
+                    showDisconnect={false}
+                    showDeleteData
+                    onSync={handleSync}
+                    onDisconnect={() => setShowDisconnectDialog(true)}
+                    onDeleteData={() => setShowDeleteDataDialog(true)}
+                  />
+                ) : null}
                 <Button
-                  variant="outline"
                   size="sm"
-                  onClick={handleDisconnect}
-                  disabled={isSyncing || isDisconnecting}
-                  className="border-border text-muted-foreground"
+                  onClick={handleConnect}
+                  disabled={!hasProvider}
+                  className={
+                    hasProvider
+                      ? "bg-primary text-primary-foreground font-medium"
+                      : "bg-muted text-muted-foreground cursor-not-allowed"
+                  }
                 >
-                  {isDisconnecting && (
-                    <IconLoader2 size={14} className="animate-spin" />
-                  )}
-                  {isDisconnecting ? "Disconnecting..." : "Disconnect"}
+                  {hasProvider ? "Connect" : "Coming Soon"}
                 </Button>
               </>
-            ) : (
-              <Button
-                size="sm"
-                onClick={handleConnect}
-                disabled={!hasProvider}
-                className={
-                  hasProvider
-                    ? "bg-primary text-primary-foreground font-medium"
-                    : "bg-muted text-muted-foreground cursor-not-allowed"
-                }
-              >
-                {hasProvider ? "Connect" : "Coming Soon"}
-              </Button>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {hasProvider && !isGitHub && (
-        <OAuthModal
-          isOpen={showOAuthModal}
-          onClose={() => setShowOAuthModal(false)}
-          connectorId={connector._id}
-          connectorName={connector.name}
-          onComplete={handleOAuthComplete}
-        />
-      )}
+      {hasProvider && !isGitHub ? (
+        <>
+          <OAuthModal
+            isOpen={showOAuthModal}
+            onClose={() => setShowOAuthModal(false)}
+            connectorId={connector._id}
+            connectorName={connector.name}
+            onComplete={handleOAuthComplete}
+          />
+          <DisconnectConnectorDialog
+            open={showDisconnectDialog}
+            onClose={() => setShowDisconnectDialog(false)}
+            connectorId={connector._id}
+            connectorName={connector.name}
+          />
+          <DeleteConnectorDataDialog
+            open={showDeleteDataDialog}
+            onClose={() => setShowDeleteDataDialog(false)}
+            connectorId={connector._id}
+            connectorName={connector.name}
+          />
+        </>
+      ) : null}
     </>
   );
 }

@@ -1,0 +1,16 @@
+/**
+ * Unstyled toasts skip Sonner's data-styled rules, so stacked back toasts show
+ * full overlapping content. Mirror the styled-mode stack: hide inner content on
+ * collapsed back cards, expand spacing on hover (data-expanded on the toaster).
+ */
+[data-sonner-toaster]
+  [data-sonner-toast][data-expanded="false"][data-front="false"] {
+  overflow: hidden;
+  pointer-events: none;
+}
+
+[data-sonner-toaster]
+  [data-sonner-toast][data-expanded="false"][data-front="false"]
+  > * {
+  opacity: 0;
+}

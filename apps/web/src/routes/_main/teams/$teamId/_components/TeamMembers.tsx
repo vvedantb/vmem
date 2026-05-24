@@ -4,7 +4,7 @@ import { api } from "@vmem/backend";
 import { Button, Badge } from "@vmem/ui";
 import { IconPlus, IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import type { TeamDetail } from "../index";
+import type { TeamDetail } from "../-team-detail";
 import { AddMemberDialog } from "./AddMemberDialog";
 
 export function TeamMembers({ data }: { data: TeamDetail }) {

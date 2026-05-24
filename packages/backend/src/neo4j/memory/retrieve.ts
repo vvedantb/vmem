@@ -9,6 +9,7 @@
  */
 
 import neo4j, { type Driver, type Record, type Session } from "neo4j-driver";
+import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import {
   recencyFromAgeDays,
   rrfScore,
@@ -122,10 +123,16 @@ async function runFulltextLeg(
   params: RetrieveParams,
   legLimit: number,
 ) {
-  return withSession(driver, async (session) => {
-    const pf = profileFilter(params.profileId, "m");
-    return session.run(
-      `CALL db.index.fulltext.queryNodes('memory_content', $query)
+  const luceneQuery = toMemoryContentFulltextQuery(params.query);
+  if (luceneQuery === null) {
+    return { records: [] };
+  }
+
+  try {
+    return await withSession(driver, async (session) => {
+      const pf = profileFilter(params.profileId, "m");
+      return session.run(
+        `CALL db.index.fulltext.queryNodes('memory_content', $query)
        YIELD node AS m, score AS fulltextScore
        WHERE m.userId = $userId ${pf.clause}
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
@@ -134,14 +141,19 @@ async function runFulltextLeg(
        RETURN m, tags, fulltextScore, ageInDays, m.embedding AS embedding
        ORDER BY fulltextScore DESC
        LIMIT $legLimit`,
-      {
-        query: params.query,
-        userId: params.userId,
-        ...pf.params,
-        legLimit: neo4j.int(legLimit),
-      },
-    );
-  });
+        {
+          query: luceneQuery,
+          userId: params.userId,
+          ...pf.params,
+          legLimit: neo4j.int(legLimit),
+        },
+      );
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[retrieve] fulltext leg skipped: ${message}`);
+    return { records: [] };
+  }
 }
 
 async function runVectorQuery(

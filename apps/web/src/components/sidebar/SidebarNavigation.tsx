@@ -1,11 +1,30 @@
-import { type MouseEventHandler, useState, useEffect } from "react";
+import { type MouseEventHandler } from "react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { Separator, cn, motionDuration, motionEase } from "@vmem/ui";
-import { IconArrowLeft } from "@tabler/icons-react";
-import type { NavIcon } from "./types";
+import { IconChevronRight } from "@tabler/icons-react";
+import type { NavIcon, NavItem } from "./types";
 import { navGroups, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
+import { SkillsSidebarNav } from "./SkillsSidebarNav";
+import { WikiSidebarNav } from "./WikiSidebarNav";
+
+export type SidebarNavView = "main" | "settings" | "skills" | "wiki";
+
+const subSidebarHrefs = ["/skills", "/settings", "/wiki"] as const;
+
+type SubSidebarHref = (typeof subSidebarHrefs)[number];
+
+function isSubSidebarHref(href: string): href is SubSidebarHref {
+  return subSidebarHrefs.some((subHref) => subHref === href);
+}
+
+export function navViewFromPathname(pathname: string): SidebarNavView {
+  if (pathname.startsWith("/settings")) return "settings";
+  if (pathname.startsWith("/skills")) return "skills";
+  if (pathname.startsWith("/wiki")) return "wiki";
+  return "main";
+}
 
 export type SidebarNavigationProps = {
   pathname: string;
@@ -13,8 +32,71 @@ export type SidebarNavigationProps = {
   proposalsCount: number;
   isCollapsed: boolean;
   isMobile: boolean;
+  navView: SidebarNavView;
+  onNavViewChange: (view: SidebarNavView) => void;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
+
+function SubSidebarNavButton({
+  item,
+  isActive,
+  isIconOnly,
+  isMobile,
+  onClick,
+}: {
+  item: NavItem;
+  isActive: boolean;
+  isIconOnly: boolean;
+  isMobile: boolean;
+  onClick: () => void;
+}) {
+  const Icon = item.icon as NavIcon;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={isIconOnly ? item.label : undefined}
+      className={cn(
+        "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
+        isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
+        isMobile ? "py-3.5" : "py-2.5",
+        isActive
+          ? "glass-interactive text-foreground"
+          : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
+      )}
+    >
+      <span className="flex h-5 w-5 items-center justify-center text-current">
+        <Icon size={18} stroke={1.7} />
+      </span>
+      <AnimatePresence initial={false}>
+        {!isIconOnly ? (
+          <motion.span
+            key={`${item.href}-label`}
+            className="min-w-0 flex-1 text-left"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: motionDuration.fast,
+              ease: motionEase,
+            }}
+          >
+            {item.label}
+          </motion.span>
+        ) : null}
+      </AnimatePresence>
+      {!isIconOnly ? (
+        <IconChevronRight
+          size={16}
+          stroke={2}
+          aria-hidden
+          className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+        />
+      ) : null}
+    </button>
+  );
+}
 
 function MainNav({
   pathname,
@@ -24,6 +106,8 @@ function MainNav({
   isMobile,
   onNavigate,
   onSettingsClick,
+  onSkillsClick,
+  onWikiClick,
 }: {
   pathname: string;
   unreadCount: number;
@@ -32,6 +116,8 @@ function MainNav({
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
   onSettingsClick: () => void;
+  onSkillsClick: () => void;
+  onWikiClick: () => void;
 }) {
   return (
     <motion.nav
@@ -67,47 +153,23 @@ function MainNav({
             )}
             <ul className={cn("space-y-1", !isIconOnly && "pl-3")}>
               {group.items.map((item) => {
-                if (item.href === "/settings") {
-                  const isActive = pathname.startsWith("/settings");
-                  const Icon = item.icon as NavIcon;
+                if (isSubSidebarHref(item.href)) {
+                  const isActive = pathname.startsWith(item.href);
+                  const onClick =
+                    item.href === "/skills"
+                      ? onSkillsClick
+                      : item.href === "/wiki"
+                        ? onWikiClick
+                        : onSettingsClick;
                   return (
                     <li key={item.href}>
-                      <button
-                        type="button"
-                        onClick={onSettingsClick}
-                        title={isIconOnly ? item.label : undefined}
-                        className={cn(
-                          "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
-                          isIconOnly
-                            ? "justify-center px-2 py-2.5"
-                            : "gap-3 px-3.5",
-                          isMobile ? "py-3.5" : "py-2.5",
-                          isActive
-                            ? "glass-interactive text-foreground"
-                            : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
-                        )}
-                      >
-                        <span className="flex h-5 w-5 items-center justify-center text-current">
-                          <Icon size={18} stroke={1.7} />
-                        </span>
-                        <AnimatePresence initial={false}>
-                          {!isIconOnly ? (
-                            <motion.span
-                              key="settings-label"
-                              className="flex-1 text-left"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{
-                                duration: motionDuration.fast,
-                                ease: motionEase,
-                              }}
-                            >
-                              {item.label}
-                            </motion.span>
-                          ) : null}
-                        </AnimatePresence>
-                      </button>
+                      <SubSidebarNavButton
+                        item={item}
+                        isActive={isActive}
+                        isIconOnly={isIconOnly}
+                        isMobile={isMobile}
+                        onClick={onClick}
+                      />
                     </li>
                   );
                 }
@@ -137,13 +199,11 @@ function SettingsNav({
   pathname,
   isIconOnly,
   isMobile,
-  onBack,
   onNavigate,
 }: {
   pathname: string;
   isIconOnly: boolean;
   isMobile: boolean;
-  onBack: () => void;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }) {
   return (
@@ -157,43 +217,6 @@ function SettingsNav({
       exit={{ opacity: 0, x: 12 }}
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
-      <div className="px-1 mb-4">
-        <ul className="space-y-1">
-          <li>
-            <button
-              type="button"
-              onClick={onBack}
-              title={isIconOnly ? "Back" : undefined}
-              className={cn(
-                "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98] text-muted-foreground hover:bg-card/45 hover:text-foreground",
-                isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
-                isMobile ? "py-3.5" : "py-2.5",
-              )}
-            >
-              <span className="flex h-5 w-5 items-center justify-center text-current">
-                <IconArrowLeft size={18} stroke={1.7} />
-              </span>
-              <AnimatePresence initial={false}>
-                {!isIconOnly ? (
-                  <motion.span
-                    key="back-label"
-                    className="flex-1 text-left"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{
-                      duration: motionDuration.fast,
-                      ease: motionEase,
-                    }}
-                  >
-                    Back
-                  </motion.span>
-                ) : null}
-              </AnimatePresence>
-            </button>
-          </li>
-        </ul>
-      </div>
       {settingsNavGroups.map((group) => (
         <div key={group.title} className="px-1 mb-4">
           {!isIconOnly ? (
@@ -267,27 +290,33 @@ export function SidebarNavigation({
   proposalsCount,
   isCollapsed,
   isMobile,
+  navView,
+  onNavViewChange,
   onNavigate,
 }: SidebarNavigationProps) {
   const isIconOnly = !isMobile && isCollapsed;
-  const [showSettings, setShowSettings] = useState(
-    pathname.startsWith("/settings"),
-  );
-
-  useEffect(() => {
-    setShowSettings(pathname.startsWith("/settings"));
-  }, [pathname]);
 
   return (
     <AnimatePresence mode="wait" initial={false}>
-      {showSettings ? (
+      {navView === "settings" ? (
         <SettingsNav
           key="settings"
           pathname={pathname}
           isIconOnly={isIconOnly}
           isMobile={isMobile}
-          onBack={() => setShowSettings(false)}
           onNavigate={onNavigate}
+        />
+      ) : navView === "skills" ? (
+        <SkillsSidebarNav
+          key="skills"
+          isIconOnly={isIconOnly}
+          isMobile={isMobile}
+        />
+      ) : navView === "wiki" ? (
+        <WikiSidebarNav
+          key="wiki"
+          isIconOnly={isIconOnly}
+          isMobile={isMobile}
         />
       ) : (
         <MainNav
@@ -298,7 +327,9 @@ export function SidebarNavigation({
           isIconOnly={isIconOnly}
           isMobile={isMobile}
           onNavigate={onNavigate}
-          onSettingsClick={() => setShowSettings(true)}
+          onSettingsClick={() => onNavViewChange("settings")}
+          onSkillsClick={() => onNavViewChange("skills")}
+          onWikiClick={() => onNavViewChange("wiki")}
         />
       )}
     </AnimatePresence>

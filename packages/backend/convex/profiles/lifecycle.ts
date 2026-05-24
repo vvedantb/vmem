@@ -184,6 +184,7 @@ async function clearSourceDefaultsForDeletedProfile(
   const updatedDefaults: {
     web?: Id<"profiles">;
     extension?: Id<"profiles">;
+    mcp?: Id<"profiles">;
   } = {};
 
   if (currentDefaults.web && currentDefaults.web !== deletedProfileId) {
@@ -195,10 +196,14 @@ async function clearSourceDefaultsForDeletedProfile(
   ) {
     updatedDefaults.extension = currentDefaults.extension;
   }
+  if (currentDefaults.mcp && currentDefaults.mcp !== deletedProfileId) {
+    updatedDefaults.mcp = currentDefaults.mcp;
+  }
 
   const webChanged = currentDefaults.web === deletedProfileId;
   const extensionChanged = currentDefaults.extension === deletedProfileId;
-  if (webChanged || extensionChanged) {
+  const mcpChanged = currentDefaults.mcp === deletedProfileId;
+  if (webChanged || extensionChanged || mcpChanged) {
     await ctx.db.patch(settings._id, { defaultProfiles: updatedDefaults });
   }
 }

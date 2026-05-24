@@ -16,6 +16,7 @@
  */
 
 import neo4j, { type Driver, type Integer } from "neo4j-driver";
+import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { toMemoryWithTags, toNeoInt } from "./mappers";
 import { withSession } from "./shared";
 import {
@@ -71,10 +72,12 @@ export async function listMemoriesForTeam(
     }
     const filterTagsCount = params.tags?.length ?? 0;
 
-    const trimmedQuery = params.searchQuery?.trim() ?? "";
-    const hasSearchQuery = trimmedQuery.length > 0;
+    const luceneSearchQuery = toMemoryContentFulltextQuery(
+      params.searchQuery ?? "",
+    );
+    const hasSearchQuery = luceneSearchQuery !== null;
     if (hasSearchQuery) {
-      queryParams.searchQuery = trimmedQuery;
+      queryParams.searchQuery = luceneSearchQuery;
     }
 
     const tagMatchClause = hasTagFilter

@@ -20,6 +20,7 @@ import { runGoogleDriveSync } from "./connectors/googleDrive";
 import { runLinearSync } from "./connectors/linear";
 import { runNotionSync } from "./connectors/notion";
 import { runOneDriveSync } from "./connectors/oneDrive";
+import { runGmailSync } from "./connectors/gmail";
 
 export const syncGoogleDriveInternal = internalAction({
   args: {
@@ -49,6 +50,15 @@ export const syncLinearInternal = internalAction({
     fullHistory: v.boolean(),
   },
   handler: async (ctx, args) => runLinearSync(ctx, args),
+});
+
+export const syncGmailInternal = internalAction({
+  args: {
+    clerkId: v.string(),
+    connectorId: v.id("connectors"),
+    accessToken: v.string(),
+  },
+  handler: async (ctx, args) => runGmailSync(ctx, args),
 });
 
 export const syncNotionInternal = internalAction({

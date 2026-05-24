@@ -9,6 +9,8 @@ interface MemoryWithTags {
   content: string;
   type: string;
   source: string;
+  sourceUrl: string | null;
+  sourceSyncedAt: string | null;
   confidence: number;
   status: string;
   createdAt: string;

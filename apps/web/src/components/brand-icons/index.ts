@@ -1,4 +1,5 @@
 export { default as GoogleDriveIcon } from "./GoogleDriveIcon";
+export { default as GmailIcon } from "./GmailIcon";
 export { default as OneDriveIcon } from "./OneDriveIcon";
 export { default as DropboxIcon } from "./DropboxIcon";
 export { default as NotionIcon } from "./NotionIcon";

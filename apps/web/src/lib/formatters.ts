@@ -1,7 +1,10 @@
-export function formatRelativeTime(dateString: string | null): string {
-  if (!dateString) return "Never";
+export function formatRelativeTime(
+  dateInput: string | number | null | undefined,
+): string {
+  if (dateInput === null || dateInput === undefined) return "Never";
 
-  const date = new Date(dateString);
+  const date =
+    typeof dateInput === "number" ? new Date(dateInput) : new Date(dateInput);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / (1000 * 60));

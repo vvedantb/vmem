@@ -5,6 +5,7 @@
  */
 
 import neo4j, { type Driver } from "neo4j-driver";
+import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { toTimelineEvent } from "./mappers";
 import { withSession } from "./shared";
 import { type ConnectionType, type TimelineEvent } from "./types";
@@ -73,6 +74,11 @@ export async function getSearchTimeline(
   limit: number,
   offset: number,
 ): Promise<TimelineEvent[]> {
+  const luceneQuery = toMemoryContentFulltextQuery(query);
+  if (luceneQuery === null) {
+    return [];
+  }
+
   return withSession(driver, async (session) => {
     const result = await session.run(
       `CALL db.index.fulltext.queryNodes('memory_content', $query)
@@ -83,7 +89,7 @@ export async function getSearchTimeline(
        ORDER BY e.createdAt ASC
        SKIP $offset LIMIT $limit`,
       {
-        query,
+        query: luceneQuery,
         userId,
         offset: neo4j.int(offset),
         limit: neo4j.int(limit),

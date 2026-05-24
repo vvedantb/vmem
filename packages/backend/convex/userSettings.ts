@@ -7,6 +7,7 @@ type ThemeValue = "light" | "dark" | "system";
 type DefaultProfilesValue = {
   web?: Id<"profiles">;
   extension?: Id<"profiles">;
+  mcp?: Id<"profiles">;
 } | null;
 
 const defaults: {
@@ -229,10 +230,10 @@ export const getDreamConfigInternal = internalQuery({
   },
 });
 
-// Get default profile for a specific source (web or extension)
+// Get default profile for a specific source (web, extension, or mcp)
 export const getDefaultProfile = authQuery({
   args: {
-    source: v.union(v.literal("web"), v.literal("extension")),
+    source: v.union(v.literal("web"), v.literal("extension"), v.literal("mcp")),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db
@@ -249,7 +250,7 @@ export const getDefaultProfile = authQuery({
 // Set default profile for a specific source
 export const setDefaultProfile = authMutation({
   args: {
-    source: v.union(v.literal("web"), v.literal("extension")),
+    source: v.union(v.literal("web"), v.literal("extension"), v.literal("mcp")),
     profileId: v.id("profiles"),
   },
   handler: async (ctx, args) => {
@@ -279,5 +280,70 @@ export const setDefaultProfile = authMutation({
       userId: ctx.userId,
       defaultProfiles: updatedDefaults,
     });
+  },
+});
+
+export const getMcpDefaultProfileIdByClerkIdInternal = internalQuery({
+  args: { clerkId: v.string() },
+  returns: v.union(v.id("profiles"), v.null()),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) return null;
+
+    const settings = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .first();
+
+    return settings?.defaultProfiles?.mcp ?? null;
+  },
+});
+
+export const setMcpDefaultProfileByClerkIdInternal = internalMutation({
+  args: { clerkId: v.string(), profileId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const normalizedProfileId = ctx.db.normalizeId("profiles", args.profileId);
+    if (!normalizedProfileId) {
+      throw new Error("Invalid profile id");
+    }
+
+    const profile = await ctx.db.get(normalizedProfileId);
+    if (!profile || profile.userId !== user._id) {
+      throw new Error("Profile not found");
+    }
+
+    const existing = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .first();
+
+    const currentDefaults = existing?.defaultProfiles ?? {};
+    const updatedDefaults = {
+      ...currentDefaults,
+      mcp: normalizedProfileId,
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { defaultProfiles: updatedDefaults });
+      return null;
+    }
+
+    await ctx.db.insert("userSettings", {
+      userId: user._id,
+      defaultProfiles: updatedDefaults,
+    });
+    return null;
   },
 });

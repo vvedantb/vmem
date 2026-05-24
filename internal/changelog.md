@@ -1,5 +1,73 @@
 # Changelog
 
+## Sub-sidebar header chrome — 2026-05-24
+
+- **Header swap**: Settings, Skills, and Wiki replace the vmem logo with a centered section title; back is an icon button in the header, not a list row.
+- **Centered main logo**: Root sidebar keeps vmem centered with collapse aligned on the same row.
+
+## Wiki sidebar navigation — 2026-05-24
+
+- **Settings-style sidebar**: Clicking Wiki swaps the root sidebar to search + document tree with Back, matching Skills and Settings.
+- **Full-width editor**: Wiki main area is editor and optional outline only; the tree no longer duplicates in a split column.
+- **Shared outline state**: Outline toggle and word count in the sidebar stay synced with the open document via `WikiSidebarContext`.
+
+## Skills sidebar navigation — 2026-05-24
+
+- **Settings-style sidebar**: Clicking Skills swaps the root sidebar to a searchable skill list with Back, matching Settings navigation.
+- **Full-width detail**: The skills page main area shows only the selected skill (or empty state); list no longer duplicates in a split column.
+- **Shareable search**: Skill list filter uses `?q=` in the URL so sidebar and layout stay in sync.
+
+## Fix memory fulltext Lucene parse errors — 2026-05-24
+
+- **Slash-safe retrieval**: `memory_retrieve` / `memory_search` escape Lucene special characters (e.g. `/debrief` commands) before `db.index.fulltext.queryNodes`; fulltext leg degrades gracefully on parse failure instead of failing the whole MCP call.
+
+## MCP instruction store and related memories — 2026-05-24
+
+- **`memory_add_instruction`**: MCP parity with HTTP v1 — pass natural language; server extracts facts via OpenRouter and stores one memory per fact.
+- **`memory_related`**: List all 1-hop `RELATES_TO` neighbors for a memory id with link reasons (structural graph, not query-ranked retrieve).
+
+## MCP CRUD and active profile — 2026-05-24
+
+- **`wiki_delete` / `skills_delete`**: MCP tools complete wiki and skills CRUD (recursive wiki subtree delete; skill delete by exact name).
+- **`set_active_profile`**: Agents set `userSettings.defaultProfiles.mcp` so memory tools without `profileId` target the chosen profile; `whoami` reflects the same active profile.
+
+## Delete connector imported data — 2026-05-23
+
+- **Per-connector wipe**: Settings → Connectors adds “Delete imported data” to remove all memories from that source (type-to-confirm) without revoking OAuth.
+- **Neo4j cleanup**: Deletes matching memories, chunks, events, and proposals; resets connector sync stats.
+- **Options menu**: Sync, disconnect, and delete live in one dropdown; disconnect and delete open confirmation dialogs first.
+
+## Connector brand icons — 2026-05-23
+
+- **Gmail & OneDrive**: Settings connector cards use official SVGL marks instead of simplified placeholders.
+
+## Memory detail provenance — 2026-05-23
+
+- **Connector memories**: Detail panel shows import source, last synced time, and an “Open in …” link when Neo4j has `sourceUrl` / `sourceSyncedAt` from connector ingest.
+- **API plumbing**: `toMemoryWithTags` maps provenance fields through list/get so the web client receives them without duplicating schema types.
+
+## Daily connector sync — 2026-05-23
+
+- **04:00 UTC cron**: Connected Drive, Gmail, Notion, OneDrive, and Linear connectors run a full ingest via the Convex workflow component (one action per connector, same pattern as codebase daily sync).
+- **Linear full history**: Scheduled runs pass `fullHistory: true` so cron is not limited to the 30-day manual default.
+- **Stale sync guard**: `syncStartedAt` on connectors skips overlapping runs unless a sync has been stuck for 20+ minutes.
+
+## Gmail connector — 2026-05-23
+
+- **Gmail ingest**: OAuth + manual sync pulls up to 500 inbox messages into memories with `sourceType: gmail` and links back to Gmail.
+- **Shared Google OAuth**: Drive and Gmail use one consent (Drive + Gmail readonly); connecting the second skips OAuth when the sibling already has the right scopes.
+- **Settings UI**: Gmail appears in connectors with brand icon; OAuth modal handles instant connect when tokens are already shared.
+
+## Chrome extension auto-sync reliability — 2026-05-23
+
+- **Restart-proof syncHost auth**: Offscreen Clerk refresh uses `background: true` so it reads `__clerk_db_jwt` / `__client` from the vmem web app via `chrome.cookies` after browser restart (no popup required when the host session is still valid).
+- **Sync-host cookie listener**: Background re-warms auth and catch-up sync when the user signs in on the web app.
+- **Manifest host permissions**: Explicit sync-host and Clerk Frontend API entries for cookie bridge validation.
+- **Lightweight service worker**: Removed Clerk from the background bundle (~3.7MB → ~70KB) and dropped dynamic `import()` so the worker starts reliably instead of staying inactive.
+- **Offscreen auth**: Token refresh runs in an offscreen document with Clerk; background no longer clears a valid popup session when offscreen has no cookies.
+- **Sync cursors & concurrency**: History/bookmark `last*Sync` advances after every completed run (including zero imports); catch-up and alarms debounce overlapping runs.
+- **Popup diagnostics**: Background reachability ping, SW boot phase, manual “run auto-sync now”, and copyable support report.
+
 ## Skills detail panel scroll — 2026-05-24
 
 - **Contained scroll**: Skills detail view scrolls inside the panel (`noScroll` layout + `scrollbar-thin`), not the whole page.

@@ -85,7 +85,7 @@ export function registerTools(
 
   server.tool(
     "list_profiles",
-    "List all profiles available to the user. Returns profile IDs, names, colors, and icons. Use a profile ID with memory_add to save to a specific profile. Ask the user which profile they want to use before saving.",
+    "List all profiles available to the user. Returns profile IDs, names, colors, and icons. Use set_active_profile to choose the default profile for MCP memory tools, or pass profileId on memory_add / memory_search / memory_retrieve. Ask the user which profile they want when unclear.",
     {},
     async () => {
       const result = await safe("list_profiles", () =>
@@ -95,6 +95,26 @@ export function registerTools(
       );
       if (!result.ok)
         return errorContent(`List profiles failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "set_active_profile",
+    "Set the default profile for MCP memory tools (memory_add, memory_search, memory_retrieve when profileId is omitted). Call list_profiles first to get valid profile IDs. Does not affect web or extension defaults.",
+    {
+      profileId: z.string().describe("Profile ID from list_profiles"),
+    },
+    async (params) => {
+      const result = await safe("set_active_profile", () =>
+        ctx.runAction(internal.mcpProfiles.mcpSetActiveProfile, {
+          clerkId: clerkUserId,
+          profileId: params.profileId,
+        }),
+      );
+      if (!result.ok) {
+        return errorContent(`Set active profile failed: ${result.message}`);
+      }
       return textContent(jsonText(result.value));
     },
   );
@@ -220,6 +240,43 @@ export function registerTools(
   );
 
   server.tool(
+    "memory_add_instruction",
+    "Store memories from a natural-language instruction. The server extracts atomic facts with an LLM and creates one memory per fact (requires OpenRouter). Use when the agent should remember a conversation summary without drafting title/content itself. Prefer memory_add when you already have a single clear fact with title and type.",
+    {
+      instruction: z
+        .string()
+        .describe(
+          "What to remember, e.g. 'User prefers dark mode and uses pnpm for vmem'",
+        ),
+      profileId: z
+        .string()
+        .optional()
+        .describe("Profile ID (defaults to active MCP profile)"),
+    },
+    async (params) => {
+      const result = await safe("memory_add_instruction", () =>
+        ctx.runAction(internal.neo4jActions.mcp.mcpAddFromInstruction, {
+          clerkId: clerkUserId,
+          instruction: params.instruction,
+          profileId: params.profileId,
+        }),
+      );
+      if (!result.ok) {
+        return errorContent(`Add from instruction failed: ${result.message}`);
+      }
+      if (
+        "error" in result.value &&
+        result.value.error === "openrouter_required"
+      ) {
+        return errorContent(
+          "OpenRouter is required for instruction-based extraction. Add OPENROUTER_API_KEY in vmem settings.",
+        );
+      }
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
     "memory_update",
     "Update an existing memory by ID. Only include fields you want to change.",
     {
@@ -271,6 +328,28 @@ export function registerTools(
       );
       if (!result.ok) return errorContent(`Delete failed: ${result.message}`);
       return textContent(jsonText({ deleted: result.value }));
+    },
+  );
+
+  server.tool(
+    "memory_related",
+    "List memories explicitly linked to a given memory via RELATES_TO edges (1-hop). Returns full memory bodies plus linkReason for each edge. Use after memory_retrieve when you need all structural neighbors of one memory, not query-ranked top-k.",
+    {
+      memoryId: z
+        .string()
+        .describe("Memory ID from memory_search or memory_retrieve"),
+    },
+    async (params) => {
+      const result = await safe("memory_related", () =>
+        ctx.runAction(internal.neo4jActions.mcp.mcpGetRelatedMemories, {
+          clerkId: clerkUserId,
+          memoryId: params.memoryId,
+        }),
+      );
+      if (!result.ok) {
+        return errorContent(`Related memories failed: ${result.message}`);
+      }
+      return textContent(jsonText(result.value));
     },
   );
 
@@ -369,6 +448,25 @@ export function registerTools(
       );
       if (!result.ok)
         return errorContent(`Update skill failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "skills_delete",
+    "Permanently delete a skill by exact name (case sensitive). Call skills_get first if unsure of the name. Prefer skills_update with enabled false to hide a skill without deleting it.",
+    {
+      name: z.string().describe("Exact skill name to delete"),
+    },
+    async (params) => {
+      const result = await safe("skills_delete", () =>
+        ctx.runAction(internal.mcpSkills.mcpDeleteSkill, {
+          clerkId: clerkUserId,
+          name: params.name,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Delete skill failed: ${result.message}`);
       return textContent(jsonText(result.value));
     },
   );
@@ -487,6 +585,25 @@ export function registerTools(
       );
       if (!result.ok)
         return errorContent(`Wiki update failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "wiki_delete",
+    "Permanently delete a wiki folder or document by id. Deleting a folder removes all descendants. Call wiki_list or wiki_get first to confirm the id.",
+    {
+      id: z.string().describe("Wiki node id from wiki_list"),
+    },
+    async (params) => {
+      const result = await safe("wiki_delete", () =>
+        ctx.runAction(internal.mcpWiki.mcpDeleteWiki, {
+          clerkId: clerkUserId,
+          id: params.id,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Wiki delete failed: ${result.message}`);
       return textContent(jsonText(result.value));
     },
   );

@@ -22,6 +22,8 @@ export interface Memory {
   content: string;
   type: MemoryType;
   source: string;
+  sourceUrl: string | null;
+  sourceSyncedAt: string | null;
   tags: string[];
   createdAt: string;
   profileId?: string;
@@ -41,6 +43,10 @@ const MEMORY_SOURCE_LABELS: Record<string, string> = {
   "prompt-capture": "Prompt Capture",
   youtube: "YouTube",
   google_drive: "Google Drive",
+  gmail: "Gmail",
+  onedrive: "OneDrive",
+  linear: "Linear",
+  linear_project: "Linear project",
   notion: "Notion",
   mcp: "MCP",
   "client-enrichment": "Enrichment",

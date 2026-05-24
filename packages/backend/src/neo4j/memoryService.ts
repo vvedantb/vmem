@@ -50,6 +50,7 @@ export {
 export {
   createMemory,
   deleteAllMemoriesForUser,
+  deleteMemoriesBySourceTypes,
   deleteMemory,
   findMemoryByContentHash,
   findMemoryByExternalId,
