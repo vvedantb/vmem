@@ -222,7 +222,7 @@ Full-text search over wiki titles and document plain-text mirrors.
 
 ## wiki_create
 
-Create a wiki folder or document. Markdown bodies are converted to TipTap JSON + plain text so the web editor can load them.
+Create a wiki folder or document. Markdown bodies are stored as-is; `contentText` is derived for search.
 
 <ParamField body="kind" type="string" required>
   `folder` or `document`

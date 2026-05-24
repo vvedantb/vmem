@@ -104,7 +104,7 @@ export const createNode = authMutation({
       parentId: args.parentId,
       kind: args.kind,
       title: args.title,
-      contentJson: args.kind === "document" ? "" : undefined,
+      content: args.kind === "document" ? "" : undefined,
       contentText: args.kind === "document" ? "" : undefined,
       order: nextOrder,
       createdAt: now,
@@ -135,7 +135,7 @@ export const renameNode = authMutation({
 export const updateContent = authMutation({
   args: {
     id: v.id("wikiNodes"),
-    contentJson: v.string(),
+    content: v.string(),
     contentText: v.string(),
   },
   handler: async (ctx, args) => {
@@ -147,7 +147,7 @@ export const updateContent = authMutation({
       throw new Error("Cannot write content to a folder");
     }
     await ctx.db.patch(args.id, {
-      contentJson: args.contentJson,
+      content: args.content,
       contentText: args.contentText,
       updatedAt: Date.now(),
     });
@@ -363,7 +363,7 @@ export const createByClerkIdInternal = internalMutation({
     parentId: v.optional(v.id("wikiNodes")),
     kind: v.union(v.literal("folder"), v.literal("document")),
     title: v.string(),
-    contentJson: v.optional(v.string()),
+    content: v.optional(v.string()),
     contentText: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -395,7 +395,7 @@ export const createByClerkIdInternal = internalMutation({
       parentId: args.parentId,
       kind: args.kind,
       title: args.title,
-      contentJson: isDocument ? (args.contentJson ?? "") : undefined,
+      content: isDocument ? (args.content ?? "") : undefined,
       contentText: isDocument ? (args.contentText ?? "") : undefined,
       order: nextOrder,
       createdAt: now,
@@ -409,7 +409,7 @@ export const updateByClerkIdInternal = internalMutation({
     clerkId: v.string(),
     id: v.string(),
     title: v.optional(v.string()),
-    contentJson: v.optional(v.string()),
+    content: v.optional(v.string()),
     contentText: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -421,7 +421,7 @@ export const updateByClerkIdInternal = internalMutation({
 
     const patch: {
       title?: string;
-      contentJson?: string;
+      content?: string;
       contentText?: string;
       updatedAt: number;
     } = { updatedAt: Date.now() };
@@ -430,12 +430,12 @@ export const updateByClerkIdInternal = internalMutation({
       patch.title = args.title;
     }
 
-    if (args.contentJson !== undefined || args.contentText !== undefined) {
+    if (args.content !== undefined || args.contentText !== undefined) {
       if (node.kind !== "document") {
         throw new Error("Cannot write content to a folder");
       }
-      if (args.contentJson !== undefined) {
-        patch.contentJson = args.contentJson;
+      if (args.content !== undefined) {
+        patch.content = args.content;
       }
       if (args.contentText !== undefined) {
         patch.contentText = args.contentText;

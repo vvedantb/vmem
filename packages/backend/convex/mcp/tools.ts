@@ -367,7 +367,7 @@ export function registerTools(
 
   server.tool(
     "wiki_create",
-    "Create a wiki folder or document. Documents accept contentMarkdown (converted to TipTap JSON for the web editor). Optional parentId must be a folder id from wiki_list.",
+    "Create a wiki folder or document. Documents accept contentMarkdown stored as canonical markdown (same as the web editor). Optional parentId must be a folder id from wiki_list.",
     {
       kind: z.enum(["folder", "document"]).describe("folder or document"),
       title: z.string().describe("Node title"),
