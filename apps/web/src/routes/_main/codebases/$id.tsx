@@ -4,7 +4,7 @@ import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
-import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Button } from "@vmem/ui";
+import { Breadcrumb, BreadcrumbPage, Button } from "@vmem/ui";
 import {
   IconArrowLeft,
   IconRefresh,
@@ -90,9 +90,6 @@ function CodebaseDetailView({
       noScroll
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbLink asChild>
-            <Link to="/codebases">Codebases</Link>
-          </BreadcrumbLink>
           <BreadcrumbPage>{codebase.repoFullName}</BreadcrumbPage>
         </Breadcrumb>
       }
