@@ -27,15 +27,10 @@ import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { buildTagStats } from "@/lib/memories";
+import { formatFileSize } from "@/components/files/_utils";
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const ACCEPTED_FILE_EXTENSIONS = ".pdf,.txt,.md,.markdown";
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function isAcceptedFile(file: File): boolean {
   const lower = file.name.toLowerCase();

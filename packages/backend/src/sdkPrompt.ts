@@ -1,3 +1,5 @@
+import { extractJsonString } from "./llm/extractJsonString";
+
 export interface RetrieveSummaryMemory {
   id: string;
   title: string;
@@ -50,18 +52,6 @@ function readJsonString(value: unknown, key: string): string | null {
   return typeof field === "string" && field.trim().length > 0
     ? field.trim()
     : null;
-}
-
-function extractJsonString(raw: string): string {
-  let jsonStr = raw.trim();
-  jsonStr = jsonStr.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-  if (jsonStr.startsWith("```")) {
-    const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (match?.[1]) {
-      jsonStr = match[1].trim();
-    }
-  }
-  return jsonStr;
 }
 
 export function parseRetrieveSummaryResponse(raw: string): string | null {

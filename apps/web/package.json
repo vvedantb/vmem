@@ -59,7 +59,6 @@
     "fflate": "^0.8.2",
     "kokoro-js": "^1.2.1",
     "motion": "^12.34.0",
-    "nanoid": "^5.1.6",
     "next-themes": "^0.4.4",
     "nuqs": "^2.8.9",
     "react": "catalog:",

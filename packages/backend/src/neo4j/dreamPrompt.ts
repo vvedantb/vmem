@@ -1,3 +1,5 @@
+import { extractJsonString } from "../llm/extractJsonString";
+
 /**
  * Dream Mode V2 — synthesis prompt builder + parser.
  *
@@ -146,31 +148,6 @@ ${memoryBlock}
 # Output
 
 Respond with ONLY the JSON object specified above.`;
-}
-
-function extractJsonString(raw: string): string {
-  let jsonStr = raw.trim();
-
-  // Strip <think>...</think> blocks (Qwen3 and other thinking models)
-  jsonStr = jsonStr.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-
-  // Strip unclosed <think> blocks
-  if (jsonStr.startsWith("<think>")) {
-    const closeIdx = jsonStr.indexOf("</think>");
-    if (closeIdx === -1) {
-      jsonStr = jsonStr.slice(7).trim();
-    }
-  }
-
-  // Strip markdown fences
-  if (jsonStr.startsWith("```")) {
-    const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (match && match[1]) {
-      jsonStr = match[1].trim();
-    }
-  }
-
-  return jsonStr;
 }
 
 function isSynthesisType(value: string): value is SynthesisType {
