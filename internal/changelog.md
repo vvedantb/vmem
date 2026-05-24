@@ -2,7 +2,7 @@
 
 ## Git — strip Cursor commit attribution — 2026-05-24
 
-- **No agent co-author trailers**: `.husky/commit-msg` removes `Co-authored-by: Cursor` lines Cursor injects despite attribution being disabled.
+- **No agent attribution trailers**: `prepare-commit-msg` husky hook removes `Co-authored-by: Cursor` and `Made-with: Cursor` before commits land; agents must not add them.
 
 ## MCP memory graph layout — 2026-05-24
 

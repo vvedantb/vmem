@@ -111,8 +111,8 @@ MCP Apps:
 
 Git commits:
 
-- Never add `Co-authored-by: Cursor <cursoragent@cursor.com>` (or any agent attribution) to commit messages.
-- `.husky/commit-msg` strips Cursor co-author trailers if the IDE injects them anyway.
+- Never add `Co-authored-by: Cursor`, `Made-with: Cursor`, or other Cursor git attribution to commits.
+- `.husky/prepare-commit-msg` strips these if the IDE injects them anyway.
 
 Philosophy
 This codebase will outlive you. Every shortcut becomes someone else's burden. Every ack compounds into technical debt that slows the whole team down.
