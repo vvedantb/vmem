@@ -1,5 +1,11 @@
 # Changelog
 
+## Wiki sidebar navigation — 2026-05-24
+
+- **Settings-style sidebar**: Clicking Wiki swaps the root sidebar to search + document tree with Back, matching Skills and Settings.
+- **Full-width editor**: Wiki main area is editor and optional outline only; the tree no longer duplicates in a split column.
+- **Shared outline state**: Outline toggle and word count in the sidebar stay synced with the open document via `WikiSidebarContext`.
+
 ## Skills sidebar navigation — 2026-05-24
 
 - **Settings-style sidebar**: Clicking Skills swaps the root sidebar to a searchable skill list with Back, matching Settings navigation.
