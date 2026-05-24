@@ -1,5 +1,9 @@
 # Changelog
 
+## MCP memory graph layout — 2026-05-24
+
+- **Clearer MCP graph labels**: Stronger node repulsion, smaller 9px width-truncated labels, visible at fit zoom.
+
 ## MCP connector branding removed — 2026-05-24
 
 - **Dropped icon/favicon work**: Removed SEP-973 `serverInfo.icons`, bundled favicon, `/favicon.*` routes, and branding test — Claude custom connectors ignore icons anyway ([anthropics/claude-ai-mcp#152](https://github.com/anthropics/claude-ai-mcp/issues/152)). OAuth `WEB_APP_URL` helpers moved to `mcp/webAppUrl.ts`.
