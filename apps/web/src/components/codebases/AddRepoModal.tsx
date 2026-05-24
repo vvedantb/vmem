@@ -1,19 +1,27 @@
 "use client";
 
-import { useAction, useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   Input,
+  cn,
 } from "@vmem/ui";
-import { IconLoader2, IconLock, IconSearch } from "@tabler/icons-react";
-import { useState, useEffect, useCallback } from "react";
+import { IconLoader2, IconSearch } from "@tabler/icons-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import type { FunctionReturnType } from "convex/server";
+import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
+import { GitHubIcon } from "@/components/brand-icons";
+import {
+  AddRepoModalRow,
+  type AddRepoModalRepo,
+} from "./_components/AddRepoModalRow";
 
 type RepoItem = FunctionReturnType<typeof api.codebases.listRepos>[number];
 
@@ -30,11 +38,31 @@ export function AddRepoModal({
 }: AddRepoModalProps) {
   const listRepos = useAction(api.codebases.listRepos);
   const addCodebase = useMutation(api.codebases.addCodebase);
+  const codebases = useQuery(api.codebases.listMy);
 
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
+
+  const addedFullNames = useMemo(() => {
+    return new Set((codebases ?? []).map((cb) => cb.repoFullName));
+  }, [codebases]);
+
+  const availableRepos = useMemo(() => {
+    return repos.filter((repo) => !addedFullNames.has(repo.fullName));
+  }, [repos, addedFullNames]);
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (query.length === 0) return availableRepos;
+    return availableRepos.filter(
+      (repo) =>
+        repo.fullName.toLowerCase().includes(query) ||
+        (repo.description?.toLowerCase().includes(query) ?? false) ||
+        (repo.language?.toLowerCase().includes(query) ?? false),
+    );
+  }, [availableRepos, search]);
 
   const fetchRepos = useCallback(async () => {
     setLoading(true);
@@ -50,15 +78,13 @@ export function AddRepoModal({
 
   useEffect(() => {
     if (open) {
-      fetchRepos();
+      void fetchRepos();
+    } else {
+      setSearch("");
     }
   }, [open, fetchRepos]);
 
-  const filtered = repos.filter((r) =>
-    r.fullName.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const handleAdd = async (repo: RepoItem) => {
+  const handleAdd = async (repo: AddRepoModalRepo) => {
     setAdding(repo.fullName);
     try {
       await addCodebase({
@@ -82,81 +108,91 @@ export function AddRepoModal({
     }
   };
 
+  const listSummary = loading
+    ? null
+    : `${filtered.length} ${filtered.length === 1 ? "repository" : "repositories"}`;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Add Repository</DialogTitle>
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-xl">
+        <DialogHeader className="space-y-3 px-6 pt-6 pb-4">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted/60">
+              <GitHubIcon size={22} />
+            </div>
+            <div className="min-w-0 space-y-1 pt-0.5">
+              <DialogTitle className="text-foreground">
+                Add repository
+              </DialogTitle>
+              <DialogDescription>
+                Pick a GitHub repo to index. vmem will parse imports and symbols
+                after you add it.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="relative">
-          <IconSearch
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            placeholder="Search repositories..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+        <div className="px-6 pb-3">
+          <div className="relative">
+            <IconSearch
+              size={14}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              placeholder="Search repositories"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={cn(sidebarSearchInputClassName, "h-9")}
+              aria-label="Search repositories"
+            />
+          </div>
         </div>
 
-        <div className="max-h-80 overflow-y-auto -mx-1 px-1">
-          {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <IconLoader2
-                size={20}
-                className="animate-spin text-muted-foreground"
-              />
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-10">
-              {search ? "No matching repositories" : "No repositories found"}
-            </p>
-          ) : (
-            <div className="space-y-1">
-              {filtered.map((repo) => (
-                <button
-                  key={repo.id}
-                  type="button"
-                  disabled={adding !== null}
-                  onClick={() => handleAdd(repo)}
-                  className="w-full flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-left hover:bg-muted/80 transition-colors disabled:opacity-50"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-medium text-foreground truncate">
-                        {repo.fullName}
-                      </span>
-                      {repo.isPrivate && (
-                        <IconLock
-                          size={12}
-                          className="text-muted-foreground shrink-0"
-                        />
-                      )}
-                    </div>
-                    {repo.description && (
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {repo.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {repo.language && (
-                      <span className="text-xs text-muted-foreground">
-                        {repo.language}
-                      </span>
-                    )}
-                    {adding === repo.fullName && (
-                      <IconLoader2 size={14} className="animate-spin" />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="px-4 pb-4">
+          <div
+            className={cn(
+              "max-h-[min(24rem,50vh)] overflow-y-auto rounded-xl bg-muted/40 p-1 scrollbar-thin",
+            )}
+          >
+            {loading ? (
+              <div className="flex items-center justify-center py-14">
+                <IconLoader2
+                  size={20}
+                  className="animate-spin text-muted-foreground"
+                />
+              </div>
+            ) : filtered.length === 0 ? (
+              <p className="px-3 py-14 text-center text-sm text-muted-foreground">
+                {search.trim().length > 0
+                  ? "No matching repositories"
+                  : availableRepos.length === 0 && repos.length > 0
+                    ? "All accessible repositories are already added"
+                    : "No repositories found on your GitHub account"}
+              </p>
+            ) : (
+              <div className="flex flex-col gap-0.5">
+                {filtered.map((repo) => (
+                  <AddRepoModalRow
+                    key={repo.id}
+                    repo={repo}
+                    isAdding={adding === repo.fullName}
+                    disabled={adding !== null}
+                    onAdd={() => void handleAdd(repo)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
+
+        {listSummary ? (
+          <p className="px-6 pb-5 text-xs text-muted-foreground tabular-nums">
+            {listSummary}
+            {addedFullNames.size > 0 && repos.length > availableRepos.length
+              ? ` · ${addedFullNames.size} already added`
+              : null}
+          </p>
+        ) : null}
       </DialogContent>
     </Dialog>
   );
