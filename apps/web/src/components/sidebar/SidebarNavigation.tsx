@@ -2,8 +2,8 @@ import { type MouseEventHandler, useState, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { Separator, cn, motionDuration, motionEase } from "@vmem/ui";
-import { IconArrowLeft } from "@tabler/icons-react";
-import type { NavIcon } from "./types";
+import { IconArrowLeft, IconChevronRight } from "@tabler/icons-react";
+import type { NavIcon, NavItem } from "./types";
 import { navGroups, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
@@ -24,6 +24,67 @@ export type SidebarNavigationProps = {
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
+
+function SubSidebarNavButton({
+  item,
+  isActive,
+  isIconOnly,
+  isMobile,
+  onClick,
+}: {
+  item: NavItem;
+  isActive: boolean;
+  isIconOnly: boolean;
+  isMobile: boolean;
+  onClick: () => void;
+}) {
+  const Icon = item.icon as NavIcon;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={isIconOnly ? item.label : undefined}
+      className={cn(
+        "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
+        isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
+        isMobile ? "py-3.5" : "py-2.5",
+        isActive
+          ? "glass-interactive text-foreground"
+          : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
+      )}
+    >
+      <span className="flex h-5 w-5 items-center justify-center text-current">
+        <Icon size={18} stroke={1.7} />
+      </span>
+      <AnimatePresence initial={false}>
+        {!isIconOnly ? (
+          <motion.span
+            key={`${item.href}-label`}
+            className="min-w-0 flex-1 text-left"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: motionDuration.fast,
+              ease: motionEase,
+            }}
+          >
+            {item.label}
+          </motion.span>
+        ) : null}
+      </AnimatePresence>
+      {!isIconOnly ? (
+        <IconChevronRight
+          size={16}
+          stroke={2}
+          aria-hidden
+          className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+        />
+      ) : null}
+    </button>
+  );
+}
 
 function MainNav({
   pathname,
@@ -78,91 +139,19 @@ function MainNav({
             )}
             <ul className={cn("space-y-1", !isIconOnly && "pl-3")}>
               {group.items.map((item) => {
-                if (item.href === "/skills") {
-                  const isActive = pathname.startsWith("/skills");
-                  const Icon = item.icon as NavIcon;
+                if (item.href === "/skills" || item.href === "/settings") {
+                  const isActive = pathname.startsWith(item.href);
+                  const onClick =
+                    item.href === "/skills" ? onSkillsClick : onSettingsClick;
                   return (
                     <li key={item.href}>
-                      <button
-                        type="button"
-                        onClick={onSkillsClick}
-                        title={isIconOnly ? item.label : undefined}
-                        className={cn(
-                          "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
-                          isIconOnly
-                            ? "justify-center px-2 py-2.5"
-                            : "gap-3 px-3.5",
-                          isMobile ? "py-3.5" : "py-2.5",
-                          isActive
-                            ? "glass-interactive text-foreground"
-                            : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
-                        )}
-                      >
-                        <span className="flex h-5 w-5 items-center justify-center text-current">
-                          <Icon size={18} stroke={1.7} />
-                        </span>
-                        <AnimatePresence initial={false}>
-                          {!isIconOnly ? (
-                            <motion.span
-                              key="skills-label"
-                              className="flex-1 text-left"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{
-                                duration: motionDuration.fast,
-                                ease: motionEase,
-                              }}
-                            >
-                              {item.label}
-                            </motion.span>
-                          ) : null}
-                        </AnimatePresence>
-                      </button>
-                    </li>
-                  );
-                }
-                if (item.href === "/settings") {
-                  const isActive = pathname.startsWith("/settings");
-                  const Icon = item.icon as NavIcon;
-                  return (
-                    <li key={item.href}>
-                      <button
-                        type="button"
-                        onClick={onSettingsClick}
-                        title={isIconOnly ? item.label : undefined}
-                        className={cn(
-                          "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
-                          isIconOnly
-                            ? "justify-center px-2 py-2.5"
-                            : "gap-3 px-3.5",
-                          isMobile ? "py-3.5" : "py-2.5",
-                          isActive
-                            ? "glass-interactive text-foreground"
-                            : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
-                        )}
-                      >
-                        <span className="flex h-5 w-5 items-center justify-center text-current">
-                          <Icon size={18} stroke={1.7} />
-                        </span>
-                        <AnimatePresence initial={false}>
-                          {!isIconOnly ? (
-                            <motion.span
-                              key="settings-label"
-                              className="flex-1 text-left"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{
-                                duration: motionDuration.fast,
-                                ease: motionEase,
-                              }}
-                            >
-                              {item.label}
-                            </motion.span>
-                          ) : null}
-                        </AnimatePresence>
-                      </button>
+                      <SubSidebarNavButton
+                        item={item}
+                        isActive={isActive}
+                        isIconOnly={isIconOnly}
+                        isMobile={isMobile}
+                        onClick={onClick}
+                      />
                     </li>
                   );
                 }
