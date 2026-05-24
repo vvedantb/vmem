@@ -57,6 +57,7 @@ export function registerMemoryGraphApp(
           text: MEMORY_GRAPH_MCP_APP_HTML,
           _meta: {
             ui: {
+              prefersBorder: true,
               csp: {
                 resourceDomains: [],
                 connectDomains: [],
