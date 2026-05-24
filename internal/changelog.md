@@ -1,5 +1,10 @@
 # Changelog
 
+## MCP instruction store and related memories — 2026-05-24
+
+- **`memory_add_instruction`**: MCP parity with HTTP v1 — pass natural language; server extracts facts via OpenRouter and stores one memory per fact.
+- **`memory_related`**: List all 1-hop `RELATES_TO` neighbors for a memory id with link reasons (structural graph, not query-ranked retrieve).
+
 ## MCP CRUD and active profile — 2026-05-24
 
 - **`wiki_delete` / `skills_delete`**: MCP tools complete wiki and skills CRUD (recursive wiki subtree delete; skill delete by exact name).
