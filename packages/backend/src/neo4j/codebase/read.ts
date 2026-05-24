@@ -492,12 +492,16 @@ export async function searchSymbols(
     }
     if (out.length > 0) return out;
 
-    // Fallback substring scan.
+    // Fallback substring scan (name, qualifiedName, filePath).
     const fbResult = await session.run(
       `
       MATCH (n { userId: $userId, codebaseId: $codebaseId })
       WHERE (n:Function OR n:Class OR n:Interface)
-        AND toLower(n.name) CONTAINS toLower($q)
+        AND (
+          toLower(coalesce(n.name, '')) CONTAINS toLower($q)
+          OR toLower(coalesce(n.qualifiedName, '')) CONTAINS toLower($q)
+          OR toLower(coalesce(n.filePath, '')) CONTAINS toLower($q)
+        )
       RETURN labels(n) AS labels, n
       LIMIT $limit
       `,

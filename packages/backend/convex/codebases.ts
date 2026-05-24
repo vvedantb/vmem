@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
-import { DAILY_SYNC_STALE_MS } from "./codebaseSyncConstants";
+import { DAILY_SYNC_STALE_MS, STALE_SYNCING_MS } from "./codebaseSyncConstants";
 import type { Id } from "./_generated/dataModel";
 import { decryptToken } from "./lib/crypto";
 
@@ -172,7 +172,7 @@ export const syncCodebase = authAction({
       { codebaseId: normalizedId },
     );
     if (!result.ok) {
-      throw new Error(result.message);
+      throw new Error(result.message || "Codebase sync failed");
     }
   },
 });
@@ -291,6 +291,7 @@ export const updateStatusInternal = internalMutation({
         v.literal("done"),
       ),
     ),
+    syncStartedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     // Patch only the keys actually supplied so callers can update e.g.
@@ -336,7 +337,11 @@ export const listForDailySyncInternal = internalQuery({
     const out: Array<{ codebaseId: Id<"codebases"> }> = [];
 
     for (const cb of all) {
-      if (cb.status === "syncing") continue;
+      const syncingStale =
+        cb.status === "syncing" &&
+        (cb.syncStartedAt === undefined ||
+          Date.now() - cb.syncStartedAt >= STALE_SYNCING_MS);
+      if (cb.status === "syncing" && !syncingStale) continue;
       if (cb.lastSyncedAt !== undefined && cb.lastSyncedAt >= cutoff) {
         continue;
       }
