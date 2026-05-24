@@ -310,6 +310,33 @@ export function registerTools(
   );
 
   server.tool(
+    "skills_create",
+    "Create a new enabled skill with markdown instructions. Names must be unique per user (trimmed). Duplicate names return an error — pick another name or update the existing skill in the web app.",
+    {
+      name: z.string().describe("Unique skill name"),
+      description: z
+        .string()
+        .describe("When to use this skill (shown in skills index)"),
+      instructions: z
+        .string()
+        .describe("Full markdown instructions the agent should follow"),
+    },
+    async (params) => {
+      const result = await safe("skills_create", () =>
+        ctx.runAction(internal.mcpSkills.mcpCreateSkill, {
+          clerkId: clerkUserId,
+          name: params.name,
+          description: params.description,
+          instructions: params.instructions,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Create skill failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
     "wiki_list",
     "List all wiki folders and documents (flat index, no body). Use returned ids with wiki_get. Call this before wiki_get or wiki_update when you do not already have a node id.",
     {},

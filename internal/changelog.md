@@ -1,5 +1,10 @@
 # Changelog
 
+## MCP skills_create Tool — 2026-05-23
+
+- **New MCP tool**: `skills_create` lets agents create skills (name, description, markdown instructions) without the web UI.
+- **Context prompt**: New skills invalidate the context prompt cache like web-created skills.
+
 ## Backend Code-Structure Refactor — 2026-05-23
 
 - **Best-effort embeddings**: Shared `bestEffortEmbed*` helpers replace duplicated OpenRouter try/catch blocks in memory actions and connector sync.

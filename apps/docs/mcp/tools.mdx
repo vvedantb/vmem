@@ -182,7 +182,27 @@ Fetch a single skill by exact name, including full markdown instructions.
 
 **Returns:** Full skill object with instructions.
 
-See [Skills feature](/features/skills) for creating and managing skills.
+---
+
+## skills_create
+
+Create a new enabled skill. Names must be unique per user (leading/trailing whitespace is trimmed).
+
+<ParamField body="name" type="string" required>
+  Unique skill name
+</ParamField>
+
+<ParamField body="description" type="string" required>
+  When to use this skill (shown in the skills index and context prompt)
+</ParamField>
+
+<ParamField body="instructions" type="string" required>
+  Full markdown instructions the agent should follow
+</ParamField>
+
+**Returns:** Full skill object (including `_id`, name, description, instructions).
+
+See [Skills feature](/features/skills) for managing skills in the web app.
 
 ---
 
