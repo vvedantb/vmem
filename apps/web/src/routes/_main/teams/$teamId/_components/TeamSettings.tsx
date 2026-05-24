@@ -5,7 +5,7 @@ import { api } from "@vmem/backend";
 import { Button, Input } from "@vmem/ui";
 import { IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import type { TeamDetail } from "../index";
+import type { TeamDetail } from "../-team-detail";
 
 export function TeamSettings({ data }: { data: TeamDetail }) {
   const updateTeam = useMutation(api.teams.updateTeam);
