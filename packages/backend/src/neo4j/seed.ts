@@ -1,6 +1,43 @@
 import { getDriver, closeDriver } from "./driver";
 import { setupDatabase } from "./setup";
+import { setEmbeddings } from "./memory/migration";
+import { embeddingMode, generateCliEmbeddings } from "./cliEmbeddings";
+import { RETRIEVAL_EVAL_QUERIES } from "./memory/eval/queries";
 import crypto from "node:crypto";
+
+export const HANDCRAFTED_MEMORY_COUNT = 257;
+
+const EVAL_MODE = process.argv.includes("--eval");
+
+const EVAL_EXPECTED_TITLES = new Set(
+  RETRIEVAL_EVAL_QUERIES.flatMap((item) => item.expectedTitles),
+);
+
+function applyEvalCorpusProfile<
+  T extends {
+    title: string;
+    createdAt: string;
+    updatedAt: string;
+    confidence: number;
+  },
+>(memory: T): T {
+  if (EVAL_EXPECTED_TITLES.has(memory.title)) {
+    const createdAt = recentDate(1);
+    return {
+      ...memory,
+      createdAt,
+      updatedAt: new Date().toISOString(),
+      confidence: 0.98,
+    };
+  }
+
+  return {
+    ...memory,
+    createdAt: randomDate(540),
+    updatedAt: randomDate(365),
+    confidence: 0.35,
+  };
+}
 
 const USER_IDS = [
   "user_39IXNJeQM9vlRyQ9IdCvKbsqsti",
@@ -86,7 +123,7 @@ const memories = [
   ),
   mem(
     "React useEffect cleanup patterns",
-    "Return a cleanup function to unsubscribe from event listeners and cancel pending requests when component unmounts.",
+    "Return a cleanup function from React hooks (especially useEffect) to unsubscribe listeners and cancel pending requests when a component unmounts. Pair with strict null checks when mixing hooks and server components.",
     "knowledge",
     ["react", "typescript"],
   ),
@@ -215,7 +252,7 @@ const memories = [
   ),
   mem(
     "Decided to migrate auth to Clerk",
-    "Evaluated Auth0, Clerk, and Supabase Auth. Clerk won on DX and pricing for our scale.",
+    "Evaluated Auth0, Clerk OAuth, and Supabase Auth for MCP resource integration. Clerk won on DX and pricing for our scale.",
     "episodic",
     ["project-management", "infrastructure"],
   ),
@@ -484,7 +521,7 @@ const memories = [
   ),
   mem(
     "Prefers TypeScript over JavaScript",
-    "The type safety catches bugs before runtime. Worth the initial setup cost every time.",
+    "Personal coding preference: choose TypeScript over JavaScript on every project. Pairs well with dark mode editors and Vim-style keybindings.",
     "profile",
     ["preferences", "typescript"],
   ),
@@ -528,7 +565,7 @@ const memories = [
   ),
   mem(
     "Running: 5K three times a week",
-    "Tuesday, Thursday, Saturday mornings. Current pace: 5:30/km. Goal: sub-25 minute 5K.",
+    "Health routine: run a 5K on Tuesday, Thursday, and Saturday mornings. Current pace: 5:30/km. Goal: sub-25 minute 5K.",
     "episodic",
     ["health", "habits"],
   ),
@@ -4083,6 +4120,33 @@ function remapId(idMap: Map<string, string>, oldId: string): string {
   return newId;
 }
 
+async function embedMemories(
+  memoriesToEmbed: Array<{ id: string; title: string; content: string }>,
+): Promise<void> {
+  const BATCH = 20;
+  console.log(`  embedding ${String(memoriesToEmbed.length)} memories...`);
+
+  for (let offset = 0; offset < memoriesToEmbed.length; offset += BATCH) {
+    const batch = memoriesToEmbed.slice(offset, offset + BATCH);
+    const texts = batch.map((memory) => `${memory.title}\n\n${memory.content}`);
+    const vectors = await generateCliEmbeddings(texts);
+    const writes: Array<{ id: string; embedding: number[] }> = [];
+
+    for (let index = 0; index < batch.length; index++) {
+      const memory = batch[index];
+      const vector = vectors[index];
+      if (!memory || !vector) {
+        throw new Error(
+          `missing embedding for memory at offset ${String(offset + index)}`,
+        );
+      }
+      writes.push({ id: memory.id, embedding: vector });
+    }
+
+    await setEmbeddings(getDriver(), writes);
+  }
+}
+
 async function seed() {
   console.log("connecting to Neo4j...");
   const driver = getDriver();
@@ -4099,17 +4163,38 @@ async function seed() {
     let totalRelationships = 0;
     let totalEvents = 0;
 
-    for (const userId of USER_IDS) {
+    const seedUserIds = EVAL_MODE ? [USER_IDS[0]] : USER_IDS;
+    const templateMemories = EVAL_MODE
+      ? memories.slice(0, HANDCRAFTED_MEMORY_COUNT).map(applyEvalCorpusProfile)
+      : memories;
+    const templateMemoryIds = new Set(
+      templateMemories.map((memory) => memory.id),
+    );
+    const templateRelationships = EVAL_MODE
+      ? relationships.filter(
+          (relationship) =>
+            templateMemoryIds.has(relationship.sourceId) &&
+            templateMemoryIds.has(relationship.targetId),
+        )
+      : relationships;
+
+    if (EVAL_MODE) {
+      console.log(
+        `eval mode: seeding ${String(templateMemories.length)} handcrafted memories for ${seedUserIds[0]}`,
+      );
+    }
+
+    for (const userId of seedUserIds) {
       console.log(`\nseeding user: ${userId}`);
 
       const idMap = new Map<string, string>();
-      const userMemories = memories.map((m) => {
+      const userMemories = templateMemories.map((m) => {
         const newId = crypto.randomUUID();
         idMap.set(m.id, newId);
         return { ...m, id: newId, userId };
       });
 
-      const userRelationships = relationships.map((r) => ({
+      const userRelationships = templateRelationships.map((r) => ({
         sourceId: remapId(idMap, r.sourceId),
         targetId: remapId(idMap, r.targetId),
         reason: r.reason,
@@ -4166,13 +4251,22 @@ async function seed() {
       totalMemories += userMemories.length;
       totalRelationships += userRelationships.length;
       totalEvents += userEvents.length;
+
+      if (EVAL_MODE) {
+        await embedMemories(userMemories);
+      }
     }
 
     console.log("\ndone!");
-    console.log(`  users: ${USER_IDS.length}`);
+    console.log(`  users: ${seedUserIds.length}`);
     console.log(`  memories: ${totalMemories}`);
     console.log(`  relationships: ${totalRelationships}`);
     console.log(`  events: ${totalEvents}`);
+    if (EVAL_MODE) {
+      console.log(
+        `  embeddings: ${String(totalMemories)} (${embeddingMode()})`,
+      );
+    }
   } finally {
     await session.close();
     await closeDriver();
