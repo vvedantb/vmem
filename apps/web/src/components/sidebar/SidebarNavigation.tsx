@@ -1,5 +1,5 @@
-import { type MouseEventHandler, useState, useEffect } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { type MouseEventHandler } from "react";
+import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { Separator, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconArrowLeft, IconChevronRight } from "@tabler/icons-react";
@@ -9,7 +9,7 @@ import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { WikiSidebarNav } from "./WikiSidebarNav";
 
-type SidebarNavView = "main" | "settings" | "skills" | "wiki";
+export type SidebarNavView = "main" | "settings" | "skills" | "wiki";
 
 const subSidebarHrefs = ["/skills", "/settings", "/wiki"] as const;
 
@@ -19,7 +19,7 @@ function isSubSidebarHref(href: string): href is SubSidebarHref {
   return subSidebarHrefs.some((subHref) => subHref === href);
 }
 
-function navViewFromPathname(pathname: string): SidebarNavView {
+export function navViewFromPathname(pathname: string): SidebarNavView {
   if (pathname.startsWith("/settings")) return "settings";
   if (pathname.startsWith("/skills")) return "skills";
   if (pathname.startsWith("/wiki")) return "wiki";
@@ -32,6 +32,8 @@ export type SidebarNavigationProps = {
   proposalsCount: number;
   isCollapsed: boolean;
   isMobile: boolean;
+  navView: SidebarNavView;
+  onNavViewChange: (view: SidebarNavView) => void;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
 
@@ -151,10 +153,14 @@ function MainNav({
             )}
             <ul className={cn("space-y-1", !isIconOnly && "pl-3")}>
               {group.items.map((item) => {
-                if (item.href === "/skills" || item.href === "/settings") {
+                if (isSubSidebarHref(item.href)) {
                   const isActive = pathname.startsWith(item.href);
                   const onClick =
-                    item.href === "/skills" ? onSkillsClick : onSettingsClick;
+                    item.href === "/skills"
+                      ? onSkillsClick
+                      : item.href === "/wiki"
+                        ? onWikiClick
+                        : onSettingsClick;
                   return (
                     <li key={item.href}>
                       <SubSidebarNavButton
@@ -323,17 +329,11 @@ export function SidebarNavigation({
   proposalsCount,
   isCollapsed,
   isMobile,
+  navView,
+  onNavViewChange,
   onNavigate,
 }: SidebarNavigationProps) {
-  const navigate = useNavigate();
   const isIconOnly = !isMobile && isCollapsed;
-  const [navView, setNavView] = useState<SidebarNavView>(() =>
-    navViewFromPathname(pathname),
-  );
-
-  useEffect(() => {
-    setNavView(navViewFromPathname(pathname));
-  }, [pathname]);
 
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -343,7 +343,7 @@ export function SidebarNavigation({
           pathname={pathname}
           isIconOnly={isIconOnly}
           isMobile={isMobile}
-          onBack={() => setNavView("main")}
+          onBack={() => onNavViewChange("main")}
           onNavigate={onNavigate}
         />
       ) : navView === "skills" ? (
@@ -351,14 +351,14 @@ export function SidebarNavigation({
           key="skills"
           isIconOnly={isIconOnly}
           isMobile={isMobile}
-          onBack={() => setNavView("main")}
+          onBack={() => onNavViewChange("main")}
         />
       ) : navView === "wiki" ? (
         <WikiSidebarNav
           key="wiki"
           isIconOnly={isIconOnly}
           isMobile={isMobile}
-          onBack={() => setNavView("main")}
+          onBack={() => onNavViewChange("main")}
         />
       ) : (
         <MainNav
@@ -369,19 +369,9 @@ export function SidebarNavigation({
           isIconOnly={isIconOnly}
           isMobile={isMobile}
           onNavigate={onNavigate}
-          onSettingsClick={() => setNavView("settings")}
-          onSkillsClick={() => {
-            setNavView("skills");
-            if (!pathname.startsWith("/skills")) {
-              void navigate({ to: "/skills" });
-            }
-          }}
-          onWikiClick={() => {
-            setNavView("wiki");
-            if (!pathname.startsWith("/wiki")) {
-              void navigate({ to: "/wiki" });
-            }
-          }}
+          onSettingsClick={() => onNavViewChange("settings")}
+          onSkillsClick={() => onNavViewChange("skills")}
+          onWikiClick={() => onNavViewChange("wiki")}
         />
       )}
     </AnimatePresence>
