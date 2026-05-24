@@ -8,15 +8,24 @@ import type { JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 import { useDebounceCallback } from "usehooks-ts";
+import { IconCopy, IconDots } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@vmem/ui";
 import WikiBreadcrumb from "./WikiBreadcrumb";
 import {
   countWords,
   docToPlainText,
   extractHeadings,
   findAncestors,
+  formatWikiDocForClipboard,
 } from "./_utils";
 import type { OutlineHeading } from "./_utils";
 
@@ -172,6 +181,26 @@ export default function WikiEditor({
     [doc, allNodes],
   );
 
+  const handleCopy = async () => {
+    if (!editor) return;
+
+    const text = formatWikiDocForClipboard(
+      titleDraft,
+      getMarkdownFromEditor(editor),
+    );
+    if (text.length === 0) {
+      toast.error("Nothing to copy");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard");
+    } catch {
+      toast.error("Failed to copy to clipboard");
+    }
+  };
+
   const handleTitleBlur = async () => {
     if (!doc) return;
     const trimmed = titleDraft.trim();
@@ -228,20 +257,45 @@ export default function WikiEditor({
     <div className="flex flex-col min-h-0 flex-1">
       <div className="px-3 pt-2 md:px-6 md:pt-4">
         <WikiBreadcrumb ancestors={ancestors} />
-        <input
-          value={titleDraft}
-          onChange={(e) => setTitleDraft(e.target.value)}
-          onBlur={() => void handleTitleBlur()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.currentTarget.blur();
-            }
-          }}
-          placeholder="Untitled"
-          aria-label="Document title"
-          className="w-full bg-transparent text-2xl md:text-3xl font-instrumentSerif text-foreground outline-none placeholder:text-muted-foreground/50 mt-2"
-        />
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={() => void handleTitleBlur()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
+            placeholder="Untitled"
+            aria-label="Document title"
+            className="min-w-0 flex-1 bg-transparent text-2xl font-instrumentSerif text-foreground outline-none placeholder:text-muted-foreground/50 md:text-3xl"
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 text-muted-foreground"
+                aria-label="Document actions"
+              >
+                <IconDots size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onSelect={() => {
+                  void handleCopy();
+                }}
+              >
+                <IconCopy size={14} />
+                Copy
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
       <div className="wiki-editor flex-1 min-h-0 overflow-y-auto scrollbar-thin">
         <EditorContent editor={editor} />
