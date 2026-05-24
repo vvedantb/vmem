@@ -4,6 +4,7 @@
 
 - **Per-connector wipe**: Settings → Connectors adds “Delete imported data” to remove all memories from that source (type-to-confirm) without revoking OAuth.
 - **Neo4j cleanup**: Deletes matching memories, chunks, events, and proposals; resets connector sync stats.
+- **Options menu**: Sync, disconnect, and delete live in one dropdown; disconnect and delete open confirmation dialogs first.
 
 ## Connector brand icons — 2026-05-23
 

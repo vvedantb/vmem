@@ -2,23 +2,11 @@
 
 import { useState } from "react";
 import { useAction, useQuery } from "convex/react";
-import {
-  Card,
-  CardContent,
-  Button,
-  Badge,
-  Progress,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@vmem/ui";
+import { Card, CardContent, Button, Badge, Progress } from "@vmem/ui";
 import { toast } from "sonner";
 import {
   IconLoader2,
-  IconRefresh,
   IconAlertCircle,
-  IconChevronDown,
   IconClock,
   IconClockHour4,
 } from "@tabler/icons-react";
@@ -26,6 +14,8 @@ import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
 import { GitHubConnectorControls } from "./settings/GitHubConnectorControls";
 import DeleteConnectorDataDialog from "./settings/DeleteConnectorDataDialog";
+import DisconnectConnectorDialog from "./settings/DisconnectConnectorDialog";
+import ConnectorActionsMenu from "./settings/ConnectorActionsMenu";
 import {
   GoogleDriveIcon,
   GmailIcon,
@@ -74,11 +64,10 @@ function formatRelativeTime(timestamp: number | undefined): string {
 }
 
 export default function ConnectorCard({ connector }: ConnectorCardProps) {
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showOAuthModal, setShowOAuthModal] = useState(false);
   const [showDeleteDataDialog, setShowDeleteDataDialog] = useState(false);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
 
-  const disconnectAction = useAction(api.connectorOAuth.disconnect);
   const startSyncAction = useAction(api.connectorSync.startSync);
 
   const isGitHub = connector.name === "GitHub";
@@ -93,6 +82,13 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
     : connector.connectionStatus === "connected";
   const isSyncing = !isGitHub && connector.syncStatus === "syncing";
   const hasProvider = isGitHub || !!connector.provider;
+  const isLinear = connector.provider === "linear";
+  const canDeleteImportedData =
+    hasProvider &&
+    !isGitHub &&
+    (isConnected ||
+      connector.itemsSynced > 0 ||
+      connector.lastSyncAt !== undefined);
 
   const handleConnect = () => {
     if (!hasProvider) {
@@ -103,23 +99,9 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
   };
 
   const handleOAuthComplete = () => {
-    // Connection is handled by the OAuth callback — Convex live query updates UI
     toast.success(`Successfully connected to ${connector.name}`);
   };
 
-  const handleDisconnect = async () => {
-    setIsDisconnecting(true);
-    try {
-      await disconnectAction({ connectorId: connector._id });
-      toast(`Disconnected from ${connector.name}`);
-    } catch {
-      toast.error("Failed to disconnect");
-    } finally {
-      setIsDisconnecting(false);
-    }
-  };
-
-  // `fullHistory` is only meaningful for Linear — backend ignores it otherwise.
   const handleSync = async (fullHistory = false) => {
     try {
       await startSyncAction({ connectorId: connector._id, fullHistory });
@@ -132,14 +114,6 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
       toast.error(err instanceof Error ? err.message : "Failed to start sync");
     }
   };
-
-  const isLinear = connector.provider === "linear";
-  const canDeleteImportedData =
-    hasProvider &&
-    !isGitHub &&
-    (isConnected ||
-      connector.itemsSynced > 0 ||
-      connector.lastSyncAt !== undefined);
 
   return (
     <>
@@ -226,104 +200,33 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
             {isGitHub ? (
               <GitHubConnectorControls connection={githubConnection} />
             ) : isConnected ? (
-              <>
-                {isLinear ? (
-                  // Split-button: primary fires "Sync recent (30d)" directly;
-                  // chevron opens menu with both options including full-history backfill.
-                  <div className="inline-flex">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSync(false)}
-                      disabled={isSyncing || isDisconnecting}
-                      className="border-border text-muted-foreground rounded-r-none border-r-0"
-                    >
-                      {isSyncing ? (
-                        <IconLoader2 size={14} className="animate-spin" />
-                      ) : (
-                        <IconRefresh size={14} />
-                      )}
-                      {isSyncing ? "Syncing..." : "Sync recent (30d)"}
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={isSyncing || isDisconnecting}
-                          aria-label="More sync options"
-                          className="border-border text-muted-foreground rounded-l-none px-2"
-                        >
-                          <IconChevronDown size={14} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onSelect={() => handleSync(false)}
-                          disabled={isSyncing || isDisconnecting}
-                        >
-                          Sync recent (30d)
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => handleSync(true)}
-                          disabled={isSyncing || isDisconnecting}
-                        >
-                          Sync all history
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSync(false)}
-                    disabled={isSyncing || isDisconnecting}
-                    className="border-border text-muted-foreground"
-                  >
-                    {isSyncing ? (
-                      <IconLoader2 size={14} className="animate-spin" />
-                    ) : (
-                      <IconRefresh size={14} />
-                    )}
-                    {isSyncing ? "Syncing..." : "Sync Now"}
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDisconnect}
-                  disabled={isSyncing || isDisconnecting}
-                  className="border-border text-muted-foreground"
-                >
-                  {isDisconnecting && (
-                    <IconLoader2 size={14} className="animate-spin" />
-                  )}
-                  {isDisconnecting ? "Disconnecting..." : "Disconnect"}
-                </Button>
-                {canDeleteImportedData ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowDeleteDataDialog(true)}
-                    disabled={isSyncing || isDisconnecting}
-                    className="border-border text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    Delete imported data
-                  </Button>
-                ) : null}
-              </>
+              <ConnectorActionsMenu
+                connectorName={connector.name}
+                isLinear={isLinear}
+                isSyncing={isSyncing}
+                isBusy={isSyncing}
+                showSyncActions
+                showDisconnect
+                showDeleteData={canDeleteImportedData}
+                onSync={handleSync}
+                onDisconnect={() => setShowDisconnectDialog(true)}
+                onDeleteData={() => setShowDeleteDataDialog(true)}
+              />
             ) : (
               <>
                 {canDeleteImportedData ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowDeleteDataDialog(true)}
-                    className="border-border text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    Delete imported data
-                  </Button>
+                  <ConnectorActionsMenu
+                    connectorName={connector.name}
+                    isLinear={isLinear}
+                    isSyncing={false}
+                    isBusy={false}
+                    showSyncActions={false}
+                    showDisconnect={false}
+                    showDeleteData
+                    onSync={handleSync}
+                    onDisconnect={() => setShowDisconnectDialog(true)}
+                    onDeleteData={() => setShowDeleteDataDialog(true)}
+                  />
                 ) : null}
                 <Button
                   size="sm"
@@ -351,6 +254,12 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
             connectorId={connector._id}
             connectorName={connector.name}
             onComplete={handleOAuthComplete}
+          />
+          <DisconnectConnectorDialog
+            open={showDisconnectDialog}
+            onClose={() => setShowDisconnectDialog(false)}
+            connectorId={connector._id}
+            connectorName={connector.name}
           />
           <DeleteConnectorDataDialog
             open={showDeleteDataDialog}
