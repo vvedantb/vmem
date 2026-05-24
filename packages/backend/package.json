@@ -9,7 +9,9 @@
   },
   "scripts": {
     "dev": "npx convex dev",
-    "deploy": "pnpm run build:mcp-graph-ui && npx convex deploy",
+    "deploy": "pnpm run build:mcp-assets && npx convex deploy",
+    "build:mcp-assets": "pnpm run build:mcp-graph-ui && pnpm run build:mcp-favicon",
+    "build:mcp-favicon": "node scripts/build-mcp-favicon.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:retrieval": "cross-env RUN_RETRIEVAL_EVAL=1 vitest run src/neo4j/memory/eval/retrieval.integration.test.ts",
