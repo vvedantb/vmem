@@ -1,45 +1,8 @@
-import { getDriver, closeDriver } from "./driver";
-import { setupDatabase } from "./setup";
-import { setEmbeddings } from "./memory/migration";
-import { embeddingMode, generateCliEmbeddings } from "./cliEmbeddings";
-import { RETRIEVAL_EVAL_QUERIES } from "./memory/eval/queries";
-import crypto from "node:crypto";
+﻿import crypto from "node:crypto";
 
 export const HANDCRAFTED_MEMORY_COUNT = 257;
 
-const EVAL_MODE = process.argv.includes("--eval");
-
-const EVAL_EXPECTED_TITLES = new Set(
-  RETRIEVAL_EVAL_QUERIES.flatMap((item) => item.expectedTitles),
-);
-
-function applyEvalCorpusProfile<
-  T extends {
-    title: string;
-    createdAt: string;
-    updatedAt: string;
-    confidence: number;
-  },
->(memory: T): T {
-  if (EVAL_EXPECTED_TITLES.has(memory.title)) {
-    const createdAt = recentDate(1);
-    return {
-      ...memory,
-      createdAt,
-      updatedAt: new Date().toISOString(),
-      confidence: 0.98,
-    };
-  }
-
-  return {
-    ...memory,
-    createdAt: randomDate(540),
-    updatedAt: randomDate(365),
-    confidence: 0.35,
-  };
-}
-
-const USER_IDS = [
+export const SEED_USER_IDS = [
   "user_39IXNJeQM9vlRyQ9IdCvKbsqsti",
   "user_3BmJ4t48rN2ZkglhnxOTUJSMpLC",
   "user_35juxUiA6A9h2JbW7TEDk39j3yo",
@@ -205,7 +168,7 @@ const memories = [
     "knowledge",
     ["react"],
   ),
-  // -- index 15+ → within 30 days --
+  // -- index 15+ â†’ within 30 days --
   mem(
     "Node.js ESM gotchas",
     "Need .js extensions in imports even for .ts files when using ESM. __dirname not available, use import.meta.url.",
@@ -328,7 +291,7 @@ const memories = [
     "episodic",
     ["meetings", "infrastructure"],
   ),
-  // -- index 35+ → spread across 90 days --
+  // -- index 35+ â†’ spread across 90 days --
   mem(
     "Bug triage: graph rendering stutter",
     "Canvas approach drops to 10fps at 50+ nodes. Root cause: redrawing all edges every frame.",
@@ -668,7 +631,7 @@ const memories = [
     ["travel", "geography"],
   ),
 
-  // === LEARNING NOTES — BRIDGES (15) === [indices 90-104]
+  // === LEARNING NOTES â€” BRIDGES (15) === [indices 90-104]
   mem(
     "Learning Rust for systems programming",
     "Started The Rust Book. Ownership model is different from TypeScript's GC approach.",
@@ -707,7 +670,7 @@ const memories = [
   ),
   mem(
     "Reading about attention mechanisms in LLMs",
-    "Self-attention computes relevance scores between all token pairs. O(n²) complexity.",
+    "Self-attention computes relevance scores between all token pairs. O(nÂ²) complexity.",
     "knowledge",
     ["learning", "infrastructure"],
   ),
@@ -787,7 +750,7 @@ const memories = [
   ),
   mem(
     "Salary research for new grad SWE",
-    "London: £45-65k, Remote US: $120-160k. Factor in cost of living and visa sponsorship.",
+    "London: Â£45-65k, Remote US: $120-160k. Factor in cost of living and visa sponsorship.",
     "knowledge",
     ["career", "geography"],
   ),
@@ -1357,7 +1320,7 @@ const memories = [
   ),
   mem(
     "Prague is cheap for digital nomads",
-    "Coworking spaces from €10/day. Great beer for €2. Public transit covers everywhere.",
+    "Coworking spaces from â‚¬10/day. Great beer for â‚¬2. Public transit covers everywhere.",
     "episodic",
     ["travel", "geography"],
   ),
@@ -1511,19 +1474,19 @@ const memories = [
   // === FINANCE / ADMIN (10) === [indices 227-236]
   mem(
     "Student loan repayment starts April",
-    "Plan 2: repay when earning over £27,295. 9% of income above threshold.",
+    "Plan 2: repay when earning over Â£27,295. 9% of income above threshold.",
     "profile",
     ["finance"],
   ),
   mem(
     "ISA contribution deadline: April 5",
-    "Max £20,000 per tax year. Using Vanguard S&P 500 index fund. Set up standing order.",
+    "Max Â£20,000 per tax year. Using Vanguard S&P 500 index fund. Set up standing order.",
     "profile",
     ["finance", "habits"],
   ),
   mem(
     "Council tax: Band C, 25% single discount",
-    "Pay by direct debit over 10 months. Annual bill around £1,400 after discount.",
+    "Pay by direct debit over 10 months. Annual bill around Â£1,400 after discount.",
     "profile",
     ["finance"],
   ),
@@ -1535,7 +1498,7 @@ const memories = [
   ),
   mem(
     "Emergency fund target: 3 months expenses",
-    "Currently at 2 months. Adding £300/month until target reached.",
+    "Currently at 2 months. Adding Â£300/month until target reached.",
     "profile",
     ["finance", "habits"],
   ),
@@ -1546,26 +1509,26 @@ const memories = [
     ["finance"],
   ),
   mem(
-    "Phone plan: £15/month PAYG",
+    "Phone plan: Â£15/month PAYG",
     "Unlimited data, texts, calls on Three. Good international roaming in EU.",
     "profile",
     ["finance"],
   ),
   mem(
-    "Gym membership: £35/month",
+    "Gym membership: Â£35/month",
     "FitZone contract is rolling monthly. Cancel anytime with 30 days notice.",
     "profile",
     ["finance", "health"],
   ),
   mem(
     "Renters insurance through Lemonade",
-    "Covers laptop, bike, and personal items. £12/month. Claim process is app-based.",
+    "Covers laptop, bike, and personal items. Â£12/month. Claim process is app-based.",
     "profile",
     ["finance"],
   ),
   mem(
     "Subscriptions to audit quarterly",
-    "Spotify, iCloud, GitHub Pro, Notion, Linear, ChatGPT. Total: ~£65/month. Cut unused ones.",
+    "Spotify, iCloud, GitHub Pro, Notion, Linear, ChatGPT. Total: ~Â£65/month. Cut unused ones.",
     "profile",
     ["finance", "habits"],
   ),
@@ -1603,7 +1566,7 @@ const memories = [
   ),
   mem(
     "Coffee brewing: V60 pour-over method",
-    "15g coffee, 250ml water at 93°C. Bloom 30 seconds. Total brew time: 3 minutes.",
+    "15g coffee, 250ml water at 93Â°C. Bloom 30 seconds. Total brew time: 3 minutes.",
     "knowledge",
     ["cooking", "preferences"],
   ),
@@ -1621,7 +1584,7 @@ const memories = [
   ),
   mem(
     "Cast iron skillet maintenance",
-    "Season with flaxseed oil at 250°C for 1 hour. Never use soap. Dry immediately after washing.",
+    "Season with flaxseed oil at 250Â°C for 1 hour. Never use soap. Dry immediately after washing.",
     "knowledge",
     ["cooking"],
   ),
@@ -1712,7 +1675,7 @@ function generateBulkMemories(count: number) {
     return shuffled.slice(0, n);
   }
 
-  // ── TECH ──
+  // â”€â”€ TECH â”€â”€
   const techSubjects = [
     "AWS Lambda",
     "Redis cluster",
@@ -1924,7 +1887,7 @@ function generateBulkMemories(count: number) {
 
   const techDetails = [
     "Reduced response time from 800ms to 120ms by restructuring the query path and adding connection pooling.",
-    "Found the root cause after profiling — garbage collection pauses during peak traffic caused cascading timeouts.",
+    "Found the root cause after profiling â€” garbage collection pauses during peak traffic caused cascading timeouts.",
     "Benchmarked three approaches: the simplest one won. Over-engineering added latency without improving throughput.",
     "The config change was one line but took 4 hours to find. Documentation was outdated and misleading.",
     "Migration completed with zero downtime using blue-green. Rolled back once during testing, smooth in production.",
@@ -2095,7 +2058,7 @@ function generateBulkMemories(count: number) {
     ["rolling-update", "deployment"],
   ];
 
-  // ── WORK ──
+  // â”€â”€ WORK â”€â”€
   const workContexts = [
     "sprint planning",
     "retrospective",
@@ -2239,7 +2202,7 @@ function generateBulkMemories(count: number) {
     "User study revealed confusion in proposed updates flow. Redesigning approval UX.",
     "Compliance audit passed with 2 minor findings. Remediation plans filed.",
     "Sprint velocity highest in 3 months. WIP limits are clearly working.",
-    "Incident resolved in 18 minutes — below our 30-minute SLA target. Post-mortem Thursday.",
+    "Incident resolved in 18 minutes â€” below our 30-minute SLA target. Post-mortem Thursday.",
     "A/B test: 22% improvement in activation rate. Shipping winning variant to all users.",
     "Technical feasibility confirmed. Estimate: 3 sprints for full implementation.",
     "Vendor shortlist: 2 finalists. Setting up proof-of-concept trials next week.",
@@ -2303,7 +2266,7 @@ function generateBulkMemories(count: number) {
     ["budget", "finance"],
   ];
 
-  // ── PEOPLE ──
+  // â”€â”€ PEOPLE â”€â”€
   const personNames = [
     "Marcus",
     "Wei",
@@ -2484,7 +2447,7 @@ function generateBulkMemories(count: number) {
 
   const personDetails = [
     "Really insightful perspective. Connected on LinkedIn to continue the conversation.",
-    "They've been doing this for 8 years — experience showed. Took detailed notes.",
+    "They've been doing this for 8 years â€” experience showed. Took detailed notes.",
     "Different approach than mine. Worth trying their method for a few weeks.",
     "We disagree on this but their reasoning is solid. Good to have the counterpoint.",
     "Exchanged numbers. Planning to meet again next month for a deeper dive.",
@@ -2527,7 +2490,7 @@ function generateBulkMemories(count: number) {
     ["podcast-guest", "media"],
   ];
 
-  // ── PREFERENCES ──
+  // â”€â”€ PREFERENCES â”€â”€
   const prefDomains = [
     "editor setup",
     "terminal config",
@@ -2613,7 +2576,7 @@ function generateBulkMemories(count: number) {
     "This habit took 3 weeks to build but now it's completely automatic.",
     "Seasonal adjustment that makes a huge difference between summer and winter.",
     "The ergonomic version costs 3x more but prevents the RSI issues I was developing.",
-    "Minimalist choice — fewer options means fewer decisions means more energy for real work.",
+    "Minimalist choice â€” fewer options means fewer decisions means more energy for real work.",
     "Function over form, always. The ugly option that works beats the pretty one that doesn't.",
     "One of those things where the default is fine. No need to optimize everything.",
     "Night and day difference after making this change. Wish I'd done it years ago.",
@@ -2669,7 +2632,7 @@ function generateBulkMemories(count: number) {
     ["window-mgmt", "productivity"],
   ];
 
-  // ── HEALTH ──
+  // â”€â”€ HEALTH â”€â”€
   const healthActivities = [
     "deadlift",
     "squat",
@@ -2789,7 +2752,7 @@ function generateBulkMemories(count: number) {
     ["posture", "ergonomics"],
   ];
 
-  // ── TRAVEL ──
+  // â”€â”€ TRAVEL â”€â”€
   const cities = [
     "Tokyo",
     "Seoul",
@@ -2911,13 +2874,13 @@ function generateBulkMemories(count: number) {
   ];
 
   const travelNotes = [
-    "Visited last spring — exceeded expectations. Would go back for a longer stay.",
+    "Visited last spring â€” exceeded expectations. Would go back for a longer stay.",
     "Locals were incredibly friendly. A few words in the local language goes a long way.",
     "Way cheaper than expected. Daily budget was half of what I planned.",
     "More expensive than I thought. Worth it short-term but not for a long stay.",
     "Public transport is excellent. No need for taxis or car rental.",
     "Walkable city center. Got 20k steps daily just exploring neighborhoods.",
-    "Food was the highlight. Incredible meals for under £10 each.",
+    "Food was the highlight. Incredible meals for under Â£10 each.",
     "Digital nomad community is thriving. Easy to meet people at coworking spaces.",
     "Off-season was the right call. Fewer tourists, lower prices, decent weather.",
     "The Airbnb was way better than the hotel next door. Always compare both.",
@@ -2985,7 +2948,7 @@ function generateBulkMemories(count: number) {
     ["coworking-abroad", "remote-work"],
   ];
 
-  // ── LEARNING ──
+  // â”€â”€ LEARNING â”€â”€
   const learningSubjects = [
     "distributed consensus",
     "compiler optimization",
@@ -3125,7 +3088,7 @@ function generateBulkMemories(count: number) {
     ["spaced-repetition", "memory-techniques"],
   ];
 
-  // ── FINANCE ──
+  // â”€â”€ FINANCE â”€â”€
   const financeTopics = [
     "ISA contribution plan",
     "pension review call",
@@ -3164,14 +3127,14 @@ function generateBulkMemories(count: number) {
   ];
 
   const financeNotes = [
-    "Saved £240/year switching providers. Same coverage, different name. Always shop around at renewal.",
+    "Saved Â£240/year switching providers. Same coverage, different name. Always shop around at renewal.",
     "Automated transfer on payday. Can't spend what doesn't land in the current account.",
     "Spreadsheet of 5 options. Winner was obvious once all hidden fees were included.",
-    "Tax-efficient approach saves ~£600/year. Worth the 30 minutes of annual paperwork.",
+    "Tax-efficient approach saves ~Â£600/year. Worth the 30 minutes of annual paperwork.",
     "Emergency fund at 3 months of expenses. Excess now goes to ISA for better returns.",
     "Compound interest visualizer was eye-opening. Starting early matters more than the amount.",
     "Negotiated 15% reduction by threatening to leave. They always have a retention offer.",
-    "Quarterly audit found 3 unused subscriptions. £45/month saved by cancelling.",
+    "Quarterly audit found 3 unused subscriptions. Â£45/month saved by cancelling.",
     "Fixed rate locked in before the increase. Research was intentional, timing was lucky.",
     "Direct debit + paperless billing saves 8% on utility bills. Set and forget.",
   ];
@@ -3203,7 +3166,7 @@ function generateBulkMemories(count: number) {
     ["forex", "transfers"],
   ];
 
-  // ── COOKING ──
+  // â”€â”€ COOKING â”€â”€
   const cookingItems = [
     "pasta carbonara",
     "chicken tikka masala",
@@ -3257,7 +3220,7 @@ function generateBulkMemories(count: number) {
 
   const cookingNotes = [
     "The key is patience. Low and slow produces fundamentally different results.",
-    "Restaurant quality at home — just season properly. Salt at every stage.",
+    "Restaurant quality at home â€” just season properly. Salt at every stage.",
     "Mise en place changed everything. Prep all ingredients before heat touches pan.",
     "Cheap version is 90% as good. Save premium ingredients for special occasions.",
     "Scales well for meal prep. Makes 6 portions, freezes and reheats perfectly.",
@@ -3299,7 +3262,7 @@ function generateBulkMemories(count: number) {
     ["seafood", "fish"],
   ];
 
-  // ── ENTERTAINMENT ──
+  // â”€â”€ ENTERTAINMENT â”€â”€
   const mediaTypes = [
     "film",
     "TV series",
@@ -3454,7 +3417,7 @@ function generateBulkMemories(count: number) {
     ["graphic-novel", "literary"],
   ];
 
-  // ── GENERATOR ──
+  // â”€â”€ GENERATOR â”€â”€
   type MemType = "profile" | "episodic" | "knowledge";
 
   interface CategoryGen {
@@ -3468,7 +3431,7 @@ function generateBulkMemories(count: number) {
   }
 
   const cats: CategoryGen[] = [
-    // TECH — 25%
+    // TECH â€” 25%
     {
       weight: 25,
       generate: (i) => {
@@ -3495,7 +3458,7 @@ function generateBulkMemories(count: number) {
         };
       },
     },
-    // WORK — 16%
+    // WORK â€” 16%
     {
       weight: 16,
       generate: (i) => {
@@ -3522,7 +3485,7 @@ function generateBulkMemories(count: number) {
         };
       },
     },
-    // PEOPLE — 12%
+    // PEOPLE â€” 12%
     {
       weight: 12,
       generate: (i) => {
@@ -3554,7 +3517,7 @@ function generateBulkMemories(count: number) {
         };
       },
     },
-    // PREFERENCES — 10%
+    // PREFERENCES â€” 10%
     {
       weight: 10,
       generate: (i) => {
@@ -3581,7 +3544,7 @@ function generateBulkMemories(count: number) {
         };
       },
     },
-    // HEALTH — 8%
+    // HEALTH â€” 8%
     {
       weight: 8,
       generate: (i) => {
@@ -3610,7 +3573,7 @@ function generateBulkMemories(count: number) {
         };
       },
     },
-    // TRAVEL — 10%
+    // TRAVEL â€” 10%
     {
       weight: 10,
       generate: (i) => {
@@ -3636,7 +3599,7 @@ function generateBulkMemories(count: number) {
         };
       },
     },
-    // LEARNING — 7%
+    // LEARNING â€” 7%
     {
       weight: 7,
       generate: (i) => {
@@ -3664,7 +3627,7 @@ function generateBulkMemories(count: number) {
         };
       },
     },
-    // FINANCE — 4%
+    // FINANCE â€” 4%
     {
       weight: 4,
       generate: (i) => {
@@ -3687,7 +3650,7 @@ function generateBulkMemories(count: number) {
         };
       },
     },
-    // COOKING — 4%
+    // COOKING â€” 4%
     {
       weight: 4,
       generate: (i) => {
@@ -3710,7 +3673,7 @@ function generateBulkMemories(count: number) {
         };
       },
     },
-    // ENTERTAINMENT — 4%
+    // ENTERTAINMENT â€” 4%
     {
       weight: 4,
       generate: (i) => {
@@ -3789,7 +3752,7 @@ function rel(sourceIdx: number, targetIdx: number, reason: string) {
 const relationships = [
   // --- Tech cluster ---
   rel(0, 1, "strict null checks catch the bugs useEffect cleanup prevents"),
-  rel(0, 5, "RSCs can't use hooks — strict mode flags those violations"),
+  rel(0, 5, "RSCs can't use hooks â€” strict mode flags those violations"),
   rel(1, 5, "RSCs remove need for useEffect data fetching patterns"),
   rel(1, 14, "Suspense replaces manual loading states in useEffect"),
   rel(2, 6, "UNWIND batch inserts power the Neo4j graph queries"),
@@ -3832,38 +3795,46 @@ const relationships = [
   rel(
     38,
     49,
-    "Alex prefers raw queries — same philosophy as Obsidian's local-first",
+    "Alex prefers raw queries â€” same philosophy as Obsidian's local-first",
   ),
   rel(
     39,
     43,
-    "Mom's kindle and Dad's Sunday calls — both need calendar reminders",
+    "Mom's kindle and Dad's Sunday calls â€” both need calendar reminders",
   ),
   rel(40, 31, "Jake from Vercel validated our RSC-first frontend decision"),
   rel(41, 44, "Prof. Chen's GNN ideas connect to Emma's DDIA recommendation"),
   rel(
     43,
     45,
-    "Dad's Sunday calls and Tom's allergy checks — roommate/family care",
+    "Dad's Sunday calls and Tom's allergy checks â€” roommate/family care",
   ),
   rel(46, 48, "Dr. Park's ship-fast advice shaped mentor-guided MVP scope"),
   rel(48, 50, "Google recruiter wants the polished MVP Dr. Park recommended"),
   rel(47, 49, "study group discusses the distributed systems Alex debates"),
   rel(50, 52, "recruiter's TS focus motivates helping sister learn to code"),
-  rel(51, 53, "TechHub founders and team dinner — same networking circle"),
+  rel(51, 53, "TechHub founders and team dinner â€” same networking circle"),
 
   // --- Preferences cluster ---
-  rel(54, 63, "dark mode in VS Code and Vim keybindings — same editor config"),
+  rel(
+    54,
+    63,
+    "dark mode in VS Code and Vim keybindings â€” same editor config",
+  ),
   rel(55, 67, "morning deep work blocks are reserved for weekend vmem coding"),
   rel(56, 61, "oat milk cortado fuels the lo-fi hip hop focus sessions"),
   rel(57, 63, "Keychron Q1 pairs with Vim keybindings for typing speed"),
-  rel(58, 62, "print books and bullet notes — both physical info retention"),
+  rel(58, 62, "print books and bullet notes â€” both physical info retention"),
   rel(59, 60, "Pomodoro sit/stand timer syncs with PR review focus blocks"),
   rel(64, 65, "batch Slack checks protect the 11pm-7am sleep window"),
 
   // --- Health cluster ---
   rel(68, 73, "5x5 deadlifts and 5K runs share the same morning gym slot"),
-  rel(69, 45, "shellfish allergy and Tom's — same EpiPen protocol at dinners"),
+  rel(
+    69,
+    45,
+    "shellfish allergy and Tom's â€” same EpiPen protocol at dinners",
+  ),
   rel(
     70,
     76,
@@ -3873,16 +3844,16 @@ const relationships = [
   rel(73, 77, "5K runs start at FitZone's 6am opening before crowds"),
 
   // --- Travel cluster ---
-  rel(78, 80, "Fuunji ramen queue starts at Shinjuku — Suica card needed"),
+  rel(78, 80, "Fuunji ramen queue starts at Shinjuku â€” Suica card needed"),
   rel(
     79,
     81,
-    "Berlin hot desk and Amsterdam bike lanes — EU remote work setup",
+    "Berlin hot desk and Amsterdam bike lanes â€” EU remote work setup",
   ),
   rel(
     82,
     85,
-    "Amsterdam cycling and Singapore hawker — both cheap local transit",
+    "Amsterdam cycling and Singapore hawker â€” both cheap local transit",
   ),
   rel(83, 86, "Priority Pass lounge covers the long layover to conferences"),
   rel(84, 87, "jet lag strategy applies to eastbound Singapore flights"),
@@ -3911,7 +3882,7 @@ const relationships = [
   rel(65, 76, "2pm caffeine cutoff protects the 11pm sleep target"),
   rel(68, 84, "jet lag disrupts the 5x5 deadlift schedule abroad"),
   rel(73, 84, "running pace drops after eastbound jet lag recovery"),
-  rel(75, 71, "wrist exercises and neck stretches — same physio protocol"),
+  rel(75, 71, "wrist exercises and neck stretches â€” same physio protocol"),
   rel(80, 92, "sumimasen was the first phrase needed for Tokyo metro"),
   rel(85, 88, "visa timeline feeds into the conference travel checklist"),
   rel(91, 93, "small-world network theory explains Neo4j's traversal speed"),
@@ -4077,203 +4048,16 @@ function generateBulkRelationships() {
   return result;
 }
 
-function buildEvents(mems: typeof memories) {
-  const events: Array<{
-    eventId: string;
-    memoryId: string;
-    action: string;
-    createdAt: string;
-  }> = [];
+export const fullMemories = memories;
+export const fullRelationships = relationships;
+export const handcraftedMemories = memories.slice(0, HANDCRAFTED_MEMORY_COUNT);
 
-  for (const m of mems) {
-    events.push({
-      eventId: crypto.randomUUID(),
-      memoryId: m.id,
-      action: "created",
-      createdAt: m.createdAt,
-    });
-  }
+const handcraftedMemoryIds = new Set(
+  handcraftedMemories.map((memory) => memory.id),
+);
 
-  const updatedIndices = [
-    3, 10, 22, 27, 35, 48, 55, 68, 78, 95, 116, 130, 145, 155, 178, 190, 201,
-    213, 237, 248,
-  ];
-  for (const idx of updatedIndices) {
-    const m = mems[idx];
-    if (!m) continue;
-    const createdMs = new Date(m.createdAt).getTime();
-    const laterMs = createdMs + (1 + Math.random() * 5) * 86400000;
-    events.push({
-      eventId: crypto.randomUUID(),
-      memoryId: m.id,
-      action: "updated",
-      createdAt: new Date(laterMs).toISOString(),
-    });
-  }
-
-  return events;
-}
-
-function remapId(idMap: Map<string, string>, oldId: string): string {
-  const newId = idMap.get(oldId);
-  if (newId === undefined) throw new Error(`unmapped id: ${oldId}`);
-  return newId;
-}
-
-async function embedMemories(
-  memoriesToEmbed: Array<{ id: string; title: string; content: string }>,
-): Promise<void> {
-  const BATCH = 20;
-  console.log(`  embedding ${String(memoriesToEmbed.length)} memories...`);
-
-  for (let offset = 0; offset < memoriesToEmbed.length; offset += BATCH) {
-    const batch = memoriesToEmbed.slice(offset, offset + BATCH);
-    const texts = batch.map((memory) => `${memory.title}\n\n${memory.content}`);
-    const vectors = await generateCliEmbeddings(texts);
-    const writes: Array<{ id: string; embedding: number[] }> = [];
-
-    for (let index = 0; index < batch.length; index++) {
-      const memory = batch[index];
-      const vector = vectors[index];
-      if (!memory || !vector) {
-        throw new Error(
-          `missing embedding for memory at offset ${String(offset + index)}`,
-        );
-      }
-      writes.push({ id: memory.id, embedding: vector });
-    }
-
-    await setEmbeddings(getDriver(), writes);
-  }
-}
-
-async function seed() {
-  console.log("connecting to Neo4j...");
-  const driver = getDriver();
-  const session = driver.session();
-
-  try {
-    console.log("wiping all data...");
-    await session.run("MATCH (n) DETACH DELETE n");
-
-    console.log("recreating indexes and constraints...");
-    await setupDatabase(driver);
-
-    let totalMemories = 0;
-    let totalRelationships = 0;
-    let totalEvents = 0;
-
-    const seedUserIds = EVAL_MODE ? [USER_IDS[0]] : USER_IDS;
-    const templateMemories = EVAL_MODE
-      ? memories.slice(0, HANDCRAFTED_MEMORY_COUNT).map(applyEvalCorpusProfile)
-      : memories;
-    const templateMemoryIds = new Set(
-      templateMemories.map((memory) => memory.id),
-    );
-    const templateRelationships = EVAL_MODE
-      ? relationships.filter(
-          (relationship) =>
-            templateMemoryIds.has(relationship.sourceId) &&
-            templateMemoryIds.has(relationship.targetId),
-        )
-      : relationships;
-
-    if (EVAL_MODE) {
-      console.log(
-        `eval mode: seeding ${String(templateMemories.length)} handcrafted memories for ${seedUserIds[0]}`,
-      );
-    }
-
-    for (const userId of seedUserIds) {
-      console.log(`\nseeding user: ${userId}`);
-
-      const idMap = new Map<string, string>();
-      const userMemories = templateMemories.map((m) => {
-        const newId = crypto.randomUUID();
-        idMap.set(m.id, newId);
-        return { ...m, id: newId, userId };
-      });
-
-      const userRelationships = templateRelationships.map((r) => ({
-        sourceId: remapId(idMap, r.sourceId),
-        targetId: remapId(idMap, r.targetId),
-        reason: r.reason,
-      }));
-
-      const userEvents = buildEvents(userMemories);
-
-      console.log(`  inserting ${userMemories.length} memories...`);
-      await session.run(
-        `UNWIND $memories AS mem
-         CREATE (m:Memory {
-           id: mem.id, userId: mem.userId, title: mem.title,
-           content: mem.content, type: mem.type, source: mem.source,
-           confidence: mem.confidence, status: mem.status,
-           createdAt: mem.createdAt, updatedAt: mem.updatedAt,
-           expiresAt: mem.expiresAt
-         })
-         WITH m, mem
-         MERGE (s:Source {name: mem.source})
-         CREATE (m)-[:FROM_SOURCE]->(s)
-         WITH m, mem
-         FOREACH (tagName IN mem.tags |
-           MERGE (t:Tag {name: tagName})
-           MERGE (m)-[:TAGGED_WITH]->(t)
-         )`,
-        { memories: userMemories },
-      );
-
-      console.log(`  creating ${userRelationships.length} relationships...`);
-      await session.run(
-        `UNWIND $rels AS rel
-         MATCH (a:Memory {id: rel.sourceId})
-         MATCH (b:Memory {id: rel.targetId})
-         CREATE (a)-[:RELATES_TO {reason: rel.reason}]->(b)`,
-        { rels: userRelationships },
-      );
-
-      console.log(`  creating ${userEvents.length} events...`);
-      await session.run(
-        `UNWIND $events AS evt
-         MATCH (m:Memory {id: evt.memoryId})
-         CREATE (e:MemoryEvent {
-           id: evt.eventId,
-           action: evt.action,
-           actor: 'system',
-           details: '{}',
-           snapshot: null,
-           createdAt: evt.createdAt
-         })
-         CREATE (e)-[:EVENT_FOR]->(m)`,
-        { events: userEvents },
-      );
-
-      totalMemories += userMemories.length;
-      totalRelationships += userRelationships.length;
-      totalEvents += userEvents.length;
-
-      if (EVAL_MODE) {
-        await embedMemories(userMemories);
-      }
-    }
-
-    console.log("\ndone!");
-    console.log(`  users: ${seedUserIds.length}`);
-    console.log(`  memories: ${totalMemories}`);
-    console.log(`  relationships: ${totalRelationships}`);
-    console.log(`  events: ${totalEvents}`);
-    if (EVAL_MODE) {
-      console.log(
-        `  embeddings: ${String(totalMemories)} (${embeddingMode()})`,
-      );
-    }
-  } finally {
-    await session.close();
-    await closeDriver();
-  }
-}
-
-seed().catch((err) => {
-  console.error("seed failed:", err);
-  process.exit(1);
-});
+export const handcraftedRelationships = relationships.filter(
+  (relationship) =>
+    handcraftedMemoryIds.has(relationship.sourceId) &&
+    handcraftedMemoryIds.has(relationship.targetId),
+);
