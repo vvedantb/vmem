@@ -22,20 +22,13 @@ import {
   IconLoader2,
 } from "@tabler/icons-react";
 import type { FileItem } from "@/lib/file-types";
+import { formatFileSize } from "@/components/files/_utils";
 
 interface FilePreviewModalProps {
   isOpen: boolean;
   file: FileItem | null;
   onClose: () => void;
   onDelete: (id: string) => void;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
 function formatDate(dateString: string): string {

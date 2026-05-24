@@ -23,6 +23,8 @@
  * fact / skip this memory).
  */
 
+import { extractJsonString } from "./llm/extractJsonString";
+
 export interface ExtractedFact {
   /** Stable id within this extraction (0-indexed). Useful for telemetry. */
   id: number;
@@ -199,37 +201,6 @@ ${candidatesBlock}
 // ──────────────────────────────────────────────────────────────────────
 // Parsers
 // ──────────────────────────────────────────────────────────────────────
-
-/**
- * Strip <think> blocks and markdown code fences from a raw LLM response,
- * leaving just the JSON. Mirrors `enrichmentPrompt.extractJsonString` —
- * kept as a dedicated copy so this file has no dependency on the
- * enrichment prompt module (different concern, different lifecycle).
- */
-function extractJsonString(raw: string): string {
-  let jsonStr = raw.trim();
-
-  // Closed think blocks
-  jsonStr = jsonStr.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-
-  // Unclosed think block (model hit token limit mid-thought)
-  if (jsonStr.startsWith("<think>")) {
-    const closeIdx = jsonStr.indexOf("</think>");
-    if (closeIdx === -1) {
-      jsonStr = jsonStr.slice(7).trim();
-    }
-  }
-
-  // Markdown fence
-  if (jsonStr.startsWith("```")) {
-    const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (match && match[1]) {
-      jsonStr = match[1].trim();
-    }
-  }
-
-  return jsonStr;
-}
 
 function isStringValue(v: unknown): v is string {
   return typeof v === "string";

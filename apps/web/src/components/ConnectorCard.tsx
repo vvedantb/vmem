@@ -26,6 +26,7 @@ import {
   GitHubIcon,
   LinearIcon,
 } from "./brand-icons";
+import { formatRelativeTime } from "@/lib/formatters";
 
 const iconMap: Record<
   string,
@@ -43,24 +44,6 @@ const iconMap: Record<
 
 interface ConnectorCardProps {
   connector: Doc<"connectors">;
-}
-
-function formatRelativeTime(timestamp: number | undefined): string {
-  if (!timestamp) return "Never";
-
-  const now = Date.now();
-  const diffMs = now - timestamp;
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return new Date(timestamp).toLocaleDateString();
 }
 
 export default function ConnectorCard({ connector }: ConnectorCardProps) {
