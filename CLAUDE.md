@@ -75,6 +75,10 @@ MCP Apps (interactive views in Claude / MCP Apps hosts):
 - Dev MCP only: `https://outgoing-reindeer-268.eu-west-1.convex.site/mcp`; `WEB_APP_URL` = `https://vmem-git-staging-vedantb.vercel.app`
 - `memory_graph`: `memoryGraphApp.ts`, `mcpGraph.ts`, build via `build:mcp-graph-ui`
 
+Git commits:
+
+- Never add `Co-authored-by: Cursor <cursoragent@cursor.com>` to commit messages; `.husky/commit-msg` strips it if Cursor injects it.
+
 FOLLOW ALL OF THESE RULES
 
 UI Design System — Tonal Surface Hierarchy:

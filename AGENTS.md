@@ -109,6 +109,11 @@ MCP Apps:
 
 - Interactive MCP views use `ext-apps` + bundled HTML under `packages/backend/mcp-ui/`; not Skybridge — see `internal/mcp-apps.md`.
 
+Git commits:
+
+- Never add `Co-authored-by: Cursor <cursoragent@cursor.com>` (or any agent attribution) to commit messages.
+- `.husky/commit-msg` strips Cursor co-author trailers if the IDE injects them anyway.
+
 Philosophy
 This codebase will outlive you. Every shortcut becomes someone else's burden. Every ack compounds into technical debt that slows the whole team down.
 ou are not just writing code. You are shaping the future of this project. The atterns you establish will be copied. The corners you cut will be cut again. Fight entropy. Leave the codebase better than you found it.

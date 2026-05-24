@@ -1,5 +1,9 @@
 # Changelog
 
+## Git — strip Cursor commit attribution — 2026-05-24
+
+- **No agent co-author trailers**: `.husky/commit-msg` removes `Co-authored-by: Cursor` lines Cursor injects despite attribution being disabled.
+
 ## MCP memory graph layout — 2026-05-24
 
 - **Clearer MCP graph labels**: Stronger node repulsion, smaller 9px width-truncated labels, visible at fit zoom.
