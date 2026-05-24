@@ -15,15 +15,15 @@ import { type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { getDriver } from "../../../src/neo4j/driver";
-import { generateEmbedding } from "../../lib/openRouter";
-import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
+import {
+  bestEffortEmbedOneWithAuth,
+  resolveBestEffortEmbedAuth,
+  type BestEffortEmbedAuth,
+} from "../../lib/openRouter/bestEffortEmbed";
 
 /** Resolved auth pair carried through a sync — `null` if the user has no
  *  OPENROUTER_API_KEY configured. */
-export interface SyncAuth {
-  apiKey: string;
-  userId: Id<"users">;
-}
+export type SyncAuth = BestEffortEmbedAuth;
 
 /** Output of `setupSync` — everything every connector handler needs upfront. */
 export interface SyncSetup {
@@ -45,11 +45,7 @@ export async function setupSync(
     internal.profiles.getOrCreateDefaultByClerkIdInternal,
     { clerkId },
   );
-  const openRouterAuth = await tryUserAndApiKeyByClerkId(
-    ctx,
-    clerkId,
-    "OPENROUTER_API_KEY",
-  );
+  const openRouterAuth = await resolveBestEffortEmbedAuth(ctx, clerkId);
   return { driver, profileId: defaultProfile._id, openRouterAuth };
 }
 
@@ -69,20 +65,14 @@ export async function embedSyncedDoc(
   title: string,
   content: string,
 ): Promise<number[] | null> {
-  if (!auth) return null;
-  try {
-    return await generateEmbedding({
-      ctx,
-      apiKey: auth.apiKey,
-      userId: auth.userId,
-      profileId,
-      feature: "connector-sync",
-      text: `${title}\n\n${content}`,
-    });
-  } catch (e) {
-    console.warn("connector sync embedding failed", e);
-    return null;
-  }
+  return bestEffortEmbedOneWithAuth({
+    ctx,
+    auth,
+    profileId,
+    feature: "connector-sync",
+    text: `${title}\n\n${content}`,
+    failureLog: "connector sync embedding failed",
+  });
 }
 
 /**

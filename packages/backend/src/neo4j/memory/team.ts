@@ -30,13 +30,14 @@ export async function listMemoriesForTeam(
     profileId: string;
     type?: MemoryType;
     status?: MemoryStatus;
+    source?: string;
     tags?: string[];
+    searchQuery?: string;
     limit: number;
     offset: number;
   },
 ): Promise<{ memories: MemoryWithTags[]; total: number }> {
   return withSession(driver, async (session) => {
-    const whereClauses = ["m.profileId = $profileId"];
     const queryParams: Record<
       string,
       string | number | Integer | string[] | null
@@ -46,6 +47,7 @@ export async function listMemoriesForTeam(
       offset: neo4j.int(params.offset),
     };
 
+    const whereClauses = ["m.profileId = $profileId"];
     if (params.type) {
       whereClauses.push("m.type = $type");
       queryParams.type = params.type;
@@ -53,28 +55,44 @@ export async function listMemoriesForTeam(
     if (params.status) {
       whereClauses.push("m.status = $status");
       queryParams.status = params.status;
+    } else {
+      whereClauses.push("coalesce(m.status, 'active') IN ['active', 'pinned']");
     }
+    if (params.source) {
+      whereClauses.push("m.source = $source");
+      queryParams.source = params.source;
+    }
+
+    const where = whereClauses.join(" AND ");
 
     const hasTagFilter = !!params.tags && params.tags.length > 0;
     if (hasTagFilter && params.tags) {
       queryParams.filterTags = params.tags;
     }
-
-    const where = whereClauses.join(" AND ");
     const filterTagsCount = params.tags?.length ?? 0;
 
-    // Same index-joined tag-filter optimisation as listMemories: match the
-    // tag node directly (hits the Tag name index) and require matched-tag
-    // count to equal filter-tag count, avoiding per-memory TAGGED_WITH
-    // relationship scans.
+    const trimmedQuery = params.searchQuery?.trim() ?? "";
+    const hasSearchQuery = trimmedQuery.length > 0;
+    if (hasSearchQuery) {
+      queryParams.searchQuery = trimmedQuery;
+    }
+
     const tagMatchClause = hasTagFilter
       ? `MATCH (m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags
-         WITH m, count(DISTINCT ft) AS matchedTags
+         WITH m${hasSearchQuery ? ", score" : ""}, count(DISTINCT ft) AS matchedTags
          WHERE matchedTags = ${filterTagsCount}`
       : "";
 
+    const matchPrefix = hasSearchQuery
+      ? `CALL db.index.fulltext.queryNodes('memory_content', $searchQuery) YIELD node AS m, score
+         WHERE ${where}`
+      : `MATCH (m:Memory) WHERE ${where}`;
+    const orderClause = hasSearchQuery
+      ? "WITH m, score ORDER BY score DESC"
+      : "WITH m ORDER BY m.createdAt DESC";
+
     const countResult = await session.run(
-      `MATCH (m:Memory) WHERE ${where}
+      `${matchPrefix}
        ${tagMatchClause}
        RETURN count(m) AS total`,
       queryParams,
@@ -83,9 +101,9 @@ export async function listMemoriesForTeam(
     const total = countRecord ? toNeoInt(countRecord.get("total")) : 0;
 
     const result = await session.run(
-      `MATCH (m:Memory) WHERE ${where}
+      `${matchPrefix}
        ${tagMatchClause}
-       WITH m ORDER BY m.createdAt DESC SKIP $offset LIMIT $limit
+       ${orderClause} SKIP $offset LIMIT $limit
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
        RETURN m, collect(t.name) AS tags`,
       queryParams,
@@ -125,34 +143,14 @@ export async function searchMemoriesForTeam(
     offset: number;
   },
 ): Promise<{ memories: MemoryWithTags[]; total: number }> {
-  if (!params.query) {
-    return listMemoriesForTeam(driver, {
-      profileId: params.profileId,
-      type: params.type,
-      tags: params.tags,
-      limit: params.limit,
-      offset: params.offset,
-    });
-  }
-
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `CALL db.index.fulltext.queryNodes('memory_content', $query)
-       YIELD node AS m, score
-       WHERE m.profileId = $profileId
-       OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-       RETURN m, collect(t.name) AS tags, score
-       ORDER BY score DESC
-       SKIP $offset LIMIT $limit`,
-      {
-        query: params.query,
-        profileId: params.profileId,
-        offset: neo4j.int(params.offset),
-        limit: neo4j.int(params.limit),
-      },
-    );
-    const memories = result.records.map(toMemoryWithTags);
-    return { memories, total: memories.length };
+  return listMemoriesForTeam(driver, {
+    profileId: params.profileId,
+    type: params.type,
+    tags: params.tags,
+    source: params.source,
+    searchQuery: params.query,
+    limit: params.limit,
+    offset: params.offset,
   });
 }
 

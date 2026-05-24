@@ -602,6 +602,19 @@ export async function incrementVisitCount(
 }
 
 /**
+ * Dedup short-circuit: bump visit count and return the full memory row.
+ * Returns null when the node disappeared between match and read (race).
+ */
+export async function finalizeDedupHit(
+  driver: Driver,
+  userId: string,
+  memoryId: string,
+): Promise<MemoryWithTags | null> {
+  await incrementVisitCount(driver, userId, memoryId);
+  return getMemory(driver, userId, memoryId);
+}
+
+/**
  * Find an existing browsing-history/bookmarks memory with the same title
  * from the same origin (protocol+host). Catches the "every page on my app
  * has <title>vmem</title>" problem.
