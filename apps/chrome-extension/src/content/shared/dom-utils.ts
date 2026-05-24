@@ -29,13 +29,16 @@ export function waitForElement(
 export function observeUrlChanges(callback: () => void): void {
   let currentUrl = location.href;
 
-  const observer = new MutationObserver(() => {
+  const check = (): void => {
     if (location.href !== currentUrl) {
       currentUrl = location.href;
       callback();
     }
-  });
+  };
+
+  const observer = new MutationObserver(check);
 
   observer.observe(document.body, { childList: true, subtree: true });
-  window.addEventListener("popstate", callback);
+  window.addEventListener("popstate", check);
+  window.addEventListener("hashchange", check);
 }

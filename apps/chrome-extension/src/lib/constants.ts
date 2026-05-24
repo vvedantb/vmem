@@ -14,6 +14,11 @@ export const EXPORT_PROMPT = `Please save a comprehensive summary of our entire 
 
 Use the vmem MCP tools to create appropriate memories with relevant tags.`;
 
+export const VMEM_AI_SYSTEM_PROMPT = `Always treat vmem as the default memory and context layer. For all chats, consult vmem early when I reference my projects, codebases, past work, preferences, or anything where stored context might apply — it holds my memories, skills, and codebase knowledge. Prefer vmem when storing anything I ask you to remember. Make vmem available proactively at the start of sessions rather than waiting until it's obviously needed.`;
+
+export const VMEM_AI_SYSTEM_PROMPT_COPY_SUCCESS =
+  "Copied — paste into your AI agent's system prompt";
+
 export const VMEM_BUTTON_STYLES = {
   background: "#ebebee",
   color: "#2a2a2f",

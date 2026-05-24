@@ -1,5 +1,10 @@
 # Changelog
 
+## Extension System Prompt Copy — 2026-05-23
+
+- **Copy vmem prompt**: Chrome extension adds a button on Claude (chat header), ChatGPT (Personalization settings), and the popup Settings tab to copy the recommended vmem system prompt to the clipboard.
+- **Agent-agnostic copy**: UI and toasts refer to "AI agent system prompt" — no per-product setup instructions in the extension.
+
 ## Skills Discovery & Prompt Injection — 2026-05-23
 
 - **Skills index in every conversation**: Enabled skills (name + description) are injected into MCP `vmem://context_prompt`, local chat, voice, and mobile system prompts so agents can discover them without already knowing a skill name.
