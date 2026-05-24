@@ -12,6 +12,7 @@ import WikiTree from "@/components/wiki/WikiTree";
 import WikiSearch from "@/components/wiki/WikiSearch";
 import { WikiAddMenu } from "@/components/wiki/WikiAddMenu";
 import { buildTree, findFirstDocumentId } from "@/components/wiki/_utils";
+import { optimisticId } from "@/lib/optimisticId";
 
 export type WikiSidebarNavProps = {
   isIconOnly: boolean;
@@ -37,7 +38,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
           ? 0
           : Math.max(...siblings.map((s) => s.order)) + 1;
       const now = Date.now();
-      const tempId: Id<"wikiNodes"> = crypto.randomUUID();
+      const tempId = optimisticId("wikiNodes");
       const row: Doc<"wikiNodes"> = {
         _id: tempId,
         _creationTime: now,

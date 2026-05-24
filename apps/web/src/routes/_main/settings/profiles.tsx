@@ -43,6 +43,7 @@ import {
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
+import { optimisticId } from "@/lib/optimisticId";
 import PageContainer from "@/components/PageContainer";
 
 export const Route = createFileRoute("/_main/settings/profiles")({
@@ -530,7 +531,7 @@ function ProfilesPage() {
       const list = localStore.getQuery(api.profiles.list, {});
       if (!list || list.length === 0) return;
       const now = Date.now();
-      const tempId: Id<"profiles"> = crypto.randomUUID();
+      const tempId = optimisticId("profiles");
       localStore.setQuery(api.profiles.list, {}, [
         ...list,
         {

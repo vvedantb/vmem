@@ -22,6 +22,7 @@ import {
   AddRepoModalRow,
   type AddRepoModalRepo,
 } from "./_components/AddRepoModalRow";
+import { optimisticId } from "@/lib/optimisticId";
 
 type RepoItem = FunctionReturnType<typeof api.codebases.listRepos>[number];
 
@@ -44,7 +45,7 @@ export function AddRepoModal({
     if (!list || list.length === 0) return;
     const connection = localStore.getQuery(api.github.getConnection, {});
     const now = Date.now();
-    const tempId: Id<"codebases"> = crypto.randomUUID();
+    const tempId = optimisticId("codebases");
     localStore.setQuery(api.codebases.listMy, {}, [
       {
         _id: tempId,

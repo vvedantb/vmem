@@ -15,6 +15,7 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { optimisticId } from "@/lib/optimisticId";
 
 interface CreateTeamDialogProps {
   open: boolean;
@@ -30,8 +31,8 @@ export function CreateTeamDialog({
       const list = localStore.getQuery(api.teams.list, {});
       if (!list || list.length === 0) return;
       const now = Date.now();
-      const teamId: Id<"teams"> = crypto.randomUUID();
-      const profileId: Id<"profiles"> = crypto.randomUUID();
+      const teamId = optimisticId("teams");
+      const profileId = optimisticId("profiles");
       localStore.setQuery(api.teams.list, {}, [
         {
           team: {
