@@ -1,5 +1,12 @@
 # Changelog
 
+## Skills layout polish — 2026-05-24
+
+- **Inline name in header**: Open skills show an editable title in the page header instead of a static “Skills” label and duplicate name in the panel.
+- **Grouped header controls**: Enabled switch and skill menu (copy, edit, delete) sit in one control; main pane is description and instructions only.
+- **Add in sidebar**: Write/upload creation moved to the skills sidebar footer, matching Wiki and Codebases.
+- **Navigation fix**: Switching skills no longer snaps back to the first item while the list loads.
+
 ## Wiki layout polish — 2026-05-24
 
 - **Grouped header controls**: View outline switch and document menu sit in one control; word count lives in the ⋯ dropdown.
