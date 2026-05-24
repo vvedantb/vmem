@@ -345,6 +345,9 @@ function renderGraph(data: GraphPayload) {
   } else {
     bannerEl.classList.remove("visible");
   }
+
+  requestTallViewport();
+  resizeCanvas();
 }
 
 function parseStructuredContent(result: CallToolResult): GraphPayload | null {
@@ -445,6 +448,17 @@ app.onteardown = async () => ({});
 
 app.onerror = console.error;
 
+/** Tall inline viewport — Claude’s default MCP App slot is ~180px; ask host to expand. */
+const PREFERRED_VIEWPORT_HEIGHT_PX = 560;
+
+function requestTallViewport() {
+  const width = Math.max(280, Math.round(window.innerWidth));
+  void app.sendSizeChanged({
+    width,
+    height: PREFERRED_VIEWPORT_HEIGHT_PX,
+  });
+}
+
 const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
 applyTheme(prefersDark.matches ? "dark" : "light");
 prefersDark.addEventListener("change", (e) => {
@@ -455,5 +469,6 @@ prefersDark.addEventListener("change", (e) => {
 app.connect().then(() => {
   const hostCtx = app.getHostContext();
   if (hostCtx) handleHostContext(hostCtx);
+  requestTallViewport();
   resizeCanvas();
 });

@@ -1,5 +1,9 @@
 # Changelog
 
+## MCP memory graph viewport — 2026-05-24
+
+- **Taller MCP App canvas**: Graph widget requests ~560px height via ext-apps `sendSizeChanged` and CSS min-heights (no Skybridge — already on the MCP Apps SDK).
+
 ## MCP memory graph payload limits — 2026-05-24
 
 - **Smaller `memory_graph` tool results**: Dropped duplicate full JSON from model-facing `content` (widget still uses `structuredContent`); default cap lowered to 80 nodes with tighter edge/tag limits so Claude no longer rejects oversized tool results.

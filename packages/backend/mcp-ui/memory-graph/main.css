@@ -8,6 +8,7 @@ html,
 body {
   width: 100%;
   height: 100%;
+  min-height: 560px;
   overflow: hidden;
   font-family:
     system-ui,
@@ -32,6 +33,7 @@ body[data-theme="light"] {
   flex-direction: column;
   width: 100%;
   height: 100%;
+  min-height: 560px;
 }
 
 #toolbar {
@@ -67,7 +69,7 @@ body[data-theme="light"] #toolbar {
 #canvas-wrap {
   flex: 1 1 auto;
   position: relative;
-  min-height: 0;
+  min-height: 480px;
 }
 
 canvas {
