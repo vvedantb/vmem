@@ -67,6 +67,7 @@ Skills:
 - Skill CRUD invalidates `contextPromptCache` (same 60s debounce as memory writes)
 - `skills_list` MCP tool returns index only (no instructions)
 - `skills_create` MCP tool: use when a repeatable problem or automatable workflow was identified and no existing skill covers it (check context prompt / `skills_list` first)
+- `skills_update` MCP tool: patch an existing skill by current name (`skills_get` first); at least one of newName, description, instructions, enabled
 
 FOLLOW ALL OF THESE RULES
 
