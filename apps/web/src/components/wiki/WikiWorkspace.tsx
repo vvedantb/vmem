@@ -5,7 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
-import { cn, Dialog, DialogContent, DialogTitle } from "@vmem/ui";
+import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
 import PageContainer from "@/components/PageContainer";
 import { buildTree, findAncestors, findFirstDocumentId } from "./_utils";
 import type { OutlineHeading } from "./_utils";
@@ -13,7 +13,6 @@ import WikiEditor from "./WikiEditor";
 import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
 import { WikiPageBreadcrumb } from "./WikiPageBreadcrumb";
-import { WikiOutlineHeaderControls } from "./WikiOutlineHeaderControls";
 import { WikiDocActionsMenu } from "./WikiDocActionsMenu";
 
 interface WikiWorkspaceProps {
@@ -22,7 +21,7 @@ interface WikiWorkspaceProps {
 
 /**
  * Wiki editor shell. Document tree and Add live in the root sidebar.
- * Page header: breadcrumb + inline title, outline toggle, word count, actions.
+ * Page header: breadcrumb + inline title; outline toggle and actions grouped on the right.
  */
 export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const navigate = useNavigate();
@@ -48,14 +47,12 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const copyDocumentRef = useRef<(() => Promise<void>) | null>(null);
 
   const tree = nodes ? buildTree(nodes) : [];
+  const hasDocId = docId !== null && docId.length > 0;
+  const isDocLoading = hasDocId && doc === undefined;
   const hasDoc =
-    docId !== null &&
-    docId.length > 0 &&
-    doc !== undefined &&
-    doc !== null &&
-    doc.kind === "document";
+    hasDocId && doc !== null && doc !== undefined && doc.kind === "document";
   const ancestors = doc && nodes ? findAncestors(doc, nodes) : [];
-  const pageTitle = hasDoc ? titleDraft || doc.title : "Wiki";
+  const pageTitle = hasDoc && doc ? titleDraft || doc.title : "Wiki";
 
   const handleJumpToHeading = (pos: number) => {
     setJumpRequest((prev) => ({ pos, n: prev.n + 1 }));
@@ -91,12 +88,12 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
 
   useEffect(() => {
     setHasDoc(hasDoc);
-    if (!hasDoc) {
+    if (!hasDocId) {
       setOutlineVisible(false);
       setWordCount(0);
       setTitleDraft("");
     }
-  }, [hasDoc, setHasDoc, setOutlineVisible, setWordCount]);
+  }, [hasDoc, hasDocId, setHasDoc, setOutlineVisible, setWordCount]);
 
   useEffect(() => {
     if (doc?.kind === "document") {
@@ -104,8 +101,9 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     }
   }, [doc?._id, doc?.title, doc?.kind]);
 
+  // Only when `/wiki` has no doc id — not while a selected doc is loading.
   useEffect(() => {
-    if (hasDoc || !nodes) return;
+    if (!nodes || hasDocId) return;
     const firstId = findFirstDocumentId(tree);
     if (firstId !== null) {
       void navigate({
@@ -114,12 +112,12 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
         replace: true,
       });
     }
-  }, [hasDoc, nodes, tree, navigate]);
+  }, [hasDocId, nodes, tree, navigate]);
 
+  // URL points at a folder (not a document) — open first document instead.
   useEffect(() => {
-    if (!hasDoc || !nodes) return;
-    const current = nodes.find((node) => node._id === docId);
-    if (current?.kind === "document") return;
+    if (!hasDocId || !nodes || doc === undefined) return;
+    if (doc === null || doc.kind === "document") return;
     const firstId = findFirstDocumentId(tree);
     if (firstId !== null && firstId !== docId) {
       void navigate({
@@ -128,14 +126,14 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
         replace: true,
       });
     }
-  }, [hasDoc, docId, nodes, tree, navigate]);
+  }, [hasDocId, docId, doc, nodes, tree, navigate]);
 
   return (
     <PageContainer
       title={pageTitle}
       noScroll
       breadcrumb={
-        hasDoc ? (
+        hasDoc || isDocLoading ? (
           <WikiPageBreadcrumb
             ancestors={ancestors}
             title={titleDraft}
@@ -144,30 +142,22 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           />
         ) : undefined
       }
-      centerSection={
-        hasDoc ? (
-          <WikiOutlineHeaderControls
+      rightSection={
+        hasDoc || isDocLoading ? (
+          <WikiDocActionsMenu
             outlineVisible={outlineVisible}
             onOutlineVisibleChange={setOutlineVisible}
-            hasDoc={hasDoc}
             wordCount={wordCount}
+            onCopy={handleCopy}
+            copyDisabled={!copyReady}
           />
-        ) : undefined
-      }
-      rightSection={
-        hasDoc ? (
-          <WikiDocActionsMenu onCopy={handleCopy} disabled={!copyReady} />
         ) : undefined
       }
     >
       <div className="flex h-full min-h-0 flex-1 flex-col">
-        {hasDoc ? (
+        {hasDoc || isDocLoading ? (
           <div className="flex min-h-0 min-w-0 flex-1 gap-4">
-            <div
-              className={cn(
-                "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl bg-muted/40",
-              )}
-            >
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <WikiEditor
                 docId={docId}
                 titleForCopy={titleDraft}
@@ -181,8 +171,8 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
               />
             </div>
 
-            {outlineVisible && !isMobileViewport ? (
-              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto scrollbar-thin md:block">
+            {outlineVisible && !isMobileViewport && hasDoc ? (
+              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-xl bg-muted/40 p-2 scrollbar-thin md:block">
                 <WikiOutline
                   headings={headings}
                   onJump={handleJumpToHeading}

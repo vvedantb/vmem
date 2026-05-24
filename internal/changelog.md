@@ -1,5 +1,16 @@
 # Changelog
 
+## Wiki layout polish — 2026-05-24
+
+- **Grouped header controls**: View outline switch and document menu sit in one control; word count lives in the ⋯ dropdown.
+- **Surface hierarchy**: Editor is flat; outline panel uses the muted surface.
+- **Navigation fix**: Switching wiki pages no longer snaps back to the first document while the next doc loads.
+
+## Add repository modal — 2026-05-24
+
+- **Richer repo picker**: GitHub header, flat search, repo rows matching sidebar cards (avatar, language dot, description).
+- **Already-added hidden**: Repositories already synced are filtered out of the list.
+
 ## Wiki document header — 2026-05-24
 
 - **Inline title in header**: Open documents show folder breadcrumb + editable page title in the page header instead of a static “Wiki” label and duplicate title in the editor.
