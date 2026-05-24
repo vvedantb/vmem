@@ -64,7 +64,10 @@ export const scheduleContextPromptInvalidation =
 
 type EmbedArgs = Omit<BestEffortEmbedParams, "ctx">;
 
-/** Memory actions call embed helpers as `(ctx, args)` — not a single params bag. */
+/**
+ * Memory actions use `(ctx, args)`; `bestEffortEmbed*` expects `{ ctx, ...args }`.
+ * Do not alias these to `bestEffortEmbedOne` directly — that breaks `ctx.runQuery`.
+ */
 export function tryEmbedOne(
   ctx: ActionCtx,
   args: EmbedArgs & { text: string },

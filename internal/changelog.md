@@ -2,8 +2,9 @@
 
 ## Fix MCP memory_retrieve embed ctx — 2026-05-24
 
-- **Bug**: `tryEmbedOne`/`tryEmbedMany` were aliased to `bestEffortEmbed*` but callers still used `(ctx, args)`; `ctx` was undefined inside embed auth → `runQuery` crash on `memory_retrieve`.
-- **Fix**: Wrapper functions in `memories/shared.ts` pass `{ ctx, ...args }` correctly.
+- **Bug**: `tryEmbedOne`/`tryEmbedMany` were aliased to `bestEffortEmbed*` but callers still used `(ctx, args)`; `ctx` was undefined inside embed auth → `runQuery` crash on `memory_retrieve`, `memory_add`, and chunk embedding.
+- **Fix**: Wrapper functions in `memories/shared.ts` pass `{ ctx, ...args }` correctly; Vitest guards against re-aliasing.
+- **Also**: MCP skill get/update trim names on lookup (matches create).
 
 ## MCP skills_create & skills_update — 2026-05-23
 
