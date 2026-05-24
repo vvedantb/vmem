@@ -69,6 +69,11 @@ Skills:
 - `skills_create` MCP tool: use when a repeatable problem or automatable workflow was identified and no existing skill covers it (check context prompt / `skills_list` first)
 - `skills_update` MCP tool: patch an existing skill by current name (`skills_get` first); at least one of newName, description, instructions, enabled
 
+MCP Apps (interactive views in Claude / MCP Apps hosts):
+
+- Use `@modelcontextprotocol/ext-apps` + bundled HTML in `packages/backend/mcp-ui/` → `convex/mcp/bundled/`; do **not** adopt Skybridge for embedded Convex tools (see `internal/mcp-apps.md`)
+- `memory_graph`: `memoryGraphApp.ts`, `mcpGraph.ts`, build via `build:mcp-graph-ui`
+
 FOLLOW ALL OF THESE RULES
 
 UI Design System — Tonal Surface Hierarchy:

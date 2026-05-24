@@ -42,28 +42,46 @@ interface GraphPayload {
 interface SimNode {
   id: string;
   title: string;
-  type?: string;
+  tags: string[];
   x: number;
   y: number;
   vx: number;
   vy: number;
 }
 
-const TYPE_COLORS_DARK: Record<string, string> = {
-  profile: "#60a5fa",
-  episodic: "#a78bfa",
-  knowledge: "#34d399",
-  default: "#94a3b8",
+/** Canvas palette — mirrors apps/web graph-view-themes DEFAULT dark/light. */
+interface GraphCanvasTheme {
+  background: string;
+  gradientCenter: string | null;
+  edgeTag: string;
+  edgeRelates: string;
+  label: string;
+  glowIntensity: number;
+  nodeFallback: string;
+}
+
+const CANVAS_THEME_DARK: GraphCanvasTheme = {
+  background: "#111111",
+  gradientCenter: null,
+  edgeTag: "rgba(180,180,200,0.18)",
+  edgeRelates: "rgba(255,170,110,0.55)",
+  label: "rgba(255,255,255,0.9)",
+  glowIntensity: 0.15,
+  nodeFallback: "#555566",
 };
 
-const TYPE_COLORS_LIGHT: Record<string, string> = {
-  profile: "#2563eb",
-  episodic: "#7c3aed",
-  knowledge: "#059669",
-  default: "#64748b",
+const CANVAS_THEME_LIGHT: GraphCanvasTheme = {
+  background: "#ffffff",
+  gradientCenter: "rgba(80, 80, 180, 0.03)",
+  edgeTag: "rgba(60,70,90,0.22)",
+  edgeRelates: "rgba(200,90,30,0.65)",
+  label: "rgba(0,0,0,0.88)",
+  glowIntensity: 0.12,
+  nodeFallback: "#999999",
 };
 
 let isDark = true;
+let canvasTheme: GraphCanvasTheme = CANVAS_THEME_DARK;
 let graphNodes: SimNode[] = [];
 let relatesEdges: RelatesEdge[] = [];
 let tagEdges: TagEdge[] = [];
@@ -83,6 +101,10 @@ const loadingEl = document.getElementById("loading");
 const statsEl = document.getElementById("stats");
 const hintEl = document.getElementById("hint");
 const bannerEl = document.getElementById("banner");
+const legendStatsEl = document.getElementById("legend-stats");
+const btnZoomIn = document.getElementById("btn-zoom-in");
+const btnZoomOut = document.getElementById("btn-zoom-out");
+const btnFit = document.getElementById("btn-fit");
 
 if (!(canvas instanceof HTMLCanvasElement)) {
   throw new Error("graph-canvas element missing");
@@ -93,15 +115,43 @@ if (!ctx) {
   throw new Error("2d context unavailable");
 }
 
-function applyTheme(theme: "light" | "dark") {
-  isDark = theme === "dark";
-  document.body.setAttribute("data-theme", theme);
+/** Same hue hash as apps/web graph-colors.ts */
+function tagToHue(tag: string): number {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return ((hash % 360) + 360) % 360;
 }
 
-function nodeColor(type: string | undefined): string {
-  const palette = isDark ? TYPE_COLORS_DARK : TYPE_COLORS_LIGHT;
-  if (type && type in palette) return palette[type] ?? palette.default;
-  return palette.default;
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100;
+  l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * c)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function tagToColor(tag: string, dark: boolean): string {
+  const hue = tagToHue(tag);
+  return dark ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
+}
+
+function nodeColor(tags: string[]): string {
+  if (tags.length > 0) return tagToColor(tags[0], isDark);
+  return canvasTheme.nodeFallback;
+}
+
+function applyTheme(theme: "light" | "dark") {
+  isDark = theme === "dark";
+  canvasTheme = isDark ? CANVAS_THEME_DARK : CANVAS_THEME_LIGHT;
+  document.body.setAttribute("data-theme", theme);
 }
 
 function resizeCanvas() {
@@ -135,7 +185,7 @@ function buildSimulation(data: GraphPayload) {
     return {
       id: n.id,
       title: n.title,
-      type: n.type,
+      tags: n.tags,
       x: Math.cos(angle) * radius * 0.35,
       y: Math.sin(angle) * radius * 0.35,
       vx: 0,
@@ -217,30 +267,60 @@ function simulateStep() {
   }
 }
 
+function paintCanvasBackground(w: number, h: number) {
+  ctx.fillStyle = canvasTheme.background;
+  ctx.fillRect(0, 0, w, h);
+  if (canvasTheme.gradientCenter) {
+    const g = ctx.createRadialGradient(
+      w * 0.5,
+      h * 0.35,
+      0,
+      w * 0.5,
+      h * 0.5,
+      Math.max(w, h) * 0.65,
+    );
+    g.addColorStop(0, canvasTheme.gradientCenter);
+    g.addColorStop(1, "transparent");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
+function drawNodeGlow(n: SimNode, color: string, r: number) {
+  const glowR = r * 2.5;
+  const alpha = Math.round(canvasTheme.glowIntensity * 255)
+    .toString(16)
+    .padStart(2, "0");
+  const grad = ctx.createRadialGradient(n.x, n.y, r * 0.5, n.x, n.y, glowR);
+  grad.addColorStop(0, `${color}${alpha}`);
+  grad.addColorStop(1, `${color}00`);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function draw() {
   const rect = canvas.getBoundingClientRect();
   const w = rect.width;
   const h = rect.height;
-  ctx.clearRect(0, 0, w, h);
   ctx.save();
+  paintCanvasBackground(w, h);
   ctx.translate(w / 2 + panX, h / 2 + panY);
   ctx.scale(zoom, zoom);
 
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 0.8;
 
   for (const edge of tagEdges) {
     const a = graphNodes.find((n) => n.id === edge.source);
     const b = graphNodes.find((n) => n.id === edge.target);
     if (!a || !b) continue;
     ctx.beginPath();
-    ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = isDark
-      ? "rgba(148, 163, 184, 0.35)"
-      : "rgba(100, 116, 139, 0.35)";
+    ctx.setLineDash([]);
+    ctx.strokeStyle = canvasTheme.edgeTag;
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
-    ctx.setLineDash([]);
   }
 
   for (const edge of relatesEdges) {
@@ -248,27 +328,37 @@ function draw() {
     const b = graphNodes.find((n) => n.id === edge.target);
     if (!a || !b) continue;
     ctx.beginPath();
-    ctx.strokeStyle = isDark
-      ? "rgba(52, 211, 153, 0.55)"
-      : "rgba(5, 150, 105, 0.5)";
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = canvasTheme.edgeRelates;
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
+    ctx.lineWidth = 0.8;
+  }
+
+  const showGlow = graphNodes.length <= 120 && zoom >= 0.5;
+  if (showGlow) {
+    for (const n of graphNodes) {
+      drawNodeGlow(n, nodeColor(n.tags), 7);
+    }
   }
 
   for (const n of graphNodes) {
     const r = 7;
+    const color = nodeColor(n.tags);
     ctx.beginPath();
-    ctx.fillStyle = nodeColor(n.type);
+    ctx.fillStyle = color;
     ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
     ctx.fill();
     if (zoom >= 0.85) {
       const label = n.title.length > 28 ? `${n.title.slice(0, 28)}…` : n.title;
-      ctx.font = "11px system-ui, sans-serif";
-      ctx.fillStyle = isDark ? "#cbd5e1" : "#334155";
+      ctx.font =
+        '11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
+      ctx.fillStyle = canvasTheme.label;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.fillText(label, n.x, n.y + r + 3);
+      ctx.fillText(label, n.x, n.y + r + 4);
     }
   }
 
@@ -298,6 +388,18 @@ function fitToView() {
   const cy = (minY + maxY) / 2;
   panX = -cx * zoom;
   panY = -cy * zoom;
+}
+
+function zoomBy(factor: number) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = rect.width / 2;
+  const my = rect.height / 2;
+  const before = screenToWorld(mx, my);
+  zoom = Math.min(4, Math.max(0.15, zoom * factor));
+  const after = screenToWorld(mx, my);
+  panX += (after.x - before.x) * zoom;
+  panY += (after.y - before.y) * zoom;
+  draw();
 }
 
 function runSimulation() {
@@ -331,16 +433,24 @@ function isGraphPayload(value: object): value is GraphPayload {
   );
 }
 
+function formatCount(n: number): string {
+  return n.toLocaleString();
+}
+
 function renderGraph(data: GraphPayload) {
   buildSimulation(data);
   runSimulation();
   startLoop();
 
-  statsEl.textContent = `${data.stats.nodeCount} memories · ${data.stats.relatesToEdgeCount} relates · ${data.stats.tagEdgeCount} tags`;
+  const edgeTotal = data.stats.relatesToEdgeCount + data.stats.tagEdgeCount;
+  statsEl.textContent = `${formatCount(data.stats.nodeCount)} memories · ${formatCount(edgeTotal)} edges`;
+  if (legendStatsEl) {
+    legendStatsEl.textContent = `${formatCount(data.stats.nodeCount)} nodes · ${formatCount(data.stats.relatesToEdgeCount)} relates · ${formatCount(data.stats.tagEdgeCount)} tags`;
+  }
   hintEl.textContent = "Drag to pan · Scroll to zoom";
 
   if (data.truncated) {
-    bannerEl.textContent = `Showing ${data.stats.nodeCount} of ${data.stats.totalNodesBeforeCap} memories (truncated for MCP). Use focus or memoryIds to narrow.`;
+    bannerEl.textContent = `Showing ${formatCount(data.stats.nodeCount)} of ${formatCount(data.stats.totalNodesBeforeCap)} memories. Use focus or memoryIds to narrow.`;
     bannerEl.classList.add("visible");
   } else {
     bannerEl.classList.remove("visible");
@@ -406,13 +516,26 @@ canvas.addEventListener("pointercancel", () => {
   canvas.classList.remove("dragging");
 });
 
+if (btnZoomIn instanceof HTMLButtonElement) {
+  btnZoomIn.addEventListener("click", () => zoomBy(1.2));
+}
+if (btnZoomOut instanceof HTMLButtonElement) {
+  btnZoomOut.addEventListener("click", () => zoomBy(1 / 1.2));
+}
+if (btnFit instanceof HTMLButtonElement) {
+  btnFit.addEventListener("click", () => {
+    fitToView();
+    draw();
+  });
+}
+
 window.addEventListener("resize", resizeCanvas);
 
 const app = new App({ name: "vmem Memory Graph", version: "1.0.0" });
 
 app.ontoolinput = () => {
   loadingEl.classList.remove("hidden");
-  statsEl.textContent = "Loading memory graph…";
+  statsEl.textContent = "Loading…";
 };
 
 app.ontoolresult = (result: CallToolResult) => {
@@ -448,7 +571,6 @@ app.onteardown = async () => ({});
 
 app.onerror = console.error;
 
-/** Tall inline viewport — Claude’s default MCP App slot is ~180px; ask host to expand. */
 const PREFERRED_VIEWPORT_HEIGHT_PX = 560;
 
 function requestTallViewport() {
