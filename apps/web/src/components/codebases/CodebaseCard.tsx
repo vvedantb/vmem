@@ -29,7 +29,18 @@ interface CodebaseCardProps {
 
 export function CodebaseCard({ codebase }: CodebaseCardProps) {
   const syncCodebase = useAction(api.codebases.syncCodebase);
-  const removeCodebase = useMutation(api.codebases.removeCodebase);
+  const removeCodebase = useMutation(
+    api.codebases.removeCodebase,
+  ).withOptimisticUpdate((localStore, args) => {
+    const list = localStore.getQuery(api.codebases.listMy, {});
+    if (list) {
+      localStore.setQuery(
+        api.codebases.listMy,
+        {},
+        list.filter((row) => row._id !== args.id),
+      );
+    }
+  });
 
   const handleSync = async (e: MouseEvent) => {
     e.preventDefault();

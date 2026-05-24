@@ -29,12 +29,74 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     api.notifications.unreadCount,
     isAuthenticated ? {} : "skip",
   );
-  const markAsReadMutation = useMutation(api.notifications.markAsRead);
-  const markAsUnreadMutation = useMutation(api.notifications.markAsUnread);
-  const markAllAsReadMutation = useMutation(api.notifications.markAllAsRead);
+  const markAsReadMutation = useMutation(
+    api.notifications.markAsRead,
+  ).withOptimisticUpdate((localStore, args) => {
+    const list = localStore.getQuery(api.notifications.listMy, {});
+    if (!list) return;
+    const prev = list.find((n) => n._id === args.id);
+    localStore.setQuery(
+      api.notifications.listMy,
+      {},
+      list.map((n) => (n._id === args.id ? { ...n, read: true } : n)),
+    );
+    const count = localStore.getQuery(api.notifications.unreadCount, {});
+    if (count !== undefined && prev && !prev.read) {
+      localStore.setQuery(
+        api.notifications.unreadCount,
+        {},
+        Math.max(0, count - 1),
+      );
+    }
+  });
+  const markAsUnreadMutation = useMutation(
+    api.notifications.markAsUnread,
+  ).withOptimisticUpdate((localStore, args) => {
+    const list = localStore.getQuery(api.notifications.listMy, {});
+    if (!list) return;
+    const prev = list.find((n) => n._id === args.id);
+    localStore.setQuery(
+      api.notifications.listMy,
+      {},
+      list.map((n) => (n._id === args.id ? { ...n, read: false } : n)),
+    );
+    const count = localStore.getQuery(api.notifications.unreadCount, {});
+    if (count !== undefined && prev && prev.read) {
+      localStore.setQuery(api.notifications.unreadCount, {}, count + 1);
+    }
+  });
+  const markAllAsReadMutation = useMutation(
+    api.notifications.markAllAsRead,
+  ).withOptimisticUpdate((localStore) => {
+    const list = localStore.getQuery(api.notifications.listMy, {});
+    if (list) {
+      localStore.setQuery(
+        api.notifications.listMy,
+        {},
+        list.map((n) => ({ ...n, read: true })),
+      );
+    }
+    localStore.setQuery(api.notifications.unreadCount, {}, 0);
+  });
   const deleteNotificationMutation = useMutation(
     api.notifications.deleteNotification,
-  );
+  ).withOptimisticUpdate((localStore, args) => {
+    const list = localStore.getQuery(api.notifications.listMy, {});
+    if (!list) return;
+    const removed = list.find((n) => n._id === args.id);
+    const next = list.filter((n) => n._id !== args.id);
+    localStore.setQuery(api.notifications.listMy, {}, next);
+    if (removed && !removed.read) {
+      const count = localStore.getQuery(api.notifications.unreadCount, {});
+      if (count !== undefined) {
+        localStore.setQuery(
+          api.notifications.unreadCount,
+          {},
+          Math.max(0, count - 1),
+        );
+      }
+    }
+  });
 
   const isLoading =
     notifications === undefined || unreadCountResult === undefined;

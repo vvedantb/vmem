@@ -9,7 +9,19 @@ import type { FunctionReturnType } from "convex/server";
 type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
 
 export function useApiKeyActions() {
-  const revokeApiKey = useMutation(api.apiKeys.revokeMy);
+  const revokeApiKey = useMutation(api.apiKeys.revokeMy).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.apiKeys.listMy, {});
+      if (!list) return;
+      localStore.setQuery(
+        api.apiKeys.listMy,
+        {},
+        list.map((row) =>
+          row.id === args.id ? { ...row, status: "revoked" } : row,
+        ),
+      );
+    },
+  );
   const revealApiKey = useAction(api.apiKeys.revealMy);
 
   const [revokeKeyId, setRevokeKeyId] = useState<ApiKey["id"] | null>(null);

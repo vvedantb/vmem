@@ -382,7 +382,21 @@ function DeleteProfileDialog({
 
 function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   const settings = useQuery(api.userSettings.get);
-  const setDefaultProfile = useMutation(api.userSettings.setDefaultProfile);
+  const setDefaultProfile = useMutation(
+    api.userSettings.setDefaultProfile,
+  ).withOptimisticUpdate((localStore, args) => {
+    const current = localStore.getQuery(api.userSettings.get, {});
+    if (!current) return;
+    const defaults = current.defaultProfiles ?? {};
+    localStore.setQuery(
+      api.userSettings.get,
+      {},
+      {
+        ...current,
+        defaultProfiles: { ...defaults, [args.source]: args.profileId },
+      },
+    );
+  });
 
   const webDefaultId = settings?.defaultProfiles?.web ?? null;
   const extensionDefaultId = settings?.defaultProfiles?.extension ?? null;
@@ -511,8 +525,50 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
 
 function ProfilesPage() {
   const profiles = useQuery(api.profiles.list);
-  const createProfile = useMutation(api.profiles.create);
-  const updateProfile = useMutation(api.profiles.update);
+  const createProfile = useMutation(api.profiles.create).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.profiles.list, {});
+      if (!list || list.length === 0) return;
+      const now = Date.now();
+      const tempId: Id<"profiles"> = crypto.randomUUID();
+      localStore.setQuery(api.profiles.list, {}, [
+        ...list,
+        {
+          _id: tempId,
+          _creationTime: now,
+          userId: list[0].userId,
+          name: args.name,
+          color: args.color,
+          icon: args.icon,
+          isDefault: false,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+    },
+  );
+  const updateProfile = useMutation(api.profiles.update).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.profiles.list, {});
+      if (!list) return;
+      const now = Date.now();
+      localStore.setQuery(
+        api.profiles.list,
+        {},
+        list.map((profile) =>
+          profile._id === args.profileId
+            ? {
+                ...profile,
+                ...(args.name !== undefined ? { name: args.name } : {}),
+                ...(args.color !== undefined ? { color: args.color } : {}),
+                ...(args.icon !== undefined ? { icon: args.icon } : {}),
+                updatedAt: now,
+              }
+            : profile,
+        ),
+      );
+    },
+  );
   const removeProfileWithMemories = useAction(api.profiles.removeWithMemories);
 
   const [createOpen, setCreateOpen] = useState(false);

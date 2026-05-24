@@ -30,17 +30,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const updateSettings = useMutation(
     api.userSettings.update,
   ).withOptimisticUpdate((localStore, args) => {
-    if (args.theme === undefined) return;
     const current = localStore.getQuery(api.userSettings.get, {});
     if (!current) return;
-    localStore.setQuery(
-      api.userSettings.get,
-      {},
-      {
-        ...current,
-        theme: args.theme,
-      },
-    );
+    localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
   });
 
   useEffect(() => {

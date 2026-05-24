@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { motion } from "motion/react";
 import { api } from "@vmem/backend";
+import type { Doc, Id } from "@vmem/backend";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconBook } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
@@ -26,7 +27,33 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       : null;
 
   const nodes = useQuery(api.wiki.listTree);
-  const createNode = useMutation(api.wiki.createNode);
+  const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
+    (localStore, args) => {
+      const tree = localStore.getQuery(api.wiki.listTree, {});
+      if (!tree || tree.length === 0) return;
+      const siblings = tree.filter((n) => n.parentId === args.parentId);
+      const nextOrder =
+        siblings.length === 0
+          ? 0
+          : Math.max(...siblings.map((s) => s.order)) + 1;
+      const now = Date.now();
+      const tempId: Id<"wikiNodes"> = crypto.randomUUID();
+      const row: Doc<"wikiNodes"> = {
+        _id: tempId,
+        _creationTime: now,
+        userId: tree[0].userId,
+        parentId: args.parentId,
+        kind: args.kind,
+        title: args.title,
+        content: args.kind === "document" ? "" : undefined,
+        contentText: args.kind === "document" ? "" : undefined,
+        order: nextOrder,
+        createdAt: now,
+        updatedAt: now,
+      };
+      localStore.setQuery(api.wiki.listTree, {}, [...tree, row]);
+    },
+  );
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
 

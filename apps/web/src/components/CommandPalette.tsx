@@ -51,7 +51,21 @@ export function CommandPalette({ onToggleSidebar }: Props) {
   };
 
   const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
-  const setDefaultProfile = useMutation(api.userSettings.setDefaultProfile);
+  const setDefaultProfile = useMutation(
+    api.userSettings.setDefaultProfile,
+  ).withOptimisticUpdate((localStore, args) => {
+    const current = localStore.getQuery(api.userSettings.get, {});
+    if (!current) return;
+    const defaults = current.defaultProfiles ?? {};
+    localStore.setQuery(
+      api.userSettings.get,
+      {},
+      {
+        ...current,
+        defaultProfiles: { ...defaults, [args.source]: args.profileId },
+      },
+    );
+  });
 
   const skills = useQuery(api.skills.listMy, isAuthenticated ? {} : "skip");
 
