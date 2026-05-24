@@ -3,7 +3,7 @@
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { listMemories } from "../src/neo4j/memoryService";
 import { getDriver } from "../src/neo4j/driver";
 import { buildSkillsIndexAddition } from "../src/memoryRagPrompt";
@@ -188,7 +188,7 @@ export const regenerateContextPromptInternal = internalAction({
       { clerkId: args.clerkId },
     );
     const skillsIndex = buildSkillsIndexAddition(
-      skillRows.map((skill) => ({
+      skillRows.map((skill: Doc<"skills">) => ({
         name: skill.name,
         description: skill.description,
       })),

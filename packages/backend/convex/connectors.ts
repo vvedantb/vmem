@@ -241,23 +241,39 @@ export const listForDailyConnectorSyncInternal = internalQuery({
   },
 });
 
+const googleConnectorRowValidator = v.object({
+  _id: v.id("connectors"),
+  provider: v.union(v.literal("google_drive"), v.literal("gmail")),
+  connectionStatus: v.union(v.literal("connected"), v.literal("disconnected")),
+});
+
 export const listGoogleConnectorsForUserInternal = internalQuery({
   args: { userId: v.id("users") },
+  returns: v.array(googleConnectorRowValidator),
   handler: async (ctx, args) => {
     const rows = await ctx.db
       .query("connectors")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
 
-    return rows
-      .filter(
-        (row) => row.provider === "google_drive" || row.provider === "gmail",
-      )
-      .map((row) => ({
+    const googleRows: Array<{
+      _id: Id<"connectors">;
+      provider: "google_drive" | "gmail";
+      connectionStatus: "connected" | "disconnected";
+    }> = [];
+
+    for (const row of rows) {
+      if (row.provider !== "google_drive" && row.provider !== "gmail") {
+        continue;
+      }
+      googleRows.push({
         _id: row._id,
         provider: row.provider,
         connectionStatus: row.connectionStatus,
-      }));
+      });
+    }
+
+    return googleRows;
   },
 });
 

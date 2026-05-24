@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
 
@@ -153,7 +154,7 @@ export const getGraphData = authAction({
           userId: ctx.userId,
         });
 
-    const wikiNodes: GraphNodeEntry[] = wikiRows.map((w) => ({
+    const wikiNodes: GraphNodeEntry[] = wikiRows.map((w: Doc<"wikiNodes">) => ({
       id: `${WIKI_PREFIX}${w._id}`,
       title: w.title,
       content: w.kind === "document" ? (w.contentText ?? "") : "",
@@ -183,8 +184,8 @@ export const getGraphData = authAction({
         });
 
     const skillNodes: GraphNodeEntry[] = skillRows
-      .filter((s) => s.enabled !== false)
-      .map((s) => ({
+      .filter((s: Doc<"skills">) => s.enabled !== false)
+      .map((s: Doc<"skills">) => ({
         id: `${SKILL_PREFIX}${s._id}`,
         title: s.name,
         content: s.description,

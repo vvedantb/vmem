@@ -22,9 +22,10 @@ function formatSyncedAt(iso: string): string {
 }
 
 export default function MemoryProvenance({ memory }: MemoryProvenanceProps) {
-  const hasUrl = memory.sourceUrl !== null && memory.sourceUrl.length > 0;
-  const hasSyncedAt =
-    memory.sourceSyncedAt !== null && memory.sourceSyncedAt.length > 0;
+  const sourceUrl = memory.sourceUrl;
+  const sourceSyncedAt = memory.sourceSyncedAt;
+  const hasUrl = sourceUrl !== null && sourceUrl.length > 0;
+  const hasSyncedAt = sourceSyncedAt !== null && sourceSyncedAt.length > 0;
 
   if (!hasUrl && !hasSyncedAt) {
     return null;
@@ -41,14 +42,14 @@ export default function MemoryProvenance({ memory }: MemoryProvenanceProps) {
       >
         {sourceLabel}
       </Badge>
-      {hasSyncedAt ? (
+      {sourceSyncedAt !== null && sourceSyncedAt.length > 0 ? (
         <p className="text-sm text-muted-foreground">
-          Last synced {formatSyncedAt(memory.sourceSyncedAt)}
+          Last synced {formatSyncedAt(sourceSyncedAt)}
         </p>
       ) : null}
-      {hasUrl ? (
+      {sourceUrl !== null && sourceUrl.length > 0 ? (
         <a
-          href={memory.sourceUrl}
+          href={sourceUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
