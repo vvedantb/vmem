@@ -94,5 +94,4 @@ If the connector shows **Unable to reach vmem** but Cursor still works:
 | 401 on MCP requests | Re-authenticate — JWT may have expired |
 | Empty context prompt | First read returns a placeholder; wait for background regeneration |
 | Wrong profile | Use `list_profiles` then pass `profileId` to memory tools |
-| Graph tool missing | Deploy latest backend; run `pnpm --filter @vmem/backend build:mcp-assets` before deploy |
-| Generic globe icon in Claude | Reconnect after deploy; we send inline `data:` icons + `WEB_APP_URL` favicon in `initialize` |
+| Graph tool missing | Deploy latest backend; run `pnpm --filter @vmem/backend build:mcp-graph-ui` before deploy |

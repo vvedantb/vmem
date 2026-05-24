@@ -1,8 +1,7 @@
 import { httpAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
-import { getMcpResourceDocumentationUrl, getWebAppUrl } from "./branding";
-import { mcpFaviconResponse } from "./favicon";
+import { getMcpResourceDocumentationUrl, getWebAppUrl } from "./webAppUrl";
 import { mcpSseKeepaliveResponse } from "./mcpSse";
 import { z } from "zod";
 
@@ -34,10 +33,6 @@ export const protectedResourceMetadata = httpAction(async (_ctx, request) => {
     resource_documentation: getMcpResourceDocumentationUrl(),
   });
 });
-
-export const faviconPng = httpAction(async () => mcpFaviconResponse());
-
-export const faviconIco = httpAction(async () => mcpFaviconResponse());
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OAuth Client Registration
@@ -341,7 +336,6 @@ export const mcpHandler = httpAction(async (ctx, request) => {
     {
       clerkUserId: credentials.clerkUserId,
       body: JSON.stringify(body),
-      siteOrigin: baseUrl,
     },
   );
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## MCP connector branding removed — 2026-05-24
+
+- **Dropped icon/favicon work**: Removed SEP-973 `serverInfo.icons`, bundled favicon, `/favicon.*` routes, and branding test — Claude custom connectors ignore icons anyway ([anthropics/claude-ai-mcp#152](https://github.com/anthropics/claude-ai-mcp/issues/152)). OAuth `WEB_APP_URL` helpers moved to `mcp/webAppUrl.ts`.
+
+## MCP connector icons — 2026-05-24
+
+- **Dev-only MCP**: Documented dev URLs in `internal/mcp-apps.md`; branding test refuses prod.
+- **Icons without SSO favicon**: Dropped `WEB_APP_URL/favicon.png` from `serverInfo.icons` (staging Vercel returns 401); keep inline `data:` + `*.convex.site/favicon.png`. Added `scripts/test-mcp-branding.mjs`.
+
 ## MCP memory graph UI — 2026-05-24
 
 - **Web-aligned MCP App chrome**: oklch tokens, graph canvas palette (tag hue nodes, amber relates-to / muted tag edges, glow), toolbar + legend + zoom/fit controls matching the memories graph view.

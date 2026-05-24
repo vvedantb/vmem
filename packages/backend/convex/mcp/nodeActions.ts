@@ -9,7 +9,11 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { registerTools } from "./tools";
 import { registerResources } from "./resources";
 import { registerMemoryGraphApp } from "./memoryGraphApp";
-import { buildMcpServerInfo } from "./branding";
+
+const MCP_SERVER_INFO = {
+  name: "vmem-mcp",
+  version: "1.0.0",
+} as const;
 
 // JWT TTLs match the legacy Railway server so existing Claude connectors
 // keep working without re-auth at cutover.
@@ -162,17 +166,16 @@ export const handleMcpRequest = internalAction({
   args: {
     clerkUserId: v.string(),
     body: v.string(),
-    siteOrigin: v.optional(v.string()),
   },
   returns: v.object({
     status: v.number(),
     body: v.string(),
   }),
-  handler: async (ctx, { clerkUserId, body, siteOrigin }) => {
+  handler: async (ctx, { clerkUserId, body }) => {
     try {
       const parsedBody = JSON.parse(body);
 
-      const server = new McpServer(buildMcpServerInfo(siteOrigin));
+      const server = new McpServer(MCP_SERVER_INFO);
 
       registerTools(server, clerkUserId, ctx);
       registerMemoryGraphApp(server, clerkUserId, ctx);
