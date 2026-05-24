@@ -13,6 +13,7 @@ import Cypher from "@neo4j/cypher-builder";
 import crypto from "node:crypto";
 import neo4j, { type Driver, type Integer } from "neo4j-driver";
 import { buildAndRun } from "../cypherHelpers";
+import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { toMemoryWithTags, toNeoInt, toSnapshot } from "./mappers";
 import { logEvent, withSession } from "./shared";
 import {
@@ -311,10 +312,12 @@ export async function listMemories(
     }
     const filterTagsCount = params.tags?.length ?? 0;
 
-    const trimmedQuery = params.searchQuery?.trim() ?? "";
-    const hasSearchQuery = trimmedQuery.length > 0;
+    const luceneSearchQuery = toMemoryContentFulltextQuery(
+      params.searchQuery ?? "",
+    );
+    const hasSearchQuery = luceneSearchQuery !== null;
     if (hasSearchQuery) {
-      queryParams.searchQuery = trimmedQuery;
+      queryParams.searchQuery = luceneSearchQuery;
     }
 
     // Index-joined tag filter: match the Tag node directly (hits the
