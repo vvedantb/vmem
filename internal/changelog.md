@@ -1,5 +1,11 @@
 # Changelog
 
+## MCP memory graph app — 2026-05-24
+
+- **`memory_graph` MCP App tool**: Interactive pan/zoom canvas of memory nodes and RELATES_TO / shared-tag links, rendered in Claude Desktop and other MCP Apps hosts via ext-apps (`ui://vmem/memory-graph`).
+- **Memories-only v1**: Uses Neo4j graph data (profile-scoped); optional `focus`, `memoryIds`, and `limit` for subgraphs after search/retrieve.
+- **Convex-only deploy**: Bundled HTML served from `resources/read` on the existing `/mcp` endpoint; rebuild with `pnpm --filter @vmem/backend build:mcp-graph-ui` before deploy.
+
 ## Convex optimistic updates — 2026-05-24
 
 - **Responsive UI mutations**: Convex `useMutation` calls across web (and extension settings) patch live query caches immediately so toggles, lists, and forms update without waiting on the server round-trip.
