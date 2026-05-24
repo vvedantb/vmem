@@ -1,5 +1,11 @@
 # Changelog
 
+## Skills Discovery & Prompt Injection — 2026-05-23
+
+- **Skills index in every conversation**: Enabled skills (name + description) are injected into MCP `vmem://context_prompt`, local chat, voice, and mobile system prompts so agents can discover them without already knowing a skill name.
+- **Lazy full instructions**: MCP clients load markdown via `skills_get`; local chat auto-loads instructions when the user message mentions a skill by name.
+- **Cache invalidation on skill changes**: Creating, updating, or deleting a skill marks the context prompt stale (same 60s debounce as memory writes).
+
 ## Codebase Sync Reliability — 2026-05-24
 
 - **Large-repo sync (eva)**: GitHub tarball download replaces hundreds of per-file API calls; fetch + parse + write run in one action so nested timeouts and lost errors no longer break big repos.

@@ -18,8 +18,7 @@ import type { UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
 import {
   VMEM_VOICE_CORE,
-  buildMemoryRagAddition,
-  composeSystemPrompt,
+  buildLocalChatSystemPrompt,
 } from "@vmem/backend/memoryRagPrompt";
 import type { ChatMemoryRef } from "@/hooks/useLocalChat";
 import { Persona, type PersonaState } from "@vmem/ui/ai";
@@ -70,6 +69,7 @@ export default function VoiceClient() {
   const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
   const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
+  const mySkills = useQuery(api.skills.listMy) ?? [];
 
   useEffect(() => {
     getOrCreateThread()
@@ -130,17 +130,35 @@ export default function VoiceClient() {
             reason: m.trace.reason,
           },
         }));
-        const addition = buildMemoryRagAddition(
-          retrieved.memories.map((m) => ({
+        systemPrompt = buildLocalChatSystemPrompt({
+          core: VMEM_VOICE_CORE,
+          memoryCandidates: retrieved.memories.map((m) => ({
             id: m.id,
             title: m.title,
             content: m.content,
             trace: { reason: m.trace.reason },
           })),
-        );
-        systemPrompt = composeSystemPrompt(VMEM_VOICE_CORE, addition);
+          skills: mySkills.map((skill) => ({
+            name: skill.name,
+            description: skill.description,
+            instructions: skill.instructions,
+            enabled: skill.enabled,
+          })),
+          userMessage: transcript,
+        });
       } catch (retrieveError) {
         console.error("retrieveMemories failed:", retrieveError);
+        systemPrompt = buildLocalChatSystemPrompt({
+          core: VMEM_VOICE_CORE,
+          memoryCandidates: [],
+          skills: mySkills.map((skill) => ({
+            name: skill.name,
+            description: skill.description,
+            instructions: skill.instructions,
+            enabled: skill.enabled,
+          })),
+          userMessage: transcript,
+        });
       }
 
       lastVoiceMemoryRefsRef.current = memoryRefs;
@@ -161,7 +179,7 @@ export default function VoiceClient() {
 
       return text;
     },
-    [model, messages, retrieveMemories],
+    [model, messages, retrieveMemories, mySkills],
   );
 
   /* -- Persist callback --------------------------------------------- */
