@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@built-in-ai/web-llm": "^1.0.1",
@@ -86,6 +88,7 @@
     "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "catalog:tailwind3",
     "typescript": "catalog:",
-    "vite": "^8.0.8"
+    "vite": "^8.0.8",
+    "vitest": "^3.2.4"
   }
 }

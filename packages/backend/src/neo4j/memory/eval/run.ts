@@ -1,19 +1,8 @@
 import { embeddingMode, generateCliEmbedding } from "./cliEmbeddings";
 import { closeDriver, getDriver } from "../../driver";
 import { retrieveMemories } from "../retrieve";
+import { recallAtFive, reciprocalRank } from "./metrics";
 import { RETRIEVAL_EVAL_QUERIES, RETRIEVAL_EVAL_USER_ID } from "./queries";
-
-function reciprocalRank(titles: string[], expectedTitles: string[]): number {
-  const expected = new Set(expectedTitles);
-  const firstRelevantIndex = titles.findIndex((title) => expected.has(title));
-  return firstRelevantIndex === -1 ? 0 : 1 / (firstRelevantIndex + 1);
-}
-
-function recallAtFive(titles: string[], expectedTitles: string[]): number {
-  const topFive = new Set(titles.slice(0, 5));
-  const hits = expectedTitles.filter((title) => topFive.has(title)).length;
-  return hits / expectedTitles.length;
-}
 
 function formatNumber(value: number): string {
   return value.toFixed(4);
