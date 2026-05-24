@@ -1,5 +1,9 @@
 # Changelog
 
+## Fix memory fulltext Lucene parse errors — 2026-05-24
+
+- **Slash-safe retrieval**: `memory_retrieve` / `memory_search` escape Lucene special characters (e.g. `/debrief` commands) before `db.index.fulltext.queryNodes`; fulltext leg degrades gracefully on parse failure instead of failing the whole MCP call.
+
 ## MCP instruction store and related memories — 2026-05-24
 
 - **`memory_add_instruction`**: MCP parity with HTTP v1 — pass natural language; server extracts facts via OpenRouter and stores one memory per fact.
