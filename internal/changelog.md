@@ -2,6 +2,9 @@
 
 ## Chrome extension auto-sync reliability — 2026-05-23
 
+- **Restart-proof syncHost auth**: Offscreen Clerk refresh uses `background: true` so it reads `__clerk_db_jwt` / `__client` from the vmem web app via `chrome.cookies` after browser restart (no popup required when the host session is still valid).
+- **Sync-host cookie listener**: Background re-warms auth and catch-up sync when the user signs in on the web app.
+- **Manifest host permissions**: Explicit sync-host and Clerk Frontend API entries for cookie bridge validation.
 - **Lightweight service worker**: Removed Clerk from the background bundle (~3.7MB → ~70KB) and dropped dynamic `import()` so the worker starts reliably instead of staying inactive.
 - **Offscreen auth**: Token refresh runs in an offscreen document with Clerk; background no longer clears a valid popup session when offscreen has no cookies.
 - **Sync cursors & concurrency**: History/bookmark `last*Sync` advances after every completed run (including zero imports); catch-up and alarms debounce overlapping runs.

@@ -16,9 +16,11 @@ import {
 } from "./sync-scheduler";
 import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
 import { runBackgroundBootstrap } from "./bootstrap";
+import { registerSyncHostCookieListener } from "./sync-host-cookie-listener";
 
 registerAlarmListener();
 registerBookmarkListener();
+registerSyncHostCookieListener();
 registerContextMenuClickListener();
 registerCommandListener();
 registerMessageHandler();

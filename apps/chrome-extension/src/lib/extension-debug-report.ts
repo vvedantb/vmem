@@ -1,3 +1,5 @@
+import { CLERK_PUBLISHABLE_KEY, CLERK_SYNC_HOST } from "@/lib/constants";
+
 type DebugReport = {
   generatedAt: string;
   extensionVersion: string;
@@ -7,11 +9,23 @@ type DebugReport = {
   swLastMessageError: string | null;
   pingOk: boolean;
   pingError: string | null;
+  syncHostCookiePresent: boolean;
   lastHistorySync: number;
   lastBookmarkSync: number;
   autoSyncEnabled: boolean;
   swBuildStamp: string | null;
 };
+
+async function hasSyncHostSessionCookie(): Promise<boolean> {
+  const cookieName = CLERK_PUBLISHABLE_KEY.startsWith("pk_live_")
+    ? "__client"
+    : "__clerk_db_jwt";
+  const cookie = await chrome.cookies.get({
+    url: CLERK_SYNC_HOST,
+    name: cookieName,
+  });
+  return Boolean(cookie?.value);
+}
 
 export async function buildExtensionDebugReport(): Promise<DebugReport> {
   const manifest = chrome.runtime.getManifest();
@@ -26,6 +40,8 @@ export async function buildExtensionDebugReport(): Promise<DebugReport> {
     "vmemSwBuildStamp",
   ]);
 
+  const syncHostCookiePresent = await hasSyncHostSessionCookie();
+
   const pingResult = await new Promise<{
     ok: boolean;
     error: string | null;
@@ -33,7 +49,11 @@ export async function buildExtensionDebugReport(): Promise<DebugReport> {
     chrome.runtime.sendMessage({ type: "DEBUG_PING" }, (response) => {
       const runtimeError = chrome.runtime.lastError;
       if (runtimeError) {
-        resolve({ ok: false, error: runtimeError.message });
+        const message = runtimeError.message;
+        resolve({
+          ok: false,
+          error: message === undefined ? "runtime error" : message,
+        });
         return;
       }
       const responseType =
@@ -67,6 +87,7 @@ export async function buildExtensionDebugReport(): Promise<DebugReport> {
         : null,
     pingOk: pingResult.ok,
     pingError: pingResult.error,
+    syncHostCookiePresent,
     lastHistorySync:
       typeof stored.lastHistorySync === "number" ? stored.lastHistorySync : 0,
     lastBookmarkSync:
