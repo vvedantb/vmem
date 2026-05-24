@@ -15,6 +15,7 @@ import type { Memory } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 import TagInputWithSuggestions from "./TagInputWithSuggestions";
+import MemoryProvenance from "./MemoryProvenance";
 
 interface DetailsTabProps {
   memory: Memory;
@@ -143,6 +144,8 @@ export default function DetailsTab({
           </p>
         )}
       </div>
+
+      <MemoryProvenance memory={memory} />
 
       {/* Tags */}
       <div>

@@ -10,6 +10,8 @@ export const MOCK_MEMORIES: Memory[] = [
     source: "web",
     tags: ["react", "frontend", "performance"],
     createdAt: "2026-02-18T10:12:00.000Z",
+    sourceUrl: null,
+    sourceSyncedAt: null,
   },
   {
     id: "mem-02",
@@ -20,6 +22,8 @@ export const MOCK_MEMORIES: Memory[] = [
     source: "web",
     tags: ["docker", "devops"],
     createdAt: "2026-02-17T16:40:00.000Z",
+    sourceUrl: null,
+    sourceSyncedAt: null,
   },
   {
     id: "mem-03",
@@ -30,6 +34,8 @@ export const MOCK_MEMORIES: Memory[] = [
     source: "browser-extension",
     tags: ["typescript", "backend", "quality"],
     createdAt: "2026-02-16T09:05:00.000Z",
+    sourceUrl: null,
+    sourceSyncedAt: null,
   },
   {
     id: "mem-04",
@@ -40,6 +46,8 @@ export const MOCK_MEMORIES: Memory[] = [
     source: "web",
     tags: ["database", "postgres", "performance"],
     createdAt: "2026-02-14T14:20:00.000Z",
+    sourceUrl: null,
+    sourceSyncedAt: null,
   },
   {
     id: "mem-05",
@@ -50,6 +58,8 @@ export const MOCK_MEMORIES: Memory[] = [
     source: "web",
     tags: ["product", "research", "ux"],
     createdAt: "2026-02-12T11:30:00.000Z",
+    sourceUrl: null,
+    sourceSyncedAt: null,
   },
   {
     id: "mem-06",
@@ -60,6 +70,8 @@ export const MOCK_MEMORIES: Memory[] = [
     source: "notion",
     tags: ["api", "backend", "reliability"],
     createdAt: "2026-02-10T19:50:00.000Z",
+    sourceUrl: null,
+    sourceSyncedAt: null,
   },
   {
     id: "mem-07",
@@ -70,6 +82,8 @@ export const MOCK_MEMORIES: Memory[] = [
     source: "google_drive",
     tags: ["nextjs", "frontend", "architecture"],
     createdAt: "2026-02-08T08:15:00.000Z",
+    sourceUrl: null,
+    sourceSyncedAt: null,
   },
   {
     id: "mem-08",
@@ -80,5 +94,7 @@ export const MOCK_MEMORIES: Memory[] = [
     source: "web",
     tags: ["ops", "team", "process"],
     createdAt: "2026-02-05T22:10:00.000Z",
+    sourceUrl: null,
+    sourceSyncedAt: null,
   },
 ];
