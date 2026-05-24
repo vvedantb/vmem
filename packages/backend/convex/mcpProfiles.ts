@@ -88,9 +88,8 @@ export const mcpWhoami = internalAction({
       { clerkId },
     );
 
-    // Get active profile (or create default)
     let activeProfile: Doc<"profiles"> | null = await ctx.runQuery(
-      internal.profiles.getActiveByClerkIdInternal,
+      internal.profiles.getActiveProfileForMcpInternal,
       { clerkId },
     );
 
@@ -117,6 +116,47 @@ export const mcpWhoami = internalAction({
         name: p.name,
         isDefault: p.isDefault,
       })),
+    };
+  },
+});
+
+const activeProfileResult = v.object({
+  id: v.string(),
+  name: v.string(),
+  color: v.string(),
+  icon: v.string(),
+});
+
+export const mcpSetActiveProfile = internalAction({
+  args: { clerkId: v.string(), profileId: v.string() },
+  returns: activeProfileResult,
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    id: string;
+    name: string;
+    color: string;
+    icon: string;
+  }> => {
+    await ctx.runMutation(
+      internal.userSettings.setMcpDefaultProfileByClerkIdInternal,
+      { clerkId: args.clerkId, profileId: args.profileId },
+    );
+
+    const activeProfile: Doc<"profiles"> | null = await ctx.runQuery(
+      internal.profiles.getActiveProfileForMcpInternal,
+      { clerkId: args.clerkId },
+    );
+    if (!activeProfile) {
+      throw new Error("Failed to resolve active profile");
+    }
+
+    return {
+      id: activeProfile._id,
+      name: activeProfile.name,
+      color: activeProfile.color,
+      icon: activeProfile.icon,
     };
   },
 });

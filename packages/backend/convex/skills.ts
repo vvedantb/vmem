@@ -294,6 +294,38 @@ export const updateByClerkIdInternal = internalMutation({
 });
 
 /**
+ * Delete a skill by name for a given Clerk user id (MCP after JWT verification).
+ */
+export const deleteByClerkIdInternal = internalMutation({
+  args: { clerkId: v.string(), name: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const lookupName = args.name.trim();
+    const skill = await ctx.db
+      .query("skills")
+      .withIndex("by_user_name", (q) =>
+        q.eq("userId", user._id).eq("name", lookupName),
+      )
+      .first();
+    if (!skill) {
+      throw new Error("Skill not found");
+    }
+
+    await ctx.db.delete(skill._id);
+    await scheduleContextPromptInvalidationForUser(ctx, user._id);
+    return null;
+  },
+});
+
+/**
  * Fetch a single skill by name for a given Clerk user id.
  */
 export const getByNameInternal = internalQuery({
