@@ -61,6 +61,7 @@ const schema = defineSchema({
       v.literal("error"),
     ),
     lastSyncAt: v.optional(v.number()),
+    syncStartedAt: v.optional(v.number()),
     syncProgress: v.number(),
     itemsSynced: v.number(),
     errorMessage: v.optional(v.string()),

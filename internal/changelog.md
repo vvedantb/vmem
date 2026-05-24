@@ -1,5 +1,11 @@
 # Changelog
 
+## Daily connector sync — 2026-05-23
+
+- **04:00 UTC cron**: Connected Drive, Gmail, Notion, OneDrive, and Linear connectors run a full ingest via the Convex workflow component (one action per connector, same pattern as codebase daily sync).
+- **Linear full history**: Scheduled runs pass `fullHistory: true` so cron is not limited to the 30-day manual default.
+- **Stale sync guard**: `syncStartedAt` on connectors skips overlapping runs unless a sync has been stuck for 20+ minutes.
+
 ## Gmail connector — 2026-05-23
 
 - **Gmail ingest**: OAuth + manual sync pulls up to 500 inbox messages into memories with `sourceType: gmail` and links back to Gmail.

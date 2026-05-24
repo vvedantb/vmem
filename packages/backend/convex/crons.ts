@@ -11,4 +11,12 @@ crons.cron(
   {},
 );
 
+// 04:00 UTC daily — full connector ingest for every connected provider.
+crons.cron(
+  "daily connector sync",
+  "0 4 * * *",
+  internal.connectorSyncWorkflow.kickoffDailyConnectorSync,
+  {},
+);
+
 export default crons;

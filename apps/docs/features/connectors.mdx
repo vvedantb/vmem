@@ -38,7 +38,7 @@ Also required: `CONVEX_SITE_URL` for OAuth callback redirects.
 1. User initiates OAuth from the connectors settings page
 2. Convex handles the OAuth flow via `connectorOAuth.ts`
 3. Tokens are encrypted at rest (AES-GCM, same as API keys)
-4. Sync jobs pull data from the connected service
+4. Sync jobs pull data from the connected service (manual sync or daily at 04:00 UTC)
 5. Imported content can become memories in the graph
 
 ## MCP Playground

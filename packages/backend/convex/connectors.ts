@@ -1,7 +1,9 @@
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes } from "./auditLog";
+import { STALE_SYNCING_MS } from "./codebaseSyncConstants";
 
 type ConnectorProvider =
   | "google_drive"
@@ -188,6 +190,7 @@ export const sync = authMutation({
     await ctx.db.patch(args.id, {
       syncStatus: "syncing",
       syncProgress: 0,
+      syncStartedAt: Date.now(),
       errorMessage: undefined,
     });
   },
@@ -199,6 +202,42 @@ export const getByIdInternal = internalQuery({
   args: { id: v.id("connectors") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
+  },
+});
+
+const DAILY_SYNC_PROVIDERS = new Set<ConnectorProvider>([
+  "google_drive",
+  "gmail",
+  "notion",
+  "onedrive",
+  "linear",
+]);
+
+/**
+ * Connected connectors eligible for the global 04:00 UTC daily workflow.
+ * Skips in-progress syncs; always runs a full ingest (no lastSyncAt cutoff).
+ */
+export const listForDailyConnectorSyncInternal = internalQuery({
+  args: {},
+  returns: v.array(v.object({ connectorId: v.id("connectors") })),
+  handler: async (ctx) => {
+    const all = await ctx.db.query("connectors").collect();
+    const out: Array<{ connectorId: Id<"connectors"> }> = [];
+
+    for (const row of all) {
+      if (row.connectionStatus !== "connected") continue;
+      if (!row.provider || !DAILY_SYNC_PROVIDERS.has(row.provider)) continue;
+
+      const syncingFresh =
+        row.syncStatus === "syncing" &&
+        row.syncStartedAt !== undefined &&
+        Date.now() - row.syncStartedAt < STALE_SYNCING_MS;
+      if (row.syncStatus === "syncing" && syncingFresh) continue;
+
+      out.push({ connectorId: row._id });
+    }
+
+    return out;
   },
 });
 
@@ -254,11 +293,11 @@ export const updateSyncProgressInternal = internalMutation({
       v.union(v.literal("idle"), v.literal("syncing"), v.literal("error")),
     ),
     lastSyncAt: v.optional(v.number()),
+    syncStartedAt: v.optional(v.number()),
     errorMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    // Filter out undefined values
     const filteredUpdates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
