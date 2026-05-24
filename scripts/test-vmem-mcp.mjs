@@ -418,7 +418,7 @@ function writeMarkdownReport(allRounds, meta) {
   lines.push("## Tool inventory (21 tools)");
   lines.push("");
   lines.push(
-    "`ping`, `whoami`, `list_profiles`, `memory_search`, `memory_retrieve`, `memory_add`, `memory_update`, `memory_delete`, `skills_list`, `skills_get`, `skills_create`, `wiki_list`, `wiki_get`, `wiki_search`, `wiki_create`, `wiki_update`, `codebases_list`, `codebase_overview`, `codebase_search`, `codebase_context`, `codebase_impact`, `codebase_graph`",
+    "`ping`, `whoami`, `list_profiles`, `memory_search`, `memory_retrieve`, `memory_add`, `memory_update`, `memory_delete`, `skills_list`, `skills_get`, `skills_create`, `skills_update`, `wiki_list`, `wiki_get`, `wiki_search`, `wiki_create`, `wiki_update`, `codebases_list`, `codebase_overview`, `codebase_search`, `codebase_context`, `codebase_impact`, `codebase_graph`",
   );
   lines.push("");
   lines.push("## How to re-run");

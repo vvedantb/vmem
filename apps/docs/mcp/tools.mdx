@@ -208,6 +208,36 @@ See [Skills feature](/features/skills) for managing skills in the web app.
 
 ---
 
+## skills_update
+
+Update an existing skill when its playbook should change (refined fix, better automation, disable without deleting). Call `skills_get` first to read the current skill.
+
+<ParamField body="name" type="string" required>
+  Current skill name (exact, case sensitive)
+</ParamField>
+
+<ParamField body="newName" type="string">
+  New unique name (rename)
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated when-to-use description
+</ParamField>
+
+<ParamField body="instructions" type="string">
+  Updated markdown playbook
+</ParamField>
+
+<ParamField body="enabled" type="boolean">
+  `false` to disable, `true` to re-enable
+</ParamField>
+
+At least one of `newName`, `description`, `instructions`, or `enabled` is required.
+
+**Returns:** Full updated skill object.
+
+---
+
 ## wiki_list
 
 Flat index of all wiki folders and documents (no body). Call this before `wiki_get` or `wiki_update` when you do not have a node id.

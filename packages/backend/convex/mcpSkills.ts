@@ -61,3 +61,27 @@ export const mcpCreateSkill = internalAction({
     });
   },
 });
+
+/**
+ * MCP entry point: update an existing skill (partial patch by current name).
+ */
+export const mcpUpdateSkill = internalAction({
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    newName: v.optional(v.string()),
+    description: v.optional(v.string()),
+    instructions: v.optional(v.string()),
+    enabled: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args): Promise<Doc<"skills">> => {
+    return await ctx.runMutation(internal.skills.updateByClerkIdInternal, {
+      clerkId: args.clerkId,
+      name: args.name,
+      newName: args.newName,
+      description: args.description,
+      instructions: args.instructions,
+      enabled: args.enabled,
+    });
+  },
+});
