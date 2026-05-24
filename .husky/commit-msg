@@ -1,0 +1,1 @@
+node scripts/strip-cursor-commit-attribution.mjs "$1"
