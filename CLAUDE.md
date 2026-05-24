@@ -77,7 +77,7 @@ MCP Apps (interactive views in Claude / MCP Apps hosts):
 
 Git commits:
 
-- Never add `Co-authored-by: Cursor <cursoragent@cursor.com>` to commit messages; `.husky/commit-msg` strips it if Cursor injects it.
+- Never add `Co-authored-by: Cursor` or `Made-with: Cursor` to commit messages; `.husky/prepare-commit-msg` strips them if Cursor injects them.
 
 FOLLOW ALL OF THESE RULES
 
