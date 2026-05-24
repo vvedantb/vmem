@@ -3,6 +3,7 @@ import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import { decryptToken, encryptToken, getEnvOrThrow } from "./lib/crypto";
 import { retrier } from "./retrier";
+import { pickGoogleTokenConnectorId } from "./neo4jActions/connectors/googleShared";
 
 /**
  * Public sync action — frontend calls this via useAction.
@@ -33,10 +34,26 @@ export const startSync = authAction({
     // 2. Get clerkId for Neo4j operations
     const clerkId = await requireClerkId(ctx);
 
-    // 3. Get tokens
+    // 3. Resolve token row (Google Drive + Gmail share one OAuth grant)
+    let tokenConnectorId = args.connectorId;
+    if (
+      connector.provider === "google_drive" ||
+      connector.provider === "gmail"
+    ) {
+      const googleRows = await ctx.runQuery(
+        internal.connectors.listGoogleConnectorsForUserInternal,
+        { userId: connector.userId },
+      );
+      const picked = pickGoogleTokenConnectorId(googleRows, connector.provider);
+      if (!picked) {
+        throw new Error("No tokens found — please reconnect");
+      }
+      tokenConnectorId = picked;
+    }
+
     const tokens = await ctx.runQuery(
       internal.connectorTokens.getEncryptedTokensInternal,
-      { connectorId: args.connectorId },
+      { connectorId: tokenConnectorId },
     );
     if (!tokens) {
       throw new Error("No tokens found — please reconnect");
@@ -49,6 +66,7 @@ export const startSync = authAction({
     //    (Google Drive + OneDrive). Notion + Linear have non-expiring tokens.
     const usesRefresh =
       connector.provider === "google_drive" ||
+      connector.provider === "gmail" ||
       connector.provider === "onedrive";
     if (usesRefresh && tokens.expiresAt < Date.now()) {
       if (!tokens.refreshToken) {
@@ -62,7 +80,10 @@ export const startSync = authAction({
       let refreshUrl: string;
       let clientId: string;
       let clientSecret: string;
-      if (connector.provider === "google_drive") {
+      if (
+        connector.provider === "google_drive" ||
+        connector.provider === "gmail"
+      ) {
         refreshUrl = "https://oauth2.googleapis.com/token";
         clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
         clientSecret = getEnvOrThrow("GOOGLE_CLIENT_SECRET");
@@ -88,10 +109,10 @@ export const startSync = authAction({
       if (!refreshRes.ok) {
         // Mark as disconnected if refresh fails
         await ctx.runMutation(internal.connectors.markDisconnectedInternal, {
-          id: args.connectorId,
+          id: tokenConnectorId,
         });
         await ctx.runMutation(internal.connectorTokens.deleteTokensInternal, {
-          connectorId: args.connectorId,
+          connectorId: tokenConnectorId,
         });
         throw new Error("Token refresh failed — please reconnect");
       }
@@ -115,7 +136,7 @@ export const startSync = authAction({
         : tokens.refreshToken;
 
       await ctx.runMutation(internal.connectorTokens.storeTokensInternal, {
-        connectorId: args.connectorId,
+        connectorId: tokenConnectorId,
         accessToken: encryptedAccess,
         refreshToken: encryptedRefresh,
         expiresAt: Date.now() + (refreshData.expires_in ?? 3600) * 1000,
@@ -162,6 +183,16 @@ export const startSync = authAction({
       await retrier.run(
         ctx,
         internal.neo4jActions.connectorSync.syncOneDriveInternal,
+        {
+          clerkId,
+          connectorId: args.connectorId,
+          accessToken,
+        },
+      );
+    } else if (connector.provider === "gmail") {
+      await retrier.run(
+        ctx,
+        internal.neo4jActions.connectorSync.syncGmailInternal,
         {
           clerkId,
           connectorId: args.connectorId,

@@ -102,14 +102,29 @@ export default function OAuthModal({
 
     try {
       // Get OAuth URL from Convex (pass origin for postMessage security)
-      const url = await startOAuth({
+      const result = await startOAuth({
         connectorId,
         returnUrl: window.location.origin,
       });
 
+      if (result.alreadyConnected) {
+        setStep("complete");
+        setTimeout(() => {
+          onComplete();
+          onClose();
+        }, 1000);
+        return;
+      }
+
+      if (!result.authUrl) {
+        setStep("error");
+        setErrorMessage("No authorization URL returned — please try again.");
+        return;
+      }
+
       // Open popup
       const popup = window.open(
-        url,
+        result.authUrl,
         "oauth-popup",
         "width=600,height=700,left=100,top=100",
       );

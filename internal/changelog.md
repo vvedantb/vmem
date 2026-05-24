@@ -1,5 +1,11 @@
 # Changelog
 
+## Gmail connector — 2026-05-23
+
+- **Gmail ingest**: OAuth + manual sync pulls up to 500 inbox messages into memories with `sourceType: gmail` and links back to Gmail.
+- **Shared Google OAuth**: Drive and Gmail use one consent (Drive + Gmail readonly); connecting the second skips OAuth when the sibling already has the right scopes.
+- **Settings UI**: Gmail appears in connectors with brand icon; OAuth modal handles instant connect when tokens are already shared.
+
 ## Chrome extension auto-sync reliability — 2026-05-23
 
 - **Restart-proof syncHost auth**: Offscreen Clerk refresh uses `background: true` so it reads `__clerk_db_jwt` / `__client` from the vmem web app via `chrome.cookies` after browser restart (no popup required when the host session is still valid).
