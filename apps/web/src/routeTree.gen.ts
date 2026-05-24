@@ -18,6 +18,7 @@ import { Route as MainNotificationsRouteImport } from './routes/_main/notificati
 import { Route as MainHomeRouteImport } from './routes/_main/home'
 import { Route as MainFilesRouteImport } from './routes/_main/files'
 import { Route as MainChatRouteImport } from './routes/_main/chat'
+import { Route as MainWikiRouteRouteImport } from './routes/_main/wiki/route'
 import { Route as MainSkillsRouteRouteImport } from './routes/_main/skills/route'
 import { Route as MainWikiIndexRouteImport } from './routes/_main/wiki/index'
 import { Route as MainTeamsIndexRouteImport } from './routes/_main/teams/index'
@@ -108,15 +109,20 @@ const MainChatRoute = MainChatRouteImport.update({
   path: '/chat',
   getParentRoute: () => MainRouteRoute,
 } as any)
+const MainWikiRouteRoute = MainWikiRouteRouteImport.update({
+  id: '/wiki',
+  path: '/wiki',
+  getParentRoute: () => MainRouteRoute,
+} as any)
 const MainSkillsRouteRoute = MainSkillsRouteRouteImport.update({
   id: '/skills',
   path: '/skills',
   getParentRoute: () => MainRouteRoute,
 } as any)
 const MainWikiIndexRoute = MainWikiIndexRouteImport.update({
-  id: '/wiki/',
-  path: '/wiki/',
-  getParentRoute: () => MainRouteRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => MainWikiRouteRoute,
 } as any)
 const MainTeamsIndexRoute = MainTeamsIndexRouteImport.update({
   id: '/teams/',
@@ -174,9 +180,9 @@ const McpOauthAuthorizeRoute = McpOauthAuthorizeRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const MainWikiDocIdRoute = MainWikiDocIdRouteImport.update({
-  id: '/wiki/$docId',
-  path: '/wiki/$docId',
-  getParentRoute: () => MainRouteRoute,
+  id: '/$docId',
+  path: '/$docId',
+  getParentRoute: () => MainWikiRouteRoute,
 } as any)
 const MainSkillsIdRoute = MainSkillsIdRouteImport.update({
   id: '/$id',
@@ -345,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agent-callback': typeof AgentCallbackRoute
   '/skills': typeof MainSkillsRouteRouteWithChildren
+  '/wiki': typeof MainWikiRouteRouteWithChildren
   '/chat': typeof MainChatRoute
   '/files': typeof MainFilesRoute
   '/home': typeof MainHomeRoute
@@ -455,6 +462,7 @@ export interface FileRoutesById {
   '/_main': typeof MainRouteRouteWithChildren
   '/agent-callback': typeof AgentCallbackRoute
   '/_main/skills': typeof MainSkillsRouteRouteWithChildren
+  '/_main/wiki': typeof MainWikiRouteRouteWithChildren
   '/_main/chat': typeof MainChatRoute
   '/_main/files': typeof MainFilesRoute
   '/_main/home': typeof MainHomeRoute
@@ -512,6 +520,7 @@ export interface FileRouteTypes {
     | '/'
     | '/agent-callback'
     | '/skills'
+    | '/wiki'
     | '/chat'
     | '/files'
     | '/home'
@@ -621,6 +630,7 @@ export interface FileRouteTypes {
     | '/_main'
     | '/agent-callback'
     | '/_main/skills'
+    | '/_main/wiki'
     | '/_main/chat'
     | '/_main/files'
     | '/_main/home'
@@ -745,6 +755,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainChatRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/wiki': {
+      id: '/_main/wiki'
+      path: '/wiki'
+      fullPath: '/wiki'
+      preLoaderRoute: typeof MainWikiRouteRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/skills': {
       id: '/_main/skills'
       path: '/skills'
@@ -754,10 +771,10 @@ declare module '@tanstack/react-router' {
     }
     '/_main/wiki/': {
       id: '/_main/wiki/'
-      path: '/wiki'
+      path: '/'
       fullPath: '/wiki/'
       preLoaderRoute: typeof MainWikiIndexRouteImport
-      parentRoute: typeof MainRouteRoute
+      parentRoute: typeof MainWikiRouteRoute
     }
     '/_main/teams/': {
       id: '/_main/teams/'
@@ -838,10 +855,10 @@ declare module '@tanstack/react-router' {
     }
     '/_main/wiki/$docId': {
       id: '/_main/wiki/$docId'
-      path: '/wiki/$docId'
+      path: '/$docId'
       fullPath: '/wiki/$docId'
       preLoaderRoute: typeof MainWikiDocIdRouteImport
-      parentRoute: typeof MainRouteRoute
+      parentRoute: typeof MainWikiRouteRoute
     }
     '/_main/skills/$id': {
       id: '/_main/skills/$id'
@@ -1077,6 +1094,20 @@ const MainSkillsRouteRouteWithChildren = MainSkillsRouteRoute._addFileChildren(
   MainSkillsRouteRouteChildren,
 )
 
+interface MainWikiRouteRouteChildren {
+  MainWikiDocIdRoute: typeof MainWikiDocIdRoute
+  MainWikiIndexRoute: typeof MainWikiIndexRoute
+}
+
+const MainWikiRouteRouteChildren: MainWikiRouteRouteChildren = {
+  MainWikiDocIdRoute: MainWikiDocIdRoute,
+  MainWikiIndexRoute: MainWikiIndexRoute,
+}
+
+const MainWikiRouteRouteWithChildren = MainWikiRouteRoute._addFileChildren(
+  MainWikiRouteRouteChildren,
+)
+
 interface MainTeamsTeamIdRouteRouteChildren {
   MainTeamsTeamIdKnowledgeRoute: typeof MainTeamsTeamIdKnowledgeRoute
   MainTeamsTeamIdMembersRoute: typeof MainTeamsTeamIdMembersRoute
@@ -1098,6 +1129,7 @@ const MainTeamsTeamIdRouteRouteWithChildren =
 
 interface MainRouteRouteChildren {
   MainSkillsRouteRoute: typeof MainSkillsRouteRouteWithChildren
+  MainWikiRouteRoute: typeof MainWikiRouteRouteWithChildren
   MainChatRoute: typeof MainChatRoute
   MainFilesRoute: typeof MainFilesRoute
   MainHomeRoute: typeof MainHomeRoute
@@ -1120,7 +1152,6 @@ interface MainRouteRouteChildren {
   MainSettingsProfilesRoute: typeof MainSettingsProfilesRoute
   MainSettingsSecretsRoute: typeof MainSettingsSecretsRoute
   MainSettingsUsageRoute: typeof MainSettingsUsageRoute
-  MainWikiDocIdRoute: typeof MainWikiDocIdRoute
   MainActivityIndexRoute: typeof MainActivityIndexRoute
   MainAiLogsIndexRoute: typeof MainAiLogsIndexRoute
   MainCodebasesIndexRoute: typeof MainCodebasesIndexRoute
@@ -1130,7 +1161,6 @@ interface MainRouteRouteChildren {
   MainSettingsIndexRoute: typeof MainSettingsIndexRoute
   MainSvgPlaygroundIndexRoute: typeof MainSvgPlaygroundIndexRoute
   MainTeamsIndexRoute: typeof MainTeamsIndexRoute
-  MainWikiIndexRoute: typeof MainWikiIndexRoute
   MainSettingsApiKeysRoute: typeof MainSettingsApiKeysRoute
   MainSettingsApiUsageRoute: typeof MainSettingsApiUsageRoute
   MainSettingsDataControlsDangerRoute: typeof MainSettingsDataControlsDangerRoute
@@ -1144,6 +1174,7 @@ interface MainRouteRouteChildren {
 
 const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSkillsRouteRoute: MainSkillsRouteRouteWithChildren,
+  MainWikiRouteRoute: MainWikiRouteRouteWithChildren,
   MainChatRoute: MainChatRoute,
   MainFilesRoute: MainFilesRoute,
   MainHomeRoute: MainHomeRoute,
@@ -1166,7 +1197,6 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsProfilesRoute: MainSettingsProfilesRoute,
   MainSettingsSecretsRoute: MainSettingsSecretsRoute,
   MainSettingsUsageRoute: MainSettingsUsageRoute,
-  MainWikiDocIdRoute: MainWikiDocIdRoute,
   MainActivityIndexRoute: MainActivityIndexRoute,
   MainAiLogsIndexRoute: MainAiLogsIndexRoute,
   MainCodebasesIndexRoute: MainCodebasesIndexRoute,
@@ -1176,7 +1206,6 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsIndexRoute: MainSettingsIndexRoute,
   MainSvgPlaygroundIndexRoute: MainSvgPlaygroundIndexRoute,
   MainTeamsIndexRoute: MainTeamsIndexRoute,
-  MainWikiIndexRoute: MainWikiIndexRoute,
   MainSettingsApiKeysRoute: MainSettingsApiKeysRoute,
   MainSettingsApiUsageRoute: MainSettingsApiUsageRoute,
   MainSettingsDataControlsDangerRoute: MainSettingsDataControlsDangerRoute,

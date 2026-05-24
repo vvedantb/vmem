@@ -7,12 +7,22 @@ import type { NavIcon, NavItem } from "./types";
 import { navGroups, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
+import { WikiSidebarNav } from "./WikiSidebarNav";
 
-type SidebarNavView = "main" | "settings" | "skills";
+type SidebarNavView = "main" | "settings" | "skills" | "wiki";
+
+const subSidebarHrefs = ["/skills", "/settings", "/wiki"] as const;
+
+type SubSidebarHref = (typeof subSidebarHrefs)[number];
+
+function isSubSidebarHref(href: string): href is SubSidebarHref {
+  return subSidebarHrefs.some((subHref) => subHref === href);
+}
 
 function navViewFromPathname(pathname: string): SidebarNavView {
   if (pathname.startsWith("/settings")) return "settings";
   if (pathname.startsWith("/skills")) return "skills";
+  if (pathname.startsWith("/wiki")) return "wiki";
   return "main";
 }
 
@@ -95,6 +105,7 @@ function MainNav({
   onNavigate,
   onSettingsClick,
   onSkillsClick,
+  onWikiClick,
 }: {
   pathname: string;
   unreadCount: number;
@@ -104,6 +115,7 @@ function MainNav({
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
   onSettingsClick: () => void;
   onSkillsClick: () => void;
+  onWikiClick: () => void;
 }) {
   return (
     <motion.nav
@@ -341,6 +353,13 @@ export function SidebarNavigation({
           isMobile={isMobile}
           onBack={() => setNavView("main")}
         />
+      ) : navView === "wiki" ? (
+        <WikiSidebarNav
+          key="wiki"
+          isIconOnly={isIconOnly}
+          isMobile={isMobile}
+          onBack={() => setNavView("main")}
+        />
       ) : (
         <MainNav
           key="main"
@@ -355,6 +374,12 @@ export function SidebarNavigation({
             setNavView("skills");
             if (!pathname.startsWith("/skills")) {
               void navigate({ to: "/skills" });
+            }
+          }}
+          onWikiClick={() => {
+            setNavView("wiki");
+            if (!pathname.startsWith("/wiki")) {
+              void navigate({ to: "/wiki" });
             }
           }}
         />
