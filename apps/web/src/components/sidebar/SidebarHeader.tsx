@@ -6,7 +6,6 @@ import {
   IconArrowLeft,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpandFilled,
-  IconX,
 } from "@tabler/icons-react";
 import { VmemDrawInIcon } from "../svg-animations";
 import type { SidebarNavView } from "./SidebarNavigation";
