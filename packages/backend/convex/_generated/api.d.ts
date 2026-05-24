@@ -74,7 +74,9 @@ import type * as neo4jActions_agent_summarizeRetrieve from "../neo4jActions/agen
 import type * as neo4jActions_agent_updateFromInstruction from "../neo4jActions/agent/updateFromInstruction.js";
 import type * as neo4jActions_codebases from "../neo4jActions/codebases.js";
 import type * as neo4jActions_connectorSync from "../neo4jActions/connectorSync.js";
+import type * as neo4jActions_connectors_gmail from "../neo4jActions/connectors/gmail.js";
 import type * as neo4jActions_connectors_googleDrive from "../neo4jActions/connectors/googleDrive.js";
+import type * as neo4jActions_connectors_googleShared from "../neo4jActions/connectors/googleShared.js";
 import type * as neo4jActions_connectors_linear from "../neo4jActions/connectors/linear.js";
 import type * as neo4jActions_connectors_notion from "../neo4jActions/connectors/notion.js";
 import type * as neo4jActions_connectors_oneDrive from "../neo4jActions/connectors/oneDrive.js";
@@ -202,7 +204,9 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/agent/updateFromInstruction": typeof neo4jActions_agent_updateFromInstruction;
   "neo4jActions/codebases": typeof neo4jActions_codebases;
   "neo4jActions/connectorSync": typeof neo4jActions_connectorSync;
+  "neo4jActions/connectors/gmail": typeof neo4jActions_connectors_gmail;
   "neo4jActions/connectors/googleDrive": typeof neo4jActions_connectors_googleDrive;
+  "neo4jActions/connectors/googleShared": typeof neo4jActions_connectors_googleShared;
   "neo4jActions/connectors/linear": typeof neo4jActions_connectors_linear;
   "neo4jActions/connectors/notion": typeof neo4jActions_connectors_notion;
   "neo4jActions/connectors/oneDrive": typeof neo4jActions_connectors_oneDrive;

@@ -4,10 +4,16 @@ import { internal } from "./_generated/api";
 import { authAction } from "./auth";
 import { encryptToken, decryptToken, getEnvOrThrow } from "./lib/crypto";
 import { auditLog, ResourceTypes } from "./auditLog";
+import {
+  GOOGLE_OAUTH_SCOPES,
+  pickGoogleTokenConnectorId,
+  scopeIncludesDrive,
+  scopeIncludesGmail,
+} from "./neo4jActions/connectors/googleShared";
 
 // --- Provider configurations ---
 
-type Provider = "google_drive" | "notion" | "onedrive" | "linear";
+type Provider = "google_drive" | "gmail" | "notion" | "onedrive" | "linear";
 
 interface ProviderConfig {
   authUrl: string;
@@ -16,12 +22,22 @@ interface ProviderConfig {
   scopes: string[];
 }
 
+function isConnectorOAuthProvider(value: string): value is Provider {
+  return Object.hasOwn(PROVIDER_CONFIGS, value);
+}
+
 const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
   google_drive: {
     authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
     tokenUrl: "https://oauth2.googleapis.com/token",
     revokeUrl: "https://oauth2.googleapis.com/revoke",
-    scopes: ["https://www.googleapis.com/auth/drive.readonly"],
+    scopes: [...GOOGLE_OAUTH_SCOPES],
+  },
+  gmail: {
+    authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+    tokenUrl: "https://oauth2.googleapis.com/token",
+    revokeUrl: "https://oauth2.googleapis.com/revoke",
+    scopes: [...GOOGLE_OAUTH_SCOPES],
   },
   notion: {
     authUrl: "https://api.notion.com/v1/oauth/authorize",
@@ -50,8 +66,14 @@ const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
  * Creates a state token tied to the current user + connector, returns the provider's authorize URL.
  * Frontend opens this URL in a popup.
  */
+const startOAuthResult = v.object({
+  authUrl: v.union(v.string(), v.null()),
+  alreadyConnected: v.boolean(),
+});
+
 export const startOAuth = authAction({
   args: { connectorId: v.id("connectors"), returnUrl: v.string() },
+  returns: startOAuthResult,
   handler: async (ctx, args) => {
     // 1. Get connector and validate provider
     const connector = await ctx.runQuery(internal.connectors.getByIdInternal, {
@@ -67,13 +89,37 @@ export const startOAuth = authAction({
       throw new Error("Connector does not support OAuth");
     }
 
-    const provider = connector.provider as Provider;
-    if (!(provider in PROVIDER_CONFIGS)) {
-      throw new Error(`Unsupported provider: ${provider}`);
+    if (!isConnectorOAuthProvider(connector.provider)) {
+      throw new Error(`Unsupported provider: ${connector.provider}`);
     }
+    const provider = connector.provider;
 
     const config = PROVIDER_CONFIGS[provider];
     const convexSiteUrl = getEnvOrThrow("CONVEX_SITE_URL");
+
+    if (provider === "google_drive" || provider === "gmail") {
+      const googleRows = await ctx.runQuery(
+        internal.connectors.listGoogleConnectorsForUserInternal,
+        { userId: ctx.userId },
+      );
+      const tokenConnectorId = pickGoogleTokenConnectorId(googleRows, provider);
+      if (tokenConnectorId) {
+        const tokens = await ctx.runQuery(
+          internal.connectorTokens.getEncryptedTokensInternal,
+          { connectorId: tokenConnectorId },
+        );
+        const scopeOk =
+          provider === "gmail"
+            ? tokens !== null && scopeIncludesGmail(tokens.scope)
+            : tokens !== null && scopeIncludesDrive(tokens.scope);
+        if (scopeOk) {
+          await ctx.runMutation(internal.connectors.markConnectedInternal, {
+            id: args.connectorId,
+          });
+          return { authUrl: null, alreadyConnected: true };
+        }
+      }
+    }
 
     // 2. Generate state and store in oauthStates
     const state = crypto.randomUUID();
@@ -91,7 +137,7 @@ export const startOAuth = authAction({
     // 3. Build provider auth URL
     const redirectUri = `${convexSiteUrl}/api/auth/connector/callback`;
 
-    if (provider === "google_drive") {
+    if (provider === "google_drive" || provider === "gmail") {
       const clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
       const params = new URLSearchParams({
         client_id: clientId,
@@ -102,7 +148,10 @@ export const startOAuth = authAction({
         prompt: "consent",
         state,
       });
-      return `${config.authUrl}?${params.toString()}`;
+      return {
+        authUrl: `${config.authUrl}?${params.toString()}`,
+        alreadyConnected: false,
+      };
     }
 
     if (provider === "notion") {
@@ -114,7 +163,10 @@ export const startOAuth = authAction({
         owner: "user",
         state,
       });
-      return `${config.authUrl}?${params.toString()}`;
+      return {
+        authUrl: `${config.authUrl}?${params.toString()}`,
+        alreadyConnected: false,
+      };
     }
 
     if (provider === "onedrive") {
@@ -128,7 +180,10 @@ export const startOAuth = authAction({
         prompt: "consent",
         state,
       });
-      return `${config.authUrl}?${params.toString()}`;
+      return {
+        authUrl: `${config.authUrl}?${params.toString()}`,
+        alreadyConnected: false,
+      };
     }
 
     if (provider === "linear") {
@@ -141,7 +196,10 @@ export const startOAuth = authAction({
         prompt: "consent",
         state,
       });
-      return `${config.authUrl}?${params.toString()}`;
+      return {
+        authUrl: `${config.authUrl}?${params.toString()}`,
+        alreadyConnected: false,
+      };
     }
 
     throw new Error(`Unsupported provider: ${provider}`);
@@ -168,7 +226,10 @@ export const disconnect = authAction({
       { connectorId: args.connectorId },
     );
 
-    if (tokens && connector.provider === "google_drive") {
+    if (
+      tokens &&
+      (connector.provider === "google_drive" || connector.provider === "gmail")
+    ) {
       try {
         const accessToken = await decryptToken(tokens.accessToken);
         // Revoke with Google API
@@ -295,7 +356,7 @@ export const handleCallbackInternal = internalAction({
     const redirectUri = `${convexSiteUrl}/api/auth/connector/callback`;
 
     // 2. Exchange code for tokens based on provider
-    if (provider === "google_drive") {
+    if (provider === "google_drive" || provider === "gmail") {
       const clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
       const clientSecret = getEnvOrThrow("GOOGLE_CLIENT_SECRET");
 

@@ -25,6 +25,12 @@ const DEFAULT_CONNECTORS: DefaultConnector[] = [
     provider: "google_drive",
   },
   {
+    name: "Gmail",
+    description: "Sync emails from your Gmail inbox into memories",
+    icon: "IconBrandGmail",
+    provider: "gmail",
+  },
+  {
     name: "OneDrive",
     description: "Connect your Microsoft OneDrive files and documents",
     icon: "IconBrandOnedrive",
@@ -196,6 +202,26 @@ export const getByIdInternal = internalQuery({
   },
 });
 
+export const listGoogleConnectorsForUserInternal = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("connectors")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    return rows
+      .filter(
+        (row) => row.provider === "google_drive" || row.provider === "gmail",
+      )
+      .map((row) => ({
+        _id: row._id,
+        provider: row.provider,
+        connectionStatus: row.connectionStatus,
+      }));
+  },
+});
+
 export const markConnectedInternal = internalMutation({
   args: { id: v.id("connectors") },
   handler: async (ctx, args) => {
@@ -263,6 +289,8 @@ export const migrateAddProviders = internalMutation({
           provider = "onedrive";
         } else if (connector.name === "Linear") {
           provider = "linear";
+        } else if (connector.name === "Gmail") {
+          provider = "gmail";
         }
         if (provider) {
           await ctx.db.patch(connector._id, { provider });

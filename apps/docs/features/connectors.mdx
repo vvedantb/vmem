@@ -11,7 +11,8 @@ Connectors integrate external data sources with vmem. Connect services from **Se
 
 | Connector | Status | Auth |
 | --- | --- | --- |
-| Google Drive | Available | OAuth |
+| Google Drive | Available | OAuth (Drive + Gmail scopes) |
+| Gmail | Available | OAuth (shared Google grant with Drive) |
 | OneDrive | Available | OAuth |
 | Notion | Available | OAuth |
 | Linear | Available | OAuth |
@@ -25,7 +26,7 @@ Each connector requires client ID and secret in Convex environment variables:
 
 | Connector | Variables |
 | --- | --- |
-| Google Drive | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| Google Drive / Gmail | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | OneDrive | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` |
 | Notion | `NOTION_CLIENT_ID`, `NOTION_CLIENT_SECRET` |
 | Linear | `LINEAR_CLIENT_ID`, `LINEAR_CLIENT_SECRET` |

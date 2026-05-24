@@ -41,6 +41,7 @@ const MEMORY_SOURCE_LABELS: Record<string, string> = {
   "prompt-capture": "Prompt Capture",
   youtube: "YouTube",
   google_drive: "Google Drive",
+  gmail: "Gmail",
   notion: "Notion",
   mcp: "MCP",
   "client-enrichment": "Enrichment",
