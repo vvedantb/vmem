@@ -37,7 +37,35 @@ export function AddRepoModal({
   connectionId,
 }: AddRepoModalProps) {
   const listRepos = useAction(api.codebases.listRepos);
-  const addCodebase = useMutation(api.codebases.addCodebase);
+  const addCodebase = useMutation(
+    api.codebases.addCodebase,
+  ).withOptimisticUpdate((localStore, args) => {
+    const list = localStore.getQuery(api.codebases.listMy, {});
+    if (!list || list.length === 0) return;
+    const connection = localStore.getQuery(api.github.getConnection, {});
+    const now = Date.now();
+    const tempId: Id<"codebases"> = crypto.randomUUID();
+    localStore.setQuery(api.codebases.listMy, {}, [
+      {
+        _id: tempId,
+        _creationTime: now,
+        userId: list[0].userId,
+        githubConnectionId: args.githubConnectionId,
+        repoOwner: args.repoOwner,
+        repoName: args.repoName,
+        repoFullName: args.repoFullName,
+        defaultBranch: args.defaultBranch,
+        language: args.language,
+        description: args.description,
+        isPrivate: args.isPrivate,
+        status: "pending",
+        totalFiles: 0,
+        syncedFiles: 0,
+        avatarUrl: connection?.avatarUrl,
+      },
+      ...list,
+    ]);
+  });
   const codebases = useQuery(api.codebases.listMy);
 
   const [repos, setRepos] = useState<RepoItem[]>([]);

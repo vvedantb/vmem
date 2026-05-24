@@ -43,9 +43,89 @@ export default function WikiTree({
   selectedId,
   onSelect,
 }: WikiTreeProps) {
-  const createNode = useMutation(api.wiki.createNode);
-  const renameNode = useMutation(api.wiki.renameNode);
-  const deleteNode = useMutation(api.wiki.deleteNode);
+  const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
+    (localStore, args) => {
+      const tree = localStore.getQuery(api.wiki.listTree, {});
+      if (!tree || tree.length === 0) return;
+      const siblings = tree.filter((n) => n.parentId === args.parentId);
+      const nextOrder =
+        siblings.length === 0
+          ? 0
+          : Math.max(...siblings.map((s) => s.order)) + 1;
+      const now = Date.now();
+      const tempId: Id<"wikiNodes"> = crypto.randomUUID();
+      const row: Doc<"wikiNodes"> = {
+        _id: tempId,
+        _creationTime: now,
+        userId: tree[0].userId,
+        parentId: args.parentId,
+        kind: args.kind,
+        title: args.title,
+        content: args.kind === "document" ? "" : undefined,
+        contentText: args.kind === "document" ? "" : undefined,
+        order: nextOrder,
+        createdAt: now,
+        updatedAt: now,
+      };
+      localStore.setQuery(api.wiki.listTree, {}, [...tree, row]);
+    },
+  );
+  const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
+    (localStore, args) => {
+      const tree = localStore.getQuery(api.wiki.listTree, {});
+      if (tree) {
+        localStore.setQuery(
+          api.wiki.listTree,
+          {},
+          tree.map((node) =>
+            node._id === args.id
+              ? { ...node, title: args.title, updatedAt: Date.now() }
+              : node,
+          ),
+        );
+      }
+      const node = localStore.getQuery(api.wiki.getNode, { id: args.id });
+      if (node) {
+        localStore.setQuery(
+          api.wiki.getNode,
+          { id: args.id },
+          { ...node, title: args.title, updatedAt: Date.now() },
+        );
+      }
+    },
+  );
+  const deleteNode = useMutation(api.wiki.deleteNode).withOptimisticUpdate(
+    (localStore, args) => {
+      const tree = localStore.getQuery(api.wiki.listTree, {});
+      if (!tree) return;
+      const childrenByParent = new Map<string, Array<Id<"wikiNodes">>>();
+      for (const node of tree) {
+        const key = node.parentId ?? "__root__";
+        const list = childrenByParent.get(key) ?? [];
+        list.push(node._id);
+        childrenByParent.set(key, list);
+      }
+      const remove = new Set<string>([args.id]);
+      const stack: Array<Id<"wikiNodes">> = [args.id];
+      while (stack.length > 0) {
+        const current = stack.pop();
+        if (current === undefined) continue;
+        for (const child of childrenByParent.get(current) ?? []) {
+          remove.add(child);
+          stack.push(child);
+        }
+      }
+      localStore.setQuery(
+        api.wiki.listTree,
+        {},
+        tree.filter((node) => !remove.has(node._id)),
+      );
+      const open = localStore.getQuery(api.wiki.getNode, { id: args.id });
+      if (open) {
+        localStore.setQuery(api.wiki.getNode, { id: args.id }, null);
+      }
+    },
+  );
 
   const [renameTarget, setRenameTarget] = useState<Doc<"wikiNodes"> | null>(
     null,

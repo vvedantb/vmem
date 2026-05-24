@@ -8,7 +8,58 @@ import { toast } from "sonner";
 import type { TeamDetail } from "../-team-detail";
 
 export function TeamSettings({ data }: { data: TeamDetail }) {
-  const updateTeam = useMutation(api.teams.updateTeam);
+  const updateTeam = useMutation(api.teams.updateTeam).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.teams.list, {});
+      if (list) {
+        localStore.setQuery(
+          api.teams.list,
+          {},
+          list.map((entry) =>
+            entry.team._id === args.teamId
+              ? {
+                  ...entry,
+                  team: {
+                    ...entry.team,
+                    name: args.name,
+                    updatedAt: Date.now(),
+                  },
+                  profile:
+                    entry.profile !== null
+                      ? {
+                          ...entry.profile,
+                          name: args.name,
+                          updatedAt: Date.now(),
+                        }
+                      : null,
+                }
+              : entry,
+          ),
+        );
+      }
+      const detail = localStore.getQuery(api.teams.get, {
+        teamId: args.teamId,
+      });
+      if (detail) {
+        localStore.setQuery(
+          api.teams.get,
+          { teamId: args.teamId },
+          {
+            ...detail,
+            team: { ...detail.team, name: args.name, updatedAt: Date.now() },
+            profile:
+              detail.profile !== null
+                ? {
+                    ...detail.profile,
+                    name: args.name,
+                    updatedAt: Date.now(),
+                  }
+                : null,
+          },
+        );
+      }
+    },
+  );
   const deleteTeam = useAction(api.teams.deleteTeam);
   const navigate = useNavigate();
   const [name, setName] = useState(data.team.name);

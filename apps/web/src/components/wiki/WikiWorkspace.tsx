@@ -27,7 +27,30 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const navigate = useNavigate();
   const nodes = useQuery(api.wiki.listTree);
   const doc = useQuery(api.wiki.getNode, docId ? { id: docId } : "skip");
-  const renameNode = useMutation(api.wiki.renameNode);
+  const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
+    (localStore, args) => {
+      const tree = localStore.getQuery(api.wiki.listTree, {});
+      if (tree) {
+        localStore.setQuery(
+          api.wiki.listTree,
+          {},
+          tree.map((node) =>
+            node._id === args.id
+              ? { ...node, title: args.title, updatedAt: Date.now() }
+              : node,
+          ),
+        );
+      }
+      const node = localStore.getQuery(api.wiki.getNode, { id: args.id });
+      if (node) {
+        localStore.setQuery(
+          api.wiki.getNode,
+          { id: args.id },
+          { ...node, title: args.title, updatedAt: Date.now() },
+        );
+      }
+    },
+  );
   const {
     outlineVisible,
     setOutlineVisible,

@@ -1,5 +1,9 @@
 # Changelog
 
+## Convex optimistic updates — 2026-05-24
+
+- **Responsive UI mutations**: Convex `useMutation` calls across web (and extension settings) patch live query caches immediately so toggles, lists, and forms update without waiting on the server round-trip.
+
 ## Wiki and skills header polish — 2026-05-24
 
 - **Toggles in ⋯ menu**: View outline and Enabled use switch rows inside the actions dropdown (wider wiki menu, no outline icon).

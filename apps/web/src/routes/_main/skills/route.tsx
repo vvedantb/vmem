@@ -32,7 +32,32 @@ function SkillsLayout() {
   const skillId = typeof params.id === "string" ? params.id : undefined;
 
   const skills = useQuery(api.skills.listMy);
-  const updateSkill = useMutation(api.skills.updateSkill);
+  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
+    (localStore, args) => {
+      const current = localStore.getQuery(api.skills.listMy, {});
+      if (!current) return;
+      const now = Date.now();
+      localStore.setQuery(
+        api.skills.listMy,
+        {},
+        current.map((row) => {
+          if (row._id !== args.id) return row;
+          return {
+            ...row,
+            ...(args.name !== undefined ? { name: args.name.trim() } : {}),
+            ...(args.description !== undefined
+              ? { description: args.description }
+              : {}),
+            ...(args.instructions !== undefined
+              ? { instructions: args.instructions }
+              : {}),
+            ...(args.enabled !== undefined ? { enabled: args.enabled } : {}),
+            updatedAt: now,
+          };
+        }),
+      );
+    },
+  );
   const [{ q: searchQuery }] = useQueryStates(skillsSearchParams);
   const [modal, setModal] = useState<ModalState>({ mode: "none" });
   const [nameDraft, setNameDraft] = useState("");

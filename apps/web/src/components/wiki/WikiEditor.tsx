@@ -59,7 +59,22 @@ export default function WikiEditor({
 }: WikiEditorProps) {
   const doc = useQuery(api.wiki.getNode, docId ? { id: docId } : "skip");
 
-  const updateContent = useMutation(api.wiki.updateContent);
+  const updateContent = useMutation(
+    api.wiki.updateContent,
+  ).withOptimisticUpdate((localStore, args) => {
+    const node = localStore.getQuery(api.wiki.getNode, { id: args.id });
+    if (!node) return;
+    localStore.setQuery(
+      api.wiki.getNode,
+      { id: args.id },
+      {
+        ...node,
+        content: args.content,
+        contentText: args.contentText,
+        updatedAt: Date.now(),
+      },
+    );
+  });
 
   const loadedDocIdRef = useRef<Id<"wikiNodes"> | null>(null);
   const suppressNextUpdateRef = useRef(false);

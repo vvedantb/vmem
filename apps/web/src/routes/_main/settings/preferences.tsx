@@ -49,7 +49,21 @@ function PreferencesPage() {
     if (!current) return;
     localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
   });
-  const setDreamSchedule = useMutation(api.dreamSchedule.setDreamSchedule);
+  const setDreamSchedule = useMutation(
+    api.dreamSchedule.setDreamSchedule,
+  ).withOptimisticUpdate((localStore, args) => {
+    const current = localStore.getQuery(api.userSettings.get, {});
+    if (!current) return;
+    localStore.setQuery(
+      api.userSettings.get,
+      {},
+      {
+        ...current,
+        dreamModeScheduleEnabled: args.enabled,
+        dreamModeScheduleTime: args.enabled ? args.time : undefined,
+      },
+    );
+  });
 
   const saveSettings = async (
     patch: Parameters<typeof updateSettings>[0],
