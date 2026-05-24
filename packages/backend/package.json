@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed.ts",
+    "db:seed:eval": "npx tsx --env-file=.env.local src/neo4j/seed.ts --eval",
     "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts",
     "eval:retrieval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/run.ts"
   },
