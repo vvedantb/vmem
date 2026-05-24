@@ -69,6 +69,16 @@ Skills:
 - `skills_create` MCP tool: use when a repeatable problem or automatable workflow was identified and no existing skill covers it (check context prompt / `skills_list` first)
 - `skills_update` MCP tool: patch an existing skill by current name (`skills_get` first); at least one of newName, description, instructions, enabled
 
+MCP Apps (interactive views in Claude / MCP Apps hosts):
+
+- Use `@modelcontextprotocol/ext-apps` + bundled HTML in `packages/backend/mcp-ui/` → `convex/mcp/bundled/`; do **not** adopt Skybridge for embedded Convex tools (see `internal/mcp-apps.md`)
+- Dev MCP only: `https://outgoing-reindeer-268.eu-west-1.convex.site/mcp`; `WEB_APP_URL` = `https://vmem-git-staging-vedantb.vercel.app`
+- `memory_graph`: `memoryGraphApp.ts`, `mcpGraph.ts`, build via `build:mcp-graph-ui`
+
+Git commits:
+
+- Never add `Co-authored-by: Cursor` or `Made-with: Cursor` to commit messages; `.husky/prepare-commit-msg` strips them if Cursor injects them.
+
 FOLLOW ALL OF THESE RULES
 
 UI Design System — Tonal Surface Hierarchy:
@@ -175,6 +185,11 @@ Plan Mode
 - At the end of each plan, give me a list of unresolved questions to answer, if any.
 - Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one
 - Use the AskUserQuestion tool
+
+Product scope:
+
+- vmem = memory/context layer only — not Composio (agent tools), AgentMail, Daytona, etc. See `internal/product-scope.md` for decision + connector roadmap audit.
+- Connectors = ingest into Neo4j memories, not live app actions. Composio/MCP tool platforms are complementary, not replacements.
 
 Philosophy
 This codebase will outlive you. Every shortcut becomes someone else's burden. Every ack compounds into technical debt that slows the whole team down.

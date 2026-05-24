@@ -1,0 +1,107 @@
+"use client";
+
+import { cn } from "@vmem/ui";
+import { IconLoader2, IconLock, IconPlus } from "@tabler/icons-react";
+import { codebaseLanguageColors } from "../CodebaseCardInsides";
+
+export interface AddRepoModalRepo {
+  id: number;
+  name: string;
+  fullName: string;
+  owner: string;
+  defaultBranch: string;
+  language: string | null;
+  description: string | null;
+  isPrivate: boolean;
+}
+
+interface AddRepoModalRowProps {
+  repo: AddRepoModalRepo;
+  isAdding: boolean;
+  disabled: boolean;
+  onAdd: () => void;
+}
+
+export function AddRepoModalRow({
+  repo,
+  isAdding,
+  disabled,
+  onAdd,
+}: AddRepoModalRowProps) {
+  const langColor = repo.language
+    ? (codebaseLanguageColors[repo.language] ?? "#8b8b8b")
+    : null;
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onAdd}
+      className={cn(
+        "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        disabled && !isAdding ? "opacity-50" : "hover:bg-muted/70",
+      )}
+    >
+      <img
+        src={`https://github.com/${repo.owner}.png?size=64`}
+        alt={repo.owner}
+        width={36}
+        height={36}
+        className="size-9 shrink-0 rounded-full outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="truncate text-sm font-semibold text-foreground">
+            {repo.name}
+          </span>
+          {repo.isPrivate ? (
+            <IconLock
+              size={12}
+              className="shrink-0 text-muted-foreground"
+              aria-label="Private repository"
+            />
+          ) : null}
+        </div>
+        <div className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+          <span className="truncate">{repo.owner}</span>
+          {repo.language ? (
+            <>
+              <span className="shrink-0">·</span>
+              <span className="flex shrink-0 items-center gap-1">
+                {langColor ? (
+                  <span
+                    aria-hidden
+                    className="size-2 rounded-full"
+                    style={{ backgroundColor: langColor }}
+                  />
+                ) : null}
+                {repo.language}
+              </span>
+            </>
+          ) : null}
+        </div>
+        {repo.description ? (
+          <p className="mt-1 truncate text-xs text-muted-foreground/80">
+            {repo.description}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+        {isAdding ? (
+          <IconLoader2 size={16} className="animate-spin" aria-hidden />
+        ) : (
+          <>
+            <span className="text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
+              Add
+            </span>
+            <IconPlus
+              size={16}
+              className="opacity-60 transition-opacity group-hover:opacity-100"
+              aria-hidden
+            />
+          </>
+        )}
+      </div>
+    </button>
+  );
+}

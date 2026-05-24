@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
@@ -11,12 +11,17 @@ import { cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconBolt } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillsSearchBar } from "@/components/skills/SkillsSearchBar";
+import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
+import { WriteSkillDialog } from "@/components/skills/WriteSkillDialog";
+import { UploadSkillDialog } from "@/components/skills/UploadSkillDialog";
 import { skillsSearchParams } from "@/routes/_main/skills/-searchParams";
 
 export type SkillsSidebarNavProps = {
   isIconOnly: boolean;
   isMobile: boolean;
 };
+
+type CreateModalState = "none" | "write" | "upload";
 
 export function SkillsSidebarNav({
   isIconOnly,
@@ -29,6 +34,7 @@ export function SkillsSidebarNav({
   const skills = useQuery(api.skills.listMy);
   const [{ q: searchQuery }, setSearchParams] =
     useQueryStates(skillsSearchParams);
+  const [createModal, setCreateModal] = useState<CreateModalState>("none");
 
   const filteredSkills = useMemo(() => {
     if (!skills) return [];
@@ -43,6 +49,10 @@ export function SkillsSidebarNav({
 
   const openSkill = (id: Id<"skills">) => {
     void navigate({ to: "/skills/$id", params: { id } });
+  };
+
+  const handleSkillCreated = (id: Id<"skills">) => {
+    openSkill(id);
   };
 
   return (
@@ -99,6 +109,32 @@ export function SkillsSidebarNav({
           </>
         )}
       </div>
+
+      {!isIconOnly ? (
+        <div className="shrink-0 px-1 pt-2">
+          <SkillsAddMenu
+            className="w-full gap-2"
+            onWriteSkill={() => setCreateModal("write")}
+            onUploadSkill={() => setCreateModal("upload")}
+          />
+        </div>
+      ) : null}
+
+      <WriteSkillDialog
+        open={createModal === "write"}
+        onOpenChange={(open) => {
+          if (!open) setCreateModal("none");
+        }}
+        onCreated={handleSkillCreated}
+      />
+
+      <UploadSkillDialog
+        open={createModal === "upload"}
+        onOpenChange={(open) => {
+          if (!open) setCreateModal("none");
+        }}
+        onCreated={handleSkillCreated}
+      />
     </motion.nav>
   );
 }

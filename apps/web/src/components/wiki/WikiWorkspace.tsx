@@ -1,85 +1,132 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  IconChevronDown,
-  IconFileText,
-  IconFolderPlus,
-  IconListDetails,
-  IconPlus,
-} from "@tabler/icons-react";
+import { toast } from "sonner";
 import { api } from "@vmem/backend";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  cn,
-} from "@vmem/ui";
+import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
 import PageContainer from "@/components/PageContainer";
-import { buildTree, findFirstDocumentId } from "./_utils";
+import { buildTree, findAncestors, findFirstDocumentId } from "./_utils";
 import type { OutlineHeading } from "./_utils";
 import WikiEditor from "./WikiEditor";
 import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
+import { WikiPageBreadcrumb } from "./WikiPageBreadcrumb";
+import { WikiDocActionsMenu } from "./WikiDocActionsMenu";
 
 interface WikiWorkspaceProps {
   docId: string | null;
 }
 
 /**
- * Wiki editor shell. Document tree lives in the root sidebar (like skills/settings).
- * Center pane: editor; optional outline column on the right.
+ * Wiki editor shell. Document tree and Add live in the root sidebar.
+ * Page header: breadcrumb + inline title; outline toggle and actions grouped on the right.
  */
 export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const navigate = useNavigate();
   const nodes = useQuery(api.wiki.listTree);
-  const createNode = useMutation(api.wiki.createNode);
-  const { outlineVisible, setOutlineVisible, setWordCount, setHasDoc } =
-    useWikiSidebar();
+  const doc = useQuery(api.wiki.getNode, docId ? { id: docId } : "skip");
+  const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
+    (localStore, args) => {
+      const tree = localStore.getQuery(api.wiki.listTree, {});
+      if (tree) {
+        localStore.setQuery(
+          api.wiki.listTree,
+          {},
+          tree.map((node) =>
+            node._id === args.id
+              ? { ...node, title: args.title, updatedAt: Date.now() }
+              : node,
+          ),
+        );
+      }
+      const node = localStore.getQuery(api.wiki.getNode, { id: args.id });
+      if (node) {
+        localStore.setQuery(
+          api.wiki.getNode,
+          { id: args.id },
+          { ...node, title: args.title, updatedAt: Date.now() },
+        );
+      }
+    },
+  );
+  const {
+    outlineVisible,
+    setOutlineVisible,
+    wordCount,
+    setWordCount,
+    setHasDoc,
+  } = useWikiSidebar();
 
   const [headings, setHeadings] = useState<OutlineHeading[]>([]);
   const [jumpRequest, setJumpRequest] = useState<{ pos: number; n: number }>({
     pos: 0,
     n: 0,
   });
-  const [isMobileOutlineOpen, setIsMobileOutlineOpen] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [copyReady, setCopyReady] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const copyDocumentRef = useRef<(() => Promise<void>) | null>(null);
 
   const tree = nodes ? buildTree(nodes) : [];
-  const hasDoc = docId !== null && docId.length > 0;
-
-  const handleCreateRoot = useCallback(
-    async (kind: "folder" | "document") => {
-      const title = kind === "folder" ? "Untitled folder" : "Untitled";
-      const newId = await createNode({ parentId: undefined, kind, title });
-      if (kind === "document") {
-        void navigate({ to: "/wiki/$docId", params: { docId: newId } });
-      }
-    },
-    [createNode, navigate],
-  );
+  const hasDocId = docId !== null && docId.length > 0;
+  const isDocLoading = hasDocId && doc === undefined;
+  const hasDoc =
+    hasDocId && doc !== null && doc !== undefined && doc.kind === "document";
+  const ancestors = doc && nodes ? findAncestors(doc, nodes) : [];
+  const pageTitle = hasDoc && doc ? titleDraft || doc.title : "Wiki";
 
   const handleJumpToHeading = (pos: number) => {
     setJumpRequest((prev) => ({ pos, n: prev.n + 1 }));
-    setIsMobileOutlineOpen(false);
   };
+
+  const handleTitleCommit = useCallback(async () => {
+    if (!doc || doc.kind !== "document") return;
+    const trimmed = titleDraft.trim();
+    if (trimmed.length === 0 || trimmed === doc.title) {
+      setTitleDraft(doc.title);
+      return;
+    }
+    try {
+      await renameNode({ id: doc._id, title: trimmed });
+      toast.success("Saved!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+      setTitleDraft(doc.title);
+    }
+  }, [doc, renameNode, titleDraft]);
+
+  const handleCopy = useCallback(() => {
+    void copyDocumentRef.current?.();
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
+    return () => mediaQuery.removeEventListener("change", updateViewport);
+  }, []);
 
   useEffect(() => {
     setHasDoc(hasDoc);
-    if (!hasDoc) {
+    if (!hasDocId) {
       setOutlineVisible(false);
       setWordCount(0);
+      setTitleDraft("");
     }
-  }, [hasDoc, setHasDoc, setOutlineVisible, setWordCount]);
+  }, [hasDoc, hasDocId, setHasDoc, setOutlineVisible, setWordCount]);
 
   useEffect(() => {
-    if (hasDoc || !nodes) return;
+    if (doc?.kind === "document") {
+      setTitleDraft(doc.title);
+    }
+  }, [doc?._id, doc?.title, doc?.kind]);
+
+  // Only when `/wiki` has no doc id — not while a selected doc is loading.
+  useEffect(() => {
+    if (!nodes || hasDocId) return;
     const firstId = findFirstDocumentId(tree);
     if (firstId !== null) {
       void navigate({
@@ -88,12 +135,12 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
         replace: true,
       });
     }
-  }, [hasDoc, nodes, tree, navigate]);
+  }, [hasDocId, nodes, tree, navigate]);
 
+  // URL points at a folder (not a document) — open first document instead.
   useEffect(() => {
-    if (!hasDoc || !nodes) return;
-    const current = nodes.find((node) => node._id === docId);
-    if (current?.kind === "document") return;
+    if (!hasDocId || !nodes || doc === undefined) return;
+    if (doc === null || doc.kind === "document") return;
     const firstId = findFirstDocumentId(tree);
     if (firstId !== null && firstId !== docId) {
       void navigate({
@@ -102,69 +149,53 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
         replace: true,
       });
     }
-  }, [hasDoc, docId, nodes, tree, navigate]);
+  }, [hasDocId, docId, doc, nodes, tree, navigate]);
 
   return (
     <PageContainer
-      title="Wiki"
-      showTitle
+      title={pageTitle}
       noScroll
+      breadcrumb={
+        hasDoc || isDocLoading ? (
+          <WikiPageBreadcrumb
+            ancestors={ancestors}
+            title={titleDraft}
+            onTitleChange={setTitleDraft}
+            onTitleCommit={() => void handleTitleCommit()}
+          />
+        ) : undefined
+      }
       rightSection={
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <IconPlus size={16} />
-              Add
-              <IconChevronDown size={14} className="text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onSelect={() => void handleCreateRoot("document")}
-            >
-              <IconFileText size={16} />
-              New document
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => void handleCreateRoot("folder")}>
-              <IconFolderPlus size={16} />
-              New folder
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        hasDoc || isDocLoading ? (
+          <WikiDocActionsMenu
+            outlineVisible={outlineVisible}
+            onOutlineVisibleChange={setOutlineVisible}
+            wordCount={wordCount}
+            onCopy={handleCopy}
+            copyDisabled={!copyReady}
+          />
+        ) : undefined
       }
     >
       <div className="flex h-full min-h-0 flex-1 flex-col">
-        {hasDoc ? (
+        {hasDoc || isDocLoading ? (
           <div className="flex min-h-0 min-w-0 flex-1 gap-4">
-            <div
-              className={cn(
-                "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl bg-muted/40",
-              )}
-            >
-              <div className="flex items-center justify-end gap-2 p-2 md:hidden">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsMobileOutlineOpen(true)}
-                  aria-label="Open outline"
-                  className="gap-1.5"
-                >
-                  <IconListDetails size={16} />
-                  View outline
-                </Button>
-              </div>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <WikiEditor
                 docId={docId}
-                allNodes={nodes ?? []}
+                titleForCopy={titleDraft}
+                onRegisterCopy={(handler) => {
+                  copyDocumentRef.current = handler;
+                  setCopyReady(handler !== null);
+                }}
                 onHeadingsChange={setHeadings}
                 onWordCountChange={setWordCount}
                 jumpRequest={jumpRequest}
               />
             </div>
 
-            {outlineVisible ? (
-              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto scrollbar-thin md:block">
+            {outlineVisible && !isMobileViewport && hasDoc ? (
+              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-xl bg-muted/40 p-2 scrollbar-thin md:block">
                 <WikiOutline
                   headings={headings}
                   onJump={handleJumpToHeading}
@@ -180,7 +211,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
         ) : tree.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             <p className="text-sm text-muted-foreground">
-              No documents yet. Use Add to create one.
+              No documents yet. Use Add in the sidebar to create one.
             </p>
           </div>
         ) : (
@@ -192,8 +223,13 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
         )}
       </div>
 
-      <Dialog open={isMobileOutlineOpen} onOpenChange={setIsMobileOutlineOpen}>
-        <DialogContent className="md:hidden sm:max-w-sm">
+      <Dialog
+        open={outlineVisible && hasDoc && isMobileViewport}
+        onOpenChange={(open) => {
+          if (!open) setOutlineVisible(false);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
           <DialogTitle className="sr-only">Outline</DialogTitle>
           <div className="max-h-[60vh] overflow-y-auto scrollbar-thin">
             <WikiOutline

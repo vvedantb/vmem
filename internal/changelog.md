@@ -1,5 +1,108 @@
 # Changelog
 
+## Git — strip Cursor commit attribution — 2026-05-24
+
+- **No agent attribution trailers**: `prepare-commit-msg` husky hook removes `Co-authored-by: Cursor` and `Made-with: Cursor` before commits land; agents must not add them.
+
+## MCP memory graph layout — 2026-05-24
+
+- **Clearer MCP graph labels**: Stronger node repulsion, smaller 9px width-truncated labels, visible at fit zoom.
+
+## MCP connector branding removed — 2026-05-24
+
+- **Dropped icon/favicon work**: Removed SEP-973 `serverInfo.icons`, bundled favicon, `/favicon.*` routes, and branding test — Claude custom connectors ignore icons anyway ([anthropics/claude-ai-mcp#152](https://github.com/anthropics/claude-ai-mcp/issues/152)). OAuth `WEB_APP_URL` helpers moved to `mcp/webAppUrl.ts`.
+
+## MCP connector icons — 2026-05-24
+
+- **Dev-only MCP**: Documented dev URLs in `internal/mcp-apps.md`; branding test refuses prod.
+- **Icons without SSO favicon**: Dropped `WEB_APP_URL/favicon.png` from `serverInfo.icons` (staging Vercel returns 401); keep inline `data:` + `*.convex.site/favicon.png`. Added `scripts/test-mcp-branding.mjs`.
+
+## MCP memory graph UI — 2026-05-24
+
+- **Web-aligned MCP App chrome**: oklch tokens, graph canvas palette (tag hue nodes, amber relates-to / muted tag edges, glow), toolbar + legend + zoom/fit controls matching the memories graph view.
+
+## MCP Apps architecture — 2026-05-23
+
+- **Skybridge decision**: Documented in `internal/mcp-apps.md` — keep `ext-apps` + Convex-bundled HTML for embedded views; do not adopt Skybridge unless multi-app / ChatGPT parity / separate MCP product.
+
+## MCP memory graph viewport — 2026-05-24
+
+- **Taller MCP App canvas**: Graph widget requests ~560px height via ext-apps `sendSizeChanged` and CSS min-heights (no Skybridge — already on the MCP Apps SDK).
+
+## MCP memory graph payload limits — 2026-05-24
+
+- **Smaller `memory_graph` tool results**: Dropped duplicate full JSON from model-facing `content` (widget still uses `structuredContent`); default cap lowered to 80 nodes with tighter edge/tag limits so Claude no longer rejects oversized tool results.
+
+## MCP Claude SSE handshake — 2026-05-24
+
+- **GET `/mcp` SSE keepalive**: Claude Web/Desktop opens `Accept: text/event-stream` after OAuth; we previously returned 405 and broke the connector ("Unable to reach vmem"). Stateless POST handling unchanged; GET returns a comment keepalive stream.
+- **DELETE `/mcp`**: Returns 200 for session teardown (no-op in stateless mode).
+
+## MCP connector branding — 2026-05-24
+
+- **Favicon on Convex site origin**: `/favicon.png` and `/favicon.ico` serve the vmem PNG from the MCP deployment URL.
+- **SEP-973 `serverInfo`**: `initialize` returns `title`, `description`, `websiteUrl`, and `icons` — primary icon is inline `data:image/png;base64` (Claude’s Google favicon fallback collapses `*.eu-west-1.convex.site` to `eu-west-1.convex.site`); secondary icons use `WEB_APP_URL` and Convex site.
+- **OAuth discovery**: `service_documentation` and `resource_documentation` link to `WEB_APP_URL`.
+- **Rebuild**: `pnpm --filter @vmem/backend build:mcp-favicon` (included in `build:mcp-assets` / deploy).
+
+## MCP memory graph app — 2026-05-24
+
+- **`memory_graph` MCP App tool**: Interactive pan/zoom canvas of memory nodes and RELATES_TO / shared-tag links, rendered in Claude Desktop and other MCP Apps hosts via ext-apps (`ui://vmem/memory-graph`).
+- **Memories-only v1**: Uses Neo4j graph data (profile-scoped); optional `focus`, `memoryIds`, and `limit` for subgraphs after search/retrieve.
+- **Convex-only deploy**: Bundled HTML served from `resources/read` on the existing `/mcp` endpoint; rebuild with `pnpm --filter @vmem/backend build:mcp-graph-ui` before deploy.
+
+## Convex optimistic updates — 2026-05-24
+
+- **Responsive UI mutations**: Convex `useMutation` calls across web (and extension settings) patch live query caches immediately so toggles, lists, and forms update without waiting on the server round-trip.
+
+## Wiki and skills header polish — 2026-05-24
+
+- **Toggles in ⋯ menu**: View outline and Enabled use switch rows inside the actions dropdown (wider wiki menu, no outline icon).
+- **Full-width titles**: Breadcrumb title inputs expand across the header; PageContainer no longer reserves empty center space when centerSection is unset.
+
+## Skills layout polish — 2026-05-24
+
+- **Inline name in header**: Open skills show an editable title in the page header instead of a static “Skills” label and duplicate name in the panel.
+- **Grouped header controls**: Enabled switch and skill menu (copy, edit, delete) sit in one control; main pane is description and instructions only.
+- **Add in sidebar**: Write/upload creation moved to the skills sidebar footer, matching Wiki and Codebases.
+- **Navigation fix**: Switching skills no longer snaps back to the first item while the list loads.
+
+## Wiki layout polish — 2026-05-24
+
+- **Grouped header controls**: View outline switch and document menu sit in one control; word count lives in the ⋯ dropdown.
+- **Surface hierarchy**: Editor is flat; outline panel uses the muted surface.
+- **Navigation fix**: Switching wiki pages no longer snaps back to the first document while the next doc loads.
+
+## Add repository modal — 2026-05-24
+
+- **Richer repo picker**: GitHub header, flat search, repo rows matching sidebar cards (avatar, language dot, description).
+- **Already-added hidden**: Repositories already synced are filtered out of the list.
+
+## Wiki document header — 2026-05-24
+
+- **Inline title in header**: Open documents show folder breadcrumb + editable page title in the page header instead of a static “Wiki” label and duplicate title in the editor.
+- **Doc chrome in header**: View outline toggle, word count, and document actions (copy) live in the page header; the editor pane is content only.
+- **Add in sidebar**: New document/folder creation moved to the wiki sidebar footer, matching Teams and Codebases.
+
+## Team sections in sidebar — 2026-05-24
+
+- **Indented sub-nav**: Overview, Knowledge, Members, and Settings (owners) appear under the selected team in the Teams sidebar with section icons; header tab bar removed.
+- **Grouped selection**: Active team and its sections share one muted surface; section links use tonal active state instead of stacked glass highlights.
+- **Breadcrumb**: Detail header shows `Team name / Section` (team name links to Overview).
+- **Default section**: Clicking a team opens Overview; collapsed sidebar hides sub-links until expanded.
+
+## Codebases sidebar navigation — 2026-05-24
+
+- **Settings-style sidebar**: Clicking Codebases swaps the root sidebar to a searchable repo list with header back, matching Skills, Wiki, and Teams.
+- **Graph-first routing**: `/codebases` redirects to the first repository graph when you have repos; empty state stays in the main pane with add/connect actions.
+- **Parser re-sync in sidebar**: Stale-parser banner and Re-sync all moved from the grid index into the sidebar list.
+
+## Teams sidebar navigation — 2026-05-24
+
+- **Settings-style sidebar**: Clicking Teams swaps the root sidebar to a searchable team list with header back, matching Skills, Wiki, and Settings.
+- **Overview-first routing**: `/teams` redirects to the first team’s overview when you have teams; empty state stays in the main pane with create actions.
+- **Shareable search**: Team list filter uses `?q=` in the URL; sidebar includes Create team.
+
 ## Sub-sidebar header chrome — 2026-05-24
 
 - **Header swap**: Settings, Skills, and Wiki replace the vmem logo with a centered section title; back is an icon button in the header, not a list row.

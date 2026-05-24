@@ -19,22 +19,17 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-  Label,
-  Switch,
   cn,
 } from "@vmem/ui";
 import type { WikiTreeNode } from "./_utils";
 import RenameDialog from "./RenameDialog";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import { optimisticId } from "@/lib/optimisticId";
 
 interface WikiTreeProps {
   tree: WikiTreeNode[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-  outlineVisible: boolean;
-  onOutlineVisibleChange: (visible: boolean) => void;
-  hasDoc: boolean;
-  wordCount: number;
 }
 
 /**
@@ -48,14 +43,90 @@ export default function WikiTree({
   tree,
   selectedId,
   onSelect,
-  outlineVisible,
-  onOutlineVisibleChange,
-  hasDoc,
-  wordCount,
 }: WikiTreeProps) {
-  const createNode = useMutation(api.wiki.createNode);
-  const renameNode = useMutation(api.wiki.renameNode);
-  const deleteNode = useMutation(api.wiki.deleteNode);
+  const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
+    (localStore, args) => {
+      const tree = localStore.getQuery(api.wiki.listTree, {});
+      if (!tree || tree.length === 0) return;
+      const siblings = tree.filter((n) => n.parentId === args.parentId);
+      const nextOrder =
+        siblings.length === 0
+          ? 0
+          : Math.max(...siblings.map((s) => s.order)) + 1;
+      const now = Date.now();
+      const tempId = optimisticId("wikiNodes");
+      const row: Doc<"wikiNodes"> = {
+        _id: tempId,
+        _creationTime: now,
+        userId: tree[0].userId,
+        parentId: args.parentId,
+        kind: args.kind,
+        title: args.title,
+        content: args.kind === "document" ? "" : undefined,
+        contentText: args.kind === "document" ? "" : undefined,
+        order: nextOrder,
+        createdAt: now,
+        updatedAt: now,
+      };
+      localStore.setQuery(api.wiki.listTree, {}, [...tree, row]);
+    },
+  );
+  const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
+    (localStore, args) => {
+      const tree = localStore.getQuery(api.wiki.listTree, {});
+      if (tree) {
+        localStore.setQuery(
+          api.wiki.listTree,
+          {},
+          tree.map((node) =>
+            node._id === args.id
+              ? { ...node, title: args.title, updatedAt: Date.now() }
+              : node,
+          ),
+        );
+      }
+      const node = localStore.getQuery(api.wiki.getNode, { id: args.id });
+      if (node) {
+        localStore.setQuery(
+          api.wiki.getNode,
+          { id: args.id },
+          { ...node, title: args.title, updatedAt: Date.now() },
+        );
+      }
+    },
+  );
+  const deleteNode = useMutation(api.wiki.deleteNode).withOptimisticUpdate(
+    (localStore, args) => {
+      const tree = localStore.getQuery(api.wiki.listTree, {});
+      if (!tree) return;
+      const childrenByParent = new Map<string, Array<Id<"wikiNodes">>>();
+      for (const node of tree) {
+        const key = node.parentId ?? "__root__";
+        const list = childrenByParent.get(key) ?? [];
+        list.push(node._id);
+        childrenByParent.set(key, list);
+      }
+      const remove = new Set<string>([args.id]);
+      const stack: Array<Id<"wikiNodes">> = [args.id];
+      while (stack.length > 0) {
+        const current = stack.pop();
+        if (current === undefined) continue;
+        for (const child of childrenByParent.get(current) ?? []) {
+          remove.add(child);
+          stack.push(child);
+        }
+      }
+      localStore.setQuery(
+        api.wiki.listTree,
+        {},
+        tree.filter((node) => !remove.has(node._id)),
+      );
+      const open = localStore.getQuery(api.wiki.getNode, { id: args.id });
+      if (open) {
+        localStore.setQuery(api.wiki.getNode, { id: args.id }, null);
+      }
+    },
+  );
 
   const [renameTarget, setRenameTarget] = useState<Doc<"wikiNodes"> | null>(
     null,
@@ -80,7 +151,7 @@ export default function WikiTree({
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
         {tree.length === 0 ? (
           <p className="px-2 py-3 text-xs text-muted-foreground">
-            No documents yet. Use + in the header to create one.
+            No documents yet. Use Add below to create one.
           </p>
         ) : (
           <ul className="flex flex-col">
@@ -98,32 +169,6 @@ export default function WikiTree({
             ))}
           </ul>
         )}
-      </div>
-
-      <div className="flex items-center justify-between gap-2 mt-2 px-1 pt-2 shrink-0">
-        <div className="flex min-w-0 items-center gap-2">
-          <Switch
-            id="wiki-view-outline"
-            checked={outlineVisible}
-            disabled={!hasDoc}
-            onCheckedChange={onOutlineVisibleChange}
-            aria-label="View outline"
-          />
-          <Label
-            htmlFor="wiki-view-outline"
-            className={cn(
-              "cursor-pointer text-sm font-medium",
-              hasDoc ? "text-foreground" : "text-muted-foreground",
-            )}
-          >
-            View outline
-          </Label>
-        </div>
-        {hasDoc ? (
-          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-            {wordCount.toLocaleString()} {wordCount === 1 ? "word" : "words"}
-          </span>
-        ) : null}
       </div>
 
       <RenameDialog

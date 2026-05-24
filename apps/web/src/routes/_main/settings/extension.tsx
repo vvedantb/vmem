@@ -11,7 +11,13 @@ export const Route = createFileRoute("/_main/settings/extension")({
 
 function ExtensionSettingsPage() {
   const settings = useQuery(api.userSettings.get);
-  const updateSettings = useMutation(api.userSettings.update);
+  const updateSettings = useMutation(
+    api.userSettings.update,
+  ).withOptimisticUpdate((localStore, args) => {
+    const current = localStore.getQuery(api.userSettings.get, {});
+    if (!current) return;
+    localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
+  });
 
   const saveSettings = async (
     patch: Parameters<typeof updateSettings>[0],

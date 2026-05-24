@@ -8,7 +8,35 @@ import type { TeamDetail } from "../-team-detail";
 import { AddMemberDialog } from "./AddMemberDialog";
 
 export function TeamMembers({ data }: { data: TeamDetail }) {
-  const removeMember = useMutation(api.teams.removeMember);
+  const removeMember = useMutation(api.teams.removeMember).withOptimisticUpdate(
+    (localStore, args) => {
+      const detail = localStore.getQuery(api.teams.get, {
+        teamId: args.teamId,
+      });
+      if (detail) {
+        localStore.setQuery(
+          api.teams.get,
+          { teamId: args.teamId },
+          {
+            ...detail,
+            members: detail.members.filter((m) => m.userId !== args.userId),
+          },
+        );
+      }
+      const list = localStore.getQuery(api.teams.list, {});
+      if (list) {
+        localStore.setQuery(
+          api.teams.list,
+          {},
+          list.map((entry) =>
+            entry.team._id === args.teamId
+              ? { ...entry, memberCount: Math.max(0, entry.memberCount - 1) }
+              : entry,
+          ),
+        );
+      }
+    },
+  );
   const [addOpen, setAddOpen] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
 

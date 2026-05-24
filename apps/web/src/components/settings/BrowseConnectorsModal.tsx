@@ -1,19 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useMemo, useState } from "react";
+import { useQuery } from "convex/react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   Button,
 } from "@vmem/ui";
+import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 import { api, type Doc } from "@vmem/backend";
-import { IconLoader2 } from "@tabler/icons-react";
 import OAuthModal from "@/components/OAuthModal";
 import { GitHubConnectorControls } from "./GitHubConnectorControls";
 import {
@@ -41,6 +39,18 @@ const iconMap: Record<
   IconBrandLinear: LinearIcon,
 };
 
+type GitHubConnection = FunctionReturnType<typeof api.github.getConnection>;
+
+function isConnectorConnected(
+  connector: Doc<"connectors">,
+  githubConnection: GitHubConnection | undefined,
+): boolean {
+  if (connector.name === "GitHub") {
+    return githubConnection !== undefined && githubConnection !== null;
+  }
+  return connector.connectionStatus === "connected";
+}
+
 interface BrowseConnectorsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -52,14 +62,16 @@ export default function BrowseConnectorsModal({
   onClose,
   connectors,
 }: BrowseConnectorsModalProps) {
-  const [disconnectTarget, setDisconnectTarget] =
-    useState<Doc<"connectors"> | null>(null);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [oauthConnector, setOauthConnector] =
     useState<Doc<"connectors"> | null>(null);
 
-  const disconnectAction = useAction(api.connectorOAuth.disconnect);
   const githubConnection = useQuery(api.github.getConnection);
+
+  const availableConnectors = useMemo(() => {
+    return connectors
+      .filter((connector) => !isConnectorConnected(connector, githubConnection))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [connectors, githubConnection]);
 
   const handleConnect = (connector: Doc<"connectors">) => {
     if (!connector.provider) {
@@ -75,20 +87,6 @@ export default function BrowseConnectorsModal({
     setOauthConnector(null);
   };
 
-  const handleDisconnectConfirm = async () => {
-    if (!disconnectTarget) return;
-    setIsDisconnecting(true);
-    try {
-      await disconnectAction({ connectorId: disconnectTarget._id });
-      toast(`Disconnected from ${disconnectTarget.name}`);
-      setDisconnectTarget(null);
-    } catch {
-      toast.error("Failed to disconnect");
-    } finally {
-      setIsDisconnecting(false);
-    }
-  };
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -99,12 +97,14 @@ export default function BrowseConnectorsModal({
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-1 overflow-hidden">
-            {connectors.map((connector) => {
+            {availableConnectors.length === 0 ? (
+              <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                All connectors are connected.
+              </p>
+            ) : null}
+            {availableConnectors.map((connector) => {
               const Icon = iconMap[connector.icon] || GoogleDriveIcon;
               const isGitHub = connector.name === "GitHub";
-              const isConnected = isGitHub
-                ? githubConnection !== undefined && githubConnection !== null
-                : connector.connectionStatus === "connected";
               const hasProvider = isGitHub || !!connector.provider;
 
               return (
@@ -126,15 +126,6 @@ export default function BrowseConnectorsModal({
                   <div className="flex-shrink-0">
                     {isGitHub ? (
                       <GitHubConnectorControls connection={githubConnection} />
-                    ) : isConnected ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDisconnectTarget(connector)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        Disconnect
-                      </Button>
                     ) : (
                       <Button
                         size="sm"
@@ -157,50 +148,15 @@ export default function BrowseConnectorsModal({
         </DialogContent>
       </Dialog>
 
-      {oauthConnector && (
+      {oauthConnector ? (
         <OAuthModal
-          isOpen={!!oauthConnector}
+          isOpen
           onClose={() => setOauthConnector(null)}
           connectorId={oauthConnector._id}
           connectorName={oauthConnector.name}
           onComplete={handleOAuthComplete}
         />
-      )}
-
-      <Dialog
-        open={disconnectTarget !== null}
-        onOpenChange={(open) => !open && setDisconnectTarget(null)}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Disconnect {disconnectTarget?.name}?</DialogTitle>
-            <DialogDescription>
-              This will remove access to {disconnectTarget?.name}. You can
-              reconnect anytime.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setDisconnectTarget(null)}
-              disabled={isDisconnecting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => void handleDisconnectConfirm()}
-              disabled={isDisconnecting}
-            >
-              {isDisconnecting ? (
-                <IconLoader2 size={14} className="animate-spin" />
-              ) : (
-                "Disconnect"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      ) : null}
     </>
   );
 }

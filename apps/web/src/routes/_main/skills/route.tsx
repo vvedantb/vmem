@@ -6,29 +6,17 @@ import {
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import {
-  Button,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@vmem/ui";
-import {
-  IconBolt,
-  IconChevronDown,
-  IconPencil,
-  IconPlus,
-  IconUpload,
-} from "@tabler/icons-react";
-import { useEffect, useMemo, useState } from "react";
+import { IconBolt } from "@tabler/icons-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import PageContainer from "@/components/PageContainer";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
-import { WriteSkillDialog } from "@/components/skills/WriteSkillDialog";
-import { UploadSkillDialog } from "@/components/skills/UploadSkillDialog";
+import { SkillPageTitle } from "@/components/skills/SkillPageTitle";
+import { SkillHeaderActions } from "@/components/skills/SkillHeaderActions";
 import { EditSkillDialog } from "@/components/skills/EditSkillDialog";
 import { skillsSearchParams } from "./-searchParams";
 
@@ -36,11 +24,7 @@ export const Route = createFileRoute("/_main/skills")({
   component: SkillsLayout,
 });
 
-type ModalState =
-  | { mode: "none" }
-  | { mode: "write" }
-  | { mode: "upload" }
-  | { mode: "edit"; skillId: Id<"skills"> };
+type ModalState = { mode: "none" } | { mode: "edit"; skillId: Id<"skills"> };
 
 function SkillsLayout() {
   const navigate = useNavigate();
@@ -48,8 +32,35 @@ function SkillsLayout() {
   const skillId = typeof params.id === "string" ? params.id : undefined;
 
   const skills = useQuery(api.skills.listMy);
+  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
+    (localStore, args) => {
+      const current = localStore.getQuery(api.skills.listMy, {});
+      if (!current) return;
+      const now = Date.now();
+      localStore.setQuery(
+        api.skills.listMy,
+        {},
+        current.map((row) => {
+          if (row._id !== args.id) return row;
+          return {
+            ...row,
+            ...(args.name !== undefined ? { name: args.name.trim() } : {}),
+            ...(args.description !== undefined
+              ? { description: args.description }
+              : {}),
+            ...(args.instructions !== undefined
+              ? { instructions: args.instructions }
+              : {}),
+            ...(args.enabled !== undefined ? { enabled: args.enabled } : {}),
+            updatedAt: now,
+          };
+        }),
+      );
+    },
+  );
   const [{ q: searchQuery }] = useQueryStates(skillsSearchParams);
   const [modal, setModal] = useState<ModalState>({ mode: "none" });
+  const [nameDraft, setNameDraft] = useState("");
 
   const filteredSkills = useMemo(() => {
     if (!skills) return [];
@@ -62,18 +73,60 @@ function SkillsLayout() {
     );
   }, [skills, searchQuery]);
 
-  useEffect(() => {
-    if (!skills || !skillId) return;
-    if (filteredSkills.length === 0) return;
+  const hasSkillId = typeof skillId === "string" && skillId.length > 0;
+  const viewedSkill = hasSkillId
+    ? skills?.find((skill) => skill._id === skillId)
+    : undefined;
+  const hasSkill = hasSkillId && viewedSkill !== undefined;
+  const isSkillLoading = hasSkillId && skills === undefined;
 
-    if (!filteredSkills.some((s) => s._id === skillId)) {
-      void navigate({
-        to: "/skills/$id",
-        params: { id: filteredSkills[0]._id },
-        replace: true,
-      });
+  const editingSkill =
+    modal.mode === "edit"
+      ? skills?.find((skill) => skill._id === modal.skillId)
+      : undefined;
+
+  const pageTitle =
+    hasSkill && viewedSkill ? nameDraft || viewedSkill.name : "Skills";
+
+  const handleNameCommit = useCallback(async () => {
+    if (!viewedSkill) return;
+    const trimmed = nameDraft.trim();
+    if (trimmed.length === 0 || trimmed === viewedSkill.name) {
+      setNameDraft(viewedSkill.name);
+      return;
     }
-  }, [filteredSkills, skillId, navigate, skills]);
+    try {
+      await updateSkill({ id: viewedSkill._id, name: trimmed });
+      toast.success("Saved!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+      setNameDraft(viewedSkill.name);
+    }
+  }, [nameDraft, updateSkill, viewedSkill]);
+
+  useEffect(() => {
+    if (!hasSkillId) {
+      setNameDraft("");
+    }
+  }, [hasSkillId]);
+
+  useEffect(() => {
+    if (viewedSkill) {
+      setNameDraft(viewedSkill.name);
+    }
+  }, [viewedSkill?._id, viewedSkill?.name]);
+
+  useEffect(() => {
+    if (!skills || !hasSkillId) return;
+    if (filteredSkills.length === 0) return;
+    if (isSkillLoading) return;
+    if (filteredSkills.some((skill) => skill._id === skillId)) return;
+    void navigate({
+      to: "/skills/$id",
+      params: { id: filteredSkills[0]._id },
+      replace: true,
+    });
+  }, [filteredSkills, hasSkillId, isSkillLoading, skillId, navigate, skills]);
 
   useEffect(() => {
     if (!skills) return;
@@ -82,30 +135,13 @@ function SkillsLayout() {
     }
   }, [skills, modal]);
 
-  const viewedSkill = skillId
-    ? skills?.find((s) => s._id === skillId)
-    : undefined;
-
-  const editingSkill =
-    modal.mode === "edit"
-      ? skills?.find((s) => s._id === modal.skillId)
-      : undefined;
-
-  const openSkill = (id: Id<"skills">) => {
-    void navigate({ to: "/skills/$id", params: { id } });
-  };
-
-  const handleSkillCreated = (id: Id<"skills">) => {
-    openSkill(id);
-  };
-
   const handleSkillDeleted = () => {
     setModal({ mode: "none" });
     if (!skills) {
       void navigate({ to: "/skills", replace: true });
       return;
     }
-    const remaining = skills.filter((s) => s._id !== skillId);
+    const remaining = skills.filter((skill) => skill._id !== skillId);
     if (remaining.length === 0) {
       void navigate({ to: "/skills", replace: true });
       return;
@@ -119,40 +155,35 @@ function SkillsLayout() {
 
   return (
     <PageContainer
-      title="Skills"
+      title={pageTitle}
       noScroll
+      breadcrumb={
+        hasSkill || isSkillLoading ? (
+          <SkillPageTitle
+            name={nameDraft}
+            onNameChange={setNameDraft}
+            onNameCommit={() => void handleNameCommit()}
+          />
+        ) : undefined
+      }
       rightSection={
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <IconPlus size={16} />
-              Add Skill
-              <IconChevronDown size={14} className="text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setModal({ mode: "write" })}>
-              <IconPencil size={16} />
-              Write skill
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setModal({ mode: "upload" })}>
-              <IconUpload size={16} />
-              Upload skill
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        hasSkill && viewedSkill ? (
+          <SkillHeaderActions
+            skill={viewedSkill}
+            onEdit={() => setModal({ mode: "edit", skillId: viewedSkill._id })}
+            onDeleted={handleSkillDeleted}
+          />
+        ) : undefined
       }
     >
       <div className="flex h-full min-h-0 flex-1 flex-col">
-        {skillId && viewedSkill ? (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl bg-muted/40">
-            <ViewSkillPanel
-              skill={viewedSkill}
-              onEdit={() =>
-                setModal({ mode: "edit", skillId: viewedSkill._id })
-              }
-              onDeleted={handleSkillDeleted}
-            />
+        {hasSkill && viewedSkill ? (
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <ViewSkillPanel skill={viewedSkill} />
+          </div>
+        ) : isSkillLoading ? (
+          <div className="flex flex-1 items-center justify-center">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
           </div>
         ) : skills === undefined ? (
           <div className="flex flex-1 items-center justify-center">
@@ -162,7 +193,7 @@ function SkillsLayout() {
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             <IconBolt size={40} className="mb-3 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              No skills yet. Add one to get started.
+              No skills yet. Use Add in the sidebar to get started.
             </p>
           </div>
         ) : (
@@ -175,22 +206,6 @@ function SkillsLayout() {
       </div>
 
       <Outlet />
-
-      <WriteSkillDialog
-        open={modal.mode === "write"}
-        onOpenChange={(open) => {
-          if (!open) setModal({ mode: "none" });
-        }}
-        onCreated={handleSkillCreated}
-      />
-
-      <UploadSkillDialog
-        open={modal.mode === "upload"}
-        onOpenChange={(open) => {
-          if (!open) setModal({ mode: "none" });
-        }}
-        onCreated={handleSkillCreated}
-      />
 
       <EditSkillDialog
         skill={editingSkill}

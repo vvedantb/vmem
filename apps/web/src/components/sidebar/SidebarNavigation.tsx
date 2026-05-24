@@ -8,10 +8,24 @@ import { navGroups, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { WikiSidebarNav } from "./WikiSidebarNav";
+import { TeamsSidebarNav } from "./TeamsSidebarNav";
+import { CodebasesSidebarNav } from "./CodebasesSidebarNav";
 
-export type SidebarNavView = "main" | "settings" | "skills" | "wiki";
+export type SidebarNavView =
+  | "main"
+  | "settings"
+  | "skills"
+  | "wiki"
+  | "teams"
+  | "codebases";
 
-const subSidebarHrefs = ["/skills", "/settings", "/wiki"] as const;
+const subSidebarHrefs = [
+  "/skills",
+  "/settings",
+  "/wiki",
+  "/teams",
+  "/codebases",
+] as const;
 
 type SubSidebarHref = (typeof subSidebarHrefs)[number];
 
@@ -23,6 +37,8 @@ export function navViewFromPathname(pathname: string): SidebarNavView {
   if (pathname.startsWith("/settings")) return "settings";
   if (pathname.startsWith("/skills")) return "skills";
   if (pathname.startsWith("/wiki")) return "wiki";
+  if (pathname.startsWith("/teams")) return "teams";
+  if (pathname.startsWith("/codebases")) return "codebases";
   return "main";
 }
 
@@ -108,6 +124,8 @@ function MainNav({
   onSettingsClick,
   onSkillsClick,
   onWikiClick,
+  onTeamsClick,
+  onCodebasesClick,
 }: {
   pathname: string;
   unreadCount: number;
@@ -118,6 +136,8 @@ function MainNav({
   onSettingsClick: () => void;
   onSkillsClick: () => void;
   onWikiClick: () => void;
+  onTeamsClick: () => void;
+  onCodebasesClick: () => void;
 }) {
   return (
     <motion.nav
@@ -160,7 +180,11 @@ function MainNav({
                       ? onSkillsClick
                       : item.href === "/wiki"
                         ? onWikiClick
-                        : onSettingsClick;
+                        : item.href === "/teams"
+                          ? onTeamsClick
+                          : item.href === "/codebases"
+                            ? onCodebasesClick
+                            : onSettingsClick;
                   return (
                     <li key={item.href}>
                       <SubSidebarNavButton
@@ -318,6 +342,18 @@ export function SidebarNavigation({
           isIconOnly={isIconOnly}
           isMobile={isMobile}
         />
+      ) : navView === "teams" ? (
+        <TeamsSidebarNav
+          key="teams"
+          isIconOnly={isIconOnly}
+          isMobile={isMobile}
+        />
+      ) : navView === "codebases" ? (
+        <CodebasesSidebarNav
+          key="codebases"
+          isIconOnly={isIconOnly}
+          isMobile={isMobile}
+        />
       ) : (
         <MainNav
           key="main"
@@ -330,6 +366,8 @@ export function SidebarNavigation({
           onSettingsClick={() => onNavViewChange("settings")}
           onSkillsClick={() => onNavViewChange("skills")}
           onWikiClick={() => onNavViewChange("wiki")}
+          onTeamsClick={() => onNavViewChange("teams")}
+          onCodebasesClick={() => onNavViewChange("codebases")}
         />
       )}
     </AnimatePresence>

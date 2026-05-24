@@ -3,7 +3,7 @@
 import { useState, type ChangeEvent, type DragEvent } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
-import type { Id } from "@vmem/backend";
+import type { Doc, Id } from "@vmem/backend";
 import {
   Button,
   Dialog,
@@ -13,6 +13,7 @@ import {
 } from "@vmem/ui";
 import { IconLoader2, IconUpload } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { optimisticId } from "@/lib/optimisticId";
 
 interface UploadSkillDialogProps {
   open: boolean;
@@ -48,7 +49,26 @@ export function UploadSkillDialog({
   onOpenChange,
   onCreated,
 }: UploadSkillDialogProps) {
-  const createSkill = useMutation(api.skills.createSkill);
+  const createSkill = useMutation(api.skills.createSkill).withOptimisticUpdate(
+    (localStore, args) => {
+      const current = localStore.getQuery(api.skills.listMy, {});
+      if (!current || current.length === 0) return;
+      const now = Date.now();
+      const tempId = optimisticId("skills");
+      const row: Doc<"skills"> = {
+        _id: tempId,
+        _creationTime: now,
+        userId: current[0].userId,
+        name: args.name.trim(),
+        description: args.description,
+        instructions: args.instructions,
+        enabled: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+      localStore.setQuery(api.skills.listMy, {}, [row, ...current]);
+    },
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const handleFile = async (file: File | undefined) => {

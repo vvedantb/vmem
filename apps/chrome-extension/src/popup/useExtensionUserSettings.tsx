@@ -11,7 +11,13 @@ import { getStorage, setStorage } from "@/lib/storage";
 
 function useExtensionUserSettingsInner() {
   const settings = useQuery(api.userSettings.get);
-  const update = useMutation(api.userSettings.update);
+  const update = useMutation(api.userSettings.update).withOptimisticUpdate(
+    (localStore, args) => {
+      const current = localStore.getQuery(api.userSettings.get, {});
+      if (!current) return;
+      localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
+    },
+  );
   const migrationRan = useRef(false);
 
   useEffect(() => {

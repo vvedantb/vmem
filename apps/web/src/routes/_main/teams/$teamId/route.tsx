@@ -3,11 +3,12 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
+import { getTeamSectionLabel } from "@/components/teams/team-sidebar-sections";
+import { useActiveTeamSection } from "@/components/teams/use-active-team-section";
 import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Button } from "@vmem/ui";
 import { IconArrowLeft, IconLoader2 } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import { TeamDetailProvider } from "./-team-context";
-import { TeamTabs } from "./_components/TeamTabs";
 
 export const Route = createFileRoute("/_main/teams/$teamId")({
   component: TeamLayout,
@@ -16,6 +17,8 @@ export const Route = createFileRoute("/_main/teams/$teamId")({
 function TeamLayout() {
   const { teamId } = Route.useParams();
   const data = useQuery(api.teams.get, { teamId });
+  const activeSection = useActiveTeamSection();
+  const sectionLabel = getTeamSectionLabel(activeSection ?? "overview");
 
   if (data === undefined) {
     return (
@@ -51,17 +54,19 @@ function TeamLayout() {
   return (
     <TeamDetailProvider value={data}>
       <PageContainer
-        title={data.team.name}
+        title={`${data.team.name} / ${sectionLabel}`}
         breadcrumb={
           <Breadcrumb>
             <BreadcrumbLink asChild>
-              <Link to="/teams">Teams</Link>
+              <Link
+                to="/teams/$teamId/overview"
+                params={{ teamId: data.team._id }}
+              >
+                {data.team.name}
+              </Link>
             </BreadcrumbLink>
-            <BreadcrumbPage>{data.team.name}</BreadcrumbPage>
+            <BreadcrumbPage>{sectionLabel}</BreadcrumbPage>
           </Breadcrumb>
-        }
-        centerSection={
-          <TeamTabs teamId={data.team._id} isOwner={data.role === "owner"} />
         }
       >
         <Outlet />
