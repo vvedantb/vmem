@@ -85,3 +85,17 @@ export const mcpUpdateSkill = internalAction({
     });
   },
 });
+
+/**
+ * MCP entry point: permanently delete a skill by exact name.
+ */
+export const mcpDeleteSkill = internalAction({
+  args: { clerkId: v.string(), name: v.string() },
+  handler: async (ctx, args): Promise<{ deleted: true }> => {
+    await ctx.runMutation(internal.skills.deleteByClerkIdInternal, {
+      clerkId: args.clerkId,
+      name: args.name,
+    });
+    return { deleted: true };
+  },
+});

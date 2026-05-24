@@ -85,7 +85,7 @@ export function registerTools(
 
   server.tool(
     "list_profiles",
-    "List all profiles available to the user. Returns profile IDs, names, colors, and icons. Use a profile ID with memory_add to save to a specific profile. Ask the user which profile they want to use before saving.",
+    "List all profiles available to the user. Returns profile IDs, names, colors, and icons. Use set_active_profile to choose the default profile for MCP memory tools, or pass profileId on memory_add / memory_search / memory_retrieve. Ask the user which profile they want when unclear.",
     {},
     async () => {
       const result = await safe("list_profiles", () =>
@@ -95,6 +95,26 @@ export function registerTools(
       );
       if (!result.ok)
         return errorContent(`List profiles failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "set_active_profile",
+    "Set the default profile for MCP memory tools (memory_add, memory_search, memory_retrieve when profileId is omitted). Call list_profiles first to get valid profile IDs. Does not affect web or extension defaults.",
+    {
+      profileId: z.string().describe("Profile ID from list_profiles"),
+    },
+    async (params) => {
+      const result = await safe("set_active_profile", () =>
+        ctx.runAction(internal.mcpProfiles.mcpSetActiveProfile, {
+          clerkId: clerkUserId,
+          profileId: params.profileId,
+        }),
+      );
+      if (!result.ok) {
+        return errorContent(`Set active profile failed: ${result.message}`);
+      }
       return textContent(jsonText(result.value));
     },
   );
@@ -374,6 +394,25 @@ export function registerTools(
   );
 
   server.tool(
+    "skills_delete",
+    "Permanently delete a skill by exact name (case sensitive). Call skills_get first if unsure of the name. Prefer skills_update with enabled false to hide a skill without deleting it.",
+    {
+      name: z.string().describe("Exact skill name to delete"),
+    },
+    async (params) => {
+      const result = await safe("skills_delete", () =>
+        ctx.runAction(internal.mcpSkills.mcpDeleteSkill, {
+          clerkId: clerkUserId,
+          name: params.name,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Delete skill failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
     "wiki_list",
     "List all wiki folders and documents (flat index, no body). Use returned ids with wiki_get. Call this before wiki_get or wiki_update when you do not already have a node id.",
     {},
@@ -487,6 +526,25 @@ export function registerTools(
       );
       if (!result.ok)
         return errorContent(`Wiki update failed: ${result.message}`);
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
+    "wiki_delete",
+    "Permanently delete a wiki folder or document by id. Deleting a folder removes all descendants. Call wiki_list or wiki_get first to confirm the id.",
+    {
+      id: z.string().describe("Wiki node id from wiki_list"),
+    },
+    async (params) => {
+      const result = await safe("wiki_delete", () =>
+        ctx.runAction(internal.mcpWiki.mcpDeleteWiki, {
+          clerkId: clerkUserId,
+          id: params.id,
+        }),
+      );
+      if (!result.ok)
+        return errorContent(`Wiki delete failed: ${result.message}`);
       return textContent(jsonText(result.value));
     },
   );

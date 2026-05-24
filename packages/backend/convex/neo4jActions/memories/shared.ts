@@ -52,6 +52,15 @@ export async function resolveProfileIdForClerkId(
   if (explicitProfileId) {
     return explicitProfileId;
   }
+
+  const mcpActive = await ctx.runQuery(
+    internal.profiles.getActiveProfileForMcpInternal,
+    { clerkId },
+  );
+  if (mcpActive) {
+    return mcpActive._id;
+  }
+
   const profile = await ctx.runMutation(
     internal.profiles.getOrCreateDefaultByClerkIdInternal,
     { clerkId },

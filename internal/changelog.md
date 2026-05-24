@@ -1,5 +1,10 @@
 # Changelog
 
+## MCP CRUD and active profile — 2026-05-24
+
+- **`wiki_delete` / `skills_delete`**: MCP tools complete wiki and skills CRUD (recursive wiki subtree delete; skill delete by exact name).
+- **`set_active_profile`**: Agents set `userSettings.defaultProfiles.mcp` so memory tools without `profileId` target the chosen profile; `whoami` reflects the same active profile.
+
 ## Delete connector imported data — 2026-05-23
 
 - **Per-connector wipe**: Settings → Connectors adds “Delete imported data” to remove all memories from that source (type-to-confirm) without revoking OAuth.

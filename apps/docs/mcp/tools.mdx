@@ -34,7 +34,19 @@ List all profiles available to the user. Returns profile IDs, names, colors, and
 
 **Parameters:** none
 
-Use a profile ID with `memory_add` to save to a specific profile. Ask the user which profile they want before saving.
+Use `set_active_profile` to choose the default profile for MCP memory tools, or pass `profileId` on individual memory calls.
+
+---
+
+## set_active_profile
+
+Set the default profile for MCP memory tools (`memory_add`, `memory_search`, `memory_retrieve` when `profileId` is omitted). Does not change web or extension defaults.
+
+<ParamField body="profileId" type="string" required>
+  Profile ID from `list_profiles`
+</ParamField>
+
+**Returns:** `{ id, name, color, icon }` for the active profile.
 
 ---
 
@@ -238,6 +250,18 @@ At least one of `newName`, `description`, `instructions`, or `enabled` is requir
 
 ---
 
+## skills_delete
+
+Permanently delete a skill by exact name. Prefer `skills_update` with `enabled: false` to hide without deleting.
+
+<ParamField body="name" type="string" required>
+  Exact skill name (case sensitive)
+</ParamField>
+
+**Returns:** `{ deleted: true }`
+
+---
+
 ## wiki_list
 
 Flat index of all wiki folders and documents (no body). Call this before `wiki_get` or `wiki_update` when you do not have a node id.
@@ -311,6 +335,18 @@ Update a wiki node by id. Supports rename and body replace or append.
 </ParamField>
 
 **Returns:** Updated node with fresh `contentMarkdown` for documents.
+
+---
+
+## wiki_delete
+
+Permanently delete a wiki node by id. Deleting a folder removes all descendants.
+
+<ParamField body="id" type="string" required>
+  Wiki node id from `wiki_list`
+</ParamField>
+
+**Returns:** `{ deletedCount: number }` — includes the root node and all descendants.
 
 ---
 

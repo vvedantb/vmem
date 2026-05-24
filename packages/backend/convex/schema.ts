@@ -101,6 +101,7 @@ const schema = defineSchema({
       v.object({
         web: v.optional(v.id("profiles")),
         extension: v.optional(v.id("profiles")),
+        mcp: v.optional(v.id("profiles")),
       }),
     ),
     // ── Dream Mode (user-wide; applies to personal profiles only) ──────

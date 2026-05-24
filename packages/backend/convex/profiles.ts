@@ -121,6 +121,42 @@ export const getByIdInternal = internalQuery({
  * Get default profile by Clerk ID
  * @deprecated Use specific source defaults from userSettings instead
  */
+/**
+ * Profile used for MCP memory tools when no profileId is passed.
+ * Priority: userSettings.defaultProfiles.mcp → isDefault profile.
+ */
+export const getActiveProfileForMcpInternal = internalQuery({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+
+    if (!user) return null;
+
+    const settings = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .first();
+
+    const mcpProfileId = settings?.defaultProfiles?.mcp;
+    if (mcpProfileId !== undefined) {
+      const mcpProfile = await ctx.db.get(mcpProfileId);
+      if (mcpProfile && mcpProfile.userId === user._id) {
+        return mcpProfile;
+      }
+    }
+
+    return await ctx.db
+      .query("profiles")
+      .withIndex("by_user_default", (q) =>
+        q.eq("userId", user._id).eq("isDefault", true),
+      )
+      .first();
+  },
+});
+
 export const getActiveByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
