@@ -1,47 +1,81 @@
 "use client";
 
-import { IconCopy, IconDots } from "@tabler/icons-react";
+import { IconCopy, IconDots, IconListDetails } from "@tabler/icons-react";
 import {
   Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Label,
+  Switch,
+  cn,
 } from "@vmem/ui";
 
 interface WikiDocActionsMenuProps {
+  outlineVisible: boolean;
+  onOutlineVisibleChange: (visible: boolean) => void;
+  wordCount: number;
   onCopy: () => void;
-  disabled?: boolean;
+  copyDisabled?: boolean;
 }
 
 export function WikiDocActionsMenu({
+  outlineVisible,
+  onOutlineVisibleChange,
+  wordCount,
   onCopy,
-  disabled = false,
+  copyDisabled = false,
 }: WikiDocActionsMenuProps) {
+  const wordCountLabel = `${wordCount.toLocaleString()} ${wordCount === 1 ? "word" : "words"}`;
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="shrink-0 text-muted-foreground"
-          aria-label="Document actions"
-          disabled={disabled}
+    <div className="flex items-center gap-1 rounded-lg bg-muted/40 px-2 py-1">
+      <div className="flex items-center gap-2 pr-1">
+        <Switch
+          id="wiki-view-outline-header"
+          checked={outlineVisible}
+          onCheckedChange={onOutlineVisibleChange}
+          aria-label="View outline"
+        />
+        <Label
+          htmlFor="wiki-view-outline-header"
+          className="cursor-pointer text-sm font-medium text-foreground"
         >
-          <IconDots size={16} />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem
-          onSelect={() => {
-            onCopy();
-          }}
-        >
-          <IconCopy size={14} />
-          Copy
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <span className="hidden sm:inline">View outline</span>
+          <IconListDetails size={16} className="sm:hidden" aria-hidden />
+        </Label>
+      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className={cn("shrink-0 text-muted-foreground")}
+            aria-label="Document actions"
+            disabled={copyDisabled}
+          >
+            <IconDots size={16} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground tabular-nums">
+            {wordCountLabel}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => {
+              onCopy();
+            }}
+          >
+            <IconCopy size={14} />
+            Copy
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
