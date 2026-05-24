@@ -6623,8 +6623,8 @@ packages:
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
 
-  linkify-it@5.0.0:
-    resolution: {integrity: sha512-5aHCbzQRADcdP+ATqnDuhhJ/MRIqDkZX5pyjFHRRysS8vZ5AbqGEoFIb6pYHPZ+L/OC2Lc+xT8uHVVR5CAK/wQ==}
+  linkify-it@5.0.1:
+    resolution: {integrity: sha512-wVoTjP4Q6R0NW5hiZkVJaFZPWgtXfoGF+6LucL3/FtiNjmcHhYjEr5f1Kqjirc1nBW07J/ZuRFumqr2oqccEWg==}
 
   linkifyjs@4.3.2:
     resolution: {integrity: sha512-NT1CJtq3hHIreOianA8aSXn6Cw0JzYOuDQbOrSPe7gqFnCpKP++MQe3ODgO3oh2GJFORkAAdqredOa60z63GbA==}
@@ -6734,8 +6734,8 @@ packages:
   markdown-it-task-lists@2.1.1:
     resolution: {integrity: sha512-TxFAc76Jnhb2OUu+n3yz9RMu4CwGfaT788br6HhEDlvWfdeJcLUsxk1Hgw2yJio0OXsxv7pyIPmvECY7bMbluA==}
 
-  markdown-it@14.1.1:
-    resolution: {integrity: sha512-BuU2qnTti9YKgK5N+IeMubp14ZUKUUw7yeJbkjtosvHiP0AZ5c8IAgEMk79D0eC8F23r4Ac/q8cAIFdm2FtyoA==}
+  markdown-it@14.2.0:
+    resolution: {integrity: sha512-1TGiQiJVRQ3NPmZH6sx5Cfnmg6GQm9jvC1ch4TK511NjSJvjzKLzn5pPfZRNZkRPZP0HqCioSndqH8v2nRaWVQ==}
     hasBin: true
 
   markdown-table@3.0.4:
@@ -10776,7 +10776,7 @@ snapshots:
       metro-babel-transformer: 0.84.4
       metro-cache: 0.84.4
       metro-cache-key: 0.84.4
-      metro-config: 0.84.4(bufferutil@4.1.0)
+      metro-config: 0.84.4(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       metro-core: 0.84.4
       metro-file-map: 0.84.4
       metro-minify-terser: 0.84.4
@@ -12474,7 +12474,7 @@ snapshots:
       debug: 4.4.3
       invariant: 2.2.4
       metro: 0.84.4(bufferutil@4.1.0)
-      metro-config: 0.84.4(bufferutil@4.1.0)
+      metro-config: 0.84.4(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       metro-core: 0.84.4
       semver: 7.7.4
     transitivePeerDependencies:
@@ -16456,7 +16456,7 @@ snapshots:
 
   lines-and-columns@1.2.4: {}
 
-  linkify-it@5.0.0:
+  linkify-it@5.0.1:
     dependencies:
       uc.micro: 2.1.0
 
@@ -16557,11 +16557,11 @@ snapshots:
 
   markdown-it-task-lists@2.1.1: {}
 
-  markdown-it@14.1.1:
+  markdown-it@14.2.0:
     dependencies:
       argparse: 2.0.1
       entities: 4.5.0
-      linkify-it: 5.0.0
+      linkify-it: 5.0.1
       mdurl: 2.0.0
       punycode.js: 2.3.1
       uc.micro: 2.1.0
@@ -16811,21 +16811,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  metro-config@0.84.4(bufferutil@4.1.0):
-    dependencies:
-      connect: 3.7.0
-      flow-enums-runtime: 0.0.6
-      jest-validate: 29.7.0
-      metro: 0.84.4(bufferutil@4.1.0)
-      metro-cache: 0.84.4
-      metro-core: 0.84.4
-      metro-runtime: 0.84.4
-      yaml: 2.8.3
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
   metro-config@0.84.4(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     dependencies:
       connect: 3.7.0
@@ -16976,7 +16961,7 @@ snapshots:
       metro-babel-transformer: 0.84.4
       metro-cache: 0.84.4
       metro-cache-key: 0.84.4
-      metro-config: 0.84.4(bufferutil@4.1.0)
+      metro-config: 0.84.4(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       metro-core: 0.84.4
       metro-file-map: 0.84.4
       metro-resolver: 0.84.4
@@ -17822,7 +17807,7 @@ snapshots:
   prosemirror-markdown@1.13.4:
     dependencies:
       '@types/markdown-it': 14.1.2
-      markdown-it: 14.1.1
+      markdown-it: 14.2.0
       prosemirror-model: 1.25.4
 
   prosemirror-model@1.25.4:
@@ -19116,7 +19101,7 @@ snapshots:
     dependencies:
       '@tiptap/core': 3.22.4(@tiptap/pm@3.22.4)
       '@types/markdown-it': 13.0.9
-      markdown-it: 14.1.1
+      markdown-it: 14.2.0
       markdown-it-task-lists: 2.1.1
       prosemirror-markdown: 1.13.4
 

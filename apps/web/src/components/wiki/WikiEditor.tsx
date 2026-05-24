@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -31,18 +32,24 @@ interface WikiEditorProps {
 const AUTOSAVE_MS = 800;
 const SAVE_TOAST_MS = 2000;
 
-const EMPTY_DOC: JSONContent = {
-  type: "doc",
-  content: [{ type: "paragraph" }],
-};
+function getMarkdownFromEditor(editor: Editor): string {
+  const markdownBucket = editor.storage.markdown;
+  if (
+    typeof markdownBucket === "object" &&
+    markdownBucket !== null &&
+    "getMarkdown" in markdownBucket &&
+    typeof markdownBucket.getMarkdown === "function"
+  ) {
+    return markdownBucket.getMarkdown();
+  }
+  return editor.getText();
+}
 
 /**
  * Center-pane TipTap editor. Obsidian-style layout: title input above, content below.
- * Autosaves both TipTap JSON and flattened plain text to Convex (debounced).
+ * Autosaves canonical markdown plus a plain-text mirror for Convex search (debounced).
  *
- * The editor instance is created once and re-used across document switches —
- * we call `setContent` on the node change. This keeps ProseMirror state stable
- * and avoids re-mounting the contenteditable DOM.
+ * Markdown is the stored format (same as eva docs). TipTap is edit-time only.
  */
 export default function WikiEditor({
   docId,
@@ -56,11 +63,7 @@ export default function WikiEditor({
   const updateContent = useMutation(api.wiki.updateContent);
   const renameNode = useMutation(api.wiki.renameNode);
 
-  // Track the id we've already loaded content for, so we only call setContent
-  // on actual document switches (not on every Convex live update).
   const loadedDocIdRef = useRef<Id<"wikiNodes"> | null>(null);
-  // Track the last content we saved to suppress the onUpdate echo that fires
-  // when we call setContent programmatically.
   const suppressNextUpdateRef = useRef(false);
 
   const [titleDraft, setTitleDraft] = useState<string>("");
@@ -70,11 +73,11 @@ export default function WikiEditor({
   }, SAVE_TOAST_MS);
 
   const debouncedSave = useDebounceCallback(
-    async (id: Id<"wikiNodes">, jsonDoc: JSONContent) => {
+    async (id: Id<"wikiNodes">, markdown: string, jsonDoc: JSONContent) => {
       try {
         await updateContent({
           id,
-          contentJson: JSON.stringify(jsonDoc),
+          content: markdown,
           contentText: docToPlainText(jsonDoc),
         });
         debouncedSaveToast();
@@ -94,8 +97,7 @@ export default function WikiEditor({
         transformCopiedText: true,
       }),
     ],
-    content: EMPTY_DOC,
-    // Required to avoid SSR hydration mismatches in Next.js App Router.
+    content: "",
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -113,20 +115,18 @@ export default function WikiEditor({
       onWordCountChange(countWords(docToPlainText(jsonDoc)));
       const activeId = loadedDocIdRef.current;
       if (activeId) {
-        debouncedSave(activeId, jsonDoc);
+        debouncedSave(activeId, getMarkdownFromEditor(instance), jsonDoc);
       }
     },
   });
 
-  // Load content into the editor when the selected doc changes (or arrives).
   useEffect(() => {
     if (!editor) return;
 
     if (doc === null || doc === undefined) {
-      // No doc or still loading — clear editor if we were previously showing one.
       if (loadedDocIdRef.current !== null) {
         suppressNextUpdateRef.current = true;
-        editor.commands.setContent(EMPTY_DOC);
+        editor.commands.setContent("");
         loadedDocIdRef.current = null;
         onHeadingsChange([]);
         onWordCountChange(0);
@@ -136,32 +136,22 @@ export default function WikiEditor({
     }
 
     if (loadedDocIdRef.current === doc._id) {
-      // Already loaded this doc — don't stomp on user edits.
       return;
     }
 
-    let parsed: JSONContent = EMPTY_DOC;
-    if (doc.contentJson && doc.contentJson.length > 0) {
-      try {
-        const json: JSONContent = JSON.parse(doc.contentJson);
-        parsed = json;
-      } catch {
-        parsed = EMPTY_DOC;
-      }
-    }
+    const markdown = doc.content ?? "";
     suppressNextUpdateRef.current = true;
-    editor.commands.setContent(parsed);
+    editor.commands.setContent(markdown);
     loadedDocIdRef.current = doc._id;
-    onHeadingsChange(extractHeadings(parsed));
-    onWordCountChange(countWords(docToPlainText(parsed)));
+    const jsonDoc = editor.getJSON();
+    onHeadingsChange(extractHeadings(jsonDoc));
+    onWordCountChange(countWords(docToPlainText(jsonDoc)));
     setTitleDraft(doc.title);
   }, [doc, editor, onHeadingsChange, onWordCountChange]);
 
-  // Handle outline jumps.
   useEffect(() => {
     if (!editor || jumpRequest.n === 0) return;
     editor.commands.focus(jumpRequest.pos);
-    // Scroll the target heading into view.
     const dom = editor.view.domAtPos(jumpRequest.pos);
     const target =
       dom.node instanceof HTMLElement ? dom.node : dom.node.parentElement;
@@ -170,7 +160,6 @@ export default function WikiEditor({
     }
   }, [editor, jumpRequest]);
 
-  // Clean up debounce on unmount to avoid firing after navigation.
   useEffect(() => {
     return () => {
       debouncedSave.cancel();
