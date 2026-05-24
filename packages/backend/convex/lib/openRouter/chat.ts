@@ -1,61 +1,34 @@
 /**
- * OpenRouter chat completion wrapper. Owns the chat-specific HTTP
+ * OpenRouter chat completion wrapper. Owns the chat-specific request
  * shape, response parsing, and metric extraction (cost, finish reason,
  * cached/cache-write/reasoning token breakdown). Logs one
  * `openRouterLogs` row per attempt via `scheduleLog`.
  *
- * Inline `usage:{include:true}` is on by default — cost arrives in the
- * response so we never need a follow-up `/generation` call.
+ * Uses `@openrouter/sdk` — cost arrives in `usage.cost` when available.
  */
 
+import type { ChatResult as SdkChatResult } from "@openrouter/sdk/models";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
+import {
+  createOpenRouterClient,
+  readOpenRouterError,
+} from "../../../src/openRouter/client";
 import {
   COMPLETION_PREVIEW_BYTES,
   PROMPT_PREVIEW_BYTES,
   classifyHttpStatus,
   numberOrUndef,
-  openRouterHeaders,
   previewsEnabled,
-  readErrorBody,
   scheduleLog,
   truncate,
   type ErrorClass,
   type OpenRouterFeature,
 } from "./shared";
 
-const CHAT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
-}
-
-interface ChatChoice {
-  message?: { content?: string };
-  finish_reason?: string;
-  native_finish_reason?: string;
-}
-
-interface ChatUsage {
-  prompt_tokens?: number;
-  completion_tokens?: number;
-  total_tokens?: number;
-  cost?: number;
-  cost_details?: { upstream_inference_cost?: number };
-  prompt_tokens_details?: {
-    cached_tokens?: number;
-    cache_write_tokens?: number;
-  };
-  completion_tokens_details?: { reasoning_tokens?: number };
-  is_byok?: boolean;
-}
-
-interface ChatCompletionResponse {
-  id?: string;
-  provider?: string;
-  choices?: ChatChoice[];
-  usage?: ChatUsage;
 }
 
 interface ChatArgs {
@@ -101,9 +74,7 @@ export async function callOpenRouterChat(
   let errorMessage: string | undefined;
   let content: string | null = null;
   let generationId: string | undefined;
-  let provider: string | undefined;
   let finishReason: string | undefined;
-  let nativeFinishReason: string | undefined;
   let promptTokens: number | undefined;
   let completionTokens: number | undefined;
   let totalTokens: number | undefined;
@@ -115,76 +86,51 @@ export async function callOpenRouterChat(
   let isByok: boolean | undefined;
 
   try {
-    const res = await fetch(CHAT_ENDPOINT, {
-      method: "POST",
-      headers: openRouterHeaders(args.apiKey),
-      body: JSON.stringify({
+    const client = createOpenRouterClient(args.apiKey);
+    const json = await client.chat.send({
+      chatRequest: {
         model: args.model,
         messages: args.messages,
         temperature: args.temperature ?? 0.1,
-        // Inline cost accounting — saves a follow-up /generation call.
-        usage: { include: true },
-      }),
+        stream: false,
+      },
     });
 
-    status = res.status;
-    ok = res.ok;
-    if (!res.ok) {
-      errorClass = classifyHttpStatus(status);
-      errorMessage = await readErrorBody(res, status);
-    } else {
-      try {
-        const json: ChatCompletionResponse = await res.json();
-        content = extractChatContent(json);
-        generationId = typeof json.id === "string" ? json.id : undefined;
-        provider =
-          typeof json.provider === "string" ? json.provider : undefined;
-        const first = json.choices?.[0];
-        finishReason =
-          typeof first?.finish_reason === "string"
-            ? first.finish_reason
-            : undefined;
-        nativeFinishReason =
-          typeof first?.native_finish_reason === "string"
-            ? first.native_finish_reason
-            : undefined;
+    status = 200;
+    ok = true;
+    content = extractChatContent(json);
+    generationId = json.id;
+    const first = json.choices[0];
+    finishReason =
+      typeof first?.finishReason === "string" ? first.finishReason : undefined;
 
-        const usage = json.usage;
-        promptTokens = numberOrUndef(usage?.prompt_tokens);
-        completionTokens = numberOrUndef(usage?.completion_tokens);
-        totalTokens = numberOrUndef(usage?.total_tokens);
-        cachedTokens = numberOrUndef(
-          usage?.prompt_tokens_details?.cached_tokens,
-        );
-        cacheWriteTokens = numberOrUndef(
-          usage?.prompt_tokens_details?.cache_write_tokens,
-        );
-        reasoningTokens = numberOrUndef(
-          usage?.completion_tokens_details?.reasoning_tokens,
-        );
-        costUsd = numberOrUndef(usage?.cost);
-        upstreamCostUsd = numberOrUndef(
-          usage?.cost_details?.upstream_inference_cost,
-        );
-        isByok =
-          typeof usage?.is_byok === "boolean" ? usage.is_byok : undefined;
+    const usage = json.usage;
+    promptTokens = numberOrUndef(usage?.promptTokens);
+    completionTokens = numberOrUndef(usage?.completionTokens);
+    totalTokens = numberOrUndef(usage?.totalTokens);
+    cachedTokens = numberOrUndef(usage?.promptTokensDetails?.cachedTokens);
+    cacheWriteTokens = numberOrUndef(
+      usage?.promptTokensDetails?.cacheWriteTokens,
+    );
+    reasoningTokens = numberOrUndef(
+      usage?.completionTokensDetails?.reasoningTokens,
+    );
+    costUsd = numberOrUndef(usage?.cost);
+    upstreamCostUsd = numberOrUndef(usage?.costDetails?.upstreamInferenceCost);
+    isByok = usage?.isByok;
 
-        if (content === null) {
-          // Successful HTTP, malformed body — flag so the dashboard
-          // can surface "ok response but no content" rows distinctly.
-          errorClass = "parse";
-          errorMessage = "no string content in choices[0].message";
-        }
-      } catch (e) {
-        ok = false;
-        errorClass = "parse";
-        errorMessage = e instanceof Error ? e.message : "parse failed";
-      }
+    if (content === null) {
+      ok = false;
+      errorClass = "parse";
+      errorMessage = "no string content in choices[0].message";
     }
   } catch (e) {
     ok = false;
-    errorClass = "network";
-    errorMessage = e instanceof Error ? e.message : "network error";
+    const err = readOpenRouterError(e);
+    status = err.status;
+    errorMessage = err.message;
+    errorClass =
+      status > 0 ? (classifyHttpStatus(status) ?? "network") : "network";
   }
 
   const latencyMs = Math.round(performance.now() - start);
@@ -205,9 +151,7 @@ export async function callOpenRouterChat(
     errorMessage,
     latencyMs,
     generationId,
-    provider,
     finishReason,
-    nativeFinishReason,
     promptTokens,
     completionTokens,
     totalTokens,
@@ -228,7 +172,7 @@ function joinMessagesForPreview(messages: ChatMessage[]): string {
   return messages.map((m) => `${m.role}: ${m.content}`).join("\n\n");
 }
 
-function extractChatContent(json: ChatCompletionResponse): string | null {
-  const c = json.choices?.[0]?.message?.content;
-  return typeof c === "string" ? c : null;
+function extractChatContent(json: SdkChatResult): string | null {
+  const messageContent = json.choices[0]?.message?.content;
+  return typeof messageContent === "string" ? messageContent : null;
 }

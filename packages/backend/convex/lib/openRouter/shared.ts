@@ -87,16 +87,6 @@ export async function scheduleLog(
   }
 }
 
-/** Standard headers used by every OpenRouter HTTP call. */
-export function openRouterHeaders(apiKey: string): Record<string, string> {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-    "HTTP-Referer": "https://vmem.vedantb.com",
-    "X-Title": "vmem",
-  };
-}
-
 export function previewsEnabled(): boolean {
   return process.env.OPENROUTER_LOG_PROMPTS === "1";
 }
@@ -111,18 +101,8 @@ export function classifyHttpStatus(status: number): ErrorClass | undefined {
   return undefined;
 }
 
-export function numberOrUndef(n: number | undefined): number | undefined {
+export function numberOrUndef(
+  n: number | undefined | null,
+): number | undefined {
   return typeof n === "number" ? n : undefined;
-}
-
-export async function readErrorBody(
-  res: Response,
-  status: number,
-): Promise<string> {
-  try {
-    const text = await res.text();
-    return truncate(text, 500);
-  } catch {
-    return `HTTP ${String(status)}`;
-  }
 }
