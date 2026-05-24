@@ -25,6 +25,7 @@ import {
 import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
 import { GitHubConnectorControls } from "./settings/GitHubConnectorControls";
+import DeleteConnectorDataDialog from "./settings/DeleteConnectorDataDialog";
 import {
   GoogleDriveIcon,
   GmailIcon,
@@ -75,6 +76,7 @@ function formatRelativeTime(timestamp: number | undefined): string {
 export default function ConnectorCard({ connector }: ConnectorCardProps) {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showOAuthModal, setShowOAuthModal] = useState(false);
+  const [showDeleteDataDialog, setShowDeleteDataDialog] = useState(false);
 
   const disconnectAction = useAction(api.connectorOAuth.disconnect);
   const startSyncAction = useAction(api.connectorSync.startSync);
@@ -132,6 +134,12 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
   };
 
   const isLinear = connector.provider === "linear";
+  const canDeleteImportedData =
+    hasProvider &&
+    !isGitHub &&
+    (isConnected ||
+      connector.itemsSynced > 0 ||
+      connector.lastSyncAt !== undefined);
 
   return (
     <>
@@ -293,34 +301,65 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                   )}
                   {isDisconnecting ? "Disconnecting..." : "Disconnect"}
                 </Button>
+                {canDeleteImportedData ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDeleteDataDialog(true)}
+                    disabled={isSyncing || isDisconnecting}
+                    className="border-border text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    Delete imported data
+                  </Button>
+                ) : null}
               </>
             ) : (
-              <Button
-                size="sm"
-                onClick={handleConnect}
-                disabled={!hasProvider}
-                className={
-                  hasProvider
-                    ? "bg-primary text-primary-foreground font-medium"
-                    : "bg-muted text-muted-foreground cursor-not-allowed"
-                }
-              >
-                {hasProvider ? "Connect" : "Coming Soon"}
-              </Button>
+              <>
+                {canDeleteImportedData ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDeleteDataDialog(true)}
+                    className="border-border text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    Delete imported data
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  onClick={handleConnect}
+                  disabled={!hasProvider}
+                  className={
+                    hasProvider
+                      ? "bg-primary text-primary-foreground font-medium"
+                      : "bg-muted text-muted-foreground cursor-not-allowed"
+                  }
+                >
+                  {hasProvider ? "Connect" : "Coming Soon"}
+                </Button>
+              </>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {hasProvider && !isGitHub && (
-        <OAuthModal
-          isOpen={showOAuthModal}
-          onClose={() => setShowOAuthModal(false)}
-          connectorId={connector._id}
-          connectorName={connector.name}
-          onComplete={handleOAuthComplete}
-        />
-      )}
+      {hasProvider && !isGitHub ? (
+        <>
+          <OAuthModal
+            isOpen={showOAuthModal}
+            onClose={() => setShowOAuthModal(false)}
+            connectorId={connector._id}
+            connectorName={connector.name}
+            onComplete={handleOAuthComplete}
+          />
+          <DeleteConnectorDataDialog
+            open={showDeleteDataDialog}
+            onClose={() => setShowDeleteDataDialog(false)}
+            connectorId={connector._id}
+            connectorName={connector.name}
+          />
+        </>
+      ) : null}
     </>
   );
 }

@@ -500,6 +500,65 @@ export async function deleteMemory(
  * orphan cleanup, so DETACH DELETE never has to walk into a child it
  * was supposed to remove on its own.
  */
+/**
+ * Remove every memory imported from the given connector source types, plus
+ * their chunks, events, and proposed updates. Does not disconnect OAuth or
+ * wipe unrelated memories.
+ */
+export async function deleteMemoriesBySourceTypes(
+  driver: Driver,
+  userId: string,
+  sourceTypes: readonly string[],
+): Promise<number> {
+  if (sourceTypes.length === 0) {
+    return 0;
+  }
+
+  return withSession(driver, async (session) => {
+    await session.run(
+      `MATCH (m:Memory {userId: $userId})
+       WHERE m.sourceType IN $sourceTypes OR m.source IN $sourceTypes
+       WITH collect(m.id) AS memoryIds
+       MATCH (c:Chunk {userId: $userId})
+       WHERE c.memoryId IN memoryIds
+       DETACH DELETE c`,
+      { userId, sourceTypes },
+    );
+    await session.run(
+      `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
+       WHERE m.sourceType IN $sourceTypes OR m.source IN $sourceTypes
+       DETACH DELETE e`,
+      { userId, sourceTypes },
+    );
+    await session.run(
+      `MATCH (p:ProposedUpdate)-[:UPDATE_FOR]->(m:Memory {userId: $userId})
+       WHERE m.sourceType IN $sourceTypes OR m.source IN $sourceTypes
+       DETACH DELETE p`,
+      { userId, sourceTypes },
+    );
+    const result = await session.run(
+      `MATCH (m:Memory {userId: $userId})
+       WHERE m.sourceType IN $sourceTypes OR m.source IN $sourceTypes
+       DETACH DELETE m
+       RETURN count(m) AS deleted`,
+      { userId, sourceTypes },
+    );
+    await session.run(
+      `MATCH (t:Tag)
+       WHERE NOT EXISTS { MATCH (:Memory)-[:TAGGED_WITH]->(t) }
+       DELETE t`,
+    );
+    await session.run(
+      `MATCH (s:Source)
+       WHERE NOT EXISTS { MATCH (:Memory)-[:FROM_SOURCE]->(s) }
+       DELETE s`,
+    );
+    const firstRecord = result.records[0];
+    if (!firstRecord) return 0;
+    return toNeoInt(firstRecord.get("deleted"));
+  });
+}
+
 export async function deleteAllMemoriesForUser(
   driver: Driver,
   userId: string,
