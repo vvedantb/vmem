@@ -240,6 +240,43 @@ export function registerTools(
   );
 
   server.tool(
+    "memory_add_instruction",
+    "Store memories from a natural-language instruction. The server extracts atomic facts with an LLM and creates one memory per fact (requires OpenRouter). Use when the agent should remember a conversation summary without drafting title/content itself. Prefer memory_add when you already have a single clear fact with title and type.",
+    {
+      instruction: z
+        .string()
+        .describe(
+          "What to remember, e.g. 'User prefers dark mode and uses pnpm for vmem'",
+        ),
+      profileId: z
+        .string()
+        .optional()
+        .describe("Profile ID (defaults to active MCP profile)"),
+    },
+    async (params) => {
+      const result = await safe("memory_add_instruction", () =>
+        ctx.runAction(internal.neo4jActions.mcp.mcpAddFromInstruction, {
+          clerkId: clerkUserId,
+          instruction: params.instruction,
+          profileId: params.profileId,
+        }),
+      );
+      if (!result.ok) {
+        return errorContent(`Add from instruction failed: ${result.message}`);
+      }
+      if (
+        "error" in result.value &&
+        result.value.error === "openrouter_required"
+      ) {
+        return errorContent(
+          "OpenRouter is required for instruction-based extraction. Add OPENROUTER_API_KEY in vmem settings.",
+        );
+      }
+      return textContent(jsonText(result.value));
+    },
+  );
+
+  server.tool(
     "memory_update",
     "Update an existing memory by ID. Only include fields you want to change.",
     {
@@ -291,6 +328,28 @@ export function registerTools(
       );
       if (!result.ok) return errorContent(`Delete failed: ${result.message}`);
       return textContent(jsonText({ deleted: result.value }));
+    },
+  );
+
+  server.tool(
+    "memory_related",
+    "List memories explicitly linked to a given memory via RELATES_TO edges (1-hop). Returns full memory bodies plus linkReason for each edge. Use after memory_retrieve when you need all structural neighbors of one memory, not query-ranked top-k.",
+    {
+      memoryId: z
+        .string()
+        .describe("Memory ID from memory_search or memory_retrieve"),
+    },
+    async (params) => {
+      const result = await safe("memory_related", () =>
+        ctx.runAction(internal.neo4jActions.mcp.mcpGetRelatedMemories, {
+          clerkId: clerkUserId,
+          memoryId: params.memoryId,
+        }),
+      );
+      if (!result.ok) {
+        return errorContent(`Related memories failed: ${result.message}`);
+      }
+      return textContent(jsonText(result.value));
     },
   );
 

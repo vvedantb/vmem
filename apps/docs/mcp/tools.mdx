@@ -138,6 +138,21 @@ Enrichment is queued for background processing after create.
 
 ---
 
+## memory_add_instruction
+
+Store memories from natural language. The server uses OpenRouter to extract atomic facts and creates one `knowledge` memory per fact (same pipeline as `POST /api/v1/memories` with `{ "instruction": "..." }`).
+
+<ParamField body="instruction" type="string" required>
+  What to remember (conversation summary, preferences, decisions, etc.)
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to add to (defaults to active MCP profile)
+</ParamField>
+
+**Returns:** `{ created: Memory[], summary: string }` or an error if OpenRouter is not configured.
+
+---
+
 ## memory_update
 
 Update an existing memory. Only include fields you want to change.
@@ -171,6 +186,18 @@ Permanently delete a memory.
 </ParamField>
 
 **Returns:** `{ deleted: true }`
+
+---
+
+## memory_related
+
+List memories explicitly linked to a given memory via `RELATES_TO` edges (1-hop only). Unlike `memory_retrieve`, this is structural — all linked neighbors with edge reasons, not query-ranked top-k.
+
+<ParamField body="memoryId" type="string" required>
+  Memory ID from `memory_search` or `memory_retrieve`
+</ParamField>
+
+**Returns:** Array of `{ memory, linkReason }`.
 
 ---
 
