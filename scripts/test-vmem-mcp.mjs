@@ -125,10 +125,14 @@ async function callTool(headers, name, args) {
     };
   }
   let data;
-  try {
-    data = JSON.parse(result.content[0].text);
-  } catch {
-    data = result.content[0].text;
+  if (result.structuredContent !== undefined) {
+    data = result.structuredContent;
+  } else {
+    try {
+      data = JSON.parse(result.content[0].text);
+    } catch {
+      data = result.content[0].text;
+    }
   }
   return { tool: name, ok: true, ms, data };
 }
@@ -180,6 +184,14 @@ async function runRound(headers, round, roundIndex) {
       limit: 3,
     }),
     `Retrieve relevant memories for: ${round.memoryRetrieveQuery}`,
+  );
+
+  log(
+    await callTool(headers, "memory_graph", {
+      limit: 80,
+      profileId,
+    }),
+    "Show an interactive graph of my memories (MCP App payload)",
   );
 
   const testTitle = `MCP E2E R${roundIndex + 1} ${Date.now()}`;

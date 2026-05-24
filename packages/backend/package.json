@@ -9,14 +9,15 @@
   },
   "scripts": {
     "dev": "npx convex dev",
-    "deploy": "npx convex deploy",
+    "deploy": "pnpm run build:mcp-graph-ui && npx convex deploy",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:retrieval": "cross-env RUN_RETRIEVAL_EVAL=1 vitest run src/neo4j/memory/eval/retrieval.integration.test.ts",
     "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed/run.ts",
     "db:seed:eval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/seed.ts",
     "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts",
-    "eval:retrieval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/run.ts"
+    "eval:retrieval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/run.ts",
+    "build:mcp-graph-ui": "node scripts/build-memory-graph-mcp-app.mjs"
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "catalog:",
@@ -26,6 +27,7 @@
     "@convex-dev/agent": "catalog:",
     "@convex-dev/crons": "^0.2.0",
     "@convex-dev/workflow": "^0.4.2",
+    "@modelcontextprotocol/ext-apps": "1.7.2",
     "@modelcontextprotocol/sdk": "catalog:",
     "@neo4j/cypher-builder": "^3.0.1",
     "@notionhq/client": "^2.2.15",
@@ -43,15 +45,16 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "@types/jsonwebtoken": "catalog:",
     "@types/node": "catalog:node-types-22",
     "@types/pdf-parse": "^1.1.4",
     "@types/tar-stream": "^3.1.4",
     "@typescript/native-preview": "catalog:",
-    "typescript": "catalog:",
-    "@edge-runtime/vm": "^5.0.0",
     "convex-test": "^0.0.38",
     "cross-env": "^7.0.3",
+    "esbuild": "0.25.0",
+    "typescript": "catalog:",
     "vitest": "^3.2.4"
   }
 }

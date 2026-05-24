@@ -8,6 +8,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { registerTools } from "./tools";
 import { registerResources } from "./resources";
+import { registerMemoryGraphApp } from "./memoryGraphApp";
 
 // JWT TTLs match the legacy Railway server so existing Claude connectors
 // keep working without re-auth at cutover.
@@ -175,6 +176,7 @@ export const handleMcpRequest = internalAction({
       });
 
       registerTools(server, clerkUserId, ctx);
+      registerMemoryGraphApp(server, clerkUserId, ctx);
       registerResources(server, clerkUserId, ctx);
 
       // WebStandardStreamableHTTPServerTransport works with Web Standard

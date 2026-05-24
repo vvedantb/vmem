@@ -19,5 +19,7 @@
       "Skill(code-review:code-review)",
       "mcp__codex-cli__websearch"
     ]
-  }
+  },
+  "enabledMcpjsonServers": ["neo4j-mcp"],
+  "enableAllProjectMcpServers": true
 }
