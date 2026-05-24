@@ -1,12 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Envelope base (white) -->
-  <rect x="4" y="14" width="56" height="36" rx="3" fill="#ffffff"/>
-  <!-- Red top flap forming the "M" fold -->
-  <polygon points="4,14 32,38 60,14" fill="#ea4335"/>
-  <!-- Left side of envelope, darker red -->
-  <polygon points="4,14 20,32 4,48" fill="#c5221f"/>
-  <!-- Right side of envelope, darker red -->
-  <polygon points="60,14 44,32 60,48" fill="#b31412"/>
-  <!-- Bottom flap tint -->
-  <polygon points="4,48 32,38 60,48" fill="#f4b7b0" opacity="0.0"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="56" height="36" x="4" y="14" fill="#fff" rx="3"/><polygon fill="#ea4335" points="4 14 32 38 60 14"/><polygon fill="#c5221f" points="4 14 20 32 4 48"/><polygon fill="#b31412" points="60 14 44 32 60 48"/><polygon fill="#f4b7b0" points="4 48 32 38 60 48" opacity="0"/></svg>
