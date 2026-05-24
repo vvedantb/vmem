@@ -6,6 +6,7 @@ import { useDebounceValue } from "usehooks-ts";
 import { IconSearch, IconFileText, IconFolder } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { Input } from "@vmem/ui";
+import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
 
 interface WikiSearchProps {
   onSelect: (id: string) => void;
@@ -38,7 +39,7 @@ export default function WikiSearch({ onSelect }: WikiSearchProps) {
           value={raw}
           onChange={(e) => setRaw(e.target.value)}
           placeholder="Search"
-          className="h-8 pl-8 text-sm shadow-none focus-visible:ring-0 focus-visible:shadow-none"
+          className={sidebarSearchInputClassName}
         />
       </div>
       {isSearching && (
