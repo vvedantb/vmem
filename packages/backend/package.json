@@ -12,8 +12,8 @@
     "deploy": "npx convex deploy",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed.ts",
-    "db:seed:eval": "npx tsx --env-file=.env.local src/neo4j/seed.ts --eval",
+    "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed/run.ts",
+    "db:seed:eval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/seed.ts",
     "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts",
     "eval:retrieval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/run.ts"
   },
