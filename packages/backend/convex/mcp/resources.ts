@@ -25,7 +25,7 @@ export function registerResources(
     {
       title: "User Profile",
       description:
-        "Synthesized user profile (about + preferences + pinned memories + recent activity summary). Read at conversation start.",
+        "Synthesized user profile (about + preferences + pinned memories + recent activity summary + available skills index). Read at conversation start.",
       mimeType: "text/markdown",
     },
     async (uri) => {

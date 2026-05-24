@@ -7,8 +7,7 @@ import { useUIMessages, type UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
 import {
   VMEM_LOCAL_CHAT_CORE,
-  buildMemoryRagAddition,
-  composeSystemPrompt,
+  buildLocalChatSystemPrompt,
 } from "@vmem/backend/memoryRagPrompt";
 import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
 import { parseThinkTags } from "@/lib/think-tags";
@@ -151,6 +150,7 @@ export function useLocalChat(): LocalChatResult {
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
   const clearChatHistory = useMutation(api.chat.clearChatHistory);
   const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
+  const mySkills = useQuery(api.skills.listMy) ?? [];
 
   // Load or create the chat thread on mount
   useEffect(() => {
@@ -244,17 +244,36 @@ export function useLocalChat(): LocalChatResult {
               reason: m.trace.reason,
             },
           }));
-          const addition = buildMemoryRagAddition(
-            retrieved.memories.map((m) => ({
+          const addition = buildLocalChatSystemPrompt({
+            core: VMEM_LOCAL_CHAT_CORE,
+            memoryCandidates: retrieved.memories.map((m) => ({
               id: m.id,
               title: m.title,
               content: m.content,
               trace: { reason: m.trace.reason },
             })),
-          );
-          systemPrompt = composeSystemPrompt(VMEM_LOCAL_CHAT_CORE, addition);
+            skills: mySkills.map((skill) => ({
+              name: skill.name,
+              description: skill.description,
+              instructions: skill.instructions,
+              enabled: skill.enabled,
+            })),
+            userMessage: text,
+          });
+          systemPrompt = addition;
         } catch (retrieveError) {
           console.error("retrieveMemories failed:", retrieveError);
+          systemPrompt = buildLocalChatSystemPrompt({
+            core: VMEM_LOCAL_CHAT_CORE,
+            memoryCandidates: [],
+            skills: mySkills.map((skill) => ({
+              name: skill.name,
+              description: skill.description,
+              instructions: skill.instructions,
+              enabled: skill.enabled,
+            })),
+            userMessage: text,
+          });
         }
 
         setDraftMemoryRefsByKey((prev) => ({
@@ -393,6 +412,7 @@ export function useLocalChat(): LocalChatResult {
       retrieveMemories,
       saveLocalMessages,
       threadId,
+      mySkills,
     ],
   );
 

@@ -6,8 +6,7 @@ import type { UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
 import {
   VMEM_LOCAL_CHAT_CORE,
-  buildMemoryRagAddition,
-  composeSystemPrompt,
+  buildLocalChatSystemPrompt,
 } from "@vmem/backend/memoryRagPrompt";
 import { streamText } from "ai";
 import { useIsOnline } from "@/providers/NetworkProvider";
@@ -93,6 +92,7 @@ export function useChatProvider() {
   const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
   const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
+  const mySkills = useQuery(api.skills.listMy) ?? [];
 
   useEffect(() => {
     if (!isOnline || !isLoaded || !user) {
@@ -215,17 +215,35 @@ export function useChatProvider() {
               id: m.id,
               title: m.title,
             }));
-            const addition = buildMemoryRagAddition(
-              retrieved.memories.map((m) => ({
+            systemPrompt = buildLocalChatSystemPrompt({
+              core: VMEM_LOCAL_CHAT_CORE,
+              memoryCandidates: retrieved.memories.map((m) => ({
                 id: m.id,
                 title: m.title,
                 content: m.content,
                 trace: { reason: m.trace.reason },
               })),
-            );
-            systemPrompt = composeSystemPrompt(VMEM_LOCAL_CHAT_CORE, addition);
+              skills: mySkills.map((skill) => ({
+                name: skill.name,
+                description: skill.description,
+                instructions: skill.instructions,
+                enabled: skill.enabled,
+              })),
+              userMessage: text,
+            });
           } catch (retrieveError) {
             console.error("retrieveMemories failed:", retrieveError);
+            systemPrompt = buildLocalChatSystemPrompt({
+              core: VMEM_LOCAL_CHAT_CORE,
+              memoryCandidates: [],
+              skills: mySkills.map((skill) => ({
+                name: skill.name,
+                description: skill.description,
+                instructions: skill.instructions,
+                enabled: skill.enabled,
+              })),
+              userMessage: text,
+            });
           }
         }
 
@@ -309,6 +327,7 @@ export function useChatProvider() {
       retrieveMemories,
       saveLocalMessages,
       threadId,
+      mySkills,
     ],
   );
 

@@ -42,6 +42,7 @@ import type * as http_v1Memories_schemas from "../http/v1Memories/schemas.js";
 import type * as http_v1Memories_store from "../http/v1Memories/store.js";
 import type * as http_v1Memories_types from "../http/v1Memories/types.js";
 import type * as http_v1Memories_update from "../http/v1Memories/update.js";
+import type * as lib_contextPromptInvalidate from "../lib/contextPromptInvalidate.js";
 import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_envVars from "../lib/envVars.js";
 import type * as lib_openRouter from "../lib/openRouter.js";
@@ -165,6 +166,7 @@ declare const fullApi: ApiFromModules<{
   "http/v1Memories/store": typeof http_v1Memories_store;
   "http/v1Memories/types": typeof http_v1Memories_types;
   "http/v1Memories/update": typeof http_v1Memories_update;
+  "lib/contextPromptInvalidate": typeof lib_contextPromptInvalidate;
   "lib/crypto": typeof lib_crypto;
   "lib/envVars": typeof lib_envVars;
   "lib/openRouter": typeof lib_openRouter;
