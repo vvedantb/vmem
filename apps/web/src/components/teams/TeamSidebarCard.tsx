@@ -5,6 +5,7 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 import { cn } from "@vmem/ui";
 import { IconBuilding } from "@tabler/icons-react";
+import { getProfileIcon } from "@/components/profiles/profile-icon";
 
 type TeamListEntry = FunctionReturnType<typeof api.teams.list>[number];
 
@@ -28,6 +29,7 @@ export function TeamSidebarCard({
 }: TeamSidebarCardProps) {
   const { team, role, profile, memberCount } = entry;
   const profileColor = profile?.color;
+  const ProfileIcon = profile ? getProfileIcon(profile.icon) : null;
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -52,15 +54,23 @@ export function TeamSidebarCard({
             : "text-muted-foreground hover:bg-card/45 hover:text-foreground dark:hover:bg-muted/40",
       )}
     >
-      {profileColor ? (
-        <span
-          aria-hidden
-          className="size-2.5 shrink-0 rounded-full"
-          style={{ backgroundColor: profileColor }}
-        />
+      {profile && ProfileIcon ? (
+        <div
+          className="flex size-7 shrink-0 items-center justify-center rounded-md"
+          style={{
+            backgroundColor: profileColor ? `${profileColor}20` : undefined,
+          }}
+        >
+          <ProfileIcon
+            size={16}
+            stroke={1.7}
+            className={profileColor ? undefined : "text-muted-foreground"}
+            style={profileColor ? { color: profileColor } : undefined}
+          />
+        </div>
       ) : (
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground">
-          <IconBuilding size={14} stroke={1.7} />
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground">
+          <IconBuilding size={16} stroke={1.7} />
         </span>
       )}
       <div className="min-w-0 flex-1">
