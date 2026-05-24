@@ -88,7 +88,7 @@ export function ViewSkillPanel({
   return (
     <>
       <div className="flex h-full min-h-0 flex-col">
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">
               {skill.name}
@@ -132,7 +132,7 @@ export function ViewSkillPanel({
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scrollbar-thin px-4 pb-4">
           {skill.description ? (
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground">
