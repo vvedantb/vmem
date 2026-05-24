@@ -1,6 +1,11 @@
-import { Link, useMatchRoute } from "@tanstack/react-router";
-import { Tabs, TabsList, TabsTrigger, AnimatedTabLabel } from "@vmem/ui";
+import {
+  IconBrain,
+  IconLayoutDashboard,
+  IconSettings,
+  IconUsers,
+} from "@tabler/icons-react";
 import type { Id } from "@vmem/backend";
+import { RouteTabs, type RouteTabItem } from "@/components/RouteTabs";
 
 interface TeamTabsProps {
   teamId: Id<"teams">;
@@ -8,55 +13,49 @@ interface TeamTabsProps {
 }
 
 export function TeamTabs({ teamId, isOwner }: TeamTabsProps) {
-  const matchRoute = useMatchRoute();
-  const activeValue = matchRoute({ to: "/teams/$teamId/knowledge" })
-    ? "knowledge"
-    : matchRoute({ to: "/teams/$teamId/members" })
-      ? "members"
-      : matchRoute({ to: "/teams/$teamId/settings" })
-        ? "settings"
-        : "overview";
+  const tabs: RouteTabItem[] = [
+    {
+      value: "overview",
+      to: "/teams/$teamId/overview",
+      label: "Overview",
+      icon: <IconLayoutDashboard size={16} />,
+    },
+    {
+      value: "knowledge",
+      to: "/teams/$teamId/knowledge",
+      label: "Knowledge",
+      icon: <IconBrain size={16} />,
+    },
+    {
+      value: "members",
+      to: "/teams/$teamId/members",
+      label: "Members",
+      icon: <IconUsers size={16} />,
+    },
+  ];
 
-  const linkParams = { teamId };
+  if (isOwner) {
+    tabs.push({
+      value: "settings",
+      to: "/teams/$teamId/settings",
+      label: "Settings",
+      icon: <IconSettings size={16} />,
+    });
+  }
 
   return (
-    <Tabs value={activeValue}>
-      <TabsList>
-        <TabsTrigger value="overview" asChild>
-          <Link to="/teams/$teamId/overview" params={linkParams}>
-            <AnimatedTabLabel
-              isActive={activeValue === "overview"}
-              label="Overview"
-            />
-          </Link>
-        </TabsTrigger>
-        <TabsTrigger value="knowledge" asChild>
-          <Link to="/teams/$teamId/knowledge" params={linkParams}>
-            <AnimatedTabLabel
-              isActive={activeValue === "knowledge"}
-              label="Knowledge"
-            />
-          </Link>
-        </TabsTrigger>
-        <TabsTrigger value="members" asChild>
-          <Link to="/teams/$teamId/members" params={linkParams}>
-            <AnimatedTabLabel
-              isActive={activeValue === "members"}
-              label="Members"
-            />
-          </Link>
-        </TabsTrigger>
-        {isOwner ? (
-          <TabsTrigger value="settings" asChild>
-            <Link to="/teams/$teamId/settings" params={linkParams}>
-              <AnimatedTabLabel
-                isActive={activeValue === "settings"}
-                label="Settings"
-              />
-            </Link>
-          </TabsTrigger>
-        ) : null}
-      </TabsList>
-    </Tabs>
+    <RouteTabs
+      linkParams={{ teamId }}
+      tabs={tabs}
+      getActiveValue={(matchRoute) =>
+        matchRoute({ to: "/teams/$teamId/knowledge" })
+          ? "knowledge"
+          : matchRoute({ to: "/teams/$teamId/members" })
+            ? "members"
+            : matchRoute({ to: "/teams/$teamId/settings" })
+              ? "settings"
+              : "overview"
+      }
+    />
   );
 }
