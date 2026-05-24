@@ -64,10 +64,10 @@ interface LegacyWikiDoc {
 }
 
 function legacyNodeText(node: LegacyWikiNode): string {
-  if (node.type === "text") {
+  if ("text" in node) {
     return node.text;
   }
-  if (!node.content) {
+  if (!("content" in node) || node.content === undefined) {
     return "";
   }
   return node.content.map(legacyNodeText).join("");
