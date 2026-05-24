@@ -11,7 +11,7 @@ import { sourceTypesForProvider } from "../src/neo4j/memory/connectorSourceTypes
 export const deleteConnectorData = authAction({
   args: { connectorId: v.id("connectors") },
   returns: v.number(),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<number> => {
     const connector = await ctx.runQuery(internal.connectors.getByIdInternal, {
       id: args.connectorId,
     });
@@ -29,7 +29,7 @@ export const deleteConnectorData = authAction({
 
     const clerkId = await requireClerkId(ctx);
 
-    const deleted = await ctx.runAction(
+    const deleted: number = await ctx.runAction(
       internal.neo4jActions.connectorData.deleteBySourceTypesInternal,
       { clerkId, sourceTypes: [...sourceTypes] },
     );

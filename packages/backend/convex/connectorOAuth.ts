@@ -74,7 +74,10 @@ const startOAuthResult = v.object({
 export const startOAuth = authAction({
   args: { connectorId: v.id("connectors"), returnUrl: v.string() },
   returns: startOAuthResult,
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ authUrl: string | null; alreadyConnected: boolean }> => {
     // 1. Get connector and validate provider
     const connector = await ctx.runQuery(internal.connectors.getByIdInternal, {
       id: args.connectorId,
@@ -92,9 +95,9 @@ export const startOAuth = authAction({
     if (!isConnectorOAuthProvider(connector.provider)) {
       throw new Error(`Unsupported provider: ${connector.provider}`);
     }
-    const provider = connector.provider;
+    const provider: Provider = connector.provider;
 
-    const config = PROVIDER_CONFIGS[provider];
+    const config: ProviderConfig = PROVIDER_CONFIGS[provider];
     const convexSiteUrl = getEnvOrThrow("CONVEX_SITE_URL");
 
     if (provider === "google_drive" || provider === "gmail") {
