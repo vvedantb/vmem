@@ -59,12 +59,6 @@ export function CodebaseSidebarCard({
           height={28}
           className="size-7 shrink-0 rounded-full outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
         />
-      ) : langColor ? (
-        <span
-          aria-hidden
-          className="size-2.5 shrink-0 rounded-full"
-          style={{ backgroundColor: langColor }}
-        />
       ) : (
         <span
           aria-hidden
@@ -94,9 +88,23 @@ export function CodebaseSidebarCard({
             />
           ) : null}
         </div>
-        <div className="truncate text-xs text-muted-foreground">
-          {codebase.repoOwner}
-          {codebase.language ? ` · ${codebase.language}` : ""}
+        <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+          <span className="truncate">{codebase.repoOwner}</span>
+          {codebase.language ? (
+            <>
+              <span className="shrink-0">·</span>
+              <span className="flex shrink-0 items-center gap-1">
+                {langColor ? (
+                  <span
+                    aria-hidden
+                    className="size-2 rounded-full"
+                    style={{ backgroundColor: langColor }}
+                  />
+                ) : null}
+                {codebase.language}
+              </span>
+            </>
+          ) : null}
         </div>
       </div>
     </div>
