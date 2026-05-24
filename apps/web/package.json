@@ -75,7 +75,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@rolldown/plugin-babel": "^0.2.3",
     "@tanstack/router-plugin": "^1.167.22",
     "@types/d3-force": "^3.0.10",
     "@types/node": "catalog:node-types-20",
