@@ -1,5 +1,9 @@
 # Changelog
 
+## Skills detail panel scroll — 2026-05-24
+
+- **Contained scroll**: Skills detail view scrolls inside the panel (`noScroll` layout + `scrollbar-thin`), not the whole page.
+
 ## Fix MCP memory_retrieve embed ctx — 2026-05-24
 
 - **Bug**: `tryEmbedOne`/`tryEmbedMany` were aliased to `bestEffortEmbed*` but callers still used `(ctx, args)`; `ctx` was undefined inside embed auth → `runQuery` crash on `memory_retrieve`, `memory_add`, and chunk embedding.

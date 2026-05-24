@@ -122,6 +122,7 @@ function SkillsLayout() {
   return (
     <PageContainer
       title="Skills"
+      noScroll
       rightSection={
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -144,9 +145,9 @@ function SkillsLayout() {
         </DropdownMenu>
       }
     >
-      <div className="flex h-full min-h-0 flex-col gap-4 md:flex-row">
+      <div className="flex h-full min-h-0 flex-1 flex-col gap-4 md:flex-row">
         <div
-          className={`min-h-0 overflow-y-auto md:w-1/3 md:shrink-0 ${isDetailRoute ? "hidden md:block" : "block w-full"}`}
+          className={`min-h-0 overflow-y-auto scrollbar-thin md:w-1/3 md:shrink-0 ${isDetailRoute ? "hidden md:block" : "block w-full flex-1"}`}
         >
           {skills === undefined ? (
             <div className="flex items-center justify-center py-20">
@@ -183,7 +184,7 @@ function SkillsLayout() {
         </div>
 
         {isDetailRoute && viewedSkill ? (
-          <div className="flex min-h-0 w-full flex-col md:w-2/3 md:rounded-xl md:bg-muted/40">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:w-2/3 md:rounded-xl md:bg-muted/40">
             <ViewSkillPanel
               skill={viewedSkill}
               onEdit={() =>
