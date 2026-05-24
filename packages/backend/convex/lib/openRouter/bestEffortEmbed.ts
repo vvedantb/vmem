@@ -7,11 +7,8 @@
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { tryUserAndApiKeyByClerkId } from "../envVars";
-import {
-  generateEmbedding,
-  generateEmbeddings,
-  type OpenRouterFeature,
-} from "./embedding";
+import { generateEmbedding, generateEmbeddings } from "./embedding";
+import type { OpenRouterFeature } from "./shared";
 
 export interface BestEffortEmbedAuth {
   apiKey: string;
