@@ -1,4 +1,4 @@
-import { embeddingMode, generateCliEmbedding } from "../../cliEmbeddings";
+import { embeddingMode, generateCliEmbedding } from "./cliEmbeddings";
 import { closeDriver, getDriver } from "../../driver";
 import { retrieveMemories } from "../retrieve";
 import { RETRIEVAL_EVAL_QUERIES, RETRIEVAL_EVAL_USER_ID } from "./queries";
