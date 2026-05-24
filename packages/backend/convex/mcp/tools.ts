@@ -276,7 +276,7 @@ export function registerTools(
 
   server.tool(
     "skills_list",
-    "List enabled skills (name + description only). The skills index is also in the vmem://context_prompt resource — check there first. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them.",
+    "List enabled skills (name + description only). The skills index is also in the vmem://context_prompt resource — check there first. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them. Before skills_create, confirm no listed skill already covers the workflow.",
     {},
     async () => {
       const result = await safe("skills_list", () =>
@@ -311,15 +311,19 @@ export function registerTools(
 
   server.tool(
     "skills_create",
-    "Create a new enabled skill with markdown instructions. Names must be unique per user (trimmed). Duplicate names return an error — pick another name or update the existing skill in the web app.",
+    "Create a new enabled skill when you have identified a repeatable problem or a workflow that could be automated with a skill, and no existing skill already covers it (check Available Skills in vmem://context_prompt or call skills_list first). Write markdown instructions so future sessions can follow the same fix or automation. Do not create duplicates — if a similar skill exists, use skills_get instead. Names must be unique per user (trimmed).",
     {
       name: z.string().describe("Unique skill name"),
       description: z
         .string()
-        .describe("When to use this skill (shown in skills index)"),
+        .describe(
+          "When to trigger this skill — the repeatable problem or workflow (shown in skills index)",
+        ),
       instructions: z
         .string()
-        .describe("Full markdown instructions the agent should follow"),
+        .describe(
+          "Markdown playbook: steps, checks, or automation the agent should follow when this skill applies",
+        ),
     },
     async (params) => {
       const result = await safe("skills_create", () =>
