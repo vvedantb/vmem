@@ -1,15 +1,12 @@
-"use node";
-
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
-  markdownToWikiStorage,
+  markdownToPlainText,
   mergeMarkdownForAppend,
   wikiExcerpt,
-  wikiStorageToMarkdown,
-} from "../src/wiki/wikiMarkdown";
+} from "./lib/wikiContent";
 
 export interface WikiListItem {
   id: string;
@@ -37,6 +34,10 @@ export interface WikiSearchItem {
   excerpt: string;
 }
 
+function documentMarkdown(node: Doc<"wikiNodes">): string {
+  return node.content ?? "";
+}
+
 function toListItem(node: Doc<"wikiNodes">): WikiListItem {
   return {
     id: node._id,
@@ -54,20 +55,14 @@ function toGetResult(node: Doc<"wikiNodes">): WikiGetResult {
     title: node.title,
     kind: node.kind,
     parentId: node.parentId ?? null,
-    contentMarkdown:
-      node.kind === "document"
-        ? wikiStorageToMarkdown(node.contentJson, node.contentText)
-        : null,
+    contentMarkdown: node.kind === "document" ? documentMarkdown(node) : null,
     createdAt: node.createdAt,
     updatedAt: node.updatedAt,
   };
 }
 
 function toSearchItem(node: Doc<"wikiNodes">): WikiSearchItem {
-  const body =
-    node.kind === "document"
-      ? wikiStorageToMarkdown(node.contentJson, node.contentText)
-      : "";
+  const body = node.kind === "document" ? documentMarkdown(node) : "";
   return {
     id: node._id,
     title: node.title,
@@ -131,13 +126,10 @@ export const mcpCreateWiki = internalAction({
       parentId = parent._id;
     }
 
-    let contentJson: string | undefined;
-    let contentText: string | undefined;
-    if (args.kind === "document" && args.contentMarkdown !== undefined) {
-      const stored = markdownToWikiStorage(args.contentMarkdown);
-      contentJson = stored.contentJson;
-      contentText = stored.contentText;
-    }
+    const content =
+      args.kind === "document" ? (args.contentMarkdown ?? "") : undefined;
+    const contentText =
+      content !== undefined ? markdownToPlainText(content) : undefined;
 
     const id: Id<"wikiNodes"> = await ctx.runMutation(
       internal.wiki.createByClerkIdInternal,
@@ -146,7 +138,7 @@ export const mcpCreateWiki = internalAction({
         parentId,
         kind: args.kind,
         title: args.title,
-        contentJson,
+        content,
         contentText,
       },
     );
@@ -179,7 +171,7 @@ export const mcpUpdateWiki = internalAction({
       throw new Error("Not found");
     }
 
-    let contentJson: string | undefined;
+    let content: string | undefined;
     let contentText: string | undefined;
 
     if (args.contentMarkdown !== undefined) {
@@ -187,24 +179,19 @@ export const mcpUpdateWiki = internalAction({
         throw new Error("Cannot write content to a folder");
       }
       const mode = args.contentMode ?? "replace";
-      const existingMarkdown = wikiStorageToMarkdown(
-        existing.contentJson,
-        existing.contentText,
-      );
-      const merged =
+      const existingMarkdown = documentMarkdown(existing);
+      content =
         mode === "append"
           ? mergeMarkdownForAppend(existingMarkdown, args.contentMarkdown)
           : args.contentMarkdown;
-      const stored = markdownToWikiStorage(merged);
-      contentJson = stored.contentJson;
-      contentText = stored.contentText;
+      contentText = markdownToPlainText(content);
     }
 
     await ctx.runMutation(internal.wiki.updateByClerkIdInternal, {
       clerkId: args.clerkId,
       id: args.id,
       title: args.title,
-      contentJson,
+      content,
       contentText,
     });
 

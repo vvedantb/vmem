@@ -256,9 +256,9 @@ export const wikiNodeFields = {
   parentId: v.optional(v.id("wikiNodes")),
   kind: v.union(v.literal("folder"), v.literal("document")),
   title: v.string(),
-  /** TipTap ProseMirror JSON, serialized. Undefined for folders and unsaved docs. */
-  contentJson: v.optional(v.string()),
-  /** Plain-text mirror of contentJson used for the Convex full-text searchIndex. */
+  /** Canonical markdown body. Undefined for folders; empty string for new documents. */
+  content: v.optional(v.string()),
+  /** Plain-text mirror of content used for the Convex full-text searchIndex. */
   contentText: v.optional(v.string()),
   /** Manual ordering within a parent; higher = later. */
   order: v.number(),

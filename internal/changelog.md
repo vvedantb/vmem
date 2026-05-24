@@ -1,9 +1,15 @@
 # Changelog
 
+## Wiki Markdown Storage — 2026-05-23
+
+- **Markdown is canonical**: Wiki documents store markdown in `content` (eva-style); TipTap is edit-time only in the web app.
+- **MCP simplified**: Wiki tools read/write markdown directly — no server-side JSON conversion.
+- **Search mirror**: `contentText` remains a derived plain-text field for Convex full-text search.
+
 ## Wiki MCP Tools — 2026-05-23
 
 - **Wiki CRUD via MCP**: Five tools (`wiki_list`, `wiki_get`, `wiki_search`, `wiki_create`, `wiki_update`) let agents browse and edit the personal wiki without the web UI.
-- **Markdown on write**: MCP accepts markdown; the server converts to TipTap JSON + plain text so documents stay compatible with the web editor and Convex search.
+- **Markdown on write**: MCP accepts and stores markdown; the web editor loads the same string via `@tiptap/markdown`.
 - **Append mode**: `wiki_update` supports `contentMode: append` to concatenate new markdown after the existing body.
 
 ## Extension System Prompt Copy — 2026-05-23
