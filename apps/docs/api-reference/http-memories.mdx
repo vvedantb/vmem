@@ -176,6 +176,27 @@ Conflicting updates create **proposed updates** for inbox review — never silen
 
 ---
 
+## Delete
+
+`DELETE /api/v1/memories`
+
+Permanently delete a memory owned by the API key holder.
+
+```bash
+curl -X DELETE "https://<deployment>.convex.site/api/v1/memories" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "memoryId": "mem_abc" }'
+```
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `memoryId` | string | yes |
+
+**Returns:** `{ "deleted": true }` — `404` when memory not found
+
+---
+
 ## Errors
 
 | Status | Meaning |

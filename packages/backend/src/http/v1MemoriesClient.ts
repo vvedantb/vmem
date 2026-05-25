@@ -37,6 +37,10 @@ const retrieveDataSchema = z.object({
   }),
 });
 
+const deleteDataSchema = z.object({
+  deleted: z.literal(true),
+});
+
 const healthBodySchema = z.object({
   status: z.literal("ok"),
 });
@@ -186,6 +190,13 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
     }) {
       return request("/api/v1/memories", storeDataSchema, {
         method: "PATCH",
+        body: JSON.stringify(body),
+      });
+    },
+
+    deleteStructured(body: { memoryId: string }) {
+      return request("/api/v1/memories", deleteDataSchema, {
+        method: "DELETE",
         body: JSON.stringify(body),
       });
     },

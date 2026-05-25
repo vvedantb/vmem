@@ -53,56 +53,73 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
     }
   });
 
-  it("store → retrieve → patch flow", async () => {
+  it("store → retrieve → patch → delete flow", async () => {
     const marker = randomUUID();
+    let memoryId = "";
 
-    const storeResult = await client.storeStructured({
-      title: marker,
-      content: marker,
-      type: "note",
-      source: "vitest-http-api",
-      tags: ["vitest", "http-api"],
-      confidence: 1,
-      externalId: marker,
-      sourceType: "vitest-http-api",
-    });
+    try {
+      const storeResult = await client.storeStructured({
+        title: marker,
+        content: marker,
+        type: "note",
+        source: "vitest-http-api",
+        tags: ["vitest", "http-api"],
+        confidence: 1,
+        externalId: marker,
+        sourceType: "vitest-http-api",
+      });
 
-    expect(storeResult.ok).toBe(true);
-    if (!storeResult.ok) {
-      return;
-    }
+      expect(storeResult.ok).toBe(true);
+      if (!storeResult.ok) {
+        return;
+      }
 
-    expect(storeResult.status).toBe(200);
-    expect(storeResult.data.id.length).toBeGreaterThan(0);
-    expect(storeResult.data.content).toBe(marker);
+      expect(storeResult.status).toBe(200);
+      expect(storeResult.data.id.length).toBeGreaterThan(0);
+      expect(storeResult.data.content).toBe(marker);
 
-    const memoryId = storeResult.data.id;
+      memoryId = storeResult.data.id;
 
-    const retrieveResult = await client.retrieve({
-      query: marker,
-      limit: 5,
-    });
+      const retrieveResult = await client.retrieve({
+        query: marker,
+        limit: 5,
+      });
 
-    expect(retrieveResult.ok).toBe(true);
-    if (retrieveResult.ok) {
-      expect(retrieveResult.status).toBe(200);
-      const ids = retrieveResult.data.memories.map((memory) => memory.id);
-      expect(ids).toContain(memoryId);
-    }
+      expect(retrieveResult.ok).toBe(true);
+      if (retrieveResult.ok) {
+        expect(retrieveResult.status).toBe(200);
+        const ids = retrieveResult.data.memories.map((memory) => memory.id);
+        expect(ids).toContain(memoryId);
+      }
 
-    const updatedTitle = `${marker}-updated`;
-    const updateResult = await client.updateStructured({
-      memoryId,
-      title: updatedTitle,
-      content: `${marker}-patched`,
-    });
+      const updatedTitle = `${marker}-updated`;
+      const updateResult = await client.updateStructured({
+        memoryId,
+        title: updatedTitle,
+        content: `${marker}-patched`,
+      });
 
-    expect(updateResult.ok).toBe(true);
-    if (updateResult.ok) {
-      expect(updateResult.status).toBe(200);
-      expect(updateResult.data.id).toBe(memoryId);
-      expect(updateResult.data.title).toBe(updatedTitle);
-      expect(updateResult.data.content).toBe(`${marker}-patched`);
+      expect(updateResult.ok).toBe(true);
+      if (updateResult.ok) {
+        expect(updateResult.status).toBe(200);
+        expect(updateResult.data.id).toBe(memoryId);
+        expect(updateResult.data.title).toBe(updatedTitle);
+        expect(updateResult.data.content).toBe(`${marker}-patched`);
+      }
+
+      const deleteResult = await client.deleteStructured({ memoryId });
+
+      expect(deleteResult.ok).toBe(true);
+      if (deleteResult.ok) {
+        expect(deleteResult.status).toBe(200);
+        expect(deleteResult.data.deleted).toBe(true);
+      }
+
+      memoryId = "";
+    } finally {
+      if (memoryId.length > 0) {
+        await client.deleteStructured({ memoryId });
+      }
     }
   }, 30_000);
 });

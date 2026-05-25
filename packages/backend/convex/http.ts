@@ -1,7 +1,12 @@
 import { httpRouter } from "convex/server";
 import { connectorCallback } from "./http/auth/connectorCallback";
 import { githubCallback } from "./http/auth/githubCallback";
-import { storeMemory, retrieveMemories, updateMemory } from "./http/v1Memories";
+import {
+  storeMemory,
+  retrieveMemories,
+  updateMemory,
+  deleteMemory,
+} from "./http/v1Memories";
 import {
   oauthMetadata,
   protectedResourceMetadata,
@@ -42,6 +47,12 @@ http.route({
   path: "/api/v1/memories",
   method: "PATCH",
   handler: updateMemory,
+});
+
+http.route({
+  path: "/api/v1/memories",
+  method: "DELETE",
+  handler: deleteMemory,
 });
 
 http.route({

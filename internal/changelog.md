@@ -1,5 +1,11 @@
 # Changelog
 
+## HTTP Memories API & API keys — 2026-05-24
+
+- **DELETE over HTTP**: `DELETE /api/v1/memories` with `{ memoryId }` so API clients and integration tests can remove memories programmatically.
+- **Live HTTP integration tests**: `pnpm test:http-api` exercises store, retrieve, patch, and delete against the dev deployment; test memories are cleaned up after each run.
+- **API key rename**: Settings → API → Keys gets an Edit action to relabel active or revoked keys without rotating the secret.
+
 ## Git — strip Cursor commit attribution — 2026-05-24
 
 - **No agent attribution trailers**: `prepare-commit-msg` husky hook removes `Co-authored-by: Cursor` and `Made-with: Cursor` before commits land; agents must not add them.

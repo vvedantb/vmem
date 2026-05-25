@@ -58,6 +58,10 @@ export const retrieveBodySchema = z.object({
   summarize: z.boolean().optional(),
 });
 
+export const deleteBodySchema = z.object({
+  memoryId: z.string(),
+});
+
 export type StructuredStoreBody = z.infer<typeof structuredStoreBodySchema>;
 export type InstructionStoreBody = z.infer<typeof instructionStoreBodySchema>;
 export type StoreBody = z.infer<typeof storeBodySchema>;
@@ -65,6 +69,7 @@ export type StructuredUpdateBody = z.infer<typeof structuredUpdateBodySchema>;
 export type InstructionUpdateBody = z.infer<typeof instructionUpdateBodySchema>;
 export type UpdateBody = z.infer<typeof updateBodySchema>;
 export type RetrieveBody = z.infer<typeof retrieveBodySchema>;
+export type DeleteBody = z.infer<typeof deleteBodySchema>;
 
 export function isInstructionStoreBody(
   body: StoreBody,
