@@ -1,7 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
   Badge,
-  Card,
   cn,
   ContextMenu,
   ContextMenuTrigger,
@@ -85,9 +84,9 @@ export default function ListItemRow({
   };
 
   const rowBody = (
-    <Card
+    <div
       className={cn(
-        "cursor-pointer transition-all hover:bg-accent/50 px-3 py-2.5",
+        "cursor-pointer rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-accent/50",
         isSelected && "bg-accent",
       )}
       onClick={handleClick}
@@ -123,7 +122,7 @@ export default function ListItemRow({
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 
   if (item.kind !== "memory") {
