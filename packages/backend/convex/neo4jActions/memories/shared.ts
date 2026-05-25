@@ -16,6 +16,7 @@ import {
   type BestEffortEmbedParams,
 } from "../../lib/openRouter/bestEffortEmbed";
 import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
+import type { McpScope } from "../../profiles/mcpAccess";
 
 export type MemoryType = "profile" | "episodic" | "knowledge";
 export type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
@@ -66,6 +67,19 @@ export async function resolveProfileIdForClerkId(
     { clerkId },
   );
   return profile._id;
+}
+
+export async function resolveProfileIdForMcpScope(
+  ctx: ActionCtx,
+  clerkId: string,
+  scope: McpScope,
+  explicitProfileId?: string,
+): Promise<string> {
+  return ctx.runQuery(internal.profiles.resolveProfileIdForMcpScopeInternal, {
+    clerkId,
+    scope,
+    profileId: explicitProfileId,
+  });
 }
 
 export const scheduleContextPromptInvalidation =

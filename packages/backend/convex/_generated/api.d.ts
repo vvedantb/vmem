@@ -125,6 +125,7 @@ import type * as profiles_dream from "../profiles/dream.js";
 import type * as profiles_handlers from "../profiles/handlers.js";
 import type * as profiles_helpers from "../profiles/helpers.js";
 import type * as profiles_lifecycle from "../profiles/lifecycle.js";
+import type * as profiles_mcpAccess from "../profiles/mcpAccess.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
 import type * as relationshipApi from "../relationshipApi.js";
 import type * as retrier from "../retrier.js";
@@ -267,6 +268,7 @@ declare const fullApi: ApiFromModules<{
   "profiles/handlers": typeof profiles_handlers;
   "profiles/helpers": typeof profiles_helpers;
   "profiles/lifecycle": typeof profiles_lifecycle;
+  "profiles/mcpAccess": typeof profiles_mcpAccess;
   proposedUpdateApi: typeof proposedUpdateApi;
   relationshipApi: typeof relationshipApi;
   retrier: typeof retrier;

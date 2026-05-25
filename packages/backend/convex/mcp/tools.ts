@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { McpScope } from "../profiles/mcpAccess";
 
 const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
 const memoryStatusSchema = z.enum([
@@ -58,25 +59,34 @@ export function registerTools(
   server: McpServer,
   clerkUserId: string,
   ctx: ActionCtx,
+  scope: McpScope,
 ): void {
+  const scopeLabel = scope === "team" ? "team" : "personal";
+  const scopedClerk = { clerkId: clerkUserId, scope };
+  const scopedMemory = { clerkId: clerkUserId, mcpScope: scope };
+
   server.tool(
     "ping",
     "Health check tool for connector validation.",
     {},
     async () => {
       return textContent(
-        JSON.stringify({ ok: true, timestamp: new Date().toISOString() }),
+        JSON.stringify({
+          ok: true,
+          scope,
+          timestamp: new Date().toISOString(),
+        }),
       );
     },
   );
 
   server.tool(
     "whoami",
-    "Returns the authenticated user ID and active profile for the current session.",
+    `Returns the authenticated user, active ${scopeLabel} profile, and profiles visible on this ${scopeLabel} MCP connector.`,
     {},
     async () => {
       const result = await safe("whoami", () =>
-        ctx.runAction(internal.mcpProfiles.mcpWhoami, { clerkId: clerkUserId }),
+        ctx.runAction(internal.mcpProfiles.mcpWhoami, scopedClerk),
       );
       if (!result.ok) return errorContent(`Whoami failed: ${result.message}`);
       return textContent(jsonText(result.value));
@@ -85,13 +95,11 @@ export function registerTools(
 
   server.tool(
     "list_profiles",
-    "List all profiles available to the user. Returns profile IDs, names, colors, and icons. Use set_active_profile to choose the default profile for MCP memory tools, or pass profileId on memory_add / memory_search / memory_retrieve. Ask the user which profile they want when unclear.",
+    `List ${scopeLabel} profiles available on this MCP connector. Returns profile IDs, names, colors, and icons. Use set_active_profile to choose the default profile for memory tools, or pass profileId on memory_add / memory_search / memory_retrieve.`,
     {},
     async () => {
       const result = await safe("list_profiles", () =>
-        ctx.runAction(internal.mcpProfiles.mcpListProfiles, {
-          clerkId: clerkUserId,
-        }),
+        ctx.runAction(internal.mcpProfiles.mcpListProfiles, scopedClerk),
       );
       if (!result.ok)
         return errorContent(`List profiles failed: ${result.message}`);
@@ -101,14 +109,14 @@ export function registerTools(
 
   server.tool(
     "set_active_profile",
-    "Set the default profile for MCP memory tools (memory_add, memory_search, memory_retrieve when profileId is omitted). Call list_profiles first to get valid profile IDs. Does not affect web or extension defaults.",
+    `Set the default ${scopeLabel} profile for MCP memory tools (memory_add, memory_search, memory_retrieve when profileId is omitted). Call list_profiles first to get valid profile IDs.`,
     {
       profileId: z.string().describe("Profile ID from list_profiles"),
     },
     async (params) => {
       const result = await safe("set_active_profile", () =>
         ctx.runAction(internal.mcpProfiles.mcpSetActiveProfile, {
-          clerkId: clerkUserId,
+          ...scopedClerk,
           profileId: params.profileId,
         }),
       );
@@ -146,7 +154,7 @@ export function registerTools(
     async (params) => {
       const result = await safe("memory_search", () =>
         ctx.runAction(internal.neo4jActions.mcp.mcpSearchMemories, {
-          clerkId: clerkUserId,
+          ...scopedMemory,
           query: params.query,
           type: params.type,
           tags: params.tags,
@@ -183,7 +191,7 @@ export function registerTools(
     async (params) => {
       const result = await safe("memory_retrieve", () =>
         ctx.runAction(internal.neo4jActions.mcp.mcpRetrieveMemories, {
-          clerkId: clerkUserId,
+          ...scopedMemory,
           query: params.query,
           limit: params.limit,
           profileId: params.profileId,
@@ -223,7 +231,7 @@ export function registerTools(
     async (params) => {
       const result = await safe("memory_add", () =>
         ctx.runAction(internal.neo4jActions.mcp.mcpCreateMemory, {
-          clerkId: clerkUserId,
+          ...scopedMemory,
           title: params.title,
           content: params.content,
           type: params.type,
@@ -256,7 +264,7 @@ export function registerTools(
     async (params) => {
       const result = await safe("memory_add_instruction", () =>
         ctx.runAction(internal.neo4jActions.mcp.mcpAddFromInstruction, {
-          clerkId: clerkUserId,
+          ...scopedMemory,
           instruction: params.instruction,
           profileId: params.profileId,
         }),

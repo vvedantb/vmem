@@ -1,5 +1,11 @@
 # Changelog
 
+## Dual MCP connectors (personal vs team) — 2026-05-23
+
+- **Two MCP entry points**: `/mcp` exposes personal profiles only; `/mcp/team` exposes team profiles for teams you belong to — same OAuth, separate save boundaries.
+- **Scoped profile tools**: `whoami`, `list_profiles`, and `set_active_profile` respect connector scope; team default profile persists in settings as `mcpTeam`.
+- **Team connector omits personal context prompt**: The `vmem://context_prompt` resource stays on the personal connector so company MCP stays memory-focused.
+
 ## Inbox proposals review — 2026-05-25
 
 - **Clearer proposal cards**: Kind-colored accent rails, shared proposal shell, and section hierarchy so synthesis and update proposals read consistently in the inbox.

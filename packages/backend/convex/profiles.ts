@@ -15,6 +15,13 @@ import {
   runRemoveWithMemories,
 } from "./profiles/lifecycle";
 import { runSetLastDreamRunAtInternal } from "./profiles/dream";
+import {
+  getActiveProfileForMcpScope,
+  listProfilesByClerkIdAndScope,
+  mcpScopeValidator,
+  resolveProfileIdForMcpScope,
+  setMcpDefaultProfileForScope,
+} from "./profiles/mcpAccess";
 
 export { PROFILE_COLORS, PROFILE_ICONS } from "./profiles/helpers";
 
@@ -123,37 +130,36 @@ export const getByIdInternal = internalQuery({
  */
 /**
  * Profile used for MCP memory tools when no profileId is passed.
- * Priority: userSettings.defaultProfiles.mcp → isDefault profile.
+ * Personal connector only — use getActiveProfileForMcpScopeInternal for team.
  */
 export const getActiveProfileForMcpInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    return getActiveProfileForMcpScope(ctx, args.clerkId, "personal");
+  },
+});
 
-    if (!user) return null;
+export const getActiveProfileForMcpScopeInternal = internalQuery({
+  args: { clerkId: v.string(), scope: mcpScopeValidator },
+  handler: async (ctx, args) => {
+    return getActiveProfileForMcpScope(ctx, args.clerkId, args.scope);
+  },
+});
 
-    const settings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
-
-    const mcpProfileId = settings?.defaultProfiles?.mcp;
-    if (mcpProfileId !== undefined) {
-      const mcpProfile = await ctx.db.get(mcpProfileId);
-      if (mcpProfile && mcpProfile.userId === user._id) {
-        return mcpProfile;
-      }
-    }
-
-    return await ctx.db
-      .query("profiles")
-      .withIndex("by_user_default", (q) =>
-        q.eq("userId", user._id).eq("isDefault", true),
-      )
-      .first();
+export const resolveProfileIdForMcpScopeInternal = internalQuery({
+  args: {
+    clerkId: v.string(),
+    scope: mcpScopeValidator,
+    profileId: v.optional(v.string()),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    return resolveProfileIdForMcpScope(
+      ctx,
+      args.clerkId,
+      args.scope,
+      args.profileId,
+    );
   },
 });
 
@@ -193,21 +199,18 @@ export const getOrCreateDefaultByClerkIdInternal = internalMutation({
   },
 });
 
-/** List profiles by Clerk ID (for MCP) */
+/** List personal profiles by Clerk ID (legacy MCP helper). */
 export const listByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    return listProfilesByClerkIdAndScope(ctx, args.clerkId, "personal");
+  },
+});
 
-    if (!user) return [];
-
-    return await ctx.db
-      .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
+export const listByClerkIdAndScopeInternal = internalQuery({
+  args: { clerkId: v.string(), scope: mcpScopeValidator },
+  handler: async (ctx, args) => {
+    return listProfilesByClerkIdAndScope(ctx, args.clerkId, args.scope);
   },
 });
 

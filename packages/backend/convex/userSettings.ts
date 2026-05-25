@@ -2,12 +2,17 @@ import { authQuery, authMutation } from "./auth";
 import { internalQuery, internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
+import {
+  mcpScopeValidator,
+  setMcpDefaultProfileForScope,
+} from "./profiles/mcpAccess";
 
 type ThemeValue = "light" | "dark" | "system";
 type DefaultProfilesValue = {
   web?: Id<"profiles">;
   extension?: Id<"profiles">;
   mcp?: Id<"profiles">;
+  mcpTeam?: Id<"profiles">;
 } | null;
 
 const defaults: {
@@ -303,47 +308,19 @@ export const getMcpDefaultProfileIdByClerkIdInternal = internalQuery({
 });
 
 export const setMcpDefaultProfileByClerkIdInternal = internalMutation({
-  args: { clerkId: v.string(), profileId: v.string() },
+  args: {
+    clerkId: v.string(),
+    profileId: v.string(),
+    scope: mcpScopeValidator,
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const normalizedProfileId = ctx.db.normalizeId("profiles", args.profileId);
-    if (!normalizedProfileId) {
-      throw new Error("Invalid profile id");
-    }
-
-    const profile = await ctx.db.get(normalizedProfileId);
-    if (!profile || profile.userId !== user._id) {
-      throw new Error("Profile not found");
-    }
-
-    const existing = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
-
-    const currentDefaults = existing?.defaultProfiles ?? {};
-    const updatedDefaults = {
-      ...currentDefaults,
-      mcp: normalizedProfileId,
-    };
-
-    if (existing) {
-      await ctx.db.patch(existing._id, { defaultProfiles: updatedDefaults });
-      return null;
-    }
-
-    await ctx.db.insert("userSettings", {
-      userId: user._id,
-      defaultProfiles: updatedDefaults,
-    });
+    await setMcpDefaultProfileForScope(
+      ctx,
+      args.clerkId,
+      args.profileId,
+      args.scope,
+    );
     return null;
   },
 });

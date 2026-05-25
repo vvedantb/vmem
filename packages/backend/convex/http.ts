@@ -10,10 +10,12 @@ import {
 import {
   oauthMetadata,
   protectedResourceMetadata,
+  protectedResourceMetadataTeam,
   register as mcpRegister,
   authorizeGet as mcpAuthorizeGet,
   token as mcpToken,
   mcpHandler,
+  mcpTeamHandler,
   health as mcpHealth,
 } from "./mcp/native";
 
@@ -68,6 +70,12 @@ http.route({
 });
 
 http.route({
+  path: "/.well-known/oauth-protected-resource/mcp/team",
+  method: "GET",
+  handler: protectedResourceMetadataTeam,
+});
+
+http.route({
   path: "/mcp/oauth/register",
   method: "POST",
   handler: mcpRegister,
@@ -101,6 +109,24 @@ http.route({
   path: "/mcp",
   method: "DELETE",
   handler: mcpHandler,
+});
+
+http.route({
+  path: "/mcp/team",
+  method: "POST",
+  handler: mcpTeamHandler,
+});
+
+http.route({
+  path: "/mcp/team",
+  method: "GET",
+  handler: mcpTeamHandler,
+});
+
+http.route({
+  path: "/mcp/team",
+  method: "DELETE",
+  handler: mcpTeamHandler,
 });
 
 http.route({

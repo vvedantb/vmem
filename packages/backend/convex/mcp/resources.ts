@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { McpScope } from "../profiles/mcpAccess";
 
 /**
  * Register MCP Resources for the authenticated user.
@@ -18,7 +19,12 @@ export function registerResources(
   server: McpServer,
   clerkUserId: string,
   ctx: ActionCtx,
+  scope: McpScope,
 ): void {
+  if (scope === "team") {
+    return;
+  }
+
   server.registerResource(
     "context_prompt",
     "vmem://context_prompt",

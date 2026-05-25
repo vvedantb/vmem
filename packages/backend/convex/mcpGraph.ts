@@ -3,7 +3,8 @@
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { resolveProfileIdForClerkId } from "./neo4jActions/memories/shared";
+import { resolveProfileIdForMcpScope } from "./neo4jActions/memories/shared";
+import { mcpScopeValidator } from "./profiles/mcpAccess";
 
 const memoryTypeValidator = v.union(
   v.literal("profile"),
@@ -214,6 +215,7 @@ function capMemoryGraph(
 export const mcpGetMemoryGraph = internalAction({
   args: {
     clerkId: v.string(),
+    mcpScope: mcpScopeValidator,
     profileId: v.optional(v.string()),
     focus: v.optional(v.string()),
     memoryIds: v.optional(v.array(v.string())),
@@ -221,9 +223,10 @@ export const mcpGetMemoryGraph = internalAction({
   },
   returns: mcpMemoryGraphResultValidator,
   handler: async (ctx, args) => {
-    const profileId = await resolveProfileIdForClerkId(
+    const profileId = await resolveProfileIdForMcpScope(
       ctx,
       args.clerkId,
+      args.mcpScope,
       args.profileId,
     );
     const limit = normalizeLimit(args.limit);
