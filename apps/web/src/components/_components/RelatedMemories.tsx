@@ -147,11 +147,11 @@ export default function RelatedMemories({
       ) : entries.length === 0 ? (
         <p className="text-sm text-muted-foreground">No related memories</p>
       ) : (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-1">
           {entries.map((entry) => (
             <div
               key={entry.memory.id}
-              className="flex items-start justify-between gap-2 rounded-lg bg-muted/50 border border-border p-2.5"
+              className="flex items-start justify-between gap-2 rounded-lg px-2.5 py-2 transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50"
             >
               <button
                 type="button"

@@ -108,6 +108,7 @@ Hover & Interaction States:
 - Hover: `hover:bg-*` (background shift). Never `hover:border-*` or `hover:shadow-*`.
 - Active/selected: `bg-*` + `ring-*` if emphasis needed. Never border.
 - Keep transitions to `transition-[transform,background-color]` — no `box-shadow` or `border-color` in transitions.
+- **Inline list rows** (memories list, API request log, activity log, etc.): default **flat/transparent** — never a resting `bg-muted/*` on each row. Background only on `hover:` (and `focus:` / selected when applicable). Pattern: `hover:bg-muted/80 dark:hover:bg-accent/50` (see `ListItemRow`, `LogsTable`, `ApiLogsTable`). Use `bg-muted/40` on **containers** (summary cards, empty states, panels), not on every item inside a list.
 
 Spacing:
 

@@ -71,7 +71,7 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
         )}
       </div>
 
-      <ul className="space-y-2">
+      <ul className="flex flex-col gap-1">
         {data.members.map((m) => {
           const name =
             m.fullName ||
@@ -81,7 +81,7 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
           return (
             <li
               key={m.userId}
-              className="flex items-center justify-between gap-3 rounded-lg bg-muted/40 p-3"
+              className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50"
             >
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-foreground">

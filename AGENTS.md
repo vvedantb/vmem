@@ -51,6 +51,10 @@ Component Structure:
 - Only add `"use client"` to child components that use hooks/interactivity
 - Inline sub-components defined in the same file should be extracted to `_components/`
 
+UI list rows:
+
+- Inline list rows stay flat at rest; `hover:bg-muted/80 dark:hover:bg-accent/50` only on hover (plus selected/focus when needed). Never resting `bg-muted/*` per row — that is for containers/cards. Full rules in `CLAUDE.md` (Tonal Surface Hierarchy).
+
 Next.js:
 
 - Default to Server Components.
