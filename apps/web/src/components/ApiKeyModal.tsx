@@ -14,13 +14,7 @@ import {
   Button,
   Input,
 } from "@vmem/ui";
-import {
-  IconLoader2,
-  IconCheck,
-  IconCopy,
-  IconKey,
-  IconAlertTriangle,
-} from "@tabler/icons-react";
+import { IconLoader2, IconCheck, IconCopy, IconKey } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import { apiKeySchema, type ApiKeyFormValues } from "@/lib/schemas";
@@ -164,17 +158,6 @@ export default function ApiKeyModal({
 
         {step === "success" && createdKey && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
-              <IconAlertTriangle
-                size={20}
-                className="text-warning flex-shrink-0"
-              />
-              <p className="text-sm text-warning">
-                Make sure to copy your API key now. You won&apos;t be able to
-                see it again!
-              </p>
-            </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Your API Key
