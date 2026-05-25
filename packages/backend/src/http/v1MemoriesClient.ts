@@ -45,7 +45,7 @@ const healthBodySchema = z.object({
   status: z.literal("ok"),
 });
 
-function envelopeSchema<T extends z.ZodType>(dataSchema: T) {
+function envelopeSchema<S extends z.ZodTypeAny>(dataSchema: S) {
   return z.object({ data: dataSchema });
 }
 
@@ -75,11 +75,11 @@ async function readJson(response: Response): Promise<object | null> {
   }
 }
 
-function parseDirect<T>(
+function parseDirect<S extends z.ZodTypeAny>(
   status: number,
   body: object | null,
-  schema: z.ZodType<T>,
-): HttpJsonResult<T> {
+  schema: S,
+): HttpJsonResult<z.output<S>> {
   if (body === null) {
     return { ok: false, status, error: "invalid_json" };
   }
@@ -97,11 +97,11 @@ function parseDirect<T>(
   return { ok: false, status, error: "unexpected_response" };
 }
 
-function parseEnvelope<T>(
+function parseEnvelope<S extends z.ZodTypeAny>(
   status: number,
   body: object | null,
-  dataSchema: z.ZodType<T>,
-): HttpJsonResult<T> {
+  dataSchema: S,
+): HttpJsonResult<z.output<S>> {
   if (body === null) {
     return { ok: false, status, error: "invalid_json" };
   }
@@ -122,22 +122,22 @@ function parseEnvelope<T>(
 export function createHttpMemoriesClient(config: HttpClientConfig) {
   const { baseUrl, apiKey } = config;
 
-  async function requestDirect<T>(
+  async function requestDirect<S extends z.ZodTypeAny>(
     path: string,
-    schema: z.ZodType<T>,
+    schema: S,
     init: RequestInit,
-  ): Promise<HttpJsonResult<T>> {
+  ): Promise<HttpJsonResult<z.output<S>>> {
     const response = await fetch(`${baseUrl}${path}`, init);
     const body = await readJson(response);
     return parseDirect(response.status, body, schema);
   }
 
-  async function request<T>(
+  async function request<S extends z.ZodTypeAny>(
     path: string,
-    dataSchema: z.ZodType<T>,
+    dataSchema: S,
     init: RequestInit,
     authToken: string | null = apiKey,
-  ): Promise<HttpJsonResult<T>> {
+  ): Promise<HttpJsonResult<z.output<S>>> {
     const headers = new Headers(init.headers);
     if (init.body !== undefined) {
       headers.set("Content-Type", "application/json");
