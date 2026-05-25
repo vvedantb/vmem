@@ -86,8 +86,8 @@ export default function ListItemRow({
   const rowBody = (
     <div
       className={cn(
-        "cursor-pointer rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-accent/50",
-        isSelected && "bg-accent",
+        "cursor-pointer rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50",
+        isSelected && "bg-muted dark:bg-accent",
       )}
       onClick={handleClick}
     >
