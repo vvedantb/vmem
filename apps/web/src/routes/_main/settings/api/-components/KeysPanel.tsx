@@ -106,7 +106,7 @@ export function KeysPanel({
               <TableHead className="hidden font-medium text-muted-foreground sm:table-cell">
                 LAST USED
               </TableHead>
-              <TableHead className="w-20 font-medium text-muted-foreground sm:w-auto">
+              <TableHead className="text-right font-medium text-muted-foreground sm:w-auto">
                 ACTIONS
               </TableHead>
             </TableRow>
