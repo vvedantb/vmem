@@ -1,6 +1,6 @@
 
 
-[] add email for agents, payment for agents, browser for agents, sandbox for agents
+[~] agent platform (email, payment, browser, sandbox) — deprioritized; likely out of current product vision (May 2026)
 [x] add create memory tool in MCP (`memory_add`, `memory_add_instruction` in packages/backend/convex/mcp/tools.ts)
 
 [] can i use just bash for the files it creates and skills?
@@ -8,13 +8,13 @@ inspired from https://x.com/DhravyaShah/status/2049324612635562492
 
 [x] add tool to screenshot images then save to memory — chrome extension screenshot overlay + saveScreenshot API (apps/chrome-extension/src/content/screenshot/, background/api-client.ts)
 
-[] sunset the api keys, api usage, developer focus — they can just use MCP (API keys + usage UI still live under /settings/api)
+[x] keep API keys + usage UI — decided NOT to sunset (May 2026); MCP and HTTP API both stay
+[] verify API key flow end-to-end (pending: user to provide test key)
 [] sunset mobile app too, too complex to setup (apps/mobile still exists)
 [x] focus on the web, backend, extension, and mcp server — primary surfaces shipped; mobile/docs/mcp-app exist but not the main focus
 
-[02:07, 24/04/2026] V: Give agent its own email
+[~] Give agent its own email / browser / sandbox — same deprioritization as agent platform above
 [02:09, 24/04/2026] V: Memory + Context + OS
-[02:09, 24/04/2026] V: Give agent its own browser own sandbox
 [02:34, 25/04/2026] V: Report
 [] Testing + benchmarks
 [] Orchestration layer
@@ -45,16 +45,16 @@ https://www.convex.dev/components/convex-secret-store
 
 [x] cmdk search (CommandPalette + packages/ui command.tsx)
 
-[] codebases resync on every commit to staging (only daily cron at 04:00 UTC — codebaseSync/crons.ts; no push webhook per staging commit)
+[x] codebases resync — daily cron at 04:00 UTC is sufficient for now (codebaseSync/crons.ts; per-commit staging webhook deferred)
 
 [x] add more import options — Grok + DeepSeek shipped (importProviders.tsx)
 [] add more import options — Gemini + Perplexity still "coming soon"
 
 [x] add more connectors — Google Drive, OneDrive, Notion, Linear, Gmail (packages/backend/convex/connectors.ts)
-[] add more connectors — SharePoint, etc.
+[] add more connectors — SharePoint, etc. (later; not blocking)
 
 [x] teams: create team, invite members, auto team profile, shared team memories (teams.ts, TeamKnowledge.tsx)
-[] company knowledge as top-level product tab + Evalucom-style naming + /company/mcp route (teams cover part of the vision; no /company/mcp)
+[] company knowledge vision — ON ROADMAP: top-level tab, Evalucom-style naming, /company/mcp (teams are partial step 1; full company surface TBD)
 
 [] stats maybe show for each profile somehow? how do we show this?
 [x] add filter for profile in memory list/graph (nuqs `profile` param — memories/-searchParams.ts)
@@ -107,8 +107,8 @@ docs
 [x] install mintlify (apps/docs/docs.json)
 [] install just-bash for docs support
 
-voice
-[] use pipecat for voice agents (openrouter for voice api) — custom STT/TTS via transformers + kokoro instead
+voice (deferred for now — custom STT/TTS via transformers + kokoro is enough)
+[] use pipecat for voice agents (openrouter for voice api)
 [] how to save memories via voice (VoiceClient retrieves + attaches memoryRefs; no create-from-voice flow)
 
 mcp
