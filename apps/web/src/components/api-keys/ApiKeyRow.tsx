@@ -23,6 +23,7 @@ interface ApiKeyRowProps {
   onToggleReveal: (id: ApiKey["id"]) => void;
   onCopy: (id: ApiKey["id"]) => void;
   onRevoke: (id: ApiKey["id"]) => void;
+  onDelete: (id: ApiKey["id"]) => void;
 }
 
 export function ApiKeyRow({
@@ -34,6 +35,7 @@ export function ApiKeyRow({
   onToggleReveal,
   onCopy,
   onRevoke,
+  onDelete,
 }: ApiKeyRowProps) {
   const isActive = apiKey.status === "active";
 
@@ -108,18 +110,26 @@ export function ApiKeyRow({
         </span>
       </TableCell>
       <TableCell className="py-4">
-        {isActive ? (
+        <div className="flex items-center gap-1">
+          {isActive ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onRevoke(apiKey.id)}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              Revoke
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onRevoke(apiKey.id)}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => onDelete(apiKey.id)}
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
           >
-            Revoke
+            Delete
           </Button>
-        ) : (
-          <span className="text-sm text-muted-foreground">&mdash;</span>
-        )}
+        </div>
       </TableCell>
     </TableRow>
   );

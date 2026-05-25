@@ -14,6 +14,7 @@ import ApiKeyModal from "@/components/ApiKeyModal";
 import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
 import { ApiKeysLoadingSkeleton } from "@/components/api-keys/ApiKeysLoadingSkeleton";
 import { RevokeKeyDialog } from "@/components/api-keys/RevokeKeyDialog";
+import { DeleteKeyDialog } from "@/components/api-keys/DeleteKeyDialog";
 import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
 import { api } from "@vmem/backend";
 
@@ -36,7 +37,10 @@ export function KeysPanel({
   const {
     revokeKeyId,
     setRevokeKeyId,
+    deleteKeyId,
+    setDeleteKeyId,
     isRevoking,
+    isDeleting,
     copiedKeyId,
     copyingKeyId,
     revealedKeys,
@@ -44,11 +48,13 @@ export function KeysPanel({
     handleCopyKey,
     handleToggleReveal,
     handleRevoke,
+    handleDelete,
   } = useApiKeyActions();
 
   const isLoading = apiKeys === undefined;
   const apiKeyList: ApiKey[] = apiKeys ?? [];
   const keyToRevoke = apiKeyList.find((key) => key.id === revokeKeyId);
+  const keyToDelete = apiKeyList.find((key) => key.id === deleteKeyId);
 
   if (isLoading) return <ApiKeysLoadingSkeleton />;
 
@@ -111,6 +117,7 @@ export function KeysPanel({
                 onToggleReveal={handleToggleReveal}
                 onCopy={handleCopyKey}
                 onRevoke={setRevokeKeyId}
+                onDelete={setDeleteKeyId}
               />
             ))}
           </TableBody>
@@ -129,6 +136,14 @@ export function KeysPanel({
         isRevoking={isRevoking}
         onConfirm={handleRevoke}
         onCancel={() => setRevokeKeyId(null)}
+      />
+
+      <DeleteKeyDialog
+        keyName={keyToDelete?.name}
+        isOpen={!!deleteKeyId}
+        isDeleting={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteKeyId(null)}
       />
     </>
   );

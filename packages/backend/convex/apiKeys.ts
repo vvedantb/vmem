@@ -139,6 +139,33 @@ export const revokeMy = authMutation({
   },
 });
 
+export const deleteMy = authMutation({
+  args: { id: v.id("apiKeys") },
+  handler: async (ctx, args) => {
+    const apiKey = await ctx.db.get(args.id);
+    if (!apiKey || apiKey.userId !== ctx.userId) {
+      return false;
+    }
+
+    await ctx.db.delete(apiKey._id);
+
+    await auditLog.log(ctx, {
+      action: "api_key.deleted",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.API_KEY,
+      resourceId: apiKey._id,
+      metadata: {
+        name: apiKey.name,
+        maskedKey: apiKey.maskedKey,
+        status: apiKey.status,
+      },
+      severity: "warning",
+    });
+
+    return true;
+  },
+});
+
 export const revealMy = authAction({
   args: { id: v.id("apiKeys") },
   handler: async (ctx, args): Promise<string | null> => {
