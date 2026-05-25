@@ -15,6 +15,7 @@ import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
 import { ApiKeysLoadingSkeleton } from "@/components/api-keys/ApiKeysLoadingSkeleton";
 import { RevokeKeyDialog } from "@/components/api-keys/RevokeKeyDialog";
 import { DeleteKeyDialog } from "@/components/api-keys/DeleteKeyDialog";
+import { EditKeyDialog } from "@/components/api-keys/EditKeyDialog";
 import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
 import { api } from "@vmem/backend";
 
@@ -39,8 +40,11 @@ export function KeysPanel({
     setRevokeKeyId,
     deleteKeyId,
     setDeleteKeyId,
+    editKeyId,
+    setEditKeyId,
     isRevoking,
     isDeleting,
+    isRenaming,
     copiedKeyId,
     copyingKeyId,
     revealedKeys,
@@ -49,12 +53,14 @@ export function KeysPanel({
     handleToggleReveal,
     handleRevoke,
     handleDelete,
+    handleRename,
   } = useApiKeyActions();
 
   const isLoading = apiKeys === undefined;
   const apiKeyList: ApiKey[] = apiKeys ?? [];
   const keyToRevoke = apiKeyList.find((key) => key.id === revokeKeyId);
   const keyToDelete = apiKeyList.find((key) => key.id === deleteKeyId);
+  const keyToEdit = apiKeyList.find((key) => key.id === editKeyId);
 
   if (isLoading) return <ApiKeysLoadingSkeleton />;
 
@@ -116,6 +122,7 @@ export function KeysPanel({
                 copiedKeyId={copiedKeyId}
                 onToggleReveal={handleToggleReveal}
                 onCopy={handleCopyKey}
+                onEdit={setEditKeyId}
                 onRevoke={setRevokeKeyId}
                 onDelete={setDeleteKeyId}
               />
@@ -144,6 +151,14 @@ export function KeysPanel({
         isDeleting={isDeleting}
         onConfirm={handleDelete}
         onCancel={() => setDeleteKeyId(null)}
+      />
+
+      <EditKeyDialog
+        keyName={keyToEdit?.name}
+        isOpen={!!editKeyId}
+        isSaving={isRenaming}
+        onSave={handleRename}
+        onCancel={() => setEditKeyId(null)}
       />
     </>
   );

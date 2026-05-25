@@ -22,6 +22,7 @@ interface ApiKeyRowProps {
   copiedKeyId: string | null;
   onToggleReveal: (id: ApiKey["id"]) => void;
   onCopy: (id: ApiKey["id"]) => void;
+  onEdit: (id: ApiKey["id"]) => void;
   onRevoke: (id: ApiKey["id"]) => void;
   onDelete: (id: ApiKey["id"]) => void;
 }
@@ -34,6 +35,7 @@ export function ApiKeyRow({
   copiedKeyId,
   onToggleReveal,
   onCopy,
+  onEdit,
   onRevoke,
   onDelete,
 }: ApiKeyRowProps) {
@@ -111,6 +113,14 @@ export function ApiKeyRow({
       </TableCell>
       <TableCell className="py-4">
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(apiKey.id)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Edit
+          </Button>
           {isActive ? (
             <Button
               variant="ghost"

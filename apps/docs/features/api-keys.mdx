@@ -34,6 +34,7 @@ Keys are hashed for lookup and AES-GCM encrypted at rest (`v1:` format). Require
 | `apiKeys.createMy` | Create a new key (returns plaintext once) |
 | `apiKeys.listMy` | List keys (masked) |
 | `apiKeys.revokeMy` | Revoke an active key (status → revoked) |
+| `apiKeys.renameMy` | Rename a key (active or revoked) |
 | `apiKeys.deleteMy` | Permanently delete a key (active or revoked) |
 | `apiKeys.revealMy` | Decrypt and reveal a key |
 
