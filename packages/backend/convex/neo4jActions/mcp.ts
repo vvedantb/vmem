@@ -12,22 +12,28 @@ import { runCreateMemory } from "./memories/create";
 import { runUpdateMemory } from "./memories/update";
 import { runDeleteMemory } from "./memories/delete";
 import { runRetrieveMemories, runSearchMemories } from "./memories/read";
-import { resolveProfileIdForClerkId } from "./memories/shared";
+import { resolveProfileIdForMcpScope } from "./memories/shared";
 import { runStoreFromInstruction } from "./agent/storeFromInstruction";
 import type { OpenRouterRequired } from "./agent/shared";
 import type { StoreFromInstructionResult } from "./agent/storeFromInstruction";
 import type { MemoryWithTags } from "../../src/neo4j/memoryService";
 import { getRelatedMemories } from "../../src/neo4j/memoryService";
 import { getDriver } from "../../src/neo4j/driver";
+import { mcpScopeValidator } from "../profiles/mcpAccess";
 
 export interface RelatedMemoryRow {
   memory: MemoryWithTags;
   linkReason: string;
 }
 
+const scopedMcpArgs = {
+  clerkId: v.string(),
+  mcpScope: mcpScopeValidator,
+};
+
 export const mcpSearchMemories = internalAction({
   args: {
-    clerkId: v.string(),
+    ...scopedMcpArgs,
     query: v.optional(v.string()),
     type: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
@@ -36,9 +42,10 @@ export const mcpSearchMemories = internalAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const profileId = await resolveProfileIdForClerkId(
+    const profileId = await resolveProfileIdForMcpScope(
       ctx,
       args.clerkId,
+      args.mcpScope,
       args.profileId,
     );
     return await runSearchMemories({
@@ -55,15 +62,16 @@ export const mcpSearchMemories = internalAction({
 
 export const mcpRetrieveMemories = internalAction({
   args: {
-    clerkId: v.string(),
+    ...scopedMcpArgs,
     query: v.string(),
     limit: v.optional(v.number()),
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const profileId = await resolveProfileIdForClerkId(
+    const profileId = await resolveProfileIdForMcpScope(
       ctx,
       args.clerkId,
+      args.mcpScope,
       args.profileId,
     );
     return await runRetrieveMemories(ctx, {
@@ -77,7 +85,7 @@ export const mcpRetrieveMemories = internalAction({
 
 export const mcpCreateMemory = internalAction({
   args: {
-    clerkId: v.string(),
+    ...scopedMcpArgs,
     title: v.string(),
     content: v.string(),
     type: v.optional(v.string()),
@@ -87,10 +95,16 @@ export const mcpCreateMemory = internalAction({
     url: v.optional(v.string()),
     profileId: v.optional(v.string()),
   },
-  handler: async (ctx, args) =>
-    runCreateMemory(ctx, {
+  handler: async (ctx, args) => {
+    const profileId = await resolveProfileIdForMcpScope(
+      ctx,
+      args.clerkId,
+      args.mcpScope,
+      args.profileId,
+    );
+    return runCreateMemory(ctx, {
       clerkId: args.clerkId,
-      profileId: args.profileId,
+      profileId,
       title: args.title,
       content: args.content,
       type:
@@ -101,7 +115,8 @@ export const mcpCreateMemory = internalAction({
       tags: args.tags ?? [],
       confidence: args.confidence ?? 1.0,
       url: args.url,
-    }),
+    });
+  },
 });
 
 export const mcpUpdateMemory = internalAction({
@@ -128,15 +143,26 @@ export const mcpDeleteMemory = internalAction({
 
 export const mcpAddFromInstruction = internalAction({
   args: {
-    clerkId: v.string(),
+    ...scopedMcpArgs,
     instruction: v.string(),
     profileId: v.optional(v.string()),
   },
   handler: async (
     ctx,
     args,
-  ): Promise<StoreFromInstructionResult | OpenRouterRequired> =>
-    runStoreFromInstruction(ctx, args),
+  ): Promise<StoreFromInstructionResult | OpenRouterRequired> => {
+    const profileId = await resolveProfileIdForMcpScope(
+      ctx,
+      args.clerkId,
+      args.mcpScope,
+      args.profileId,
+    );
+    return runStoreFromInstruction(ctx, {
+      clerkId: args.clerkId,
+      instruction: args.instruction,
+      profileId,
+    });
+  },
 });
 
 export const mcpGetRelatedMemories = internalAction({

@@ -1,14 +1,21 @@
 import { httpRouter } from "convex/server";
 import { connectorCallback } from "./http/auth/connectorCallback";
 import { githubCallback } from "./http/auth/githubCallback";
-import { storeMemory, retrieveMemories, updateMemory } from "./http/v1Memories";
+import {
+  storeMemory,
+  retrieveMemories,
+  updateMemory,
+  deleteMemory,
+} from "./http/v1Memories";
 import {
   oauthMetadata,
   protectedResourceMetadata,
+  protectedResourceMetadataTeam,
   register as mcpRegister,
   authorizeGet as mcpAuthorizeGet,
   token as mcpToken,
   mcpHandler,
+  mcpTeamHandler,
   health as mcpHealth,
 } from "./mcp/native";
 
@@ -45,6 +52,12 @@ http.route({
 });
 
 http.route({
+  path: "/api/v1/memories",
+  method: "DELETE",
+  handler: deleteMemory,
+});
+
+http.route({
   path: "/.well-known/oauth-authorization-server",
   method: "GET",
   handler: oauthMetadata,
@@ -54,6 +67,12 @@ http.route({
   path: "/.well-known/oauth-protected-resource",
   method: "GET",
   handler: protectedResourceMetadata,
+});
+
+http.route({
+  path: "/.well-known/oauth-protected-resource/mcp/team",
+  method: "GET",
+  handler: protectedResourceMetadataTeam,
 });
 
 http.route({
@@ -90,6 +109,24 @@ http.route({
   path: "/mcp",
   method: "DELETE",
   handler: mcpHandler,
+});
+
+http.route({
+  path: "/mcp/team",
+  method: "POST",
+  handler: mcpTeamHandler,
+});
+
+http.route({
+  path: "/mcp/team",
+  method: "GET",
+  handler: mcpTeamHandler,
+});
+
+http.route({
+  path: "/mcp/team",
+  method: "DELETE",
+  handler: mcpTeamHandler,
 });
 
 http.route({

@@ -37,6 +37,17 @@ function maskApiKey(rawKey: string): string {
   return `${rawKey.slice(0, 12)}${"*".repeat(16)}${rawKey.slice(-4)}`;
 }
 
+export function normalizeApiKeyName(rawName: string): string {
+  const name = rawName.trim();
+  if (!name) {
+    throw new Error("Name is required");
+  }
+  if (name.length > 50) {
+    throw new Error("Name must be 50 characters or less");
+  }
+  return name;
+}
+
 // --- Types ---
 
 type CreateMyResult = {
@@ -80,13 +91,7 @@ export const listMy = authQuery({
 export const createMy = authAction({
   args: { name: v.string() },
   handler: async (ctx, args): Promise<CreateMyResult> => {
-    const name = args.name.trim();
-    if (!name) {
-      throw new Error("Name is required");
-    }
-    if (name.length > 50) {
-      throw new Error("Name must be 50 characters or less");
-    }
+    const name = normalizeApiKeyName(args.name);
 
     const key = generateApiKey();
     const keyHash = await hashApiKey(key);
@@ -133,6 +138,69 @@ export const revokeMy = authMutation({
       resourceId: apiKey._id,
       metadata: { name: apiKey.name, maskedKey: apiKey.maskedKey },
       severity: "warning",
+    });
+
+    return true;
+  },
+});
+
+export const deleteMy = authMutation({
+  args: { id: v.id("apiKeys") },
+  handler: async (ctx, args) => {
+    const apiKey = await ctx.db.get(args.id);
+    if (!apiKey || apiKey.userId !== ctx.userId) {
+      return false;
+    }
+
+    await ctx.db.delete(apiKey._id);
+
+    await auditLog.log(ctx, {
+      action: "api_key.deleted",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.API_KEY,
+      resourceId: apiKey._id,
+      metadata: {
+        name: apiKey.name,
+        maskedKey: apiKey.maskedKey,
+        status: apiKey.status,
+      },
+      severity: "warning",
+    });
+
+    return true;
+  },
+});
+
+export const renameMy = authMutation({
+  args: { id: v.id("apiKeys"), name: v.string() },
+  handler: async (ctx, args) => {
+    const name = normalizeApiKeyName(args.name);
+
+    const apiKey = await ctx.db.get(args.id);
+    if (!apiKey || apiKey.userId !== ctx.userId) {
+      return false;
+    }
+
+    if (apiKey.name === name) {
+      return true;
+    }
+
+    const previousName = apiKey.name;
+
+    await ctx.db.patch(apiKey._id, { name });
+
+    await auditLog.log(ctx, {
+      action: "api_key.renamed",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.API_KEY,
+      resourceId: apiKey._id,
+      metadata: {
+        previousName,
+        name,
+        maskedKey: apiKey.maskedKey,
+        status: apiKey.status,
+      },
+      severity: "info",
     });
 
     return true;

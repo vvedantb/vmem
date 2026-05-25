@@ -8,6 +8,9 @@ import {
   IconEye,
   IconEyeOff,
   IconLoader2,
+  IconPencil,
+  IconBan,
+  IconTrash,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { formatRelativeTime, formatDate, formatNumber } from "@/lib/formatters";
@@ -22,7 +25,9 @@ interface ApiKeyRowProps {
   copiedKeyId: string | null;
   onToggleReveal: (id: ApiKey["id"]) => void;
   onCopy: (id: ApiKey["id"]) => void;
+  onEdit: (id: ApiKey["id"]) => void;
   onRevoke: (id: ApiKey["id"]) => void;
+  onDelete: (id: ApiKey["id"]) => void;
 }
 
 export function ApiKeyRow({
@@ -33,7 +38,9 @@ export function ApiKeyRow({
   copiedKeyId,
   onToggleReveal,
   onCopy,
+  onEdit,
   onRevoke,
+  onDelete,
 }: ApiKeyRowProps) {
   const isActive = apiKey.status === "active";
 
@@ -63,11 +70,11 @@ export function ApiKeyRow({
           </code>
           {isActive && (
             <Button
-              size="icon-xs"
+              size="icon-sm"
               variant="ghost"
               onClick={() => onToggleReveal(apiKey.id)}
               disabled={revealingKeyId === apiKey.id}
-              className="text-muted-foreground hover:text-foreground"
+              title={revealedKey ? "Hide key" : "Reveal key"}
             >
               {revealingKeyId === apiKey.id ? (
                 <IconLoader2 size={14} className="animate-spin" />
@@ -80,16 +87,16 @@ export function ApiKeyRow({
           )}
           {isActive && (
             <Button
-              size="icon-xs"
+              size="icon-sm"
               variant="ghost"
               onClick={() => onCopy(apiKey.id)}
               disabled={copyingKeyId === apiKey.id}
-              className="text-muted-foreground hover:text-foreground"
+              title={copiedKeyId === apiKey.id ? "Copied!" : "Copy key"}
             >
               {copyingKeyId === apiKey.id ? (
                 <IconLoader2 size={14} className="animate-spin" />
               ) : copiedKeyId === apiKey.id ? (
-                <IconCheck size={14} />
+                <IconCheck size={14} className="text-primary" />
               ) : (
                 <IconCopy size={14} />
               )}
@@ -107,19 +114,37 @@ export function ApiKeyRow({
           {formatRelativeTime(apiKey.lastUsedAt)}
         </span>
       </TableCell>
-      <TableCell className="py-4">
-        {isActive ? (
+      <TableCell className="py-4 text-right">
+        <div className="flex items-center justify-end gap-1">
           <Button
+            size="icon-sm"
             variant="ghost"
-            size="sm"
-            onClick={() => onRevoke(apiKey.id)}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => onEdit(apiKey.id)}
+            title="Edit name"
           >
-            Revoke
+            <IconPencil size={14} />
           </Button>
-        ) : (
-          <span className="text-sm text-muted-foreground">&mdash;</span>
-        )}
+          {isActive ? (
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => onRevoke(apiKey.id)}
+              title="Revoke key"
+              className="text-destructive hover:text-destructive"
+            >
+              <IconBan size={14} />
+            </Button>
+          ) : null}
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={() => onDelete(apiKey.id)}
+            title="Delete key"
+            className="text-destructive hover:text-destructive"
+          >
+            <IconTrash size={14} />
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   );

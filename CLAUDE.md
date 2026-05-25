@@ -38,6 +38,8 @@ Convex:
 - If the schema changes, all consumers must update automatically.
 - Never duplicate schema types manually.
 - To typecheck Convex: `cd packages/backend && npx convex codegen --typecheck enable` (no dev server needed)
+- **`pnpm convex`** = Convex **dev** server (`npx convex dev` → dev deployment). When the user says "run convex" / `pnpm convex`, use this — **not** deploy.
+- **`pnpm convex:deploy`** = prod deploy — only when the user explicitly asks to deploy.
 - Schema migration chicken-egg problem: When changing a field type with existing data, use v.union(oldType, newType) temporarily → deploy → run migration → change to only newType
 - Single source of truth for table fields: Define table fields as exported `const xxxFields = { ... }` in `validators.ts`. Use in both `schema.ts` (`defineTable(xxxFields)`) and return validators (`v.object({ _id: v.id("table"), _creationTime: v.number(), ...xxxFields })`). Never duplicate field definitions between schema and return validators.
 - Do not mirror Convex query data into `useState` for form inputs. Convex queries are live/reactive — bind the input's `value` directly to the query result and call the mutation directly in `onChange`. If the input needs instant feedback without waiting for a server round-trip (e.g. textareas, fast-typing fields), attach `.withOptimisticUpdate` to the mutation to patch the local query cache. No local state, no hydration `useEffect`, no debounce draft copy.
@@ -106,6 +108,7 @@ Hover & Interaction States:
 - Hover: `hover:bg-*` (background shift). Never `hover:border-*` or `hover:shadow-*`.
 - Active/selected: `bg-*` + `ring-*` if emphasis needed. Never border.
 - Keep transitions to `transition-[transform,background-color]` — no `box-shadow` or `border-color` in transitions.
+- **Inline list rows** (memories list, API request log, activity log, etc.): default **flat/transparent** — never a resting `bg-muted/*` on each row. Background only on `hover:` (and `focus:` / selected when applicable). Pattern: `hover:bg-muted/80 dark:hover:bg-accent/50` (see `ListItemRow`, `LogsTable`, `ApiLogsTable`). Use `bg-muted/40` on **containers** (summary cards, empty states, panels), not on every item inside a list.
 
 Spacing:
 

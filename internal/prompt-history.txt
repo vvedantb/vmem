@@ -1,25 +1,26 @@
 
 
-[] add email for agents, payment for agents, browser for agents, sandbox for agents
-[] add create memory tool in mcp that can 
+[~] agent platform (email, payment, browser, sandbox) — deprioritized; likely out of current product vision (May 2026)
+[x] add create memory tool in MCP (`memory_add`, `memory_add_instruction` in packages/backend/convex/mcp/tools.ts)
 
-can i use just bash for the files it creates and skills?
+[] can i use just bash for the files it creates and skills?
 inspired from https://x.com/DhravyaShah/status/2049324612635562492
 
-Add tool to screenshot images then save to memory . Like text selection but taking screenshots instead. Shows input bar on selection with send button
+[x] add tool to screenshot images then save to memory — chrome extension screenshot overlay + saveScreenshot API (apps/chrome-extension/src/content/screenshot/, background/api-client.ts)
 
-sunset the api keys,  api usage, developer focus, they can just use mcp
-sunset mobile app too, too complex to setup
-just focus on the web, backend, extension, and mcp server - only things that matter
+[x] keep API keys + usage UI — decided NOT to sunset (May 2026); MCP and HTTP API both stay
+[] verify API key flow end-to-end (pending: user to provide test key)
+[] sunset mobile app too, too complex to setup (apps/mobile still exists)
+[x] focus on the web, backend, extension, and mcp server — primary surfaces shipped; mobile/docs/mcp-app exist but not the main focus
 
-[02:07, 24/04/2026] V: Give agent its own email
+[~] Give agent its own email / browser / sandbox — same deprioritization as agent platform above
 [02:09, 24/04/2026] V: Memory + Context + OS
-[02:09, 24/04/2026] V: Give agent its own browser own sandbox
-[02:34, 25/04/2026] V: Report 
-Testing + benchmarks
-Orchestration layer
-Mobile app
+[02:34, 25/04/2026] V: Report
+[] Testing + benchmarks
+[] Orchestration layer
+[x] Mobile app (Expo app exists at apps/mobile — not sunset yet)
 [02:44, 25/04/2026] V: Tanstack ai
+[] Tanstack AI integration
 
 https://www.convex.dev/components/djpanda/convex-tenants
 https://www.convex.dev/components/convex-api-keys
@@ -32,98 +33,90 @@ https://www.convex.dev/components/retrier
 https://www.convex.dev/components/clipin/convex-wearablesp
 https://www.convex.dev/components/convex-secret-store
 
-can any of these components be useful for us in this app, search web for all links
+[x] adopted useful convex components: audit-log, action-retrier, action-cache, crons (packages/backend/convex/)
+[] evaluate / adopt remaining links above (tenants, invite-links, secret-store, comments, etc.)
 
-[13:25, 23/04/2026] V: Expose mcp functions to create documents inside wiki, edit docs, and write docs
-[13:28, 23/04/2026] V: Set env var for api keys in app, convex reads that and uses that instead of me setting the openrouter api key
-[13:29, 23/04/2026] V: Can select which model to use for embeddings etc, completely configurable out of the box
+[x] expose MCP functions to create documents inside wiki, edit docs, and write docs (wiki_list/get/search/create/update/delete in mcp/tools.ts + mcpWiki.ts)
+[x] set env var for API keys in app — Convex reads user secrets via envVars.ts + /settings/secrets
+[] can select which model to use for embeddings etc, completely configurable out of the box (embedding model still hardcoded in openRouter/embedding.ts; chat/local model settings exist)
 
-Microsoft pdf ingestion 
-Remotion mcp editor
+[] Microsoft pdf ingestion (generic PDF file upload works; no Microsoft-specific connector)
+[] Remotion mcp editor
 
-[]cmdk search
+[x] cmdk search (CommandPalette + packages/ui command.tsx)
 
-the codebases resync on every commit to staging
-point of it is to give agents like eva context of the codebase before it starts working, so it doesnt need to explore the codebase every time to work on a tasks
-acts like an index of the codebase
-wont get stale as it resyncs per commit and each task is usually isolated, or for worktrees this would be ideal
+[x] codebases resync — daily cron at 04:00 UTC is sufficient for now (codebaseSync/crons.ts; per-commit staging webhook deferred)
 
+[x] add more import options — Grok + DeepSeek shipped (importProviders.tsx)
+[] add more import options — Gemini + Perplexity still "coming soon"
 
-[]add more import options, like gemini, grok, 
+[x] add more connectors — Google Drive, OneDrive, Notion, Linear, Gmail (packages/backend/convex/connectors.ts)
+[] add more connectors — SharePoint, etc. (later; not blocking)
 
-[]add more connectors,  like sharepoint, etc
+[x] teams: create team, invite members, auto team profile, shared team memories (teams.ts, TeamKnowledge.tsx)
+[] company knowledge vision — ON ROADMAP: top-level tab, Evalucom-style naming, /company/mcp (teams are partial step 1; full company surface TBD)
 
-[]add a company knowledge tab, company needs to invite you to their team, this then creates a profile for you based on the company, like "Evalucom Profile", where you would save all your memories to, then everyone can see each other's memories
-should be able to create team, invite members to it, it then creates a profile for them
-company knowledge to access all company knowledge across employees
-inspiration from team learning pressentations on sharepoint, severance with work/personal life memories split, 
-new mcp for this connection, /company/mcp instead of /mcp to access company knowledge, including your own memories
+[] stats maybe show for each profile somehow? how do we show this?
+[x] add filter for profile in memory list/graph (nuqs `profile` param — memories/-searchParams.ts)
+[] add filter for profile *type* (personal vs team) in memory list/graph
 
+[] focus on knowledge graphs for enterprise (product direction — not fully realized as separate company vs user graphs)
+[] show to the user what is happening via the graph (Linear issue sync, retried memory, etc. as live graph events)
 
-
-
-stats maybe show for each profile somehow? how do we show this?
-add filter for profile type in memory list/graph
-
-focus on knowledge graphs for enterprise, not on end users B2C like supermemory is going for. two types of areas, company knowledge graph for company memories, user knowledge graph.
-show to the user what is happening via the graph
-ie connected to linear to grab issue, updating issue, retried memory, memory updated
 [] add app like excalidraw mcp to claude
-[] use localllm on web app too
-[] chrome ext should sync automatically, daily cron job
-[] add contradicts relationships, derived_from relationship
-[] add files upload and vector search
-[] local llm for mobile app
-[] manage chat context in chat page
-- graph view live/reactive
-- mcp should use neo4j mcp under the hood, just get their clerk id after they sign in and do it like that
-- prompt
+[x] use localllm on web app too (LocalLLMContext, local-engine.ts, /settings/models)
+[] chrome ext should sync automatically, daily cron job (bookmarks/history import exists; no daily auto-sync cron)
+[] add contradicts relationships in Neo4j (contradictions handled via UPDATE/DELETE proposals + prompts, no :CONTRADICTS rel)
+[x] add derived_from relationship (:DERIVED_FROM in dream mode + proposals — packages/backend/src/neo4j/memory/)
+[x] add files upload and vector search (fileImport.ts → createMemoryInternal + embeddings)
+[x] local llm for mobile app (@react-native-ai/llama in apps/mobile)
+[x] manage chat context in chat page (useLocalChat.ts — retrieve, memoryRefs, thread persistence)
+[x] graph view live/reactive (useGraphData.ts + useMemoryEvents for relationship events)
+[] mcp should use neo4j mcp under the hood, just get their clerk id after they sign in and do it like that
+[] prompt (open item)
 
-- look into vector db/graph db implementation
-- cache for fast lookupj
-- long term memory, short term memory
-- Memory timeline + graph, You could replay how ideas evolved.
+[] look into vector db/graph db implementation — PlanetScale + Drizzle not built; Neo4j-only today
+[x] cache for fast lookup (@convex-dev/action-cache on dashboard stats/activity)
+[] long term memory, short term memory (not explicit product split)
+[x] Memory timeline + graph — replay how ideas evolved (timeline.ts, TimelineView.tsx, graph view)
 
-- need to figure our core differntiator vs supermemory/mem0
-- focus on voice?
-- focus on code context?  
-- focus on commits as history?
-- focus on code chats and build up chat history from there?
-- open source, self hostable
-- memory debugger
-- dream mode, it processes memories and gives you insights next day
-- forecast, predictions, like astrology but based on real data
-- work/personal profiles, just like that show Severance, split memories
+[] need to figure our core differentiator vs supermemory/mem0
+[] focus on voice?
+[x] focus on code context? (codebases sync + MCP codebase_* tools)
+[] focus on commits as history?
+[] focus on code chats and build up chat history from there?
+[] open source, self hostable (repo exists; no full self-host runbook)
+[] memory debugger
+[x] dream mode — processes memories and gives insights (dreamMode.ts, inbox proposals, dream schedule)
+[] forecast, predictions, like astrology but based on real data
+[x] work/personal profiles — split via personal profiles vs team-linked profiles (profiles.ts, ProfileDropdown.tsx)
 [x] i want a timeline of memories, from past events, to future events, like a tree, predicting what i will do and the paths that it will lead me onto
 
- Convex  → users, preferences, API keys, auth (what you have now)
+[x] Convex → users, preferences, API keys, auth (current architecture)
+[] Memory DB split — everything else in separate Memory DB (memories still span Convex + Neo4j today)
 
-  Memory DB → everything else (memories, embeddings, relationships, graph)
+[x] neo4j for graph db used for the memories and relationships
+[] planetscale postgres for vector db used for the files storing as vectors
+[] drizzle for orm for planetscale
+[x] convex for user preferences for realtime updates
+[x] kv/cache layer (@convex-dev/action-cache; no separate KV store)
 
-neo4j for graph db used for the memories and relationships
-planetscale postgres for vector db used for the files storing as vectors
-drizzle for orm for planetscale
-convex for user preferences for realtime updates
-kv for cache
-
-
-
-[] if memory has changed, add prompt to prompt the user asking to confirm this and then update memory
+[x] if memory has changed, add prompt to prompt the user asking to confirm this and then update memory (inbox proposals approve/reject — ProposalsPanel.tsx)
 
 docs
-[x] install mintlify
+[x] install mintlify (apps/docs/docs.json)
 [] install just-bash for docs support
 
-voice
+voice (deferred for now — custom STT/TTS via transformers + kokoro is enough)
 [] use pipecat for voice agents (openrouter for voice api)
-[] how to save memories via voice
+[] how to save memories via voice (VoiceClient retrieves + attaches memoryRefs; no create-from-voice flow)
 
 mcp
-[] add mcp to claude, chatgpt
+[x] add mcp to claude, chatgpt — setup docs + OAuth playground (apps/docs/mcp/setup.mdx)
 
 mobile
-[] mobile with local llms
-[] encrypt all data
+[x] mobile with local llms (apps/mobile + @react-native-ai/llama)
+[] encrypt all data (expo-secure-store only; no full encryption story)
 [] test with running qwen model with like 10k context window and comparing it with something that has 200k context window
 
 chrome extension
@@ -132,38 +125,32 @@ chrome extension
 [x] import bookmarks
 [x] import browsing history
 [x] save page to vmem, save to vmem
-[x] add onboarding overflow to get user to add the connector
-[x] add overflow to see memory processed for the message
+[x] add onboarding overflow to get user to add the connector (welcome.html on install + popup copy-AI-prompt / signed-out info overflow)
+[x] add overflow to see memory processed for the message (memory-panel.ts on ChatGPT/Claude)
 
 [x] can you place to get rid of the usestate for forms and instead think of a better way? e.g. if using convex we dont need local state since convex is reactive/live by default. if not using convex then this should be replaced with react hook form and zod
 [x] in the convex folder, don't check for user for every query and mutation, instead we can create a custom authQuery etc inside auth.ts using the convex-helpers package, "convex-helpers/server/customFunctions" and then make those helper functions like authQuery, authMutation, authAction, authInternalAction etc and then use those functions across memories.ts, etc
 [x] also why do we have a convex-server.ts file? and api-auth? we are using clerk and convex? this is not how to do this. we can just do fetchQuery from convex for server fetches
 
 2 more issues
-context icon is not showing up anywhere
-get rid of the local thing in the footer pls, not needed anymore
+[] context icon is not showing up anywhere (ContextTrigger exists in ChatMessageItem but only when `usage` is present — may still be missing for local-model chat)
+[] get rid of the local thing in the footer pls, not needed anymore (Chat.tsx still has Local model selector in footer)
 
 
 
 
+[x] 1. Refactor the settings area so it no longer uses the current `settings/page.tsx` layout. Create a settings sidebar with visible tabs for `Preferences` and `Data Controls`, and move the settings experience into that tabbed layout. Keep it consistent with the current app shell and make the default view land on `Preferences`. (settings/index.tsx redirects to /settings/preferences; settingsNavGroups in nav-config.ts)
 
+[] 2. Improve the mobile header/navbar styling. Make it feel more intentional and polished, with better spacing, hierarchy, and responsiveness. Preserve the current functionality, but make the mobile top bar look cleaner and more premium.
 
+[x] 3. Redesign the sidebar section headers. Remove the current reveal-on-click section behavior. Each section should always show a fixed header in the format `[icon] Section Title` followed by a horizontal line extending to the end of the row, with that section's tabs always visible underneath. (SidebarNavigation MainNav — icon + title + Separator)
 
+[x] 4. Add a footer card above the divider called `Today's Stats`. It should show two metrics: `Memories Added` and `Memories Retrieved`. Match the existing visual style and use mock data for now. (SidebarFooter StatsCard — live dashboardApi.getStats, not mock)
 
+[x] 5. Update the API logs page so the top three summary cards are larger and include simple line charts using mock data. The charts should feel like lightweight usage trend visuals rather than full analytics dashboards. (LogsSummary + Sparkline in activity/ai-logs)
 
+[] 6. Rename `Logs` to `Usage` and rename the `API` section to `API Keys` throughout the UI where appropriate, so the information architecture is clearer and there is no generic `API` section label anymore. (Activity tab still "AI Logs"; settings nav still "API"; ApiTabs uses "Keys" not "API Keys")
 
-1. Refactor the settings area so it no longer uses the current `settings/page.tsx` layout. Create a settings sidebar with visible tabs for `Preferences` and `Data Controls`, and move the settings experience into that tabbed layout. Keep it consistent with the current app shell and make the default view land on `Preferences`.
+[x] 7. Redesign the memories list view. Remove the table and modal pattern. Make the list use cards instead, where each card shows the memory title on the first row and tags on the second row. When a memory is clicked, split the page into a two-column layout and show the selected memory details in a right-hand panel. Remove the `Created` column entirely. (MemorySearch.tsx + ListItemRow + MemoryDetailPanel)
 
-2. Improve the mobile header/navbar styling. Make it feel more intentional and polished, with better spacing, hierarchy, and responsiveness. Preserve the current functionality, but make the mobile top bar look cleaner and more premium.
-
-3. Redesign the sidebar section headers. Remove the current reveal-on-click section behavior. Each section should always show a fixed header in the format `[icon] Section Title` followed by a horizontal line extending to the end of the row, with that section's tabs always visible underneath.
-
-4. Add a footer card above the divider called `Today's Stats`. It should show two metrics: `Memories Added` and `Memories Retrieved`. Match the existing visual style and use mock data for now.
-
-5. Update the API logs page so the top three summary cards are larger and include simple line charts using mock data. The charts should feel like lightweight usage trend visuals rather than full analytics dashboards.
-
-6. Rename `Logs` to `Usage` and rename the `API` section to `API Keys` throughout the UI where appropriate, so the information architecture is clearer and there is no generic `API` section label anymore.
-
-7. Redesign the memories list view. Remove the table and modal pattern. Make the list use cards instead, where each card shows the memory title on the first row and tags on the second row. When a memory is clicked, split the page into a two-column layout and show the selected memory details in a right-hand panel. Remove the `Created` column entirely.
-
-8. Add a reusable right-click context menu component to `packages/ui` so it can be used across the app. It should fit the existing component patterns and styling in the shared UI package.
+[x] 8. Add a reusable right-click context menu component to `packages/ui` so it can be used across the app. It should fit the existing component patterns and styling in the shared UI package. (packages/ui/src/ui/context-menu.tsx)

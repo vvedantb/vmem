@@ -1,4 +1,5 @@
 import { httpAction } from "../_generated/server";
+import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
 import { getMcpResourceDocumentationUrl, getWebAppUrl } from "./webAppUrl";
@@ -274,9 +275,28 @@ export const token = httpAction(async (ctx, request) => {
 // MCP Endpoint
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const mcpHandler = httpAction(async (ctx, request) => {
+export const protectedResourceMetadataTeam = httpAction(
+  async (_ctx, request) => {
+    const baseUrl = new URL(request.url).origin;
+    return Response.json({
+      resource: `${baseUrl}/mcp/team`,
+      authorization_servers: [baseUrl],
+      bearer_methods_supported: ["header"],
+      resource_documentation: getMcpResourceDocumentationUrl(),
+    });
+  },
+);
+
+async function runMcpEndpoint(
+  ctx: ActionCtx,
+  request: Request,
+  scope: "personal" | "team",
+): Promise<Response> {
   const baseUrl = new URL(request.url).origin;
-  const resourceMetadataUrl = `${baseUrl}/.well-known/oauth-protected-resource`;
+  const resourceMetadataUrl =
+    scope === "team"
+      ? `${baseUrl}/.well-known/oauth-protected-resource/mcp/team`
+      : `${baseUrl}/.well-known/oauth-protected-resource`;
 
   const token = extractBearerToken(request.headers.get("Authorization"));
   if (!token) {
@@ -292,7 +312,7 @@ export const mcpHandler = httpAction(async (ctx, request) => {
     );
   }
 
-  const credentials = await ctx.runAction(
+  const credentials: { clerkUserId: string } | null = await ctx.runAction(
     internal.mcp.nodeActions.verifyAccessToken,
     { token },
   );
@@ -331,11 +351,12 @@ export const mcpHandler = httpAction(async (ctx, request) => {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const result = await ctx.runAction(
+  const result: { status: number; body: string } = await ctx.runAction(
     internal.mcp.nodeActions.handleMcpRequest,
     {
       clerkUserId: credentials.clerkUserId,
       body: JSON.stringify(body),
+      scope,
     },
   );
 
@@ -343,6 +364,14 @@ export const mcpHandler = httpAction(async (ctx, request) => {
     status: result.status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+export const mcpHandler = httpAction(async (ctx, request) => {
+  return runMcpEndpoint(ctx, request, "personal");
+});
+
+export const mcpTeamHandler = httpAction(async (ctx, request) => {
+  return runMcpEndpoint(ctx, request, "team");
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

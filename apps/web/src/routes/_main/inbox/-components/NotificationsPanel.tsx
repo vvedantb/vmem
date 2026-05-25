@@ -5,6 +5,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  cn,
 } from "@vmem/ui";
 import {
   IconDotsVertical,
@@ -54,9 +55,9 @@ function getIconBackground(type: NotificationType) {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-1">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="rounded-xl bg-muted/50 p-6">
+        <div key={i} className="rounded-xl px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex items-start gap-4">
             <Skeleton className="h-10 w-10 rounded-xl" />
             <div className="flex-1 space-y-2">
@@ -99,13 +100,11 @@ export function NotificationsPanel() {
   if (notifications.length === 0) return <EmptyState />;
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-1">
       {notifications.map((notification) => (
         <div
           key={notification._id}
-          className={`rounded-xl p-3 transition-colors sm:p-6 ${
-            notification.read ? "bg-muted/50" : "bg-accent"
-          }`}
+          className="rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50 sm:px-4 sm:py-3"
         >
           <div className="flex items-start gap-3 sm:gap-4">
             <div
@@ -118,11 +117,12 @@ export function NotificationsPanel() {
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2 sm:items-center sm:gap-4">
                 <h3
-                  className={`text-sm font-medium sm:text-base ${
+                  className={cn(
+                    "text-sm font-medium sm:text-base",
                     notification.read
                       ? "text-muted-foreground"
-                      : "text-foreground"
-                  }`}
+                      : "text-foreground",
+                  )}
                 >
                   {notification.title}
                 </h3>

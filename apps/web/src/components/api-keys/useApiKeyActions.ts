@@ -22,10 +22,38 @@ export function useApiKeyActions() {
       );
     },
   );
+  const deleteApiKey = useMutation(api.apiKeys.deleteMy).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.apiKeys.listMy, {});
+      if (!list) return;
+      localStore.setQuery(
+        api.apiKeys.listMy,
+        {},
+        list.filter((row) => row.id !== args.id),
+      );
+    },
+  );
+  const renameApiKey = useMutation(api.apiKeys.renameMy).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.apiKeys.listMy, {});
+      if (!list) return;
+      localStore.setQuery(
+        api.apiKeys.listMy,
+        {},
+        list.map((row) =>
+          row.id === args.id ? { ...row, name: args.name.trim() } : row,
+        ),
+      );
+    },
+  );
   const revealApiKey = useAction(api.apiKeys.revealMy);
 
   const [revokeKeyId, setRevokeKeyId] = useState<ApiKey["id"] | null>(null);
+  const [deleteKeyId, setDeleteKeyId] = useState<ApiKey["id"] | null>(null);
+  const [editKeyId, setEditKeyId] = useState<ApiKey["id"] | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
   const [copyingKeyId, setCopyingKeyId] = useState<string | null>(null);
   const [revealedKeys, setRevealedKeys] = useState<
@@ -120,10 +148,65 @@ export function useApiKeyActions() {
     }
   }, [revokeKeyId, revokeApiKey]);
 
+  const handleDelete = useCallback(async () => {
+    if (!deleteKeyId) return;
+
+    setIsDeleting(true);
+    try {
+      const deleted = await deleteApiKey({ id: deleteKeyId });
+      if (!deleted) {
+        throw new Error("Failed to delete API key");
+      }
+      toast.success("The API key has been deleted");
+      setDeleteKeyId(null);
+      setRevealedKeys((prev) => {
+        if (!(deleteKeyId in prev)) return prev;
+        const next = { ...prev };
+        delete next[deleteKeyId];
+        return next;
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete API key",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteKeyId, deleteApiKey]);
+
+  const handleRename = useCallback(
+    async (name: string) => {
+      if (!editKeyId) return;
+
+      setIsRenaming(true);
+      try {
+        const renamed = await renameApiKey({ id: editKeyId, name });
+        if (!renamed) {
+          throw new Error("Failed to rename API key");
+        }
+        toast.success("API key renamed");
+        setEditKeyId(null);
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Failed to rename API key",
+        );
+      } finally {
+        setIsRenaming(false);
+      }
+    },
+    [editKeyId, renameApiKey],
+  );
+
   return {
     revokeKeyId,
     setRevokeKeyId,
+    deleteKeyId,
+    setDeleteKeyId,
+    editKeyId,
+    setEditKeyId,
     isRevoking,
+    isDeleting,
+    isRenaming,
     copiedKeyId,
     copyingKeyId,
     revealedKeys,
@@ -131,5 +214,7 @@ export function useApiKeyActions() {
     handleCopyKey,
     handleToggleReveal,
     handleRevoke,
+    handleDelete,
+    handleRename,
   };
 }

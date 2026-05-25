@@ -9,11 +9,14 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { registerTools } from "./tools";
 import { registerResources } from "./resources";
 import { registerMemoryGraphApp } from "./memoryGraphApp";
+import { mcpScopeValidator, type McpScope } from "../profiles/mcpAccess";
 
-const MCP_SERVER_INFO = {
-  name: "vmem-mcp",
-  version: "1.0.0",
-} as const;
+function mcpServerInfo(scope: McpScope) {
+  return {
+    name: scope === "team" ? "vmem-mcp-team" : "vmem-mcp",
+    version: "1.0.0",
+  } as const;
+}
 
 // JWT TTLs match the legacy Railway server so existing Claude connectors
 // keep working without re-auth at cutover.
@@ -166,20 +169,21 @@ export const handleMcpRequest = internalAction({
   args: {
     clerkUserId: v.string(),
     body: v.string(),
+    scope: mcpScopeValidator,
   },
   returns: v.object({
     status: v.number(),
     body: v.string(),
   }),
-  handler: async (ctx, { clerkUserId, body }) => {
+  handler: async (ctx, { clerkUserId, body, scope }) => {
     try {
       const parsedBody = JSON.parse(body);
 
-      const server = new McpServer(MCP_SERVER_INFO);
+      const server = new McpServer(mcpServerInfo(scope));
 
-      registerTools(server, clerkUserId, ctx);
-      registerMemoryGraphApp(server, clerkUserId, ctx);
-      registerResources(server, clerkUserId, ctx);
+      registerTools(server, clerkUserId, ctx, scope);
+      registerMemoryGraphApp(server, clerkUserId, ctx, scope);
+      registerResources(server, clerkUserId, ctx, scope);
 
       // WebStandardStreamableHTTPServerTransport works with Web Standard
       // Request/Response, avoiding Node.js req/res shimming. Stateless
@@ -192,14 +196,17 @@ export const handleMcpRequest = internalAction({
 
       await server.connect(transport);
 
-      const req = new Request("http://localhost/mcp", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          accept: "application/json, text/event-stream",
+      const req = new Request(
+        scope === "team" ? "http://localhost/mcp/team" : "http://localhost/mcp",
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+          },
+          body,
         },
-        body,
-      });
+      );
 
       const response = await transport.handleRequest(req, { parsedBody });
       const responseBody = await response.text();

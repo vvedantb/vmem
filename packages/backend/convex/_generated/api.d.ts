@@ -39,6 +39,7 @@ import type * as http_auth_connectorCallback from "../http/auth/connectorCallbac
 import type * as http_auth_connectorCallbackHtml from "../http/auth/connectorCallbackHtml.js";
 import type * as http_auth_githubCallback from "../http/auth/githubCallback.js";
 import type * as http_v1Memories_apiKeyAuth from "../http/v1Memories/apiKeyAuth.js";
+import type * as http_v1Memories_delete from "../http/v1Memories/delete.js";
 import type * as http_v1Memories_index from "../http/v1Memories/index.js";
 import type * as http_v1Memories_retrieve from "../http/v1Memories/retrieve.js";
 import type * as http_v1Memories_schemas from "../http/v1Memories/schemas.js";
@@ -124,6 +125,7 @@ import type * as profiles_dream from "../profiles/dream.js";
 import type * as profiles_handlers from "../profiles/handlers.js";
 import type * as profiles_helpers from "../profiles/helpers.js";
 import type * as profiles_lifecycle from "../profiles/lifecycle.js";
+import type * as profiles_mcpAccess from "../profiles/mcpAccess.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
 import type * as relationshipApi from "../relationshipApi.js";
 import type * as retrier from "../retrier.js";
@@ -180,6 +182,7 @@ declare const fullApi: ApiFromModules<{
   "http/auth/connectorCallbackHtml": typeof http_auth_connectorCallbackHtml;
   "http/auth/githubCallback": typeof http_auth_githubCallback;
   "http/v1Memories/apiKeyAuth": typeof http_v1Memories_apiKeyAuth;
+  "http/v1Memories/delete": typeof http_v1Memories_delete;
   "http/v1Memories/index": typeof http_v1Memories_index;
   "http/v1Memories/retrieve": typeof http_v1Memories_retrieve;
   "http/v1Memories/schemas": typeof http_v1Memories_schemas;
@@ -265,6 +268,7 @@ declare const fullApi: ApiFromModules<{
   "profiles/handlers": typeof profiles_handlers;
   "profiles/helpers": typeof profiles_helpers;
   "profiles/lifecycle": typeof profiles_lifecycle;
+  "profiles/mcpAccess": typeof profiles_mcpAccess;
   proposedUpdateApi: typeof proposedUpdateApi;
   relationshipApi: typeof relationshipApi;
   retrier: typeof retrier;

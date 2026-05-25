@@ -46,7 +46,7 @@ function ApiLogsEmptyState() {
 
 function ApiLogRow({ log }: { log: ApiLogItem }) {
   return (
-    <li className="rounded-xl bg-muted/40 px-4 py-3 transition-[background-color] hover:bg-muted/60">
+    <li className="rounded-xl px-4 py-3 transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <code className="min-w-0 break-all font-mono text-sm text-foreground sm:break-normal">
           {log.endpoint}

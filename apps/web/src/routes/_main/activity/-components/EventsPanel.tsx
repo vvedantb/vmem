@@ -86,9 +86,9 @@ function getDateThreshold(preset: EventDatePreset): number | null {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-1">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="rounded-xl bg-muted/40 p-4 sm:p-6">
+        <div key={i} className="rounded-xl px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex items-center gap-3 sm:gap-4">
             <Skeleton className="h-10 w-10 rounded-xl" />
             <div className="flex flex-1 items-center justify-between gap-3">
@@ -221,8 +221,8 @@ export function EventsPanel({
       itemContent={(_index, item) => {
         const Icon = getActivityIcon(item.type);
         return (
-          <div className="pb-3">
-            <div className="rounded-xl bg-muted/40 p-3 transition-colors sm:p-4">
+          <div className="pb-1">
+            <div className="rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50 sm:px-4 sm:py-3">
               <div className="flex items-center gap-3 sm:gap-4">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
                   <Icon size={20} className="text-primary" />

@@ -51,6 +51,10 @@ Component Structure:
 - Only add `"use client"` to child components that use hooks/interactivity
 - Inline sub-components defined in the same file should be extracted to `_components/`
 
+UI list rows:
+
+- Inline list rows stay flat at rest; `hover:bg-muted/80 dark:hover:bg-accent/50` only on hover (plus selected/focus when needed). Never resting `bg-muted/*` per row — that is for containers/cards. Full rules in `CLAUDE.md` (Tonal Surface Hierarchy).
+
 Next.js:
 
 - Default to Server Components.
@@ -122,4 +126,4 @@ stop adding usestate's useref's for everything, this is the easy way out for eve
 
 if the user asks you to run a migration, you need to add a migration function to clear the documents with that field in the db, then you run it, then you can get rid of the fields from the schema, then cleanup the migration function
 
-never run npx convex dev or npx convex deploy - use `npx convex codegen --typecheck enable` to typecheck
+never run `npx convex dev` or `npx convex deploy` unless the user asks — use `npx convex codegen --typecheck enable` to typecheck. When they ask for **`pnpm convex`**, that means the **dev server** (`pnpm convex` → `npx convex dev`), not deploy (`pnpm convex:deploy`).

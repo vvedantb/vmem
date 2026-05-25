@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { hashApiKey } from "./apiKeys";
+import { hashApiKey, normalizeApiKeyName } from "./apiKeys";
+
+describe("normalizeApiKeyName", () => {
+  it("trims whitespace and accepts valid names", () => {
+    expect(normalizeApiKeyName("  Production  ")).toBe("Production");
+  });
+
+  it("rejects empty names", () => {
+    expect(() => normalizeApiKeyName("   ")).toThrow("Name is required");
+  });
+
+  it("rejects names longer than 50 characters", () => {
+    expect(() => normalizeApiKeyName("a".repeat(51))).toThrow(
+      "Name must be 50 characters or less",
+    );
+  });
+});
 
 describe("hashApiKey", () => {
   it("returns a stable hex digest for the same key", async () => {

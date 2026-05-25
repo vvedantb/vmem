@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:retrieval": "cross-env RUN_RETRIEVAL_EVAL=1 vitest run src/neo4j/memory/eval/retrieval.integration.test.ts",
+    "test:http-api": "node --env-file=.env.local ../../node_modules/vitest/vitest.mjs run src/http/v1Memories.integration.test.ts",
     "db:seed": "npx tsx --env-file=.env.local src/neo4j/seed/run.ts",
     "db:seed:eval": "npx tsx --env-file=.env.local src/neo4j/memory/eval/seed.ts",
     "db:unseed": "npx tsx --env-file=.env.local src/neo4j/unseed.ts",
