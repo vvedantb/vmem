@@ -3,7 +3,7 @@ import ClaudeLogo from "./ClaudeLogo";
 import DeepSeekLogo from "./DeepSeekLogo";
 import GeminiLogo from "./GeminiLogo";
 import GrokLogo from "./GrokLogo";
-import OpenAiLogo from "./OpenAiLogo";
+import ChatGptLogo from "./ChatGptLogo";
 import PerplexityLogo from "./PerplexityLogo";
 import { parseChatGptExportBuffer } from "../_utils/parseChatGptExport";
 import { parseClaudeExportBuffer } from "../_utils/parseClaudeExport";
@@ -44,8 +44,8 @@ export const importProviders: readonly ImportProvider[] = [
     kind: "available",
     id: "chatgpt",
     label: "ChatGPT",
-    Logo: OpenAiLogo,
-    logoClassName: "text-[#10A37F] dark:text-[#1EC286]",
+    Logo: ChatGptLogo,
+    logoClassName: "text-foreground",
     description:
       "Upload the file you get from ChatGPT's export. Choose which chats to keep here so they are easy to find later.",
     parser: parseChatGptExportBuffer,
