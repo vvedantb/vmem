@@ -1,10 +1,22 @@
 # Changelog
 
+## Inbox proposals review — 2026-05-25
+
+- **Clearer proposal cards**: Kind-colored accent rails, shared proposal shell, and section hierarchy so synthesis and update proposals read consistently in the inbox.
+- **Richer empty state**: Proposals tab explains Dream Mode and offers a run CTA when the queue is empty.
+
+## List row surfaces — 2026-05-25
+
+- **Flat rows at rest**: Memory list, AI logs, activity events, inbox notifications, team members, related memories, and API usage logs no longer use resting `bg-muted` — hover alone signals interactivity.
+- **Design rule**: Documented in CLAUDE.md and AGENTS.md so new list UIs follow the same tonal hierarchy.
+
 ## HTTP Memories API & API keys — 2026-05-24
 
 - **DELETE over HTTP**: `DELETE /api/v1/memories` with `{ memoryId }` so API clients and integration tests can remove memories programmatically.
 - **Live HTTP integration tests**: `pnpm test:http-api` exercises store, retrieve, patch, and delete against the dev deployment; test memories are cleaned up after each run.
 - **API key rename**: Settings → API → Keys gets an Edit action to relabel active or revoked keys without rotating the secret.
+- **API key delete**: Active and revoked keys can be removed from Settings so revoked rows do not linger indefinitely.
+- **Create key copy**: New-key modal no longer claims the secret is shown only once — keys stay viewable from the dashboard after creation.
 
 ## Git — strip Cursor commit attribution — 2026-05-24
 
