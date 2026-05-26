@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import type { Memory, MemoryType } from "@/lib/memories";
 import LinkMemoryModal from "@/components/LinkMemoryModal";
+import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
+import { VmemSpinner } from "@/components/svg-animations";
 
 function isMemoryType(value: string): value is MemoryType {
   return value === "profile" || value === "episodic" || value === "knowledge";
@@ -111,39 +113,51 @@ export default function RelatedMemories({
   );
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <h4 className="text-sm font-medium text-muted">Related Memories</h4>
-          {entries.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
+          <h4 className="text-[11px] font-medium uppercase tracking-wide text-muted">
+            Related memories
+          </h4>
+          {entries.length > 0 ? (
+            <Badge variant="secondary" className="text-xs tabular-nums">
               {entries.length}
             </Badge>
-          )}
+          ) : null}
         </div>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => setLinkModalOpen(true)}
-          className="h-7 px-2 text-xs text-muted"
+          className="h-8 gap-1.5"
         >
           <IconLink size={14} />
-          Link
+          Link memory
         </Button>
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-3">
-          <IconLoader2 size={16} className="animate-spin text-muted" />
+        <div className="flex justify-center rounded-lg bg-surface-secondary py-12">
+          <VmemSpinner size={20} className="text-muted" />
         </div>
       ) : entries.length === 0 ? (
-        <p className="text-sm text-muted">No related memories</p>
+        <DetailEmptyState
+          icon={IconLink}
+          title="No connections yet"
+          description="Link related memories to build a graph of how ideas connect."
+          action={
+            <Button size="sm" onClick={() => setLinkModalOpen(true)}>
+              <IconLink size={14} />
+              Link a memory
+            </Button>
+          }
+        />
       ) : (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           {entries.map((entry) => (
             <div
               key={entry.memory.id}
-              className="flex items-start justify-between gap-2 rounded-lg px-2.5 py-2 transition-[background-color] hover:bg-surface-tertiary/50"
+              className="flex items-start gap-2 rounded-lg bg-surface-secondary p-3 transition-[background-color] hover:bg-surface-tertiary"
             >
               <button
                 type="button"
@@ -160,21 +174,25 @@ export default function RelatedMemories({
                     createdAt: entry.memory.createdAt,
                   })
                 }
-                className="flex-1 text-left min-w-0"
+                className="min-w-0 flex-1 text-left"
               >
-                <p className="text-sm font-medium text-foreground truncate">
+                <p className="truncate text-sm font-medium text-foreground">
                   {entry.memory.title}
                 </p>
-                <Badge variant="secondary" className="mt-1 text-xs">
+                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
+                  {entry.memory.content}
+                </p>
+                <Badge variant="secondary" className="mt-2 text-[10px]">
                   {entry.reason}
                 </Badge>
               </button>
               <Button
                 variant="ghost"
-                size="icon-xs"
+                size="icon-sm"
                 onClick={() => setConfirmUnlinkId(entry.memory.id)}
                 disabled={unlinkingId === entry.memory.id}
-                className="flex-shrink-0 text-muted hover:text-danger"
+                className="shrink-0 text-muted hover:bg-danger/10 hover:text-danger"
+                aria-label={`Unlink ${entry.memory.title}`}
               >
                 {unlinkingId === entry.memory.id ? (
                   <IconLoader2 size={14} className="animate-spin" />
@@ -195,26 +213,26 @@ export default function RelatedMemories({
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Unlink Memory</DialogTitle>
+            <DialogTitle className="text-foreground">Unlink memory</DialogTitle>
             <DialogDescription className="sr-only">
               Confirm unlinking a related memory
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-start gap-3 py-4">
-            <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center flex-shrink-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-danger/10">
               <IconAlertTriangle size={20} className="text-danger" />
             </div>
             <div>
               <p className="text-foreground">
-                Are you sure you want to unlink{" "}
+                Unlink{" "}
                 <span className="font-medium">
                   {entries.find((e) => e.memory.id === confirmUnlinkId)?.memory
                     .title ?? "this memory"}
                 </span>
                 ?
               </p>
-              <p className="text-sm text-muted mt-1">
-                This will remove the relationship between these two memories.
+              <p className="mt-1 text-sm text-muted">
+                This removes the relationship between these two memories.
               </p>
             </div>
           </div>
@@ -228,13 +246,13 @@ export default function RelatedMemories({
               Cancel
             </Button>
             <Button
+              variant="destructive"
               onClick={async () => {
                 if (confirmUnlinkId === null) return;
                 await handleUnlink(confirmUnlinkId);
                 setConfirmUnlinkId(null);
               }}
               disabled={unlinkingId !== null}
-              className="bg-danger text-danger-foreground"
             >
               {unlinkingId !== null ? (
                 <>

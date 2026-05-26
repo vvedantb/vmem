@@ -7,6 +7,7 @@ import { useVersionChain } from "@/hooks/useVersionChain";
 import VersionChainBar from "./VersionChainBar";
 import VersionCard from "./VersionCard";
 import { VmemSpinner } from "@/components/svg-animations";
+import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 
 interface HistoryTabProps {
   memoryId: string;
@@ -21,12 +22,11 @@ export default function HistoryTab({ memoryId }: HistoryTabProps) {
   const { versions, isEmpty } = useVersionChain(events);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
 
-  // Default to latest version when versions load
   const currentSelected = selectedVersion ?? versions.length;
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center rounded-lg bg-surface-secondary py-14">
         <VmemSpinner size={20} className="text-muted" />
       </div>
     );
@@ -34,15 +34,16 @@ export default function HistoryTab({ memoryId }: HistoryTabProps) {
 
   if (isEmpty) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <IconClockHour4 className="h-8 w-8 text-muted mb-2" />
-        <p className="text-sm text-muted">No history yet</p>
-      </div>
+      <DetailEmptyState
+        icon={IconClockHour4}
+        title="No history yet"
+        description="Edits and imports will appear here as versions you can browse."
+      />
     );
   }
 
   return (
-    <div>
+    <div className="space-y-4">
       <VersionChainBar
         versions={versions}
         selectedVersion={currentSelected}

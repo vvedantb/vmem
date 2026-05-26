@@ -12,10 +12,12 @@ import {
   IconLoader2,
 } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";
+import { formatMemorySourceLabel } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 import TagInputWithSuggestions from "./TagInputWithSuggestions";
 import MemoryProvenance from "./MemoryProvenance";
+import { DetailSection } from "./detail-panel/DetailSection";
 
 interface DetailsTabProps {
   memory: Memory;
@@ -25,6 +27,17 @@ interface DetailsTabProps {
   startInEditMode: boolean;
   startWithDelete: boolean;
   onConsumeAction?: () => void;
+}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export default function DetailsTab({
@@ -48,17 +61,6 @@ export default function DetailsTab({
     resolver: zodResolver(memorySchema),
     defaultValues: { title: "", content: "", tags: [] },
   });
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
 
   const startEditing = useCallback(() => {
     reset({
@@ -114,41 +116,39 @@ export default function DetailsTab({
   };
 
   return (
-    <div className="space-y-4 sm:space-y-5">
-      {/* Content */}
-      <div>
+    <div className="space-y-5">
+      <DetailSection label="Content">
         {isEditing ? (
-          <>
+          <div className="space-y-3 rounded-lg bg-surface-secondary p-4">
             <Input
               {...register("title")}
               placeholder="Memory title"
               disabled={isSubmitting}
-              className="h-10 rounded-field border-border bg-field-background text-foreground text-lg font-semibold placeholder:text-field-placeholder hover:bg-field-background focus-visible:border-focus mb-4"
+              className="h-10 rounded-field border-border bg-field-background text-foreground text-base font-semibold placeholder:text-field-placeholder"
             />
             <Textarea
               {...register("content")}
               placeholder="Memory content"
-              rows={6}
+              rows={8}
               disabled={isSubmitting}
-              className="rounded-field border-border bg-field-background text-foreground placeholder:text-field-placeholder hover:bg-field-background focus-visible:border-focus"
+              className="min-h-[160px] rounded-field border-border bg-field-background text-foreground placeholder:text-field-placeholder"
             />
-            {errors.content && (
-              <p className="text-sm text-danger mt-1">
-                {errors.content.message}
-              </p>
-            )}
-          </>
+            {errors.content ? (
+              <p className="text-sm text-danger">{errors.content.message}</p>
+            ) : null}
+          </div>
         ) : (
-          <p className="text-foreground whitespace-pre-wrap text-sm">
-            {memory.content}
-          </p>
+          <div className="rounded-lg bg-surface-secondary p-4">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+              {memory.content}
+            </p>
+          </div>
         )}
-      </div>
+      </DetailSection>
 
       <MemoryProvenance memory={memory} />
 
-      {/* Tags */}
-      <div>
+      <DetailSection label="Tags">
         {isEditing ? (
           <Controller
             name="tags"
@@ -161,25 +161,33 @@ export default function DetailsTab({
               />
             )}
           />
-        ) : (
-          <div className="flex gap-2 flex-wrap">
-            {memory.tags.length > 0 ? (
-              memory.tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
-                  {tag}
-                </Badge>
-              ))
-            ) : (
-              <span className="text-sm text-muted">No tags</span>
-            )}
+        ) : memory.tags.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {memory.tags.map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
           </div>
+        ) : (
+          <p className="text-sm text-muted">No tags</p>
         )}
+      </DetailSection>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+        <span>
+          <span className="text-muted">Created </span>
+          <time className="tabular-nums text-foreground">
+            {formatDate(memory.createdAt)}
+          </time>
+        </span>
+        <span className="text-muted">·</span>
+        <span className="capitalize">{memory.type}</span>
+        <span className="text-muted">·</span>
+        <span>{formatMemorySourceLabel(memory.source)}</span>
       </div>
 
-      <p className="text-sm text-muted">{formatDate(memory.createdAt)}</p>
-
-      {/* Footer actions */}
-      <div className="flex justify-between border-t border-separator pt-4">
+      <div className="flex items-center justify-between gap-3 pt-2">
         {isEditing ? (
           <>
             <Button
@@ -196,7 +204,7 @@ export default function DetailsTab({
               ) : (
                 <IconCheck size={16} />
               )}
-              {isSubmitting ? "Saving..." : "Save Changes"}
+              {isSubmitting ? "Saving..." : "Save changes"}
             </Button>
           </>
         ) : (
@@ -204,12 +212,12 @@ export default function DetailsTab({
             <Button
               variant="ghost"
               onClick={onRequestDelete}
-              className="text-danger hover:text-danger hover:bg-danger/10"
+              className="text-danger hover:bg-danger/10 hover:text-danger"
             >
               <IconTrash size={16} />
               Delete
             </Button>
-            <Button onClick={startEditing}>
+            <Button variant="outline" onClick={startEditing}>
               <IconEdit size={16} />
               Edit
             </Button>

@@ -1,5 +1,9 @@
 # Changelog
 
+## Memory detail panel tabs — 2026-05-23
+
+- **Details / History / Connections**: Section labels, `surface-secondary` content blocks, line-only hierarchy (no footer borders). History gets a version scrubber and expandable cards; connections show previews and a richer empty state.
+
 ## Memories list row hover — 2026-05-23
 
 - **List rows** (`/memories/list`): Hover uses full `bg-surface-tertiary`; selected row uses `bg-surface-secondary` (matches nav/sidebar).

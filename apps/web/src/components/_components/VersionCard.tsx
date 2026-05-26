@@ -38,7 +38,7 @@ function getActionStyle(action: string) {
   return (
     ACTION_STYLES[action] ?? {
       label: action,
-      className: "bg-surface-secondary text-muted",
+      className: "bg-default text-muted",
     }
   );
 }
@@ -80,37 +80,35 @@ export default function VersionCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        "w-full text-left rounded-lg p-3 transition-colors",
+        "w-full rounded-lg p-4 text-left transition-[background-color]",
         isSelected
-          ? "bg-accent/10 ring-1 ring-accent/30"
-          : "bg-surface-secondary/30 hover:bg-surface-tertiary/50",
+          ? "bg-surface-tertiary"
+          : "bg-surface-secondary hover:bg-surface-tertiary",
       )}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 flex-wrap mb-2">
-        <span className="text-sm font-semibold text-foreground">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold tabular-nums text-foreground">
           v{version.version}
         </span>
         <Badge className={cn("text-xs", style.className)}>{style.label}</Badge>
         <span className="text-xs text-muted">
           {formatTimestamp(version.createdAt)}
         </span>
-        <span className="text-xs text-muted">by {version.actor}</span>
+        <span className="text-xs text-muted">· {version.actor}</span>
       </div>
 
-      {/* Change summary */}
-      {version.changeSummary !== null && (
-        <div className="flex items-center gap-2 flex-wrap mb-2 text-xs">
-          {version.changeSummary.addedChars > 0 && (
-            <span className="text-success">
+      {version.changeSummary !== null ? (
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+          {version.changeSummary.addedChars > 0 ? (
+            <span className="text-success tabular-nums">
               +{version.changeSummary.addedChars} chars
             </span>
-          )}
-          {version.changeSummary.removedChars > 0 && (
-            <span className="text-danger">
-              -{version.changeSummary.removedChars} chars
+          ) : null}
+          {version.changeSummary.removedChars > 0 ? (
+            <span className="text-danger tabular-nums">
+              −{version.changeSummary.removedChars} chars
             </span>
-          )}
+          ) : null}
           {version.changeSummary.tagsAdded.map((tag) => (
             <Badge
               key={`add-${tag}`}
@@ -130,35 +128,37 @@ export default function VersionCard({
             </Badge>
           ))}
         </div>
-      )}
+      ) : null}
 
-      {/* Title change */}
-      {titleChanged && previousVersion !== null && (
-        <div className="text-sm mb-2">
+      {titleChanged && previousVersion !== null ? (
+        <div className="mb-2 text-sm">
           <span className="text-muted line-through">
             {previousVersion.snapshot.title}
           </span>
-          {" -> "}
-          <span className="text-foreground font-medium">
+          <span className="text-muted"> → </span>
+          <span className="font-medium text-foreground">
             {version.snapshot.title}
           </span>
         </div>
-      )}
+      ) : null}
 
-      {/* Content diff or snapshot */}
-      {isSelected && (
-        <div className="mt-3">
+      {isSelected ? (
+        <div className="mt-3 rounded-lg bg-surface-secondary p-3">
           {showDiff && previousVersion !== null ? (
             <DiffDisplay
               oldText={previousVersion.snapshot.content}
               newText={version.snapshot.content}
             />
           ) : (
-            <div className="rounded-lg bg-surface-secondary/50 p-3 text-sm whitespace-pre-wrap">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
               {version.snapshot.content}
-            </div>
+            </p>
           )}
         </div>
+      ) : (
+        <p className="line-clamp-2 text-sm text-muted">
+          {version.snapshot.content}
+        </p>
       )}
     </button>
   );

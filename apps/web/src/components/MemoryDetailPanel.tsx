@@ -79,10 +79,9 @@ export default function MemoryDetailPanel({
 
   return (
     <>
-      <Card className="p-4 sm:p-5 lg:sticky lg:top-4">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <h3 className="text-lg font-semibold text-foreground flex-1">
+      <Card className="shadow-none p-4 sm:p-5 lg:sticky lg:top-4">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h3 className="flex-1 text-lg font-semibold leading-snug text-foreground">
             {memory.title}
           </h3>
           <Button
@@ -100,13 +99,13 @@ export default function MemoryDetailPanel({
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as PanelTab)}
         >
-          <TabsList className="mb-4">
+          <TabsList className="mb-5 w-full sm:w-auto">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="connections">Connections</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="details">
+          <TabsContent value="details" className="mt-0">
             <DetailsTab
               memory={memory}
               onMemoryUpdate={onMemoryUpdate}
@@ -118,11 +117,11 @@ export default function MemoryDetailPanel({
             />
           </TabsContent>
 
-          <TabsContent value="history">
+          <TabsContent value="history" className="mt-0">
             <HistoryTab memoryId={memory.id} />
           </TabsContent>
 
-          <TabsContent value="connections">
+          <TabsContent value="connections" className="mt-0">
             <ConnectionsTab
               memoryId={memory.id}
               onSelectRelated={onSelectRelated}

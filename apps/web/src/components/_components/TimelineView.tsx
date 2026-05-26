@@ -182,12 +182,14 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                     )}
 
                     {showDiff && prevEvent?.snapshot && event.snapshot ? (
-                      <DiffDisplay
-                        oldText={prevEvent.snapshot.content}
-                        newText={event.snapshot.content}
-                      />
+                      <div className="rounded-lg bg-surface-secondary p-3">
+                        <DiffDisplay
+                          oldText={prevEvent.snapshot.content}
+                          newText={event.snapshot.content}
+                        />
+                      </div>
                     ) : event.snapshot !== null ? (
-                      <div className="rounded-lg bg-surface-secondary/30 p-3 text-sm whitespace-pre-wrap">
+                      <div className="rounded-lg bg-surface-secondary p-3 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
                         {event.snapshot.content}
                       </div>
                     ) : (
