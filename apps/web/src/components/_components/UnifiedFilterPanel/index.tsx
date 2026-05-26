@@ -106,7 +106,7 @@ export default function UnifiedFilterPanel({
     ) : null;
 
   const triggerClass =
-    "flex w-full items-center justify-center sm:justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted transition-colors hover:bg-surface-tertiary/50 data-[state=active]:bg-surface data-[state=active]:text-foreground";
+    "flex w-full items-center justify-center sm:justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted transition-colors hover:bg-surface-tertiary hover:text-foreground data-[state=active]:bg-surface-secondary data-[state=active]:text-foreground";
 
   return (
     <div className="flex flex-col">

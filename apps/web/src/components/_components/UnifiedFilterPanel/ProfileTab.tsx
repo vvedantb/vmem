@@ -30,8 +30,8 @@ export default function ProfileTab({
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
             !selectedProfileId
-              ? "bg-surface text-foreground font-medium"
-              : "hover:bg-surface-tertiary/50",
+              ? "bg-surface-secondary text-foreground font-medium"
+              : "hover:bg-surface-tertiary",
           )}
         >
           <IconUsers size={14} />
@@ -62,8 +62,8 @@ export default function ProfileTab({
                 className={cn(
                   "flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors border-b border-separator last:border-0",
                   isSelected
-                    ? "bg-surface text-foreground"
-                    : "hover:bg-surface-tertiary/50",
+                    ? "bg-surface-secondary text-foreground"
+                    : "hover:bg-surface-tertiary",
                 )}
               >
                 <div

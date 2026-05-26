@@ -41,8 +41,8 @@ export default function TypeTab({
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
             selectedTypes.length === 0
-              ? "bg-surface text-foreground font-medium"
-              : "hover:bg-surface-tertiary/50",
+              ? "bg-surface-secondary text-foreground font-medium"
+              : "hover:bg-surface-tertiary",
           )}
         >
           All types
@@ -57,7 +57,7 @@ export default function TypeTab({
           return (
             <label
               key={type}
-              className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-separator last:border-0 hover:bg-surface-tertiary/50"
+              className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-separator last:border-0 hover:bg-surface-tertiary"
             >
               <Checkbox
                 checked={checked}

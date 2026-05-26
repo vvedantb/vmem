@@ -48,10 +48,10 @@ export function TeamSidebarCard({
       className={cn(
         "flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/30",
         selected && inGroup
-          ? "text-foreground"
+          ? "bg-surface-tertiary text-foreground"
           : selected
             ? "bg-surface-secondary/40 text-foreground"
-            : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
+            : "text-muted hover:bg-surface-tertiary hover:text-foreground",
       )}
     >
       {profile && ProfileIcon ? (

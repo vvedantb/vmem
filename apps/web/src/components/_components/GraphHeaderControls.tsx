@@ -358,7 +358,7 @@ function OptionsPopover({
         {/* View mode */}
         <div className="space-y-1.5">
           <span className="text-[11px] text-muted">View</span>
-          <div className="flex items-center gap-0.5 rounded-lg bg-segment p-0.5 w-fit">
+          <div className="flex items-center gap-0.5 rounded-lg bg-default p-0.5 w-fit">
             {VIEW_MODES.map(({ mode, Icon }) => (
               <button
                 key={mode}
@@ -367,8 +367,8 @@ function OptionsPopover({
                 title={VIEW_MODE_LABELS[mode]}
                 className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
                   mode === viewMode
-                    ? "bg-surface text-foreground"
-                    : "text-muted hover:text-foreground hover:bg-surface-tertiary/50"
+                    ? "bg-segment text-foreground"
+                    : "text-muted hover:text-foreground hover:bg-surface-secondary/70"
                 }`}
               >
                 <Icon size={14} />

@@ -1,5 +1,11 @@
 # Changelog
 
+## HeroUI default theme & tabs — 2026-05-23
+
+- **Brand accent** restored to HeroUI default blue (`--accent` / `--focus`) in light and dark; primary buttons, links, and focus rings match HeroUI.
+- **Tabs** aligned with HeroUI: `bg-default` track, active pill `bg-segment` + `text-segment-foreground`, inactive hover via opacity (not surface fill).
+- **Sidebar / filter hovers** unified to full `surface-tertiary` so team sub-nav and main nav feel consistent.
+
 ## HeroUI token audit (pass 6) — 2026-05-23
 
 - **`muted` as fill**: Status dots, spinners, timeline/legend swatches, and typing indicators use `default` / `surface-tertiary` instead of `bg-muted` or `border-muted` (`muted` is text-only).

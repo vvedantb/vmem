@@ -235,8 +235,8 @@ function CreateEditProfileDialog({
                     className={cn(
                       "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
                       icon === i.name
-                        ? "bg-surface text-foreground"
-                        : "bg-surface-secondary hover:bg-surface-tertiary/50",
+                        ? "bg-segment text-foreground"
+                        : "bg-surface-secondary hover:bg-surface-tertiary",
                     )}
                   >
                     <IconComponent className="h-4 w-4" />
