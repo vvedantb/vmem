@@ -16,7 +16,7 @@ export function DangerZonePanel() {
 
   return (
     <>
-      <div className="rounded-xl bg-surface-secondary/40 p-6">
+      <div className="rounded-lg bg-surface-secondary/40 p-6">
         <div className="mb-4 flex items-center gap-3">
           <IconAlertTriangle size={20} className="text-danger" stroke={1.75} />
           <h3 className="text-base font-medium text-foreground">

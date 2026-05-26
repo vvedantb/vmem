@@ -32,7 +32,7 @@ export function TeamSidebarGroup({
       className={cn(
         "flex flex-col",
         isExpanded
-          ? "gap-0.5 rounded-xl bg-surface-secondary/40 p-1"
+          ? "gap-0.5 rounded-lg bg-surface-secondary/40 p-1"
           : undefined,
       )}
     >

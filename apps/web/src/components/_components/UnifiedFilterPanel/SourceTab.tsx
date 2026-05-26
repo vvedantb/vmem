@@ -59,7 +59,7 @@ export default function SourceTab({
             itemContent={(_i, source) => {
               const checked = selectedSources.includes(source);
               return (
-                <label className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-border/40 last:border-0 hover:bg-surface-secondary/30">
+                <label className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-separator last:border-0 hover:bg-surface-secondary/30">
                   <Checkbox
                     checked={checked}
                     onCheckedChange={() => toggleSource(source)}

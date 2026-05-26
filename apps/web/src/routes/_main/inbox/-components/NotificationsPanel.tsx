@@ -57,9 +57,9 @@ function LoadingSkeleton() {
   return (
     <div className="flex flex-col gap-1">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="rounded-xl px-3 py-2.5 sm:px-4 sm:py-3">
+        <div key={i} className="rounded-lg px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex items-start gap-4">
-            <Skeleton className="h-10 w-10 rounded-xl" />
+            <Skeleton className="h-10 w-10 rounded-lg" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-48 rounded" />
               <Skeleton className="h-3 w-72 rounded" />
@@ -74,7 +74,7 @@ function LoadingSkeleton() {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-secondary">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-surface-secondary">
         <AnimatedBellIcon size={32} className="text-muted" muted />
       </div>
       <h3 className="mb-1 text-lg font-medium text-foreground text-balance">
@@ -104,11 +104,11 @@ export function NotificationsPanel() {
       {notifications.map((notification) => (
         <div
           key={notification._id}
-          className="rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50 sm:px-4 sm:py-3"
+          className="rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50 sm:px-4 sm:py-3"
         >
           <div className="flex items-start gap-3 sm:gap-4">
             <div
-              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10 sm:rounded-xl ${getIconBackground(
+              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10 sm:rounded-lg ${getIconBackground(
                 notification.type,
               )}`}
             >

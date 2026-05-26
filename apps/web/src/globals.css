@@ -146,7 +146,7 @@
   }
 
   .glass-tab-trigger[data-state="active"] {
-    @apply bg-background text-foreground;
+    @apply bg-surface text-foreground;
   }
 }
 

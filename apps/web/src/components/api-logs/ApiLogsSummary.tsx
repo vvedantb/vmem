@@ -92,7 +92,7 @@ function SummaryCard({
   fillClassName: string;
 }) {
   return (
-    <div className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-surface-secondary/40 p-5">
+    <div className="flex min-h-[9.5rem] flex-col gap-3 rounded-lg bg-surface-secondary/40 p-5">
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm text-muted">{label}</p>
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-secondary/60">
@@ -133,7 +133,7 @@ export function ApiLogsSummary({
         icon={IconActivity}
         trendData={trends.requests}
         strokeClassName="text-accent"
-        fillClassName="fill-primary/10"
+        fillClassName="fill-accent/10"
       />
       <SummaryCard
         label="Success rate"

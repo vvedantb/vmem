@@ -60,7 +60,7 @@ export default function ProfileTab({
                 type="button"
                 onClick={() => onProfileChange(profile._id)}
                 className={cn(
-                  "flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors border-b border-border/40 last:border-0",
+                  "flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors border-b border-separator last:border-0",
                   isSelected
                     ? "bg-surface-tertiary text-accent-foreground"
                     : "hover:bg-surface-secondary/50",

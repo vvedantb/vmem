@@ -20,7 +20,7 @@ function ExportRoute() {
       centeredMaxWidth
       leftSection={<DataControlsTabs />}
     >
-      <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-xl bg-surface-secondary/40 px-6 py-16 text-center">
+      <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-lg bg-surface-secondary/40 px-6 py-16 text-center">
         <IconFileExport size={28} className="text-muted" stroke={1.5} />
         <h3 className="text-base font-medium text-foreground">
           Export coming soon

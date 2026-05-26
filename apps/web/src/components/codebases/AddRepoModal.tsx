@@ -180,7 +180,7 @@ export function AddRepoModal({
         <div className="px-4 pb-4">
           <div
             className={cn(
-              "max-h-[min(24rem,50vh)] overflow-y-auto rounded-xl bg-surface-secondary/40 p-1 scrollbar-thin",
+              "max-h-[min(24rem,50vh)] overflow-y-auto rounded-lg bg-surface-secondary/40 p-1 scrollbar-thin",
             )}
           >
             {loading ? (

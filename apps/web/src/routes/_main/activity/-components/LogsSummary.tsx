@@ -58,7 +58,7 @@ function SummaryCard({
         delay: index * 0.06,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-surface-secondary/40 p-5"
+      className="flex min-h-[9.5rem] flex-col gap-3 rounded-lg bg-surface-secondary/40 p-5"
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm text-muted">{label}</p>
@@ -97,7 +97,7 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
         {[0, 1, 2, 3].map((index) => (
           <div
             key={index}
-            className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-surface-secondary/40 p-5"
+            className="flex min-h-[9.5rem] flex-col gap-3 rounded-lg bg-surface-secondary/40 p-5"
           >
             <div className="h-16 animate-pulse rounded-lg bg-surface-secondary/60" />
           </div>

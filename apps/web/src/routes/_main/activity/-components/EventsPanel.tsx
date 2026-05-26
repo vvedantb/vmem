@@ -88,9 +88,9 @@ function LoadingSkeleton() {
   return (
     <div className="flex flex-col gap-1">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="rounded-xl px-3 py-2.5 sm:px-4 sm:py-3">
+        <div key={i} className="rounded-lg px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex items-center gap-3 sm:gap-4">
-            <Skeleton className="h-10 w-10 rounded-xl" />
+            <Skeleton className="h-10 w-10 rounded-lg" />
             <div className="flex flex-1 items-center justify-between gap-3">
               <Skeleton className="h-4 w-48 rounded" />
               <Skeleton className="h-3 w-16 rounded" />
@@ -105,7 +105,7 @@ function LoadingSkeleton() {
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-secondary">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-surface-secondary">
         <IconActivity size={32} className="text-muted" />
       </div>
       <h3 className="mb-1 text-lg font-medium text-foreground text-balance">
@@ -222,9 +222,9 @@ export function EventsPanel({
         const Icon = getActivityIcon(item.type);
         return (
           <div className="pb-1">
-            <div className="rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50 sm:px-4 sm:py-3">
+            <div className="rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50 sm:px-4 sm:py-3">
               <div className="flex items-center gap-3 sm:gap-4">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-accent/10">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-accent/10">
                   <Icon size={20} className="text-accent" />
                 </div>
                 <div className="flex min-w-0 flex-1 items-center justify-between gap-3">

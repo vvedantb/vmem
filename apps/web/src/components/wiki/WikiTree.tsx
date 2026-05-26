@@ -234,10 +234,10 @@ function TreeItem({
             type="button"
             onClick={handleActivate}
             className={cn(
-              "group w-full flex items-center gap-1.5 rounded-xl px-3 py-2 text-left text-sm transition-[background-color]",
+              "group w-full flex items-center gap-1.5 rounded-lg px-3 py-2 text-left text-sm transition-[background-color]",
               isSelected
                 ? "bg-surface-secondary/40 text-foreground"
-                : "text-foreground/80 hover:bg-surface/45 dark:hover:bg-surface-secondary/40",
+                : "text-foreground/80 hover:bg-surface-tertiary/50",
             )}
             style={{ paddingLeft: `${depth * 12 + 8}px` }}
           >

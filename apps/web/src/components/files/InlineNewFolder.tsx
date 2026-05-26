@@ -49,7 +49,7 @@ export default function InlineNewFolder({
 
   if (variant === "grid") {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-xl border border-accent/40 bg-surface-secondary/50 p-3">
+      <div className="flex flex-col items-center gap-2 rounded-lg border border-accent/40 bg-surface-secondary/50 p-3">
         <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-surface-secondary">
           <IconFolder size={48} stroke={1.2} className="text-muted" />
         </div>
@@ -59,7 +59,7 @@ export default function InlineNewFolder({
           defaultValue="Untitled Folder"
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          className="w-full rounded-md border border-border bg-background px-2 py-1 text-center text-sm text-foreground outline-none focus:ring-1 focus:ring-focus"
+          className="w-full rounded-field border border-border bg-field-background px-2 py-1 text-center text-sm text-foreground outline-none placeholder:text-field-placeholder focus:ring-1 focus:ring-focus"
         />
       </div>
     );
@@ -80,7 +80,7 @@ export default function InlineNewFolder({
             defaultValue="Untitled Folder"
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
-            className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground outline-none focus:ring-1 focus:ring-focus"
+            className="rounded-field border border-border bg-field-background px-2 py-1 text-sm text-foreground outline-none placeholder:text-field-placeholder focus:ring-1 focus:ring-focus"
           />
         </div>
       </td>

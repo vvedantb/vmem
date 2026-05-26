@@ -67,7 +67,7 @@ export function KeysPanel({
   return (
     <>
       {apiKeyList.length === 0 ? (
-        <div className="rounded-xl bg-surface-secondary/40 py-16 text-center">
+        <div className="rounded-lg bg-surface-secondary/40 py-16 text-center">
           <AnimatedKeyIcon size={48} className="mx-auto mb-4 text-muted" />
           <h3 className="mb-2 text-lg font-medium text-foreground text-balance">
             No API keys yet
@@ -85,7 +85,7 @@ export function KeysPanel({
           </Button>
         </div>
       ) : (
-        <Table className="rounded-xl bg-surface-secondary/30 overflow-hidden">
+        <Table className="rounded-lg bg-surface-secondary/30 overflow-hidden">
           <TableHeader>
             <TableRow className="bg-surface-secondary/50">
               <TableHead className="font-medium text-muted">NAME</TableHead>

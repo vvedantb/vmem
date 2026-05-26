@@ -1,5 +1,13 @@
 # Changelog
 
+## HeroUI audit pass — 2026-05-23
+
+- **Segment & separator tokens**: Tabs use `bg-segment` + active `bg-surface`; `Separator` and table/command dividers use `bg-separator` / `border-separator`.
+- **Radius normalization**: App-level `rounded-xl`/`2xl`/`3xl` → `rounded-lg` (`--radius`); ad-hoc form fields → `rounded-field` + `bg-field-background`.
+- **Stale shadcn refs**: `fill-primary` → `fill-accent`, `accent-primary` → `accent-accent`, `--destructive` → `--danger` in SVG tokens.
+- **Chrome extension**: Added `--scrollbar`, `--segment`, `--separator` to match web theme.
+- **Graph light canvas**: Neutral `#f7f7f8` background, removed blue gradient tint.
+
 ## HeroUI theme tokens — 2026-05-23
 
 - **Replaced shadcn token layer with HeroUI semantics**: Single source of truth in `globals.css` (`--accent`, `--surface`, `--surface-secondary`, `--field-background`, etc.) — no more dual `--heroui-*` + shadcn channel mapping.

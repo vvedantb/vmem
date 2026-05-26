@@ -33,6 +33,10 @@
   --surface-tertiary-foreground: oklch(21.03% 0.0015 253.83);
   --warning: oklch(78.19% 0.159 72.33);
   --warning-foreground: oklch(21.03% 0.0059 72.33);
+  --scrollbar: oklch(87.1% 0.0015 253.83);
+  --segment: oklch(100% 0.0015 253.83);
+  --segment-foreground: oklch(21.03% 0.0015 253.83);
+  --separator: oklch(92% 0.0015 253.83);
   --radius: 0.5rem;
   --field-radius: 0.75rem;
 }
@@ -66,6 +70,10 @@
   --surface-tertiary-foreground: oklch(99.11% 0.0015 253.83);
   --warning: oklch(82.03% 0.1392 76.34);
   --warning-foreground: oklch(21.03% 0.0059 76.34);
+  --scrollbar: oklch(70.5% 0.0015 253.83);
+  --segment: oklch(39.64% 0.0015 253.83);
+  --segment-foreground: oklch(99.11% 0.0015 253.83);
+  --separator: oklch(25% 0.0015 253.83);
 }
 
 @theme {
@@ -96,6 +104,10 @@
   --color-surface-tertiary-foreground: var(--surface-tertiary-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-scrollbar: var(--scrollbar);
+  --color-segment: var(--segment);
+  --color-segment-foreground: var(--segment-foreground);
+  --color-separator: var(--separator);
 
   --font-sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
   --font-serif: "Instrument Serif", Georgia, serif;
@@ -174,6 +186,6 @@ select,
 }
 
 .glass-tab-trigger[data-state="active"] {
-  background: var(--background);
+  background: var(--surface);
   color: var(--foreground);
 }

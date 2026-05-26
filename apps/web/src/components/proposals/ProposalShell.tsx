@@ -27,7 +27,7 @@ export function ProposalShell({
   children: React.ReactNode;
 }) {
   return (
-    <article className="relative overflow-hidden rounded-xl bg-surface-secondary/40">
+    <article className="relative overflow-hidden rounded-lg bg-surface-secondary/40">
       <div
         className={cn("absolute inset-y-0 left-0 w-1", accentClass)}
         aria-hidden

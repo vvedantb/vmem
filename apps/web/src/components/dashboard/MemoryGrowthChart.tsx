@@ -22,7 +22,7 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-xl bg-surface-secondary/40 p-5 sm:p-6"
+      className="rounded-lg bg-surface-secondary/40 p-5 sm:p-6"
     >
       <div className="mb-5 flex flex-col gap-1 sm:mb-6">
         <h2 className="text-base font-medium text-foreground sm:text-lg">
@@ -33,7 +33,7 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
 
       {growthData.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-secondary/60">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-surface-secondary/60">
             <IconChartBarOff size={22} className="text-muted" stroke={1.5} />
           </div>
           <p className="text-sm text-muted">

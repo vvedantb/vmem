@@ -141,7 +141,7 @@ function AiLogsTableLoadingSkeleton() {
         {[0, 1, 2, 3, 4, 5].map((index) => (
           <div
             key={index}
-            className="h-14 animate-pulse rounded-xl bg-surface-secondary/40"
+            className="h-14 animate-pulse rounded-lg bg-surface-secondary/40"
           />
         ))}
       </div>
@@ -168,7 +168,7 @@ function LogRowCard({
     <button
       type="button"
       onClick={onClick}
-      className="block w-full rounded-xl px-4 py-3 text-left transition-[background-color] hover:bg-surface-secondary/80 focus:bg-surface-secondary/80 focus:outline-none dark:hover:bg-surface-tertiary/50 dark:focus:bg-surface-tertiary/50"
+      className="block w-full rounded-lg px-4 py-3 text-left transition-[background-color] hover:bg-surface-secondary/80 focus:bg-surface-secondary/80 focus:outline-none dark:hover:bg-surface-tertiary/50 dark:focus:bg-surface-tertiary/50"
     >
       <div className="hidden md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px_80px_72px] md:items-center md:gap-3">
         <span className="text-xs tabular-nums text-muted">{time}</span>
@@ -257,8 +257,8 @@ function EmptyState({
   onResetFilters: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl bg-surface-secondary/40 px-6 py-14 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-secondary/60">
+    <div className="flex flex-col items-center justify-center rounded-lg bg-surface-secondary/40 px-6 py-14 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-secondary/60">
         <IconReceipt2 size={28} className="text-muted" stroke={1.5} />
       </div>
       <h3 className="mb-1 text-base font-medium text-foreground">

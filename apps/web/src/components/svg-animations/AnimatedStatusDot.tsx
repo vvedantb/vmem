@@ -13,11 +13,11 @@ interface AnimatedStatusDotProps {
 }
 
 const PHASE_COLORS: Record<VoicePhase, { fill: string; glow: string }> = {
-  idle: { fill: "#71717a", glow: "#71717a" }, // muted gray
-  listening: { fill: "#ef4444", glow: "#f87171" }, // red-500 / red-400
-  thinking: { fill: "#f59e0b", glow: "#fbbf24" }, // amber-500 / amber-400
-  speaking: { fill: "#10b981", glow: "#34d399" }, // emerald-500 / emerald-400
-  error: { fill: "#ef4444", glow: "#f87171" }, // destructive red
+  idle: { fill: "var(--muted)", glow: "var(--muted)" },
+  listening: { fill: "var(--danger)", glow: "var(--danger)" },
+  thinking: { fill: "var(--warning)", glow: "var(--warning)" },
+  speaking: { fill: "var(--success)", glow: "var(--success)" },
+  error: { fill: "var(--danger)", glow: "var(--danger)" },
 };
 
 export function AnimatedStatusDot({

@@ -195,7 +195,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
             </div>
 
             {outlineVisible && !isMobileViewport && hasDoc ? (
-              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-xl bg-surface-secondary/40 p-2 scrollbar-thin md:block">
+              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-lg bg-surface-secondary/40 p-2 scrollbar-thin md:block">
                 <WikiOutline
                   headings={headings}
                   onJump={handleJumpToHeading}

@@ -25,8 +25,8 @@ interface ApiLogsTableProps {
 
 function ApiLogsEmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl bg-surface-secondary/40 px-6 py-14 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-secondary/60">
+    <div className="flex flex-col items-center justify-center rounded-lg bg-surface-secondary/40 px-6 py-14 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-secondary/60">
         <IconChartBar size={28} className="text-muted" stroke={1.5} />
       </div>
       <h3 className="mb-1 text-base font-medium text-foreground">
@@ -42,7 +42,7 @@ function ApiLogsEmptyState() {
 
 function ApiLogRow({ log }: { log: ApiLogItem }) {
   return (
-    <li className="rounded-xl px-4 py-3 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50">
+    <li className="rounded-lg px-4 py-3 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <code className="min-w-0 break-all font-mono text-sm text-foreground sm:break-normal">
           {log.endpoint}

@@ -9,7 +9,7 @@ export function AiLogsLoadingSkeleton() {
         {[1, 2, 3, 4].map((index) => (
           <div
             key={index}
-            className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-surface-secondary/40 p-5"
+            className="flex min-h-[9.5rem] flex-col gap-3 rounded-lg bg-surface-secondary/40 p-5"
           >
             <div className="flex items-start justify-between">
               <Skeleton className="h-4 w-24 rounded" />
@@ -30,7 +30,7 @@ export function AiLogsLoadingSkeleton() {
           {[1, 2, 3, 4, 5, 6].map((index) => (
             <div
               key={index}
-              className="rounded-xl bg-surface-secondary/40 px-4 py-3"
+              className="rounded-lg bg-surface-secondary/40 px-4 py-3"
             >
               <Skeleton className="h-4 w-full max-w-2xl rounded" />
             </div>

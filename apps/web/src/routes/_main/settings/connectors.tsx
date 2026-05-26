@@ -63,7 +63,7 @@ function ConnectorsPage() {
             <Card key={i} className="bg-surface-secondary/50 shadow-none">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <Skeleton className="h-12 w-12 rounded-xl" />
+                  <Skeleton className="h-12 w-12 rounded-lg" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-5 w-32 rounded" />
                     <Skeleton className="h-4 w-full rounded" />

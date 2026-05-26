@@ -95,7 +95,7 @@ function ProfileCard({
   const Icon = getProfileIcon(profile.icon);
 
   return (
-    <div className="relative rounded-xl p-4 bg-surface-secondary/40">
+    <div className="relative rounded-lg p-4 bg-surface-secondary/40">
       <div className="flex items-start gap-3">
         <div
           className="flex h-10 w-10 items-center justify-center rounded-lg"
@@ -124,7 +124,7 @@ function ProfileCard({
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-separator">
         <Button variant="ghost" size="icon-sm" onClick={onEdit}>
           <IconEdit className="h-4 w-4" />
         </Button>
@@ -427,7 +427,7 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   };
 
   return (
-    <div className="rounded-xl bg-surface-secondary/40 p-4 space-y-4">
+    <div className="rounded-lg bg-surface-secondary/40 p-4 space-y-4">
       <div>
         <h3 className="font-medium text-foreground">Default Profiles</h3>
         <p className="text-xs text-muted mt-0.5">

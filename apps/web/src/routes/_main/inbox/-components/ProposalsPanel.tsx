@@ -122,7 +122,7 @@ function LoadingSkeleton() {
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="relative overflow-hidden rounded-xl bg-surface-secondary/40 p-5 pl-6"
+          className="relative overflow-hidden rounded-lg bg-surface-secondary/40 p-5 pl-6"
         >
           <div
             className="absolute inset-y-0 left-0 w-1 bg-surface-secondary/80"
@@ -141,8 +141,8 @@ function LoadingSkeleton() {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl bg-surface-secondary/40 px-6 py-16 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-secondary/60">
+    <div className="flex flex-col items-center justify-center rounded-lg bg-surface-secondary/40 px-6 py-16 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-secondary/60">
         <IconSparkles size={28} className="text-muted" stroke={1.5} />
       </div>
       <h3 className="mb-1 text-base font-medium text-foreground">

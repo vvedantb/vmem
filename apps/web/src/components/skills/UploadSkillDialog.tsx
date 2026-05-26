@@ -133,7 +133,7 @@ export function UploadSkillDialog({
             e.stopPropagation();
           }}
           onDrop={handleDrop}
-          className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl bg-surface-secondary/20 px-4 py-8 text-center transition-colors hover:bg-surface-secondary/35"
+          className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg bg-surface-secondary/20 px-4 py-8 text-center transition-colors hover:bg-surface-secondary/35"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-secondary/60">
             {submitting ? (

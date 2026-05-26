@@ -25,7 +25,7 @@ export function AestheticSection() {
           render={() => (
             <svg viewBox="0 0 210 204" className="vmem-svg">
               <VmemPaths />
-              <circle r="6" fill="var(--color-destructive)" opacity="0.9">
+              <circle r="6" fill="var(--color-danger)" opacity="0.9">
                 <animateMotion
                   dur="3s"
                   repeatCount="indefinite"

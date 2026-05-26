@@ -32,7 +32,7 @@ export function AnimationCard({
   const [replayKey, setReplayKey] = useState(0);
 
   return (
-    <div className="flex flex-col items-center gap-4 rounded-2xl bg-surface-secondary/40 p-6">
+    <div className="flex flex-col items-center gap-4 rounded-lg bg-surface-secondary/40 p-6">
       <div className="flex h-32 w-32 items-center justify-center text-foreground">
         {render(replayKey)}
       </div>

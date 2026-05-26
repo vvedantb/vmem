@@ -71,7 +71,7 @@ export default function FileDropZone({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: motionDuration.fast, ease: motionEase }}
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-accent bg-accent/5"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-accent bg-accent/5"
           >
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
               <IconUpload size={28} className="text-accent" />

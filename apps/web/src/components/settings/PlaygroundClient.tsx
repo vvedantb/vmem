@@ -363,7 +363,7 @@ export default function PlaygroundClient() {
                 onChange={(e) =>
                   dispatch({ type: "SELECT_TOOL", name: e.target.value })
                 }
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
               >
                 <option value="">Select a tool...</option>
                 {state.tools.map((tool) => (
@@ -405,7 +405,7 @@ export default function PlaygroundClient() {
                           })
                         }
                         placeholder='["tag1", "tag2"] or tag1, tag2'
-                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                        className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
                       />
                     ) : (
                       <input
@@ -418,7 +418,7 @@ export default function PlaygroundClient() {
                             value: e.target.value,
                           })
                         }
-                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                        className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
                       />
                     )}
                   </div>

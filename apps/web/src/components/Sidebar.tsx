@@ -124,7 +124,7 @@ export default function Sidebar({
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls={mobileMenuId}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-muted transition-colors hover:bg-surface-secondary/40 hover:text-foreground"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-secondary/40 hover:text-foreground"
           >
             <MorphingMenuIcon isOpen={mobileMenuOpen} size={20} />
           </button>
@@ -140,7 +140,7 @@ export default function Sidebar({
           <DialogRawContent
             id={mobileMenuId}
             aria-label="Navigation menu"
-            className="bg-overlay shadow-lg fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden rounded-3xl text-foreground outline-none md:hidden"
+            className="bg-overlay shadow-lg fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden rounded-lg text-foreground outline-none md:hidden"
           >
             <DialogTitle className="sr-only">Navigation menu</DialogTitle>
 

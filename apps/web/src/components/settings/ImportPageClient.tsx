@@ -111,7 +111,7 @@ export default function ImportPageClient() {
             return (
               <div
                 key={p.id}
-                className="rounded-xl bg-surface-secondary/40 p-6"
+                className="rounded-lg bg-surface-secondary/40 p-6"
               >
                 <div className="mb-4 flex items-center gap-3">
                   <Logo className={`h-6 w-6 shrink-0 ${p.logoClassName}`} />
@@ -129,7 +129,7 @@ export default function ImportPageClient() {
           return (
             <div
               key={p.id}
-              className="rounded-xl bg-surface-secondary/40 p-6 opacity-60"
+              className="rounded-lg bg-surface-secondary/40 p-6 opacity-60"
             >
               <div className="mb-4 flex items-center gap-3">
                 <Logo className={`h-6 w-6 shrink-0 ${p.logoClassName}`} />

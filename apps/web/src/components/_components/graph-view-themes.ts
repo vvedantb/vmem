@@ -87,8 +87,8 @@ const DEFAULT_DARK: GraphViewTheme = {
 
 const DEFAULT_LIGHT: GraphViewTheme = {
   isDarkCanvas: false,
-  background: "#ffffff",
-  gradientCenter: "rgba(80, 80, 180, 0.03)",
+  background: "#f7f7f8",
+  gradientCenter: null,
   grid: null,
   edge: {
     normalByType: {

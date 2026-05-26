@@ -41,7 +41,7 @@ export default function ConfidenceThresholdSlider({
         onChange={handleChange}
         onMouseUp={handleCommit}
         onTouchEnd={handleCommit}
-        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-secondary accent-primary"
+        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-secondary accent-accent"
       />
       <p className="text-xs text-muted">
         Only extract memories with confidence above this threshold.
