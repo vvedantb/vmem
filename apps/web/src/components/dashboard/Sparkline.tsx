@@ -1,18 +1,13 @@
 interface SparklineProps {
   data: number[];
   strokeClassName: string;
-  fillClassName: string;
 }
 
 function hasActivity(data: number[]): boolean {
   return data.some((value) => value > 0);
 }
 
-export function Sparkline({
-  data,
-  strokeClassName,
-  fillClassName,
-}: SparklineProps) {
+export function Sparkline({ data, strokeClassName }: SparklineProps) {
   if (!hasActivity(data)) {
     return (
       <div aria-hidden className="flex h-10 items-end gap-0.5 opacity-40">
@@ -42,7 +37,6 @@ export function Sparkline({
   });
 
   const linePath = `M${points.join(" L")}`;
-  const areaPath = `${linePath} L${width - padding},${height} L${padding},${height} Z`;
 
   return (
     <svg
@@ -51,7 +45,6 @@ export function Sparkline({
       preserveAspectRatio="none"
       aria-hidden
     >
-      <path d={areaPath} className={fillClassName} />
       <path
         d={linePath}
         fill="none"

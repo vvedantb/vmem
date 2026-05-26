@@ -35,7 +35,6 @@ function SummaryCard({
   valueClassName,
   trendData,
   strokeClassName,
-  fillClassName,
   showSparkline,
   index,
 }: {
@@ -45,7 +44,6 @@ function SummaryCard({
   valueClassName?: string;
   trendData: number[];
   strokeClassName: string;
-  fillClassName: string;
   showSparkline: boolean;
   index: number;
 }) {
@@ -76,11 +74,7 @@ function SummaryCard({
       </p>
       {showSparkline ? (
         <div className="mt-auto pt-1">
-          <Sparkline
-            data={trendData}
-            strokeClassName={strokeClassName}
-            fillClassName={fillClassName}
-          />
+          <Sparkline data={trendData} strokeClassName={strokeClassName} />
           <p className="mt-1.5 text-[11px] text-muted">Last 7 days</p>
         </div>
       ) : (
@@ -126,7 +120,6 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
     valueClassName?: string;
     trendData: number[];
     strokeClassName: string;
-    fillClassName: string;
   }[] = [
     {
       label: "Total cost",
@@ -134,7 +127,6 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       icon: IconCoin,
       trendData: trends.costs,
       strokeClassName: "text-accent",
-      fillClassName: "fill-accent/10",
     },
     {
       label: "Total tokens",
@@ -142,7 +134,6 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       icon: IconStack,
       trendData: trends.tokens,
       strokeClassName: "text-foreground/70",
-      fillClassName: "fill-foreground/10",
     },
     {
       label: "Avg latency",
@@ -150,7 +141,6 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       icon: IconActivityHeartbeat,
       trendData: trends.latencies,
       strokeClassName: "text-muted",
-      fillClassName: "fill-foreground/5",
     },
     {
       label: "Success rate",
@@ -159,7 +149,6 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       valueClassName: "text-success",
       trendData: trends.successRates,
       strokeClassName: "text-success",
-      fillClassName: "fill-success/10",
     },
   ];
 
@@ -188,7 +177,6 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
             valueClassName={card.valueClassName}
             trendData={card.trendData}
             strokeClassName={card.strokeClassName}
-            fillClassName={card.fillClassName}
             showSparkline={hasTrends}
             index={index}
           />

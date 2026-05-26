@@ -1,5 +1,9 @@
 # Changelog
 
+## Home sparklines line-only — 2026-05-23
+
+- **Dashboard stat sparklines**: Stroke only (no area fill under the line); matches pre-regression look after token contrast made fills obvious.
+
 ## Trim web globals.css — 2026-05-23
 
 - Removed unused animation utilities (`animate-blob`, `animate-shimmer`, `smooth-typing-input`, etc.) and dead glass classes (`glass-panel`, `glass-panel-subtle`, `glass-interactive`).

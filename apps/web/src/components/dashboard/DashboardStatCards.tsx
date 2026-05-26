@@ -21,7 +21,6 @@ interface StatCardConfig {
   icon: TablerIcon;
   trendData?: number[];
   strokeClassName?: string;
-  fillClassName?: string;
   showSparkline?: boolean;
 }
 
@@ -31,7 +30,6 @@ function StatCard({
   icon: Icon,
   trendData,
   strokeClassName,
-  fillClassName,
   showSparkline,
   index,
 }: StatCardConfig & { index: number }) {
@@ -55,13 +53,9 @@ function StatCard({
       <p className="font-instrumentSerif text-3xl leading-none tabular-nums text-foreground">
         <AnimatedCounter value={value} duration={0.8} />
       </p>
-      {showSparkline && trendData && strokeClassName && fillClassName ? (
+      {showSparkline && trendData && strokeClassName ? (
         <div className="mt-auto pt-1">
-          <Sparkline
-            data={trendData}
-            strokeClassName={strokeClassName}
-            fillClassName={fillClassName}
-          />
+          <Sparkline data={trendData} strokeClassName={strokeClassName} />
           <p className="mt-1.5 text-[11px] text-muted">Last 7 days</p>
         </div>
       ) : (
@@ -86,7 +80,6 @@ export function DashboardStatCards({ stats }: DashboardStatCardsProps) {
       icon: IconBrain,
       trendData: totalTrend,
       strokeClassName: "text-foreground/70",
-      fillClassName: "fill-foreground/10",
       showSparkline: true,
     },
     {
@@ -95,7 +88,6 @@ export function DashboardStatCards({ stats }: DashboardStatCardsProps) {
       icon: IconSparkles,
       trendData: newTrend,
       strokeClassName: "text-accent",
-      fillClassName: "fill-accent/15",
       showSparkline: true,
     },
     {
