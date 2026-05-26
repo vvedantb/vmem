@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
   Label,
+  Card,
+  CardContent,
 } from "@vmem/ui";
 import {
   KOKORO_SPEAKERS,
@@ -62,14 +64,16 @@ export default function VoiceModelsSection() {
   return (
     <div className="space-y-5">
       {/* Info banner */}
-      <div className="flex items-start gap-3 bg-surface-secondary/40 rounded-lg p-3">
-        <IconInfoCircle className="h-4 w-4 text-muted flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-muted">
-          Voice models run entirely in your browser. Whisper handles speech
-          recognition, Kokoro handles text-to-speech. Both are required for the
-          full voice experience on the /voice page.
-        </p>
-      </div>
+      <Card className="shadow-none">
+        <CardContent className="flex items-start gap-3 p-3">
+          <IconInfoCircle className="h-4 w-4 text-muted flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-muted">
+            Voice models run entirely in your browser. Whisper handles speech
+            recognition, Kokoro handles text-to-speech. Both are required for
+            the full voice experience on the /voice page.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* STT models */}
       <div className="space-y-3">

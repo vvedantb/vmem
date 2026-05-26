@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button } from "@vmem/ui";
+import { Button, Card, CardContent, cn } from "@vmem/ui";
 import { toast } from "sonner";
 import UploadImportModal from "./UploadImportModal";
 import SelectImportRowsModal from "./SelectImportRowsModal";
@@ -109,10 +109,25 @@ export default function ImportPageClient() {
           const Logo = p.Logo;
           if (p.kind === "available") {
             return (
-              <div
-                key={p.id}
-                className="rounded-lg bg-surface-secondary/40 p-6"
-              >
+              <Card key={p.id} className="shadow-none">
+                <CardContent className="p-6">
+                  <div className="mb-4 flex items-center gap-3">
+                    <Logo className={`h-6 w-6 shrink-0 ${p.logoClassName}`} />
+                    <h3 className="text-base font-medium text-foreground">
+                      {p.label}
+                    </h3>
+                  </div>
+                  <p className="mb-5 text-sm text-muted">{p.description}</p>
+                  <Button type="button" onClick={() => openUpload(p.id)}>
+                    Import
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          }
+          return (
+            <Card key={p.id} className={cn("shadow-none opacity-60")}>
+              <CardContent className="p-6">
                 <div className="mb-4 flex items-center gap-3">
                   <Logo className={`h-6 w-6 shrink-0 ${p.logoClassName}`} />
                   <h3 className="text-base font-medium text-foreground">
@@ -120,28 +135,11 @@ export default function ImportPageClient() {
                   </h3>
                 </div>
                 <p className="mb-5 text-sm text-muted">{p.description}</p>
-                <Button type="button" onClick={() => openUpload(p.id)}>
-                  Import
+                <Button type="button" disabled>
+                  Coming soon
                 </Button>
-              </div>
-            );
-          }
-          return (
-            <div
-              key={p.id}
-              className="rounded-lg bg-surface-secondary/40 p-6 opacity-60"
-            >
-              <div className="mb-4 flex items-center gap-3">
-                <Logo className={`h-6 w-6 shrink-0 ${p.logoClassName}`} />
-                <h3 className="text-base font-medium text-foreground">
-                  {p.label}
-                </h3>
-              </div>
-              <p className="mb-5 text-sm text-muted">{p.description}</p>
-              <Button type="button" disabled>
-                Coming soon
-              </Button>
-            </div>
+              </CardContent>
+            </Card>
           );
         })}
       </div>

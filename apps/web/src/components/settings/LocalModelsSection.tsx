@@ -7,6 +7,7 @@
 
 import { useCallback } from "react";
 import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
+import { Card, CardContent } from "@vmem/ui";
 import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
 import ModelCard from "./ModelCard";
 
@@ -57,13 +58,15 @@ export default function LocalModelsSection() {
   return (
     <div className="space-y-4">
       {/* Info banner */}
-      <div className="flex items-start gap-3 bg-surface-secondary/40 rounded-lg p-3">
-        <IconInfoCircle className="h-4 w-4 text-muted flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-muted">
-          Local models run entirely in your browser using WebGPU. No data is
-          sent to external servers. Models are cached after first download.
-        </p>
-      </div>
+      <Card className="shadow-none">
+        <CardContent className="flex items-start gap-3 p-3">
+          <IconInfoCircle className="h-4 w-4 text-muted flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-muted">
+            Local models run entirely in your browser using WebGPU. No data is
+            sent to external servers. Models are cached after first download.
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {models.map((model) => (

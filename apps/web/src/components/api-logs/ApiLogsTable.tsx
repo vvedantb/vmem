@@ -1,7 +1,7 @@
 "use client";
 
 import { IconChartBar } from "@tabler/icons-react";
-import { cn } from "@vmem/ui";
+import { Card, CardContent, cn } from "@vmem/ui";
 import { formatRelativeTime, formatDuration } from "@/lib/formatters";
 
 export interface ApiLogItem {
@@ -25,18 +25,20 @@ interface ApiLogsTableProps {
 
 function ApiLogsEmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg bg-surface-secondary/40 px-6 py-14 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-secondary/60">
-        <IconChartBar size={28} className="text-muted" stroke={1.5} />
-      </div>
-      <h3 className="mb-1 text-base font-medium text-foreground">
-        No API requests yet
-      </h3>
-      <p className="max-w-sm text-sm text-muted text-balance">
-        Calls made with your API keys will show up here with status, latency,
-        and timing.
-      </p>
-    </div>
+    <Card className="shadow-none">
+      <CardContent className="flex flex-col items-center justify-center px-6 py-14 text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
+          <IconChartBar size={28} className="text-muted" stroke={1.5} />
+        </div>
+        <h3 className="mb-1 text-base font-medium text-foreground">
+          No API requests yet
+        </h3>
+        <p className="max-w-sm text-sm text-muted text-balance">
+          Calls made with your API keys will show up here with status, latency,
+          and timing.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -87,11 +89,15 @@ export function ApiLogsTable({ logs, totalCount }: ApiLogsTableProps) {
         <h2 className="text-sm font-medium text-foreground">Recent requests</h2>
         <span className="text-xs text-muted tabular-nums">{showingLabel}</span>
       </div>
-      <ul className="flex flex-col gap-1">
-        {logs.map((log) => (
-          <ApiLogRow key={log.id} log={log} />
-        ))}
-      </ul>
+      <Card className="shadow-none">
+        <CardContent className="p-2">
+          <ul className="flex flex-col gap-1">
+            {logs.map((log) => (
+              <ApiLogRow key={log.id} log={log} />
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
     </section>
   );
 }

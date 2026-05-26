@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useReducer } from "react";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { Button } from "@vmem/ui";
+import { Button, Card, CardContent } from "@vmem/ui";
 import {
   IconPlugConnected,
   IconPlugConnectedX,
@@ -353,115 +353,119 @@ export default function PlaygroundClient() {
 
       {state.status === "connected" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-foreground block mb-1.5">
-                Tool
-              </label>
-              <select
-                value={state.selectedTool}
-                onChange={(e) =>
-                  dispatch({ type: "SELECT_TOOL", name: e.target.value })
-                }
-                className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
-              >
-                <option value="">Select a tool...</option>
-                {state.tools.map((tool) => (
-                  <option key={tool.name} value={tool.name}>
-                    {tool.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {selectedToolInfo && (
-              <>
-                <p className="text-sm text-muted">
-                  {selectedToolInfo.description}
-                </p>
-
-                {Object.entries(paramProperties).map(([key, prop]) => (
-                  <div key={key}>
-                    <label className="text-sm font-medium text-foreground block mb-1">
-                      {key}
-                      {requiredParams.includes(key) && (
-                        <span className="text-danger ml-0.5">*</span>
-                      )}
-                    </label>
-                    {prop.description && (
-                      <p className="text-xs text-muted mb-1">
-                        {prop.description}
-                      </p>
-                    )}
-                    {prop.type === "array" ? (
-                      <input
-                        type="text"
-                        value={state.paramValues[key] ?? ""}
-                        onChange={(e) =>
-                          dispatch({
-                            type: "SET_PARAM",
-                            key,
-                            value: e.target.value,
-                          })
-                        }
-                        placeholder='["tag1", "tag2"] or tag1, tag2'
-                        className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
-                      />
-                    ) : (
-                      <input
-                        type={prop.type === "number" ? "number" : "text"}
-                        value={state.paramValues[key] ?? ""}
-                        onChange={(e) =>
-                          dispatch({
-                            type: "SET_PARAM",
-                            key,
-                            value: e.target.value,
-                          })
-                        }
-                        className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
-                      />
-                    )}
-                  </div>
-                ))}
-
-                <Button
-                  onClick={handleRun}
-                  disabled={state.running}
-                  className="w-full"
+          <Card className="shadow-none">
+            <CardContent className="space-y-4 p-6">
+              <div>
+                <label className="text-sm font-medium text-foreground block mb-1.5">
+                  Tool
+                </label>
+                <select
+                  value={state.selectedTool}
+                  onChange={(e) =>
+                    dispatch({ type: "SELECT_TOOL", name: e.target.value })
+                  }
+                  className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
                 >
-                  {state.running ? (
-                    <IconLoader2 size={16} className="mr-1.5 animate-spin" />
-                  ) : (
-                    <IconPlayerPlay size={16} className="mr-1.5" />
-                  )}
-                  {state.running ? "Running..." : "Run"}
-                </Button>
-              </>
-            )}
-          </div>
+                  <option value="">Select a tool...</option>
+                  {state.tools.map((tool) => (
+                    <option key={tool.name} value={tool.name}>
+                      {tool.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="min-h-[200px] sm:min-h-[300px]">
-            <label className="text-sm font-medium text-foreground block mb-1.5">
-              Result
-            </label>
-            {state.error && (
-              <div className="rounded-md border border-danger/50 bg-danger/10 p-4">
-                <p className="text-sm text-danger">{state.error}</p>
-              </div>
-            )}
-            {state.result && (
-              <pre className="rounded-lg bg-surface-secondary/50 p-4 text-sm text-foreground overflow-auto max-h-[600px] whitespace-pre-wrap">
-                {state.result}
-              </pre>
-            )}
-            {!state.error && !state.result && (
-              <div className="rounded-lg bg-surface-secondary/30 p-4 h-[200px] sm:h-[300px] flex items-center justify-center">
-                <p className="text-sm text-muted">
-                  Select a tool and run it to see results here.
-                </p>
-              </div>
-            )}
-          </div>
+              {selectedToolInfo && (
+                <>
+                  <p className="text-sm text-muted">
+                    {selectedToolInfo.description}
+                  </p>
+
+                  {Object.entries(paramProperties).map(([key, prop]) => (
+                    <div key={key}>
+                      <label className="text-sm font-medium text-foreground block mb-1">
+                        {key}
+                        {requiredParams.includes(key) && (
+                          <span className="text-danger ml-0.5">*</span>
+                        )}
+                      </label>
+                      {prop.description && (
+                        <p className="text-xs text-muted mb-1">
+                          {prop.description}
+                        </p>
+                      )}
+                      {prop.type === "array" ? (
+                        <input
+                          type="text"
+                          value={state.paramValues[key] ?? ""}
+                          onChange={(e) =>
+                            dispatch({
+                              type: "SET_PARAM",
+                              key,
+                              value: e.target.value,
+                            })
+                          }
+                          placeholder='["tag1", "tag2"] or tag1, tag2'
+                          className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
+                        />
+                      ) : (
+                        <input
+                          type={prop.type === "number" ? "number" : "text"}
+                          value={state.paramValues[key] ?? ""}
+                          onChange={(e) =>
+                            dispatch({
+                              type: "SET_PARAM",
+                              key,
+                              value: e.target.value,
+                            })
+                          }
+                          className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
+                        />
+                      )}
+                    </div>
+                  ))}
+
+                  <Button
+                    onClick={handleRun}
+                    disabled={state.running}
+                    className="w-full"
+                  >
+                    {state.running ? (
+                      <IconLoader2 size={16} className="mr-1.5 animate-spin" />
+                    ) : (
+                      <IconPlayerPlay size={16} className="mr-1.5" />
+                    )}
+                    {state.running ? "Running..." : "Run"}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-none min-h-[200px] sm:min-h-[300px]">
+            <CardContent className="p-6">
+              <label className="text-sm font-medium text-foreground block mb-1.5">
+                Result
+              </label>
+              {state.error && (
+                <div className="rounded-md border border-danger/50 bg-danger/10 p-4">
+                  <p className="text-sm text-danger">{state.error}</p>
+                </div>
+              )}
+              {state.result && (
+                <pre className="rounded-lg bg-surface-tertiary/50 p-4 text-sm text-foreground overflow-auto max-h-[600px] whitespace-pre-wrap">
+                  {state.result}
+                </pre>
+              )}
+              {!state.error && !state.result && (
+                <div className="flex h-[200px] items-center justify-center rounded-lg bg-surface-tertiary/30 p-4 sm:h-[300px]">
+                  <p className="text-sm text-muted">
+                    Select a tool and run it to see results here.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
     </PageContainer>

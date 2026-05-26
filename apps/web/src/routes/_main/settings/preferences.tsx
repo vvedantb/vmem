@@ -1,7 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
-import { Label, Switch, Skeleton, Textarea, TimePicker } from "@vmem/ui";
+import {
+  Label,
+  Switch,
+  Skeleton,
+  Textarea,
+  TimePicker,
+  Card,
+  CardContent,
+} from "@vmem/ui";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
@@ -152,213 +160,227 @@ function PreferencesPage() {
 
   return (
     <PageContainer title="Preferences" centeredMaxWidth showTitle>
-      <div className="space-y-12">
-        <section className="space-y-6">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="about-me" className="text-sm font-medium">
-                About me
-              </Label>
-              <span className="text-xs text-muted tabular-nums">
-                {settings.aboutMe.length}/500
-              </span>
-            </div>
-            <Textarea
-              id="about-me"
-              placeholder="A few lines on who you are, what you do, and what you're working toward."
-              value={settings.aboutMe}
-              onChange={(e) => {
-                void updateSettings({ aboutMe: e.target.value });
-              }}
-              onBlur={() => {
-                toast.success("Saved!");
-              }}
-              rows={4}
-              maxLength={500}
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="preferences" className="text-sm font-medium">
-                Preferences
-              </Label>
-              <span className="text-xs text-muted tabular-nums">
-                {settings.preferences.length}/500
-              </span>
-            </div>
-            <Textarea
-              id="preferences"
-              placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
-              value={settings.preferences}
-              onChange={(e) => {
-                void updateSettings({ preferences: e.target.value });
-              }}
-              onBlur={() => {
-                toast.success("Saved!");
-              }}
-              rows={4}
-              maxLength={500}
-            />
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <h3 className="text-base font-medium text-foreground">
-            Memory Behavior
-          </h3>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Label htmlFor="auto-extract" className="text-sm font-medium">
-                  Auto-extract memories
+      <div className="space-y-6">
+        <Card className="shadow-none">
+          <CardContent className="space-y-6 p-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="about-me" className="text-sm font-medium">
+                  About me
                 </Label>
-                <p className="mt-1 text-xs text-muted">
-                  Automatically extract memories from conversations.
-                </p>
+                <span className="text-xs text-muted tabular-nums">
+                  {settings.aboutMe.length}/500
+                </span>
               </div>
-              <Switch
-                id="auto-extract"
-                checked={settings.memoryAutoExtract}
-                onCheckedChange={(checked) => {
-                  void saveSettings({ memoryAutoExtract: checked });
+              <Textarea
+                id="about-me"
+                placeholder="A few lines on who you are, what you do, and what you're working toward."
+                value={settings.aboutMe}
+                onChange={(e) => {
+                  void updateSettings({ aboutMe: e.target.value });
                 }}
+                onBlur={() => {
+                  toast.success("Saved!");
+                }}
+                rows={4}
+                maxLength={500}
               />
             </div>
-            <ConfidenceThresholdSlider
-              value={settings.memoryConfidenceThreshold}
-              onChange={(value) => {
-                void saveSettings({ memoryConfidenceThreshold: value });
-              }}
-            />
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <h3 className="text-base font-medium text-foreground">Dream Mode</h3>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Label
-                  htmlFor="dream-auto-accept"
-                  className="text-sm font-medium"
-                >
-                  Auto-accept high-confidence synthesis
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="preferences" className="text-sm font-medium">
+                  Preferences
                 </Label>
-                <p className="mt-1 text-xs text-muted">
-                  When on, high-confidence syntheses save as memories
-                  automatically. Otherwise they queue in your inbox for
-                  approval. Contradictions always queue regardless.
-                </p>
+                <span className="text-xs text-muted tabular-nums">
+                  {settings.preferences.length}/500
+                </span>
               </div>
-              <Switch
-                id="dream-auto-accept"
-                checked={settings.dreamModeAutoAccept}
-                onCheckedChange={(checked) => {
-                  void saveSettings({ dreamModeAutoAccept: checked });
+              <Textarea
+                id="preferences"
+                placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
+                value={settings.preferences}
+                onChange={(e) => {
+                  void updateSettings({ preferences: e.target.value });
                 }}
+                onBlur={() => {
+                  toast.success("Saved!");
+                }}
+                rows={4}
+                maxLength={500}
               />
             </div>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Label htmlFor="dream-schedule" className="text-sm font-medium">
-                  Daily schedule
-                </Label>
-                <p className="mt-1 text-xs text-muted">
-                  Run Dream Mode every day at this time. Stored as UTC; the
-                  local time shown shifts by an hour on DST transitions.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <TimePicker
-                  value={
-                    settings.dreamModeScheduleTime !== null
-                      ? utcTimeToLocal(settings.dreamModeScheduleTime)
-                      : DEFAULT_LOCAL_TIME
-                  }
-                  onChange={(next) => {
-                    void handleScheduleTimeChange(next);
-                  }}
-                  ariaLabel="Dream Mode schedule time"
-                />
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-none">
+          <CardContent className="space-y-6 p-6">
+            <h3 className="text-base font-medium text-foreground">
+              Memory Behavior
+            </h3>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label htmlFor="auto-extract" className="text-sm font-medium">
+                    Auto-extract memories
+                  </Label>
+                  <p className="mt-1 text-xs text-muted">
+                    Automatically extract memories from conversations.
+                  </p>
+                </div>
                 <Switch
-                  id="dream-schedule"
-                  checked={settings.dreamModeScheduleEnabled}
+                  id="auto-extract"
+                  checked={settings.memoryAutoExtract}
                   onCheckedChange={(checked) => {
-                    void handleScheduleToggle(checked);
+                    void saveSettings({ memoryAutoExtract: checked });
+                  }}
+                />
+              </div>
+              <ConfidenceThresholdSlider
+                value={settings.memoryConfidenceThreshold}
+                onChange={(value) => {
+                  void saveSettings({ memoryConfidenceThreshold: value });
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-none">
+          <CardContent className="space-y-6 p-6">
+            <h3 className="text-base font-medium text-foreground">
+              Dream Mode
+            </h3>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label
+                    htmlFor="dream-auto-accept"
+                    className="text-sm font-medium"
+                  >
+                    Auto-accept high-confidence synthesis
+                  </Label>
+                  <p className="mt-1 text-xs text-muted">
+                    When on, high-confidence syntheses save as memories
+                    automatically. Otherwise they queue in your inbox for
+                    approval. Contradictions always queue regardless.
+                  </p>
+                </div>
+                <Switch
+                  id="dream-auto-accept"
+                  checked={settings.dreamModeAutoAccept}
+                  onCheckedChange={(checked) => {
+                    void saveSettings({ dreamModeAutoAccept: checked });
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label
+                    htmlFor="dream-schedule"
+                    className="text-sm font-medium"
+                  >
+                    Daily schedule
+                  </Label>
+                  <p className="mt-1 text-xs text-muted">
+                    Run Dream Mode every day at this time. Stored as UTC; the
+                    local time shown shifts by an hour on DST transitions.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <TimePicker
+                    value={
+                      settings.dreamModeScheduleTime !== null
+                        ? utcTimeToLocal(settings.dreamModeScheduleTime)
+                        : DEFAULT_LOCAL_TIME
+                    }
+                    onChange={(next) => {
+                      void handleScheduleTimeChange(next);
+                    }}
+                    ariaLabel="Dream Mode schedule time"
+                  />
+                  <Switch
+                    id="dream-schedule"
+                    checked={settings.dreamModeScheduleEnabled}
+                    onCheckedChange={(checked) => {
+                      void handleScheduleToggle(checked);
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-none">
+          <CardContent className="space-y-6 p-6">
+            <h3 className="text-base font-medium text-foreground">
+              Notification Preferences
+            </h3>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label
+                    htmlFor="notify-conflicts"
+                    className="text-sm font-medium"
+                  >
+                    Memory conflicts
+                  </Label>
+                  <p className="mt-1 text-xs text-muted">
+                    Notify when proposed updates conflict with existing
+                    memories.
+                  </p>
+                </div>
+                <Switch
+                  id="notify-conflicts"
+                  checked={settings.notifyMemoryConflicts}
+                  onCheckedChange={(checked) => {
+                    void saveSettings({ notifyMemoryConflicts: checked });
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label
+                    htmlFor="notify-new-memories"
+                    className="text-sm font-medium"
+                  >
+                    New memories
+                  </Label>
+                  <p className="mt-1 text-xs text-muted">
+                    Notify when new memories are automatically extracted.
+                  </p>
+                </div>
+                <Switch
+                  id="notify-new-memories"
+                  checked={settings.notifyNewMemories}
+                  onCheckedChange={(checked) => {
+                    void saveSettings({ notifyNewMemories: checked });
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label
+                    htmlFor="notify-expiring"
+                    className="text-sm font-medium"
+                  >
+                    Expiring memories
+                  </Label>
+                  <p className="mt-1 text-xs text-muted">
+                    Notify when memories are about to be archived.
+                  </p>
+                </div>
+                <Switch
+                  id="notify-expiring"
+                  checked={settings.notifyMemoriesExpiring}
+                  onCheckedChange={(checked) => {
+                    void saveSettings({ notifyMemoriesExpiring: checked });
                   }}
                 />
               </div>
             </div>
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <h3 className="text-base font-medium text-foreground">
-            Notification Preferences
-          </h3>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Label
-                  htmlFor="notify-conflicts"
-                  className="text-sm font-medium"
-                >
-                  Memory conflicts
-                </Label>
-                <p className="mt-1 text-xs text-muted">
-                  Notify when proposed updates conflict with existing memories.
-                </p>
-              </div>
-              <Switch
-                id="notify-conflicts"
-                checked={settings.notifyMemoryConflicts}
-                onCheckedChange={(checked) => {
-                  void saveSettings({ notifyMemoryConflicts: checked });
-                }}
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Label
-                  htmlFor="notify-new-memories"
-                  className="text-sm font-medium"
-                >
-                  New memories
-                </Label>
-                <p className="mt-1 text-xs text-muted">
-                  Notify when new memories are automatically extracted.
-                </p>
-              </div>
-              <Switch
-                id="notify-new-memories"
-                checked={settings.notifyNewMemories}
-                onCheckedChange={(checked) => {
-                  void saveSettings({ notifyNewMemories: checked });
-                }}
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Label
-                  htmlFor="notify-expiring"
-                  className="text-sm font-medium"
-                >
-                  Expiring memories
-                </Label>
-                <p className="mt-1 text-xs text-muted">
-                  Notify when memories are about to be archived.
-                </p>
-              </div>
-              <Switch
-                id="notify-expiring"
-                checked={settings.notifyMemoriesExpiring}
-                onCheckedChange={(checked) => {
-                  void saveSettings({ notifyMemoriesExpiring: checked });
-                }}
-              />
-            </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       </div>
     </PageContainer>
   );

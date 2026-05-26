@@ -1,5 +1,9 @@
 # Changelog
 
+## Settings pages use Card — 2026-05-23
+
+- **Settings routes**: Preferences, extension, profiles, models, secrets, API keys/usage, data controls (import/export/danger), and playground panels use `Card` + `CardContent` (`shadow-none`) instead of ad-hoc `bg-surface-secondary/40` divs — same pattern as connectors.
+
 ## Card contrast & dashboard charts — 2026-05-23
 
 - **`Card`**: Resting fill is full `bg-surface-secondary` (not `/40`) so cards read clearly on `bg-surface` without borders.

@@ -7,6 +7,8 @@ import {
   TableHead,
   TableBody,
   TableRow,
+  Card,
+  CardContent,
 } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { AnimatedKeyIcon } from "@/components/svg-animations";
@@ -67,63 +69,69 @@ export function KeysPanel({
   return (
     <>
       {apiKeyList.length === 0 ? (
-        <div className="rounded-lg bg-surface-secondary/40 py-16 text-center">
-          <AnimatedKeyIcon size={48} className="mx-auto mb-4 text-muted" />
-          <h3 className="mb-2 text-lg font-medium text-foreground text-balance">
-            No API keys yet
-          </h3>
-          <p className="mb-6 text-muted">
-            Create your first API key to start using vMemory programmatically.
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onCreateModalOpenChange(true)}
-          >
-            <IconPlus size={16} />
-            New Key
-          </Button>
-        </div>
+        <Card className="shadow-none">
+          <CardContent className="py-16 text-center">
+            <AnimatedKeyIcon size={48} className="mx-auto mb-4 text-muted" />
+            <h3 className="mb-2 text-lg font-medium text-foreground text-balance">
+              No API keys yet
+            </h3>
+            <p className="mb-6 text-muted">
+              Create your first API key to start using vMemory programmatically.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onCreateModalOpenChange(true)}
+            >
+              <IconPlus size={16} />
+              New Key
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <Table className="rounded-lg bg-surface-secondary/30 overflow-hidden">
-          <TableHeader>
-            <TableRow className="bg-surface-secondary/50">
-              <TableHead className="font-medium text-muted">NAME</TableHead>
-              <TableHead className="hidden font-medium text-muted sm:table-cell">
-                STATUS
-              </TableHead>
-              <TableHead className="hidden font-medium text-muted md:table-cell">
-                KEY
-              </TableHead>
-              <TableHead className="hidden font-medium text-muted lg:table-cell">
-                REQUESTS
-              </TableHead>
-              <TableHead className="hidden font-medium text-muted sm:table-cell">
-                LAST USED
-              </TableHead>
-              <TableHead className="text-right font-medium text-muted sm:w-auto">
-                ACTIONS
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {apiKeyList.map((apiKey) => (
-              <ApiKeyRow
-                key={apiKey.id}
-                apiKey={apiKey}
-                revealedKey={revealedKeys[apiKey.id]}
-                revealingKeyId={revealingKeyId}
-                copyingKeyId={copyingKeyId}
-                copiedKeyId={copiedKeyId}
-                onToggleReveal={handleToggleReveal}
-                onCopy={handleCopyKey}
-                onEdit={setEditKeyId}
-                onRevoke={setRevokeKeyId}
-                onDelete={setDeleteKeyId}
-              />
-            ))}
-          </TableBody>
-        </Table>
+        <Card className="shadow-none overflow-hidden">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-surface-tertiary/50">
+                  <TableHead className="font-medium text-muted">NAME</TableHead>
+                  <TableHead className="hidden font-medium text-muted sm:table-cell">
+                    STATUS
+                  </TableHead>
+                  <TableHead className="hidden font-medium text-muted md:table-cell">
+                    KEY
+                  </TableHead>
+                  <TableHead className="hidden font-medium text-muted lg:table-cell">
+                    REQUESTS
+                  </TableHead>
+                  <TableHead className="hidden font-medium text-muted sm:table-cell">
+                    LAST USED
+                  </TableHead>
+                  <TableHead className="text-right font-medium text-muted sm:w-auto">
+                    ACTIONS
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {apiKeyList.map((apiKey) => (
+                  <ApiKeyRow
+                    key={apiKey.id}
+                    apiKey={apiKey}
+                    revealedKey={revealedKeys[apiKey.id]}
+                    revealingKeyId={revealingKeyId}
+                    copyingKeyId={copyingKeyId}
+                    copiedKeyId={copiedKeyId}
+                    onToggleReveal={handleToggleReveal}
+                    onCopy={handleCopyKey}
+                    onEdit={setEditKeyId}
+                    onRevoke={setRevokeKeyId}
+                    onDelete={setDeleteKeyId}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       <ApiKeyModal
