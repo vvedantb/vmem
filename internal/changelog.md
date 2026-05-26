@@ -1,5 +1,11 @@
 # Changelog
 
+## Wiki selection & menu hovers — 2026-05-23
+
+- **Wiki sidebar**: Active document uses `bg-surface-tertiary` (same as main nav) so the open page is obvious.
+- **Dropdown / context / select items**: Pointer hover uses Radix `data-[highlighted]` with `bg-default` (HeroUI menu pattern).
+- **Brand accent**: Monochrome black (light) / white (dark) — blue removed again.
+
 ## HeroUI default theme & tabs — 2026-05-23
 
 - **Brand accent** restored to HeroUI default blue (`--accent` / `--focus`) in light and dark; primary buttons, links, and focus rings match HeroUI.
