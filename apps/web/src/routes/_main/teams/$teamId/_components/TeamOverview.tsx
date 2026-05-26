@@ -1,8 +1,9 @@
 import { useQuery } from "convex/react";
 import { useAction } from "convex/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { api } from "@vmem/backend";
 import type { FunctionReturnType } from "convex/server";
+import { Card, CardContent } from "@vmem/ui";
 import { IconBrain, IconUsers, IconClock } from "@tabler/icons-react";
 import type { TeamDetail } from "../-team-detail";
 
@@ -97,47 +98,49 @@ export function TeamOverview({ data }: { data: TeamDetail }) {
         />
       </div>
 
-      <div>
-        <h3 className="mb-3 text-sm font-medium text-foreground">
-          Recent activity
-        </h3>
-        {result === null ? (
-          <div className="text-sm text-muted">Loading…</div>
-        ) : memories.length === 0 ? (
-          <div className="text-sm text-muted">
-            No memories yet. Members can start saving to {data.team.name} from
-            the profile dropdown.
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            {memories.slice(0, 10).map((m) => {
-              const attr = attribution?.[m.userId];
-              const name = attr
-                ? attr.fullName ||
-                  [attr.firstName, attr.lastName].filter(Boolean).join(" ") ||
-                  attr.email ||
-                  "Unknown"
-                : m.userId;
-              return (
-                <li
-                  key={m.id}
-                  className="flex items-center justify-between gap-3 rounded-md bg-surface-secondary/40 px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate text-sm text-foreground">
-                      {m.title}
+      <Card className="shadow-none">
+        <CardContent className="flex flex-col gap-3 p-4">
+          <h3 className="text-sm font-medium text-foreground">
+            Recent activity
+          </h3>
+          {result === null ? (
+            <div className="text-sm text-muted">Loading…</div>
+          ) : memories.length === 0 ? (
+            <div className="text-sm text-muted">
+              No memories yet. Members can start saving to {data.team.name} from
+              the profile dropdown.
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {memories.slice(0, 10).map((m) => {
+                const attr = attribution?.[m.userId];
+                const name = attr
+                  ? attr.fullName ||
+                    [attr.firstName, attr.lastName].filter(Boolean).join(" ") ||
+                    attr.email ||
+                    "Unknown"
+                  : m.userId;
+                return (
+                  <li
+                    key={m.id}
+                    className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 transition-[background-color] hover:bg-surface-tertiary/50"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm text-foreground">
+                        {m.title}
+                      </div>
+                      <div className="text-xs text-muted">Saved by {name}</div>
                     </div>
-                    <div className="text-xs text-muted">Saved by {name}</div>
-                  </div>
-                  <div className="shrink-0 text-xs text-muted">
-                    {new Date(m.createdAt).toLocaleDateString()}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+                    <div className="shrink-0 text-xs text-muted">
+                      {new Date(m.createdAt).toLocaleDateString()}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -147,19 +150,21 @@ function StatCard({
   label,
   value,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string;
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg bg-surface-secondary/40 p-4">
-      <div className="flex items-center gap-1.5 text-xs text-muted">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <div className="text-2xl font-instrumentSerif text-foreground">
-        {value}
-      </div>
-    </div>
+    <Card className="shadow-none">
+      <CardContent className="flex flex-col gap-1 p-4">
+        <div className="flex items-center gap-1.5 text-xs text-muted">
+          {icon}
+          <span>{label}</span>
+        </div>
+        <div className="text-2xl font-instrumentSerif tabular-nums text-foreground">
+          {value}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

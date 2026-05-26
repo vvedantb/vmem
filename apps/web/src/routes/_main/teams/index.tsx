@@ -29,7 +29,7 @@ function TeamsIndexPage() {
 
   if (teams === undefined) {
     return (
-      <PageContainer title="Teams">
+      <PageContainer title="Teams" centeredMaxWidth>
         <div className="flex items-center justify-center py-20">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
         </div>
@@ -44,6 +44,7 @@ function TeamsIndexPage() {
   return (
     <PageContainer
       title="Teams"
+      centeredMaxWidth
       rightSection={
         <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
           <IconPlus size={16} />
