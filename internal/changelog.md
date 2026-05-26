@@ -1,5 +1,9 @@
 # Changelog
 
+## Memories list row hover — 2026-05-23
+
+- **List rows** (`/memories/list`): Hover uses full `bg-surface-tertiary`; selected row uses `bg-surface-secondary` (matches nav/sidebar).
+
 ## Home sparklines line-only — 2026-05-23
 
 - **Dashboard stat sparklines**: Stroke only (no area fill under the line); matches pre-regression look after token contrast made fills obvious.
