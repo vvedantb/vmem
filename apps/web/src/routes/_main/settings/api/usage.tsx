@@ -17,6 +17,7 @@ function UsageRoute() {
       title="API"
       showTitle={false}
       centeredMaxWidth
+      noScroll
       leftSection={<ApiTabs />}
     >
       <UsagePanel />

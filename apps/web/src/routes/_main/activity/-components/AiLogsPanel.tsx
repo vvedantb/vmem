@@ -36,14 +36,10 @@ const PAGE_SIZE = 50;
  * AI call vmem fires on the user's behalf (chat completions + embeddings,
  * currently routed via OpenRouter).
  *
- * The orchestrator owns the scroll container; this panel reads its own
- * filter params and renders summary + filterable virtualised table.
+ * Reads filter params from the URL and renders summary + filterable
+ * virtualised table (table scrolls inside a capped card region).
  */
-export function AiLogsPanel({
-  scrollParent,
-}: {
-  scrollParent: HTMLDivElement | null;
-}) {
+export function AiLogsPanel() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
 
   // Profiles + teams power the scope selector and the per-row profile badge
@@ -139,7 +135,7 @@ export function AiLogsPanel({
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex h-full min-h-0 flex-col gap-8">
       <LogsSummary summary={summary} range={params.range} trends={trends} />
       <LogsTable
         rows={orderedRows}
@@ -150,7 +146,6 @@ export function AiLogsPanel({
         onLoadMore={() => paged.loadMore(PAGE_SIZE)}
         onResetFilters={resetFilters}
         hasActiveFilters={hasActiveFilters}
-        scrollParent={scrollParent}
         profilesById={profilesById}
         totalCalls={summary?.totalCalls}
       />

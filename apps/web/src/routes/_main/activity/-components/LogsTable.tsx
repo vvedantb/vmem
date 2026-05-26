@@ -27,7 +27,6 @@ interface LogsTableProps {
   onLoadMore: () => void;
   onResetFilters: () => void;
   hasActiveFilters: boolean;
-  scrollParent: HTMLDivElement | null;
   profilesById: ReadonlyMap<string, ProfileLite>;
   totalCalls: number | undefined;
 }
@@ -39,7 +38,6 @@ export function LogsTable({
   onLoadMore,
   onResetFilters,
   hasActiveFilters,
-  scrollParent,
   profilesById,
   totalCalls,
 }: LogsTableProps) {
@@ -47,7 +45,7 @@ export function LogsTable({
   const isInitialLoading = isLoading && rows.length === 0;
   const items = useMemo(() => Array.from(rows), [rows]);
 
-  if (isInitialLoading || !scrollParent) {
+  if (isInitialLoading) {
     return <AiLogsTableLoadingSkeleton />;
   }
 
@@ -66,18 +64,18 @@ export function LogsTable({
       : `${items.length.toLocaleString()} call${items.length === 1 ? "" : "s"}`;
 
   return (
-    <>
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3 px-0.5">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <section className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 px-0.5">
           <h2 className="text-sm font-medium text-foreground">Recent calls</h2>
           <span className="text-xs tabular-nums text-muted">
             {showingLabel}
           </span>
         </div>
 
-        <Card className="shadow-none">
-          <CardContent className="p-2">
-            <div className="hidden px-2 pb-2 text-xs font-medium text-muted md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px_80px_72px] md:gap-3">
+        <Card className="flex min-h-0 flex-1 flex-col shadow-none">
+          <CardContent className="flex min-h-0 flex-1 flex-col p-2">
+            <div className="hidden shrink-0 px-2 pb-2 text-xs font-medium text-muted md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px_80px_72px] md:gap-3">
               <div>Time</div>
               <div>Feature</div>
               <div>Profile</div>
@@ -88,36 +86,39 @@ export function LogsTable({
               <div className="text-right">Status</div>
             </div>
 
-            <Virtuoso
-              data={items}
-              customScrollParent={scrollParent}
-              computeItemKey={(_index, row) => row._id}
-              defaultItemHeight={56}
-              endReached={() => {
-                if (hasMore && !isLoading) onLoadMore();
-              }}
-              components={{
-                Footer: () =>
-                  hasMore || isLoading ? (
-                    <div className="py-4 text-center text-xs text-muted">
-                      {isLoading ? "Loading…" : "Scroll for more"}
-                    </div>
-                  ) : null,
-              }}
-              itemContent={(_index, row) => (
-                <div className="pb-1">
-                  <LogRowCard
-                    row={row}
-                    profile={
-                      row.profileId
-                        ? profilesById.get(row.profileId)
-                        : undefined
-                    }
-                    onClick={() => setSelected(row)}
-                  />
-                </div>
-              )}
-            />
+            <div className="relative min-h-0 flex-1">
+              <Virtuoso
+                data={items}
+                className="scrollbar-thin"
+                style={{ height: "100%" }}
+                computeItemKey={(_index, row) => row._id}
+                defaultItemHeight={56}
+                endReached={() => {
+                  if (hasMore && !isLoading) onLoadMore();
+                }}
+                components={{
+                  Footer: () =>
+                    hasMore || isLoading ? (
+                      <div className="py-4 text-center text-xs text-muted">
+                        {isLoading ? "Loading…" : "Scroll for more"}
+                      </div>
+                    ) : null,
+                }}
+                itemContent={(_index, row) => (
+                  <div className="pb-1">
+                    <LogRowCard
+                      row={row}
+                      profile={
+                        row.profileId
+                          ? profilesById.get(row.profileId)
+                          : undefined
+                      }
+                      onClick={() => setSelected(row)}
+                    />
+                  </div>
+                )}
+              />
+            </div>
           </CardContent>
         </Card>
       </section>
@@ -132,19 +133,19 @@ export function LogsTable({
           selected?.profileId ? profilesById.get(selected.profileId) : undefined
         }
       />
-    </>
+    </div>
   );
 }
 
 function AiLogsTableLoadingSkeleton() {
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3 px-0.5">
+    <section className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 px-0.5">
         <div className="h-4 w-28 animate-pulse rounded bg-surface-tertiary/60" />
         <div className="h-3 w-24 animate-pulse rounded bg-surface-tertiary/60" />
       </div>
-      <Card className="shadow-none">
-        <CardContent className="flex flex-col gap-1 p-2">
+      <Card className="flex min-h-0 flex-1 flex-col shadow-none">
+        <CardContent className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2 scrollbar-thin">
           {[0, 1, 2, 3, 4, 5].map((index) => (
             <div
               key={index}
@@ -265,12 +266,12 @@ function EmptyState({
   onResetFilters: () => void;
 }) {
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="px-0.5 text-sm font-medium text-foreground">
+    <section className="flex min-h-0 flex-1 flex-col gap-3">
+      <h2 className="shrink-0 px-0.5 text-sm font-medium text-foreground">
         Recent calls
       </h2>
-      <Card className="shadow-none">
-        <CardContent className="flex flex-col items-center justify-center px-6 py-14 text-center">
+      <Card className="flex min-h-0 flex-1 flex-col shadow-none">
+        <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-14 text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
             <IconReceipt2 size={28} className="text-muted" stroke={1.5} />
           </div>

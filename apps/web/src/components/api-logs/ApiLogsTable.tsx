@@ -25,20 +25,25 @@ interface ApiLogsTableProps {
 
 function ApiLogsEmptyState() {
   return (
-    <Card className="shadow-none">
-      <CardContent className="flex flex-col items-center justify-center px-6 py-14 text-center">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
-          <IconChartBar size={28} className="text-muted" stroke={1.5} />
-        </div>
-        <h3 className="mb-1 text-base font-medium text-foreground">
-          No API requests yet
-        </h3>
-        <p className="max-w-sm text-sm text-muted text-balance">
-          Calls made with your API keys will show up here with status, latency,
-          and timing.
-        </p>
-      </CardContent>
-    </Card>
+    <section className="flex min-h-0 flex-1 flex-col gap-3">
+      <h2 className="shrink-0 px-0.5 text-sm font-medium text-foreground">
+        Recent requests
+      </h2>
+      <Card className="flex min-h-0 flex-1 flex-col shadow-none">
+        <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-14 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
+            <IconChartBar size={28} className="text-muted" stroke={1.5} />
+          </div>
+          <h3 className="mb-1 text-base font-medium text-foreground">
+            No API requests yet
+          </h3>
+          <p className="max-w-sm text-sm text-muted text-balance">
+            Calls made with your API keys will show up here with status,
+            latency, and timing.
+          </p>
+        </CardContent>
+      </Card>
+    </section>
   );
 }
 
@@ -84,13 +89,13 @@ export function ApiLogsTable({ logs, totalCount }: ApiLogsTableProps) {
       : `${logs.length.toLocaleString()} request${logs.length === 1 ? "" : "s"}`;
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3 px-0.5">
+    <section className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 px-0.5">
         <h2 className="text-sm font-medium text-foreground">Recent requests</h2>
         <span className="text-xs text-muted tabular-nums">{showingLabel}</span>
       </div>
-      <Card className="shadow-none">
-        <CardContent className="p-2">
+      <Card className="flex min-h-0 flex-1 flex-col shadow-none">
+        <CardContent className="min-h-0 flex-1 overflow-y-auto p-2 scrollbar-thin">
           <ul className="flex flex-col gap-1">
             {logs.map((log) => (
               <ApiLogRow key={log.id} log={log} />

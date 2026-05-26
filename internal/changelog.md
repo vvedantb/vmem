@@ -1,5 +1,10 @@
 # Changelog
 
+## Activity and API log tables fill the page — 2026-05-23
+
+- **AI logs, Events, API usage**: Recent-calls / recent-requests lists scroll inside the card with a styled thin scrollbar instead of growing the whole page.
+- **Layout**: Summary (or tabs-only on Events) stays fixed; the table card expands to the remaining viewport height (`noScroll` + flex fill).
+
 ## Settings layout, connectors hub, and nav polish — 2026-05-23
 
 - **Settings**: Section titles (Preferences, Profiles, Import, Danger zone) sit above cards, not inside — clearer hierarchy matching Models.

@@ -19,7 +19,6 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@vmem/ui";
-import { Virtuoso } from "react-virtuoso";
 import {
   IconBrain,
   IconUpload,
@@ -111,8 +110,8 @@ function ActivityEventRow({ item }: { item: ActivityItem }) {
 
 function LoadingSkeleton() {
   return (
-    <Card className="shadow-none">
-      <CardContent className="flex flex-col gap-1 p-2">
+    <Card className="flex h-full min-h-0 flex-1 flex-col shadow-none">
+      <CardContent className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2 scrollbar-thin">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="rounded-lg px-3 py-2.5">
             <div className="flex items-center gap-3">
@@ -131,8 +130,8 @@ function LoadingSkeleton() {
 
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
-    <Card className="shadow-none">
-      <CardContent className="flex flex-col items-center justify-center px-6 py-16 text-center">
+    <Card className="flex min-h-0 flex-1 flex-col shadow-none">
+      <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
           <IconActivity size={28} className="text-muted" stroke={1.5} />
         </div>
@@ -155,17 +154,10 @@ const DATE_PRESETS: EventDatePreset[] = ["all", "today", "week", "month"];
  * Events panel for `/activity` — the user-action audit log (memory created,
  * file uploaded, sync completed, etc.).
  *
- * Renders a virtualised list of compact rows (same pattern as memories list).
- * The orchestrator owns the
- * scroll container and passes its ref in via `scrollParent` so Virtuoso
- * can hook into PageContainer's scroll surface (rather than introducing
- * a nested scroller).
+ * Renders compact rows inside a capped card scroll region (same pattern as
+ * API usage logs).
  */
-export function EventsPanel({
-  scrollParent,
-}: {
-  scrollParent: HTMLDivElement | null;
-}) {
+export function EventsPanel() {
   const { isAuthenticated } = useConvexAuth();
   const getRecentActivity = useAction(api.dashboardApi.getRecentActivity);
 
@@ -222,44 +214,50 @@ export function EventsPanel({
 
   const hasFilters = params.types.length > 0 || params.range !== "all";
 
-  if (isLoading) return <LoadingSkeleton />;
+  if (isLoading) {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <LoadingSkeleton />
+      </div>
+    );
+  }
 
   if (error) {
     return (
-      <Card className="shadow-none">
-        <CardContent className="flex flex-col items-center justify-center px-6 py-16 text-center">
-          <p className="mb-4 text-sm text-danger">{error}</p>
-          <Button variant="outline" size="sm" onClick={fetchActivity}>
-            <IconLoader2 size={16} className="mr-2" />
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex h-full min-h-0 flex-col">
+        <Card className="flex min-h-0 flex-1 flex-col shadow-none">
+          <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+            <p className="mb-4 text-sm text-danger">{error}</p>
+            <Button variant="outline" size="sm" onClick={fetchActivity}>
+              <IconLoader2 size={16} className="mr-2" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   if (filteredAndSortedActivity.length === 0) {
-    return <EmptyState hasFilters={hasFilters} />;
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <EmptyState hasFilters={hasFilters} />
+      </div>
+    );
   }
 
-  if (!scrollParent) return <LoadingSkeleton />;
-
   return (
-    <Card className="shadow-none">
-      <CardContent className="p-2">
-        <Virtuoso
-          data={filteredAndSortedActivity}
-          customScrollParent={scrollParent}
-          computeItemKey={(_index, item) => item.id}
-          defaultItemHeight={44}
-          itemContent={(_index, item) => (
-            <div className="pb-1">
-              <ActivityEventRow item={item} />
-            </div>
-          )}
-        />
-      </CardContent>
-    </Card>
+    <div className="flex h-full min-h-0 flex-col">
+      <Card className="flex min-h-0 flex-1 flex-col shadow-none">
+        <CardContent className="min-h-0 flex-1 overflow-y-auto p-2 scrollbar-thin">
+          <div className="flex flex-col gap-1">
+            {filteredAndSortedActivity.map((item) => (
+              <ActivityEventRow key={item.id} item={item} />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
