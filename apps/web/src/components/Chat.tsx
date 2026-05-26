@@ -45,6 +45,7 @@ import {
 } from "@vmem/ui";
 import { Link } from "@tanstack/react-router";
 import ChatMessageItem from "@/components/chat/_components/ChatMessageItem";
+import LocalModelProviderIcon from "@/components/LocalModelProviderIcon";
 import { useLocalChat } from "@/hooks/useLocalChat";
 import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
 import { findModel, groupByProvider } from "@/lib/local-models";
@@ -98,7 +99,11 @@ function ModelSelector() {
           className="inline-flex items-center gap-1 rounded-full bg-default px-2 py-0.5 text-[11px] text-muted transition-colors hover:bg-default/78 hover:text-foreground disabled:opacity-50"
           disabled={isLoading}
         >
-          <IconCpu className="size-3" stroke={1.5} />
+          {loadedInfo ? (
+            <LocalModelProviderIcon provider={loadedInfo.provider} size={12} />
+          ) : (
+            <IconCpu className="size-3" stroke={1.5} />
+          )}
           {label}
         </button>
       </DropdownMenuTrigger>
@@ -107,14 +112,25 @@ function ModelSelector() {
         <DropdownMenuSeparator />
         {Array.from(providerGroups).map(([provider, models]) => (
           <DropdownMenuSub key={provider}>
-            <DropdownMenuSubTrigger>{provider}</DropdownMenuSubTrigger>
+            <DropdownMenuSubTrigger className="gap-2">
+              <LocalModelProviderIcon provider={provider} size={14} />
+              {provider}
+            </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               <DropdownMenuRadioGroup
                 value={loadedModelId ?? ""}
                 onValueChange={handleSelect}
               >
                 {models.map((model) => (
-                  <DropdownMenuRadioItem key={model.id} value={model.id}>
+                  <DropdownMenuRadioItem
+                    key={model.id}
+                    value={model.id}
+                    className="gap-2"
+                  >
+                    <LocalModelProviderIcon
+                      provider={model.provider}
+                      size={14}
+                    />
                     {model.name}
                   </DropdownMenuRadioItem>
                 ))}

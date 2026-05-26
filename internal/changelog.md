@@ -1,5 +1,13 @@
 # Changelog
 
+## Local model provider icons — 2026-05-23
+
+- **Models settings + chat selector**: Brand marks for Qwen, Llama (Meta), DeepSeek, and Gemma (Gemini) from SVGL — provider icons on model cards and the model dropdown (trigger, provider groups, each model row).
+
+## Teams sidebar selection — 2026-05-23
+
+- **Teams nav**: Selecting a team no longer shifts the row — removed expand padding on the group wrapper, unified selected card styling, stable scrollbar gutter on the list.
+
 ## Focus ring tokens (no blue outline) — 2026-05-23
 
 - **`--focus-ring` / `--focus-border`**: `color-mix` tokens replace broken Tailwind `ring-focus/30` (browser blue fallback on oklch vars). Fixes chat input, fields, buttons.

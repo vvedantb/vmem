@@ -6,6 +6,7 @@
 
 import { IconDownload, IconPlayerStop, IconLoader2 } from "@tabler/icons-react";
 import { Button, Progress, Badge, Card, CardContent } from "@vmem/ui";
+import LocalModelProviderIcon from "@/components/LocalModelProviderIcon";
 import type { LocalModelInfo } from "@/lib/local-models";
 import type { EngineState } from "@/components/contexts/LocalLLMContext";
 
@@ -41,6 +42,7 @@ export default function ModelCard({
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
+              <LocalModelProviderIcon provider={model.provider} size={18} />
               <h4 className="text-sm font-medium text-foreground">
                 {model.name}
               </h4>

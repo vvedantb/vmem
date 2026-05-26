@@ -12,8 +12,6 @@ type TeamListEntry = FunctionReturnType<typeof api.teams.list>[number];
 interface TeamSidebarCardProps {
   entry: TeamListEntry;
   selected?: boolean;
-  /** Selected team with expanded section links — header sits inside the group surface. */
-  inGroup?: boolean;
   onSelect: () => void;
 }
 
@@ -24,7 +22,6 @@ function memberCountLabel(count: number): string {
 export function TeamSidebarCard({
   entry,
   selected,
-  inGroup = false,
   onSelect,
 }: TeamSidebarCardProps) {
   const { team, role, profile, memberCount } = entry;
@@ -47,11 +44,9 @@ export function TeamSidebarCard({
       onKeyDown={handleKeyDown}
       className={cn(
         "flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
-        selected && inGroup
+        selected
           ? "bg-surface-tertiary text-foreground"
-          : selected
-            ? "bg-surface-secondary/40 text-foreground"
-            : "text-muted hover:bg-surface-tertiary hover:text-foreground",
+          : "text-muted hover:bg-surface-tertiary hover:text-foreground",
       )}
     >
       {profile && ProfileIcon ? (

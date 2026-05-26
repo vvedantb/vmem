@@ -54,7 +54,7 @@ export function TeamsSidebarNav({
       exit={{ opacity: 0, x: 12 }}
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin px-1">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin px-1 [scrollbar-gutter:stable]">
         {teams === undefined ? (
           <div className="flex items-center justify-center py-10">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
