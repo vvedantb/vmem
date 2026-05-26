@@ -78,7 +78,7 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
                         </div>
 
                         <div
-                          className="absolute bottom-0 w-full rounded-t-md bg-foreground/20 transition-[height] duration-300"
+                          className="absolute bottom-0 w-full rounded-t-md bg-surface-tertiary transition-[height] duration-300"
                           style={{ height: barHeight }}
                         />
 
@@ -110,7 +110,7 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
 
           <div className="ml-8 mt-4 flex flex-wrap items-center gap-4 sm:gap-6">
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-sm bg-foreground/20" />
+              <span className="h-2.5 w-2.5 rounded-sm bg-surface-tertiary" />
               <span className="text-xs text-muted">Total memories</span>
             </div>
             <div className="flex items-center gap-2">

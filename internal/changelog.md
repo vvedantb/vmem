@@ -3,6 +3,7 @@
 ## Home sparklines line-only — 2026-05-23
 
 - **Dashboard stat sparklines**: Stroke only (no area fill under the line); matches pre-regression look after token contrast made fills obvious.
+- **Memory growth bars**: Total series uses `surface-tertiary` again (visible on `surface-secondary` cards); `foreground/20` had blended into the card.
 
 ## Trim web globals.css — 2026-05-23
 
