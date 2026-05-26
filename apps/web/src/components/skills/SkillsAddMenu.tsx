@@ -32,7 +32,7 @@ export function SkillsAddMenu({
         <Button variant="outline" size="sm" className={cn("gap-2", className)}>
           <IconPlus size={16} />
           Add
-          <IconChevronDown size={14} className="text-muted-foreground" />
+          <IconChevronDown size={14} className="text-muted" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

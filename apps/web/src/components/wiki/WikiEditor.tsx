@@ -206,7 +206,7 @@ export default function WikiEditor({
   if (docId === null || docId.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted">
           Select or create a document to start writing.
         </p>
       </div>
@@ -216,7 +216,7 @@ export default function WikiEditor({
   if (doc === undefined) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-transparent" />
       </div>
     );
   }
@@ -224,7 +224,7 @@ export default function WikiEditor({
   if (doc === null) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Document not found.</p>
+        <p className="text-sm text-muted">Document not found.</p>
       </div>
     );
   }
@@ -232,7 +232,7 @@ export default function WikiEditor({
   if (doc.kind !== "document") {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted">
           This is a folder. Select a document to edit.
         </p>
       </div>

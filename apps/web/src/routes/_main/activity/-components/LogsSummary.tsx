@@ -58,12 +58,12 @@ function SummaryCard({
         delay: index * 0.06,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-muted/40 p-5"
+      className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-surface-secondary/40 p-5"
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60">
-          <Icon size={16} className="text-muted-foreground" stroke={1.5} />
+        <p className="text-sm text-muted">{label}</p>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-secondary/60">
+          <Icon size={16} className="text-muted" stroke={1.5} />
         </div>
       </div>
       <p
@@ -81,9 +81,7 @@ function SummaryCard({
             strokeClassName={strokeClassName}
             fillClassName={fillClassName}
           />
-          <p className="mt-1.5 text-[11px] text-muted-foreground">
-            Last 7 days
-          </p>
+          <p className="mt-1.5 text-[11px] text-muted">Last 7 days</p>
         </div>
       ) : (
         <div className="mt-auto" />
@@ -99,9 +97,9 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
         {[0, 1, 2, 3].map((index) => (
           <div
             key={index}
-            className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-muted/40 p-5"
+            className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-surface-secondary/40 p-5"
           >
-            <div className="h-16 animate-pulse rounded-lg bg-muted/60" />
+            <div className="h-16 animate-pulse rounded-lg bg-surface-secondary/60" />
           </div>
         ))}
       </div>
@@ -135,8 +133,8 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       value: formattedCost,
       icon: IconCoin,
       trendData: trends.costs,
-      strokeClassName: "text-primary",
-      fillClassName: "fill-primary/10",
+      strokeClassName: "text-accent",
+      fillClassName: "fill-accent/10",
     },
     {
       label: "Total tokens",
@@ -151,7 +149,7 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       value: latency,
       icon: IconActivityHeartbeat,
       trendData: trends.latencies,
-      strokeClassName: "text-muted-foreground",
+      strokeClassName: "text-muted",
       fillClassName: "fill-foreground/5",
     },
     {
@@ -170,7 +168,7 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       <div className="flex flex-wrap items-end justify-between gap-2 px-0.5">
         <div>
           <h2 className="text-sm font-medium text-foreground">Overview</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted">
             {RANGE_LABELS[range]} · {summary.totalCalls.toLocaleString()} call
             {summary.totalCalls === 1 ? "" : "s"}
             {summary.isApprox

@@ -321,19 +321,19 @@ export default function PlaygroundClient() {
         <div className="py-16 text-center">
           <IconPlugConnected
             size={48}
-            className="mx-auto text-muted-foreground mb-4"
+            className="mx-auto text-muted mb-4"
             stroke={1.5}
           />
           <h3 className="text-lg font-medium text-foreground mb-2">
             MCP Playground
           </h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+          <p className="text-muted mb-6 max-w-md mx-auto">
             Connect to the vmem MCP server to test tools directly. This uses the
             full OAuth flow — sign in with your vmem account.
           </p>
           <Button onClick={handleConnect}>Connect to MCP</Button>
           {state.error && (
-            <p className="text-destructive text-sm mt-4">{state.error}</p>
+            <p className="text-danger text-sm mt-4">{state.error}</p>
           )}
         </div>
       )}
@@ -342,10 +342,10 @@ export default function PlaygroundClient() {
         <div className="py-16 text-center">
           <IconLoader2
             size={32}
-            className="mx-auto text-muted-foreground mb-4 animate-spin"
+            className="mx-auto text-muted mb-4 animate-spin"
             stroke={1.5}
           />
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted text-sm">
             Connecting... complete sign-in in the popup window.
           </p>
         </div>
@@ -376,7 +376,7 @@ export default function PlaygroundClient() {
 
             {selectedToolInfo && (
               <>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted">
                   {selectedToolInfo.description}
                 </p>
 
@@ -385,11 +385,11 @@ export default function PlaygroundClient() {
                     <label className="text-sm font-medium text-foreground block mb-1">
                       {key}
                       {requiredParams.includes(key) && (
-                        <span className="text-destructive ml-0.5">*</span>
+                        <span className="text-danger ml-0.5">*</span>
                       )}
                     </label>
                     {prop.description && (
-                      <p className="text-xs text-muted-foreground mb-1">
+                      <p className="text-xs text-muted mb-1">
                         {prop.description}
                       </p>
                     )}
@@ -445,18 +445,18 @@ export default function PlaygroundClient() {
               Result
             </label>
             {state.error && (
-              <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4">
-                <p className="text-sm text-destructive">{state.error}</p>
+              <div className="rounded-md border border-danger/50 bg-danger/10 p-4">
+                <p className="text-sm text-danger">{state.error}</p>
               </div>
             )}
             {state.result && (
-              <pre className="rounded-md border border-border bg-muted/50 p-4 text-sm text-foreground overflow-auto max-h-[600px] whitespace-pre-wrap">
+              <pre className="rounded-md border border-border bg-surface-secondary/50 p-4 text-sm text-foreground overflow-auto max-h-[600px] whitespace-pre-wrap">
                 {state.result}
               </pre>
             )}
             {!state.error && !state.result && (
-              <div className="rounded-md border border-border bg-muted/30 p-4 h-[200px] sm:h-[300px] flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">
+              <div className="rounded-md border border-border bg-surface-secondary/30 p-4 h-[200px] sm:h-[300px] flex items-center justify-center">
+                <p className="text-sm text-muted">
                   Select a tool and run it to see results here.
                 </p>
               </div>

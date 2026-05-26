@@ -160,7 +160,7 @@ export const ContextTrigger = ({
         <button
           type="button"
           className={cn(
-            "inline-flex items-center gap-1 text-[11px] tabular-nums text-muted-foreground hover:text-foreground transition-colors",
+            "inline-flex items-center gap-1 text-[11px] tabular-nums text-muted hover:text-foreground transition-colors",
             className,
           )}
           {...props}
@@ -209,11 +209,14 @@ export const ContextContentHeader = ({
         <>
           <div className="flex items-center justify-between gap-3 text-xs">
             <p>{formatPercent(usedPercent)}</p>
-            <p className="font-mono text-muted-foreground">
+            <p className="font-mono text-muted">
               {formatTokens(usedTokens)} / {formatTokens(maxTokens)}
             </p>
           </div>
-          <Progress className="bg-muted" value={usedPercent * PERCENT_MAX} />
+          <Progress
+            className="bg-surface-secondary"
+            value={usedPercent * PERCENT_MAX}
+          />
         </>
       )}
     </div>
@@ -249,7 +252,7 @@ export const ContextContentFooter = ({
 }: ContextContentFooterProps) => (
   <div
     className={cn(
-      "flex w-full items-center justify-between gap-3 bg-secondary p-3 text-xs",
+      "flex w-full items-center justify-between gap-3 bg-default p-3 text-xs",
       className,
     )}
     {...props}
@@ -278,7 +281,7 @@ export const ContextInputUsage = ({
       className={cn("flex items-center justify-between text-xs", className)}
       {...props}
     >
-      <span className="text-muted-foreground">Input</span>
+      <span className="text-muted">Input</span>
       <span>{formatTokens(usage.inputTokens)}</span>
     </div>
   );
@@ -300,7 +303,7 @@ export const ContextOutputUsage = ({
       className={cn("flex items-center justify-between text-xs", className)}
       {...props}
     >
-      <span className="text-muted-foreground">Output</span>
+      <span className="text-muted">Output</span>
       <span>{formatTokens(usage.outputTokens)}</span>
     </div>
   );
@@ -322,7 +325,7 @@ export const ContextReasoningUsage = ({
       className={cn("flex items-center justify-between text-xs", className)}
       {...props}
     >
-      <span className="text-muted-foreground">Reasoning</span>
+      <span className="text-muted">Reasoning</span>
       <span>{formatTokens(usage.reasoningTokens)}</span>
     </div>
   );
@@ -344,7 +347,7 @@ export const ContextCacheUsage = ({
       className={cn("flex items-center justify-between text-xs", className)}
       {...props}
     >
-      <span className="text-muted-foreground">Cache</span>
+      <span className="text-muted">Cache</span>
       <span>{formatTokens(usage.cachedInputTokens)}</span>
     </div>
   );
@@ -370,7 +373,7 @@ export const ContextSpeedUsage = ({
       className={cn("flex items-center justify-between text-xs", className)}
       {...props}
     >
-      <span className="text-muted-foreground">Speed</span>
+      <span className="text-muted">Speed</span>
       <span>{usage.tokensPerSecond.toFixed(1)} tok/s</span>
     </div>
   );

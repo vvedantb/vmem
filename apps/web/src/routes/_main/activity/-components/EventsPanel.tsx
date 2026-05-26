@@ -105,13 +105,13 @@ function LoadingSkeleton() {
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-        <IconActivity size={32} className="text-muted-foreground" />
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-secondary">
+        <IconActivity size={32} className="text-muted" />
       </div>
       <h3 className="mb-1 text-lg font-medium text-foreground text-balance">
         {hasFilters ? "No matching activity" : "No activity yet"}
       </h3>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-muted">
         {hasFilters
           ? "Try adjusting your filters to see more results."
           : "Your activity history will appear here."}
@@ -197,7 +197,7 @@ export function EventsPanel({
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <p className="mb-4 text-sm text-destructive">{error}</p>
+        <p className="mb-4 text-sm text-danger">{error}</p>
         <Button variant="outline" size="sm" onClick={fetchActivity}>
           <IconLoader2 size={16} className="mr-2" />
           Retry
@@ -222,16 +222,16 @@ export function EventsPanel({
         const Icon = getActivityIcon(item.type);
         return (
           <div className="pb-1">
-            <div className="rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50 sm:px-4 sm:py-3">
+            <div className="rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50 sm:px-4 sm:py-3">
               <div className="flex items-center gap-3 sm:gap-4">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <Icon size={20} className="text-primary" />
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-accent/10">
+                  <Icon size={20} className="text-accent" />
                 </div>
                 <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
                   <p className="text-sm font-medium text-foreground sm:text-base">
                     {item.description}
                   </p>
-                  <p className="flex-shrink-0 text-xs text-muted-foreground sm:text-sm tabular-nums">
+                  <p className="flex-shrink-0 text-xs text-muted sm:text-sm tabular-nums">
                     {item.relativeTime}
                   </p>
                 </div>
@@ -303,7 +303,7 @@ function EventsFiltersDropdown({
           <IconFilter size={16} />
           Filters
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-[10px] font-medium tabular-nums text-primary-foreground flex items-center justify-center leading-none">
+            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-surface-tertiary text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
               {activeFilterCount}
             </span>
           )}
@@ -347,7 +347,7 @@ function EventsFiltersDropdown({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={onReset}
-              className="text-destructive focus:text-destructive"
+              className="text-danger focus:text-danger"
             >
               <IconX size={16} />
               Clear filters

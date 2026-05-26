@@ -49,8 +49,8 @@ export function NavLink({
         isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
         isMobile ? "py-3.5" : "py-2.5",
         isActive
-          ? "bg-accent text-foreground"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground",
+          ? "bg-surface-tertiary text-foreground"
+          : "text-muted hover:bg-surface-tertiary hover:text-foreground",
       )}
     >
       <span className="flex h-5 w-5 items-center justify-center text-current">
@@ -77,7 +77,7 @@ export function NavLink({
         {showBadge && !isIconOnly ? (
           <motion.span
             key={`${item.href}-badge`}
-            className="flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-xs font-medium text-muted-foreground"
+            className="flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-secondary px-1.5 text-xs font-medium text-muted"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -94,7 +94,7 @@ export function NavLink({
         {showBadge && isIconOnly ? (
           <motion.span
             key={`${item.href}-dot`}
-            className="absolute right-2 top-2 h-2 w-2 rounded-full bg-muted-foreground"
+            className="absolute right-2 top-2 h-2 w-2 rounded-full bg-surface-secondary-foreground"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}

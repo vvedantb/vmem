@@ -124,7 +124,7 @@ export function SkillHeaderActions({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="shrink-0 text-muted-foreground"
+            className="shrink-0 text-muted"
             aria-label="Skill actions"
           >
             <IconDots size={16} />
@@ -160,7 +160,7 @@ export function SkillHeaderActions({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
+            className="text-danger focus:text-danger"
             onSelect={() => setDeleteConfirmOpen(true)}
           >
             <IconTrash size={14} />

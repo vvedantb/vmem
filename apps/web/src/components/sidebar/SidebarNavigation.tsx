@@ -78,8 +78,8 @@ function SubSidebarNavButton({
         isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
         isMobile ? "py-3.5" : "py-2.5",
         isActive
-          ? "bg-accent text-foreground"
-          : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
+          ? "bg-surface-tertiary text-foreground"
+          : "text-muted hover:bg-surface/45 hover:text-foreground",
       )}
     >
       <span className="flex h-5 w-5 items-center justify-center text-current">
@@ -107,7 +107,7 @@ function SubSidebarNavButton({
           size={16}
           stroke={2}
           aria-hidden
-          className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+          className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100"
         />
       ) : null}
     </button>
@@ -159,9 +159,9 @@ function MainNav({
                 <GroupIcon
                   size={14}
                   stroke={1.8}
-                  className="shrink-0 text-muted-foreground/70"
+                  className="shrink-0 text-muted/70"
                 />
-                <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted/70">
                   {group.title}
                 </span>
                 <Separator className="flex-1 bg-border/40" />
@@ -245,7 +245,7 @@ function SettingsNav({
         <div key={group.title} className="px-1 mb-4">
           {!isIconOnly ? (
             <div className="flex items-center gap-2 px-3.5 mb-2">
-              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted/70">
                 {group.title}
               </span>
               <Separator className="flex-1 bg-border/40" />
@@ -273,8 +273,8 @@ function SettingsNav({
                         : "gap-3 px-3.5",
                       isMobile ? "py-3.5" : "py-2.5",
                       isActive
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
+                        ? "bg-surface-tertiary text-foreground"
+                        : "text-muted hover:bg-surface/45 hover:text-foreground",
                     )}
                   >
                     <span className="flex h-5 w-5 items-center justify-center text-current">

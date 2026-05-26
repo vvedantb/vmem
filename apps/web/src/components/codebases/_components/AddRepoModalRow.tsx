@@ -38,8 +38,8 @@ export function AddRepoModalRow({
       disabled={disabled}
       onClick={onAdd}
       className={cn(
-        "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
-        disabled && !isAdding ? "opacity-50" : "hover:bg-muted/70",
+        "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/30",
+        disabled && !isAdding ? "opacity-50" : "hover:bg-surface-secondary/70",
       )}
     >
       <img
@@ -57,12 +57,12 @@ export function AddRepoModalRow({
           {repo.isPrivate ? (
             <IconLock
               size={12}
-              className="shrink-0 text-muted-foreground"
+              className="shrink-0 text-muted"
               aria-label="Private repository"
             />
           ) : null}
         </div>
-        <div className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+        <div className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted">
           <span className="truncate">{repo.owner}</span>
           {repo.language ? (
             <>
@@ -81,12 +81,12 @@ export function AddRepoModalRow({
           ) : null}
         </div>
         {repo.description ? (
-          <p className="mt-1 truncate text-xs text-muted-foreground/80">
+          <p className="mt-1 truncate text-xs text-muted/80">
             {repo.description}
           </p>
         ) : null}
       </div>
-      <div className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+      <div className="flex shrink-0 items-center gap-1.5 text-muted">
         {isAdding ? (
           <IconLoader2 size={16} className="animate-spin" aria-hidden />
         ) : (

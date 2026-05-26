@@ -58,7 +58,7 @@ export default function SynthesisProposalCard({
             variant="ghost"
             onClick={onReject}
             disabled={isResolving}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted hover:text-foreground"
           >
             <IconX size={14} />
             {isDismissOnly ? "Dismiss" : "Reject"}
@@ -68,7 +68,7 @@ export default function SynthesisProposalCard({
             size="sm"
             onClick={onApprove}
             disabled={isResolving}
-            className="bg-primary text-primary-foreground"
+            className="bg-surface-tertiary text-accent-foreground"
           >
             <IconCheck size={14} />
             {isDismissOnly ? "Acknowledge" : "Approve"}
@@ -76,7 +76,7 @@ export default function SynthesisProposalCard({
         </>
       }
     >
-      <div className="rounded-lg bg-muted/60 p-3">
+      <div className="rounded-lg bg-surface-secondary/60 p-3">
         <ProposalFieldLabel>Synthesis</ProposalFieldLabel>
         <p className="whitespace-pre-wrap break-words text-sm text-foreground">
           {proposal.proposedContent}
@@ -84,16 +84,16 @@ export default function SynthesisProposalCard({
       </div>
 
       {proposal.reason.trim().length > 0 && (
-        <div className="rounded-lg bg-muted/50 p-3">
+        <div className="rounded-lg bg-surface-secondary/50 p-3">
           <ProposalFieldLabel>Why</ProposalFieldLabel>
-          <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+          <p className="whitespace-pre-wrap break-words text-sm text-muted">
             {proposal.reason}
           </p>
         </div>
       )}
 
       {sourceCount > 0 && (
-        <div className="rounded-lg bg-muted/50 p-3">
+        <div className="rounded-lg bg-surface-secondary/50 p-3">
           <ProposalFieldLabel>
             Derived from {sourceCount}{" "}
             {sourceCount === 1 ? "memory" : "memories"}
@@ -104,13 +104,13 @@ export default function SynthesisProposalCard({
                 key={src.id}
                 to="/memories/graph"
                 search={(prev) => ({ ...prev, focus: src.id })}
-                className="group -mx-1 flex min-w-0 items-baseline gap-2 rounded-lg px-2 py-1.5 text-sm transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50"
+                className="group -mx-1 flex min-w-0 items-baseline gap-2 rounded-lg px-2 py-1.5 text-sm transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50"
               >
                 <span className="truncate text-foreground/80 group-hover:text-foreground">
                   {src.title || "(untitled)"}
                 </span>
                 {src.content && (
-                  <span className="truncate text-xs text-muted-foreground/60">
+                  <span className="truncate text-xs text-muted/60">
                     {src.content.slice(0, 80)}
                     {src.content.length > 80 ? "…" : ""}
                   </span>
@@ -126,7 +126,7 @@ export default function SynthesisProposalCard({
           <ProposalFieldLabel>Confidence</ProposalFieldLabel>
           <div className="flex items-center gap-3">
             <Progress value={confidencePct} className="flex-1" />
-            <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+            <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted">
               {confidencePct}%
             </span>
           </div>

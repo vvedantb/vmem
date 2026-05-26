@@ -63,7 +63,7 @@ export default function GraphEdgeTooltip({
       <p className="font-medium text-foreground text-xs mb-1">
         {sourceTitle} ↔ {targetTitle}
       </p>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted">
         {label}
         {reason === "semantic similarity" && score !== undefined
           ? ` · semantic similarity (${Math.round(score * 100)}%)`

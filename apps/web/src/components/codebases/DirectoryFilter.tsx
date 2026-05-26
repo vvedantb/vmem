@@ -43,7 +43,7 @@ export function DirectoryFilter({
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+        <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
           Directories
         </span>
         <div className="flex items-center gap-0.5">
@@ -51,7 +51,7 @@ export function DirectoryFilter({
             variant="ghost"
             size="sm"
             onClick={onSelectAll}
-            className="h-5 px-1.5 text-[10px] text-muted-foreground"
+            className="h-5 px-1.5 text-[10px] text-muted"
           >
             All
           </Button>
@@ -59,7 +59,7 @@ export function DirectoryFilter({
             variant="ghost"
             size="sm"
             onClick={onClearAll}
-            className="h-5 px-1.5 text-[10px] text-muted-foreground"
+            className="h-5 px-1.5 text-[10px] text-muted"
           >
             None
           </Button>
@@ -89,7 +89,7 @@ export function DirectoryFilter({
               <span className="text-xs text-foreground truncate flex-1 font-mono">
                 {stat.directory}
               </span>
-              <span className="text-[10px] tabular-nums text-muted-foreground/60">
+              <span className="text-[10px] tabular-nums text-muted/60">
                 {stat.count}
               </span>
             </label>
@@ -101,7 +101,7 @@ export function DirectoryFilter({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="text-[10px] text-muted-foreground hover:text-foreground mt-1 px-1"
+          className="text-[10px] text-muted hover:text-foreground mt-1 px-1"
         >
           Show {directories.length - COLLAPSED_LIMIT} more...
         </button>

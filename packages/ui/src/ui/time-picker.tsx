@@ -19,7 +19,7 @@ import { cn } from "../utils/cn";
  *   scrollable columns: hours 00–23 on the left, minutes 00–59 on the
  *   right. Click an item to select; the popover stays open so users can
  *   set both halves in one trip.
- * - Selected items use the same `bg-accent` treatment used elsewhere for
+ * - Selected items use the same `bg-surface-tertiary` treatment used elsewhere for
  *   active states, no rings or borders, matching the design system.
  *
  * The component is fully controlled — `value` is always "HH:MM" 24h and
@@ -102,13 +102,13 @@ const TimePicker = React.forwardRef<HTMLButtonElement, TimePickerProps>(
             disabled={disabled}
             aria-label={ariaLabel}
             className={cn(
-              "inline-flex h-8 items-center justify-between gap-2 rounded-field border border-input bg-muted px-2.5 text-xs font-medium tabular-nums transition-[border-color,box-shadow,background-color] duration-200 ease-smooth hover:bg-muted/70 focus-visible:border-ring/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50",
+              "inline-flex h-8 items-center justify-between gap-2 rounded-field border border-border bg-surface-secondary px-2.5 text-xs font-medium tabular-nums transition-[border-color,box-shadow,background-color] duration-200 ease-smooth hover:bg-surface-secondary/70 focus-visible:border-focus/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/30 disabled:cursor-not-allowed disabled:opacity-50",
               triggerClassName ?? "w-[110px]",
               className,
             )}
           >
             <span>{`${hour}:${minute}`}</span>
-            <IconClock className="h-3.5 w-3.5 text-muted-foreground" />
+            <IconClock className="h-3.5 w-3.5 text-muted" />
           </button>
         </PopoverTrigger>
         <PopoverContent
@@ -148,12 +148,12 @@ const TimeColumn = React.forwardRef<HTMLDivElement, TimeColumnProps>(
   ({ label, values, selected, onSelect }, ref) => {
     return (
       <div className="flex w-14 flex-col">
-        <div className="px-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+        <div className="px-2 pb-1 text-[10px] uppercase tracking-wider text-muted">
           {label}
         </div>
         <div
           ref={ref}
-          className="h-48 overflow-y-auto rounded-lg bg-muted/40 py-1"
+          className="h-48 overflow-y-auto rounded-lg bg-surface-secondary/40 py-1"
         >
           {values.map((v) => {
             const isSelected = v === selected;
@@ -166,8 +166,8 @@ const TimeColumn = React.forwardRef<HTMLDivElement, TimeColumnProps>(
                 className={cn(
                   "flex h-7 w-full items-center justify-center text-xs tabular-nums transition-colors",
                   isSelected
-                    ? "bg-accent text-accent-foreground"
-                    : "text-foreground/80 hover:bg-accent/50",
+                    ? "bg-surface-tertiary text-accent-foreground"
+                    : "text-foreground/80 hover:bg-surface-tertiary/50",
                 )}
               >
                 {v}

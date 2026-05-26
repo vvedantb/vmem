@@ -196,12 +196,9 @@ export default function OAuthModal({
 
         {step === "authorize" && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 border border-border">
-              <IconLock
-                size={20}
-                className="text-muted-foreground flex-shrink-0"
-              />
-              <p className="text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-surface-secondary/50 border border-border">
+              <IconLock size={20} className="text-muted flex-shrink-0" />
+              <p className="text-sm text-muted">
                 You&apos;ll be redirected to {connectorName} to authorize
                 access. This is a secure OAuth connection.
               </p>
@@ -211,7 +208,7 @@ export default function OAuthModal({
               <p className="text-sm font-medium text-foreground">
                 vmemory will be able to:
               </p>
-              <ul className="space-y-1 text-sm text-muted-foreground">
+              <ul className="space-y-1 text-sm text-muted">
                 <li className="flex items-center gap-2">
                   <IconCheck size={14} className="text-success" />
                   Read files and documents
@@ -233,18 +230,18 @@ export default function OAuthModal({
           <div className="py-8 space-y-4 text-center">
             <IconLoader2
               size={32}
-              className="animate-spin text-muted-foreground mx-auto"
+              className="animate-spin text-muted mx-auto"
             />
             <div className="space-y-2">
               <p className="text-foreground font-medium">
                 Connecting to {connectorName}...
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted">
                 Complete the authorization in the popup window
               </p>
             </div>
-            <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full w-1/3 rounded-full bg-primary animate-indeterminate" />
+            <div className="relative h-2 w-full overflow-hidden rounded-full bg-surface-secondary">
+              <div className="h-full w-1/3 rounded-full bg-surface-tertiary animate-indeterminate" />
             </div>
           </div>
         )}
@@ -258,7 +255,7 @@ export default function OAuthModal({
               <p className="text-foreground font-medium">
                 Connected Successfully!
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted">
                 {connectorName} is now linked to your account
               </p>
             </div>
@@ -267,12 +264,12 @@ export default function OAuthModal({
 
         {step === "error" && (
           <div className="py-8 space-y-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-              <IconAlertCircle size={24} className="text-destructive" />
+            <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center mx-auto">
+              <IconAlertCircle size={24} className="text-danger" />
             </div>
             <div className="space-y-1">
               <p className="text-foreground font-medium">Connection Failed</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted">
                 {errorMessage ?? "An error occurred during authorization"}
               </p>
             </div>
@@ -285,13 +282,13 @@ export default function OAuthModal({
               <Button
                 variant="ghost"
                 onClick={handleClose}
-                className="text-muted-foreground"
+                className="text-muted"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleAuthorize}
-                className="bg-primary text-primary-foreground"
+                className="bg-surface-tertiary text-accent-foreground"
               >
                 Authorize
                 <IconExternalLink size={16} />
@@ -300,13 +297,13 @@ export default function OAuthModal({
           )}
 
           {step === "connecting" && (
-            <p className="text-sm text-muted-foreground w-full text-center">
+            <p className="text-sm text-muted w-full text-center">
               Do not close this window
             </p>
           )}
 
           {step === "complete" && (
-            <p className="text-sm text-muted-foreground w-full text-center">
+            <p className="text-sm text-muted w-full text-center">
               Redirecting...
             </p>
           )}
@@ -316,13 +313,13 @@ export default function OAuthModal({
               <Button
                 variant="ghost"
                 onClick={handleClose}
-                className="text-muted-foreground"
+                className="text-muted"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleRetry}
-                className="bg-primary text-primary-foreground"
+                className="bg-surface-tertiary text-accent-foreground"
               >
                 Try Again
               </Button>

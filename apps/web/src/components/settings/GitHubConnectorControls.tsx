@@ -49,7 +49,7 @@ export function GitHubConnectorControls({
             setDisconnecting(false);
           }
         }}
-        className="border-border text-muted-foreground"
+        className="border-border text-muted"
       >
         {disconnecting ? (
           <IconLoader2 size={14} className="animate-spin" />
@@ -75,7 +75,7 @@ export function GitHubConnectorControls({
           setConnecting(false);
         }
       }}
-      className="bg-primary text-primary-foreground font-medium"
+      className="bg-surface-tertiary text-accent-foreground font-medium"
     >
       {connecting ? (
         <IconLoader2 size={14} className="animate-spin" />

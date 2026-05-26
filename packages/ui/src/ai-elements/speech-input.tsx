@@ -225,9 +225,9 @@ export function SpeechInput({
     <div className="relative flex items-center justify-center">
       {state === "listening" && (
         <>
-          <span className="absolute size-7 animate-ping rounded-md bg-destructive/20 [animation-duration:1.5s]" />
-          <span className="absolute size-7 animate-ping rounded-md bg-destructive/15 [animation-delay:0.3s] [animation-duration:1.5s]" />
-          <span className="absolute size-7 animate-ping rounded-md bg-destructive/10 [animation-delay:0.6s] [animation-duration:1.5s]" />
+          <span className="absolute size-7 animate-ping rounded-md bg-danger/20 [animation-duration:1.5s]" />
+          <span className="absolute size-7 animate-ping rounded-md bg-danger/15 [animation-delay:0.3s] [animation-duration:1.5s]" />
+          <span className="absolute size-7 animate-ping rounded-md bg-danger/10 [animation-delay:0.6s] [animation-duration:1.5s]" />
         </>
       )}
       <Button

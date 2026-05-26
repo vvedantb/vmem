@@ -109,16 +109,17 @@ export default function ImportPageClient() {
           const Logo = p.Logo;
           if (p.kind === "available") {
             return (
-              <div key={p.id} className="rounded-xl bg-muted/40 p-6">
+              <div
+                key={p.id}
+                className="rounded-xl bg-surface-secondary/40 p-6"
+              >
                 <div className="mb-4 flex items-center gap-3">
                   <Logo className={`h-6 w-6 shrink-0 ${p.logoClassName}`} />
                   <h3 className="text-base font-medium text-foreground">
                     {p.label}
                   </h3>
                 </div>
-                <p className="mb-5 text-sm text-muted-foreground">
-                  {p.description}
-                </p>
+                <p className="mb-5 text-sm text-muted">{p.description}</p>
                 <Button type="button" onClick={() => openUpload(p.id)}>
                   Import
                 </Button>
@@ -126,16 +127,17 @@ export default function ImportPageClient() {
             );
           }
           return (
-            <div key={p.id} className="rounded-xl bg-muted/40 p-6 opacity-60">
+            <div
+              key={p.id}
+              className="rounded-xl bg-surface-secondary/40 p-6 opacity-60"
+            >
               <div className="mb-4 flex items-center gap-3">
                 <Logo className={`h-6 w-6 shrink-0 ${p.logoClassName}`} />
                 <h3 className="text-base font-medium text-foreground">
                   {p.label}
                 </h3>
               </div>
-              <p className="mb-5 text-sm text-muted-foreground">
-                {p.description}
-              </p>
+              <p className="mb-5 text-sm text-muted">{p.description}</p>
               <Button type="button" disabled>
                 Coming soon
               </Button>

@@ -92,7 +92,7 @@ function AuthorizedFlow({ search }: { search: McpOauthParams }) {
         <p className="text-sm font-medium text-foreground">
           Couldn&apos;t complete authorization
         </p>
-        <p className="text-sm text-muted-foreground">{error}</p>
+        <p className="text-sm text-muted">{error}</p>
       </div>
     );
   }
@@ -124,7 +124,7 @@ function Status({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3">
       <Spinner size="md" />
-      <p className="text-sm text-muted-foreground">{children}</p>
+      <p className="text-sm text-muted">{children}</p>
     </div>
   );
 }

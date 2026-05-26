@@ -44,7 +44,7 @@ export default function LocalModelsSection() {
           <h4 className="text-sm font-medium text-foreground">
             WebGPU not available
           </h4>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted mt-1">
             Your browser doesn&apos;t support WebGPU, which is required for
             local AI models. Try Chrome, Edge, or another Chromium-based browser
             with WebGPU enabled.
@@ -57,9 +57,9 @@ export default function LocalModelsSection() {
   return (
     <div className="space-y-4">
       {/* Info banner */}
-      <div className="flex items-start gap-3 bg-muted/40 rounded-lg p-3">
-        <IconInfoCircle className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-muted-foreground">
+      <div className="flex items-start gap-3 bg-surface-secondary/40 rounded-lg p-3">
+        <IconInfoCircle className="h-4 w-4 text-muted flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-muted">
           Local models run entirely in your browser using WebGPU. No data is
           sent to external servers. Models are cached after first download.
         </p>
@@ -84,7 +84,7 @@ export default function LocalModelsSection() {
 
       {/* Error state */}
       {engineState === "error" && loadMessage && (
-        <p className="text-xs text-destructive pt-1">{loadMessage}</p>
+        <p className="text-xs text-danger pt-1">{loadMessage}</p>
       )}
     </div>
   );

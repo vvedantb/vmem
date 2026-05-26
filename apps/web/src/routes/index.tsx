@@ -35,7 +35,7 @@ function LandingPage() {
           <h1 className="text-3xl font-bold tracking-tight text-foreground text-balance">
             vmem
           </h1>
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-sm text-muted">
             Memory engine for AI agents
           </p>
         </div>

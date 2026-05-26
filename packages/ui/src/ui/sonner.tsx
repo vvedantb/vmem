@@ -40,18 +40,18 @@ function SonnerToaster(props: ToasterProps) {
           toast:
             "group toast glass-panel-strong flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-foreground",
           title: "font-medium leading-snug",
-          description: "text-[13px] leading-snug text-muted-foreground",
+          description: "text-[13px] leading-snug text-muted",
           actionButton:
-            "rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90",
+            "rounded-lg bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground transition-colors hover:bg-accent/90",
           cancelButton:
-            "rounded-lg bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/80",
+            "rounded-lg bg-surface-secondary px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-secondary/80",
           closeButton:
-            "border border-border bg-background text-foreground hover:bg-muted",
-          loader: "text-muted-foreground",
+            "border border-border bg-background text-foreground hover:bg-surface-secondary",
+          loader: "text-muted",
           success: "[&_[data-icon]]:text-success",
-          error: "[&_[data-icon]]:text-destructive",
+          error: "[&_[data-icon]]:text-danger",
           warning: "[&_[data-icon]]:text-warning",
-          info: "[&_[data-icon]]:text-info",
+          info: "[&_[data-icon]]:text-accent",
         },
       }}
       {...props}

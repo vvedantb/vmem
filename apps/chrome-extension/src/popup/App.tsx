@@ -98,7 +98,7 @@ function SignedOutContent() {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 p-8">
-      <p className="text-sm text-muted-foreground text-center text-pretty">
+      <p className="text-sm text-muted text-center text-pretty">
         Sign in to start saving memories
       </p>
       <div className="flex gap-3">
@@ -117,7 +117,7 @@ function SignedOutContent() {
         instance". Surfacing this here saves the user from staring at a
         broken popup.
       */}
-      <div className="bg-muted/40 rounded-lg px-3 py-2.5 text-xs text-muted-foreground flex gap-2 max-w-full">
+      <div className="bg-surface-secondary/40 rounded-lg px-3 py-2.5 text-xs text-muted flex gap-2 max-w-full">
         <IconInfoCircle size={14} stroke={1.8} className="mt-0.5 shrink-0" />
         <div className="flex flex-col gap-1.5 min-w-0">
           <span className="text-pretty">
@@ -144,7 +144,7 @@ export function App() {
 
   return (
     <div className="glass-panel text-foreground min-h-[500px] flex flex-col">
-      <header className="flex items-center justify-between px-5 py-3.5 bg-muted/20">
+      <header className="flex items-center justify-between px-5 py-3.5 bg-surface-secondary/20">
         <div className="flex items-center gap-2.5">
           <span className="text-lg font-serif tracking-tight">
             v<span className="italic">mem</span>

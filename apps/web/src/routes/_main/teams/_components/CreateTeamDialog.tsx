@@ -106,9 +106,7 @@ export function CreateTeamDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">
-            Team name
-          </label>
+          <label className="text-xs font-medium text-muted">Team name</label>
           <Input
             autoFocus
             placeholder="Evalucom"

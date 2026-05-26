@@ -63,9 +63,7 @@ function ConversationEmptyState({
       {title && (
         <h3 className="text-lg font-medium text-foreground">{title}</h3>
       )}
-      {description && (
-        <p className="max-w-sm text-muted-foreground">{description}</p>
-      )}
+      {description && <p className="max-w-sm text-muted">{description}</p>}
       {children}
     </div>
   );

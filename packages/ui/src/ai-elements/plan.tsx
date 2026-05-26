@@ -8,7 +8,10 @@ type PlanProps = ComponentProps<"div">;
 
 function Plan({ className, children, ...props }: PlanProps) {
   return (
-    <div className={cn("rounded-lg bg-muted/40 p-3", className)} {...props}>
+    <div
+      className={cn("rounded-lg bg-surface-secondary/40 p-3", className)}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -19,10 +22,7 @@ type PlanHeaderProps = ComponentProps<"div">;
 function PlanHeader({ className, ...props }: PlanHeaderProps) {
   return (
     <div
-      className={cn(
-        "mb-2 text-xs font-medium text-muted-foreground",
-        className,
-      )}
+      className={cn("mb-2 text-xs font-medium text-muted", className)}
       {...props}
     />
   );
@@ -49,7 +49,7 @@ function PlanItem({
   return (
     <li
       className={cn(
-        "flex items-start gap-2 text-xs text-muted-foreground",
+        "flex items-start gap-2 text-xs text-muted",
         status === "completed" && "text-foreground",
         className,
       )}
@@ -61,12 +61,12 @@ function PlanItem({
         )}
         {status === "in_progress" && (
           <IconLoader2
-            className="size-3.5 animate-spin text-primary"
+            className="size-3.5 animate-spin text-accent"
             stroke={1.5}
           />
         )}
         {status === "pending" && (
-          <span className="size-1.5 rounded-full bg-muted-foreground/50" />
+          <span className="size-1.5 rounded-full bg-surface-secondary-foreground/50" />
         )}
       </span>
       <span>{children}</span>

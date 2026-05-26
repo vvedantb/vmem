@@ -41,7 +41,7 @@ function MessageContent({ className, ...props }: MessageContentProps) {
     <div
       className={cn(
         "w-fit max-w-4xl rounded-lg px-4 py-3 text-sm",
-        "group-data-[role=user]:bg-primary group-data-[role=user]:text-primary-foreground group-data-[role=user]:rounded-br-md",
+        "group-data-[role=user]:bg-accent group-data-[role=user]:text-accent-foreground group-data-[role=user]:rounded-br-md",
         "group-data-[role=assistant]:text-foreground group-data-[role=assistant]:px-0",
         className,
       )}
@@ -80,7 +80,7 @@ function MessageAction({
     <Button
       variant="ghost"
       size="icon-xs"
-      className={cn("text-muted-foreground hover:text-foreground", className)}
+      className={cn("text-muted hover:text-foreground", className)}
       {...props}
     >
       {children}

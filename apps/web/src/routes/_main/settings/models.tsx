@@ -14,7 +14,7 @@ function ModelsPage() {
       <div className="space-y-12">
         <section className="space-y-4">
           <div className="flex items-center gap-2">
-            <IconCpu className="h-5 w-5 text-muted-foreground" />
+            <IconCpu className="h-5 w-5 text-muted" />
             <h3 className="text-base font-medium text-foreground">
               Local AI Models
             </h3>
@@ -24,7 +24,7 @@ function ModelsPage() {
 
         <section className="space-y-4">
           <div className="flex items-center gap-2">
-            <IconMicrophone className="h-5 w-5 text-muted-foreground" />
+            <IconMicrophone className="h-5 w-5 text-muted" />
             <h3 className="text-base font-medium text-foreground">
               Local Voice Models
             </h3>

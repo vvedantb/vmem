@@ -39,7 +39,7 @@ function Action({
       type="button"
       variant={variant}
       size={size}
-      className={cn("text-muted-foreground hover:text-foreground", className)}
+      className={cn("text-muted hover:text-foreground", className)}
       {...props}
     >
       {children}

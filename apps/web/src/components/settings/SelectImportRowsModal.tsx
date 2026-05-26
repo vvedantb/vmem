@@ -72,15 +72,15 @@ export default function SelectImportRowsModal({
         <div className="flex gap-2 text-sm">
           <button
             type="button"
-            className="text-primary underline-offset-4 hover:underline"
+            className="text-accent underline-offset-4 hover:underline"
             onClick={selectAll}
           >
             Select all
           </button>
-          <span className="text-muted-foreground">·</span>
+          <span className="text-muted">·</span>
           <button
             type="button"
-            className="text-primary underline-offset-4 hover:underline"
+            className="text-accent underline-offset-4 hover:underline"
             onClick={selectNone}
           >
             Select none
@@ -102,7 +102,7 @@ export default function SelectImportRowsModal({
                 <p className="truncate text-sm font-medium text-foreground">
                   {row.title}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted">
                   {wordCount(row.content)} words
                 </p>
               </div>

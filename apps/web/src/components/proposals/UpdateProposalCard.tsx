@@ -47,7 +47,7 @@ export function UpdateProposalCard({
             variant="ghost"
             onClick={onReject}
             disabled={isResolving}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted hover:text-foreground"
           >
             <IconX size={14} />
             Reject
@@ -59,8 +59,8 @@ export function UpdateProposalCard({
             disabled={isResolving}
             className={
               isDelete
-                ? "bg-destructive text-destructive-foreground"
-                : "bg-primary text-primary-foreground"
+                ? "bg-danger text-danger-foreground"
+                : "bg-surface-tertiary text-accent-foreground"
             }
           >
             <IconCheck size={14} />
@@ -85,9 +85,9 @@ export function UpdateProposalCard({
 function Reason({ text }: { text: string }) {
   if (!text.trim()) return null;
   return (
-    <div className="rounded-lg bg-muted/50 p-3">
+    <div className="rounded-lg bg-surface-secondary/50 p-3">
       <ProposalFieldLabel>Reason</ProposalFieldLabel>
-      <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+      <p className="whitespace-pre-wrap break-words text-sm text-muted">
         {text}
       </p>
     </div>
@@ -103,13 +103,13 @@ function UpdateDiff({
 }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <div className="rounded-lg bg-muted/50 p-3">
+      <div className="rounded-lg bg-surface-secondary/50 p-3">
         <ProposalFieldLabel>Current</ProposalFieldLabel>
-        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+        <p className="whitespace-pre-wrap break-words text-sm text-muted">
           {oldText || "(empty)"}
         </p>
       </div>
-      <div className="rounded-lg bg-muted/70 p-3">
+      <div className="rounded-lg bg-surface-secondary/70 p-3">
         <ProposalFieldLabel>Proposed</ProposalFieldLabel>
         <p className="whitespace-pre-wrap break-words text-sm text-foreground">
           {newText}
@@ -121,7 +121,7 @@ function UpdateDiff({
 
 function DeleteSnapshot({ text }: { text: string }) {
   return (
-    <div className="rounded-lg bg-destructive/10 p-3">
+    <div className="rounded-lg bg-danger/10 p-3">
       <ProposalFieldLabel>Memory body (will be deleted)</ProposalFieldLabel>
       <p className="whitespace-pre-wrap break-words text-sm text-foreground">
         {text || "(empty)"}

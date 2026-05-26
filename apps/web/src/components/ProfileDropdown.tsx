@@ -107,7 +107,7 @@ export function ProfileDropdown({
     >
       <SelectTrigger
         className={cn(
-          "h-10 w-auto min-w-[140px] bg-muted/50 border-border hover:bg-accent",
+          "h-10 w-auto min-w-[140px] bg-surface-secondary/50 border-border hover:bg-surface-tertiary",
           className,
         )}
       >
@@ -120,7 +120,7 @@ export function ProfileDropdown({
               />
               <span className="truncate">{selectedProfile.name}</span>
               {selectedProfile.teamId && (
-                <IconUsers className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <IconUsers className="h-3.5 w-3.5 shrink-0 text-muted" />
               )}
             </div>
           )}
@@ -166,10 +166,10 @@ function ProfileRow({
           className="h-2 w-2 rounded-full shrink-0"
           style={{ backgroundColor: profile.color }}
         />
-        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <Icon className="h-4 w-4 shrink-0 text-muted" />
         <span>{profile.name}</span>
         {isTeam && (
-          <span className="ml-auto rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          <span className="ml-auto rounded-md bg-surface-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted">
             Team
           </span>
         )}

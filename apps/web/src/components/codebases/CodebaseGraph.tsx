@@ -86,7 +86,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
   if (isLoading) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
-        <VmemSpinner size={24} className="text-muted-foreground" />
+        <VmemSpinner size={24} className="text-muted" />
       </div>
     );
   }
@@ -94,11 +94,11 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
   if (isError) {
     return (
       <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
-        <IconMoodEmpty className="w-8 h-8 text-muted-foreground mb-3" />
+        <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
         <p className="text-sm font-medium text-foreground mb-1">
           Failed to load graph
         </p>
-        <p className="text-xs text-muted-foreground max-w-sm">
+        <p className="text-xs text-muted max-w-sm">
           {error?.message ?? "Unknown error"}
         </p>
       </div>
@@ -108,11 +108,11 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
   if (apiNodes.length === 0) {
     return (
       <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
-        <IconMoodEmpty className="w-8 h-8 text-muted-foreground mb-3" />
+        <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
         <p className="text-sm font-medium text-foreground mb-1">
           No symbols to visualise
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted">
           Sync the repository to see its symbol graph.
         </p>
       </div>
@@ -138,7 +138,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
 
       {/* Stats badge (top-right) */}
       <div className="absolute top-2 right-2 z-10 hidden md:block">
-        <div className="text-[10px] text-muted-foreground bg-muted/40 rounded px-2 py-1">
+        <div className="text-[10px] text-muted bg-surface-secondary/40 rounded px-2 py-1">
           {graphNodes.length} symbols / {graphEdges.length} edges
         </div>
       </div>

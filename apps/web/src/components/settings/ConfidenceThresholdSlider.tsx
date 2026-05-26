@@ -29,9 +29,7 @@ export default function ConfidenceThresholdSlider({
         <Label htmlFor="confidence-threshold" className="text-sm font-medium">
           Confidence threshold
         </Label>
-        <span className="text-sm tabular-nums text-muted-foreground">
-          {value}%
-        </span>
+        <span className="text-sm tabular-nums text-muted">{value}%</span>
       </div>
       <input
         id="confidence-threshold"
@@ -43,9 +41,9 @@ export default function ConfidenceThresholdSlider({
         onChange={handleChange}
         onMouseUp={handleCommit}
         onTouchEnd={handleCommit}
-        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-secondary accent-primary"
       />
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted">
         Only extract memories with confidence above this threshold.
       </p>
     </div>

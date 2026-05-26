@@ -57,13 +57,13 @@ export function TeamsSidebarNav({
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin px-1">
         {teams === undefined ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-transparent" />
           </div>
         ) : teams.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
-            <IconBuilding size={28} className="mb-2 text-muted-foreground" />
+            <IconBuilding size={28} className="mb-2 text-muted" />
             {!isIconOnly ? (
-              <p className="text-xs text-muted-foreground">No teams yet</p>
+              <p className="text-xs text-muted">No teams yet</p>
             ) : null}
           </div>
         ) : (
@@ -78,7 +78,7 @@ export function TeamsSidebarNav({
             ) : null}
             {filteredTeams.length === 0 ? (
               !isIconOnly ? (
-                <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+                <p className="px-2 py-4 text-center text-xs text-muted">
                   No teams match your search.
                 </p>
               ) : null

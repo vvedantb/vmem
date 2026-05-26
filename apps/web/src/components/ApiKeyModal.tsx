@@ -111,12 +111,9 @@ export default function ApiKeyModal({
 
         {step === "create" && !isSubmitting && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 border border-border">
-              <IconKey
-                size={20}
-                className="text-muted-foreground flex-shrink-0"
-              />
-              <p className="text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-surface-secondary/50 border border-border">
+              <IconKey size={20} className="text-muted flex-shrink-0" />
+              <p className="text-sm text-muted">
                 Create a new API key to access vMemory programmatically. You can
                 use this key with MCP clients and other integrations.
               </p>
@@ -129,11 +126,9 @@ export default function ApiKeyModal({
                 className="border-border bg-transparent"
               />
               {errors.name ? (
-                <p className="text-sm text-destructive">
-                  {errors.name.message}
-                </p>
+                <p className="text-sm text-danger">{errors.name.message}</p>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted">
                   Choose a descriptive name to identify this key
                 </p>
               )}
@@ -145,11 +140,11 @@ export default function ApiKeyModal({
           <div className="py-8 space-y-4 text-center">
             <IconLoader2
               size={32}
-              className="animate-spin text-muted-foreground mx-auto"
+              className="animate-spin text-muted mx-auto"
             />
             <div className="space-y-2">
               <p className="text-foreground font-medium">Creating API Key...</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted">
                 Please wait while we generate your key
               </p>
             </div>
@@ -166,26 +161,30 @@ export default function ApiKeyModal({
                 <Input
                   value={createdKey.key}
                   readOnly
-                  className="font-mono text-sm border-border bg-muted/50"
+                  className="font-mono text-sm border-border bg-surface-secondary/50"
                 />
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleCopy}
-                  className={copied ? "bg-success/10 text-success" : "bg-muted"}
+                  className={
+                    copied
+                      ? "bg-success/10 text-success"
+                      : "bg-surface-secondary"
+                  }
                 >
                   {copied ? <IconCheck size={18} /> : <IconCopy size={18} />}
                 </Button>
               </div>
             </div>
 
-            <div className="pt-2 space-y-1 text-sm text-muted-foreground">
+            <div className="pt-2 space-y-1 text-sm text-muted">
               <p>
                 <span className="font-medium">Name:</span> {createdKey.name}
               </p>
               <p>
                 <span className="font-medium">Masked Key:</span>{" "}
-                <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">
+                <code className="font-mono text-xs bg-surface-secondary px-1 py-0.5 rounded">
                   {createdKey.maskedKey}
                 </code>
               </p>
@@ -200,14 +199,14 @@ export default function ApiKeyModal({
                 variant="ghost"
                 onClick={handleClose}
                 disabled={isSubmitting}
-                className="text-muted-foreground"
+                className="text-muted"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSubmit(onSubmit)}
                 disabled={isSubmitting}
-                className="bg-primary text-primary-foreground"
+                className="bg-surface-tertiary text-accent-foreground"
               >
                 Create Key
               </Button>
@@ -215,7 +214,7 @@ export default function ApiKeyModal({
           )}
 
           {isSubmitting && (
-            <p className="text-sm text-muted-foreground w-full text-center">
+            <p className="text-sm text-muted w-full text-center">
               Do not close this window
             </p>
           )}
@@ -223,7 +222,7 @@ export default function ApiKeyModal({
           {step === "success" && (
             <Button
               onClick={handleClose}
-              className="bg-primary text-primary-foreground"
+              className="bg-surface-tertiary text-accent-foreground"
             >
               Done
             </Button>

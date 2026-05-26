@@ -34,7 +34,7 @@ export default function SearchPopover({
         >
           <IconSearch size={16} />
           {active && (
-            <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-surface-tertiary" />
           )}
         </Button>
       </PopoverTrigger>
@@ -42,7 +42,7 @@ export default function SearchPopover({
         <div className="relative">
           <IconSearch
             size={14}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
           />
           <Input
             value={value}

@@ -247,7 +247,7 @@ export function EnvVarsTable({
   return (
     <div>
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="text-xs text-muted">{description}</p>
         <div className="flex items-center gap-2 shrink-0">
           <Button
             size="sm"
@@ -269,15 +269,15 @@ export function EnvVarsTable({
           <Spinner size="lg" />
         </div>
       ) : !showTable ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center py-16 text-muted">
           <IconKey size={48} className="mb-3 opacity-40" />
           <p className="text-sm">No environment variables configured</p>
         </div>
       ) : (
-        <div className="rounded-lg bg-muted/40 overflow-x-auto">
+        <div className="rounded-lg bg-surface-secondary/40 overflow-x-auto">
           <table className="w-full text-sm min-w-[360px]">
             <thead>
-              <tr className="text-left text-muted-foreground">
+              <tr className="text-left text-muted">
                 <th className="px-2.5 py-2.5 font-medium sm:px-4">Key</th>
                 <th className="px-2.5 py-2.5 font-medium sm:px-4">Value</th>
                 <th className="px-2.5 py-2.5 text-right font-medium sm:px-4">
@@ -321,7 +321,7 @@ export function EnvVarsTable({
                         onClick={handleAdd}
                         disabled={!addKey.trim() || !addValue.trim() || saving}
                         title="Save"
-                        className="text-primary hover:text-primary"
+                        className="text-accent hover:text-accent"
                       >
                         <IconCheck size={14} />
                       </Button>
@@ -371,7 +371,7 @@ export function EnvVarsTable({
                           }}
                         />
                       ) : (
-                        <span className="font-mono text-xs text-muted-foreground">
+                        <span className="font-mono text-xs text-muted">
                           {revealedValues[entry.key] ?? entry.value}
                         </span>
                       )}
@@ -385,7 +385,7 @@ export function EnvVarsTable({
                             onClick={saveEdit}
                             disabled={!editKeyDraft.trim() || saving}
                             title="Save"
-                            className="text-primary hover:text-primary"
+                            className="text-accent hover:text-accent"
                           >
                             <IconCheck size={14} />
                           </Button>
@@ -426,7 +426,7 @@ export function EnvVarsTable({
                             }
                           >
                             {copiedKey === entry.key ? (
-                              <IconCheck size={14} className="text-primary" />
+                              <IconCheck size={14} className="text-accent" />
                             ) : (
                               <IconCopy size={14} />
                             )}
@@ -444,7 +444,7 @@ export function EnvVarsTable({
                             variant="ghost"
                             onClick={() => setDeleteKey(entry.key)}
                             title="Delete"
-                            className="text-destructive hover:text-destructive"
+                            className="text-danger hover:text-danger"
                           >
                             <IconTrash size={14} />
                           </Button>
@@ -473,7 +473,7 @@ export function EnvVarsTable({
             <DialogTitle>Paste Environment Variables</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted">
               Paste your variables in{" "}
               <span className="font-mono">KEY=VALUE</span> format, one per line.
               Lines starting with <span className="font-mono">#</span> are
@@ -487,7 +487,7 @@ export function EnvVarsTable({
               autoFocus
             />
             {parsedPreview.length > 0 && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 {parsedPreview.length} variable
                 {parsedPreview.length !== 1 ? "s" : ""} detected
               </p>
@@ -529,7 +529,7 @@ export function EnvVarsTable({
           <DialogHeader>
             <DialogTitle>Delete Variable</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted">
             Are you sure you want to delete{" "}
             <span className="font-mono font-medium text-foreground">
               {deleteKey}

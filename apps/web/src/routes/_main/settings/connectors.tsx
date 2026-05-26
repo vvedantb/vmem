@@ -60,7 +60,7 @@ function ConnectorsPage() {
       <PageContainer title="Connectors" centeredMaxWidth>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[1, 2].map((i) => (
-            <Card key={i} className="bg-muted/50 shadow-none">
+            <Card key={i} className="bg-surface-secondary/50 shadow-none">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <Skeleton className="h-12 w-12 rounded-xl" />
@@ -98,19 +98,15 @@ function ConnectorsPage() {
       >
         {sortedConnectors.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <IconPlug
-              size={40}
-              stroke={1.5}
-              className="mb-3 text-muted-foreground"
-            />
-            <p className="mb-4 text-sm text-muted-foreground">
+            <IconPlug size={40} stroke={1.5} className="mb-3 text-muted" />
+            <p className="mb-4 text-sm text-muted">
               No connectors available yet
             </p>
           </div>
         ) : (
           <>
             {!hasAnyConnection ? (
-              <p className="mb-4 text-sm text-muted-foreground">
+              <p className="mb-4 text-sm text-muted">
                 Connect a source below to start syncing.
               </p>
             ) : null}

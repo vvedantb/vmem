@@ -296,7 +296,7 @@ export default function MemorySearch() {
   if (isMemoriesLoading && memoryResults.length === 0) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
-        <VmemSpinner size={24} className="text-muted-foreground" />
+        <VmemSpinner size={24} className="text-muted" />
       </div>
     );
   }
@@ -304,13 +304,13 @@ export default function MemorySearch() {
   if (totalItems === 0 && !isShowingSearchResults) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-          <IconMoodEmpty className="w-6 h-6 text-muted-foreground" />
+        <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
+          <IconMoodEmpty className="w-6 h-6 text-muted" />
         </div>
         <h3 className="text-lg font-medium text-foreground mb-2">
           Nothing here yet
         </h3>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted">
           Add a memory, wiki doc, or skill to get started
         </p>
       </div>
@@ -322,13 +322,13 @@ export default function MemorySearch() {
       <div className="flex flex-1 min-w-0 min-h-0 flex-col">
         {isShowingSearchResults && displayItems.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
-              <AnimatedSearchIcon className="text-muted-foreground" />
+            <div className="w-10 h-10 rounded-full bg-surface-secondary flex items-center justify-center mb-3">
+              <AnimatedSearchIcon className="text-muted" />
             </div>
             <h3 className="text-base font-medium text-foreground mb-1">
               No results found
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted">
               Try searching with different keywords
             </p>
           </div>

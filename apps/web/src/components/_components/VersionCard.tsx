@@ -42,7 +42,7 @@ function getActionStyle(action: string) {
   return (
     ACTION_STYLES[action] ?? {
       label: action,
-      className: "bg-muted text-muted-foreground",
+      className: "bg-surface-secondary text-muted",
     }
   );
 }
@@ -86,8 +86,8 @@ export default function VersionCard({
       className={cn(
         "w-full text-left rounded-lg p-3 transition-colors",
         isSelected
-          ? "bg-primary/10 ring-1 ring-primary/30"
-          : "bg-muted/30 hover:bg-muted/50",
+          ? "bg-accent/10 ring-1 ring-accent/30"
+          : "bg-surface-secondary/30 hover:bg-surface-secondary/50",
       )}
     >
       {/* Header */}
@@ -96,12 +96,10 @@ export default function VersionCard({
           v{version.version}
         </span>
         <Badge className={cn("text-xs", style.className)}>{style.label}</Badge>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted">
           {formatTimestamp(version.createdAt)}
         </span>
-        <span className="text-xs text-muted-foreground">
-          by {version.actor}
-        </span>
+        <span className="text-xs text-muted">by {version.actor}</span>
       </div>
 
       {/* Change summary */}
@@ -141,7 +139,7 @@ export default function VersionCard({
       {/* Title change */}
       {titleChanged && previousVersion !== null && (
         <div className="text-sm mb-2">
-          <span className="text-muted-foreground line-through">
+          <span className="text-muted line-through">
             {previousVersion.snapshot.title}
           </span>
           {" -> "}

@@ -88,23 +88,19 @@ export default function LinkMemoryModal({
 
         <div className="relative">
           <div className="absolute left-3 top-1/2 -translate-y-1/2">
-            <IconSearch
-              className="text-muted-foreground"
-              size={16}
-              stroke={1.5}
-            />
+            <IconSearch className="text-muted" size={16} stroke={1.5} />
           </div>
           <Input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search memories..."
-            className="h-9 bg-muted/50 border-border pl-9 text-foreground hover:bg-accent focus-visible:border-ring"
+            className="h-9 bg-surface-secondary/50 border-border pl-9 text-foreground hover:bg-surface-tertiary focus-visible:border-focus"
           />
         </div>
 
         {filteredMemories.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
+          <p className="text-sm text-muted text-center py-8">
             No memories to link
           </p>
         ) : (
@@ -118,7 +114,7 @@ export default function LinkMemoryModal({
                   type="button"
                   disabled={linkingId !== null}
                   onClick={() => handleLink(memory.id)}
-                  className="w-full h-[64px] text-left px-2.5 py-1 rounded-lg hover:bg-accent transition-colors disabled:opacity-50 flex flex-col justify-center gap-1 min-w-0"
+                  className="w-full h-[64px] text-left px-2.5 py-1 rounded-lg hover:bg-surface-tertiary transition-colors disabled:opacity-50 flex flex-col justify-center gap-1 min-w-0"
                 >
                   <div className="flex items-center gap-2 min-h-0">
                     <p className="text-sm font-medium text-foreground truncate flex-1">
@@ -127,7 +123,7 @@ export default function LinkMemoryModal({
                     {linkingId === memory.id && (
                       <IconLoader2
                         size={14}
-                        className="animate-spin text-muted-foreground flex-shrink-0"
+                        className="animate-spin text-muted flex-shrink-0"
                       />
                     )}
                   </div>
@@ -137,7 +133,7 @@ export default function LinkMemoryModal({
                         <Badge
                           key={tag}
                           variant="outline"
-                          className="bg-muted border-border text-muted-foreground text-xs shrink-0 max-w-[40%] truncate"
+                          className="bg-surface-secondary border-border text-muted text-xs shrink-0 max-w-[40%] truncate"
                         >
                           {tag}
                         </Badge>
@@ -145,7 +141,7 @@ export default function LinkMemoryModal({
                       {memory.tags.length > TAGS_PREVIEW ? (
                         <Badge
                           variant="outline"
-                          className="bg-muted border-border text-muted-foreground text-xs shrink-0"
+                          className="bg-surface-secondary border-border text-muted text-xs shrink-0"
                         >
                           +{memory.tags.length - TAGS_PREVIEW}
                         </Badge>

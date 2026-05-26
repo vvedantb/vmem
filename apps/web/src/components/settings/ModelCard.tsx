@@ -36,7 +36,7 @@ export default function ModelCard({
   const isAnyLoading = engineState === "loading";
 
   return (
-    <div className="flex flex-col gap-3 p-4 rounded-lg bg-muted/40">
+    <div className="flex flex-col gap-3 p-4 rounded-lg bg-surface-secondary/40">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -60,7 +60,7 @@ export default function ModelCard({
               {model.runtime === "mediapipe" ? "MediaPipe" : "MLC"}
             </Badge>
           </div>
-          <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+          <div className="flex gap-3 mt-1 text-xs text-muted">
             <span>~{model.vramMB}MB VRAM</span>
           </div>
         </div>
@@ -101,9 +101,7 @@ export default function ModelCard({
         <div className="space-y-1.5">
           <Progress value={loadProgress} className="h-1.5" />
           {loadMessage && (
-            <p className="text-xs text-muted-foreground truncate">
-              {loadMessage}
-            </p>
+            <p className="text-xs text-muted truncate">{loadMessage}</p>
           )}
         </div>
       )}

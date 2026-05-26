@@ -39,7 +39,7 @@ function getActionStyle(action: string) {
   return (
     ACTION_STYLES[action] ?? {
       label: action,
-      className: "bg-muted text-muted-foreground",
+      className: "bg-surface-secondary text-muted",
     }
   );
 }
@@ -68,8 +68,8 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
   if (events.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <IconClockHour4 className="h-10 w-10 text-muted-foreground mb-3" />
-        <p className="text-sm text-muted-foreground">No events yet</p>
+        <IconClockHour4 className="h-10 w-10 text-muted mb-3" />
+        <p className="text-sm text-muted">No events yet</p>
       </div>
     );
   }
@@ -110,7 +110,8 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                             "bg-purple-500",
                           event.action === "proposal_rejected" &&
                             "bg-orange-500",
-                          !ACTION_STYLES[event.action] && "bg-muted-foreground",
+                          !ACTION_STYLES[event.action] &&
+                            "bg-surface-secondary-foreground",
                         ),
                   )}
                 />
@@ -118,15 +119,13 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted">
                     {formatTimestamp(event.createdAt)}
                   </span>
                   <Badge className={cn("text-xs", style.className)}>
                     {style.label}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    by {event.actor}
-                  </span>
+                  <span className="text-xs text-muted">by {event.actor}</span>
                 </div>
 
                 {mode === "trail" && (
@@ -135,23 +134,20 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                       "space-y-1 border-l-2 pl-3",
                       event.connectionType === "related"
                         ? "border-violet-400 dark:border-violet-600"
-                        : "border-primary/40",
+                        : "border-accent/40",
                     )}
                   >
                     <p className="text-sm font-medium text-foreground">
                       {event.memoryTitle}
                     </p>
                     {event.connectionType === "related" && event.reason && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs text-muted-foreground"
-                      >
+                      <Badge variant="outline" className="text-xs text-muted">
                         Connected via: {event.reason}
                       </Badge>
                     )}
                     {event.snapshot !== null && (
                       <>
-                        <p className="text-sm text-muted-foreground line-clamp-3">
+                        <p className="text-sm text-muted line-clamp-3">
                           {event.snapshot.content.slice(0, 200)}
                         </p>
                         {event.snapshot.tags.length > 0 && (
@@ -170,7 +166,7 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                       </>
                     )}
                     {event.snapshot === null && (
-                      <p className="text-xs text-muted-foreground italic">
+                      <p className="text-xs text-muted italic">
                         No snapshot available
                       </p>
                     )}
@@ -181,7 +177,7 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                   <div className="space-y-2">
                     {titleChanged && prevEvent?.snapshot && event.snapshot && (
                       <div className="text-sm">
-                        <span className="text-muted-foreground line-through">
+                        <span className="text-muted line-through">
                           {prevEvent.snapshot.title}
                         </span>
                         {" → "}
@@ -197,11 +193,11 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                         newText={event.snapshot.content}
                       />
                     ) : event.snapshot !== null ? (
-                      <div className="rounded-lg bg-muted/30 p-3 text-sm whitespace-pre-wrap">
+                      <div className="rounded-lg bg-surface-secondary/30 p-3 text-sm whitespace-pre-wrap">
                         {event.snapshot.content}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">
+                      <p className="text-xs text-muted italic">
                         No snapshot available
                       </p>
                     )}

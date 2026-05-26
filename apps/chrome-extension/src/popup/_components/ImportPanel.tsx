@@ -264,7 +264,7 @@ export function ImportPanel() {
 
   return (
     <div className="space-y-6">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted">
         &quot;Service worker (inactive)&quot; on chrome://extensions is normal
         when idle. Background:{" "}
         {backgroundReachable === "checking"
@@ -285,18 +285,14 @@ export function ImportPanel() {
           />
         </div>
         {settings?.extensionAutoSyncEnabled !== false && nextSyncLabel && (
-          <p className="text-xs text-muted-foreground">
-            Next sync {nextSyncLabel}
-          </p>
+          <p className="text-xs text-muted">Next sync {nextSyncLabel}</p>
         )}
       </div>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Bookmarks
-          </h3>
-          <span className="text-xs text-muted-foreground">
+          <h3 className="text-sm font-medium text-muted">Bookmarks</h3>
+          <span className="text-xs text-muted">
             {formatLastSync(lastBookmarkSync)}
           </span>
         </div>
@@ -312,10 +308,8 @@ export function ImportPanel() {
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Browsing History
-          </h3>
-          <span className="text-xs text-muted-foreground">
+          <h3 className="text-sm font-medium text-muted">Browsing History</h3>
+          <span className="text-xs text-muted">
             {formatLastSync(lastHistorySync)}
           </span>
         </div>
@@ -347,7 +341,7 @@ export function ImportPanel() {
 
       {progress && (
         <div className="space-y-2">
-          <div className="flex justify-between text-xs text-muted-foreground">
+          <div className="flex justify-between text-xs text-muted">
             <span>Progress</span>
             <span className="tabular-nums">
               {progress.current} / {progress.total}
@@ -367,7 +361,7 @@ export function ImportPanel() {
         <p
           className={`text-sm ${
             bookmarkStatus === "error" || historyStatus === "error"
-              ? "text-destructive"
+              ? "text-danger"
               : bookmarkStatus === "cancelled" || historyStatus === "cancelled"
                 ? "text-warning"
                 : "text-success"
@@ -390,20 +384,20 @@ export function ImportPanel() {
       <Button
         variant="ghost"
         size="sm"
-        className="w-full text-muted-foreground"
+        className="w-full text-muted"
         onClick={() => void handleCopyDebugReport()}
         disabled={isImporting}
       >
         Copy debug report for support
       </Button>
       {copyReportMessage ? (
-        <p className="text-xs text-muted-foreground">{copyReportMessage}</p>
+        <p className="text-xs text-muted">{copyReportMessage}</p>
       ) : null}
 
       <Button
         variant="ghost"
         size="sm"
-        className="w-full text-muted-foreground"
+        className="w-full text-muted"
         onClick={handleResetSync}
         disabled={isImporting}
       >

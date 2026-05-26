@@ -22,32 +22,28 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-xl bg-muted/40 p-5 sm:p-6"
+      className="rounded-xl bg-surface-secondary/40 p-5 sm:p-6"
     >
       <div className="mb-5 flex flex-col gap-1 sm:mb-6">
         <h2 className="text-base font-medium text-foreground sm:text-lg">
           Memory growth
         </h2>
-        <p className="text-sm text-muted-foreground">Last 7 days</p>
+        <p className="text-sm text-muted">Last 7 days</p>
       </div>
 
       {growthData.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/60">
-            <IconChartBarOff
-              size={22}
-              className="text-muted-foreground"
-              stroke={1.5}
-            />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-secondary/60">
+            <IconChartBarOff size={22} className="text-muted" stroke={1.5} />
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted">
             No growth data yet — add memories to see trends here.
           </p>
         </div>
       ) : (
         <>
           <div className="relative" style={{ height: CHART_HEIGHT + 40 }}>
-            <div className="absolute left-0 top-0 flex h-full flex-col justify-between pr-2 text-xs tabular-nums text-muted-foreground">
+            <div className="absolute left-0 top-0 flex h-full flex-col justify-between pr-2 text-xs tabular-nums text-muted">
               <span>{maxTotal}</span>
               <span>{Math.round(maxTotal / 2)}</span>
               <span>0</span>
@@ -58,7 +54,7 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
                 {[0, 1, 2].map((line) => (
                   <div
                     key={line}
-                    className="h-px w-full bg-muted-foreground/10"
+                    className="h-px w-full bg-surface-secondary-foreground/10"
                   />
                 ))}
               </div>
@@ -85,12 +81,12 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
                         </div>
 
                         <div
-                          className="absolute bottom-0 w-full rounded-t-md bg-muted/70 transition-[height] duration-300"
+                          className="absolute bottom-0 w-full rounded-t-md bg-surface-secondary/70 transition-[height] duration-300"
                           style={{ height: barHeight }}
                         />
 
                         <div
-                          className="absolute bottom-0 w-full rounded-t-md bg-primary transition-[height,opacity] duration-300"
+                          className="absolute bottom-0 w-full rounded-t-md bg-surface-tertiary transition-[height,opacity] duration-300"
                           style={{
                             height: newHeight,
                             opacity: day.new > 0 ? 1 : 0,
@@ -106,7 +102,7 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
                 {growthData.map((day, index) => (
                   <div
                     key={`label-${day.date}-${index}`}
-                    className="flex-1 text-center text-[11px] text-muted-foreground sm:text-xs"
+                    className="flex-1 text-center text-[11px] text-muted sm:text-xs"
                   >
                     {day.date}
                   </div>
@@ -117,16 +113,12 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
 
           <div className="ml-8 mt-4 flex flex-wrap items-center gap-4 sm:gap-6">
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-sm bg-muted/70" />
-              <span className="text-xs text-muted-foreground">
-                Total memories
-              </span>
+              <span className="h-2.5 w-2.5 rounded-sm bg-surface-secondary/70" />
+              <span className="text-xs text-muted">Total memories</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
-              <span className="text-xs text-muted-foreground">
-                New that day
-              </span>
+              <span className="h-2.5 w-2.5 rounded-sm bg-surface-tertiary" />
+              <span className="text-xs text-muted">New that day</span>
             </div>
           </div>
         </>

@@ -110,7 +110,7 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
       <section className="space-y-3">
         <div>
           <h3 className="text-sm font-medium text-foreground">Team name</h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             Renaming the team also updates the shared profile name.
           </p>
         </div>
@@ -131,8 +131,8 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
 
       <section className="space-y-3">
         <div>
-          <h3 className="text-sm font-medium text-destructive">Danger zone</h3>
-          <p className="text-xs text-muted-foreground">
+          <h3 className="text-sm font-medium text-danger">Danger zone</h3>
+          <p className="text-xs text-muted">
             Deleting a team removes the shared profile and all team memories for
             every member. This cannot be undone.
           </p>
@@ -141,7 +141,7 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
           variant="outline"
           onClick={handleDelete}
           disabled={deleting}
-          className="text-destructive hover:text-destructive"
+          className="text-danger hover:text-danger"
         >
           {deleting ? (
             <IconLoader2 size={14} className="mr-1.5 animate-spin" />

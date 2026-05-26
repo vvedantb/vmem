@@ -186,7 +186,7 @@ export default function AddMemoryModal({
     >
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button className="bg-primary text-primary-foreground font-medium">
+          <Button className="bg-surface-tertiary text-accent-foreground font-medium">
             <IconPlus size={18} />
             Add Memory
           </Button>
@@ -206,13 +206,13 @@ export default function AddMemoryModal({
               for a single attachment chip so the action is unambiguous. */}
           <div className="flex flex-col gap-2 px-5 pt-5 pb-4">
             {pendingFile ? (
-              <div className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-3">
-                <IconFileText className="size-5 shrink-0 text-muted-foreground" />
+              <div className="flex items-center gap-3 rounded-lg bg-surface-secondary/50 px-3 py-3">
+                <IconFileText className="size-5 shrink-0 text-muted" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">
                     {pendingFile.name}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted">
                     {formatFileSize(pendingFile.size)} · ready to import
                   </p>
                 </div>
@@ -222,7 +222,7 @@ export default function AddMemoryModal({
                   variant="ghost"
                   onClick={() => setPendingFile(null)}
                   disabled={isBusy}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted hover:text-foreground"
                 >
                   <IconX size={14} />
                 </Button>
@@ -235,17 +235,17 @@ export default function AddMemoryModal({
                   placeholder="Memory title"
                   disabled={isBusy}
                   autoFocus
-                  className="w-full bg-transparent text-lg font-medium text-foreground outline-none placeholder:text-muted-foreground/60 disabled:opacity-60"
+                  className="w-full bg-transparent text-lg font-medium text-foreground outline-none placeholder:text-muted/60 disabled:opacity-60"
                 />
                 <textarea
                   {...register("content")}
                   placeholder="Add a description…"
                   rows={5}
                   disabled={isBusy}
-                  className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60 disabled:opacity-60"
+                  className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted/60 disabled:opacity-60"
                 />
                 {fieldError && (
-                  <p className="text-xs text-destructive">{fieldError}</p>
+                  <p className="text-xs text-danger">{fieldError}</p>
                 )}
               </>
             )}
@@ -263,14 +263,14 @@ export default function AddMemoryModal({
                     <Badge
                       key={tag}
                       variant="secondary"
-                      className="gap-1 bg-muted px-2 py-0.5 font-normal"
+                      className="gap-1 bg-surface-secondary px-2 py-0.5 font-normal"
                     >
-                      <IconHash size={11} className="text-muted-foreground" />
+                      <IconHash size={11} className="text-muted" />
                       {tag}
                       <button
                         type="button"
                         onClick={() => removeTag(tag, field.onChange)}
-                        className="-mr-1 ml-0.5 rounded p-0.5 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                        className="-mr-1 ml-0.5 rounded p-0.5 text-muted transition-colors hover:bg-foreground/10 hover:text-foreground"
                       >
                         <IconX size={11} />
                       </button>
@@ -283,14 +283,14 @@ export default function AddMemoryModal({
 
           {/* Toolbar — tonal surface shift (no border) carries metadata
               badges on the left and primary actions on the right. */}
-          <div className="flex items-center justify-between gap-2 bg-muted/40 px-3 py-2">
+          <div className="flex items-center justify-between gap-2 bg-surface-secondary/40 px-3 py-2">
             <div className="flex items-center gap-1">
               {/* Profile picker styled as a borderless badge. */}
               <ProfileDropdown
                 value={selectedProfileId}
                 onChange={setSelectedProfileId}
                 disabled={isBusy}
-                className="h-7 min-w-0 gap-1.5 border-0 bg-transparent px-2 text-xs font-normal text-foreground shadow-none hover:bg-muted [&[data-state=open]]:bg-muted [&>svg]:size-3.5"
+                className="h-7 min-w-0 gap-1.5 border-0 bg-transparent px-2 text-xs font-normal text-foreground shadow-none hover:bg-surface-secondary [&[data-state=open]]:bg-surface-secondary [&>svg]:size-3.5"
               />
 
               {/* Tags badge → popover with search + suggestions + create. */}
@@ -311,7 +311,7 @@ export default function AddMemoryModal({
                         variant="ghost"
                         size="sm"
                         disabled={isBusy}
-                        className="h-7 gap-1.5 px-2 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground"
+                        className="h-7 gap-1.5 px-2 text-xs font-normal text-muted hover:bg-surface-secondary hover:text-foreground data-[state=open]:bg-surface-secondary data-[state=open]:text-foreground"
                       >
                         <IconHash size={13} />
                         {field.value.length > 0
@@ -332,7 +332,7 @@ export default function AddMemoryModal({
                           }
                         }}
                         placeholder="Add or search tags…"
-                        className="h-8 w-full rounded-md bg-muted/50 px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/60 focus-visible:bg-muted"
+                        className="h-8 w-full rounded-md bg-surface-secondary/50 px-2 text-sm text-foreground outline-none placeholder:text-muted/60 focus-visible:bg-surface-secondary"
                       />
                       <div className="mt-2 flex max-h-56 flex-col gap-0.5 overflow-y-auto">
                         {filteredSuggestions.slice(0, 10).map((item) => (
@@ -340,16 +340,13 @@ export default function AddMemoryModal({
                             key={item.tag}
                             type="button"
                             onClick={() => addTag(item.tag, field.onChange)}
-                            className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-muted"
+                            className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-surface-secondary"
                           >
                             <span className="flex items-center gap-1.5">
-                              <IconHash
-                                size={12}
-                                className="text-muted-foreground"
-                              />
+                              <IconHash size={12} className="text-muted" />
                               {item.tag}
                             </span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-muted">
                               {item.count}
                             </span>
                           </button>
@@ -358,17 +355,14 @@ export default function AddMemoryModal({
                           <button
                             type="button"
                             onClick={() => addTag(tagInput, field.onChange)}
-                            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-muted"
+                            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-surface-secondary"
                           >
-                            <IconPlus
-                              size={12}
-                              className="text-muted-foreground"
-                            />
+                            <IconPlus size={12} className="text-muted" />
                             Create &ldquo;{normalizedTagInput}&rdquo;
                           </button>
                         )}
                         {!canCreateTag && filteredSuggestions.length === 0 && (
-                          <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                          <p className="px-2 py-3 text-center text-xs text-muted">
                             {allTags.length === 0
                               ? "Type to create a tag"
                               : "All matching tags added"}
@@ -395,7 +389,7 @@ export default function AddMemoryModal({
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isBusy || pendingFile !== null}
-                className="h-7 gap-1.5 px-2 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="h-7 gap-1.5 px-2 text-xs font-normal text-muted hover:bg-surface-secondary hover:text-foreground"
               >
                 <IconPaperclip size={13} />
                 Attach

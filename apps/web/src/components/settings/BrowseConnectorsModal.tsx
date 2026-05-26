@@ -98,7 +98,7 @@ export default function BrowseConnectorsModal({
           </DialogHeader>
           <div className="space-y-1 overflow-hidden">
             {availableConnectors.length === 0 ? (
-              <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+              <p className="px-3 py-6 text-center text-sm text-muted">
                 All connectors are connected.
               </p>
             ) : null}
@@ -110,16 +110,16 @@ export default function BrowseConnectorsModal({
               return (
                 <div
                   key={connector._id}
-                  className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-muted/50 transition-colors min-w-0"
+                  className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-surface-secondary/50 transition-colors min-w-0"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-muted/60 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-surface-secondary/60 flex items-center justify-center flex-shrink-0">
                     <Icon size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">
                       {connector.name}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-xs text-muted truncate">
                       {connector.description}
                     </p>
                   </div>
@@ -133,8 +133,8 @@ export default function BrowseConnectorsModal({
                         disabled={!hasProvider}
                         className={
                           hasProvider
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground cursor-not-allowed"
+                            ? "bg-surface-tertiary text-accent-foreground"
+                            : "bg-surface-secondary text-muted cursor-not-allowed"
                         }
                       >
                         {hasProvider ? "Connect" : "Soon"}

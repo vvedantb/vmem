@@ -159,7 +159,7 @@ export default function TagsListView() {
 
   if (isLoading && tags.length === 0) {
     return (
-      <div className="flex h-full min-h-0 items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-full min-h-0 items-center justify-center text-sm text-muted">
         Loading tags…
       </div>
     );
@@ -169,13 +169,13 @@ export default function TagsListView() {
     const isFiltering = params.q.trim().length > 0 || params.profile !== null;
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-          <IconMoodEmpty className="w-6 h-6 text-muted-foreground" />
+        <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
+          <IconMoodEmpty className="w-6 h-6 text-muted" />
         </div>
         <h3 className="text-lg font-medium text-foreground mb-2">
           {isFiltering ? "No tags match" : "No tags yet"}
         </h3>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted">
           {isFiltering
             ? "Try a different search or clear the profile filter."
             : "Add tags to memories to start grouping them."}
@@ -195,7 +195,7 @@ export default function TagsListView() {
                 key={item.tag}
                 className={cn(
                   "px-3 py-2.5",
-                  !isEditing && "cursor-pointer hover:bg-accent/50",
+                  !isEditing && "cursor-pointer hover:bg-surface-tertiary/50",
                 )}
                 onClick={isEditing ? undefined : () => handleTagClick(item.tag)}
               >
@@ -276,7 +276,7 @@ function DisplayRow({
       <span className="text-sm font-medium text-foreground truncate min-w-0 flex-1">
         {tag}
       </span>
-      <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+      <span className="text-xs text-muted tabular-nums shrink-0">
         {count} {count === 1 ? "memory" : "memories"}
       </span>
       <DropdownMenu>
@@ -285,7 +285,7 @@ function DisplayRow({
             variant="ghost"
             size="icon-sm"
             aria-label={`Actions for tag ${tag}`}
-            className="h-7 w-7 text-muted-foreground"
+            className="h-7 w-7 text-muted"
             onClick={(e) => e.stopPropagation()}
           >
             <IconDotsVertical size={14} />
@@ -298,7 +298,7 @@ function DisplayRow({
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={onDelete}
-            className="text-destructive focus:text-destructive"
+            className="text-danger focus:text-danger"
           >
             <IconTrash size={14} stroke={1.5} />
             Delete
@@ -357,7 +357,7 @@ function RenameRow({
         size="icon-sm"
         onClick={onCancel}
         disabled={isSaving}
-        className="text-muted-foreground"
+        className="text-muted"
         aria-label="Cancel tag rename"
       >
         <IconX size={16} />

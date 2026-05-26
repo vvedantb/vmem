@@ -67,15 +67,12 @@ export function KeysPanel({
   return (
     <>
       {apiKeyList.length === 0 ? (
-        <div className="rounded-xl bg-muted/40 py-16 text-center">
-          <AnimatedKeyIcon
-            size={48}
-            className="mx-auto mb-4 text-muted-foreground"
-          />
+        <div className="rounded-xl bg-surface-secondary/40 py-16 text-center">
+          <AnimatedKeyIcon size={48} className="mx-auto mb-4 text-muted" />
           <h3 className="mb-2 text-lg font-medium text-foreground text-balance">
             No API keys yet
           </h3>
-          <p className="mb-6 text-muted-foreground">
+          <p className="mb-6 text-muted">
             Create your first API key to start using vMemory programmatically.
           </p>
           <Button
@@ -88,25 +85,23 @@ export function KeysPanel({
           </Button>
         </div>
       ) : (
-        <Table className="rounded-xl bg-muted/30 overflow-hidden">
+        <Table className="rounded-xl bg-surface-secondary/30 overflow-hidden">
           <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="font-medium text-muted-foreground">
-                NAME
-              </TableHead>
-              <TableHead className="hidden font-medium text-muted-foreground sm:table-cell">
+            <TableRow className="bg-surface-secondary/50">
+              <TableHead className="font-medium text-muted">NAME</TableHead>
+              <TableHead className="hidden font-medium text-muted sm:table-cell">
                 STATUS
               </TableHead>
-              <TableHead className="hidden font-medium text-muted-foreground md:table-cell">
+              <TableHead className="hidden font-medium text-muted md:table-cell">
                 KEY
               </TableHead>
-              <TableHead className="hidden font-medium text-muted-foreground lg:table-cell">
+              <TableHead className="hidden font-medium text-muted lg:table-cell">
                 REQUESTS
               </TableHead>
-              <TableHead className="hidden font-medium text-muted-foreground sm:table-cell">
+              <TableHead className="hidden font-medium text-muted sm:table-cell">
                 LAST USED
               </TableHead>
-              <TableHead className="text-right font-medium text-muted-foreground sm:w-auto">
+              <TableHead className="text-right font-medium text-muted sm:w-auto">
                 ACTIONS
               </TableHead>
             </TableRow>

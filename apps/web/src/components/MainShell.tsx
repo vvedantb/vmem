@@ -24,7 +24,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
     <PageTitleProvider>
       <WikiSidebarProvider>
         <CommandPalette onToggleSidebar={toggleSidebar} />
-        <div className="relative h-screen overflow-hidden bg-sidebar md:bg-sidebar">
+        <div className="relative h-screen overflow-hidden bg-surface-secondary md:bg-surface-secondary">
           <Sidebar
             isCollapsed={isSidebarCollapsed}
             onToggleCollapse={toggleSidebar}
@@ -34,7 +34,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
               isSidebarCollapsed ? "md:ml-20" : "md:ml-72"
             } md:transition-[margin-left] md:duration-[280ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]`}
           >
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-3xl">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-lg">
               {children}
             </div>
           </main>

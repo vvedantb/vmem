@@ -80,8 +80,8 @@ export default function FileListRow({
     >
       <tr
         className={cn(
-          "group cursor-pointer border-b border-border transition-colors hover:bg-accent/50",
-          isSelected && "bg-primary/5",
+          "group cursor-pointer border-b border-border transition-colors hover:bg-surface-tertiary/50",
+          isSelected && "bg-accent/5",
         )}
         onClick={handleClick}
         onDoubleClick={handleRowOpen}
@@ -96,7 +96,7 @@ export default function FileListRow({
         {/* Icon + Name */}
         <td className="py-2 pr-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted border border-border overflow-hidden">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-secondary border border-border overflow-hidden">
               {!isFolder &&
               item.fileCategory === "image" &&
               item.thumbnailUrl ? (
@@ -107,11 +107,7 @@ export default function FileListRow({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <FileIcon
-                  size={18}
-                  stroke={1.5}
-                  className="text-muted-foreground"
-                />
+                <FileIcon size={18} stroke={1.5} className="text-muted" />
               )}
             </div>
             <span className="text-sm font-medium text-foreground truncate">
@@ -122,7 +118,7 @@ export default function FileListRow({
 
         {/* Size */}
         <td className="hidden md:table-cell py-2 pr-3">
-          <span className="text-sm text-muted-foreground tabular-nums">
+          <span className="text-sm text-muted tabular-nums">
             {isFolder
               ? `${item.itemCount ?? 0} items`
               : formatFileSize(item.size)}
@@ -131,7 +127,7 @@ export default function FileListRow({
 
         {/* Date */}
         <td className="hidden md:table-cell py-2 pr-3">
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-muted">
             {formatDate(item.uploadedAt)}
           </span>
         </td>
@@ -143,7 +139,7 @@ export default function FileListRow({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                className="text-muted opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => e.stopPropagation()}
               >
                 <IconDotsVertical size={16} stroke={1.5} />
@@ -165,7 +161,7 @@ export default function FileListRow({
                 Move to…
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
+                className="text-danger focus:text-danger"
                 onClick={() => onDelete(item)}
               >
                 <IconTrash size={16} stroke={1.5} />

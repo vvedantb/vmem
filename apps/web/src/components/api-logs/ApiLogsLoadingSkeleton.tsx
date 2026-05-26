@@ -9,7 +9,7 @@ export function ApiLogsLoadingSkeleton() {
         {[1, 2, 3].map((index) => (
           <div
             key={index}
-            className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-muted/40 p-5"
+            className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-surface-secondary/40 p-5"
           >
             <div className="flex items-start justify-between">
               <Skeleton className="h-4 w-24 rounded" />

@@ -51,7 +51,7 @@ export function TeamOverview({ data }: { data: TeamDetail }) {
 
   if (!data.profile) {
     return (
-      <div className="text-sm text-muted-foreground">
+      <div className="text-sm text-muted">
         This team has no profile attached.
       </div>
     );
@@ -59,7 +59,7 @@ export function TeamOverview({ data }: { data: TeamDetail }) {
 
   if (error) {
     return (
-      <div className="text-sm text-destructive">
+      <div className="text-sm text-danger">
         Failed to load team stats: {error}
       </div>
     );
@@ -102,9 +102,9 @@ export function TeamOverview({ data }: { data: TeamDetail }) {
           Recent activity
         </h3>
         {result === null ? (
-          <div className="text-sm text-muted-foreground">Loading…</div>
+          <div className="text-sm text-muted">Loading…</div>
         ) : memories.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted">
             No memories yet. Members can start saving to {data.team.name} from
             the profile dropdown.
           </div>
@@ -121,17 +121,15 @@ export function TeamOverview({ data }: { data: TeamDetail }) {
               return (
                 <li
                   key={m.id}
-                  className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2"
+                  className="flex items-center justify-between gap-3 rounded-md bg-surface-secondary/40 px-3 py-2"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm text-foreground">
                       {m.title}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Saved by {name}
-                    </div>
+                    <div className="text-xs text-muted">Saved by {name}</div>
                   </div>
-                  <div className="shrink-0 text-xs text-muted-foreground">
+                  <div className="shrink-0 text-xs text-muted">
                     {new Date(m.createdAt).toLocaleDateString()}
                   </div>
                 </li>
@@ -154,8 +152,8 @@ function StatCard({
   value: string;
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg bg-muted/40 p-4">
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <div className="flex flex-col gap-1 rounded-lg bg-surface-secondary/40 p-4">
+      <div className="flex items-center gap-1.5 text-xs text-muted">
         {icon}
         <span>{label}</span>
       </div>

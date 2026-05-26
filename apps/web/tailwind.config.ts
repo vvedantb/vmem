@@ -1,8 +1,8 @@
 import tailwindcssAnimate from "tailwindcss-animate";
 import type { Config } from "tailwindcss";
 
-function c(name: string) {
-  return `oklch(var(--${name}) / <alpha-value>)`;
+function v(name: string) {
+  return `var(--${name})`;
 }
 
 const config: Config = {
@@ -15,28 +15,55 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        border: c("border"),
-        input: c("input"),
-        ring: c("ring"),
-        background: c("background"),
-        foreground: c("foreground"),
-        primary: { DEFAULT: c("primary"), foreground: c("primary-foreground") },
-        secondary: {
-          DEFAULT: c("secondary"),
-          foreground: c("secondary-foreground"),
+        border: v("border"),
+        background: v("background"),
+        foreground: v("foreground"),
+        accent: {
+          DEFAULT: v("accent"),
+          foreground: v("accent-foreground"),
         },
-        destructive: {
-          DEFAULT: c("destructive"),
-          foreground: c("destructive-foreground"),
+        danger: {
+          DEFAULT: v("danger"),
+          foreground: v("danger-foreground"),
         },
-        success: { DEFAULT: c("success"), foreground: c("success-foreground") },
-        warning: { DEFAULT: c("warning"), foreground: c("warning-foreground") },
-        muted: { DEFAULT: c("muted"), foreground: c("muted-foreground") },
-        accent: { DEFAULT: c("accent"), foreground: c("accent-foreground") },
-        popover: { DEFAULT: c("popover"), foreground: c("popover-foreground") },
-        card: { DEFAULT: c("card"), foreground: c("card-foreground") },
-        sidebar: { DEFAULT: c("sidebar"), foreground: c("sidebar-foreground") },
-        info: { DEFAULT: c("info"), foreground: c("info-foreground") },
+        default: {
+          DEFAULT: v("default"),
+          foreground: v("default-foreground"),
+        },
+        field: {
+          background: v("field-background"),
+          border: v("field-border"),
+          foreground: v("field-foreground"),
+          placeholder: v("field-placeholder"),
+        },
+        focus: v("focus"),
+        muted: v("muted"),
+        overlay: {
+          DEFAULT: v("overlay"),
+          foreground: v("overlay-foreground"),
+        },
+        scrollbar: v("scrollbar"),
+        segment: {
+          DEFAULT: v("segment"),
+          foreground: v("segment-foreground"),
+        },
+        separator: v("separator"),
+        success: {
+          DEFAULT: v("success"),
+          foreground: v("success-foreground"),
+        },
+        surface: {
+          DEFAULT: v("surface"),
+          foreground: v("surface-foreground"),
+          secondary: v("surface-secondary"),
+          "secondary-foreground": v("surface-secondary-foreground"),
+          tertiary: v("surface-tertiary"),
+          "tertiary-foreground": v("surface-tertiary-foreground"),
+        },
+        warning: {
+          DEFAULT: v("warning"),
+          foreground: v("warning-foreground"),
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

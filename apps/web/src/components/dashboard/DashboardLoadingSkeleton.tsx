@@ -9,7 +9,7 @@ export function DashboardLoadingSkeleton() {
         {[1, 2, 3, 4].map((index) => (
           <div
             key={index}
-            className="flex min-h-[7.5rem] flex-col gap-3 rounded-xl bg-muted/40 p-5"
+            className="flex min-h-[7.5rem] flex-col gap-3 rounded-xl bg-surface-secondary/40 p-5"
           >
             <div className="flex items-start justify-between">
               <Skeleton className="h-4 w-24 rounded" />
@@ -20,18 +20,24 @@ export function DashboardLoadingSkeleton() {
         ))}
       </div>
 
-      <div className="rounded-xl bg-muted/40 p-5 sm:p-6">
+      <div className="rounded-xl bg-surface-secondary/40 p-5 sm:p-6">
         <Skeleton className="mb-6 h-5 w-48 rounded" />
         <Skeleton className="h-44 w-full rounded-xl" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
         {[1, 2].map((index) => (
-          <div key={index} className="rounded-xl bg-muted/40 p-5 sm:p-6">
+          <div
+            key={index}
+            className="rounded-xl bg-surface-secondary/40 p-5 sm:p-6"
+          >
             <Skeleton className="mb-4 h-5 w-36 rounded" />
             <div className="flex flex-col gap-1">
               {[1, 2, 3, 4].map((row) => (
-                <div key={row} className="rounded-xl bg-muted/30 px-4 py-3">
+                <div
+                  key={row}
+                  className="rounded-xl bg-surface-secondary/30 px-4 py-3"
+                >
                   <Skeleton className="h-4 w-full max-w-sm rounded" />
                 </div>
               ))}

@@ -38,19 +38,17 @@ export default function VoiceModelCard({
   const KindIcon = model.kind === "stt" ? IconMicrophone : IconWaveSine;
 
   return (
-    <div className="flex flex-col gap-3 p-4 rounded-lg bg-muted/40">
+    <div className="flex flex-col gap-3 p-4 rounded-lg bg-surface-secondary/40">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <KindIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <KindIcon className="h-4 w-4 text-muted flex-shrink-0" />
             <h4 className="text-sm font-medium text-foreground">
               {model.name}
             </h4>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {model.description}
-          </p>
-          <p className="mt-1.5 text-xs text-muted-foreground capitalize">
+          <p className="text-xs text-muted mt-1">{model.description}</p>
+          <p className="mt-1.5 text-xs text-muted capitalize">
             {model.kind === "stt" ? "Speech-to-Text" : "Text-to-Speech"}
           </p>
         </div>
@@ -91,9 +89,7 @@ export default function VoiceModelCard({
         <div className="space-y-1.5">
           <Progress value={loadProgress} className="h-1.5" />
           {loadMessage && (
-            <p className="text-xs text-muted-foreground truncate">
-              {loadMessage}
-            </p>
+            <p className="text-xs text-muted truncate">{loadMessage}</p>
           )}
         </div>
       )}

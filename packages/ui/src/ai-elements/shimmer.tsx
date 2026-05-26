@@ -33,11 +33,11 @@ const Shimmer = memo(function Shimmer({
           "--spread": `${totalSpread}px`,
           "--bg": `linear-gradient(
             90deg,
-            oklch(var(--muted-foreground)) 0%,
-            oklch(var(--foreground)) calc(50% - var(--spread)),
-            oklch(var(--muted-foreground)) 50%,
-            oklch(var(--foreground)) calc(50% + var(--spread)),
-            oklch(var(--muted-foreground)) 100%
+            var(--muted) 0%,
+            var(--foreground) calc(50% - var(--spread)),
+            var(--muted) 50%,
+            var(--foreground) calc(50% + var(--spread)),
+            var(--muted) 100%
           )`,
           backgroundImage: "var(--bg)",
           backgroundSize: "200% 100%",

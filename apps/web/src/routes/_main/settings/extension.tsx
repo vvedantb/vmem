@@ -55,7 +55,7 @@ function ExtensionSettingsPage() {
             <Label htmlFor="ext-auto-sync" className="text-sm font-medium">
               Auto-sync
             </Label>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted">
               Sync bookmarks and browsing history on a schedule.
             </p>
           </div>
@@ -75,7 +75,7 @@ function ExtensionSettingsPage() {
             >
               Save popup on text selection
             </Label>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted">
               Show a quick-save control when you select text on a page.
             </p>
           </div>

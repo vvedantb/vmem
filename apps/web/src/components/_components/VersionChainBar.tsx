@@ -45,7 +45,7 @@ export default function VersionChainBar({
   const canGoForward = selectedVersion < total;
 
   return (
-    <div className="rounded-lg bg-muted/40 p-3 mb-4">
+    <div className="rounded-lg bg-surface-secondary/40 p-3 mb-4">
       {/* Version navigator */}
       <div className="flex items-center justify-center gap-2 mb-2">
         <button
@@ -55,8 +55,8 @@ export default function VersionChainBar({
           className={cn(
             "p-1 rounded transition-colors",
             canGoBack
-              ? "hover:bg-muted text-foreground"
-              : "text-muted-foreground/40 cursor-not-allowed",
+              ? "hover:bg-surface-secondary text-foreground"
+              : "text-muted/40 cursor-not-allowed",
           )}
           aria-label="Previous version"
         >
@@ -72,8 +72,8 @@ export default function VersionChainBar({
               className={cn(
                 "w-3 h-3 rounded-full transition-all",
                 v.version === selectedVersion
-                  ? "bg-primary scale-125"
-                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50",
+                  ? "bg-surface-tertiary scale-125"
+                  : "bg-surface-secondary-foreground/30 hover:bg-surface-secondary-foreground/50",
               )}
               aria-label={`Version ${v.version}`}
               aria-current={v.version === selectedVersion ? "true" : undefined}
@@ -88,8 +88,8 @@ export default function VersionChainBar({
           className={cn(
             "p-1 rounded transition-colors",
             canGoForward
-              ? "hover:bg-muted text-foreground"
-              : "text-muted-foreground/40 cursor-not-allowed",
+              ? "hover:bg-surface-secondary text-foreground"
+              : "text-muted/40 cursor-not-allowed",
           )}
           aria-label="Next version"
         >
@@ -98,7 +98,7 @@ export default function VersionChainBar({
       </div>
 
       {/* Version indicator */}
-      <div className="text-center text-xs text-muted-foreground">
+      <div className="text-center text-xs text-muted">
         <span className="font-medium text-foreground">v{selectedVersion}</span>
         {" of "}
         {total}

@@ -4,21 +4,21 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../utils/cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium tracking-normal transition-[transform,background-color,box-shadow,opacity,border-color] duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 active:scale-[0.96] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium tracking-normal transition-[transform,background-color,box-shadow,opacity,border-color] duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 active:scale-[0.96] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-soft hover:-translate-y-0.5 hover:bg-primary/92 hover:shadow-panel",
+          "bg-accent text-accent-foreground shadow-soft hover:-translate-y-0.5 hover:bg-accent/92 hover:shadow-panel",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-soft hover:bg-destructive/90",
+          "bg-danger text-danger-foreground shadow-soft hover:bg-danger/90",
         outline:
-          "border border-input bg-card text-foreground shadow-insetSoft hover:bg-secondary",
+          "border border-border bg-surface text-foreground shadow-insetSoft hover:bg-default",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-insetSoft hover:bg-secondary/78",
+          "bg-default text-default-foreground shadow-insetSoft hover:bg-default/78",
         ghost:
-          "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline active:scale-100",
+          "text-muted hover:bg-surface-tertiary hover:text-surface-tertiary-foreground",
+        link: "text-accent underline-offset-4 hover:underline active:scale-100",
       },
       size: {
         default: "h-10 px-4 py-2",

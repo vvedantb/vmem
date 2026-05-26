@@ -34,7 +34,7 @@ function Suggestion({
       variant={variant}
       size={size}
       className={cn(
-        "h-auto rounded-full px-3 py-1.5 text-sm text-muted-foreground bg-muted hover:bg-accent",
+        "h-auto rounded-full px-3 py-1.5 text-sm text-muted bg-surface-secondary hover:bg-surface-tertiary",
         className,
       )}
       {...props}

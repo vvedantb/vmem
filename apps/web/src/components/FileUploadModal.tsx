@@ -248,7 +248,7 @@ export default function FileUploadModal({
               variant="ghost"
               onClick={handleClose}
               disabled={isUploading}
-              className="text-muted-foreground flex-shrink-0"
+              className="text-muted flex-shrink-0"
             >
               <IconX size={18} />
             </Button>
@@ -265,8 +265,8 @@ export default function FileUploadModal({
               relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors
               ${
                 isDragging
-                  ? "border-primary bg-muted"
-                  : "border-border/80 hover:border-ring"
+                  ? "border-accent bg-surface-secondary"
+                  : "border-border/80 hover:border-focus"
               }
             `}
           >
@@ -281,15 +281,13 @@ export default function FileUploadModal({
             <div className="flex flex-col items-center gap-3">
               <div
                 className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
-                  isDragging ? "bg-primary" : "bg-muted"
+                  isDragging ? "bg-surface-tertiary" : "bg-surface-secondary"
                 }`}
               >
                 <IconUpload
                   size={24}
                   className={
-                    isDragging
-                      ? "text-primary-foreground"
-                      : "text-muted-foreground"
+                    isDragging ? "text-accent-foreground" : "text-muted"
                   }
                 />
               </div>
@@ -297,16 +295,14 @@ export default function FileUploadModal({
                 <p className="text-foreground font-medium">
                   {isDragging ? "Drop files here" : "Drag and drop files here"}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  or click to browse
-                </p>
+                <p className="text-sm text-muted mt-1">or click to browse</p>
               </div>
             </div>
           </div>
 
           {queuedFiles.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">
+              <p className="text-sm font-medium text-muted">
                 {pendingCount > 0
                   ? `${pendingCount} file${pendingCount !== 1 ? "s" : ""} ready to upload`
                   : completeCount > 0
@@ -319,26 +315,26 @@ export default function FileUploadModal({
                   return (
                     <div
                       key={`${queuedFile.file.name}-${index}`}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border"
+                      className="flex items-center gap-3 p-3 rounded-lg bg-surface-secondary/50 border border-border"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center flex-shrink-0">
-                        <FileIcon size={20} className="text-muted-foreground" />
+                      <div className="w-10 h-10 rounded-lg bg-surface-secondary border border-border flex items-center justify-center flex-shrink-0">
+                        <FileIcon size={20} className="text-muted" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-foreground font-medium truncate">
                           {queuedFile.file.name}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted">
                           {formatFileSize(queuedFile.file.size)}
                         </p>
                         {queuedFile.status === "uploading" && (
                           <Progress
                             value={queuedFile.progress}
-                            className="mt-2 h-1.5 bg-muted"
+                            className="mt-2 h-1.5 bg-surface-secondary"
                           />
                         )}
                         {queuedFile.status === "error" && (
-                          <p className="text-xs text-destructive mt-1">
+                          <p className="text-xs text-danger mt-1">
                             {queuedFile.error}
                           </p>
                         )}
@@ -350,7 +346,7 @@ export default function FileUploadModal({
                             variant="ghost"
                             onClick={() => removeQueuedFile(index)}
                             disabled={isUploading}
-                            className="text-muted-foreground hover:text-destructive"
+                            className="text-muted hover:text-danger"
                           >
                             <IconTrash size={16} />
                           </Button>
@@ -358,7 +354,7 @@ export default function FileUploadModal({
                         {queuedFile.status === "uploading" && (
                           <IconLoader2
                             size={20}
-                            className="text-muted-foreground animate-spin"
+                            className="text-muted animate-spin"
                           />
                         )}
                         {queuedFile.status === "complete" && (
@@ -369,7 +365,7 @@ export default function FileUploadModal({
                             size="icon-sm"
                             variant="ghost"
                             onClick={() => removeQueuedFile(index)}
-                            className="text-destructive"
+                            className="text-danger"
                           >
                             <IconX size={16} />
                           </Button>
@@ -388,7 +384,7 @@ export default function FileUploadModal({
             variant="ghost"
             onClick={handleClose}
             disabled={isUploading}
-            className="text-muted-foreground"
+            className="text-muted"
           >
             {completeCount > 0 && pendingCount === 0 ? "Done" : "Cancel"}
           </Button>
@@ -396,7 +392,7 @@ export default function FileUploadModal({
             <Button
               onClick={handleUploadAll}
               disabled={isUploading || pendingCount === 0}
-              className="bg-primary text-primary-foreground"
+              className="bg-surface-tertiary text-accent-foreground"
             >
               {isUploading ? (
                 <IconLoader2 size={16} className="animate-spin" />

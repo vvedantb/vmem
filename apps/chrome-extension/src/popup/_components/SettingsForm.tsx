@@ -190,7 +190,7 @@ export function SettingsForm() {
 
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <IconBrain size={16} className="text-muted-foreground" />
+          <IconBrain size={16} className="text-muted" />
           <Label htmlFor="auto-search-toggle" className="text-sm">
             Auto-search memories in chats
           </Label>
@@ -204,7 +204,7 @@ export function SettingsForm() {
 
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <IconSend size={16} className="text-muted-foreground" />
+          <IconSend size={16} className="text-muted" />
           <Label htmlFor="auto-capture-toggle" className="text-sm">
             Auto-capture prompts
           </Label>
@@ -218,7 +218,7 @@ export function SettingsForm() {
 
       <div className="space-y-2">
         <p className="text-sm font-medium">System prompt</p>
-        <p className="text-xs text-muted-foreground text-pretty">
+        <p className="text-xs text-muted text-pretty">
           Copy the recommended vmem prompt and paste it into your AI
           agent&apos;s system prompt settings.
         </p>
@@ -234,7 +234,7 @@ export function SettingsForm() {
 
       <Button
         variant="ghost"
-        className="w-full text-destructive hover:text-destructive"
+        className="w-full text-danger hover:text-danger"
         onClick={() => signOut()}
       >
         <IconLogout size={16} stroke={1.8} />

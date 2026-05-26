@@ -36,7 +36,7 @@ export function WikiDocActionsMenu({
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="shrink-0 text-muted-foreground"
+          className="shrink-0 text-muted"
           aria-label="Document actions"
           disabled={copyDisabled}
         >
@@ -44,7 +44,7 @@ export function WikiDocActionsMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-52 w-52">
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground tabular-nums">
+        <DropdownMenuLabel className="text-xs font-normal text-muted tabular-nums">
           {wordCountLabel}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

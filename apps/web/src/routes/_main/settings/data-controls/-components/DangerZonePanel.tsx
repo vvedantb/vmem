@@ -16,18 +16,14 @@ export function DangerZonePanel() {
 
   return (
     <>
-      <div className="rounded-xl bg-muted/40 p-6">
+      <div className="rounded-xl bg-surface-secondary/40 p-6">
         <div className="mb-4 flex items-center gap-3">
-          <IconAlertTriangle
-            size={20}
-            className="text-destructive"
-            stroke={1.75}
-          />
+          <IconAlertTriangle size={20} className="text-danger" stroke={1.75} />
           <h3 className="text-base font-medium text-foreground">
             Delete all memories
           </h3>
         </div>
-        <p className="mb-5 text-sm text-muted-foreground">
+        <p className="mb-5 text-sm text-muted">
           Permanently removes every memory you own, along with their tags,
           relationships, chunks, and history. This action cannot be undone.
         </p>

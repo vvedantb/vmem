@@ -86,8 +86,8 @@ export default function ListItemRow({
   const rowBody = (
     <div
       className={cn(
-        "cursor-pointer rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50",
-        isSelected && "bg-muted dark:bg-accent",
+        "cursor-pointer rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50",
+        isSelected && "bg-surface-secondary dark:bg-surface-tertiary",
       )}
       onClick={handleClick}
     >
@@ -110,13 +110,13 @@ export default function ListItemRow({
             </Badge>
           )}
           {relevanceScore !== null && (
-            <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
+            <span className="text-xs text-muted tabular-nums flex-shrink-0">
               {Math.round(relevanceScore * 100)}%
             </span>
           )}
           <div className="flex items-center gap-1.5 shrink-0">
             <KindMeta item={item} />
-            <span className="text-xs text-muted-foreground/50 tabular-nums whitespace-nowrap">
+            <span className="text-xs text-muted/50 tabular-nums whitespace-nowrap">
               {timeAgo(item.createdAt)}
             </span>
           </div>
@@ -151,7 +151,7 @@ export default function ListItemRow({
           Edit
         </ContextMenuItem>
         <ContextMenuItem
-          className="text-destructive focus:text-destructive"
+          className="text-danger focus:text-danger"
           onClick={() => onContextDelete(memory)}
         >
           <IconTrash size={16} stroke={1.5} />
@@ -169,7 +169,7 @@ function KindMeta({ item }: { item: ListItem }) {
       return (
         <Badge
           variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted-foreground border-border whitespace-nowrap"
+          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted border-border whitespace-nowrap"
         >
           {formatMemorySourceLabel(item.source)}
         </Badge>
@@ -178,7 +178,7 @@ function KindMeta({ item }: { item: ListItem }) {
       return (
         <Badge
           variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted-foreground border-border whitespace-nowrap"
+          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted border-border whitespace-nowrap"
         >
           Wiki
         </Badge>
@@ -187,7 +187,7 @@ function KindMeta({ item }: { item: ListItem }) {
       return (
         <Badge
           variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted-foreground border-border whitespace-nowrap"
+          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted border-border whitespace-nowrap"
         >
           {item.childCount} {item.childCount === 1 ? "item" : "items"}
         </Badge>
@@ -196,7 +196,7 @@ function KindMeta({ item }: { item: ListItem }) {
       return (
         <Badge
           variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted-foreground border-border whitespace-nowrap"
+          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted border-border whitespace-nowrap"
         >
           Skill
         </Badge>

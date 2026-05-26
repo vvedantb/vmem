@@ -15,10 +15,10 @@ interface CodebaseSidebarCardProps {
 }
 
 const statusDotClass: Record<CodebaseItem["status"], string> = {
-  pending: "bg-muted-foreground/50",
+  pending: "bg-surface-secondary-foreground/50",
   syncing: "bg-blue-500",
   synced: "bg-emerald-500",
-  error: "bg-destructive",
+  error: "bg-danger",
 };
 
 export function CodebaseSidebarCard({
@@ -45,10 +45,10 @@ export function CodebaseSidebarCard({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        "flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/30",
         selected
-          ? "bg-muted/40 text-foreground"
-          : "hover:bg-card/45 dark:hover:bg-muted/40",
+          ? "bg-surface-secondary/40 text-foreground"
+          : "hover:bg-surface/45 dark:hover:bg-surface-secondary/40",
       )}
     >
       {codebase.avatarUrl ? (
@@ -76,19 +76,19 @@ export function CodebaseSidebarCard({
           {codebase.isPrivate ? (
             <IconLock
               size={12}
-              className="shrink-0 text-muted-foreground"
+              className="shrink-0 text-muted"
               aria-label="Private repository"
             />
           ) : null}
           {codebase.status === "syncing" ? (
             <IconLoader2
               size={12}
-              className="shrink-0 animate-spin text-muted-foreground"
+              className="shrink-0 animate-spin text-muted"
               aria-hidden
             />
           ) : null}
         </div>
-        <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-1 text-xs text-muted">
           <span className="truncate">{codebase.repoOwner}</span>
           {codebase.language ? (
             <>

@@ -37,9 +37,7 @@ export default function VoiceStatusLine({
   if (!allReady) {
     return (
       <div className="flex flex-col items-center gap-1 min-h-[3rem]">
-        <p className="text-sm text-muted-foreground/70">
-          Load models to get started
-        </p>
+        <p className="text-sm text-muted/70">Load models to get started</p>
       </div>
     );
   }
@@ -68,7 +66,7 @@ export default function VoiceStatusLine({
       {/* Transcript preview while thinking / speaking */}
       {transcript && phase !== "idle" && (
         <motion.p
-          className="text-xs text-muted-foreground/60 text-center max-w-xs truncate italic"
+          className="text-xs text-muted/60 text-center max-w-xs truncate italic"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: motionDuration.fast, ease: motionEase }}

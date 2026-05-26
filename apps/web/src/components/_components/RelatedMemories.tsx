@@ -114,13 +114,11 @@ export default function RelatedMemories({
     <div>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <h4 className="text-sm font-medium text-muted-foreground">
-            Related Memories
-          </h4>
+          <h4 className="text-sm font-medium text-muted">Related Memories</h4>
           {entries.length > 0 && (
             <Badge
               variant="outline"
-              className="bg-muted border-border text-muted-foreground text-xs"
+              className="bg-surface-secondary border-border text-muted text-xs"
             >
               {entries.length}
             </Badge>
@@ -130,7 +128,7 @@ export default function RelatedMemories({
           variant="ghost"
           size="sm"
           onClick={() => setLinkModalOpen(true)}
-          className="h-7 px-2 text-xs text-muted-foreground"
+          className="h-7 px-2 text-xs text-muted"
         >
           <IconLink size={14} />
           Link
@@ -139,19 +137,16 @@ export default function RelatedMemories({
 
       {isLoading ? (
         <div className="flex justify-center py-3">
-          <IconLoader2
-            size={16}
-            className="animate-spin text-muted-foreground"
-          />
+          <IconLoader2 size={16} className="animate-spin text-muted" />
         </div>
       ) : entries.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No related memories</p>
+        <p className="text-sm text-muted">No related memories</p>
       ) : (
         <div className="flex flex-col gap-1">
           {entries.map((entry) => (
             <div
               key={entry.memory.id}
-              className="flex items-start justify-between gap-2 rounded-lg px-2.5 py-2 transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50"
+              className="flex items-start justify-between gap-2 rounded-lg px-2.5 py-2 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50"
             >
               <button
                 type="button"
@@ -175,7 +170,7 @@ export default function RelatedMemories({
                 </p>
                 <Badge
                   variant="outline"
-                  className="mt-1 text-xs bg-muted border-border text-muted-foreground"
+                  className="mt-1 text-xs bg-surface-secondary border-border text-muted"
                 >
                   {entry.reason}
                 </Badge>
@@ -185,7 +180,7 @@ export default function RelatedMemories({
                 size="icon-xs"
                 onClick={() => setConfirmUnlinkId(entry.memory.id)}
                 disabled={unlinkingId === entry.memory.id}
-                className="flex-shrink-0 text-muted-foreground hover:text-destructive"
+                className="flex-shrink-0 text-muted hover:text-danger"
               >
                 {unlinkingId === entry.memory.id ? (
                   <IconLoader2 size={14} className="animate-spin" />
@@ -204,7 +199,7 @@ export default function RelatedMemories({
           if (!open && unlinkingId === null) setConfirmUnlinkId(null);
         }}
       >
-        <DialogContent className="sm:max-w-sm bg-card border border-border">
+        <DialogContent className="sm:max-w-sm bg-surface border border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground">Unlink Memory</DialogTitle>
             <DialogDescription className="sr-only">
@@ -212,8 +207,8 @@ export default function RelatedMemories({
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-start gap-3 py-4">
-            <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
-              <IconAlertTriangle size={20} className="text-destructive" />
+            <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center flex-shrink-0">
+              <IconAlertTriangle size={20} className="text-danger" />
             </div>
             <div>
               <p className="text-foreground">
@@ -224,7 +219,7 @@ export default function RelatedMemories({
                 </span>
                 ?
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted mt-1">
                 This will remove the relationship between these two memories.
               </p>
             </div>
@@ -234,7 +229,7 @@ export default function RelatedMemories({
               variant="ghost"
               onClick={() => setConfirmUnlinkId(null)}
               disabled={unlinkingId !== null}
-              className="text-muted-foreground"
+              className="text-muted"
             >
               Cancel
             </Button>
@@ -245,7 +240,7 @@ export default function RelatedMemories({
                 setConfirmUnlinkId(null);
               }}
               disabled={unlinkingId !== null}
-              className="bg-destructive text-primary-foreground"
+              className="bg-danger text-accent-foreground"
             >
               {unlinkingId !== null ? (
                 <>

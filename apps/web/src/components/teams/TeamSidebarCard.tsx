@@ -46,12 +46,12 @@ export function TeamSidebarCard({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        "flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/30",
         selected && inGroup
           ? "text-foreground"
           : selected
-            ? "bg-muted/40 text-foreground"
-            : "text-muted-foreground hover:bg-card/45 hover:text-foreground dark:hover:bg-muted/40",
+            ? "bg-surface-secondary/40 text-foreground"
+            : "text-muted hover:bg-surface/45 hover:text-foreground dark:hover:bg-surface-secondary/40",
       )}
     >
       {profile && ProfileIcon ? (
@@ -64,12 +64,12 @@ export function TeamSidebarCard({
           <ProfileIcon
             size={16}
             stroke={1.7}
-            className={profileColor ? undefined : "text-muted-foreground"}
+            className={profileColor ? undefined : "text-muted"}
             style={profileColor ? { color: profileColor } : undefined}
           />
         </div>
       ) : (
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-surface-secondary/60 text-muted">
           <IconBuilding size={16} stroke={1.7} />
         </span>
       )}
@@ -77,7 +77,7 @@ export function TeamSidebarCard({
         <div className="truncate text-sm font-semibold text-foreground">
           {team.name}
         </div>
-        <div className="truncate text-xs text-muted-foreground capitalize">
+        <div className="truncate text-xs text-muted capitalize">
           {role}
           <span className="normal-case">
             {" "}

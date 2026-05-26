@@ -89,7 +89,7 @@ export default function MemoryDetailPanel({
             variant="ghost"
             size="icon-sm"
             onClick={onClose}
-            className="text-muted-foreground flex-shrink-0"
+            className="text-muted flex-shrink-0"
           >
             <IconX size={18} />
           </Button>
@@ -142,7 +142,7 @@ export default function MemoryDetailPanel({
           <DialogHeader className="pb-5">
             <DialogTitle className="text-foreground">Delete Memory</DialogTitle>
           </DialogHeader>
-          <p className="text-muted-foreground py-2">
+          <p className="text-muted py-2">
             Are you sure you want to delete &quot;{memory.title}&quot;? This
             action cannot be undone.
           </p>
@@ -151,7 +151,7 @@ export default function MemoryDetailPanel({
               variant="ghost"
               onClick={() => setShowDeleteConfirm(false)}
               disabled={isDeleting}
-              className="text-muted-foreground"
+              className="text-muted"
             >
               Cancel
             </Button>

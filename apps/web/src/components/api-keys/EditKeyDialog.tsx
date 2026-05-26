@@ -58,10 +58,10 @@ export function EditKeyDialog({
         if (!open && !isSaving) onCancel();
       }}
     >
-      <DialogContent className="sm:max-w-sm bg-card border border-border">
+      <DialogContent className="sm:max-w-sm bg-surface border border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">Rename API Key</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogDescription className="text-muted">
             Update the display name for this key. The key value stays the same.
           </DialogDescription>
         </DialogHeader>
@@ -75,7 +75,7 @@ export function EditKeyDialog({
               aria-invalid={errors.name ? true : undefined}
             />
             {errors.name ? (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
+              <p className="text-sm text-danger">{errors.name.message}</p>
             ) : null}
           </div>
           <DialogFooter>
@@ -84,7 +84,7 @@ export function EditKeyDialog({
               variant="ghost"
               onClick={onCancel}
               disabled={isSaving}
-              className="text-muted-foreground"
+              className="text-muted"
             >
               Cancel
             </Button>

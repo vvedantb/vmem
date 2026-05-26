@@ -55,13 +55,13 @@ export default function Dashboard() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/10">
-          <IconAlertCircle className="h-6 w-6 text-destructive" stroke={1.5} />
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-danger/10">
+          <IconAlertCircle className="h-6 w-6 text-danger" stroke={1.5} />
         </div>
         <h3 className="mb-2 text-lg font-medium text-foreground">
           Failed to load dashboard
         </h3>
-        <p className="mb-4 text-sm text-muted-foreground">{error}</p>
+        <p className="mb-4 text-sm text-muted">{error}</p>
         <Button onClick={fetchData}>
           <IconRefresh size={18} />
           Try again

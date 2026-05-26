@@ -123,17 +123,17 @@ export default function DetailsTab({
               {...register("title")}
               placeholder="Memory title"
               disabled={isSubmitting}
-              className="h-10 bg-muted/50 border-border text-foreground text-lg font-semibold hover:bg-accent focus-visible:border-ring mb-4"
+              className="h-10 bg-surface-secondary/50 border-border text-foreground text-lg font-semibold hover:bg-surface-tertiary focus-visible:border-focus mb-4"
             />
             <Textarea
               {...register("content")}
               placeholder="Memory content"
               rows={6}
               disabled={isSubmitting}
-              className="bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
+              className="bg-surface-secondary/50 border-border text-foreground hover:bg-surface-tertiary focus-visible:border-focus"
             />
             {errors.content && (
-              <p className="text-sm text-destructive mt-1">
+              <p className="text-sm text-danger mt-1">
                 {errors.content.message}
               </p>
             )}
@@ -168,21 +168,19 @@ export default function DetailsTab({
                 <Badge
                   key={tag}
                   variant="outline"
-                  className="bg-muted border-border text-muted-foreground text-xs"
+                  className="bg-surface-secondary border-border text-muted text-xs"
                 >
                   {tag}
                 </Badge>
               ))
             ) : (
-              <span className="text-sm text-muted-foreground">No tags</span>
+              <span className="text-sm text-muted">No tags</span>
             )}
           </div>
         )}
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        {formatDate(memory.createdAt)}
-      </p>
+      <p className="text-sm text-muted">{formatDate(memory.createdAt)}</p>
 
       {/* Footer actions */}
       <div className="flex justify-between border-t border-border pt-4">
@@ -192,14 +190,14 @@ export default function DetailsTab({
               variant="ghost"
               onClick={cancelEditing}
               disabled={isSubmitting}
-              className="text-muted-foreground"
+              className="text-muted"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSubmit(onSave)}
               disabled={isSubmitting}
-              className="bg-primary text-primary-foreground"
+              className="bg-surface-tertiary text-accent-foreground"
             >
               {isSubmitting ? (
                 <IconLoader2 size={16} className="animate-spin" />
@@ -214,14 +212,14 @@ export default function DetailsTab({
             <Button
               variant="ghost"
               onClick={onRequestDelete}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="text-danger hover:text-danger hover:bg-danger/10"
             >
               <IconTrash size={16} />
               Delete
             </Button>
             <Button
               onClick={startEditing}
-              className="bg-primary text-primary-foreground"
+              className="bg-surface-tertiary text-accent-foreground"
             >
               <IconEdit size={16} />
               Edit

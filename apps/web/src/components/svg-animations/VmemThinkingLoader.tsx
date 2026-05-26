@@ -4,7 +4,7 @@ import { VmemPaths } from "./VmemPaths";
 interface VmemThinkingLoaderProps {
   /** Pixel size for both width and height. Default 28. */
   size?: number;
-  /** Extra classes — `currentColor` driven, so `text-muted-foreground` etc. works. */
+  /** Extra classes — `currentColor` driven, so `text-muted` etc. works. */
   className?: string;
 }
 

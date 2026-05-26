@@ -159,7 +159,7 @@ function PreferencesPage() {
               <Label htmlFor="about-me" className="text-sm font-medium">
                 About me
               </Label>
-              <span className="text-xs text-muted-foreground tabular-nums">
+              <span className="text-xs text-muted tabular-nums">
                 {settings.aboutMe.length}/500
               </span>
             </div>
@@ -182,7 +182,7 @@ function PreferencesPage() {
               <Label htmlFor="preferences" className="text-sm font-medium">
                 Preferences
               </Label>
-              <span className="text-xs text-muted-foreground tabular-nums">
+              <span className="text-xs text-muted tabular-nums">
                 {settings.preferences.length}/500
               </span>
             </div>
@@ -212,7 +212,7 @@ function PreferencesPage() {
                 <Label htmlFor="auto-extract" className="text-sm font-medium">
                   Auto-extract memories
                 </Label>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-muted">
                   Automatically extract memories from conversations.
                 </p>
               </div>
@@ -244,7 +244,7 @@ function PreferencesPage() {
                 >
                   Auto-accept high-confidence synthesis
                 </Label>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-muted">
                   When on, high-confidence syntheses save as memories
                   automatically. Otherwise they queue in your inbox for
                   approval. Contradictions always queue regardless.
@@ -263,7 +263,7 @@ function PreferencesPage() {
                 <Label htmlFor="dream-schedule" className="text-sm font-medium">
                   Daily schedule
                 </Label>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-muted">
                   Run Dream Mode every day at this time. Stored as UTC; the
                   local time shown shifts by an hour on DST transitions.
                 </p>
@@ -305,7 +305,7 @@ function PreferencesPage() {
                 >
                   Memory conflicts
                 </Label>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-muted">
                   Notify when proposed updates conflict with existing memories.
                 </p>
               </div>
@@ -325,7 +325,7 @@ function PreferencesPage() {
                 >
                   New memories
                 </Label>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-muted">
                   Notify when new memories are automatically extracted.
                 </p>
               </div>
@@ -345,7 +345,7 @@ function PreferencesPage() {
                 >
                   Expiring memories
                 </Label>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-muted">
                   Notify when memories are about to be archived.
                 </p>
               </div>

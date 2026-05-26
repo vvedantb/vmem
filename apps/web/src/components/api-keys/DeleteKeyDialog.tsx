@@ -33,7 +33,7 @@ export function DeleteKeyDialog({
         if (!open && !isDeleting) onCancel();
       }}
     >
-      <DialogContent className="sm:max-w-sm bg-card border border-border">
+      <DialogContent className="sm:max-w-sm bg-surface border border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">Delete API Key</DialogTitle>
           <DialogDescription className="sr-only">
@@ -41,14 +41,14 @@ export function DeleteKeyDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-start gap-3 py-4">
-          <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
-            <IconAlertTriangle size={20} className="text-destructive" />
+          <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center flex-shrink-0">
+            <IconAlertTriangle size={20} className="text-danger" />
           </div>
           <div>
             <p className="text-foreground">
               Delete <span className="font-medium">{keyName}</span> permanently?
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted mt-1">
               This removes the key from your account. Active keys stop working
               immediately. This cannot be undone.
             </p>
@@ -59,14 +59,14 @@ export function DeleteKeyDialog({
             variant="ghost"
             onClick={onCancel}
             disabled={isDeleting}
-            className="text-muted-foreground"
+            className="text-muted"
           >
             Cancel
           </Button>
           <Button
             onClick={onConfirm}
             disabled={isDeleting}
-            className="bg-destructive text-primary-foreground"
+            className="bg-danger text-accent-foreground"
           >
             {isDeleting ? (
               <>

@@ -44,12 +44,12 @@ function StatCard({
         delay: index * 0.06,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-muted/40 p-5"
+      className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-surface-secondary/40 p-5"
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60">
-          <Icon size={16} className="text-muted-foreground" stroke={1.5} />
+        <p className="text-sm text-muted">{label}</p>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-secondary/60">
+          <Icon size={16} className="text-muted" stroke={1.5} />
         </div>
       </div>
       <p className="font-instrumentSerif text-3xl leading-none tabular-nums text-foreground">
@@ -62,9 +62,7 @@ function StatCard({
             strokeClassName={strokeClassName}
             fillClassName={fillClassName}
           />
-          <p className="mt-1.5 text-[11px] text-muted-foreground">
-            Last 7 days
-          </p>
+          <p className="mt-1.5 text-[11px] text-muted">Last 7 days</p>
         </div>
       ) : (
         <div className="mt-auto" />
@@ -96,7 +94,7 @@ export function DashboardStatCards({ stats }: DashboardStatCardsProps) {
       value: stats.memoriesAddedToday,
       icon: IconSparkles,
       trendData: newTrend,
-      strokeClassName: "text-primary",
+      strokeClassName: "text-accent",
       fillClassName: "fill-primary/15",
       showSparkline: true,
     },

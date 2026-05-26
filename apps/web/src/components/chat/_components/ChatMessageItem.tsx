@@ -46,9 +46,9 @@ import type { ChatMemoryRef, MessageUsageSummary } from "@/hooks/useLocalChat";
 function StreamingDots() {
   return (
     <div className="flex gap-1.5 py-1">
-      <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse" />
-      <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse" />
-      <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse" />
+      <span className="size-2 rounded-full bg-surface-secondary-foreground/40 animate-pulse" />
+      <span className="size-2 rounded-full bg-surface-secondary-foreground/40 animate-pulse" />
+      <span className="size-2 rounded-full bg-surface-secondary-foreground/40 animate-pulse" />
     </div>
   );
 }
@@ -69,16 +69,14 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
   const pct = Math.max(0, Math.min(1, value)) * 100;
   return (
     <div className="flex items-center gap-2">
-      <span className="w-[88px] shrink-0 text-[10px] text-muted-foreground">
-        {label}
-      </span>
-      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+      <span className="w-[88px] shrink-0 text-[10px] text-muted">{label}</span>
+      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-surface-secondary">
         <div
           className="absolute inset-y-0 left-0 rounded-full bg-foreground/70"
           style={{ width: `${pct.toFixed(1)}%` }}
         />
       </div>
-      <span className="w-9 shrink-0 text-right text-[10px] tabular-nums text-muted-foreground">
+      <span className="w-9 shrink-0 text-right text-[10px] tabular-nums text-muted">
         {value.toFixed(2)}
       </span>
     </div>
@@ -96,7 +94,7 @@ function MemoryRefChip({ ref }: { ref: ChatMemoryRef }) {
     <Link
       to="/memories/graph"
       search={(prev) => ({ ...prev, focus: ref.id })}
-      className="inline-flex max-w-[220px] items-center rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className="inline-flex max-w-[220px] items-center rounded-md border border-border bg-surface-secondary/40 px-2 py-0.5 text-[11px] text-muted transition-colors hover:bg-surface-secondary hover:text-foreground"
     >
       <span className="truncate">{ref.title}</span>
     </Link>
@@ -112,7 +110,7 @@ function MemoryRefChip({ ref }: { ref: ChatMemoryRef }) {
           {ref.title}
         </div>
         <div className="mb-3 flex items-baseline justify-between">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] uppercase tracking-wider text-muted">
             Retrieval score
           </span>
           <span className="text-sm font-medium tabular-nums">
@@ -134,7 +132,7 @@ function MemoryRefChip({ ref }: { ref: ChatMemoryRef }) {
             value={ref.trace.scoreBreakdown.confidence}
           />
         </div>
-        <p className="mt-3 text-[11px] italic leading-snug text-muted-foreground">
+        <p className="mt-3 text-[11px] italic leading-snug text-muted">
           {ref.trace.reason}
         </p>
       </HoverCardContent>
@@ -265,12 +263,12 @@ export default function ChatMessageItem({
                 {sourceParts.map((source, idx) => (
                   <div
                     key={source.sourceId}
-                    className="p-3 rounded-lg border border-border bg-muted/30"
+                    className="p-3 rounded-lg border border-border bg-surface-secondary/30"
                   >
                     <div className="text-sm font-medium text-foreground mb-1">
                       {source.title ?? `Source ${idx + 1}`}
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">
+                    <div className="text-xs text-muted truncate">
                       {source.url}
                     </div>
                   </div>

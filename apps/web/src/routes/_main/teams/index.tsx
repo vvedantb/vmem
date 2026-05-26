@@ -31,7 +31,7 @@ function TeamsIndexPage() {
     return (
       <PageContainer title="Teams">
         <div className="flex items-center justify-center py-20">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-transparent" />
         </div>
       </PageContainer>
     );
@@ -52,8 +52,8 @@ function TeamsIndexPage() {
       }
     >
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <IconBuilding size={40} className="mb-3 text-muted-foreground" />
-        <p className="mb-4 text-sm text-muted-foreground">
+        <IconBuilding size={40} className="mb-3 text-muted" />
+        <p className="mb-4 text-sm text-muted">
           You&apos;re not in any teams yet. Create one or ask a teammate to add
           you.
         </p>

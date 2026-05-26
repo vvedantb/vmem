@@ -27,7 +27,7 @@ export default function HistoryTab({ memoryId }: HistoryTabProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <VmemSpinner size={20} className="text-muted-foreground" />
+        <VmemSpinner size={20} className="text-muted" />
       </div>
     );
   }
@@ -35,8 +35,8 @@ export default function HistoryTab({ memoryId }: HistoryTabProps) {
   if (isEmpty) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <IconClockHour4 className="h-8 w-8 text-muted-foreground mb-2" />
-        <p className="text-sm text-muted-foreground">No history yet</p>
+        <IconClockHour4 className="h-8 w-8 text-muted mb-2" />
+        <p className="text-sm text-muted">No history yet</p>
       </div>
     );
   }

@@ -95,7 +95,7 @@ function ProfileCard({
   const Icon = getProfileIcon(profile.icon);
 
   return (
-    <div className="relative rounded-xl p-4 bg-muted/40">
+    <div className="relative rounded-xl p-4 bg-surface-secondary/40">
       <div className="flex items-start gap-3">
         <div
           className="flex h-10 w-10 items-center justify-center rounded-lg"
@@ -109,12 +109,12 @@ function ProfileCard({
               {profile.name}
             </h3>
             {profile.isDefault && (
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              <span className="text-[10px] uppercase tracking-wider text-muted bg-surface-secondary px-1.5 py-0.5 rounded">
                 Default
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Created{" "}
             {new Date(profile.createdAt).toLocaleDateString("en-US", {
               month: "short",
@@ -133,7 +133,7 @@ function ProfileCard({
             variant="ghost"
             size="icon-sm"
             onClick={onDelete}
-            className="text-destructive hover:text-destructive"
+            className="text-danger hover:text-danger"
           >
             <IconTrash className="h-4 w-4" />
           </Button>
@@ -235,8 +235,8 @@ function CreateEditProfileDialog({
                     className={cn(
                       "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
                       icon === i.name
-                        ? "bg-accent text-accent-foreground"
-                        : "bg-muted hover:bg-accent/50",
+                        ? "bg-surface-tertiary text-accent-foreground"
+                        : "bg-surface-secondary hover:bg-surface-tertiary/50",
                     )}
                   >
                     <IconComponent className="h-4 w-4" />
@@ -245,7 +245,7 @@ function CreateEditProfileDialog({
               })}
             </div>
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -302,7 +302,7 @@ function DeleteProfileDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted">
             What should happen to the memories in this profile?
           </p>
           <div className="space-y-2">
@@ -312,14 +312,14 @@ function DeleteProfileDialog({
               className={cn(
                 "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
                 moveToProfileId === null
-                  ? "bg-accent text-accent-foreground"
-                  : "bg-muted hover:bg-muted/80",
+                  ? "bg-surface-tertiary text-accent-foreground"
+                  : "bg-surface-secondary hover:bg-surface-secondary/80",
               )}
             >
-              <IconTrash className="h-4 w-4 text-destructive" />
+              <IconTrash className="h-4 w-4 text-danger" />
               <div>
                 <p className="text-sm font-medium">Delete all memories</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted">
                   Permanently remove all memories in this profile
                 </p>
               </div>
@@ -337,8 +337,8 @@ function DeleteProfileDialog({
                   className={cn(
                     "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
                     moveToProfileId === p._id
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-muted hover:bg-muted/80",
+                      ? "bg-surface-tertiary text-accent-foreground"
+                      : "bg-surface-secondary hover:bg-surface-secondary/80",
                   )}
                 >
                   <div
@@ -349,7 +349,7 @@ function DeleteProfileDialog({
                   </div>
                   <div>
                     <p className="text-sm font-medium">Move to {p.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted">
                       Transfer all memories to this profile
                     </p>
                   </div>
@@ -427,10 +427,10 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   };
 
   return (
-    <div className="rounded-xl bg-muted/40 p-4 space-y-4">
+    <div className="rounded-xl bg-surface-secondary/40 p-4 space-y-4">
       <div>
         <h3 className="font-medium text-foreground">Default Profiles</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-muted mt-0.5">
           Choose which profile new memories are saved to by default
         </p>
       </div>
@@ -438,7 +438,7 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <IconWorld className="h-4 w-4 text-muted-foreground" />
+            <IconWorld className="h-4 w-4 text-muted" />
             <Label className="text-sm">Web App</Label>
           </div>
           <Select
@@ -478,7 +478,7 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
 
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <IconBrandChrome className="h-4 w-4 text-muted-foreground" />
+            <IconBrandChrome className="h-4 w-4 text-muted" />
             <Label className="text-sm">Browser Extension</Label>
           </div>
           <Select
@@ -516,7 +516,7 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
           </Select>
         </div>
 
-        <p className="text-xs text-muted-foreground pt-1">
+        <p className="text-xs text-muted pt-1">
           MCP clients will ask which profile to save to
         </p>
       </div>

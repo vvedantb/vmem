@@ -173,7 +173,7 @@ export default function MemoryGraph({
   if (isLoading) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
-        <VmemSpinner size={24} className="text-muted-foreground" />
+        <VmemSpinner size={24} className="text-muted" />
       </div>
     );
   }
@@ -181,15 +181,13 @@ export default function MemoryGraph({
   if (isError) {
     return (
       <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-          <IconMoodEmpty className="w-6 h-6 text-muted-foreground" />
+        <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
+          <IconMoodEmpty className="w-6 h-6 text-muted" />
         </div>
         <h3 className="text-lg font-medium text-foreground mb-2">
           Failed to load graph
         </h3>
-        <p className="text-sm text-muted-foreground max-w-sm">
-          {error?.message}
-        </p>
+        <p className="text-sm text-muted max-w-sm">{error?.message}</p>
       </div>
     );
   }
@@ -197,13 +195,13 @@ export default function MemoryGraph({
   if (apiNodes.length === 0) {
     return (
       <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-          <IconMoodEmpty className="w-6 h-6 text-muted-foreground" />
+        <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
+          <IconMoodEmpty className="w-6 h-6 text-muted" />
         </div>
         <h3 className="text-lg font-medium text-foreground mb-2">
           No memories to visualize
         </h3>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted">
           Add some memories to see them in the graph
         </p>
       </div>
@@ -243,7 +241,7 @@ export default function MemoryGraph({
             variant="outline"
             size="sm"
             onClick={handleBackToGlobal}
-            className="bg-muted/40 gap-1.5"
+            className="bg-surface-secondary/40 gap-1.5"
           >
             <IconArrowBack size={14} />
             Global graph

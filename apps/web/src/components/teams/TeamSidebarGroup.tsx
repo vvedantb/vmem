@@ -31,7 +31,9 @@ export function TeamSidebarGroup({
     <div
       className={cn(
         "flex flex-col",
-        isExpanded ? "gap-0.5 rounded-xl bg-muted/40 p-1" : undefined,
+        isExpanded
+          ? "gap-0.5 rounded-xl bg-surface-secondary/40 p-1"
+          : undefined,
       )}
     >
       <TeamSidebarCard

@@ -102,7 +102,7 @@ export function TeamKnowledge({ data }: { data: TeamDetail }) {
 
   if (!profileId) {
     return (
-      <div className="text-sm text-muted-foreground">
+      <div className="text-sm text-muted">
         This team has no profile attached.
       </div>
     );
@@ -114,7 +114,7 @@ export function TeamKnowledge({ data }: { data: TeamDetail }) {
         <div className="relative flex-1">
           <IconSearch
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
           />
           <Input
             placeholder="Search team knowledge..."
@@ -129,13 +129,10 @@ export function TeamKnowledge({ data }: { data: TeamDetail }) {
 
       {memories === null ? (
         <div className="flex items-center justify-center py-10">
-          <IconLoader2
-            size={20}
-            className="animate-spin text-muted-foreground"
-          />
+          <IconLoader2 size={20} className="animate-spin text-muted" />
         </div>
       ) : (filtered ?? []).length === 0 ? (
-        <div className="py-10 text-center text-sm text-muted-foreground">
+        <div className="py-10 text-center text-sm text-muted">
           {memories.length === 0
             ? "No memories saved to this team yet."
             : "No memories match your search."}
@@ -154,7 +151,7 @@ export function TeamKnowledge({ data }: { data: TeamDetail }) {
             return (
               <li
                 key={m.id}
-                className="flex items-start justify-between gap-3 rounded-lg bg-muted/40 p-3"
+                className="flex items-start justify-between gap-3 rounded-lg bg-surface-secondary/40 p-3"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -165,10 +162,10 @@ export function TeamKnowledge({ data }: { data: TeamDetail }) {
                       {m.type}
                     </Badge>
                   </div>
-                  <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                  <div className="mt-0.5 line-clamp-2 text-xs text-muted">
                     {m.content}
                   </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted">
                     <span className="inline-flex items-center gap-1">
                       <IconUser size={12} />
                       Saved by {name}
@@ -186,7 +183,7 @@ export function TeamKnowledge({ data }: { data: TeamDetail }) {
                     size="sm"
                     onClick={() => handleDelete(m)}
                     disabled={loadingAction === m.id}
-                    className="text-muted-foreground hover:text-destructive"
+                    className="text-muted hover:text-danger"
                   >
                     {loadingAction === m.id ? (
                       <IconLoader2 size={14} className="animate-spin" />

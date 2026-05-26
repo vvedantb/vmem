@@ -47,7 +47,7 @@ interface CodebaseSymbolPanelProps {
 }
 
 function KindIcon({ kind, size = 18 }: { kind: CodeNodeKind; size?: number }) {
-  const cls = "text-muted-foreground flex-shrink-0";
+  const cls = "text-muted flex-shrink-0";
   if (kind === "code-file") return <IconFile size={size} className={cls} />;
   if (kind === "code-function")
     return <IconFunction size={size} className={cls} />;
@@ -92,7 +92,7 @@ export function CodebaseSymbolPanel({
               {context ? (
                 <KindIcon kind={context.kind} />
               ) : (
-                <IconHash size={18} className="text-muted-foreground mt-0.5" />
+                <IconHash size={18} className="text-muted mt-0.5" />
               )}
               <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-foreground truncate">
@@ -100,7 +100,7 @@ export function CodebaseSymbolPanel({
                     (isLoading ? "Loading..." : "Unknown symbol")}
                 </h2>
                 {context && (
-                  <p className="text-xs text-muted-foreground mt-0.5 font-mono truncate">
+                  <p className="text-xs text-muted mt-0.5 font-mono truncate">
                     {context.qualifiedName}
                   </p>
                 )}
@@ -109,7 +109,7 @@ export function CodebaseSymbolPanel({
             <button
               type="button"
               onClick={onClose}
-              className="ml-2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors flex-shrink-0"
+              className="ml-2 p-1 rounded-md text-muted hover:text-foreground hover:bg-foreground/5 transition-colors flex-shrink-0"
               aria-label="Close panel"
             >
               <IconX size={16} />
@@ -121,7 +121,7 @@ export function CodebaseSymbolPanel({
               {/* File + line range */}
               <div className="px-4 py-2 space-y-2 text-xs">
                 <div>
-                  <span className="text-muted-foreground">File</span>
+                  <span className="text-muted">File</span>
                   <p className="text-foreground font-mono mt-0.5 truncate">
                     {context.filePath || "—"}
                   </p>
@@ -130,13 +130,13 @@ export function CodebaseSymbolPanel({
                   context.endLine !== undefined && (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <span className="text-muted-foreground">Lines</span>
+                        <span className="text-muted">Lines</span>
                         <p className="text-foreground font-mono mt-0.5">
                           {context.startLine}–{context.endLine}
                         </p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Length</span>
+                        <span className="text-muted">Length</span>
                         <p className="text-foreground font-mono mt-0.5">
                           {context.endLine - context.startLine + 1} loc
                         </p>
@@ -147,7 +147,7 @@ export function CodebaseSymbolPanel({
                   {context.isExported && (
                     <Badge
                       variant="outline"
-                      className="bg-muted/40 text-[10px] h-5 px-1.5 border-0"
+                      className="bg-surface-secondary/40 text-[10px] h-5 px-1.5 border-0"
                     >
                       <IconShieldCheck size={10} className="mr-1" />
                       exported
@@ -156,7 +156,7 @@ export function CodebaseSymbolPanel({
                   {context.isAsync && (
                     <Badge
                       variant="outline"
-                      className="bg-muted/40 text-[10px] h-5 px-1.5 border-0"
+                      className="bg-surface-secondary/40 text-[10px] h-5 px-1.5 border-0"
                     >
                       <IconBolt size={10} className="mr-1" />
                       async
@@ -165,7 +165,7 @@ export function CodebaseSymbolPanel({
                   {context.isTest && (
                     <Badge
                       variant="outline"
-                      className="bg-muted/40 text-[10px] h-5 px-1.5 border-0"
+                      className="bg-surface-secondary/40 text-[10px] h-5 px-1.5 border-0"
                     >
                       <IconFlask size={10} className="mr-1" />
                       test
@@ -198,16 +198,13 @@ export function CodebaseSymbolPanel({
               {context.callsOut.length > 0 && (
                 <div className="px-4 py-2 mt-2">
                   <div className="flex items-center gap-1.5 mb-2">
-                    <IconArrowRight
-                      size={12}
-                      className="text-muted-foreground"
-                    />
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <IconArrowRight size={12} className="text-muted" />
+                    <span className="text-xs font-medium text-muted">
                       Calls
                     </span>
                     <Badge
                       variant="outline"
-                      className="text-[10px] h-4 px-1 bg-muted border-0"
+                      className="text-[10px] h-4 px-1 bg-surface-secondary border-0"
                     >
                       {context.callsOut.length}
                     </Badge>
@@ -223,16 +220,13 @@ export function CodebaseSymbolPanel({
               {context.callsIn.length > 0 && (
                 <div className="px-4 py-2">
                   <div className="flex items-center gap-1.5 mb-2">
-                    <IconArrowLeft
-                      size={12}
-                      className="text-muted-foreground"
-                    />
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <IconArrowLeft size={12} className="text-muted" />
+                    <span className="text-xs font-medium text-muted">
                       Called by
                     </span>
                     <Badge
                       variant="outline"
-                      className="text-[10px] h-4 px-1 bg-muted border-0"
+                      className="text-[10px] h-4 px-1 bg-surface-secondary border-0"
                     >
                       {context.callsIn.length}
                     </Badge>
@@ -248,16 +242,13 @@ export function CodebaseSymbolPanel({
               {context.processes.length > 0 && (
                 <div className="px-4 py-2">
                   <div className="flex items-center gap-1.5 mb-2">
-                    <IconPlayerPlay
-                      size={12}
-                      className="text-muted-foreground"
-                    />
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <IconPlayerPlay size={12} className="text-muted" />
+                    <span className="text-xs font-medium text-muted">
                       Processes
                     </span>
                     <Badge
                       variant="outline"
-                      className="text-[10px] h-4 px-1 bg-muted border-0"
+                      className="text-[10px] h-4 px-1 bg-surface-secondary border-0"
                     >
                       {context.processes.length}
                     </Badge>
@@ -268,7 +259,7 @@ export function CodebaseSymbolPanel({
                         key={proc.id}
                         type="button"
                         onClick={() => handleNavigate(proc.id)}
-                        className="w-full p-2 rounded-md bg-muted/40 hover:bg-accent transition-colors text-left"
+                        className="w-full p-2 rounded-md bg-surface-secondary/40 hover:bg-surface-tertiary transition-colors text-left"
                       >
                         <p className="text-xs font-medium text-foreground truncate font-mono">
                           {proc.name}
@@ -283,7 +274,7 @@ export function CodebaseSymbolPanel({
                 context.callsOut.length === 0 &&
                 context.processes.length === 0 && (
                   <div className="px-4 py-6 text-center mt-2">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted">
                       No call relationships or processes for this symbol.
                     </p>
                   </div>
@@ -291,11 +282,11 @@ export function CodebaseSymbolPanel({
             </>
           ) : isLoading ? (
             <div className="px-4 py-6 text-center">
-              <p className="text-xs text-muted-foreground">Loading…</p>
+              <p className="text-xs text-muted">Loading…</p>
             </div>
           ) : (
             <div className="px-4 py-6 text-center">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 Symbol not found. It may have been removed in a recent sync.
               </p>
             </div>
@@ -320,12 +311,12 @@ function NeighbourList({
           key={item.id}
           type="button"
           onClick={() => onNavigate(item.id)}
-          className="w-full p-2 rounded-md bg-muted/40 hover:bg-accent transition-colors text-left"
+          className="w-full p-2 rounded-md bg-surface-secondary/40 hover:bg-surface-tertiary transition-colors text-left"
         >
           <p className="text-xs font-medium text-foreground truncate font-mono">
             {item.name}
           </p>
-          <p className="text-[10px] text-muted-foreground truncate mt-0.5 font-mono">
+          <p className="text-[10px] text-muted truncate mt-0.5 font-mono">
             {item.filePath}
           </p>
         </button>

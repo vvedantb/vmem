@@ -32,7 +32,7 @@ function CodeBlock({
   return (
     <CodeBlockContext.Provider value={{ code }}>
       <div
-        className={cn("relative rounded-lg bg-muted/60", className)}
+        className={cn("relative rounded-lg bg-surface-secondary/60", className)}
         {...props}
       >
         {children ?? (

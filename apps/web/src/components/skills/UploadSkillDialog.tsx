@@ -133,25 +133,20 @@ export function UploadSkillDialog({
             e.stopPropagation();
           }}
           onDrop={handleDrop}
-          className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl bg-muted/20 px-4 py-8 text-center transition-colors hover:bg-muted/35"
+          className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl bg-surface-secondary/20 px-4 py-8 text-center transition-colors hover:bg-surface-secondary/35"
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/60">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-secondary/60">
             {submitting ? (
-              <IconLoader2
-                size={22}
-                className="animate-spin text-muted-foreground"
-              />
+              <IconLoader2 size={22} className="animate-spin text-muted" />
             ) : (
-              <IconUpload size={22} className="text-muted-foreground" />
+              <IconUpload size={22} className="text-muted" />
             )}
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">
               Drop a markdown skill file here
             </p>
-            <p className="text-xs text-muted-foreground">
-              or click to choose a .md file
-            </p>
+            <p className="text-xs text-muted">or click to choose a .md file</p>
           </div>
           <input
             type="file"

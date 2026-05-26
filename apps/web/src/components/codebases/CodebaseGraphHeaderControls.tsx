@@ -122,7 +122,7 @@ function FiltersPopover({
         >
           <IconFilter size={16} />
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-[10px] font-medium tabular-nums text-primary-foreground flex items-center justify-center leading-none">
+            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-surface-tertiary text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
               {activeFilterCount}
             </span>
           )}
@@ -134,7 +134,7 @@ function FiltersPopover({
       >
         {/* Kinds */}
         <div>
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+          <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
             Kinds
           </span>
           <div className="mt-1.5 grid grid-cols-1 gap-0.5">
@@ -150,7 +150,7 @@ function FiltersPopover({
                     onCheckedChange={() => onToggleKind(kind)}
                     className="h-3.5 w-3.5"
                   />
-                  <Icon size={14} className="text-muted-foreground" />
+                  <Icon size={14} className="text-muted" />
                   <span className="text-xs text-foreground flex-1">
                     {label}
                   </span>
@@ -165,7 +165,7 @@ function FiltersPopover({
           <>
             <Separator />
             <div>
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
                 Process
               </span>
               <Select
@@ -192,7 +192,7 @@ function FiltersPopover({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-muted-foreground mt-1.5">
+              <p className="text-[10px] text-muted mt-1.5">
                 Limit the canvas to symbols reachable from a single entry-point.
               </p>
             </div>
