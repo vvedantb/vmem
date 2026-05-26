@@ -3,7 +3,15 @@
 import { useAction, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import type { FunctionReturnType } from "convex/server";
-import { Button } from "@vmem/ui";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@vmem/ui";
 import { IconBrandGithub, IconLoader2 } from "@tabler/icons-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -25,6 +33,7 @@ export function GitHubConnectorControls({
     localStore.setQuery(api.github.getConnection, {}, null);
   });
   const startOAuth = useAction(api.github.startGitHubOAuth);
+  const [confirmDisconnectOpen, setConfirmDisconnectOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
@@ -33,29 +42,67 @@ export function GitHubConnectorControls({
   }
 
   if (connection) {
+    const handleConfirmDisconnect = async () => {
+      setDisconnecting(true);
+      try {
+        await disconnectGithub();
+        toast.success("GitHub disconnected");
+        setConfirmDisconnectOpen(false);
+      } catch {
+        toast.error("Failed to disconnect");
+      } finally {
+        setDisconnecting(false);
+      }
+    };
+
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={disconnecting}
-        onClick={async () => {
-          setDisconnecting(true);
-          try {
-            await disconnectGithub();
-            toast.success("GitHub disconnected");
-          } catch {
-            toast.error("Failed to disconnect");
-          } finally {
-            setDisconnecting(false);
-          }
-        }}
-        className="text-muted"
-      >
-        {disconnecting ? (
-          <IconLoader2 size={14} className="animate-spin" />
-        ) : null}
-        {disconnecting ? "Disconnecting..." : "Disconnect"}
-      </Button>
+      <>
+        <Button
+          variant="destructive"
+          size="sm"
+          disabled={disconnecting}
+          onClick={() => setConfirmDisconnectOpen(true)}
+        >
+          Disconnect
+        </Button>
+
+        <Dialog
+          open={confirmDisconnectOpen}
+          onOpenChange={(open) => {
+            if (!open && !disconnecting) setConfirmDisconnectOpen(false);
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Disconnect GitHub?</DialogTitle>
+              <DialogDescription>
+                vmem will revoke GitHub access and stop syncing repositories
+                until you connect again. Codebases and memories already imported
+                stay unless you remove them separately.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => setConfirmDisconnectOpen(false)}
+                disabled={disconnecting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => void handleConfirmDisconnect()}
+                disabled={disconnecting}
+              >
+                {disconnecting ? (
+                  <IconLoader2 size={14} className="animate-spin" />
+                ) : null}
+                {disconnecting ? "Disconnecting…" : "Disconnect"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 

@@ -119,8 +119,8 @@ export default function BrowseConnectorsModal({
                     ) : (
                       <Button
                         size="sm"
+                        variant="secondary"
                         onClick={() => handleConnect(connector)}
-                        className="bg-surface text-foreground"
                       >
                         Connect
                       </Button>

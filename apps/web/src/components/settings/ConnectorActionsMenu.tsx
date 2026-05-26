@@ -52,11 +52,10 @@ export default function ConnectorActionsMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           disabled={isBusy}
           aria-label={`${connectorName} options`}
-          className="text-muted"
         >
           {isSyncing ? (
             <IconLoader2 size={14} className="animate-spin" />

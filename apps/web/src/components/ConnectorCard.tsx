@@ -194,11 +194,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                     onDeleteData={() => setShowDeleteDataDialog(true)}
                   />
                 ) : null}
-                <Button
-                  size="sm"
-                  onClick={handleConnect}
-                  className="bg-surface font-medium text-foreground"
-                >
+                <Button size="sm" variant="secondary">
                   Connect
                 </Button>
               </>
