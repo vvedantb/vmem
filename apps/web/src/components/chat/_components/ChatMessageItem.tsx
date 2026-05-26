@@ -46,9 +46,9 @@ import type { ChatMemoryRef, MessageUsageSummary } from "@/hooks/useLocalChat";
 function StreamingDots() {
   return (
     <div className="flex gap-1.5 py-1">
-      <span className="size-2 rounded-full bg-surface-secondary-foreground/40 animate-pulse" />
-      <span className="size-2 rounded-full bg-surface-secondary-foreground/40 animate-pulse" />
-      <span className="size-2 rounded-full bg-surface-secondary-foreground/40 animate-pulse" />
+      <span className="size-2 rounded-full bg-surface-tertiary/40 animate-pulse" />
+      <span className="size-2 rounded-full bg-surface-tertiary/40 animate-pulse" />
+      <span className="size-2 rounded-full bg-surface-tertiary/40 animate-pulse" />
     </div>
   );
 }

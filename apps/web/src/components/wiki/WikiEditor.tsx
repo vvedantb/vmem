@@ -216,7 +216,7 @@ export default function WikiEditor({
   if (doc === undefined) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-transparent" />
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
       </div>
     );
   }

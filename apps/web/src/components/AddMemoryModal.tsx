@@ -290,7 +290,7 @@ export default function AddMemoryModal({
                 value={selectedProfileId}
                 onChange={setSelectedProfileId}
                 disabled={isBusy}
-                className="h-7 min-w-0 gap-1.5 border-0 bg-transparent px-2 text-xs font-normal text-foreground shadow-none hover:bg-surface-secondary [&[data-state=open]]:bg-surface-secondary [&>svg]:size-3.5"
+                className="h-7 min-w-0 gap-1.5 border-0 bg-transparent px-2 text-xs font-normal text-foreground shadow-none hover:bg-surface-tertiary/50 [&[data-state=open]]:bg-surface-tertiary/50 [&>svg]:size-3.5"
               />
 
               {/* Tags badge → popover with search + suggestions + create. */}
@@ -311,7 +311,7 @@ export default function AddMemoryModal({
                         variant="ghost"
                         size="sm"
                         disabled={isBusy}
-                        className="h-7 gap-1.5 px-2 text-xs font-normal text-muted hover:bg-surface-secondary hover:text-foreground data-[state=open]:bg-surface-secondary data-[state=open]:text-foreground"
+                        className="h-7 gap-1.5 px-2 text-xs font-normal text-muted hover:bg-surface-tertiary/50 hover:text-foreground data-[state=open]:bg-surface-tertiary/50 data-[state=open]:text-foreground"
                       >
                         <IconHash size={13} />
                         {field.value.length > 0
@@ -340,7 +340,7 @@ export default function AddMemoryModal({
                             key={item.tag}
                             type="button"
                             onClick={() => addTag(item.tag, field.onChange)}
-                            className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-surface-secondary"
+                            className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-surface-tertiary/80"
                           >
                             <span className="flex items-center gap-1.5">
                               <IconHash size={12} className="text-muted" />
@@ -355,7 +355,7 @@ export default function AddMemoryModal({
                           <button
                             type="button"
                             onClick={() => addTag(tagInput, field.onChange)}
-                            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-surface-secondary"
+                            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-surface-tertiary/80"
                           >
                             <IconPlus size={12} className="text-muted" />
                             Create &ldquo;{normalizedTagInput}&rdquo;
@@ -389,7 +389,7 @@ export default function AddMemoryModal({
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isBusy || pendingFile !== null}
-                className="h-7 gap-1.5 px-2 text-xs font-normal text-muted hover:bg-surface-secondary hover:text-foreground"
+                className="h-7 gap-1.5 px-2 text-xs font-normal text-muted hover:bg-surface-tertiary/50 hover:text-foreground"
               >
                 <IconPaperclip size={13} />
                 Attach

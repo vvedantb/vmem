@@ -52,10 +52,7 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
             <div className="relative ml-8 h-full">
               <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
                 {[0, 1, 2].map((line) => (
-                  <div
-                    key={line}
-                    className="h-px w-full bg-surface-secondary-foreground/10"
-                  />
+                  <div key={line} className="h-px w-full bg-separator" />
                 ))}
               </div>
 

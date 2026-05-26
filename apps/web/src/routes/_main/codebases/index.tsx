@@ -34,7 +34,7 @@ function CodebasesIndexPage() {
     return (
       <PageContainer title="Codebases">
         <div className="flex items-center justify-center py-20">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-transparent" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
         </div>
       </PageContainer>
     );

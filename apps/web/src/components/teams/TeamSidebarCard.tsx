@@ -51,7 +51,7 @@ export function TeamSidebarCard({
           ? "text-foreground"
           : selected
             ? "bg-surface-secondary/40 text-foreground"
-            : "text-muted hover:bg-surface/45 hover:text-foreground dark:hover:bg-surface-secondary/40",
+            : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
       )}
     >
       {profile && ProfileIcon ? (

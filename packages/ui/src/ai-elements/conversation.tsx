@@ -84,7 +84,7 @@ function ConversationScrollButton({
       variant="outline"
       size="icon-sm"
       className={cn(
-        "absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-md z-10",
+        "absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-none z-10",
         className,
       )}
       onClick={() => scrollToBottom()}

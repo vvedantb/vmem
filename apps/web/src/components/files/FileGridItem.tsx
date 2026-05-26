@@ -94,7 +94,7 @@ export default function FileGridItem({
             <img
               src={item.thumbnailUrl}
               alt={item.name}
-              className="h-full w-full object-cover outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
+              className="h-full w-full object-cover outline outline-1 -outline-offset-1 outline-foreground/10"
             />
           ) : (
             <FileIcon

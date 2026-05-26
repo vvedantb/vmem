@@ -61,7 +61,7 @@ export function RecentActivityList({ activity }: RecentActivityListProps) {
                   ease: [0.22, 1, 0.36, 1],
                 }}
               >
-                <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-secondary/50">
+                <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-secondary/60">
                     <Icon size={16} className="text-muted" stroke={1.5} />
                   </div>

@@ -206,7 +206,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           </div>
         ) : nodes === undefined ? (
           <div className="flex flex-1 items-center justify-center">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
           </div>
         ) : tree.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center text-center">

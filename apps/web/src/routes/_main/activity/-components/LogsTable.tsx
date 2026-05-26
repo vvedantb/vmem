@@ -168,7 +168,7 @@ function LogRowCard({
     <button
       type="button"
       onClick={onClick}
-      className="block w-full rounded-lg px-4 py-3 text-left transition-[background-color] hover:bg-surface-secondary/80 focus:bg-surface-secondary/80 focus:outline-none dark:hover:bg-surface-tertiary/50 dark:focus:bg-surface-tertiary/50"
+      className="block w-full rounded-lg px-4 py-3 text-left transition-[background-color] hover:bg-surface-tertiary/50 focus:bg-surface-tertiary/50 focus:outline-none"
     >
       <div className="hidden md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px_80px_72px] md:items-center md:gap-3">
         <span className="text-xs tabular-nums text-muted">{time}</span>

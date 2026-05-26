@@ -184,7 +184,10 @@ export const ContextContent = ({
   ...props
 }: ContextContentProps) => (
   <HoverCardContent
-    className={cn("min-w-48 w-auto divide-y overflow-hidden p-0", className)}
+    className={cn(
+      "min-w-48 w-auto divide-y divide-separator overflow-hidden p-0",
+      className,
+    )}
     {...props}
   />
 );

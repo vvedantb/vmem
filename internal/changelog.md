@@ -1,5 +1,49 @@
 # Changelog
 
+## HeroUI token audit (pass 6) — 2026-05-23
+
+- **`muted` as fill**: Status dots, spinners, timeline/legend swatches, and typing indicators use `default` / `surface-tertiary` instead of `bg-muted` or `border-muted` (`muted` is text-only).
+- **Persona orb**: Inline `shadow-lg` removed (`shadow-none`).
+
+## HeroUI token audit (pass 5) — 2026-05-23
+
+- **Timeline/NavLink dots** stop using `surface-secondary-foreground` as fill; use `muted/50` or `accent`.
+- **ListItemRow** selected state uses single `surface-secondary/40` (no `dark:` split).
+- **FileUploadModal** dropzone hover uses background shift, not `hover:border-focus`.
+- **Context hover card** dividers use `divide-separator`.
+- **Conversation scroll button** drops inline `shadow-lg` on outline button.
+
+## HeroUI token audit (pass 4) — 2026-05-23
+
+- Re-verified `packages/ui` + `apps/web`: no Tailwind palette, shadcn, or misused foreground tokens remain.
+- Mobile nav drawer uses `text-overlay-foreground` on `bg-overlay`.
+- Sidebar search focus state aligned to `surface-tertiary/80`.
+
+## HeroUI token audit (pass 3) — 2026-05-23
+
+- **Badge outline** uses `border-separator` (not `border-border` — borders are for form controls only).
+- **Interactive hovers** standardized to `surface-tertiary/50` across sidebar, filters, wiki, teams, dashboard, and graph nav.
+- **Timeline/version badges** and structural dividers use `separator` instead of `border`.
+- **Connector sync progress** fill stays `accent` in dark mode (removed `dark:bg-surface` hack).
+- **Avatar outlines** use `outline-foreground/10` instead of hardcoded black/white.
+- **Bulk action bar** uses `bg-default` for the selection toolbar.
+
+## HeroUI token audit (pass 2) — 2026-05-23
+
+- **Hover unification**: List rows, sidebar cards, nav links, and activity/inbox panels use `hover:bg-surface-tertiary/50` instead of split light/dark or `surface-secondary/80` patterns.
+- **Outline controls**: Button and badge outline variants use `bg-transparent` so they read correctly on `bg-surface` panels.
+- **Foreground token misuse**: Status dots, chart grid lines, and empty sparklines use `muted` (text) or `separator` (lines) instead of `surface-secondary-foreground` as fill.
+- **Floating panels**: Codebase symbol panel matches graph detail panel with `glass-panel-strong`.
+- **Table/sonner**: Row hover and toast action hover use `surface-tertiary`.
+
+## HeroUI token audit — 2026-05-23
+
+- **TOKEN GUIDE** in `globals.css` documents surface stack, separator vs border, muted-as-text-only.
+- **Card default** uses `bg-surface-secondary/40` so cards contrast on the main `bg-surface` panel.
+- **Graph legend** edge swatches use `warning` / `foreground` / `success` tokens.
+- **Tagless graph nodes** read `--muted` from CSS instead of hardcoded greys.
+- **Form controls** drop `shadow-insetSoft`; wiki dividers use `--separator`.
+
 ## HeroUI token polish — 2026-05-23
 
 - **Layout surface hierarchy**: Sidebar uses `bg-background` (darkest); main content uses `bg-surface` (elevated). Fixes dark mode inversion where main was blacker than the grey sidebar.

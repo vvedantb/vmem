@@ -266,7 +266,7 @@ export default function FileUploadModal({
               ${
                 isDragging
                   ? "border-accent bg-accent/5"
-                  : "border-border hover:border-focus"
+                  : "border-border hover:bg-surface-secondary/35"
               }
             `}
           >

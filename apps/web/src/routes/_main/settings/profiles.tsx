@@ -312,8 +312,8 @@ function DeleteProfileDialog({
               className={cn(
                 "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
                 moveToProfileId === null
-                  ? "bg-surface text-foreground"
-                  : "bg-surface-secondary hover:bg-surface-secondary/80",
+                  ? "bg-surface-tertiary text-foreground"
+                  : "bg-surface-secondary hover:bg-surface-tertiary/50",
               )}
             >
               <IconTrash className="h-4 w-4 text-danger" />
@@ -337,8 +337,8 @@ function DeleteProfileDialog({
                   className={cn(
                     "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
                     moveToProfileId === p._id
-                      ? "bg-surface text-foreground"
-                      : "bg-surface-secondary hover:bg-surface-secondary/80",
+                      ? "bg-surface-tertiary text-foreground"
+                      : "bg-surface-secondary hover:bg-surface-tertiary/50",
                   )}
                 >
                   <div

@@ -39,7 +39,7 @@ export function AddRepoModalRow({
       onClick={onAdd}
       className={cn(
         "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/30",
-        disabled && !isAdding ? "opacity-50" : "hover:bg-surface-secondary/70",
+        disabled && !isAdding ? "opacity-50" : "hover:bg-surface-tertiary/50",
       )}
     >
       <img
@@ -47,7 +47,7 @@ export function AddRepoModalRow({
         alt={repo.owner}
         width={36}
         height={36}
-        className="size-9 shrink-0 rounded-full outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
+        className="size-9 shrink-0 rounded-full outline outline-1 -outline-offset-1 outline-foreground/10"
       />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1">

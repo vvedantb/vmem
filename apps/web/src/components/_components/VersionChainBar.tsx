@@ -55,7 +55,7 @@ export default function VersionChainBar({
           className={cn(
             "p-1 rounded transition-colors",
             canGoBack
-              ? "hover:bg-surface-secondary text-foreground"
+              ? "hover:bg-surface-tertiary/50 text-foreground"
               : "text-muted/40 cursor-not-allowed",
           )}
           aria-label="Previous version"
@@ -73,7 +73,7 @@ export default function VersionChainBar({
                 "w-3 h-3 rounded-full transition-all",
                 v.version === selectedVersion
                   ? "bg-surface-tertiary scale-125"
-                  : "bg-surface-secondary-foreground/30 hover:bg-surface-secondary-foreground/50",
+                  : "bg-surface-secondary/40 hover:bg-surface-tertiary/50",
               )}
               aria-label={`Version ${v.version}`}
               aria-current={v.version === selectedVersion ? "true" : undefined}
@@ -88,7 +88,7 @@ export default function VersionChainBar({
           className={cn(
             "p-1 rounded transition-colors",
             canGoForward
-              ? "hover:bg-surface-secondary text-foreground"
+              ? "hover:bg-surface-tertiary/50 text-foreground"
               : "text-muted/40 cursor-not-allowed",
           )}
           aria-label="Next version"

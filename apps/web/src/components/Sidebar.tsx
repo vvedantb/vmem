@@ -107,7 +107,7 @@ export default function Sidebar({
         variant="ghost"
         size="icon-sm"
         aria-label="Close navigation menu"
-        className="rounded-full text-muted transition-colors hover:bg-surface-secondary/40 hover:text-foreground"
+        className="rounded-full text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground"
       >
         <IconX className="h-5 w-5" />
       </Button>
@@ -117,14 +117,14 @@ export default function Sidebar({
   return (
     <>
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 px-3 md:hidden">
+        <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 bg-background px-3 md:hidden">
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls={mobileMenuId}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-secondary/40 hover:text-foreground"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground"
           >
             <MorphingMenuIcon isOpen={mobileMenuOpen} size={20} />
           </button>
@@ -140,7 +140,7 @@ export default function Sidebar({
           <DialogRawContent
             id={mobileMenuId}
             aria-label="Navigation menu"
-            className="bg-overlay shadow-lg fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden rounded-lg text-foreground outline-none md:hidden"
+            className="bg-overlay shadow-lg fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden rounded-lg text-overlay-foreground outline-none md:hidden"
           >
             <DialogTitle className="sr-only">Navigation menu</DialogTitle>
 

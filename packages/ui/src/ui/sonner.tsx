@@ -44,7 +44,7 @@ function SonnerToaster(props: ToasterProps) {
           actionButton:
             "rounded-lg bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground transition-colors hover:bg-accent/90",
           cancelButton:
-            "rounded-lg bg-surface-secondary px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-secondary/80",
+            "rounded-lg bg-surface-secondary px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-tertiary",
           closeButton:
             "rounded-lg bg-default px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-default/78",
           loader: "text-muted",

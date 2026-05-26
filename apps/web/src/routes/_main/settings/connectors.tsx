@@ -60,7 +60,7 @@ function ConnectorsPage() {
       <PageContainer title="Connectors" centeredMaxWidth>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[1, 2].map((i) => (
-            <Card key={i} className="bg-surface-secondary/50 shadow-none">
+            <Card key={i} className="shadow-none">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <Skeleton className="h-12 w-12 rounded-lg" />

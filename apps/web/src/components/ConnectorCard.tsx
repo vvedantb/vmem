@@ -100,7 +100,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
 
   return (
     <>
-      <Card className="bg-surface-secondary/50 shadow-none">
+      <Card className="shadow-none">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-lg bg-surface-secondary/60 flex items-center justify-center flex-shrink-0">
@@ -112,7 +112,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                   {connector.name}
                 </h3>
                 {!hasProvider && !isConnected && (
-                  <Badge className="bg-surface-secondary text-muted gap-1">
+                  <Badge variant="secondary" className="gap-1">
                     <IconClockHour4 size={12} stroke={2} />
                     Coming Soon
                   </Badge>
@@ -161,7 +161,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                 <div className="mt-3 space-y-1">
                   <Progress
                     value={connector.syncProgress}
-                    className="h-1.5 bg-surface-secondary [&>div]:bg-accent [&>div]:dark:bg-surface"
+                    className="h-1.5 bg-surface-secondary [&>div]:bg-accent"
                   />
                   <p className="text-xs text-muted">
                     {connector.syncProgress}% complete

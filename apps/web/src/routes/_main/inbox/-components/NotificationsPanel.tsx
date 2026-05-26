@@ -104,7 +104,7 @@ export function NotificationsPanel() {
       {notifications.map((notification) => (
         <div
           key={notification._id}
-          className="rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50 sm:px-4 sm:py-3"
+          className="rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50 sm:px-4 sm:py-3"
         >
           <div className="flex items-start gap-3 sm:gap-4">
             <div

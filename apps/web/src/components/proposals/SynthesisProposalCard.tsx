@@ -103,7 +103,7 @@ export default function SynthesisProposalCard({
                 key={src.id}
                 to="/memories/graph"
                 search={(prev) => ({ ...prev, focus: src.id })}
-                className="group -mx-1 flex min-w-0 items-baseline gap-2 rounded-lg px-2 py-1.5 text-sm transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50"
+                className="group -mx-1 flex min-w-0 items-baseline gap-2 rounded-lg px-2 py-1.5 text-sm transition-[background-color] hover:bg-surface-tertiary/50"
               >
                 <span className="truncate text-foreground/80 group-hover:text-foreground">
                   {src.title || "(untitled)"}

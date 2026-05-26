@@ -143,7 +143,7 @@ export default function RelatedMemories({
           {entries.map((entry) => (
             <div
               key={entry.memory.id}
-              className="flex items-start justify-between gap-2 rounded-lg px-2.5 py-2 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50"
+              className="flex items-start justify-between gap-2 rounded-lg px-2.5 py-2 transition-[background-color] hover:bg-surface-tertiary/50"
             >
               <button
                 type="button"

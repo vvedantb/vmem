@@ -66,7 +66,7 @@ function PlanItem({
           />
         )}
         {status === "pending" && (
-          <span className="size-1.5 rounded-full bg-surface-secondary-foreground/50" />
+          <span className="size-1.5 rounded-full bg-surface-tertiary/50" />
         )}
       </span>
       <span>{children}</span>

@@ -31,14 +31,14 @@ export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
         "flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/30",
         selected
           ? "bg-surface-secondary/40 text-foreground"
-          : "hover:bg-surface/45 dark:hover:bg-surface-secondary/40",
+          : "hover:bg-surface-tertiary/50",
       )}
     >
       <span
         aria-hidden
         className={cn(
           "size-2 shrink-0 rounded-full",
-          isEnabled ? "bg-success" : "bg-surface-secondary-foreground/50",
+          isEnabled ? "bg-success" : "bg-default",
         )}
       />
       <span

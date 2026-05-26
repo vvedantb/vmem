@@ -133,7 +133,7 @@ export default function FileToolbar({
                         onSelect={() =>
                           onSortSelect(field.sort, direction.sortDir)
                         }
-                        className={cn(isActive && "bg-surface-secondary/80")}
+                        className={cn(isActive && "bg-surface-tertiary/80")}
                       >
                         {direction.label}
                         {isActive ? (

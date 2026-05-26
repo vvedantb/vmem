@@ -79,7 +79,7 @@ function SubSidebarNavButton({
         isMobile ? "py-3.5" : "py-2.5",
         isActive
           ? "bg-surface-tertiary text-foreground"
-          : "text-muted hover:bg-surface/45 hover:text-foreground",
+          : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
       )}
     >
       <span className="flex h-5 w-5 items-center justify-center text-current">
@@ -274,7 +274,7 @@ function SettingsNav({
                       isMobile ? "py-3.5" : "py-2.5",
                       isActive
                         ? "bg-surface-tertiary text-foreground"
-                        : "text-muted hover:bg-surface/45 hover:text-foreground",
+                        : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
                     )}
                   >
                     <span className="flex h-5 w-5 items-center justify-center text-current">

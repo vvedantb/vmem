@@ -19,7 +19,7 @@ export function Sparkline({
         {data.map((_, index) => (
           <span
             key={index}
-            className="flex-1 rounded-sm bg-surface-secondary-foreground/20"
+            className="flex-1 rounded-sm bg-separator/40"
             style={{ height: 4 }}
           />
         ))}

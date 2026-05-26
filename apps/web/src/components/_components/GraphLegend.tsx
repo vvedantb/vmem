@@ -45,10 +45,10 @@ const EDGE_LEGEND: {
   swatchClass: string;
   thick?: boolean;
 }[] = [
-  { label: "Tag", swatchClass: "bg-surface-secondary-foreground/40" },
-  { label: "Relates-to", swatchClass: "bg-amber-500/70", thick: true },
-  { label: "Wiki / structural", swatchClass: "bg-blue-500/70", thick: true },
-  { label: "Mentions", swatchClass: "bg-emerald-500/70", thick: true },
+  { label: "Tag", swatchClass: "bg-surface-tertiary/40" },
+  { label: "Relates-to", swatchClass: "bg-warning/70", thick: true },
+  { label: "Wiki / structural", swatchClass: "bg-foreground/45", thick: true },
+  { label: "Mentions", swatchClass: "bg-success/70", thick: true },
 ];
 
 export default function GraphLegend({

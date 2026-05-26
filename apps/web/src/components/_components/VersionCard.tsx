@@ -18,7 +18,7 @@ const ACTION_STYLES: Record<string, { label: string; className: string }> = {
   },
   updated: {
     label: "Updated",
-    className: "border-border bg-default text-default-foreground",
+    className: "border-separator bg-default text-default-foreground",
   },
   deleted: {
     label: "Deleted",
@@ -83,7 +83,7 @@ export default function VersionCard({
         "w-full text-left rounded-lg p-3 transition-colors",
         isSelected
           ? "bg-accent/10 ring-1 ring-accent/30"
-          : "bg-surface-secondary/30 hover:bg-surface-secondary/50",
+          : "bg-surface-secondary/30 hover:bg-surface-tertiary/50",
       )}
     >
       {/* Header */}

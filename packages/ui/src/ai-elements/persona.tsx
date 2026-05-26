@@ -201,7 +201,7 @@ export function Persona({
 
       {/* ---- Main orb ---- */}
       <motion.div
-        className="relative size-full rounded-full shadow-lg overflow-hidden"
+        className="relative size-full rounded-full shadow-none overflow-hidden"
         style={{
           background: `linear-gradient(135deg, ${colours.from}, ${colours.to})`,
         }}

@@ -86,8 +86,8 @@ export default function ListItemRow({
   const rowBody = (
     <div
       className={cn(
-        "cursor-pointer rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50",
-        isSelected && "bg-surface-secondary dark:bg-surface-tertiary",
+        "cursor-pointer rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50",
+        isSelected && "bg-surface-secondary/40",
       )}
       onClick={handleClick}
     >
@@ -169,7 +169,7 @@ function KindMeta({ item }: { item: ListItem }) {
       return (
         <Badge
           variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted border-border whitespace-nowrap"
+          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted whitespace-nowrap"
         >
           {formatMemorySourceLabel(item.source)}
         </Badge>
@@ -178,7 +178,7 @@ function KindMeta({ item }: { item: ListItem }) {
       return (
         <Badge
           variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted border-border whitespace-nowrap"
+          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted whitespace-nowrap"
         >
           Wiki
         </Badge>
@@ -187,7 +187,7 @@ function KindMeta({ item }: { item: ListItem }) {
       return (
         <Badge
           variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted border-border whitespace-nowrap"
+          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted whitespace-nowrap"
         >
           {item.childCount} {item.childCount === 1 ? "item" : "items"}
         </Badge>
@@ -196,7 +196,7 @@ function KindMeta({ item }: { item: ListItem }) {
       return (
         <Badge
           variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted border-border whitespace-nowrap"
+          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted whitespace-nowrap"
         >
           Skill
         </Badge>

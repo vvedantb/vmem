@@ -53,7 +53,7 @@ Component Structure:
 
 UI list rows:
 
-- Inline list rows stay flat at rest; `hover:bg-muted/80 dark:hover:bg-accent/50` only on hover (plus selected/focus when needed). Never resting `bg-muted/*` per row — that is for containers/cards. Full rules in `CLAUDE.md` (Tonal Surface Hierarchy).
+- Inline list rows stay flat at rest; `hover:bg-surface-tertiary/50` only on hover (plus selected/focus when needed). Never resting surface tint per row — use `bg-surface-secondary/40` on containers/cards. Full rules in `CLAUDE.md` (Tonal Surface Hierarchy).
 
 Next.js:
 

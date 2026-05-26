@@ -81,10 +81,10 @@ export function QuickActionsGrid() {
           >
             <Link
               to={action.href}
-              className="group flex flex-col gap-1.5 rounded-lg bg-surface-secondary/30 px-4 py-3.5 transition-[background-color] hover:bg-surface-secondary/50"
+              className="group flex flex-col gap-1.5 rounded-lg bg-surface-secondary/30 px-4 py-3.5 transition-[background-color] hover:bg-surface-tertiary/50"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-secondary/60 transition-[background-color] group-hover:bg-surface-secondary/80">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-secondary/60 transition-[background-color] group-hover:bg-surface-tertiary">
                   <action.icon size={16} className="text-muted" stroke={1.5} />
                 </div>
                 <span className="text-sm font-medium text-foreground">

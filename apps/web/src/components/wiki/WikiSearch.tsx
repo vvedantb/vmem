@@ -61,7 +61,7 @@ export default function WikiSearch({ onSelect }: WikiSearchProps) {
                       setRaw("");
                     }}
                     disabled={node.kind !== "document"}
-                    className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground/90 hover:bg-surface-secondary/70 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground/90 hover:bg-surface-tertiary/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {node.kind === "folder" ? (
                       <IconFolder size={14} className="text-muted shrink-0" />

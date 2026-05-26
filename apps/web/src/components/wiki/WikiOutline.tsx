@@ -37,7 +37,7 @@ export default function WikiOutline({
                 onClick={() => onJump(heading.pos)}
                 className={cn(
                   "w-full text-left text-sm rounded-md px-2 py-1 transition-colors",
-                  "text-foreground/80 hover:bg-surface-secondary/70 hover:text-foreground",
+                  "text-foreground/80 hover:bg-surface-tertiary/50 hover:text-foreground",
                 )}
                 style={{ paddingLeft: `${(heading.level - 1) * 10 + 8}px` }}
               >

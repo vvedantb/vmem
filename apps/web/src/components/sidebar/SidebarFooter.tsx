@@ -48,7 +48,7 @@ function StatsCard({
       <div className="flex justify-center">
         <HoverCard openDelay={200} closeDelay={100}>
           <HoverCardTrigger asChild>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-secondary/40 hover:text-foreground cursor-default">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground cursor-default">
               <IconChartBar className="h-4 w-4" />
             </div>
           </HoverCardTrigger>
@@ -174,7 +174,7 @@ export function SidebarFooter({
                 aria-label={
                   isDark ? "Switch to light theme" : "Switch to dark theme"
                 }
-                className="shrink-0 rounded-lg text-muted transition-colors hover:bg-surface-secondary/40 hover:text-foreground"
+                className="shrink-0 rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground"
               >
                 {isDark ? (
                   <IconMoon className="h-4 w-4" />

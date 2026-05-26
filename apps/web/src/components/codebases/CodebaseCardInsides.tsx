@@ -97,7 +97,7 @@ export function CodebaseCardInsides({
       : 0;
 
   return (
-    <Card className="group bg-surface-secondary/50 shadow-none hover:bg-surface-secondary/70 transition-colors cursor-pointer">
+    <Card className="group shadow-none hover:bg-surface-tertiary/50 transition-colors cursor-pointer">
       <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-2.5 min-w-0">
@@ -107,7 +107,7 @@ export function CodebaseCardInsides({
                 alt={codebase.repoOwner}
                 width={20}
                 height={20}
-                className="rounded-full mt-0.5 shrink-0 outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
+                className="rounded-full mt-0.5 shrink-0 outline outline-1 -outline-offset-1 outline-foreground/10"
               />
             )}
             <div className="min-w-0">

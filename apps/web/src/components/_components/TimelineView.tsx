@@ -15,7 +15,7 @@ const ACTION_STYLES: Record<string, { label: string; className: string }> = {
   },
   updated: {
     label: "Updated",
-    className: "border-border bg-default text-default-foreground",
+    className: "border-separator bg-default text-default-foreground",
   },
   deleted: {
     label: "Deleted",
@@ -105,7 +105,7 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                           event.action === "proposal_approved" && "bg-success",
                           event.action === "proposal_rejected" && "bg-warning",
                           !ACTION_STYLES[event.action] &&
-                            "bg-surface-secondary-foreground",
+                            "bg-surface-tertiary/50",
                         ),
                   )}
                 />
@@ -127,7 +127,7 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                     className={cn(
                       "space-y-1 border-l-2 pl-3",
                       event.connectionType === "related"
-                        ? "border-border"
+                        ? "border-separator"
                         : "border-accent/40",
                     )}
                   >

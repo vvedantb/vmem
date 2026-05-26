@@ -46,7 +46,7 @@ export default function KindTab({
             "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
             selectedKinds.length === 0
               ? "bg-surface text-foreground font-medium"
-              : "hover:bg-surface-secondary/50",
+              : "hover:bg-surface-tertiary/50",
           )}
         >
           All kinds
@@ -62,7 +62,7 @@ export default function KindTab({
           return (
             <label
               key={kind}
-              className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-separator last:border-0 hover:bg-surface-secondary/30"
+              className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-separator last:border-0 hover:bg-surface-tertiary/50"
             >
               <Checkbox
                 checked={checked}

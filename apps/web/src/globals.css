@@ -5,6 +5,34 @@
 /*
  * HeroUI theme (source of truth)
  * @see https://heroui.com/docs/react/getting-started/theming
+ *
+ * TOKEN GUIDE — how surfaces stack (light → dark relative order preserved):
+ *
+ * Layout chrome
+ *   --background     Page canvas + sidebar (darkest in dark mode)
+ *   --surface        Main content panel (elevated card in MainShell)
+ *
+ * Nested UI (inside --surface)
+ *   --surface-secondary   Cards, stat tiles, grouped blocks
+ *   --surface-tertiary    Hover / subtle emphasis on secondary
+ *
+ * Floating UI
+ *   --overlay        Dialogs, popovers, dropdowns, tooltips (shadow-lg only here)
+ *
+ * Controls
+ *   --segment        Segmented control track (tabs toggle background)
+ *   --default        Secondary buttons, inactive control fills
+ *   --field-*        Inputs, selects, textareas only
+ *
+ * Lines & text
+ *   --separator      Dividers (modal headers, table rows, menu separators)
+ *   --border         Form control outlines only — not layout dividers
+ *   --foreground     Primary text
+ *   --muted          Secondary text only — never use as a resting background
+ *
+ * Brand & status
+ *   --accent         Primary actions (black light / white dark — not HeroUI blue)
+ *   --danger / --success / --warning / --focus
  */
 @layer base {
   :root,
@@ -352,7 +380,7 @@
     margin: 0;
   }
   .wiki-editor .ProseMirror blockquote {
-    border-left: 2px solid var(--border);
+    border-left: 2px solid var(--separator);
     padding-left: 0.9rem;
     color: var(--muted);
     font-style: italic;
@@ -384,7 +412,7 @@
   }
   .wiki-editor .ProseMirror hr {
     border: 0;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--separator);
     margin: 1.5em 0;
   }
   .wiki-editor .ProseMirror a {

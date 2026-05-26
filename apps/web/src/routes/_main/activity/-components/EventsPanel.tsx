@@ -222,7 +222,7 @@ export function EventsPanel({
         const Icon = getActivityIcon(item.type);
         return (
           <div className="pb-1">
-            <div className="rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-secondary/80 dark:hover:bg-surface-tertiary/50 sm:px-4 sm:py-3">
+            <div className="rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50 sm:px-4 sm:py-3">
               <div className="flex items-center gap-3 sm:gap-4">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-accent/10">
                   <Icon size={20} className="text-accent" />
