@@ -1,5 +1,15 @@
 # Changelog
 
+## Settings layout, connectors hub, and nav polish — 2026-05-23
+
+- **Settings**: Section titles (Preferences, Profiles, Import, Danger zone) sit above cards, not inside — clearer hierarchy matching Models.
+- **Secrets**: Explainer text in a dedicated info card; env-var table is actions only.
+- **Connectors**: Main page lists only connected integrations; **Browse Connectors** adds new ones. Dropbox/Slack stubs hidden until they have OAuth; “Coming soon” badge removed.
+- **Tabs**: Fixed `TabsList` height so header tab pills aren’t clipped.
+- **Team members**: No remove control on your own row; profile photo beside your name in the list.
+- **Skills sidebar**: Selected skill uses the same `bg-surface-tertiary` active style as other nav.
+- **Activity**: Events audit log uses compact rows in a card (aligned with dashboard recent activity).
+
 ## Card surfaces across dashboard, activity, teams, inbox — 2026-05-23
 
 - **Dashboard**: Stat cards, memory growth chart, recent activity, and quick actions use shared `Card` primitives (loading skeleton matches).

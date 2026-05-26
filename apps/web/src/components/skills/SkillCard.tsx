@@ -30,8 +30,8 @@ export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
       className={cn(
         "flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
         selected
-          ? "bg-surface-secondary/40 text-foreground"
-          : "hover:bg-surface-tertiary",
+          ? "bg-surface-tertiary text-foreground"
+          : "text-muted hover:bg-surface-tertiary hover:text-foreground",
       )}
     >
       <span

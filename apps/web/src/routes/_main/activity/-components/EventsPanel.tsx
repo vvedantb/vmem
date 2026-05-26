@@ -3,6 +3,8 @@ import { useQueryStates } from "nuqs";
 import { useConvexAuth, useAction } from "convex/react";
 import {
   Button,
+  Card,
+  CardContent,
   Skeleton,
   DropdownMenu,
   DropdownMenuTrigger,
@@ -33,6 +35,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
+import { getActivityLabel } from "@/components/dashboard/_utils";
 import {
   eventsSearchParams,
   EVENT_TYPES,
@@ -84,39 +87,65 @@ function getDateThreshold(preset: EventDatePreset): number | null {
   }
 }
 
+function ActivityEventRow({ item }: { item: ActivityItem }) {
+  const Icon = getActivityIcon(item.type);
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-tertiary/60">
+        <Icon size={16} className="text-muted" stroke={1.5} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <p className="truncate text-sm font-medium text-foreground">
+            {getActivityLabel(item.description)}
+          </p>
+          <p className="shrink-0 text-xs tabular-nums text-muted">
+            {item.relativeTime}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LoadingSkeleton() {
   return (
-    <div className="flex flex-col gap-1">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="rounded-lg px-3 py-2.5 sm:px-4 sm:py-3">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <Skeleton className="h-10 w-10 rounded-lg" />
-            <div className="flex flex-1 items-center justify-between gap-3">
-              <Skeleton className="h-4 w-48 rounded" />
-              <Skeleton className="h-3 w-16 rounded" />
+    <Card className="shadow-none">
+      <CardContent className="flex flex-col gap-1 p-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="rounded-lg px-3 py-2.5">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-8 w-8 rounded-lg" />
+              <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                <Skeleton className="h-4 w-48 max-w-full rounded" />
+                <Skeleton className="h-3 w-14 shrink-0 rounded" />
+              </div>
             </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-surface-secondary">
-        <IconActivity size={32} className="text-muted" />
-      </div>
-      <h3 className="mb-1 text-lg font-medium text-foreground text-balance">
-        {hasFilters ? "No matching activity" : "No activity yet"}
-      </h3>
-      <p className="text-sm text-muted">
-        {hasFilters
-          ? "Try adjusting your filters to see more results."
-          : "Your activity history will appear here."}
-      </p>
-    </div>
+    <Card className="shadow-none">
+      <CardContent className="flex flex-col items-center justify-center px-6 py-16 text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
+          <IconActivity size={28} className="text-muted" stroke={1.5} />
+        </div>
+        <h3 className="mb-1 text-base font-medium text-foreground text-balance">
+          {hasFilters ? "No matching activity" : "No activity yet"}
+        </h3>
+        <p className="max-w-sm text-sm text-muted text-balance">
+          {hasFilters
+            ? "Try adjusting your filters to see more results."
+            : "Your activity history will appear here."}
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -126,7 +155,8 @@ const DATE_PRESETS: EventDatePreset[] = ["all", "today", "week", "month"];
  * Events panel for `/activity` — the user-action audit log (memory created,
  * file uploaded, sync completed, etc.).
  *
- * Renders the list/Virtuoso virtualised table. The orchestrator owns the
+ * Renders a virtualised list of compact rows (same pattern as memories list).
+ * The orchestrator owns the
  * scroll container and passes its ref in via `scrollParent` so Virtuoso
  * can hook into PageContainer's scroll surface (rather than introducing
  * a nested scroller).
@@ -196,13 +226,15 @@ export function EventsPanel({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <p className="mb-4 text-sm text-danger">{error}</p>
-        <Button variant="outline" size="sm" onClick={fetchActivity}>
-          <IconLoader2 size={16} className="mr-2" />
-          Retry
-        </Button>
-      </div>
+      <Card className="shadow-none">
+        <CardContent className="flex flex-col items-center justify-center px-6 py-16 text-center">
+          <p className="mb-4 text-sm text-danger">{error}</p>
+          <Button variant="outline" size="sm" onClick={fetchActivity}>
+            <IconLoader2 size={16} className="mr-2" />
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -213,34 +245,21 @@ export function EventsPanel({
   if (!scrollParent) return <LoadingSkeleton />;
 
   return (
-    <Virtuoso
-      data={filteredAndSortedActivity}
-      customScrollParent={scrollParent}
-      computeItemKey={(_index, item) => item.id}
-      defaultItemHeight={64}
-      itemContent={(_index, item) => {
-        const Icon = getActivityIcon(item.type);
-        return (
-          <div className="pb-1">
-            <div className="rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50 sm:px-4 sm:py-3">
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-accent/10">
-                  <Icon size={20} className="text-accent" />
-                </div>
-                <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-foreground sm:text-base">
-                    {item.description}
-                  </p>
-                  <p className="flex-shrink-0 text-xs text-muted sm:text-sm tabular-nums">
-                    {item.relativeTime}
-                  </p>
-                </div>
-              </div>
+    <Card className="shadow-none">
+      <CardContent className="p-2">
+        <Virtuoso
+          data={filteredAndSortedActivity}
+          customScrollParent={scrollParent}
+          computeItemKey={(_index, item) => item.id}
+          defaultItemHeight={44}
+          itemContent={(_index, item) => (
+            <div className="pb-1">
+              <ActivityEventRow item={item} />
             </div>
-          </div>
-        );
-      }}
-    />
+          )}
+        />
+      </CardContent>
+    </Card>
   );
 }
 

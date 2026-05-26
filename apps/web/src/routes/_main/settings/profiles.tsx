@@ -431,102 +431,108 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   };
 
   return (
-    <Card className="shadow-none">
-      <CardContent className="space-y-4 p-4">
-        <div>
-          <h3 className="font-medium text-foreground">Default Profiles</h3>
-          <p className="text-xs text-muted mt-0.5">
-            Choose which profile new memories are saved to by default
-          </p>
-        </div>
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-base font-medium text-foreground">
+          Default Profiles
+        </h3>
+        <p className="mt-0.5 text-xs text-muted">
+          Choose which profile new memories are saved to by default
+        </p>
+      </div>
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <IconWorld className="h-4 w-4 text-muted" />
-              <Label className="text-sm">Web App</Label>
+      <Card className="shadow-none">
+        <CardContent className="space-y-4 p-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <IconWorld className="h-4 w-4 text-muted" />
+                <Label className="text-sm">Web App</Label>
+              </div>
+              <Select
+                value={webDefault?._id ?? ""}
+                onValueChange={(profileId) => {
+                  void handleDefaultProfileChange("web", profileId);
+                }}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue>
+                    {webDefault && (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: webDefault.color }}
+                        />
+                        <span className="truncate">{webDefault.name}</span>
+                      </div>
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {profiles.map((profile) => (
+                    <SelectItem key={profile._id} value={profile._id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: profile.color }}
+                        />
+                        <span>{profile.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select
-              value={webDefault?._id ?? ""}
-              onValueChange={(profileId) => {
-                void handleDefaultProfileChange("web", profileId);
-              }}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue>
-                  {webDefault && (
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: webDefault.color }}
-                      />
-                      <span className="truncate">{webDefault.name}</span>
-                    </div>
-                  )}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {profiles.map((profile) => (
-                  <SelectItem key={profile._id} value={profile._id}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: profile.color }}
-                      />
-                      <span>{profile.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <IconBrandChrome className="h-4 w-4 text-muted" />
-              <Label className="text-sm">Browser Extension</Label>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <IconBrandChrome className="h-4 w-4 text-muted" />
+                <Label className="text-sm">Browser Extension</Label>
+              </div>
+              <Select
+                value={extensionDefault?._id ?? ""}
+                onValueChange={(profileId) => {
+                  void handleDefaultProfileChange("extension", profileId);
+                }}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue>
+                    {extensionDefault && (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: extensionDefault.color }}
+                        />
+                        <span className="truncate">
+                          {extensionDefault.name}
+                        </span>
+                      </div>
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {profiles.map((profile) => (
+                    <SelectItem key={profile._id} value={profile._id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: profile.color }}
+                        />
+                        <span>{profile.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select
-              value={extensionDefault?._id ?? ""}
-              onValueChange={(profileId) => {
-                void handleDefaultProfileChange("extension", profileId);
-              }}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue>
-                  {extensionDefault && (
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: extensionDefault.color }}
-                      />
-                      <span className="truncate">{extensionDefault.name}</span>
-                    </div>
-                  )}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {profiles.map((profile) => (
-                  <SelectItem key={profile._id} value={profile._id}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: profile.color }}
-                      />
-                      <span>{profile.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
-          <p className="text-xs text-muted pt-1">
-            MCP clients will ask which profile to save to
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+            <p className="text-xs text-muted pt-1">
+              MCP clients will ask which profile to save to
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
   );
 }
 

@@ -40,7 +40,6 @@ interface EnvVarsTableProps {
   onBulkImport: (
     entries: Array<{ key: string; value: string }>,
   ) => Promise<void>;
-  description: string;
 }
 
 /** Parses a `.env`-formatted text blob into `{ key, value }` pairs. */
@@ -73,7 +72,6 @@ export function EnvVarsTable({
   onReveal,
   onRemove,
   onBulkImport,
-  description,
 }: EnvVarsTableProps) {
   const [adding, setAdding] = useState(false);
   const [addKey, setAddKey] = useState("");
@@ -248,8 +246,7 @@ export function EnvVarsTable({
 
   return (
     <div>
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted">{description}</p>
+      <div className="mb-4 flex justify-end">
         <div className="flex items-center gap-2 shrink-0">
           <Button
             size="sm"

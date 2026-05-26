@@ -9,9 +9,11 @@ import {
   DialogTitle,
   Button,
 } from "@vmem/ui";
-import type { FunctionReturnType } from "convex/server";
-import { toast } from "sonner";
 import { api, type Doc } from "@vmem/backend";
+import {
+  isConnectorConnected,
+  isConnectorConnectable,
+} from "@/components/settings/connector-utils";
 import OAuthModal from "@/components/OAuthModal";
 import { GitHubConnectorControls } from "./GitHubConnectorControls";
 import {
@@ -39,18 +41,6 @@ const iconMap: Record<
   IconBrandLinear: LinearIcon,
 };
 
-type GitHubConnection = FunctionReturnType<typeof api.github.getConnection>;
-
-function isConnectorConnected(
-  connector: Doc<"connectors">,
-  githubConnection: GitHubConnection | undefined,
-): boolean {
-  if (connector.name === "GitHub") {
-    return githubConnection !== undefined && githubConnection !== null;
-  }
-  return connector.connectionStatus === "connected";
-}
-
 interface BrowseConnectorsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -69,15 +59,15 @@ export default function BrowseConnectorsModal({
 
   const availableConnectors = useMemo(() => {
     return connectors
-      .filter((connector) => !isConnectorConnected(connector, githubConnection))
+      .filter(
+        (connector) =>
+          isConnectorConnectable(connector) &&
+          !isConnectorConnected(connector, githubConnection),
+      )
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [connectors, githubConnection]);
 
   const handleConnect = (connector: Doc<"connectors">) => {
-    if (!connector.provider) {
-      toast.info(`${connector.name} support coming soon!`);
-      return;
-    }
     setOauthConnector(connector);
   };
 
@@ -130,14 +120,9 @@ export default function BrowseConnectorsModal({
                       <Button
                         size="sm"
                         onClick={() => handleConnect(connector)}
-                        disabled={!hasProvider}
-                        className={
-                          hasProvider
-                            ? "bg-surface text-foreground"
-                            : "bg-surface-secondary text-muted cursor-not-allowed"
-                        }
+                        className="bg-surface text-foreground"
                       >
-                        {hasProvider ? "Connect" : "Soon"}
+                        Connect
                       </Button>
                     )}
                   </div>

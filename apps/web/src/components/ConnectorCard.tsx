@@ -4,12 +4,7 @@ import { useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { Card, CardContent, Button, Badge, Progress } from "@vmem/ui";
 import { toast } from "sonner";
-import {
-  IconLoader2,
-  IconAlertCircle,
-  IconClock,
-  IconClockHour4,
-} from "@tabler/icons-react";
+import { IconLoader2, IconAlertCircle, IconClock } from "@tabler/icons-react";
 import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
 import { GitHubConnectorControls } from "./settings/GitHubConnectorControls";
@@ -74,10 +69,6 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
       connector.lastSyncAt !== undefined);
 
   const handleConnect = () => {
-    if (!hasProvider) {
-      toast.info(`${connector.name} support coming soon!`);
-      return;
-    }
     setShowOAuthModal(true);
   };
 
@@ -111,12 +102,6 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                 <h3 className="font-medium text-foreground">
                   {connector.name}
                 </h3>
-                {!hasProvider && !isConnected && (
-                  <Badge variant="secondary" className="gap-1">
-                    <IconClockHour4 size={12} stroke={2} />
-                    Coming Soon
-                  </Badge>
-                )}
                 {isSyncing && (
                   <Badge className="bg-accent/10 text-accent gap-1">
                     <IconLoader2
@@ -212,14 +197,9 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                 <Button
                   size="sm"
                   onClick={handleConnect}
-                  disabled={!hasProvider}
-                  className={
-                    hasProvider
-                      ? "bg-surface text-foreground font-medium"
-                      : "bg-surface-secondary text-muted cursor-not-allowed"
-                  }
+                  className="bg-surface font-medium text-foreground"
                 >
-                  {hasProvider ? "Connect" : "Coming Soon"}
+                  Connect
                 </Button>
               </>
             )}

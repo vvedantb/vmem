@@ -134,25 +134,26 @@ function PreferencesPage() {
   if (settings === undefined) {
     return (
       <PageContainer title="Preferences" centeredMaxWidth showTitle>
-        <div className="space-y-12">
-          <section className="space-y-6">
-            <div className="space-y-2">
+        <div className="space-y-8">
+          <Card className="shadow-none">
+            <CardContent className="space-y-6 p-6">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-24 w-full" />
-            </div>
-            <div className="space-y-2">
               <Skeleton className="h-4 w-28" />
               <Skeleton className="h-24 w-full" />
-            </div>
-          </section>
-          <section className="space-y-6">
-            <Skeleton className="h-5 w-48" />
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          </section>
+            </CardContent>
+          </Card>
+          {[1, 2, 3].map((section) => (
+            <section key={section} className="space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <Card className="shadow-none">
+                <CardContent className="space-y-6 p-6">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </CardContent>
+              </Card>
+            </section>
+          ))}
         </div>
       </PageContainer>
     );
@@ -160,7 +161,7 @@ function PreferencesPage() {
 
   return (
     <PageContainer title="Preferences" centeredMaxWidth showTitle>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <Card className="shadow-none">
           <CardContent className="space-y-6 p-6">
             <div className="space-y-2">
@@ -212,12 +213,12 @@ function PreferencesPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-none">
-          <CardContent className="space-y-6 p-6">
-            <h3 className="text-base font-medium text-foreground">
-              Memory Behavior
-            </h3>
-            <div className="space-y-6">
+        <section className="space-y-3">
+          <h3 className="text-base font-medium text-foreground">
+            Memory Behavior
+          </h3>
+          <Card className="shadow-none">
+            <CardContent className="space-y-6 p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Label htmlFor="auto-extract" className="text-sm font-medium">
@@ -241,16 +242,14 @@ function PreferencesPage() {
                   void saveSettings({ memoryConfidenceThreshold: value });
                 }}
               />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </section>
 
-        <Card className="shadow-none">
-          <CardContent className="space-y-6 p-6">
-            <h3 className="text-base font-medium text-foreground">
-              Dream Mode
-            </h3>
-            <div className="space-y-6">
+        <section className="space-y-3">
+          <h3 className="text-base font-medium text-foreground">Dream Mode</h3>
+          <Card className="shadow-none">
+            <CardContent className="space-y-6 p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Label
@@ -307,16 +306,16 @@ function PreferencesPage() {
                   />
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </section>
 
-        <Card className="shadow-none">
-          <CardContent className="space-y-6 p-6">
-            <h3 className="text-base font-medium text-foreground">
-              Notification Preferences
-            </h3>
-            <div className="space-y-6">
+        <section className="space-y-3">
+          <h3 className="text-base font-medium text-foreground">
+            Notification Preferences
+          </h3>
+          <Card className="shadow-none">
+            <CardContent className="space-y-6 p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Label
@@ -378,9 +377,9 @@ function PreferencesPage() {
                   }}
                 />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </section>
       </div>
     </PageContainer>
   );

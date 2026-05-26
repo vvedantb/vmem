@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { Badge, Button, cn } from "@vmem/ui";
+import { Badge, Button, Card, CardContent, cn } from "@vmem/ui";
 import { IconAlertCircle, IconReceipt2 } from "@tabler/icons-react";
 import type { Doc } from "@vmem/backend";
 import {
@@ -75,45 +75,51 @@ export function LogsTable({
           </span>
         </div>
 
-        <div className="hidden px-1 text-xs font-medium text-muted md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px_80px_72px] md:gap-3">
-          <div>Time</div>
-          <div>Feature</div>
-          <div>Profile</div>
-          <div>Model</div>
-          <div className="text-right">Tokens</div>
-          <div className="text-right">Cost</div>
-          <div className="text-right">Latency</div>
-          <div className="text-right">Status</div>
-        </div>
-
-        <Virtuoso
-          data={items}
-          customScrollParent={scrollParent}
-          computeItemKey={(_index, row) => row._id}
-          defaultItemHeight={56}
-          endReached={() => {
-            if (hasMore && !isLoading) onLoadMore();
-          }}
-          components={{
-            Footer: () =>
-              hasMore || isLoading ? (
-                <div className="py-4 text-center text-xs text-muted">
-                  {isLoading ? "Loading…" : "Scroll for more"}
-                </div>
-              ) : null,
-          }}
-          itemContent={(_index, row) => (
-            <div className="pb-1">
-              <LogRowCard
-                row={row}
-                profile={
-                  row.profileId ? profilesById.get(row.profileId) : undefined
-                }
-                onClick={() => setSelected(row)}
-              />
+        <Card className="shadow-none">
+          <CardContent className="p-2">
+            <div className="hidden px-2 pb-2 text-xs font-medium text-muted md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px_80px_72px] md:gap-3">
+              <div>Time</div>
+              <div>Feature</div>
+              <div>Profile</div>
+              <div>Model</div>
+              <div className="text-right">Tokens</div>
+              <div className="text-right">Cost</div>
+              <div className="text-right">Latency</div>
+              <div className="text-right">Status</div>
             </div>
-          )}
-        />
+
+            <Virtuoso
+              data={items}
+              customScrollParent={scrollParent}
+              computeItemKey={(_index, row) => row._id}
+              defaultItemHeight={56}
+              endReached={() => {
+                if (hasMore && !isLoading) onLoadMore();
+              }}
+              components={{
+                Footer: () =>
+                  hasMore || isLoading ? (
+                    <div className="py-4 text-center text-xs text-muted">
+                      {isLoading ? "Loading…" : "Scroll for more"}
+                    </div>
+                  ) : null,
+              }}
+              itemContent={(_index, row) => (
+                <div className="pb-1">
+                  <LogRowCard
+                    row={row}
+                    profile={
+                      row.profileId
+                        ? profilesById.get(row.profileId)
+                        : undefined
+                    }
+                    onClick={() => setSelected(row)}
+                  />
+                </div>
+              )}
+            />
+          </CardContent>
+        </Card>
       </section>
 
       <LogRowDetail
@@ -132,20 +138,22 @@ export function LogsTable({
 
 function AiLogsTableLoadingSkeleton() {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <div className="h-4 w-28 animate-pulse rounded bg-surface-secondary/60" />
-        <div className="h-3 w-24 animate-pulse rounded bg-surface-secondary/60" />
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3 px-0.5">
+        <div className="h-4 w-28 animate-pulse rounded bg-surface-tertiary/60" />
+        <div className="h-3 w-24 animate-pulse rounded bg-surface-tertiary/60" />
       </div>
-      <div className="flex flex-col gap-1">
-        {[0, 1, 2, 3, 4, 5].map((index) => (
-          <div
-            key={index}
-            className="h-14 animate-pulse rounded-lg bg-surface-secondary/40"
-          />
-        ))}
-      </div>
-    </div>
+      <Card className="shadow-none">
+        <CardContent className="flex flex-col gap-1 p-2">
+          {[0, 1, 2, 3, 4, 5].map((index) => (
+            <div
+              key={index}
+              className="h-14 animate-pulse rounded-lg bg-surface-tertiary/40"
+            />
+          ))}
+        </CardContent>
+      </Card>
+    </section>
   );
 }
 
@@ -257,28 +265,35 @@ function EmptyState({
   onResetFilters: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg bg-surface-secondary/40 px-6 py-14 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-secondary/60">
-        <IconReceipt2 size={28} className="text-muted" stroke={1.5} />
-      </div>
-      <h3 className="mb-1 text-base font-medium text-foreground">
-        {hasActiveFilters ? "No matching calls" : "No AI calls yet"}
-      </h3>
-      <p className="max-w-sm text-sm text-muted text-balance">
-        {hasActiveFilters
-          ? "Try adjusting your filters to see more results."
-          : "Backend LLM and embedding calls will appear here when you save memories or run searches."}
-      </p>
-      {hasActiveFilters ? (
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-4"
-          onClick={onResetFilters}
-        >
-          Reset filters
-        </Button>
-      ) : null}
-    </div>
+    <section className="flex flex-col gap-3">
+      <h2 className="px-0.5 text-sm font-medium text-foreground">
+        Recent calls
+      </h2>
+      <Card className="shadow-none">
+        <CardContent className="flex flex-col items-center justify-center px-6 py-14 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
+            <IconReceipt2 size={28} className="text-muted" stroke={1.5} />
+          </div>
+          <h3 className="mb-1 text-base font-medium text-foreground">
+            {hasActiveFilters ? "No matching calls" : "No AI calls yet"}
+          </h3>
+          <p className="max-w-sm text-sm text-muted text-balance">
+            {hasActiveFilters
+              ? "Try adjusting your filters to see more results."
+              : "Backend LLM and embedding calls will appear here when you save memories or run searches."}
+          </p>
+          {hasActiveFilters ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4"
+              onClick={onResetFilters}
+            >
+              Reset filters
+            </Button>
+          ) : null}
+        </CardContent>
+      </Card>
+    </section>
   );
 }

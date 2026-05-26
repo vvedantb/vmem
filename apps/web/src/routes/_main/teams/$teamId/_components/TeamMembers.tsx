@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { Badge, Button, Card, CardContent } from "@vmem/ui";
-import { IconPlus, IconTrash, IconLoader2 } from "@tabler/icons-react";
+import { useUser } from "@clerk/clerk-react";
+import {
+  IconPlus,
+  IconTrash,
+  IconLoader2,
+  IconUser,
+} from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { TeamDetail } from "../-team-detail";
 import { AddMemberDialog } from "./AddMemberDialog";
@@ -39,6 +45,8 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
   );
   const [addOpen, setAddOpen] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const currentUser = useQuery(api.users.getMe);
+  const { user: clerkUser } = useUser();
 
   const isOwner = data.role === "owner";
 
@@ -85,20 +93,32 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
                   [m.firstName, m.lastName].filter(Boolean).join(" ") ||
                   m.email ||
                   "Unknown";
+                const isSelf =
+                  currentUser !== undefined && m.userId === currentUser?._id;
+                const canRemoveMember =
+                  isOwner && !isSelf && currentUser !== undefined;
+                const avatarUrl =
+                  isSelf && clerkUser?.imageUrl
+                    ? clerkUser.imageUrl
+                    : undefined;
+
                 return (
                   <li
                     key={m.userId}
                     className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50"
                   >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-foreground">
-                        {name}
-                      </div>
-                      {m.email ? (
-                        <div className="truncate text-xs text-muted">
-                          {m.email}
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <MemberAvatar imageUrl={avatarUrl} />
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-foreground">
+                          {name}
                         </div>
-                      ) : null}
+                        {m.email ? (
+                          <div className="truncate text-xs text-muted">
+                            {m.email}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge
@@ -107,7 +127,7 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
                       >
                         {m.role}
                       </Badge>
-                      {isOwner ? (
+                      {canRemoveMember ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -136,6 +156,27 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
         open={addOpen}
         onOpenChange={setAddOpen}
       />
+    </div>
+  );
+}
+
+function MemberAvatar({ imageUrl }: { imageUrl: string | undefined }) {
+  if (imageUrl) {
+    return (
+      <img
+        src={imageUrl}
+        alt=""
+        className="h-8 w-8 shrink-0 rounded-lg object-cover"
+      />
+    );
+  }
+
+  return (
+    <div
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-tertiary/60"
+      aria-hidden
+    >
+      <IconUser size={16} className="text-muted" />
     </div>
   );
 }

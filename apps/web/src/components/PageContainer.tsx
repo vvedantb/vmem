@@ -79,7 +79,7 @@ export default function PageContainer({
         >
           <div
             className={cn(
-              "flex h-10 w-full min-w-0 items-center justify-between gap-2 md:gap-4",
+              "flex min-h-10 w-full min-w-0 items-center justify-between gap-2 md:gap-4",
               centeredMaxWidth && "mx-auto w-full max-w-5xl",
             )}
           >
