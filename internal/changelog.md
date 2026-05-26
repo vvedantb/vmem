@@ -1,5 +1,12 @@
 # Changelog
 
+## Overlay polish & monochrome accent — 2026-05-23
+
+- **Route tabs**: Always show icon + label (HeroUI-style); removed collapsing icon-only labels on AI Logs and other tab bars.
+- **Modal scrim**: Black `--backdrop` with `backdrop-blur-md` (fixes white wash in dark mode from `foreground/50`).
+- **Floating menus**: `--overlay-shadow` on `glass-panel-strong` so dropdowns, selects, and popovers have visible elevation.
+- **Brand accent**: Achromatic black (light) / white (dark) for buttons, focus rings, and checked controls — no blue hue.
+
 ## Wiki selection & menu hovers — 2026-05-23
 
 - **Wiki sidebar**: Active document uses `bg-surface-tertiary` (same as main nav) so the open page is obvious.

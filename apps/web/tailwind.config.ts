@@ -16,6 +16,7 @@ const config: Config = {
     extend: {
       colors: {
         border: v("border"),
+        backdrop: v("backdrop"),
         background: v("background"),
         foreground: v("foreground"),
         accent: {
@@ -72,6 +73,7 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
+        overlay: "var(--overlay-shadow)",
         soft: "0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 28px rgba(16, 24, 40, 0.06)",
         panel:
           "0 1px 2px rgba(16, 24, 40, 0.05), 0 16px 44px rgba(16, 24, 40, 0.1)",

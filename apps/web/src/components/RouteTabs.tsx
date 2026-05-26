@@ -1,5 +1,5 @@
 import { Link, useMatchRoute, type LinkProps } from "@tanstack/react-router";
-import { Tabs, TabsList, TabsTrigger, AnimatedTabLabel } from "@vmem/ui";
+import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
 import type { ReactNode } from "react";
 
 export interface RouteTabItem {
@@ -35,12 +35,9 @@ export function RouteTabs({
       <TabsList>
         {tabs.map((tab) => (
           <TabsTrigger key={tab.value} value={tab.value} asChild>
-            <Link to={tab.to} params={linkParams}>
+            <Link to={tab.to} params={linkParams} className="gap-1.5">
               {tab.icon}
-              <AnimatedTabLabel
-                isActive={activeValue === tab.value}
-                label={tab.label}
-              />
+              <span>{tab.label}</span>
             </Link>
           </TabsTrigger>
         ))}
