@@ -39,8 +39,8 @@ const config: Config = {
         info: { DEFAULT: c("info"), foreground: c("info-foreground") },
       },
       borderRadius: {
-        xl: "calc(var(--radius) + 4px)",
         lg: "var(--radius)",
+        field: "var(--field-radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },

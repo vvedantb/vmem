@@ -102,7 +102,7 @@ const TimePicker = React.forwardRef<HTMLButtonElement, TimePickerProps>(
             disabled={disabled}
             aria-label={ariaLabel}
             className={cn(
-              "inline-flex h-8 items-center justify-between gap-2 rounded-xl border border-input bg-muted px-2.5 text-xs font-medium tabular-nums transition-[border-color,box-shadow,background-color] duration-200 ease-smooth hover:bg-muted/70 focus-visible:border-ring/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50",
+              "inline-flex h-8 items-center justify-between gap-2 rounded-field border border-input bg-muted px-2.5 text-xs font-medium tabular-nums transition-[border-color,box-shadow,background-color] duration-200 ease-smooth hover:bg-muted/70 focus-visible:border-ring/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50",
               triggerClassName ?? "w-[110px]",
               className,
             )}

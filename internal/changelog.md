@@ -3,7 +3,8 @@
 ## HeroUI theme tokens — 2026-05-23
 
 - **Fixed broken colors after flat UI migration**: Replaced ad-hoc tokens with HeroUI oklch palette; `--muted` now maps to surface backgrounds (not text gray), restoring readable cards, nav, and form fields.
-- **Brand primary**: Blue accent (`62%` lightness) drives buttons, links, and focus rings consistently in light and dark mode.
+- **Brand primary**: Monochrome black accent in light mode (white inverse in dark) drives buttons, links, and focus rings — no blue tint.
+- **Radius wired to HeroUI**: `--radius` (0.5rem) on buttons/cards/overlays via `rounded-lg`; `--field-radius` (0.75rem) on inputs via `rounded-field`. Removed unthemed `rounded-2xl` / oversized `rounded-xl` from core UI components.
 
 ## Flat UI replaces glass morphism — 2026-05-23
 

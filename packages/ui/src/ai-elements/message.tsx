@@ -40,7 +40,7 @@ function MessageContent({ className, ...props }: MessageContentProps) {
   return (
     <div
       className={cn(
-        "w-fit max-w-4xl rounded-2xl px-4 py-3 text-sm",
+        "w-fit max-w-4xl rounded-lg px-4 py-3 text-sm",
         "group-data-[role=user]:bg-primary group-data-[role=user]:text-primary-foreground group-data-[role=user]:rounded-br-md",
         "group-data-[role=assistant]:text-foreground group-data-[role=assistant]:px-0",
         className,

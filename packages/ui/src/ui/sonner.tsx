@@ -38,7 +38,7 @@ function SonnerToaster(props: ToasterProps) {
         unstyled: true,
         classNames: {
           toast:
-            "group toast glass-panel-strong flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-foreground",
+            "group toast glass-panel-strong flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-foreground",
           title: "font-medium leading-snug",
           description: "text-[13px] leading-snug text-muted-foreground",
           actionButton:

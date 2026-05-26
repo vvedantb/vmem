@@ -150,7 +150,7 @@ export function SidebarFooter({
                   userButtonBox: isIconOnly
                     ? "flex justify-center"
                     : "flex w-full",
-                  userButtonTrigger: `rounded-xl bg-transparent transition-colors hover:bg-card/60 focus:shadow-none ${
+                  userButtonTrigger: `rounded-lg bg-transparent transition-colors hover:bg-card/60 focus:shadow-none ${
                     isIconOnly
                       ? "h-10 w-10 p-0"
                       : "h-10 w-full justify-start gap-0 px-2"

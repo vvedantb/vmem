@@ -12,7 +12,7 @@
   --color-card-foreground: oklch(21.03% 0.0015 253.83);
   --color-popover: oklch(100% 0.0004 253.83);
   --color-popover-foreground: oklch(21.03% 0.0015 253.83);
-  --color-primary: oklch(62.04% 0.195 253.83);
+  --color-primary: oklch(21.03% 0.0059 253.83);
   --color-primary-foreground: oklch(99.11% 0 0);
   --color-secondary: oklch(94% 0.0015 253.83);
   --color-secondary-foreground: oklch(21.03% 0.0059 253.83);
@@ -22,14 +22,14 @@
   --color-accent-foreground: oklch(21.03% 0.0015 253.83);
   --color-border: oklch(90% 0.0015 253.83);
   --color-input: oklch(100% 0.0008 253.83);
-  --color-ring: oklch(62.04% 0.195 253.83);
+  --color-ring: oklch(21.03% 0.0059 253.83);
   --color-success: oklch(73.29% 0.1941 150.81);
   --color-warning: oklch(78.19% 0.159 72.33);
   --color-destructive: oklch(65.32% 0.2335 25.74);
   --color-destructive-foreground: oklch(99.11% 0 0);
   --surface-muted: oklch(93.73% 0.0012 253.83);
   --surface-popover: oklch(100% 0.0004 253.83);
-  --selection-bg: oklch(62.04% 0.195 253.83 / 0.18);
+  --selection-bg: oklch(21.03% 0.0059 253.83 / 0.18);
 }
 
 .dark,
@@ -40,8 +40,8 @@
   --color-card-foreground: oklch(99.11% 0.0015 253.83);
   --color-popover: oklch(21.03% 0.003 253.83);
   --color-popover-foreground: oklch(99.11% 0.0015 253.83);
-  --color-primary: oklch(62.04% 0.195 253.83);
-  --color-primary-foreground: oklch(99.11% 0 0);
+  --color-primary: oklch(99.11% 0 0);
+  --color-primary-foreground: oklch(21.03% 0.0059 253.83);
   --color-secondary: oklch(27.4% 0.0015 253.83);
   --color-secondary-foreground: oklch(99.11% 0 0);
   --color-muted: oklch(25.7% 0.0023 253.83);
@@ -50,14 +50,14 @@
   --color-accent-foreground: oklch(99.11% 0.0015 253.83);
   --color-border: oklch(28% 0.0015 253.83);
   --color-input: oklch(21.03% 0.003 253.83);
-  --color-ring: oklch(62.04% 0.195 253.83);
+  --color-ring: oklch(99.11% 0 0);
   --color-success: oklch(73.29% 0.1941 150.81);
   --color-warning: oklch(82.03% 0.1392 76.34);
   --color-destructive: oklch(59.4% 0.1973 24.63);
   --color-destructive-foreground: oklch(99.11% 0 0);
   --surface-muted: oklch(27.21% 0.0023 253.83);
   --surface-popover: oklch(21.03% 0.003 253.83);
-  --selection-bg: oklch(62.04% 0.195 253.83 / 0.18);
+  --selection-bg: oklch(99.11% 0 0 / 0.18);
 }
 
 @theme {
@@ -87,6 +87,10 @@
   --font-serif: "Instrument Serif", Georgia, serif;
 
   --radius: 0.5rem;
+  --field-radius: 0.75rem;
+
+  --radius-lg: var(--radius);
+  --radius-field: var(--field-radius);
 
   --shadow-soft:
     0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 28px rgba(16, 24, 40, 0.06);

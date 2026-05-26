@@ -17,7 +17,7 @@
   [data-theme="default"] {
     color-scheme: light;
 
-    --heroui-accent: oklch(62.04% 0.195 253.83);
+    --heroui-accent: oklch(21.03% 0.0059 253.83);
     --heroui-accent-foreground: oklch(99.11% 0 0);
     --heroui-background: oklch(97.02% 0.0015 253.83);
     --heroui-border: oklch(90% 0.0015 253.83);
@@ -29,7 +29,7 @@
     --heroui-field-border: transparent;
     --heroui-field-foreground: oklch(21.03% 0.0015 253.83);
     --heroui-field-placeholder: oklch(55.17% 0.003 253.83);
-    --heroui-focus: oklch(62.04% 0.195 253.83);
+    --heroui-focus: oklch(21.03% 0.0059 253.83);
     --heroui-foreground: oklch(21.03% 0.0015 253.83);
     --heroui-muted: oklch(55.17% 0.003 253.83);
     --heroui-overlay: oklch(100% 0.0004 253.83);
@@ -55,7 +55,7 @@
     --card-foreground: 0.2103 0.0015 253.83;
     --popover: 1 0.0004 253.83;
     --popover-foreground: 0.2103 0.0015 253.83;
-    --primary: 0.6204 0.195 253.83;
+    --primary: 0.2103 0.0059 253.83;
     --primary-foreground: 0.9911 0 0;
     --secondary: 0.94 0.0015 253.83;
     --secondary-foreground: 0.2103 0.0059 253.83;
@@ -71,10 +71,10 @@
     --warning-foreground: 0.2103 0.0059 72.33;
     --border: 0.9 0.0015 253.83;
     --input: 1 0.0008 253.83;
-    --ring: 0.6204 0.195 253.83;
+    --ring: 0.2103 0.0059 253.83;
     --sidebar: 0.9524 0.0012 253.83;
     --sidebar-foreground: 0.2103 0.0015 253.83;
-    --info: 0.6204 0.195 253.83;
+    --info: 0.2103 0.0059 253.83;
     --info-foreground: 0.9911 0 0;
     --radius: 0.5rem;
     --field-radius: 0.75rem;
@@ -84,8 +84,8 @@
   [data-theme="dark"] {
     color-scheme: dark;
 
-    --heroui-accent: oklch(62.04% 0.195 253.83);
-    --heroui-accent-foreground: oklch(99.11% 0 0);
+    --heroui-accent: oklch(99.11% 0 0);
+    --heroui-accent-foreground: oklch(21.03% 0.0059 253.83);
     --heroui-background: oklch(12% 0.0015 253.83);
     --heroui-border: oklch(28% 0.0015 253.83);
     --heroui-danger: oklch(59.4% 0.1973 24.63);
@@ -96,7 +96,7 @@
     --heroui-field-border: transparent;
     --heroui-field-foreground: oklch(99.11% 0.0015 253.83);
     --heroui-field-placeholder: oklch(70.5% 0.003 253.83);
-    --heroui-focus: oklch(62.04% 0.195 253.83);
+    --heroui-focus: oklch(99.11% 0 0);
     --heroui-foreground: oklch(99.11% 0.0015 253.83);
     --heroui-muted: oklch(70.5% 0.003 253.83);
     --heroui-overlay: oklch(21.03% 0.003 253.83);
@@ -122,8 +122,8 @@
     --card-foreground: 0.9911 0.0015 253.83;
     --popover: 0.2103 0.003 253.83;
     --popover-foreground: 0.9911 0.0015 253.83;
-    --primary: 0.6204 0.195 253.83;
-    --primary-foreground: 0.9911 0 0;
+    --primary: 0.9911 0 0;
+    --primary-foreground: 0.2103 0.0059 253.83;
     --secondary: 0.274 0.0015 253.83;
     --secondary-foreground: 0.9911 0 0;
     --muted: 0.257 0.0023 253.83;
@@ -138,10 +138,10 @@
     --warning-foreground: 0.2103 0.0059 76.34;
     --border: 0.28 0.0015 253.83;
     --input: 0.2103 0.003 253.83;
-    --ring: 0.6204 0.195 253.83;
+    --ring: 0.9911 0 0;
     --sidebar: 0.12 0.0015 253.83;
     --sidebar-foreground: 0.9911 0.0015 253.83;
-    --info: 0.6204 0.195 253.83;
+    --info: 0.9911 0 0;
     --info-foreground: 0.9911 0 0;
     --radius: 0.5rem;
     --field-radius: 0.75rem;
