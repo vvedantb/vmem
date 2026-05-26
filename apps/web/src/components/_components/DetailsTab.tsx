@@ -123,14 +123,14 @@ export default function DetailsTab({
               {...register("title")}
               placeholder="Memory title"
               disabled={isSubmitting}
-              className="h-10 bg-surface-secondary/50 border-border text-foreground text-lg font-semibold hover:bg-surface-tertiary focus-visible:border-focus mb-4"
+              className="h-10 rounded-field border-border bg-field-background text-foreground text-lg font-semibold placeholder:text-field-placeholder hover:bg-field-background focus-visible:border-focus mb-4"
             />
             <Textarea
               {...register("content")}
               placeholder="Memory content"
               rows={6}
               disabled={isSubmitting}
-              className="bg-surface-secondary/50 border-border text-foreground hover:bg-surface-tertiary focus-visible:border-focus"
+              className="rounded-field border-border bg-field-background text-foreground placeholder:text-field-placeholder hover:bg-field-background focus-visible:border-focus"
             />
             {errors.content && (
               <p className="text-sm text-danger mt-1">
@@ -165,11 +165,7 @@ export default function DetailsTab({
           <div className="flex gap-2 flex-wrap">
             {memory.tags.length > 0 ? (
               memory.tags.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="bg-surface-secondary border-border text-muted text-xs"
-                >
+                <Badge key={tag} variant="secondary" className="text-xs">
                   {tag}
                 </Badge>
               ))
@@ -183,7 +179,7 @@ export default function DetailsTab({
       <p className="text-sm text-muted">{formatDate(memory.createdAt)}</p>
 
       {/* Footer actions */}
-      <div className="flex justify-between border-t border-border pt-4">
+      <div className="flex justify-between border-t border-separator pt-4">
         {isEditing ? (
           <>
             <Button
@@ -194,11 +190,7 @@ export default function DetailsTab({
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleSubmit(onSave)}
-              disabled={isSubmitting}
-              className="bg-surface-tertiary text-accent-foreground"
-            >
+            <Button onClick={handleSubmit(onSave)} disabled={isSubmitting}>
               {isSubmitting ? (
                 <IconLoader2 size={16} className="animate-spin" />
               ) : (
@@ -217,10 +209,7 @@ export default function DetailsTab({
               <IconTrash size={16} />
               Delete
             </Button>
-            <Button
-              onClick={startEditing}
-              className="bg-surface-tertiary text-accent-foreground"
-            >
+            <Button onClick={startEditing}>
               <IconEdit size={16} />
               Edit
             </Button>

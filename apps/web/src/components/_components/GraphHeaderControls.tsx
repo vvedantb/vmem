@@ -270,7 +270,7 @@ function FiltersPopover({ controller }: { controller: MemoryGraphController }) {
         >
           <IconFilter size={16} />
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-surface-tertiary text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
+            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-accent text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
               {activeFilterCount}
             </span>
           )}
@@ -358,7 +358,7 @@ function OptionsPopover({
         {/* View mode */}
         <div className="space-y-1.5">
           <span className="text-[11px] text-muted">View</span>
-          <div className="flex items-center gap-0.5 rounded-lg bg-background/50 border border-border/30 p-0.5 w-fit">
+          <div className="flex items-center gap-0.5 rounded-lg bg-segment p-0.5 w-fit">
             {VIEW_MODES.map(({ mode, Icon }) => (
               <button
                 key={mode}
@@ -367,8 +367,8 @@ function OptionsPopover({
                 title={VIEW_MODE_LABELS[mode]}
                 className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
                   mode === viewMode
-                    ? "bg-foreground/10 text-foreground"
-                    : "text-muted hover:text-foreground hover:bg-foreground/5"
+                    ? "bg-surface text-foreground"
+                    : "text-muted hover:text-foreground hover:bg-surface-tertiary/50"
                 }`}
               >
                 <Icon size={14} />
@@ -418,7 +418,7 @@ function OptionsPopover({
                 onChange={(e) =>
                   handleSliderChange(field.key, parseFloat(e.target.value))
                 }
-                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-surface-secondary accent-foreground"
+                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-surface-secondary accent-accent"
               />
             </div>
           ))}

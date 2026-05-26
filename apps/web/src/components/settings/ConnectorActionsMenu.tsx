@@ -56,7 +56,7 @@ export default function ConnectorActionsMenu({
           size="sm"
           disabled={isBusy}
           aria-label={`${connectorName} options`}
-          className="border-border text-muted"
+          className="text-muted"
         >
           {isSyncing ? (
             <IconLoader2 size={14} className="animate-spin" />

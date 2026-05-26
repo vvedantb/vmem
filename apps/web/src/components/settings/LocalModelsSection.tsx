@@ -39,7 +39,7 @@ export default function LocalModelsSection() {
   if (!isSupported) {
     return (
       <div className="flex items-start gap-3">
-        <IconAlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+        <IconAlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
         <div>
           <h4 className="text-sm font-medium text-foreground">
             WebGPU not available

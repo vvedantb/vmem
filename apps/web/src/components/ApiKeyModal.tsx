@@ -111,7 +111,7 @@ export default function ApiKeyModal({
 
         {step === "create" && !isSubmitting && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-surface-secondary/50 border border-border">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-surface-secondary/50">
               <IconKey size={20} className="text-muted flex-shrink-0" />
               <p className="text-sm text-muted">
                 Create a new API key to access vMemory programmatically. You can
@@ -161,7 +161,7 @@ export default function ApiKeyModal({
                 <Input
                   value={createdKey.key}
                   readOnly
-                  className="font-mono text-sm border-border bg-surface-secondary/50"
+                  className="font-mono text-sm rounded-field border-border bg-field-background"
                 />
                 <Button
                   variant="ghost"
@@ -203,11 +203,7 @@ export default function ApiKeyModal({
               >
                 Cancel
               </Button>
-              <Button
-                onClick={handleSubmit(onSubmit)}
-                disabled={isSubmitting}
-                className="bg-surface-tertiary text-accent-foreground"
-              >
+              <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
                 Create Key
               </Button>
             </>
@@ -219,14 +215,7 @@ export default function ApiKeyModal({
             </p>
           )}
 
-          {step === "success" && (
-            <Button
-              onClick={handleClose}
-              className="bg-surface-tertiary text-accent-foreground"
-            >
-              Done
-            </Button>
-          )}
+          {step === "success" && <Button onClick={handleClose}>Done</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

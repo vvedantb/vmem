@@ -215,7 +215,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                   disabled={!hasProvider}
                   className={
                     hasProvider
-                      ? "bg-surface-tertiary text-accent-foreground font-medium"
+                      ? "bg-surface text-foreground font-medium"
                       : "bg-surface-secondary text-muted cursor-not-allowed"
                   }
                 >

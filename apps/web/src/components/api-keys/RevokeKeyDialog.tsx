@@ -33,7 +33,7 @@ export function RevokeKeyDialog({
         if (!open && !isRevoking) onCancel();
       }}
     >
-      <DialogContent className="sm:max-w-sm bg-surface border border-border">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-foreground">Revoke API Key</DialogTitle>
           <DialogDescription className="sr-only">
@@ -67,7 +67,7 @@ export function RevokeKeyDialog({
           <Button
             onClick={onConfirm}
             disabled={isRevoking}
-            className="bg-danger text-accent-foreground"
+            className="bg-danger text-danger-foreground"
           >
             {isRevoking ? (
               <>

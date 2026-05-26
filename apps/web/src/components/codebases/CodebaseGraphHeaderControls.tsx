@@ -122,7 +122,7 @@ function FiltersPopover({
         >
           <IconFilter size={16} />
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-surface-tertiary text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
+            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-accent text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
               {activeFilterCount}
             </span>
           )}
@@ -143,7 +143,7 @@ function FiltersPopover({
               return (
                 <label
                   key={kind}
-                  className="flex items-center gap-2 px-1 py-1 rounded hover:bg-foreground/5 cursor-pointer"
+                  className="flex items-center gap-2 px-1 py-1 rounded hover:bg-surface-tertiary/50 cursor-pointer"
                 >
                   <Checkbox
                     checked={checked}

@@ -45,7 +45,7 @@ export default function FileListView({
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-border text-left">
+          <tr className="border-b border-separator text-left">
             <th className="w-10 px-3 py-2">
               <Checkbox checked={isAllSelected} onCheckedChange={onSelectAll} />
             </th>

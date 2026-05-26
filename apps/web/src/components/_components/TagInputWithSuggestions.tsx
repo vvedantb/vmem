@@ -62,11 +62,7 @@ export default function TagInputWithSuggestions({
     <div className="space-y-3">
       <div className="flex gap-2 flex-wrap">
         {tags.map((tag) => (
-          <Badge
-            key={tag}
-            variant="outline"
-            className="bg-surface-secondary border-border text-muted text-xs gap-1 pr-1"
-          >
+          <Badge key={tag} variant="secondary" className="text-xs gap-1 pr-1">
             {tag}
             <Button
               type="button"
@@ -95,10 +91,10 @@ export default function TagInputWithSuggestions({
           }}
           placeholder="Add a tag and press Enter"
           disabled={disabled}
-          className="h-8 bg-surface-secondary/50 border-border text-foreground hover:bg-surface-tertiary focus-visible:border-focus"
+          className="h-8 rounded-field border-border bg-field-background text-foreground placeholder:text-field-placeholder hover:bg-field-background focus-visible:border-focus"
         />
         {showSuggestions && filteredSuggestions.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 max-h-32 overflow-y-auto rounded-lg border border-border bg-surface shadow-lg">
+          <div className="absolute z-50 w-full mt-1 max-h-32 overflow-y-auto rounded-lg bg-overlay shadow-lg text-overlay-foreground">
             {filteredSuggestions.slice(0, 5).map((item) => (
               <Button
                 key={item.tag}

@@ -16,7 +16,7 @@ export default function DiffDisplay({ oldText, newText }: DiffDisplayProps) {
           return (
             <span
               key={index}
-              className="bg-green-100 dark:bg-green-900/30 rounded-sm px-0.5"
+              className="bg-success/15 text-success rounded-sm px-0.5"
             >
               {part.value}
             </span>
@@ -26,7 +26,7 @@ export default function DiffDisplay({ oldText, newText }: DiffDisplayProps) {
           return (
             <span
               key={index}
-              className="bg-red-100 dark:bg-red-900/30 line-through rounded-sm px-0.5"
+              className="bg-danger/15 text-danger line-through rounded-sm px-0.5"
             >
               {part.value}
             </span>

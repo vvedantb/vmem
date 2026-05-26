@@ -116,10 +116,7 @@ export default function RelatedMemories({
         <div className="flex items-center gap-2">
           <h4 className="text-sm font-medium text-muted">Related Memories</h4>
           {entries.length > 0 && (
-            <Badge
-              variant="outline"
-              className="bg-surface-secondary border-border text-muted text-xs"
-            >
+            <Badge variant="secondary" className="text-xs">
               {entries.length}
             </Badge>
           )}
@@ -168,10 +165,7 @@ export default function RelatedMemories({
                 <p className="text-sm font-medium text-foreground truncate">
                   {entry.memory.title}
                 </p>
-                <Badge
-                  variant="outline"
-                  className="mt-1 text-xs bg-surface-secondary border-border text-muted"
-                >
+                <Badge variant="secondary" className="mt-1 text-xs">
                   {entry.reason}
                 </Badge>
               </button>
@@ -199,7 +193,7 @@ export default function RelatedMemories({
           if (!open && unlinkingId === null) setConfirmUnlinkId(null);
         }}
       >
-        <DialogContent className="sm:max-w-sm bg-surface border border-border">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-foreground">Unlink Memory</DialogTitle>
             <DialogDescription className="sr-only">
@@ -240,7 +234,7 @@ export default function RelatedMemories({
                 setConfirmUnlinkId(null);
               }}
               disabled={unlinkingId !== null}
-              className="bg-danger text-accent-foreground"
+              className="bg-danger text-danger-foreground"
             >
               {unlinkingId !== null ? (
                 <>

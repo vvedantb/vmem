@@ -31,14 +31,14 @@ export default function SourceTab({
       value="source"
       className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
     >
-      <div className="p-2 border-b border-border">
+      <div className="p-2 border-b border-separator">
         <button
           type="button"
           onClick={() => onSourcesChange?.([])}
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
             selectedSources.length === 0
-              ? "bg-surface-tertiary text-accent-foreground font-medium"
+              ? "bg-surface text-foreground font-medium"
               : "hover:bg-surface-secondary/50",
           )}
         >

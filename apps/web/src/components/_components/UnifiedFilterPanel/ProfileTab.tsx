@@ -23,14 +23,14 @@ export default function ProfileTab({
       value="profile"
       className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
     >
-      <div className="p-2 border-b border-border">
+      <div className="p-2 border-b border-separator">
         <button
           type="button"
           onClick={() => onProfileChange(null)}
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
             !selectedProfileId
-              ? "bg-surface-tertiary text-accent-foreground font-medium"
+              ? "bg-surface text-foreground font-medium"
               : "hover:bg-surface-secondary/50",
           )}
         >
@@ -62,7 +62,7 @@ export default function ProfileTab({
                 className={cn(
                   "flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors border-b border-separator last:border-0",
                   isSelected
-                    ? "bg-surface-tertiary text-accent-foreground"
+                    ? "bg-surface text-foreground"
                     : "hover:bg-surface-secondary/50",
                 )}
               >

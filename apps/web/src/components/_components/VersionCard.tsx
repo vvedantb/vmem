@@ -14,27 +14,23 @@ interface VersionCardProps {
 const ACTION_STYLES: Record<string, { label: string; className: string }> = {
   created: {
     label: "Created",
-    className:
-      "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+    className: "border-success/25 bg-success/12 text-success",
   },
   updated: {
     label: "Updated",
-    className:
-      "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+    className: "border-border bg-default text-default-foreground",
   },
   deleted: {
     label: "Deleted",
-    className: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+    className: "border-danger/25 bg-danger/12 text-danger",
   },
   proposal_approved: {
     label: "Approved",
-    className:
-      "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+    className: "border-success/25 bg-success/12 text-success",
   },
   proposal_rejected: {
     label: "Rejected",
-    className:
-      "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+    className: "border-warning/25 bg-warning/12 text-warning",
   },
 };
 
@@ -106,12 +102,12 @@ export default function VersionCard({
       {version.changeSummary !== null && (
         <div className="flex items-center gap-2 flex-wrap mb-2 text-xs">
           {version.changeSummary.addedChars > 0 && (
-            <span className="text-green-600 dark:text-green-400">
+            <span className="text-success">
               +{version.changeSummary.addedChars} chars
             </span>
           )}
           {version.changeSummary.removedChars > 0 && (
-            <span className="text-red-600 dark:text-red-400">
+            <span className="text-danger">
               -{version.changeSummary.removedChars} chars
             </span>
           )}
@@ -119,7 +115,7 @@ export default function VersionCard({
             <Badge
               key={`add-${tag}`}
               variant="outline"
-              className="text-xs text-green-600 dark:text-green-400"
+              className="text-xs text-success"
             >
               +{tag}
             </Badge>
@@ -128,7 +124,7 @@ export default function VersionCard({
             <Badge
               key={`rem-${tag}`}
               variant="outline"
-              className="text-xs text-red-600 dark:text-red-400 line-through"
+              className="text-xs text-danger line-through"
             >
               {tag}
             </Badge>
@@ -158,7 +154,7 @@ export default function VersionCard({
               newText={version.snapshot.content}
             />
           ) : (
-            <div className="rounded-lg bg-background/50 p-3 text-sm whitespace-pre-wrap">
+            <div className="rounded-lg bg-surface-secondary/50 p-3 text-sm whitespace-pre-wrap">
               {version.snapshot.content}
             </div>
           )}

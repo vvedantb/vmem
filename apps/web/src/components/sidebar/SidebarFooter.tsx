@@ -117,7 +117,7 @@ export function SidebarFooter({
   return (
     <div className={cn("space-y-4 pt-3")}>
       {showStats ? <StatsCard isIconOnly={isIconOnly} stats={stats} /> : null}
-      {showStats ? <Separator className="bg-border/45" /> : null}
+      {showStats ? <Separator /> : null}
 
       <div className={cn(isMobile ? "pr-2" : "px-2")}>
         {isAuthLoading ? (

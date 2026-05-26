@@ -21,11 +21,7 @@ export default function FileEmptyState({
           ? "Upload files or create a folder to get started"
           : "Upload files or create a folder"}
       </p>
-      <Button
-        onClick={onUpload}
-        className="bg-surface-tertiary text-accent-foreground"
-        size="sm"
-      >
+      <Button onClick={onUpload} size="sm">
         <IconUpload size={16} stroke={1.5} />
         Upload
       </Button>

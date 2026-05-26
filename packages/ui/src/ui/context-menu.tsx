@@ -157,7 +157,7 @@ const ContextMenuSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ContextMenuPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1.5 my-1 h-px bg-border/70", className)}
+    className={cn("-mx-1.5 my-1 h-px bg-separator", className)}
     {...props}
   />
 ));

@@ -95,7 +95,7 @@ function ModelSelector() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-secondary/50 px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-foreground disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-full bg-default px-2 py-0.5 text-[11px] text-muted transition-colors hover:bg-default/78 hover:text-foreground disabled:opacity-50"
           disabled={isLoading}
         >
           <IconCpu className="size-3" stroke={1.5} />
@@ -215,7 +215,7 @@ export default function Chat() {
           {messages.length === 0 && needsModel && (
             <ConversationEmptyState
               icon={
-                <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
+                <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-surface">
                   <img
                     width={22}
                     height={22}
@@ -247,7 +247,7 @@ export default function Chat() {
           {messages.length === 0 && !needsModel && (
             <ConversationEmptyState
               icon={
-                <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
+                <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-surface">
                   <img
                     width={22}
                     height={22}
@@ -321,7 +321,7 @@ export default function Chat() {
           if (!open && !isClearing) setClearOpen(false);
         }}
       >
-        <DialogContent className="sm:max-w-sm bg-surface border border-border">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               Clear chat history
@@ -357,7 +357,7 @@ export default function Chat() {
             <Button
               onClick={handleConfirmClear}
               disabled={isClearing}
-              className="bg-danger text-accent-foreground"
+              className="bg-danger text-danger-foreground"
             >
               {isClearing ? (
                 <>

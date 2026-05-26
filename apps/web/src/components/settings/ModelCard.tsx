@@ -50,11 +50,11 @@ export default function ModelCard({
             )}
             {/* Runtime badge */}
             <Badge
-              variant="outline"
+              variant={model.runtime === "mediapipe" ? "outline" : "secondary"}
               className={`text-xs ${
                 model.runtime === "mediapipe"
-                  ? "border-green-500/50 text-green-600 dark:text-green-400"
-                  : "border-blue-500/50 text-blue-600 dark:text-blue-400"
+                  ? "border-success/50 text-success"
+                  : undefined
               }`}
             >
               {model.runtime === "mediapipe" ? "MediaPipe" : "MLC"}

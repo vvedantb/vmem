@@ -136,7 +136,7 @@ export default function Sidebar({
         </div>
 
         <DialogPortal>
-          <DialogOverlay className="bg-black/50 md:hidden" />
+          <DialogOverlay className="md:hidden" />
           <DialogRawContent
             id={mobileMenuId}
             aria-label="Navigation menu"

@@ -57,7 +57,7 @@ export default function GraphEdgeTooltip({
 
   return (
     <div
-      className="absolute glass-panel rounded-lg p-3 max-w-xs pointer-events-none z-10 hidden md:block"
+      className="absolute glass-panel-strong rounded-lg p-3 max-w-xs pointer-events-none z-10 hidden md:block"
       style={{ left, top }}
     >
       <p className="font-medium text-foreground text-xs mb-1">

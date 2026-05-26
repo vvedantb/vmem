@@ -133,7 +133,7 @@ export default function BrowseConnectorsModal({
                         disabled={!hasProvider}
                         className={
                           hasProvider
-                            ? "bg-surface-tertiary text-accent-foreground"
+                            ? "bg-surface text-foreground"
                             : "bg-surface-secondary text-muted cursor-not-allowed"
                         }
                       >

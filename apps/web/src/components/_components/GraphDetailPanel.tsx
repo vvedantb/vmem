@@ -77,7 +77,7 @@ export default function GraphDetailPanel({
             <button
               type="button"
               onClick={onClose}
-              className="ml-2 p-1 rounded-md text-muted hover:text-foreground hover:bg-foreground/5 transition-colors flex-shrink-0"
+              className="ml-2 p-1 rounded-md text-muted hover:text-foreground hover:bg-surface-tertiary/50 transition-colors flex-shrink-0"
             >
               <IconX size={16} />
             </button>
@@ -100,11 +100,7 @@ export default function GraphDetailPanel({
             {nodeData.tags.length > 0 && (
               <div className="flex gap-1.5 flex-wrap mt-3">
                 {nodeData.tags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="outline"
-                    className="bg-surface-secondary border-border text-muted text-xs"
-                  >
+                  <Badge key={tag} variant="secondary" className="text-xs">
                     {tag}
                   </Badge>
                 ))}
@@ -168,7 +164,7 @@ export default function GraphDetailPanel({
 
             {/* Related nodes */}
             {relatedNodes.length > 0 && (
-              <div className="mt-6 border-t border-border pt-4">
+              <div className="mt-6 border-t border-separator pt-4">
                 <p className="text-xs font-medium text-muted mb-2">
                   Related ({relatedNodes.length})
                 </p>
@@ -178,7 +174,7 @@ export default function GraphDetailPanel({
                       key={neighbor.id}
                       type="button"
                       onClick={() => onNavigate(neighbor.id)}
-                      className="w-full p-2.5 rounded-lg bg-surface-secondary/50 border border-border hover:bg-surface-tertiary transition-colors text-left"
+                      className="w-full p-2.5 rounded-lg bg-surface-secondary/50 hover:bg-surface-tertiary transition-colors text-left"
                     >
                       <p className="text-sm font-medium text-foreground truncate">
                         {neighbor.title}

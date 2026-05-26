@@ -240,7 +240,7 @@ export default function FileUploadModal({
           if (isUploading) e.preventDefault();
         }}
       >
-        <DialogHeader className="border-b border-border pb-4">
+        <DialogHeader className="border-b border-separator pb-4">
           <div className="flex items-center justify-between gap-4">
             <DialogTitle className="text-foreground">Upload Files</DialogTitle>
             <Button
@@ -265,8 +265,8 @@ export default function FileUploadModal({
               relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
               ${
                 isDragging
-                  ? "border-accent bg-surface-secondary"
-                  : "border-border/80 hover:border-focus"
+                  ? "border-accent bg-accent/5"
+                  : "border-border hover:border-focus"
               }
             `}
           >
@@ -281,14 +281,12 @@ export default function FileUploadModal({
             <div className="flex flex-col items-center gap-3">
               <div
                 className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
-                  isDragging ? "bg-surface-tertiary" : "bg-surface-secondary"
+                  isDragging ? "bg-accent/15" : "bg-surface-secondary"
                 }`}
               >
                 <IconUpload
                   size={24}
-                  className={
-                    isDragging ? "text-accent-foreground" : "text-muted"
-                  }
+                  className={isDragging ? "text-accent" : "text-muted"}
                 />
               </div>
               <div>
@@ -315,9 +313,9 @@ export default function FileUploadModal({
                   return (
                     <div
                       key={`${queuedFile.file.name}-${index}`}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-surface-secondary/50 border border-border"
+                      className="flex items-center gap-3 p-3 rounded-lg bg-surface-secondary/50"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-surface-secondary border border-border flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 rounded-lg bg-surface-secondary flex items-center justify-center flex-shrink-0">
                         <FileIcon size={20} className="text-muted" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -379,7 +377,7 @@ export default function FileUploadModal({
           )}
         </div>
 
-        <DialogFooter className="border-t border-border pt-4">
+        <DialogFooter className="border-t border-separator pt-4">
           <Button
             variant="ghost"
             onClick={handleClose}
@@ -392,7 +390,6 @@ export default function FileUploadModal({
             <Button
               onClick={handleUploadAll}
               disabled={isUploading || pendingCount === 0}
-              className="bg-surface-tertiary text-accent-foreground"
             >
               {isUploading ? (
                 <IconLoader2 size={16} className="animate-spin" />

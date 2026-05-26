@@ -51,7 +51,7 @@ export default function TagsTab({
       value="tags"
       className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
     >
-      <div className="p-2 border-b border-border">
+      <div className="p-2 border-b border-separator">
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -59,7 +59,7 @@ export default function TagsTab({
             className={cn(
               "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
               selectedTags.length === 0
-                ? "bg-surface-tertiary text-accent-foreground font-medium"
+                ? "bg-surface text-foreground font-medium"
                 : "hover:bg-surface-secondary/50",
             )}
           >

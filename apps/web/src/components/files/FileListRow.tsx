@@ -80,7 +80,7 @@ export default function FileListRow({
     >
       <tr
         className={cn(
-          "group cursor-pointer border-b border-border transition-colors hover:bg-surface-tertiary/50",
+          "group cursor-pointer border-b border-separator transition-colors hover:bg-surface-tertiary/50",
           isSelected && "bg-accent/5",
         )}
         onClick={handleClick}
@@ -96,7 +96,7 @@ export default function FileListRow({
         {/* Icon + Name */}
         <td className="py-2 pr-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-secondary border border-border overflow-hidden">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-secondary overflow-hidden">
               {!isFolder &&
               item.fileCategory === "image" &&
               item.thumbnailUrl ? (

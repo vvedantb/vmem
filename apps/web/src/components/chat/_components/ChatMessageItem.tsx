@@ -94,7 +94,7 @@ function MemoryRefChip({ ref }: { ref: ChatMemoryRef }) {
     <Link
       to="/memories/graph"
       search={(prev) => ({ ...prev, focus: ref.id })}
-      className="inline-flex max-w-[220px] items-center rounded-md border border-border bg-surface-secondary/40 px-2 py-0.5 text-[11px] text-muted transition-colors hover:bg-surface-secondary hover:text-foreground"
+      className="inline-flex max-w-[220px] items-center rounded-md bg-default px-2 py-0.5 text-[11px] text-muted transition-colors hover:bg-default/78 hover:text-foreground"
     >
       <span className="truncate">{ref.title}</span>
     </Link>
@@ -263,7 +263,7 @@ export default function ChatMessageItem({
                 {sourceParts.map((source, idx) => (
                   <div
                     key={source.sourceId}
-                    className="p-3 rounded-lg border border-border bg-surface-secondary/30"
+                    className="p-3 rounded-lg bg-surface-secondary/30"
                   >
                     <div className="text-sm font-medium text-foreground mb-1">
                       {source.title ?? `Source ${idx + 1}`}

@@ -36,10 +36,7 @@ export default function MemoryProvenance({ memory }: MemoryProvenanceProps) {
   return (
     <div className="rounded-lg bg-surface-secondary/40 p-4 space-y-2">
       <p className="text-sm font-medium text-foreground">Imported from</p>
-      <Badge
-        variant="outline"
-        className="bg-surface-secondary border-border text-muted text-xs"
-      >
+      <Badge variant="secondary" className="text-xs">
         {sourceLabel}
       </Badge>
       {sourceSyncedAt !== null && sourceSyncedAt.length > 0 ? (

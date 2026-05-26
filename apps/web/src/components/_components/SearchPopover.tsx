@@ -49,7 +49,7 @@ export default function SearchPopover({
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             autoFocus
-            className="h-8 pl-8 text-xs bg-background/50"
+            className="h-8 pl-8 text-xs bg-field-background"
           />
         </div>
       </PopoverContent>

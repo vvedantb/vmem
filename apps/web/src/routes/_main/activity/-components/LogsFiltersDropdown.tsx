@@ -179,7 +179,7 @@ export function LogsFiltersDropdown({
           <IconFilter size={16} />
           Filters
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-surface-tertiary px-1 text-[10px] font-medium leading-none tabular-nums text-accent-foreground">
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium leading-none tabular-nums text-accent-foreground">
               {activeFilterCount}
             </span>
           )}

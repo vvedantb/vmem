@@ -107,7 +107,7 @@ export function ProfileDropdown({
     >
       <SelectTrigger
         className={cn(
-          "h-10 w-auto min-w-[140px] bg-surface-secondary/50 border-border hover:bg-surface-tertiary",
+          "h-10 w-auto min-w-[140px] rounded-field border-border bg-field-background hover:bg-field-background/90",
           className,
         )}
       >

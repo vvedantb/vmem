@@ -68,7 +68,6 @@ export default function SynthesisProposalCard({
             size="sm"
             onClick={onApprove}
             disabled={isResolving}
-            className="bg-surface-tertiary text-accent-foreground"
           >
             <IconCheck size={14} />
             {isDismissOnly ? "Acknowledge" : "Approve"}

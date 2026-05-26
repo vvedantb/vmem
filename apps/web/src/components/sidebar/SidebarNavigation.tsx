@@ -164,11 +164,11 @@ function MainNav({
                 <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted/70">
                   {group.title}
                 </span>
-                <Separator className="flex-1 bg-border/40" />
+                <Separator className="flex-1" />
               </div>
             ) : (
               <div className="flex justify-center mb-2">
-                <Separator className="w-6 bg-border/40" />
+                <Separator className="w-6" />
               </div>
             )}
             <ul className={cn("space-y-1", !isIconOnly && "pl-3")}>
@@ -248,11 +248,11 @@ function SettingsNav({
               <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted/70">
                 {group.title}
               </span>
-              <Separator className="flex-1 bg-border/40" />
+              <Separator className="flex-1" />
             </div>
           ) : (
             <div className="flex justify-center mb-2">
-              <Separator className="w-6 bg-border/40" />
+              <Separator className="w-6" />
             </div>
           )}
           <ul className={cn("space-y-1", !isIconOnly && "pl-3")}>

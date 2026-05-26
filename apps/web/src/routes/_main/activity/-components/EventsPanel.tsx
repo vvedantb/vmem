@@ -303,7 +303,7 @@ function EventsFiltersDropdown({
           <IconFilter size={16} />
           Filters
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-surface-tertiary text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
+            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-accent text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
               {activeFilterCount}
             </span>
           )}

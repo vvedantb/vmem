@@ -101,11 +101,11 @@ export function CodebasesSidebarNav({
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin px-1">
         {!isIconOnly && staleCodebases.length > 0 ? (
-          <div className="mb-2 rounded-lg bg-amber-500/10 p-2.5">
+          <div className="mb-2 rounded-lg bg-warning/10 p-2.5">
             <div className="flex items-start gap-2">
               <IconAlertCircle
                 size={14}
-                className="mt-0.5 shrink-0 text-amber-600"
+                className="mt-0.5 shrink-0 text-warning"
               />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-foreground">

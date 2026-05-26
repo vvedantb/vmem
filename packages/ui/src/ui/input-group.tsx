@@ -32,7 +32,7 @@ const inputGroupAddonVariants = cva("flex items-center", {
     align: {
       "inline-start": "flex-row ps-3",
       "inline-end": "flex-row pe-3",
-      "block-start": "w-full flex-row border-b border-border px-3 py-2",
+      "block-start": "w-full flex-row border-b border-separator px-3 py-2",
       "block-end": "w-full flex-row px-3 py-2",
     },
   },

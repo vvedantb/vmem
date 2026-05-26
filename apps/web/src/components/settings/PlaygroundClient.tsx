@@ -450,12 +450,12 @@ export default function PlaygroundClient() {
               </div>
             )}
             {state.result && (
-              <pre className="rounded-md border border-border bg-surface-secondary/50 p-4 text-sm text-foreground overflow-auto max-h-[600px] whitespace-pre-wrap">
+              <pre className="rounded-lg bg-surface-secondary/50 p-4 text-sm text-foreground overflow-auto max-h-[600px] whitespace-pre-wrap">
                 {state.result}
               </pre>
             )}
             {!state.error && !state.result && (
-              <div className="rounded-md border border-border bg-surface-secondary/30 p-4 h-[200px] sm:h-[300px] flex items-center justify-center">
+              <div className="rounded-lg bg-surface-secondary/30 p-4 h-[200px] sm:h-[300px] flex items-center justify-center">
                 <p className="text-sm text-muted">
                   Select a tool and run it to see results here.
                 </p>

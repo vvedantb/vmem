@@ -11,27 +11,23 @@ interface TimelineViewProps {
 const ACTION_STYLES: Record<string, { label: string; className: string }> = {
   created: {
     label: "Created",
-    className:
-      "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+    className: "border-success/25 bg-success/12 text-success",
   },
   updated: {
     label: "Updated",
-    className:
-      "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+    className: "border-border bg-default text-default-foreground",
   },
   deleted: {
     label: "Deleted",
-    className: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+    className: "border-danger/25 bg-danger/12 text-danger",
   },
   proposal_approved: {
     label: "Approved",
-    className:
-      "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+    className: "border-success/25 bg-success/12 text-success",
   },
   proposal_rejected: {
     label: "Rejected",
-    className:
-      "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+    className: "border-warning/25 bg-warning/12 text-warning",
   },
 };
 
@@ -76,7 +72,7 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
 
   return (
     <div className="relative pl-8">
-      <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-border" />
+      <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-separator" />
       <div className="space-y-6">
         {events.map((event, index) => {
           const style = getActionStyle(event.action);
@@ -101,15 +97,13 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                   className={cn(
                     "h-3 w-3 rounded-full border-2 border-background",
                     event.connectionType === "related"
-                      ? "bg-violet-500"
+                      ? "bg-foreground/45"
                       : cn(
-                          event.action === "created" && "bg-green-500",
-                          event.action === "updated" && "bg-blue-500",
-                          event.action === "deleted" && "bg-red-500",
-                          event.action === "proposal_approved" &&
-                            "bg-purple-500",
-                          event.action === "proposal_rejected" &&
-                            "bg-orange-500",
+                          event.action === "created" && "bg-success",
+                          event.action === "updated" && "bg-accent",
+                          event.action === "deleted" && "bg-danger",
+                          event.action === "proposal_approved" && "bg-success",
+                          event.action === "proposal_rejected" && "bg-warning",
                           !ACTION_STYLES[event.action] &&
                             "bg-surface-secondary-foreground",
                         ),
@@ -133,7 +127,7 @@ export default function TimelineView({ events, mode }: TimelineViewProps) {
                     className={cn(
                       "space-y-1 border-l-2 pl-3",
                       event.connectionType === "related"
-                        ? "border-violet-400 dark:border-violet-600"
+                        ? "border-border"
                         : "border-accent/40",
                     )}
                   >

@@ -153,7 +153,7 @@ const TimeColumn = React.forwardRef<HTMLDivElement, TimeColumnProps>(
         </div>
         <div
           ref={ref}
-          className="h-48 overflow-y-auto rounded-lg bg-surface-secondary/40 py-1"
+          className="h-48 overflow-y-auto rounded-lg bg-segment py-1"
         >
           {values.map((v) => {
             const isSelected = v === selected;

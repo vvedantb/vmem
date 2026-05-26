@@ -50,7 +50,7 @@ export default function MoveFolderDialog({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-sm" hideCloseButton>
-        <DialogHeader className="border-b border-border pb-4">
+        <DialogHeader className="border-b border-separator pb-4">
           <DialogTitle className="flex items-center gap-2 text-foreground">
             <IconFolderSymlink size={18} stroke={1.5} />
             Move {itemCount} {itemCount === 1 ? "item" : "items"}
@@ -98,16 +98,11 @@ export default function MoveFolderDialog({
           )}
         </div>
 
-        <DialogFooter className="border-t border-border pt-4">
+        <DialogFooter className="border-t border-separator pt-4">
           <Button variant="ghost" onClick={onClose} className="text-muted">
             Cancel
           </Button>
-          <Button
-            onClick={handleConfirm}
-            className="bg-surface-tertiary text-accent-foreground"
-          >
-            Move here
-          </Button>
+          <Button onClick={handleConfirm}>Move here</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

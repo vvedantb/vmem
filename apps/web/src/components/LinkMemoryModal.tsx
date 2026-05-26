@@ -82,7 +82,7 @@ export default function LinkMemoryModal({
       }}
     >
       <DialogContent className="max-w-md">
-        <DialogHeader className="border-b border-border pb-4">
+        <DialogHeader className="border-b border-separator pb-4">
           <DialogTitle className="text-foreground">Link Memory</DialogTitle>
         </DialogHeader>
 
@@ -95,7 +95,7 @@ export default function LinkMemoryModal({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search memories..."
-            className="h-9 bg-surface-secondary/50 border-border pl-9 text-foreground hover:bg-surface-tertiary focus-visible:border-focus"
+            className="h-9 rounded-field border-border bg-field-background pl-9 text-foreground placeholder:text-field-placeholder hover:bg-field-background focus-visible:border-focus"
           />
         </div>
 
@@ -132,17 +132,14 @@ export default function LinkMemoryModal({
                       {memory.tags.slice(0, TAGS_PREVIEW).map((tag) => (
                         <Badge
                           key={tag}
-                          variant="outline"
-                          className="bg-surface-secondary border-border text-muted text-xs shrink-0 max-w-[40%] truncate"
+                          variant="secondary"
+                          className="text-xs shrink-0 max-w-[40%] truncate"
                         >
                           {tag}
                         </Badge>
                       ))}
                       {memory.tags.length > TAGS_PREVIEW ? (
-                        <Badge
-                          variant="outline"
-                          className="bg-surface-secondary border-border text-muted text-xs shrink-0"
-                        >
+                        <Badge variant="secondary" className="text-xs shrink-0">
                           +{memory.tags.length - TAGS_PREVIEW}
                         </Badge>
                       ) : null}

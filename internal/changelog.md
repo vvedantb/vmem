@@ -1,5 +1,26 @@
 # Changelog
 
+## HeroUI token polish — 2026-05-23
+
+- **Page background**: `body` uses `bg-background` (HeroUI `--background`) instead of `bg-surface-secondary`.
+- **Overlay surfaces**: Tooltips, graph tooltips, and chart hovers use `glass-panel-strong` (`--overlay`) instead of `glass-panel`.
+- **Menu dividers**: Dropdown/command/select/context separators use `bg-separator` instead of `bg-border/70`.
+- **Badge cleanup**: Tag/metadata badges use `variant="secondary"` instead of ad-hoc `bg-surface-secondary border-border`.
+- **Borderless cards**: Removed decorative `border-border` from icon thumbs, chat chips, import rows, and playground panels.
+- **Filter nav active state**: Unified filter sidebar active tab uses `bg-surface` (elevated pill on segment track).
+
+## HeroUI semantic fixes — 2026-05-23
+
+- **accent-foreground misuse**: Selected filters/rows use `bg-surface text-foreground`; count badges and primary buttons use `bg-accent text-accent-foreground`; danger actions use `text-danger-foreground`.
+- **Hardcoded UI colors removed**: Timeline/version diffs, status dots, warnings, and success states use `success` / `danger` / `warning` tokens instead of Tailwind palette classes.
+- **Hover surfaces**: Replaced `hover:bg-foreground/*` with `hover:bg-surface-tertiary/50` across graph/codebase panels.
+- **Overlay primitives**: Dialog scrim uses `bg-foreground/50`; dialog content uses `text-overlay-foreground`; progress fill uses `bg-accent`; floating dropdowns use `bg-overlay`.
+- **No inline button shadows**: Primary/destructive buttons drop `shadow-soft`/`shadow-panel` per tonal surface rules; switch thumb drops `shadow-soft`.
+- **Separator vs border**: Modal/filter section dividers use `border-separator`; redundant `bg-surface border border-border` overrides removed from small dialogs.
+- **Field tokens on inputs**: Search/profile/detail inputs use `bg-field-background` + `rounded-field` instead of `bg-surface-secondary/50`.
+- **Graph nav on dark canvas**: Controls use surface tokens instead of hardcoded `bg-black/50`.
+- **Field & segment tokens**: Search/tag inputs, graph mode toggle, time-picker columns, scrollbars, and ghost button hover aligned to HeroUI tokens.
+
 ## HeroUI audit pass — 2026-05-23
 
 - **Segment & separator tokens**: Tabs use `bg-segment` + active `bg-surface`; `Separator` and table/command dividers use `bg-separator` / `border-separator`.

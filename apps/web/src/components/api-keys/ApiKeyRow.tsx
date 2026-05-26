@@ -54,7 +54,7 @@ export function ApiKeyRow({
       </TableCell>
       <TableCell className="hidden sm:table-cell py-4">
         {isActive ? (
-          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs">
+          <Badge className="border-success/25 bg-success/12 text-success text-xs">
             Active
           </Badge>
         ) : (

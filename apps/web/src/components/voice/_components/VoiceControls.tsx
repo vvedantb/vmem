@@ -41,8 +41,8 @@ export default function VoiceControls({
             "relative flex items-center justify-center rounded-full size-20 transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2",
             isListening
-              ? "bg-red-500 text-white shadow-panel hover:bg-red-600"
-              : "bg-surface-tertiary text-accent-foreground shadow-soft hover:bg-surface-tertiary/90",
+              ? "bg-danger text-danger-foreground hover:bg-danger/90"
+              : "bg-accent text-accent-foreground hover:bg-accent/90",
             disabled && !isProcessing && "opacity-40 cursor-not-allowed",
             isProcessing && "opacity-50 cursor-not-allowed",
           )}

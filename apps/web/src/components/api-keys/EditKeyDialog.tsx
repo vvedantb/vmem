@@ -58,7 +58,7 @@ export function EditKeyDialog({
         if (!open && !isSaving) onCancel();
       }}
     >
-      <DialogContent className="sm:max-w-sm bg-surface border border-border">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-foreground">Rename API Key</DialogTitle>
           <DialogDescription className="text-muted">

@@ -106,13 +106,13 @@ export default function UnifiedFilterPanel({
     ) : null;
 
   const triggerClass =
-    "flex w-full items-center justify-center sm:justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted transition-colors hover:bg-surface-secondary/50 data-[state=active]:bg-surface-secondary data-[state=active]:text-foreground";
+    "flex w-full items-center justify-center sm:justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted transition-colors hover:bg-surface-secondary/50 data-[state=active]:bg-surface data-[state=active]:text-foreground";
 
   return (
     <div className="flex flex-col">
       <TabsPrimitive.Root defaultValue="profile" className="flex h-[320px]">
         <TabsPrimitive.List
-          className="flex flex-col justify-start h-full w-12 sm:w-32 shrink-0 border-r border-border p-1 gap-0.5"
+          className="flex flex-col justify-start h-full w-12 sm:w-32 shrink-0 border-r border-separator p-1 gap-0.5"
           aria-orientation="vertical"
         >
           {visibleTabs.includes("profile") && (
@@ -218,7 +218,7 @@ export default function UnifiedFilterPanel({
         </div>
       </TabsPrimitive.Root>
 
-      <div className="flex items-center justify-between border-t border-border px-3 py-2">
+      <div className="flex items-center justify-between border-t border-separator px-3 py-2">
         <span className="text-xs text-muted">
           Showing {filteredCount} of {totalCount} items
         </span>

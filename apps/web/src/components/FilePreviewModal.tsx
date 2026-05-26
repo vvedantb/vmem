@@ -139,10 +139,10 @@ export default function FilePreviewModal({
         onOpenChange={handleOpenChange}
       >
         <DialogContent className="max-w-2xl" hideCloseButton>
-          <DialogHeader className="border-b border-border pb-4">
+          <DialogHeader className="border-b border-separator pb-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-surface-secondary border border-border flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-surface-secondary flex items-center justify-center flex-shrink-0">
                   <FileIcon size={20} className="text-muted" />
                 </div>
                 <DialogTitle className="text-foreground text-lg font-semibold truncate">
@@ -161,7 +161,7 @@ export default function FilePreviewModal({
           </DialogHeader>
 
           <div className="space-y-6 py-2">
-            <div className="rounded-lg bg-surface-secondary/50 border border-border overflow-hidden">
+            <div className="rounded-lg bg-surface-secondary/50 overflow-hidden">
               {file.fileCategory === "image" && file.thumbnailUrl ? (
                 <div className="flex min-h-72 items-center justify-center p-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -184,7 +184,7 @@ export default function FilePreviewModal({
                 </div>
               ) : (
                 <div className="p-4">
-                  <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border">
+                  <div className="flex items-center gap-2 mb-4 pb-3 border-b border-separator">
                     <FileIcon size={18} className="text-muted" />
                     <span className="text-sm font-medium text-muted">
                       File Preview
@@ -219,7 +219,7 @@ export default function FilePreviewModal({
             </div>
           </div>
 
-          <DialogFooter className="border-t border-border pt-4 flex justify-between sm:justify-between">
+          <DialogFooter className="border-t border-separator pt-4 flex justify-between sm:justify-between">
             <Button
               variant="ghost"
               onClick={() => setShowDeleteConfirm(true)}
@@ -228,10 +228,7 @@ export default function FilePreviewModal({
               <IconTrash size={16} />
               Delete
             </Button>
-            <Button
-              onClick={handleDownload}
-              className="bg-surface-tertiary text-accent-foreground"
-            >
+            <Button onClick={handleDownload}>
               <IconDownload size={16} />
               Download
             </Button>
@@ -244,7 +241,7 @@ export default function FilePreviewModal({
         onOpenChange={handleDeleteConfirmOpenChange}
       >
         <DialogContent className="max-w-sm" hideCloseButton>
-          <DialogHeader className="border-b border-border pb-4">
+          <DialogHeader className="border-b border-separator pb-4">
             <DialogTitle className="text-foreground">Delete File</DialogTitle>
           </DialogHeader>
 
@@ -255,7 +252,7 @@ export default function FilePreviewModal({
             </p>
           </div>
 
-          <DialogFooter className="border-t border-border pt-4">
+          <DialogFooter className="border-t border-separator pt-4">
             <Button
               variant="ghost"
               onClick={() => setShowDeleteConfirm(false)}

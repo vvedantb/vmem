@@ -196,7 +196,7 @@ export default function OAuthModal({
 
         {step === "authorize" && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-surface-secondary/50 border border-border">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-surface-secondary/50">
               <IconLock size={20} className="text-muted flex-shrink-0" />
               <p className="text-sm text-muted">
                 You&apos;ll be redirected to {connectorName} to authorize
@@ -286,10 +286,7 @@ export default function OAuthModal({
               >
                 Cancel
               </Button>
-              <Button
-                onClick={handleAuthorize}
-                className="bg-surface-tertiary text-accent-foreground"
-              >
+              <Button onClick={handleAuthorize}>
                 Authorize
                 <IconExternalLink size={16} />
               </Button>
@@ -317,12 +314,7 @@ export default function OAuthModal({
               >
                 Cancel
               </Button>
-              <Button
-                onClick={handleRetry}
-                className="bg-surface-tertiary text-accent-foreground"
-              >
-                Try Again
-              </Button>
+              <Button onClick={handleRetry}>Try Again</Button>
             </>
           )}
         </DialogFooter>

@@ -33,7 +33,7 @@ export function DeleteKeyDialog({
         if (!open && !isDeleting) onCancel();
       }}
     >
-      <DialogContent className="sm:max-w-sm bg-surface border border-border">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-foreground">Delete API Key</DialogTitle>
           <DialogDescription className="sr-only">
@@ -66,7 +66,7 @@ export function DeleteKeyDialog({
           <Button
             onClick={onConfirm}
             disabled={isDeleting}
-            className="bg-danger text-accent-foreground"
+            className="bg-danger text-danger-foreground"
           >
             {isDeleting ? (
               <>

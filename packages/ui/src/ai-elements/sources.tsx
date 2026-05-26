@@ -78,7 +78,7 @@ function Source({ className, children, ...props }: SourceProps) {
       target="_blank"
       rel="noreferrer"
       className={cn(
-        "flex items-center justify-between gap-2 rounded-md bg-surface-secondary/50 px-3 py-2 text-xs text-muted hover:bg-surface-tertiary hover:text-foreground transition-colors",
+        "flex items-center justify-between gap-2 rounded-lg bg-surface-secondary/50 px-3 py-2 text-xs text-muted hover:bg-surface-tertiary hover:text-foreground transition-colors",
         className,
       )}
       {...props}

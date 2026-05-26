@@ -67,11 +67,11 @@ export default function InlineNewFolder({
 
   // List variant
   return (
-    <tr className="border-b border-border bg-surface-secondary/30">
+    <tr className="border-b border-separator bg-surface-secondary/30">
       <td className="w-10 px-3 py-2" />
       <td className="py-2">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-secondary border border-border">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-secondary">
             <IconFolder size={18} stroke={1.5} className="text-muted" />
           </div>
           <input

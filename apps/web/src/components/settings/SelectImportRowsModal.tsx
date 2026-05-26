@@ -90,7 +90,7 @@ export default function SelectImportRowsModal({
           {rows.map((row) => (
             <li
               key={row.stableId}
-              className="flex gap-3 rounded-lg border border-border px-3 py-2.5"
+              className="flex gap-3 rounded-lg bg-surface-secondary/50 px-3 py-2.5"
             >
               <Checkbox
                 checked={selectedIds.has(row.stableId)}
@@ -109,7 +109,7 @@ export default function SelectImportRowsModal({
             </li>
           ))}
         </ul>
-        <div className="flex justify-end gap-2 border-t border-border pt-3">
+        <div className="flex justify-end gap-2 border-t border-separator pt-3">
           <Button
             type="button"
             variant="outline"

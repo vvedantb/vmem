@@ -38,7 +38,7 @@ export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
         aria-hidden
         className={cn(
           "size-2 shrink-0 rounded-full",
-          isEnabled ? "bg-emerald-500" : "bg-surface-secondary-foreground/50",
+          isEnabled ? "bg-success" : "bg-surface-secondary-foreground/50",
         )}
       />
       <span

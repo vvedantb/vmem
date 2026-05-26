@@ -235,7 +235,7 @@ function CreateEditProfileDialog({
                     className={cn(
                       "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
                       icon === i.name
-                        ? "bg-surface-tertiary text-accent-foreground"
+                        ? "bg-surface text-foreground"
                         : "bg-surface-secondary hover:bg-surface-tertiary/50",
                     )}
                   >
@@ -312,7 +312,7 @@ function DeleteProfileDialog({
               className={cn(
                 "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
                 moveToProfileId === null
-                  ? "bg-surface-tertiary text-accent-foreground"
+                  ? "bg-surface text-foreground"
                   : "bg-surface-secondary hover:bg-surface-secondary/80",
               )}
             >
@@ -337,7 +337,7 @@ function DeleteProfileDialog({
                   className={cn(
                     "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
                     moveToProfileId === p._id
-                      ? "bg-surface-tertiary text-accent-foreground"
+                      ? "bg-surface text-foreground"
                       : "bg-surface-secondary hover:bg-surface-secondary/80",
                   )}
                 >

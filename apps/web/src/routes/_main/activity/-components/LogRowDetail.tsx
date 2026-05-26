@@ -233,7 +233,7 @@ function PreviewBlock({ label, body }: { label: string; body: string }) {
   return (
     <div className="space-y-1">
       <p className="text-xs font-medium text-muted">{label}</p>
-      <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-md bg-background/60 p-2 font-mono text-xs text-foreground">
+      <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg bg-surface-secondary/60 p-2 font-mono text-xs text-foreground">
         {body}
       </pre>
     </div>

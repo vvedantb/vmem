@@ -16,7 +16,7 @@ export default function StorageStatusBar({
   const percent = storageLimit > 0 ? (totalBytes / storageLimit) * 100 : 0;
 
   return (
-    <div className="flex-shrink-0 border-t border-border px-4 py-2 flex items-center gap-3">
+    <div className="flex-shrink-0 border-t border-separator px-4 py-2 flex items-center gap-3">
       <span className="text-xs text-muted tabular-nums whitespace-nowrap">
         {itemCount} {itemCount === 1 ? "item" : "items"} · {usedGB.toFixed(2)}{" "}
         GB of {limitGB} GB

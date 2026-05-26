@@ -16,8 +16,8 @@ interface CodebaseSidebarCardProps {
 
 const statusDotClass: Record<CodebaseItem["status"], string> = {
   pending: "bg-surface-secondary-foreground/50",
-  syncing: "bg-blue-500",
-  synced: "bg-emerald-500",
+  syncing: "bg-warning",
+  synced: "bg-success",
   error: "bg-danger",
 };
 

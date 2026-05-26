@@ -186,7 +186,7 @@ export default function AddMemoryModal({
     >
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button className="bg-surface-tertiary text-accent-foreground font-medium">
+          <Button>
             <IconPlus size={18} />
             Add Memory
           </Button>
@@ -235,14 +235,14 @@ export default function AddMemoryModal({
                   placeholder="Memory title"
                   disabled={isBusy}
                   autoFocus
-                  className="w-full bg-transparent text-lg font-medium text-foreground outline-none placeholder:text-muted/60 disabled:opacity-60"
+                  className="w-full bg-transparent text-lg font-medium text-foreground outline-none placeholder:text-field-placeholder disabled:opacity-60"
                 />
                 <textarea
                   {...register("content")}
                   placeholder="Add a description…"
                   rows={5}
                   disabled={isBusy}
-                  className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted/60 disabled:opacity-60"
+                  className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-field-placeholder disabled:opacity-60"
                 />
                 {fieldError && (
                   <p className="text-xs text-danger">{fieldError}</p>
@@ -270,7 +270,7 @@ export default function AddMemoryModal({
                       <button
                         type="button"
                         onClick={() => removeTag(tag, field.onChange)}
-                        className="-mr-1 ml-0.5 rounded p-0.5 text-muted transition-colors hover:bg-foreground/10 hover:text-foreground"
+                        className="-mr-1 ml-0.5 rounded p-0.5 text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground"
                       >
                         <IconX size={11} />
                       </button>
@@ -332,7 +332,7 @@ export default function AddMemoryModal({
                           }
                         }}
                         placeholder="Add or search tags…"
-                        className="h-8 w-full rounded-md bg-surface-secondary/50 px-2 text-sm text-foreground outline-none placeholder:text-muted/60 focus-visible:bg-surface-secondary"
+                        className="h-8 w-full rounded-field border border-border bg-field-background px-2 text-sm text-foreground outline-none placeholder:text-field-placeholder focus-visible:border-focus/70 focus-visible:ring-2 focus-visible:ring-focus/30"
                       />
                       <div className="mt-2 flex max-h-56 flex-col gap-0.5 overflow-y-auto">
                         {filteredSuggestions.slice(0, 10).map((item) => (

@@ -60,7 +60,7 @@ export function UpdateProposalCard({
             className={
               isDelete
                 ? "bg-danger text-danger-foreground"
-                : "bg-surface-tertiary text-accent-foreground"
+                : "bg-surface text-foreground"
             }
           >
             <IconCheck size={14} />

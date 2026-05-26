@@ -104,7 +104,7 @@ export default function ListItemRow({
           {trailEntry && trailEntry.connectionType === "related" && (
             <Badge
               variant="outline"
-              className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0 border-violet-400 text-violet-600 dark:border-violet-600 dark:text-violet-400"
+              className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0"
             >
               {trailEntry.reason ?? "related"}
             </Badge>

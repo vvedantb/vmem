@@ -160,7 +160,7 @@ export function CodebaseCardInsides({
           <div className="mt-3">
             <div className="h-1 w-full rounded-full bg-surface-secondary">
               <div
-                className="h-1 rounded-full bg-blue-500 transition-all"
+                className="h-1 rounded-full bg-accent transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
