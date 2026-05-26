@@ -243,7 +243,7 @@ export default function MemoryGraph({
             variant="outline"
             size="sm"
             onClick={handleBackToGlobal}
-            className="bg-background/80 backdrop-blur-sm gap-1.5"
+            className="bg-muted/40 gap-1.5"
           >
             <IconArrowBack size={14} />
             Global graph

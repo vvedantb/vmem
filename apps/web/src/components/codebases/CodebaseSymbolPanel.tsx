@@ -84,7 +84,7 @@ export function CodebaseSymbolPanel({
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className="absolute top-0 right-0 bottom-0 w-80 z-20 bg-background/95 backdrop-blur-sm overflow-y-auto hidden md:flex flex-col"
+          className="absolute top-0 right-0 bottom-0 w-80 z-20 bg-background overflow-y-auto hidden md:flex flex-col"
         >
           {/* Header */}
           <div className="flex items-start justify-between p-4 pb-2">

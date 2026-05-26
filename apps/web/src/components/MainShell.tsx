@@ -34,7 +34,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
               isSidebarCollapsed ? "md:ml-20" : "md:ml-72"
             } md:transition-[margin-left] md:duration-[280ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]`}
           >
-            <div className="glass-panel flex min-h-0 flex-1 flex-col overflow-hidden md:rounded-3xl">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-3xl">
               {children}
             </div>
           </main>

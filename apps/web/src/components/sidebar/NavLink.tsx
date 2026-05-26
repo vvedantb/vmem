@@ -49,8 +49,8 @@ export function NavLink({
         isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
         isMobile ? "py-3.5" : "py-2.5",
         isActive
-          ? "glass-interactive text-foreground"
-          : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
+          ? "bg-muted/40 text-foreground"
+          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
       )}
     >
       <span className="flex h-5 w-5 items-center justify-center text-current">

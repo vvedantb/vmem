@@ -68,7 +68,7 @@ export default function VoiceControls({
           <motion.button
             type="button"
             onClick={onCancel}
-            className="flex items-center justify-center size-10 rounded-full glass-interactive text-muted-foreground hover:text-foreground"
+            className="flex items-center justify-center size-10 rounded-full text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}

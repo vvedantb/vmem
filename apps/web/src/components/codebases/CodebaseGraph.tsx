@@ -138,7 +138,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
 
       {/* Stats badge (top-right) */}
       <div className="absolute top-2 right-2 z-10 hidden md:block">
-        <div className="text-[10px] text-muted-foreground bg-background/60 backdrop-blur-sm rounded px-2 py-1">
+        <div className="text-[10px] text-muted-foreground bg-muted/40 rounded px-2 py-1">
           {graphNodes.length} symbols / {graphEdges.length} edges
         </div>
       </div>
@@ -148,7 +148,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
           isn't the full picture and can narrow down via filters. */}
       {truncated && (
         <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-10 max-w-md px-3">
-          <div className="flex items-start gap-2 rounded-md bg-warning/10 px-3 py-2 text-xs text-foreground backdrop-blur-md">
+          <div className="flex items-start gap-2 rounded-md bg-warning/10 px-3 py-2 text-xs text-foreground">
             <IconAlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
             <span>
               Graph too large to fully display — showing a representative slice.

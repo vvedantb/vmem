@@ -1,5 +1,11 @@
 # Changelog
 
+## Flat UI replaces glass morphism — 2026-05-23
+
+- **Tonal surfaces only**: Removed backdrop blur, translucent fills, and inset highlights from the design system — cards, nav, and layout use solid `bg-muted/40` and `bg-background` instead.
+- **Overlays stay elevated**: Dialogs, dropdowns, and toasts keep depth via `bg-popover` + shadow only (no glass blur).
+- **Chrome extension aligned**: Extension popup uses the same flat surface tokens as the web app.
+
 ## Dual MCP connectors (personal vs team) — 2026-05-23
 
 - **Two MCP entry points**: `/mcp` exposes personal profiles only; `/mcp/team` exposes team profiles for teams you belong to — same OAuth, separate save boundaries.

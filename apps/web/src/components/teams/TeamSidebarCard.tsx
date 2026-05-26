@@ -50,7 +50,7 @@ export function TeamSidebarCard({
         selected && inGroup
           ? "text-foreground"
           : selected
-            ? "glass-interactive text-foreground dark:bg-muted/80 dark:border-transparent dark:shadow-none"
+            ? "bg-muted/40 text-foreground"
             : "text-muted-foreground hover:bg-card/45 hover:text-foreground dark:hover:bg-muted/40",
       )}
     >

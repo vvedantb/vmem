@@ -4,13 +4,11 @@ import { Toaster, type ToasterProps } from "sonner";
 import "./sonner.css";
 
 /**
- * Glass-themed Sonner toaster aligned with our codebase tokens.
+ * Sonner toaster aligned with flat tonal surfaces.
  *
  * `unstyled: true` strips Sonner's default visual styling so our classes are
- * the single source of truth — no specificity battles with the library's
- * own CSS. The toast surface uses `glass-panel-strong`, whose backdrop-blur,
- * border, shadow, and translucent fill all reference oklch tokens that are
- * redefined inside `.dark`, so the toast adapts to light/dark automatically.
+ * the single source of truth. Toast surfaces use `glass-panel-strong` (flat
+ * popover fill + shadow) via app globals.
  *
  * `!font-sans` is forced on the toaster section because Sonner sets its own
  * `font-family` on `[data-sonner-toaster]` from a stylesheet that ships with

@@ -78,7 +78,7 @@ function SubSidebarNavButton({
         isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
         isMobile ? "py-3.5" : "py-2.5",
         isActive
-          ? "glass-interactive text-foreground"
+          ? "bg-muted/40 text-foreground"
           : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
       )}
     >
@@ -273,7 +273,7 @@ function SettingsNav({
                         : "gap-3 px-3.5",
                       isMobile ? "py-3.5" : "py-2.5",
                       isActive
-                        ? "glass-interactive text-foreground"
+                        ? "bg-muted/40 text-foreground"
                         : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
                     )}
                   >

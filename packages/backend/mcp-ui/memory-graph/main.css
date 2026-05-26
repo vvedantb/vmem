@@ -17,7 +17,7 @@ body[data-theme="light"] {
   --graph-edge-tag: 60 70 90 / 0.22;
   --graph-edge-relates: 200 90 30 / 0.65;
   --graph-label: 0.22 0.01 95 / 0.88;
-  --nav-bg: 0.965 0.005 95 / 0.72;
+  --nav-bg: 0.965 0.005 95;
   --nav-border: 0.22 0.01 95 / 0.08;
   --nav-fg: 0.52 0.012 95;
   --nav-fg-hover: 0.22 0.01 95;
@@ -35,7 +35,7 @@ body[data-theme="dark"] {
   --graph-edge-tag: 180 180 200 / 0.18;
   --graph-edge-relates: 255 170 110 / 0.55;
   --graph-label: 1 0 0 / 0.9;
-  --nav-bg: 0.12 0.008 260 / 0.55;
+  --nav-bg: 0.12 0.008 260;
   --nav-border: 1 0 0 / 0.1;
   --nav-fg: 0.72 0.01 260;
   --nav-fg-hover: 0.965 0.004 260;
@@ -183,7 +183,6 @@ body {
   padding: 10px 12px;
   border-radius: 0.75rem;
   background: oklch(var(--nav-bg));
-  backdrop-filter: blur(8px);
   font-size: 11px;
   color: oklch(var(--muted-foreground));
   pointer-events: none;
@@ -248,7 +247,6 @@ body {
   border: none;
   border-radius: 0.5rem;
   background: oklch(var(--nav-bg));
-  backdrop-filter: blur(8px);
   color: oklch(var(--nav-fg));
   cursor: pointer;
   transition:

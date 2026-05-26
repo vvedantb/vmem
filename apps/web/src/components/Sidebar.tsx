@@ -107,7 +107,7 @@ export default function Sidebar({
         variant="ghost"
         size="icon-sm"
         aria-label="Close navigation menu"
-        className="glass-interactive rounded-full text-muted-foreground hover:text-foreground"
+        className="rounded-full text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
       >
         <IconX className="h-5 w-5" />
       </Button>
@@ -124,7 +124,7 @@ export default function Sidebar({
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls={mobileMenuId}
-            className="flex h-9 w-9 items-center justify-center rounded-xl glass-interactive text-muted-foreground transition-colors hover:text-foreground"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
           >
             <MorphingMenuIcon isOpen={mobileMenuOpen} size={20} />
           </button>
@@ -140,7 +140,7 @@ export default function Sidebar({
           <DialogRawContent
             id={mobileMenuId}
             aria-label="Navigation menu"
-            className="glass-panel-strong fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden rounded-3xl text-foreground outline-none md:hidden"
+            className="bg-popover shadow-lg fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden rounded-3xl text-foreground outline-none md:hidden"
           >
             <DialogTitle className="sr-only">Navigation menu</DialogTitle>
 

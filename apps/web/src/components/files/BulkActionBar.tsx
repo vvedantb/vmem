@@ -33,7 +33,7 @@ export default function BulkActionBar({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: motionDuration.fast, ease: motionEase }}
-          className="flex items-center gap-2 rounded-xl border border-border bg-muted/80 backdrop-blur-sm px-4 py-2"
+          className="flex items-center gap-2 rounded-xl bg-muted/80 px-4 py-2"
         >
           <span className="text-sm font-medium text-foreground tabular-nums mr-2">
             {selectedCount} selected
