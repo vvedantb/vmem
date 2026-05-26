@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button, Badge } from "@vmem/ui";
+import { Badge, Button, Card, CardContent } from "@vmem/ui";
 import { IconPlus, IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { TeamDetail } from "../-team-detail";
@@ -71,53 +71,65 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
         )}
       </div>
 
-      <ul className="flex flex-col gap-1">
-        {data.members.map((m) => {
-          const name =
-            m.fullName ||
-            [m.firstName, m.lastName].filter(Boolean).join(" ") ||
-            m.email ||
-            "Unknown";
-          return (
-            <li
-              key={m.userId}
-              className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50"
-            >
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium text-foreground">
-                  {name}
-                </div>
-                {m.email && (
-                  <div className="truncate text-xs text-muted">{m.email}</div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant={m.role === "owner" ? "default" : "secondary"}
-                  className="capitalize"
-                >
-                  {m.role}
-                </Badge>
-                {isOwner && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemove(m.userId, name)}
-                    disabled={removing === m.userId}
-                    className="text-muted hover:text-danger"
+      <Card className="shadow-none">
+        <CardContent className="p-2">
+          {data.members.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted">
+              No members yet.
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {data.members.map((m) => {
+                const name =
+                  m.fullName ||
+                  [m.firstName, m.lastName].filter(Boolean).join(" ") ||
+                  m.email ||
+                  "Unknown";
+                return (
+                  <li
+                    key={m.userId}
+                    className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50"
                   >
-                    {removing === m.userId ? (
-                      <IconLoader2 size={14} className="animate-spin" />
-                    ) : (
-                      <IconTrash size={14} />
-                    )}
-                  </Button>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-foreground">
+                        {name}
+                      </div>
+                      {m.email ? (
+                        <div className="truncate text-xs text-muted">
+                          {m.email}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={m.role === "owner" ? "default" : "secondary"}
+                        className="capitalize"
+                      >
+                        {m.role}
+                      </Badge>
+                      {isOwner ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemove(m.userId, name)}
+                          disabled={removing === m.userId}
+                          className="text-muted hover:text-danger"
+                        >
+                          {removing === m.userId ? (
+                            <IconLoader2 size={14} className="animate-spin" />
+                          ) : (
+                            <IconTrash size={14} />
+                          )}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <AddMemberDialog
         teamId={data.team._id}

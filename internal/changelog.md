@@ -1,5 +1,12 @@
 # Changelog
 
+## Card surfaces across dashboard, activity, teams, inbox — 2026-05-23
+
+- **Dashboard**: Stat cards, memory growth chart, recent activity, and quick actions use shared `Card` primitives (loading skeleton matches).
+- **Activity AI logs**: `LogsSummary` stat tiles aligned with API logs; loading skeleton uses cards.
+- **Teams**: Knowledge, members, and settings tabs use `Card` list/section shells (flat hover rows inside).
+- **Inbox proposals**: `ProposalShell`, empty state, and loading skeletons on `Card`.
+
 ## Local model provider icons — 2026-05-23
 
 - **Models settings + chat selector**: Brand marks for Qwen, Llama (Meta), DeepSeek, and Gemma (Gemini) from SVGL — provider icons on model cards and the model dropdown (trigger, provider groups, each model row).

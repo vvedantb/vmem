@@ -3,7 +3,7 @@ import { useAction, useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { FunctionReturnType } from "convex/server";
-import { Badge, Button, Input } from "@vmem/ui";
+import { Badge, Button, Card, CardContent, Input } from "@vmem/ui";
 import {
   IconSearch,
   IconLoader2,
@@ -127,76 +127,84 @@ export function TeamKnowledge({ data }: { data: TeamDetail }) {
         </div>
       </div>
 
-      {memories === null ? (
-        <div className="flex items-center justify-center py-10">
-          <IconLoader2 size={20} className="animate-spin text-muted" />
-        </div>
-      ) : (filtered ?? []).length === 0 ? (
-        <div className="py-10 text-center text-sm text-muted">
-          {memories.length === 0
-            ? "No memories saved to this team yet."
-            : "No memories match your search."}
-        </div>
-      ) : (
-        <ul className="space-y-2">
-          {(filtered ?? []).map((m) => {
-            const attr = attribution?.[m.userId];
-            const name = attr
-              ? attr.fullName ||
-                [attr.firstName, attr.lastName].filter(Boolean).join(" ") ||
-                attr.email ||
-                "Unknown"
-              : m.userId;
-            const canDelete = isOwner || m.userId === myClerkId;
-            return (
-              <li
-                key={m.id}
-                className="flex items-start justify-between gap-3 rounded-lg bg-surface-secondary/40 p-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium text-foreground">
-                      {m.title}
-                    </span>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {m.type}
-                    </Badge>
-                  </div>
-                  <div className="mt-0.5 line-clamp-2 text-xs text-muted">
-                    {m.content}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted">
-                    <span className="inline-flex items-center gap-1">
-                      <IconUser size={12} />
-                      Saved by {name}
-                    </span>
-                    {m.tags.slice(0, 4).map((t) => (
-                      <Badge key={t} variant="outline" className="text-[10px]">
-                        {t}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                {canDelete && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(m)}
-                    disabled={loadingAction === m.id}
-                    className="text-muted hover:text-danger"
+      <Card className="shadow-none">
+        <CardContent className="p-2">
+          {memories === null ? (
+            <div className="flex items-center justify-center py-10">
+              <IconLoader2 size={20} className="animate-spin text-muted" />
+            </div>
+          ) : (filtered ?? []).length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted">
+              {memories.length === 0
+                ? "No memories saved to this team yet."
+                : "No memories match your search."}
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {(filtered ?? []).map((m) => {
+                const attr = attribution?.[m.userId];
+                const name = attr
+                  ? attr.fullName ||
+                    [attr.firstName, attr.lastName].filter(Boolean).join(" ") ||
+                    attr.email ||
+                    "Unknown"
+                  : m.userId;
+                const canDelete = isOwner || m.userId === myClerkId;
+                return (
+                  <li
+                    key={m.id}
+                    className="flex items-start justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50"
                   >
-                    {loadingAction === m.id ? (
-                      <IconLoader2 size={14} className="animate-spin" />
-                    ) : (
-                      <IconTrash size={14} />
-                    )}
-                  </Button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-medium text-foreground">
+                          {m.title}
+                        </span>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {m.type}
+                        </Badge>
+                      </div>
+                      <div className="mt-0.5 line-clamp-2 text-xs text-muted">
+                        {m.content}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                        <span className="inline-flex items-center gap-1">
+                          <IconUser size={12} />
+                          Saved by {name}
+                        </span>
+                        {m.tags.slice(0, 4).map((t) => (
+                          <Badge
+                            key={t}
+                            variant="outline"
+                            className="text-[10px]"
+                          >
+                            {t}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    {canDelete ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(m)}
+                        disabled={loadingAction === m.id}
+                        className="text-muted hover:text-danger"
+                      >
+                        {loadingAction === m.id ? (
+                          <IconLoader2 size={14} className="animate-spin" />
+                        ) : (
+                          <IconTrash size={14} />
+                        )}
+                      </Button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   IconTags,
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
+import { Card, CardContent } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import { AnimatedCounter } from "../svg-animations";
 import { Sparkline } from "./Sparkline";
@@ -42,25 +43,29 @@ function StatCard({
         delay: index * 0.06,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="flex min-h-[9.5rem] flex-col gap-3 rounded-lg bg-surface-secondary p-5"
+      className="h-full"
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-muted">{label}</p>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-secondary/60">
-          <Icon size={16} className="text-muted" stroke={1.5} />
-        </div>
-      </div>
-      <p className="font-instrumentSerif text-3xl leading-none tabular-nums text-foreground">
-        <AnimatedCounter value={value} duration={0.8} />
-      </p>
-      {showSparkline && trendData && strokeClassName ? (
-        <div className="mt-auto pt-1">
-          <Sparkline data={trendData} strokeClassName={strokeClassName} />
-          <p className="mt-1.5 text-[11px] text-muted">Last 7 days</p>
-        </div>
-      ) : (
-        <div className="mt-auto" />
-      )}
+      <Card className="h-full shadow-none">
+        <CardContent className="flex min-h-[9.5rem] flex-col gap-3 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm text-muted">{label}</p>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-tertiary/60">
+              <Icon size={16} className="text-muted" stroke={1.5} />
+            </div>
+          </div>
+          <p className="font-instrumentSerif text-3xl leading-none tabular-nums text-foreground">
+            <AnimatedCounter value={value} duration={0.8} />
+          </p>
+          {showSparkline && trendData && strokeClassName ? (
+            <div className="mt-auto pt-1">
+              <Sparkline data={trendData} strokeClassName={strokeClassName} />
+              <p className="mt-1.5 text-[11px] text-muted">Last 7 days</p>
+            </div>
+          ) : (
+            <div className="mt-auto" />
+          )}
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
