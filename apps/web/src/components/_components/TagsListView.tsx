@@ -5,7 +5,6 @@ import { useQueryStates } from "nuqs";
 import { toast } from "sonner";
 import {
   Button,
-  Card,
   cn,
   Dialog,
   DialogContent,
@@ -31,6 +30,8 @@ import {
 import { buildTagStats } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memoriesSearchParams } from "@/routes/_main/memories/-searchParams";
+import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
+import { VmemSpinner } from "@/components/svg-animations";
 
 /**
  * Tag-rows view for /memories/list?view=tags. Replaces the removed
@@ -159,8 +160,8 @@ export default function TagsListView() {
 
   if (isLoading && tags.length === 0) {
     return (
-      <div className="flex h-full min-h-0 items-center justify-center text-sm text-muted">
-        Loading tags…
+      <div className="flex h-full min-h-0 items-center justify-center">
+        <VmemSpinner size={20} className="text-muted" />
       </div>
     );
   }
@@ -168,54 +169,53 @@ export default function TagsListView() {
   if (tags.length === 0) {
     const isFiltering = params.q.trim().length > 0 || params.profile !== null;
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
-          <IconMoodEmpty className="w-6 h-6 text-muted" />
-        </div>
-        <h3 className="text-lg font-medium text-foreground mb-2">
-          {isFiltering ? "No tags match" : "No tags yet"}
-        </h3>
-        <p className="text-sm text-muted">
-          {isFiltering
+      <DetailEmptyState
+        icon={IconMoodEmpty}
+        title={isFiltering ? "No tags match" : "No tags yet"}
+        description={
+          isFiltering
             ? "Try a different search or clear the profile filter."
-            : "Add tags to memories to start grouping them."}
-        </p>
-      </div>
+            : "Add tags to memories to start grouping them."
+        }
+      />
     );
   }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-        <div className="space-y-1.5">
+        <div className="space-y-0">
           {tags.map((item) => {
             const isEditing = editingTag === item.tag;
             return (
-              <Card
-                key={item.tag}
-                className={cn(
-                  "px-3 py-2.5",
-                  !isEditing && "cursor-pointer hover:bg-surface-tertiary/50",
-                )}
-                onClick={isEditing ? undefined : () => handleTagClick(item.tag)}
-              >
-                {isEditing ? (
-                  <RenameRow
-                    value={newTagName}
-                    onChange={setNewTagName}
-                    isSaving={isSaving}
-                    onSave={handleSaveTag}
-                    onCancel={cancelEditing}
-                  />
-                ) : (
-                  <DisplayRow
-                    tag={item.tag}
-                    count={item.count}
-                    onRename={() => startEditing(item.tag)}
-                    onDelete={() => setDeleteTag(item.tag)}
-                  />
-                )}
-              </Card>
+              <div key={item.tag} className="pb-1.5">
+                <div
+                  className={cn(
+                    "rounded-lg px-3 py-2.5 transition-[background-color]",
+                    !isEditing && "cursor-pointer hover:bg-surface-tertiary",
+                  )}
+                  onClick={
+                    isEditing ? undefined : () => handleTagClick(item.tag)
+                  }
+                >
+                  {isEditing ? (
+                    <RenameRow
+                      value={newTagName}
+                      onChange={setNewTagName}
+                      isSaving={isSaving}
+                      onSave={handleSaveTag}
+                      onCancel={cancelEditing}
+                    />
+                  ) : (
+                    <DisplayRow
+                      tag={item.tag}
+                      count={item.count}
+                      onRename={() => startEditing(item.tag)}
+                      onDelete={() => setDeleteTag(item.tag)}
+                    />
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>

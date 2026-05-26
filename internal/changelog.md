@@ -1,5 +1,9 @@
 # Changelog
 
+## Tags list row styling — 2026-05-23
+
+- **Tags view** (`/memories/list?view=tags`): Rows match memories list — flat hover (`surface-tertiary`), no per-row `Card` fill.
+
 ## Link memory modal — 2026-05-23
 
 - **Link memory dialog**: Description, search across title/content/tags, result count, card-style rows with preview and meta, distinct empty states for “all linked” vs “no matches”.
