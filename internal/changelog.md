@@ -1,5 +1,9 @@
 # Changelog
 
+## Link memory modal — 2026-05-23
+
+- **Link memory dialog**: Description, search across title/content/tags, result count, card-style rows with preview and meta, distinct empty states for “all linked” vs “no matches”.
+
 ## Memory detail panel tabs — 2026-05-23
 
 - **Details / History / Connections**: Section labels, `surface-secondary` content blocks, line-only hierarchy (no footer borders). History gets a version scrubber and expandable cards; connections show previews and a richer empty state.
