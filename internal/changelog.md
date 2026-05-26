@@ -1,5 +1,10 @@
 # Changelog
 
+## Trim web globals.css — 2026-05-23
+
+- Removed unused animation utilities (`animate-blob`, `animate-shimmer`, `smooth-typing-input`, etc.) and dead glass classes (`glass-panel`, `glass-panel-subtle`, `glass-interactive`).
+- Moved sidebar icon hover animations to `apps/web/src/styles/sidebar-icons.css`.
+
 ## Settings pages use Card — 2026-05-23
 
 - **Settings routes**: Preferences, extension, profiles, models, secrets, API keys/usage, data controls (import/export/danger), and playground panels use `Card` + `CardContent` (`shadow-none`) instead of ad-hoc `bg-surface-secondary/40` divs — same pattern as connectors.
