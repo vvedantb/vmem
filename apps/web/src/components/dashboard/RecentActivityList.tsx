@@ -23,7 +23,7 @@ export function RecentActivityList({ activity }: RecentActivityListProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-lg bg-surface-secondary/40 p-5 sm:p-6"
+      className="rounded-lg bg-surface-secondary p-5 sm:p-6"
     >
       <div className="mb-4 flex items-center justify-between gap-3 sm:mb-5">
         <h2 className="text-base font-medium text-foreground sm:text-lg">

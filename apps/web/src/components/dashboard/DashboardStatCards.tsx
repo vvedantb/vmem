@@ -44,7 +44,7 @@ function StatCard({
         delay: index * 0.06,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="flex min-h-[9.5rem] flex-col gap-3 rounded-lg bg-surface-secondary/40 p-5"
+      className="flex min-h-[9.5rem] flex-col gap-3 rounded-lg bg-surface-secondary p-5"
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm text-muted">{label}</p>

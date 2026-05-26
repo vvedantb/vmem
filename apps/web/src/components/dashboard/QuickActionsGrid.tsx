@@ -62,7 +62,7 @@ export function QuickActionsGrid() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-lg bg-surface-secondary/40 p-5 sm:p-6"
+      className="rounded-lg bg-surface-secondary p-5 sm:p-6"
     >
       <h2 className="mb-4 text-base font-medium text-foreground sm:mb-5 sm:text-lg">
         Quick actions

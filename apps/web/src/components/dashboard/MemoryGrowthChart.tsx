@@ -22,7 +22,7 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-lg bg-surface-secondary/40 p-5 sm:p-6"
+      className="rounded-lg bg-surface-secondary p-5 sm:p-6"
     >
       <div className="mb-5 flex flex-col gap-1 sm:mb-6">
         <h2 className="text-base font-medium text-foreground sm:text-lg">
@@ -78,12 +78,12 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
                         </div>
 
                         <div
-                          className="absolute bottom-0 w-full rounded-t-md bg-surface-secondary/70 transition-[height] duration-300"
+                          className="absolute bottom-0 w-full rounded-t-md bg-foreground/20 transition-[height] duration-300"
                           style={{ height: barHeight }}
                         />
 
                         <div
-                          className="absolute bottom-0 w-full rounded-t-md bg-surface-tertiary transition-[height,opacity] duration-300"
+                          className="absolute bottom-0 w-full rounded-t-md bg-foreground transition-[height,opacity] duration-300"
                           style={{
                             height: newHeight,
                             opacity: day.new > 0 ? 1 : 0,
@@ -110,11 +110,11 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
 
           <div className="ml-8 mt-4 flex flex-wrap items-center gap-4 sm:gap-6">
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-sm bg-surface-secondary/70" />
+              <span className="h-2.5 w-2.5 rounded-sm bg-foreground/20" />
               <span className="text-xs text-muted">Total memories</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-sm bg-surface-tertiary" />
+              <span className="h-2.5 w-2.5 rounded-sm bg-foreground" />
               <span className="text-xs text-muted">New that day</span>
             </div>
           </div>

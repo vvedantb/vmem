@@ -1,5 +1,11 @@
 # Changelog
 
+## Card contrast & dashboard charts — 2026-05-23
+
+- **`Card`**: Resting fill is full `bg-surface-secondary` (not `/40`) so cards read clearly on `bg-surface` without borders.
+- **Home dashboard**: Stat, growth chart, quick actions, and activity sections match the same card surface.
+- **Memory growth bars**: Use `foreground` ink (white in dark mode), not grey surface tokens.
+
 ## Overlay polish & monochrome accent — 2026-05-23
 
 - **Route tabs**: Always show icon + label (HeroUI-style); removed collapsing icon-only labels on AI Logs and other tab bars.

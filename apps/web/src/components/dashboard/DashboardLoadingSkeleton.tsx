@@ -9,7 +9,7 @@ export function DashboardLoadingSkeleton() {
         {[1, 2, 3, 4].map((index) => (
           <div
             key={index}
-            className="flex min-h-[7.5rem] flex-col gap-3 rounded-lg bg-surface-secondary/40 p-5"
+            className="flex min-h-[7.5rem] flex-col gap-3 rounded-lg bg-surface-secondary p-5"
           >
             <div className="flex items-start justify-between">
               <Skeleton className="h-4 w-24 rounded" />
@@ -20,7 +20,7 @@ export function DashboardLoadingSkeleton() {
         ))}
       </div>
 
-      <div className="rounded-lg bg-surface-secondary/40 p-5 sm:p-6">
+      <div className="rounded-lg bg-surface-secondary p-5 sm:p-6">
         <Skeleton className="mb-6 h-5 w-48 rounded" />
         <Skeleton className="h-44 w-full rounded-lg" />
       </div>
@@ -29,7 +29,7 @@ export function DashboardLoadingSkeleton() {
         {[1, 2].map((index) => (
           <div
             key={index}
-            className="rounded-lg bg-surface-secondary/40 p-5 sm:p-6"
+            className="rounded-lg bg-surface-secondary p-5 sm:p-6"
           >
             <Skeleton className="mb-4 h-5 w-36 rounded" />
             <div className="flex flex-col gap-1">
