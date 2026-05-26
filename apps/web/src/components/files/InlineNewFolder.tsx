@@ -59,7 +59,7 @@ export default function InlineNewFolder({
           defaultValue="Untitled Folder"
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          className="w-full rounded-field border border-border bg-field-background px-2 py-1 text-center text-sm text-foreground outline-none placeholder:text-field-placeholder focus:ring-1 focus:ring-focus"
+          className="w-full rounded-field border border-border bg-field-background px-2 py-1 text-center text-sm text-foreground outline-none placeholder:text-field-placeholder focus:ring-1 focus:ring-focus-ring"
         />
       </div>
     );
@@ -80,7 +80,7 @@ export default function InlineNewFolder({
             defaultValue="Untitled Folder"
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
-            className="rounded-field border border-border bg-field-background px-2 py-1 text-sm text-foreground outline-none placeholder:text-field-placeholder focus:ring-1 focus:ring-focus"
+            className="rounded-field border border-border bg-field-background px-2 py-1 text-sm text-foreground outline-none placeholder:text-field-placeholder focus:ring-1 focus:ring-focus-ring"
           />
         </div>
       </td>

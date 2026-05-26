@@ -26,6 +26,8 @@ const config: Config = {
         danger: {
           DEFAULT: v("danger"),
           foreground: v("danger-foreground"),
+          ring: v("danger-ring"),
+          border: v("danger-border"),
         },
         default: {
           DEFAULT: v("default"),
@@ -37,7 +39,11 @@ const config: Config = {
           foreground: v("field-foreground"),
           placeholder: v("field-placeholder"),
         },
-        focus: v("focus"),
+        focus: {
+          DEFAULT: v("focus"),
+          ring: v("focus-ring"),
+          border: v("focus-border"),
+        },
         muted: v("muted"),
         overlay: {
           DEFAULT: v("overlay"),

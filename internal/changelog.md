@@ -1,5 +1,30 @@
 # Changelog
 
+## Focus ring tokens (no blue outline) — 2026-05-23
+
+- **`--focus-ring` / `--focus-border`**: `color-mix` tokens replace broken Tailwind `ring-focus/30` (browser blue fallback on oklch vars). Fixes chat input, fields, buttons.
+
+## Neutral accent (no blue) — 2026-05-23
+
+- **Theme**: All neutral oklch tokens use achromatic hue (removed blue 253.83 cast). `accent-color: var(--accent)` on `html` + range inputs.
+- **UI**: Badge/button/sonner no longer use broken `accent/opacity` tints that fell back to browser blue.
+- **Profiles**: Default + preset swatches use `#171717` / gray instead of blue/indigo (new users + picker only; existing profile colors unchanged).
+
+## Switch checked color — 2026-05-23
+
+- **Switch** (`@vmem/ui`): Checked track uses solid `bg-accent` (opacity modifiers don’t work on oklch CSS vars). Thumb uses `accent-foreground` when on.
+
+## Tags view side panel — 2026-05-23
+
+- **Tags list** (`view=tags`): Clicking a tag opens a 420px right panel with that tag’s memories (`ListItemRow` + `MemoryDetailPanel`), matching the main list layout/padding. Toggle tag again or close to dismiss.
+- **Tag memories panel**: Same `Card` shell + header as `MemoryDetailPanel` (flat list rows inside, no nested empty-state card).
+
+## Mobile accessibility — 2026-05-23
+
+- **Page header**: Title-only headers (e.g. Dashboard) no longer reserve empty space on mobile — desktop title/breadcrumb stay `md+`; mobile title lives in the shell topbar. Fixed `centeredMaxWidth` `flex` overriding `hidden` on mobile.
+- **Shell**: Skip link to `#main-content`, safe-area padding on mobile topbar/main, 44px menu control, page title as `<h1>` in topbar, `overscroll-contain` on mobile nav sheet.
+- **Global**: `touch-action: manipulation` on `html` to reduce double-tap zoom delay.
+
 ## Tags list row styling — 2026-05-23
 
 - **Tags view** (`/memories/list?view=tags`): Rows match memories list — flat hover (`surface-tertiary`), no per-row `Card` fill.

@@ -166,7 +166,12 @@ export default function MemoryListHeaderControls() {
       </Popover>
       <AddMemoryModal
         trigger={
-          <Button variant="outline" size="icon-sm" aria-label="Add memory">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Add memory"
+            className="h-11 w-11 shrink-0 md:h-8 md:w-8"
+          >
             <IconPlus size={16} />
           </Button>
         }

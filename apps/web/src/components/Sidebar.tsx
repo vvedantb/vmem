@@ -117,21 +117,21 @@ export default function Sidebar({
   return (
     <>
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 bg-background px-3 md:hidden">
+        <div className="fixed inset-x-0 top-0 z-40 flex min-h-14 items-center gap-3 bg-background px-3 pb-0 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-[max(0px,env(safe-area-inset-top))] md:hidden">
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls={mobileMenuId}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
             <MorphingMenuIcon isOpen={mobileMenuOpen} size={20} />
           </button>
           {pageTitle ? (
-            <span className="text-lg leading-none font-instrumentSerif text-foreground">
+            <h1 className="min-w-0 flex-1 truncate text-lg leading-none font-instrumentSerif text-foreground">
               {pageTitle}
-            </span>
+            </h1>
           ) : null}
         </div>
 
@@ -140,7 +140,7 @@ export default function Sidebar({
           <DialogRawContent
             id={mobileMenuId}
             aria-label="Navigation menu"
-            className="bg-overlay shadow-lg fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden rounded-lg text-overlay-foreground outline-none md:hidden"
+            className="bg-overlay shadow-lg fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden overscroll-contain rounded-lg text-overlay-foreground outline-none md:hidden"
           >
             <DialogTitle className="sr-only">Navigation menu</DialogTitle>
 

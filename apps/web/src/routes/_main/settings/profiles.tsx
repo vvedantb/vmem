@@ -53,14 +53,14 @@ export const Route = createFileRoute("/_main/settings/profiles")({
 });
 
 const PROFILE_COLORS = [
-  "#3B82F6", // blue
+  "#171717", // black (brand default)
   "#10B981", // emerald
   "#F59E0B", // amber
   "#EF4444", // red
   "#8B5CF6", // violet
   "#EC4899", // pink
   "#06B6D4", // cyan
-  "#6366F1", // indigo
+  "#6B7280", // gray
 ] as const;
 
 const PROFILE_ICONS = [

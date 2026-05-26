@@ -39,7 +39,7 @@ export default function VoiceControls({
           onClick={isListening ? onStopRecording : onStartRecording}
           className={cn(
             "relative flex items-center justify-center rounded-full size-20 transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",
             isListening
               ? "bg-danger text-danger-foreground hover:bg-danger/90"
               : "bg-accent text-accent-foreground hover:bg-accent/90",

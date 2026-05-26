@@ -38,7 +38,7 @@ export function AddRepoModalRow({
       disabled={disabled}
       onClick={onAdd}
       className={cn(
-        "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/30",
+        "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
         disabled && !isAdding ? "opacity-50" : "hover:bg-surface-tertiary/50",
       )}
     >

@@ -42,7 +42,7 @@ function SonnerToaster(props: ToasterProps) {
           title: "font-medium leading-snug",
           description: "text-[13px] leading-snug text-muted",
           actionButton:
-            "rounded-lg bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground transition-colors hover:bg-accent/90",
+            "rounded-lg bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground transition-opacity hover:opacity-90",
           cancelButton:
             "rounded-lg bg-surface-secondary px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-tertiary",
           closeButton:

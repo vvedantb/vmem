@@ -50,7 +50,10 @@ export default function PageContainer({
   // Default: show title if sections exist, unless explicitly set.
   const showTitleInHeader =
     !breadcrumb && Boolean(title) && (showTitle ?? hasSections);
-  const hasHeader = Boolean(breadcrumb) || showTitleInHeader || hasSections;
+  // Title and breadcrumb are desktop-only (md+); mobile uses the shell topbar.
+  const hasMobileHeaderContent = hasSections;
+  const hasHeader =
+    Boolean(breadcrumb) || showTitleInHeader || hasMobileHeaderContent;
 
   const childTransition = {
     duration: motionDuration.fast,
@@ -68,20 +71,23 @@ export default function PageContainer({
       {hasHeader && (
         <div
           className={cn(
-            "mb-5 flex-shrink-0 min-h-10 px-3 pt-3 md:px-4 md:pt-4",
-            centeredMaxWidth && "flex justify-center",
+            "mb-5 flex-shrink-0 px-3 md:px-4",
+            hasMobileHeaderContent
+              ? "min-h-10 pt-3 md:pt-4"
+              : "hidden min-h-10 pt-4 md:block",
           )}
         >
           <div
             className={cn(
-              "flex h-10 w-full items-center justify-between gap-4",
-              centeredMaxWidth && "max-w-5xl",
+              "flex h-10 w-full min-w-0 items-center justify-between gap-2 md:gap-4",
+              centeredMaxWidth && "mx-auto w-full max-w-5xl",
             )}
           >
             <div
               className={cn(
-                "flex min-w-0 items-center gap-4",
-                breadcrumb && !centerSection && "min-w-0 flex-1",
+                "flex min-w-0 items-center gap-2 md:gap-4",
+                ((breadcrumb && !centerSection) || leftSection) &&
+                  "min-w-0 flex-1",
               )}
             >
               {breadcrumb ? (
