@@ -24,7 +24,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
     <PageTitleProvider>
       <WikiSidebarProvider>
         <CommandPalette onToggleSidebar={toggleSidebar} />
-        <div className="relative h-screen overflow-hidden bg-[#ffffff] dark:bg-[#222222] md:bg-sidebar md:dark:bg-sidebar">
+        <div className="relative h-screen overflow-hidden bg-sidebar md:bg-sidebar">
           <Sidebar
             isCollapsed={isSidebarCollapsed}
             onToggleCollapse={toggleSidebar}

@@ -2,63 +2,62 @@
 
 @source "../../node_modules/@vmem/ui/src/**/*.{ts,tsx}";
 
-/* Light theme (default) */
-:root {
-  --color-background: oklch(0.965 0.005 95);
-  --color-foreground: oklch(0.22 0.01 95);
-  --color-card: oklch(0.992 0.003 95);
-  --color-card-foreground: oklch(0.22 0.01 95);
-  --color-popover: oklch(0.992 0.003 95);
-  --color-popover-foreground: oklch(0.22 0.01 95);
-  --color-primary: oklch(0.205 0.006 95);
-  --color-primary-foreground: oklch(0.988 0.003 95);
-  --color-secondary: oklch(0.942 0.006 95);
-  --color-secondary-foreground: oklch(0.32 0.01 95);
-  --color-muted: oklch(0.962 0.005 95);
-  --color-muted-foreground: oklch(0.52 0.012 95);
-  --color-accent: oklch(0.974 0.004 95);
-  --color-accent-foreground: oklch(0.24 0.01 95);
-  --color-border: oklch(0.9 0.007 95);
-  --color-input: oklch(0.89 0.008 95);
-  --color-ring: oklch(0.56 0.02 95);
-  --color-success: oklch(0.627 0.196 144.899);
-  --color-warning: oklch(0.666 0.168 64.247);
-  --color-destructive: oklch(0.577 0.245 27.325);
-  --color-destructive-foreground: oklch(0.985 0.003 95);
-
-  /* Flat surface tokens (legacy glass-* class names map here). */
-  --surface-muted: oklch(0.962 0.005 95 / 0.4);
-  --surface-popover: oklch(0.992 0.003 95);
-  --selection-bg: oklch(0.205 0.006 95 / 0.18);
+/* HeroUI theme → Tailwind color tokens (full oklch for @theme) */
+:root,
+.light,
+[data-theme="light"] {
+  --color-background: oklch(97.02% 0.0015 253.83);
+  --color-foreground: oklch(21.03% 0.0015 253.83);
+  --color-card: oklch(100% 0.0008 253.83);
+  --color-card-foreground: oklch(21.03% 0.0015 253.83);
+  --color-popover: oklch(100% 0.0004 253.83);
+  --color-popover-foreground: oklch(21.03% 0.0015 253.83);
+  --color-primary: oklch(62.04% 0.195 253.83);
+  --color-primary-foreground: oklch(99.11% 0 0);
+  --color-secondary: oklch(94% 0.0015 253.83);
+  --color-secondary-foreground: oklch(21.03% 0.0059 253.83);
+  --color-muted: oklch(95.24% 0.0012 253.83);
+  --color-muted-foreground: oklch(55.17% 0.003 253.83);
+  --color-accent: oklch(93.73% 0.0012 253.83);
+  --color-accent-foreground: oklch(21.03% 0.0015 253.83);
+  --color-border: oklch(90% 0.0015 253.83);
+  --color-input: oklch(100% 0.0008 253.83);
+  --color-ring: oklch(62.04% 0.195 253.83);
+  --color-success: oklch(73.29% 0.1941 150.81);
+  --color-warning: oklch(78.19% 0.159 72.33);
+  --color-destructive: oklch(65.32% 0.2335 25.74);
+  --color-destructive-foreground: oklch(99.11% 0 0);
+  --surface-muted: oklch(93.73% 0.0012 253.83);
+  --surface-popover: oklch(100% 0.0004 253.83);
+  --selection-bg: oklch(62.04% 0.195 253.83 / 0.18);
 }
 
-/* Dark theme */
-.dark {
-  --color-background: oklch(0.17 0.006 260);
-  --color-foreground: oklch(0.965 0.004 260);
-  --color-card: oklch(0.22 0.006 260);
-  --color-card-foreground: oklch(0.965 0.004 260);
-  --color-popover: oklch(0.22 0.006 260);
-  --color-popover-foreground: oklch(0.965 0.004 260);
-  --color-primary: oklch(0.93 0.005 260);
-  --color-primary-foreground: oklch(0.205 0.006 260);
-  --color-secondary: oklch(0.3 0.006 260);
-  --color-secondary-foreground: oklch(0.965 0.004 260);
-  --color-muted: oklch(0.27 0.004 260);
-  --color-muted-foreground: oklch(0.72 0.01 260);
-  --color-accent: oklch(0.3 0.007 260);
-  --color-accent-foreground: oklch(0.965 0.004 260);
-  --color-border: oklch(0.34 0.006 260);
-  --color-input: oklch(0.34 0.006 260);
-  --color-ring: oklch(0.72 0.013 260);
-  --color-success: oklch(0.8 0.207 147.325);
-  --color-warning: oklch(0.837 0.193 90.151);
-  --color-destructive: oklch(0.704 0.191 22.216);
-  --color-destructive-foreground: oklch(0.965 0.004 260);
-
-  --surface-muted: oklch(0.27 0.004 260 / 0.4);
-  --surface-popover: oklch(0.22 0.006 260);
-  --selection-bg: oklch(0.93 0.005 260 / 0.18);
+.dark,
+[data-theme="dark"] {
+  --color-background: oklch(21.03% 0.003 253.83);
+  --color-foreground: oklch(99.11% 0.0015 253.83);
+  --color-card: oklch(21.03% 0.003 253.83);
+  --color-card-foreground: oklch(99.11% 0.0015 253.83);
+  --color-popover: oklch(21.03% 0.003 253.83);
+  --color-popover-foreground: oklch(99.11% 0.0015 253.83);
+  --color-primary: oklch(62.04% 0.195 253.83);
+  --color-primary-foreground: oklch(99.11% 0 0);
+  --color-secondary: oklch(27.4% 0.0015 253.83);
+  --color-secondary-foreground: oklch(99.11% 0 0);
+  --color-muted: oklch(25.7% 0.0023 253.83);
+  --color-muted-foreground: oklch(70.5% 0.003 253.83);
+  --color-accent: oklch(27.21% 0.0023 253.83);
+  --color-accent-foreground: oklch(99.11% 0.0015 253.83);
+  --color-border: oklch(28% 0.0015 253.83);
+  --color-input: oklch(21.03% 0.003 253.83);
+  --color-ring: oklch(62.04% 0.195 253.83);
+  --color-success: oklch(73.29% 0.1941 150.81);
+  --color-warning: oklch(82.03% 0.1392 76.34);
+  --color-destructive: oklch(59.4% 0.1973 24.63);
+  --color-destructive-foreground: oklch(99.11% 0 0);
+  --surface-muted: oklch(27.21% 0.0023 253.83);
+  --surface-popover: oklch(21.03% 0.003 253.83);
+  --selection-bg: oklch(62.04% 0.195 253.83 / 0.18);
 }
 
 @theme {
@@ -87,7 +86,7 @@
   --font-sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
   --font-serif: "Instrument Serif", Georgia, serif;
 
-  --radius: 0.875rem;
+  --radius: 0.5rem;
 
   --shadow-soft:
     0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 28px rgba(16, 24, 40, 0.06);
@@ -114,9 +113,6 @@ body {
   color: var(--color-foreground);
 }
 
-/* Form elements reset to system fonts in most browsers — explicitly
-   inherit so all popup chrome (buttons, inputs, selects, textareas)
-   uses Instrument Sans like the rest of the body. */
 button,
 input,
 select,
@@ -147,7 +143,7 @@ select,
 }
 
 .glass-panel-subtle {
-  background: var(--surface-muted);
+  background: var(--color-muted);
 }
 
 .glass-interactive {

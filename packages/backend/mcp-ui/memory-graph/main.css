@@ -6,39 +6,39 @@
 
 /* oklch tokens — aligned with apps/web/src/globals.css */
 body[data-theme="light"] {
-  --background: 0.965 0.005 95;
-  --foreground: 0.22 0.01 95;
-  --muted: 0.962 0.005 95;
-  --muted-foreground: 0.52 0.012 95;
-  --warning: 0.666 0.168 64.247;
-  --warning-foreground: 0.985 0.003 95;
-  --graph-canvas: 1 0 0;
-  --graph-gradient: 0.35 0.02 270 / 0.03;
-  --graph-edge-tag: 60 70 90 / 0.22;
-  --graph-edge-relates: 200 90 30 / 0.65;
-  --graph-label: 0.22 0.01 95 / 0.88;
-  --nav-bg: 0.965 0.005 95;
-  --nav-border: 0.22 0.01 95 / 0.08;
-  --nav-fg: 0.52 0.012 95;
-  --nav-fg-hover: 0.22 0.01 95;
+  --background: 0.9702 0.0015 253.83;
+  --foreground: 0.2103 0.0015 253.83;
+  --muted: 0.9524 0.0012 253.83;
+  --muted-foreground: 0.5517 0.003 253.83;
+  --warning: 0.7819 0.159 72.33;
+  --warning-foreground: 0.2103 0.0059 72.33;
+  --graph-canvas: 1 0.0008 253.83;
+  --graph-gradient: 0.6204 0.195 253.83 / 0.04;
+  --graph-edge-tag: 0.5517 0.003 253.83 / 0.22;
+  --graph-edge-relates: 0.6204 0.195 253.83 / 0.65;
+  --graph-label: 0.2103 0.0015 253.83 / 0.88;
+  --nav-bg: 0.9524 0.0012 253.83;
+  --nav-border: 0.2103 0.0015 253.83 / 0.08;
+  --nav-fg: 0.5517 0.003 253.83;
+  --nav-fg-hover: 0.2103 0.0015 253.83;
 }
 
 body[data-theme="dark"] {
-  --background: 0.17 0.006 260;
-  --foreground: 0.965 0.004 260;
-  --muted: 0.27 0.004 260;
-  --muted-foreground: 0.72 0.01 260;
-  --warning: 0.837 0.193 90.151;
-  --warning-foreground: 0.205 0.006 260;
-  --graph-canvas: 0.07 0.004 260;
-  --graph-gradient: 0.5 0.02 270 / 0.06;
-  --graph-edge-tag: 180 180 200 / 0.18;
-  --graph-edge-relates: 255 170 110 / 0.55;
-  --graph-label: 1 0 0 / 0.9;
-  --nav-bg: 0.12 0.008 260;
-  --nav-border: 1 0 0 / 0.1;
-  --nav-fg: 0.72 0.01 260;
-  --nav-fg-hover: 0.965 0.004 260;
+  --background: 0.2103 0.003 253.83;
+  --foreground: 0.9911 0.0015 253.83;
+  --muted: 0.257 0.0023 253.83;
+  --muted-foreground: 0.705 0.003 253.83;
+  --warning: 0.8203 0.1392 76.34;
+  --warning-foreground: 0.2103 0.0059 76.34;
+  --graph-canvas: 0.12 0.0015 253.83;
+  --graph-gradient: 0.6204 0.195 253.83 / 0.06;
+  --graph-edge-tag: 0.705 0.003 253.83 / 0.18;
+  --graph-edge-relates: 0.7819 0.159 72.33 / 0.55;
+  --graph-label: 0.9911 0.0015 253.83 / 0.9;
+  --nav-bg: 0.12 0.0015 253.83;
+  --nav-border: 0.9911 0.0015 253.83 / 0.1;
+  --nav-fg: 0.705 0.003 253.83;
+  --nav-fg-hover: 0.9911 0.0015 253.83;
 }
 
 html,
@@ -212,13 +212,13 @@ body {
 #legend .swatch-tag {
   width: 16px;
   height: 1px;
-  background: rgb(var(--graph-edge-tag));
+  background: oklch(var(--graph-edge-tag));
 }
 
 #legend .swatch-relates {
   width: 16px;
   height: 2px;
-  background: rgb(var(--graph-edge-relates));
+  background: oklch(var(--graph-edge-relates));
 }
 
 #legend .swatch-node {

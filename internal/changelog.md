@@ -1,5 +1,10 @@
 # Changelog
 
+## HeroUI theme tokens — 2026-05-23
+
+- **Fixed broken colors after flat UI migration**: Replaced ad-hoc tokens with HeroUI oklch palette; `--muted` now maps to surface backgrounds (not text gray), restoring readable cards, nav, and form fields.
+- **Brand primary**: Blue accent (`62%` lightness) drives buttons, links, and focus rings consistently in light and dark mode.
+
 ## Flat UI replaces glass morphism — 2026-05-23
 
 - **Tonal surfaces only**: Removed backdrop blur, translucent fills, and inset highlights from the design system — cards, nav, and layout use solid `bg-muted/40` and `bg-background` instead.

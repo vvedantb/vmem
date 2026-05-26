@@ -50,9 +50,9 @@ export function AnimatedProgress({
             x2="100%"
             y2="0%"
           >
-            <stop offset="0%" stopColor="hsl(var(--primary))" />
-            <stop offset="50%" stopColor="hsl(var(--primary) / 0.8)" />
-            <stop offset="100%" stopColor="hsl(var(--primary))" />
+            <stop offset="0%" stopColor="oklch(var(--primary))" />
+            <stop offset="50%" stopColor="oklch(var(--primary) / 0.8)" />
+            <stop offset="100%" stopColor="oklch(var(--primary))" />
             {showGradient && (
               <animate
                 attributeName="x1"
@@ -104,7 +104,7 @@ export function AnimatedProgress({
           width="100%"
           height={height}
           rx={height / 2}
-          fill="hsl(var(--muted))"
+          fill="oklch(var(--muted))"
         />
 
         {/* Animated progress fill */}
