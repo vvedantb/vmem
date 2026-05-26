@@ -185,7 +185,7 @@ export default function Sidebar({
       </Dialog>
 
       <motion.aside
-        className="fixed left-0 top-0 z-40 hidden h-screen overflow-hidden bg-surface-secondary md:block"
+        className="fixed left-0 top-0 z-40 hidden h-screen overflow-hidden bg-background md:block"
         animate={{ width: isCollapsed ? 80 : 288 }}
         transition={{ duration: motionTiming.sidebar, ease: motionEase }}
       >

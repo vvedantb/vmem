@@ -2,6 +2,7 @@
 
 ## HeroUI token polish — 2026-05-23
 
+- **Layout surface hierarchy**: Sidebar uses `bg-background` (darkest); main content uses `bg-surface` (elevated). Fixes dark mode inversion where main was blacker than the grey sidebar.
 - **Page background**: `body` uses `bg-background` (HeroUI `--background`) instead of `bg-surface-secondary`.
 - **Overlay surfaces**: Tooltips, graph tooltips, and chart hovers use `glass-panel-strong` (`--overlay`) instead of `glass-panel`.
 - **Menu dividers**: Dropdown/command/select/context separators use `bg-separator` instead of `bg-border/70`.
