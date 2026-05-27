@@ -39,7 +39,12 @@ import {
   ToolOutput,
 } from "@vmem/ui/ai";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@vmem/ui";
-import { IconCheck, IconCopy, IconMicrophone } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconCloud,
+  IconCopy,
+  IconMicrophone,
+} from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import type { ChatMemoryRef, MessageUsageSummary } from "@/hooks/useLocalChat";
 
@@ -163,6 +168,11 @@ function getProviderMeta(agentName?: string): {
   tooltip: string;
 } | null {
   switch (agentName) {
+    case "vmem-cloud":
+      return {
+        icon: <IconCloud className="size-3.5" stroke={1.5} />,
+        tooltip: "Cloud",
+      };
     case "vmem-local-voice":
       return {
         icon: <IconMicrophone className="size-3.5" stroke={1.5} />,

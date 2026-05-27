@@ -1,5 +1,11 @@
 # Changelog
 
+## Cloud chat with free OpenRouter models + vmem tools — 2026-05-23
+
+- **Chat `/chat`**: Local / Cloud toggle (local default). Cloud streams free OpenRouter models that support tool calling.
+- **Backend**: `listFreeChatModels` (cached catalog + fallback ids), shared MCP `toolHandlers`, `initiateStreaming` / `streamAsync` with personal MCP tool parity (~28 tools).
+- **UI**: `ProviderToggle`, `CloudModelSelector`, cloud message provider badge (`vmem-cloud`), OpenRouter key empty state linking to Settings → Secrets.
+
 ## Activity and API log tables fill the page — 2026-05-23
 
 - **AI logs, Events, API usage**: Recent-calls / recent-requests lists scroll inside the card with a styled thin scrollbar instead of growing the whole page.

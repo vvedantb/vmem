@@ -45,8 +45,10 @@ import {
 } from "@vmem/ui";
 import { Link } from "@tanstack/react-router";
 import ChatMessageItem from "@/components/chat/_components/ChatMessageItem";
+import CloudModelSelector from "@/components/chat/_components/CloudModelSelector";
+import ProviderToggle from "@/components/chat/_components/ProviderToggle";
 import LocalModelProviderIcon from "@/components/LocalModelProviderIcon";
-import { useLocalChat } from "@/hooks/useLocalChat";
+import { useChatProvider } from "@/hooks/useChatProvider";
 import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
 import { findModel, groupByProvider } from "@/lib/local-models";
 
@@ -145,7 +147,10 @@ function ModelSelector() {
 
 export default function Chat() {
   const {
+    provider,
+    setProvider,
     isThreadReady,
+    isReady,
     messages,
     sendMessage,
     clearHistory,
@@ -153,7 +158,10 @@ export default function Chat() {
     isClearing,
     usageByMessageKey,
     memoryRefsByMessageKey,
-  } = useLocalChat();
+    hasOpenRouterKey,
+    cloudModelId,
+    setCloudModelId,
+  } = useChatProvider();
   const { engineState, loadedModelId } = useLocalLLM();
 
   const [clearOpen, setClearOpen] = useState(false);
@@ -161,14 +169,31 @@ export default function Chat() {
   const promptStatus = isStreaming ? "streaming" : "ready";
 
   const loadedModel = loadedModelId ? findModel(loadedModelId) : undefined;
-  const maxContextTokens = loadedModel?.contextLength ?? DEFAULT_CONTEXT_LENGTH;
+  const localMaxContextTokens =
+    loadedModel?.contextLength ?? DEFAULT_CONTEXT_LENGTH;
+  const maxContextTokens =
+    provider === "cloud" ? 131072 : localMaxContextTokens;
+
+  const isLocal = provider === "local";
+  const needsLocalModel = isLocal && engineState !== "ready";
+  const needsOpenRouterKey = !isLocal && !hasOpenRouterKey;
+  const needsCloudModel = !isLocal && hasOpenRouterKey && cloudModelId === null;
+  const inputDisabled =
+    needsLocalModel || needsOpenRouterKey || needsCloudModel;
 
   const handleSubmit = useCallback(
     async ({ text }: PromptInputMessage) => {
-      if (!text) return;
-      await sendMessage(text);
+      if (!text || !isReady) return;
+      try {
+        await sendMessage(text);
+      } catch (error) {
+        console.error("Failed to send message:", error);
+        toast.error(
+          error instanceof Error ? error.message : "Failed to send message",
+        );
+      }
     },
-    [sendMessage],
+    [isReady, sendMessage],
   );
 
   const handleSuggestionClick = useCallback(
@@ -198,11 +223,15 @@ export default function Chat() {
     );
   }
 
-  // No model loaded — prompt user to load one
-  const needsModel = engineState !== "ready";
+  // No model loaded — prompt user to load one (local) or configure cloud
+  const showLocalEmpty = messages.length === 0 && needsLocalModel;
+  const showCloudKeyEmpty = messages.length === 0 && needsOpenRouterKey;
+  const showReadyEmpty =
+    messages.length === 0 &&
+    !needsLocalModel &&
+    !needsOpenRouterKey &&
+    !needsCloudModel;
 
-  // Show the clear-chat affordance only when there's something to clear —
-  // keeps the empty state quiet.
   const hasMessages = messages.length > 0;
 
   return (
@@ -228,7 +257,7 @@ export default function Chat() {
 
       <Conversation className="flex-1 min-h-0">
         <ConversationContent className="pb-4 max-w-4xl mx-auto w-full px-1 sm:px-0">
-          {messages.length === 0 && needsModel && (
+          {showLocalEmpty && (
             <ConversationEmptyState
               icon={
                 <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-surface">
@@ -260,7 +289,39 @@ export default function Chat() {
             </ConversationEmptyState>
           )}
 
-          {messages.length === 0 && !needsModel && (
+          {showCloudKeyEmpty && (
+            <ConversationEmptyState
+              icon={
+                <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-surface">
+                  <img
+                    width={22}
+                    height={22}
+                    alt="vmem"
+                    src="/icon-dark.svg"
+                    className="block dark:hidden outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
+                  />
+                  <img
+                    width={22}
+                    height={22}
+                    alt="vmem"
+                    src="/icon-light.svg"
+                    className="hidden dark:block outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
+                  />
+                </div>
+              }
+              title="OpenRouter API key required"
+              description="Add OPENROUTER_API_KEY in Settings → Secrets to use cloud chat with free models and vmem tools."
+            >
+              <Link
+                to="/settings/secrets"
+                className="mt-2 text-xs text-muted underline-offset-4 hover:underline"
+              >
+                Configure secrets
+              </Link>
+            </ConversationEmptyState>
+          )}
+
+          {showReadyEmpty && (
             <ConversationEmptyState
               icon={
                 <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-surface">
@@ -281,7 +342,11 @@ export default function Chat() {
                 </div>
               }
               title="Start a conversation"
-              description="Ask anything — running locally in your browser."
+              description={
+                isLocal
+                  ? "Ask anything — running locally in your browser."
+                  : "Ask anything — cloud model with vmem tools (memories, skills, wiki)."
+              }
             >
               <Suggestions className="max-w-md">
                 {[
@@ -317,16 +382,35 @@ export default function Chat() {
         <PromptInput onSubmit={handleSubmit} status={promptStatus}>
           <PromptInputTextarea
             placeholder={
-              needsModel
-                ? "Select a model to chat..."
-                : "Ask about your memories..."
+              needsLocalModel
+                ? "Select a local model to chat..."
+                : needsOpenRouterKey
+                  ? "Add OPENROUTER_API_KEY in Settings..."
+                  : needsCloudModel
+                    ? "Select a cloud model..."
+                    : "Ask about your memories..."
             }
-            {...(needsModel ? { disabled: true } : {})}
+            {...(inputDisabled ? { disabled: true } : {})}
           />
           <PromptInputFooter>
-            <ModelSelector />
-            <ChatSpeechInput />
-            <PromptInputSubmit {...(needsModel ? { disabled: true } : {})} />
+            <div className="flex items-center gap-1.5">
+              <ProviderToggle
+                provider={provider}
+                onChange={setProvider}
+                disabled={isStreaming}
+              />
+              {isLocal ? (
+                <ModelSelector />
+              ) : (
+                <CloudModelSelector
+                  modelId={cloudModelId}
+                  onSelectModel={setCloudModelId}
+                  disabled={!hasOpenRouterKey || isStreaming}
+                />
+              )}
+            </div>
+            {isLocal ? <ChatSpeechInput /> : null}
+            <PromptInputSubmit {...(inputDisabled ? { disabled: true } : {})} />
           </PromptInputFooter>
         </PromptInput>
       </div>

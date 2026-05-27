@@ -14,6 +14,7 @@ import { internal } from "../../_generated/api";
 
 export type OpenRouterFeature =
   // Chat completions
+  | "chat"
   | "enrichment"
   | "dream-synthesis"
   | "context-prompt"

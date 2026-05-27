@@ -8,10 +8,14 @@
  * @module
  */
 
+import type * as agent from "../agent.js";
 import type * as apiKeys from "../apiKeys.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
+import type * as chatStreamActions from "../chatStreamActions.js";
+import type * as chat_memoryRefCollector from "../chat/memoryRefCollector.js";
+import type * as chat_openRouterTools from "../chat/openRouterTools.js";
 import type * as codebaseSymbols from "../codebaseSymbols.js";
 import type * as codebaseSync from "../codebaseSync.js";
 import type * as codebaseSyncActions from "../codebaseSyncActions.js";
@@ -70,6 +74,8 @@ import type * as mcp_native from "../mcp/native.js";
 import type * as mcp_nodeActions from "../mcp/nodeActions.js";
 import type * as mcp_oauth from "../mcp/oauth.js";
 import type * as mcp_resources from "../mcp/resources.js";
+import type * as mcp_schemas from "../mcp/schemas.js";
+import type * as mcp_toolHandlers from "../mcp/toolHandlers.js";
 import type * as mcp_tools from "../mcp/tools.js";
 import type * as mcp_webAppUrl from "../mcp/webAppUrl.js";
 import type * as memoryApi from "../memoryApi.js";
@@ -120,6 +126,7 @@ import type * as neo4jActions_timeline from "../neo4jActions/timeline.js";
 import type * as notifications from "../notifications.js";
 import type * as oauthState from "../oauthState.js";
 import type * as openRouterLogs from "../openRouterLogs.js";
+import type * as openRouterModels from "../openRouterModels.js";
 import type * as profiles from "../profiles.js";
 import type * as profiles_dream from "../profiles/dream.js";
 import type * as profiles_handlers from "../profiles/handlers.js";
@@ -151,10 +158,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agent: typeof agent;
   apiKeys: typeof apiKeys;
   auditLog: typeof auditLog;
   auth: typeof auth;
   chat: typeof chat;
+  chatStreamActions: typeof chatStreamActions;
+  "chat/memoryRefCollector": typeof chat_memoryRefCollector;
+  "chat/openRouterTools": typeof chat_openRouterTools;
   codebaseSymbols: typeof codebaseSymbols;
   codebaseSync: typeof codebaseSync;
   codebaseSyncActions: typeof codebaseSyncActions;
@@ -213,6 +224,8 @@ declare const fullApi: ApiFromModules<{
   "mcp/nodeActions": typeof mcp_nodeActions;
   "mcp/oauth": typeof mcp_oauth;
   "mcp/resources": typeof mcp_resources;
+  "mcp/schemas": typeof mcp_schemas;
+  "mcp/toolHandlers": typeof mcp_toolHandlers;
   "mcp/tools": typeof mcp_tools;
   "mcp/webAppUrl": typeof mcp_webAppUrl;
   memoryApi: typeof memoryApi;
@@ -263,6 +276,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   oauthState: typeof oauthState;
   openRouterLogs: typeof openRouterLogs;
+  openRouterModels: typeof openRouterModels;
   profiles: typeof profiles;
   "profiles/dream": typeof profiles_dream;
   "profiles/handlers": typeof profiles_handlers;
