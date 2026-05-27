@@ -1,0 +1,78 @@
+name: Sync staging to main
+
+on:
+  schedule:
+    # Daily at 09:00 UTC
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for diff
+        id: diff
+        run: |
+          git fetch origin main staging
+          if git diff --quiet origin/main origin/staging; then
+            echo "has_diff=false" >> "$GITHUB_OUTPUT"
+            echo "main and staging are identical — nothing to sync"
+          else
+            echo "has_diff=true" >> "$GITHUB_OUTPUT"
+            echo "Diff found between main and staging"
+          fi
+
+      - name: Open PR, wait for checks, merge
+        if: steps.diff.outputs.has_diff == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          EXISTING=$(gh pr list \
+            --base main \
+            --head staging \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            PR_NUMBER="$EXISTING"
+            echo "Reusing open PR #$PR_NUMBER"
+          else
+            gh pr create \
+              --base main \
+              --head staging \
+              --title "chore: sync staging → main" \
+              --body "Scheduled daily sync from staging into main. Merges automatically once required checks pass."
+            PR_NUMBER=$(gh pr list \
+              --base main \
+              --head staging \
+              --state open \
+              --json number \
+              --jq '.[0].number')
+            echo "Created PR #$PR_NUMBER"
+          fi
+
+          echo "Waiting for checks on PR #$PR_NUMBER..."
+          gh pr checks "$PR_NUMBER" --watch
+
+          FAILED=$(gh pr checks "$PR_NUMBER" --json name,state --jq \
+            '[.[] | select(.state != "SUCCESS" and .state != "SKIPPED" and .state != "NEUTRAL")] | length')
+          if [ "$FAILED" -gt 0 ]; then
+            echo "Required checks did not pass — not merging"
+            gh pr checks "$PR_NUMBER"
+            exit 1
+          fi
+
+          gh pr merge "$PR_NUMBER" --merge
+          echo "Merged PR #$PR_NUMBER into main"
