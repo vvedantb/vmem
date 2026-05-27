@@ -1,6 +1,6 @@
 {
   "name": "@vmem/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Official JavaScript SDK for the vmem memory API",
   "license": "MIT",
   "repository": {
