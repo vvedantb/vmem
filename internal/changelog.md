@@ -1,5 +1,9 @@
 # Changelog
 
+## GitHub Actions v6 across workflows — 2026-05-27
+
+- **CI workflows**: Upgraded `actions/checkout`, `actions/setup-node`, and `pnpm/action-setup` to v6 on all workflows to clear Node 20 deprecation warnings.
+
 ## SDK publish workflow Node 24 — 2026-05-27
 
 - **Publish VMemory SDK**: Upgraded `actions/checkout` and `actions/setup-node` to v6 with Node 24 to clear GitHub Actions Node 20 deprecation warnings.
