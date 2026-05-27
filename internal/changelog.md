@@ -1,5 +1,9 @@
 # Changelog
 
+## SDK publish workflow Node 24 — 2026-05-27
+
+- **Publish VMemory SDK**: Upgraded `actions/checkout` and `actions/setup-node` to v6 with Node 24 to clear GitHub Actions Node 20 deprecation warnings.
+
 ## @vmem/sdk README and keywords — 2026-05-27
 
 - **npm package**: Added `README.md` and `keywords` so the registry page documents install and usage; published as `0.1.2`.
