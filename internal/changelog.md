@@ -11,6 +11,22 @@
 - **Chat `/chat`**: Local / Cloud toggle (local default). Cloud streams free OpenRouter models that support tool calling.
 - **Backend**: `listFreeChatModels` (cached catalog + fallback ids), shared MCP `toolHandlers`, `initiateStreaming` / `streamAsync` with personal MCP tool parity (~28 tools).
 - **UI**: `ProviderToggle`, `CloudModelSelector`, cloud message provider badge (`vmem-cloud`), OpenRouter key empty state linking to Settings → Secrets.
+## GitHub Actions v6 across workflows — 2026-05-27
+
+- **CI workflows**: Upgraded `actions/checkout`, `actions/setup-node`, and `pnpm/action-setup` to v6 on all workflows to clear Node 20 deprecation warnings.
+
+## SDK publish workflow Node 24 — 2026-05-27
+
+- **Publish VMemory SDK**: Upgraded `actions/checkout` and `actions/setup-node` to v6 with Node 24 to clear GitHub Actions Node 20 deprecation warnings.
+
+## @vmem/sdk README and keywords — 2026-05-27
+
+- **npm package**: Added `README.md` and `keywords` so the registry page documents install and usage; published as `0.1.2`.
+
+## npm Trusted Publishing for SDK — 2026-05-27
+
+- **Publish workflow uses OIDC**: `publish-vmem-sdk.yml` drops `NPM_TOKEN`; publishes via npm Trusted Publishing with `npm publish` (CLI 11.5.1+).
+- **Docs**: Maintainer guide at `sdk/publishing` for one-time npm trusted publisher setup.
 
 ## Activity and API log tables fill the page — 2026-05-23
 

@@ -1,0 +1,58 @@
+---
+title: "Publishing @vmem/sdk"
+description: "npm Trusted Publishing from GitHub Actions (maintainers)"
+---
+
+The SDK is published with [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC). CI does **not** use `NPM_TOKEN` on the publish step.
+
+## Trusted publishing (required)
+
+On [@vmem/sdk → Settings → Trusted publishing](https://www.npmjs.com/package/@vmem/sdk):
+
+| Field | Value |
+| --- | --- |
+| Publisher | GitHub Actions |
+| Repository | `vedantb2/vmem` |
+| Workflow filename | `publish-vmem-sdk.yml` |
+| Environment | *(leave empty)* |
+| Allowed actions | `npm publish` |
+
+`packages/sdk/package.json` must include:
+
+```json
+"repository": {
+  "type": "git",
+  "url": "git+https://github.com/vedantb2/vmem.git",
+  "directory": "packages/sdk"
+}
+```
+
+Recommended: **Publishing access** → require 2FA and disallow tokens.
+
+## How releases run
+
+Workflow: `.github/workflows/publish-vmem-sdk.yml`
+
+- **Trigger:** `packages/sdk/package.json` version bump on `main`, or **workflow_dispatch**.
+- **Auth:** `id-token: write` + npm CLI ≥ 11.5.1 + Node ≥ 22.14.
+- **Publish:** `npm publish` from `packages/sdk` (not `pnpm publish`).
+
+## First publish (manual, already done)
+
+If the package did not exist on npm yet, publish once locally, then configure trusted publishing above:
+
+```bash
+cd packages/sdk
+pnpm build
+npm login
+npm publish --access public
+```
+
+## Troubleshooting
+
+| Error | Fix |
+| --- | --- |
+| `404` on publish | Package missing on npm, or trusted publisher repo/workflow mismatch. |
+| `ENEEDAUTH` | Trusted publisher not configured; or empty `_authToken` in `.npmrc` blocking OIDC (workflow clears this). |
+| `EOTP` / bypass 2FA | Do not use `NPM_TOKEN` without bypass 2FA; use trusted publishing instead. |
+| Version already exists | Bump `version` in `packages/sdk/package.json`. |
