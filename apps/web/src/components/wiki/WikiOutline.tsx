@@ -23,11 +23,9 @@ export default function WikiOutline({
   return (
     <div className="flex flex-col min-h-0">
       {!hasDoc ? (
-        <p className="px-2 py-3 text-xs text-muted-foreground">
-          No document open.
-        </p>
+        <p className="px-2 py-3 text-xs text-muted">No document open.</p>
       ) : headings.length === 0 ? (
-        <p className="px-2 py-3 text-xs text-muted-foreground">
+        <p className="px-2 py-3 text-xs text-muted">
           Add a heading to build the outline.
         </p>
       ) : (
@@ -39,7 +37,7 @@ export default function WikiOutline({
                 onClick={() => onJump(heading.pos)}
                 className={cn(
                   "w-full text-left text-sm rounded-md px-2 py-1 transition-colors",
-                  "text-foreground/80 hover:bg-muted/70 hover:text-foreground",
+                  "text-foreground/80 hover:bg-surface-tertiary/50 hover:text-foreground",
                 )}
                 style={{ paddingLeft: `${(heading.level - 1) * 10 + 8}px` }}
               >

@@ -36,11 +36,11 @@ function Tool({
   return (
     <Collapsible
       defaultOpen={state === "running" || state === "output-error"}
-      className={cn("rounded-lg bg-muted/40", className)}
+      className={cn("rounded-lg bg-surface-secondary/40", className)}
       {...props}
     >
       <ToolHeader name={name} state={state} />
-      <CollapsibleContent className="bg-muted/20 px-3 py-2 rounded-b-lg">
+      <CollapsibleContent className="bg-surface-secondary/20 px-3 py-2 rounded-b-lg">
         {children}
       </CollapsibleContent>
     </Collapsible>
@@ -53,18 +53,18 @@ function ToolHeader({ name, state }: { name: string; state: ToolState }) {
       <span className="inline-flex items-center gap-1.5">
         {state === "running" ? (
           <IconLoader2
-            className="size-3.5 animate-spin text-primary"
+            className="size-3.5 animate-spin text-accent"
             stroke={1.5}
           />
         ) : state === "output-available" ? (
           <IconCheck className="size-3.5 text-success" stroke={1.5} />
         ) : (
-          <IconTool className="size-3.5 text-muted-foreground" stroke={1.5} />
+          <IconTool className="size-3.5 text-muted" stroke={1.5} />
         )}
         <span className="font-medium text-foreground">{name}</span>
-        <span className="text-muted-foreground">{toolStateLabel(state)}</span>
+        <span className="text-muted">{toolStateLabel(state)}</span>
       </span>
-      <IconChevronDown className="size-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+      <IconChevronDown className="size-3.5 text-muted transition-transform group-data-[state=open]:rotate-180" />
     </CollapsibleTrigger>
   );
 }
@@ -76,7 +76,7 @@ type ToolInputProps = ComponentProps<"div"> & {
 function ToolInput({ input, className, ...props }: ToolInputProps) {
   return (
     <div className={cn("space-y-1.5", className)} {...props}>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted">
         Input
       </p>
       <CodeBlock
@@ -96,7 +96,7 @@ type ToolOutputProps = ComponentProps<"div"> & {
 function ToolOutput({ output, className, ...props }: ToolOutputProps) {
   return (
     <div className={cn("space-y-1.5", className)} {...props}>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted">
         Output
       </p>
       <CodeBlock

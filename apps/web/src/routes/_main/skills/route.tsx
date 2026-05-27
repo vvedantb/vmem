@@ -183,22 +183,22 @@ function SkillsLayout() {
           </div>
         ) : isSkillLoading ? (
           <div className="flex flex-1 items-center justify-center">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
           </div>
         ) : skills === undefined ? (
           <div className="flex flex-1 items-center justify-center">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
           </div>
         ) : skills.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <IconBolt size={40} className="mb-3 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
+            <IconBolt size={40} className="mb-3 text-muted" />
+            <p className="text-sm text-muted">
               No skills yet. Use Add in the sidebar to get started.
             </p>
           </div>
         ) : (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted">
               Select a skill from the sidebar
             </p>
           </div>

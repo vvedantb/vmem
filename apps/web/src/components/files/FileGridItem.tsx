@@ -65,10 +65,10 @@ export default function FileGridItem({
     >
       <div
         className={cn(
-          "group relative flex flex-col items-center gap-2 rounded-xl border p-3 cursor-pointer transition-all",
-          "hover:bg-accent/50",
+          "group relative flex flex-col items-center gap-2 rounded-lg border p-3 cursor-pointer transition-all",
+          "hover:bg-surface-tertiary/50",
           isSelected
-            ? "border-primary/50 bg-primary/5 ring-1 ring-primary/30"
+            ? "border-accent/50 bg-accent/5 ring-1 ring-accent/30"
             : "border-transparent",
         )}
         onClick={handleClick}
@@ -86,7 +86,7 @@ export default function FileGridItem({
         </div>
 
         {/* Icon / thumbnail area */}
-        <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-muted overflow-hidden">
+        <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-surface-secondary overflow-hidden">
           {item.itemType === "file" &&
           item.fileCategory === "image" &&
           item.thumbnailUrl ? (
@@ -94,13 +94,13 @@ export default function FileGridItem({
             <img
               src={item.thumbnailUrl}
               alt={item.name}
-              className="h-full w-full object-cover outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
+              className="h-full w-full object-cover outline outline-1 -outline-offset-1 outline-foreground/10"
             />
           ) : (
             <FileIcon
               size={isFolder ? 48 : 40}
               stroke={1.2}
-              className="text-muted-foreground"
+              className="text-muted"
             />
           )}
         </div>
@@ -111,12 +111,10 @@ export default function FileGridItem({
             {item.name}
           </p>
           {!isFolder && (
-            <p className="text-xs text-muted-foreground">
-              {formatFileSize(item.size)}
-            </p>
+            <p className="text-xs text-muted">{formatFileSize(item.size)}</p>
           )}
           {isFolder && item.itemCount !== undefined && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted">
               {item.itemCount} {item.itemCount === 1 ? "item" : "items"}
             </p>
           )}

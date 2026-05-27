@@ -38,7 +38,7 @@ export function WikiPageBreadcrumb({
           }}
           placeholder="Untitled"
           aria-label="Document title"
-          className="w-full min-w-0 bg-transparent text-inherit outline-none placeholder:text-muted-foreground/50"
+          className="w-full min-w-0 bg-transparent text-inherit outline-none placeholder:text-muted/50"
         />
       </BreadcrumbPage>
     </Breadcrumb>

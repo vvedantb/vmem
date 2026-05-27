@@ -22,12 +22,9 @@ function TeamLayout() {
 
   if (data === undefined) {
     return (
-      <PageContainer title="Team">
+      <PageContainer title="Team" centeredMaxWidth>
         <div className="flex items-center justify-center py-20">
-          <IconLoader2
-            size={20}
-            className="animate-spin text-muted-foreground"
-          />
+          <IconLoader2 size={20} className="animate-spin text-muted" />
         </div>
       </PageContainer>
     );
@@ -35,9 +32,9 @@ function TeamLayout() {
 
   if (data === null) {
     return (
-      <PageContainer title="Team">
+      <PageContainer title="Team" centeredMaxWidth>
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <p className="mb-4 text-sm text-muted-foreground">
+          <p className="mb-4 text-sm text-muted">
             Team not found or you&apos;re not a member.
           </p>
           <Link to="/teams">
@@ -55,6 +52,7 @@ function TeamLayout() {
     <TeamDetailProvider value={data}>
       <PageContainer
         title={`${data.team.name} / ${sectionLabel}`}
+        centeredMaxWidth
         breadcrumb={
           <Breadcrumb>
             <BreadcrumbLink asChild>

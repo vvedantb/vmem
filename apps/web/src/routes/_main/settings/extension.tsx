@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
-import { Label, Switch, Skeleton } from "@vmem/ui";
+import { Label, Switch, Skeleton, Card, CardContent } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
 
@@ -49,45 +49,47 @@ function ExtensionSettingsPage() {
 
   return (
     <PageContainer title="Extension" centeredMaxWidth showTitle>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <Label htmlFor="ext-auto-sync" className="text-sm font-medium">
-              Auto-sync
-            </Label>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Sync bookmarks and browsing history on a schedule.
-            </p>
+      <Card className="shadow-none">
+        <CardContent className="space-y-6 p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <Label htmlFor="ext-auto-sync" className="text-sm font-medium">
+                Auto-sync
+              </Label>
+              <p className="mt-1 text-xs text-muted">
+                Sync bookmarks and browsing history on a schedule.
+              </p>
+            </div>
+            <Switch
+              id="ext-auto-sync"
+              checked={settings.extensionAutoSyncEnabled}
+              onCheckedChange={(checked) => {
+                void saveSettings({ extensionAutoSyncEnabled: checked });
+              }}
+            />
           </div>
-          <Switch
-            id="ext-auto-sync"
-            checked={settings.extensionAutoSyncEnabled}
-            onCheckedChange={(checked) => {
-              void saveSettings({ extensionAutoSyncEnabled: checked });
-            }}
-          />
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <Label
-              htmlFor="ext-selection-popup"
-              className="text-sm font-medium"
-            >
-              Save popup on text selection
-            </Label>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Show a quick-save control when you select text on a page.
-            </p>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <Label
+                htmlFor="ext-selection-popup"
+                className="text-sm font-medium"
+              >
+                Save popup on text selection
+              </Label>
+              <p className="mt-1 text-xs text-muted">
+                Show a quick-save control when you select text on a page.
+              </p>
+            </div>
+            <Switch
+              id="ext-selection-popup"
+              checked={settings.extensionSelectionPopupEnabled}
+              onCheckedChange={(checked) => {
+                void saveSettings({ extensionSelectionPopupEnabled: checked });
+              }}
+            />
           </div>
-          <Switch
-            id="ext-selection-popup"
-            checked={settings.extensionSelectionPopupEnabled}
-            onCheckedChange={(checked) => {
-              void saveSettings({ extensionSelectionPopupEnabled: checked });
-            }}
-          />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </PageContainer>
   );
 }

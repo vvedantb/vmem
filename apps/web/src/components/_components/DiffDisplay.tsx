@@ -10,13 +10,13 @@ export default function DiffDisplay({ oldText, newText }: DiffDisplayProps) {
   const changes: Change[] = diffWords(oldText, newText);
 
   return (
-    <div className="rounded-lg bg-muted/30 p-3 font-mono text-sm leading-relaxed whitespace-pre-wrap">
+    <div className="font-mono text-sm leading-relaxed whitespace-pre-wrap text-foreground">
       {changes.map((part, index) => {
         if (part.added) {
           return (
             <span
               key={index}
-              className="bg-green-100 dark:bg-green-900/30 rounded-sm px-0.5"
+              className="bg-success/15 text-success rounded-sm px-0.5"
             >
               {part.value}
             </span>
@@ -26,7 +26,7 @@ export default function DiffDisplay({ oldText, newText }: DiffDisplayProps) {
           return (
             <span
               key={index}
-              className="bg-red-100 dark:bg-red-900/30 line-through rounded-sm px-0.5"
+              className="bg-danger/15 text-danger line-through rounded-sm px-0.5"
             >
               {part.value}
             </span>

@@ -48,24 +48,22 @@ export function ApiKeyRow({
     <TableRow>
       <TableCell className="py-4">
         <span className="text-foreground">{apiKey.name}</span>
-        <p className="text-xs text-muted-foreground mt-0.5 md:hidden">
+        <p className="text-xs text-muted mt-0.5 md:hidden">
           {formatDate(apiKey.createdAt)}
         </p>
       </TableCell>
       <TableCell className="hidden sm:table-cell py-4">
         {isActive ? (
-          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs">
+          <Badge className="border-success/25 bg-success/12 text-success text-xs">
             Active
           </Badge>
         ) : (
-          <Badge className="bg-destructive/10 text-destructive text-xs">
-            Revoked
-          </Badge>
+          <Badge className="bg-danger/10 text-danger text-xs">Revoked</Badge>
         )}
       </TableCell>
       <TableCell className="hidden md:table-cell py-4">
         <div className="flex items-center gap-2">
-          <code className="text-sm text-muted-foreground font-mono">
+          <code className="text-sm text-muted font-mono">
             {revealedKey ?? "vmem_sk_••••••••••••••••"}
           </code>
           {isActive && (
@@ -96,7 +94,7 @@ export function ApiKeyRow({
               {copyingKeyId === apiKey.id ? (
                 <IconLoader2 size={14} className="animate-spin" />
               ) : copiedKeyId === apiKey.id ? (
-                <IconCheck size={14} className="text-primary" />
+                <IconCheck size={14} className="text-accent" />
               ) : (
                 <IconCopy size={14} />
               )}
@@ -105,12 +103,12 @@ export function ApiKeyRow({
         </div>
       </TableCell>
       <TableCell className="hidden lg:table-cell py-4">
-        <span className="text-sm text-muted-foreground tabular-nums">
+        <span className="text-sm text-muted tabular-nums">
           {formatNumber(apiKey.requestCount)}
         </span>
       </TableCell>
       <TableCell className="hidden sm:table-cell py-4">
-        <span className="text-sm text-muted-foreground">
+        <span className="text-sm text-muted">
           {formatRelativeTime(apiKey.lastUsedAt)}
         </span>
       </TableCell>
@@ -130,7 +128,7 @@ export function ApiKeyRow({
               variant="ghost"
               onClick={() => onRevoke(apiKey.id)}
               title="Revoke key"
-              className="text-destructive hover:text-destructive"
+              className="text-danger hover:text-danger"
             >
               <IconBan size={14} />
             </Button>
@@ -140,7 +138,7 @@ export function ApiKeyRow({
             variant="ghost"
             onClick={() => onDelete(apiKey.id)}
             title="Delete key"
-            className="text-destructive hover:text-destructive"
+            className="text-danger hover:text-danger"
           >
             <IconTrash size={14} />
           </Button>

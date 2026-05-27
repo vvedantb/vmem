@@ -16,6 +16,7 @@ import {
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { DEFAULT_PROFILE_COLOR } from "./profiles/helpers";
 
 export async function getCurrentUserId(
   ctx: QueryCtx | MutationCtx,
@@ -151,7 +152,7 @@ export const ensureUserExists = mutation({
     await ctx.db.insert("profiles", {
       userId,
       name: "Personal",
-      color: "#3B82F6",
+      color: DEFAULT_PROFILE_COLOR,
       icon: "user",
       isDefault: true,
       createdAt: now,

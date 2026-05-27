@@ -71,15 +71,15 @@ export default function FileDropZone({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: motionDuration.fast, ease: motionEase }}
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary bg-primary/5 backdrop-blur-sm"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-accent bg-accent/5"
           >
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <IconUpload size={28} className="text-primary" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
+              <IconUpload size={28} className="text-accent" />
             </div>
             <p className="text-base font-medium text-foreground">
               Drop files to upload
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted">
               Files will be added to the current folder
             </p>
           </motion.div>

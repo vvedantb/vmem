@@ -142,7 +142,7 @@ function createSaveButton(): HTMLButtonElement {
     border: none;
     border-radius: 18px;
     background: var(--yt-spec-badge-chip-background, #f2f2f2);
-    color: var(--yt-spec-text-primary, #0f0f0f);
+    color: var(--yt-spec-text-accent, #0f0f0f);
     font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
     font-size: 14px;
     font-weight: 500;

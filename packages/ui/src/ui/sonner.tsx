@@ -4,13 +4,11 @@ import { Toaster, type ToasterProps } from "sonner";
 import "./sonner.css";
 
 /**
- * Glass-themed Sonner toaster aligned with our codebase tokens.
+ * Sonner toaster aligned with flat tonal surfaces.
  *
  * `unstyled: true` strips Sonner's default visual styling so our classes are
- * the single source of truth — no specificity battles with the library's
- * own CSS. The toast surface uses `glass-panel-strong`, whose backdrop-blur,
- * border, shadow, and translucent fill all reference oklch tokens that are
- * redefined inside `.dark`, so the toast adapts to light/dark automatically.
+ * the single source of truth. Toast surfaces use `glass-panel-strong` (flat
+ * popover fill + shadow) via app globals.
  *
  * `!font-sans` is forced on the toaster section because Sonner sets its own
  * `font-family` on `[data-sonner-toaster]` from a stylesheet that ships with
@@ -40,20 +38,20 @@ function SonnerToaster(props: ToasterProps) {
         unstyled: true,
         classNames: {
           toast:
-            "group toast glass-panel-strong flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-foreground",
+            "group toast glass-panel-strong flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-foreground",
           title: "font-medium leading-snug",
-          description: "text-[13px] leading-snug text-muted-foreground",
+          description: "text-[13px] leading-snug text-muted",
           actionButton:
-            "rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90",
+            "rounded-lg bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground transition-opacity hover:opacity-90",
           cancelButton:
-            "rounded-lg bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/80",
+            "rounded-lg bg-surface-secondary px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-tertiary",
           closeButton:
-            "border border-border bg-background text-foreground hover:bg-muted",
-          loader: "text-muted-foreground",
+            "rounded-lg bg-default px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-default/78",
+          loader: "text-muted",
           success: "[&_[data-icon]]:text-success",
-          error: "[&_[data-icon]]:text-destructive",
+          error: "[&_[data-icon]]:text-danger",
           warning: "[&_[data-icon]]:text-warning",
-          info: "[&_[data-icon]]:text-info",
+          info: "[&_[data-icon]]:text-accent",
         },
       }}
       {...props}

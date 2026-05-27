@@ -97,7 +97,7 @@ export function CodebaseCardInsides({
       : 0;
 
   return (
-    <Card className="group bg-muted/50 shadow-none hover:bg-muted/70 transition-colors cursor-pointer">
+    <Card className="group shadow-none hover:bg-surface-tertiary/50 transition-colors cursor-pointer">
       <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-2.5 min-w-0">
@@ -107,13 +107,13 @@ export function CodebaseCardInsides({
                 alt={codebase.repoOwner}
                 width={20}
                 height={20}
-                className="rounded-full mt-0.5 shrink-0 outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
+                className="rounded-full mt-0.5 shrink-0 outline outline-1 -outline-offset-1 outline-foreground/10"
               />
             )}
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h3 className="font-medium text-foreground truncate text-sm">
-                  <span className="text-muted-foreground font-normal">
+                  <span className="text-muted font-normal">
                     {codebase.repoOwner}/
                   </span>
                   {codebase.repoName}
@@ -121,13 +121,13 @@ export function CodebaseCardInsides({
                 {codebase.isPrivate ? (
                   <IconLock
                     size={14}
-                    className="shrink-0 text-muted-foreground"
+                    className="shrink-0 text-muted"
                     aria-label="Private repository"
                   />
                 ) : null}
               </div>
               {codebase.description && (
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                <p className="text-xs text-muted mt-0.5 line-clamp-1">
                   {codebase.description}
                 </p>
               )}
@@ -151,23 +151,23 @@ export function CodebaseCardInsides({
         </div>
 
         {codebase.status === "error" && codebase.errorMessage && (
-          <p className="mt-2 text-xs text-destructive line-clamp-1">
+          <p className="mt-2 text-xs text-danger line-clamp-1">
             {codebase.errorMessage}
           </p>
         )}
 
         {codebase.status === "syncing" && codebase.totalFiles > 0 && (
           <div className="mt-3">
-            <div className="h-1 w-full rounded-full bg-muted">
+            <div className="h-1 w-full rounded-full bg-surface-secondary">
               <div
-                className="h-1 rounded-full bg-blue-500 transition-all"
+                className="h-1 rounded-full bg-accent transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
           </div>
         )}
 
-        <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+        <div className="mt-3 flex items-center gap-3 text-xs text-muted flex-wrap">
           {langColor && codebase.language && (
             <span className="flex items-center gap-1.5">
               <span
@@ -194,7 +194,7 @@ export function CodebaseCardInsides({
             </span>
           )}
           {codebase.lastSyncedAt && (
-            <span className="ml-auto text-muted-foreground/70">
+            <span className="ml-auto text-muted/70">
               Synced {timeAgo(codebase.lastSyncedAt)}
             </span>
           )}

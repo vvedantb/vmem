@@ -38,7 +38,7 @@ function SourcesTrigger({
   return (
     <CollapsibleTrigger
       className={cn(
-        "group inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors",
+        "group inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground transition-colors",
         className,
       )}
       {...props}
@@ -78,7 +78,7 @@ function Source({ className, children, ...props }: SourceProps) {
       target="_blank"
       rel="noreferrer"
       className={cn(
-        "flex items-center justify-between gap-2 rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors",
+        "flex items-center justify-between gap-2 rounded-lg bg-surface-secondary/50 px-3 py-2 text-xs text-muted hover:bg-surface-tertiary hover:text-foreground transition-colors",
         className,
       )}
       {...props}

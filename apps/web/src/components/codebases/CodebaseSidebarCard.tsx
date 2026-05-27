@@ -15,10 +15,10 @@ interface CodebaseSidebarCardProps {
 }
 
 const statusDotClass: Record<CodebaseItem["status"], string> = {
-  pending: "bg-muted-foreground/50",
-  syncing: "bg-blue-500",
-  synced: "bg-emerald-500",
-  error: "bg-destructive",
+  pending: "bg-default",
+  syncing: "bg-warning",
+  synced: "bg-success",
+  error: "bg-danger",
 };
 
 export function CodebaseSidebarCard({
@@ -45,10 +45,10 @@ export function CodebaseSidebarCard({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        "flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
         selected
-          ? "glass-interactive text-foreground dark:bg-muted/80 dark:border-transparent dark:shadow-none"
-          : "hover:bg-card/45 dark:hover:bg-muted/40",
+          ? "bg-surface-secondary/40 text-foreground"
+          : "hover:bg-surface-tertiary",
       )}
     >
       {codebase.avatarUrl ? (
@@ -57,7 +57,7 @@ export function CodebaseSidebarCard({
           alt={codebase.repoOwner}
           width={28}
           height={28}
-          className="size-7 shrink-0 rounded-full outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
+          className="size-7 shrink-0 rounded-full outline outline-1 -outline-offset-1 outline-foreground/10"
         />
       ) : (
         <span
@@ -76,19 +76,19 @@ export function CodebaseSidebarCard({
           {codebase.isPrivate ? (
             <IconLock
               size={12}
-              className="shrink-0 text-muted-foreground"
+              className="shrink-0 text-muted"
               aria-label="Private repository"
             />
           ) : null}
           {codebase.status === "syncing" ? (
             <IconLoader2
               size={12}
-              className="shrink-0 animate-spin text-muted-foreground"
+              className="shrink-0 animate-spin text-muted"
               aria-hidden
             />
           ) : null}
         </div>
-        <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-1 text-xs text-muted">
           <span className="truncate">{codebase.repoOwner}</span>
           {codebase.language ? (
             <>

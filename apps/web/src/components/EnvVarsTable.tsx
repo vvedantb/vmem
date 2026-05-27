@@ -9,6 +9,8 @@ import {
   Input,
   Spinner,
   Textarea,
+  Card,
+  CardContent,
 } from "@vmem/ui";
 import {
   IconCheck,
@@ -38,7 +40,6 @@ interface EnvVarsTableProps {
   onBulkImport: (
     entries: Array<{ key: string; value: string }>,
   ) => Promise<void>;
-  description: string;
 }
 
 /** Parses a `.env`-formatted text blob into `{ key, value }` pairs. */
@@ -71,7 +72,6 @@ export function EnvVarsTable({
   onReveal,
   onRemove,
   onBulkImport,
-  description,
 }: EnvVarsTableProps) {
   const [adding, setAdding] = useState(false);
   const [addKey, setAddKey] = useState("");
@@ -246,8 +246,7 @@ export function EnvVarsTable({
 
   return (
     <div>
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted-foreground">{description}</p>
+      <div className="mb-4 flex justify-end">
         <div className="flex items-center gap-2 shrink-0">
           <Button
             size="sm"
@@ -269,194 +268,200 @@ export function EnvVarsTable({
           <Spinner size="lg" />
         </div>
       ) : !showTable ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center py-16 text-muted">
           <IconKey size={48} className="mb-3 opacity-40" />
           <p className="text-sm">No environment variables configured</p>
         </div>
       ) : (
-        <div className="rounded-lg bg-muted/40 overflow-x-auto">
-          <table className="w-full text-sm min-w-[360px]">
-            <thead>
-              <tr className="text-left text-muted-foreground">
-                <th className="px-2.5 py-2.5 font-medium sm:px-4">Key</th>
-                <th className="px-2.5 py-2.5 font-medium sm:px-4">Value</th>
-                <th className="px-2.5 py-2.5 text-right font-medium sm:px-4">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {adding && (
-                <tr>
-                  <td className="px-2.5 py-2.5 sm:px-4">
-                    <Input
-                      value={addKey}
-                      onChange={(e) => setAddKey(e.target.value)}
-                      onPaste={handleKeyInputPaste}
-                      placeholder="e.g. OPENROUTER_API_KEY"
-                      className="h-8 font-mono text-xs"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") cancelAdd();
-                      }}
-                    />
-                  </td>
-                  <td className="px-2.5 py-2.5 sm:px-4">
-                    <Input
-                      value={addValue}
-                      onChange={(e) => setAddValue(e.target.value)}
-                      placeholder="Enter value"
-                      className="h-8 font-mono text-xs"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleAdd();
-                        if (e.key === "Escape") cancelAdd();
-                      }}
-                    />
-                  </td>
-                  <td className="px-2.5 py-2.5 text-right sm:px-4">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        onClick={handleAdd}
-                        disabled={!addKey.trim() || !addValue.trim() || saving}
-                        title="Save"
-                        className="text-primary hover:text-primary"
-                      >
-                        <IconCheck size={14} />
-                      </Button>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        onClick={cancelAdd}
-                        title="Cancel"
-                      >
-                        <IconX size={14} />
-                      </Button>
-                    </div>
-                  </td>
+        <Card className="shadow-none overflow-hidden">
+          <CardContent className="overflow-x-auto p-0">
+            <table className="w-full text-sm min-w-[360px]">
+              <thead>
+                <tr className="text-left text-muted">
+                  <th className="px-2.5 py-2.5 font-medium sm:px-4">Key</th>
+                  <th className="px-2.5 py-2.5 font-medium sm:px-4">Value</th>
+                  <th className="px-2.5 py-2.5 text-right font-medium sm:px-4">
+                    Actions
+                  </th>
                 </tr>
-              )}
-              {sortedVars.map((entry) => {
-                const isEditing = editingKey === entry.key;
-                return (
-                  <tr key={entry.key}>
-                    <td className="px-2.5 py-2.5 font-mono text-xs sm:px-4">
-                      {isEditing ? (
-                        <Input
-                          value={editKeyDraft}
-                          onChange={(e) => setEditKeyDraft(e.target.value)}
-                          placeholder="Key"
-                          className="h-8 font-mono text-xs"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveEdit();
-                            if (e.key === "Escape") cancelEdit();
-                          }}
-                        />
-                      ) : (
-                        entry.key
-                      )}
+              </thead>
+              <tbody>
+                {adding && (
+                  <tr>
+                    <td className="px-2.5 py-2.5 sm:px-4">
+                      <Input
+                        value={addKey}
+                        onChange={(e) => setAddKey(e.target.value)}
+                        onPaste={handleKeyInputPaste}
+                        placeholder="e.g. OPENROUTER_API_KEY"
+                        className="h-8 font-mono text-xs"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") cancelAdd();
+                        }}
+                      />
                     </td>
                     <td className="px-2.5 py-2.5 sm:px-4">
-                      {isEditing ? (
-                        <Input
-                          value={editValueDraft}
-                          onChange={(e) => setEditValueDraft(e.target.value)}
-                          placeholder="New value (leave blank to keep)"
-                          className="h-8 font-mono text-xs"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveEdit();
-                            if (e.key === "Escape") cancelEdit();
-                          }}
-                        />
-                      ) : (
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {revealedValues[entry.key] ?? entry.value}
-                        </span>
-                      )}
+                      <Input
+                        value={addValue}
+                        onChange={(e) => setAddValue(e.target.value)}
+                        placeholder="Enter value"
+                        className="h-8 font-mono text-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleAdd();
+                          if (e.key === "Escape") cancelAdd();
+                        }}
+                      />
                     </td>
                     <td className="px-2.5 py-2.5 text-right sm:px-4">
-                      {isEditing ? (
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={saveEdit}
-                            disabled={!editKeyDraft.trim() || saving}
-                            title="Save"
-                            className="text-primary hover:text-primary"
-                          >
-                            <IconCheck size={14} />
-                          </Button>
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={cancelEdit}
-                            title="Cancel"
-                          >
-                            <IconX size={14} />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={() => toggleReveal(entry.key)}
-                            disabled={revealingKey === entry.key}
-                            title={
-                              revealedValues[entry.key] !== undefined
-                                ? "Hide value"
-                                : "Reveal value"
-                            }
-                          >
-                            {revealedValues[entry.key] !== undefined ? (
-                              <IconEyeOff size={14} />
-                            ) : (
-                              <IconEye size={14} />
-                            )}
-                          </Button>
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={() => copyValue(entry.key)}
-                            title={
-                              copiedKey === entry.key ? "Copied!" : "Copy value"
-                            }
-                          >
-                            {copiedKey === entry.key ? (
-                              <IconCheck size={14} className="text-primary" />
-                            ) : (
-                              <IconCopy size={14} />
-                            )}
-                          </Button>
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={() => startEdit(entry)}
-                            title="Edit"
-                          >
-                            <IconPencil size={14} />
-                          </Button>
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={() => setDeleteKey(entry.key)}
-                            title="Delete"
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <IconTrash size={14} />
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          onClick={handleAdd}
+                          disabled={
+                            !addKey.trim() || !addValue.trim() || saving
+                          }
+                          title="Save"
+                          className="text-accent hover:text-accent"
+                        >
+                          <IconCheck size={14} />
+                        </Button>
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          onClick={cancelAdd}
+                          title="Cancel"
+                        >
+                          <IconX size={14} />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                )}
+                {sortedVars.map((entry) => {
+                  const isEditing = editingKey === entry.key;
+                  return (
+                    <tr key={entry.key}>
+                      <td className="px-2.5 py-2.5 font-mono text-xs sm:px-4">
+                        {isEditing ? (
+                          <Input
+                            value={editKeyDraft}
+                            onChange={(e) => setEditKeyDraft(e.target.value)}
+                            placeholder="Key"
+                            className="h-8 font-mono text-xs"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveEdit();
+                              if (e.key === "Escape") cancelEdit();
+                            }}
+                          />
+                        ) : (
+                          entry.key
+                        )}
+                      </td>
+                      <td className="px-2.5 py-2.5 sm:px-4">
+                        {isEditing ? (
+                          <Input
+                            value={editValueDraft}
+                            onChange={(e) => setEditValueDraft(e.target.value)}
+                            placeholder="New value (leave blank to keep)"
+                            className="h-8 font-mono text-xs"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveEdit();
+                              if (e.key === "Escape") cancelEdit();
+                            }}
+                          />
+                        ) : (
+                          <span className="font-mono text-xs text-muted">
+                            {revealedValues[entry.key] ?? entry.value}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-2.5 py-2.5 text-right sm:px-4">
+                        {isEditing ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              onClick={saveEdit}
+                              disabled={!editKeyDraft.trim() || saving}
+                              title="Save"
+                              className="text-accent hover:text-accent"
+                            >
+                              <IconCheck size={14} />
+                            </Button>
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              onClick={cancelEdit}
+                              title="Cancel"
+                            >
+                              <IconX size={14} />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              onClick={() => toggleReveal(entry.key)}
+                              disabled={revealingKey === entry.key}
+                              title={
+                                revealedValues[entry.key] !== undefined
+                                  ? "Hide value"
+                                  : "Reveal value"
+                              }
+                            >
+                              {revealedValues[entry.key] !== undefined ? (
+                                <IconEyeOff size={14} />
+                              ) : (
+                                <IconEye size={14} />
+                              )}
+                            </Button>
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              onClick={() => copyValue(entry.key)}
+                              title={
+                                copiedKey === entry.key
+                                  ? "Copied!"
+                                  : "Copy value"
+                              }
+                            >
+                              {copiedKey === entry.key ? (
+                                <IconCheck size={14} className="text-accent" />
+                              ) : (
+                                <IconCopy size={14} />
+                              )}
+                            </Button>
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              onClick={() => startEdit(entry)}
+                              title="Edit"
+                            >
+                              <IconPencil size={14} />
+                            </Button>
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              onClick={() => setDeleteKey(entry.key)}
+                              title="Delete"
+                              className="text-danger hover:text-danger"
+                            >
+                              <IconTrash size={14} />
+                            </Button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
       )}
 
       <Dialog
@@ -473,7 +478,7 @@ export function EnvVarsTable({
             <DialogTitle>Paste Environment Variables</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted">
               Paste your variables in{" "}
               <span className="font-mono">KEY=VALUE</span> format, one per line.
               Lines starting with <span className="font-mono">#</span> are
@@ -487,7 +492,7 @@ export function EnvVarsTable({
               autoFocus
             />
             {parsedPreview.length > 0 && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 {parsedPreview.length} variable
                 {parsedPreview.length !== 1 ? "s" : ""} detected
               </p>
@@ -529,7 +534,7 @@ export function EnvVarsTable({
           <DialogHeader>
             <DialogTitle>Delete Variable</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted">
             Are you sure you want to delete{" "}
             <span className="font-mono font-medium text-foreground">
               {deleteKey}

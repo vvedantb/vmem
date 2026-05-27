@@ -14,7 +14,7 @@ export function SectionHeading({
   return (
     <div className="flex flex-col gap-1">
       <h2 className="text-base font-medium text-foreground">{title}</h2>
-      <p className="text-sm text-muted-foreground">{blurb}</p>
+      <p className="text-sm text-muted">{blurb}</p>
     </div>
   );
 }

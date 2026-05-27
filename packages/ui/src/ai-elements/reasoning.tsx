@@ -132,12 +132,12 @@ function ReasoningTrigger({
   return (
     <CollapsibleTrigger
       className={cn(
-        "flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1",
+        "flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors py-1",
         className,
       )}
       {...props}
     >
-      <span className="flex size-6 items-center justify-center rounded-full bg-muted">
+      <span className="flex size-6 items-center justify-center rounded-full bg-surface-secondary">
         <img
           src="/icon-dark.svg"
           alt="vmem"
@@ -179,9 +179,9 @@ function ReasoningContent({
 }: ReasoningContentProps) {
   return (
     <CollapsibleContent className={cn("pt-2 pb-1", className)} {...props}>
-      <div className="rounded-lg bg-muted/40 p-3">
+      <div className="rounded-lg bg-surface-secondary/40 p-3">
         <Streamdown
-          className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground"
+          className="prose prose-sm dark:prose-invert max-w-none text-muted"
           plugins={streamdownPlugins}
         >
           {children}

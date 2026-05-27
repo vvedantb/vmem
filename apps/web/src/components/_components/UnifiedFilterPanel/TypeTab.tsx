@@ -34,19 +34,19 @@ export default function TypeTab({
       value="type"
       className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
     >
-      <div className="p-2 border-b border-border">
+      <div className="p-2 border-b border-separator">
         <button
           type="button"
           onClick={() => onTypesChange?.([])}
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
             selectedTypes.length === 0
-              ? "bg-accent text-accent-foreground font-medium"
-              : "hover:bg-muted/50",
+              ? "bg-surface-secondary text-foreground font-medium"
+              : "hover:bg-surface-tertiary",
           )}
         >
           All types
-          <span className="ml-auto text-muted-foreground/50 tabular-nums">
+          <span className="ml-auto text-muted/50 tabular-nums">
             {totalCount}
           </span>
         </button>
@@ -57,7 +57,7 @@ export default function TypeTab({
           return (
             <label
               key={type}
-              className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-border/40 last:border-0 hover:bg-muted/30"
+              className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-separator last:border-0 hover:bg-surface-tertiary"
             >
               <Checkbox
                 checked={checked}
@@ -66,7 +66,7 @@ export default function TypeTab({
               <span className="flex-1 text-xs truncate">
                 {formatMemoryTypeLabel(type)}
               </span>
-              <span className="text-xs text-muted-foreground/50 tabular-nums">
+              <span className="text-xs text-muted/50 tabular-nums">
                 {typeCounts[type]}
               </span>
             </label>

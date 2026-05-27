@@ -39,10 +39,10 @@ export default function VoiceControls({
           onClick={isListening ? onStopRecording : onStartRecording}
           className={cn(
             "relative flex items-center justify-center rounded-full size-20 transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",
             isListening
-              ? "bg-red-500 text-white shadow-panel hover:bg-red-600"
-              : "bg-primary text-primary-foreground shadow-soft hover:bg-primary/90",
+              ? "bg-danger text-danger-foreground hover:bg-danger/90"
+              : "bg-accent text-accent-foreground hover:bg-accent/90",
             disabled && !isProcessing && "opacity-40 cursor-not-allowed",
             isProcessing && "opacity-50 cursor-not-allowed",
           )}
@@ -68,7 +68,7 @@ export default function VoiceControls({
           <motion.button
             type="button"
             onClick={onCancel}
-            className="flex items-center justify-center size-10 rounded-full glass-interactive text-muted-foreground hover:text-foreground"
+            className="flex items-center justify-center size-10 rounded-full text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}

@@ -108,9 +108,7 @@ export function AddMemberDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">
-            Email
-          </label>
+          <label className="text-xs font-medium text-muted">Email</label>
           <Input
             autoFocus
             type="email"

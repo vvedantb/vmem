@@ -46,10 +46,10 @@ function getIconBackground(type: NotificationType) {
     case "warning":
       return "bg-warning/10";
     case "error":
-      return "bg-destructive/10";
+      return "bg-danger/10";
     case "info":
     default:
-      return "bg-info/10";
+      return "bg-accent/10";
   }
 }
 
@@ -57,9 +57,9 @@ function LoadingSkeleton() {
   return (
     <div className="flex flex-col gap-1">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="rounded-xl px-3 py-2.5 sm:px-4 sm:py-3">
+        <div key={i} className="rounded-lg px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex items-start gap-4">
-            <Skeleton className="h-10 w-10 rounded-xl" />
+            <Skeleton className="h-10 w-10 rounded-lg" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-48 rounded" />
               <Skeleton className="h-3 w-72 rounded" />
@@ -74,13 +74,13 @@ function LoadingSkeleton() {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-        <AnimatedBellIcon size={32} className="text-muted-foreground" muted />
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-surface-secondary">
+        <AnimatedBellIcon size={32} className="text-muted" muted />
       </div>
       <h3 className="mb-1 text-lg font-medium text-foreground text-balance">
         No notifications
       </h3>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-muted">
         You&apos;re all caught up! Check back later for updates.
       </p>
     </div>
@@ -104,11 +104,11 @@ export function NotificationsPanel() {
       {notifications.map((notification) => (
         <div
           key={notification._id}
-          className="rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50 sm:px-4 sm:py-3"
+          className="rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50 sm:px-4 sm:py-3"
         >
           <div className="flex items-start gap-3 sm:gap-4">
             <div
-              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10 sm:rounded-xl ${getIconBackground(
+              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10 sm:rounded-lg ${getIconBackground(
                 notification.type,
               )}`}
             >
@@ -119,31 +119,29 @@ export function NotificationsPanel() {
                 <h3
                   className={cn(
                     "text-sm font-medium sm:text-base",
-                    notification.read
-                      ? "text-muted-foreground"
-                      : "text-foreground",
+                    notification.read ? "text-muted" : "text-foreground",
                   )}
                 >
                   {notification.title}
                 </h3>
-                <span className="flex-shrink-0 text-xs text-muted-foreground sm:text-sm tabular-nums">
+                <span className="flex-shrink-0 text-xs text-muted sm:text-sm tabular-nums">
                   {formatTimestamp(notification.createdAt)}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+              <p className="mt-1 text-xs text-muted sm:text-sm">
                 {notification.description}
               </p>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
               {!notification.read && (
-                <div className="h-2 w-2 flex-shrink-0 rounded-full bg-primary" />
+                <div className="h-2 w-2 flex-shrink-0 rounded-full bg-surface-tertiary" />
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    className="text-muted-foreground hover:text-foreground"
+                    className="text-muted hover:text-foreground"
                   >
                     <IconDotsVertical size={18} stroke={1.5} />
                   </Button>
@@ -165,7 +163,7 @@ export function NotificationsPanel() {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
+                    className="text-danger focus:text-danger"
                     onClick={() => deleteNotification(notification._id)}
                   >
                     <IconTrash size={16} stroke={1.5} />
@@ -192,7 +190,7 @@ export function NotificationsRightSection() {
   return (
     <Button
       variant="ghost"
-      className="text-muted-foreground hover:text-foreground"
+      className="text-muted hover:text-foreground"
       onClick={markAllAsRead}
     >
       Mark all as read

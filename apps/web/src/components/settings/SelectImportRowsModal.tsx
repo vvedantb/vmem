@@ -72,15 +72,15 @@ export default function SelectImportRowsModal({
         <div className="flex gap-2 text-sm">
           <button
             type="button"
-            className="text-primary underline-offset-4 hover:underline"
+            className="text-accent underline-offset-4 hover:underline"
             onClick={selectAll}
           >
             Select all
           </button>
-          <span className="text-muted-foreground">·</span>
+          <span className="text-muted">·</span>
           <button
             type="button"
-            className="text-primary underline-offset-4 hover:underline"
+            className="text-accent underline-offset-4 hover:underline"
             onClick={selectNone}
           >
             Select none
@@ -90,7 +90,7 @@ export default function SelectImportRowsModal({
           {rows.map((row) => (
             <li
               key={row.stableId}
-              className="flex gap-3 rounded-lg border border-border px-3 py-2.5"
+              className="flex gap-3 rounded-lg bg-surface-secondary/50 px-3 py-2.5"
             >
               <Checkbox
                 checked={selectedIds.has(row.stableId)}
@@ -102,14 +102,14 @@ export default function SelectImportRowsModal({
                 <p className="truncate text-sm font-medium text-foreground">
                   {row.title}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted">
                   {wordCount(row.content)} words
                 </p>
               </div>
             </li>
           ))}
         </ul>
-        <div className="flex justify-end gap-2 border-t border-border pt-3">
+        <div className="flex justify-end gap-2 border-t border-separator pt-3">
           <Button
             type="button"
             variant="outline"

@@ -184,7 +184,7 @@ export function QuickSave() {
     <div className="space-y-4">
       {/* Page preview card */}
       {pageInfo && (
-        <div className="rounded-lg p-3 space-y-2 bg-muted/40">
+        <div className="rounded-lg p-3 space-y-2 bg-surface-secondary/40">
           <div className="flex items-start gap-2.5">
             {pageInfo.favicon ? (
               <img
@@ -193,28 +193,28 @@ export function QuickSave() {
                 className="w-4 h-4 mt-0.5 rounded-sm shrink-0 outline outline-1 outline-white/10"
               />
             ) : (
-              <div className="w-4 h-4 mt-0.5 rounded-sm bg-muted shrink-0" />
+              <div className="w-4 h-4 mt-0.5 rounded-sm bg-surface-secondary shrink-0" />
             )}
             <span className="text-sm font-medium leading-tight line-clamp-2 text-balance">
               {pageInfo.title}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground truncate">
+          <p className="text-xs text-muted truncate">
             {truncateUrl(pageInfo.url)}
           </p>
-          <p className="text-xs text-muted-foreground">{formatTimestamp()}</p>
+          <p className="text-xs text-muted">{formatTimestamp()}</p>
         </div>
       )}
 
       {/* Profile selector */}
       {profiles === null ? (
         <div className="flex items-center gap-2">
-          <Label className="text-sm text-muted-foreground">Save to</Label>
+          <Label className="text-sm text-muted">Save to</Label>
           <Skeleton className="h-9 w-[120px] rounded-md" />
         </div>
       ) : profiles.length > 0 ? (
         <div className="flex items-center gap-2">
-          <Label className="text-sm text-muted-foreground">Save to</Label>
+          <Label className="text-sm text-muted">Save to</Label>
           <Select
             value={selectedProfileId}
             onValueChange={setSelectedProfileId}
@@ -260,10 +260,8 @@ export function QuickSave() {
       </Button>
 
       {pendingUpdate && (
-        <div className="space-y-2 rounded-xl p-3 bg-muted/40">
-          <p className="text-sm text-muted-foreground">
-            Already saved — update it?
-          </p>
+        <div className="space-y-2 rounded-xl p-3 bg-surface-secondary/40">
+          <p className="text-sm text-muted">Already saved — update it?</p>
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -282,7 +280,7 @@ export function QuickSave() {
 
       {result && (
         <p
-          className={`text-sm ${result.success ? "text-success" : "text-destructive"}`}
+          className={`text-sm ${result.success ? "text-success" : "text-danger"}`}
         >
           {result.message}
         </p>

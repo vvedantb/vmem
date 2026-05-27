@@ -3,9 +3,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQueryStates } from "nuqs";
 import { toast } from "sonner";
+import { AnimatePresence, motion } from "motion/react";
 import {
   Button,
-  Card,
   cn,
   Dialog,
   DialogContent,
@@ -31,19 +31,18 @@ import {
 import { buildTagStats } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memoriesSearchParams } from "@/routes/_main/memories/-searchParams";
+import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
+import { TagMemoriesPanel } from "@/components/_components/TagMemoriesPanel";
+import { VmemSpinner } from "@/components/svg-animations";
 
 /**
- * Tag-rows view for /memories/list?view=tags. Replaces the removed
- * `/memories/tags` route. Each row click jumps to the memories view
- * filtered by the tag; the kebab opens rename/delete actions.
- *
- * Tag operations fan out across every memory carrying the tag — there is no
- * standalone "tags" entity in the data model. We optimistically update via
- * `updateMemory`; mutations land through the regular Convex pipeline.
+ * Tag-rows view for /memories/list?view=tags. Clicking a tag opens a right-hand
+ * panel listing memories with that tag (same row + detail pattern as the main
+ * list). The kebab menu handles rename/delete.
  */
 export default function TagsListView() {
   const { memories, isLoading, updateMemory } = useMemoryContext();
-  const [params, setParams] = useQueryStates(memoriesSearchParams);
+  const [params] = useQueryStates(memoriesSearchParams);
 
   const scopedMemories = useMemo(() => {
     if (params.profile === null) return memories;
@@ -57,6 +56,13 @@ export default function TagsListView() {
     return stats.filter((s) => s.tag.toLowerCase().includes(q));
   }, [scopedMemories, params.q]);
 
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+
+  const selectedTagMemories = useMemo(() => {
+    if (!selectedTag) return [];
+    return scopedMemories.filter((memory) => memory.tags.includes(selectedTag));
+  }, [scopedMemories, selectedTag]);
+
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -64,12 +70,13 @@ export default function TagsListView() {
   const [deleteTag, setDeleteTag] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleTagClick = useCallback(
-    (tag: string) => {
-      void setParams({ view: "memories", tags: [tag] });
-    },
-    [setParams],
-  );
+  const handleTagClick = useCallback((tag: string) => {
+    setSelectedTag((current) => (current === tag ? null : tag));
+  }, []);
+
+  const closeTagPanel = useCallback(() => {
+    setSelectedTag(null);
+  }, []);
 
   const startEditing = useCallback((tag: string) => {
     setEditingTag(tag);
@@ -117,6 +124,10 @@ export default function TagsListView() {
         }),
       );
 
+      if (selectedTag === editingTag) {
+        setSelectedTag(normalizedNew);
+      }
+
       toast.success(`Tag renamed to "${normalizedNew}"`);
       cancelEditing();
     } catch (err) {
@@ -124,7 +135,15 @@ export default function TagsListView() {
     } finally {
       setIsSaving(false);
     }
-  }, [editingTag, newTagName, memories, tags, updateMemory, cancelEditing]);
+  }, [
+    editingTag,
+    newTagName,
+    memories,
+    tags,
+    updateMemory,
+    cancelEditing,
+    selectedTag,
+  ]);
 
   const handleDeleteTag = useCallback(async () => {
     if (!deleteTag) return;
@@ -148,6 +167,10 @@ export default function TagsListView() {
         ),
       );
 
+      if (selectedTag === deleteTag) {
+        setSelectedTag(null);
+      }
+
       toast.success(`Tag "${deleteTag}" deleted from all memories`);
       setDeleteTag(null);
     } catch (err) {
@@ -155,12 +178,12 @@ export default function TagsListView() {
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteTag, memories, updateMemory]);
+  }, [deleteTag, memories, updateMemory, selectedTag]);
 
   if (isLoading && tags.length === 0) {
     return (
-      <div className="flex h-full min-h-0 items-center justify-center text-sm text-muted-foreground">
-        Loading tags…
+      <div className="flex h-full min-h-0 items-center justify-center">
+        <VmemSpinner size={20} className="text-muted" />
       </div>
     );
   }
@@ -168,57 +191,88 @@ export default function TagsListView() {
   if (tags.length === 0) {
     const isFiltering = params.q.trim().length > 0 || params.profile !== null;
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-          <IconMoodEmpty className="w-6 h-6 text-muted-foreground" />
-        </div>
-        <h3 className="text-lg font-medium text-foreground mb-2">
-          {isFiltering ? "No tags match" : "No tags yet"}
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          {isFiltering
+      <DetailEmptyState
+        icon={IconMoodEmpty}
+        title={isFiltering ? "No tags match" : "No tags yet"}
+        description={
+          isFiltering
             ? "Try a different search or clear the profile filter."
-            : "Add tags to memories to start grouping them."}
-        </p>
-      </div>
+            : "Add tags to memories to start grouping them."
+        }
+      />
     );
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-        <div className="space-y-1.5">
-          {tags.map((item) => {
-            const isEditing = editingTag === item.tag;
-            return (
-              <Card
-                key={item.tag}
-                className={cn(
-                  "px-3 py-2.5",
-                  !isEditing && "cursor-pointer hover:bg-accent/50",
-                )}
-                onClick={isEditing ? undefined : () => handleTagClick(item.tag)}
-              >
-                {isEditing ? (
-                  <RenameRow
-                    value={newTagName}
-                    onChange={setNewTagName}
-                    isSaving={isSaving}
-                    onSave={handleSaveTag}
-                    onCancel={cancelEditing}
-                  />
-                ) : (
-                  <DisplayRow
-                    tag={item.tag}
-                    count={item.count}
-                    onRename={() => startEditing(item.tag)}
-                    onDelete={() => setDeleteTag(item.tag)}
-                  />
-                )}
-              </Card>
-            );
-          })}
+    <div className="relative flex h-full min-h-0 flex-col">
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 gap-4",
+          selectedTag ? "flex-col lg:flex-row" : "",
+        )}
+      >
+        <div
+          className={cn(
+            "min-h-0 min-w-0 flex-1",
+            selectedTag ? "hidden sm:block" : "",
+          )}
+        >
+          <div className="h-full min-h-0 overflow-y-auto scrollbar-thin">
+            {tags.map((item) => {
+              const isEditing = editingTag === item.tag;
+              const isSelected = selectedTag === item.tag;
+              return (
+                <div key={item.tag} className="pb-1.5">
+                  <div
+                    className={cn(
+                      "rounded-lg px-3 py-2.5 transition-[background-color]",
+                      !isEditing && "cursor-pointer hover:bg-surface-tertiary",
+                      isSelected && "bg-surface-secondary",
+                    )}
+                    onClick={
+                      isEditing ? undefined : () => handleTagClick(item.tag)
+                    }
+                  >
+                    {isEditing ? (
+                      <RenameRow
+                        value={newTagName}
+                        onChange={setNewTagName}
+                        isSaving={isSaving}
+                        onSave={handleSaveTag}
+                        onCancel={cancelEditing}
+                      />
+                    ) : (
+                      <DisplayRow
+                        tag={item.tag}
+                        count={item.count}
+                        onRename={() => startEditing(item.tag)}
+                        onDelete={() => setDeleteTag(item.tag)}
+                      />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
+        <AnimatePresence>
+          {selectedTag && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+              className="min-h-0 w-full overflow-y-auto scrollbar-thin lg:w-[420px] lg:shrink-0"
+            >
+              <TagMemoriesPanel
+                tag={selectedTag}
+                memories={selectedTagMemories}
+                onClose={closeTagPanel}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <Dialog
@@ -272,11 +326,11 @@ function DisplayRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2 min-w-0">
-      <span className="text-sm font-medium text-foreground truncate min-w-0 flex-1">
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
         {tag}
       </span>
-      <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+      <span className="shrink-0 text-xs text-muted tabular-nums">
         {count} {count === 1 ? "memory" : "memories"}
       </span>
       <DropdownMenu>
@@ -285,7 +339,7 @@ function DisplayRow({
             variant="ghost"
             size="icon-sm"
             aria-label={`Actions for tag ${tag}`}
-            className="h-7 w-7 text-muted-foreground"
+            className="h-7 w-7 text-muted"
             onClick={(e) => e.stopPropagation()}
           >
             <IconDotsVertical size={14} />
@@ -298,7 +352,7 @@ function DisplayRow({
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={onDelete}
-            className="text-destructive focus:text-destructive"
+            className="text-danger focus:text-danger"
           >
             <IconTrash size={14} stroke={1.5} />
             Delete
@@ -357,7 +411,7 @@ function RenameRow({
         size="icon-sm"
         onClick={onCancel}
         disabled={isSaving}
-        className="text-muted-foreground"
+        className="text-muted"
         aria-label="Cancel tag rename"
       >
         <IconX size={16} />

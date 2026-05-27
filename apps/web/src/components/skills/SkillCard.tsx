@@ -28,23 +28,23 @@ export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        "flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-left cursor-pointer transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
         selected
-          ? "glass-interactive text-foreground dark:bg-muted/80 dark:border-transparent dark:shadow-none"
-          : "hover:bg-card/45 dark:hover:bg-muted/40",
+          ? "bg-surface-tertiary text-foreground"
+          : "text-muted hover:bg-surface-tertiary hover:text-foreground",
       )}
     >
       <span
         aria-hidden
         className={cn(
           "size-2 shrink-0 rounded-full",
-          isEnabled ? "bg-emerald-500" : "bg-muted-foreground/50",
+          isEnabled ? "bg-success" : "bg-default",
         )}
       />
       <span
         className={cn(
           "min-w-0 truncate text-sm font-semibold",
-          isEnabled ? "text-foreground" : "text-muted-foreground",
+          isEnabled ? "text-foreground" : "text-muted",
         )}
       >
         {skill.name}

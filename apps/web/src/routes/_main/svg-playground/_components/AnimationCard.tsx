@@ -32,7 +32,7 @@ export function AnimationCard({
   const [replayKey, setReplayKey] = useState(0);
 
   return (
-    <div className="flex flex-col items-center gap-4 rounded-2xl bg-muted/40 p-6">
+    <div className="flex flex-col items-center gap-4 rounded-lg bg-surface-secondary/40 p-6">
       <div className="flex h-32 w-32 items-center justify-center text-foreground">
         {render(replayKey)}
       </div>
@@ -41,11 +41,11 @@ export function AnimationCard({
         <h3 className="text-sm font-medium text-foreground">
           {number}. {title}
         </h3>
-        <p className="text-xs text-muted-foreground leading-snug max-w-[14rem]">
+        <p className="text-xs text-muted leading-snug max-w-[14rem]">
           {description}
         </p>
         {hoverHint && (
-          <p className="text-[11px] text-muted-foreground/70 italic mt-1">
+          <p className="text-[11px] text-muted/70 italic mt-1">
             Hover the icon
           </p>
         )}
@@ -56,7 +56,7 @@ export function AnimationCard({
           size="sm"
           variant="ghost"
           onClick={() => setReplayKey((k) => k + 1)}
-          className="text-muted-foreground hover:text-foreground"
+          className="text-muted hover:text-foreground"
         >
           <IconRefresh className="size-3.5" stroke={1.5} />
           Replay

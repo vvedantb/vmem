@@ -29,7 +29,7 @@ function CodebaseDetailPage() {
     return (
       <PageContainer title="Codebase">
         <div className="flex items-center justify-center py-20">
-          <VmemSpinner size={24} className="text-muted-foreground" />
+          <VmemSpinner size={24} className="text-muted" />
         </div>
       </PageContainer>
     );
@@ -39,9 +39,9 @@ function CodebaseDetailPage() {
     return (
       <PageContainer title="Codebase Not Found">
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <IconDatabase size={40} className="mb-3 text-muted-foreground" />
+          <IconDatabase size={40} className="mb-3 text-muted" />
           <p className="mb-2 font-medium text-foreground">Codebase not found</p>
-          <p className="mb-4 text-sm text-muted-foreground">
+          <p className="mb-4 text-sm text-muted">
             The codebase you are looking for does not exist or has been removed.
           </p>
           <Link to="/codebases">

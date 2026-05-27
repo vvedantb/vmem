@@ -4,6 +4,14 @@
  */
 import type { GraphNodeKind } from "./canvas/types";
 
+function themeColor(token: string, fallback: string): string {
+  if (typeof document === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(token)
+    .trim();
+  return value.length > 0 ? value : fallback;
+}
+
 export function tagToHue(tag: string): number {
   let hash = 0;
   for (let i = 0; i < tag.length; i++) {
@@ -93,5 +101,5 @@ export function nodeColor(
   if (nodeColorOverride) return nodeColorOverride;
   if (kind !== "memory") return kindColor(kind, isDarkCanvas);
   if (tags.length > 0) return tagToColor(tags[0], isDarkCanvas);
-  return isDarkCanvas ? "#555566" : "#999999";
+  return themeColor("--muted", isDarkCanvas ? "#888888" : "#999999");
 }

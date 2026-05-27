@@ -67,9 +67,7 @@ function LogRowDetailBody({
           <Badge variant="secondary" className="text-xs font-normal">
             {featureLabel}
           </Badge>
-          <span className="font-mono text-sm text-muted-foreground">
-            {row.model}
-          </span>
+          <span className="font-mono text-sm text-muted">{row.model}</span>
         </DialogTitle>
       </DialogHeader>
 
@@ -160,8 +158,7 @@ function LogRowDetailBody({
                   <span
                     className="h-2 w-2 rounded-full"
                     style={{
-                      backgroundColor:
-                        profile.color ?? "var(--muted-foreground)",
+                      backgroundColor: profile.color ?? "var(--muted)",
                     }}
                   />
                   {profile.name}
@@ -197,10 +194,12 @@ function Section({
 }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <h3 className="text-xs font-medium uppercase tracking-wide text-muted">
         {title}
       </h3>
-      <div className="space-y-1.5 rounded-lg bg-muted/40 p-3">{children}</div>
+      <div className="space-y-1.5 rounded-lg bg-surface-secondary/40 p-3">
+        {children}
+      </div>
     </div>
   );
 }
@@ -216,7 +215,7 @@ function KV({
 }) {
   return (
     <div className="grid grid-cols-[140px_1fr] items-baseline gap-3">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs text-muted">{label}</span>
       <span
         className={
           mono
@@ -233,8 +232,8 @@ function KV({
 function PreviewBlock({ label, body }: { label: string; body: string }) {
   return (
     <div className="space-y-1">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-md bg-background/60 p-2 font-mono text-xs text-foreground">
+      <p className="text-xs font-medium text-muted">{label}</p>
+      <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg bg-surface-secondary/60 p-2 font-mono text-xs text-foreground">
         {body}
       </pre>
     </div>

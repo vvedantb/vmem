@@ -63,9 +63,7 @@ function ConversationEmptyState({
       {title && (
         <h3 className="text-lg font-medium text-foreground">{title}</h3>
       )}
-      {description && (
-        <p className="max-w-sm text-muted-foreground">{description}</p>
-      )}
+      {description && <p className="max-w-sm text-muted">{description}</p>}
       {children}
     </div>
   );
@@ -86,7 +84,7 @@ function ConversationScrollButton({
       variant="outline"
       size="icon-sm"
       className={cn(
-        "absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-md z-10",
+        "absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-none z-10",
         className,
       )}
       onClick={() => scrollToBottom()}

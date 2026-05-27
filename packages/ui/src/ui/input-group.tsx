@@ -15,11 +15,11 @@ const InputGroup = React.forwardRef<
     ref={ref}
     data-input-group=""
     className={cn(
-      "flex h-10 flex-wrap rounded-xl border border-input bg-muted text-sm transition-[border-color,box-shadow] duration-200 ease-smooth",
+      "flex h-10 flex-wrap rounded-field border border-border bg-field-background text-sm transition-[border-color,box-shadow] duration-200 ease-smooth",
       "has-[textarea]:h-auto",
-      "has-[:focus-visible]:border-ring/70 has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/30",
+      "has-[:focus-visible]:border-focus-border has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus-ring",
       error &&
-        "border-destructive/70 has-[:focus-visible]:border-destructive has-[:focus-visible]:ring-destructive/25",
+        "border-danger-border has-[:focus-visible]:border-danger has-[:focus-visible]:ring-danger-ring",
       className,
     )}
     {...props}
@@ -32,7 +32,7 @@ const inputGroupAddonVariants = cva("flex items-center", {
     align: {
       "inline-start": "flex-row ps-3",
       "inline-end": "flex-row pe-3",
-      "block-start": "w-full flex-row border-b border-input px-3 py-2",
+      "block-start": "w-full flex-row border-b border-separator px-3 py-2",
       "block-end": "w-full flex-row px-3 py-2",
     },
   },
@@ -99,10 +99,7 @@ function InputGroupText({
 }: React.HTMLAttributes<HTMLSpanElement>) {
   return (
     <span
-      className={cn(
-        "flex items-center text-sm text-muted-foreground/95",
-        className,
-      )}
+      className={cn("flex items-center text-sm text-muted/95", className)}
       {...props}
     />
   );

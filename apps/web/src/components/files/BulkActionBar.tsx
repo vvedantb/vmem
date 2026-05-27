@@ -33,7 +33,7 @@ export default function BulkActionBar({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: motionDuration.fast, ease: motionEase }}
-          className="flex items-center gap-2 rounded-xl border border-border bg-muted/80 backdrop-blur-sm px-4 py-2"
+          className="flex items-center gap-2 rounded-lg bg-default px-4 py-2"
         >
           <span className="text-sm font-medium text-foreground tabular-nums mr-2">
             {selectedCount} selected
@@ -43,7 +43,7 @@ export default function BulkActionBar({
             variant="ghost"
             size="sm"
             onClick={onDownload}
-            className="text-muted-foreground"
+            className="text-muted"
           >
             <IconDownload size={15} stroke={1.5} />
             Download
@@ -53,7 +53,7 @@ export default function BulkActionBar({
             variant="ghost"
             size="sm"
             onClick={onMove}
-            className="text-muted-foreground"
+            className="text-muted"
           >
             <IconFolderSymlink size={15} stroke={1.5} />
             Move
@@ -63,7 +63,7 @@ export default function BulkActionBar({
             variant="ghost"
             size="sm"
             onClick={onDelete}
-            className="text-destructive hover:text-destructive"
+            className="text-danger hover:text-danger"
           >
             <IconTrash size={15} stroke={1.5} />
             Delete
@@ -73,7 +73,7 @@ export default function BulkActionBar({
             variant="ghost"
             size="icon-sm"
             onClick={onClear}
-            className="text-muted-foreground ml-auto"
+            className="text-muted ml-auto"
           >
             <IconX size={15} stroke={1.5} />
           </Button>

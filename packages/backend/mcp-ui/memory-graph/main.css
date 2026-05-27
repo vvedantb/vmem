@@ -4,41 +4,43 @@
   padding: 0;
 }
 
-/* oklch tokens — aligned with apps/web/src/globals.css */
+/* HeroUI theme — aligned with apps/web/src/globals.css */
 body[data-theme="light"] {
-  --background: 0.965 0.005 95;
-  --foreground: 0.22 0.01 95;
-  --muted: 0.962 0.005 95;
-  --muted-foreground: 0.52 0.012 95;
-  --warning: 0.666 0.168 64.247;
-  --warning-foreground: 0.985 0.003 95;
-  --graph-canvas: 1 0 0;
-  --graph-gradient: 0.35 0.02 270 / 0.03;
-  --graph-edge-tag: 60 70 90 / 0.22;
-  --graph-edge-relates: 200 90 30 / 0.65;
-  --graph-label: 0.22 0.01 95 / 0.88;
-  --nav-bg: 0.965 0.005 95 / 0.72;
-  --nav-border: 0.22 0.01 95 / 0.08;
-  --nav-fg: 0.52 0.012 95;
-  --nav-fg-hover: 0.22 0.01 95;
+  --accent: oklch(21.03% 0 0);
+  --background: oklch(97.02% 0.0015 253.83);
+  --foreground: oklch(21.03% 0.0015 253.83);
+  --muted: oklch(55.17% 0.003 253.83);
+  --surface: oklch(100% 0.0008 253.83);
+  --surface-secondary: oklch(95.24% 0.0012 253.83);
+  --warning: oklch(78.19% 0.159 72.33);
+  --graph-canvas: var(--surface);
+  --graph-gradient: color-mix(in oklch, var(--accent) 4%, transparent);
+  --graph-edge-tag: color-mix(in oklch, var(--muted) 22%, transparent);
+  --graph-edge-relates: color-mix(in oklch, var(--accent) 65%, transparent);
+  --graph-label: color-mix(in oklch, var(--foreground) 88%, transparent);
+  --nav-bg: var(--surface-secondary);
+  --nav-border: color-mix(in oklch, var(--foreground) 8%, transparent);
+  --nav-fg: var(--muted);
+  --nav-fg-hover: var(--foreground);
 }
 
 body[data-theme="dark"] {
-  --background: 0.17 0.006 260;
-  --foreground: 0.965 0.004 260;
-  --muted: 0.27 0.004 260;
-  --muted-foreground: 0.72 0.01 260;
-  --warning: 0.837 0.193 90.151;
-  --warning-foreground: 0.205 0.006 260;
-  --graph-canvas: 0.07 0.004 260;
-  --graph-gradient: 0.5 0.02 270 / 0.06;
-  --graph-edge-tag: 180 180 200 / 0.18;
-  --graph-edge-relates: 255 170 110 / 0.55;
-  --graph-label: 1 0 0 / 0.9;
-  --nav-bg: 0.12 0.008 260 / 0.55;
-  --nav-border: 1 0 0 / 0.1;
-  --nav-fg: 0.72 0.01 260;
-  --nav-fg-hover: 0.965 0.004 260;
+  --accent: oklch(99.11% 0 0);
+  --background: oklch(12% 0.0015 253.83);
+  --foreground: oklch(99.11% 0.0015 253.83);
+  --muted: oklch(70.5% 0.003 253.83);
+  --surface: oklch(21.03% 0.003 253.83);
+  --surface-secondary: oklch(25.7% 0.0023 253.83);
+  --warning: oklch(82.03% 0.1392 76.34);
+  --graph-canvas: var(--background);
+  --graph-gradient: color-mix(in oklch, var(--accent) 6%, transparent);
+  --graph-edge-tag: color-mix(in oklch, var(--muted) 18%, transparent);
+  --graph-edge-relates: color-mix(in oklch, var(--accent) 55%, transparent);
+  --graph-label: color-mix(in oklch, var(--foreground) 90%, transparent);
+  --nav-bg: var(--background);
+  --nav-border: color-mix(in oklch, var(--foreground) 10%, transparent);
+  --nav-fg: var(--muted);
+  --nav-fg-hover: var(--foreground);
 }
 
 html,
@@ -59,8 +61,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  background: oklch(var(--background));
-  color: oklch(var(--foreground));
+  background: var(--background);
+  color: var(--foreground);
 }
 
 #root {
@@ -78,7 +80,7 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 14px;
-  background: oklch(var(--muted) / 0.45);
+  background: color-mix(in oklch, var(--surface-secondary) 45%, transparent);
 }
 
 .toolbar-left,
@@ -101,14 +103,14 @@ body {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: oklch(var(--foreground));
+  color: var(--foreground);
   white-space: nowrap;
 }
 
 #stats {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: oklch(var(--muted-foreground));
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -116,7 +118,7 @@ body {
 
 #hint {
   font-size: 11px;
-  color: oklch(var(--muted-foreground) / 0.85);
+  color: color-mix(in oklch, var(--muted) 85%, transparent);
   white-space: nowrap;
 }
 
@@ -126,7 +128,7 @@ body {
   min-height: 480px;
   overflow: hidden;
   border-radius: 0 0 0.875rem 0.875rem;
-  background: oklch(var(--graph-canvas));
+  background: var(--graph-canvas);
 }
 
 #graph-canvas {
@@ -149,8 +151,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: oklch(var(--graph-canvas) / 0.92);
-  color: oklch(var(--muted-foreground));
+  background: color-mix(in oklch, var(--graph-canvas) 92%, transparent);
+  color: var(--muted);
   font-size: 13px;
   pointer-events: none;
 }
@@ -163,8 +165,8 @@ body {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 2px solid oklch(var(--muted-foreground) / 0.2);
-  border-top-color: oklch(var(--muted-foreground));
+  border: 2px solid color-mix(in oklch, var(--muted) 20%, transparent);
+  border-top-color: var(--muted);
   animation: spin 0.8s linear infinite;
 }
 
@@ -182,10 +184,9 @@ body {
   max-width: min(200px, calc(100% - 56px));
   padding: 10px 12px;
   border-radius: 0.75rem;
-  background: oklch(var(--nav-bg));
-  backdrop-filter: blur(8px);
+  background: var(--nav-bg);
   font-size: 11px;
-  color: oklch(var(--muted-foreground));
+  color: var(--muted);
   pointer-events: none;
 }
 
@@ -194,7 +195,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: oklch(var(--muted-foreground) / 0.75);
+  color: color-mix(in oklch, var(--muted) 75%, transparent);
   margin-bottom: 6px;
 }
 
@@ -213,20 +214,20 @@ body {
 #legend .swatch-tag {
   width: 16px;
   height: 1px;
-  background: rgb(var(--graph-edge-tag));
+  background: var(--graph-edge-tag);
 }
 
 #legend .swatch-relates {
   width: 16px;
   height: 2px;
-  background: rgb(var(--graph-edge-relates));
+  background: var(--graph-edge-relates);
 }
 
 #legend .swatch-node {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: oklch(var(--muted-foreground) / 0.5);
+  background: color-mix(in oklch, var(--muted) 50%, transparent);
 }
 
 #nav-controls {
@@ -247,9 +248,8 @@ body {
   justify-content: center;
   border: none;
   border-radius: 0.5rem;
-  background: oklch(var(--nav-bg));
-  backdrop-filter: blur(8px);
-  color: oklch(var(--nav-fg));
+  background: var(--nav-bg);
+  color: var(--nav-fg);
   cursor: pointer;
   transition:
     background-color 240ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -257,8 +257,8 @@ body {
 }
 
 .nav-btn:hover {
-  background: oklch(var(--nav-bg));
-  color: oklch(var(--nav-fg-hover));
+  background: var(--nav-bg);
+  color: var(--nav-fg-hover);
 }
 
 .nav-btn svg {
@@ -282,8 +282,8 @@ body {
   font-size: 11px;
   line-height: 1.45;
   display: none;
-  background: oklch(var(--warning) / 0.18);
-  color: oklch(var(--warning));
+  background: color-mix(in oklch, var(--warning) 18%, transparent);
+  color: var(--warning);
 }
 
 #banner.visible {

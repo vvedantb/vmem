@@ -48,7 +48,7 @@ function StatsCard({
       <div className="flex justify-center">
         <HoverCard openDelay={200} closeDelay={100}>
           <HoverCardTrigger asChild>
-            <div className="glass-interactive flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground cursor-default">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground cursor-default">
               <IconChartBar className="h-4 w-4" />
             </div>
           </HoverCardTrigger>
@@ -58,17 +58,13 @@ function StatsCard({
                 <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
                   {formatCompactNumber(stats.addedToday)}
                 </span>
-                <span className="text-[11px] text-muted-foreground/70">
-                  today
-                </span>
+                <span className="text-[11px] text-muted/70">today</span>
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
                   {formatCompactNumber(stats.total)}
                 </span>
-                <span className="text-[11px] text-muted-foreground/70">
-                  total
-                </span>
+                <span className="text-[11px] text-muted/70">total</span>
               </div>
             </div>
           </HoverCardContent>
@@ -83,13 +79,13 @@ function StatsCard({
         <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
           {formatCompactNumber(stats.addedToday)}
         </span>
-        <span className="text-[11px] text-muted-foreground/70">today</span>
+        <span className="text-[11px] text-muted/70">today</span>
       </div>
       <div className="flex items-baseline gap-1.5">
         <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
           {formatCompactNumber(stats.total)}
         </span>
-        <span className="text-[11px] text-muted-foreground/70">total</span>
+        <span className="text-[11px] text-muted/70">total</span>
       </div>
     </div>
   );
@@ -121,7 +117,7 @@ export function SidebarFooter({
   return (
     <div className={cn("space-y-4 pt-3")}>
       {showStats ? <StatsCard isIconOnly={isIconOnly} stats={stats} /> : null}
-      {showStats ? <Separator className="bg-border/45" /> : null}
+      {showStats ? <Separator /> : null}
 
       <div className={cn(isMobile ? "pr-2" : "px-2")}>
         {isAuthLoading ? (
@@ -150,7 +146,7 @@ export function SidebarFooter({
                   userButtonBox: isIconOnly
                     ? "flex justify-center"
                     : "flex w-full",
-                  userButtonTrigger: `rounded-xl bg-transparent transition-colors hover:bg-card/60 focus:shadow-none ${
+                  userButtonTrigger: `rounded-lg bg-transparent transition-colors hover:bg-surface/60 focus:shadow-none ${
                     isIconOnly
                       ? "h-10 w-10 p-0"
                       : "h-10 w-full justify-start gap-0 px-2"
@@ -159,10 +155,10 @@ export function SidebarFooter({
                   userButtonOuterIdentifier:
                     "truncate text-sm font-medium text-foreground order-last -ml-2",
                   userButtonPopoverCard:
-                    "glass-panel-strong text-popover-foreground !z-[300] pointer-events-auto",
+                    "glass-panel-strong text-overlay-foreground !z-[300] pointer-events-auto",
                   userButtonPopoverActions: "!z-[300] pointer-events-auto",
                   userButtonPopoverActionButton:
-                    "rounded-lg hover:bg-accent hover:text-accent-foreground",
+                    "rounded-lg hover:bg-surface-tertiary hover:text-surface-tertiary-foreground",
                 },
               }}
             />
@@ -178,7 +174,7 @@ export function SidebarFooter({
                 aria-label={
                   isDark ? "Switch to light theme" : "Switch to dark theme"
                 }
-                className="glass-interactive shrink-0 rounded-lg text-muted-foreground hover:text-foreground"
+                className="shrink-0 rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground"
               >
                 {isDark ? (
                   <IconMoon className="h-4 w-4" />

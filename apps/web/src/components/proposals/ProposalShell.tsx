@@ -1,15 +1,10 @@
-import { cn } from "@vmem/ui";
+import type { ReactNode } from "react";
+import { Card, CardContent, cn } from "@vmem/ui";
 import { formatProposalRelativeDate } from "./_proposalUtils";
 
-export function ProposalFieldLabel({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function ProposalFieldLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-      {children}
-    </div>
+    <div className="mb-1.5 text-xs font-medium text-muted">{children}</div>
   );
 }
 
@@ -22,22 +17,22 @@ export function ProposalShell({
   children,
 }: {
   accentClass: string;
-  meta: React.ReactNode;
+  meta: ReactNode;
   title: string;
   timestamp: string;
-  actions: React.ReactNode;
-  children: React.ReactNode;
+  actions: ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <article className="relative overflow-hidden rounded-xl bg-muted/40">
+    <Card className="relative overflow-hidden shadow-none">
       <div
-        className={cn("absolute inset-y-0 left-0 w-1", accentClass)}
+        className={cn("absolute inset-y-0 left-0 z-10 w-1", accentClass)}
         aria-hidden
       />
-      <div className="flex flex-col gap-4 p-4 pl-5 sm:p-5 sm:pl-6">
+      <CardContent className="flex flex-col gap-4 p-4 pl-5 sm:p-5 sm:pl-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
               {meta}
               <span aria-hidden>·</span>
               <time dateTime={timestamp} title={timestamp}>
@@ -51,7 +46,7 @@ export function ProposalShell({
           <div className="flex shrink-0 items-center gap-2">{actions}</div>
         </div>
         <div className="flex flex-col gap-3">{children}</div>
-      </div>
-    </article>
+      </CardContent>
+    </Card>
   );
 }

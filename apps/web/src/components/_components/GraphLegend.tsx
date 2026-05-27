@@ -45,10 +45,10 @@ const EDGE_LEGEND: {
   swatchClass: string;
   thick?: boolean;
 }[] = [
-  { label: "Tag", swatchClass: "bg-muted-foreground/40" },
-  { label: "Relates-to", swatchClass: "bg-amber-500/70", thick: true },
-  { label: "Wiki / structural", swatchClass: "bg-blue-500/70", thick: true },
-  { label: "Mentions", swatchClass: "bg-emerald-500/70", thick: true },
+  { label: "Tag", swatchClass: "bg-surface-tertiary/40" },
+  { label: "Relates-to", swatchClass: "bg-warning/70", thick: true },
+  { label: "Wiki / structural", swatchClass: "bg-foreground/45", thick: true },
+  { label: "Mentions", swatchClass: "bg-success/70", thick: true },
 ];
 
 export default function GraphLegend({
@@ -60,7 +60,7 @@ export default function GraphLegend({
   const isFiltered = visibleNodeCount < nodeCount;
 
   return (
-    <div className="space-y-3 text-[11px] text-muted-foreground">
+    <div className="space-y-3 text-[11px] text-muted">
       {/* Stats */}
       <p className="tabular-nums">
         {isFiltered ? (
@@ -76,8 +76,8 @@ export default function GraphLegend({
 
       {/* Nodes — shape per kind, colour = first tag */}
       <div className="space-y-1">
-        <p className="text-muted-foreground/80">Nodes</p>
-        <p className="text-muted-foreground/60 text-[10px]">
+        <p className="text-muted/80">Nodes</p>
+        <p className="text-muted/60 text-[10px]">
           Colour = first tag · size = degree
         </p>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 pt-0.5">
@@ -96,7 +96,7 @@ export default function GraphLegend({
 
       {/* Edges — semantic colour per category */}
       <div className="space-y-1">
-        <p className="text-muted-foreground/80">Edges</p>
+        <p className="text-muted/80">Edges</p>
         <div className="space-y-1 pt-0.5">
           {EDGE_LEGEND.map(({ label, swatchClass, thick }) => (
             <div key={label} className="flex items-center gap-2">
@@ -111,7 +111,7 @@ export default function GraphLegend({
 
       {/* States — what dimming/highlight means */}
       <div className="space-y-1">
-        <p className="text-muted-foreground/80">States</p>
+        <p className="text-muted/80">States</p>
         <div className="space-y-1 pt-0.5">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-foreground/80" />
@@ -130,7 +130,7 @@ export default function GraphLegend({
 
       {/* Connector source provenance */}
       <div className="space-y-1">
-        <p className="text-muted-foreground/80">Source logo</p>
+        <p className="text-muted/80">Source logo</p>
         <div className="space-y-1 pt-0.5">
           {CONNECTOR_LEGEND.map(({ src, label }) => (
             <div key={src} className="flex items-center gap-2">

@@ -18,11 +18,11 @@ export function proposalAccentClass(kind: ProposedUpdateKind): string {
   switch (kind) {
     case "delete":
     case "contradiction":
-      return "bg-destructive";
+      return "bg-danger";
     case "update":
-      return "bg-info";
+      return "bg-accent";
     case "insight":
-      return "bg-primary";
+      return "bg-surface-tertiary";
     case "connection":
       return "bg-success";
     case "anomaly":

@@ -38,8 +38,8 @@ function ReadinessPill({ label, ready, loading, icon }: ReadinessPillProps) {
         ready
           ? "border border-success/25 bg-success/10 text-success"
           : loading
-            ? "border border-border/50 bg-muted/40 text-muted-foreground"
-            : "border border-border/40 bg-muted/30 text-muted-foreground/70",
+            ? "border border-separator bg-surface-secondary/40 text-muted"
+            : "border border-separator bg-surface-secondary/30 text-muted/70",
       )}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -123,7 +123,7 @@ export default function VoiceReadinessOverlay({
       )}
 
       {anyLoading && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted">
           Loading models, this may take a moment...
         </p>
       )}

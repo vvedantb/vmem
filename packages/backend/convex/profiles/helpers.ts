@@ -13,14 +13,14 @@ import type { Id, Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 
 export const PROFILE_COLORS = [
-  "#3B82F6", // blue
+  "#171717", // black (brand default)
   "#10B981", // emerald
   "#F59E0B", // amber
   "#EF4444", // red
   "#8B5CF6", // violet
   "#EC4899", // pink
   "#06B6D4", // cyan
-  "#6366F1", // indigo
+  "#6B7280", // gray
 ] as const;
 
 export const PROFILE_ICONS = [
@@ -39,7 +39,7 @@ export const PROFILE_ICONS = [
 ] as const;
 
 export const DEFAULT_PROFILE_NAME = "Personal";
-export const DEFAULT_PROFILE_COLOR = "#3B82F6";
+export const DEFAULT_PROFILE_COLOR = "#171717";
 export const DEFAULT_PROFILE_ICON = "user";
 
 export async function getOrCreateDefaultProfile(

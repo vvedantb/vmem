@@ -16,7 +16,7 @@ interface AnimatedNotificationIconProps {
 const TYPE_COLORS: Record<NotificationType, string> = {
   success: "var(--success)",
   warning: "var(--warning)",
-  error: "var(--destructive)",
+  error: "var(--danger)",
   info: "var(--info)",
 };
 

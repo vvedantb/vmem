@@ -1,8 +1,8 @@
 import tailwindcssAnimate from "tailwindcss-animate";
 import type { Config } from "tailwindcss";
 
-function c(name: string) {
-  return `oklch(var(--${name}) / <alpha-value>)`;
+function v(name: string) {
+  return `var(--${name})`;
 }
 
 const config: Config = {
@@ -15,36 +15,71 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        border: c("border"),
-        input: c("input"),
-        ring: c("ring"),
-        background: c("background"),
-        foreground: c("foreground"),
-        primary: { DEFAULT: c("primary"), foreground: c("primary-foreground") },
-        secondary: {
-          DEFAULT: c("secondary"),
-          foreground: c("secondary-foreground"),
+        border: v("border"),
+        backdrop: v("backdrop"),
+        background: v("background"),
+        foreground: v("foreground"),
+        accent: {
+          DEFAULT: v("accent"),
+          foreground: v("accent-foreground"),
         },
-        destructive: {
-          DEFAULT: c("destructive"),
-          foreground: c("destructive-foreground"),
+        danger: {
+          DEFAULT: v("danger"),
+          foreground: v("danger-foreground"),
+          ring: v("danger-ring"),
+          border: v("danger-border"),
         },
-        success: { DEFAULT: c("success"), foreground: c("success-foreground") },
-        warning: { DEFAULT: c("warning"), foreground: c("warning-foreground") },
-        muted: { DEFAULT: c("muted"), foreground: c("muted-foreground") },
-        accent: { DEFAULT: c("accent"), foreground: c("accent-foreground") },
-        popover: { DEFAULT: c("popover"), foreground: c("popover-foreground") },
-        card: { DEFAULT: c("card"), foreground: c("card-foreground") },
-        sidebar: { DEFAULT: c("sidebar"), foreground: c("sidebar-foreground") },
-        info: { DEFAULT: c("info"), foreground: c("info-foreground") },
+        default: {
+          DEFAULT: v("default"),
+          foreground: v("default-foreground"),
+        },
+        field: {
+          background: v("field-background"),
+          border: v("field-border"),
+          foreground: v("field-foreground"),
+          placeholder: v("field-placeholder"),
+        },
+        focus: {
+          DEFAULT: v("focus"),
+          ring: v("focus-ring"),
+          border: v("focus-border"),
+        },
+        muted: v("muted"),
+        overlay: {
+          DEFAULT: v("overlay"),
+          foreground: v("overlay-foreground"),
+        },
+        scrollbar: v("scrollbar"),
+        segment: {
+          DEFAULT: v("segment"),
+          foreground: v("segment-foreground"),
+        },
+        separator: v("separator"),
+        success: {
+          DEFAULT: v("success"),
+          foreground: v("success-foreground"),
+        },
+        surface: {
+          DEFAULT: v("surface"),
+          foreground: v("surface-foreground"),
+          secondary: v("surface-secondary"),
+          "secondary-foreground": v("surface-secondary-foreground"),
+          tertiary: v("surface-tertiary"),
+          "tertiary-foreground": v("surface-tertiary-foreground"),
+        },
+        warning: {
+          DEFAULT: v("warning"),
+          foreground: v("warning-foreground"),
+        },
       },
       borderRadius: {
-        xl: "calc(var(--radius) + 4px)",
         lg: "var(--radius)",
+        field: "var(--field-radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
+        overlay: "var(--overlay-shadow)",
         soft: "0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 28px rgba(16, 24, 40, 0.06)",
         panel:
           "0 1px 2px rgba(16, 24, 40, 0.05), 0 16px 44px rgba(16, 24, 40, 0.1)",

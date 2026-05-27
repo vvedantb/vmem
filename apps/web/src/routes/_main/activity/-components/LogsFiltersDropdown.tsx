@@ -98,9 +98,7 @@ function FilterOptionContent({
 }) {
   return (
     <span className="flex items-center gap-2">
-      <span className="flex shrink-0 text-muted-foreground [&>svg]:size-4">
-        {icon}
-      </span>
+      <span className="flex shrink-0 text-muted [&>svg]:size-4">{icon}</span>
       {children}
     </span>
   );
@@ -181,7 +179,7 @@ export function LogsFiltersDropdown({
           <IconFilter size={16} />
           Filters
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium leading-none tabular-nums text-primary-foreground">
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium leading-none tabular-nums text-accent-foreground">
               {activeFilterCount}
             </span>
           )}
@@ -355,7 +353,7 @@ export function LogsFiltersDropdown({
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
                       style={{
-                        backgroundColor: p.color ?? "var(--muted-foreground)",
+                        backgroundColor: p.color ?? "var(--muted)",
                       }}
                     />
                     {p.name}
@@ -371,7 +369,7 @@ export function LogsFiltersDropdown({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={onReset}
-              className="text-destructive focus:text-destructive"
+              className="text-danger focus:text-danger"
             >
               <IconX size={16} />
               Reset filters

@@ -101,17 +101,17 @@ export function CodebasesSidebarNav({
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin px-1">
         {!isIconOnly && staleCodebases.length > 0 ? (
-          <div className="mb-2 rounded-lg bg-amber-500/10 p-2.5">
+          <div className="mb-2 rounded-lg bg-warning/10 p-2.5">
             <div className="flex items-start gap-2">
               <IconAlertCircle
                 size={14}
-                className="mt-0.5 shrink-0 text-amber-600"
+                className="mt-0.5 shrink-0 text-warning"
               />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-foreground">
                   Parser {PARSER_VERSION}
                 </p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted">
                   {staleCodebases.length} repo
                   {staleCodebases.length === 1 ? "" : "s"} need re-sync
                 </p>
@@ -136,13 +136,13 @@ export function CodebasesSidebarNav({
 
         {codebases === undefined ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
           </div>
         ) : codebases.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
-            <IconDatabase size={28} className="mb-2 text-muted-foreground" />
+            <IconDatabase size={28} className="mb-2 text-muted" />
             {!isIconOnly ? (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 {isConnected ? "No repositories yet" : "Connect GitHub"}
               </p>
             ) : null}
@@ -159,7 +159,7 @@ export function CodebasesSidebarNav({
             ) : null}
             {filteredCodebases.length === 0 ? (
               !isIconOnly ? (
-                <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+                <p className="px-2 py-4 text-center text-xs text-muted">
                   No repositories match your search.
                 </p>
               ) : null

@@ -195,7 +195,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
             </div>
 
             {outlineVisible && !isMobileViewport && hasDoc ? (
-              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-xl bg-muted/40 p-2 scrollbar-thin md:block">
+              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-lg bg-surface-secondary/40 p-2 scrollbar-thin md:block">
                 <WikiOutline
                   headings={headings}
                   onJump={handleJumpToHeading}
@@ -206,17 +206,17 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           </div>
         ) : nodes === undefined ? (
           <div className="flex flex-1 items-center justify-center">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
           </div>
         ) : tree.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted">
               No documents yet. Use Add in the sidebar to create one.
             </p>
           </div>
         ) : (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted">
               Select a document from the sidebar
             </p>
           </div>

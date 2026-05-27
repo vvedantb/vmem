@@ -30,12 +30,12 @@ function LandingPage() {
             alt="vmem"
             width={80}
             height={80}
-            className="rounded-2xl outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
+            className="rounded-lg outline outline-1 -outline-offset-1 outline-foreground/10"
           />
           <h1 className="text-3xl font-bold tracking-tight text-foreground text-balance">
             vmem
           </h1>
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-sm text-muted">
             Memory engine for AI agents
           </p>
         </div>

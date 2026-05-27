@@ -146,7 +146,7 @@ export function AddRepoModal({
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-xl">
         <DialogHeader className="space-y-3 px-6 pt-6 pb-4">
           <div className="flex items-start gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted/60">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-secondary/60">
               <GitHubIcon size={22} />
             </div>
             <div className="min-w-0 space-y-1 pt-0.5">
@@ -165,7 +165,7 @@ export function AddRepoModal({
           <div className="relative">
             <IconSearch
               size={14}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted"
             />
             <Input
               placeholder="Search repositories"
@@ -180,18 +180,15 @@ export function AddRepoModal({
         <div className="px-4 pb-4">
           <div
             className={cn(
-              "max-h-[min(24rem,50vh)] overflow-y-auto rounded-xl bg-muted/40 p-1 scrollbar-thin",
+              "max-h-[min(24rem,50vh)] overflow-y-auto rounded-lg bg-surface-secondary/40 p-1 scrollbar-thin",
             )}
           >
             {loading ? (
               <div className="flex items-center justify-center py-14">
-                <IconLoader2
-                  size={20}
-                  className="animate-spin text-muted-foreground"
-                />
+                <IconLoader2 size={20} className="animate-spin text-muted" />
               </div>
             ) : filtered.length === 0 ? (
-              <p className="px-3 py-14 text-center text-sm text-muted-foreground">
+              <p className="px-3 py-14 text-center text-sm text-muted">
                 {search.trim().length > 0
                   ? "No matching repositories"
                   : availableRepos.length === 0 && repos.length > 0
@@ -215,7 +212,7 @@ export function AddRepoModal({
         </div>
 
         {listSummary ? (
-          <p className="px-6 pb-5 text-xs text-muted-foreground tabular-nums">
+          <p className="px-6 pb-5 text-xs text-muted tabular-nums">
             {listSummary}
             {addedFullNames.size > 0 && repos.length > availableRepos.length
               ? ` · ${addedFullNames.size} already added`

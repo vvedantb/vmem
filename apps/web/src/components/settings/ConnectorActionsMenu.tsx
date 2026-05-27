@@ -52,11 +52,10 @@ export default function ConnectorActionsMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           disabled={isBusy}
           aria-label={`${connectorName} options`}
-          className="border-border text-muted-foreground"
         >
           {isSyncing ? (
             <IconLoader2 size={14} className="animate-spin" />
@@ -92,7 +91,7 @@ export default function ConnectorActionsMenu({
         {showSyncActions && hasDestructive ? <DropdownMenuSeparator /> : null}
         {showDisconnect ? (
           <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
+            className="text-danger focus:text-danger"
             onSelect={onDisconnect}
             disabled={isBusy}
           >
@@ -102,7 +101,7 @@ export default function ConnectorActionsMenu({
         ) : null}
         {showDeleteData ? (
           <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
+            className="text-danger focus:text-danger"
             onSelect={onDeleteData}
             disabled={isBusy}
           >

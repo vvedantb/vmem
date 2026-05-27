@@ -33,7 +33,7 @@ export function RevokeKeyDialog({
         if (!open && !isRevoking) onCancel();
       }}
     >
-      <DialogContent className="sm:max-w-sm bg-card border border-border">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-foreground">Revoke API Key</DialogTitle>
           <DialogDescription className="sr-only">
@@ -41,15 +41,15 @@ export function RevokeKeyDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-start gap-3 py-4">
-          <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
-            <IconAlertTriangle size={20} className="text-destructive" />
+          <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center flex-shrink-0">
+            <IconAlertTriangle size={20} className="text-danger" />
           </div>
           <div>
             <p className="text-foreground">
               Are you sure you want to revoke{" "}
               <span className="font-medium">{keyName}</span>?
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted mt-1">
               This action cannot be undone. Any applications using this key will
               immediately lose access.
             </p>
@@ -60,14 +60,14 @@ export function RevokeKeyDialog({
             variant="ghost"
             onClick={onCancel}
             disabled={isRevoking}
-            className="text-muted-foreground"
+            className="text-muted"
           >
             Cancel
           </Button>
           <Button
             onClick={onConfirm}
             disabled={isRevoking}
-            className="bg-destructive text-primary-foreground"
+            className="bg-danger text-danger-foreground"
           >
             {isRevoking ? (
               <>

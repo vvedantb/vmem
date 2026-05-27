@@ -14,27 +14,23 @@ interface VersionCardProps {
 const ACTION_STYLES: Record<string, { label: string; className: string }> = {
   created: {
     label: "Created",
-    className:
-      "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+    className: "border-success/25 bg-success/12 text-success",
   },
   updated: {
     label: "Updated",
-    className:
-      "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+    className: "border-separator bg-default text-default-foreground",
   },
   deleted: {
     label: "Deleted",
-    className: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+    className: "border-danger/25 bg-danger/12 text-danger",
   },
   proposal_approved: {
     label: "Approved",
-    className:
-      "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+    className: "border-success/25 bg-success/12 text-success",
   },
   proposal_rejected: {
     label: "Rejected",
-    className:
-      "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+    className: "border-warning/25 bg-warning/12 text-warning",
   },
 };
 
@@ -42,7 +38,7 @@ function getActionStyle(action: string) {
   return (
     ACTION_STYLES[action] ?? {
       label: action,
-      className: "bg-muted text-muted-foreground",
+      className: "bg-default text-muted",
     }
   );
 }
@@ -84,44 +80,40 @@ export default function VersionCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        "w-full text-left rounded-lg p-3 transition-colors",
+        "w-full rounded-lg p-4 text-left transition-[background-color]",
         isSelected
-          ? "bg-primary/10 ring-1 ring-primary/30"
-          : "bg-muted/30 hover:bg-muted/50",
+          ? "bg-surface-tertiary"
+          : "bg-surface-secondary hover:bg-surface-tertiary",
       )}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 flex-wrap mb-2">
-        <span className="text-sm font-semibold text-foreground">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold tabular-nums text-foreground">
           v{version.version}
         </span>
         <Badge className={cn("text-xs", style.className)}>{style.label}</Badge>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted">
           {formatTimestamp(version.createdAt)}
         </span>
-        <span className="text-xs text-muted-foreground">
-          by {version.actor}
-        </span>
+        <span className="text-xs text-muted">· {version.actor}</span>
       </div>
 
-      {/* Change summary */}
-      {version.changeSummary !== null && (
-        <div className="flex items-center gap-2 flex-wrap mb-2 text-xs">
-          {version.changeSummary.addedChars > 0 && (
-            <span className="text-green-600 dark:text-green-400">
+      {version.changeSummary !== null ? (
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+          {version.changeSummary.addedChars > 0 ? (
+            <span className="text-success tabular-nums">
               +{version.changeSummary.addedChars} chars
             </span>
-          )}
-          {version.changeSummary.removedChars > 0 && (
-            <span className="text-red-600 dark:text-red-400">
-              -{version.changeSummary.removedChars} chars
+          ) : null}
+          {version.changeSummary.removedChars > 0 ? (
+            <span className="text-danger tabular-nums">
+              −{version.changeSummary.removedChars} chars
             </span>
-          )}
+          ) : null}
           {version.changeSummary.tagsAdded.map((tag) => (
             <Badge
               key={`add-${tag}`}
               variant="outline"
-              className="text-xs text-green-600 dark:text-green-400"
+              className="text-xs text-success"
             >
               +{tag}
             </Badge>
@@ -130,41 +122,43 @@ export default function VersionCard({
             <Badge
               key={`rem-${tag}`}
               variant="outline"
-              className="text-xs text-red-600 dark:text-red-400 line-through"
+              className="text-xs text-danger line-through"
             >
               {tag}
             </Badge>
           ))}
         </div>
-      )}
+      ) : null}
 
-      {/* Title change */}
-      {titleChanged && previousVersion !== null && (
-        <div className="text-sm mb-2">
-          <span className="text-muted-foreground line-through">
+      {titleChanged && previousVersion !== null ? (
+        <div className="mb-2 text-sm">
+          <span className="text-muted line-through">
             {previousVersion.snapshot.title}
           </span>
-          {" -> "}
-          <span className="text-foreground font-medium">
+          <span className="text-muted"> → </span>
+          <span className="font-medium text-foreground">
             {version.snapshot.title}
           </span>
         </div>
-      )}
+      ) : null}
 
-      {/* Content diff or snapshot */}
-      {isSelected && (
-        <div className="mt-3">
+      {isSelected ? (
+        <div className="mt-3 rounded-lg bg-surface-secondary p-3">
           {showDiff && previousVersion !== null ? (
             <DiffDisplay
               oldText={previousVersion.snapshot.content}
               newText={version.snapshot.content}
             />
           ) : (
-            <div className="rounded-lg bg-background/50 p-3 text-sm whitespace-pre-wrap">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
               {version.snapshot.content}
-            </div>
+            </p>
           )}
         </div>
+      ) : (
+        <p className="line-clamp-2 text-sm text-muted">
+          {version.snapshot.content}
+        </p>
       )}
     </button>
   );

@@ -77,7 +77,7 @@ export function CodebaseCard({ codebase }: CodebaseCardProps) {
             e.preventDefault();
             e.stopPropagation();
           }}
-          className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-muted transition-[opacity,background-color] text-muted-foreground hover:text-foreground"
+          className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-surface-tertiary/50 transition-[opacity,background-color] text-muted hover:text-foreground"
         >
           <IconDots size={16} />
         </button>
@@ -101,7 +101,7 @@ export function CodebaseCard({ codebase }: CodebaseCardProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleDelete}
-          className="text-destructive focus:text-destructive"
+          className="text-danger focus:text-danger"
         >
           <IconTrash size={14} className="mr-2" />
           Remove
@@ -130,7 +130,7 @@ export function CodebaseCard({ codebase }: CodebaseCardProps) {
       <ContextMenuSeparator />
       <ContextMenuItem
         onClick={handleDelete}
-        className="text-destructive focus:text-destructive"
+        className="text-danger focus:text-danger"
       >
         <IconTrash size={14} className="mr-2" />
         Remove

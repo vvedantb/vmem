@@ -109,13 +109,9 @@ export default function FileToolbar({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="gap-2">
-            <SortIcon
-              size={16}
-              stroke={1.5}
-              className="text-muted-foreground"
-            />
+            <SortIcon size={16} stroke={1.5} className="text-muted" />
             {SORT_FIELD_LABELS[sort]}
-            <IconChevronDown size={14} className="text-muted-foreground" />
+            <IconChevronDown size={14} className="text-muted" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-36">
@@ -124,7 +120,7 @@ export default function FileToolbar({
             return (
               <DropdownMenuSub key={field.sort}>
                 <DropdownMenuSubTrigger>
-                  <FieldIcon size={16} className="text-muted-foreground" />
+                  <FieldIcon size={16} className="text-muted" />
                   {field.label}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
@@ -137,7 +133,7 @@ export default function FileToolbar({
                         onSelect={() =>
                           onSortSelect(field.sort, direction.sortDir)
                         }
-                        className={cn(isActive && "bg-muted/80")}
+                        className={cn(isActive && "bg-surface-tertiary/80")}
                       >
                         {direction.label}
                         {isActive ? (
@@ -158,7 +154,7 @@ export default function FileToolbar({
           <Button variant="outline" size="sm" className="gap-2">
             <IconPlus size={16} />
             Add
-            <IconChevronDown size={14} className="text-muted-foreground" />
+            <IconChevronDown size={14} className="text-muted" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">

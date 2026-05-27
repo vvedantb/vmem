@@ -1,5 +1,202 @@
 # Changelog
 
+## Activity and API log tables fill the page — 2026-05-23
+
+- **AI logs, Events, API usage**: Recent-calls / recent-requests lists scroll inside the card with a styled thin scrollbar instead of growing the whole page.
+- **Layout**: Summary (or tabs-only on Events) stays fixed; the table card expands to the remaining viewport height (`noScroll` + flex fill).
+
+## Settings layout, connectors hub, and nav polish — 2026-05-23
+
+- **Settings**: Section titles (Preferences, Profiles, Import, Danger zone) sit above cards, not inside — clearer hierarchy matching Models.
+- **Secrets**: Explainer text in a dedicated info card; env-var table is actions only.
+- **Connectors**: Main page lists only connected integrations; **Browse Connectors** adds new ones. Dropbox/Slack stubs hidden until they have OAuth; “Coming soon” badge removed.
+- **Tabs**: Fixed `TabsList` height so header tab pills aren’t clipped.
+- **Team members**: No remove control on your own row; profile photo beside your name in the list.
+- **Skills sidebar**: Selected skill uses the same `bg-surface-tertiary` active style as other nav.
+- **Activity**: Events audit log uses compact rows in a card (aligned with dashboard recent activity).
+
+## Card surfaces across dashboard, activity, teams, inbox — 2026-05-23
+
+- **Dashboard**: Stat cards, memory growth chart, recent activity, and quick actions use shared `Card` primitives (loading skeleton matches).
+- **Activity AI logs**: `LogsSummary` stat tiles aligned with API logs; loading skeleton uses cards.
+- **Teams**: Knowledge, members, and settings tabs use `Card` list/section shells (flat hover rows inside).
+- **Inbox proposals**: `ProposalShell`, empty state, and loading skeletons on `Card`.
+
+## Local model provider icons — 2026-05-23
+
+- **Models settings + chat selector**: Brand marks for Qwen, Llama (Meta), DeepSeek, and Gemma (Gemini) from SVGL — provider icons on model cards and the model dropdown (trigger, provider groups, each model row).
+
+## Teams sidebar selection — 2026-05-23
+
+- **Teams nav**: Selecting a team no longer shifts the row — removed expand padding on the group wrapper, unified selected card styling, stable scrollbar gutter on the list.
+
+## Focus ring tokens (no blue outline) — 2026-05-23
+
+- **`--focus-ring` / `--focus-border`**: `color-mix` tokens replace broken Tailwind `ring-focus/30` (browser blue fallback on oklch vars). Fixes chat input, fields, buttons.
+
+## Neutral accent (no blue) — 2026-05-23
+
+- **Theme**: All neutral oklch tokens use achromatic hue (removed blue 253.83 cast). `accent-color: var(--accent)` on `html` + range inputs.
+- **UI**: Badge/button/sonner no longer use broken `accent/opacity` tints that fell back to browser blue.
+- **Profiles**: Default + preset swatches use `#171717` / gray instead of blue/indigo (new users + picker only; existing profile colors unchanged).
+
+## Switch checked color — 2026-05-23
+
+- **Switch** (`@vmem/ui`): Checked track uses solid `bg-accent` (opacity modifiers don’t work on oklch CSS vars). Thumb uses `accent-foreground` when on.
+
+## Tags view side panel — 2026-05-23
+
+- **Tags list** (`view=tags`): Clicking a tag opens a 420px right panel with that tag’s memories (`ListItemRow` + `MemoryDetailPanel`), matching the main list layout/padding. Toggle tag again or close to dismiss.
+- **Tag memories panel**: Same `Card` shell + header as `MemoryDetailPanel` (flat list rows inside, no nested empty-state card).
+
+## Mobile accessibility — 2026-05-23
+
+- **Page header**: Title-only headers (e.g. Dashboard) no longer reserve empty space on mobile — desktop title/breadcrumb stay `md+`; mobile title lives in the shell topbar. Fixed `centeredMaxWidth` `flex` overriding `hidden` on mobile.
+- **Shell**: Skip link to `#main-content`, safe-area padding on mobile topbar/main, 44px menu control, page title as `<h1>` in topbar, `overscroll-contain` on mobile nav sheet.
+- **Global**: `touch-action: manipulation` on `html` to reduce double-tap zoom delay.
+
+## Tags list row styling — 2026-05-23
+
+- **Tags view** (`/memories/list?view=tags`): Rows match memories list — flat hover (`surface-tertiary`), no per-row `Card` fill.
+
+## Link memory modal — 2026-05-23
+
+- **Link memory dialog**: Description, search across title/content/tags, result count, card-style rows with preview and meta, distinct empty states for “all linked” vs “no matches”.
+
+## Memory detail panel tabs — 2026-05-23
+
+- **Details / History / Connections**: Section labels, `surface-secondary` content blocks, line-only hierarchy (no footer borders). History gets a version scrubber and expandable cards; connections show previews and a richer empty state.
+
+## Memories list row hover — 2026-05-23
+
+- **List rows** (`/memories/list`): Hover uses full `bg-surface-tertiary`; selected row uses `bg-surface-secondary` (matches nav/sidebar).
+
+## Home sparklines line-only — 2026-05-23
+
+- **Dashboard stat sparklines**: Stroke only (no area fill under the line); matches pre-regression look after token contrast made fills obvious.
+- **Memory growth bars**: Total series uses `surface-tertiary` again (visible on `surface-secondary` cards); `foreground/20` had blended into the card.
+
+## Trim web globals.css — 2026-05-23
+
+- Removed unused animation utilities (`animate-blob`, `animate-shimmer`, `smooth-typing-input`, etc.) and dead glass classes (`glass-panel`, `glass-panel-subtle`, `glass-interactive`).
+- Moved sidebar icon hover animations to `apps/web/src/styles/sidebar-icons.css`.
+
+## Settings pages use Card — 2026-05-23
+
+- **Settings routes**: Preferences, extension, profiles, models, secrets, API keys/usage, data controls (import/export/danger), and playground panels use `Card` + `CardContent` (`shadow-none`) instead of ad-hoc `bg-surface-secondary/40` divs — same pattern as connectors.
+
+## Card contrast & dashboard charts — 2026-05-23
+
+- **`Card`**: Resting fill is full `bg-surface-secondary` (not `/40`) so cards read clearly on `bg-surface` without borders.
+- **Home dashboard**: Stat, growth chart, quick actions, and activity sections match the same card surface.
+- **Memory growth bars**: Use `foreground` ink (white in dark mode), not grey surface tokens.
+
+## Overlay polish & monochrome accent — 2026-05-23
+
+- **Route tabs**: Always show icon + label (HeroUI-style); removed collapsing icon-only labels on AI Logs and other tab bars.
+- **Modal scrim**: Black `--backdrop` with `backdrop-blur-md` (fixes white wash in dark mode from `foreground/50`).
+- **Floating menus**: `--overlay-shadow` on `glass-panel-strong` so dropdowns, selects, and popovers have visible elevation.
+- **Brand accent**: Achromatic black (light) / white (dark) for buttons, focus rings, and checked controls — no blue hue.
+
+## Wiki selection & menu hovers — 2026-05-23
+
+- **Wiki sidebar**: Active document uses `bg-surface-tertiary` (same as main nav) so the open page is obvious.
+- **Dropdown / context / select items**: Pointer hover uses Radix `data-[highlighted]` with `bg-default` (HeroUI menu pattern).
+- **Brand accent**: Monochrome black (light) / white (dark) — blue removed again.
+
+## HeroUI default theme & tabs — 2026-05-23
+
+- **Brand accent** restored to HeroUI default blue (`--accent` / `--focus`) in light and dark; primary buttons, links, and focus rings match HeroUI.
+- **Tabs** aligned with HeroUI: `bg-default` track, active pill `bg-segment` + `text-segment-foreground`, inactive hover via opacity (not surface fill).
+- **Sidebar / filter hovers** unified to full `surface-tertiary` so team sub-nav and main nav feel consistent.
+
+## HeroUI token audit (pass 6) — 2026-05-23
+
+- **`muted` as fill**: Status dots, spinners, timeline/legend swatches, and typing indicators use `default` / `surface-tertiary` instead of `bg-muted` or `border-muted` (`muted` is text-only).
+- **Persona orb**: Inline `shadow-lg` removed (`shadow-none`).
+
+## HeroUI token audit (pass 5) — 2026-05-23
+
+- **Timeline/NavLink dots** stop using `surface-secondary-foreground` as fill; use `muted/50` or `accent`.
+- **ListItemRow** selected state uses single `surface-secondary/40` (no `dark:` split).
+- **FileUploadModal** dropzone hover uses background shift, not `hover:border-focus`.
+- **Context hover card** dividers use `divide-separator`.
+- **Conversation scroll button** drops inline `shadow-lg` on outline button.
+
+## HeroUI token audit (pass 4) — 2026-05-23
+
+- Re-verified `packages/ui` + `apps/web`: no Tailwind palette, shadcn, or misused foreground tokens remain.
+- Mobile nav drawer uses `text-overlay-foreground` on `bg-overlay`.
+- Sidebar search focus state aligned to `surface-tertiary/80`.
+
+## HeroUI token audit (pass 3) — 2026-05-23
+
+- **Badge outline** uses `border-separator` (not `border-border` — borders are for form controls only).
+- **Interactive hovers** standardized to `surface-tertiary/50` across sidebar, filters, wiki, teams, dashboard, and graph nav.
+- **Timeline/version badges** and structural dividers use `separator` instead of `border`.
+- **Connector sync progress** fill stays `accent` in dark mode (removed `dark:bg-surface` hack).
+- **Avatar outlines** use `outline-foreground/10` instead of hardcoded black/white.
+- **Bulk action bar** uses `bg-default` for the selection toolbar.
+
+## HeroUI token audit (pass 2) — 2026-05-23
+
+- **Hover unification**: List rows, sidebar cards, nav links, and activity/inbox panels use `hover:bg-surface-tertiary/50` instead of split light/dark or `surface-secondary/80` patterns.
+- **Outline controls**: Button and badge outline variants use `bg-transparent` so they read correctly on `bg-surface` panels.
+- **Foreground token misuse**: Status dots, chart grid lines, and empty sparklines use `muted` (text) or `separator` (lines) instead of `surface-secondary-foreground` as fill.
+- **Floating panels**: Codebase symbol panel matches graph detail panel with `glass-panel-strong`.
+- **Table/sonner**: Row hover and toast action hover use `surface-tertiary`.
+
+## HeroUI token audit — 2026-05-23
+
+- **TOKEN GUIDE** in `globals.css` documents surface stack, separator vs border, muted-as-text-only.
+- **Card default** uses `bg-surface-secondary/40` so cards contrast on the main `bg-surface` panel.
+- **Graph legend** edge swatches use `warning` / `foreground` / `success` tokens.
+- **Tagless graph nodes** read `--muted` from CSS instead of hardcoded greys.
+- **Form controls** drop `shadow-insetSoft`; wiki dividers use `--separator`.
+
+## HeroUI token polish — 2026-05-23
+
+- **Layout surface hierarchy**: Sidebar uses `bg-background` (darkest); main content uses `bg-surface` (elevated). Fixes dark mode inversion where main was blacker than the grey sidebar.
+- **Page background**: `body` uses `bg-background` (HeroUI `--background`) instead of `bg-surface-secondary`.
+- **Overlay surfaces**: Tooltips, graph tooltips, and chart hovers use `glass-panel-strong` (`--overlay`) instead of `glass-panel`.
+- **Menu dividers**: Dropdown/command/select/context separators use `bg-separator` instead of `bg-border/70`.
+- **Badge cleanup**: Tag/metadata badges use `variant="secondary"` instead of ad-hoc `bg-surface-secondary border-border`.
+- **Borderless cards**: Removed decorative `border-border` from icon thumbs, chat chips, import rows, and playground panels.
+- **Filter nav active state**: Unified filter sidebar active tab uses `bg-surface` (elevated pill on segment track).
+
+## HeroUI semantic fixes — 2026-05-23
+
+- **accent-foreground misuse**: Selected filters/rows use `bg-surface text-foreground`; count badges and primary buttons use `bg-accent text-accent-foreground`; danger actions use `text-danger-foreground`.
+- **Hardcoded UI colors removed**: Timeline/version diffs, status dots, warnings, and success states use `success` / `danger` / `warning` tokens instead of Tailwind palette classes.
+- **Hover surfaces**: Replaced `hover:bg-foreground/*` with `hover:bg-surface-tertiary/50` across graph/codebase panels.
+- **Overlay primitives**: Dialog scrim uses `bg-foreground/50`; dialog content uses `text-overlay-foreground`; progress fill uses `bg-accent`; floating dropdowns use `bg-overlay`.
+- **No inline button shadows**: Primary/destructive buttons drop `shadow-soft`/`shadow-panel` per tonal surface rules; switch thumb drops `shadow-soft`.
+- **Separator vs border**: Modal/filter section dividers use `border-separator`; redundant `bg-surface border border-border` overrides removed from small dialogs.
+- **Field tokens on inputs**: Search/profile/detail inputs use `bg-field-background` + `rounded-field` instead of `bg-surface-secondary/50`.
+- **Graph nav on dark canvas**: Controls use surface tokens instead of hardcoded `bg-black/50`.
+- **Field & segment tokens**: Search/tag inputs, graph mode toggle, time-picker columns, scrollbars, and ghost button hover aligned to HeroUI tokens.
+
+## HeroUI audit pass — 2026-05-23
+
+- **Segment & separator tokens**: Tabs use `bg-segment` + active `bg-surface`; `Separator` and table/command dividers use `bg-separator` / `border-separator`.
+- **Radius normalization**: App-level `rounded-xl`/`2xl`/`3xl` → `rounded-lg` (`--radius`); ad-hoc form fields → `rounded-field` + `bg-field-background`.
+- **Stale shadcn refs**: `fill-primary` → `fill-accent`, `accent-primary` → `accent-accent`, `--destructive` → `--danger` in SVG tokens.
+- **Chrome extension**: Added `--scrollbar`, `--segment`, `--separator` to match web theme.
+- **Graph light canvas**: Neutral `#f7f7f8` background, removed blue gradient tint.
+
+## HeroUI theme tokens — 2026-05-23
+
+- **Replaced shadcn token layer with HeroUI semantics**: Single source of truth in `globals.css` (`--accent`, `--surface`, `--surface-secondary`, `--field-background`, etc.) — no more dual `--heroui-*` + shadcn channel mapping.
+- **Tailwind uses HeroUI names**: `bg-accent` = brand, `bg-surface-secondary` = muted surfaces, `text-muted` = secondary text, `rounded-field` = form fields.
+- **Brand primary**: Monochrome black accent in light mode (white inverse in dark).
+- **Radius wired to HeroUI**: `--radius` (0.5rem) on buttons/cards/overlays; `--field-radius` (0.75rem) on inputs.
+
+## Flat UI replaces glass morphism — 2026-05-23
+
+- **Tonal surfaces only**: Removed backdrop blur, translucent fills, and inset highlights from the design system — cards, nav, and layout use solid `bg-muted/40` and `bg-background` instead.
+- **Overlays stay elevated**: Dialogs, dropdowns, and toasts keep depth via `bg-popover` + shadow only (no glass blur).
+- **Chrome extension aligned**: Extension popup uses the same flat surface tokens as the web app.
+
 ## Dual MCP connectors (personal vs team) — 2026-05-23
 
 - **Two MCP entry points**: `/mcp` exposes personal profiles only; `/mcp/team` exposes team profiles for teams you belong to — same OAuth, separate save boundaries.

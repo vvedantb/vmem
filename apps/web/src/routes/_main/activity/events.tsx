@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import PageContainer from "@/components/PageContainer";
 import { ActivityTabs } from "./-components/ActivityTabs";
@@ -14,18 +13,16 @@ export const Route = createFileRoute("/_main/activity/events")({
  * `ai-logs.tsx`.
  */
 function EventsRoute() {
-  const [scrollParent, setScrollParent] = useState<HTMLDivElement | null>(null);
-
   return (
     <PageContainer
       title="Activity"
       showTitle={false}
       centeredMaxWidth
-      scrollRef={setScrollParent}
+      noScroll
       leftSection={<ActivityTabs />}
       rightSection={<EventsRightSection />}
     >
-      <EventsPanel scrollParent={scrollParent} />
+      <EventsPanel />
     </PageContainer>
   );
 }

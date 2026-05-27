@@ -74,12 +74,12 @@ function SubSidebarNavButton({
       onClick={onClick}
       title={isIconOnly ? item.label : undefined}
       className={cn(
-        "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
+        "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
         isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
         isMobile ? "py-3.5" : "py-2.5",
         isActive
-          ? "glass-interactive text-foreground"
-          : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
+          ? "bg-surface-tertiary text-foreground"
+          : "text-muted hover:bg-surface-tertiary hover:text-foreground",
       )}
     >
       <span className="flex h-5 w-5 items-center justify-center text-current">
@@ -107,7 +107,7 @@ function SubSidebarNavButton({
           size={16}
           stroke={2}
           aria-hidden
-          className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+          className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100"
         />
       ) : null}
     </button>
@@ -159,16 +159,16 @@ function MainNav({
                 <GroupIcon
                   size={14}
                   stroke={1.8}
-                  className="shrink-0 text-muted-foreground/70"
+                  className="shrink-0 text-muted/70"
                 />
-                <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted/70">
                   {group.title}
                 </span>
-                <Separator className="flex-1 bg-border/40" />
+                <Separator className="flex-1" />
               </div>
             ) : (
               <div className="flex justify-center mb-2">
-                <Separator className="w-6 bg-border/40" />
+                <Separator className="w-6" />
               </div>
             )}
             <ul className={cn("space-y-1", !isIconOnly && "pl-3")}>
@@ -245,14 +245,14 @@ function SettingsNav({
         <div key={group.title} className="px-1 mb-4">
           {!isIconOnly ? (
             <div className="flex items-center gap-2 px-3.5 mb-2">
-              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-muted/70">
                 {group.title}
               </span>
-              <Separator className="flex-1 bg-border/40" />
+              <Separator className="flex-1" />
             </div>
           ) : (
             <div className="flex justify-center mb-2">
-              <Separator className="w-6 bg-border/40" />
+              <Separator className="w-6" />
             </div>
           )}
           <ul className={cn("space-y-1", !isIconOnly && "pl-3")}>
@@ -267,14 +267,14 @@ function SettingsNav({
                     onClick={onNavigate}
                     title={isIconOnly ? item.label : undefined}
                     className={cn(
-                      "group relative flex w-full items-center rounded-xl text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
+                      "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
                       isIconOnly
                         ? "justify-center px-2 py-2.5"
                         : "gap-3 px-3.5",
                       isMobile ? "py-3.5" : "py-2.5",
                       isActive
-                        ? "glass-interactive text-foreground"
-                        : "text-muted-foreground hover:bg-card/45 hover:text-foreground",
+                        ? "bg-surface-tertiary text-foreground"
+                        : "text-muted hover:bg-surface-tertiary hover:text-foreground",
                     )}
                   >
                     <span className="flex h-5 w-5 items-center justify-center text-current">

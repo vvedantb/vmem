@@ -9,7 +9,7 @@ import {
   IconStack,
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import { cn } from "@vmem/ui";
+import { Card, CardContent, cn } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import { Sparkline } from "@/components/dashboard/Sparkline";
 import { RANGE_LABELS, type Range } from "../-searchParams";
@@ -35,7 +35,6 @@ function SummaryCard({
   valueClassName,
   trendData,
   strokeClassName,
-  fillClassName,
   showSparkline,
   index,
 }: {
@@ -45,7 +44,6 @@ function SummaryCard({
   valueClassName?: string;
   trendData: number[];
   strokeClassName: string;
-  fillClassName: string;
   showSparkline: boolean;
   index: number;
 }) {
@@ -58,36 +56,34 @@ function SummaryCard({
         delay: index * 0.06,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-muted/40 p-5"
+      className="h-full"
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60">
-          <Icon size={16} className="text-muted-foreground" stroke={1.5} />
-        </div>
-      </div>
-      <p
-        className={cn(
-          "font-instrumentSerif text-3xl leading-none tabular-nums text-foreground",
-          valueClassName,
-        )}
-      >
-        {value}
-      </p>
-      {showSparkline ? (
-        <div className="mt-auto pt-1">
-          <Sparkline
-            data={trendData}
-            strokeClassName={strokeClassName}
-            fillClassName={fillClassName}
-          />
-          <p className="mt-1.5 text-[11px] text-muted-foreground">
-            Last 7 days
+      <Card className="h-full shadow-none">
+        <CardContent className="flex min-h-[9.5rem] flex-col gap-3 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm text-muted">{label}</p>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-tertiary/60">
+              <Icon size={16} className="text-muted" stroke={1.5} />
+            </div>
+          </div>
+          <p
+            className={cn(
+              "font-instrumentSerif text-3xl leading-none tabular-nums text-foreground",
+              valueClassName,
+            )}
+          >
+            {value}
           </p>
-        </div>
-      ) : (
-        <div className="mt-auto" />
-      )}
+          {showSparkline ? (
+            <div className="mt-auto pt-1">
+              <Sparkline data={trendData} strokeClassName={strokeClassName} />
+              <p className="mt-1.5 text-[11px] text-muted">Last 7 days</p>
+            </div>
+          ) : (
+            <div className="mt-auto" />
+          )}
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
@@ -97,12 +93,11 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
     return (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
         {[0, 1, 2, 3].map((index) => (
-          <div
-            key={index}
-            className="flex min-h-[9.5rem] flex-col gap-3 rounded-xl bg-muted/40 p-5"
-          >
-            <div className="h-16 animate-pulse rounded-lg bg-muted/60" />
-          </div>
+          <Card key={index} className="shadow-none">
+            <CardContent className="flex min-h-[9.5rem] flex-col gap-3 p-5">
+              <div className="h-16 animate-pulse rounded-lg bg-surface-tertiary/60" />
+            </CardContent>
+          </Card>
         ))}
       </div>
     );
@@ -128,15 +123,13 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
     valueClassName?: string;
     trendData: number[];
     strokeClassName: string;
-    fillClassName: string;
   }[] = [
     {
       label: "Total cost",
       value: formattedCost,
       icon: IconCoin,
       trendData: trends.costs,
-      strokeClassName: "text-primary",
-      fillClassName: "fill-primary/10",
+      strokeClassName: "text-accent",
     },
     {
       label: "Total tokens",
@@ -144,15 +137,13 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       icon: IconStack,
       trendData: trends.tokens,
       strokeClassName: "text-foreground/70",
-      fillClassName: "fill-foreground/10",
     },
     {
       label: "Avg latency",
       value: latency,
       icon: IconActivityHeartbeat,
       trendData: trends.latencies,
-      strokeClassName: "text-muted-foreground",
-      fillClassName: "fill-foreground/5",
+      strokeClassName: "text-muted",
     },
     {
       label: "Success rate",
@@ -161,7 +152,6 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       valueClassName: "text-success",
       trendData: trends.successRates,
       strokeClassName: "text-success",
-      fillClassName: "fill-success/10",
     },
   ];
 
@@ -170,7 +160,7 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       <div className="flex flex-wrap items-end justify-between gap-2 px-0.5">
         <div>
           <h2 className="text-sm font-medium text-foreground">Overview</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted">
             {RANGE_LABELS[range]} · {summary.totalCalls.toLocaleString()} call
             {summary.totalCalls === 1 ? "" : "s"}
             {summary.isApprox
@@ -190,7 +180,6 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
             valueClassName={card.valueClassName}
             trendData={card.trendData}
             strokeClassName={card.strokeClassName}
-            fillClassName={card.fillClassName}
             showSparkline={hasTrends}
             index={index}
           />

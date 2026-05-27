@@ -19,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
   cn,
+  Card,
+  CardContent,
 } from "@vmem/ui";
 import {
   IconPlus,
@@ -51,14 +53,14 @@ export const Route = createFileRoute("/_main/settings/profiles")({
 });
 
 const PROFILE_COLORS = [
-  "#3B82F6", // blue
+  "#171717", // black (brand default)
   "#10B981", // emerald
   "#F59E0B", // amber
   "#EF4444", // red
   "#8B5CF6", // violet
   "#EC4899", // pink
   "#06B6D4", // cyan
-  "#6366F1", // indigo
+  "#6B7280", // gray
 ] as const;
 
 const PROFILE_ICONS = [
@@ -95,51 +97,53 @@ function ProfileCard({
   const Icon = getProfileIcon(profile.icon);
 
   return (
-    <div className="relative rounded-xl p-4 bg-muted/40">
-      <div className="flex items-start gap-3">
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-lg"
-          style={{ backgroundColor: profile.color + "20" }}
-        >
-          <Icon className="h-5 w-5" style={{ color: profile.color }} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium text-foreground truncate">
-              {profile.name}
-            </h3>
-            {profile.isDefault && (
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                Default
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Created{" "}
-            {new Date(profile.createdAt).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
-        <Button variant="ghost" size="icon-sm" onClick={onEdit}>
-          <IconEdit className="h-4 w-4" />
-        </Button>
-        {!profile.isDefault && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onDelete}
-            className="text-destructive hover:text-destructive"
+    <Card className="relative shadow-none">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-lg"
+            style={{ backgroundColor: profile.color + "20" }}
           >
-            <IconTrash className="h-4 w-4" />
+            <Icon className="h-5 w-5" style={{ color: profile.color }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium text-foreground truncate">
+                {profile.name}
+              </h3>
+              {profile.isDefault && (
+                <span className="text-[10px] uppercase tracking-wider text-muted bg-surface-secondary px-1.5 py-0.5 rounded">
+                  Default
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted mt-0.5">
+              Created{" "}
+              {new Date(profile.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-2 pt-3">
+          <Button variant="ghost" size="icon-sm" onClick={onEdit}>
+            <IconEdit className="h-4 w-4" />
           </Button>
-        )}
-      </div>
-    </div>
+          {!profile.isDefault && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onDelete}
+              className="text-danger hover:text-danger"
+            >
+              <IconTrash className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -235,8 +239,8 @@ function CreateEditProfileDialog({
                     className={cn(
                       "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
                       icon === i.name
-                        ? "bg-accent text-accent-foreground"
-                        : "bg-muted hover:bg-accent/50",
+                        ? "bg-segment text-foreground"
+                        : "bg-surface-secondary hover:bg-surface-tertiary",
                     )}
                   >
                     <IconComponent className="h-4 w-4" />
@@ -245,7 +249,7 @@ function CreateEditProfileDialog({
               })}
             </div>
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -302,7 +306,7 @@ function DeleteProfileDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted">
             What should happen to the memories in this profile?
           </p>
           <div className="space-y-2">
@@ -312,14 +316,14 @@ function DeleteProfileDialog({
               className={cn(
                 "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
                 moveToProfileId === null
-                  ? "bg-accent text-accent-foreground"
-                  : "bg-muted hover:bg-muted/80",
+                  ? "bg-surface-tertiary text-foreground"
+                  : "bg-surface-secondary hover:bg-surface-tertiary/50",
               )}
             >
-              <IconTrash className="h-4 w-4 text-destructive" />
+              <IconTrash className="h-4 w-4 text-danger" />
               <div>
                 <p className="text-sm font-medium">Delete all memories</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted">
                   Permanently remove all memories in this profile
                 </p>
               </div>
@@ -337,8 +341,8 @@ function DeleteProfileDialog({
                   className={cn(
                     "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
                     moveToProfileId === p._id
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-muted hover:bg-muted/80",
+                      ? "bg-surface-tertiary text-foreground"
+                      : "bg-surface-secondary hover:bg-surface-tertiary/50",
                   )}
                 >
                   <div
@@ -349,7 +353,7 @@ function DeleteProfileDialog({
                   </div>
                   <div>
                     <p className="text-sm font-medium">Move to {p.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted">
                       Transfer all memories to this profile
                     </p>
                   </div>
@@ -427,100 +431,108 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   };
 
   return (
-    <div className="rounded-xl bg-muted/40 p-4 space-y-4">
+    <section className="space-y-3">
       <div>
-        <h3 className="font-medium text-foreground">Default Profiles</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <h3 className="text-base font-medium text-foreground">
+          Default Profiles
+        </h3>
+        <p className="mt-0.5 text-xs text-muted">
           Choose which profile new memories are saved to by default
         </p>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <IconWorld className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm">Web App</Label>
-          </div>
-          <Select
-            value={webDefault?._id ?? ""}
-            onValueChange={(profileId) => {
-              void handleDefaultProfileChange("web", profileId);
-            }}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue>
-                {webDefault && (
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-2 w-2 rounded-full shrink-0"
-                      style={{ backgroundColor: webDefault.color }}
-                    />
-                    <span className="truncate">{webDefault.name}</span>
-                  </div>
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {profiles.map((profile) => (
-                <SelectItem key={profile._id} value={profile._id}>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-2 w-2 rounded-full shrink-0"
-                      style={{ backgroundColor: profile.color }}
-                    />
-                    <span>{profile.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <Card className="shadow-none">
+        <CardContent className="space-y-4 p-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <IconWorld className="h-4 w-4 text-muted" />
+                <Label className="text-sm">Web App</Label>
+              </div>
+              <Select
+                value={webDefault?._id ?? ""}
+                onValueChange={(profileId) => {
+                  void handleDefaultProfileChange("web", profileId);
+                }}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue>
+                    {webDefault && (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: webDefault.color }}
+                        />
+                        <span className="truncate">{webDefault.name}</span>
+                      </div>
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {profiles.map((profile) => (
+                    <SelectItem key={profile._id} value={profile._id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: profile.color }}
+                        />
+                        <span>{profile.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <IconBrandChrome className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm">Browser Extension</Label>
-          </div>
-          <Select
-            value={extensionDefault?._id ?? ""}
-            onValueChange={(profileId) => {
-              void handleDefaultProfileChange("extension", profileId);
-            }}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue>
-                {extensionDefault && (
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-2 w-2 rounded-full shrink-0"
-                      style={{ backgroundColor: extensionDefault.color }}
-                    />
-                    <span className="truncate">{extensionDefault.name}</span>
-                  </div>
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {profiles.map((profile) => (
-                <SelectItem key={profile._id} value={profile._id}>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-2 w-2 rounded-full shrink-0"
-                      style={{ backgroundColor: profile.color }}
-                    />
-                    <span>{profile.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <IconBrandChrome className="h-4 w-4 text-muted" />
+                <Label className="text-sm">Browser Extension</Label>
+              </div>
+              <Select
+                value={extensionDefault?._id ?? ""}
+                onValueChange={(profileId) => {
+                  void handleDefaultProfileChange("extension", profileId);
+                }}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue>
+                    {extensionDefault && (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: extensionDefault.color }}
+                        />
+                        <span className="truncate">
+                          {extensionDefault.name}
+                        </span>
+                      </div>
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {profiles.map((profile) => (
+                    <SelectItem key={profile._id} value={profile._id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: profile.color }}
+                        />
+                        <span>{profile.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <p className="text-xs text-muted-foreground pt-1">
-          MCP clients will ask which profile to save to
-        </p>
-      </div>
-    </div>
+            <p className="text-xs text-muted pt-1">
+              MCP clients will ask which profile to save to
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
   );
 }
 

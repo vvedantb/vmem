@@ -39,7 +39,7 @@ function AgentCallback() {
 
   return (
     <div className="flex h-screen items-center justify-center">
-      <p className="text-muted-foreground">Signing in...</p>
+      <p className="text-muted">Signing in...</p>
     </div>
   );
 }

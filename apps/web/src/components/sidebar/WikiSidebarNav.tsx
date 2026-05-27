@@ -103,13 +103,13 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-1">
         {nodes === undefined ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
           </div>
         ) : tree.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
-            <IconBook size={28} className="mb-2 text-muted-foreground" />
+            <IconBook size={28} className="mb-2 text-muted" />
             {!isIconOnly ? (
-              <p className="text-xs text-muted-foreground">No documents yet</p>
+              <p className="text-xs text-muted">No documents yet</p>
             ) : null}
           </div>
         ) : (

@@ -25,19 +25,19 @@ export function TeamSidebarGroup({
 }: TeamSidebarGroupProps) {
   const navigate = useNavigate();
   const isOwner = entry.role === "owner";
-  const isExpanded = isSelected && !isIconOnly && activeSection !== null;
+  const showSubNav = isSelected && !isIconOnly;
+  const section = activeSection ?? "overview";
 
   return (
     <div
       className={cn(
-        "flex flex-col",
-        isExpanded ? "gap-0.5 rounded-xl bg-muted/40 p-1" : undefined,
+        "flex flex-col gap-0.5 overflow-hidden rounded-lg",
+        showSubNav ? "bg-surface-secondary/40" : undefined,
       )}
     >
       <TeamSidebarCard
         entry={entry}
         selected={isSelected}
-        inGroup={isExpanded}
         onSelect={() => {
           void navigate({
             to: "/teams/$teamId/overview",
@@ -45,11 +45,11 @@ export function TeamSidebarGroup({
           });
         }}
       />
-      {isExpanded ? (
+      {showSubNav ? (
         <TeamSidebarSubNav
           teamId={entry.team._id}
           isOwner={isOwner}
-          activeSection={activeSection}
+          activeSection={section}
         />
       ) : null}
     </div>

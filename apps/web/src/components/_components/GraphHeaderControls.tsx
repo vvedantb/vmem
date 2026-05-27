@@ -270,7 +270,7 @@ function FiltersPopover({ controller }: { controller: MemoryGraphController }) {
         >
           <IconFilter size={16} />
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-[10px] font-medium tabular-nums text-primary-foreground flex items-center justify-center leading-none">
+            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-accent text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
               {activeFilterCount}
             </span>
           )}
@@ -357,8 +357,8 @@ function OptionsPopover({
       >
         {/* View mode */}
         <div className="space-y-1.5">
-          <span className="text-[11px] text-muted-foreground">View</span>
-          <div className="flex items-center gap-0.5 rounded-lg bg-background/50 border border-border/30 p-0.5 w-fit">
+          <span className="text-[11px] text-muted">View</span>
+          <div className="flex items-center gap-0.5 rounded-lg bg-default p-0.5 w-fit">
             {VIEW_MODES.map(({ mode, Icon }) => (
               <button
                 key={mode}
@@ -367,8 +367,8 @@ function OptionsPopover({
                 title={VIEW_MODE_LABELS[mode]}
                 className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
                   mode === viewMode
-                    ? "bg-foreground/10 text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                    ? "bg-segment text-foreground"
+                    : "text-muted hover:text-foreground hover:bg-surface-secondary/70"
                 }`}
               >
                 <Icon size={14} />
@@ -379,7 +379,7 @@ function OptionsPopover({
 
         {/* Labels toggle */}
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground">Labels</span>
+          <span className="text-[11px] text-muted">Labels</span>
           <Switch
             checked={settings.showLabels}
             onCheckedChange={handleLabelsToggle}
@@ -391,11 +391,11 @@ function OptionsPopover({
         {/* Sliders */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground">Forces</span>
+            <span className="text-[11px] text-muted">Forces</span>
             <button
               type="button"
               onClick={onReset}
-              className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-0.5 text-[10px] text-muted hover:text-foreground transition-colors"
             >
               <IconRefresh size={10} />
               Reset
@@ -404,9 +404,7 @@ function OptionsPopover({
           {SLIDERS.map((field) => (
             <div key={field.key}>
               <div className="flex items-center justify-between mb-0.5">
-                <label className="text-[11px] text-muted-foreground">
-                  {field.label}
-                </label>
+                <label className="text-[11px] text-muted">{field.label}</label>
                 <span className="text-[10px] tabular-nums text-foreground/70">
                   {field.format(settings[field.key])}
                 </span>
@@ -420,7 +418,7 @@ function OptionsPopover({
                 onChange={(e) =>
                   handleSliderChange(field.key, parseFloat(e.target.value))
                 }
-                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-muted accent-foreground"
+                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-surface-secondary accent-accent"
               />
             </div>
           ))}

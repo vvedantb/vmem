@@ -125,7 +125,7 @@ export default function MemoryListHeaderControls() {
           >
             <IconFilter size={16} />
             {activeFilterCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-[10px] font-medium tabular-nums text-primary-foreground flex items-center justify-center leading-none">
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-accent text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
                 {activeFilterCount}
               </span>
             )}
@@ -166,7 +166,12 @@ export default function MemoryListHeaderControls() {
       </Popover>
       <AddMemoryModal
         trigger={
-          <Button variant="outline" size="icon-sm" aria-label="Add memory">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Add memory"
+            className="h-11 w-11 shrink-0 md:h-8 md:w-8"
+          >
             <IconPlus size={16} />
           </Button>
         }
@@ -211,7 +216,7 @@ function ViewDropdown({
         >
           <CurrentIcon size={14} />
           <span className="hidden sm:inline">{current.label}</span>
-          <IconChevronDown size={12} className="text-muted-foreground" />
+          <IconChevronDown size={12} className="text-muted" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[160px]">
@@ -227,9 +232,7 @@ function ViewDropdown({
                 <Icon size={14} stroke={1.5} />
                 {label}
               </span>
-              {isActive && (
-                <IconCheck size={14} className="text-muted-foreground" />
-              )}
+              {isActive && <IconCheck size={14} className="text-muted" />}
             </DropdownMenuItem>
           );
         })}

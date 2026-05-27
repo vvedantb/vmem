@@ -70,14 +70,14 @@ export default function GraphDetailPanel({
               <h2 className="text-base font-semibold text-foreground truncate">
                 {nodeData.title}
               </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted mt-0.5">
                 {formatDate(nodeData.createdAt)}
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="ml-2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors flex-shrink-0"
+              className="ml-2 p-1 rounded-md text-muted hover:text-foreground hover:bg-surface-tertiary/50 transition-colors flex-shrink-0"
             >
               <IconX size={16} />
             </button>
@@ -86,7 +86,7 @@ export default function GraphDetailPanel({
           {/* Content */}
           <div className="px-4 py-2 flex-1 min-h-0">
             {nodeData.content === undefined ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs text-muted">
                 <IconLoader2 size={12} className="animate-spin" />
                 Loading content…
               </div>
@@ -100,11 +100,7 @@ export default function GraphDetailPanel({
             {nodeData.tags.length > 0 && (
               <div className="flex gap-1.5 flex-wrap mt-3">
                 {nodeData.tags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="outline"
-                    className="bg-muted border-border text-muted-foreground text-xs"
-                  >
+                  <Badge key={tag} variant="secondary" className="text-xs">
                     {tag}
                   </Badge>
                 ))}
@@ -158,7 +154,7 @@ export default function GraphDetailPanel({
                   variant="ghost"
                   size="sm"
                   onClick={() => setConfirmingDelete(true)}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="text-danger hover:text-danger hover:bg-danger/10"
                 >
                   <IconTrash size={14} />
                   Delete
@@ -168,8 +164,8 @@ export default function GraphDetailPanel({
 
             {/* Related nodes */}
             {relatedNodes.length > 0 && (
-              <div className="mt-6 border-t border-border pt-4">
-                <p className="text-xs font-medium text-muted-foreground mb-2">
+              <div className="mt-6 border-t border-separator pt-4">
+                <p className="text-xs font-medium text-muted mb-2">
                   Related ({relatedNodes.length})
                 </p>
                 <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
@@ -178,12 +174,12 @@ export default function GraphDetailPanel({
                       key={neighbor.id}
                       type="button"
                       onClick={() => onNavigate(neighbor.id)}
-                      className="w-full p-2.5 rounded-lg bg-muted/50 border border-border hover:bg-accent transition-colors text-left"
+                      className="w-full p-2.5 rounded-lg bg-surface-secondary/50 hover:bg-surface-tertiary transition-colors text-left"
                     >
                       <p className="text-sm font-medium text-foreground truncate">
                         {neighbor.title}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted mt-0.5">
                         {neighbor.weight} shared tag
                         {neighbor.weight > 1 ? "s" : ""}
                       </p>

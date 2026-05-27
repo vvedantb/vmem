@@ -38,7 +38,7 @@ function BackButton({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "glass-interactive rounded-lg text-muted-foreground hover:text-foreground",
+        "rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground",
         className,
       )}
     >
@@ -64,7 +64,7 @@ function CollapseButton({
       onClick={onToggleCollapse}
       aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       className={cn(
-        "glass-interactive rounded-lg text-muted-foreground hover:text-foreground",
+        "rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground",
         className,
       )}
     >

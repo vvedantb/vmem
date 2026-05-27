@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
   Label,
+  Card,
+  CardContent,
 } from "@vmem/ui";
 import {
   KOKORO_SPEAKERS,
@@ -62,14 +64,16 @@ export default function VoiceModelsSection() {
   return (
     <div className="space-y-5">
       {/* Info banner */}
-      <div className="flex items-start gap-3 bg-muted/40 rounded-lg p-3">
-        <IconInfoCircle className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-muted-foreground">
-          Voice models run entirely in your browser. Whisper handles speech
-          recognition, Kokoro handles text-to-speech. Both are required for the
-          full voice experience on the /voice page.
-        </p>
-      </div>
+      <Card className="shadow-none">
+        <CardContent className="flex items-start gap-3 p-3">
+          <IconInfoCircle className="h-4 w-4 text-muted flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-muted">
+            Voice models run entirely in your browser. Whisper handles speech
+            recognition, Kokoro handles text-to-speech. Both are required for
+            the full voice experience on the /voice page.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* STT models */}
       <div className="space-y-3">
@@ -146,7 +150,7 @@ export default function VoiceModelsSection() {
               Preview
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             Choose the voice used for spoken replies.
           </p>
         </div>
@@ -154,13 +158,13 @@ export default function VoiceModelsSection() {
 
       {/* Error states */}
       {sttState === "error" && sttMessage && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-          <p className="text-xs text-destructive">STT: {sttMessage}</p>
+        <div className="rounded-lg border border-danger/30 bg-danger/10 p-3">
+          <p className="text-xs text-danger">STT: {sttMessage}</p>
         </div>
       )}
       {ttsState === "error" && ttsMessage && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-          <p className="text-xs text-destructive">TTS: {ttsMessage}</p>
+        <div className="rounded-lg border border-danger/30 bg-danger/10 p-3">
+          <p className="text-xs text-danger">TTS: {ttsMessage}</p>
         </div>
       )}
     </div>

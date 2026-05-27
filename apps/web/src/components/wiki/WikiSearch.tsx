@@ -33,7 +33,7 @@ export default function WikiSearch({ onSelect }: WikiSearchProps) {
       <div className="relative">
         <IconSearch
           size={14}
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
         />
         <Input
           value={raw}
@@ -45,13 +45,9 @@ export default function WikiSearch({ onSelect }: WikiSearchProps) {
       {isSearching && (
         <div className="max-h-48 overflow-y-auto scrollbar-thin rounded-md">
           {results === undefined ? (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">
-              Searching…
-            </p>
+            <p className="px-2 py-1.5 text-xs text-muted">Searching…</p>
           ) : results.length === 0 ? (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">
-              No matches.
-            </p>
+            <p className="px-2 py-1.5 text-xs text-muted">No matches.</p>
           ) : (
             <ul className="flex flex-col">
               {results.map((node) => (
@@ -65,18 +61,12 @@ export default function WikiSearch({ onSelect }: WikiSearchProps) {
                       setRaw("");
                     }}
                     disabled={node.kind !== "document"}
-                    className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground/90 hover:bg-muted/70 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground/90 hover:bg-surface-tertiary/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {node.kind === "folder" ? (
-                      <IconFolder
-                        size={14}
-                        className="text-muted-foreground shrink-0"
-                      />
+                      <IconFolder size={14} className="text-muted shrink-0" />
                     ) : (
-                      <IconFileText
-                        size={14}
-                        className="text-muted-foreground shrink-0"
-                      />
+                      <IconFileText size={14} className="text-muted shrink-0" />
                     )}
                     <span className="truncate">{node.title}</span>
                   </button>

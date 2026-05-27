@@ -45,35 +45,34 @@ export default function VersionChainBar({
   const canGoForward = selectedVersion < total;
 
   return (
-    <div className="rounded-lg bg-muted/40 p-3 mb-4">
-      {/* Version navigator */}
-      <div className="flex items-center justify-center gap-2 mb-2">
+    <div className="rounded-lg bg-surface-secondary p-4">
+      <div className="flex items-center justify-center gap-2">
         <button
           type="button"
           onClick={() => canGoBack && onSelectVersion(selectedVersion - 1)}
           disabled={!canGoBack}
           className={cn(
-            "p-1 rounded transition-colors",
+            "rounded-lg p-1.5 transition-[background-color]",
             canGoBack
-              ? "hover:bg-muted text-foreground"
-              : "text-muted-foreground/40 cursor-not-allowed",
+              ? "text-foreground hover:bg-surface-tertiary"
+              : "cursor-not-allowed text-muted/40",
           )}
           aria-label="Previous version"
         >
           <IconChevronLeft size={16} />
         </button>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 px-1">
           {versions.map((v) => (
             <button
               key={v.version}
               type="button"
               onClick={() => onSelectVersion(v.version)}
               className={cn(
-                "w-3 h-3 rounded-full transition-all",
+                "h-2.5 rounded-full transition-[width,background-color]",
                 v.version === selectedVersion
-                  ? "bg-primary scale-125"
-                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50",
+                  ? "w-6 bg-foreground"
+                  : "w-2.5 bg-surface-tertiary hover:bg-foreground/40",
               )}
               aria-label={`Version ${v.version}`}
               aria-current={v.version === selectedVersion ? "true" : undefined}
@@ -86,10 +85,10 @@ export default function VersionChainBar({
           onClick={() => canGoForward && onSelectVersion(selectedVersion + 1)}
           disabled={!canGoForward}
           className={cn(
-            "p-1 rounded transition-colors",
+            "rounded-lg p-1.5 transition-[background-color]",
             canGoForward
-              ? "hover:bg-muted text-foreground"
-              : "text-muted-foreground/40 cursor-not-allowed",
+              ? "text-foreground hover:bg-surface-tertiary"
+              : "cursor-not-allowed text-muted/40",
           )}
           aria-label="Next version"
         >
@@ -97,20 +96,20 @@ export default function VersionChainBar({
         </button>
       </div>
 
-      {/* Version indicator */}
-      <div className="text-center text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">v{selectedVersion}</span>
-        {" of "}
-        {total}
-        {firstVersion && lastVersion && (
+      <p className="mt-3 text-center text-xs text-muted">
+        <span className="font-medium tabular-nums text-foreground">
+          v{selectedVersion}
+        </span>
+        <span> of {total}</span>
+        {firstVersion && lastVersion ? (
           <>
-            {" · "}
-            Created {formatDate(firstVersion.createdAt)}
-            {" · "}
-            Last: {formatTimeAgo(lastVersion.createdAt)}
+            <span className="text-muted"> · </span>
+            <span>Created {formatDate(firstVersion.createdAt)}</span>
+            <span className="text-muted"> · </span>
+            <span>Latest {formatTimeAgo(lastVersion.createdAt)}</span>
           </>
-        )}
-      </div>
+        ) : null}
+      </p>
     </div>
   );
 }

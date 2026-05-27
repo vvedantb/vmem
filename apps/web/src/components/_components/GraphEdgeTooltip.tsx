@@ -57,13 +57,13 @@ export default function GraphEdgeTooltip({
 
   return (
     <div
-      className="absolute glass-panel rounded-lg p-3 max-w-xs pointer-events-none z-10 hidden md:block"
+      className="absolute glass-panel-strong rounded-lg p-3 max-w-xs pointer-events-none z-10 hidden md:block"
       style={{ left, top }}
     >
       <p className="font-medium text-foreground text-xs mb-1">
         {sourceTitle} ↔ {targetTitle}
       </p>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted">
         {label}
         {reason === "semantic similarity" && score !== undefined
           ? ` · semantic similarity (${Math.round(score * 100)}%)`

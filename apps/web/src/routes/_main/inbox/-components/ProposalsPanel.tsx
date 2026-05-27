@@ -1,4 +1,4 @@
-import { Badge, Skeleton } from "@vmem/ui";
+import { Badge, Card, CardContent, Skeleton } from "@vmem/ui";
 import { IconSparkles } from "@tabler/icons-react";
 import { toast } from "sonner";
 import RunDreamModeButton from "@/components/proposals/RunDreamModeButton";
@@ -49,7 +49,7 @@ export function ProposalsPanel() {
               {countLabel}
             </Badge>
           </div>
-          <p className="max-w-2xl text-sm text-muted-foreground text-balance">
+          <p className="max-w-2xl text-sm text-muted text-balance">
             Approve to apply changes to your memory graph, or dismiss to clear
             each suggestion.
           </p>
@@ -120,20 +120,17 @@ function LoadingSkeleton() {
         <Skeleton className="h-3 w-full max-w-md rounded" />
       </div>
       {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="relative overflow-hidden rounded-xl bg-muted/40 p-5 pl-6"
-        >
+        <Card key={i} className="relative overflow-hidden shadow-none">
           <div
-            className="absolute inset-y-0 left-0 w-1 bg-muted/80"
+            className="absolute inset-y-0 left-0 z-10 w-1 bg-surface-tertiary"
             aria-hidden
           />
-          <div className="space-y-3">
+          <CardContent className="space-y-3 p-5 pl-6">
             <Skeleton className="h-3 w-40 rounded" />
             <Skeleton className="h-4 w-64 rounded" />
             <Skeleton className="h-20 w-full rounded-lg" />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );
@@ -141,22 +138,20 @@ function LoadingSkeleton() {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl bg-muted/40 px-6 py-16 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/60">
-        <IconSparkles
-          size={28}
-          className="text-muted-foreground"
-          stroke={1.5}
-        />
-      </div>
-      <h3 className="mb-1 text-base font-medium text-foreground">
-        No pending proposals
-      </h3>
-      <p className="mb-6 max-w-sm text-sm text-muted-foreground text-balance">
-        Proposals appear when vmem spots a fact conflict, or when Dream Mode
-        surfaces insights, connections, and anomalies across your memories.
-      </p>
-      <RunDreamModeButton />
-    </div>
+    <Card className="shadow-none">
+      <CardContent className="flex flex-col items-center justify-center px-6 py-16 text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
+          <IconSparkles size={28} className="text-muted" stroke={1.5} />
+        </div>
+        <h3 className="mb-1 text-base font-medium text-foreground">
+          No pending proposals
+        </h3>
+        <p className="mb-6 max-w-sm text-sm text-muted text-balance">
+          Proposals appear when vmem spots a fact conflict, or when Dream Mode
+          surfaces insights, connections, and anomalies across your memories.
+        </p>
+        <RunDreamModeButton />
+      </CardContent>
+    </Card>
   );
 }

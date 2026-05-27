@@ -100,19 +100,19 @@ export default function UnifiedFilterPanel({
 
   const tabBadge = (count: number) =>
     count > 0 ? (
-      <span className="ml-1 rounded-full bg-primary/15 px-1.5 py-0 text-[10px] font-medium tabular-nums text-primary">
+      <span className="ml-1 rounded-full bg-accent/15 px-1.5 py-0 text-[10px] font-medium tabular-nums text-accent">
         {count}
       </span>
     ) : null;
 
   const triggerClass =
-    "flex w-full items-center justify-center sm:justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 data-[state=active]:bg-muted data-[state=active]:text-foreground";
+    "flex w-full items-center justify-center sm:justify-start gap-1.5 rounded-md px-2 py-2 text-xs font-medium text-muted transition-colors hover:bg-surface-tertiary hover:text-foreground data-[state=active]:bg-surface-secondary data-[state=active]:text-foreground";
 
   return (
     <div className="flex flex-col">
       <TabsPrimitive.Root defaultValue="profile" className="flex h-[320px]">
         <TabsPrimitive.List
-          className="flex flex-col justify-start h-full w-12 sm:w-32 shrink-0 border-r border-border p-1 gap-0.5"
+          className="flex flex-col justify-start h-full w-12 sm:w-32 shrink-0 border-r border-separator p-1 gap-0.5"
           aria-orientation="vertical"
         >
           {visibleTabs.includes("profile") && (
@@ -218,8 +218,8 @@ export default function UnifiedFilterPanel({
         </div>
       </TabsPrimitive.Root>
 
-      <div className="flex items-center justify-between border-t border-border px-3 py-2">
-        <span className="text-xs text-muted-foreground">
+      <div className="flex items-center justify-between border-t border-separator px-3 py-2">
+        <span className="text-xs text-muted">
           Showing {filteredCount} of {totalCount} items
         </span>
         {hasActiveFilters && (
@@ -227,7 +227,7 @@ export default function UnifiedFilterPanel({
             variant="ghost"
             size="sm"
             onClick={onClearAll}
-            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+            className="h-6 px-2 text-xs text-muted hover:text-foreground"
           >
             Clear all
           </Button>

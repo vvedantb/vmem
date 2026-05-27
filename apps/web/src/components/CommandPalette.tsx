@@ -177,9 +177,7 @@ export function CommandPalette({ onToggleSidebar }: Props) {
                   style={{ backgroundColor: p.color }}
                 />
                 <span>{p.name}</span>
-                {p.teamId && (
-                  <IconUsers className="ml-auto text-muted-foreground" />
-                )}
+                {p.teamId && <IconUsers className="ml-auto text-muted" />}
               </CommandItem>
             ))}
           </CommandGroup>

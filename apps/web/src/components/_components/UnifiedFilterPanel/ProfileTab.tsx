@@ -23,20 +23,20 @@ export default function ProfileTab({
       value="profile"
       className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
     >
-      <div className="p-2 border-b border-border">
+      <div className="p-2 border-b border-separator">
         <button
           type="button"
           onClick={() => onProfileChange(null)}
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
             !selectedProfileId
-              ? "bg-accent text-accent-foreground font-medium"
-              : "hover:bg-muted/50",
+              ? "bg-surface-secondary text-foreground font-medium"
+              : "hover:bg-surface-tertiary",
           )}
         >
           <IconUsers size={14} />
           All Profiles
-          <span className="ml-auto text-muted-foreground/50 tabular-nums">
+          <span className="ml-auto text-muted/50 tabular-nums">
             {totalCount}
           </span>
         </button>
@@ -48,7 +48,7 @@ export default function ProfileTab({
             <Skeleton className="h-8 w-full" />
           </div>
         ) : profiles.length === 0 ? (
-          <div className="p-3 text-xs text-muted-foreground text-center">
+          <div className="p-3 text-xs text-muted text-center">
             No profiles found
           </div>
         ) : (
@@ -60,10 +60,10 @@ export default function ProfileTab({
                 type="button"
                 onClick={() => onProfileChange(profile._id)}
                 className={cn(
-                  "flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors border-b border-border/40 last:border-0",
+                  "flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors border-b border-separator last:border-0",
                   isSelected
-                    ? "bg-accent text-accent-foreground"
-                    : "hover:bg-muted/50",
+                    ? "bg-surface-secondary text-foreground"
+                    : "hover:bg-surface-tertiary",
                 )}
               >
                 <div

@@ -94,12 +94,16 @@ Shadows:
 Borders:
 
 - No borders for visual separation between layout regions (sidebar edge, section dividers, header/footer separators). Use background color contrast instead.
-- No borders on cards, accordion items, or content containers. Use `bg-muted/40` or similar tonal shift.
+- No borders on cards, accordion items, or content containers. Use `bg-surface-secondary/40` or similar tonal shift.
 - No borders on active/selected/hover states. Background color change alone indicates state.
 - Borders allowed only for: form element affordance (inputs, selects) and structural metaphors (e.g. browser-tab in SandboxTabBar).
 
 Layout & Surface Colors:
 
+- HeroUI tokens in `apps/web/src/globals.css` — see TOKEN GUIDE comment at top of file.
+- App shell: `MainShell` → outer `bg-background`, main card `bg-surface`, sidebar `bg-background`.
+- Nested blocks on surface: `bg-surface-secondary` or `/40` opacity; hover → `bg-surface-tertiary`.
+- `--muted` is secondary **text** only — never a resting row/card background (use surface tokens).
 - Sidebar is always the darker surface, main content the lighter surface (both light and dark mode).
 - Hierarchy comes from: tonal surface contrast > whitespace > typography weight/size.
 
@@ -108,7 +112,7 @@ Hover & Interaction States:
 - Hover: `hover:bg-*` (background shift). Never `hover:border-*` or `hover:shadow-*`.
 - Active/selected: `bg-*` + `ring-*` if emphasis needed. Never border.
 - Keep transitions to `transition-[transform,background-color]` — no `box-shadow` or `border-color` in transitions.
-- **Inline list rows** (memories list, API request log, activity log, etc.): default **flat/transparent** — never a resting `bg-muted/*` on each row. Background only on `hover:` (and `focus:` / selected when applicable). Pattern: `hover:bg-muted/80 dark:hover:bg-accent/50` (see `ListItemRow`, `LogsTable`, `ApiLogsTable`). Use `bg-muted/40` on **containers** (summary cards, empty states, panels), not on every item inside a list.
+- **Inline list rows** (memories list, API request log, activity log, etc.): default **flat/transparent** — never a resting surface tint on each row. Background only on `hover:` (and `focus:` / selected when applicable). Pattern: `hover:bg-surface-tertiary/50` (see `ListItemRow`, `LogsTable`, `ApiLogsTable`). Use `bg-surface-secondary/40` on **containers** (summary cards, empty states, panels), not on every item inside a list.
 
 Spacing:
 

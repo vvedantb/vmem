@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -9,9 +10,11 @@ import {
   DialogTitle,
   Button,
 } from "@vmem/ui";
-import type { FunctionReturnType } from "convex/server";
-import { toast } from "sonner";
 import { api, type Doc } from "@vmem/backend";
+import {
+  isConnectorConnected,
+  isConnectorConnectable,
+} from "@/components/settings/connector-utils";
 import OAuthModal from "@/components/OAuthModal";
 import { GitHubConnectorControls } from "./GitHubConnectorControls";
 import {
@@ -39,18 +42,6 @@ const iconMap: Record<
   IconBrandLinear: LinearIcon,
 };
 
-type GitHubConnection = FunctionReturnType<typeof api.github.getConnection>;
-
-function isConnectorConnected(
-  connector: Doc<"connectors">,
-  githubConnection: GitHubConnection | undefined,
-): boolean {
-  if (connector.name === "GitHub") {
-    return githubConnection !== undefined && githubConnection !== null;
-  }
-  return connector.connectionStatus === "connected";
-}
-
 interface BrowseConnectorsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -69,15 +60,15 @@ export default function BrowseConnectorsModal({
 
   const availableConnectors = useMemo(() => {
     return connectors
-      .filter((connector) => !isConnectorConnected(connector, githubConnection))
+      .filter(
+        (connector) =>
+          isConnectorConnectable(connector) &&
+          !isConnectorConnected(connector, githubConnection),
+      )
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [connectors, githubConnection]);
 
   const handleConnect = (connector: Doc<"connectors">) => {
-    if (!connector.provider) {
-      toast.info(`${connector.name} support coming soon!`);
-      return;
-    }
     setOauthConnector(connector);
   };
 
@@ -98,7 +89,7 @@ export default function BrowseConnectorsModal({
           </DialogHeader>
           <div className="space-y-1 overflow-hidden">
             {availableConnectors.length === 0 ? (
-              <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+              <p className="px-3 py-6 text-center text-sm text-muted">
                 All connectors are connected.
               </p>
             ) : null}
@@ -110,16 +101,16 @@ export default function BrowseConnectorsModal({
               return (
                 <div
                   key={connector._id}
-                  className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-muted/50 transition-colors min-w-0"
+                  className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-surface-tertiary/50 transition-colors min-w-0"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-muted/60 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-surface-secondary/60 flex items-center justify-center flex-shrink-0">
                     <Icon size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">
                       {connector.name}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-xs text-muted truncate">
                       {connector.description}
                     </p>
                   </div>
@@ -129,15 +120,10 @@ export default function BrowseConnectorsModal({
                     ) : (
                       <Button
                         size="sm"
+                        variant="secondary"
                         onClick={() => handleConnect(connector)}
-                        disabled={!hasProvider}
-                        className={
-                          hasProvider
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground cursor-not-allowed"
-                        }
                       >
-                        {hasProvider ? "Connect" : "Soon"}
+                        Connect
                       </Button>
                     )}
                   </div>

@@ -20,7 +20,7 @@ interface PulsingRingsProps {
 export function PulsingRings({
   size,
   ringCount = 3,
-  color = "#f87171", // red-400
+  color = "var(--danger)",
   active = true,
 }: PulsingRingsProps) {
   if (!active) return null;

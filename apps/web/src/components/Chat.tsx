@@ -45,6 +45,7 @@ import {
 } from "@vmem/ui";
 import { Link } from "@tanstack/react-router";
 import ChatMessageItem from "@/components/chat/_components/ChatMessageItem";
+import LocalModelProviderIcon from "@/components/LocalModelProviderIcon";
 import { useLocalChat } from "@/hooks/useLocalChat";
 import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
 import { findModel, groupByProvider } from "@/lib/local-models";
@@ -95,10 +96,14 @@ function ModelSelector() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-full bg-default px-2 py-0.5 text-[11px] text-muted transition-colors hover:bg-default/78 hover:text-foreground disabled:opacity-50"
           disabled={isLoading}
         >
-          <IconCpu className="size-3" stroke={1.5} />
+          {loadedInfo ? (
+            <LocalModelProviderIcon provider={loadedInfo.provider} size={12} />
+          ) : (
+            <IconCpu className="size-3" stroke={1.5} />
+          )}
           {label}
         </button>
       </DropdownMenuTrigger>
@@ -107,14 +112,25 @@ function ModelSelector() {
         <DropdownMenuSeparator />
         {Array.from(providerGroups).map(([provider, models]) => (
           <DropdownMenuSub key={provider}>
-            <DropdownMenuSubTrigger>{provider}</DropdownMenuSubTrigger>
+            <DropdownMenuSubTrigger className="gap-2">
+              <LocalModelProviderIcon provider={provider} size={14} />
+              {provider}
+            </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               <DropdownMenuRadioGroup
                 value={loadedModelId ?? ""}
                 onValueChange={handleSelect}
               >
                 {models.map((model) => (
-                  <DropdownMenuRadioItem key={model.id} value={model.id}>
+                  <DropdownMenuRadioItem
+                    key={model.id}
+                    value={model.id}
+                    className="gap-2"
+                  >
+                    <LocalModelProviderIcon
+                      provider={model.provider}
+                      size={14}
+                    />
                     {model.name}
                   </DropdownMenuRadioItem>
                 ))}
@@ -177,7 +193,7 @@ export default function Chat() {
   if (!isThreadReady) {
     return (
       <div className="flex h-full items-center justify-center">
-        <VmemSpinner size={24} className="text-muted-foreground" />
+        <VmemSpinner size={24} className="text-muted" />
       </div>
     );
   }
@@ -198,7 +214,7 @@ export default function Chat() {
             size="sm"
             onClick={() => setClearOpen(true)}
             disabled={isClearing || isStreaming}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted hover:text-foreground"
           >
             {isClearing ? (
               <IconLoader2 className="size-4 animate-spin" />
@@ -215,20 +231,20 @@ export default function Chat() {
           {messages.length === 0 && needsModel && (
             <ConversationEmptyState
               icon={
-                <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
+                <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-surface">
                   <img
                     width={22}
                     height={22}
                     alt="vmem"
                     src="/icon-dark.svg"
-                    className="block dark:hidden outline outline-1 -outline-offset-1 outline-black/10 rounded-full"
+                    className="block dark:hidden outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
                   />
                   <img
                     width={22}
                     height={22}
                     alt="vmem"
                     src="/icon-light.svg"
-                    className="hidden dark:block outline outline-1 -outline-offset-1 outline-white/10 rounded-full"
+                    className="hidden dark:block outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
                   />
                 </div>
               }
@@ -237,7 +253,7 @@ export default function Chat() {
             >
               <Link
                 to="/settings/preferences"
-                className="mt-2 text-xs text-muted-foreground underline-offset-4 hover:underline"
+                className="mt-2 text-xs text-muted underline-offset-4 hover:underline"
               >
                 Or manage models in Settings
               </Link>
@@ -247,20 +263,20 @@ export default function Chat() {
           {messages.length === 0 && !needsModel && (
             <ConversationEmptyState
               icon={
-                <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-black">
+                <div className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-surface">
                   <img
                     width={22}
                     height={22}
                     alt="vmem"
                     src="/icon-dark.svg"
-                    className="block dark:hidden outline outline-1 -outline-offset-1 outline-black/10 rounded-full"
+                    className="block dark:hidden outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
                   />
                   <img
                     width={22}
                     height={22}
                     alt="vmem"
                     src="/icon-light.svg"
-                    className="hidden dark:block outline outline-1 -outline-offset-1 outline-white/10 rounded-full"
+                    className="hidden dark:block outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
                   />
                 </div>
               }
@@ -321,7 +337,7 @@ export default function Chat() {
           if (!open && !isClearing) setClearOpen(false);
         }}
       >
-        <DialogContent className="sm:max-w-sm bg-card border border-border">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               Clear chat history
@@ -331,14 +347,14 @@ export default function Chat() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-start gap-3 py-4">
-            <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
-              <IconAlertTriangle size={20} className="text-destructive" />
+            <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center flex-shrink-0">
+              <IconAlertTriangle size={20} className="text-danger" />
             </div>
             <div>
               <p className="text-foreground">
                 Are you sure you want to clear this chat?
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted mt-1">
                 This deletes every message in the thread. This action cannot be
                 undone — but you can keep chatting in a fresh thread right
                 after.
@@ -350,14 +366,14 @@ export default function Chat() {
               variant="ghost"
               onClick={() => setClearOpen(false)}
               disabled={isClearing}
-              className="text-muted-foreground"
+              className="text-muted"
             >
               Cancel
             </Button>
             <Button
               onClick={handleConfirmClear}
               disabled={isClearing}
-              className="bg-destructive text-primary-foreground"
+              className="bg-danger text-danger-foreground"
             >
               {isClearing ? (
                 <>

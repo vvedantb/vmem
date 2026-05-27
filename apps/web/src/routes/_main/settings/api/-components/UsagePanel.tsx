@@ -40,7 +40,7 @@ export function UsagePanel() {
   if (!metrics || !logs) return <ApiLogsLoadingSkeleton />;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex h-full min-h-0 flex-col gap-8">
       <ApiLogsSummary
         totalRequests={metrics.totalRequests}
         successRate={metrics.successRate}

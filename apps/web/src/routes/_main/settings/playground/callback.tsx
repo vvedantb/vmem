@@ -25,7 +25,7 @@ function PlaygroundCallbackPage() {
 
   return (
     <div className="flex h-full items-center justify-center">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-muted">
         Connecting... you can close this window.
       </p>
     </div>

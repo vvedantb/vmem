@@ -46,7 +46,7 @@ export default function VoiceHistoryDrawer({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="absolute bottom-full left-0 right-0 mb-2 glass-panel-subtle rounded-2xl overflow-hidden"
+            className="absolute bottom-full left-0 right-0 mb-2 bg-surface-secondary/40 rounded-lg overflow-hidden"
             initial={{ opacity: 0, y: 12, height: 0 }}
             animate={{ opacity: 1, y: 0, height: "auto" }}
             exit={{ opacity: 0, y: 12, height: 0 }}
@@ -56,7 +56,7 @@ export default function VoiceHistoryDrawer({
               ref={scrollRef}
               className="max-h-56 sm:max-h-72 overflow-y-auto scrollbar-thin p-4 space-y-1"
             >
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+              <p className="text-xs font-medium text-muted uppercase tracking-wider mb-3">
                 Conversation
               </p>
               {messages.map((message) => (
@@ -77,8 +77,8 @@ export default function VoiceHistoryDrawer({
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
           "mx-auto flex items-center gap-2 rounded-full px-4 py-2",
-          "text-xs font-medium text-muted-foreground",
-          "glass-interactive",
+          "text-xs font-medium text-muted",
+          "transition-colors hover:bg-surface-tertiary/50",
         )}
         whileTap={{ scale: 0.97 }}
         aria-label={isOpen ? "Hide conversation" : "Show conversation"}

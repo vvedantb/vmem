@@ -14,7 +14,7 @@ export function TeamsSearchBar({ value, onChange }: TeamsSearchBarProps) {
     <div className="relative mb-2">
       <IconSearch
         size={14}
-        className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted"
       />
       <Input
         value={value}

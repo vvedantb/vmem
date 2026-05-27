@@ -45,17 +45,17 @@ export default function FileListView({
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-border text-left">
+          <tr className="border-b border-separator text-left">
             <th className="w-10 px-3 py-2">
               <Checkbox checked={isAllSelected} onCheckedChange={onSelectAll} />
             </th>
-            <th className="py-2 pr-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="py-2 pr-3 text-xs font-medium text-muted uppercase tracking-wider">
               Name
             </th>
-            <th className="hidden md:table-cell py-2 pr-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="hidden md:table-cell py-2 pr-3 text-xs font-medium text-muted uppercase tracking-wider">
               Size
             </th>
-            <th className="hidden md:table-cell py-2 pr-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="hidden md:table-cell py-2 pr-3 text-xs font-medium text-muted uppercase tracking-wider">
               Modified
             </th>
             <th className="w-10 py-2 pr-3">

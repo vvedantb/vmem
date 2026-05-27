@@ -4,12 +4,7 @@ import { useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { Card, CardContent, Button, Badge, Progress } from "@vmem/ui";
 import { toast } from "sonner";
-import {
-  IconLoader2,
-  IconAlertCircle,
-  IconClock,
-  IconClockHour4,
-} from "@tabler/icons-react";
+import { IconLoader2, IconAlertCircle, IconClock } from "@tabler/icons-react";
 import { api, type Doc } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
 import { GitHubConnectorControls } from "./settings/GitHubConnectorControls";
@@ -74,10 +69,6 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
       connector.lastSyncAt !== undefined);
 
   const handleConnect = () => {
-    if (!hasProvider) {
-      toast.info(`${connector.name} support coming soon!`);
-      return;
-    }
     setShowOAuthModal(true);
   };
 
@@ -100,10 +91,10 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
 
   return (
     <>
-      <Card className="bg-muted/50 shadow-none">
+      <Card className="shadow-none">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-lg bg-muted/60 flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-lg bg-surface-secondary/60 flex items-center justify-center flex-shrink-0">
               <Icon size={24} />
             </div>
             <div className="flex-1 min-w-0">
@@ -111,14 +102,8 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                 <h3 className="font-medium text-foreground">
                   {connector.name}
                 </h3>
-                {!hasProvider && !isConnected && (
-                  <Badge className="bg-muted text-muted-foreground gap-1">
-                    <IconClockHour4 size={12} stroke={2} />
-                    Coming Soon
-                  </Badge>
-                )}
                 {isSyncing && (
-                  <Badge className="bg-info/10 text-info gap-1">
+                  <Badge className="bg-accent/10 text-accent gap-1">
                     <IconLoader2
                       size={12}
                       stroke={2}
@@ -128,18 +113,16 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                   </Badge>
                 )}
                 {connector.syncStatus === "error" && (
-                  <Badge className="bg-destructive/10 text-destructive gap-1">
+                  <Badge className="bg-danger/10 text-danger gap-1">
                     <IconAlertCircle size={12} stroke={2} />
                     Error
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {connector.description}
-              </p>
+              <p className="text-sm text-muted mt-1">{connector.description}</p>
 
               {isGitHub && githubConnection ? (
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-sm text-muted">
                   Connected as{" "}
                   <span className="font-medium text-foreground">
                     {githubConnection.githubUsername}
@@ -148,7 +131,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
               ) : null}
 
               {isConnected && !isGitHub && (
-                <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-4 mt-3 text-xs text-muted">
                   <span className="flex items-center gap-1">
                     <IconClock size={14} />
                     Last sync: {formatRelativeTime(connector.lastSyncAt)}
@@ -163,16 +146,16 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                 <div className="mt-3 space-y-1">
                   <Progress
                     value={connector.syncProgress}
-                    className="h-1.5 bg-muted [&>div]:bg-primary [&>div]:dark:bg-card"
+                    className="h-1.5 bg-surface-secondary [&>div]:bg-accent"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted">
                     {connector.syncProgress}% complete
                   </p>
                 </div>
               )}
 
               {connector.errorMessage && (
-                <p className="text-xs text-destructive mt-2">
+                <p className="text-xs text-danger mt-2">
                   {connector.errorMessage}
                 </p>
               )}
@@ -211,17 +194,8 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                     onDeleteData={() => setShowDeleteDataDialog(true)}
                   />
                 ) : null}
-                <Button
-                  size="sm"
-                  onClick={handleConnect}
-                  disabled={!hasProvider}
-                  className={
-                    hasProvider
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "bg-muted text-muted-foreground cursor-not-allowed"
-                  }
-                >
-                  {hasProvider ? "Connect" : "Coming Soon"}
+                <Button size="sm" variant="secondary">
+                  Connect
                 </Button>
               </>
             )}

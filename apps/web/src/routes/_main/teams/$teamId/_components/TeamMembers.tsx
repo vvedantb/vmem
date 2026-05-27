@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button, Badge } from "@vmem/ui";
-import { IconPlus, IconTrash, IconLoader2 } from "@tabler/icons-react";
+import { Badge, Button, Card, CardContent } from "@vmem/ui";
+import { useUser } from "@clerk/clerk-react";
+import {
+  IconPlus,
+  IconTrash,
+  IconLoader2,
+  IconUser,
+} from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { TeamDetail } from "../-team-detail";
 import { AddMemberDialog } from "./AddMemberDialog";
@@ -39,6 +45,8 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
   );
   const [addOpen, setAddOpen] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const currentUser = useQuery(api.users.getMe);
+  const { user: clerkUser } = useUser();
 
   const isOwner = data.role === "owner";
 
@@ -59,7 +67,7 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted">
           {data.members.length}{" "}
           {data.members.length === 1 ? "member" : "members"}
         </div>
@@ -71,61 +79,104 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
         )}
       </div>
 
-      <ul className="flex flex-col gap-1">
-        {data.members.map((m) => {
-          const name =
-            m.fullName ||
-            [m.firstName, m.lastName].filter(Boolean).join(" ") ||
-            m.email ||
-            "Unknown";
-          return (
-            <li
-              key={m.userId}
-              className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-[background-color] hover:bg-muted/80 dark:hover:bg-accent/50"
-            >
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium text-foreground">
-                  {name}
-                </div>
-                {m.email && (
-                  <div className="truncate text-xs text-muted-foreground">
-                    {m.email}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant={m.role === "owner" ? "default" : "secondary"}
-                  className="capitalize"
-                >
-                  {m.role}
-                </Badge>
-                {isOwner && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemove(m.userId, name)}
-                    disabled={removing === m.userId}
-                    className="text-muted-foreground hover:text-destructive"
+      <Card className="shadow-none">
+        <CardContent className="p-2">
+          {data.members.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted">
+              No members yet.
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {data.members.map((m) => {
+                const name =
+                  m.fullName ||
+                  [m.firstName, m.lastName].filter(Boolean).join(" ") ||
+                  m.email ||
+                  "Unknown";
+                const isSelf =
+                  currentUser !== undefined && m.userId === currentUser?._id;
+                const canRemoveMember =
+                  isOwner && !isSelf && currentUser !== undefined;
+                const avatarUrl =
+                  isSelf && clerkUser?.imageUrl
+                    ? clerkUser.imageUrl
+                    : undefined;
+
+                return (
+                  <li
+                    key={m.userId}
+                    className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50"
                   >
-                    {removing === m.userId ? (
-                      <IconLoader2 size={14} className="animate-spin" />
-                    ) : (
-                      <IconTrash size={14} />
-                    )}
-                  </Button>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <MemberAvatar imageUrl={avatarUrl} />
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-foreground">
+                          {name}
+                        </div>
+                        {m.email ? (
+                          <div className="truncate text-xs text-muted">
+                            {m.email}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={m.role === "owner" ? "default" : "secondary"}
+                        className="capitalize"
+                      >
+                        {m.role}
+                      </Badge>
+                      {canRemoveMember ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemove(m.userId, name)}
+                          disabled={removing === m.userId}
+                          className="text-muted hover:text-danger"
+                        >
+                          {removing === m.userId ? (
+                            <IconLoader2 size={14} className="animate-spin" />
+                          ) : (
+                            <IconTrash size={14} />
+                          )}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <AddMemberDialog
         teamId={data.team._id}
         open={addOpen}
         onOpenChange={setAddOpen}
       />
+    </div>
+  );
+}
+
+function MemberAvatar({ imageUrl }: { imageUrl: string | undefined }) {
+  if (imageUrl) {
+    return (
+      <img
+        src={imageUrl}
+        alt=""
+        className="h-8 w-8 shrink-0 rounded-lg object-cover"
+      />
+    );
+  }
+
+  return (
+    <div
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-tertiary/60"
+      aria-hidden
+    >
+      <IconUser size={16} className="text-muted" />
     </div>
   );
 }

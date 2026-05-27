@@ -4,7 +4,7 @@ import { VmemPaths } from "./VmemPaths";
 interface VmemSpinnerProps {
   /** Pixel size for both width and height. Default 24 — same as `IconLoader2 h-6 w-6`. */
   size?: number;
-  /** Extra classes — `currentColor` driven, so `text-muted-foreground` etc. works. */
+  /** Extra classes — `currentColor` driven, so `text-muted` etc. works. */
   className?: string;
 }
 

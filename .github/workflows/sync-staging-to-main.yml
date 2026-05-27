@@ -1,0 +1,105 @@
+name: Sync staging to main
+
+on:
+  schedule:
+    # Daily at 09:00 UTC
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for diff
+        id: diff
+        run: |
+          git fetch origin main staging
+          if git diff --quiet origin/main origin/staging; then
+            echo "has_diff=false" >> "$GITHUB_OUTPUT"
+            echo "main and staging are identical — nothing to sync"
+          else
+            echo "has_diff=true" >> "$GITHUB_OUTPUT"
+            echo "Diff found between main and staging"
+          fi
+
+      - name: Open PR, wait for checks, merge
+        if: steps.diff.outputs.has_diff == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          EXISTING=$(gh pr list \
+            --base main \
+            --head staging \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            PR_NUMBER="$EXISTING"
+            echo "Reusing open PR #$PR_NUMBER"
+          else
+            gh pr create \
+              --base main \
+              --head staging \
+              --title "chore: sync staging → main" \
+              --body "Scheduled daily sync from staging into main. Merges automatically once CI / unit-tests passes."
+            PR_NUMBER=$(gh pr list \
+              --base main \
+              --head staging \
+              --state open \
+              --json number \
+              --jq '.[0].number')
+            echo "Created PR #$PR_NUMBER"
+          fi
+
+          REQUIRED_CHECK="unit-tests"
+          MAX_WAIT_MINUTES=45
+          DEADLINE=$((SECONDS + MAX_WAIT_MINUTES * 60))
+
+          echo "Waiting for CI / $REQUIRED_CHECK on PR #$PR_NUMBER..."
+          while [ "$SECONDS" -lt "$DEADLINE" ]; do
+            STATE=$(gh pr checks "$PR_NUMBER" --json name,state --jq \
+              --arg n "$REQUIRED_CHECK" '.[] | select(.name == $n) | .state' | head -1)
+
+            if [ -z "$STATE" ]; then
+              echo "CI / $REQUIRED_CHECK has not started yet — rechecking in 15s"
+              sleep 15
+              continue
+            fi
+
+            case "$STATE" in
+              SUCCESS)
+                echo "CI / $REQUIRED_CHECK passed"
+                break
+                ;;
+              FAILURE|CANCELLED|TIMED_OUT|ACTION_REQUIRED)
+                echo "CI / $REQUIRED_CHECK did not pass ($STATE) — not merging"
+                gh pr checks "$PR_NUMBER"
+                exit 1
+                ;;
+              *)
+                echo "CI / $REQUIRED_CHECK status: $STATE — rechecking in 15s"
+                sleep 15
+                ;;
+            esac
+          done
+
+          if [ "${STATE:-}" != "SUCCESS" ]; then
+            echo "Timed out waiting for CI / $REQUIRED_CHECK"
+            gh pr checks "$PR_NUMBER"
+            exit 1
+          fi
+
+          gh pr merge "$PR_NUMBER" --merge
+          echo "Merged PR #$PR_NUMBER into main"

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "@vmem/backend";
-import { Button, Input } from "@vmem/ui";
+import { Button, Card, CardContent, Input } from "@vmem/ui";
 import { IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { TeamDetail } from "../-team-detail";
@@ -106,51 +106,55 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
   };
 
   return (
-    <div className="space-y-8 max-w-xl">
-      <section className="space-y-3">
-        <div>
-          <h3 className="text-sm font-medium text-foreground">Team name</h3>
-          <p className="text-xs text-muted-foreground">
-            Renaming the team also updates the shared profile name.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="flex-1"
-          />
-          <Button onClick={handleRename} disabled={!canSave}>
-            {saving ? (
-              <IconLoader2 size={14} className="animate-spin mr-1.5" />
-            ) : null}
-            Save
-          </Button>
-        </div>
-      </section>
+    <div className="space-y-6">
+      <Card className="shadow-none">
+        <CardContent className="space-y-4 p-6">
+          <div>
+            <h3 className="text-base font-medium text-foreground">Team name</h3>
+            <p className="mt-1 text-sm text-muted">
+              Renaming the team also updates the shared profile name.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={handleRename} disabled={!canSave}>
+              {saving ? (
+                <IconLoader2 size={14} className="mr-1.5 animate-spin" />
+              ) : null}
+              Save
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-      <section className="space-y-3">
-        <div>
-          <h3 className="text-sm font-medium text-destructive">Danger zone</h3>
-          <p className="text-xs text-muted-foreground">
-            Deleting a team removes the shared profile and all team memories for
-            every member. This cannot be undone.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={handleDelete}
-          disabled={deleting}
-          className="text-destructive hover:text-destructive"
-        >
-          {deleting ? (
-            <IconLoader2 size={14} className="mr-1.5 animate-spin" />
-          ) : (
-            <IconTrash size={14} className="mr-1.5" />
-          )}
-          Delete team
-        </Button>
-      </section>
+      <Card className="shadow-none">
+        <CardContent className="space-y-4 p-6">
+          <div>
+            <h3 className="text-base font-medium text-danger">Danger zone</h3>
+            <p className="mt-1 text-sm text-muted">
+              Deleting a team removes the shared profile and all team memories
+              for every member. This cannot be undone.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-danger hover:text-danger"
+          >
+            {deleting ? (
+              <IconLoader2 size={14} className="mr-1.5 animate-spin" />
+            ) : (
+              <IconTrash size={14} className="mr-1.5" />
+            )}
+            Delete team
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

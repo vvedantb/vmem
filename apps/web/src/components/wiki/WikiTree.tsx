@@ -150,7 +150,7 @@ export default function WikiTree({
     <div className="flex flex-col min-h-0 flex-1 w-full">
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
         {tree.length === 0 ? (
-          <p className="px-2 py-3 text-xs text-muted-foreground">
+          <p className="px-2 py-3 text-xs text-muted">
             No documents yet. Use Add below to create one.
           </p>
         ) : (
@@ -234,10 +234,10 @@ function TreeItem({
             type="button"
             onClick={handleActivate}
             className={cn(
-              "group w-full flex items-center gap-1.5 rounded-xl px-3 py-2 text-left text-sm transition-[background-color]",
+              "group w-full flex items-center gap-1.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-[background-color,color]",
               isSelected
-                ? "glass-interactive text-foreground dark:bg-muted/80 dark:border-transparent dark:shadow-none"
-                : "text-foreground/80 hover:bg-card/45 dark:hover:bg-muted/40",
+                ? "bg-surface-tertiary text-foreground"
+                : "text-muted hover:bg-surface-tertiary hover:text-foreground",
             )}
             style={{ paddingLeft: `${depth * 12 + 8}px` }}
           >
@@ -246,20 +246,20 @@ function TreeItem({
                 <IconChevronRight
                   size={14}
                   className={cn(
-                    "text-muted-foreground transition-transform",
+                    "text-muted transition-transform",
                     expanded && "rotate-90",
                   )}
                 />
                 {expanded ? (
-                  <IconFolderOpen size={14} className="text-muted-foreground" />
+                  <IconFolderOpen size={14} className="text-muted" />
                 ) : (
-                  <IconFolder size={14} className="text-muted-foreground" />
+                  <IconFolder size={14} className="text-muted" />
                 )}
               </>
             ) : (
               <>
                 <span className="inline-block w-[14px]" />
-                <IconFileText size={14} className="text-muted-foreground" />
+                <IconFileText size={14} className="text-muted" />
               </>
             )}
             <span className="truncate">{item.node.title}</span>
@@ -271,25 +271,25 @@ function TreeItem({
               <ContextMenuItem
                 onSelect={() => onCreateInside(item.node._id, "document")}
               >
-                <IconFileText size={16} className="text-muted-foreground" />
+                <IconFileText size={16} className="text-muted" />
                 New document
               </ContextMenuItem>
               <ContextMenuItem
                 onSelect={() => onCreateInside(item.node._id, "folder")}
               >
-                <IconFolderPlus size={16} className="text-muted-foreground" />
+                <IconFolderPlus size={16} className="text-muted" />
                 New folder
               </ContextMenuItem>
               <ContextMenuSeparator />
             </>
           )}
           <ContextMenuItem onSelect={() => onRequestRename(item.node)}>
-            <IconPencil size={16} className="text-muted-foreground" />
+            <IconPencil size={16} className="text-muted" />
             Rename
           </ContextMenuItem>
           <ContextMenuItem
             onSelect={() => onRequestDelete(item.node)}
-            className="text-destructive focus:text-destructive"
+            className="text-danger focus:text-danger"
           >
             <IconTrash size={16} />
             Delete

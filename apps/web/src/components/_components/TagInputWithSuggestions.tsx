@@ -62,18 +62,14 @@ export default function TagInputWithSuggestions({
     <div className="space-y-3">
       <div className="flex gap-2 flex-wrap">
         {tags.map((tag) => (
-          <Badge
-            key={tag}
-            variant="outline"
-            className="bg-muted border-border text-muted-foreground text-xs gap-1 pr-1"
-          >
+          <Badge key={tag} variant="secondary" className="text-xs gap-1 pr-1">
             {tag}
             <Button
               type="button"
               variant="ghost"
               size="icon-xs"
               onClick={() => removeTag(tag)}
-              className="h-auto w-auto p-0 text-muted-foreground hover:text-foreground"
+              className="h-auto w-auto p-0 text-muted hover:text-foreground"
             >
               <IconX size={14} />
             </Button>
@@ -95,10 +91,10 @@ export default function TagInputWithSuggestions({
           }}
           placeholder="Add a tag and press Enter"
           disabled={disabled}
-          className="h-8 bg-muted/50 border-border text-foreground hover:bg-accent focus-visible:border-ring"
+          className="h-8 rounded-field border-border bg-field-background text-foreground placeholder:text-field-placeholder hover:bg-field-background focus-visible:border-focus"
         />
         {showSuggestions && filteredSuggestions.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 max-h-32 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+          <div className="absolute z-50 w-full mt-1 max-h-32 overflow-y-auto rounded-lg bg-overlay shadow-lg text-overlay-foreground">
             {filteredSuggestions.slice(0, 5).map((item) => (
               <Button
                 key={item.tag}
@@ -106,12 +102,10 @@ export default function TagInputWithSuggestions({
                 variant="ghost"
                 size="sm"
                 onClick={() => selectSuggestion(item.tag)}
-                className="w-full h-auto px-3 py-1.5 text-left flex items-center justify-between hover:bg-accent transition-colors"
+                className="w-full h-auto px-3 py-1.5 text-left flex items-center justify-between hover:bg-surface-tertiary transition-colors"
               >
                 <span className="text-sm text-foreground">{item.tag}</span>
-                <span className="text-xs text-muted-foreground">
-                  {item.count}
-                </span>
+                <span className="text-xs text-muted">{item.count}</span>
               </Button>
             ))}
           </div>

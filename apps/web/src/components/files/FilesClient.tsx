@@ -231,7 +231,7 @@ export default function FilesClient() {
     return (
       <PageContainer title="Files">
         <div className="flex h-full min-h-0 items-center justify-center">
-          <VmemSpinner size={24} className="text-muted-foreground" />
+          <VmemSpinner size={24} className="text-muted" />
         </div>
       </PageContainer>
     );

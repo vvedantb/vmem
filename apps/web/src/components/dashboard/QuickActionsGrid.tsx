@@ -11,6 +11,7 @@ import {
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
+import { Card, CardContent } from "@vmem/ui";
 
 const quickActions: {
   label: string;
@@ -58,50 +59,53 @@ const quickActions: {
 
 export function QuickActionsGrid() {
   return (
-    <motion.section
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-xl bg-muted/40 p-5 sm:p-6"
     >
-      <h2 className="mb-4 text-base font-medium text-foreground sm:mb-5 sm:text-lg">
-        Quick actions
-      </h2>
-      <div className="grid grid-cols-1 gap-2 xs:grid-cols-2">
-        {quickActions.map((action, index) => (
-          <motion.div
-            key={action.label}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.3,
-              delay: 0.34 + index * 0.04,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-          >
-            <Link
-              to={action.href}
-              className="group flex flex-col gap-1.5 rounded-xl bg-muted/30 px-4 py-3.5 transition-[background-color] hover:bg-muted/50"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60 transition-[background-color] group-hover:bg-muted/80">
-                  <action.icon
-                    size={16}
-                    className="text-muted-foreground"
-                    stroke={1.5}
-                  />
-                </div>
-                <span className="text-sm font-medium text-foreground">
-                  {action.label}
-                </span>
-              </div>
-              <p className="pl-11 text-xs text-muted-foreground">
-                {action.description}
-              </p>
-            </Link>
-          </motion.div>
-        ))}
-      </div>
-    </motion.section>
+      <Card className="shadow-none">
+        <CardContent className="p-5 sm:p-6">
+          <h2 className="mb-4 text-base font-medium text-foreground sm:mb-5 sm:text-lg">
+            Quick actions
+          </h2>
+          <div className="grid grid-cols-1 gap-2 xs:grid-cols-2">
+            {quickActions.map((action, index) => (
+              <motion.div
+                key={action.label}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.3,
+                  delay: 0.34 + index * 0.04,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+              >
+                <Link
+                  to={action.href}
+                  className="group flex flex-col gap-1.5 rounded-lg px-4 py-3.5 transition-[background-color] hover:bg-surface-tertiary/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-tertiary/60 transition-[background-color] group-hover:bg-surface-tertiary">
+                      <action.icon
+                        size={16}
+                        className="text-muted"
+                        stroke={1.5}
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-foreground">
+                      {action.label}
+                    </span>
+                  </div>
+                  <p className="pl-11 text-xs text-muted">
+                    {action.description}
+                  </p>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
