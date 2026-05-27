@@ -1,0 +1,42 @@
+---
+title: "Publishing @vmem/sdk"
+description: "npm Trusted Publishing from GitHub Actions (maintainers)"
+---
+
+The SDK is published with [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC). CI does **not** use a long-lived `NPM_TOKEN` for publish.
+
+## One-time npm setup
+
+Before the first successful publish, configure the package on npm:
+
+1. Open [@vmem/sdk on npm](https://www.npmjs.com/package/@vmem/sdk) (or create the package on first manual publish if needed).
+2. **Settings** → **Trusted publishing** → **GitHub Actions**.
+3. Set:
+
+| Field | Value |
+| --- | --- |
+| Repository owner | `vedantb2` |
+| Repository name | `vmem` |
+| Workflow filename | `publish-vmem-sdk.yml` |
+
+4. Save. Fields are case-sensitive and must match exactly.
+
+Optional hardening: **Settings** → **Publishing access** → require 2FA and disallow tokens (trusted publishing still works).
+
+## How releases run
+
+Workflow: `.github/workflows/publish-vmem-sdk.yml`
+
+- **Trigger:** version change in `packages/sdk/package.json` on `main`, or **workflow_dispatch**.
+- **Auth:** GitHub OIDC (`id-token: write`) + npm CLI ≥ 11.5.1.
+- **Publish command:** `npm publish` from `packages/sdk` (not `pnpm publish`).
+
+Bump `version` in `packages/sdk/package.json`, merge to `main`, or re-run the workflow manually.
+
+## Troubleshooting
+
+| Error | Fix |
+| --- | --- |
+| `ENEEDAUTH` / Unable to authenticate | Trusted publisher workflow filename or repo mismatch; confirm `repository` in `package.json` points at `vedantb2/vmem`. |
+| `403` two-factor / bypass 2FA | You are still using `NPM_TOKEN` on the publish step — remove it and use trusted publishing instead. |
+| Version already exists | Bump patch version and push again. |

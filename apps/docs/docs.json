@@ -24,7 +24,8 @@
               "quickstart",
               "architecture",
               "environment",
-              "sdk/quickstart"
+              "sdk/quickstart",
+              "sdk/publishing"
             ]
           },
           {
