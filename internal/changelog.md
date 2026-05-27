@@ -11,6 +11,11 @@
 - **Chat `/chat`**: Local / Cloud toggle (local default). Cloud streams free OpenRouter models that support tool calling.
 - **Backend**: `listFreeChatModels` (cached catalog + fallback ids), shared MCP `toolHandlers`, `initiateStreaming` / `streamAsync` with personal MCP tool parity (~28 tools).
 - **UI**: `ProviderToggle`, `CloudModelSelector`, cloud message provider badge (`vmem-cloud`), OpenRouter key empty state linking to Settings → Secrets.
+  <<<<<<< HEAD
+
+=======
+
+> > > > > > > f5b1c87353f2c2ed357e9222c2473aedc7981120
 
 ## GitHub Actions v6 across workflows — 2026-05-27
 
