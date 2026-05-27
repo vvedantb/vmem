@@ -1,7 +1,7 @@
-import type { z } from "zod";
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { McpScope } from "../profiles/mcpAccess";
+import type { z } from "zod";
 import {
   codebaseContextSchema,
   codebaseGraphSchema,
@@ -26,49 +26,35 @@ import {
   wikiSearchSchema,
   wikiUpdateSchema,
 } from "./schemas";
-import {
-  formatToolResult,
-  isOpenRouterRequired,
-  safe,
-  type MemoryDeleteToolData,
-  type McpAddFromInstructionResult,
-  type StoreFromInstructionResult,
-  type McpCodebaseContextResult,
-  type McpCodebaseGraphResult,
-  type McpCodebaseImpactResult,
-  type McpCodebaseOverviewResult,
-  type McpCodebaseSearchResult,
-  type McpCreateMemoryResult,
-  type McpCreateSkillResult,
-  type McpCreateWikiResult,
-  type McpDeleteSkillResult,
-  type McpDeleteWikiResult,
-  type McpGetSkillResult,
-  type McpGetWikiResult,
-  type McpListCodebasesResult,
-  type McpListProfilesResult,
-  type McpListSkillsResult,
-  type McpListWikiResult,
-  type McpRelatedMemoriesResult,
-  type McpRetrieveMemoriesResult,
-  type McpSearchMemoriesResult,
-  type McpSearchWikiResult,
-  type McpSetActiveProfileResult,
-  type McpUpdateMemoryResult,
-  type McpUpdateSkillResult,
-  type McpUpdateWikiResult,
-  type McpWhoamiResult,
-  type PingToolData,
-  type ToolHandlerResult,
-} from "../../src/mcp/toolResults";
 
-export type { ToolHandlerResult } from "../../src/mcp/toolResults";
-export { formatToolResult } from "../../src/mcp/toolResults";
+export type ToolHandlerResult =
+  | { ok: true; data: unknown }
+  | { ok: false; error: string };
 
 export interface ToolHandlerContext {
   ctx: ActionCtx;
   clerkUserId: string;
   scope: McpScope;
+}
+
+export function formatToolResult(result: ToolHandlerResult): string {
+  if (!result.ok) {
+    return JSON.stringify({ error: result.error }, null, 2);
+  }
+  return JSON.stringify(result.data, null, 2);
+}
+
+async function safe(
+  label: string,
+  fn: () => Promise<unknown>,
+): Promise<ToolHandlerResult> {
+  try {
+    return { ok: true, data: await fn() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error(`[MCP][${label}]`, message);
+    return { ok: false, error: message };
+  }
 }
 
 function scopedClerk(ctx: ToolHandlerContext) {
@@ -81,7 +67,7 @@ function scopedMemory(ctx: ToolHandlerContext) {
 
 export async function runPing(
   ctx: ToolHandlerContext,
-): Promise<ToolHandlerResult<PingToolData>> {
+): Promise<ToolHandlerResult> {
   return {
     ok: true,
     data: {
@@ -94,7 +80,7 @@ export async function runPing(
 
 export async function runWhoami(
   ctx: ToolHandlerContext,
-): Promise<ToolHandlerResult<McpWhoamiResult>> {
+): Promise<ToolHandlerResult> {
   return safe("whoami", () =>
     ctx.ctx.runAction(internal.mcpProfiles.mcpWhoami, scopedClerk(ctx)),
   );
@@ -102,7 +88,7 @@ export async function runWhoami(
 
 export async function runListProfiles(
   ctx: ToolHandlerContext,
-): Promise<ToolHandlerResult<McpListProfilesResult>> {
+): Promise<ToolHandlerResult> {
   return safe("list_profiles", () =>
     ctx.ctx.runAction(internal.mcpProfiles.mcpListProfiles, scopedClerk(ctx)),
   );
@@ -111,7 +97,7 @@ export async function runListProfiles(
 export async function runSetActiveProfile(
   ctx: ToolHandlerContext,
   params: z.infer<typeof setActiveProfileSchema>,
-): Promise<ToolHandlerResult<McpSetActiveProfileResult>> {
+): Promise<ToolHandlerResult> {
   return safe("set_active_profile", () =>
     ctx.ctx.runAction(internal.mcpProfiles.mcpSetActiveProfile, {
       ...scopedClerk(ctx),
@@ -123,7 +109,7 @@ export async function runSetActiveProfile(
 export async function runMemorySearch(
   ctx: ToolHandlerContext,
   params: z.infer<typeof memorySearchSchema>,
-): Promise<ToolHandlerResult<McpSearchMemoriesResult>> {
+): Promise<ToolHandlerResult> {
   return safe("memory_search", () =>
     ctx.ctx.runAction(internal.neo4jActions.mcp.mcpSearchMemories, {
       ...scopedMemory(ctx),
@@ -140,7 +126,7 @@ export async function runMemorySearch(
 export async function runMemoryRetrieve(
   ctx: ToolHandlerContext,
   params: z.infer<typeof memoryRetrieveSchema>,
-): Promise<ToolHandlerResult<McpRetrieveMemoriesResult>> {
+): Promise<ToolHandlerResult> {
   return safe("memory_retrieve", () =>
     ctx.ctx.runAction(internal.neo4jActions.mcp.mcpRetrieveMemories, {
       ...scopedMemory(ctx),
@@ -154,7 +140,7 @@ export async function runMemoryRetrieve(
 export async function runMemoryAdd(
   ctx: ToolHandlerContext,
   params: z.infer<typeof memoryAddSchema>,
-): Promise<ToolHandlerResult<McpCreateMemoryResult>> {
+): Promise<ToolHandlerResult> {
   return safe("memory_add", () =>
     ctx.ctx.runAction(internal.neo4jActions.mcp.mcpCreateMemory, {
       ...scopedMemory(ctx),
@@ -172,19 +158,22 @@ export async function runMemoryAdd(
 export async function runMemoryAddInstruction(
   ctx: ToolHandlerContext,
   params: z.infer<typeof memoryAddInstructionSchema>,
-): Promise<ToolHandlerResult<StoreFromInstructionResult>> {
-  const result = await safe<McpAddFromInstructionResult>(
-    "memory_add_instruction",
-    () =>
-      ctx.ctx.runAction(internal.neo4jActions.mcp.mcpAddFromInstruction, {
-        ...scopedMemory(ctx),
-        instruction: params.instruction,
-        profileId: params.profileId,
-      }),
+): Promise<ToolHandlerResult> {
+  const result = await safe("memory_add_instruction", () =>
+    ctx.ctx.runAction(internal.neo4jActions.mcp.mcpAddFromInstruction, {
+      ...scopedMemory(ctx),
+      instruction: params.instruction,
+      profileId: params.profileId,
+    }),
   );
   if (!result.ok) return result;
 
-  if (isOpenRouterRequired(result.data)) {
+  if (
+    typeof result.data === "object" &&
+    result.data !== null &&
+    "error" in result.data &&
+    result.data.error === "openrouter_required"
+  ) {
     return {
       ok: false,
       error:
@@ -192,13 +181,13 @@ export async function runMemoryAddInstruction(
     };
   }
 
-  return { ok: true, data: result.data };
+  return result;
 }
 
 export async function runMemoryUpdate(
   ctx: ToolHandlerContext,
   params: z.infer<typeof memoryUpdateSchema>,
-): Promise<ToolHandlerResult<McpUpdateMemoryResult>> {
+): Promise<ToolHandlerResult> {
   return safe("memory_update", () =>
     ctx.ctx.runAction(internal.neo4jActions.mcp.mcpUpdateMemory, {
       clerkId: ctx.clerkUserId,
@@ -216,8 +205,8 @@ export async function runMemoryUpdate(
 export async function runMemoryDelete(
   ctx: ToolHandlerContext,
   params: z.infer<typeof memoryDeleteSchema>,
-): Promise<ToolHandlerResult<MemoryDeleteToolData>> {
-  const result = await safe<boolean>("memory_delete", () =>
+): Promise<ToolHandlerResult> {
+  const result = await safe("memory_delete", () =>
     ctx.ctx.runAction(internal.neo4jActions.mcp.mcpDeleteMemory, {
       clerkId: ctx.clerkUserId,
       memoryId: params.id,
@@ -230,7 +219,7 @@ export async function runMemoryDelete(
 export async function runMemoryRelated(
   ctx: ToolHandlerContext,
   params: z.infer<typeof memoryRelatedSchema>,
-): Promise<ToolHandlerResult<McpRelatedMemoriesResult>> {
+): Promise<ToolHandlerResult> {
   return safe("memory_related", () =>
     ctx.ctx.runAction(internal.neo4jActions.mcp.mcpGetRelatedMemories, {
       clerkId: ctx.clerkUserId,
@@ -241,7 +230,7 @@ export async function runMemoryRelated(
 
 export async function runSkillsList(
   ctx: ToolHandlerContext,
-): Promise<ToolHandlerResult<McpListSkillsResult>> {
+): Promise<ToolHandlerResult> {
   return safe("skills_list", () =>
     ctx.ctx.runAction(internal.mcpSkills.mcpListSkills, {
       clerkId: ctx.clerkUserId,
@@ -252,7 +241,7 @@ export async function runSkillsList(
 export async function runSkillsGet(
   ctx: ToolHandlerContext,
   params: z.infer<typeof skillsGetSchema>,
-): Promise<ToolHandlerResult<McpGetSkillResult>> {
+): Promise<ToolHandlerResult> {
   return safe("skills_get", () =>
     ctx.ctx.runAction(internal.mcpSkills.mcpGetSkill, {
       clerkId: ctx.clerkUserId,
@@ -264,7 +253,7 @@ export async function runSkillsGet(
 export async function runSkillsCreate(
   ctx: ToolHandlerContext,
   params: z.infer<typeof skillsCreateSchema>,
-): Promise<ToolHandlerResult<McpCreateSkillResult>> {
+): Promise<ToolHandlerResult> {
   return safe("skills_create", () =>
     ctx.ctx.runAction(internal.mcpSkills.mcpCreateSkill, {
       clerkId: ctx.clerkUserId,
@@ -278,7 +267,7 @@ export async function runSkillsCreate(
 export async function runSkillsUpdate(
   ctx: ToolHandlerContext,
   params: z.infer<typeof skillsUpdateSchema>,
-): Promise<ToolHandlerResult<McpUpdateSkillResult>> {
+): Promise<ToolHandlerResult> {
   return safe("skills_update", () =>
     ctx.ctx.runAction(internal.mcpSkills.mcpUpdateSkill, {
       clerkId: ctx.clerkUserId,
@@ -294,7 +283,7 @@ export async function runSkillsUpdate(
 export async function runSkillsDelete(
   ctx: ToolHandlerContext,
   params: z.infer<typeof skillsDeleteSchema>,
-): Promise<ToolHandlerResult<McpDeleteSkillResult>> {
+): Promise<ToolHandlerResult> {
   return safe("skills_delete", () =>
     ctx.ctx.runAction(internal.mcpSkills.mcpDeleteSkill, {
       clerkId: ctx.clerkUserId,
@@ -305,7 +294,7 @@ export async function runSkillsDelete(
 
 export async function runWikiList(
   ctx: ToolHandlerContext,
-): Promise<ToolHandlerResult<McpListWikiResult>> {
+): Promise<ToolHandlerResult> {
   return safe("wiki_list", () =>
     ctx.ctx.runAction(internal.mcpWiki.mcpListWiki, {
       clerkId: ctx.clerkUserId,
@@ -316,7 +305,7 @@ export async function runWikiList(
 export async function runWikiGet(
   ctx: ToolHandlerContext,
   params: z.infer<typeof wikiGetSchema>,
-): Promise<ToolHandlerResult<McpGetWikiResult>> {
+): Promise<ToolHandlerResult> {
   const result = await safe("wiki_get", () =>
     ctx.ctx.runAction(internal.mcpWiki.mcpGetWiki, {
       clerkId: ctx.clerkUserId,
@@ -333,7 +322,7 @@ export async function runWikiGet(
 export async function runWikiSearch(
   ctx: ToolHandlerContext,
   params: z.infer<typeof wikiSearchSchema>,
-): Promise<ToolHandlerResult<McpSearchWikiResult>> {
+): Promise<ToolHandlerResult> {
   return safe("wiki_search", () =>
     ctx.ctx.runAction(internal.mcpWiki.mcpSearchWiki, {
       clerkId: ctx.clerkUserId,
@@ -345,7 +334,7 @@ export async function runWikiSearch(
 export async function runWikiCreate(
   ctx: ToolHandlerContext,
   params: z.infer<typeof wikiCreateSchema>,
-): Promise<ToolHandlerResult<McpCreateWikiResult>> {
+): Promise<ToolHandlerResult> {
   return safe("wiki_create", () =>
     ctx.ctx.runAction(internal.mcpWiki.mcpCreateWiki, {
       clerkId: ctx.clerkUserId,
@@ -360,7 +349,7 @@ export async function runWikiCreate(
 export async function runWikiUpdate(
   ctx: ToolHandlerContext,
   params: z.infer<typeof wikiUpdateSchema>,
-): Promise<ToolHandlerResult<McpUpdateWikiResult>> {
+): Promise<ToolHandlerResult> {
   return safe("wiki_update", () =>
     ctx.ctx.runAction(internal.mcpWiki.mcpUpdateWiki, {
       clerkId: ctx.clerkUserId,
@@ -375,7 +364,7 @@ export async function runWikiUpdate(
 export async function runWikiDelete(
   ctx: ToolHandlerContext,
   params: z.infer<typeof wikiDeleteSchema>,
-): Promise<ToolHandlerResult<McpDeleteWikiResult>> {
+): Promise<ToolHandlerResult> {
   return safe("wiki_delete", () =>
     ctx.ctx.runAction(internal.mcpWiki.mcpDeleteWiki, {
       clerkId: ctx.clerkUserId,
@@ -386,7 +375,7 @@ export async function runWikiDelete(
 
 export async function runCodebasesList(
   ctx: ToolHandlerContext,
-): Promise<ToolHandlerResult<McpListCodebasesResult>> {
+): Promise<ToolHandlerResult> {
   return safe("codebases_list", () =>
     ctx.ctx.runAction(internal.mcpCodebases.mcpListCodebases, {
       clerkId: ctx.clerkUserId,
@@ -397,7 +386,7 @@ export async function runCodebasesList(
 export async function runCodebaseOverview(
   ctx: ToolHandlerContext,
   params: z.infer<typeof codebaseOverviewSchema>,
-): Promise<ToolHandlerResult<McpCodebaseOverviewResult>> {
+): Promise<ToolHandlerResult> {
   return safe("codebase_overview", () =>
     ctx.ctx.runAction(internal.mcpCodebases.mcpGetCodebaseOverview, {
       clerkId: ctx.clerkUserId,
@@ -409,7 +398,7 @@ export async function runCodebaseOverview(
 export async function runCodebaseSearch(
   ctx: ToolHandlerContext,
   params: z.infer<typeof codebaseSearchSchema>,
-): Promise<ToolHandlerResult<McpCodebaseSearchResult>> {
+): Promise<ToolHandlerResult> {
   return safe("codebase_search", () =>
     ctx.ctx.runAction(internal.mcpCodebases.mcpSearchCodebaseSymbols, {
       clerkId: ctx.clerkUserId,
@@ -424,7 +413,7 @@ export async function runCodebaseSearch(
 export async function runCodebaseContext(
   ctx: ToolHandlerContext,
   params: z.infer<typeof codebaseContextSchema>,
-): Promise<ToolHandlerResult<McpCodebaseContextResult>> {
+): Promise<ToolHandlerResult> {
   return safe("codebase_context", () =>
     ctx.ctx.runAction(internal.mcpCodebases.mcpGetCodebaseSymbolContext, {
       clerkId: ctx.clerkUserId,
@@ -437,7 +426,7 @@ export async function runCodebaseContext(
 export async function runCodebaseImpact(
   ctx: ToolHandlerContext,
   params: z.infer<typeof codebaseImpactSchema>,
-): Promise<ToolHandlerResult<McpCodebaseImpactResult>> {
+): Promise<ToolHandlerResult> {
   return safe("codebase_impact", () =>
     ctx.ctx.runAction(internal.mcpCodebases.mcpGetCodebaseImpact, {
       clerkId: ctx.clerkUserId,
@@ -452,7 +441,7 @@ export async function runCodebaseImpact(
 export async function runCodebaseGraph(
   ctx: ToolHandlerContext,
   params: z.infer<typeof codebaseGraphSchema>,
-): Promise<ToolHandlerResult<McpCodebaseGraphResult>> {
+): Promise<ToolHandlerResult> {
   return safe("codebase_graph", () =>
     ctx.ctx.runAction(internal.mcpCodebases.mcpGetCodebaseGraph, {
       clerkId: ctx.clerkUserId,

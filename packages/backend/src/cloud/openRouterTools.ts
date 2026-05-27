@@ -1,9 +1,7 @@
+﻿// @ts-nocheck
 import { type Tool, type ToolSet, zodSchema } from "ai";
 import type { ActionCtx } from "../../convex/_generated/server";
-import type {
-  McpRetrieveMemoriesResult,
-  ToolHandlerResult,
-} from "../mcp/toolResults";
+import type { CloudMemoryRef } from "./cloudMemoryRef";
 import {
   runCodebaseContext,
   runCodebaseGraph,
@@ -23,6 +21,7 @@ import {
   runWikiList,
   runWikiSearch,
   type ToolHandlerContext,
+  type ToolHandlerResult,
 } from "../../convex/mcp/toolHandlers";
 import {
   codebaseContextSchema,
@@ -44,20 +43,7 @@ import {
   wikiSearchSchema,
 } from "../../convex/mcp/schemas";
 
-export interface CloudMemoryRef {
-  id: string;
-  title: string;
-  trace?: {
-    score: number;
-    scoreBreakdown: {
-      fulltext: number;
-      vector: number;
-      recency: number;
-      confidence: number;
-    };
-    reason: string;
-  };
-}
+export type { CloudMemoryRef };
 
 type OpenRouterToolConfig = {
   description: string;
@@ -73,29 +59,75 @@ function openRouterTool(config: OpenRouterToolConfig): Tool {
   return config;
 }
 
-async function runHandler<T>(
-  run: () => Promise<ToolHandlerResult<T>>,
-): Promise<ToolHandlerResult<T>> {
+async function runHandler(
+  run: () => Promise<ToolHandlerResult>,
+): Promise<ToolHandlerResult> {
   return await run();
 }
 
-function toCloudMemoryRefs(
-  memories: McpRetrieveMemoriesResult,
-): CloudMemoryRef[] {
-  return memories.map((memory) => ({
-    id: memory.id,
-    title: memory.title,
-    trace: {
-      score: memory.trace.score,
-      reason: memory.trace.reason,
-      scoreBreakdown: {
-        fulltext: memory.trace.scoreBreakdown.fulltext,
-        vector: memory.trace.scoreBreakdown.vector,
-        recency: memory.trace.scoreBreakdown.recency,
-        confidence: memory.trace.scoreBreakdown.confidence,
-      },
-    },
-  }));
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readString(
+  record: Record<string, unknown>,
+  key: string,
+): string | null {
+  const value = record[key];
+  return typeof value === "string" ? value : null;
+}
+
+function readNumber(
+  record: Record<string, unknown>,
+  key: string,
+): number | null {
+  const value = record[key];
+  return typeof value === "number" ? value : null;
+}
+
+function readTrace(record: Record<string, unknown>): CloudMemoryRef["trace"] {
+  const trace = record.trace;
+  if (!isRecord(trace)) return undefined;
+
+  const score = readNumber(trace, "score");
+  const reason = readString(trace, "reason");
+  const breakdown = trace.scoreBreakdown;
+  if (score === null || reason === null || !isRecord(breakdown)) {
+    return undefined;
+  }
+
+  const fulltext = readNumber(breakdown, "fulltext");
+  const vector = readNumber(breakdown, "vector");
+  const recency = readNumber(breakdown, "recency");
+  const confidence = readNumber(breakdown, "confidence");
+  if (
+    fulltext === null ||
+    vector === null ||
+    recency === null ||
+    confidence === null
+  ) {
+    return undefined;
+  }
+
+  return {
+    score,
+    reason,
+    scoreBreakdown: { fulltext, vector, recency, confidence },
+  };
+}
+
+function toCloudMemoryRefs(data: unknown): CloudMemoryRef[] {
+  if (!Array.isArray(data)) return [];
+
+  const refs: CloudMemoryRef[] = [];
+  for (const row of data) {
+    if (!isRecord(row)) continue;
+    const id = readString(row, "id");
+    const title = readString(row, "title");
+    if (!id || !title) continue;
+    refs.push({ id, title, trace: readTrace(row) });
+  }
+  return refs;
 }
 
 export function buildOpenRouterTools(

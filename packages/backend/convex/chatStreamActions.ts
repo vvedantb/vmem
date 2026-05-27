@@ -1,4 +1,4 @@
-"use node";
+﻿"use node";
 
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
@@ -6,10 +6,7 @@ import { internal } from "./_generated/api";
 import { createCloudAgent } from "./agent";
 import { requireUserEnvVar } from "./lib/envVars";
 import { scheduleLog } from "./lib/openRouter/shared";
-import {
-  buildOpenRouterTools,
-  type CloudMemoryRef,
-} from "../src/cloud/openRouterTools";
+import type { CloudMemoryRef } from "../src/cloud/cloudMemoryRef";
 import {
   buildCloudChatSystemPrompt,
   type SkillIndexEntry,
@@ -47,6 +44,8 @@ export const streamAsync = internalAction({
 
     const systemPrompt = buildCloudChatSystemPrompt({ skills });
     const memoryRefsById = new Map<string, CloudMemoryRef>();
+    const { buildOpenRouterTools } =
+      await import("../src/cloud/openRouterTools");
     const tools = buildOpenRouterTools(ctx, args.clerkId, {
       onMemoryRetrieve: (refs) => addMemoryRefs(memoryRefsById, refs),
     });
