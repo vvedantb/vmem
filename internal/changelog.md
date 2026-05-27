@@ -1,5 +1,9 @@
 # Changelog
 
+## @vmem/sdk README and keywords — 2026-05-27
+
+- **npm package**: Added `README.md` and `keywords` so the registry page documents install and usage; published as `0.1.2`.
+
 ## npm Trusted Publishing for SDK — 2026-05-27
 
 - **Publish workflow uses OIDC**: `publish-vmem-sdk.yml` drops `NPM_TOKEN`; publishes via npm Trusted Publishing with `npm publish` (CLI 11.5.1+).
