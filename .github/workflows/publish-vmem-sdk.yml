@@ -1,4 +1,5 @@
 # Publishes @vmem/sdk via npm Trusted Publishing (OIDC).
+# Version bumps: bump-sdk-version.yml (patch on SDK src changes) → this workflow.
 # npm: @vmem/sdk → Trusted publishing → vedantb2/vmem, publish-vmem-sdk.yml
 name: Publish VMemory SDK
 
