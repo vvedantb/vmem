@@ -57,6 +57,11 @@ export const initiateStreaming = authMutation({
       throw new Error("User identity missing");
     }
 
+    const thread = await getThreadMetadata(ctx, components.agent, { threadId });
+    if (thread.userId !== ctx.userId) {
+      throw new Error("Thread not found or not owned by user");
+    }
+
     const { messageId } = await saveMessage(ctx, components.agent, {
       threadId,
       userId: ctx.userId,

@@ -1,7 +1,7 @@
+import type { z } from "zod";
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { McpScope } from "../profiles/mcpAccess";
-import type { z } from "zod";
 import {
   codebaseContextSchema,
   codebaseGraphSchema,
@@ -60,10 +60,10 @@ import {
   type McpWhoamiResult,
   type PingToolData,
   type ToolHandlerResult,
-} from "./toolResults";
+} from "../../src/mcp/toolResults";
 
-export type { ToolHandlerResult } from "./toolResults";
-export { formatToolResult } from "./toolResults";
+export type { ToolHandlerResult } from "../../src/mcp/toolResults";
+export { formatToolResult } from "../../src/mcp/toolResults";
 
 export interface ToolHandlerContext {
   ctx: ActionCtx;

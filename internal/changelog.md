@@ -1,5 +1,11 @@
 # Changelog
 
+## Cloud chat tool simplification — 2026-05-27
+
+- **Cloud chat**: Limited tool access to read-only memory, skill, wiki, and codebase lookups so automated chat cannot mutate user data.
+- **Backend**: Removed the memory-reference collector side channel; retrieval refs now flow through the cloud tool adapter and are persisted only for retrieved memories.
+- **Security**: Cloud streaming now verifies thread ownership before saving or scheduling assistant work.
+
 ## Cloud chat with free OpenRouter models + vmem tools — 2026-05-23
 
 - **Chat `/chat`**: Local / Cloud toggle (local default). Cloud streams free OpenRouter models that support tool calling.

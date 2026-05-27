@@ -74,7 +74,6 @@ import type * as mcp_oauth from "../mcp/oauth.js";
 import type * as mcp_resources from "../mcp/resources.js";
 import type * as mcp_schemas from "../mcp/schemas.js";
 import type * as mcp_toolHandlers from "../mcp/toolHandlers.js";
-import type * as mcp_toolResults from "../mcp/toolResults.js";
 import type * as mcp_tools from "../mcp/tools.js";
 import type * as mcp_webAppUrl from "../mcp/webAppUrl.js";
 import type * as memoryApi from "../memoryApi.js";
@@ -223,7 +222,6 @@ declare const fullApi: ApiFromModules<{
   "mcp/resources": typeof mcp_resources;
   "mcp/schemas": typeof mcp_schemas;
   "mcp/toolHandlers": typeof mcp_toolHandlers;
-  "mcp/toolResults": typeof mcp_toolResults;
   "mcp/tools": typeof mcp_tools;
   "mcp/webAppUrl": typeof mcp_webAppUrl;
   memoryApi: typeof memoryApi;

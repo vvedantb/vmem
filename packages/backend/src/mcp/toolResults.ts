@@ -1,10 +1,10 @@
 import type { FunctionReturnType } from "convex/server";
-import { internal } from "../_generated/api";
-import type { OpenRouterRequired } from "../neo4jActions/agent/shared";
-import type { StoreFromInstructionResult } from "../neo4jActions/agent/storeFromInstruction";
+import type { internal } from "../../convex/_generated/api";
+import type { OpenRouterRequired } from "../../convex/neo4jActions/agent/shared";
+import type { StoreFromInstructionResult } from "../../convex/neo4jActions/agent/storeFromInstruction";
 
 export type { StoreFromInstructionResult };
-import type { McpScope } from "../profiles/mcpAccess";
+import type { McpScope } from "../../convex/profiles/mcpAccess";
 
 export type ToolHandlerResult<T> =
   | { ok: true; data: T }

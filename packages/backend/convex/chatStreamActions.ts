@@ -6,12 +6,23 @@ import { internal } from "./_generated/api";
 import { createCloudAgent } from "./agent";
 import { requireUserEnvVar } from "./lib/envVars";
 import { scheduleLog } from "./lib/openRouter/shared";
-import { buildOpenRouterTools } from "../src/cloud/openRouterTools";
-import { MemoryRefCollector } from "../src/cloud/memoryRefCollector";
+import {
+  buildOpenRouterTools,
+  type CloudMemoryRef,
+} from "../src/cloud/openRouterTools";
 import {
   buildCloudChatSystemPrompt,
   type SkillIndexEntry,
 } from "../src/memoryRagPrompt";
+
+function addMemoryRefs(
+  refsById: Map<string, CloudMemoryRef>,
+  refs: CloudMemoryRef[],
+): void {
+  for (const ref of refs) {
+    refsById.set(ref.id, ref);
+  }
+}
 
 export const streamAsync = internalAction({
   args: {
@@ -35,8 +46,10 @@ export const streamAsync = internalAction({
     );
 
     const systemPrompt = buildCloudChatSystemPrompt({ skills });
-    const collector = new MemoryRefCollector();
-    const tools = buildOpenRouterTools(ctx, args.clerkId, collector);
+    const memoryRefsById = new Map<string, CloudMemoryRef>();
+    const tools = buildOpenRouterTools(ctx, args.clerkId, {
+      onMemoryRetrieve: (refs) => addMemoryRefs(memoryRefsById, refs),
+    });
 
     const agent = createCloudAgent({
       apiKey,
@@ -76,7 +89,7 @@ export const streamAsync = internalAction({
       cachedTokens: totalUsage.inputTokenDetails?.cacheReadTokens,
     });
 
-    const memoryRefs = collector.getRefs();
+    const memoryRefs = Array.from(memoryRefsById.values());
     if (memoryRefs.length > 0 && result.order !== undefined) {
       await ctx.runMutation(internal.chat.saveCloudMessageMemoryRefs, {
         userId: args.userId,
