@@ -4,9 +4,10 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { createCloudAgent } from "./agent";
-import { MemoryRefCollector } from "./chat/memoryRefCollector";
 import { requireUserEnvVar } from "./lib/envVars";
 import { scheduleLog } from "./lib/openRouter/shared";
+import { buildOpenRouterTools } from "../src/cloud/openRouterTools";
+import { MemoryRefCollector } from "../src/cloud/memoryRefCollector";
 import {
   buildCloudChatSystemPrompt,
   type SkillIndexEntry,
@@ -35,8 +36,6 @@ export const streamAsync = internalAction({
 
     const systemPrompt = buildCloudChatSystemPrompt({ skills });
     const collector = new MemoryRefCollector();
-    const { buildOpenRouterTools } =
-      await import("../src/cloud/openRouterTools");
     const tools = buildOpenRouterTools(ctx, args.clerkId, collector);
 
     const agent = createCloudAgent({

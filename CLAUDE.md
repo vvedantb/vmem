@@ -18,6 +18,7 @@ Implementation:
 - Never use `unknown`
 - Never use `as` for type assertions
 - Never use the non-null assertion operator `!`.
+- Always use top-level `import` / `import type` at the file top — never dynamic `import()`, never inline `import("…")` type expressions, never `await import()` inside functions.
 - If a type is difficult to express, rethink the design instead of bypassing the type system.
 - Prefer simplicity over cleverness.
 - Minimize surface area of change.
