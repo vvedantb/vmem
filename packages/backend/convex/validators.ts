@@ -179,6 +179,7 @@ export const openRouterLogRecordFields = {
   profileId: v.optional(v.string()),
   feature: v.union(
     // Chat completions
+    v.literal("chat"),
     v.literal("enrichment"),
     v.literal("dream-synthesis"),
     v.literal("context-prompt"),
