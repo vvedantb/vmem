@@ -15,7 +15,6 @@ import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as chatStreamActions from "../chatStreamActions.js";
 import type * as chat_memoryRefCollector from "../chat/memoryRefCollector.js";
-import type * as chat_openRouterTools from "../chat/openRouterTools.js";
 import type * as codebaseSymbols from "../codebaseSymbols.js";
 import type * as codebaseSync from "../codebaseSync.js";
 import type * as codebaseSyncActions from "../codebaseSyncActions.js";
@@ -165,7 +164,6 @@ declare const fullApi: ApiFromModules<{
   chat: typeof chat;
   chatStreamActions: typeof chatStreamActions;
   "chat/memoryRefCollector": typeof chat_memoryRefCollector;
-  "chat/openRouterTools": typeof chat_openRouterTools;
   codebaseSymbols: typeof codebaseSymbols;
   codebaseSync: typeof codebaseSync;
   codebaseSyncActions: typeof codebaseSyncActions;
