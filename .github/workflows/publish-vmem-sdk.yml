@@ -1,3 +1,8 @@
+# Publishes @vmem/sdk via npm Trusted Publishing (OIDC).
+# One-time npm setup: @vmem/sdk → Settings → Trusted publishing → GitHub Actions
+#   Repository: vedantb2/vmem
+#   Workflow: publish-vmem-sdk.yml
+# No NPM_TOKEN secret required on the publish step.
 name: Publish VMemory SDK
 
 on:
@@ -6,6 +11,7 @@ on:
             - main
         paths:
             - "packages/sdk/package.json"
+            - ".github/workflows/publish-vmem-sdk.yml"
     workflow_dispatch:
 
 jobs:
@@ -24,7 +30,7 @@ jobs:
             - name: Setup Node
               uses: actions/setup-node@v4
               with:
-                  node-version: 22
+                  node-version: "22.14"
                   registry-url: "https://registry.npmjs.org"
                   cache: pnpm
 
@@ -34,8 +40,9 @@ jobs:
             - name: Build
               run: pnpm --filter @vmem/sdk build
 
-            - name: Publish
-              run: pnpm --filter @vmem/sdk publish --access public --no-git-checks
-              env:
-                  NPM_CONFIG_PROVENANCE: true
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            - name: Upgrade npm for trusted publishing
+              run: npm install -g npm@latest
+
+            - name: Publish to npm
+              working-directory: packages/sdk
+              run: npm publish --access public --no-git-checks

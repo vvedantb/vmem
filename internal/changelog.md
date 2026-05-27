@@ -1,5 +1,10 @@
 # Changelog
 
+## npm Trusted Publishing for SDK — 2026-05-27
+
+- **Publish workflow uses OIDC**: `publish-vmem-sdk.yml` drops `NPM_TOKEN`; publishes via npm Trusted Publishing with `npm publish` (CLI 11.5.1+).
+- **Docs**: Maintainer guide at `sdk/publishing` for one-time npm trusted publisher setup.
+
 ## Activity and API log tables fill the page — 2026-05-23
 
 - **AI logs, Events, API usage**: Recent-calls / recent-requests lists scroll inside the card with a styled thin scrollbar instead of growing the whole page.
