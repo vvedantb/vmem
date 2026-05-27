@@ -1,4 +1,4 @@
-name: Test
+name: CI
 
 on:
   push:
@@ -7,11 +7,11 @@ on:
     branches: [main, staging]
 
 concurrency:
-  group: test-${{ github.workflow }}-${{ github.ref }}
+  group: ci-unit-tests-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test:
+  unit-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -27,5 +27,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run unit tests
+      - name: Run unit tests (backend + web)
         run: pnpm test
