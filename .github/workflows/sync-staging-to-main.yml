@@ -53,7 +53,7 @@ jobs:
               --base main \
               --head staging \
               --title "chore: sync staging → main" \
-              --body "Scheduled daily sync from staging into main. Merges automatically once required checks pass."
+              --body "Scheduled daily sync from staging into main. Merges automatically once CI / unit-tests passes."
             PR_NUMBER=$(gh pr list \
               --base main \
               --head staging \
@@ -63,13 +63,40 @@ jobs:
             echo "Created PR #$PR_NUMBER"
           fi
 
-          echo "Waiting for checks on PR #$PR_NUMBER..."
-          gh pr checks "$PR_NUMBER" --watch
+          REQUIRED_CHECK="unit-tests"
+          MAX_WAIT_MINUTES=45
+          DEADLINE=$((SECONDS + MAX_WAIT_MINUTES * 60))
 
-          FAILED=$(gh pr checks "$PR_NUMBER" --json name,state --jq \
-            '[.[] | select(.state != "SUCCESS" and .state != "SKIPPED" and .state != "NEUTRAL")] | length')
-          if [ "$FAILED" -gt 0 ]; then
-            echo "Required checks did not pass — not merging"
+          echo "Waiting for CI / $REQUIRED_CHECK on PR #$PR_NUMBER..."
+          while [ "$SECONDS" -lt "$DEADLINE" ]; do
+            STATE=$(gh pr checks "$PR_NUMBER" --json name,state --jq \
+              --arg n "$REQUIRED_CHECK" '.[] | select(.name == $n) | .state' | head -1)
+
+            if [ -z "$STATE" ]; then
+              echo "CI / $REQUIRED_CHECK has not started yet — rechecking in 15s"
+              sleep 15
+              continue
+            fi
+
+            case "$STATE" in
+              SUCCESS)
+                echo "CI / $REQUIRED_CHECK passed"
+                break
+                ;;
+              FAILURE|CANCELLED|TIMED_OUT|ACTION_REQUIRED)
+                echo "CI / $REQUIRED_CHECK did not pass ($STATE) — not merging"
+                gh pr checks "$PR_NUMBER"
+                exit 1
+                ;;
+              *)
+                echo "CI / $REQUIRED_CHECK status: $STATE — rechecking in 15s"
+                sleep 15
+                ;;
+            esac
+          done
+
+          if [ "${STATE:-}" != "SUCCESS" ]; then
+            echo "Timed out waiting for CI / $REQUIRED_CHECK"
             gh pr checks "$PR_NUMBER"
             exit 1
           fi
