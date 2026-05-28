@@ -1,10 +1,10 @@
 "use node";
 
-import { internalAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internalAction } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
-import { mcpScopeValidator, type McpScope } from "./profiles/mcpAccess";
+import type { Doc } from "../_generated/dataModel";
+import { mcpScopeValidator, type McpScope } from "../profiles/mcpAccess";
 
 interface ProfileResponse {
   id: string;

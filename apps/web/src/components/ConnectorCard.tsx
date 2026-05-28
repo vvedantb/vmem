@@ -46,7 +46,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
   const [showDeleteDataDialog, setShowDeleteDataDialog] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
 
-  const startSyncAction = useAction(api.connectorSync.startSync);
+  const startSyncAction = useAction(api.connectors.sync.startSync);
 
   const isGitHub = connector.name === "GitHub";
   const githubConnection = useQuery(

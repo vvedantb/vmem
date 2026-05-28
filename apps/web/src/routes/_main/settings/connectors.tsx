@@ -14,8 +14,8 @@ export const Route = createFileRoute("/_main/settings/connectors")({
 });
 
 function ConnectorsPage() {
-  const connectors = useQuery(api.connectors.listMy);
-  const seedDefaults = useMutation(api.connectors.seedDefaults);
+  const connectors = useQuery(api.connectors.crud.listMy);
+  const seedDefaults = useMutation(api.connectors.crud.seedDefaults);
   const [showBrowse, setShowBrowse] = useState(false);
   const seededRef = useRef(false);
 

@@ -82,7 +82,7 @@ export async function runWhoami(
   ctx: ToolHandlerContext,
 ): Promise<ToolHandlerResult> {
   return safe("whoami", () =>
-    ctx.ctx.runAction(internal.mcpProfiles.mcpWhoami, scopedClerk(ctx)),
+    ctx.ctx.runAction(internal.mcp.profiles.mcpWhoami, scopedClerk(ctx)),
   );
 }
 
@@ -90,7 +90,7 @@ export async function runListProfiles(
   ctx: ToolHandlerContext,
 ): Promise<ToolHandlerResult> {
   return safe("list_profiles", () =>
-    ctx.ctx.runAction(internal.mcpProfiles.mcpListProfiles, scopedClerk(ctx)),
+    ctx.ctx.runAction(internal.mcp.profiles.mcpListProfiles, scopedClerk(ctx)),
   );
 }
 
@@ -99,7 +99,7 @@ export async function runSetActiveProfile(
   params: z.infer<typeof setActiveProfileSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("set_active_profile", () =>
-    ctx.ctx.runAction(internal.mcpProfiles.mcpSetActiveProfile, {
+    ctx.ctx.runAction(internal.mcp.profiles.mcpSetActiveProfile, {
       ...scopedClerk(ctx),
       profileId: params.profileId,
     }),
@@ -232,7 +232,7 @@ export async function runSkillsList(
   ctx: ToolHandlerContext,
 ): Promise<ToolHandlerResult> {
   return safe("skills_list", () =>
-    ctx.ctx.runAction(internal.mcpSkills.mcpListSkills, {
+    ctx.ctx.runAction(internal.mcp.skills.mcpListSkills, {
       clerkId: ctx.clerkUserId,
     }),
   );
@@ -243,7 +243,7 @@ export async function runSkillsGet(
   params: z.infer<typeof skillsGetSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("skills_get", () =>
-    ctx.ctx.runAction(internal.mcpSkills.mcpGetSkill, {
+    ctx.ctx.runAction(internal.mcp.skills.mcpGetSkill, {
       clerkId: ctx.clerkUserId,
       name: params.name,
     }),
@@ -255,7 +255,7 @@ export async function runSkillsCreate(
   params: z.infer<typeof skillsCreateSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("skills_create", () =>
-    ctx.ctx.runAction(internal.mcpSkills.mcpCreateSkill, {
+    ctx.ctx.runAction(internal.mcp.skills.mcpCreateSkill, {
       clerkId: ctx.clerkUserId,
       name: params.name,
       description: params.description,
@@ -269,7 +269,7 @@ export async function runSkillsUpdate(
   params: z.infer<typeof skillsUpdateSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("skills_update", () =>
-    ctx.ctx.runAction(internal.mcpSkills.mcpUpdateSkill, {
+    ctx.ctx.runAction(internal.mcp.skills.mcpUpdateSkill, {
       clerkId: ctx.clerkUserId,
       name: params.name,
       newName: params.newName,
@@ -285,7 +285,7 @@ export async function runSkillsDelete(
   params: z.infer<typeof skillsDeleteSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("skills_delete", () =>
-    ctx.ctx.runAction(internal.mcpSkills.mcpDeleteSkill, {
+    ctx.ctx.runAction(internal.mcp.skills.mcpDeleteSkill, {
       clerkId: ctx.clerkUserId,
       name: params.name,
     }),
@@ -296,7 +296,7 @@ export async function runWikiList(
   ctx: ToolHandlerContext,
 ): Promise<ToolHandlerResult> {
   return safe("wiki_list", () =>
-    ctx.ctx.runAction(internal.mcpWiki.mcpListWiki, {
+    ctx.ctx.runAction(internal.mcp.wiki.mcpListWiki, {
       clerkId: ctx.clerkUserId,
     }),
   );
@@ -307,7 +307,7 @@ export async function runWikiGet(
   params: z.infer<typeof wikiGetSchema>,
 ): Promise<ToolHandlerResult> {
   const result = await safe("wiki_get", () =>
-    ctx.ctx.runAction(internal.mcpWiki.mcpGetWiki, {
+    ctx.ctx.runAction(internal.mcp.wiki.mcpGetWiki, {
       clerkId: ctx.clerkUserId,
       id: params.id,
     }),
@@ -324,7 +324,7 @@ export async function runWikiSearch(
   params: z.infer<typeof wikiSearchSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("wiki_search", () =>
-    ctx.ctx.runAction(internal.mcpWiki.mcpSearchWiki, {
+    ctx.ctx.runAction(internal.mcp.wiki.mcpSearchWiki, {
       clerkId: ctx.clerkUserId,
       query: params.query,
     }),
@@ -336,7 +336,7 @@ export async function runWikiCreate(
   params: z.infer<typeof wikiCreateSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("wiki_create", () =>
-    ctx.ctx.runAction(internal.mcpWiki.mcpCreateWiki, {
+    ctx.ctx.runAction(internal.mcp.wiki.mcpCreateWiki, {
       clerkId: ctx.clerkUserId,
       kind: params.kind,
       title: params.title,
@@ -351,7 +351,7 @@ export async function runWikiUpdate(
   params: z.infer<typeof wikiUpdateSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("wiki_update", () =>
-    ctx.ctx.runAction(internal.mcpWiki.mcpUpdateWiki, {
+    ctx.ctx.runAction(internal.mcp.wiki.mcpUpdateWiki, {
       clerkId: ctx.clerkUserId,
       id: params.id,
       title: params.title,
@@ -366,7 +366,7 @@ export async function runWikiDelete(
   params: z.infer<typeof wikiDeleteSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("wiki_delete", () =>
-    ctx.ctx.runAction(internal.mcpWiki.mcpDeleteWiki, {
+    ctx.ctx.runAction(internal.mcp.wiki.mcpDeleteWiki, {
       clerkId: ctx.clerkUserId,
       id: params.id,
     }),
@@ -377,7 +377,7 @@ export async function runCodebasesList(
   ctx: ToolHandlerContext,
 ): Promise<ToolHandlerResult> {
   return safe("codebases_list", () =>
-    ctx.ctx.runAction(internal.mcpCodebases.mcpListCodebases, {
+    ctx.ctx.runAction(internal.mcp.codebases.mcpListCodebases, {
       clerkId: ctx.clerkUserId,
     }),
   );
@@ -388,7 +388,7 @@ export async function runCodebaseOverview(
   params: z.infer<typeof codebaseOverviewSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("codebase_overview", () =>
-    ctx.ctx.runAction(internal.mcpCodebases.mcpGetCodebaseOverview, {
+    ctx.ctx.runAction(internal.mcp.codebases.mcpGetCodebaseOverview, {
       clerkId: ctx.clerkUserId,
       codebaseId: params.codebaseId,
     }),
@@ -400,7 +400,7 @@ export async function runCodebaseSearch(
   params: z.infer<typeof codebaseSearchSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("codebase_search", () =>
-    ctx.ctx.runAction(internal.mcpCodebases.mcpSearchCodebaseSymbols, {
+    ctx.ctx.runAction(internal.mcp.codebases.mcpSearchCodebaseSymbols, {
       clerkId: ctx.clerkUserId,
       codebaseId: params.codebaseId,
       query: params.query,
@@ -415,7 +415,7 @@ export async function runCodebaseContext(
   params: z.infer<typeof codebaseContextSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("codebase_context", () =>
-    ctx.ctx.runAction(internal.mcpCodebases.mcpGetCodebaseSymbolContext, {
+    ctx.ctx.runAction(internal.mcp.codebases.mcpGetCodebaseSymbolContext, {
       clerkId: ctx.clerkUserId,
       codebaseId: params.codebaseId,
       symbolId: params.symbolId,
@@ -428,7 +428,7 @@ export async function runCodebaseImpact(
   params: z.infer<typeof codebaseImpactSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("codebase_impact", () =>
-    ctx.ctx.runAction(internal.mcpCodebases.mcpGetCodebaseImpact, {
+    ctx.ctx.runAction(internal.mcp.codebases.mcpGetCodebaseImpact, {
       clerkId: ctx.clerkUserId,
       codebaseId: params.codebaseId,
       symbolId: params.symbolId,
@@ -443,7 +443,7 @@ export async function runCodebaseGraph(
   params: z.infer<typeof codebaseGraphSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("codebase_graph", () =>
-    ctx.ctx.runAction(internal.mcpCodebases.mcpGetCodebaseGraph, {
+    ctx.ctx.runAction(internal.mcp.codebases.mcpGetCodebaseGraph, {
       clerkId: ctx.clerkUserId,
       codebaseId: params.codebaseId,
       kinds: params.kinds,

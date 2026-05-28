@@ -15,7 +15,7 @@ crons.cron(
 crons.cron(
   "daily connector sync",
   "0 4 * * *",
-  internal.connectorSyncWorkflow.kickoffDailyConnectorSync,
+  internal.connectors.syncWorkflow.kickoffDailyConnectorSync,
   {},
 );
 

@@ -28,7 +28,7 @@ export default function DisconnectConnectorDialog({
   connectorId,
   connectorName,
 }: DisconnectConnectorDialogProps) {
-  const disconnect = useAction(api.connectorOAuth.disconnect);
+  const disconnect = useAction(api.connectors.oauth.disconnect);
   const [submitting, setSubmitting] = useState(false);
 
   const handleConfirm = async () => {

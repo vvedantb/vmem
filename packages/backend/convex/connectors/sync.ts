@@ -1,8 +1,8 @@
 import { v } from "convex/values";
-import { authAction, requireClerkId } from "./auth";
-import { internal } from "./_generated/api";
-import { resolveConnectorAccessToken } from "./lib/connectorAccessToken";
-import { runConnectorProviderSync } from "./lib/runConnectorProviderSync";
+import { authAction, requireClerkId } from "../auth";
+import { internal } from "../_generated/api";
+import { resolveConnectorAccessToken } from "../lib/connectorAccessToken";
+import { runConnectorProviderSync } from "../lib/runConnectorProviderSync";
 
 /**
  * Public sync action — frontend calls this via useAction.
@@ -16,9 +16,12 @@ export const startSync = authAction({
     fullHistory: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const connector = await ctx.runQuery(internal.connectors.getByIdInternal, {
-      id: args.connectorId,
-    });
+    const connector = await ctx.runQuery(
+      internal.connectors.crud.getByIdInternal,
+      {
+        id: args.connectorId,
+      },
+    );
     if (!connector || connector.userId !== ctx.userId) {
       throw new Error("Connector not found");
     }
@@ -36,7 +39,7 @@ export const startSync = authAction({
       throw new Error(tokenResult.message);
     }
 
-    await ctx.runMutation(internal.connectors.updateSyncProgressInternal, {
+    await ctx.runMutation(internal.connectors.crud.updateSyncProgressInternal, {
       id: args.connectorId,
       syncStatus: "syncing",
       syncProgress: 0,

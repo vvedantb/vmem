@@ -38,7 +38,7 @@ export const streamAsync = internalAction({
     );
 
     const skills: SkillIndexEntry[] = await ctx.runAction(
-      internal.mcpSkills.mcpListSkills,
+      internal.mcp.skills.mcpListSkills,
       { clerkId: args.clerkId },
     );
 

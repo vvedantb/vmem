@@ -110,7 +110,7 @@ export function registerMemoryGraphApp(
     async (params) => {
       let graph;
       try {
-        graph = await ctx.runAction(internal.mcpGraph.mcpGetMemoryGraph, {
+        graph = await ctx.runAction(internal.mcp.graph.mcpGetMemoryGraph, {
           clerkId: clerkUserId,
           mcpScope: scope,
           profileId: params.profileId,

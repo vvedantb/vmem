@@ -1,11 +1,11 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { STALE_SYNCING_MS } from "./codebaseSyncConstants";
-import { resolveConnectorAccessToken } from "./lib/connectorAccessToken";
-import { runConnectorProviderSync } from "./lib/runConnectorProviderSync";
+import { internalAction } from "../_generated/server";
+import { internal } from "../_generated/api";
+import { STALE_SYNCING_MS } from "../codebaseSyncConstants";
+import { resolveConnectorAccessToken } from "../lib/connectorAccessToken";
+import { runConnectorProviderSync } from "../lib/runConnectorProviderSync";
 
 const syncOneResult = v.union(
   v.object({ ok: v.literal(true) }),
@@ -25,9 +25,12 @@ export const syncOneConnectorInternal = internalAction({
   },
   returns: syncOneResult,
   handler: async (ctx, args): Promise<SyncOneResult> => {
-    const connector = await ctx.runQuery(internal.connectors.getByIdInternal, {
-      id: args.connectorId,
-    });
+    const connector = await ctx.runQuery(
+      internal.connectors.crud.getByIdInternal,
+      {
+        id: args.connectorId,
+      },
+    );
     if (!connector) {
       return { ok: false, message: "Connector not found" };
     }
@@ -59,13 +62,16 @@ export const syncOneConnectorInternal = internalAction({
     }
 
     try {
-      await ctx.runMutation(internal.connectors.updateSyncProgressInternal, {
-        id: args.connectorId,
-        syncStatus: "syncing",
-        syncProgress: 0,
-        syncStartedAt: Date.now(),
-        errorMessage: undefined,
-      });
+      await ctx.runMutation(
+        internal.connectors.crud.updateSyncProgressInternal,
+        {
+          id: args.connectorId,
+          syncStatus: "syncing",
+          syncProgress: 0,
+          syncStartedAt: Date.now(),
+          errorMessage: undefined,
+        },
+      );
 
       await runConnectorProviderSync(ctx, {
         connector,

@@ -95,7 +95,7 @@ export async function maybeReportProgress(
         100,
     ),
   );
-  await ctx.runMutation(internal.connectors.updateSyncProgressInternal, {
+  await ctx.runMutation(internal.connectors.crud.updateSyncProgressInternal, {
     id: params.connectorId,
     syncProgress: progress,
     itemsSynced: params.totalSynced,
@@ -107,7 +107,7 @@ export async function markSyncComplete(
   ctx: ActionCtx,
   params: { connectorId: Id<"connectors">; totalSynced: number },
 ): Promise<void> {
-  await ctx.runMutation(internal.connectors.updateSyncProgressInternal, {
+  await ctx.runMutation(internal.connectors.crud.updateSyncProgressInternal, {
     id: params.connectorId,
     syncStatus: "idle",
     syncProgress: 100,
@@ -122,7 +122,7 @@ export async function markSyncError(
   ctx: ActionCtx,
   params: { connectorId: Id<"connectors">; errorMessage: string },
 ): Promise<void> {
-  await ctx.runMutation(internal.connectors.updateSyncProgressInternal, {
+  await ctx.runMutation(internal.connectors.crud.updateSyncProgressInternal, {
     id: params.connectorId,
     syncStatus: "error",
     errorMessage: params.errorMessage,

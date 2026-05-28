@@ -1,9 +1,9 @@
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
-import { internalMutation, internalQuery } from "./_generated/server";
-import { authMutation, authQuery } from "./auth";
-import { auditLog, ResourceTypes } from "./auditLog";
-import { STALE_SYNCING_MS } from "./codebaseSyncConstants";
+import type { Id } from "../_generated/dataModel";
+import { internalMutation, internalQuery } from "../_generated/server";
+import { authMutation, authQuery } from "../auth";
+import { auditLog, ResourceTypes } from "../auditLog";
+import { STALE_SYNCING_MS } from "../codebaseSyncConstants";
 
 type ConnectorProvider =
   | "google_drive"
