@@ -3,7 +3,7 @@
 import crypto from "node:crypto";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { callOpenRouterChat } from "../../lib/openRouter";
+import { callJsonChat } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
 import {
   parseFactExtractionResponse,
@@ -14,7 +14,6 @@ import {
   type UpdateDecision,
 } from "../../../src/v2Prompt";
 
-export const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
 export const RETRIEVAL_TOP_K = 10;
 
 export type OpenRouterRequired = { error: "openrouter_required" };
@@ -46,23 +45,13 @@ export async function callAgentLLM(
   feature: "fact-extraction" | "memory-search",
   prompt: string,
 ): Promise<string | null> {
-  const { content } = await callOpenRouterChat(ctx, {
+  return callJsonChat(ctx, {
     apiKey: auth.apiKey,
     userId: auth.userId,
     profileId,
     feature,
-    model: LLM_MODEL,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You output ONLY valid JSON. No thinking, no markdown, no commentary.",
-      },
-      { role: "user", content: prompt },
-    ],
-    temperature: 0.1,
+    prompt,
   });
-  return content;
 }
 
 export async function extractFactsFromInstruction(

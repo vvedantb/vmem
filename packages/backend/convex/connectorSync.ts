@@ -49,6 +49,7 @@ export const startSync = authAction({
       clerkId,
       accessToken: tokenResult.accessToken,
       fullHistory: args.fullHistory ?? false,
+      execution: "retrier",
     });
 
     return { started: true };

@@ -103,7 +103,7 @@ export {
 } from "./memory/dreamMode";
 export { applyEnrichment, applyEntitiesOnly } from "./memory/enrichment";
 export { getMemoryEvents } from "./memory/events";
-export { getRecentActivity, getStats } from "./memory/stats";
+export { countMemoryEvents, getRecentActivity, getStats } from "./memory/stats";
 export {
   getMemoryTimeline,
   getSearchTimeline,

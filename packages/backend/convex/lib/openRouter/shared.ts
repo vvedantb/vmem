@@ -36,6 +36,15 @@ export type ErrorClass =
   | "parse"
   | "timeout";
 
+/**
+ * Default model for every server-side LLM reasoning call — enrichment,
+ * fact extraction, dream synthesis, context-prompt summary, retrieval
+ * helper, and entity backfill. Single source of truth: change it here
+ * and all callers follow. Previously redefined as a local `const` in
+ * seven files, which drifted on every model swap.
+ */
+export const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
+
 /** Privacy default — only populate prompt/completion previews when the
  *  deploy explicitly opts in. */
 export const PROMPT_PREVIEW_BYTES = 4096;

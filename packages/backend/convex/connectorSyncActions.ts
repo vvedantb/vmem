@@ -1,17 +1,11 @@
 "use node";
 
 import { v } from "convex/values";
-import type { ActionCtx } from "./_generated/server";
 import { internalAction } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { STALE_SYNCING_MS } from "./codebaseSyncConstants";
 import { resolveConnectorAccessToken } from "./lib/connectorAccessToken";
-import { runGmailSync } from "./neo4jActions/connectors/gmail";
-import { runGoogleDriveSync } from "./neo4jActions/connectors/googleDrive";
-import { runLinearSync } from "./neo4jActions/connectors/linear";
-import { runNotionSync } from "./neo4jActions/connectors/notion";
-import { runOneDriveSync } from "./neo4jActions/connectors/oneDrive";
+import { runConnectorProviderSync } from "./lib/runConnectorProviderSync";
 
 const syncOneResult = v.union(
   v.object({ ok: v.literal(true) }),
@@ -73,11 +67,12 @@ export const syncOneConnectorInternal = internalAction({
         errorMessage: undefined,
       });
 
-      await runConnectorProviderSyncDirect(ctx, {
+      await runConnectorProviderSync(ctx, {
         connector,
         clerkId,
         accessToken: tokenResult.accessToken,
         fullHistory: args.fullHistory ?? false,
+        execution: "direct",
       });
 
       return { ok: true };
@@ -89,43 +84,3 @@ export const syncOneConnectorInternal = internalAction({
     }
   },
 });
-
-async function runConnectorProviderSyncDirect(
-  ctx: ActionCtx,
-  params: {
-    connector: Doc<"connectors">;
-    clerkId: string;
-    accessToken: string;
-    fullHistory: boolean;
-  },
-): Promise<void> {
-  const syncArgs = {
-    clerkId: params.clerkId,
-    connectorId: params.connector._id,
-    accessToken: params.accessToken,
-  };
-
-  const provider = params.connector.provider;
-  if (provider === "google_drive") {
-    await runGoogleDriveSync(ctx, syncArgs);
-    return;
-  }
-  if (provider === "gmail") {
-    await runGmailSync(ctx, syncArgs);
-    return;
-  }
-  if (provider === "notion") {
-    await runNotionSync(ctx, syncArgs);
-    return;
-  }
-  if (provider === "onedrive") {
-    await runOneDriveSync(ctx, syncArgs);
-    return;
-  }
-  if (provider === "linear") {
-    await runLinearSync(ctx, { ...syncArgs, fullHistory: params.fullHistory });
-    return;
-  }
-
-  throw new Error("Connector does not support sync");
-}
