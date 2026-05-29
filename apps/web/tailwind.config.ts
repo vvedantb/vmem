@@ -66,6 +66,7 @@ const config: Config = {
           "secondary-foreground": v("surface-secondary-foreground"),
           tertiary: v("surface-tertiary"),
           "tertiary-foreground": v("surface-tertiary-foreground"),
+          card: v("surface-card"),
         },
         warning: {
           DEFAULT: v("warning"),

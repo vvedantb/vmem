@@ -15,8 +15,11 @@
  *   --surface        Main content panel (elevated card in MainShell)
  *
  * Nested UI (inside --surface)
- *   --surface-secondary   Cards, stat tiles, grouped blocks
- *   --surface-tertiary    Hover / subtle emphasis on secondary
+ *   --surface-card        <Card> component surface (decoupled from the ladder so
+ *                         it can stay near-white on the white panel in light mode
+ *                         without dragging the sidebar's surface-tertiary states)
+ *   --surface-secondary   Stat tiles, grouped blocks
+ *   --surface-tertiary    Hover / subtle emphasis on secondary; sidebar active/hover
  *
  * Floating UI
  *   --overlay        Dialogs, popovers, dropdowns, tooltips
@@ -88,6 +91,11 @@
     --surface-secondary-foreground: oklch(21.03% 0 0);
     --surface-tertiary: oklch(93.73% 0 0);
     --surface-tertiary-foreground: oklch(21.03% 0 0);
+    /* Card surface — sits on the white --surface panel, so it's kept a whisper
+       off-white (vs. the heavier surface-secondary) to avoid reading as a gray
+       block. Decoupled from the shared ladder so the sidebar (surface-tertiary)
+       is unaffected. */
+    --surface-card: oklch(98% 0 0);
     --warning: oklch(78.19% 0.159 72.33);
     --warning-foreground: oklch(21.03% 0.0059 72.33);
 
@@ -136,6 +144,9 @@
     --surface-secondary-foreground: oklch(99.11% 0 0);
     --surface-tertiary: oklch(27.21% 0.0023 0);
     --surface-tertiary-foreground: oklch(99.11% 0 0);
+    /* Card surface — matches surface-secondary in dark mode (cards already read
+       as gently elevated above the panel), so dark mode is visually unchanged. */
+    --surface-card: oklch(25.7% 0.0023 0);
     --warning: oklch(82.03% 0.1392 76.34);
     --warning-foreground: oklch(21.03% 0.0059 76.34);
 
