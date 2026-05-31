@@ -1,15 +1,15 @@
 import { v } from "convex/values";
-import { internalAction } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { authAction } from "./auth";
-import { encryptToken, decryptToken, getEnvOrThrow } from "./lib/crypto";
-import { auditLog, ResourceTypes } from "./auditLog";
+import { internalAction } from "../_generated/server";
+import { internal } from "../_generated/api";
+import { authAction } from "../auth";
+import { encryptToken, decryptToken, getEnvOrThrow } from "../lib/crypto";
+import { auditLog, ResourceTypes } from "../auditLog";
 import {
   GOOGLE_OAUTH_SCOPES,
   pickGoogleTokenConnectorId,
   scopeIncludesDrive,
   scopeIncludesGmail,
-} from "./neo4jActions/connectors/googleShared";
+} from "../neo4jActions/connectors/googleShared";
 
 // --- Provider configurations ---
 
@@ -79,9 +79,12 @@ export const startOAuth = authAction({
     args,
   ): Promise<{ authUrl: string | null; alreadyConnected: boolean }> => {
     // 1. Get connector and validate provider
-    const connector = await ctx.runQuery(internal.connectors.getByIdInternal, {
-      id: args.connectorId,
-    });
+    const connector = await ctx.runQuery(
+      internal.connectors.crud.getByIdInternal,
+      {
+        id: args.connectorId,
+      },
+    );
     if (!connector) {
       throw new Error("Connector not found");
     }
@@ -102,13 +105,13 @@ export const startOAuth = authAction({
 
     if (provider === "google_drive" || provider === "gmail") {
       const googleRows = await ctx.runQuery(
-        internal.connectors.listGoogleConnectorsForUserInternal,
+        internal.connectors.crud.listGoogleConnectorsForUserInternal,
         { userId: ctx.userId },
       );
       const tokenConnectorId = pickGoogleTokenConnectorId(googleRows, provider);
       if (tokenConnectorId) {
         const tokens = await ctx.runQuery(
-          internal.connectorTokens.getEncryptedTokensInternal,
+          internal.connectors.tokens.getEncryptedTokensInternal,
           { connectorId: tokenConnectorId },
         );
         const scopeOk =
@@ -116,9 +119,12 @@ export const startOAuth = authAction({
             ? tokens !== null && scopeIncludesGmail(tokens.scope)
             : tokens !== null && scopeIncludesDrive(tokens.scope);
         if (scopeOk) {
-          await ctx.runMutation(internal.connectors.markConnectedInternal, {
-            id: args.connectorId,
-          });
+          await ctx.runMutation(
+            internal.connectors.crud.markConnectedInternal,
+            {
+              id: args.connectorId,
+            },
+          );
           return { authUrl: null, alreadyConnected: true };
         }
       }
@@ -216,16 +222,19 @@ export const disconnect = authAction({
   args: { connectorId: v.id("connectors") },
   handler: async (ctx, args) => {
     // 1. Get connector and validate ownership
-    const connector = await ctx.runQuery(internal.connectors.getByIdInternal, {
-      id: args.connectorId,
-    });
+    const connector = await ctx.runQuery(
+      internal.connectors.crud.getByIdInternal,
+      {
+        id: args.connectorId,
+      },
+    );
     if (!connector || connector.userId !== ctx.userId) {
       throw new Error("Connector not found");
     }
 
     // 2. Get and revoke tokens if provider supports it
     const tokens = await ctx.runQuery(
-      internal.connectorTokens.getEncryptedTokensInternal,
+      internal.connectors.tokens.getEncryptedTokensInternal,
       { connectorId: args.connectorId },
     );
 
@@ -262,10 +271,10 @@ export const disconnect = authAction({
     // OneDrive: no revoke endpoint for consumer accounts — token deletion only
 
     // 3. Delete tokens and mark disconnected
-    await ctx.runMutation(internal.connectorTokens.deleteTokensInternal, {
+    await ctx.runMutation(internal.connectors.tokens.deleteTokensInternal, {
       connectorId: args.connectorId,
     });
-    await ctx.runMutation(internal.connectors.markDisconnectedInternal, {
+    await ctx.runMutation(internal.connectors.crud.markDisconnectedInternal, {
       id: args.connectorId,
     });
 
@@ -398,7 +407,7 @@ export const handleCallbackInternal = internalAction({
         tokenData.refresh_token ?? "",
       );
 
-      await ctx.runMutation(internal.connectorTokens.storeTokensInternal, {
+      await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
         connectorId: stateEntry.connectorId,
         accessToken: encryptedAccess,
         refreshToken: encryptedRefresh,
@@ -446,7 +455,7 @@ export const handleCallbackInternal = internalAction({
       // Notion tokens don't expire, no refresh token
       const encryptedAccess = await encryptToken(tokenData.access_token);
 
-      await ctx.runMutation(internal.connectorTokens.storeTokensInternal, {
+      await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
         connectorId: stateEntry.connectorId,
         accessToken: encryptedAccess,
         refreshToken: "", // Notion has no refresh token
@@ -493,7 +502,7 @@ export const handleCallbackInternal = internalAction({
         tokenData.refresh_token ?? "",
       );
 
-      await ctx.runMutation(internal.connectorTokens.storeTokensInternal, {
+      await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
         connectorId: stateEntry.connectorId,
         accessToken: encryptedAccess,
         refreshToken: encryptedRefresh,
@@ -538,7 +547,7 @@ export const handleCallbackInternal = internalAction({
       // Store like Notion: empty refresh, expiresAt=0 (treat as non-expiring).
       const encryptedAccess = await encryptToken(tokenData.access_token);
 
-      await ctx.runMutation(internal.connectorTokens.storeTokensInternal, {
+      await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
         connectorId: stateEntry.connectorId,
         accessToken: encryptedAccess,
         refreshToken: "",
@@ -555,7 +564,7 @@ export const handleCallbackInternal = internalAction({
     }
 
     // 4. Mark connector as connected
-    await ctx.runMutation(internal.connectors.markConnectedInternal, {
+    await ctx.runMutation(internal.connectors.crud.markConnectedInternal, {
       id: stateEntry.connectorId,
     });
 

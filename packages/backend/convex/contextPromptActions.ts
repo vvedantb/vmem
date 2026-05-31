@@ -8,7 +8,7 @@ import { listMemories } from "../src/neo4j/memoryService";
 import { getDriver } from "../src/neo4j/driver";
 import { buildSkillsIndexAddition } from "../src/memoryRagPrompt";
 import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
-import { callOpenRouterChat } from "./lib/openRouter";
+import { callOpenRouterChat, LLM_MODEL } from "./lib/openRouter";
 
 /**
  * Regenerates the cached `vmem://context_prompt` markdown for one user.
@@ -28,8 +28,6 @@ import { callOpenRouterChat } from "./lib/openRouter";
  * - `regenerateIfPendingInternal` after a 60s debounce window
  * - `getContextPrompt` on first call when no cache row exists yet
  */
-
-const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
 
 /** Number of pinned memories to embed verbatim in the prompt. */
 const PINNED_LIMIT = 20;

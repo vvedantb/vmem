@@ -25,7 +25,7 @@ export async function resolveConnectorAccessToken(
   let tokenConnectorId = connector._id;
   if (connector.provider === "google_drive" || connector.provider === "gmail") {
     const googleRows = await ctx.runQuery(
-      internal.connectors.listGoogleConnectorsForUserInternal,
+      internal.connectors.crud.listGoogleConnectorsForUserInternal,
       { userId: connector.userId },
     );
     const picked = pickGoogleTokenConnectorId(googleRows, connector.provider);
@@ -36,7 +36,7 @@ export async function resolveConnectorAccessToken(
   }
 
   const tokens = await ctx.runQuery(
-    internal.connectorTokens.getEncryptedTokensInternal,
+    internal.connectors.tokens.getEncryptedTokensInternal,
     { connectorId: tokenConnectorId },
   );
   if (!tokens) {
@@ -88,10 +88,10 @@ export async function resolveConnectorAccessToken(
     });
 
     if (!refreshRes.ok) {
-      await ctx.runMutation(internal.connectors.markDisconnectedInternal, {
+      await ctx.runMutation(internal.connectors.crud.markDisconnectedInternal, {
         id: tokenConnectorId,
       });
-      await ctx.runMutation(internal.connectorTokens.deleteTokensInternal, {
+      await ctx.runMutation(internal.connectors.tokens.deleteTokensInternal, {
         connectorId: tokenConnectorId,
       });
       return { ok: false, message: "Token refresh failed — please reconnect" };
@@ -107,7 +107,7 @@ export async function resolveConnectorAccessToken(
       ? await encryptToken(refreshData.refresh_token)
       : tokens.refreshToken;
 
-    await ctx.runMutation(internal.connectorTokens.storeTokensInternal, {
+    await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
       connectorId: tokenConnectorId,
       accessToken: encryptedAccess,
       refreshToken: encryptedRefresh,

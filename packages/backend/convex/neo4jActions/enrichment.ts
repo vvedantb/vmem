@@ -14,9 +14,7 @@ import {
   parseFullEnrichmentResponse,
 } from "../../src/enrichmentPrompt";
 import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
-import { callOpenRouterChat } from "../lib/openRouter";
-
-const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
+import { callJsonChat } from "../lib/openRouter";
 
 /**
  * Server-side enrichment: generates tags + related memory links via OpenRouter.
@@ -62,21 +60,13 @@ export const enrichMemoryInternal = internalAction({
         existingMemories,
       );
 
-      const { content: rawText } = await callOpenRouterChat(ctx, {
+      const rawText = await callJsonChat(ctx, {
         apiKey: auth.apiKey,
         userId: auth.userId,
         profileId: args.profileId,
         feature: "enrichment",
-        model: LLM_MODEL,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a memory tagging and entity extraction system. Respond with ONLY valid JSON. No thinking, no markdown.",
-          },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.1,
+        role: "You are a memory tagging and entity extraction system.",
+        prompt,
       });
 
       if (rawText === null) {

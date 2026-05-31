@@ -41,7 +41,7 @@ export default function OAuthModal({
   const popupRef = useRef<Window | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const startOAuth = useAction(api.connectorOAuth.startOAuth);
+  const startOAuth = useAction(api.connectors.oauth.startOAuth);
 
   // Cleanup function
   const cleanup = useCallback(() => {

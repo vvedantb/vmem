@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { start } from "@convex-dev/workflow";
-import { internalMutation } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { workflow } from "./workflow";
+import { internalMutation } from "../_generated/server";
+import { internal } from "../_generated/api";
+import { workflow } from "../workflow";
 
 const dailySyncResult = v.object({
   synced: v.number(),
@@ -28,7 +28,7 @@ export const dailyConnectorSyncWorkflow = workflow
       skipped: number;
     }> => {
       const targets = await step.runQuery(
-        internal.connectors.listForDailyConnectorSyncInternal,
+        internal.connectors.crud.listForDailyConnectorSyncInternal,
         {},
       );
 
@@ -37,7 +37,7 @@ export const dailyConnectorSyncWorkflow = workflow
 
       for (const target of targets) {
         const result = await step.runAction(
-          internal.connectorSyncActions.syncOneConnectorInternal,
+          internal.connectors.syncActions.syncOneConnectorInternal,
           {
             connectorId: target.connectorId,
             fullHistory: true,
@@ -63,7 +63,7 @@ export const kickoffDailyConnectorSync = internalMutation({
   handler: async (ctx) => {
     await start(
       ctx,
-      internal.connectorSyncWorkflow.dailyConnectorSyncWorkflow,
+      internal.connectors.syncWorkflow.dailyConnectorSyncWorkflow,
       {},
     );
     return null;

@@ -18,6 +18,7 @@ Implementation:
 - Never use `unknown`
 - Never use `as` for type assertions
 - Never use the non-null assertion operator `!`.
+- Always use top-level `import` / `import type` at the file top — never dynamic `import()`, never inline `import("…")` type expressions, never `await import()` inside functions.
 - If a type is difficult to express, rethink the design instead of bypassing the type system.
 - Prefer simplicity over cleverness.
 - Minimize surface area of change.
@@ -140,23 +141,7 @@ Component Structure:
 - Route-level `*Client.tsx` = thin orchestrator (queries, top-level state, layout composition)
 - Route-local child components go in `_components/` folder
 - Pure helper functions go in `_utils.ts` at route level
-- Presentational components (no hooks, no `"use client"`) stay as plain function components
-- Only add `"use client"` to child components that use hooks/interactivity
 - Inline sub-components defined in the same file should be extracted to `_components/`
-
-Next.js:
-
-- Default to Server Components.
-- Client Components are only allowed when:
-  - Using state
-  - Using effects
-  - Handling user interaction
-  - Using Convex live queries/mutations
-- Never move logic to the client unless strictly required.
-- Data fetching should live in Server Components unless Convex live data is required.
-- When using Convex:
-  - Keep `page.tsx` as a Server Component.
-  - Extract interactive/live logic into child Client Components.
 
 Nuqs:
 

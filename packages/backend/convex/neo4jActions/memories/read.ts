@@ -15,7 +15,7 @@ import {
   searchMemories,
 } from "../../../src/neo4j/memoryService";
 import { getDriver } from "../../../src/neo4j/driver";
-import { callOpenRouterChat } from "../../lib/openRouter";
+import { callOpenRouterChat, LLM_MODEL } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
 import {
   toMemoryStatus,
@@ -23,8 +23,6 @@ import {
   tryEmbedMany,
   tryEmbedOne,
 } from "./shared";
-
-const RETRIEVAL_LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
 
 function extractJsonArray(source: string): string | null {
   const start = source.indexOf("[");
@@ -200,7 +198,7 @@ async function tryRetrievalChat(
       userId: auth.userId,
       profileId: args.profileId,
       feature: "memory-search",
-      model: RETRIEVAL_LLM_MODEL,
+      model: LLM_MODEL,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },

@@ -14,7 +14,7 @@ import {
   materializeSynthesisAsMemory,
 } from "../../../src/neo4j/memoryService";
 import { getDriver } from "../../../src/neo4j/driver";
-import { callOpenRouterChat, generateEmbedding } from "../../lib/openRouter";
+import { callJsonChat, generateEmbedding } from "../../lib/openRouter";
 import {
   buildDreamSynthesisPrompt,
   parseDreamSynthesisResponse,
@@ -22,7 +22,6 @@ import {
   type ParsedSynthesis,
 } from "../../../src/neo4j/dreamPrompt";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
-const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
 
 /**
  * Hard caps for one Dream Mode pass. Keeps cost predictable per user/day:
@@ -55,24 +54,17 @@ async function callSynthesisLLM(
   cluster: DreamClusterMember[],
 ): Promise<ParsedSynthesis | null> {
   const prompt = buildDreamSynthesisPrompt(cluster);
-  const { content: rawText, ok } = await callOpenRouterChat(ctx, {
+  const rawText = await callJsonChat(ctx, {
     apiKey,
     userId,
     profileId,
     feature: "dream-synthesis",
-    model: LLM_MODEL,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a memory-graph synthesis system. Respond with ONLY valid JSON. No thinking, no markdown.",
-      },
-      { role: "user", content: prompt },
-    ],
+    role: "You are a memory-graph synthesis system.",
+    prompt,
     temperature: 0.2,
   });
 
-  if (!ok || rawText === null) return null;
+  if (rawText === null) return null;
 
   return parseDreamSynthesisResponse(
     rawText,

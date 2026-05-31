@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery } from "../_generated/server";
 
 /**
  * Internal mutations and queries for connector OAuth tokens.

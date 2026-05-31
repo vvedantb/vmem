@@ -51,14 +51,14 @@ const vmem = new VMemory({
 
 ## API
 
-| Method | Description |
-| --- | --- |
-| `store(instruction)` | Extract facts from natural language and create memories |
-| `update(instruction)` | Reconcile changes; conflicting updates become proposals |
-| `retrieve(query, options?)` | Hybrid semantic search; optional `summarize: true` |
-| `createMemory(body)` | Structured create (escape hatch) |
-| `patchMemory(body)` | Structured update by `memoryId` |
-| `searchMemories(body)` | Structured retrieve |
+| Method                      | Description                                             |
+| --------------------------- | ------------------------------------------------------- |
+| `store(instruction)`        | Extract facts from natural language and create memories |
+| `update(instruction)`       | Reconcile changes; conflicting updates become proposals |
+| `retrieve(query, options?)` | Hybrid semantic search; optional `summarize: true`      |
+| `createMemory(body)`        | Structured create (escape hatch)                        |
+| `patchMemory(body)`         | Structured update by `memoryId`                         |
+| `searchMemories(body)`      | Structured retrieve                                     |
 
 ## Errors
 

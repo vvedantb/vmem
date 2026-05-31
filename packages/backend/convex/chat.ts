@@ -9,15 +9,13 @@ import {
   syncStreams,
 } from "@convex-dev/agent";
 import { vStreamArgs, vUsage } from "@convex-dev/agent/validators";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
+import { internalMutation } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
 
 const memoryRefValidator = v.object({
   id: v.string(),
   title: v.string(),
-  // Optional so older bubbles (written before hybrid search) round-trip
-  // through this validator unchanged. New bubbles carry the full retrieval
-  // trace so the chat UI can explain *why* each memory was pulled.
   trace: v.optional(
     v.object({
       score: v.number(),
@@ -41,6 +39,74 @@ const memoryRefValidator = v.object({
       reason: v.string(),
     }),
   ),
+});
+
+export const initiateStreaming = authMutation({
+  args: {
+    prompt: v.string(),
+    threadId: v.string(),
+    modelId: v.string(),
+  },
+  handler: async (ctx, { prompt, threadId, modelId }) => {
+    if (!prompt.trim()) {
+      throw new Error("Message cannot be empty");
+    }
+
+    const user = await ctx.db.get(ctx.userId);
+    if (!user?.clerkId) {
+      throw new Error("User identity missing");
+    }
+
+    const thread = await getThreadMetadata(ctx, components.agent, { threadId });
+    if (thread.userId !== ctx.userId) {
+      throw new Error("Thread not found or not owned by user");
+    }
+
+    const { messageId } = await saveMessage(ctx, components.agent, {
+      threadId,
+      userId: ctx.userId,
+      message: { role: "user", content: prompt },
+      agentName: "vmem-cloud",
+    });
+
+    await ctx.scheduler.runAfter(0, internal.chatStreamActions.streamAsync, {
+      threadId,
+      promptMessageId: messageId,
+      userId: ctx.userId,
+      modelId,
+      clerkId: user.clerkId,
+    });
+
+    return { messageId };
+  },
+});
+
+export const saveCloudMessageMemoryRefs = internalMutation({
+  args: {
+    userId: v.id("users"),
+    threadId: v.string(),
+    assistantOrder: v.number(),
+    assistantStepOrder: v.number(),
+    memoryRefs: v.array(memoryRefValidator),
+  },
+  handler: async (ctx, args) => {
+    const bubbleKey = `${args.threadId}-${String(args.assistantOrder)}-${String(args.assistantStepOrder)}`;
+    const existing = await ctx.db
+      .query("chatMessageMemoryRefs")
+      .withIndex("by_user_bubble", (q) =>
+        q.eq("userId", args.userId).eq("bubbleKey", bubbleKey),
+      )
+      .first();
+    if (existing) {
+      await ctx.db.delete(existing._id);
+    }
+    await ctx.db.insert("chatMessageMemoryRefs", {
+      userId: args.userId,
+      threadId: args.threadId,
+      bubbleKey,
+      refs: args.memoryRefs,
+    });
+  },
 });
 
 export const getOrCreateThread = authMutation({

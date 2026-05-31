@@ -32,6 +32,7 @@
     "@modelcontextprotocol/sdk": "catalog:",
     "@neo4j/cypher-builder": "^3.0.1",
     "@notionhq/client": "^2.2.15",
+    "@openrouter/ai-sdk-provider": "catalog:",
     "@openrouter/sdk": "^0.12.35",
     "ai": "catalog:",
     "convex": "catalog:",

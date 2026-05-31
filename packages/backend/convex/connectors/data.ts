@@ -1,8 +1,8 @@
 import { v } from "convex/values";
-import { authAction, requireClerkId } from "./auth";
-import { internal } from "./_generated/api";
-import { auditLog, ResourceTypes } from "./auditLog";
-import { sourceTypesForProvider } from "../src/neo4j/memory/connectorSourceTypes";
+import { authAction, requireClerkId } from "../auth";
+import { internal } from "../_generated/api";
+import { auditLog, ResourceTypes } from "../auditLog";
+import { sourceTypesForProvider } from "../../src/neo4j/memory/connectorSourceTypes";
 
 /**
  * Permanently deletes all memories imported from a connector's source types.
@@ -12,9 +12,12 @@ export const deleteConnectorData = authAction({
   args: { connectorId: v.id("connectors") },
   returns: v.number(),
   handler: async (ctx, args): Promise<number> => {
-    const connector = await ctx.runQuery(internal.connectors.getByIdInternal, {
-      id: args.connectorId,
-    });
+    const connector = await ctx.runQuery(
+      internal.connectors.crud.getByIdInternal,
+      {
+        id: args.connectorId,
+      },
+    );
     if (!connector || connector.userId !== ctx.userId) {
       throw new Error("Connector not found");
     }
@@ -34,7 +37,7 @@ export const deleteConnectorData = authAction({
       { clerkId, sourceTypes: [...sourceTypes] },
     );
 
-    await ctx.runMutation(internal.connectors.resetSyncStatsInternal, {
+    await ctx.runMutation(internal.connectors.crud.resetSyncStatsInternal, {
       id: args.connectorId,
     });
 

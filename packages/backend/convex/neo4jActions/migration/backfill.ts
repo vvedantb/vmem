@@ -18,7 +18,7 @@ import {
   setEmbeddings,
 } from "../../../src/neo4j/memoryService";
 import { getDriver } from "../../../src/neo4j/driver";
-import { callOpenRouterChat, generateEmbeddings } from "../../lib/openRouter";
+import { callJsonChat, generateEmbeddings } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
 import {
   buildFullEnrichmentPrompt,
@@ -206,8 +206,6 @@ export const startSemanticEdgesBackfill = internalAction({
 //   internal.neo4jActions.migration.startEntityBackfill
 // ─────────────────────────────────────────────────────────────────────────────
 
-const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
-
 export const backfillEntitiesInternal = internalAction({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {
@@ -275,24 +273,16 @@ export const backfillEntitiesInternal = internalAction({
               existingMemories,
             );
 
-            const { content: llmContent, ok } = await callOpenRouterChat(ctx, {
+            const llmContent = await callJsonChat(ctx, {
               apiKey: auth.apiKey,
               userId: auth.userId,
               profileId: item.profileId ?? undefined,
               feature: "entity-backfill",
-              model: LLM_MODEL,
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    "You are a memory tagging and entity extraction system. Respond with ONLY valid JSON. No thinking, no markdown.",
-                },
-                { role: "user", content: prompt },
-              ],
-              temperature: 0.1,
+              role: "You are a memory tagging and entity extraction system.",
+              prompt,
             });
 
-            if (!ok || llmContent === null) {
+            if (llmContent === null) {
               console.error(`entity backfill: LLM failed for ${item.id}`);
               processedIds.push(item.id);
               continue;

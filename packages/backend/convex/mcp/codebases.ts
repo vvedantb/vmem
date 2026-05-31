@@ -1,10 +1,10 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction } from "./_generated/server";
-import { internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
-import type { ActionCtx } from "./_generated/server";
+import { internalAction } from "../_generated/server";
+import { internal } from "../_generated/api";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { ActionCtx } from "../_generated/server";
 
 type CodebaseStatus = Doc<"codebases">["status"];
 

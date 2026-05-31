@@ -19,7 +19,7 @@ export const connectorCallback = httpAction(async (ctx, req) => {
   }
 
   const result = await ctx.runAction(
-    internal.connectorOAuth.handleCallbackInternal,
+    internal.connectors.oauth.handleCallbackInternal,
     { code, state },
   );
 
