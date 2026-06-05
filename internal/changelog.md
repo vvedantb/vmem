@@ -1,5 +1,10 @@
 # Changelog
 
+## Landing page polish — 2026-05-22
+
+- **Sign-in (`/`)**: Feature cards no longer clip below the fold; stronger surfaces and an asymmetric numbered stack so graph / recall / agent benefits read clearly.
+- **Sign-in (`/`)**: Richer ambient graph (pulsing nodes, dashed paths), italic headline accent, capability pills, and staggered motion — same tonal system, more editorial first impression.
+
 ## Landing page redesign — 2026-06-06
 
 - **Sign-in (`/`)**: Editorial hero with graph atmosphere, feature highlights, and clearer get-started vs sign-in paths — aligned with the app’s tonal design system.
