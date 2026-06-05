@@ -10,14 +10,16 @@
  * React context, no duplicated state/data-fetching.
  *
  * State ownership:
- *   - Filters (profile/tags/kinds/sources/types): URL via `nuqs`, shared with list view.
- *   - Search: local `useState` — URL-worthy only if we want shareable search.
+ *   - Filters + search (profile/tags/kinds/sources/types/q): URL via `nuqs`, shared with list view.
  *   - Display (view mode, forces/labels): cookies via `graph-cookies`, per-user.
  *   - Data: Convex action via `useGraphData`.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { useAction } from "convex/react";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { useQueryStates } from "nuqs";
+import { api } from "@vmem/backend";
 import {
   getGraphSettings,
   setGraphSettings,
@@ -58,6 +60,7 @@ import {
   type ViewMode,
 } from "@/components/_components/graph-view-themes";
 import type { MemoryType } from "@/lib/memories";
+import { graphNodeMatchesLocalSearch } from "@/components/_components/graph-search";
 
 const EMPTY_SET = new Set<string>();
 
@@ -89,6 +92,7 @@ export interface MemoryGraphController {
   graphNodes: GraphNode[];
   graphEdges: GraphEdge[];
   searchMatchSet: Set<string>;
+  isSearchActive: boolean;
   allTags: TagStat[];
   allKinds: KindStat[];
   allSources: SourceStat[];
@@ -111,7 +115,7 @@ export interface MemoryGraphController {
   viewTheme: GraphViewTheme;
   isDark: boolean;
 
-  // ----- Search state (local) -----
+  // ----- Search state (URL) -----
   search: string;
 
   // ----- Handlers -----
@@ -140,6 +144,8 @@ export function useMemoryGraphController({
   const [params, setParams] = useQueryStates(memoriesSearchParams);
 
   // Data
+  const listMemoriesAction = useAction(api.memoryApi.listMemories);
+
   const {
     apiNodes,
     apiTagEdges,
@@ -151,14 +157,31 @@ export function useMemoryGraphController({
     error,
   } = useGraphData(focusNodeId, params.profile);
 
+  const searchQuery = params.q.trim();
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const isSearchActive = searchQuery.length > 0;
+
+  const { data: memorySearchResult } = useTanstackQuery({
+    queryKey: [
+      "graph-memory-search",
+      deferredSearchQuery,
+      params.profile ?? "",
+    ],
+    queryFn: () =>
+      listMemoriesAction({
+        searchQuery: deferredSearchQuery,
+        profileId: params.profile ?? undefined,
+        limit: 500,
+        offset: 0,
+      }),
+    enabled: deferredSearchQuery.length > 0,
+    staleTime: 30_000,
+  });
+
   // Cookie-backed display state (per-user, non-shareable).
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
   const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
-
-  // Local search — no URL plumbing because it's short-lived exploration,
-  // not something we want to encode into shared links.
-  const [search, setSearch] = useState("");
 
   // Adapt nuqs arrays ↔ Sets once; buildGraphData and downstream handlers use
   // Set semantics. An empty `kinds` array means "all kinds visible" so a
@@ -219,20 +242,39 @@ export function useMemoryGraphController({
     ],
   );
 
+  const visibleNodeIds = useMemo(
+    () => new Set(graphNodes.map((node) => node.id)),
+    [graphNodes],
+  );
+
   const searchMatchSet = useMemo(() => {
-    if (search.trim().length === 0) return EMPTY_SET;
-    const q = search.trim().toLowerCase();
+    if (!isSearchActive) return EMPTY_SET;
+
     const matches = new Set<string>();
+
     for (const node of graphNodes) {
-      if (
-        node.title.toLowerCase().includes(q) ||
-        node.tags.some((t) => t.toLowerCase().includes(q))
-      ) {
+      if (graphNodeMatchesLocalSearch(node, searchQuery)) {
         matches.add(node.id);
       }
     }
+
+    const memories = memorySearchResult?.memories;
+    if (memories) {
+      for (const memory of memories) {
+        if (visibleNodeIds.has(memory.id)) {
+          matches.add(memory.id);
+        }
+      }
+    }
+
     return matches;
-  }, [search, graphNodes]);
+  }, [
+    isSearchActive,
+    searchQuery,
+    graphNodes,
+    memorySearchResult,
+    visibleNodeIds,
+  ]);
 
   // A "badge" on the Filters button — true when any URL-backed filter is
   // narrowing results (profile/tags/sources/types, or kinds is a non-default subset).
@@ -330,9 +372,12 @@ export function useMemoryGraphController({
     });
   }, [setParams]);
 
-  const onSearchChange = useCallback((q: string) => {
-    setSearch(q);
-  }, []);
+  const onSearchChange = useCallback(
+    (q: string) => {
+      void setParams({ q });
+    },
+    [setParams],
+  );
 
   return {
     // Raw
@@ -349,6 +394,7 @@ export function useMemoryGraphController({
     graphNodes,
     graphEdges,
     searchMatchSet,
+    isSearchActive,
     allTags,
     allKinds,
     allSources,
@@ -371,8 +417,8 @@ export function useMemoryGraphController({
     viewTheme,
     isDark,
 
-    // Search
-    search,
+    // Search (URL — shared with list view via `q`)
+    search: params.q,
 
     // Handlers
     onProfileChange,

@@ -1,5 +1,9 @@
 # Changelog
 
+## Memory graph search — 2026-05-22
+
+- **Graph view**: Search syncs to the `q` URL param (shareable, persists across graph/list tabs) and highlights matching nodes — including memory body text via the same fulltext search as the list view.
+
 ## Cloud model provider icons — 2026-05-22
 
 - **Cloud model selector**: SVGL brand marks for OpenRouter providers (Google, Mistral, NVIDIA, etc.) on the trigger, provider groups, and model rows.

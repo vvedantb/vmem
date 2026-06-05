@@ -49,6 +49,7 @@ interface GraphCanvasProps {
   settings: GraphSettings;
   focusNodeId?: string | null;
   searchMatchSet: Set<string>;
+  isSearchActive: boolean;
   showLabels: boolean;
   onHoverNode: (info: HoveredNodeInfo | null) => void;
   onHoverEdge?: (info: HoveredEdgeInfo | null) => void;
@@ -66,6 +67,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       settings,
       focusNodeId,
       searchMatchSet,
+      isSearchActive,
       showLabels,
       onHoverNode,
       onHoverEdge,
@@ -83,6 +85,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     const settingsRef = useRef(settings);
     const focusNodeIdRef = useRef(focusNodeId);
     const searchMatchSetRef = useRef(searchMatchSet);
+    const isSearchActiveRef = useRef(isSearchActive);
     const showLabelsRef = useRef(showLabels);
     const callbacksRef = useRef({
       onHoverNode,
@@ -127,6 +130,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     themeRef.current = viewTheme;
     focusNodeIdRef.current = focusNodeId;
     searchMatchSetRef.current = searchMatchSet;
+    isSearchActiveRef.current = isSearchActive;
     showLabelsRef.current = showLabels;
     callbacksRef.current = {
       onHoverNode,
@@ -368,6 +372,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           neighborSet,
           focusNodeIdRef.current ?? null,
           searchMatchSetRef.current,
+          isSearchActiveRef.current,
           showLabelsRef.current,
           connectorLogosRef.current,
         );

@@ -15,7 +15,7 @@ const memoriesSearchParams = {
   focus: parseAsString,
   /** Profile filter — when set, only show memories from this profile */
   profile: parseAsString,
-  /** Search query for filtering items */
+  /** Search query — list rows and graph node highlight (shareable via URL) */
   q: parseAsString.withDefault(""),
   tags: parseAsArrayOf(parseAsString, ",").withDefault([]),
   sources: parseAsArrayOf(parseAsString, ",").withDefault([]),

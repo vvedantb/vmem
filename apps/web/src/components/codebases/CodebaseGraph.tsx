@@ -46,6 +46,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
     graphNodes,
     graphEdges,
     searchMatchSet,
+    hasActiveSearch,
     isDark,
     selectedSymbolId,
     blastDirection,
@@ -129,6 +130,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         settings={DEFAULT_GRAPH_SETTINGS}
         focusNodeId={null}
         searchMatchSet={searchMatchSet}
+        isSearchActive={hasActiveSearch}
         showLabels={DEFAULT_GRAPH_SETTINGS.showLabels}
         onHoverNode={handleHoverNode}
         onHoverEdge={setHoveredEdge}

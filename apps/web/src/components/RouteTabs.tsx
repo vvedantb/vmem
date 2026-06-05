@@ -16,6 +16,8 @@ interface RouteTabsProps {
   getActiveValue: (matchRoute: MatchRoute) => string;
   /** Passed to every tab `<Link>` (e.g. `{ teamId }` for `/teams/$teamId/*`). */
   linkParams?: LinkProps["params"];
+  /** Preserved on tab navigation (e.g. nuqs filter/search state). */
+  search?: LinkProps["search"];
 }
 
 /**
@@ -26,6 +28,7 @@ export function RouteTabs({
   tabs,
   getActiveValue,
   linkParams,
+  search,
 }: RouteTabsProps) {
   const matchRoute = useMatchRoute();
   const activeValue = getActiveValue(matchRoute);
@@ -35,7 +38,12 @@ export function RouteTabs({
       <TabsList>
         {tabs.map((tab) => (
           <TabsTrigger key={tab.value} value={tab.value} asChild>
-            <Link to={tab.to} params={linkParams} className="gap-1.5">
+            <Link
+              to={tab.to}
+              params={linkParams}
+              search={search}
+              className="gap-1.5"
+            >
               {tab.icon}
               <span>{tab.label}</span>
             </Link>
