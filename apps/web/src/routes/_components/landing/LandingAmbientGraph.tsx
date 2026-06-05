@@ -24,7 +24,7 @@ export function LandingAmbientGraph() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_42%_38%,transparent_15%,var(--background)_92%)]" />
 
       <svg
-        className="absolute inset-0 h-full w-full text-foreground/[0.11] dark:text-foreground/[0.07]"
+        className="landing-ambient-drift absolute inset-0 h-full w-full text-foreground/[0.11] dark:text-foreground/[0.07]"
         viewBox="0 0 900 700"
         preserveAspectRatio="xMidYMid slice"
         fill="none"

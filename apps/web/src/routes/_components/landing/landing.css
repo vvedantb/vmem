@@ -27,9 +27,24 @@
   background-size: 128px 128px;
 }
 
+@keyframes landing-ambient-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+.landing-ambient-drift {
+  animation: landing-ambient-drift 14s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-graph-dash,
-  .landing-preview-pulse {
+  .landing-preview-pulse,
+  .landing-ambient-drift {
     animation: none;
   }
 }
