@@ -11,7 +11,6 @@
  */
 
 import { useMemo } from "react";
-import { useQueryStates } from "nuqs";
 import { useQuery } from "convex/react";
 import {
   IconCheck,
@@ -49,10 +48,10 @@ import {
   wikiRowsToListItems,
   type ListItem,
 } from "@/lib/list-items";
-import { memoriesSearchParams } from "@/routes/_main/memories/-searchParams";
+import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
 
 export default function MemoryListHeaderControls() {
-  const [params, setParams] = useQueryStates(memoriesSearchParams);
+  const [params, setParams] = useMemoriesSearchParams();
   const { memories: allMemories } = useMemoryContext();
   const wikiRows = useQuery(api.wiki.listTree);
   const skillRows = useQuery(api.skills.listMy);
@@ -113,7 +112,7 @@ export default function MemoryListHeaderControls() {
       />
       <SearchPopover
         value={params.q}
-        onChange={(q) => setParams({ q })}
+        onChange={(q) => setParams({ q: q.trim().length === 0 ? null : q })}
         placeholder={
           isTagsView ? "Search tags..." : "Search memories, wiki, and skills..."
         }

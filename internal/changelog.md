@@ -1,5 +1,9 @@
 # Changelog
 
+## Memories URL params — 2026-05-22
+
+- **Memories graph/list**: Filter and search URLs no longer accumulate JSON junk (`profile="null"`, `tags=[]`); only active filters appear in the query string.
+
 ## Shared memory filters (graph + list) — 2026-05-22
 
 - **Memories graph/list**: One filter ruleset and popover across both views — tag AND semantics, consistent badge counts, and URL-backed state that persists when switching tabs.

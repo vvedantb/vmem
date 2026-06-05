@@ -1,12 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense } from "react";
-import { useQueryStates } from "nuqs";
 import PageContainer from "@/components/PageContainer";
 import MemorySearch from "@/components/MemorySearch";
 import MemoryListHeaderControls from "@/components/_components/MemoryListHeaderControls";
 import TagsListView from "@/components/_components/TagsListView";
 import { MemoriesTabs } from "./-components/MemoriesTabs";
-import { memoriesSearchParams } from "./-searchParams";
+import { useMemoriesSearchParams } from "./useMemoriesSearchParams";
 
 export const Route = createFileRoute("/_main/memories/list")({
   component: MemoriesListPage,
@@ -20,7 +19,7 @@ export const Route = createFileRoute("/_main/memories/list")({
  * hooks based on the other's view.
  */
 function MemoriesListPage() {
-  const [params] = useQueryStates(memoriesSearchParams);
+  const [params] = useMemoriesSearchParams();
   const isTagsView = params.view === "tags";
 
   return (

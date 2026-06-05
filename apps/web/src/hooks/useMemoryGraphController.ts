@@ -18,7 +18,6 @@
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
-import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import {
   getGraphSettings,
@@ -28,7 +27,7 @@ import {
 } from "@/lib/graph-cookies";
 import { useGraphData } from "@/hooks/useGraphData";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
-import { memoriesSearchParams } from "@/routes/_main/memories/-searchParams";
+import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
 import {
   buildGraphData,
   getAllTags,
@@ -128,7 +127,7 @@ export function useMemoryGraphController({
 
   // URL-backed filter state — shared with list view so filters persist across
   // view modes and are URL-shareable.
-  const [params, setParams] = useQueryStates(memoriesSearchParams);
+  const [params, setParams] = useMemoriesSearchParams();
 
   // Data
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
@@ -313,7 +312,7 @@ export function useMemoryGraphController({
 
   const onSearchChange = useCallback(
     (q: string) => {
-      void setParams({ q });
+      void setParams({ q: q.trim().length === 0 ? null : q });
     },
     [setParams],
   );

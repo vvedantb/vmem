@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useQueryStates } from "nuqs";
 import { useSearch } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { cn } from "@vmem/ui";
@@ -25,7 +24,7 @@ import {
   type ListItem,
   type ListItemSearchResult,
 } from "@/lib/list-items";
-import { memoriesSearchParams } from "@/routes/_main/memories/-searchParams";
+import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
 import { useMemoryListFlat } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
@@ -44,7 +43,7 @@ import { useTrailData } from "@/hooks/useTrailData";
  */
 export default function MemorySearch() {
   const searchParams = useSearch({ strict: false });
-  const [params, setParams] = useQueryStates(memoriesSearchParams);
+  const [params, setParams] = useMemoriesSearchParams();
 
   const searchQuery = params.q;
   const normalizedQuery = searchQuery.trim();
