@@ -6,7 +6,7 @@ export interface MentionPopupPlacement {
   maxHeight: number;
 }
 
-const POPUP_WIDTH = 224;
+const POPUP_WIDTH = 320;
 const POPUP_GAP = 6;
 const POPUP_ESTIMATED_HEIGHT = 272;
 const VIEWPORT_PADDING = 8;

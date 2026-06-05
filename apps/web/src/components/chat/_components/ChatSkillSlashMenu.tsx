@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Doc } from "@vmem/backend";
 import { cn } from "@vmem/ui";
@@ -24,6 +25,17 @@ export function ChatSkillSlashMenu({
     filteredSkills.length === 0
       ? 0
       : Math.min(highlightIndex, filteredSkills.length - 1);
+
+  const listRef = useRef<HTMLUListElement>(null);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const active = list.querySelector('[role="option"][aria-selected="true"]');
+    if (active instanceof HTMLElement) {
+      active.scrollIntoView({ block: "nearest" });
+    }
+  }, [safeHighlight]);
 
   return (
     <>
@@ -52,6 +64,7 @@ export function ChatSkillSlashMenu({
         </p>
       ) : (
         <ul
+          ref={listRef}
           role="listbox"
           aria-label="Skills"
           className="max-h-52 overflow-y-auto scrollbar-thin px-1.5 pb-1.5 [scrollbar-gutter:stable]"
@@ -76,9 +89,11 @@ export function ChatSkillSlashMenu({
                   className="mt-0.5 shrink-0 text-muted-foreground"
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="font-medium">/{skill.name}</span>
+                  <span className="block font-medium text-foreground">
+                    /{skill.name}
+                  </span>
                   {skill.description ? (
-                    <span className="mt-0.5 block truncate text-xs text-muted/80">
+                    <span className="mt-0.5 block truncate text-xs text-muted">
                       {skill.description}
                     </span>
                   ) : null}

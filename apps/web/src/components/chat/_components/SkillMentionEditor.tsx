@@ -116,6 +116,7 @@ export function SkillMentionEditor({
   const hoverChipRef = useRef<HTMLElement | null>(null);
   const hoverOpenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const slashTriggerRef = useRef<SlashTrigger>(CLOSED_TRIGGER);
 
   const enabledSkills = useMemo(
     () => skills?.filter(isSkillEnabled) ?? [],
@@ -219,12 +220,32 @@ export function SkillMentionEditor({
   useEffect(() => {
     const next = findSlashTrigger(value, enabledSkills.length > 0);
     if (!next) {
-      setTrigger((prev) => (prev.isOpen ? CLOSED_TRIGGER : prev));
+      if (slashTriggerRef.current.isOpen) {
+        setTrigger(CLOSED_TRIGGER);
+        slashTriggerRef.current = CLOSED_TRIGGER;
+      }
       return;
     }
+
+    const prev = slashTriggerRef.current;
+    const shouldResetHighlight =
+      !prev.isOpen ||
+      prev.query !== next.query ||
+      prev.startIndex !== next.startIndex;
+
+    slashTriggerRef.current = next;
     setTrigger(next);
-    setSelectedIndex(0);
+    if (shouldResetHighlight) {
+      setSelectedIndex(0);
+    }
   }, [value, enabledSkills.length]);
+
+  useEffect(() => {
+    setSelectedIndex((prev) => {
+      if (filteredSkills.length === 0) return 0;
+      return Math.min(prev, filteredSkills.length - 1);
+    });
+  }, [filteredSkills.length]);
 
   useEffect(() => {
     if (!trigger.isOpen) {
@@ -251,6 +272,7 @@ export function SkillMentionEditor({
 
   const closeTrigger = useCallback(() => {
     setTrigger((prev) => (prev.isOpen ? CLOSED_TRIGGER : prev));
+    slashTriggerRef.current = CLOSED_TRIGGER;
     setSelectedIndex(0);
   }, []);
 
@@ -289,18 +311,15 @@ export function SkillMentionEditor({
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
       if (trigger.isOpen && filteredSkills.length > 0) {
-        if (e.key === "ArrowDown") {
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
           e.preventDefault();
-          setSelectedIndex((prev) =>
-            prev >= filteredSkills.length - 1 ? 0 : prev + 1,
-          );
-          return;
-        }
-        if (e.key === "ArrowUp") {
-          e.preventDefault();
-          setSelectedIndex((prev) =>
-            prev <= 0 ? filteredSkills.length - 1 : prev - 1,
-          );
+          e.stopPropagation();
+          setSelectedIndex((prev) => {
+            if (e.key === "ArrowDown") {
+              return prev >= filteredSkills.length - 1 ? 0 : prev + 1;
+            }
+            return prev <= 0 ? filteredSkills.length - 1 : prev - 1;
+          });
           return;
         }
         if (e.key === "Enter") {
@@ -313,12 +332,14 @@ export function SkillMentionEditor({
         }
         if (e.key === "Tab") {
           e.preventDefault();
+          e.stopPropagation();
           const skill = filteredSkills[selectedIndex];
           if (skill) insertSkill(skill);
           return;
         }
         if (e.key === "Escape") {
           e.preventDefault();
+          e.stopPropagation();
           closeTrigger();
           return;
         }
@@ -440,7 +461,7 @@ export function SkillMentionEditor({
         aria-label={placeholder ?? "Message input"}
         className={cn(EDITOR_CLASS, className)}
         onInput={handleInput}
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
         onClick={handleChipClick}
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}
