@@ -8,8 +8,8 @@
     "./enrichmentPrompt": "./src/enrichmentPrompt.ts"
   },
   "scripts": {
-    "dev": "npx convex dev",
-    "deploy": "pnpm run build:mcp-graph-ui && npx convex deploy",
+    "dev": "convex dev",
+    "deploy": "pnpm run build:mcp-graph-ui && convex deploy",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:retrieval": "cross-env RUN_RETRIEVAL_EVAL=1 vitest run src/neo4j/memory/eval/retrieval.integration.test.ts",

@@ -15,7 +15,6 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
   PromptInput,
-  PromptInputTextarea,
   PromptInputFooter,
   PromptInputSubmit,
   SpeechInput,
@@ -45,6 +44,7 @@ import {
 } from "@vmem/ui";
 import { Link } from "@tanstack/react-router";
 import ChatMessageItem from "@/components/chat/_components/ChatMessageItem";
+import { ChatPromptTextarea } from "@/components/chat/_components/ChatPromptTextarea";
 import CloudModelSelector from "@/components/chat/_components/CloudModelSelector";
 import ProviderToggle from "@/components/chat/_components/ProviderToggle";
 import LocalModelProviderIcon from "@/components/LocalModelProviderIcon";
@@ -380,7 +380,7 @@ export default function Chat() {
 
       <div className="flex-shrink-0 max-w-3xl mx-auto w-full px-1 sm:px-0">
         <PromptInput onSubmit={handleSubmit} status={promptStatus}>
-          <PromptInputTextarea
+          <ChatPromptTextarea
             placeholder={
               needsLocalModel
                 ? "Select a local model to chat..."
@@ -388,7 +388,7 @@ export default function Chat() {
                   ? "Add OPENROUTER_API_KEY in Settings..."
                   : needsCloudModel
                     ? "Select a cloud model..."
-                    : "Ask about your memories..."
+                    : "Ask about your memories... Type / for skills."
             }
             {...(inputDisabled ? { disabled: true } : {})}
           />

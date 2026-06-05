@@ -1,5 +1,10 @@
 # Changelog
 
+## Chat slash skills + tool accordion UX — 2026-05-22
+
+- **Chat input**: Typing `/` opens a caret-anchored skills popover; completed `/skill` tokens render as inline chips in the prompt.
+- **Tool accordion**: Long tool input/output is capped with a scrollbar and opens scrolled to the bottom so the latest result is visible first.
+
 ## Service layer consolidation — 2026-05-28
 
 - **LLM orchestration**: Centralized `LLM_MODEL` constant in `convex/lib/openRouter/shared.ts`; removed 7 duplicate local defs so model swaps propagate everywhere at once.

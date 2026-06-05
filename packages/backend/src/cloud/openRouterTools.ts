@@ -1,68 +1,13 @@
-﻿// @ts-nocheck
-import { type Tool, type ToolSet, zodSchema } from "ai";
+import { type ToolSet, tool, zodSchema } from "ai";
 import type { ActionCtx } from "../../convex/_generated/server";
 import type { CloudMemoryRef } from "./cloudMemoryRef";
-import {
-  runCodebaseContext,
-  runCodebaseGraph,
-  runCodebaseImpact,
-  runCodebaseOverview,
-  runCodebaseSearch,
-  runCodebasesList,
-  runListProfiles,
-  runMemoryRelated,
-  runMemoryRetrieve,
-  runMemorySearch,
-  runPing,
-  runSkillsGet,
-  runSkillsList,
-  runWhoami,
-  runWikiGet,
-  runWikiList,
-  runWikiSearch,
-  type ToolHandlerContext,
-  type ToolHandlerResult,
-} from "../../convex/mcp/toolHandlers";
-import {
-  codebaseContextSchema,
-  codebaseGraphSchema,
-  codebaseImpactSchema,
-  codebaseOverviewSchema,
-  codebaseSearchSchema,
-  codebasesListSchema,
-  listProfilesSchema,
-  memoryRelatedSchema,
-  memoryRetrieveSchema,
-  memorySearchSchema,
-  pingSchema,
-  skillsGetSchema,
-  skillsListSchema,
-  whoamiSchema,
-  wikiGetSchema,
-  wikiListSchema,
-  wikiSearchSchema,
-} from "../../convex/mcp/schemas";
+import { toolSpecs } from "../../convex/mcp/toolCatalog";
+import type { ToolHandlerContext } from "../../convex/mcp/toolHandlers";
 
 export type { CloudMemoryRef };
 
-type OpenRouterToolConfig = {
-  description: string;
-  inputSchema: Tool["inputSchema"];
-  execute: NonNullable<Tool["execute"]>;
-};
-
 interface OpenRouterToolOptions {
   onMemoryRetrieve?: (refs: CloudMemoryRef[]) => void;
-}
-
-function openRouterTool(config: OpenRouterToolConfig): Tool {
-  return config;
-}
-
-async function runHandler(
-  run: () => Promise<ToolHandlerResult>,
-): Promise<ToolHandlerResult> {
-  return await run();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -130,139 +75,117 @@ function toCloudMemoryRefs(data: unknown): CloudMemoryRef[] {
   return refs;
 }
 
+/**
+ * Build the read-only subset of vmem tools exposed to cloud chat's free
+ * OpenRouter models. Tool name, input schema, and handler all come from the
+ * shared catalog (`toolCatalog.ts`); only the cloud-specific (terse)
+ * description lives here. Write tools (memory_add/update/delete, skills and
+ * wiki mutations, set_active_profile) are intentionally omitted from this
+ * surface. Each `tool()` keeps its concrete schema type so input stays typed
+ * end-to-end — no `@ts-nocheck`.
+ */
 export function buildOpenRouterTools(
   ctx: ActionCtx,
   clerkUserId: string,
   options: OpenRouterToolOptions = {},
 ): ToolSet {
-  const handlerCtx: ToolHandlerContext = {
-    ctx,
-    clerkUserId,
-    scope: "personal",
+  const h: ToolHandlerContext = { ctx, clerkUserId, scope: "personal" };
+
+  return {
+    ping: tool({
+      description: "Health check tool for connector validation.",
+      inputSchema: zodSchema(toolSpecs.ping.schema),
+      execute: (input) => toolSpecs.ping.run(h, input),
+    }),
+    whoami: tool({
+      description:
+        "Returns the authenticated user, active personal profile, and profiles visible on this personal MCP connector.",
+      inputSchema: zodSchema(toolSpecs.whoami.schema),
+      execute: (input) => toolSpecs.whoami.run(h, input),
+    }),
+    list_profiles: tool({
+      description:
+        "List personal profiles available on this MCP connector. Returns profile IDs, names, colors, and icons.",
+      inputSchema: zodSchema(toolSpecs.list_profiles.schema),
+      execute: (input) => toolSpecs.list_profiles.run(h, input),
+    }),
+    memory_search: tool({
+      description: "Search your memories by query text, type, tags, or source.",
+      inputSchema: zodSchema(toolSpecs.memory_search.schema),
+      execute: (input) => toolSpecs.memory_search.run(h, input),
+    }),
+    memory_retrieve: tool({
+      description:
+        "Retrieve the most relevant memories for a natural language query with score breakdown.",
+      inputSchema: zodSchema(toolSpecs.memory_retrieve.schema),
+      execute: async (input) => {
+        const result = await toolSpecs.memory_retrieve.run(h, input);
+        if (result.ok) {
+          options.onMemoryRetrieve?.(toCloudMemoryRefs(result.data));
+        }
+        return result;
+      },
+    }),
+    memory_related: tool({
+      description:
+        "List memories linked to a given memory via RELATES_TO edges.",
+      inputSchema: zodSchema(toolSpecs.memory_related.schema),
+      execute: (input) => toolSpecs.memory_related.run(h, input),
+    }),
+    skills_list: tool({
+      description: "List enabled skills (name + description only).",
+      inputSchema: zodSchema(toolSpecs.skills_list.schema),
+      execute: (input) => toolSpecs.skills_list.run(h, input),
+    }),
+    skills_get: tool({
+      description: "Fetch a single enabled skill by exact name.",
+      inputSchema: zodSchema(toolSpecs.skills_get.schema),
+      execute: (input) => toolSpecs.skills_get.run(h, input),
+    }),
+    wiki_list: tool({
+      description: "List all wiki folders and documents.",
+      inputSchema: zodSchema(toolSpecs.wiki_list.schema),
+      execute: (input) => toolSpecs.wiki_list.run(h, input),
+    }),
+    wiki_get: tool({
+      description: "Fetch a single wiki node by id.",
+      inputSchema: zodSchema(toolSpecs.wiki_get.schema),
+      execute: (input) => toolSpecs.wiki_get.run(h, input),
+    }),
+    wiki_search: tool({
+      description: "Full-text search wiki titles and document bodies.",
+      inputSchema: zodSchema(toolSpecs.wiki_search.schema),
+      execute: (input) => toolSpecs.wiki_search.run(h, input),
+    }),
+    codebases_list: tool({
+      description: "List GitHub repositories connected to vmem.",
+      inputSchema: zodSchema(toolSpecs.codebases_list.schema),
+      execute: (input) => toolSpecs.codebases_list.run(h, input),
+    }),
+    codebase_overview: tool({
+      description: "Get aggregate stats for a synced codebase.",
+      inputSchema: zodSchema(toolSpecs.codebase_overview.schema),
+      execute: (input) => toolSpecs.codebase_overview.run(h, input),
+    }),
+    codebase_search: tool({
+      description: "Search symbols inside a synced codebase.",
+      inputSchema: zodSchema(toolSpecs.codebase_search.schema),
+      execute: (input) => toolSpecs.codebase_search.run(h, input),
+    }),
+    codebase_context: tool({
+      description: "Get a symbol's metadata plus CALLS relationships.",
+      inputSchema: zodSchema(toolSpecs.codebase_context.schema),
+      execute: (input) => toolSpecs.codebase_context.run(h, input),
+    }),
+    codebase_impact: tool({
+      description: "Traverse CALLS edges upstream or downstream from a symbol.",
+      inputSchema: zodSchema(toolSpecs.codebase_impact.schema),
+      execute: (input) => toolSpecs.codebase_impact.run(h, input),
+    }),
+    codebase_graph: tool({
+      description: "Fetch a filtered subgraph of a synced codebase.",
+      inputSchema: zodSchema(toolSpecs.codebase_graph.schema),
+      execute: (input) => toolSpecs.codebase_graph.run(h, input),
+    }),
   };
-
-  const tools: Record<string, Tool> = {};
-
-  tools.ping = openRouterTool({
-    description: "Health check tool for connector validation.",
-    inputSchema: zodSchema(pingSchema),
-    execute: async () => runHandler(() => runPing(handlerCtx)),
-  });
-
-  tools.whoami = openRouterTool({
-    description:
-      "Returns the authenticated user, active personal profile, and profiles visible on this personal MCP connector.",
-    inputSchema: zodSchema(whoamiSchema),
-    execute: async () => runHandler(() => runWhoami(handlerCtx)),
-  });
-
-  tools.list_profiles = openRouterTool({
-    description:
-      "List personal profiles available on this MCP connector. Returns profile IDs, names, colors, and icons.",
-    inputSchema: zodSchema(listProfilesSchema),
-    execute: async () => runHandler(() => runListProfiles(handlerCtx)),
-  });
-
-  tools.memory_search = openRouterTool({
-    description: "Search your memories by query text, type, tags, or source.",
-    inputSchema: zodSchema(memorySearchSchema),
-    execute: async (input) =>
-      runHandler(() => runMemorySearch(handlerCtx, input)),
-  });
-
-  tools.memory_retrieve = openRouterTool({
-    description:
-      "Retrieve the most relevant memories for a natural language query with score breakdown.",
-    inputSchema: zodSchema(memoryRetrieveSchema),
-    execute: async (input) => {
-      const result = await runHandler(() =>
-        runMemoryRetrieve(handlerCtx, input),
-      );
-      if (result.ok) {
-        options.onMemoryRetrieve?.(toCloudMemoryRefs(result.data));
-      }
-      return result;
-    },
-  });
-
-  tools.memory_related = openRouterTool({
-    description: "List memories linked to a given memory via RELATES_TO edges.",
-    inputSchema: zodSchema(memoryRelatedSchema),
-    execute: async (input) =>
-      runHandler(() => runMemoryRelated(handlerCtx, input)),
-  });
-
-  tools.skills_list = openRouterTool({
-    description: "List enabled skills (name + description only).",
-    inputSchema: zodSchema(skillsListSchema),
-    execute: async () => runHandler(() => runSkillsList(handlerCtx)),
-  });
-
-  tools.skills_get = openRouterTool({
-    description: "Fetch a single enabled skill by exact name.",
-    inputSchema: zodSchema(skillsGetSchema),
-    execute: async (input) => runHandler(() => runSkillsGet(handlerCtx, input)),
-  });
-
-  tools.wiki_list = openRouterTool({
-    description: "List all wiki folders and documents.",
-    inputSchema: zodSchema(wikiListSchema),
-    execute: async () => runHandler(() => runWikiList(handlerCtx)),
-  });
-
-  tools.wiki_get = openRouterTool({
-    description: "Fetch a single wiki node by id.",
-    inputSchema: zodSchema(wikiGetSchema),
-    execute: async (input) => runHandler(() => runWikiGet(handlerCtx, input)),
-  });
-
-  tools.wiki_search = openRouterTool({
-    description: "Full-text search wiki titles and document bodies.",
-    inputSchema: zodSchema(wikiSearchSchema),
-    execute: async (input) =>
-      runHandler(() => runWikiSearch(handlerCtx, input)),
-  });
-
-  tools.codebases_list = openRouterTool({
-    description: "List GitHub repositories connected to vmem.",
-    inputSchema: zodSchema(codebasesListSchema),
-    execute: async () => runHandler(() => runCodebasesList(handlerCtx)),
-  });
-
-  tools.codebase_overview = openRouterTool({
-    description: "Get aggregate stats for a synced codebase.",
-    inputSchema: zodSchema(codebaseOverviewSchema),
-    execute: async (input) =>
-      runHandler(() => runCodebaseOverview(handlerCtx, input)),
-  });
-
-  tools.codebase_search = openRouterTool({
-    description: "Search symbols inside a synced codebase.",
-    inputSchema: zodSchema(codebaseSearchSchema),
-    execute: async (input) =>
-      runHandler(() => runCodebaseSearch(handlerCtx, input)),
-  });
-
-  tools.codebase_context = openRouterTool({
-    description: "Get a symbol's metadata plus CALLS relationships.",
-    inputSchema: zodSchema(codebaseContextSchema),
-    execute: async (input) =>
-      runHandler(() => runCodebaseContext(handlerCtx, input)),
-  });
-
-  tools.codebase_impact = openRouterTool({
-    description: "Traverse CALLS edges upstream or downstream from a symbol.",
-    inputSchema: zodSchema(codebaseImpactSchema),
-    execute: async (input) =>
-      runHandler(() => runCodebaseImpact(handlerCtx, input)),
-  });
-
-  tools.codebase_graph = openRouterTool({
-    description: "Fetch a filtered subgraph of a synced codebase.",
-    inputSchema: zodSchema(codebaseGraphSchema),
-    execute: async (input) =>
-      runHandler(() => runCodebaseGraph(handlerCtx, input)),
-  });
-
-  return tools;
 }
