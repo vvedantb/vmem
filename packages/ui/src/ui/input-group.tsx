@@ -17,6 +17,8 @@ const InputGroup = React.forwardRef<
     className={cn(
       "flex h-10 flex-wrap rounded-field border border-border bg-field-background text-sm transition-[border-color,box-shadow] duration-200 ease-smooth",
       "has-[textarea]:h-auto",
+      "has-[[data-slot=input-group-control]]:h-auto",
+      "has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col",
       "has-[:focus-visible]:border-focus-border has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus-ring",
       error &&
         "border-danger-border has-[:focus-visible]:border-danger has-[:focus-visible]:ring-danger-ring",

@@ -17,7 +17,6 @@ import { api } from "@vmem/backend";
 interface FreeChatModel {
   id: string;
   name: string;
-  contextLength: number;
   description?: string;
 }
 
@@ -95,12 +94,7 @@ export default function CloudModelSelector({
           >
             {loadedModels.map((model) => (
               <DropdownMenuRadioItem key={model.id} value={model.id}>
-                <div className="flex flex-col gap-0.5">
-                  <span>{model.name}</span>
-                  <span className="text-[10px] text-muted">
-                    {Math.round(model.contextLength / 1024)}k context
-                  </span>
-                </div>
+                {model.name}
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>

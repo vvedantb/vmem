@@ -39,7 +39,10 @@ export function ChatPromptTextarea({
       placeholder={placeholder}
       editorRef={textareaRef}
       onEnterSubmit={handleEnterSubmit}
-      className={cn("border-0 shadow-none focus-visible:ring-0", className)}
+      className={cn(
+        "w-full flex-1 border-0 shadow-none focus-visible:ring-0",
+        className,
+      )}
     />
   );
 }

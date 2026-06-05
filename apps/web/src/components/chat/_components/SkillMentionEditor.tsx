@@ -38,7 +38,7 @@ function domHasSkillChips(el: HTMLElement): boolean {
 }
 
 const EDITOR_CLASS =
-  "relative block w-full min-h-11 max-h-40 overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words bg-transparent px-3 py-3 text-left text-sm leading-normal outline-none focus-visible:outline-none data-[empty]:before:pointer-events-none data-[empty]:before:absolute data-[empty]:before:text-field-placeholder data-[empty]:before:content-[attr(data-placeholder)]";
+  "relative block w-full min-h-16 max-h-40 flex-1 self-stretch overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words bg-transparent px-3 py-3 text-left text-sm leading-normal outline-none focus-visible:outline-none data-[empty]:before:pointer-events-none data-[empty]:before:absolute data-[empty]:before:text-field-placeholder data-[empty]:before:content-[attr(data-placeholder)]";
 
 interface SlashTrigger {
   isOpen: boolean;
@@ -412,6 +412,7 @@ export function SkillMentionEditor({
     <>
       <div
         ref={editorRef}
+        data-slot="input-group-control"
         data-placeholder={placeholder ?? ""}
         data-empty={isEmpty ? "true" : undefined}
         contentEditable={disabled ? false : true}
