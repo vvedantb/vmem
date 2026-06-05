@@ -34,7 +34,7 @@ import { MemoryFiltersButton } from "@/routes/_main/memories/_components/MemoryF
 import {
   CLEARED_MEMORY_VIEW_FILTERS,
   type MemoryViewFilterParams,
-} from "@/routes/_main/memories/_utils/memoriesFilters";
+} from "@/lib/memory-view-filters";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import type { ListViewMode } from "@/routes/_main/memories/-searchParams";

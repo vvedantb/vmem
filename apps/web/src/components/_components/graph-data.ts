@@ -5,7 +5,7 @@
 import type { MemoryType } from "@/lib/memories";
 import { MEMORY_TYPES } from "@/lib/memories";
 import type { ListItemKind } from "@/lib/list-items";
-import { apiGraphNodePassesFilters } from "@/routes/_main/memories/_utils/memoriesFilters";
+import { apiGraphNodePassesFilters } from "@/lib/memory-view-filters";
 import type { GraphNode, GraphEdge, RelatedNode } from "./canvas/types";
 
 // ---- API response shapes (mirrors Zod schemas in useGraphData) ----
@@ -167,7 +167,7 @@ export function getAllTypes(apiNodes: ApiGraphNode[]): TypeStat[] {
 /**
  * Transforms API data into simulation-ready nodes + edges.
  *
- * Node visibility uses `apiGraphNodePassesFilters` from `memoriesFilters.ts`
+ * Node visibility uses `apiGraphNodePassesFilters` from `memory-view-filters.ts`
  * — same semantics as the list view (empty kinds = all kinds; tags are AND;
  * source/type filters apply only to memory nodes).
  */

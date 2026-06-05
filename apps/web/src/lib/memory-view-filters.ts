@@ -1,5 +1,5 @@
-import type { MemoryType } from "@/lib/memories";
-import { LIST_ITEM_KINDS, type ListItemKind } from "@/lib/list-items";
+import type { MemoryType } from "./memories";
+import type { ListItemKind } from "./list-items";
 
 /** URL-backed filter fields shared by /memories/list and /memories/graph. */
 export interface MemoryViewFilterParams {
@@ -17,16 +17,6 @@ export const CLEARED_MEMORY_VIEW_FILTERS = {
   sources: [] as string[],
   types: [] as MemoryType[],
 };
-
-/** Empty `kinds` in the URL means every kind is visible. */
-export function resolveActiveKindSet(
-  kinds: readonly ListItemKind[],
-): ReadonlySet<ListItemKind> {
-  if (kinds.length === 0) {
-    return new Set(LIST_ITEM_KINDS);
-  }
-  return new Set(kinds);
-}
 
 export function kindPassesFilter(
   kind: ListItemKind,
@@ -81,6 +71,25 @@ export function typePassesFilter(
     return true;
   }
   return type !== undefined && selectedTypes.includes(type);
+}
+
+/**
+ * Profile filter for list items and memory rows. Graph view applies profile at
+ * fetch time (`useGraphData(..., profileId)`) because the API scopes nodes;
+ * list view applies this client-side over merged memory/wiki/skill rows.
+ */
+export function profilePassesFilter(
+  profileId: string | undefined,
+  selectedProfileId: string | null,
+  kind: ListItemKind,
+): boolean {
+  if (selectedProfileId === null) {
+    return true;
+  }
+  if (kind !== "memory") {
+    return true;
+  }
+  return profileId === selectedProfileId;
 }
 
 export function apiGraphNodePassesFilters(

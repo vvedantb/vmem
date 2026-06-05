@@ -3,10 +3,11 @@ import type { api } from "@vmem/backend";
 import type { Memory, MemoryType } from "./memories";
 import {
   kindPassesFilter,
+  profilePassesFilter,
   sourcePassesFilter,
   tagsPassFilter,
   typePassesFilter,
-} from "@/routes/_main/memories/_utils/memoriesFilters";
+} from "./memory-view-filters";
 
 /**
  * Unified list-item model for the /memories list view.
@@ -140,13 +141,11 @@ export function listItemMatchesProfileFilter(
   item: ListItem,
   selectedProfileId: string | null,
 ): boolean {
-  if (selectedProfileId === null) {
-    return true;
-  }
-  if (item.kind !== "memory") {
-    return true;
-  }
-  return item.profileId === selectedProfileId;
+  return profilePassesFilter(
+    item.kind === "memory" ? item.profileId : undefined,
+    selectedProfileId,
+    item.kind,
+  );
 }
 
 // ---- Builders -------------------------------------------------------------

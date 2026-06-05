@@ -66,7 +66,7 @@ import {
   countActiveMemoryViewFilters,
   hasActiveMemoryViewFilters,
   type MemoryViewFilterParams,
-} from "@/routes/_main/memories/_utils/memoriesFilters";
+} from "@/lib/memory-view-filters";
 
 const EMPTY_SET = new Set<string>();
 

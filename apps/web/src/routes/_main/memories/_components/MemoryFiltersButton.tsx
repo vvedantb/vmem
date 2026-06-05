@@ -8,7 +8,7 @@ import type { ListItem, ListItemKind } from "@/lib/list-items";
 import {
   countActiveMemoryViewFilters,
   type MemoryViewFilterParams,
-} from "../_utils/memoriesFilters";
+} from "@/lib/memory-view-filters";
 
 interface MemoryFiltersButtonProps {
   filters: MemoryViewFilterParams;
