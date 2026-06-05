@@ -115,6 +115,7 @@ export function SkillMentionEditor({
   const [hoverRect, setHoverRect] = useState<DOMRect | null>(null);
   const hoverChipRef = useRef<HTMLElement | null>(null);
   const hoverOpenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const enabledSkills = useMemo(
     () => skills?.filter(isSkillEnabled) ?? [],
@@ -152,7 +153,15 @@ export function SkillMentionEditor({
       .slice(0, 8);
   }, [enabledSkills, trigger.isOpen, trigger.query]);
 
+  const cancelHoverClose = useCallback(() => {
+    if (hoverCloseTimerRef.current !== null) {
+      clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+  }, []);
+
   const clearHover = useCallback(() => {
+    cancelHoverClose();
     if (hoverOpenTimerRef.current !== null) {
       clearTimeout(hoverOpenTimerRef.current);
       hoverOpenTimerRef.current = null;
@@ -160,7 +169,15 @@ export function SkillMentionEditor({
     hoverChipRef.current = null;
     setHoverSkillId(null);
     setHoverRect(null);
-  }, []);
+  }, [cancelHoverClose]);
+
+  const scheduleHoverClose = useCallback(() => {
+    cancelHoverClose();
+    hoverCloseTimerRef.current = setTimeout(() => {
+      hoverCloseTimerRef.current = null;
+      clearHover();
+    }, 200);
+  }, [cancelHoverClose, clearHover]);
 
   useEffect(() => {
     setSkillMap(syncSkillMapFromValue(value, skillNames, skillNameToId));
@@ -344,6 +361,7 @@ export function SkillMentionEditor({
 
   const scheduleHover = useCallback(
     (chip: HTMLElement) => {
+      cancelHoverClose();
       if (hoverChipRef.current === chip) return;
       hoverChipRef.current = chip;
       if (hoverOpenTimerRef.current !== null) {
@@ -359,7 +377,7 @@ export function SkillMentionEditor({
         setHoverRect(chip.getBoundingClientRect());
       }, 250);
     },
-    [skillMap],
+    [cancelHoverClose, skillMap],
   );
 
   const handleMouseOver = useCallback(
@@ -382,9 +400,9 @@ export function SkillMentionEditor({
       ) {
         return;
       }
-      clearHover();
+      scheduleHoverClose();
     },
-    [clearHover],
+    [scheduleHoverClose],
   );
 
   const handlePaste = useCallback(
@@ -447,7 +465,8 @@ export function SkillMentionEditor({
         <SkillChipHoverPortal
           skill={hoverSkill}
           anchorRect={hoverRect}
-          onMouseLeave={clearHover}
+          onMouseEnter={cancelHoverClose}
+          onMouseLeave={scheduleHoverClose}
         />
       ) : null}
     </>

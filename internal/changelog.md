@@ -1,5 +1,9 @@
 # Changelog
 
+## Skill chip hover preview — 2026-05-22
+
+- **Chat input**: Skill chip hover preview stays open when moving onto the card so long instructions can be scrolled.
+
 ## Cloud model provider submenu — 2026-05-22
 
 - **Cloud model selector**: Free OpenRouter models are grouped by provider with nested submenus, matching the local model picker layout.
