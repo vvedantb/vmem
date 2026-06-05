@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAction } from "convex/react";
 import { IconCloud, IconLoader2 } from "@tabler/icons-react";
 import {
@@ -10,9 +10,16 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@vmem/ui";
 import { api } from "@vmem/backend";
+import {
+  formatOpenRouterProviderLabel,
+  groupCloudModelsByProvider,
+} from "../_utils/cloudModelGroups";
 
 interface FreeChatModel {
   id: string;
@@ -34,6 +41,11 @@ export default function CloudModelSelector({
   const listFreeChatModels = useAction(api.openRouterModels.listFreeChatModels);
   const [loadedModels, setLoadedModels] = useState<FreeChatModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const providerGroups = useMemo(
+    () => groupCloudModelsByProvider(loadedModels),
+    [loadedModels],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -79,7 +91,7 @@ export default function CloudModelSelector({
           {isLoading ? "Loading…" : label}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
+      <DropdownMenuContent align="start" className="w-52">
         <DropdownMenuLabel>Free cloud model</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {isLoading ? (
@@ -88,16 +100,25 @@ export default function CloudModelSelector({
             Loading models…
           </div>
         ) : (
-          <DropdownMenuRadioGroup
-            value={modelId ?? selected?.id ?? ""}
-            onValueChange={onSelectModel}
-          >
-            {loadedModels.map((model) => (
-              <DropdownMenuRadioItem key={model.id} value={model.id}>
-                {model.name}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
+          providerGroups.map(([provider, models]) => (
+            <DropdownMenuSub key={provider}>
+              <DropdownMenuSubTrigger>
+                {formatOpenRouterProviderLabel(provider)}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuRadioGroup
+                  value={modelId ?? selected?.id ?? ""}
+                  onValueChange={onSelectModel}
+                >
+                  {models.map((model) => (
+                    <DropdownMenuRadioItem key={model.id} value={model.id}>
+                      {model.name}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          ))
         )}
       </DropdownMenuContent>
     </DropdownMenu>

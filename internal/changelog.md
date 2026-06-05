@@ -1,5 +1,9 @@
 # Changelog
 
+## Cloud model provider submenu — 2026-05-22
+
+- **Cloud model selector**: Free OpenRouter models are grouped by provider with nested submenus, matching the local model picker layout.
+
 ## Chat skill chips (Eva-style editor) — 2026-05-22
 
 - **Chat input**: `/` skills menu and inline accent chips use a contentEditable editor (same pattern as Eva) so the caret stays aligned; chips link to the skill page and show a scrollable hover preview.
