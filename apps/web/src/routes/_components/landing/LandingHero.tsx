@@ -26,7 +26,7 @@ const fadeUp = {
 export function LandingHero({ features, capabilities }: LandingHeroProps) {
   return (
     <div className="flex flex-col gap-12 py-10 sm:gap-14 sm:py-14 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,26rem)] lg:items-start lg:gap-14 lg:py-20 xl:gap-16">
-      <div className="max-w-xl lg:pt-1">
+      <div className="relative max-w-xl lg:pt-1">
         <motion.p
           className="mb-4 text-xs font-medium uppercase tracking-[0.26em] text-muted"
           {...fadeUp}

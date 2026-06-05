@@ -8,7 +8,7 @@ export function LandingAmbientGraph() {
       aria-hidden
     >
       <div
-        className="absolute inset-0 opacity-[0.5] dark:opacity-[0.35]"
+        className="landing-ambient-graph-mask absolute inset-0 opacity-[0.45] dark:opacity-[0.3]"
         style={{
           backgroundImage:
             "radial-gradient(circle, color-mix(in oklch, var(--foreground) 8%, transparent) 1px, transparent 1px)",
@@ -24,7 +24,7 @@ export function LandingAmbientGraph() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_42%_38%,transparent_15%,var(--background)_92%)]" />
 
       <svg
-        className="landing-ambient-drift absolute inset-0 h-full w-full text-foreground/[0.11] dark:text-foreground/[0.07]"
+        className="landing-ambient-drift landing-ambient-graph-mask absolute inset-0 h-full w-full text-foreground/[0.11] dark:text-foreground/[0.07]"
         viewBox="0 0 900 700"
         preserveAspectRatio="xMidYMid slice"
         fill="none"
@@ -125,6 +125,8 @@ export function LandingAmbientGraph() {
           />
         </circle>
       </svg>
+
+      <div className="landing-hero-read-scrim absolute inset-0" />
     </div>
   );
 }

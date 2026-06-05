@@ -27,6 +27,35 @@
   background-size: 128px 128px;
 }
 
+/* Keeps hero copy readable — graph atmosphere fades left → right */
+.landing-hero-read-scrim {
+  background: linear-gradient(
+    100deg,
+    var(--background) 0%,
+    var(--background) 36%,
+    color-mix(in oklch, var(--background) 88%, transparent) 48%,
+    color-mix(in oklch, var(--background) 45%, transparent) 62%,
+    transparent 78%
+  );
+}
+
+.landing-ambient-graph-mask {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent 18%,
+    black 42%,
+    black 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent 18%,
+    black 42%,
+    black 100%
+  );
+}
+
 @keyframes landing-ambient-drift {
   0%,
   100% {
