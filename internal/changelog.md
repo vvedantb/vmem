@@ -1,5 +1,9 @@
 # Changelog
 
+## Landing page redesign — 2026-06-06
+
+- **Sign-in (`/`)**: Editorial hero with graph atmosphere, feature highlights, and clearer get-started vs sign-in paths — aligned with the app’s tonal design system.
+
 ## Memories URL params — 2026-05-22
 
 - **Memories graph/list**: Filter and search URLs no longer accumulate JSON junk (`profile="null"`, `tags=[]`); only active filters appear in the query string.
