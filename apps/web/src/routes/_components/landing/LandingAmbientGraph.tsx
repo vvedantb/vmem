@@ -1,3 +1,5 @@
+import "./landing.css";
+
 /** Decorative graph atmosphere — presentational only, no interaction. */
 export function LandingAmbientGraph() {
   return (
@@ -14,13 +16,15 @@ export function LandingAmbientGraph() {
         }}
       />
 
-      <div className="absolute -right-[15%] top-[5%] h-[min(75vh,560px)] w-[min(75vw,560px)] rounded-full bg-surface-secondary/80 blur-3xl dark:bg-surface-secondary/35" />
-      <div className="absolute -left-[8%] bottom-[10%] h-72 w-72 rounded-full bg-surface-tertiary/60 blur-3xl dark:bg-surface-tertiary/20" />
+      <div className="landing-grain absolute inset-0 opacity-[0.035] mix-blend-multiply dark:opacity-[0.05] dark:mix-blend-soft-light" />
 
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_40%,transparent_20%,var(--background)_100%)]" />
+      <div className="absolute -right-[12%] top-[2%] h-[min(78vh,580px)] w-[min(78vw,580px)] rounded-full bg-surface-secondary/85 blur-3xl dark:bg-surface-secondary/30" />
+      <div className="absolute -left-[6%] bottom-[8%] h-80 w-80 rounded-full bg-surface-tertiary/55 blur-3xl dark:bg-surface-tertiary/18" />
+
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_42%_38%,transparent_15%,var(--background)_92%)]" />
 
       <svg
-        className="absolute inset-0 h-full w-full text-foreground/[0.12] dark:text-foreground/[0.08]"
+        className="absolute inset-0 h-full w-full text-foreground/[0.11] dark:text-foreground/[0.07]"
         viewBox="0 0 900 700"
         preserveAspectRatio="xMidYMid slice"
         fill="none"
@@ -48,6 +52,12 @@ export function LandingAmbientGraph() {
           stroke="currentColor"
           strokeWidth="0.75"
           opacity="0.5"
+        />
+        <path
+          d="M620 120 L 720 200 L 660 320"
+          stroke="currentColor"
+          strokeWidth="0.65"
+          opacity="0.35"
         />
 
         <circle cx="140" cy="420" r="5" fill="currentColor">
@@ -106,19 +116,15 @@ export function LandingAmbientGraph() {
             repeatCount="indefinite"
           />
         </circle>
+        <circle cx="720" cy="200" r="3.5" fill="currentColor" opacity="0.5">
+          <animate
+            attributeName="opacity"
+            values="0.25;0.75;0.25"
+            dur="5.8s"
+            repeatCount="indefinite"
+          />
+        </circle>
       </svg>
-
-      <style>{`
-        @keyframes landing-graph-dash {
-          to { stroke-dashoffset: -20; }
-        }
-        .landing-graph-dash {
-          animation: landing-graph-dash 12s linear infinite;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .landing-graph-dash { animation: none; }
-        }
-      `}</style>
     </div>
   );
 }

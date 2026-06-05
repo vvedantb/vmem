@@ -4,6 +4,7 @@
 
 - **Sign-in (`/`)**: Feature cards no longer clip below the fold; stronger surfaces and an asymmetric numbered stack so graph / recall / agent benefits read clearly.
 - **Sign-in (`/`)**: Richer ambient graph (pulsing nodes, dashed paths), italic headline accent, capability pills, and staggered motion — same tonal system, more editorial first impression.
+- **Sign-in (`/`)**: Mini memory-graph vignette with animated recall path, draw-in logo mark, film grain, and sticky preview column — shows what the product does before sign-up.
 
 ## Landing page redesign — 2026-06-06
 

@@ -19,13 +19,17 @@ export function LandingFeatureCard({
 
   return (
     <div
-      className={`group flex gap-4 rounded-2xl bg-surface px-4 py-4 transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-surface-secondary sm:px-5 sm:py-4 ${offsetClassName}`}
+      className={`group relative flex gap-4 overflow-hidden rounded-2xl bg-surface px-4 py-4 transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-surface-secondary sm:px-5 sm:py-4 ${offsetClassName}`}
     >
-      <div className="flex shrink-0 flex-col items-center gap-2">
-        <span className="font-instrumentSerif text-lg leading-none tabular-nums text-muted/70">
+      <div
+        className="absolute inset-y-3 left-0 w-1 rounded-full bg-foreground/0 transition-[background-color] group-hover:bg-foreground/15"
+        aria-hidden
+      />
+      <div className="flex shrink-0 flex-col items-center gap-2 pl-1">
+        <span className="font-instrumentSerif text-lg leading-none tabular-nums text-muted/60 transition-[color] group-hover:text-muted">
           {label}
         </span>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-foreground text-background transition-[transform,background-color] group-hover:scale-105">
+        <div className="flex h-10 w-10 items-center justify-center rounded-[0.85rem] bg-foreground text-background transition-[transform,background-color] group-hover:scale-[1.04]">
           <Icon size={18} stroke={1.5} />
         </div>
       </div>
