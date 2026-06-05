@@ -31,7 +31,7 @@ interface PromptInputContextValue {
   input: string;
   setInput: (value: string) => void;
   status: ChatStatus;
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  textareaRef: React.RefObject<HTMLElement | null>;
 }
 
 const PromptInputContext = createContext<PromptInputContextValue | null>(null);
@@ -69,7 +69,7 @@ function PromptInput({
   ...props
 }: PromptInputProps) {
   const [uncontrolledInput, setUncontrolledInput] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<HTMLElement>(null);
 
   const input = controlledInput ?? uncontrolledInput;
   const setInput = useCallback(

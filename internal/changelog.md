@@ -1,9 +1,9 @@
 # Changelog
 
-## Chat slash skills + tool accordion UX — 2026-05-22
+## Chat skill chips (Eva-style editor) — 2026-05-22
 
-- **Chat input**: Typing `/` opens a caret-anchored skills popover; completed `/skill` tokens render as inline chips in the prompt.
-- **Tool accordion**: Long tool input/output is capped with a scrollbar and opens scrolled to the bottom so the latest result is visible first.
+- **Chat input**: `/` skills menu and inline accent chips use a contentEditable editor (same pattern as Eva) so the caret stays aligned; chips link to the skill page and show a scrollable hover preview.
+- **Tool accordion**: Long tool JSON wraps instead of scrolling horizontally; content is max-height with vertical scroll, opened at the bottom.
 
 ## Service layer consolidation — 2026-05-28
 

@@ -36,7 +36,7 @@ function CodeBlock({
         {...props}
       >
         {children ?? (
-          <pre className="overflow-x-auto p-4">
+          <pre className="overflow-x-hidden whitespace-pre-wrap break-words p-4">
             <code data-language={language} className="text-sm">
               {code}
             </code>

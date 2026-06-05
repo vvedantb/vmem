@@ -74,7 +74,7 @@ function Tool({
       <CollapsibleContent className="bg-surface-secondary/20 rounded-b-lg">
         <div
           ref={scrollRef}
-          className="max-h-64 overflow-y-auto scrollbar-thin px-3 py-2 [scrollbar-gutter:stable]"
+          className="max-h-64 overflow-x-hidden overflow-y-auto scrollbar-thin px-3 py-2 [scrollbar-gutter:stable]"
         >
           {children}
         </div>
