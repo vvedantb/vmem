@@ -10,9 +10,8 @@
  * `useMemoryGraphController`).
  */
 
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import {
-  IconFilter,
   IconAdjustmentsHorizontal,
   IconPlus,
   IconRefresh,
@@ -32,9 +31,9 @@ import {
 } from "@vmem/ui";
 import AddMemoryModal from "@/components/AddMemoryModal";
 import SearchPopover from "./SearchPopover";
-import UnifiedFilterPanel from "./UnifiedFilterPanel";
 import GraphLegend from "./GraphLegend";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
+import { MemoryFiltersButton } from "@/routes/_main/memories/_components/MemoryFiltersButton";
 import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
 import { VIEW_MODE_LABELS, type ViewMode } from "./graph-view-themes";
@@ -95,7 +94,7 @@ export default function GraphHeaderControls({
         placeholder="Search nodes..."
         label="Search nodes"
       />
-      <FiltersPopover controller={controller} />
+      <GraphFiltersButton controller={controller} />
       <OptionsPopover
         viewMode={controller.viewMode}
         onViewModeChange={controller.onViewModeChange}
@@ -119,109 +118,28 @@ export default function GraphHeaderControls({
 
 // ---- Filters popover ----
 
-function FiltersPopover({ controller }: { controller: MemoryGraphController }) {
+function GraphFiltersButton({
+  controller,
+}: {
+  controller: MemoryGraphController;
+}) {
   const {
-    profileId,
+    filters,
     onProfileChange,
-    allKinds,
-    activeKinds,
-    onToggleKind,
-    allTags,
-    activeTags,
-    onToggleTag,
-    allSources,
-    activeSources,
-    onToggleSource,
-    allTypes,
-    activeTypes,
-    onToggleType,
+    onKindsChange,
+    onTagsChange,
+    onSourcesChange,
+    onTypesChange,
     onClearFilters,
+    allKinds,
+    allTags,
+    allSources,
+    allTypes,
     totalNodeCount,
     visibleNodeCount,
     isDark,
   } = controller;
 
-  // Kind filter narrows when any of the four kinds is unchecked. activeKinds
-  // always resolves to all four when the URL is empty, so the delta from four
-  // equals the number of kinds the user has hidden.
-  const TOTAL_KINDS = 4;
-  const kindsNarrowing = Math.max(0, TOTAL_KINDS - activeKinds.size);
-  const activeFilterCount =
-    (profileId !== null ? 1 : 0) +
-    activeTags.size +
-    activeSources.size +
-    activeTypes.size +
-    kindsNarrowing;
-
-  // ---- Set ↔ array adapters for UnifiedFilterPanel ----
-
-  const selectedKindsArray = useMemo(
-    () => Array.from(activeKinds),
-    [activeKinds],
-  );
-
-  const handleKindsChange = useCallback(
-    (kinds: ListItemKind[]) => {
-      const newSet = new Set<ListItemKind>(kinds);
-      for (const kind of kinds) {
-        if (!activeKinds.has(kind)) onToggleKind(kind);
-      }
-      for (const kind of activeKinds) {
-        if (!newSet.has(kind)) onToggleKind(kind);
-      }
-    },
-    [activeKinds, onToggleKind],
-  );
-
-  const selectedTagsArray = useMemo(() => Array.from(activeTags), [activeTags]);
-  const handleTagsChange = useCallback(
-    (tags: string[]) => {
-      const newSet = new Set(tags);
-      for (const tag of tags) {
-        if (!activeTags.has(tag)) onToggleTag(tag);
-      }
-      for (const tag of activeTags) {
-        if (!newSet.has(tag)) onToggleTag(tag);
-      }
-    },
-    [activeTags, onToggleTag],
-  );
-
-  const selectedSourcesArray = useMemo(
-    () => Array.from(activeSources),
-    [activeSources],
-  );
-  const handleSourcesChange = useCallback(
-    (sources: string[]) => {
-      const newSet = new Set(sources);
-      for (const s of sources) {
-        if (!activeSources.has(s)) onToggleSource(s);
-      }
-      for (const s of activeSources) {
-        if (!newSet.has(s)) onToggleSource(s);
-      }
-    },
-    [activeSources, onToggleSource],
-  );
-
-  const selectedTypesArray = useMemo(
-    () => Array.from(activeTypes),
-    [activeTypes],
-  );
-  const handleTypesChange = useCallback(
-    (types: MemoryType[]) => {
-      const newSet = new Set(types);
-      for (const t of types) {
-        if (!activeTypes.has(t)) onToggleType(t);
-      }
-      for (const t of activeTypes) {
-        if (!newSet.has(t)) onToggleType(t);
-      }
-    },
-    [activeTypes, onToggleType],
-  );
-
-  // Derive count records UnifiedFilterPanel expects.
   const kindCounts = useMemo<Record<ListItemKind, number>>(() => {
     const counts: Record<ListItemKind, number> = {
       memory: 0,
@@ -245,63 +163,38 @@ function FiltersPopover({ controller }: { controller: MemoryGraphController }) {
   }, [allTypes]);
 
   const distinctSources = useMemo(
-    () => allSources.map((s) => s.source),
+    () => allSources.map((sourceStat) => sourceStat.source),
     [allSources],
   );
 
   const tagStats = useMemo(
     () =>
-      allTags.map((t) => ({
-        tag: t.tag,
-        count: t.count,
-        latestCreatedAt: "", // graph doesn't track this
+      allTags.map((tagStat) => ({
+        tag: tagStat.tag,
+        count: tagStat.count,
+        latestCreatedAt: "",
       })),
     [allTags],
   );
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          aria-label="Filter graph"
-          className="relative"
-        >
-          <IconFilter size={16} />
-          {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-accent text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
-              {activeFilterCount}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-[calc(100vw-1rem)] max-w-[420px] p-0 sm:w-[420px]"
-      >
-        <UnifiedFilterPanel
-          selectedProfileId={profileId}
-          onProfileChange={onProfileChange}
-          selectedKinds={selectedKindsArray}
-          onKindsChange={handleKindsChange}
-          kindCounts={kindCounts}
-          selectedTags={selectedTagsArray}
-          onTagsChange={handleTagsChange}
-          tagStats={tagStats}
-          distinctSources={distinctSources}
-          selectedSources={selectedSourcesArray}
-          onSourcesChange={handleSourcesChange}
-          selectedTypes={selectedTypesArray}
-          onTypesChange={handleTypesChange}
-          typeCounts={typeCounts}
-          filteredCount={visibleNodeCount}
-          totalCount={totalNodeCount}
-          onClearAll={onClearFilters}
-          isDark={isDark}
-        />
-      </PopoverContent>
-    </Popover>
+    <MemoryFiltersButton
+      filters={filters}
+      onProfileChange={onProfileChange}
+      onKindsChange={onKindsChange}
+      onTagsChange={onTagsChange}
+      onSourcesChange={onSourcesChange}
+      onTypesChange={onTypesChange}
+      onClearAll={onClearFilters}
+      kindCounts={kindCounts}
+      tagStats={tagStats}
+      distinctSources={distinctSources}
+      typeCounts={typeCounts}
+      filteredCount={visibleNodeCount}
+      totalCount={totalNodeCount}
+      isDark={isDark}
+      ariaLabel="Filter graph"
+    />
   );
 }
 

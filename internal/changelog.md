@@ -1,5 +1,9 @@
 # Changelog
 
+## Shared memory filters (graph + list) — 2026-05-22
+
+- **Memories graph/list**: One filter ruleset and popover across both views — tag AND semantics, consistent badge counts, and URL-backed state that persists when switching tabs.
+
 ## Memory graph search — 2026-05-22
 
 - **Graph view**: Search syncs to the `q` URL param (shareable, persists across graph/list tabs) and highlights matching nodes — including memory body text via the same fulltext search as the list view.

@@ -1,6 +1,12 @@
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
 import type { Memory, MemoryType } from "./memories";
+import {
+  kindPassesFilter,
+  sourcePassesFilter,
+  tagsPassFilter,
+  typePassesFilter,
+} from "@/routes/_main/memories/_utils/memoriesFilters";
 
 /**
  * Unified list-item model for the /memories list view.
@@ -98,51 +104,36 @@ export function listItemMatchesKindFilter(
   item: ListItem,
   selectedKinds: readonly ListItemKind[],
 ): boolean {
-  if (selectedKinds.length === 0) {
-    return true;
-  }
-  return selectedKinds.includes(item.kind);
+  return kindPassesFilter(item.kind, selectedKinds);
 }
 
 export function listItemMatchesTagFilter(
   item: ListItem,
   selectedTags: readonly string[],
 ): boolean {
-  if (selectedTags.length === 0) {
-    return true;
-  }
-  if (item.kind !== "memory") {
-    return true;
-  }
-  return selectedTags.every((tag) =>
-    item.tags.some((mt) => mt.toLowerCase() === tag.toLowerCase()),
-  );
+  return tagsPassFilter(item.tags, selectedTags, item.kind);
 }
 
 export function listItemMatchesSourceFilter(
   item: ListItem,
   selectedSources: readonly string[],
 ): boolean {
-  if (selectedSources.length === 0) {
-    return true;
-  }
-  if (item.kind !== "memory") {
-    return true;
-  }
-  return selectedSources.includes(item.source);
+  return sourcePassesFilter(
+    item.kind === "memory" ? item.source : undefined,
+    selectedSources,
+    item.kind,
+  );
 }
 
 export function listItemMatchesTypeFilter(
   item: ListItem,
   selectedTypes: readonly MemoryType[],
 ): boolean {
-  if (selectedTypes.length === 0) {
-    return true;
-  }
-  if (item.kind !== "memory") {
-    return true;
-  }
-  return selectedTypes.includes(item.type);
+  return typePassesFilter(
+    item.kind === "memory" ? item.type : undefined,
+    selectedTypes,
+    item.kind,
+  );
 }
 
 export function listItemMatchesProfileFilter(

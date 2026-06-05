@@ -61,21 +61,14 @@ import {
 } from "@/components/_components/graph-view-themes";
 import type { MemoryType } from "@/lib/memories";
 import { graphNodeMatchesLocalSearch } from "@/components/_components/graph-search";
+import {
+  CLEARED_MEMORY_VIEW_FILTERS,
+  countActiveMemoryViewFilters,
+  hasActiveMemoryViewFilters,
+  type MemoryViewFilterParams,
+} from "@/routes/_main/memories/_utils/memoriesFilters";
 
 const EMPTY_SET = new Set<string>();
-
-/**
- * Default kind filter shows every known kind. We seed the set with all four
- * (rather than only present kinds) so a user's first wiki doc, folder, or
- * skill appears automatically without them having to re-enable the filter.
- */
-const DEFAULT_ACTIVE_KINDS: ReadonlySet<ListItemKind> = new Set<ListItemKind>([
-  "memory",
-  "entity",
-  "wiki-document",
-  "wiki-folder",
-  "skill",
-]);
 
 export interface MemoryGraphController {
   // ----- Raw data -----
@@ -101,13 +94,8 @@ export interface MemoryGraphController {
   visibleNodeCount: number;
   edgeCount: number;
   hasActiveFilters: boolean;
-
-  // ----- Filter state (URL) -----
-  profileId: string | null;
-  activeTags: Set<string>;
-  activeKinds: Set<ListItemKind>;
-  activeSources: Set<string>;
-  activeTypes: Set<MemoryType>;
+  filters: MemoryViewFilterParams;
+  activeFilterCount: number;
 
   // ----- Display state (cookie) -----
   graphSettings: GraphSettings;
@@ -118,13 +106,12 @@ export interface MemoryGraphController {
   // ----- Search state (URL) -----
   search: string;
 
-  // ----- Handlers -----
+  // ----- Filter handlers (same shape as list view) -----
   onProfileChange: (id: string | null) => void;
-  onToggleTag: (tag: string) => void;
-  onToggleKind: (kind: ListItemKind) => void;
-  onToggleSource: (source: string) => void;
-  onToggleType: (type: MemoryType) => void;
-  /** Reset every URL-backed filter in a single `setParams` write. */
+  onKindsChange: (kinds: ListItemKind[]) => void;
+  onTagsChange: (tags: string[]) => void;
+  onSourcesChange: (sources: string[]) => void;
+  onTypesChange: (types: MemoryType[]) => void;
   onClearFilters: () => void;
   onSettingsChange: (next: GraphSettings) => void;
   onViewModeChange: (mode: ViewMode) => void;
@@ -183,24 +170,20 @@ export function useMemoryGraphController({
     useState<GraphSettings>(getGraphSettings);
   const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
 
-  // Adapt nuqs arrays ↔ Sets once; buildGraphData and downstream handlers use
-  // Set semantics. An empty `kinds` array means "all kinds visible" so a
-  // fresh URL shows everything by default.
-  const activeTags = useMemo(() => new Set(params.tags), [params.tags]);
-  const activeKinds = useMemo<Set<ListItemKind>>(
-    () =>
-      params.kinds.length > 0
-        ? new Set(params.kinds)
-        : new Set(DEFAULT_ACTIVE_KINDS),
-    [params.kinds],
+  const filters = useMemo<MemoryViewFilterParams>(
+    () => ({
+      profile: params.profile,
+      kinds: params.kinds,
+      tags: params.tags,
+      sources: params.sources,
+      types: params.types,
+    }),
+    [params.profile, params.kinds, params.tags, params.sources, params.types],
   );
-  const activeSources = useMemo(
-    () => new Set(params.sources),
-    [params.sources],
-  );
-  const activeTypes = useMemo<Set<MemoryType>>(
-    () => new Set(params.types),
-    [params.types],
+
+  const activeFilterCount = useMemo(
+    () => countActiveMemoryViewFilters(filters),
+    [filters],
   );
 
   // Derived display state
@@ -224,10 +207,7 @@ export function useMemoryGraphController({
         allRelatesToEdges,
         apiWikiParentEdges,
         apiMentionsEdges,
-        activeTags,
-        activeKinds,
-        activeSources,
-        activeTypes,
+        filters,
       ),
     [
       apiNodes,
@@ -235,10 +215,7 @@ export function useMemoryGraphController({
       allRelatesToEdges,
       apiWikiParentEdges,
       apiMentionsEdges,
-      activeTags,
-      activeKinds,
-      activeSources,
-      activeTypes,
+      filters,
     ],
   );
 
@@ -276,15 +253,7 @@ export function useMemoryGraphController({
     visibleNodeIds,
   ]);
 
-  // A "badge" on the Filters button — true when any URL-backed filter is
-  // narrowing results (profile/tags/sources/types, or kinds is a non-default subset).
-  const hasActiveFilters =
-    params.profile !== null ||
-    params.tags.length > 0 ||
-    params.sources.length > 0 ||
-    params.types.length > 0 ||
-    (params.kinds.length > 0 &&
-      params.kinds.length < DEFAULT_ACTIVE_KINDS.size);
+  const hasActiveFilters = hasActiveMemoryViewFilters(filters);
 
   // ----- Handlers -----
 
@@ -303,54 +272,6 @@ export function useMemoryGraphController({
     setGraphSettings(DEFAULT_GRAPH_SETTINGS);
   }, []);
 
-  const onToggleTag = useCallback(
-    (tag: string) => {
-      const next = params.tags.includes(tag)
-        ? params.tags.filter((t) => t !== tag)
-        : [...params.tags, tag];
-      void setParams({ tags: next });
-    },
-    [params.tags, setParams],
-  );
-
-  // Kind filter stays aligned with list-view semantics: an empty `kinds` array
-  // in the URL means "all kinds visible" (handled at read time via the
-  // activeKinds memo). Toggling off every kind results in an empty array,
-  // which widens back to "show all" — matches how nuqs filters work elsewhere.
-  const onToggleKind = useCallback(
-    (kind: ListItemKind) => {
-      const current =
-        params.kinds.length > 0
-          ? params.kinds
-          : Array.from(DEFAULT_ACTIVE_KINDS);
-      const next = current.includes(kind)
-        ? current.filter((k) => k !== kind)
-        : [...current, kind];
-      void setParams({ kinds: next });
-    },
-    [params.kinds, setParams],
-  );
-
-  const onToggleSource = useCallback(
-    (source: string) => {
-      const next = params.sources.includes(source)
-        ? params.sources.filter((s) => s !== source)
-        : [...params.sources, source];
-      void setParams({ sources: next });
-    },
-    [params.sources, setParams],
-  );
-
-  const onToggleType = useCallback(
-    (type: MemoryType) => {
-      const next = params.types.includes(type)
-        ? params.types.filter((t) => t !== type)
-        : [...params.types, type];
-      void setParams({ types: next });
-    },
-    [params.types, setParams],
-  );
-
   const onProfileChange = useCallback(
     (profile: string | null) => {
       void setParams({ profile });
@@ -358,18 +279,36 @@ export function useMemoryGraphController({
     [setParams],
   );
 
-  // Clearing per-field via the individual toggle callbacks would race — each
-  // toggle reads `params.*` from a stale closure, so successive setParams calls
-  // throttle to a single URL write that only reflects the last toggle. Writing
-  // every filter in one setParams call sidesteps the race entirely.
+  const onKindsChange = useCallback(
+    (kinds: ListItemKind[]) => {
+      void setParams({ kinds });
+    },
+    [setParams],
+  );
+
+  const onTagsChange = useCallback(
+    (tags: string[]) => {
+      void setParams({ tags });
+    },
+    [setParams],
+  );
+
+  const onSourcesChange = useCallback(
+    (sources: string[]) => {
+      void setParams({ sources });
+    },
+    [setParams],
+  );
+
+  const onTypesChange = useCallback(
+    (types: MemoryType[]) => {
+      void setParams({ types });
+    },
+    [setParams],
+  );
+
   const onClearFilters = useCallback(() => {
-    void setParams({
-      profile: null,
-      kinds: [],
-      tags: [],
-      sources: [],
-      types: [],
-    });
+    void setParams(CLEARED_MEMORY_VIEW_FILTERS);
   }, [setParams]);
 
   const onSearchChange = useCallback(
@@ -403,13 +342,8 @@ export function useMemoryGraphController({
     visibleNodeCount: graphNodes.length,
     edgeCount: graphEdges.length,
     hasActiveFilters,
-
-    // Filter state
-    profileId: params.profile,
-    activeTags,
-    activeKinds,
-    activeSources,
-    activeTypes,
+    filters,
+    activeFilterCount,
 
     // Display state
     graphSettings,
@@ -422,10 +356,10 @@ export function useMemoryGraphController({
 
     // Handlers
     onProfileChange,
-    onToggleTag,
-    onToggleKind,
-    onToggleSource,
-    onToggleType,
+    onKindsChange,
+    onTagsChange,
+    onSourcesChange,
+    onTypesChange,
     onClearFilters,
     onSettingsChange,
     onViewModeChange,
