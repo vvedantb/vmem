@@ -1,5 +1,9 @@
 # Changelog
 
+## Cloud model provider icons — 2026-05-22
+
+- **Cloud model selector**: SVGL brand marks for OpenRouter providers (Google, Mistral, NVIDIA, etc.) on the trigger, provider groups, and model rows.
+
 ## Skill chip hover preview — 2026-05-22
 
 - **Chat input**: Skill chip hover preview stays open when moving onto the card so long instructions can be scrolled.

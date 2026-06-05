@@ -16,9 +16,11 @@ import {
   DropdownMenuTrigger,
 } from "@vmem/ui";
 import { api } from "@vmem/backend";
+import CloudModelProviderIcon from "@/components/CloudModelProviderIcon";
 import {
   formatOpenRouterProviderLabel,
   groupCloudModelsByProvider,
+  providerFromOpenRouterModelId,
 } from "../_utils/cloudModelGroups";
 
 interface FreeChatModel {
@@ -78,6 +80,8 @@ export default function CloudModelSelector({
   const selected =
     loadedModels.find((model) => model.id === modelId) ?? loadedModels[0];
   const label = selected?.name ?? "Select model";
+  const selectedProvider =
+    selected !== undefined ? providerFromOpenRouterModelId(selected.id) : null;
 
   return (
     <DropdownMenu>
@@ -87,7 +91,11 @@ export default function CloudModelSelector({
           disabled={disabled || isLoading || loadedModels.length === 0}
           className="inline-flex items-center gap-1 rounded-full bg-default px-2 py-0.5 text-[11px] text-muted transition-colors hover:bg-default/78 hover:text-foreground disabled:opacity-50"
         >
-          <IconCloud className="size-3" stroke={1.5} />
+          {selectedProvider !== null ? (
+            <CloudModelProviderIcon provider={selectedProvider} size={12} />
+          ) : (
+            <IconCloud className="size-3" stroke={1.5} />
+          )}
           {isLoading ? "Loading…" : label}
         </button>
       </DropdownMenuTrigger>
@@ -102,7 +110,8 @@ export default function CloudModelSelector({
         ) : (
           providerGroups.map(([provider, models]) => (
             <DropdownMenuSub key={provider}>
-              <DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger className="gap-2">
+                <CloudModelProviderIcon provider={provider} size={14} />
                 {formatOpenRouterProviderLabel(provider)}
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
@@ -111,7 +120,12 @@ export default function CloudModelSelector({
                   onValueChange={onSelectModel}
                 >
                   {models.map((model) => (
-                    <DropdownMenuRadioItem key={model.id} value={model.id}>
+                    <DropdownMenuRadioItem
+                      key={model.id}
+                      value={model.id}
+                      className="gap-2"
+                    >
+                      <CloudModelProviderIcon provider={provider} size={14} />
                       {model.name}
                     </DropdownMenuRadioItem>
                   ))}
