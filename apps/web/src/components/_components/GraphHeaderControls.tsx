@@ -10,7 +10,7 @@
  * `useMemoryGraphController`).
  */
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   IconAdjustmentsHorizontal,
   IconPlus,
