@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "typecheck": "tsc -b",
+    "build": "tsgo -b && vite build",
+    "typecheck": "tsgo -b",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -49,6 +49,7 @@
     "@tiptap/starter-kit": "^3.22.3",
     "@types/diff": "^8.0.0",
     "@vmem/backend": "workspace:*",
+    "@vmem/shared": "workspace:*",
     "@vmem/ui": "workspace:*",
     "ai": "catalog:",
     "class-variance-authority": "catalog:",
@@ -77,6 +78,7 @@
   },
   "devDependencies": {
     "@tanstack/router-plugin": "^1.167.22",
+    "@typescript/native-preview": "catalog:",
     "@types/d3-force": "^3.0.10",
     "@types/node": "catalog:node-types-20",
     "@types/react": "catalog:",

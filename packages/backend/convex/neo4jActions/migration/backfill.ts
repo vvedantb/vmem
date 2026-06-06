@@ -3,11 +3,10 @@
 import { internalAction } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v } from "convex/values";
+import { applyEntitiesOnly } from "../../../engine/neo4j/memory/enrichment";
+import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
 import {
-  applyEntitiesOnly,
-  computeContentHash,
   createSemanticEdgesForMemory,
-  getRecentMemoryTitles,
   listMissingContentHash,
   listMissingEmbeddings,
   listMissingEntities,
@@ -16,14 +15,15 @@ import {
   markSemanticEdgesProcessed,
   setContentHashes,
   setEmbeddings,
-} from "../../../src/neo4j/memoryService";
-import { getDriver } from "../../../src/neo4j/driver";
+} from "../../../engine/neo4j/memory/migration";
+import { getRecentMemoryTitles } from "../../../engine/neo4j/memory/search";
+import { getDriver } from "../../../engine/neo4j/driver";
 import { callJsonChat, generateEmbeddings } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
 import {
   buildFullEnrichmentPrompt,
   parseFullEnrichmentResponse,
-} from "../../../src/enrichmentPrompt";
+} from "../../prompts/enrichmentPrompt";
 export const backfillEmbeddingsInternal = internalAction({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {

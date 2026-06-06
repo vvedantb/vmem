@@ -9,10 +9,7 @@
 import type { CreateEmbeddingsResponseBody } from "@openrouter/sdk/models/operations";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import {
-  createOpenRouterClient,
-  readOpenRouterError,
-} from "../../../src/openRouter/client";
+import { createOpenRouterClient, readOpenRouterError } from "./client";
 import {
   PROMPT_PREVIEW_BYTES,
   classifyHttpStatus,

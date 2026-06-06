@@ -5,10 +5,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { streamText } from "ai";
 import { useUIMessages, type UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
-import {
-  VMEM_LOCAL_CHAT_CORE,
-  buildLocalChatSystemPrompt,
-} from "@vmem/backend/memoryRagPrompt";
+import { VMEM_LOCAL_CHAT_CORE, buildLocalChatSystemPrompt } from "@vmem/shared";
 import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
 import { parseThinkTags } from "@/lib/think-tags";
 

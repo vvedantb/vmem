@@ -16,10 +16,7 @@ import { AnimatePresence } from "motion/react";
 import { useUIMessages } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
-import {
-  VMEM_VOICE_CORE,
-  buildLocalChatSystemPrompt,
-} from "@vmem/backend/memoryRagPrompt";
+import { VMEM_VOICE_CORE, buildLocalChatSystemPrompt } from "@vmem/shared";
 import type { ChatMemoryRef } from "@/hooks/useLocalChat";
 import { Persona, type PersonaState } from "@vmem/ui/ai";
 import { useLocalLLM } from "@/components/contexts/LocalLLMContext";

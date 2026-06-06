@@ -2,8 +2,11 @@
 
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
-import { ensureNeo4jSetupIfNeeded, setupDatabase } from "../../src/neo4j/setup";
-import { getDriver } from "../../src/neo4j/driver";
+import {
+  ensureNeo4jSetupIfNeeded,
+  setupDatabase,
+} from "../../engine/neo4j/setup";
+import { getDriver } from "../../engine/neo4j/driver";
 
 /** Force full Neo4j DDL (manual / after new indexes ship in setup.ts). */
 export const ensureNeo4jSetup = internalAction({

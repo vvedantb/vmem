@@ -5,8 +5,9 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { motion } from "motion/react";
-import { api, PARSER_VERSION } from "@vmem/backend";
+import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
+import { PARSER_VERSION } from "@vmem/shared";
 import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
 import {
   IconAlertCircle,

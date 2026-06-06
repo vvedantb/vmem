@@ -1,8 +1,9 @@
 "use node";
 
 import type { ActionCtx } from "../../_generated/server";
-import type { MemoryWithTags } from "../../../src/neo4j/memory/types";
-import { resolveProfileIdForClerkId } from "../memories/shared";
+import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
+import { runCreateMemory } from "../_memories/create";
+import { resolveProfileIdForClerkId } from "../_memories/shared";
 import {
   computeSdkFactExternalId,
   extractFactsFromInstruction,
@@ -49,9 +50,6 @@ export async function runStoreFromInstruction(
       summary: "No durable facts found in the instruction.",
     };
   }
-
-  const { runCreateMemory } =
-    await import("../../../src/convexHandlers/memories/create");
 
   const created: MemoryWithTags[] = [];
 

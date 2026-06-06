@@ -12,7 +12,7 @@ import {
   buildUpdateDecisionPrompt,
   type RetrievedCandidate,
   type UpdateDecision,
-} from "../../../src/v2Prompt";
+} from "../../prompts/v2Prompt";
 
 export const RETRIEVAL_TOP_K = 10;
 

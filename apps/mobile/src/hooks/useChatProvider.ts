@@ -4,10 +4,7 @@ import { useUser } from "@clerk/clerk-expo";
 import { useUIMessages } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
-import {
-  VMEM_LOCAL_CHAT_CORE,
-  buildLocalChatSystemPrompt,
-} from "@vmem/backend/memoryRagPrompt";
+import { VMEM_LOCAL_CHAT_CORE, buildLocalChatSystemPrompt } from "@vmem/shared";
 import { streamText } from "ai";
 import { useIsOnline } from "@/providers/NetworkProvider";
 import { getLocalModel } from "@/services/llm-context";

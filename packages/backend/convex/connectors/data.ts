@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { authAction, requireClerkId } from "../auth";
 import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
-import { sourceTypesForProvider } from "../../src/neo4j/memory/connectorSourceTypes";
+import { sourceTypesForProvider } from "../../engine/neo4j/memory/connectorSourceTypes";
 
 /**
  * Permanently deletes all memories imported from a connector's source types.

@@ -24,9 +24,9 @@ import {
   getUpstreamImpact,
   deleteCodebase,
   type SyncStage,
-} from "../../src/neo4j/codebaseService";
-import { getDriver } from "../../src/neo4j/driver";
-import { runCodebaseSync } from "../../src/codebase/runCodebaseSync";
+} from "../../engine/neo4j/codebaseService";
+import { getDriver } from "../../engine/neo4j/driver";
+import { runCodebaseSync } from "../../engine/codebase/runCodebaseSync";
 
 export const syncCodebaseInternal = internalAction({
   args: {

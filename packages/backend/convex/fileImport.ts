@@ -4,8 +4,8 @@ import { v } from "convex/values";
 import crypto from "node:crypto";
 import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
-import { extractPdfText } from "../src/parsers/pdf";
-import { extractTextFromBlob } from "../src/parsers/text";
+import { extractPdfText } from "../engine/parsers/pdf";
+import { extractTextFromBlob } from "../engine/parsers/text";
 import type { Id } from "./_generated/dataModel";
 
 /**

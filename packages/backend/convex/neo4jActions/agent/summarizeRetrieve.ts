@@ -4,7 +4,7 @@ import type { ActionCtx } from "../../_generated/server";
 import {
   buildRetrieveSummaryPrompt,
   parseRetrieveSummaryResponse,
-} from "../../../src/sdkPrompt";
+} from "../../prompts/sdkPrompt";
 import {
   requireOpenRouterAuth,
   callAgentLLM,

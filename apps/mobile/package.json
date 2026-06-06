@@ -21,6 +21,7 @@
     "@rn-primitives/portal": "^1.4.0",
     "@tabler/icons-react-native": "^3.41.1",
     "@vmem/backend": "workspace:*",
+    "@vmem/shared": "workspace:*",
     "ai": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",

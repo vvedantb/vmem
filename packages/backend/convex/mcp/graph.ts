@@ -3,7 +3,7 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import { resolveProfileIdForMcpScope } from "../neo4jActions/memories/shared";
+import { resolveProfileIdForMcpScope } from "../neo4jActions/_memories/shared";
 import { mcpScopeValidator } from "../profiles/mcpAccess";
 
 const memoryTypeValidator = v.union(

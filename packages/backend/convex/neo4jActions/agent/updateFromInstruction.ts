@@ -2,12 +2,13 @@
 
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
-import { getMemory } from "../../../src/neo4j/memory/crud";
-import { retrieveMemories } from "../../../src/neo4j/memory/retrieve";
-import type { MemoryWithTags } from "../../../src/neo4j/memory/types";
-import { getDriver } from "../../../src/neo4j/driver";
+import { getMemory } from "../../../engine/neo4j/memory/crud";
+import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
+import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
+import { getDriver } from "../../../engine/neo4j/driver";
 import { generateEmbedding } from "../../lib/openRouter";
-import { resolveProfileIdForClerkId } from "../memories/shared";
+import { runCreateMemory } from "../_memories/create";
+import { resolveProfileIdForClerkId } from "../_memories/shared";
 import {
   decideFactUpdate,
   extractFactsFromInstruction,
@@ -70,8 +71,6 @@ export async function runUpdateFromInstruction(
   }
 
   const driver = getDriver();
-  const { runCreateMemory } =
-    await import("../../../src/convexHandlers/memories/create");
   const applied: MemoryWithTags[] = [];
   const proposals: AgentProposal[] = [];
 

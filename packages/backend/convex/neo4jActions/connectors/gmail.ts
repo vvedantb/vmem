@@ -9,7 +9,7 @@ import { google } from "googleapis";
 import type { gmail_v1 } from "googleapis";
 import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { upsertFromSource } from "../../../src/neo4j/memoryService";
+import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
 import {
   embedSyncedDoc,
   markSyncComplete,

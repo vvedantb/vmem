@@ -8,16 +8,17 @@
 
 import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
-import { runUpdateMemory } from "./memories/update";
-import { runDeleteMemory } from "./memories/delete";
-import { runRetrieveMemories, runSearchMemories } from "./memories/read";
-import { resolveProfileIdForMcpScope } from "./memories/shared";
+import { runUpdateMemory } from "./_memories/update";
+import { runDeleteMemory } from "./_memories/delete";
+import { runCreateMemory } from "./_memories/create";
+import { runRetrieveMemories, runSearchMemories } from "./_memories/read";
+import { resolveProfileIdForMcpScope } from "./_memories/shared";
 import { runStoreFromInstruction } from "./agent/storeFromInstruction";
 import type { OpenRouterRequired } from "./agent/shared";
 import type { StoreFromInstructionResult } from "./agent/storeFromInstruction";
-import type { MemoryWithTags } from "../../src/neo4j/memory/types";
-import { getRelatedMemories } from "../../src/neo4j/memory/relationships";
-import { getDriver } from "../../src/neo4j/driver";
+import type { MemoryWithTags } from "../../engine/neo4j/memory/types";
+import { getRelatedMemories } from "../../engine/neo4j/memory/relationships";
+import { getDriver } from "../../engine/neo4j/driver";
 import { mcpScopeValidator } from "../profiles/mcpAccess";
 
 export interface RelatedMemoryRow {
@@ -101,8 +102,6 @@ export const mcpCreateMemory = internalAction({
       args.mcpScope,
       args.profileId,
     );
-    const { runCreateMemory } =
-      await import("../../src/convexHandlers/memories/create");
     return runCreateMemory(ctx, {
       clerkId: args.clerkId,
       profileId,

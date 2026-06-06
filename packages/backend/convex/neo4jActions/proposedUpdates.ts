@@ -3,15 +3,15 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
+import { getMemory } from "../../engine/neo4j/memory/crud";
+import { setEmbeddings } from "../../engine/neo4j/memory/migration";
 import {
   createProposedDelete,
   createProposedUpdate,
-  getMemory,
   listProposedUpdates,
   resolveProposal,
-  setEmbeddings,
-} from "../../src/neo4j/memoryService";
-import { getDriver } from "../../src/neo4j/driver";
+} from "../../engine/neo4j/memory/proposals";
+import { getDriver } from "../../engine/neo4j/driver";
 import { generateEmbedding } from "../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
 
@@ -115,7 +115,7 @@ export const resolveProposalInternal = internalAction({
 
 /**
  * Internal helper used by the V2 fact-extraction pipeline to record an
- * ADD/UPDATE/DELETE proposal in Neo4j. Wraps `memoryService` calls; the
+ * ADD/UPDATE/DELETE proposal in Neo4j. Wraps Neo4j proposal/crud calls; the
  * caller (`factExtraction.ts`) is responsible for the LLM decision.
  */
 export const createProposedUpdateInternal = internalAction({
