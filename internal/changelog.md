@@ -1,5 +1,10 @@
 # Changelog
 
+## Sidebar account menu — 2026-06-07
+
+- **Sidebar footer**: User identity is now a single card (avatar, name, email) that opens an account dropdown — Manage account, light/dark toggle, and Sign out — replacing Clerk's `<UserButton>` plus the standalone theme button.
+- **Sign out**: Now asks for confirmation in a dialog before signing out, since it's destructive.
+
 ## Memory graph tab switch crash — 2026-06-07
 
 - **Memory tabs**: Fixed crash when switching between graph/list views. The provider now stays mounted across both subroutes so the graph context never unmounts mid-transition. Graph data fetching is gated by an `enabled` flag so the list view avoids unnecessary queries.
