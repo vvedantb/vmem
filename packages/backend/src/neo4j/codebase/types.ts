@@ -144,4 +144,4 @@ export interface ParseStats {
   importEdgeCount: number;
 }
 
-export const PARSER_VERSION = "1.0.0";
+export { PARSER_VERSION } from "../../../constants/codebase";
