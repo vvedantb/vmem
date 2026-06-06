@@ -93,6 +93,7 @@ export interface UseGraphDataReturn {
 export function useGraphData(
   focusNodeId: string | null,
   profileId: string | null = null,
+  enabled: boolean = true,
 ): UseGraphDataReturn {
   const { isAuthenticated } = useConvexAuth();
   const getGraphData = useAction(api.graphApi.getGraphData);
@@ -124,7 +125,7 @@ export function useGraphData(
       );
       return parsed;
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && enabled,
     staleTime: 30_000,
   });
 

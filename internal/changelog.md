@@ -1,5 +1,9 @@
 # Changelog
 
+## Memory graph tab switch crash — 2026-06-07
+
+- **Memory tabs**: Fixed crash when switching between graph/list views. The provider now stays mounted across both subroutes so the graph context never unmounts mid-transition. Graph data fetching is gated by an `enabled` flag so the list view avoids unnecessary queries.
+
 ## UI motion (transitions.dev) — 2026-06-06
 
 - **Dialogs**: Modal open/close scales and fades via shared `DialogContent` — replaces Tailwind zoom/slide on every dialog.

@@ -46,20 +46,22 @@ function MemoriesLayoutShell() {
 
 /**
  * Keeps `MemoriesTabs` mounted across graph/list subroutes so the sliding
- * pill animates. Graph controller lives in a scoped provider only on /graph.
+ * pill animates. The graph controller provider stays mounted across both
+ * subroutes so the graph page never loses its context mid-transition (the
+ * `Outlet` and `matchRoute` can briefly disagree during a tab switch). It only
+ * fetches graph data while the graph view is active via the `enabled` flag.
  */
 function MemoriesLayout() {
   const matchRoute = useMatchRoute();
   const isGraph = matchRoute({ to: "/memories/graph" });
   const [params] = useMemoriesSearchParams();
 
-  if (isGraph) {
-    return (
-      <MemoryGraphControllerProvider focusNodeId={params.focus}>
-        <MemoriesLayoutShell />
-      </MemoryGraphControllerProvider>
-    );
-  }
-
-  return <MemoriesLayoutShell />;
+  return (
+    <MemoryGraphControllerProvider
+      focusNodeId={params.focus}
+      enabled={!!isGraph}
+    >
+      <MemoriesLayoutShell />
+    </MemoryGraphControllerProvider>
+  );
 }
