@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:check": "tsgo -p tsconfig.json && vite build",
+    "build": "tsgo -p tsconfig.json && vite build",
     "typecheck": "tsgo -p tsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",
