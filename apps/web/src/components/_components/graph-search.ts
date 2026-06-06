@@ -19,8 +19,8 @@ export function graphNodeMatchesLocalSearch(
     return true;
   }
 
-  const source = node.source;
-  if (source !== undefined && source.toLowerCase().includes(q)) {
+  const sourceType = node.sourceType;
+  if (sourceType !== null && sourceType.toLowerCase().includes(q)) {
     return true;
   }
 

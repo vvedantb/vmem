@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
+    "build:check": "tsgo -p tsconfig.json && vite build",
+    "typecheck": "tsgo -p tsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -85,6 +87,7 @@
     "postcss": "^8.5.4",
     "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "catalog:tailwind3",
+    "@typescript/native-preview": "catalog:",
     "typescript": "catalog:",
     "vite": "^8.0.14",
     "vitest": "^3.2.4"

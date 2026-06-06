@@ -79,6 +79,15 @@ function findSlashTrigger(
   };
 }
 
+function assignRef<T>(ref: React.Ref<T> | undefined, value: T | null) {
+  if (ref === undefined || ref === null) return;
+  if (typeof ref === "function") {
+    ref(value);
+    return;
+  }
+  ref.current = value;
+}
+
 interface SkillMentionEditorProps {
   value: string;
   onValueChange: (value: string) => void;
@@ -86,7 +95,7 @@ interface SkillMentionEditorProps {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
-  editorRef?: React.RefObject<HTMLElement | null>;
+  editorRef?: React.Ref<HTMLElement | null>;
   onEnterSubmit?: () => void;
 }
 
@@ -102,7 +111,14 @@ export function SkillMentionEditor({
 }: SkillMentionEditorProps) {
   const navigate = useNavigate();
   const internalEditorRef = useRef<HTMLDivElement>(null);
-  const editorRef = externalEditorRef ?? internalEditorRef;
+  const setEditorRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      internalEditorRef.current = node;
+      assignRef(externalEditorRef, node);
+    },
+    [externalEditorRef],
+  );
+  const editorRef = internalEditorRef;
   const [skillMap, setSkillMap] = useState<Map<string, Id<"skills">>>(
     () => new Map(),
   );
@@ -450,7 +466,7 @@ export function SkillMentionEditor({
   return (
     <>
       <div
-        ref={editorRef}
+        ref={setEditorRef}
         data-slot="input-group-control"
         data-placeholder={placeholder ?? ""}
         data-empty={isEmpty ? "true" : undefined}

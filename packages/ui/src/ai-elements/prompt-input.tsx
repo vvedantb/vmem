@@ -118,6 +118,13 @@ function PromptInputTextarea({
 }: PromptInputTextareaProps) {
   const { input, setInput, status, textareaRef } = usePromptInput();
 
+  const setTextareaRef = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      textareaRef.current = node;
+    },
+    [textareaRef],
+  );
+
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -128,7 +135,7 @@ function PromptInputTextarea({
 
   return (
     <InputGroupTextarea
-      ref={textareaRef}
+      ref={setTextareaRef}
       value={input}
       onChange={(e) => setInput(e.target.value)}
       onKeyDown={handleKeyDown}
