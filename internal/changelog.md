@@ -1,5 +1,48 @@
 # Changelog
 
+## Landing page polish — 2026-05-22
+
+- **Sign-in (`/`)**: Feature cards no longer clip below the fold; stronger surfaces and an asymmetric numbered stack so graph / recall / agent benefits read clearly.
+- **Sign-in (`/`)**: Richer ambient graph (pulsing nodes, dashed paths), italic headline accent, capability pills, and staggered motion — same tonal system, more editorial first impression.
+- **Sign-in (`/`)**: Mini memory-graph vignette with animated recall path, draw-in logo mark, film grain, and sticky preview column — shows what the product does before sign-up.
+- **Sign-in (`/`)**: Interactive graph preview (hover nodes for recall snippets), Store → Connect → Recall section, and scroll parallax on the ambient background.
+- **Sign-in (`/`)**: Hero copy sits on a left read scrim so graph lines no longer compete with the headline and body text.
+- **Sign-in (`/`)**: Mobile layout — full-width stack, tap-to-explore graph nodes, vertical read scrim, and parallax off on narrow viewports.
+- **Sign-in (`/`)**: Landing header uses shared `VmemBrand` with the sidebar — 22px draw-in logo and italic _mem_ wordmark.
+
+## Landing page redesign — 2026-06-06
+
+- **Sign-in (`/`)**: Editorial hero with graph atmosphere, feature highlights, and clearer get-started vs sign-in paths — aligned with the app’s tonal design system.
+
+## Memories URL params — 2026-05-22
+
+- **Memories graph/list**: Filter and search URLs no longer accumulate JSON junk (`profile="null"`, `tags=[]`); only active filters appear in the query string.
+
+## Shared memory filters (graph + list) — 2026-05-22
+
+- **Memories graph/list**: One filter ruleset and popover across both views — tag AND semantics, consistent badge counts, and URL-backed state that persists when switching tabs.
+
+## Memory graph search — 2026-05-22
+
+- **Graph view**: Search syncs to the `q` URL param (shareable, persists across graph/list tabs) and highlights matching nodes — including memory body text via the same fulltext search as the list view.
+
+## Cloud model provider icons — 2026-05-22
+
+- **Cloud model selector**: SVGL brand marks for OpenRouter providers (Google, Mistral, NVIDIA, etc.) on the trigger, provider groups, and model rows.
+
+## Skill chip hover preview — 2026-05-22
+
+- **Chat input**: Skill chip hover preview stays open when moving onto the card so long instructions can be scrolled.
+
+## Cloud model provider submenu — 2026-05-22
+
+- **Cloud model selector**: Free OpenRouter models are grouped by provider with nested submenus, matching the local model picker layout.
+
+## Chat skill chips (Eva-style editor) — 2026-05-22
+
+- **Chat input**: `/` skills menu and inline accent chips use a contentEditable editor (same pattern as Eva) so the caret stays aligned; chips link to the skill page and show a scrollable hover preview.
+- **Tool accordion**: Long tool JSON wraps instead of scrolling horizontally; content is max-height with vertical scroll, opened at the bottom.
+
 ## Service layer consolidation — 2026-05-28
 
 - **LLM orchestration**: Centralized `LLM_MODEL` constant in `convex/lib/openRouter/shared.ts`; removed 7 duplicate local defs so model swaps propagate everywhere at once.

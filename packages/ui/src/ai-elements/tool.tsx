@@ -1,6 +1,11 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import {
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  type ComponentProps,
+} from "react";
 import {
   IconChevronDown,
   IconTool,
@@ -26,22 +31,53 @@ type ToolProps = ComponentProps<typeof Collapsible> & {
   state?: ToolState;
 };
 
+function scrollToolContentToBottom(element: HTMLDivElement | null) {
+  if (element) {
+    element.scrollTop = element.scrollHeight;
+  }
+}
+
 function Tool({
   name,
   state = "input-available",
   className,
   children,
+  onOpenChange,
   ...props
 }: ToolProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    scrollToolContentToBottom(scrollRef.current);
+  }, [children]);
+
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        requestAnimationFrame(() => {
+          scrollToolContentToBottom(scrollRef.current);
+        });
+      }
+      onOpenChange?.(open);
+    },
+    [onOpenChange],
+  );
+
   return (
     <Collapsible
       defaultOpen={state === "running" || state === "output-error"}
+      onOpenChange={handleOpenChange}
       className={cn("rounded-lg bg-surface-secondary/40", className)}
       {...props}
     >
       <ToolHeader name={name} state={state} />
-      <CollapsibleContent className="bg-surface-secondary/20 px-3 py-2 rounded-b-lg">
-        {children}
+      <CollapsibleContent className="bg-surface-secondary/20 rounded-b-lg">
+        <div
+          ref={scrollRef}
+          className="max-h-64 overflow-x-hidden overflow-y-auto scrollbar-thin px-3 py-2 [scrollbar-gutter:stable]"
+        >
+          {children}
+        </div>
       </CollapsibleContent>
     </Collapsible>
   );

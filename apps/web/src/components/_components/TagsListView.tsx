@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useQueryStates } from "nuqs";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -30,7 +29,7 @@ import {
 } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
-import { memoriesSearchParams } from "@/routes/_main/memories/-searchParams";
+import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
 import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
 import { TagMemoriesPanel } from "@/components/_components/TagMemoriesPanel";
 import { VmemSpinner } from "@/components/svg-animations";
@@ -42,7 +41,7 @@ import { VmemSpinner } from "@/components/svg-animations";
  */
 export default function TagsListView() {
   const { memories, isLoading, updateMemory } = useMemoryContext();
-  const [params] = useQueryStates(memoriesSearchParams);
+  const [params] = useMemoriesSearchParams();
 
   const scopedMemories = useMemo(() => {
     if (params.profile === null) return memories;

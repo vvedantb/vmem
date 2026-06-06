@@ -73,6 +73,7 @@ export default function MemoryGraph({
     graphSettings,
     viewTheme,
     searchMatchSet,
+    isSearchActive,
     isLoading,
     isError,
     error,
@@ -218,6 +219,7 @@ export default function MemoryGraph({
         settings={graphSettings}
         focusNodeId={focusNodeId}
         searchMatchSet={searchMatchSet}
+        isSearchActive={isSearchActive}
         showLabels={graphSettings.showLabels}
         onHoverNode={handleHoverNode}
         onHoverEdge={setHoveredEdge}

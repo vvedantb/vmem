@@ -87,7 +87,12 @@ function PromptInput({
       if (!text || status !== "ready") return;
       await onSubmit({ text }, e);
       setInput("");
-      textareaRef.current?.focus();
+      const control = e.currentTarget.querySelector(
+        '[data-slot="input-group-control"]',
+      );
+      if (control instanceof HTMLElement) {
+        control.focus();
+      }
     },
     [input, status, onSubmit, setInput],
   );

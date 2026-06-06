@@ -7,6 +7,7 @@ import {
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpandFilled,
 } from "@tabler/icons-react";
+import { VmemBrand, VmemBrandText } from "@/components/VmemBrand";
 import { VmemDrawInIcon } from "../svg-animations";
 import type { SidebarNavView } from "./SidebarNavigation";
 import { getSubSidebarTitle } from "./sidebar-header-titles";
@@ -106,7 +107,6 @@ function MainLogoLink({
         {!isCollapsed ? (
           <motion.span
             key="sidebar-logo-text"
-            className="text-xl leading-none font-instrumentSerif text-foreground"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -115,7 +115,7 @@ function MainLogoLink({
               ease: motionEase,
             }}
           >
-            v<span className="italic">mem</span>
+            <VmemBrandText />
           </motion.span>
         ) : null}
       </AnimatePresence>
@@ -158,9 +158,8 @@ export function SidebarHeader({
           onClick={onLogoNavigate}
           className="group absolute left-1/2 flex -translate-x-1/2 flex-row items-center gap-2"
         >
-          <VmemDrawInIcon size={22} className="text-foreground" />
-          <h1 className="text-xl leading-none font-instrumentSerif text-foreground">
-            v<span className="italic">mem</span>
+          <h1 className="contents">
+            <VmemBrand />
           </h1>
         </Link>
       </div>

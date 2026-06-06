@@ -154,6 +154,7 @@ export function render(
   neighborSet: Set<string>,
   focusNodeId: string | null,
   searchMatchSet: Set<string>,
+  isSearchActive: boolean,
   showLabels: boolean,
   connectorLogos: ConnectorLogoMap,
 ): void {
@@ -212,7 +213,6 @@ export function render(
   // neighborSet always includes the hovered node itself, so size > 1 means
   // there's at least one real neighbor.
   const hasHoveredNeighbors = hasHover && neighborSet.size > 1;
-  const isSearchActive = searchMatchSet.size > 0;
   const lowZoom = vp.scale < 0.4;
   const veryLowZoom = vp.scale < 0.08;
   const highNodeCount = nodeCount > 5000;

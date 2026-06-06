@@ -1,68 +1,14 @@
-﻿// @ts-nocheck
-import { type Tool, type ToolSet, zodSchema } from "ai";
+import { type Tool, type ToolSet, tool, zodSchema } from "ai";
+import type { z } from "zod";
 import type { ActionCtx } from "../../convex/_generated/server";
 import type { CloudMemoryRef } from "./cloudMemoryRef";
-import {
-  runCodebaseContext,
-  runCodebaseGraph,
-  runCodebaseImpact,
-  runCodebaseOverview,
-  runCodebaseSearch,
-  runCodebasesList,
-  runListProfiles,
-  runMemoryRelated,
-  runMemoryRetrieve,
-  runMemorySearch,
-  runPing,
-  runSkillsGet,
-  runSkillsList,
-  runWhoami,
-  runWikiGet,
-  runWikiList,
-  runWikiSearch,
-  type ToolHandlerContext,
-  type ToolHandlerResult,
-} from "../../convex/mcp/toolHandlers";
-import {
-  codebaseContextSchema,
-  codebaseGraphSchema,
-  codebaseImpactSchema,
-  codebaseOverviewSchema,
-  codebaseSearchSchema,
-  codebasesListSchema,
-  listProfilesSchema,
-  memoryRelatedSchema,
-  memoryRetrieveSchema,
-  memorySearchSchema,
-  pingSchema,
-  skillsGetSchema,
-  skillsListSchema,
-  whoamiSchema,
-  wikiGetSchema,
-  wikiListSchema,
-  wikiSearchSchema,
-} from "../../convex/mcp/schemas";
+import { toolSpecs, type ToolSpec } from "../../convex/mcp/toolCatalog";
+import type { ToolHandlerContext } from "../../convex/mcp/toolHandlers";
 
 export type { CloudMemoryRef };
 
-type OpenRouterToolConfig = {
-  description: string;
-  inputSchema: Tool["inputSchema"];
-  execute: NonNullable<Tool["execute"]>;
-};
-
 interface OpenRouterToolOptions {
   onMemoryRetrieve?: (refs: CloudMemoryRef[]) => void;
-}
-
-function openRouterTool(config: OpenRouterToolConfig): Tool {
-  return config;
-}
-
-async function runHandler(
-  run: () => Promise<ToolHandlerResult>,
-): Promise<ToolHandlerResult> {
-  return await run();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -130,139 +76,147 @@ function toCloudMemoryRefs(data: unknown): CloudMemoryRef[] {
   return refs;
 }
 
+type ZodShape = z.ZodRawShape;
+
+/**
+ * Wrap a catalog spec as an AI SDK tool with a fixed `Tool` return type so
+ * `buildOpenRouterTools` does not instantiate a dozen nested `tool()` generics.
+ */
+function defineReadOnlyCloudTool<Shape extends ZodShape>(
+  description: string,
+  spec: ToolSpec<Shape>,
+  h: ToolHandlerContext,
+): Tool {
+  type Params = z.infer<z.ZodObject<Shape>>;
+  const execute = (input: Params | undefined) => {
+    const params: Params = spec.schema.parse(input ?? {});
+    return spec.run(h, params);
+  };
+  // tsgo hits TS2589 when zodSchema + tool() nest per catalog shape; runtime
+  // validation still flows through toolSpecs.
+  const cloudTool: Tool = tool({
+    description,
+    // @ts-expect-error TS2589 — catalog schema drives runtime validation
+    inputSchema: zodSchema(spec.schema),
+    execute,
+  });
+  return cloudTool;
+}
+
+/**
+ * Build the read-only subset of vmem tools exposed to cloud chat's free
+ * OpenRouter models. Tool name, input schema, and handler all come from the
+ * shared catalog (`toolCatalog.ts`); only the cloud-specific (terse)
+ * description lives here. Write tools (memory_add/update/delete, skills and
+ * wiki mutations, set_active_profile) are intentionally omitted from this
+ * surface.
+ */
 export function buildOpenRouterTools(
   ctx: ActionCtx,
   clerkUserId: string,
   options: OpenRouterToolOptions = {},
 ): ToolSet {
-  const handlerCtx: ToolHandlerContext = {
-    ctx,
-    clerkUserId,
-    scope: "personal",
-  };
+  const h: ToolHandlerContext = { ctx, clerkUserId, scope: "personal" };
 
-  const tools: Record<string, Tool> = {};
-
-  tools.ping = openRouterTool({
-    description: "Health check tool for connector validation.",
-    inputSchema: zodSchema(pingSchema),
-    execute: async () => runHandler(() => runPing(handlerCtx)),
-  });
-
-  tools.whoami = openRouterTool({
-    description:
-      "Returns the authenticated user, active personal profile, and profiles visible on this personal MCP connector.",
-    inputSchema: zodSchema(whoamiSchema),
-    execute: async () => runHandler(() => runWhoami(handlerCtx)),
-  });
-
-  tools.list_profiles = openRouterTool({
-    description:
-      "List personal profiles available on this MCP connector. Returns profile IDs, names, colors, and icons.",
-    inputSchema: zodSchema(listProfilesSchema),
-    execute: async () => runHandler(() => runListProfiles(handlerCtx)),
-  });
-
-  tools.memory_search = openRouterTool({
-    description: "Search your memories by query text, type, tags, or source.",
-    inputSchema: zodSchema(memorySearchSchema),
-    execute: async (input) =>
-      runHandler(() => runMemorySearch(handlerCtx, input)),
-  });
-
-  tools.memory_retrieve = openRouterTool({
+  const memoryRetrieve: Tool = tool({
     description:
       "Retrieve the most relevant memories for a natural language query with score breakdown.",
-    inputSchema: zodSchema(memoryRetrieveSchema),
-    execute: async (input) => {
-      const result = await runHandler(() =>
-        runMemoryRetrieve(handlerCtx, input),
-      );
-      if (result.ok) {
-        options.onMemoryRetrieve?.(toCloudMemoryRefs(result.data));
-      }
-      return result;
+    // @ts-expect-error TS2589 — zodSchema + tool() deep-instantiates on memory_retrieve shape
+    inputSchema: zodSchema(toolSpecs.memory_retrieve.schema),
+    execute: (input) => {
+      const params = toolSpecs.memory_retrieve.schema.parse(input ?? {});
+      return toolSpecs.memory_retrieve.run(h, params).then((result) => {
+        if (result.ok) {
+          options.onMemoryRetrieve?.(toCloudMemoryRefs(result.data));
+        }
+        return result;
+      });
     },
   });
 
-  tools.memory_related = openRouterTool({
-    description: "List memories linked to a given memory via RELATES_TO edges.",
-    inputSchema: zodSchema(memoryRelatedSchema),
-    execute: async (input) =>
-      runHandler(() => runMemoryRelated(handlerCtx, input)),
-  });
-
-  tools.skills_list = openRouterTool({
-    description: "List enabled skills (name + description only).",
-    inputSchema: zodSchema(skillsListSchema),
-    execute: async () => runHandler(() => runSkillsList(handlerCtx)),
-  });
-
-  tools.skills_get = openRouterTool({
-    description: "Fetch a single enabled skill by exact name.",
-    inputSchema: zodSchema(skillsGetSchema),
-    execute: async (input) => runHandler(() => runSkillsGet(handlerCtx, input)),
-  });
-
-  tools.wiki_list = openRouterTool({
-    description: "List all wiki folders and documents.",
-    inputSchema: zodSchema(wikiListSchema),
-    execute: async () => runHandler(() => runWikiList(handlerCtx)),
-  });
-
-  tools.wiki_get = openRouterTool({
-    description: "Fetch a single wiki node by id.",
-    inputSchema: zodSchema(wikiGetSchema),
-    execute: async (input) => runHandler(() => runWikiGet(handlerCtx, input)),
-  });
-
-  tools.wiki_search = openRouterTool({
-    description: "Full-text search wiki titles and document bodies.",
-    inputSchema: zodSchema(wikiSearchSchema),
-    execute: async (input) =>
-      runHandler(() => runWikiSearch(handlerCtx, input)),
-  });
-
-  tools.codebases_list = openRouterTool({
-    description: "List GitHub repositories connected to vmem.",
-    inputSchema: zodSchema(codebasesListSchema),
-    execute: async () => runHandler(() => runCodebasesList(handlerCtx)),
-  });
-
-  tools.codebase_overview = openRouterTool({
-    description: "Get aggregate stats for a synced codebase.",
-    inputSchema: zodSchema(codebaseOverviewSchema),
-    execute: async (input) =>
-      runHandler(() => runCodebaseOverview(handlerCtx, input)),
-  });
-
-  tools.codebase_search = openRouterTool({
-    description: "Search symbols inside a synced codebase.",
-    inputSchema: zodSchema(codebaseSearchSchema),
-    execute: async (input) =>
-      runHandler(() => runCodebaseSearch(handlerCtx, input)),
-  });
-
-  tools.codebase_context = openRouterTool({
-    description: "Get a symbol's metadata plus CALLS relationships.",
-    inputSchema: zodSchema(codebaseContextSchema),
-    execute: async (input) =>
-      runHandler(() => runCodebaseContext(handlerCtx, input)),
-  });
-
-  tools.codebase_impact = openRouterTool({
-    description: "Traverse CALLS edges upstream or downstream from a symbol.",
-    inputSchema: zodSchema(codebaseImpactSchema),
-    execute: async (input) =>
-      runHandler(() => runCodebaseImpact(handlerCtx, input)),
-  });
-
-  tools.codebase_graph = openRouterTool({
-    description: "Fetch a filtered subgraph of a synced codebase.",
-    inputSchema: zodSchema(codebaseGraphSchema),
-    execute: async (input) =>
-      runHandler(() => runCodebaseGraph(handlerCtx, input)),
-  });
+  const tools: ToolSet = {
+    ping: defineReadOnlyCloudTool(
+      "Health check tool for connector validation.",
+      toolSpecs.ping,
+      h,
+    ),
+    whoami: defineReadOnlyCloudTool(
+      "Returns the authenticated user, active personal profile, and profiles visible on this personal MCP connector.",
+      toolSpecs.whoami,
+      h,
+    ),
+    list_profiles: defineReadOnlyCloudTool(
+      "List personal profiles available on this MCP connector. Returns profile IDs, names, colors, and icons.",
+      toolSpecs.list_profiles,
+      h,
+    ),
+    memory_search: defineReadOnlyCloudTool(
+      "Search your memories by query text, type, tags, or source.",
+      toolSpecs.memory_search,
+      h,
+    ),
+    memory_retrieve: memoryRetrieve,
+    memory_related: defineReadOnlyCloudTool(
+      "List memories linked to a given memory via RELATES_TO edges.",
+      toolSpecs.memory_related,
+      h,
+    ),
+    skills_list: defineReadOnlyCloudTool(
+      "List enabled skills (name + description only).",
+      toolSpecs.skills_list,
+      h,
+    ),
+    skills_get: defineReadOnlyCloudTool(
+      "Fetch a single enabled skill by exact name.",
+      toolSpecs.skills_get,
+      h,
+    ),
+    wiki_list: defineReadOnlyCloudTool(
+      "List all wiki folders and documents.",
+      toolSpecs.wiki_list,
+      h,
+    ),
+    wiki_get: defineReadOnlyCloudTool(
+      "Fetch a single wiki node by id.",
+      toolSpecs.wiki_get,
+      h,
+    ),
+    wiki_search: defineReadOnlyCloudTool(
+      "Full-text search wiki titles and document bodies.",
+      toolSpecs.wiki_search,
+      h,
+    ),
+    codebases_list: defineReadOnlyCloudTool(
+      "List GitHub repositories connected to vmem.",
+      toolSpecs.codebases_list,
+      h,
+    ),
+    codebase_overview: defineReadOnlyCloudTool(
+      "Get aggregate stats for a synced codebase.",
+      toolSpecs.codebase_overview,
+      h,
+    ),
+    codebase_search: defineReadOnlyCloudTool(
+      "Search symbols inside a synced codebase.",
+      toolSpecs.codebase_search,
+      h,
+    ),
+    codebase_context: defineReadOnlyCloudTool(
+      "Get a symbol's metadata plus CALLS relationships.",
+      toolSpecs.codebase_context,
+      h,
+    ),
+    codebase_impact: defineReadOnlyCloudTool(
+      "Traverse CALLS edges upstream or downstream from a symbol.",
+      toolSpecs.codebase_impact,
+      h,
+    ),
+    codebase_graph: defineReadOnlyCloudTool(
+      "Fetch a filtered subgraph of a synced codebase.",
+      toolSpecs.codebase_graph,
+      h,
+    ),
+  };
 
   return tools;
 }

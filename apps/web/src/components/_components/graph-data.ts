@@ -5,6 +5,7 @@
 import type { MemoryType } from "@/lib/memories";
 import { MEMORY_TYPES } from "@/lib/memories";
 import type { ListItemKind } from "@/lib/list-items";
+import { apiGraphNodePassesFilters } from "@/lib/memory-view-filters";
 import type { GraphNode, GraphEdge, RelatedNode } from "./canvas/types";
 
 // ---- API response shapes (mirrors Zod schemas in useGraphData) ----
@@ -166,15 +167,9 @@ export function getAllTypes(apiNodes: ApiGraphNode[]): TypeStat[] {
 /**
  * Transforms API data into simulation-ready nodes + edges.
  *
- * Four filters applied in sequence:
- *  - `activeKinds`: hard filter by node kind. A node is visible only if its
- *    kind is in the set. An empty set hides everything.
- *  - `activeTags`: OR filter by tag. When non-empty, nodes must have at least
- *    one matching tag. Wiki nodes have no tags, so enabling a tag filter hides
- *    them (wiki content isn't tag-searchable yet).
- *  - `activeSources` / `activeTypes`: memory-scoped filters. When non-empty,
- *    memory nodes without a matching source/type hide; wiki/skill nodes pass
- *    through unchanged (they have no source/type to match against).
+ * Node visibility uses `apiGraphNodePassesFilters` from `memory-view-filters.ts`
+ * — same semantics as the list view (empty kinds = all kinds; tags are AND;
+ * source/type filters apply only to memory nodes).
  */
 export function buildGraphData(
   apiNodes: ApiGraphNode[],
@@ -182,39 +177,20 @@ export function buildGraphData(
   allRelatesToEdges: ApiRelatesToEdge[],
   apiWikiParentEdges: ApiWikiParentEdge[],
   apiMentionsEdges: ApiMentionsEdge[],
-  activeTags: Set<string>,
-  activeKinds: Set<ListItemKind>,
-  activeSources: Set<string>,
-  activeTypes: Set<MemoryType>,
+  filters: {
+    kinds: readonly ListItemKind[];
+    tags: readonly string[];
+    sources: readonly string[];
+    types: readonly MemoryType[];
+  },
 ): { graphNodes: GraphNode[]; graphEdges: GraphEdge[] } {
   if (apiNodes.length === 0) {
     return { graphNodes: [], graphEdges: [] };
   }
 
-  // Kind filter is the broader cut; apply first, then narrow by tags.
-  const kindFiltered = apiNodes.filter((n) => activeKinds.has(n.kind));
-
-  const tagFiltered =
-    activeTags.size > 0
-      ? kindFiltered.filter((n) => n.tags.some((t) => activeTags.has(t)))
-      : kindFiltered;
-
-  // Source/type are memory-scoped: non-memory nodes pass through so a user
-  // filtering memories by source doesn't wipe out their wiki docs & skills.
-  const sourceFiltered =
-    activeSources.size > 0
-      ? tagFiltered.filter(
-          (n) =>
-            n.kind !== "memory" || (n.source && activeSources.has(n.source)),
-        )
-      : tagFiltered;
-
-  const filteredNodes =
-    activeTypes.size > 0
-      ? sourceFiltered.filter(
-          (n) => n.kind !== "memory" || (n.type && activeTypes.has(n.type)),
-        )
-      : sourceFiltered;
+  const filteredNodes = apiNodes.filter((node) =>
+    apiGraphNodePassesFilters(node, filters),
+  );
 
   // Degree counting across all edge types
   const degreeCount = new Map<string, number>();

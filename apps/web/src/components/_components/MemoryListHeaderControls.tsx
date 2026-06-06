@@ -11,12 +11,10 @@
  */
 
 import { useMemo } from "react";
-import { useQueryStates } from "nuqs";
 import { useQuery } from "convex/react";
 import {
   IconCheck,
   IconChevronDown,
-  IconFilter,
   IconHash,
   IconList,
   IconPlus,
@@ -27,14 +25,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
 } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import AddMemoryModal from "@/components/AddMemoryModal";
 import SearchPopover from "./SearchPopover";
-import UnifiedFilterPanel from "./UnifiedFilterPanel";
+import { MemoryFiltersButton } from "@/routes/_main/memories/_components/MemoryFiltersButton";
+import {
+  CLEARED_MEMORY_VIEW_FILTERS,
+  type MemoryViewFilterParams,
+} from "@/lib/memory-view-filters";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import type { ListViewMode } from "@/routes/_main/memories/-searchParams";
@@ -49,10 +48,10 @@ import {
   wikiRowsToListItems,
   type ListItem,
 } from "@/lib/list-items";
-import { memoriesSearchParams } from "@/routes/_main/memories/-searchParams";
+import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
 
 export default function MemoryListHeaderControls() {
-  const [params, setParams] = useQueryStates(memoriesSearchParams);
+  const [params, setParams] = useMemoriesSearchParams();
   const { memories: allMemories } = useMemoryContext();
   const wikiRows = useQuery(api.wiki.listTree);
   const skillRows = useQuery(api.skills.listMy);
@@ -92,12 +91,16 @@ export default function MemoryListHeaderControls() {
     params.profile,
   ]);
 
-  const activeFilterCount =
-    (params.profile !== null ? 1 : 0) +
-    params.kinds.length +
-    params.tags.length +
-    params.sources.length +
-    params.types.length;
+  const filters = useMemo<MemoryViewFilterParams>(
+    () => ({
+      profile: params.profile,
+      kinds: params.kinds,
+      tags: params.tags,
+      sources: params.sources,
+      types: params.types,
+    }),
+    [params.profile, params.kinds, params.tags, params.sources, params.types],
+  );
 
   const isTagsView = params.view === "tags";
 
@@ -109,61 +112,28 @@ export default function MemoryListHeaderControls() {
       />
       <SearchPopover
         value={params.q}
-        onChange={(q) => setParams({ q })}
+        onChange={(q) => setParams({ q: q.trim().length === 0 ? null : q })}
         placeholder={
           isTagsView ? "Search tags..." : "Search memories, wiki, and skills..."
         }
         label="Search"
       />
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label="Filter list"
-            className="relative"
-          >
-            <IconFilter size={16} />
-            {activeFilterCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-accent text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
-                {activeFilterCount}
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="end"
-          className="w-[calc(100vw-1rem)] max-w-[420px] p-0 sm:w-[420px]"
-        >
-          <UnifiedFilterPanel
-            allMemories={allMemories}
-            allItems={allItems}
-            selectedProfileId={params.profile}
-            onProfileChange={(profile) => setParams({ profile })}
-            selectedKinds={params.kinds}
-            onKindsChange={(kinds) => setParams({ kinds })}
-            selectedTags={params.tags}
-            onTagsChange={(tags) => setParams({ tags })}
-            distinctSources={distinctSources}
-            selectedSources={params.sources}
-            onSourcesChange={(sources) => setParams({ sources })}
-            selectedTypes={params.types}
-            onTypesChange={(types) => setParams({ types })}
-            filteredCount={filteredItems.length}
-            totalCount={allItems.length}
-            onClearAll={() =>
-              setParams({
-                profile: null,
-                kinds: [],
-                tags: [],
-                sources: [],
-                types: [],
-              })
-            }
-            isDark={isDark}
-          />
-        </PopoverContent>
-      </Popover>
+      <MemoryFiltersButton
+        filters={filters}
+        onProfileChange={(profile) => setParams({ profile })}
+        onKindsChange={(kinds) => setParams({ kinds })}
+        onTagsChange={(tags) => setParams({ tags })}
+        onSourcesChange={(sources) => setParams({ sources })}
+        onTypesChange={(types) => setParams({ types })}
+        onClearAll={() => setParams(CLEARED_MEMORY_VIEW_FILTERS)}
+        allMemories={allMemories}
+        allItems={allItems}
+        distinctSources={distinctSources}
+        filteredCount={filteredItems.length}
+        totalCount={allItems.length}
+        isDark={isDark}
+        ariaLabel="Filter list"
+      />
       <AddMemoryModal
         trigger={
           <Button

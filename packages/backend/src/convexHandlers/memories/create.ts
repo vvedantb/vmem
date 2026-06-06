@@ -1,13 +1,13 @@
-"use node";
-
 /**
- * Memory create handler — owns the 4-layer dedup pipeline and the
- * post-create fan-out (event, enrichment, chunking, V2 fact extraction,
- * context_prompt invalidation).
+ * Memory create handler — lives outside `convex/` so `api.d.ts` does not
+ * pull the Neo4j implementation graph when typechecking the web app.
+ *
+ * Convex action modules call `runCreateMemory` via dynamic import inside
+ * their handlers.
  */
 
-import { type ActionCtx } from "../../_generated/server";
-import { internal } from "../../_generated/api";
+import { type ActionCtx } from "../../../convex/_generated/server";
+import { internal } from "../../../convex/_generated/api";
 import {
   computeContentHash,
   createMemory,
@@ -18,15 +18,15 @@ import {
   finalizeDedupHit,
   findMemoryByUrl,
   type MemoryWithTags,
-} from "../../../src/neo4j/memoryService";
-import { getDriver } from "../../../src/neo4j/driver";
-import { normalizeUrl } from "../../../src/neo4j/url";
-import { shouldChunk } from "../../../src/neo4j/chunking";
+} from "../../neo4j/memoryService";
+import { getDriver } from "../../neo4j/driver";
+import { normalizeUrl } from "../../neo4j/url";
+import { shouldChunk } from "../../neo4j/chunking";
 import {
   resolveProfileIdForClerkId,
   scheduleContextPromptInvalidation,
   tryEmbedOne,
-} from "./shared";
+} from "../../../convex/neo4jActions/memories/shared";
 
 export interface CreateMemoryArgs {
   clerkId: string;
@@ -39,14 +39,8 @@ export interface CreateMemoryArgs {
   confidence: number;
   expiresAt?: string;
   url?: string;
-  // External-ID idempotency. When both `externalId` and `sourceType` are
-  // supplied the action checks Layer 0 dedup before any other dedup pass.
-  // Used by file uploads, V2 prompt-capture extracted facts, and future
-  // importers (Twitter, GitHub) that have a stable upstream identifier.
   externalId?: string;
   sourceType?: string;
-  // File-upload metadata. Stored on the Memory node so a future "view
-  // original file" UI can resolve `storageId` back to a Convex blob.
   storageId?: string;
   mimeType?: string;
   originalFilename?: string;
@@ -57,20 +51,6 @@ const BROWSER_SOURCES: ReadonlySet<string> = new Set([
   "bookmarks",
 ]);
 
-/**
- * Create a memory with 4-layer dedup:
- *   0. exact (sourceType, externalId) tuple
- *   1. URL match (after normalization)
- *   1b. title + origin for browser-history sources (many sites share
- *       a generic <title>, so same-title same-origin = same memory)
- *   2. exact content hash
- *   3. semantic similarity ≥ 0.95 (only when an embedding is available)
- *
- * Each layer that hits returns the existing memory after bumping its
- * visitCount. If `getMemory` returns null mid-flight (race), falls
- * through to the next layer. On miss, persists the new memory and
- * fans out async work via `schedulePostCreate`.
- */
 export async function runCreateMemory(
   ctx: ActionCtx,
   args: CreateMemoryArgs,
@@ -90,11 +70,6 @@ export async function runCreateMemory(
     ? (normalizeUrl(args.url) ?? undefined)
     : undefined;
 
-  // ── Dedup layer 0: external ID match ─────────────────────────────────
-  // When the caller supplies a stable external identifier (file content
-  // hash, Twitter bookmark id, V2 fact hash, etc.) plus a sourceType,
-  // any prior import with the same tuple short-circuits the rest of the
-  // dedup pipeline. Backed by the composite index `memory_source_id`.
   if (args.externalId && args.sourceType) {
     const existing = await findMemoryByExternalId(
       driver,
@@ -108,7 +83,6 @@ export async function runCreateMemory(
     }
   }
 
-  // ── Dedup layer 1: URL match
   if (normalizedUrl) {
     const existing = await findMemoryByUrl(driver, args.clerkId, normalizedUrl);
     if (existing) {
@@ -117,9 +91,6 @@ export async function runCreateMemory(
     }
   }
 
-  // ── Dedup layer 1b: title + domain (browsing-history/bookmarks)
-  // Many sites share a generic <title> across all pages (e.g. "vmem").
-  // For browsing-history sources, treat same-title same-origin as one memory.
   if (normalizedUrl && BROWSER_SOURCES.has(args.source)) {
     try {
       const origin = new URL(normalizedUrl).origin;
@@ -142,9 +113,6 @@ export async function runCreateMemory(
     }
   }
 
-  // ── Dedup layer 2: exact content hash
-  // MD5 of normalized(title+content). Zero API cost, catches identical
-  // duplicates like "vmem" submitted three times.
   const contentHash = computeContentHash(args.title, args.content);
   const hashMatch = await findMemoryByContentHash(
     driver,
@@ -156,8 +124,6 @@ export async function runCreateMemory(
     if (full) return full;
   }
 
-  // Best-effort embedding — memory still saves if this fails or the
-  // user hasn't configured an OpenRouter key.
   const embedding = await tryEmbedOne(ctx, {
     clerkId: args.clerkId,
     profileId: resolvedProfileId,
@@ -166,10 +132,6 @@ export async function runCreateMemory(
     failureLog: "embedding failed on create",
   });
 
-  // ── Dedup layer 3: semantic similarity (near-duplicate)
-  // Only runs when an embedding was successfully generated. Catches
-  // near-duplicates like "vmem is cool" vs "vmem is cool!" that differ
-  // by trivial edits but hash differently.
   if (embedding) {
     const semanticMatch = await findMemoryBySimilarity(
       driver,
@@ -233,11 +195,6 @@ interface PostCreateParams {
   profileId: string;
 }
 
-/**
- * Fan out the post-create work: audit event, enrichment, chunking, V2
- * fact extraction, and debounced context_prompt regen. Each schedule
- * runs async — memory creation returns to the caller immediately.
- */
 async function schedulePostCreate(
   ctx: ActionCtx,
   params: PostCreateParams,
@@ -261,8 +218,6 @@ async function schedulePostCreate(
     },
   );
 
-  // Long memories (>2 KB) get paragraph-level chunks so retrieval can
-  // hit a specific passage instead of the whole document.
   if (shouldChunk(params.content)) {
     await ctx.scheduler.runAfter(
       0,
@@ -276,11 +231,6 @@ async function schedulePostCreate(
     );
   }
 
-  // V2 ADD/UPDATE/DELETE/NONE pipeline. Only for prompt-capture so we
-  // don't waste tokens on every dashboard save / file upload. The
-  // `v2-extracted` guard prevents recursion: facts the V2 action ADDs
-  // are themselves saved via createMemoryInternal but with sourceType
-  // "v2-extracted", which we exclude here.
   if (
     params.source === "prompt-capture" &&
     params.sourceType !== "v2-extracted"

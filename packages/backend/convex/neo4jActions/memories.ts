@@ -14,7 +14,6 @@
 
 import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
-import { runCreateMemory } from "./memories/create";
 import { runBackfillChunks, runChunkMemory } from "./memories/chunks";
 import {
   runGetMemory,
@@ -52,7 +51,11 @@ export const createMemoryInternal = internalAction({
     mimeType: v.optional(v.string()),
     originalFilename: v.optional(v.string()),
   },
-  handler: async (ctx, args) => runCreateMemory(ctx, args),
+  handler: async (ctx, args) => {
+    const { runCreateMemory } =
+      await import("../../src/convexHandlers/memories/create");
+    return runCreateMemory(ctx, args);
+  },
 });
 
 export const chunkMemoryInternal = internalAction({

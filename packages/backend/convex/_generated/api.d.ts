@@ -110,7 +110,6 @@ import type * as neo4jActions_graph from "../neo4jActions/graph.js";
 import type * as neo4jActions_mcp from "../neo4jActions/mcp.js";
 import type * as neo4jActions_memories from "../neo4jActions/memories.js";
 import type * as neo4jActions_memories_chunks from "../neo4jActions/memories/chunks.js";
-import type * as neo4jActions_memories_create from "../neo4jActions/memories/create.js";
 import type * as neo4jActions_memories_delete from "../neo4jActions/memories/delete.js";
 import type * as neo4jActions_memories_read from "../neo4jActions/memories/read.js";
 import type * as neo4jActions_memories_shared from "../neo4jActions/memories/shared.js";
@@ -260,7 +259,6 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/mcp": typeof neo4jActions_mcp;
   "neo4jActions/memories": typeof neo4jActions_memories;
   "neo4jActions/memories/chunks": typeof neo4jActions_memories_chunks;
-  "neo4jActions/memories/create": typeof neo4jActions_memories_create;
   "neo4jActions/memories/delete": typeof neo4jActions_memories_delete;
   "neo4jActions/memories/read": typeof neo4jActions_memories_read;
   "neo4jActions/memories/shared": typeof neo4jActions_memories_shared;
