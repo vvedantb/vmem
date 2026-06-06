@@ -1,9 +1,9 @@
 import { type Tool, type ToolSet, tool, zodSchema } from "ai";
 import type { z } from "zod";
-import type { ActionCtx } from "../../convex/_generated/server";
+import type { ActionCtx } from "../_generated/server";
 import type { CloudMemoryRef } from "./cloudMemoryRef";
-import { toolSpecs, type ToolSpec } from "../../convex/mcp/toolCatalog";
-import type { ToolHandlerContext } from "../../convex/mcp/toolHandlers";
+import { toolSpecs, type ToolSpec } from "../mcp/toolCatalog";
+import type { ToolHandlerContext } from "../mcp/toolHandlers";
 
 export type { CloudMemoryRef };
 

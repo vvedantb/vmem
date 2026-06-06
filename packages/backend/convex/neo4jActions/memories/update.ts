@@ -8,11 +8,11 @@
 
 import { type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
-import { deleteChunksForMemory } from "../../../src/neo4j/memory/chunks";
-import { updateMemory } from "../../../src/neo4j/memory/crud";
-import type { MemoryWithTags } from "../../../src/neo4j/memory/types";
-import { getDriver } from "../../../src/neo4j/driver";
-import { shouldChunk } from "../../../src/neo4j/chunking";
+import { deleteChunksForMemory } from "../../../engine/neo4j/memory/chunks";
+import { updateMemory } from "../../../engine/neo4j/memory/crud";
+import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
+import { getDriver } from "../../../engine/neo4j/driver";
+import { shouldChunk } from "../../../engine/neo4j/chunking";
 import {
   scheduleContextPromptInvalidation,
   toMemoryStatus,

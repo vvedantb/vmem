@@ -10,8 +10,8 @@ import { internal } from "../../_generated/api";
 import {
   deleteAllMemoriesForUser,
   deleteMemory,
-} from "../../../src/neo4j/memory/crud";
-import { getDriver } from "../../../src/neo4j/driver";
+} from "../../../engine/neo4j/memory/crud";
+import { getDriver } from "../../../engine/neo4j/driver";
 import { scheduleContextPromptInvalidation } from "./shared";
 
 export async function runDeleteMemory(

@@ -3,14 +3,14 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import { applyEnrichment } from "../../src/neo4j/memory/enrichment";
-import { getRecentMemoryTitles } from "../../src/neo4j/memory/search";
-import { getDriver } from "../../src/neo4j/driver";
+import { applyEnrichment } from "../../engine/neo4j/memory/enrichment";
+import { getRecentMemoryTitles } from "../../engine/neo4j/memory/search";
+import { getDriver } from "../../engine/neo4j/driver";
 import {
   sanitizeTag,
   buildFullEnrichmentPrompt,
   parseFullEnrichmentResponse,
-} from "../../src/enrichmentPrompt";
+} from "../prompts/enrichmentPrompt";
 import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
 import { callJsonChat } from "../lib/openRouter";
 

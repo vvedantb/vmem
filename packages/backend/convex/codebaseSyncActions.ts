@@ -6,11 +6,11 @@ import { internal } from "./_generated/api";
 import { decryptToken } from "./lib/crypto";
 import { PARSER_VERSION } from "../constants/codebase";
 import { STALE_SYNCING_MS } from "./codebaseSyncConstants";
-import { formatSyncError } from "../src/codebase/formatSyncError";
-import { runCodebaseSync } from "../src/codebase/runCodebaseSync";
-import { ensureNeo4jSetupIfNeeded } from "../src/neo4j/setup";
-import { getDriver } from "../src/neo4j/driver";
-import type { SyncStage } from "../src/neo4j/codebaseService";
+import { formatSyncError } from "../engine/codebase/formatSyncError";
+import { runCodebaseSync } from "../engine/codebase/runCodebaseSync";
+import { ensureNeo4jSetupIfNeeded } from "../engine/neo4j/setup";
+import { getDriver } from "../engine/neo4j/driver";
+import type { SyncStage } from "../engine/neo4j/codebaseService";
 
 const syncOneResult = v.union(
   v.object({ ok: v.literal(true) }),

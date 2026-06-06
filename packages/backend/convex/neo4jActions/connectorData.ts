@@ -2,8 +2,8 @@
 
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
-import { deleteMemoriesBySourceTypes } from "../../src/neo4j/memory/crud";
-import { getDriver } from "../../src/neo4j/driver";
+import { deleteMemoriesBySourceTypes } from "../../engine/neo4j/memory/crud";
+import { getDriver } from "../../engine/neo4j/driver";
 import { scheduleContextPromptInvalidation } from "./memories/shared";
 import type { ActionCtx } from "../_generated/server";
 

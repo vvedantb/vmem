@@ -13,8 +13,8 @@ import {
   getMemoryForTeam,
   listMemoriesForTeam,
   searchMemoriesForTeam,
-} from "../../../src/neo4j/memory/team";
-import { getDriver } from "../../../src/neo4j/driver";
+} from "../../../engine/neo4j/memory/team";
+import { getDriver } from "../../../engine/neo4j/driver";
 import { toMemoryStatus, toMemoryType } from "./shared";
 
 export interface ListMemoriesForTeamArgs {

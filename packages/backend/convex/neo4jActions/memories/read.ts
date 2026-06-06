@@ -6,14 +6,14 @@
  */
 
 import { type ActionCtx } from "../../_generated/server";
-import { getMemory, listMemories } from "../../../src/neo4j/memory/crud";
-import { getMemoryEvents } from "../../../src/neo4j/memory/events";
+import { getMemory, listMemories } from "../../../engine/neo4j/memory/crud";
+import { getMemoryEvents } from "../../../engine/neo4j/memory/events";
 import {
   getRecentMemoryTitles,
   searchMemories,
-} from "../../../src/neo4j/memory/search";
-import { retrieveMemories } from "../../../src/neo4j/memory/retrieve";
-import { getDriver } from "../../../src/neo4j/driver";
+} from "../../../engine/neo4j/memory/search";
+import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
+import { getDriver } from "../../../engine/neo4j/driver";
 import { callOpenRouterChat, LLM_MODEL } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
 import {

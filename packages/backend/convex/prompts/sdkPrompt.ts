@@ -1,4 +1,4 @@
-import { extractJsonString } from "./llm/extractJsonString";
+import { extractJsonString } from "../../engine/llm/extractJsonString";
 
 export interface RetrieveSummaryMemory {
   id: string;

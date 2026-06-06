@@ -6,7 +6,7 @@
 
 import { type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
-import { computeContentHash } from "../../../src/neo4j/memory/mappers";
+import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
 import {
   createMemory,
   findMemoryByContentHash,
@@ -15,11 +15,11 @@ import {
   findMemoryByTitleAndOrigin,
   finalizeDedupHit,
   findMemoryByUrl,
-} from "../../../src/neo4j/memory/crud";
-import type { MemoryWithTags } from "../../../src/neo4j/memory/types";
-import { getDriver } from "../../../src/neo4j/driver";
-import { normalizeUrl } from "../../../src/neo4j/url";
-import { shouldChunk } from "../../../src/neo4j/chunking";
+} from "../../../engine/neo4j/memory/crud";
+import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
+import { getDriver } from "../../../engine/neo4j/driver";
+import { normalizeUrl } from "../../../engine/neo4j/url";
+import { shouldChunk } from "../../../engine/neo4j/chunking";
 import {
   resolveProfileIdForClerkId,
   scheduleContextPromptInvalidation,

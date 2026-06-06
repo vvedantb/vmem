@@ -1,4 +1,4 @@
-import { extractJsonString } from "./llm/extractJsonString";
+import { extractJsonString } from "../../engine/llm/extractJsonString";
 
 const MAX_CONTENT_LENGTH = 2000;
 

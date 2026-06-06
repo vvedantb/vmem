@@ -1,4 +1,4 @@
-﻿"use node";
+"use node";
 
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
@@ -6,12 +6,12 @@ import { internal } from "./_generated/api";
 import { createCloudAgent } from "./agent";
 import { requireUserEnvVar } from "./lib/envVars";
 import { scheduleLog } from "./lib/openRouter/shared";
-import type { CloudMemoryRef } from "../src/cloud/cloudMemoryRef";
-import { buildOpenRouterTools } from "../src/cloud/openRouterTools";
+import type { CloudMemoryRef } from "./cloudLib/cloudMemoryRef";
+import { buildOpenRouterTools } from "./cloudLib/openRouterTools";
 import {
   buildCloudChatSystemPrompt,
   type SkillIndexEntry,
-} from "../src/memoryRagPrompt";
+} from "./prompts/memoryRagPrompt";
 
 function addMemoryRefs(
   refsById: Map<string, CloudMemoryRef>,

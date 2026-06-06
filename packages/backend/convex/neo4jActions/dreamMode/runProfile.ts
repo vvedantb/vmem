@@ -4,25 +4,25 @@ import { internalAction, type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { v } from "convex/values";
-import { computeContentHash } from "../../../src/neo4j/memory/mappers";
+import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
 import {
   computeSurprisalScore,
   fetchAnomalyCluster,
   findRecentMemoriesForDream,
   materializeSynthesisAsMemory,
-} from "../../../src/neo4j/memory/dreamMode";
+} from "../../../engine/neo4j/memory/dreamMode";
 import {
   createSynthesisProposal,
   hasOverlappingPendingProposal,
-} from "../../../src/neo4j/memory/proposals";
-import { getDriver } from "../../../src/neo4j/driver";
+} from "../../../engine/neo4j/memory/proposals";
+import { getDriver } from "../../../engine/neo4j/driver";
 import { callJsonChat, generateEmbedding } from "../../lib/openRouter";
 import {
   buildDreamSynthesisPrompt,
   parseDreamSynthesisResponse,
   type DreamClusterMember,
   type ParsedSynthesis,
-} from "../../../src/neo4j/dreamPrompt";
+} from "../../../engine/neo4j/dreamPrompt";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
 
 /**

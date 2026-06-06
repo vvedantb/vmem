@@ -14,7 +14,7 @@ import type {
 } from "@notionhq/client/build/src/api-endpoints";
 import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { upsertFromSource } from "../../../src/neo4j/memory/connectors";
+import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
 import {
   embedSyncedDoc,
   markSyncComplete,

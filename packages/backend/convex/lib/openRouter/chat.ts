@@ -10,10 +10,7 @@
 import type { ChatResult as SdkChatResult } from "@openrouter/sdk/models";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import {
-  createOpenRouterClient,
-  readOpenRouterError,
-} from "../../../src/openRouter/client";
+import { createOpenRouterClient, readOpenRouterError } from "./client";
 import {
   COMPLETION_PREVIEW_BYTES,
   PROMPT_PREVIEW_BYTES,

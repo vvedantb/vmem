@@ -3,15 +3,15 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import { getMemory } from "../../src/neo4j/memory/crud";
-import { setEmbeddings } from "../../src/neo4j/memory/migration";
+import { getMemory } from "../../engine/neo4j/memory/crud";
+import { setEmbeddings } from "../../engine/neo4j/memory/migration";
 import {
   createProposedDelete,
   createProposedUpdate,
   listProposedUpdates,
   resolveProposal,
-} from "../../src/neo4j/memory/proposals";
-import { getDriver } from "../../src/neo4j/driver";
+} from "../../engine/neo4j/memory/proposals";
+import { getDriver } from "../../engine/neo4j/driver";
 import { generateEmbedding } from "../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
 

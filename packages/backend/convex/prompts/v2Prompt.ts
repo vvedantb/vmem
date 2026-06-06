@@ -23,7 +23,7 @@
  * fact / skip this memory).
  */
 
-import { extractJsonString } from "./llm/extractJsonString";
+import { extractJsonString } from "../../engine/llm/extractJsonString";
 
 export interface ExtractedFact {
   /** Stable id within this extraction (0-indexed). Useful for telemetry. */

@@ -1,7 +1,7 @@
 "use node";
 
 import type { ActionCtx } from "../../_generated/server";
-import type { MemoryWithTags } from "../../../src/neo4j/memory/types";
+import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { runCreateMemory } from "../memories/create";
 import { resolveProfileIdForClerkId } from "../memories/shared";
 import {

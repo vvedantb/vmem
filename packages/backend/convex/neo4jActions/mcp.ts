@@ -16,9 +16,9 @@ import { resolveProfileIdForMcpScope } from "./memories/shared";
 import { runStoreFromInstruction } from "./agent/storeFromInstruction";
 import type { OpenRouterRequired } from "./agent/shared";
 import type { StoreFromInstructionResult } from "./agent/storeFromInstruction";
-import type { MemoryWithTags } from "../../src/neo4j/memory/types";
-import { getRelatedMemories } from "../../src/neo4j/memory/relationships";
-import { getDriver } from "../../src/neo4j/driver";
+import type { MemoryWithTags } from "../../engine/neo4j/memory/types";
+import { getRelatedMemories } from "../../engine/neo4j/memory/relationships";
+import { getDriver } from "../../engine/neo4j/driver";
 import { mcpScopeValidator } from "../profiles/mcpAccess";
 
 export interface RelatedMemoryRow {
