@@ -10,6 +10,8 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsgo/web.tsbuildinfo",
     "jsx": "react-jsx",
     "strict": true,
     "noFallthroughCasesInSwitch": true,
