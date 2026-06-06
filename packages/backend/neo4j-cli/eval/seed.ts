@@ -4,8 +4,8 @@ import {
   handcraftedMemories,
   handcraftedRelationships,
   SEED_USER_IDS,
-} from "../../seed/dataset";
-import { runSeed } from "../../seed/engine";
+} from "../seed/dataset";
+import { runSeed } from "../seed/engine";
 
 const evalUserId = SEED_USER_IDS[0];
 if (!evalUserId) {

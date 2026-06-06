@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { encodeGithubContentPath, stripTarballRoot } from "./fetchRepository";
+import {
+  encodeGithubContentPath,
+  stripTarballRoot,
+} from "../../engine/github/fetchRepository";
 
 describe("encodeGithubContentPath", () => {
   it("encodes TanStack route params with $", () => {

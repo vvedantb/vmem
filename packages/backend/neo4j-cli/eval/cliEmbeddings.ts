@@ -7,7 +7,7 @@
 import {
   createOpenRouterClient,
   readOpenRouterError,
-} from "../../../openRouter/client";
+} from "../../convex/lib/openRouter/client";
 
 const EMBEDDING_MODEL = "openai/text-embedding-3-small";
 const EMBEDDING_DIMENSIONS = 1536;

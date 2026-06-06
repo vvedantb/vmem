@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chunkText, shouldChunk } from "./chunking";
+import { chunkText, shouldChunk } from "../../engine/neo4j/chunking";
 
 describe("shouldChunk", () => {
   it("returns false for content at or below the chunking threshold", () => {

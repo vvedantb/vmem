@@ -1,4 +1,4 @@
-import { getDriver, closeDriver } from "./driver";
+import { getDriver, closeDriver } from "../engine/neo4j/driver";
 
 // Same user IDs that were seeded
 const SEEDED_USER_IDS = [

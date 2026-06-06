@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeContentHash } from "./mappers";
+import { computeContentHash } from "../../engine/neo4j/memory/mappers";
 
 describe("computeContentHash", () => {
   it("returns the same hash when title and content differ only by whitespace and casing", () => {

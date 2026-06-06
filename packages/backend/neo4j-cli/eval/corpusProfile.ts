@@ -1,5 +1,5 @@
 import { RETRIEVAL_EVAL_QUERIES } from "./queries";
-import type { SeedMemory } from "../../seed/types";
+import type { SeedMemory } from "../seed/types";
 
 const EVAL_EXPECTED_TITLES = new Set(
   RETRIEVAL_EVAL_QUERIES.flatMap((item) => item.expectedTitles),

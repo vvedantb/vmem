@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseFactExtractionResponse,
   parseUpdateDecisionResponse,
-} from "./v2Prompt";
+} from "../convex/prompts/v2Prompt";
 
 describe("parseFactExtractionResponse", () => {
   it("parses facts from plain JSON", () => {

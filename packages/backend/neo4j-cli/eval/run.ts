@@ -1,6 +1,6 @@
 import { embeddingMode, generateCliEmbedding } from "./cliEmbeddings";
-import { closeDriver, getDriver } from "../../driver";
-import { retrieveMemories } from "../retrieve";
+import { closeDriver, getDriver } from "../../engine/neo4j/driver";
+import { retrieveMemories } from "../../engine/neo4j/memory/retrieve";
 import { recallAtFive, reciprocalRank } from "./metrics";
 import { RETRIEVAL_EVAL_QUERIES, RETRIEVAL_EVAL_USER_ID } from "./queries";
 

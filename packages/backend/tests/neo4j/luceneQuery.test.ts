@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { escapeLuceneQuery, toMemoryContentFulltextQuery } from "./luceneQuery";
+import {
+  escapeLuceneQuery,
+  toMemoryContentFulltextQuery,
+} from "../../engine/neo4j/luceneQuery";
 
 describe("escapeLuceneQuery", () => {
   it("escapes leading slash and other Lucene operators", () => {

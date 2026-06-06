@@ -3,7 +3,7 @@ import {
   recencyFromAgeDays,
   rrfScore,
   toMemoryTypeOrUndefined,
-} from "./mappers";
+} from "../../engine/neo4j/memory/mappers";
 
 describe("rrfScore", () => {
   it("assigns a higher score to better ranks", () => {

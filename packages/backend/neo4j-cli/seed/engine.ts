@@ -1,11 +1,8 @@
 import crypto from "node:crypto";
-import { closeDriver, getDriver } from "../driver";
-import { setEmbeddings } from "../memory/migration";
-import { setupDatabase } from "../setup";
-import {
-  embeddingMode,
-  generateCliEmbeddings,
-} from "../memory/eval/cliEmbeddings";
+import { closeDriver, getDriver } from "../../engine/neo4j/driver";
+import { setEmbeddings } from "../../engine/neo4j/memory/migration";
+import { setupDatabase } from "../../engine/neo4j/setup";
+import { embeddingMode, generateCliEmbeddings } from "../eval/cliEmbeddings";
 import type { SeedEvent, SeedMemory, SeedRelationship } from "./types";
 
 export interface RunSeedOptions {

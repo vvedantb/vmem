@@ -1,6 +1,6 @@
 import neo4j from "neo4j-driver";
 import { describe, expect, it } from "vitest";
-import { clampNeo4jLimit, toNeo4jIntParam } from "./intParams";
+import { clampNeo4jLimit, toNeo4jIntParam } from "../../engine/neo4j/intParams";
 
 describe("toNeo4jIntParam", () => {
   it("wraps float inputs as Neo4j integers (regression: MCP sends 25.0)", () => {

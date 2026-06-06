@@ -3,7 +3,7 @@ import {
   normalizeEntityName,
   parseFullEnrichmentResponse,
   sanitizeTag,
-} from "./enrichmentPrompt";
+} from "../convex/prompts/enrichmentPrompt";
 
 describe("sanitizeTag", () => {
   it("lowercases and hyphenates tags", () => {

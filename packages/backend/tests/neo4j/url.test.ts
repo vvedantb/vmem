@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeUrl } from "./url";
+import { normalizeUrl } from "../../engine/neo4j/url";
 
 describe("normalizeUrl", () => {
   it("treats the same page with different tracking params as one URL", () => {

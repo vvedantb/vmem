@@ -3,14 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const bestEffortEmbedOne = vi.fn();
 const bestEffortEmbedMany = vi.fn();
 
-vi.mock("../../lib/openRouter/bestEffortEmbed", () => ({
+vi.mock("../../convex/lib/openRouter/bestEffortEmbed", () => ({
   bestEffortEmbedOne: (...callArgs: unknown[]) =>
     bestEffortEmbedOne(...callArgs),
   bestEffortEmbedMany: (...callArgs: unknown[]) =>
     bestEffortEmbedMany(...callArgs),
 }));
 
-import { tryEmbedMany, tryEmbedOne } from "./shared";
+import {
+  tryEmbedMany,
+  tryEmbedOne,
+} from "../../convex/neo4jActions/memories/shared";
 
 describe("tryEmbed adapters", () => {
   beforeEach(() => {
