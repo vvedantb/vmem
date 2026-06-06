@@ -106,6 +106,12 @@
       "sourceType": "github",
       "computedHash": "e4453d2f51a009f6b49876cc4d46ce452194c54ea931d4a552a0eb0e9dd24c27"
     },
+    "transitions-dev": {
+      "source": "Jakubantalik/transitions.dev",
+      "sourceType": "github",
+      "skillPath": "skills/transitions-dev/SKILL.md",
+      "computedHash": "3e054fc65e5cfced994aea3b120edd5abb1059c32af56a297d60910f266a53d1"
+    },
     "triage-issue": {
       "source": "mattpocock/skills",
       "sourceType": "github",
