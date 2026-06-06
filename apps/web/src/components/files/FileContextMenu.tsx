@@ -62,7 +62,7 @@ export default function FileContextMenu({
         )}
         <ContextMenuSeparator />
         <ContextMenuItem
-          className="text-danger focus:text-danger"
+          className="text-danger focus:text-danger data-[highlighted]:text-danger"
           onClick={onDelete}
         >
           <IconTrash size={16} stroke={1.5} />

@@ -289,7 +289,7 @@ function TreeItem({
           </ContextMenuItem>
           <ContextMenuItem
             onSelect={() => onRequestDelete(item.node)}
-            className="text-danger focus:text-danger"
+            className="text-danger focus:text-danger data-[highlighted]:text-danger"
           >
             <IconTrash size={16} />
             Delete
