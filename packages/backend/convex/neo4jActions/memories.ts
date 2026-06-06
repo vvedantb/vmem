@@ -31,6 +31,7 @@ import {
   runListMemoriesForTeam,
   runSearchMemoriesForTeam,
 } from "./memories/team";
+import { runCreateMemory } from "./memories/create";
 import { resolveProfileIdForClerkId } from "./memories/shared";
 
 export const createMemoryInternal = internalAction({
@@ -51,11 +52,7 @@ export const createMemoryInternal = internalAction({
     mimeType: v.optional(v.string()),
     originalFilename: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const { runCreateMemory } =
-      await import("../../src/convexHandlers/memories/create");
-    return runCreateMemory(ctx, args);
-  },
+  handler: async (ctx, args) => runCreateMemory(ctx, args),
 });
 
 export const chunkMemoryInternal = internalAction({

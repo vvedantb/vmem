@@ -2,6 +2,7 @@
 
 import type { ActionCtx } from "../../_generated/server";
 import type { MemoryWithTags } from "../../../src/neo4j/memory/types";
+import { runCreateMemory } from "../memories/create";
 import { resolveProfileIdForClerkId } from "../memories/shared";
 import {
   computeSdkFactExternalId,
@@ -49,9 +50,6 @@ export async function runStoreFromInstruction(
       summary: "No durable facts found in the instruction.",
     };
   }
-
-  const { runCreateMemory } =
-    await import("../../../src/convexHandlers/memories/create");
 
   const created: MemoryWithTags[] = [];
 

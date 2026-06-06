@@ -7,6 +7,7 @@ import { retrieveMemories } from "../../../src/neo4j/memory/retrieve";
 import type { MemoryWithTags } from "../../../src/neo4j/memory/types";
 import { getDriver } from "../../../src/neo4j/driver";
 import { generateEmbedding } from "../../lib/openRouter";
+import { runCreateMemory } from "../memories/create";
 import { resolveProfileIdForClerkId } from "../memories/shared";
 import {
   decideFactUpdate,
@@ -70,8 +71,6 @@ export async function runUpdateFromInstruction(
   }
 
   const driver = getDriver();
-  const { runCreateMemory } =
-    await import("../../../src/convexHandlers/memories/create");
   const applied: MemoryWithTags[] = [];
   const proposals: AgentProposal[] = [];
 

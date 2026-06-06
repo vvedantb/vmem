@@ -10,6 +10,7 @@ import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
 import { runUpdateMemory } from "./memories/update";
 import { runDeleteMemory } from "./memories/delete";
+import { runCreateMemory } from "./memories/create";
 import { runRetrieveMemories, runSearchMemories } from "./memories/read";
 import { resolveProfileIdForMcpScope } from "./memories/shared";
 import { runStoreFromInstruction } from "./agent/storeFromInstruction";
@@ -101,8 +102,6 @@ export const mcpCreateMemory = internalAction({
       args.mcpScope,
       args.profileId,
     );
-    const { runCreateMemory } =
-      await import("../../src/convexHandlers/memories/create");
     return runCreateMemory(ctx, {
       clerkId: args.clerkId,
       profileId,

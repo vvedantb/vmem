@@ -1,15 +1,13 @@
+"use node";
+
 /**
- * Memory create handler — lives outside `convex/` so `api.d.ts` does not
- * pull the Neo4j implementation graph when typechecking the web app.
- *
- * Convex action modules call `runCreateMemory` via dynamic import inside
- * their handlers.
+ * Memory create handler — Convex-local orchestration over Neo4j CRUD + post-create schedules.
  */
 
-import { type ActionCtx } from "../../../convex/_generated/server";
-import { internal } from "../../../convex/_generated/api";
+import { type ActionCtx } from "../../_generated/server";
+import { internal } from "../../_generated/api";
+import { computeContentHash } from "../../../src/neo4j/memory/mappers";
 import {
-  computeContentHash,
   createMemory,
   findMemoryByContentHash,
   findMemoryByExternalId,
@@ -17,16 +15,16 @@ import {
   findMemoryByTitleAndOrigin,
   finalizeDedupHit,
   findMemoryByUrl,
-  type MemoryWithTags,
-} from "../../neo4j/memoryService";
-import { getDriver } from "../../neo4j/driver";
-import { normalizeUrl } from "../../neo4j/url";
-import { shouldChunk } from "../../neo4j/chunking";
+} from "../../../src/neo4j/memory/crud";
+import type { MemoryWithTags } from "../../../src/neo4j/memory/types";
+import { getDriver } from "../../../src/neo4j/driver";
+import { normalizeUrl } from "../../../src/neo4j/url";
+import { shouldChunk } from "../../../src/neo4j/chunking";
 import {
   resolveProfileIdForClerkId,
   scheduleContextPromptInvalidation,
   tryEmbedOne,
-} from "../../../convex/neo4jActions/memories/shared";
+} from "./shared";
 
 export interface CreateMemoryArgs {
   clerkId: string;
