@@ -3,7 +3,6 @@ import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
 import { getMcpResourceDocumentationUrl, getWebAppUrl } from "./webAppUrl";
-import { mcpSseKeepaliveResponse } from "./mcpSse";
 import { z } from "zod";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -328,19 +327,11 @@ async function runMcpEndpoint(
     });
   }
 
-  if (request.method === "GET") {
-    const accept = request.headers.get("accept") ?? "";
-    if (accept.includes("text/event-stream")) {
-      return mcpSseKeepaliveResponse();
-    }
+  if (request.method === "GET" || request.method === "DELETE") {
     return Response.json(
-      { error: "GET requires Accept: text/event-stream for MCP SSE" },
-      { status: 406 },
+      { error: "Method not supported in stateless mode" },
+      { status: 405 },
     );
-  }
-
-  if (request.method === "DELETE") {
-    return new Response(null, { status: 200 });
   }
 
   let body: unknown;

@@ -39,7 +39,7 @@ vmem is a **memory layer** with 20+ tools on one endpoint — not a greenfield S
 | View UI             | Vanilla TS + canvas in `packages/backend/mcp-ui/<app>/`                                  |
 | Ship to hosts       | `scripts/build-*-mcp-app.mjs` → `convex/mcp/bundled/*Html.ts` (inlined in tool/resource) |
 | Graph data          | `mcpGraph.ts` internal action → tool `structuredContent` + short `content` for the model |
-| Claude reachability | SSE keepalive on authenticated `GET /mcp` (`mcp/mcpSse.ts`)                              |
+| Claude reachability | Stateless POST only — `GET`/`DELETE` on `/mcp` return 405 (same as Eva)                  |
 | Small tool results  | No duplicate full JSON in `content`; caps in `mcpGraph.ts`                               |
 | Taller iframe       | `sendSizeChanged({ height })` + CSS min-height (not Skybridge-specific)                  |
 

@@ -67,7 +67,6 @@ import type * as lib_wikiContent from "../lib/wikiContent.js";
 import type * as mcp_bundled_memoryGraphHtml from "../mcp/bundled/memoryGraphHtml.js";
 import type * as mcp_codebases from "../mcp/codebases.js";
 import type * as mcp_graph from "../mcp/graph.js";
-import type * as mcp_mcpSse from "../mcp/mcpSse.js";
 import type * as mcp_memoryGraphApp from "../mcp/memoryGraphApp.js";
 import type * as mcp_native from "../mcp/native.js";
 import type * as mcp_nodeActions from "../mcp/nodeActions.js";
@@ -225,7 +224,6 @@ declare const fullApi: ApiFromModules<{
   "mcp/bundled/memoryGraphHtml": typeof mcp_bundled_memoryGraphHtml;
   "mcp/codebases": typeof mcp_codebases;
   "mcp/graph": typeof mcp_graph;
-  "mcp/mcpSse": typeof mcp_mcpSse;
   "mcp/memoryGraphApp": typeof mcp_memoryGraphApp;
   "mcp/native": typeof mcp_native;
   "mcp/nodeActions": typeof mcp_nodeActions;

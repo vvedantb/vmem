@@ -89,7 +89,7 @@ If the connector shows **Unable to reach vmem** but Cursor still works:
 
 | Issue | Fix |
 | --- | --- |
-| Unable to reach / Couldn't reach MCP | Use `.convex.site/mcp`; reconnect OAuth; deploy latest backend (SSE GET keepalive) |
+| Unable to reach / Couldn't reach MCP | Use `.convex.site/mcp`; reconnect OAuth; call `ping` to verify POST works |
 | OAuth redirect fails | Verify `CONVEX_SITE_URL` and `WEB_APP_URL` in Convex env |
 | 401 on MCP requests | Re-authenticate — JWT may have expired |
 | Empty context prompt | First read returns a placeholder; wait for background regeneration |
