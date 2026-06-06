@@ -8,6 +8,7 @@
 - **Sign-in (`/`)**: Interactive graph preview (hover nodes for recall snippets), Store → Connect → Recall section, and scroll parallax on the ambient background.
 - **Sign-in (`/`)**: Hero copy sits on a left read scrim so graph lines no longer compete with the headline and body text.
 - **Sign-in (`/`)**: Mobile layout — full-width stack, tap-to-explore graph nodes, vertical read scrim, and parallax off on narrow viewports.
+- **Sign-in (`/`)**: Landing header uses shared `VmemBrand` with the sidebar — 22px draw-in logo and italic _mem_ wordmark.
 
 ## Landing page redesign — 2026-06-06
 

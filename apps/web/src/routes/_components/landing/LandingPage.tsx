@@ -9,7 +9,7 @@ import {
   useTransform,
 } from "motion/react";
 import { motionDuration, motionEase } from "@vmem/ui";
-import { VmemDrawInIcon } from "@/components/svg-animations";
+import { VmemBrand } from "@/components/VmemBrand";
 import { LandingAmbientGraph } from "./LandingAmbientGraph";
 import { LandingHero } from "./LandingHero";
 import { LandingHowItWorks } from "./LandingHowItWorks";
@@ -79,15 +79,12 @@ export function LandingPage() {
 
       <div className="relative mx-auto flex w-full max-w-7xl flex-col px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
         <motion.header
-          className="group flex items-center gap-2.5 sm:gap-3"
+          className="group"
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: motionDuration.base, ease: motionEase }}
         >
-          <VmemDrawInIcon size={32} className="text-foreground" />
-          <span className="font-instrumentSerif text-lg tracking-tight text-foreground sm:text-xl">
-            vmem
-          </span>
+          <VmemBrand />
         </motion.header>
 
         <LandingHero features={features} capabilities={capabilities} />
