@@ -246,10 +246,3 @@ select,
   z-index: 0;
   pointer-events: none;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .t-tabs-pill,
-  .t-tab {
-    transition: none !important;
-  }
-}

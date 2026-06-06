@@ -100,11 +100,3 @@
     );
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .landing-graph-dash,
-  .landing-preview-pulse,
-  .landing-ambient-drift {
-    animation: none;
-  }
-}

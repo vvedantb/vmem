@@ -138,12 +138,6 @@ export function runClearInputDissolve(
     return;
   }
 
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    onValueClear();
-    onDone();
-    return;
-  }
-
   const keepFocus = document.activeElement === input;
   mirror.textContent = text.replace(/ /g, "\u00a0");
 

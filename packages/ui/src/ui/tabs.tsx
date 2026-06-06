@@ -41,10 +41,6 @@ const TabsList = React.forwardRef<
     };
 
     const animate = () => {
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        snap();
-        return;
-      }
       syncTabsPill(list, pill, true);
     };
 
