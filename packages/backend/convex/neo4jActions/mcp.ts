@@ -8,7 +8,6 @@
 
 import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
-import { runCreateMemory } from "./memories/create";
 import { runUpdateMemory } from "./memories/update";
 import { runDeleteMemory } from "./memories/delete";
 import { runRetrieveMemories, runSearchMemories } from "./memories/read";
@@ -16,8 +15,8 @@ import { resolveProfileIdForMcpScope } from "./memories/shared";
 import { runStoreFromInstruction } from "./agent/storeFromInstruction";
 import type { OpenRouterRequired } from "./agent/shared";
 import type { StoreFromInstructionResult } from "./agent/storeFromInstruction";
-import type { MemoryWithTags } from "../../src/neo4j/memoryService";
-import { getRelatedMemories } from "../../src/neo4j/memoryService";
+import type { MemoryWithTags } from "../../src/neo4j/memory/types";
+import { getRelatedMemories } from "../../src/neo4j/memory/relationships";
 import { getDriver } from "../../src/neo4j/driver";
 import { mcpScopeValidator } from "../profiles/mcpAccess";
 
@@ -102,6 +101,8 @@ export const mcpCreateMemory = internalAction({
       args.mcpScope,
       args.profileId,
     );
+    const { runCreateMemory } =
+      await import("../../src/convexHandlers/memories/create");
     return runCreateMemory(ctx, {
       clerkId: args.clerkId,
       profileId,
