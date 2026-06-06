@@ -10,7 +10,14 @@ import {
 } from "./landing-preview-data";
 
 const defaultSnippet =
-  "Hover a node to see what recall surfaces — connected context, not keywords.";
+  "Select a node to see what recall surfaces — connected context, not keywords.";
+
+function toggleNode(
+  current: PreviewNodeId | null,
+  next: PreviewNodeId,
+): PreviewNodeId | null {
+  return current === next ? null : next;
+}
 
 export function LandingMemoryPreview() {
   const [activeNodeId, setActiveNodeId] = useState<PreviewNodeId | null>(null);
@@ -20,11 +27,11 @@ export function LandingMemoryPreview() {
 
   return (
     <div
-      className="relative overflow-hidden rounded-3xl bg-surface px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5"
+      className="relative touch-manipulation overflow-hidden rounded-3xl bg-surface px-3.5 pb-4 pt-3 sm:px-5 sm:pb-5"
       onMouseLeave={() => setActiveNodeId(null)}
     >
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted">
+      <div className="mb-3 flex items-baseline justify-between gap-2">
+        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted sm:tracking-[0.2em]">
           Memory graph
         </p>
         <p className="font-instrumentSerif text-sm tabular-nums text-muted/80">
@@ -32,15 +39,20 @@ export function LandingMemoryPreview() {
         </p>
       </div>
 
-      <div className="mb-3 rounded-2xl bg-surface-secondary px-3 py-2 font-mono text-[10px] leading-relaxed text-muted">
-        <span className="text-foreground/75">mcp</span>{" "}
-        <span className="text-foreground">memory.retrieve</span>
-        <span className="text-muted"> → {activeNodeId ? "1 match" : "…"}</span>
+      <div className="mb-3 overflow-x-auto rounded-2xl bg-surface-secondary px-3 py-2 font-mono text-[10px] leading-relaxed text-muted">
+        <span className="whitespace-nowrap">
+          <span className="text-foreground/75">mcp</span>{" "}
+          <span className="text-foreground">memory.retrieve</span>
+          <span className="text-muted">
+            {" "}
+            → {activeNodeId ? "1 match" : "…"}
+          </span>
+        </span>
       </div>
 
       <svg
         viewBox="0 0 320 188"
-        className="w-full touch-none select-none text-foreground/90"
+        className="w-full select-none text-foreground/90"
         aria-label="Interactive memory graph preview"
         fill="none"
       >
@@ -87,23 +99,33 @@ export function LandingMemoryPreview() {
         {previewNodes.map((node) => {
           const isActive = activeNodeId === node.id;
           const isDimmed = activeNodeId !== null && !isActive;
+          const hitRadius = node.r + 12;
 
           return (
             <g
               key={node.id}
               className="cursor-pointer"
               opacity={isDimmed ? 0.35 : 1}
-              onMouseEnter={() => setActiveNodeId(node.id)}
-              onFocus={() => setActiveNodeId(node.id)}
-              onBlur={() => setActiveNodeId(null)}
+              onPointerEnter={() => setActiveNodeId(node.id)}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                setActiveNodeId((current) => toggleNode(current, node.id));
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setActiveNodeId((current) => toggleNode(current, node.id));
+                }
+              }}
               tabIndex={0}
               role="button"
+              aria-pressed={isActive}
               aria-label={`${node.label} memory node`}
             >
               <circle
                 cx={node.cx}
                 cy={node.cy}
-                r={node.r + 6}
+                r={hitRadius}
                 fill="transparent"
               />
               <circle
@@ -124,7 +146,7 @@ export function LandingMemoryPreview() {
                 y={node.labelY}
                 textAnchor="middle"
                 className={cn(
-                  "text-[9px] font-medium transition-[fill]",
+                  "pointer-events-none text-[9px] font-medium transition-[fill] sm:text-[10px]",
                   isActive ? "fill-foreground" : "fill-muted",
                 )}
                 style={{ fontFamily: "Instrument Sans, system-ui, sans-serif" }}
@@ -138,7 +160,7 @@ export function LandingMemoryPreview() {
 
       <p
         className={cn(
-          "mt-3 min-h-[2.5rem] text-pretty text-[11px] leading-relaxed transition-[color]",
+          "mt-3 min-h-[3rem] text-pretty text-[11px] leading-relaxed transition-[color] sm:min-h-[2.5rem] sm:text-xs",
           activeNodeId ? "text-foreground" : "text-muted",
         )}
       >

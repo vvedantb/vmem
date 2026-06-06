@@ -7,6 +7,7 @@
 - **Sign-in (`/`)**: Mini memory-graph vignette with animated recall path, draw-in logo mark, film grain, and sticky preview column — shows what the product does before sign-up.
 - **Sign-in (`/`)**: Interactive graph preview (hover nodes for recall snippets), Store → Connect → Recall section, and scroll parallax on the ambient background.
 - **Sign-in (`/`)**: Hero copy sits on a left read scrim so graph lines no longer compete with the headline and body text.
+- **Sign-in (`/`)**: Mobile layout — full-width stack, tap-to-explore graph nodes, vertical read scrim, and parallax off on narrow viewports.
 
 ## Landing page redesign — 2026-06-06
 

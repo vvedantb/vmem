@@ -15,16 +15,16 @@ interface LandingFeature {
 
 interface LandingAsideProps {
   features: readonly LandingFeature[];
-  showPreviewOnMobile?: boolean;
+  showPreview?: boolean;
 }
 
 export function LandingAside({
   features,
-  showPreviewOnMobile = false,
+  showPreview = true,
 }: LandingAsideProps) {
   return (
     <motion.div
-      className="flex w-full flex-col gap-6 lg:sticky lg:top-10 lg:pt-2"
+      className="flex w-full min-w-0 flex-col gap-5 sm:gap-6 lg:sticky lg:top-10 lg:pt-2"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
@@ -33,9 +33,7 @@ export function LandingAside({
         delay: 0.34,
       }}
     >
-      <div className={showPreviewOnMobile ? "block" : "hidden lg:block"}>
-        <LandingMemoryPreview />
-      </div>
+      {showPreview ? <LandingMemoryPreview /> : null}
 
       <div>
         <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-muted">

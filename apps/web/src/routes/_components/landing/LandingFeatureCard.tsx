@@ -19,7 +19,7 @@ export function LandingFeatureCard({
 
   return (
     <div
-      className={`group relative flex gap-4 overflow-hidden rounded-2xl bg-surface px-4 py-4 transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-surface-secondary sm:px-5 sm:py-4 ${offsetClassName}`}
+      className={`group relative flex gap-3 overflow-hidden rounded-2xl bg-surface px-3.5 py-3.5 transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-surface-secondary sm:gap-4 sm:px-5 sm:py-4 ${offsetClassName}`}
     >
       <div
         className="absolute inset-y-3 left-0 w-1 rounded-full bg-foreground/0 transition-[background-color] group-hover:bg-foreground/15"
