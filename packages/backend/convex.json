@@ -1,4 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/convex.json",
-  "typescriptCompiler": "tsgo"
+  "typescriptCompiler": "tsgo",
+  "node": {
+    "externalPackages": [
+      "neo4j-driver",
+      "@neo4j/cypher-builder",
+      "ts-morph",
+      "pdf-parse",
+      "tar-stream"
+    ]
+  }
 }

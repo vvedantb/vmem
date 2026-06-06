@@ -2,10 +2,15 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: ["src/**/*.test.ts", "convex/**/*.test.ts"],
+    include: [
+      "tests/**/*.test.ts",
+      "convex/**/*.test.ts",
+      "neo4j-cli/**/*.test.ts",
+    ],
     environmentMatchGlobs: [
       ["convex/**", "edge-runtime"],
-      ["src/**", "node"],
+      ["tests/**", "node"],
+      ["neo4j-cli/**", "node"],
     ],
   },
 });
