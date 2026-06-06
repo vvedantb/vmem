@@ -8,10 +8,7 @@ import { requireUserEnvVar } from "./lib/envVars";
 import { scheduleLog } from "./lib/openRouter/shared";
 import type { CloudMemoryRef } from "./cloudLib/cloudMemoryRef";
 import { buildOpenRouterTools } from "./cloudLib/openRouterTools";
-import {
-  buildCloudChatSystemPrompt,
-  type SkillIndexEntry,
-} from "./prompts/memoryRagPrompt";
+import { buildCloudChatSystemPrompt, type SkillIndexEntry } from "@vmem/shared";
 
 function addMemoryRefs(
   refsById: Map<string, CloudMemoryRef>,

@@ -6,7 +6,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { listMemories } from "../engine/neo4j/memory/crud";
 import { getDriver } from "../engine/neo4j/driver";
-import { buildSkillsIndexAddition } from "./prompts/memoryRagPrompt";
+import { buildSkillsIndexAddition } from "@vmem/shared";
 import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
 import { callOpenRouterChat, LLM_MODEL } from "./lib/openRouter";
 

@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { decryptToken } from "./lib/crypto";
-import { PARSER_VERSION } from "../constants/codebase";
+import { PARSER_VERSION } from "@vmem/shared";
 import { STALE_SYNCING_MS } from "./codebaseSyncConstants";
 import { formatSyncError } from "../engine/codebase/formatSyncError";
 import { runCodebaseSync } from "../engine/codebase/runCodebaseSync";

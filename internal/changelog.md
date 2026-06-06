@@ -1,5 +1,11 @@
 # Changelog
 
+## @vmem/shared package — 2026-06-06
+
+- **`@vmem/shared`**: New workspace package for cross-app constants (`PARSER_VERSION`) and client-safe chat/voice prompt builders — moved out of Convex so web/mobile no longer pull prompt text through `@vmem/backend`.
+- **`@vmem/backend`**: Root export is Convex-only (`api`, `internal`, types); subpath exports for prompts/constants removed.
+- **Build**: Shrinks the Convex type graph and avoids bundling large prompt strings into the web client via the backend package.
+
 ## MCP stateless transport (Eva parity) — 2026-06-06
 
 - **GET/DELETE `/mcp`**: Return 405 again (same as Eva) — removed SSE keepalive that hit Convex's 600s httpAction limit and logged timeout errors every ~10 minutes per connected client.

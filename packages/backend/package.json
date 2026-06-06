@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "exports": {
-    ".": "./index.ts",
-    "./memoryRagPrompt": "./convex/prompts/memoryRagPrompt.ts",
-    "./enrichmentPrompt": "./convex/prompts/enrichmentPrompt.ts"
+    ".": "./index.ts"
   },
   "scripts": {
     "dev": "convex dev",
@@ -34,6 +32,7 @@
     "@notionhq/client": "^2.2.15",
     "@openrouter/ai-sdk-provider": "catalog:",
     "@openrouter/sdk": "^0.12.35",
+    "@vmem/shared": "workspace:*",
     "ai": "catalog:",
     "convex": "catalog:",
     "convex-audit-log": "^0.2.0",

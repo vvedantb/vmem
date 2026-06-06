@@ -137,7 +137,6 @@ import type * as profiles_helpers from "../profiles/helpers.js";
 import type * as profiles_lifecycle from "../profiles/lifecycle.js";
 import type * as profiles_mcpAccess from "../profiles/mcpAccess.js";
 import type * as prompts_enrichmentPrompt from "../prompts/enrichmentPrompt.js";
-import type * as prompts_memoryRagPrompt from "../prompts/memoryRagPrompt.js";
 import type * as prompts_sdkPrompt from "../prompts/sdkPrompt.js";
 import type * as prompts_v2Prompt from "../prompts/v2Prompt.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
@@ -294,7 +293,6 @@ declare const fullApi: ApiFromModules<{
   "profiles/lifecycle": typeof profiles_lifecycle;
   "profiles/mcpAccess": typeof profiles_mcpAccess;
   "prompts/enrichmentPrompt": typeof prompts_enrichmentPrompt;
-  "prompts/memoryRagPrompt": typeof prompts_memoryRagPrompt;
   "prompts/sdkPrompt": typeof prompts_sdkPrompt;
   "prompts/v2Prompt": typeof prompts_v2Prompt;
   proposedUpdateApi: typeof proposedUpdateApi;

@@ -49,6 +49,7 @@
     "@tiptap/starter-kit": "^3.22.3",
     "@types/diff": "^8.0.0",
     "@vmem/backend": "workspace:*",
+    "@vmem/shared": "workspace:*",
     "@vmem/ui": "workspace:*",
     "ai": "catalog:",
     "class-variance-authority": "catalog:",
