@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from "react";
 import { useQueryStates } from "nuqs";
 import { useConvexAuth, useAction } from "convex/react";
 import {
@@ -32,6 +38,15 @@ import {
   IconActivity,
   IconSparkles,
   IconX,
+  IconCalendar,
+  IconCalendarMonth,
+  IconCalendarWeek,
+  IconInfinity,
+  IconSun,
+  IconList,
+  IconPencil,
+  IconTrash,
+  type TablerIcon,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { getActivityLabel } from "@/components/dashboard/_utils";
@@ -54,22 +69,43 @@ interface ActivityItem {
   relativeTime: string;
 }
 
+const EVENT_TYPE_ICONS: Record<EventType, TablerIcon> = {
+  memory_created: IconBrain,
+  memory_dream_created: IconSparkles,
+  memory_updated: IconPencil,
+  memory_deleted: IconTrash,
+  file_uploaded: IconUpload,
+  sync_completed: IconPlugConnected,
+  api_key_created: IconKey,
+};
+
+const EVENT_DATE_ICONS: Record<EventDatePreset, TablerIcon> = {
+  all: IconInfinity,
+  today: IconSun,
+  week: IconCalendarWeek,
+  month: IconCalendarMonth,
+};
+
+function FilterOptionContent({
+  icon,
+  children,
+}: {
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <span className="flex items-center gap-2">
+      <span className="flex shrink-0 text-muted [&>svg]:size-4">{icon}</span>
+      {children}
+    </span>
+  );
+}
+
 function getActivityIcon(type: string) {
-  switch (type) {
-    case "memory_created":
-    case "memory_updated":
-      return IconBrain;
-    case "memory_dream_created":
-      return IconSparkles;
-    case "file_uploaded":
-      return IconUpload;
-    case "sync_completed":
-      return IconPlugConnected;
-    case "api_key_created":
-      return IconKey;
-    default:
-      return IconCheck;
+  if (type in EVENT_TYPE_ICONS) {
+    return EVENT_TYPE_ICONS[type as EventType];
   }
+  return IconCheck;
 }
 
 function getDateThreshold(preset: EventDatePreset): number | null {
@@ -328,7 +364,10 @@ function EventsFiltersDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Date Range</DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger>
+            <IconCalendar size={16} />
+            Date Range
+          </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuRadioGroup
               value={range}
@@ -337,26 +376,40 @@ function EventsFiltersDropdown({
                 if (preset) onRangeChange(preset);
               }}
             >
-              {DATE_PRESETS.map((preset) => (
-                <DropdownMenuRadioItem key={preset} value={preset}>
-                  {EVENT_DATE_PRESET_LABELS[preset]}
-                </DropdownMenuRadioItem>
-              ))}
+              {DATE_PRESETS.map((preset) => {
+                const DateIcon = EVENT_DATE_ICONS[preset];
+                return (
+                  <DropdownMenuRadioItem key={preset} value={preset}>
+                    <FilterOptionContent icon={<DateIcon size={16} />}>
+                      {EVENT_DATE_PRESET_LABELS[preset]}
+                    </FilterOptionContent>
+                  </DropdownMenuRadioItem>
+                );
+              })}
             </DropdownMenuRadioGroup>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Event Types</DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger>
+            <IconList size={16} />
+            Event Types
+          </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            {EVENT_TYPES.map((type) => (
-              <DropdownMenuCheckboxItem
-                key={type}
-                checked={types.includes(type)}
-                onCheckedChange={() => toggleType(type)}
-              >
-                {EVENT_TYPE_LABELS[type]}
-              </DropdownMenuCheckboxItem>
-            ))}
+            {EVENT_TYPES.map((type) => {
+              const TypeIcon = EVENT_TYPE_ICONS[type];
+              return (
+                <DropdownMenuCheckboxItem
+                  key={type}
+                  checked={types.includes(type)}
+                  onCheckedChange={() => toggleType(type)}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <FilterOptionContent icon={<TypeIcon size={16} />}>
+                    {EVENT_TYPE_LABELS[type]}
+                  </FilterOptionContent>
+                </DropdownMenuCheckboxItem>
+              );
+            })}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         {activeFilterCount > 0 && (
