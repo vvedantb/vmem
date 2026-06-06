@@ -6,7 +6,7 @@ import {
   deduplicateBrowsingHistory as svcDeduplicateBrowsingHistory,
   deduplicateMemories as svcDeduplicateMemories,
   diagnoseDuplicates as svcDiagnoseDuplicates,
-} from "../../../src/neo4j/memoryService";
+} from "../../../src/neo4j/memory/dedup";
 import { getDriver } from "../../../src/neo4j/driver";
 
 export const deduplicateMemories = internalAction({

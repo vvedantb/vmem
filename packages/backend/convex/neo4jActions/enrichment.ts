@@ -3,10 +3,8 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import {
-  applyEnrichment,
-  getRecentMemoryTitles,
-} from "../../src/neo4j/memoryService";
+import { applyEnrichment } from "../../src/neo4j/memory/enrichment";
+import { getRecentMemoryTitles } from "../../src/neo4j/memory/search";
 import { getDriver } from "../../src/neo4j/driver";
 import {
   sanitizeTag,

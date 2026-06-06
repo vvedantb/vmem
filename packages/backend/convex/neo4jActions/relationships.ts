@@ -8,7 +8,7 @@ import {
   getRelatedMemories,
   linkMemories,
   unlinkMemories,
-} from "../../src/neo4j/memoryService";
+} from "../../src/neo4j/memory/relationships";
 import { getDriver } from "../../src/neo4j/driver";
 
 export const linkMemoriesInternal = internalAction({

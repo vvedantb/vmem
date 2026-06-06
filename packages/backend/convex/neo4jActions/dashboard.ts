@@ -6,7 +6,7 @@ import {
   countMemoryEvents,
   getRecentActivity,
   getStats,
-} from "../../src/neo4j/memoryService";
+} from "../../src/neo4j/memory/stats";
 import { getDriver } from "../../src/neo4j/driver";
 
 export const getStatsInternal = internalAction({

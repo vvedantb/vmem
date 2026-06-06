@@ -4,15 +4,17 @@ import { internalAction, type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { v } from "convex/values";
+import { computeContentHash } from "../../../src/neo4j/memory/mappers";
 import {
-  computeContentHash,
   computeSurprisalScore,
-  createSynthesisProposal,
   fetchAnomalyCluster,
   findRecentMemoriesForDream,
-  hasOverlappingPendingProposal,
   materializeSynthesisAsMemory,
-} from "../../../src/neo4j/memoryService";
+} from "../../../src/neo4j/memory/dreamMode";
+import {
+  createSynthesisProposal,
+  hasOverlappingPendingProposal,
+} from "../../../src/neo4j/memory/proposals";
 import { getDriver } from "../../../src/neo4j/driver";
 import { callJsonChat, generateEmbedding } from "../../lib/openRouter";
 import {

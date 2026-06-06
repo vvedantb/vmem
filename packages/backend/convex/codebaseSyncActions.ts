@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { decryptToken } from "./lib/crypto";
-import { PARSER_VERSION } from "../src/neo4j/codebase/types";
+import { PARSER_VERSION } from "../constants/codebase";
 import { STALE_SYNCING_MS } from "./codebaseSyncConstants";
 import { formatSyncError } from "../src/codebase/formatSyncError";
 import { runCodebaseSync } from "../src/codebase/runCodebaseSync";

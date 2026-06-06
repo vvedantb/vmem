@@ -10,7 +10,7 @@ import { internal } from "../../_generated/api";
 import {
   deleteAllMemoriesForUser,
   deleteMemory,
-} from "../../../src/neo4j/memoryService";
+} from "../../../src/neo4j/memory/crud";
 import { getDriver } from "../../../src/neo4j/driver";
 import { scheduleContextPromptInvalidation } from "./shared";
 

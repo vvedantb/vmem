@@ -3,11 +3,10 @@
 import { internalAction } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v } from "convex/values";
+import { applyEntitiesOnly } from "../../../src/neo4j/memory/enrichment";
+import { computeContentHash } from "../../../src/neo4j/memory/mappers";
 import {
-  applyEntitiesOnly,
-  computeContentHash,
   createSemanticEdgesForMemory,
-  getRecentMemoryTitles,
   listMissingContentHash,
   listMissingEmbeddings,
   listMissingEntities,
@@ -16,7 +15,8 @@ import {
   markSemanticEdgesProcessed,
   setContentHashes,
   setEmbeddings,
-} from "../../../src/neo4j/memoryService";
+} from "../../../src/neo4j/memory/migration";
+import { getRecentMemoryTitles } from "../../../src/neo4j/memory/search";
 import { getDriver } from "../../../src/neo4j/driver";
 import { callJsonChat, generateEmbeddings } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";

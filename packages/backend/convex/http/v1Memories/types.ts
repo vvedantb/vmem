@@ -1,7 +1,7 @@
 import type {
   MemoryCandidate,
   MemoryWithTags,
-} from "../../../src/neo4j/memoryService";
+} from "../../../src/neo4j/memory/types";
 import type { OpenRouterRequired } from "../../neo4jActions/agent/shared";
 import type { StoreFromInstructionResult } from "../../neo4jActions/agent/storeFromInstruction";
 import type { SummarizeRetrieveResult } from "../../neo4jActions/agent/summarizeRetrieve";

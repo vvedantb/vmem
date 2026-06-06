@@ -19,8 +19,8 @@ import {
   createChunksForMemory,
   deleteChunksForMemory,
   findUnchunkedLongMemories,
-  getMemory,
-} from "../../../src/neo4j/memoryService";
+} from "../../../src/neo4j/memory/chunks";
+import { getMemory } from "../../../src/neo4j/memory/crud";
 import { getDriver } from "../../../src/neo4j/driver";
 import { chunkText } from "../../../src/neo4j/chunking";
 import { tryEmbedMany } from "./shared";

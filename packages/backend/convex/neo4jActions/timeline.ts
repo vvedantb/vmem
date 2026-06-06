@@ -6,7 +6,7 @@ import {
   getMemoryTimeline,
   getSearchTimeline,
   getTopicTimeline,
-} from "../../src/neo4j/memoryService";
+} from "../../src/neo4j/memory/timeline";
 import { getDriver } from "../../src/neo4j/driver";
 
 export const getMemoryTimelineInternal = internalAction({

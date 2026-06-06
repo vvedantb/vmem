@@ -6,7 +6,7 @@ import {
   getGraphData,
   getLocalGraph,
   getMemoryContent,
-} from "../../src/neo4j/memoryService";
+} from "../../src/neo4j/memory/graph";
 import { getDriver } from "../../src/neo4j/driver";
 
 type MemoryType = "profile" | "episodic" | "knowledge";

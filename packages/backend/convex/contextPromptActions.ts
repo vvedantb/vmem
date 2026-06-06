@@ -4,7 +4,7 @@ import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { listMemories } from "../src/neo4j/memoryService";
+import { listMemories } from "../src/neo4j/memory/crud";
 import { getDriver } from "../src/neo4j/driver";
 import { buildSkillsIndexAddition } from "../src/memoryRagPrompt";
 import { tryUserAndApiKeyByClerkId } from "./lib/envVars";

@@ -7,6 +7,7 @@ import { createCloudAgent } from "./agent";
 import { requireUserEnvVar } from "./lib/envVars";
 import { scheduleLog } from "./lib/openRouter/shared";
 import type { CloudMemoryRef } from "../src/cloud/cloudMemoryRef";
+import { buildOpenRouterTools } from "../src/cloud/openRouterTools";
 import {
   buildCloudChatSystemPrompt,
   type SkillIndexEntry,
@@ -44,8 +45,6 @@ export const streamAsync = internalAction({
 
     const systemPrompt = buildCloudChatSystemPrompt({ skills });
     const memoryRefsById = new Map<string, CloudMemoryRef>();
-    const { buildOpenRouterTools } =
-      await import("../src/cloud/openRouterTools");
     const tools = buildOpenRouterTools(ctx, args.clerkId, {
       onMemoryRetrieve: (refs) => addMemoryRefs(memoryRefsById, refs),
     });

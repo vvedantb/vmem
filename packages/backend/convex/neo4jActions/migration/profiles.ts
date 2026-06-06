@@ -3,14 +3,14 @@
 import { internalAction } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v } from "convex/values";
+import { deleteJunkSessionEdges as svcDeleteJunkSessionEdges } from "../../../src/neo4j/memory/dedup";
 import {
   countMemoriesByProfile as svcCountMemoriesByProfile,
   countMemoriesWithoutProfile as svcCountMemoriesWithoutProfile,
-  deleteJunkSessionEdges as svcDeleteJunkSessionEdges,
   deleteMemoriesByProfile as svcDeleteMemoriesByProfile,
   migrateMemoriesToProfile,
   moveMemoriesBetweenProfiles as svcMoveMemoriesBetweenProfiles,
-} from "../../../src/neo4j/memoryService";
+} from "../../../src/neo4j/memory/migration";
 import { getDriver } from "../../../src/neo4j/driver";
 
 interface MigrationResult {
