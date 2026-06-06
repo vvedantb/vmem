@@ -1,5 +1,14 @@
 @import "./styles/sidebar-icons.css";
 
+/* transitions-dev — modal open / close (see .claude/skills/transitions-dev/06-modal.md) */
+:root {
+  --modal-open-dur: 250ms;
+  --modal-close-dur: 150ms;
+  --modal-scale: 0.96;
+  --modal-scale-close: 0.96;
+  --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -189,6 +198,49 @@
 }
 
 @layer components {
+  /* Transitions.dev — Modal open / close */
+  .t-modal {
+    transform-origin: center;
+    transform: translate(-50%, -50%) scale(var(--modal-scale));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--modal-open-dur) var(--modal-ease),
+      opacity var(--modal-open-dur) var(--modal-ease);
+    will-change: transform, opacity;
+  }
+  .t-modal.is-open {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .t-modal.is-closing {
+    transform: translate(-50%, -50%) scale(var(--modal-scale-close));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--modal-close-dur) var(--modal-ease),
+      opacity var(--modal-close-dur) var(--modal-ease);
+    /* Radix Presence waits on animationend, not transitionend */
+    animation: t-modal-presence-wait var(--modal-close-dur) linear forwards;
+  }
+
+  @keyframes t-modal-presence-wait {
+    from {
+      clip-path: inset(0);
+    }
+    to {
+      clip-path: inset(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .t-modal {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
   .glass-panel-strong {
     @apply bg-overlay;
     box-shadow: var(--overlay-shadow);
