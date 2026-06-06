@@ -4,11 +4,7 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { IconX } from "@tabler/icons-react";
 import { cn } from "../utils/cn";
-import {
-  disconnectModalSurface,
-  primeModalSurface,
-  syncModalSurfaceFromDataState,
-} from "./modalTransition";
+import { connectModalSurface } from "./modalTransition";
 
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -36,11 +32,19 @@ const DialogContent = React.forwardRef<
     hideCloseButton?: boolean;
   }
 >(({ className, children, hideCloseButton, ...props }, ref) => {
-  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const surfaceCleanupRef = React.useRef<(() => void) | null>(null);
 
   const mergedRef = React.useCallback(
     (node: HTMLDivElement | null) => {
-      contentRef.current = node;
+      if (surfaceCleanupRef.current) {
+        surfaceCleanupRef.current();
+        surfaceCleanupRef.current = null;
+      }
+
+      if (node) {
+        surfaceCleanupRef.current = connectModalSurface(node);
+      }
+
       if (typeof ref === "function") {
         ref(node);
       } else if (ref) {
@@ -51,23 +55,9 @@ const DialogContent = React.forwardRef<
   );
 
   React.useLayoutEffect(() => {
-    const el = contentRef.current;
-    if (!el) {
-      return;
-    }
-
-    if (el.getAttribute("data-state") === "open") {
-      primeModalSurface(el);
-    }
-
-    const observer = new MutationObserver(() => {
-      syncModalSurfaceFromDataState(el);
-    });
-    observer.observe(el, { attributes: true, attributeFilter: ["data-state"] });
-
     return () => {
-      observer.disconnect();
-      disconnectModalSurface(el);
+      surfaceCleanupRef.current?.();
+      surfaceCleanupRef.current = null;
     };
   }, []);
 

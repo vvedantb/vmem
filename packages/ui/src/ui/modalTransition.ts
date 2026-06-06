@@ -65,3 +65,23 @@ export function syncModalSurfaceFromDataState(el: HTMLElement): void {
 export function disconnectModalSurface(el: HTMLElement): void {
   clearCloseTimer(el);
 }
+
+/**
+ * Wire Radix data-state → .is-open / .is-closing on the dialog surface.
+ * Call from the content ref callback so portal-mounted nodes are never missed.
+ */
+export function connectModalSurface(el: HTMLElement): () => void {
+  if (el.getAttribute("data-state") === "open") {
+    primeModalSurface(el);
+  }
+
+  const observer = new MutationObserver(() => {
+    syncModalSurfaceFromDataState(el);
+  });
+  observer.observe(el, { attributes: true, attributeFilter: ["data-state"] });
+
+  return () => {
+    observer.disconnect();
+    disconnectModalSurface(el);
+  };
+}
