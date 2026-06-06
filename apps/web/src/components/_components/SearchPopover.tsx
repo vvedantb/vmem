@@ -3,7 +3,7 @@
 import { IconSearch } from "@tabler/icons-react";
 import {
   Button,
-  Input,
+  ClearInput,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -39,19 +39,19 @@ export default function SearchPopover({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-3">
-        <div className="relative">
-          <IconSearch
-            size={14}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
-          />
-          <Input
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            autoFocus
-            className="h-8 pl-8 text-xs bg-field-background"
-          />
-        </div>
+        <ClearInput
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          autoFocus
+          className="h-8 pl-8 text-xs bg-field-background"
+          leading={
+            <IconSearch
+              size={14}
+              className="pointer-events-none absolute left-2.5 top-1/2 z-[5] -translate-y-1/2 text-muted"
+            />
+          }
+        />
       </PopoverContent>
     </Popover>
   );
