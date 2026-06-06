@@ -1,5 +1,10 @@
 # Changelog
 
+## MCP stateless transport (Eva parity) — 2026-06-06
+
+- **GET/DELETE `/mcp`**: Return 405 again (same as Eva) — removed SSE keepalive that hit Convex's 600s httpAction limit and logged timeout errors every ~10 minutes per connected client.
+- **MCP docs**: Setup troubleshooting and architecture notes updated for POST-only tool calls; Claude Desktop/Web and Cursor verified via live MCP and `pnpm test:mcp`.
+
 ## Landing page polish — 2026-05-22
 
 - **Sign-in (`/`)**: Feature cards no longer clip below the fold; stronger surfaces and an asymmetric numbered stack so graph / recall / agent benefits read clearly.
@@ -335,8 +340,10 @@
 
 ## MCP Claude SSE handshake — 2026-05-24
 
-- **GET `/mcp` SSE keepalive**: Claude Web/Desktop opens `Accept: text/event-stream` after OAuth; we previously returned 405 and broke the connector ("Unable to reach vmem"). Stateless POST handling unchanged; GET returns a comment keepalive stream.
-- **DELETE `/mcp`**: Returns 200 for session teardown (no-op in stateless mode).
+> **Superseded (2026-06-06):** SSE keepalive removed; GET/DELETE return 405 (Eva parity). See **MCP stateless transport** above.
+
+- **GET `/mcp` SSE keepalive** _(removed)_: Was added when 405 broke some reachability probes; later removed after Eva-style 405 proved fine in Claude Desktop/Web and Cursor.
+- **DELETE `/mcp`** _(removed)_: Previously returned 200; now 405 like Eva.
 
 ## MCP connector branding — 2026-05-24
 
