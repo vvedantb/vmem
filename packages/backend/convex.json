@@ -7,7 +7,10 @@
       "@neo4j/cypher-builder",
       "ts-morph",
       "pdf-parse",
-      "tar-stream"
+      "tar-stream",
+      "@modelcontextprotocol/sdk",
+      "googleapis",
+      "@notionhq/client"
     ]
   }
 }
