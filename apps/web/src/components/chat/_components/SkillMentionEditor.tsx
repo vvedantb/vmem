@@ -3,7 +3,6 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -22,20 +21,12 @@ import {
 } from "../_utils/mentionPopupPosition";
 import {
   extractEditableText,
-  getCursorTextOffset,
   normalizeEditorText,
   placeCursorAtEnd,
   renderSkillChipHtml,
-  setCursorTextOffset,
-  syncSkillMapFromValue,
 } from "../_utils/skillMentionEditorUtils";
-import { segmentInputBySkills } from "../_utils/segmentInputBySkills";
 import { SkillChipHoverPortal } from "./SkillChipHoverPortal";
 import { SkillSlashPickerPopup } from "./SkillSlashPickerPopup";
-
-function domHasSkillChips(el: HTMLElement): boolean {
-  return el.querySelector('[data-skill="true"]') !== null;
-}
 
 const EDITOR_CLASS =
   "relative block w-full min-h-16 max-h-40 flex-1 self-stretch overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words bg-transparent px-3 py-3 text-left text-sm leading-normal outline-none focus-visible:outline-none data-[empty]:before:pointer-events-none data-[empty]:before:absolute data-[empty]:before:text-field-placeholder data-[empty]:before:content-[attr(data-placeholder)]";
@@ -79,15 +70,6 @@ function findSlashTrigger(
   };
 }
 
-function assignRef<T>(ref: React.Ref<T> | undefined, value: T | null) {
-  if (ref === undefined || ref === null) return;
-  if (typeof ref === "function") {
-    ref(value);
-    return;
-  }
-  ref.current = value;
-}
-
 interface SkillMentionEditorProps {
   value: string;
   onValueChange: (value: string) => void;
@@ -95,8 +77,7 @@ interface SkillMentionEditorProps {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
-  editorRef?: React.Ref<HTMLElement | null>;
-  onEnterSubmit?: () => void;
+  onEnterSubmit?: (e: KeyboardEvent<HTMLDivElement>) => void;
 }
 
 export function SkillMentionEditor({
@@ -106,19 +87,10 @@ export function SkillMentionEditor({
   disabled = false,
   placeholder,
   className,
-  editorRef: externalEditorRef,
   onEnterSubmit,
 }: SkillMentionEditorProps) {
   const navigate = useNavigate();
-  const internalEditorRef = useRef<HTMLDivElement>(null);
-  const setEditorRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      internalEditorRef.current = node;
-      assignRef(externalEditorRef, node);
-    },
-    [externalEditorRef],
-  );
-  const editorRef = internalEditorRef;
+  const editorRef = useRef<HTMLDivElement>(null);
   const [skillMap, setSkillMap] = useState<Map<string, Id<"skills">>>(
     () => new Map(),
   );
@@ -137,19 +109,6 @@ export function SkillMentionEditor({
   const enabledSkills = useMemo(
     () => skills?.filter(isSkillEnabled) ?? [],
     [skills],
-  );
-
-  const skillNameToId = useMemo(() => {
-    const map = new Map<string, Id<"skills">>();
-    for (const skill of enabledSkills) {
-      map.set(skill.name, skill._id);
-    }
-    return map;
-  }, [enabledSkills]);
-
-  const skillNames = useMemo(
-    () => new Set(skillNameToId.keys()),
-    [skillNameToId],
   );
 
   const skillById = useMemo(() => {
@@ -197,41 +156,24 @@ export function SkillMentionEditor({
   }, [cancelHoverClose, clearHover]);
 
   useEffect(() => {
-    setSkillMap(syncSkillMapFromValue(value, skillNames, skillNameToId));
-  }, [value, skillNames, skillNameToId]);
-
-  useEffect(() => {
     if (value === "" && skillMap.size > 0) {
       setSkillMap(new Map());
     }
   }, [value, skillMap.size]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
-    const text = normalizeEditorText(extractEditableText(el));
-    const nextHtml = renderSkillChipHtml(
-      value,
-      skillMap,
-      SKILL_CHIP_CLASS,
-      true,
-    );
-    const valueHasSkills = segmentInputBySkills(value, skillNames).some(
-      (segment) => segment.kind === "skill",
-    );
-
-    if (text !== value) {
-      el.innerHTML = nextHtml;
+    if (normalizeEditorText(extractEditableText(el)) !== value) {
+      el.innerHTML = renderSkillChipHtml(
+        value,
+        skillMap,
+        SKILL_CHIP_CLASS,
+        true,
+      );
       placeCursorAtEnd(el);
-      return;
     }
-
-    if (valueHasSkills || domHasSkillChips(el)) {
-      const offset = getCursorTextOffset(el);
-      el.innerHTML = nextHtml;
-      setCursorTextOffset(el, offset);
-    }
-  }, [value, skillMap, skillNames, editorRef]);
+  }, [value, skillMap]);
 
   useEffect(() => {
     const next = findSlashTrigger(value, enabledSkills.length > 0);
@@ -365,7 +307,7 @@ export function SkillMentionEditor({
         if (isComposing || e.nativeEvent.isComposing) return;
         if (e.shiftKey) return;
         e.preventDefault();
-        onEnterSubmit();
+        onEnterSubmit(e);
       }
     },
     [
@@ -466,7 +408,7 @@ export function SkillMentionEditor({
   return (
     <>
       <div
-        ref={setEditorRef}
+        ref={editorRef}
         data-slot="input-group-control"
         data-placeholder={placeholder ?? ""}
         data-empty={isEmpty ? "true" : undefined}
@@ -477,7 +419,7 @@ export function SkillMentionEditor({
         aria-label={placeholder ?? "Message input"}
         className={cn(EDITOR_CLASS, className)}
         onInput={handleInput}
-        onKeyDownCapture={handleKeyDown}
+        onKeyDown={handleKeyDown}
         onClick={handleChipClick}
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}

@@ -31,7 +31,7 @@ interface PromptInputContextValue {
   input: string;
   setInput: (value: string) => void;
   status: ChatStatus;
-  textareaRef: React.RefObject<HTMLElement | null>;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 const PromptInputContext = createContext<PromptInputContextValue | null>(null);
@@ -69,7 +69,7 @@ function PromptInput({
   ...props
 }: PromptInputProps) {
   const [uncontrolledInput, setUncontrolledInput] = useState("");
-  const textareaRef = useRef<HTMLElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const input = controlledInput ?? uncontrolledInput;
   const setInput = useCallback(
@@ -87,7 +87,12 @@ function PromptInput({
       if (!text || status !== "ready") return;
       await onSubmit({ text }, e);
       setInput("");
-      textareaRef.current?.focus();
+      const control = e.currentTarget.querySelector(
+        '[data-slot="input-group-control"]',
+      );
+      if (control instanceof HTMLElement) {
+        control.focus();
+      }
     },
     [input, status, onSubmit, setInput],
   );
@@ -118,13 +123,6 @@ function PromptInputTextarea({
 }: PromptInputTextareaProps) {
   const { input, setInput, status, textareaRef } = usePromptInput();
 
-  const setTextareaRef = useCallback(
-    (node: HTMLTextAreaElement | null) => {
-      textareaRef.current = node;
-    },
-    [textareaRef],
-  );
-
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -135,7 +133,7 @@ function PromptInputTextarea({
 
   return (
     <InputGroupTextarea
-      ref={setTextareaRef}
+      ref={textareaRef}
       value={input}
       onChange={(e) => setInput(e.target.value)}
       onKeyDown={handleKeyDown}

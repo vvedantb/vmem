@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, type ComponentProps } from "react";
+import { useCallback, type ComponentProps, type KeyboardEvent } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { usePromptInput } from "@vmem/ui/ai";
@@ -17,18 +17,20 @@ export function ChatPromptTextarea({
   disabled,
   placeholder,
 }: PromptTextareaProps) {
-  const { input, setInput, status, textareaRef } = usePromptInput();
+  const { input, setInput, status } = usePromptInput();
   const skills = useQuery(api.skills.listMy);
 
   const inputDisabled = status === "streaming" || status === "submitted";
 
-  const handleEnterSubmit = useCallback(() => {
-    const editor = textareaRef.current;
-    const form = editor?.closest("form");
-    if (form instanceof HTMLFormElement) {
-      form.requestSubmit();
+  const handleEnterSubmit = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
+    const form = e.currentTarget.closest("form");
+    if (!(form instanceof HTMLFormElement)) return;
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton instanceof HTMLButtonElement && submitButton.disabled) {
+      return;
     }
-  }, [textareaRef]);
+    form.requestSubmit();
+  }, []);
 
   return (
     <SkillMentionEditor
@@ -37,7 +39,6 @@ export function ChatPromptTextarea({
       skills={skills}
       disabled={inputDisabled || disabled}
       placeholder={placeholder}
-      editorRef={textareaRef}
       onEnterSubmit={handleEnterSubmit}
       className={cn(
         "w-full flex-1 border-0 shadow-none focus-visible:ring-0",
