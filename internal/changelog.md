@@ -5,6 +5,7 @@
 - **Dialogs**: Modal open/close scales and fades via shared `DialogContent` — replaces Tailwind zoom/slide on every dialog.
 - **Search**: Header and sidebar search fields get a clear (×) button; clearing runs a dissolve animation (text flies out, placeholder returns) instead of snapping empty.
 - **Tabs**: Tab bars slide an active pill between options — memories graph/list, memory detail tabs, files grid/list, chrome extension popup.
+- **Tabs (route groups)**: Activity, memories, inbox, API settings, and data-controls tab bars stay mounted in layout routes so the pill animates on tab switch instead of snapping.
 - **Motion policy**: Removed `prefers-reduced-motion` CSS/JS guards so transitions always run; Framer Motion was already `reducedMotion="never"`.
 
 ## @vmem/shared package — 2026-06-06

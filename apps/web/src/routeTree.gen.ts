@@ -20,6 +20,8 @@ import { Route as MainFilesRouteImport } from "./routes/_main/files";
 import { Route as MainChatRouteImport } from "./routes/_main/chat";
 import { Route as MainWikiRouteRouteImport } from "./routes/_main/wiki/route";
 import { Route as MainSkillsRouteRouteImport } from "./routes/_main/skills/route";
+import { Route as MainMemoriesRouteRouteImport } from "./routes/_main/memories/route";
+import { Route as MainInboxRouteRouteImport } from "./routes/_main/inbox/route";
 import { Route as MainActivityRouteRouteImport } from "./routes/_main/activity/route";
 import { Route as MainWikiIndexRouteImport } from "./routes/_main/wiki/index";
 import { Route as MainTeamsIndexRouteImport } from "./routes/_main/teams/index";
@@ -51,6 +53,8 @@ import { Route as MainCodebasesIdRouteImport } from "./routes/_main/codebases/$i
 import { Route as MainActivityEventsRouteImport } from "./routes/_main/activity/events";
 import { Route as MainActivityAiLogsRouteImport } from "./routes/_main/activity/ai-logs";
 import { Route as MainTeamsTeamIdRouteRouteImport } from "./routes/_main/teams/$teamId/route";
+import { Route as MainSettingsDataControlsRouteRouteImport } from "./routes/_main/settings/data-controls/route";
+import { Route as MainSettingsApiRouteRouteImport } from "./routes/_main/settings/api/route";
 import { Route as MainTeamsTeamIdIndexRouteImport } from "./routes/_main/teams/$teamId/index";
 import { Route as MainSettingsPlaygroundIndexRouteImport } from "./routes/_main/settings/playground/index";
 import { Route as MainSettingsDataControlsIndexRouteImport } from "./routes/_main/settings/data-controls/index";
@@ -120,6 +124,16 @@ const MainSkillsRouteRoute = MainSkillsRouteRouteImport.update({
   path: "/skills",
   getParentRoute: () => MainRouteRoute,
 } as any);
+const MainMemoriesRouteRoute = MainMemoriesRouteRouteImport.update({
+  id: "/memories",
+  path: "/memories",
+  getParentRoute: () => MainRouteRoute,
+} as any);
+const MainInboxRouteRoute = MainInboxRouteRouteImport.update({
+  id: "/inbox",
+  path: "/inbox",
+  getParentRoute: () => MainRouteRoute,
+} as any);
 const MainActivityRouteRoute = MainActivityRouteRouteImport.update({
   id: "/activity",
   path: "/activity",
@@ -156,14 +170,14 @@ const MainOpenrouterLogsIndexRoute = MainOpenrouterLogsIndexRouteImport.update({
   getParentRoute: () => MainRouteRoute,
 } as any);
 const MainMemoriesIndexRoute = MainMemoriesIndexRouteImport.update({
-  id: "/memories/",
-  path: "/memories/",
-  getParentRoute: () => MainRouteRoute,
+  id: "/",
+  path: "/",
+  getParentRoute: () => MainMemoriesRouteRoute,
 } as any);
 const MainInboxIndexRoute = MainInboxIndexRouteImport.update({
-  id: "/inbox/",
-  path: "/inbox/",
-  getParentRoute: () => MainRouteRoute,
+  id: "/",
+  path: "/",
+  getParentRoute: () => MainInboxRouteRoute,
 } as any);
 const MainCodebasesIndexRoute = MainCodebasesIndexRouteImport.update({
   id: "/codebases/",
@@ -231,29 +245,29 @@ const MainSettingsConnectorsRoute = MainSettingsConnectorsRouteImport.update({
   getParentRoute: () => MainRouteRoute,
 } as any);
 const MainMemoriesTagsRoute = MainMemoriesTagsRouteImport.update({
-  id: "/memories/tags",
-  path: "/memories/tags",
-  getParentRoute: () => MainRouteRoute,
+  id: "/tags",
+  path: "/tags",
+  getParentRoute: () => MainMemoriesRouteRoute,
 } as any);
 const MainMemoriesListRoute = MainMemoriesListRouteImport.update({
-  id: "/memories/list",
-  path: "/memories/list",
-  getParentRoute: () => MainRouteRoute,
+  id: "/list",
+  path: "/list",
+  getParentRoute: () => MainMemoriesRouteRoute,
 } as any);
 const MainMemoriesGraphRoute = MainMemoriesGraphRouteImport.update({
-  id: "/memories/graph",
-  path: "/memories/graph",
-  getParentRoute: () => MainRouteRoute,
+  id: "/graph",
+  path: "/graph",
+  getParentRoute: () => MainMemoriesRouteRoute,
 } as any);
 const MainInboxProposalsRoute = MainInboxProposalsRouteImport.update({
-  id: "/inbox/proposals",
-  path: "/inbox/proposals",
-  getParentRoute: () => MainRouteRoute,
+  id: "/proposals",
+  path: "/proposals",
+  getParentRoute: () => MainInboxRouteRoute,
 } as any);
 const MainInboxNotificationsRoute = MainInboxNotificationsRouteImport.update({
-  id: "/inbox/notifications",
-  path: "/inbox/notifications",
-  getParentRoute: () => MainRouteRoute,
+  id: "/notifications",
+  path: "/notifications",
+  getParentRoute: () => MainInboxRouteRoute,
 } as any);
 const MainCodebasesIdRoute = MainCodebasesIdRouteImport.update({
   id: "/codebases/$id",
@@ -275,6 +289,17 @@ const MainTeamsTeamIdRouteRoute = MainTeamsTeamIdRouteRouteImport.update({
   path: "/teams/$teamId",
   getParentRoute: () => MainRouteRoute,
 } as any);
+const MainSettingsDataControlsRouteRoute =
+  MainSettingsDataControlsRouteRouteImport.update({
+    id: "/settings/data-controls",
+    path: "/settings/data-controls",
+    getParentRoute: () => MainRouteRoute,
+  } as any);
+const MainSettingsApiRouteRoute = MainSettingsApiRouteRouteImport.update({
+  id: "/settings/api",
+  path: "/settings/api",
+  getParentRoute: () => MainRouteRoute,
+} as any);
 const MainTeamsTeamIdIndexRoute = MainTeamsTeamIdIndexRouteImport.update({
   id: "/",
   path: "/",
@@ -288,14 +313,14 @@ const MainSettingsPlaygroundIndexRoute =
   } as any);
 const MainSettingsDataControlsIndexRoute =
   MainSettingsDataControlsIndexRouteImport.update({
-    id: "/settings/data-controls/",
-    path: "/settings/data-controls/",
-    getParentRoute: () => MainRouteRoute,
+    id: "/",
+    path: "/",
+    getParentRoute: () => MainSettingsDataControlsRouteRoute,
   } as any);
 const MainSettingsApiIndexRoute = MainSettingsApiIndexRouteImport.update({
-  id: "/settings/api/",
-  path: "/settings/api/",
-  getParentRoute: () => MainRouteRoute,
+  id: "/",
+  path: "/",
+  getParentRoute: () => MainSettingsApiRouteRoute,
 } as any);
 const MainTeamsTeamIdSettingsRoute = MainTeamsTeamIdSettingsRouteImport.update({
   id: "/settings",
@@ -326,37 +351,39 @@ const MainSettingsPlaygroundCallbackRoute =
   } as any);
 const MainSettingsDataControlsImportRoute =
   MainSettingsDataControlsImportRouteImport.update({
-    id: "/settings/data-controls/import",
-    path: "/settings/data-controls/import",
-    getParentRoute: () => MainRouteRoute,
+    id: "/import",
+    path: "/import",
+    getParentRoute: () => MainSettingsDataControlsRouteRoute,
   } as any);
 const MainSettingsDataControlsExportRoute =
   MainSettingsDataControlsExportRouteImport.update({
-    id: "/settings/data-controls/export",
-    path: "/settings/data-controls/export",
-    getParentRoute: () => MainRouteRoute,
+    id: "/export",
+    path: "/export",
+    getParentRoute: () => MainSettingsDataControlsRouteRoute,
   } as any);
 const MainSettingsDataControlsDangerRoute =
   MainSettingsDataControlsDangerRouteImport.update({
-    id: "/settings/data-controls/danger",
-    path: "/settings/data-controls/danger",
-    getParentRoute: () => MainRouteRoute,
+    id: "/danger",
+    path: "/danger",
+    getParentRoute: () => MainSettingsDataControlsRouteRoute,
   } as any);
 const MainSettingsApiUsageRoute = MainSettingsApiUsageRouteImport.update({
-  id: "/settings/api/usage",
-  path: "/settings/api/usage",
-  getParentRoute: () => MainRouteRoute,
+  id: "/usage",
+  path: "/usage",
+  getParentRoute: () => MainSettingsApiRouteRoute,
 } as any);
 const MainSettingsApiKeysRoute = MainSettingsApiKeysRouteImport.update({
-  id: "/settings/api/keys",
-  path: "/settings/api/keys",
-  getParentRoute: () => MainRouteRoute,
+  id: "/keys",
+  path: "/keys",
+  getParentRoute: () => MainSettingsApiRouteRoute,
 } as any);
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute;
   "/agent-callback": typeof AgentCallbackRoute;
   "/activity": typeof MainActivityRouteRouteWithChildren;
+  "/inbox": typeof MainInboxRouteRouteWithChildren;
+  "/memories": typeof MainMemoriesRouteRouteWithChildren;
   "/skills": typeof MainSkillsRouteRouteWithChildren;
   "/wiki": typeof MainWikiRouteRouteWithChildren;
   "/chat": typeof MainChatRoute;
@@ -365,6 +392,8 @@ export interface FileRoutesByFullPath {
   "/notifications": typeof MainNotificationsRoute;
   "/proposals": typeof MainProposalsRoute;
   "/voice": typeof MainVoiceRoute;
+  "/settings/api": typeof MainSettingsApiRouteRouteWithChildren;
+  "/settings/data-controls": typeof MainSettingsDataControlsRouteRouteWithChildren;
   "/teams/$teamId": typeof MainTeamsTeamIdRouteRouteWithChildren;
   "/activity/ai-logs": typeof MainActivityAiLogsRoute;
   "/activity/events": typeof MainActivityEventsRoute;
@@ -469,6 +498,8 @@ export interface FileRoutesById {
   "/_main": typeof MainRouteRouteWithChildren;
   "/agent-callback": typeof AgentCallbackRoute;
   "/_main/activity": typeof MainActivityRouteRouteWithChildren;
+  "/_main/inbox": typeof MainInboxRouteRouteWithChildren;
+  "/_main/memories": typeof MainMemoriesRouteRouteWithChildren;
   "/_main/skills": typeof MainSkillsRouteRouteWithChildren;
   "/_main/wiki": typeof MainWikiRouteRouteWithChildren;
   "/_main/chat": typeof MainChatRoute;
@@ -477,6 +508,8 @@ export interface FileRoutesById {
   "/_main/notifications": typeof MainNotificationsRoute;
   "/_main/proposals": typeof MainProposalsRoute;
   "/_main/voice": typeof MainVoiceRoute;
+  "/_main/settings/api": typeof MainSettingsApiRouteRouteWithChildren;
+  "/_main/settings/data-controls": typeof MainSettingsDataControlsRouteRouteWithChildren;
   "/_main/teams/$teamId": typeof MainTeamsTeamIdRouteRouteWithChildren;
   "/_main/activity/ai-logs": typeof MainActivityAiLogsRoute;
   "/_main/activity/events": typeof MainActivityEventsRoute;
@@ -528,6 +561,8 @@ export interface FileRouteTypes {
     | "/"
     | "/agent-callback"
     | "/activity"
+    | "/inbox"
+    | "/memories"
     | "/skills"
     | "/wiki"
     | "/chat"
@@ -536,6 +571,8 @@ export interface FileRouteTypes {
     | "/notifications"
     | "/proposals"
     | "/voice"
+    | "/settings/api"
+    | "/settings/data-controls"
     | "/teams/$teamId"
     | "/activity/ai-logs"
     | "/activity/events"
@@ -639,6 +676,8 @@ export interface FileRouteTypes {
     | "/_main"
     | "/agent-callback"
     | "/_main/activity"
+    | "/_main/inbox"
+    | "/_main/memories"
     | "/_main/skills"
     | "/_main/wiki"
     | "/_main/chat"
@@ -647,6 +686,8 @@ export interface FileRouteTypes {
     | "/_main/notifications"
     | "/_main/proposals"
     | "/_main/voice"
+    | "/_main/settings/api"
+    | "/_main/settings/data-controls"
     | "/_main/teams/$teamId"
     | "/_main/activity/ai-logs"
     | "/_main/activity/events"
@@ -779,6 +820,20 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof MainSkillsRouteRouteImport;
       parentRoute: typeof MainRouteRoute;
     };
+    "/_main/memories": {
+      id: "/_main/memories";
+      path: "/memories";
+      fullPath: "/memories";
+      preLoaderRoute: typeof MainMemoriesRouteRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/inbox": {
+      id: "/_main/inbox";
+      path: "/inbox";
+      fullPath: "/inbox";
+      preLoaderRoute: typeof MainInboxRouteRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
     "/_main/activity": {
       id: "/_main/activity";
       path: "/activity";
@@ -830,17 +885,17 @@ declare module "@tanstack/react-router" {
     };
     "/_main/memories/": {
       id: "/_main/memories/";
-      path: "/memories";
+      path: "/";
       fullPath: "/memories/";
       preLoaderRoute: typeof MainMemoriesIndexRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainMemoriesRouteRoute;
     };
     "/_main/inbox/": {
       id: "/_main/inbox/";
-      path: "/inbox";
+      path: "/";
       fullPath: "/inbox/";
       preLoaderRoute: typeof MainInboxIndexRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainInboxRouteRoute;
     };
     "/_main/codebases/": {
       id: "/_main/codebases/";
@@ -935,38 +990,38 @@ declare module "@tanstack/react-router" {
     };
     "/_main/memories/tags": {
       id: "/_main/memories/tags";
-      path: "/memories/tags";
+      path: "/tags";
       fullPath: "/memories/tags";
       preLoaderRoute: typeof MainMemoriesTagsRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainMemoriesRouteRoute;
     };
     "/_main/memories/list": {
       id: "/_main/memories/list";
-      path: "/memories/list";
+      path: "/list";
       fullPath: "/memories/list";
       preLoaderRoute: typeof MainMemoriesListRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainMemoriesRouteRoute;
     };
     "/_main/memories/graph": {
       id: "/_main/memories/graph";
-      path: "/memories/graph";
+      path: "/graph";
       fullPath: "/memories/graph";
       preLoaderRoute: typeof MainMemoriesGraphRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainMemoriesRouteRoute;
     };
     "/_main/inbox/proposals": {
       id: "/_main/inbox/proposals";
-      path: "/inbox/proposals";
+      path: "/proposals";
       fullPath: "/inbox/proposals";
       preLoaderRoute: typeof MainInboxProposalsRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainInboxRouteRoute;
     };
     "/_main/inbox/notifications": {
       id: "/_main/inbox/notifications";
-      path: "/inbox/notifications";
+      path: "/notifications";
       fullPath: "/inbox/notifications";
       preLoaderRoute: typeof MainInboxNotificationsRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainInboxRouteRoute;
     };
     "/_main/codebases/$id": {
       id: "/_main/codebases/$id";
@@ -996,6 +1051,20 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof MainTeamsTeamIdRouteRouteImport;
       parentRoute: typeof MainRouteRoute;
     };
+    "/_main/settings/data-controls": {
+      id: "/_main/settings/data-controls";
+      path: "/settings/data-controls";
+      fullPath: "/settings/data-controls";
+      preLoaderRoute: typeof MainSettingsDataControlsRouteRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/settings/api": {
+      id: "/_main/settings/api";
+      path: "/settings/api";
+      fullPath: "/settings/api";
+      preLoaderRoute: typeof MainSettingsApiRouteRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
     "/_main/teams/$teamId/": {
       id: "/_main/teams/$teamId/";
       path: "/";
@@ -1012,17 +1081,17 @@ declare module "@tanstack/react-router" {
     };
     "/_main/settings/data-controls/": {
       id: "/_main/settings/data-controls/";
-      path: "/settings/data-controls";
+      path: "/";
       fullPath: "/settings/data-controls/";
       preLoaderRoute: typeof MainSettingsDataControlsIndexRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainSettingsDataControlsRouteRoute;
     };
     "/_main/settings/api/": {
       id: "/_main/settings/api/";
-      path: "/settings/api";
+      path: "/";
       fullPath: "/settings/api/";
       preLoaderRoute: typeof MainSettingsApiIndexRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainSettingsApiRouteRoute;
     };
     "/_main/teams/$teamId/settings": {
       id: "/_main/teams/$teamId/settings";
@@ -1061,38 +1130,38 @@ declare module "@tanstack/react-router" {
     };
     "/_main/settings/data-controls/import": {
       id: "/_main/settings/data-controls/import";
-      path: "/settings/data-controls/import";
+      path: "/import";
       fullPath: "/settings/data-controls/import";
       preLoaderRoute: typeof MainSettingsDataControlsImportRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainSettingsDataControlsRouteRoute;
     };
     "/_main/settings/data-controls/export": {
       id: "/_main/settings/data-controls/export";
-      path: "/settings/data-controls/export";
+      path: "/export";
       fullPath: "/settings/data-controls/export";
       preLoaderRoute: typeof MainSettingsDataControlsExportRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainSettingsDataControlsRouteRoute;
     };
     "/_main/settings/data-controls/danger": {
       id: "/_main/settings/data-controls/danger";
-      path: "/settings/data-controls/danger";
+      path: "/danger";
       fullPath: "/settings/data-controls/danger";
       preLoaderRoute: typeof MainSettingsDataControlsDangerRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainSettingsDataControlsRouteRoute;
     };
     "/_main/settings/api/usage": {
       id: "/_main/settings/api/usage";
-      path: "/settings/api/usage";
+      path: "/usage";
       fullPath: "/settings/api/usage";
       preLoaderRoute: typeof MainSettingsApiUsageRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainSettingsApiRouteRoute;
     };
     "/_main/settings/api/keys": {
       id: "/_main/settings/api/keys";
-      path: "/settings/api/keys";
+      path: "/keys";
       fullPath: "/settings/api/keys";
       preLoaderRoute: typeof MainSettingsApiKeysRouteImport;
-      parentRoute: typeof MainRouteRoute;
+      parentRoute: typeof MainSettingsApiRouteRoute;
     };
   }
 }
@@ -1111,6 +1180,39 @@ const MainActivityRouteRouteChildren: MainActivityRouteRouteChildren = {
 
 const MainActivityRouteRouteWithChildren =
   MainActivityRouteRoute._addFileChildren(MainActivityRouteRouteChildren);
+
+interface MainInboxRouteRouteChildren {
+  MainInboxNotificationsRoute: typeof MainInboxNotificationsRoute;
+  MainInboxProposalsRoute: typeof MainInboxProposalsRoute;
+  MainInboxIndexRoute: typeof MainInboxIndexRoute;
+}
+
+const MainInboxRouteRouteChildren: MainInboxRouteRouteChildren = {
+  MainInboxNotificationsRoute: MainInboxNotificationsRoute,
+  MainInboxProposalsRoute: MainInboxProposalsRoute,
+  MainInboxIndexRoute: MainInboxIndexRoute,
+};
+
+const MainInboxRouteRouteWithChildren = MainInboxRouteRoute._addFileChildren(
+  MainInboxRouteRouteChildren,
+);
+
+interface MainMemoriesRouteRouteChildren {
+  MainMemoriesGraphRoute: typeof MainMemoriesGraphRoute;
+  MainMemoriesListRoute: typeof MainMemoriesListRoute;
+  MainMemoriesTagsRoute: typeof MainMemoriesTagsRoute;
+  MainMemoriesIndexRoute: typeof MainMemoriesIndexRoute;
+}
+
+const MainMemoriesRouteRouteChildren: MainMemoriesRouteRouteChildren = {
+  MainMemoriesGraphRoute: MainMemoriesGraphRoute,
+  MainMemoriesListRoute: MainMemoriesListRoute,
+  MainMemoriesTagsRoute: MainMemoriesTagsRoute,
+  MainMemoriesIndexRoute: MainMemoriesIndexRoute,
+};
+
+const MainMemoriesRouteRouteWithChildren =
+  MainMemoriesRouteRoute._addFileChildren(MainMemoriesRouteRouteChildren);
 
 interface MainSkillsRouteRouteChildren {
   MainSkillsIdRoute: typeof MainSkillsIdRoute;
@@ -1140,6 +1242,41 @@ const MainWikiRouteRouteWithChildren = MainWikiRouteRoute._addFileChildren(
   MainWikiRouteRouteChildren,
 );
 
+interface MainSettingsApiRouteRouteChildren {
+  MainSettingsApiKeysRoute: typeof MainSettingsApiKeysRoute;
+  MainSettingsApiUsageRoute: typeof MainSettingsApiUsageRoute;
+  MainSettingsApiIndexRoute: typeof MainSettingsApiIndexRoute;
+}
+
+const MainSettingsApiRouteRouteChildren: MainSettingsApiRouteRouteChildren = {
+  MainSettingsApiKeysRoute: MainSettingsApiKeysRoute,
+  MainSettingsApiUsageRoute: MainSettingsApiUsageRoute,
+  MainSettingsApiIndexRoute: MainSettingsApiIndexRoute,
+};
+
+const MainSettingsApiRouteRouteWithChildren =
+  MainSettingsApiRouteRoute._addFileChildren(MainSettingsApiRouteRouteChildren);
+
+interface MainSettingsDataControlsRouteRouteChildren {
+  MainSettingsDataControlsDangerRoute: typeof MainSettingsDataControlsDangerRoute;
+  MainSettingsDataControlsExportRoute: typeof MainSettingsDataControlsExportRoute;
+  MainSettingsDataControlsImportRoute: typeof MainSettingsDataControlsImportRoute;
+  MainSettingsDataControlsIndexRoute: typeof MainSettingsDataControlsIndexRoute;
+}
+
+const MainSettingsDataControlsRouteRouteChildren: MainSettingsDataControlsRouteRouteChildren =
+  {
+    MainSettingsDataControlsDangerRoute: MainSettingsDataControlsDangerRoute,
+    MainSettingsDataControlsExportRoute: MainSettingsDataControlsExportRoute,
+    MainSettingsDataControlsImportRoute: MainSettingsDataControlsImportRoute,
+    MainSettingsDataControlsIndexRoute: MainSettingsDataControlsIndexRoute,
+  };
+
+const MainSettingsDataControlsRouteRouteWithChildren =
+  MainSettingsDataControlsRouteRoute._addFileChildren(
+    MainSettingsDataControlsRouteRouteChildren,
+  );
+
 interface MainTeamsTeamIdRouteRouteChildren {
   MainTeamsTeamIdKnowledgeRoute: typeof MainTeamsTeamIdKnowledgeRoute;
   MainTeamsTeamIdMembersRoute: typeof MainTeamsTeamIdMembersRoute;
@@ -1161,6 +1298,8 @@ const MainTeamsTeamIdRouteRouteWithChildren =
 
 interface MainRouteRouteChildren {
   MainActivityRouteRoute: typeof MainActivityRouteRouteWithChildren;
+  MainInboxRouteRoute: typeof MainInboxRouteRouteWithChildren;
+  MainMemoriesRouteRoute: typeof MainMemoriesRouteRouteWithChildren;
   MainSkillsRouteRoute: typeof MainSkillsRouteRouteWithChildren;
   MainWikiRouteRoute: typeof MainWikiRouteRouteWithChildren;
   MainChatRoute: typeof MainChatRoute;
@@ -1169,13 +1308,10 @@ interface MainRouteRouteChildren {
   MainNotificationsRoute: typeof MainNotificationsRoute;
   MainProposalsRoute: typeof MainProposalsRoute;
   MainVoiceRoute: typeof MainVoiceRoute;
+  MainSettingsApiRouteRoute: typeof MainSettingsApiRouteRouteWithChildren;
+  MainSettingsDataControlsRouteRoute: typeof MainSettingsDataControlsRouteRouteWithChildren;
   MainTeamsTeamIdRouteRoute: typeof MainTeamsTeamIdRouteRouteWithChildren;
   MainCodebasesIdRoute: typeof MainCodebasesIdRoute;
-  MainInboxNotificationsRoute: typeof MainInboxNotificationsRoute;
-  MainInboxProposalsRoute: typeof MainInboxProposalsRoute;
-  MainMemoriesGraphRoute: typeof MainMemoriesGraphRoute;
-  MainMemoriesListRoute: typeof MainMemoriesListRoute;
-  MainMemoriesTagsRoute: typeof MainMemoriesTagsRoute;
   MainSettingsConnectorsRoute: typeof MainSettingsConnectorsRoute;
   MainSettingsExtensionRoute: typeof MainSettingsExtensionRoute;
   MainSettingsModelsRoute: typeof MainSettingsModelsRoute;
@@ -1185,25 +1321,18 @@ interface MainRouteRouteChildren {
   MainSettingsUsageRoute: typeof MainSettingsUsageRoute;
   MainAiLogsIndexRoute: typeof MainAiLogsIndexRoute;
   MainCodebasesIndexRoute: typeof MainCodebasesIndexRoute;
-  MainInboxIndexRoute: typeof MainInboxIndexRoute;
-  MainMemoriesIndexRoute: typeof MainMemoriesIndexRoute;
   MainOpenrouterLogsIndexRoute: typeof MainOpenrouterLogsIndexRoute;
   MainSettingsIndexRoute: typeof MainSettingsIndexRoute;
   MainSvgPlaygroundIndexRoute: typeof MainSvgPlaygroundIndexRoute;
   MainTeamsIndexRoute: typeof MainTeamsIndexRoute;
-  MainSettingsApiKeysRoute: typeof MainSettingsApiKeysRoute;
-  MainSettingsApiUsageRoute: typeof MainSettingsApiUsageRoute;
-  MainSettingsDataControlsDangerRoute: typeof MainSettingsDataControlsDangerRoute;
-  MainSettingsDataControlsExportRoute: typeof MainSettingsDataControlsExportRoute;
-  MainSettingsDataControlsImportRoute: typeof MainSettingsDataControlsImportRoute;
   MainSettingsPlaygroundCallbackRoute: typeof MainSettingsPlaygroundCallbackRoute;
-  MainSettingsApiIndexRoute: typeof MainSettingsApiIndexRoute;
-  MainSettingsDataControlsIndexRoute: typeof MainSettingsDataControlsIndexRoute;
   MainSettingsPlaygroundIndexRoute: typeof MainSettingsPlaygroundIndexRoute;
 }
 
 const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainActivityRouteRoute: MainActivityRouteRouteWithChildren,
+  MainInboxRouteRoute: MainInboxRouteRouteWithChildren,
+  MainMemoriesRouteRoute: MainMemoriesRouteRouteWithChildren,
   MainSkillsRouteRoute: MainSkillsRouteRouteWithChildren,
   MainWikiRouteRoute: MainWikiRouteRouteWithChildren,
   MainChatRoute: MainChatRoute,
@@ -1212,13 +1341,11 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainNotificationsRoute: MainNotificationsRoute,
   MainProposalsRoute: MainProposalsRoute,
   MainVoiceRoute: MainVoiceRoute,
+  MainSettingsApiRouteRoute: MainSettingsApiRouteRouteWithChildren,
+  MainSettingsDataControlsRouteRoute:
+    MainSettingsDataControlsRouteRouteWithChildren,
   MainTeamsTeamIdRouteRoute: MainTeamsTeamIdRouteRouteWithChildren,
   MainCodebasesIdRoute: MainCodebasesIdRoute,
-  MainInboxNotificationsRoute: MainInboxNotificationsRoute,
-  MainInboxProposalsRoute: MainInboxProposalsRoute,
-  MainMemoriesGraphRoute: MainMemoriesGraphRoute,
-  MainMemoriesListRoute: MainMemoriesListRoute,
-  MainMemoriesTagsRoute: MainMemoriesTagsRoute,
   MainSettingsConnectorsRoute: MainSettingsConnectorsRoute,
   MainSettingsExtensionRoute: MainSettingsExtensionRoute,
   MainSettingsModelsRoute: MainSettingsModelsRoute,
@@ -1228,20 +1355,11 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsUsageRoute: MainSettingsUsageRoute,
   MainAiLogsIndexRoute: MainAiLogsIndexRoute,
   MainCodebasesIndexRoute: MainCodebasesIndexRoute,
-  MainInboxIndexRoute: MainInboxIndexRoute,
-  MainMemoriesIndexRoute: MainMemoriesIndexRoute,
   MainOpenrouterLogsIndexRoute: MainOpenrouterLogsIndexRoute,
   MainSettingsIndexRoute: MainSettingsIndexRoute,
   MainSvgPlaygroundIndexRoute: MainSvgPlaygroundIndexRoute,
   MainTeamsIndexRoute: MainTeamsIndexRoute,
-  MainSettingsApiKeysRoute: MainSettingsApiKeysRoute,
-  MainSettingsApiUsageRoute: MainSettingsApiUsageRoute,
-  MainSettingsDataControlsDangerRoute: MainSettingsDataControlsDangerRoute,
-  MainSettingsDataControlsExportRoute: MainSettingsDataControlsExportRoute,
-  MainSettingsDataControlsImportRoute: MainSettingsDataControlsImportRoute,
   MainSettingsPlaygroundCallbackRoute: MainSettingsPlaygroundCallbackRoute,
-  MainSettingsApiIndexRoute: MainSettingsApiIndexRoute,
-  MainSettingsDataControlsIndexRoute: MainSettingsDataControlsIndexRoute,
   MainSettingsPlaygroundIndexRoute: MainSettingsPlaygroundIndexRoute,
 };
 
