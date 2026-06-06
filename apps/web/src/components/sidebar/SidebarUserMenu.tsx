@@ -27,6 +27,7 @@ import {
   IconLoader2,
 } from "@tabler/icons-react";
 import { useThemeContext } from "../contexts/ThemeContext";
+import { SidebarIconTooltip } from "./SidebarIconTooltip";
 
 type SidebarUserMenuProps = {
   /** Collapsed (icon-only) rail shows just the avatar; dropdown opens to the side. */
@@ -73,17 +74,18 @@ export function SidebarUserMenu({ collapsed }: SidebarUserMenuProps) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           {collapsed ? (
-            <button
-              type="button"
-              title={name}
-              className="mx-auto flex items-center justify-center rounded-lg p-1 transition-[background-color] hover:bg-surface-tertiary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            >
-              <img
-                src={user.imageUrl}
-                alt={name}
-                className="h-7 w-7 rounded-full object-cover"
-              />
-            </button>
+            <SidebarIconTooltip label={name} enabled>
+              <button
+                type="button"
+                className="mx-auto flex items-center justify-center rounded-lg p-1 transition-[background-color] hover:bg-surface-tertiary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              >
+                <img
+                  src={user.imageUrl}
+                  alt={name}
+                  className="h-7 w-7 rounded-full object-cover"
+                />
+              </button>
+            </SidebarIconTooltip>
           ) : (
             <button
               type="button"

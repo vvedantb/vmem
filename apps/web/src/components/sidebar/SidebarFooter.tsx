@@ -1,15 +1,9 @@
 "use client";
 
-import {
-  Separator,
-  Skeleton,
-  cn,
-  HoverCard,
-  HoverCardTrigger,
-  HoverCardContent,
-} from "@vmem/ui";
+import { Separator, Skeleton, cn } from "@vmem/ui";
 import { IconChartBar } from "@tabler/icons-react";
 import { SidebarUserMenu } from "./SidebarUserMenu";
+import { SidebarIconTooltip } from "./SidebarIconTooltip";
 
 /**
  * Formats a number with abbreviated suffix (k, m, b) and 1 decimal place.
@@ -42,31 +36,15 @@ function StatsCard({
   stats: SidebarStats;
 }) {
   if (isIconOnly) {
+    const statsLabel = `${formatCompactNumber(stats.addedToday)} today · ${formatCompactNumber(stats.total)} total`;
+
     return (
       <div className="flex justify-center">
-        <HoverCard openDelay={200} closeDelay={100}>
-          <HoverCardTrigger asChild>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground cursor-default">
-              <IconChartBar className="h-4 w-4" />
-            </div>
-          </HoverCardTrigger>
-          <HoverCardContent side="right" align="center" className="w-auto p-3">
-            <div className="flex items-baseline gap-4">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
-                  {formatCompactNumber(stats.addedToday)}
-                </span>
-                <span className="text-[11px] text-muted/70">today</span>
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-instrumentSerif tabular-nums text-foreground">
-                  {formatCompactNumber(stats.total)}
-                </span>
-                <span className="text-[11px] text-muted/70">total</span>
-              </div>
-            </div>
-          </HoverCardContent>
-        </HoverCard>
+        <SidebarIconTooltip label={statsLabel} enabled>
+          <div className="flex h-8 w-8 cursor-default items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground">
+            <IconChartBar className="h-4 w-4" />
+          </div>
+        </SidebarIconTooltip>
       </div>
     );
   }
