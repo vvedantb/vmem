@@ -13,7 +13,7 @@ vi.mock("../../convex/lib/openRouter/bestEffortEmbed", () => ({
 import {
   tryEmbedMany,
   tryEmbedOne,
-} from "../../convex/neo4jActions/memories/shared";
+} from "../../convex/neo4jActions/_memories/shared";
 
 describe("tryEmbed adapters", () => {
   beforeEach(() => {

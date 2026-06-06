@@ -7,8 +7,8 @@ import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { generateEmbedding } from "../../lib/openRouter";
-import { runCreateMemory } from "../memories/create";
-import { resolveProfileIdForClerkId } from "../memories/shared";
+import { runCreateMemory } from "../_memories/create";
+import { resolveProfileIdForClerkId } from "../_memories/shared";
 import {
   decideFactUpdate,
   extractFactsFromInstruction,

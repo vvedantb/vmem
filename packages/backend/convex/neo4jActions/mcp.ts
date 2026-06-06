@@ -8,11 +8,11 @@
 
 import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
-import { runUpdateMemory } from "./memories/update";
-import { runDeleteMemory } from "./memories/delete";
-import { runCreateMemory } from "./memories/create";
-import { runRetrieveMemories, runSearchMemories } from "./memories/read";
-import { resolveProfileIdForMcpScope } from "./memories/shared";
+import { runUpdateMemory } from "./_memories/update";
+import { runDeleteMemory } from "./_memories/delete";
+import { runCreateMemory } from "./_memories/create";
+import { runRetrieveMemories, runSearchMemories } from "./_memories/read";
+import { resolveProfileIdForMcpScope } from "./_memories/shared";
 import { runStoreFromInstruction } from "./agent/storeFromInstruction";
 import type { OpenRouterRequired } from "./agent/shared";
 import type { StoreFromInstructionResult } from "./agent/storeFromInstruction";

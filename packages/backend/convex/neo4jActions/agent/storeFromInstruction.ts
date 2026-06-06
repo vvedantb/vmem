@@ -2,8 +2,8 @@
 
 import type { ActionCtx } from "../../_generated/server";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
-import { runCreateMemory } from "../memories/create";
-import { resolveProfileIdForClerkId } from "../memories/shared";
+import { runCreateMemory } from "../_memories/create";
+import { resolveProfileIdForClerkId } from "../_memories/shared";
 import {
   computeSdkFactExternalId,
   extractFactsFromInstruction,
