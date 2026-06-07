@@ -1,8 +1,8 @@
 [] build ci/cd for extension and the vmem sdk - sdk should take in api key
 [] evals are done by building session context inside the test and then calling api per message and reviewing results per message, see vid
-[] update chat to include tool calls and use openrouter I guess - so cloud switch
-[] add / for skills in chat
-[] add nuqs for search in graph , also it aint working
+[x] update chat to include tool calls and use openrouter I guess - so cloud switch
+[x] add / for skills in chat
+[x] add nuqs for search in graph , also it aint working
 
 [~] agent platform (email, payment, browser, sandbox) — deprioritized; likely out of current product vision (May 2026)
 [x] add create memory tool in MCP (`memory_add`, `memory_add_instruction` in packages/backend/convex/mcp/tools.ts)
