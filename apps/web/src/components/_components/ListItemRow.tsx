@@ -151,7 +151,7 @@ export default function ListItemRow({
           Edit
         </ContextMenuItem>
         <ContextMenuItem
-          className="text-danger focus:text-danger"
+          className="text-danger focus:text-danger data-[highlighted]:text-danger"
           onClick={() => onContextDelete(memory)}
         >
           <IconTrash size={16} stroke={1.5} />

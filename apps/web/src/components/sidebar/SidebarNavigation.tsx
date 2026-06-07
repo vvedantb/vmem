@@ -6,6 +6,7 @@ import { IconChevronRight } from "@tabler/icons-react";
 import type { NavIcon, NavItem } from "./types";
 import { navGroups, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
+import { SidebarIconTooltip } from "./SidebarIconTooltip";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { WikiSidebarNav } from "./WikiSidebarNav";
 import { TeamsSidebarNav } from "./TeamsSidebarNav";
@@ -69,48 +70,49 @@ function SubSidebarNavButton({
   const Icon = item.icon as NavIcon;
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={isIconOnly ? item.label : undefined}
-      className={cn(
-        "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
-        isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
-        isMobile ? "py-3.5" : "py-2.5",
-        isActive
-          ? "bg-surface-tertiary text-foreground"
-          : "text-muted hover:bg-surface-tertiary hover:text-foreground",
-      )}
-    >
-      <span className="flex h-5 w-5 items-center justify-center text-current">
-        <Icon size={18} stroke={1.7} />
-      </span>
-      <AnimatePresence initial={false}>
+    <SidebarIconTooltip label={item.label} enabled={isIconOnly}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
+          isIconOnly ? "justify-center px-2 py-2.5" : "gap-3 px-3.5",
+          isMobile ? "py-3.5" : "py-2.5",
+          isActive
+            ? "bg-surface-tertiary text-foreground"
+            : "text-muted hover:bg-surface-tertiary hover:text-foreground",
+        )}
+      >
+        <span className="flex h-5 w-5 items-center justify-center text-current">
+          <Icon size={18} stroke={1.7} />
+        </span>
+        <AnimatePresence initial={false}>
+          {!isIconOnly ? (
+            <motion.span
+              key={`${item.href}-label`}
+              className="min-w-0 flex-1 text-left"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: motionDuration.fast,
+                ease: motionEase,
+              }}
+            >
+              {item.label}
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
         {!isIconOnly ? (
-          <motion.span
-            key={`${item.href}-label`}
-            className="min-w-0 flex-1 text-left"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: motionDuration.fast,
-              ease: motionEase,
-            }}
-          >
-            {item.label}
-          </motion.span>
+          <IconChevronRight
+            size={16}
+            stroke={2}
+            aria-hidden
+            className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100"
+          />
         ) : null}
-      </AnimatePresence>
-      {!isIconOnly ? (
-        <IconChevronRight
-          size={16}
-          stroke={2}
-          aria-hidden
-          className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100"
-        />
-      ) : null}
-    </button>
+      </button>
+    </SidebarIconTooltip>
   );
 }
 
@@ -262,42 +264,43 @@ function SettingsNav({
               const Icon = item.icon as NavIcon;
               return (
                 <li key={item.href}>
-                  <Link
-                    to={item.href}
-                    onClick={onNavigate}
-                    title={isIconOnly ? item.label : undefined}
-                    className={cn(
-                      "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
-                      isIconOnly
-                        ? "justify-center px-2 py-2.5"
-                        : "gap-3 px-3.5",
-                      isMobile ? "py-3.5" : "py-2.5",
-                      isActive
-                        ? "bg-surface-tertiary text-foreground"
-                        : "text-muted hover:bg-surface-tertiary hover:text-foreground",
-                    )}
-                  >
-                    <span className="flex h-5 w-5 items-center justify-center text-current">
-                      <Icon size={18} stroke={1.7} />
-                    </span>
-                    <AnimatePresence initial={false}>
-                      {!isIconOnly ? (
-                        <motion.span
-                          key={`${item.href}-label`}
-                          className="flex-1"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{
-                            duration: motionDuration.fast,
-                            ease: motionEase,
-                          }}
-                        >
-                          {item.label}
-                        </motion.span>
-                      ) : null}
-                    </AnimatePresence>
-                  </Link>
+                  <SidebarIconTooltip label={item.label} enabled={isIconOnly}>
+                    <Link
+                      to={item.href}
+                      onClick={onNavigate}
+                      className={cn(
+                        "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",
+                        isIconOnly
+                          ? "justify-center px-2 py-2.5"
+                          : "gap-3 px-3.5",
+                        isMobile ? "py-3.5" : "py-2.5",
+                        isActive
+                          ? "bg-surface-tertiary text-foreground"
+                          : "text-muted hover:bg-surface-tertiary hover:text-foreground",
+                      )}
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center text-current">
+                        <Icon size={18} stroke={1.7} />
+                      </span>
+                      <AnimatePresence initial={false}>
+                        {!isIconOnly ? (
+                          <motion.span
+                            key={`${item.href}-label`}
+                            className="flex-1"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{
+                              duration: motionDuration.fast,
+                              ease: motionEase,
+                            }}
+                          >
+                            {item.label}
+                          </motion.span>
+                        ) : null}
+                      </AnimatePresence>
+                    </Link>
+                  </SidebarIconTooltip>
                 </li>
               );
             })}

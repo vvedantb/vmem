@@ -11,6 +11,7 @@ import { VmemBrand, VmemBrandText } from "@/components/VmemBrand";
 import { VmemDrawInIcon } from "../svg-animations";
 import type { SidebarNavView } from "./SidebarNavigation";
 import { getSubSidebarTitle } from "./sidebar-header-titles";
+import { SidebarIconTooltip } from "./SidebarIconTooltip";
 
 type SidebarHeaderProps = {
   navView: SidebarNavView;
@@ -26,25 +27,29 @@ function BackButton({
   onClick,
   className,
   label = "Back to main navigation",
+  showTooltip = false,
 }: {
   onClick: () => void;
   className?: string;
   label?: string;
+  showTooltip?: boolean;
 }) {
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon-sm"
-      onClick={onClick}
-      aria-label={label}
-      className={cn(
-        "rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground",
-        className,
-      )}
-    >
-      <IconArrowLeft className="h-4 w-4" />
-    </Button>
+    <SidebarIconTooltip label={label} enabled={showTooltip}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        onClick={onClick}
+        aria-label={label}
+        className={cn(
+          "rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground",
+          className,
+        )}
+      >
+        <IconArrowLeft className="h-4 w-4" />
+      </Button>
+    </SidebarIconTooltip>
   );
 }
 
@@ -57,24 +62,28 @@ function CollapseButton({
   onToggleCollapse: () => void;
   className?: string;
 }) {
+  const label = isCollapsed ? "Expand sidebar" : "Collapse sidebar";
+
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon-sm"
-      onClick={onToggleCollapse}
-      aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-      className={cn(
-        "rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground",
-        className,
-      )}
-    >
-      {isCollapsed ? (
-        <IconLayoutSidebarLeftExpandFilled className="h-4 w-4" />
-      ) : (
-        <IconLayoutSidebarLeftCollapse className="h-4 w-4" />
-      )}
-    </Button>
+    <SidebarIconTooltip label={label} enabled={isCollapsed}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        onClick={onToggleCollapse}
+        aria-label={label}
+        className={cn(
+          "rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground",
+          className,
+        )}
+      >
+        {isCollapsed ? (
+          <IconLayoutSidebarLeftExpandFilled className="h-4 w-4" />
+        ) : (
+          <IconLayoutSidebarLeftCollapse className="h-4 w-4" />
+        )}
+      </Button>
+    </SidebarIconTooltip>
   );
 }
 
@@ -94,32 +103,34 @@ function MainLogoLink({
   onNavigate?: () => void;
 }) {
   return (
-    <Link
-      to="/home"
-      onClick={onNavigate}
-      className={cn(
-        "group flex flex-row items-center gap-2",
-        isCollapsed ? "justify-center" : "col-start-2 justify-self-center",
-      )}
-    >
-      <VmemDrawInIcon size={22} className="text-foreground" />
-      <AnimatePresence initial={false}>
-        {!isCollapsed ? (
-          <motion.span
-            key="sidebar-logo-text"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: motionDuration.fast,
-              ease: motionEase,
-            }}
-          >
-            <VmemBrandText />
-          </motion.span>
-        ) : null}
-      </AnimatePresence>
-    </Link>
+    <SidebarIconTooltip label="Home" enabled={isCollapsed}>
+      <Link
+        to="/home"
+        onClick={onNavigate}
+        className={cn(
+          "group flex flex-row items-center gap-2",
+          isCollapsed ? "justify-center" : "col-start-2 justify-self-center",
+        )}
+      >
+        <VmemDrawInIcon size={22} className="text-foreground" />
+        <AnimatePresence initial={false}>
+          {!isCollapsed ? (
+            <motion.span
+              key="sidebar-logo-text"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: motionDuration.fast,
+                ease: motionEase,
+              }}
+            >
+              <VmemBrandText />
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
+      </Link>
+    </SidebarIconTooltip>
   );
 }
 
@@ -170,7 +181,7 @@ export function SidebarHeader({
     return (
       <div className="mb-6 flex flex-col items-center gap-3 px-2 pb-2">
         {isSubView ? (
-          <BackButton onClick={onBack} />
+          <BackButton onClick={onBack} showTooltip />
         ) : (
           <MainLogoLink isCollapsed />
         )}

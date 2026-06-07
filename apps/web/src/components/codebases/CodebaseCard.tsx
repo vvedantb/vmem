@@ -101,7 +101,7 @@ export function CodebaseCard({ codebase }: CodebaseCardProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleDelete}
-          className="text-danger focus:text-danger"
+          className="text-danger focus:text-danger data-[highlighted]:text-danger"
         >
           <IconTrash size={14} className="mr-2" />
           Remove
@@ -130,7 +130,7 @@ export function CodebaseCard({ codebase }: CodebaseCardProps) {
       <ContextMenuSeparator />
       <ContextMenuItem
         onClick={handleDelete}
-        className="text-danger focus:text-danger"
+        className="text-danger focus:text-danger data-[highlighted]:text-danger"
       >
         <IconTrash size={14} className="mr-2" />
         Remove

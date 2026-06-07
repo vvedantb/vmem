@@ -4,9 +4,9 @@ import { memo, type HTMLAttributes, type ComponentProps } from "react";
 import type { UIMessage } from "ai";
 import { Streamdown } from "streamdown";
 import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
+import { code } from "./code-highlighter";
 import { cn } from "../utils/cn";
 import { Button } from "../ui/button";
 import {

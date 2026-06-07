@@ -10,9 +10,9 @@ import {
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { Streamdown } from "streamdown";
 import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
+import { code } from "./code-highlighter";
 import { IconChevronDown } from "@tabler/icons-react";
 import { cn } from "../utils/cn";
 import {

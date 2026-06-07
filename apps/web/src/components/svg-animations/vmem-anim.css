@@ -10,9 +10,6 @@
  * tinting comes from CSS `color` on the parent. `transform-box: fill-box`
  * + `transform-origin: center` is used wherever per-petal transforms need
  * to pivot around each petal's bounding box (rather than the SVG origin).
- *
- * `@media (prefers-reduced-motion: reduce)` at the bottom disables every
- * animation in this file in one place — required for accessibility.
  */
 
 /* ============================================================ */
@@ -400,32 +397,3 @@
 
 /* 12. Trail-following dot — handled inline via SMIL <animateMotion> */
 /* 13. Glow aura pulse — handled inline via SMIL on filter feGaussianBlur */
-
-/* ============================================================ */
-/* Reduced-motion accessibility                                 */
-/* ============================================================ */
-/* @media (prefers-reduced-motion: reduce) {
-  .vmem-breathing,
-  .vmem-sequencer .vmem-petal,
-  .vmem-trace path,
-  .vmem-draw-in:not(.vmem-draw-in-mounted) path,
-  .vmem-draw-in-mounted path,
-  .group:hover .vmem-draw-in-mounted path,
-  .vmem-blossom .vmem-petal,
-  .vmem-converge .conv-left,
-  .vmem-converge .conv-right,
-  .vmem-converge .conv-top,
-  .vmem-tune-in path,
-  .vmem-absorb,
-  .vmem-pulse-glow,
-  .vmem-fork .conv-left,
-  .vmem-fork .conv-right,
-  .vmem-fork .conv-top {
-    animation: none !important;
-  }
-  .vmem-magnetic .conv-left,
-  .vmem-magnetic .conv-right,
-  .vmem-magnetic .conv-top {
-    transition: none !important;
-  }
-} */

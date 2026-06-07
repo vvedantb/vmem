@@ -2,12 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { IconBolt, IconBrain, IconTopologyStar3 } from "@tabler/icons-react";
-import {
-  motion,
-  useReducedMotion,
-  useScroll,
-  useTransform,
-} from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { VmemBrand } from "@/components/VmemBrand";
 import { LandingAmbientGraph } from "./LandingAmbientGraph";
@@ -55,7 +50,6 @@ function getNarrowViewportServerSnapshot() {
 }
 
 export function LandingPage() {
-  const prefersReducedMotion = useReducedMotion();
   const isNarrowViewport = useSyncExternalStore(
     subscribeNarrowViewport,
     getNarrowViewportSnapshot,
@@ -64,7 +58,7 @@ export function LandingPage() {
   const { scrollY } = useScroll();
   const ambientY = useTransform(scrollY, [0, 480], [0, 56]);
   const ambientOpacity = useTransform(scrollY, [0, 320], [1, 0.72]);
-  const parallaxEnabled = !prefersReducedMotion && !isNarrowViewport;
+  const parallaxEnabled = !isNarrowViewport;
 
   return (
     <div className="relative min-h-[100dvh] bg-background text-foreground">

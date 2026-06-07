@@ -120,8 +120,16 @@ export interface MemoryGraphController {
 
 export function useMemoryGraphController({
   focusNodeId,
+  enabled = true,
 }: {
   focusNodeId: string | null;
+  /**
+   * When false the controller stays mounted (so the graph route never loses
+   * its context during a tab transition) but skips all data fetching. Set to
+   * false while the list view is active so we don't fetch graph data for a
+   * view that never reads it.
+   */
+  enabled?: boolean;
 }): MemoryGraphController {
   const { theme } = useThemeContext();
 
@@ -141,7 +149,7 @@ export function useMemoryGraphController({
     isLoading,
     isError,
     error,
-  } = useGraphData(focusNodeId, params.profile);
+  } = useGraphData(focusNodeId, params.profile, enabled);
 
   const searchQuery = params.q.trim();
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -160,7 +168,7 @@ export function useMemoryGraphController({
         limit: 500,
         offset: 0,
       }),
-    enabled: deferredSearchQuery.length > 0,
+    enabled: enabled && deferredSearchQuery.length > 0,
     staleTime: 30_000,
   });
 

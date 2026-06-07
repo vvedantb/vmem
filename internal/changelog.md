@@ -1,5 +1,22 @@
 # Changelog
 
+## Sidebar account menu — 2026-06-07
+
+- **Sidebar footer**: User identity is now a single card (avatar, name, email) that opens an account dropdown — Manage account, light/dark toggle, and Sign out — replacing Clerk's `<UserButton>` plus the standalone theme button.
+- **Sign out**: Now asks for confirmation in a dialog before signing out, since it's destructive.
+
+## Memory graph tab switch crash — 2026-06-07
+
+- **Memory tabs**: Fixed crash when switching between graph/list views. The provider now stays mounted across both subroutes so the graph context never unmounts mid-transition. Graph data fetching is gated by an `enabled` flag so the list view avoids unnecessary queries.
+
+## UI motion (transitions.dev) — 2026-06-06
+
+- **Dialogs**: Modal open/close scales and fades via shared `DialogContent` — replaces Tailwind zoom/slide on every dialog.
+- **Search**: Header and sidebar search fields get a clear (×) button; clearing runs a dissolve animation (text flies out, placeholder returns) instead of snapping empty.
+- **Tabs**: Tab bars slide an active pill between options — memories graph/list, memory detail tabs, files grid/list, chrome extension popup.
+- **Tabs (route groups)**: Activity, memories, inbox, API settings, and data-controls tab bars stay mounted in layout routes so the pill animates on tab switch instead of snapping.
+- **Motion policy**: Removed `prefers-reduced-motion` CSS/JS guards so transitions always run; Framer Motion was already `reducedMotion="never"`.
+
 ## @vmem/shared package — 2026-06-06
 
 - **`@vmem/shared`**: New workspace package for cross-app constants (`PARSER_VERSION`) and client-safe chat/voice prompt builders — moved out of Convex so web/mobile no longer pull prompt text through `@vmem/backend`.

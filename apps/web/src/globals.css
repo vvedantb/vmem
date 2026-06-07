@@ -1,5 +1,28 @@
 @import "./styles/sidebar-icons.css";
 
+/* transitions-dev — modal + input clear (see .claude/skills/transitions-dev/) */
+:root {
+  --modal-open-dur: 250ms;
+  --modal-close-dur: 150ms;
+  --modal-scale: 0.96;
+  --modal-scale-close: 0.96;
+  --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --clear-dur: 1000ms;
+  --clear-out-dur: 400ms;
+  --clear-in-dur: 400ms;
+  --clear-out-fly: 12px;
+  --clear-in-fly: 12px;
+  --clear-out-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --clear-in-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --clear-blur: 2px;
+  --glow-delay: 50ms;
+  --glow-peak-at: 0.15;
+  --glow-opacity: 0.85;
+  --glow-spread: 1.5;
+  --tabs-dur: 200ms;
+  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -101,6 +124,10 @@
 
     --radius: 1rem;
     --field-radius: 1.25rem;
+    --tabs-text-muted: var(--muted);
+    --tabs-text-active: var(--segment-foreground);
+    --tabs-bar-bg: var(--default);
+    --tabs-pill-bg: var(--segment);
   }
 
   .dark,
@@ -152,6 +179,10 @@
 
     --radius: 1rem;
     --field-radius: 1.25rem;
+    --tabs-text-muted: var(--muted);
+    --tabs-text-active: var(--segment-foreground);
+    --tabs-bar-bg: var(--default);
+    --tabs-pill-bg: var(--segment);
   }
 }
 
@@ -189,20 +220,136 @@
 }
 
 @layer components {
+  /* Transitions.dev — Modal open / close */
+  .t-modal {
+    transform-origin: center;
+    transform: translate(-50%, -50%) scale(var(--modal-scale));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--modal-open-dur) var(--modal-ease),
+      opacity var(--modal-open-dur) var(--modal-ease);
+    will-change: transform, opacity;
+  }
+  .t-modal.is-open {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .t-modal.is-closing {
+    transform: translate(-50%, -50%) scale(var(--modal-scale-close));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--modal-close-dur) var(--modal-ease),
+      opacity var(--modal-close-dur) var(--modal-ease);
+    /* Radix Presence waits on animationend, not transitionend */
+    animation: t-modal-presence-wait var(--modal-close-dur) linear forwards;
+  }
+
+  @keyframes t-modal-presence-wait {
+    from {
+      clip-path: inset(0);
+    }
+    to {
+      clip-path: inset(0);
+    }
+  }
+
+  /* Transitions.dev — Input clear with dissolve */
+  .t-clear {
+    position: relative;
+    overflow: hidden;
+  }
+  .t-clear-mirror,
+  .t-clear-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    z-index: 2;
+  }
+  .t-clear-mirror {
+    opacity: 0;
+  }
+  .t-clear.has-value .t-clear-mirror,
+  .t-clear.is-clearing .t-clear-mirror {
+    opacity: 1;
+  }
+  .t-clear.has-value > input,
+  .t-clear.is-clearing > input {
+    -webkit-text-fill-color: transparent;
+  }
+  .t-clear.has-value .t-clear-placeholder {
+    opacity: 0;
+  }
+  .t-clear-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 3;
+    mix-blend-mode: multiply;
+  }
+
+  .dark .t-clear-glow,
+  [data-theme="dark"] .t-clear-glow {
+    mix-blend-mode: screen;
+  }
+
+  /* Transitions.dev — Tabs sliding */
+  .t-tabs {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 48px;
+    background: var(--tabs-bar-bg);
+  }
+  .t-tab {
+    position: relative;
+    appearance: none;
+    border: 0;
+    background: transparent;
+    height: 30px;
+    padding: 4px 12px;
+    color: var(--tabs-text-muted);
+    cursor: pointer;
+    border-radius: 48px;
+    z-index: 1;
+    transition: color var(--tabs-dur) var(--tabs-ease);
+  }
+  .t-tab:not([aria-selected="true"]):not([data-state="active"]):hover,
+  .t-tab[aria-selected="true"],
+  .t-tab[data-state="active"] {
+    color: var(--tabs-text-active);
+  }
+  .t-tabs-pill {
+    position: absolute;
+    top: 3px;
+    left: 0;
+    height: 30px;
+    width: 0;
+    background: var(--tabs-pill-bg);
+    border-radius: 48px;
+    transform: translateX(0);
+    transition:
+      transform var(--tabs-dur) var(--tabs-ease),
+      width var(--tabs-dur) var(--tabs-ease),
+      top var(--tabs-dur) var(--tabs-ease),
+      height var(--tabs-dur) var(--tabs-ease);
+    will-change: transform, width;
+    z-index: 0;
+    pointer-events: none;
+  }
+
   .glass-panel-strong {
     @apply bg-overlay;
     box-shadow: var(--overlay-shadow);
-  }
-
-  /* HeroUI tabs: list = bg-default; active pill = bg-segment + segment-foreground. */
-  .glass-tab-trigger[data-state="active"] {
-    @apply bg-segment text-segment-foreground;
-  }
-
-  @media (hover: hover) {
-    .glass-tab-trigger[data-state="inactive"]:hover {
-      @apply opacity-70;
-    }
   }
 }
 

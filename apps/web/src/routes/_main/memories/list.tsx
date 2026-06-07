@@ -1,10 +1,9 @@
+"use client";
+
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense } from "react";
-import PageContainer from "@/components/PageContainer";
 import MemorySearch from "@/components/MemorySearch";
-import MemoryListHeaderControls from "@/components/_components/MemoryListHeaderControls";
 import TagsListView from "@/components/_components/TagsListView";
-import { MemoriesTabs } from "./-components/MemoriesTabs";
 import { useMemoriesSearchParams } from "./useMemoriesSearchParams";
 
 export const Route = createFileRoute("/_main/memories/list")({
@@ -12,25 +11,14 @@ export const Route = createFileRoute("/_main/memories/list")({
 });
 
 /**
- * Branches on the `view` URL param: the default "memories" view renders the
- * unified search/list (memories + wiki + skills); "tags" renders the
- * aggregated tag rows that previously lived at /memories/tags. Branching at
- * the route keeps each child a pure renderer — neither has to noop its
- * hooks based on the other's view.
+ * Branches on the `view` URL param: default "memories" renders search/list;
+ * `view=tags` renders aggregated tag rows (legacy /memories/tags redirect).
  */
 function MemoriesListPage() {
   const [params] = useMemoriesSearchParams();
   const isTagsView = params.view === "tags";
 
   return (
-    <PageContainer
-      title="Memories"
-      showTitle={false}
-      noScroll
-      leftSection={<MemoriesTabs />}
-      rightSection={<MemoryListHeaderControls />}
-    >
-      <Suspense>{isTagsView ? <TagsListView /> : <MemorySearch />}</Suspense>
-    </PageContainer>
+    <Suspense>{isTagsView ? <TagsListView /> : <MemorySearch />}</Suspense>
   );
 }

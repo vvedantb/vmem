@@ -1,5 +1,4 @@
 node_modules
-.agents/
 .env.local
 .mcp.json
 .next

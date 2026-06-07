@@ -13,7 +13,6 @@ import {
   motionTiming,
   motionEase,
 } from "@vmem/ui";
-import { useThemeContext } from "./contexts/ThemeContext";
 import { useUser } from "@clerk/clerk-react";
 import { useConvexAuth, useAction } from "convex/react";
 import { api } from "@vmem/backend";
@@ -45,7 +44,6 @@ export default function Sidebar({
   );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuId = useId();
-  const { isDark, toggleTheme, mounted } = useThemeContext();
   const { isLoaded } = useUser();
   const isAuthLoading = !isLoaded;
   const { unreadCount } = useNotifications();
@@ -172,9 +170,6 @@ export default function Sidebar({
               <SidebarFooter
                 isCollapsed={false}
                 isMobile
-                mounted={mounted}
-                isDark={isDark}
-                toggleTheme={toggleTheme}
                 isAuthLoading={isAuthLoading}
                 stats={stats}
                 showStats={navView === "main"}
@@ -211,9 +206,6 @@ export default function Sidebar({
           <SidebarFooter
             isCollapsed={isCollapsed}
             isMobile={false}
-            mounted={mounted}
-            isDark={isDark}
-            toggleTheme={toggleTheme}
             isAuthLoading={isAuthLoading}
             stats={stats}
             showStats={navView === "main"}

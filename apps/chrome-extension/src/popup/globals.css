@@ -200,13 +200,49 @@ select,
   transform: scale(0.96);
 }
 
-.glass-tab-trigger[data-state="active"] {
-  background: var(--segment);
+/* Transitions.dev — Tabs sliding (matches apps/web globals.css) */
+.t-tabs {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 48px;
+  background: var(--default);
+}
+.t-tab {
+  position: relative;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  height: 30px;
+  padding: 4px 12px;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 48px;
+  z-index: 1;
+  transition: color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.t-tab:not([aria-selected="true"]):not([data-state="active"]):hover,
+.t-tab[aria-selected="true"],
+.t-tab[data-state="active"] {
   color: var(--segment-foreground);
 }
-
-@media (hover: hover) {
-  .glass-tab-trigger[data-state="inactive"]:hover {
-    opacity: 0.7;
-  }
+.t-tabs-pill {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: 30px;
+  width: 0;
+  background: var(--segment);
+  border-radius: 48px;
+  transform: translateX(0);
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    top 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, width;
+  z-index: 0;
+  pointer-events: none;
 }
