@@ -50,10 +50,6 @@ import sql from "@shikijs/langs/sql";
 import cypher from "@shikijs/langs/cypher";
 import go from "@shikijs/langs/go";
 import rust from "@shikijs/langs/rust";
-import java from "@shikijs/langs/java";
-import c from "@shikijs/langs/c";
-import cpp from "@shikijs/langs/cpp";
-import ruby from "@shikijs/langs/ruby";
 import diff from "@shikijs/langs/diff";
 import dockerfile from "@shikijs/langs/dockerfile";
 import toml from "@shikijs/langs/toml";
@@ -88,10 +84,6 @@ const SUPPORTED_LANGUAGES: BundledLanguage[] = [
   "cypher",
   "go",
   "rust",
-  "java",
-  "c",
-  "cpp",
-  "ruby",
   "diff",
   "dockerfile",
   "toml",
@@ -112,7 +104,6 @@ const LANGUAGE_ALIASES: Record<string, string> = {
   rs: "rust",
   golang: "go",
   docker: "dockerfile",
-  rb: "ruby",
 };
 
 function normalizeLanguage(language: string): string {
@@ -144,10 +135,6 @@ function getHighlighter(): Promise<HighlighterCore> {
         cypher,
         go,
         rust,
-        java,
-        c,
-        cpp,
-        ruby,
         diff,
         dockerfile,
         toml,
