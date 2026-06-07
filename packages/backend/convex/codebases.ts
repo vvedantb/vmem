@@ -5,6 +5,7 @@ import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
 import { DAILY_SYNC_STALE_MS, STALE_SYNCING_MS } from "./codebaseSyncConstants";
 import type { Id } from "./_generated/dataModel";
 import { decryptToken } from "./lib/crypto";
+import { retrier } from "./retrier";
 
 // --- GitHub API response shape for repos ---
 
@@ -155,8 +156,11 @@ export const removeCodebase = authMutation({
     });
     await ctx.db.delete(normalizedId);
     if (clerkId) {
-      await ctx.scheduler.runAfter(
-        0,
+      // Retried (not plain scheduled) so a transient Neo4j outage can't leave
+      // orphaned graph nodes behind after the row is already gone. The delete
+      // is idempotent — re-running it on already-deleted nodes is a no-op.
+      await retrier.run(
+        ctx,
         internal.neo4jActions.codebases.deleteCodebaseInternal,
         { clerkId, codebaseId: normalizedId },
       );
