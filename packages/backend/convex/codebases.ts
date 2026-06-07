@@ -30,18 +30,19 @@ export const listMy = authQuery({
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .collect();
 
-    // Batch-resolve avatar URLs from GitHub connections
-    const connectionCache = new Map<string, string | undefined>();
-    return Promise.all(
-      codebases.map(async (cb) => {
-        const connId = cb.githubConnectionId.toString();
-        if (!connectionCache.has(connId)) {
-          const conn = await ctx.db.get(cb.githubConnectionId);
-          connectionCache.set(connId, conn?.avatarUrl);
-        }
-        return { ...cb, avatarUrl: connectionCache.get(connId) };
-      }),
-    );
+    // Resolve the avatar from the user's *current* GitHub connection rather
+    // than each codebase's stored `githubConnectionId`. A disconnect deletes
+    // the connection row and a reconnect creates a new one (e.g. after a
+    // username change), so codebases added under an old connection would
+    // otherwise point at a deleted row and lose their avatar. A user has a
+    // single connection (queried `by_user`), so one lookup covers all rows.
+    const connection = await ctx.db
+      .query("githubConnections")
+      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+      .first();
+    const avatarUrl = connection?.avatarUrl;
+
+    return codebases.map((cb) => ({ ...cb, avatarUrl }));
   },
 });
 
