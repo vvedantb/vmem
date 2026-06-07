@@ -147,8 +147,38 @@ export const removeCodebase = authMutation({
     if (!codebase || codebase.userId !== ctx.userId) {
       throw new Error("Codebase not found");
     }
+    // Delete the Convex row immediately (keeps the optimistic update snappy)
+    // and schedule Neo4j cleanup. The graph data is scoped by clerkId, so we
+    // resolve it before handing off to the Node-runtime delete action.
+    const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
+      userId: ctx.userId,
+    });
     await ctx.db.delete(normalizedId);
-    // Note: Neo4j cleanup happens when Hono API is called with delete
+    if (clerkId) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.neo4jActions.codebases.deleteCodebaseInternal,
+        { clerkId, codebaseId: normalizedId },
+      );
+    }
+  },
+});
+
+/**
+ * Archive or unarchive a codebase. Archived codebases retain all their data
+ * but are skipped by the scheduled daily sync and hidden from the main
+ * sidebar list (surfaced in a collapsed "Archived" accordion instead).
+ */
+export const setArchived = authMutation({
+  args: { id: v.string(), archived: v.boolean() },
+  handler: async (ctx, args) => {
+    const normalizedId = ctx.db.normalizeId("codebases", args.id);
+    if (!normalizedId) throw new Error("Invalid codebase id");
+    const codebase = await ctx.db.get(normalizedId);
+    if (!codebase || codebase.userId !== ctx.userId) {
+      throw new Error("Codebase not found");
+    }
+    await ctx.db.patch(normalizedId, { isArchived: args.archived });
   },
 });
 
@@ -186,10 +216,14 @@ export const syncCodebase = authAction({
 export const syncAllMy = authAction({
   args: {},
   handler: async (ctx) => {
-    const codebases: Array<{ _id: string }> = await ctx.runQuery(
-      internal.codebases.listMyInternal,
-      { userId: ctx.userId },
-    );
+    // Explicit type breaks the circular inference caused by re-entering
+    // `api.codebases.syncCodebase` below (this action references itself).
+    const allCodebases: Array<{ _id: string; isArchived?: boolean }> =
+      await ctx.runQuery(internal.codebases.listMyInternal, {
+        userId: ctx.userId,
+      });
+    // Archived codebases are intentionally excluded from re-syncs.
+    const codebases = allCodebases.filter((cb) => !cb.isArchived);
     for (const cb of codebases) {
       try {
         // Re-entering the public sync action keeps all the auth/token
@@ -337,6 +371,7 @@ export const listForDailySyncInternal = internalQuery({
     const out: Array<{ codebaseId: Id<"codebases"> }> = [];
 
     for (const cb of all) {
+      if (cb.isArchived) continue;
       const syncingStale =
         cb.status === "syncing" &&
         (cb.syncStartedAt === undefined ||

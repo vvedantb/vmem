@@ -148,6 +148,12 @@ export const codebaseFields = {
   ),
   /** Set when status becomes `syncing`; used to recover stuck syncs. */
   syncStartedAt: v.optional(v.number()),
+  /**
+   * Archived codebases keep all their data but are excluded from scheduled
+   * syncs and hidden from the main sidebar list (shown in a collapsed
+   * "Archived" accordion instead). Undefined/false = active.
+   */
+  isArchived: v.optional(v.boolean()),
 };
 
 /**

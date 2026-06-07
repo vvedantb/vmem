@@ -1,5 +1,11 @@
 # Changelog
 
+## Codebase archive & delete — 2026-06-08
+
+- **Sidebar context menu**: Right-clicking a codebase in the sidebar now offers Archive/Unarchive and Delete.
+- **Delete**: Opens a confirmation modal and permanently removes the codebase row plus all of its indexed Neo4j graph data (the previously orphaned cleanup action is now wired up).
+- **Archive**: Keeps all data but excludes the codebase from scheduled/manual re-syncs and hides it from the main sidebar list under a collapsed "Archived" accordion.
+
 ## Sidebar account menu — 2026-06-07
 
 - **Sidebar footer**: User identity is now a single card (avatar, name, email) that opens an account dropdown — Manage account, light/dark toggle, and Sign out — replacing Clerk's `<UserButton>` plus the standalone theme button.

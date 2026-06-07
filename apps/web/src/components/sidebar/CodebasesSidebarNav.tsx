@@ -8,16 +8,26 @@ import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { PARSER_VERSION } from "@vmem/shared";
-import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
+import {
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+  cn,
+  motionDuration,
+  motionEase,
+} from "@vmem/ui";
 import {
   IconAlertCircle,
+  IconArchive,
+  IconChevronRight,
   IconDatabase,
   IconLoader2,
   IconPlus,
   IconRefresh,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { CodebaseSidebarCard } from "@/components/codebases/CodebaseSidebarCard";
+import { CodebaseSidebarItem } from "@/components/codebases/CodebaseSidebarItem";
 import { CodebasesSearchBar } from "@/components/codebases/CodebasesSearchBar";
 import { AddRepoModal } from "@/components/codebases/AddRepoModal";
 import { codebasesListSearchParams } from "@/routes/_main/codebases/-list-searchParams";
@@ -50,6 +60,7 @@ export function CodebasesSidebarNav({
     () =>
       (codebases ?? []).filter(
         (cb) =>
+          !cb.isArchived &&
           cb.status === "synced" &&
           (cb.parserVersion === undefined ||
             cb.parserVersion !== PARSER_VERSION),
@@ -70,6 +81,15 @@ export function CodebasesSidebarNav({
         (cb.description?.toLowerCase().includes(query) ?? false),
     );
   }, [codebases, searchQuery]);
+
+  const activeCodebases = useMemo(
+    () => filteredCodebases.filter((cb) => !cb.isArchived),
+    [filteredCodebases],
+  );
+  const archivedCodebases = useMemo(
+    () => filteredCodebases.filter((cb) => cb.isArchived),
+    [filteredCodebases],
+  );
 
   const openCodebase = (id: Id<"codebases">) => {
     void navigate({ to: "/codebases/$id", params: { id } });
@@ -165,16 +185,44 @@ export function CodebasesSidebarNav({
                 </p>
               ) : null
             ) : (
-              <div className="flex flex-col gap-0.5">
-                {filteredCodebases.map((codebase) => (
-                  <CodebaseSidebarCard
-                    key={codebase._id}
-                    codebase={codebase}
-                    selected={codebaseId === codebase._id}
-                    onSelect={() => openCodebase(codebase._id)}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="flex flex-col gap-0.5">
+                  {activeCodebases.map((codebase) => (
+                    <CodebaseSidebarItem
+                      key={codebase._id}
+                      codebase={codebase}
+                      selected={codebaseId === codebase._id}
+                      onSelect={() => openCodebase(codebase._id)}
+                    />
+                  ))}
+                </div>
+
+                {!isIconOnly && archivedCodebases.length > 0 ? (
+                  <Collapsible className="mt-2">
+                    <CollapsibleTrigger className="group flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-muted transition-[background-color] hover:bg-surface-tertiary">
+                      <IconChevronRight
+                        size={14}
+                        className="shrink-0 transition-transform group-data-[state=open]:rotate-90"
+                      />
+                      <IconArchive size={14} className="shrink-0" />
+                      <span>Archived</span>
+                      <span className="ml-auto tabular-nums">
+                        {archivedCodebases.length}
+                      </span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-0.5 flex flex-col gap-0.5">
+                      {archivedCodebases.map((codebase) => (
+                        <CodebaseSidebarItem
+                          key={codebase._id}
+                          codebase={codebase}
+                          selected={codebaseId === codebase._id}
+                          onSelect={() => openCodebase(codebase._id)}
+                        />
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                ) : null}
+              </>
             )}
           </>
         )}
