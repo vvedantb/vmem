@@ -253,6 +253,9 @@ importers:
       tailwindcss:
         specifier: catalog:tailwind4
         version: 4.2.2
+      tailwindcss-animate:
+        specifier: ^1.0.7
+        version: 1.0.7(tailwindcss@4.2.2)
       tsx:
         specifier: 'catalog:'
         version: 4.21.0
@@ -11336,7 +11339,7 @@ snapshots:
       metro-babel-transformer: 0.84.4
       metro-cache: 0.84.4
       metro-cache-key: 0.84.4
-      metro-config: 0.84.4(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      metro-config: 0.84.4(bufferutil@4.1.0)
       metro-core: 0.84.4
       metro-file-map: 0.84.4
       metro-minify-terser: 0.84.4
@@ -13036,7 +13039,7 @@ snapshots:
       debug: 4.4.3
       invariant: 2.2.4
       metro: 0.84.4(bufferutil@4.1.0)
-      metro-config: 0.84.4(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      metro-config: 0.84.4(bufferutil@4.1.0)
       metro-core: 0.84.4
       semver: 7.7.4
     transitivePeerDependencies:
@@ -17412,6 +17415,21 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  metro-config@0.84.4(bufferutil@4.1.0):
+    dependencies:
+      connect: 3.7.0
+      flow-enums-runtime: 0.0.6
+      jest-validate: 29.7.0
+      metro: 0.84.4(bufferutil@4.1.0)
+      metro-cache: 0.84.4
+      metro-core: 0.84.4
+      metro-runtime: 0.84.4
+      yaml: 2.8.3
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
   metro-config@0.84.4(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     dependencies:
       connect: 3.7.0
@@ -17562,7 +17580,7 @@ snapshots:
       metro-babel-transformer: 0.84.4
       metro-cache: 0.84.4
       metro-cache-key: 0.84.4
-      metro-config: 0.84.4(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      metro-config: 0.84.4(bufferutil@4.1.0)
       metro-core: 0.84.4
       metro-file-map: 0.84.4
       metro-resolver: 0.84.4
@@ -19592,6 +19610,10 @@ snapshots:
   tailwindcss-animate@1.0.7(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.8.3)):
     dependencies:
       tailwindcss: 3.4.19(tsx@4.21.0)(yaml@2.8.3)
+
+  tailwindcss-animate@1.0.7(tailwindcss@4.2.2):
+    dependencies:
+      tailwindcss: 4.2.2
 
   tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.8.3):
     dependencies:
