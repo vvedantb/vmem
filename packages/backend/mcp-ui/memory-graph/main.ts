@@ -96,24 +96,38 @@ let panStartY = 0;
 let panOriginX = 0;
 let panOriginY = 0;
 
-const canvas = document.getElementById("graph-canvas");
-const loadingEl = document.getElementById("loading");
-const statsEl = document.getElementById("stats");
-const hintEl = document.getElementById("hint");
-const bannerEl = document.getElementById("banner");
+// Accessor helpers return non-null element types so the narrowing survives
+// into the functions below (TS does not carry module-level null checks into
+// function bodies). The bundled HTML always contains these elements.
+function requireElement(id: string): HTMLElement {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`#${id} element missing`);
+  return el;
+}
+
+function requireCanvas(id: string): HTMLCanvasElement {
+  const el = document.getElementById(id);
+  if (!(el instanceof HTMLCanvasElement)) {
+    throw new Error(`#${id} canvas missing`);
+  }
+  return el;
+}
+
+const canvas = requireCanvas("graph-canvas");
+const loadingEl = requireElement("loading");
+const statsEl = requireElement("stats");
+const hintEl = requireElement("hint");
+const bannerEl = requireElement("banner");
 const legendStatsEl = document.getElementById("legend-stats");
 const btnZoomIn = document.getElementById("btn-zoom-in");
 const btnZoomOut = document.getElementById("btn-zoom-out");
 const btnFit = document.getElementById("btn-fit");
 
-if (!(canvas instanceof HTMLCanvasElement)) {
-  throw new Error("graph-canvas element missing");
-}
-
-const ctx = canvas.getContext("2d");
-if (!ctx) {
+const ctx2d = canvas.getContext("2d");
+if (!ctx2d) {
   throw new Error("2d context unavailable");
 }
+const ctx: CanvasRenderingContext2D = ctx2d;
 
 /** Same hue hash as apps/web graph-colors.ts */
 function tagToHue(tag: string): number {

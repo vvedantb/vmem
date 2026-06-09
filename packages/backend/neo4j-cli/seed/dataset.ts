@@ -4052,7 +4052,9 @@ export const fullMemories = memories;
 export const fullRelationships = relationships;
 export const handcraftedMemories = memories.slice(0, HANDCRAFTED_MEMORY_COUNT);
 
-const handcraftedMemoryIds = new Set(
+// Set<string> (not the crypto.randomUUID template-literal type) so it can be
+// queried with the plain-string ids used by generateBulkRelationships.
+const handcraftedMemoryIds = new Set<string>(
   handcraftedMemories.map((memory) => memory.id),
 );
 
