@@ -1,5 +1,10 @@
 # Changelog
 
+## Memory graph performance: simulation sleep — 2026-06-09
+
+- **Zero idle CPU**: The graph's physics worker now stops its tick loop entirely once the layout settles (previously it ran force passes + position transfers at 30fps forever), and the canvas only repaints when something actually changed — simulation motion, camera movement, hover/drag, or a prop change.
+- **Better drag physics**: Dragging a node now keeps the simulation warm (d3 `alphaTarget` pattern), so neighbours react to the moving node instead of staying frozen until release.
+
 ## Typecheck performance overhaul — 2026-06-09
 
 - **Web typecheck 39s → ~12s cold / 0.7s warm, backend 25s → ~3s**: found and removed the two type-level bombs dominating every `tsgo` run across the monorepo.

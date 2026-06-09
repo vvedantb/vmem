@@ -15,7 +15,7 @@ import type {
   ViewportState,
 } from "./canvas/types";
 import type { SimulationController } from "./canvas/simulation";
-import { createSimulation } from "./canvas/simulation";
+import { createSimulation, SLEEP_ALPHA } from "./canvas/simulation";
 import {
   createViewport,
   tickViewport,
@@ -110,6 +110,11 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     });
     const spatialIndexRef = useRef(createSpatialIndex());
     const hasFittedRef = useRef(false);
+    // Render-on-demand: set on every React render (any prop change — theme,
+    // search, labels, focus…) so the canvas repaints once, then goes back to
+    // sleep. The rAF loop also self-triggers on sim/viewport/interaction
+    // motion; this flag covers everything that arrives via props.
+    const needsRenderRef = useRef(true);
     // Connector logos preload asynchronously. We hold an empty map on mount
     // and populate it once the images resolve — nodes render as plain circles
     // in the interim, no layout shift when the logos drop in.
@@ -139,6 +144,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       onLinkNodes,
       onFocusNode,
     };
+    needsRenderRef.current = true;
 
     useEffect(() => {
       if (simRef.current) {
@@ -297,17 +303,59 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       let lastEdgesRef = edgesRef.current;
       let allEdgesResolved = false;
       let frameCount = 0;
+      // Render-on-demand state. The rAF loop never stops (its idle cost is a
+      // handful of comparisons), but all real work — physics-driven index
+      // rebuilds and the canvas draw — is skipped while the simulation is
+      // asleep, the camera is still, and no interaction/prop changed.
+      let lastInteractionKey = "";
+      let lastVpOffsetX = Number.NaN;
+      let lastVpOffsetY = Number.NaN;
+      let lastVpScale = Number.NaN;
+      let wasMoving = true;
 
       function tick() {
         sim.tick();
         tickViewport(viewportRef.current);
 
-        markDirty(spatialIndexRef.current);
+        const simActive = sim.alpha() >= SLEEP_ALPHA;
+        const isDragging = interactionRef.current.draggedNodeId !== null;
+        const positionsMoving = simActive || isDragging;
 
-        frameCount++;
-        if (frameCount % 3 === 0) {
+        // Compare viewport state frame-to-frame: catches spring/momentum from
+        // tickViewport AND direct mutations from pan/pinch/wheel handlers.
+        const vp = viewportRef.current;
+        const viewportMoved =
+          vp.offsetX !== lastVpOffsetX ||
+          vp.offsetY !== lastVpOffsetY ||
+          vp.scale !== lastVpScale;
+        lastVpOffsetX = vp.offsetX;
+        lastVpOffsetY = vp.offsetY;
+        lastVpScale = vp.scale;
+
+        const ix = interactionRef.current;
+        const interactionKey =
+          `${ix.hoveredNodeId}|${ix.hoveredEdgeIndex}|${ix.draggedNodeId}|` +
+          `${ix.linkSourceId}|${ix.isPanning}|` +
+          (ix.linkSourceId ? `${ix.mouseWorldX},${ix.mouseWorldY}` : "");
+        const interactionChanged = interactionKey !== lastInteractionKey;
+        lastInteractionKey = interactionKey;
+
+        // Spatial index only needs rebuilding while node positions move.
+        if (positionsMoving) {
+          markDirty(spatialIndexRef.current);
+          frameCount++;
+          if (frameCount % 3 === 0) {
+            rebuildIndex(spatialIndexRef.current, nodesRef.current);
+          }
+        } else if (wasMoving) {
+          // One final rebuild + repaint on settle so hit-testing and the
+          // canvas both match the resting positions (the worker's last
+          // position message can land after the previous rendered frame).
+          markDirty(spatialIndexRef.current);
           rebuildIndex(spatialIndexRef.current, nodesRef.current);
+          needsRenderRef.current = true;
         }
+        wasMoving = positionsMoving;
 
         if (edgesRef.current !== lastEdgesRef) {
           buildNeighborMap();
@@ -319,12 +367,14 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             callbacksRef.current.onHoverEdge?.(null);
           }
           lastEdgesRef = edgesRef.current;
+          needsRenderRef.current = true;
         }
 
         if (!allEdgesResolved) {
           resolveEdges();
           allEdgesResolved =
             resolvedEdgesCache.length === edgesRef.current.length;
+          needsRenderRef.current = true;
         }
 
         const dpr = window.devicePixelRatio || 1;
@@ -334,7 +384,20 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
           canvas.width = w * dpr;
           canvas.height = h * dpr;
+          needsRenderRef.current = true;
         }
+
+        if (
+          !positionsMoving &&
+          !viewportMoved &&
+          !interactionChanged &&
+          !needsRenderRef.current &&
+          hasFittedRef.current
+        ) {
+          rafId = requestAnimationFrame(tick);
+          return;
+        }
+        needsRenderRef.current = false;
 
         if (!hasFittedRef.current && sim.alpha() < 0.15) {
           fitToNodes(viewportRef.current, nodesRef.current, w, h);
