@@ -1,6 +1,7 @@
 import {
   createParser,
   parseAsArrayOf,
+  parseAsInteger,
   parseAsString,
   parseAsStringLiteral,
   type inferParserType,
@@ -15,6 +16,14 @@ import { LIST_ITEM_KINDS } from "@/lib/list-items";
  */
 export const LIST_VIEW_MODES = ["memories", "tags"] as const;
 export type ListViewMode = (typeof LIST_VIEW_MODES)[number];
+
+/**
+ * Graph scopes. "local" (default) shows the focused memory's neighbourhood —
+ * the focus falls back to the newest memory when unset. "global" shows the
+ * whole capped graph. Local-by-default keeps first paint small and fast.
+ */
+export const GRAPH_SCOPES = ["local", "global"] as const;
+export type GraphScope = (typeof GRAPH_SCOPES)[number];
 
 /** Junk written when TanStack Router serializes nuqs state (e.g. `search={params}`). */
 const NULLISH_QUERY_VALUES = new Set(["", "null", '"null"', "undefined", "[]"]);
@@ -92,12 +101,16 @@ function createSanitizedLiteralArrayParser<const T extends string>(
  * URL shape (only non-default values should appear):
  * - `q` — search text
  * - `profile` — Convex profile id
- * - `focus` — memory id for graph focus mode
+ * - `focus` — memory id for graph focus mode (unset in local scope → newest memory)
+ * - `scope` — `global` for the full graph (default `local` is omitted)
+ * - `depth` — local-graph hop depth 1–3 (default 2 is omitted)
  * - `tags` / `sources` / `types` / `kinds` — comma-separated (e.g. `tags=react,ts`)
  * - `view` — `tags` when on tag rows (default `memories` is omitted)
  */
 const memoriesSearchParams = {
   focus: parseAsOptionalString,
+  scope: parseAsStringLiteral(GRAPH_SCOPES).withDefault("local"),
+  depth: parseAsInteger.withDefault(2),
   profile: parseAsOptionalString,
   q: parseAsSearchQuery,
   tags: createSanitizedStringArrayParser(),

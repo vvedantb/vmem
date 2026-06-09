@@ -28,6 +28,7 @@ import {
 import { useGraphData } from "@/hooks/useGraphData";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
+import type { GraphScope } from "@/routes/_main/memories/-searchParams";
 import {
   buildGraphData,
   getAllTags,
@@ -79,6 +80,14 @@ export interface MemoryGraphController {
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
+
+  // ----- Scope (URL) -----
+  /** "local" = focus neighbourhood (default), "global" = full capped graph. */
+  scope: GraphScope;
+  /** Local-graph hop depth, clamped to 1–3. */
+  depth: number;
+  /** Focus the local graph is centred on (server-resolved). null in global. */
+  resolvedFocusNodeId: string | null;
 
   // ----- Derived -----
   graphNodes: GraphNode[];
@@ -140,16 +149,22 @@ export function useMemoryGraphController({
   // Data
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
+  // Scope/depth live in the URL beside the focus id. Depth is clamped here so
+  // a hand-edited URL can't request an unbounded traversal.
+  const scope: GraphScope = params.scope;
+  const depth = Math.min(3, Math.max(1, Math.trunc(params.depth)));
+
   const {
     apiNodes,
     apiTagEdges,
     allRelatesToEdges,
     apiWikiParentEdges,
     apiMentionsEdges,
+    resolvedFocusNodeId,
     isLoading,
     isError,
     error,
-  } = useGraphData(focusNodeId, params.profile, enabled);
+  } = useGraphData(focusNodeId, params.profile, enabled, scope, depth);
 
   const searchQuery = params.q.trim();
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -335,6 +350,11 @@ export function useMemoryGraphController({
     isLoading,
     isError,
     error,
+
+    // Scope
+    scope,
+    depth,
+    resolvedFocusNodeId,
 
     // Derived
     graphNodes,

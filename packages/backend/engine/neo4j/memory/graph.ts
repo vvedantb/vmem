@@ -41,6 +41,12 @@ export interface GraphData {
     type: string;
     memoryIds: string[];
   }>;
+  /**
+   * The memory the local graph is centred on. Set by getLocalGraph (which
+   * resolves it server-side when no explicit focus is given — newest memory
+   * wins); absent on the global graph.
+   */
+  focusNodeId?: string;
 }
 
 /**
@@ -213,8 +219,9 @@ export async function getMemoryContent(
 export async function getLocalGraph(
   driver: Driver,
   userId: string,
-  focusId: string,
+  focusId: string | null,
   profileId?: string | null,
+  depth: number = 2,
 ): Promise<GraphData> {
   // Mirrors getGraphData: content is NOT part of the graph payload. The
   // frontend fetches it on demand via getMemoryContent when the user hovers
@@ -222,39 +229,62 @@ export async function getLocalGraph(
   const nodesSession = driver.session();
   let nodeIds: string[];
   let nodes: GraphNode[];
+  let resolvedFocusId: string | undefined;
 
   const pfFocus = profileFilter(profileId, "focus");
   // QPP inline filter on the traversal node. Keeps the suppressed/wrong-
   // user nodes from expanding at all, rather than expanding and discarding.
   const pfB = profileFilter(profileId, "b");
 
+  // QPP quantifiers must be literals (Cypher rejects parameters there), so
+  // the hop count is interpolated after clamping to a safe range.
+  const hops = Math.min(3, Math.max(1, Math.trunc(depth)));
+
+  // No explicit focus → centre on the newest active memory. This powers the
+  // default graph entry (local neighbourhood instead of the full graph).
+  const focusMatch =
+    focusId !== null
+      ? `MATCH (focus:Memory {id: $focusId, userId: $userId})
+         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${pfFocus.clause}`
+      : `MATCH (focus:Memory {userId: $userId})
+         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${pfFocus.clause}
+         WITH focus ORDER BY focus.createdAt DESC LIMIT 1`;
+
   try {
     // Quantified Path Pattern replaces the old [:RELATES_TO*1..2] form.
     // QPP filters each hop inline, so the planner stops expansion early at
     // suppressed or wrong-user nodes instead of traversing then discarding.
     const nodesResult = await nodesSession.run(
-      `MATCH (focus:Memory {id: $focusId, userId: $userId})
-       WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${pfFocus.clause}
+      `${focusMatch}
        OPTIONAL MATCH (focus)
          ((a:Memory WHERE coalesce(a.status, 'active') IN ['active', 'pinned'])
           -[:RELATES_TO]-
           (b:Memory WHERE coalesce(b.status, 'active') IN ['active', 'pinned']
              AND b.userId = $userId
              ${pfB.clause})
-         ){1,2}
+         ){1,${hops}}
          (neighbor:Memory)
        WITH focus, collect(DISTINCT neighbor) AS neighbors
-       WITH [focus] + neighbors AS allNodes
+       WITH focus.id AS focusId, [focus] + neighbors AS allNodes
        UNWIND allNodes AS m
-       WITH DISTINCT m LIMIT 500
+       WITH DISTINCT m, focusId LIMIT 500
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-       WITH m, collect(t.name) AS tags
+       WITH m, focusId, collect(t.name) AS tags
        RETURN m.id AS id, m.title AS title,
               tags, m.createdAt AS createdAt,
               m.source AS source, m.type AS type,
-              m.sourceType AS sourceType`,
-      { userId, focusId, ...pfFocus.params },
+              m.sourceType AS sourceType, focusId`,
+      {
+        userId,
+        ...(focusId !== null ? { focusId } : {}),
+        ...pfFocus.params,
+      },
     );
+
+    const firstRecord = nodesResult.records[0];
+    resolvedFocusId = firstRecord
+      ? String(firstRecord.get("focusId"))
+      : undefined;
 
     nodes = nodesResult.records.map((r) => ({
       id: String(r.get("id")),
@@ -274,7 +304,13 @@ export async function getLocalGraph(
   }
 
   if (nodeIds.length === 0) {
-    return { nodes: [], relatesToEdges: [], tagEdges: [], entities: [] };
+    return {
+      nodes: [],
+      relatesToEdges: [],
+      tagEdges: [],
+      entities: [],
+      focusNodeId: resolvedFocusId,
+    };
   }
 
   // Edges scoped to the local neighbourhood: RELATES_TO, tag-shared, and
@@ -339,7 +375,13 @@ export async function getLocalGraph(
 
     const tagEdges = tagEdgesResult.records.map(toTagEdge);
 
-    return { nodes, relatesToEdges, tagEdges, entities };
+    return {
+      nodes,
+      relatesToEdges,
+      tagEdges,
+      entities,
+      focusNodeId: resolvedFocusId,
+    };
   } finally {
     await Promise.all([
       relatesToSession.close(),

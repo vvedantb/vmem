@@ -73,6 +73,9 @@ const graphResponseSchema = z.object({
   tagEdges: z.array(tagEdgeSchema),
   wikiParentEdges: z.array(wikiParentEdgeSchema),
   mentionsEdges: z.array(mentionsEdgeSchema),
+  // Local mode only: the memory the graph is centred on, resolved server-side
+  // (newest memory) when no explicit focus was requested.
+  focusNodeId: z.string().optional(),
 });
 
 type GraphResponse = z.infer<typeof graphResponseSchema>;
@@ -85,6 +88,11 @@ export interface UseGraphDataReturn {
   allRelatesToEdges: ApiRelatesToEdge[];
   apiWikiParentEdges: ApiWikiParentEdge[];
   apiMentionsEdges: ApiMentionsEdge[];
+  /**
+   * The memory the local graph is centred on — the explicit focus, or the
+   * newest memory when the server picked the default. null in global scope.
+   */
+  resolvedFocusNodeId: string | null;
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
@@ -94,6 +102,8 @@ export function useGraphData(
   focusNodeId: string | null,
   profileId: string | null = null,
   enabled: boolean = true,
+  scope: "local" | "global" = "global",
+  depth: number = 2,
 ): UseGraphDataReturn {
   const { isAuthenticated } = useConvexAuth();
   const getGraphData = useAction(api.graphApi.getGraphData);
@@ -102,7 +112,13 @@ export function useGraphData(
   >([]);
 
   const graphQuery = useTanstackQuery({
-    queryKey: ["graph", focusNodeId ?? "global", profileId ?? "all"],
+    queryKey: [
+      "graph",
+      scope,
+      focusNodeId ?? "auto",
+      profileId ?? "all",
+      scope === "local" ? depth : 0,
+    ],
     queryFn: async (): Promise<GraphResponse> => {
       // Client-side timing so we can see the true user-perceived latency —
       // Convex action round-trip + Zod parse. Logs once per fetch (TanStack
@@ -112,8 +128,10 @@ export function useGraphData(
       const startedAt =
         typeof performance !== "undefined" ? performance.now() : Date.now();
       const result = await getGraphData({
-        focus: focusNodeId ?? undefined,
+        focus: scope === "local" ? (focusNodeId ?? undefined) : undefined,
         profileId: profileId ?? undefined,
+        mode: scope,
+        depth: scope === "local" ? depth : undefined,
       });
       const parsed = graphResponseSchema.parse(result);
       const endedAt =
@@ -173,6 +191,7 @@ export function useGraphData(
     allRelatesToEdges,
     apiWikiParentEdges: graphData?.wikiParentEdges ?? [],
     apiMentionsEdges: graphData?.mentionsEdges ?? [],
+    resolvedFocusNodeId: graphData?.focusNodeId ?? null,
     isLoading: graphQuery.isLoading,
     isError: graphQuery.isError,
     error: graphQuery.error,

@@ -18,7 +18,8 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
 import { IconMoodEmpty, IconArrowBack } from "@tabler/icons-react";
-import { Button } from "@vmem/ui";
+import { Button, cn } from "@vmem/ui";
+import type { GraphScope } from "@/routes/_main/memories/-searchParams";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { VmemSpinner } from "@/components/svg-animations";
 import { api } from "@vmem/backend";
@@ -37,14 +38,24 @@ import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 
 interface MemoryGraphProps {
   controller: MemoryGraphController;
+  /** Explicit focus from the URL — null in local scope means "newest memory". */
   focusNodeId: string | null;
+  /** id → focus that node (local scope); null → switch to the global graph. */
   onFocusChange: (id: string | null) => void;
+  scope: GraphScope;
+  depth: number;
+  onDepthChange: (depth: number) => void;
 }
+
+const LOCAL_GRAPH_DEPTHS = [1, 2, 3] as const;
 
 export default function MemoryGraph({
   controller,
   focusNodeId,
   onFocusChange,
+  scope,
+  depth,
+  onDepthChange,
 }: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
   const linkMemories = useAction(api.relationshipApi.linkMemories);
@@ -74,6 +85,7 @@ export default function MemoryGraph({
     viewTheme,
     searchMatchSet,
     isSearchActive,
+    resolvedFocusNodeId,
     isLoading,
     isError,
     error,
@@ -149,10 +161,14 @@ export default function MemoryGraph({
 
   const handleFocusNode = useCallback(
     (nodeId: string) => {
+      // Only memory nodes can be a local-graph focus — wiki/skill/entity ids
+      // have no Neo4j neighbourhood and would land on an empty graph.
+      const node = graphNodes.find((n) => n.id === nodeId);
+      if (!node || node.kind !== "memory") return;
       onFocusChange(nodeId);
       setSelectedNodeId(null);
     },
-    [onFocusChange],
+    [onFocusChange, graphNodes],
   );
 
   const handleBackToGlobal = useCallback(() => {
@@ -205,6 +221,19 @@ export default function MemoryGraph({
         <p className="text-sm text-muted">
           Add some memories to see them in the graph
         </p>
+        {/* Escape hatch: a stale ?focus= id resolves to an empty local
+            neighbourhood — without this the user has no way back. */}
+        {scope === "local" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBackToGlobal}
+            className="mt-4 gap-1.5"
+          >
+            <IconArrowBack size={14} />
+            View global graph
+          </Button>
+        )}
       </div>
     );
   }
@@ -217,7 +246,7 @@ export default function MemoryGraph({
         edges={graphEdges}
         viewTheme={viewTheme}
         settings={graphSettings}
-        focusNodeId={focusNodeId}
+        focusNodeId={resolvedFocusNodeId ?? focusNodeId}
         searchMatchSet={searchMatchSet}
         isSearchActive={isSearchActive}
         showLabels={graphSettings.showLabels}
@@ -236,9 +265,9 @@ export default function MemoryGraph({
         isDarkCanvas={viewTheme.isDarkCanvas}
       />
 
-      {/* Back button for focus mode */}
-      {focusNodeId && (
-        <div className="absolute top-2 left-2 z-10">
+      {/* Local-scope controls: switch to global + neighbourhood depth */}
+      {scope === "local" && (
+        <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -248,6 +277,24 @@ export default function MemoryGraph({
             <IconArrowBack size={14} />
             Global graph
           </Button>
+          <div className="flex items-center gap-0.5 rounded-lg bg-surface-secondary/40 p-0.5">
+            <span className="px-1.5 text-xs text-muted">Depth</span>
+            {LOCAL_GRAPH_DEPTHS.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => onDepthChange(d)}
+                className={cn(
+                  "rounded-md px-2 py-1 text-xs transition-[background-color]",
+                  d === depth
+                    ? "bg-surface-tertiary text-foreground"
+                    : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
+                )}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

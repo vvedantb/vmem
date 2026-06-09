@@ -1,5 +1,11 @@
 # Changelog
 
+## Memory graph: local neighbourhood by default — 2026-06-09
+
+- **Local-first entry**: The graph now opens on the newest memory's neighbourhood (Obsidian/Neo4j Bloom pattern) instead of fetching the full 2000-node graph — first paint loads ≤500 nodes; "Global graph" is one click away and lives at `?scope=global`.
+- **Depth control**: Local view gets a 1–3 hop depth selector (`?depth=`), resolved server-side with a clamped quantified-path traversal.
+- **Server-resolved focus**: When no focus is in the URL the backend centres on the newest memory and returns the resolved id, so the focus ring and detail panel still work; double-click to re-centre on any memory node (non-memory nodes no longer dead-end into an empty graph).
+
 ## Memory graph performance: simulation sleep — 2026-06-09
 
 - **Zero idle CPU**: The graph's physics worker now stops its tick loop entirely once the layout settles (previously it ran force passes + position transfers at 30fps forever), and the canvas only repaints when something actually changed — simulation motion, camera movement, hover/drag, or a prop change.
