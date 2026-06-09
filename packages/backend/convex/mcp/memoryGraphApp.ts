@@ -97,10 +97,10 @@ export function registerMemoryGraphApp(
           .number()
           .int()
           .min(1)
-          .max(150)
+          .max(100)
           .optional()
           .describe(
-            "Max memory nodes (default 80; keeps tool result small for Claude context)",
+            "Max memory nodes (default 80, max 100; keeps tool result small for Claude context)",
           ),
       },
       _meta: {
