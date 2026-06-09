@@ -1,5 +1,11 @@
 # Changelog
 
+## Chrome extension sync badge countdown — 2026-06-09
+
+- **Sync timer on icon**: Extension action badge shows minutes until the next auto-sync (e.g. `28m`, `5m`), computed from the real alarm `scheduledTime` so it always reflects what Chrome will fire.
+- **Live countdown**: A new 1-minute heartbeat updates the badge; clears when auto-sync is disabled or toggled off from the popup.
+- **Third watchdog leg**: The minute tick re-asserts the 30-min history alarm (idempotent), so a dropped alarm now self-heals within ~1 minute instead of ~5 — as long as Chrome is open, sync keeps going.
+
 ## Chrome extension popup design parity — 2026-06-08
 
 - **Popup UI**: Extension popup uses the same HeroUI tokens, sliding tabs, cards, switches, selects, and settings row layout as the web app — shared `@vmem/ui` components with aligned `globals.css`.

@@ -17,16 +17,19 @@ import assert from "node:assert/strict";
 
 interface AlarmOpts {
   periodInMinutes?: number;
+  scheduledTime?: number;
 }
 
 const alarms = new Map<string, AlarmOpts>();
 const createCalls: string[] = []; // every create, to prove idempotency / no timer reset
+const badgeTexts: string[] = []; // every setBadgeText, newest last
 let local: Record<string, unknown> = {};
 let session: Record<string, unknown> = {};
 
 function resetState(initialLocal: Record<string, unknown> = {}): void {
   alarms.clear();
   createCalls.length = 0;
+  badgeTexts.length = 0;
   local = { ...initialLocal };
   session = {}; // empty session => no auth token => no Clerk session (hermetic)
 }
@@ -39,7 +42,10 @@ globalThis.chrome = {
     },
     async create(name: string, opts: AlarmOpts): Promise<void> {
       createCalls.push(name);
-      alarms.set(name, opts);
+      alarms.set(name, {
+        ...opts,
+        scheduledTime: Date.now() + (opts.periodInMinutes ?? 0) * 60_000,
+      });
     },
     async clear(name: string): Promise<boolean> {
       return alarms.delete(name);
@@ -65,6 +71,12 @@ globalThis.chrome = {
     },
   },
   bookmarks: { onCreated: { addListener(): void {} } },
+  action: {
+    async setBadgeText({ text }: { text: string }): Promise<void> {
+      badgeTexts.push(text);
+    },
+    async setBadgeBackgroundColor(): Promise<void> {},
+  },
   // Force the offscreen auth refresh to yield no token => hasActiveClerkSession() === false.
   offscreen: {
     Reason: { WORKERS: "WORKERS" },
@@ -90,6 +102,7 @@ globalThis.chrome = {
 const {
   HISTORY_ALARM_NAME,
   SETTINGS_MIRROR_ALARM_NAME,
+  BADGE_TICK_ALARM_NAME,
   bootstrapSyncSchedulers,
   startAutoSync,
   stopAutoSync,
@@ -199,11 +212,38 @@ test("auto-sync disabled: history alarm not created, heartbeat still present", a
   );
 });
 
-test("stopAutoSync clears only the history alarm, leaving the heartbeat", async () => {
+test("stopAutoSync clears the history + badge alarms, leaving the heartbeat", async () => {
   resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
   await ensureSettingsMirrorAlarm();
   await startAutoSync();
   await stopAutoSync();
   assert.ok(!alarms.has(HISTORY_ALARM_NAME), "history alarm cleared");
+  assert.ok(!alarms.has(BADGE_TICK_ALARM_NAME), "badge tick cleared");
   assert.ok(alarms.has(SETTINGS_MIRROR_ALARM_NAME), "heartbeat survives");
+  assert.equal(badgeTexts.at(-1), "", "badge cleared on stop");
+});
+
+test("badge shows minutes until the next history sync", async () => {
+  resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
+  await startAutoSync();
+  assert.ok(alarms.has(BADGE_TICK_ALARM_NAME), "badge tick alarm created");
+  assert.equal(badgeTexts.at(-1), "30m", "badge shows full interval after scheduling");
+});
+
+test("badge tick heals a dropped history alarm within one minute", async () => {
+  resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
+  await startAutoSync();
+  alarms.delete(HISTORY_ALARM_NAME);
+  await dispatchAlarm(BADGE_TICK_ALARM_NAME);
+  assert.ok(alarms.has(HISTORY_ALARM_NAME), "badge tick recreated the history alarm");
+  assert.equal(badgeTexts.at(-1), "30m", "badge reflects the recreated alarm");
+});
+
+test("badge tick retires itself and clears the badge when auto-sync is disabled", async () => {
+  resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
+  await startAutoSync();
+  local.autoSyncEnabled = false;
+  await dispatchAlarm(BADGE_TICK_ALARM_NAME);
+  assert.ok(!alarms.has(BADGE_TICK_ALARM_NAME), "badge tick alarm removed");
+  assert.equal(badgeTexts.at(-1), "", "badge cleared while disabled");
 });
