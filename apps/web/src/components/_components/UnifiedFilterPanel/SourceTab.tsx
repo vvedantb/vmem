@@ -3,6 +3,7 @@
 import { Checkbox, cn, TabsPrimitive } from "@vmem/ui";
 import { Virtuoso } from "react-virtuoso";
 import { formatMemorySourceLabel } from "@/lib/memories";
+import { isCheckedByDefault, toggleCheckedByDefault } from "./checkedByDefault";
 
 interface SourceTabProps {
   distinctSources: string[];
@@ -18,12 +19,9 @@ export default function SourceTab({
   totalCount,
 }: SourceTabProps) {
   const toggleSource = (source: string) => {
-    if (!onSourcesChange) return;
-    if (selectedSources.includes(source)) {
-      onSourcesChange(selectedSources.filter((s) => s !== source));
-    } else {
-      onSourcesChange([...selectedSources, source]);
-    }
+    onSourcesChange?.(
+      toggleCheckedByDefault(selectedSources, source, distinctSources),
+    );
   };
 
   return (
@@ -57,7 +55,7 @@ export default function SourceTab({
             computeItemKey={(_index, item) => item}
             fixedItemHeight={36}
             itemContent={(_i, source) => {
-              const checked = selectedSources.includes(source);
+              const checked = isCheckedByDefault(selectedSources, source);
               return (
                 <label className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-separator last:border-0 hover:bg-surface-tertiary">
                   <Checkbox

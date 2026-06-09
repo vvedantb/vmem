@@ -163,6 +163,7 @@ Header Controls — Filters vs Sort vs View:
 - Active-filter count on the badge: count each filter field that is currently non-default as 1 (arrays with ≥1 item count as 1, not length). Sort and view never contribute to this count.
 - The Filters dropdown's "Reset filters" option (rendered only when count > 0) resets ONLY filter fields — never sort or view.
 - Prefer dropdowns with explicit options over toggle buttons when a control has ≥2 states — more discoverable.
+- Enumerable multi-select filter tabs (Kind/Type/Source) render **checked-by-default**: stored state keeps empty-array-=-"all" (clean URLs, badge count), but in that default every checkbox renders checked. Unchecking from the all state selects all-but-that-one; re-checking the last missing option (or unchecking the only remaining one) normalizes back to `[]`. Helpers in `apps/web/src/components/_components/UnifiedFilterPanel/checkedByDefault.ts`. Tags is exempt (AND semantics over an unbounded set).
 
 Component Structure:
 

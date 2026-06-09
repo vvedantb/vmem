@@ -6,6 +6,7 @@ import {
   MEMORY_TYPES,
   type MemoryType,
 } from "@/lib/memories";
+import { isCheckedByDefault, toggleCheckedByDefault } from "./checkedByDefault";
 
 interface TypeTabProps {
   selectedTypes: MemoryType[];
@@ -21,12 +22,7 @@ export default function TypeTab({
   totalCount,
 }: TypeTabProps) {
   const toggleType = (type: MemoryType) => {
-    if (!onTypesChange) return;
-    if (selectedTypes.includes(type)) {
-      onTypesChange(selectedTypes.filter((t) => t !== type));
-    } else {
-      onTypesChange([...selectedTypes, type]);
-    }
+    onTypesChange?.(toggleCheckedByDefault(selectedTypes, type, MEMORY_TYPES));
   };
 
   return (
@@ -53,7 +49,7 @@ export default function TypeTab({
       </div>
       <div className="flex-1 overflow-y-auto">
         {MEMORY_TYPES.map((type) => {
-          const checked = selectedTypes.includes(type);
+          const checked = isCheckedByDefault(selectedTypes, type);
           return (
             <label
               key={type}
