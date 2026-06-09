@@ -70,6 +70,13 @@ Chrome extension auto-sync (`apps/chrome-extension/src/background/sync-scheduler
 - The heartbeat is the self-heal path: it re-creates the history alarm and runs `catchUpHistorySyncIfOverdue()`, so a dropped alarm or missed sync recovers within ~5 min instead of waiting for `onStartup`. Don't reduce its handler back to "just refresh settings."
 - Every sync attempt records `lastSyncAttemptAt` + `lastSyncSkipReason` (`recordSyncAttempt`) into storage and the debug report — a silent gap (lost auth, dropped alarm) must stay diagnosable, never look healthy. No-session skips are expected after a browser restart (`chrome.storage.session` token cleared) and recover via the cookie listener / popup TokenSync / heartbeat retry.
 
+Memory graph view (`apps/web` canvas + `engine/neo4j/memory/graph.ts`):
+
+- **Local-first**: `/memories/graph` defaults to `scope=local` — the focused memory's 1–3 hop neighbourhood (`?depth=`, QPP quantifier is a clamped literal; Cypher forbids params there). No `?focus=` → server centres on the newest memory and returns `focusNodeId`. `?scope=global` = full graph, paged 500-at-a-time via `nodeLimit` up to the 2000 cap, with server-side `totalMemoryCount` for the "Showing X of Y · Load more" pill.
+- **Simulation sleeps**: worker stops its tick interval below `SLEEP_ALPHA` (0.005, defined in both `simulation.ts` and `simulation-worker.ts`); GraphCanvas's rAF loop skips painting unless sim/viewport/interaction/props changed. Don't reintroduce always-on ticking or `.restart()` (d3's internal timer is intentionally stopped — ticking is fully manual). Drags use `alphaTarget(0.3)` → `0`.
+- **Layout stability**: GraphCanvas snapshots node positions on sim teardown and re-seeds surviving nodes on the next data swap — load-more/filters/live-edges only animate new nodes in.
+- MCP `memory_graph` tool: max 100 nodes (naive O(n²) sim in the bundled MCP-UI canvas + tool results land in model context); plain global fetches pass `nodeLimit` to Neo4j instead of slicing 2000.
+
 Profiles:
 
 - Profiles are for **organizing where memories get saved**
