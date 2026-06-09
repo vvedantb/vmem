@@ -1,5 +1,12 @@
 # Changelog
 
+## Typecheck performance overhaul — 2026-06-09
+
+- **Web typecheck 39s → ~12s cold / 0.7s warm, backend 25s → ~3s**: found and removed the two type-level bombs dominating every `tsgo` run across the monorepo.
+- **Scoped Google API packages**: the Gmail/Drive connectors now use `@googleapis/gmail` + `@googleapis/drive` instead of the monolithic `googleapis`, whose root types dragged all ~400 Google APIs (~830 declaration files) into any program touching the Convex api graph.
+- **Cloud chat tool schemas**: `openRouterTools.ts` builds provider JSON schemas via `zod-to-json-schema` instead of the AI SDK's `zodSchema()`, whose generics cost ~19s of check time per run (the old `@ts-expect-error TS2589` suppressed the error but not the work); runtime validation unchanged via `schema.parse` in each tool.
+- **Guardrails**: new "TypeScript performance" section in CLAUDE.md documents both bans plus the trace-based workflow for diagnosing future typecheck regressions.
+
 ## Shared AI filesystem (web + MCP file tools) — 2026-06-09
 
 - **Real Files backend**: New `fileNodes` table + Convex functions back the `/files` view, replacing the previous all-mock UI — uploads, folders, move, rename, delete, and download now persist (bytes in Convex storage) and update live.

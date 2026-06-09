@@ -47,6 +47,13 @@ Convex:
 - Backend layout (Eva-aligned): `convex/` = registered functions + orchestration + `convex/prompts/` + `convex/cloudLib/` (Convex-coupled chat tools). `engine/` = Neo4j/codebase/parsers outside `convex/` (like Eva's `callback-src/`) — imported only from `"use node"` actions. `neo4j-cli/` = seed/eval/unseed scripts. `tests/` = unit tests importing from `engine/` or `convex/` (Eva puts tests at package root, not inside `convex/`). Memory actions: thin `neo4jActions/memories.ts` facade → `neo4jActions/_memories/` (handlers + `actions.ts`). From `convex/`, import narrow `engine/neo4j/memory/*` modules directly.
 - Client package imports: apps import only `@vmem/backend` (Convex `api` + `Doc`/`Id` types) and `@vmem/shared` (cross-app constants + client-safe prompt helpers like `PARSER_VERSION`, `buildSkillsIndexAddition`). Never `@vmem/backend/*` subpaths. `@vmem/backend` root must stay Convex-only — no constants or prompts re-exported.
 
+TypeScript performance (typecheck must stay in seconds — warm ~0.7s, cold ~12s web / ~3s backend):
+
+- Never import the monolithic `googleapis` package — its root types pull all ~400 Google APIs (~830 d.ts files, 115 MB) into every typecheck that touches the Convex api graph (web included). Use scoped `@googleapis/<api>` packages (`@googleapis/gmail`, `@googleapis/drive`).
+- Never call the AI SDK's `zodSchema()` on a concrete `z.object` schema — type-checking one call costs ~5-20s in tsgo (TS2589 territory), and `@ts-expect-error` does NOT avoid the cost (the checker still does the work before discarding the error). Use `jsonSchema<Params>(zodToJsonSchema(schema, { $refStrategy: "none" }))` and re-`parse` inside `execute` (see `convex/cloudLib/openRouterTools.ts`).
+- Both tsgo configs are incremental (`node_modules/.cache/tsgo/*.tsbuildinfo`); never remove that, it's what keeps warm runs sub-second locally and on Vercel.
+- To find typecheck hotspots: `npx tsc -p tsconfig.json --noEmit --generateTrace <dir>` then `npx @typescript/analyze-trace <dir>`; iterate on a single hot file via a throwaway tsconfig that `extends` the real one with `"include": [<that file>]`.
+
 Neo4j:
 
 - Never run parallel `session.run()` calls on the same session — use separate sessions for concurrent queries

@@ -8,6 +8,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "target": "ESNext",
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsgo/backend.tsbuildinfo",
     "types": ["node"]
   },
   "include": ["./**/*"],

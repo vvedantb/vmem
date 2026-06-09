@@ -6,7 +6,9 @@
  * upserts the result into Neo4j with `sourceType: "google_drive"`.
  */
 
-import { google } from "googleapis";
+// Scoped per-API package instead of the monolithic "googleapis" — the monolith's
+// root types pull in every Google API (~1M lines of .d.ts) and dominated typecheck time.
+import { drive as driveApi, auth as googleAuth } from "@googleapis/drive";
 import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
@@ -40,9 +42,9 @@ export async function runGoogleDriveSync(
   );
 
   try {
-    const oauth = new google.auth.OAuth2();
+    const oauth = new googleAuth.OAuth2();
     oauth.setCredentials({ access_token: args.accessToken });
-    const drive = google.drive({ version: "v3", auth: oauth });
+    const drive = driveApi({ version: "v3", auth: oauth });
 
     let pageToken: string | undefined;
     let totalSynced = 0;

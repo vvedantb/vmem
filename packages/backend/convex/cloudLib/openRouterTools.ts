@@ -1,5 +1,12 @@
-import { type Tool, type ToolSet, tool, zodSchema } from "ai";
+import {
+  type Tool,
+  type ToolSet,
+  type JSONSchema7,
+  tool,
+  jsonSchema,
+} from "ai";
 import type { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import type { ActionCtx } from "../_generated/server";
 import type { CloudMemoryRef } from "./cloudMemoryRef";
 import { toolSpecs, type ToolSpec } from "../mcp/toolCatalog";
@@ -79,6 +86,20 @@ function toCloudMemoryRefs(data: unknown): CloudMemoryRef[] {
 type ZodShape = z.ZodRawShape;
 
 /**
+ * Convert a catalog zod schema to the JSON schema sent to the provider.
+ *
+ * This deliberately avoids the AI SDK's `zodSchema()`: type-checking that call
+ * against each catalog schema cost ~15-19s of `tsgo` check time for this file
+ * alone (the old `@ts-expect-error TS2589` comments suppressed the error but
+ * the checker still did the work). `zodToJsonSchema` takes `z.ZodTypeAny`, so
+ * the checker stays shallow. Runtime validation is unaffected — every tool's
+ * `execute` re-parses its input with `spec.schema.parse`.
+ */
+function toToolJsonSchema(schema: z.ZodTypeAny): JSONSchema7 {
+  return zodToJsonSchema(schema, { $refStrategy: "none" });
+}
+
+/**
  * Wrap a catalog spec as an AI SDK tool with a fixed `Tool` return type so
  * `buildOpenRouterTools` does not instantiate a dozen nested `tool()` generics.
  */
@@ -92,12 +113,9 @@ function defineReadOnlyCloudTool<Shape extends ZodShape>(
     const params: Params = spec.schema.parse(input ?? {});
     return spec.run(h, params);
   };
-  // tsgo hits TS2589 when zodSchema + tool() nest per catalog shape; runtime
-  // validation still flows through toolSpecs.
   const cloudTool: Tool = tool({
     description,
-    // @ts-expect-error TS2589 — catalog schema drives runtime validation
-    inputSchema: zodSchema(spec.schema),
+    inputSchema: jsonSchema<Params>(toToolJsonSchema(spec.schema)),
     execute,
   });
   return cloudTool;
@@ -118,12 +136,14 @@ export function buildOpenRouterTools(
 ): ToolSet {
   const h: ToolHandlerContext = { ctx, clerkUserId, scope: "personal" };
 
+  type RetrieveParams = z.infer<typeof toolSpecs.memory_retrieve.schema>;
   const memoryRetrieve: Tool = tool({
     description:
       "Retrieve the most relevant memories for a natural language query with score breakdown.",
-    // @ts-expect-error TS2589 — zodSchema + tool() deep-instantiates on memory_retrieve shape
-    inputSchema: zodSchema(toolSpecs.memory_retrieve.schema),
-    execute: (input) => {
+    inputSchema: jsonSchema<RetrieveParams>(
+      toToolJsonSchema(toolSpecs.memory_retrieve.schema),
+    ),
+    execute: (input: RetrieveParams | undefined) => {
       const params = toolSpecs.memory_retrieve.schema.parse(input ?? {});
       return toolSpecs.memory_retrieve.run(h, params).then((result) => {
         if (result.ok) {

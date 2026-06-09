@@ -5,8 +5,10 @@
  * bodies, and upserts into Neo4j with `sourceType: "gmail"`.
  */
 
-import { google } from "googleapis";
-import type { gmail_v1 } from "googleapis";
+// Scoped per-API package instead of the monolithic "googleapis" — the monolith's
+// root types pull in every Google API (~1M lines of .d.ts) and dominated typecheck time.
+import { gmail as gmailApi, auth as googleAuth } from "@googleapis/gmail";
+import type { gmail_v1 } from "@googleapis/gmail";
 import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
@@ -87,9 +89,9 @@ export async function runGmailSync(
   );
 
   try {
-    const oauth = new google.auth.OAuth2();
+    const oauth = new googleAuth.OAuth2();
     oauth.setCredentials({ access_token: args.accessToken });
-    const gmail = google.gmail({ version: "v1", auth: oauth });
+    const gmail = gmailApi({ version: "v1", auth: oauth });
 
     let pageToken: string | undefined;
     let totalSynced = 0;
