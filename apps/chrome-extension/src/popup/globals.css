@@ -2,10 +2,21 @@
 
 @source "../../node_modules/@vmem/ui/src/**/*.{ts,tsx}";
 
-/* HeroUI theme — same tokens as apps/web/src/globals.css */
+/* Tab animation timing — matches apps/web/src/globals.css */
+:root {
+  --tabs-dur: 200ms;
+  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * HeroUI theme — keep in sync with apps/web/src/globals.css
+ * @see https://heroui.com/docs/react/getting-started/theming
+ */
 :root,
 .light,
 [data-theme="light"] {
+  color-scheme: light;
+
   --accent: oklch(21.03% 0 0);
   --accent-foreground: oklch(99.11% 0 0);
   --backdrop: rgb(0 0 0 / 0.5);
@@ -31,6 +42,10 @@
   --overlay-shadow:
     0 2px 8px 0 rgb(0 0 0 / 0.06), 0 -6px 12px 0 rgb(0 0 0 / 0.03),
     0 14px 28px 0 rgb(0 0 0 / 0.12);
+  --scrollbar: oklch(87.1% 0 0);
+  --segment: oklch(100% 0 0);
+  --segment-foreground: oklch(21.03% 0 0);
+  --separator: oklch(92% 0 0);
   --success: oklch(73.29% 0.1941 150.81);
   --success-foreground: oklch(21.03% 0.0059 150.81);
   --surface: oklch(100% 0 0);
@@ -39,18 +54,22 @@
   --surface-secondary-foreground: oklch(21.03% 0 0);
   --surface-tertiary: oklch(93.73% 0 0);
   --surface-tertiary-foreground: oklch(21.03% 0 0);
+  --surface-card: oklch(98% 0 0);
   --warning: oklch(78.19% 0.159 72.33);
   --warning-foreground: oklch(21.03% 0.0059 72.33);
-  --scrollbar: oklch(87.1% 0 0);
-  --segment: oklch(100% 0 0);
-  --segment-foreground: oklch(21.03% 0 0);
-  --separator: oklch(92% 0 0);
-  --radius: 0.5rem;
-  --field-radius: 0.75rem;
+
+  --radius: 1rem;
+  --field-radius: 1.25rem;
+  --tabs-text-muted: var(--muted);
+  --tabs-text-active: var(--segment-foreground);
+  --tabs-bar-bg: var(--default);
+  --tabs-pill-bg: var(--segment);
 }
 
 .dark,
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --accent: oklch(99.11% 0 0);
   --accent-foreground: oklch(21.03% 0 0);
   --backdrop: rgb(0 0 0 / 0.6);
@@ -76,6 +95,10 @@
   --overlay-shadow:
     0 0 0 1px rgb(255 255 255 / 0.08), 0 2px 8px 0 rgb(0 0 0 / 0.35),
     0 14px 28px 0 rgb(0 0 0 / 0.5);
+  --scrollbar: oklch(70.5% 0 0);
+  --segment: oklch(39.64% 0 0);
+  --segment-foreground: oklch(99.11% 0 0);
+  --separator: oklch(25% 0 0);
   --success: oklch(73.29% 0.1941 150.81);
   --success-foreground: oklch(21.03% 0.0059 150.81);
   --surface: oklch(21.03% 0 0);
@@ -84,12 +107,16 @@
   --surface-secondary-foreground: oklch(99.11% 0 0);
   --surface-tertiary: oklch(27.21% 0.0023 0);
   --surface-tertiary-foreground: oklch(99.11% 0 0);
+  --surface-card: oklch(25.7% 0.0023 0);
   --warning: oklch(82.03% 0.1392 76.34);
   --warning-foreground: oklch(21.03% 0.0059 76.34);
-  --scrollbar: oklch(70.5% 0 0);
-  --segment: oklch(39.64% 0 0);
-  --segment-foreground: oklch(99.11% 0 0);
-  --separator: oklch(25% 0 0);
+
+  --radius: 1rem;
+  --field-radius: 1.25rem;
+  --tabs-text-muted: var(--muted);
+  --tabs-text-active: var(--segment-foreground);
+  --tabs-bar-bg: var(--default);
+  --tabs-pill-bg: var(--segment);
 }
 
 @theme {
@@ -100,6 +127,8 @@
   --color-border: var(--border);
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
+  --color-danger-ring: var(--danger-ring);
+  --color-danger-border: var(--danger-border);
   --color-default: var(--default);
   --color-default-foreground: var(--default-foreground);
   --color-field-background: var(--field-background);
@@ -107,6 +136,8 @@
   --color-field-foreground: var(--field-foreground);
   --color-field-placeholder: var(--field-placeholder);
   --color-focus: var(--focus);
+  --color-focus-ring: var(--focus-ring);
+  --color-focus-border: var(--focus-border);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-overlay: var(--overlay);
@@ -115,6 +146,7 @@
   --color-success-foreground: var(--success-foreground);
   --color-surface: var(--surface);
   --color-surface-foreground: var(--surface-foreground);
+  --color-surface-card: var(--surface-card);
   --color-surface-secondary: var(--surface-secondary);
   --color-surface-secondary-foreground: var(--surface-secondary-foreground);
   --color-surface-tertiary: var(--surface-tertiary);
@@ -131,16 +163,20 @@
 
   --radius-lg: var(--radius);
   --radius-field: var(--field-radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 
+  --shadow-overlay: var(--overlay-shadow);
   --shadow-soft:
     0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 28px rgba(16, 24, 40, 0.06);
   --shadow-panel:
     0 1px 2px rgba(16, 24, 40, 0.05), 0 16px 44px rgba(16, 24, 40, 0.1);
-  --shadow-insetSoft:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    inset 0 -1px 0 rgba(16, 24, 40, 0.04);
 
   --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html {
+  accent-color: var(--accent);
 }
 
 body {
@@ -158,16 +194,9 @@ body {
 }
 
 button,
-input,
-select,
-textarea {
-  font-family: inherit;
-}
-
-button,
 a,
 input,
-select,
+textarea,
 [role="button"] {
   transition-property:
     background-color, border-color, color, box-shadow, transform, opacity;
@@ -175,32 +204,18 @@ select,
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.glass-panel {
-  background: var(--surface-tertiary);
+input[type="range"] {
+  accent-color: var(--accent);
 }
 
+/* Floating overlays — matches apps/web */
 .glass-panel-strong {
   background: var(--overlay);
+  color: var(--overlay-foreground);
   box-shadow: var(--overlay-shadow);
 }
 
-.glass-panel-subtle {
-  background: var(--surface-secondary);
-}
-
-.glass-interactive {
-  background: transparent;
-}
-
-.glass-interactive:hover {
-  background: var(--surface-tertiary);
-}
-
-.glass-interactive:active {
-  transform: scale(0.96);
-}
-
-/* Transitions.dev — Tabs sliding (matches apps/web globals.css) */
+/* Transitions.dev — Tabs sliding (matches apps/web) */
 .t-tabs {
   position: relative;
   display: inline-flex;
@@ -208,7 +223,7 @@ select,
   gap: 3px;
   padding: 3px;
   border-radius: 48px;
-  background: var(--default);
+  background: var(--tabs-bar-bg);
 }
 .t-tab {
   position: relative;
@@ -217,16 +232,16 @@ select,
   background: transparent;
   height: 30px;
   padding: 4px 12px;
-  color: var(--muted);
+  color: var(--tabs-text-muted);
   cursor: pointer;
   border-radius: 48px;
   z-index: 1;
-  transition: color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: color var(--tabs-dur) var(--tabs-ease);
 }
 .t-tab:not([aria-selected="true"]):not([data-state="active"]):hover,
 .t-tab[aria-selected="true"],
 .t-tab[data-state="active"] {
-  color: var(--segment-foreground);
+  color: var(--tabs-text-active);
 }
 .t-tabs-pill {
   position: absolute;
@@ -234,14 +249,14 @@ select,
   left: 0;
   height: 30px;
   width: 0;
-  background: var(--segment);
+  background: var(--tabs-pill-bg);
   border-radius: 48px;
   transform: translateX(0);
   transition:
-    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
-    width 200ms cubic-bezier(0.22, 1, 0.36, 1),
-    top 200ms cubic-bezier(0.22, 1, 0.36, 1),
-    height 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform var(--tabs-dur) var(--tabs-ease),
+    width var(--tabs-dur) var(--tabs-ease),
+    top var(--tabs-dur) var(--tabs-ease),
+    height var(--tabs-dur) var(--tabs-ease);
   will-change: transform, width;
   z-index: 0;
   pointer-events: none;

@@ -11,8 +11,8 @@ import {
 } from "@tabler/icons-react";
 import {
   Button,
-  Label,
-  Switch,
+  Card,
+  CardContent,
   Skeleton,
   Select,
   SelectTrigger,
@@ -26,6 +26,8 @@ import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import type { Profile } from "@/types/api";
 import { listProfiles, setDefaultProfile } from "@/background/api-client";
+import { SettingsSelectRow } from "./SettingsSelectRow";
+import { SettingsSwitchRow } from "./SettingsSwitchRow";
 
 type Theme = "light" | "dark" | "system";
 
@@ -49,11 +51,9 @@ export function SettingsForm() {
       setSelectedProfileId(s.defaultProfileId);
     });
 
-    // Load profiles
     void listProfiles()
       .then((profileList) => {
         setProfiles(profileList);
-        // If no profile selected, use the default one
         getStorage().then((s) => {
           if (!s.defaultProfileId) {
             const defaultProfile = profileList.find((p) => p.isDefault);
@@ -109,128 +109,137 @@ export function SettingsForm() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <Label className="text-sm">Theme</Label>
-        <Select
-          value={settings?.theme ?? "system"}
-          onValueChange={handleThemeChange}
-          disabled={settings === undefined}
-        >
-          <SelectTrigger className="w-[130px] h-9">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="light">
-              <span className="flex items-center gap-2">
-                <IconSun size={14} />
-                Light
-              </span>
-            </SelectItem>
-            <SelectItem value="dark">
-              <span className="flex items-center gap-2">
-                <IconMoon size={14} />
-                Dark
-              </span>
-            </SelectItem>
-            <SelectItem value="system">
-              <span className="flex items-center gap-2">
-                <IconDeviceDesktop size={14} />
-                System
-              </span>
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    <div className="space-y-6">
+      <section className="space-y-3">
+        <h3 className="text-base font-medium text-foreground">Appearance</h3>
+        <Card className="shadow-none">
+          <CardContent className="space-y-6 p-4">
+            <SettingsSelectRow label="Theme">
+              <Select
+                value={settings?.theme ?? "system"}
+                onValueChange={handleThemeChange}
+                disabled={settings === undefined}
+              >
+                <SelectTrigger className="h-9 w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">
+                    <span className="flex items-center gap-2">
+                      <IconSun size={14} />
+                      Light
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="dark">
+                    <span className="flex items-center gap-2">
+                      <IconMoon size={14} />
+                      Dark
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="system">
+                    <span className="flex items-center gap-2">
+                      <IconDeviceDesktop size={14} />
+                      System
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingsSelectRow>
 
-      <div className="flex items-center justify-between gap-3">
-        <Label className="text-sm">Default Profile</Label>
-        {profiles === null ? (
-          <Skeleton className="h-9 w-[130px] rounded-md" />
-        ) : (
-          <Select
-            value={selectedProfileId}
-            onValueChange={handleProfileChange}
-            disabled={profiles.length === 0}
-          >
-            <SelectTrigger className="w-[130px] h-9">
-              <SelectValue>
-                {profiles.find((p) => p._id === selectedProfileId)?.name ??
-                  "Select..."}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {profiles.map((profile) => (
-                <SelectItem key={profile._id} value={profile._id}>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-2 w-2 rounded-full shrink-0"
-                      style={{ backgroundColor: profile.color }}
-                    />
-                    <span>{profile.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
+            <SettingsSelectRow
+              label="Default profile"
+              description="Where new memories are saved by default."
+            >
+              {profiles === null ? (
+                <Skeleton className="h-9 w-[160px] rounded-field" />
+              ) : (
+                <Select
+                  value={selectedProfileId}
+                  onValueChange={handleProfileChange}
+                  disabled={profiles.length === 0}
+                >
+                  <SelectTrigger className="h-9 w-[160px]">
+                    <SelectValue>
+                      {profiles.find((p) => p._id === selectedProfileId)
+                        ?.name ?? "Select..."}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profiles.map((profile) => (
+                      <SelectItem key={profile._id} value={profile._id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: profile.color }}
+                          />
+                          <span>{profile.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </SettingsSelectRow>
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <Label htmlFor="selection-popup-toggle" className="text-sm">
-          Save popup on text selection
-        </Label>
-        <Switch
-          id="selection-popup-toggle"
-          checked={settings?.extensionSelectionPopupEnabled ?? true}
-          onCheckedChange={handleSelectionPopupToggle}
-          disabled={settings === undefined}
-        />
-      </div>
+      <section className="space-y-3">
+        <h3 className="text-base font-medium text-foreground">Extension</h3>
+        <Card className="shadow-none">
+          <CardContent className="space-y-6 p-4">
+            <SettingsSwitchRow
+              id="selection-popup-toggle"
+              label="Save popup on text selection"
+              description="Show a quick-save chip when you highlight text on a page."
+              checked={settings?.extensionSelectionPopupEnabled ?? true}
+              onCheckedChange={handleSelectionPopupToggle}
+              disabled={settings === undefined}
+            />
+            <SettingsSwitchRow
+              id="auto-search-toggle"
+              label="Auto-search memories in chats"
+              description="Inject relevant memories when you send a message in ChatGPT or Claude."
+              checked={autoSearchEnabled}
+              onCheckedChange={handleAutoSearchToggle}
+              icon={<IconBrain size={16} />}
+            />
+            <SettingsSwitchRow
+              id="auto-capture-toggle"
+              label="Auto-capture prompts"
+              description="Save outgoing prompts from supported chat sites automatically."
+              checked={autoCaptureEnabled}
+              onCheckedChange={handleAutoCaptureToggle}
+              icon={<IconSend size={16} />}
+            />
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <IconBrain size={16} className="text-muted" />
-          <Label htmlFor="auto-search-toggle" className="text-sm">
-            Auto-search memories in chats
-          </Label>
-        </div>
-        <Switch
-          id="auto-search-toggle"
-          checked={autoSearchEnabled}
-          onCheckedChange={handleAutoSearchToggle}
-        />
-      </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <IconSend size={16} className="text-muted" />
-          <Label htmlFor="auto-capture-toggle" className="text-sm">
-            Auto-capture prompts
-          </Label>
-        </div>
-        <Switch
-          id="auto-capture-toggle"
-          checked={autoCaptureEnabled}
-          onCheckedChange={handleAutoCaptureToggle}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-sm font-medium">System prompt</p>
-        <p className="text-xs text-muted text-pretty">
-          Copy the recommended vmem prompt and paste it into your AI
-          agent&apos;s system prompt settings.
-        </p>
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => void handleCopyAiPrompt()}
-        >
-          <IconCopy size={16} stroke={1.8} />
-          {promptCopied ? "Copied!" : "Copy vmem prompt"}
-        </Button>
-      </div>
+      <section className="space-y-3">
+        <h3 className="text-base font-medium text-foreground">AI agents</h3>
+        <Card className="shadow-none">
+          <CardContent className="space-y-4 p-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                System prompt
+              </p>
+              <p className="mt-1 text-xs text-muted text-pretty">
+                Copy the recommended vmem prompt and paste it into your AI
+                agent&apos;s system prompt settings.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => void handleCopyAiPrompt()}
+            >
+              <IconCopy size={16} stroke={1.8} />
+              {promptCopied ? "Copied!" : "Copy vmem prompt"}
+            </Button>
+          </CardContent>
+        </Card>
+      </section>
 
       <Button
         variant="ghost"
@@ -238,7 +247,7 @@ export function SettingsForm() {
         onClick={() => signOut()}
       >
         <IconLogout size={16} stroke={1.8} />
-        Sign Out
+        Sign out
       </Button>
     </div>
   );

@@ -2,7 +2,7 @@ import { importBookmarks, syncSingleBookmark } from "./import-bookmarks";
 import { importHistory } from "./import-history";
 import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
 import { hasActiveClerkSession, warmBackgroundAuth } from "./auth";
-import { getStorage } from "@/lib/storage";
+import { getStorage, setStorage } from "@/lib/storage";
 
 export const HISTORY_ALARM_NAME = "vmem-history-sync";
 const HISTORY_SYNC_INTERVAL_MINUTES = 30;
@@ -31,10 +31,32 @@ export function registerAlarmListener(): void {
       return;
     }
     if (alarm.name === SETTINGS_MIRROR_ALARM_NAME) {
-      void refreshUserSettingsMirrorFromConvex();
+      void handleHeartbeat();
       return;
     }
   });
+}
+
+/**
+ * Heartbeat — runs every SETTINGS_MIRROR_INTERVAL_MINUTES (5 min), the most
+ * reliable periodic wake the worker has. Beyond refreshing settings it acts as
+ * a watchdog: MV3 can silently drop the slower 30-min history alarm (OS
+ * sleep/hibernate on Windows, SW crash, extension update), and without a
+ * frequent re-assertion a dropped alarm stays dead until the next browser
+ * restart — the exact cause of multi-day silent sync gaps. Here we re-assert
+ * the history alarm and immediately catch up if a sync is overdue, so recovery
+ * happens within 5 minutes instead of waiting for onStartup.
+ */
+async function handleHeartbeat(): Promise<void> {
+  void refreshUserSettingsMirrorFromConvex();
+
+  const { autoSyncEnabled } = await getStorage();
+  if (!autoSyncEnabled) return;
+
+  // Resurrect the history alarm if Chrome dropped it (idempotent — only
+  // creates when absent, so an existing alarm's timer is never reset).
+  await startAutoSync();
+  await catchUpHistorySyncIfOverdue();
 }
 
 /**
@@ -138,9 +160,22 @@ export async function runAutoSyncNow(): Promise<void> {
   await handleHistoryAlarm();
 }
 
+/**
+ * Record why the latest sync attempt did or didn't run, so a silent gap is
+ * always diagnosable from storage (popup / debug report) rather than looking
+ * healthy. `reason === ""` means the attempt synced successfully.
+ */
+async function recordSyncAttempt(reason: string): Promise<void> {
+  await setStorage({
+    lastSyncAttemptAt: Date.now(),
+    lastSyncSkipReason: reason,
+  });
+}
+
 /** Called by alarm — checks auth + auto-sync setting before syncing. */
 async function handleHistoryAlarm(): Promise<void> {
   if (historySyncInProgress) {
+    await recordSyncAttempt("in-progress");
     return;
   }
 
@@ -148,12 +183,21 @@ async function handleHistoryAlarm(): Promise<void> {
 
   try {
     console.info("[vmem] History sync alarm fired");
+    // Mutual watchdog: ensure the frequent heartbeat alarm still exists. As
+    // long as either alarm survives, each fire resurrects the other — so a
+    // single dropped alarm can never permanently stop auto-sync.
+    await ensureSettingsMirrorAlarm();
+
     const { autoSyncEnabled } = await getStorage();
-    if (!autoSyncEnabled) return;
+    if (!autoSyncEnabled) {
+      await recordSyncAttempt("disabled");
+      return;
+    }
 
     await warmBackgroundAuth();
     const hasSession = await hasActiveClerkSession();
     if (!hasSession) {
+      await recordSyncAttempt("no-session");
       console.warn(
         "[vmem] History sync skipped — no active Clerk session " +
           "(sign in on the vmem site so the extension can read your syncHost session).",
@@ -163,9 +207,14 @@ async function handleHistoryAlarm(): Promise<void> {
 
     const result = await importHistory(undefined, true);
     const bookmarkResult = await importBookmarks(true);
+    await recordSyncAttempt("");
     console.info(
       `[vmem] History sync finished — imported ${result.imported} new entries; bookmarks ${bookmarkResult.imported} new`,
     );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await recordSyncAttempt(`error: ${message}`);
+    console.error("[vmem] History sync failed:", message);
   } finally {
     historySyncInProgress = false;
   }
@@ -177,6 +226,6 @@ export function dispatchAlarm(alarmName: string): void {
     return;
   }
   if (alarmName === SETTINGS_MIRROR_ALARM_NAME) {
-    void refreshUserSettingsMirrorFromConvex();
+    void handleHeartbeat();
   }
 }

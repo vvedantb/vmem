@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { IconBookmark, IconHistory } from "@tabler/icons-react";
 import {
   Button,
+  Card,
+  CardContent,
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
   Progress,
-  Switch,
 } from "@vmem/ui";
 import type {
   ContentMessage,
@@ -21,6 +22,7 @@ import {
   formatExtensionDebugReport,
 } from "@/lib/extension-debug-report";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
+import { SettingsSwitchRow } from "./SettingsSwitchRow";
 
 type ImportStatus = "idle" | "importing" | "done" | "error" | "cancelled";
 
@@ -103,7 +105,6 @@ export function ImportPanel() {
     pingBackground();
     refreshSyncTimestamps();
 
-    // Fetch the next scheduled alarm time and keep it updated
     function updateNextSync() {
       chrome.alarms.get("vmem-history-sync", (alarm) => {
         if (alarm) {
@@ -262,9 +263,11 @@ export function ImportPanel() {
     );
   }
 
+  const autoSyncEnabled = settings?.extensionAutoSyncEnabled ?? true;
+
   return (
     <div className="space-y-6">
-      <p className="text-xs text-muted">
+      <p className="text-xs text-muted text-pretty">
         &quot;Service worker (inactive)&quot; on chrome://extensions is normal
         when idle. Background:{" "}
         {backgroundReachable === "checking"
@@ -275,89 +278,107 @@ export function ImportPanel() {
         {swBootPhase ? ` · SW boot: ${swBootPhase}` : ""}
       </p>
 
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Auto-sync</span>
-          <Switch
-            checked={settings?.extensionAutoSyncEnabled ?? true}
-            onCheckedChange={handleAutoSyncToggle}
-            disabled={settings === undefined}
-          />
-        </div>
-        {settings?.extensionAutoSyncEnabled !== false && nextSyncLabel && (
-          <p className="text-xs text-muted">Next sync {nextSyncLabel}</p>
-        )}
-      </div>
+      <section className="space-y-3">
+        <h3 className="text-base font-medium text-foreground">Auto-sync</h3>
+        <Card className="shadow-none">
+          <CardContent className="space-y-4 p-4">
+            <SettingsSwitchRow
+              id="auto-sync-toggle"
+              label="Sync bookmarks and history"
+              description={
+                autoSyncEnabled && nextSyncLabel
+                  ? `Next sync ${nextSyncLabel}`
+                  : "Periodically import new bookmarks and browsing history."
+              }
+              checked={autoSyncEnabled}
+              onCheckedChange={handleAutoSyncToggle}
+              disabled={settings === undefined}
+            />
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="space-y-3">
+      <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-muted">Bookmarks</h3>
+          <h3 className="text-base font-medium text-foreground">Bookmarks</h3>
           <span className="text-xs text-muted">
             {formatLastSync(lastBookmarkSync)}
           </span>
         </div>
-        <Button
-          className="w-full"
-          onClick={handleImportBookmarks}
-          disabled={isImporting}
-        >
-          <IconBookmark size={16} />
-          {bookmarkStatus === "importing" ? "Syncing..." : "Sync Bookmarks"}
-        </Button>
-      </div>
+        <Card className="shadow-none">
+          <CardContent className="p-4">
+            <Button
+              className="w-full"
+              onClick={handleImportBookmarks}
+              disabled={isImporting}
+            >
+              <IconBookmark size={16} />
+              {bookmarkStatus === "importing" ? "Syncing..." : "Sync bookmarks"}
+            </Button>
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="space-y-3">
+      <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-muted">Browsing History</h3>
+          <h3 className="text-base font-medium text-foreground">
+            Browsing history
+          </h3>
           <span className="text-xs text-muted">
             {formatLastSync(lastHistorySync)}
           </span>
         </div>
-        <div className="flex gap-2">
-          <Select
-            value={historyDays}
-            onValueChange={setHistoryDays}
-            disabled={isImporting}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-              <SelectItem value="90">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            className="flex-1"
-            onClick={handleImportHistory}
-            disabled={isImporting}
-          >
-            <IconHistory size={16} />
-            {historyStatus === "importing" ? "Syncing..." : "Sync History"}
-          </Button>
-        </div>
-      </div>
+        <Card className="shadow-none">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex gap-2">
+              <Select
+                value={historyDays}
+                onValueChange={setHistoryDays}
+                disabled={isImporting}
+              >
+                <SelectTrigger className="h-9 w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">Last 7 days</SelectItem>
+                  <SelectItem value="30">Last 30 days</SelectItem>
+                  <SelectItem value="90">Last 90 days</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                className="flex-1"
+                onClick={handleImportHistory}
+                disabled={isImporting}
+              >
+                <IconHistory size={16} />
+                {historyStatus === "importing" ? "Syncing..." : "Sync history"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
-      {progress && (
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs text-muted">
-            <span>Progress</span>
-            <span className="tabular-nums">
-              {progress.current} / {progress.total}
-            </span>
-          </div>
-          <Progress value={(progress.current / progress.total) * 100} />
-        </div>
-      )}
+      {progress ? (
+        <Card className="shadow-none">
+          <CardContent className="space-y-2 p-4">
+            <div className="flex justify-between text-xs text-muted">
+              <span>Progress</span>
+              <span className="tabular-nums">
+                {progress.current} / {progress.total}
+              </span>
+            </div>
+            <Progress value={(progress.current / progress.total) * 100} />
+          </CardContent>
+        </Card>
+      ) : null}
 
-      {isImporting && (
+      {isImporting ? (
         <Button variant="destructive" className="w-full" onClick={handleCancel}>
-          Cancel Sync
+          Cancel sync
         </Button>
-      )}
+      ) : null}
 
-      {resultMessage && (
+      {resultMessage ? (
         <p
           className={`text-sm ${
             bookmarkStatus === "error" || historyStatus === "error"
@@ -369,40 +390,42 @@ export function ImportPanel() {
         >
           {resultMessage}
         </p>
-      )}
-
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full"
-        onClick={handleRunAutoSyncNow}
-        disabled={isImporting}
-      >
-        Run auto-sync now
-      </Button>
-
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-full text-muted"
-        onClick={() => void handleCopyDebugReport()}
-        disabled={isImporting}
-      >
-        Copy debug report for support
-      </Button>
-      {copyReportMessage ? (
-        <p className="text-xs text-muted">{copyReportMessage}</p>
       ) : null}
 
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-full text-muted"
-        onClick={handleResetSync}
-        disabled={isImporting}
-      >
-        Reset Sync Timestamps
-      </Button>
+      <div className="space-y-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={handleRunAutoSyncNow}
+          disabled={isImporting}
+        >
+          Run auto-sync now
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-muted"
+          onClick={() => void handleCopyDebugReport()}
+          disabled={isImporting}
+        >
+          Copy debug report for support
+        </Button>
+        {copyReportMessage ? (
+          <p className="text-xs text-muted">{copyReportMessage}</p>
+        ) : null}
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-muted"
+          onClick={handleResetSync}
+          disabled={isImporting}
+        >
+          Reset sync timestamps
+        </Button>
+      </div>
     </div>
   );
 }

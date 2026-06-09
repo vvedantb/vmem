@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { IconDeviceFloppy } from "@tabler/icons-react";
 import {
   Button,
+  Card,
+  CardContent,
   Label,
   Select,
   SelectTrigger,
@@ -70,7 +72,6 @@ export function QuickSave() {
       }
     });
 
-    // Load profiles and default profile
     void (async () => {
       try {
         const [profileList, storage] = await Promise.all([
@@ -79,7 +80,6 @@ export function QuickSave() {
         ]);
         setProfiles(profileList);
 
-        // Set selected profile: use stored default, or fall back to isDefault profile
         const defaultId =
           storage.defaultProfileId ||
           profileList.find((p) => p.isDefault)?._id ||
@@ -124,7 +124,7 @@ export function QuickSave() {
           title:
             extraction.ogTitle ?? extraction.title ?? tab.title ?? "Untitled",
           content: extraction.content,
-          markdown: extraction.html, // Will be converted to markdown in background
+          markdown: extraction.html,
           ogImage: extraction.ogImage,
           ogDescription: extraction.ogDescription,
           profileId: selectedProfileId || undefined,
@@ -182,55 +182,55 @@ export function QuickSave() {
 
   return (
     <div className="space-y-4">
-      {/* Page preview card */}
-      {pageInfo && (
-        <div className="rounded-lg p-3 space-y-2 bg-surface-secondary/40">
-          <div className="flex items-start gap-2.5">
-            {pageInfo.favicon ? (
-              <img
-                src={pageInfo.favicon}
-                alt=""
-                className="w-4 h-4 mt-0.5 rounded-sm shrink-0 outline outline-1 outline-white/10"
-              />
-            ) : (
-              <div className="w-4 h-4 mt-0.5 rounded-sm bg-surface-secondary shrink-0" />
-            )}
-            <span className="text-sm font-medium leading-tight line-clamp-2 text-balance">
-              {pageInfo.title}
-            </span>
-          </div>
-          <p className="text-xs text-muted truncate">
-            {truncateUrl(pageInfo.url)}
-          </p>
-          <p className="text-xs text-muted">{formatTimestamp()}</p>
-        </div>
-      )}
+      {pageInfo ? (
+        <Card className="shadow-none">
+          <CardContent className="space-y-2 p-4">
+            <div className="flex items-start gap-2.5">
+              {pageInfo.favicon ? (
+                <img
+                  src={pageInfo.favicon}
+                  alt=""
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded-sm outline outline-1 outline-white/10"
+                />
+              ) : (
+                <div className="mt-0.5 h-4 w-4 shrink-0 rounded-sm bg-surface-secondary" />
+              )}
+              <span className="line-clamp-2 text-sm font-medium leading-tight text-balance">
+                {pageInfo.title}
+              </span>
+            </div>
+            <p className="truncate text-xs text-muted">
+              {truncateUrl(pageInfo.url)}
+            </p>
+            <p className="text-xs text-muted">{formatTimestamp()}</p>
+          </CardContent>
+        </Card>
+      ) : null}
 
-      {/* Profile selector */}
       {profiles === null ? (
-        <div className="flex items-center gap-2">
-          <Label className="text-sm text-muted">Save to</Label>
-          <Skeleton className="h-9 w-[120px] rounded-md" />
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-sm font-medium">Save to</Label>
+          <Skeleton className="h-9 w-[160px] rounded-field" />
         </div>
       ) : profiles.length > 0 ? (
-        <div className="flex items-center gap-2">
-          <Label className="text-sm text-muted">Save to</Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-sm font-medium">Save to</Label>
           <Select
             value={selectedProfileId}
             onValueChange={setSelectedProfileId}
             disabled={saving}
           >
-            <SelectTrigger className="w-[140px] h-9">
+            <SelectTrigger className="h-9 w-[160px]">
               <SelectValue>
-                {selectedProfile && (
+                {selectedProfile ? (
                   <div className="flex items-center gap-2">
                     <div
-                      className="h-2 w-2 rounded-full shrink-0"
+                      className="h-2 w-2 shrink-0 rounded-full"
                       style={{ backgroundColor: selectedProfile.color }}
                     />
                     <span className="truncate">{selectedProfile.name}</span>
                   </div>
-                )}
+                ) : null}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -238,7 +238,7 @@ export function QuickSave() {
                 <SelectItem key={profile._id} value={profile._id}>
                   <div className="flex items-center gap-2">
                     <div
-                      className="h-2 w-2 rounded-full shrink-0"
+                      className="h-2 w-2 shrink-0 rounded-full"
                       style={{ backgroundColor: profile.color }}
                     />
                     <span>{profile.name}</span>
@@ -259,32 +259,34 @@ export function QuickSave() {
         {saving ? "Saving..." : "Save to vmem"}
       </Button>
 
-      {pendingUpdate && (
-        <div className="space-y-2 rounded-xl p-3 bg-surface-secondary/40">
-          <p className="text-sm text-muted">Already saved — update it?</p>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleUpdate}
-              disabled={saving}
-            >
-              Update
-            </Button>
-            <Button size="sm" variant="ghost" onClick={handleDismiss}>
-              Dismiss
-            </Button>
-          </div>
-        </div>
-      )}
+      {pendingUpdate ? (
+        <Card className="shadow-none">
+          <CardContent className="space-y-3 p-4">
+            <p className="text-sm text-muted">Already saved — update it?</p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleUpdate}
+                disabled={saving}
+              >
+                Update
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleDismiss}>
+                Dismiss
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
-      {result && (
+      {result ? (
         <p
           className={`text-sm ${result.success ? "text-success" : "text-danger"}`}
         >
           {result.message}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

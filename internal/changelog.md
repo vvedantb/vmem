@@ -1,5 +1,11 @@
 # Changelog
 
+## Chrome extension popup design parity — 2026-06-08
+
+- **Popup UI**: Extension popup uses the same HeroUI tokens, sliding tabs, cards, switches, selects, and settings row layout as the web app — shared `@vmem/ui` components with aligned `globals.css`.
+- **Sync heartbeat**: The 5-minute settings mirror alarm now re-asserts the 30-minute history alarm and catches up overdue syncs, so a dropped MV3 alarm recovers within minutes instead of staying silent for days.
+- **Sync diagnostics**: `lastSyncAttemptAt` and `lastSyncSkipReason` are recorded on every sync attempt for popup/debug-report visibility when auto-sync skips or fails.
+
 ## Codebase archive & delete — 2026-06-08
 
 - **Sidebar context menu**: Right-clicking a codebase in the sidebar now offers Archive/Unarchive and Delete.

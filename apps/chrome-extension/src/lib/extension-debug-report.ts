@@ -12,6 +12,8 @@ type DebugReport = {
   syncHostCookiePresent: boolean;
   lastHistorySync: number;
   lastBookmarkSync: number;
+  lastSyncAttemptAt: number;
+  lastSyncSkipReason: string;
   autoSyncEnabled: boolean;
   swBuildStamp: string | null;
 };
@@ -36,6 +38,8 @@ export async function buildExtensionDebugReport(): Promise<DebugReport> {
     "vmemSwLastMessageError",
     "lastHistorySync",
     "lastBookmarkSync",
+    "lastSyncAttemptAt",
+    "lastSyncSkipReason",
     "autoSyncEnabled",
     "vmemSwBuildStamp",
   ]);
@@ -92,6 +96,14 @@ export async function buildExtensionDebugReport(): Promise<DebugReport> {
       typeof stored.lastHistorySync === "number" ? stored.lastHistorySync : 0,
     lastBookmarkSync:
       typeof stored.lastBookmarkSync === "number" ? stored.lastBookmarkSync : 0,
+    lastSyncAttemptAt:
+      typeof stored.lastSyncAttemptAt === "number"
+        ? stored.lastSyncAttemptAt
+        : 0,
+    lastSyncSkipReason:
+      typeof stored.lastSyncSkipReason === "string"
+        ? stored.lastSyncSkipReason
+        : "",
     autoSyncEnabled: stored.autoSyncEnabled === true,
     swBuildStamp:
       typeof stored.vmemSwBuildStamp === "string"
