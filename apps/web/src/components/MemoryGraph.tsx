@@ -86,6 +86,11 @@ export default function MemoryGraph({
     searchMatchSet,
     isSearchActive,
     resolvedFocusNodeId,
+    loadedMemoryCount,
+    totalMemoryCount,
+    canLoadMore,
+    isLoadingMore,
+    onLoadMore,
     isLoading,
     isError,
     error,
@@ -297,6 +302,30 @@ export default function MemoryGraph({
           </div>
         </div>
       )}
+
+      {/* Global-scope loading indicator: honest about the loaded subset
+          (newest-first pages) instead of silently truncating at the cap. */}
+      {scope === "global" &&
+        totalMemoryCount !== null &&
+        loadedMemoryCount < totalMemoryCount && (
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-2 rounded-lg bg-surface-secondary/40 py-1 pl-3 pr-1">
+            <span className="text-xs text-muted">
+              Showing {loadedMemoryCount.toLocaleString()} of{" "}
+              {totalMemoryCount.toLocaleString()} memories
+            </span>
+            {canLoadMore && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onLoadMore}
+                disabled={isLoadingMore}
+                className="h-6 px-2 text-xs"
+              >
+                {isLoadingMore ? "Loading…" : "Load more"}
+              </Button>
+            )}
+          </div>
+        )}
 
       {/* Tooltip near node */}
       {hoveredNode && !selectedNodeId && (

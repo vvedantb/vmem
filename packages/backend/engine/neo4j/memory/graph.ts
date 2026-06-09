@@ -10,9 +10,15 @@
  * Promise.all over per-leg sessions is the parallelism contract.
  */
 import { type Driver, type Session } from "neo4j-driver";
-import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
+import { clampNeo4jLimit } from "../intParams";
+import { toMemoryTypeOrUndefined, toNeoInt, toTagEdge } from "./mappers";
 import { profileFilter, withSession } from "./shared";
 import { type MemoryType, type TagEdge } from "./types";
+
+/** Hard ceiling for one global-graph page; matches MAX_NODES in capGraph. */
+export const GLOBAL_GRAPH_MAX_NODES = 2000;
+/** Default first page for the progressive global graph. */
+export const GLOBAL_GRAPH_DEFAULT_LIMIT = 500;
 
 interface GraphNode {
   id: string;
@@ -47,31 +53,39 @@ export interface GraphData {
    * wins); absent on the global graph.
    */
   focusNodeId?: string;
+  /**
+   * Total active/pinned memories the user has (after profile filter). Set by
+   * the global graph so the UI can show an honest "Showing X of Y" instead
+   * of silently truncating at the node limit.
+   */
+  totalMemoryCount?: number;
 }
 
 /**
- * Fetches the top-2000 active/pinned nodes, their RELATES_TO edges, and
- * MENTIONS entities in a single round-trip. The composite index
- * memory_user_status_created lets the planner satisfy both the WHERE and
- * the ORDER BY with one index seek (no Sort op). RELATES_TO is then
- * scoped to the collected node-id list, so the edge scan is
- * O(edges_in_subgraph) rather than O(all_user_edges).
+ * Fetches the newest `nodeLimit` active/pinned nodes, their RELATES_TO edges,
+ * MENTIONS entities, and the user's total memory count in a single
+ * round-trip. The composite index memory_user_status_created lets the
+ * planner satisfy both the WHERE and the ORDER BY with one index seek (no
+ * Sort op). RELATES_TO is then scoped to the collected node-id list, so the
+ * edge scan is O(edges_in_subgraph) rather than O(all_user_edges).
  */
 async function fetchGraphNodesAndEdges(
   session: Session,
   userId: string,
   profileId: string | null | undefined,
+  nodeLimit: number,
 ): Promise<{
   nodes: GraphNode[];
   relatesToEdges: RelatesToEdge[];
   entities: GraphData["entities"];
+  totalMemoryCount: number;
 }> {
   const pf = profileFilter(profileId, "m");
   const result = await session.run(
     `CALL () {
        MATCH (m:Memory {userId: $userId})
        WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
-       WITH m ORDER BY m.createdAt DESC LIMIT 2000
+       WITH m ORDER BY m.createdAt DESC LIMIT $nodeLimit
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
        WITH m, collect(t.name) AS memTags
        RETURN collect({
@@ -95,14 +109,28 @@ async function fetchGraphNodesAndEdges(
          type: e.type, memoryIds: memoryIds
        }) AS entities
      }
-     RETURN nodes, relatesToEdges, entities`,
-    { userId, ...pf.params },
+     CALL () {
+       MATCH (m:Memory {userId: $userId})
+       WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
+       RETURN count(m) AS totalMemoryCount
+     }
+     RETURN nodes, relatesToEdges, entities, totalMemoryCount`,
+    {
+      userId,
+      nodeLimit: clampNeo4jLimit(
+        nodeLimit,
+        GLOBAL_GRAPH_DEFAULT_LIMIT,
+        GLOBAL_GRAPH_MAX_NODES,
+      ),
+      ...pf.params,
+    },
   );
 
   const row = result.records[0];
   const rawNodes = row ? row.get("nodes") : [];
   const rawEdges = row ? row.get("relatesToEdges") : [];
   const rawEntities = row ? row.get("entities") : [];
+  const totalMemoryCount = row ? toNeoInt(row.get("totalMemoryCount")) : 0;
 
   const nodes: GraphNode[] = (Array.isArray(rawNodes) ? rawNodes : []).map(
     (n) => ({
@@ -133,7 +161,7 @@ async function fetchGraphNodesAndEdges(
     memoryIds: Array.isArray(e.memoryIds) ? e.memoryIds.map(String) : [],
   }));
 
-  return { nodes, relatesToEdges, entities };
+  return { nodes, relatesToEdges, entities, totalMemoryCount };
 }
 
 /**
@@ -172,6 +200,7 @@ export async function getGraphData(
   driver: Driver,
   userId: string,
   profileId?: string | null,
+  nodeLimit: number = GLOBAL_GRAPH_MAX_NODES,
 ): Promise<GraphData> {
   // Two parallel sessions — driver doesn't allow concurrent .run() on the
   // same session. The first leg returns nodes + RELATES_TO + entities in
@@ -183,7 +212,7 @@ export async function getGraphData(
   const tagEdgesSession = driver.session();
   try {
     const [nodesAndEdges, tagEdges] = await Promise.all([
-      fetchGraphNodesAndEdges(nodesEdgesSession, userId, profileId),
+      fetchGraphNodesAndEdges(nodesEdgesSession, userId, profileId, nodeLimit),
       fetchTagSharedEdges(tagEdgesSession, userId, profileId),
     ]);
     return { ...nodesAndEdges, tagEdges };

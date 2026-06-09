@@ -55,6 +55,7 @@ function capGraph(data: {
     memoryIds: string[];
   }>;
   focusNodeId?: string;
+  totalMemoryCount?: number;
 }) {
   const nodes = data.nodes.slice(0, MAX_NODES);
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -91,6 +92,7 @@ function capGraph(data: {
     entities,
     mentionsEdges: mentionsEdges.slice(0, MAX_EDGES),
     focusNodeId: data.focusNodeId,
+    totalMemoryCount: data.totalMemoryCount,
   };
 }
 
@@ -105,6 +107,12 @@ export const getGraphDataInternal = internalAction({
     mode: v.optional(v.union(v.literal("local"), v.literal("global"))),
     /** Local-mode hop depth, clamped to [1, 3] downstream. Default 2. */
     depth: v.optional(v.number()),
+    /**
+     * Global-mode page size (newest-first), clamped to [1, 2000] downstream.
+     * Absent → full 2000 cap (MCP and other existing callers keep the old
+     * behaviour); the web passes 500/1000/… as the user loads more.
+     */
+    nodeLimit: v.optional(v.number()),
   },
   handler: async (_ctx, args) => {
     const driver = getDriver();
@@ -120,7 +128,12 @@ export const getGraphDataInternal = internalAction({
           args.profileId,
           args.depth,
         )
-      : await getGraphData(driver, args.clerkId, args.profileId);
+      : await getGraphData(
+          driver,
+          args.clerkId,
+          args.profileId,
+          args.nodeLimit,
+        );
     return capGraph(raw);
   },
 });

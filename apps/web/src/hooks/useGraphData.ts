@@ -6,7 +6,10 @@
  */
 import { useState, useMemo, useCallback } from "react";
 import { useConvexAuth, useAction } from "convex/react";
-import { useQuery as useTanstackQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery as useTanstackQuery,
+} from "@tanstack/react-query";
 import { z } from "zod";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { api } from "@vmem/backend";
@@ -76,6 +79,8 @@ const graphResponseSchema = z.object({
   // Local mode only: the memory the graph is centred on, resolved server-side
   // (newest memory) when no explicit focus was requested.
   focusNodeId: z.string().optional(),
+  // Global mode only: total active memories, for "Showing X of Y".
+  totalMemoryCount: z.number().optional(),
 });
 
 type GraphResponse = z.infer<typeof graphResponseSchema>;
@@ -93,7 +98,11 @@ export interface UseGraphDataReturn {
    * newest memory when the server picked the default. null in global scope.
    */
   resolvedFocusNodeId: string | null;
+  /** Total active memories (global scope) — null until the first response. */
+  totalMemoryCount: number | null;
   isLoading: boolean;
+  /** True while a refetch (e.g. load-more) is in flight over previous data. */
+  isFetching: boolean;
   isError: boolean;
   error: Error | null;
 }
@@ -104,6 +113,7 @@ export function useGraphData(
   enabled: boolean = true,
   scope: "local" | "global" = "global",
   depth: number = 2,
+  nodeLimit: number = 2000,
 ): UseGraphDataReturn {
   const { isAuthenticated } = useConvexAuth();
   const getGraphData = useAction(api.graphApi.getGraphData);
@@ -118,7 +128,11 @@ export function useGraphData(
       focusNodeId ?? "auto",
       profileId ?? "all",
       scope === "local" ? depth : 0,
+      scope === "global" ? nodeLimit : 0,
     ],
+    // Load-more bumps nodeLimit (new queryKey): keep showing the previous
+    // page while the bigger one fetches instead of flashing the spinner.
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<GraphResponse> => {
       // Client-side timing so we can see the true user-perceived latency —
       // Convex action round-trip + Zod parse. Logs once per fetch (TanStack
@@ -132,6 +146,7 @@ export function useGraphData(
         profileId: profileId ?? undefined,
         mode: scope,
         depth: scope === "local" ? depth : undefined,
+        nodeLimit: scope === "global" ? nodeLimit : undefined,
       });
       const parsed = graphResponseSchema.parse(result);
       const endedAt =
@@ -192,7 +207,9 @@ export function useGraphData(
     apiWikiParentEdges: graphData?.wikiParentEdges ?? [],
     apiMentionsEdges: graphData?.mentionsEdges ?? [],
     resolvedFocusNodeId: graphData?.focusNodeId ?? null,
+    totalMemoryCount: graphData?.totalMemoryCount ?? null,
     isLoading: graphQuery.isLoading,
+    isFetching: graphQuery.isFetching,
     isError: graphQuery.isError,
     error: graphQuery.error,
   };

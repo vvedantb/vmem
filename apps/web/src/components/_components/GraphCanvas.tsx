@@ -115,6 +115,13 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     // sleep. The rAF loop also self-triggers on sim/viewport/interaction
     // motion; this flag covers everything that arrives via props.
     const needsRenderRef = useRef(true);
+    // Last-known position per node id, saved when a simulation tears down.
+    // Data swaps (load-more pages, live edges, filter changes) produce fresh
+    // node objects with undefined x/y — carrying positions over means only
+    // genuinely new nodes animate in instead of the whole layout resetting.
+    const lastPositionsRef = useRef<Map<string, { x: number; y: number }>>(
+      new Map(),
+    );
     // Connector logos preload asynchronously. We hold an empty map on mount
     // and populate it once the images resolve — nodes render as plain circles
     // in the interim, no layout shift when the logos drop in.
@@ -169,6 +176,17 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       // (dev) keeps the flag true from the first (torn-down) run and the second
       // run never fits, leaving the viewport aimed at the old clumped origin.
       hasFittedRef.current = false;
+
+      // Carry over resting positions from the previous simulation for nodes
+      // that survived the data swap (see lastPositionsRef).
+      for (const node of nodes) {
+        if (node.x !== undefined && node.y !== undefined) continue;
+        const prev = lastPositionsRef.current.get(node.id);
+        if (prev) {
+          node.x = prev.x;
+          node.y = prev.y;
+        }
+      }
 
       const sim = createSimulation(
         nodes,
@@ -446,6 +464,15 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       rafId = requestAnimationFrame(tick);
 
       return () => {
+        // Snapshot final positions so the next simulation (new data) can
+        // seed surviving nodes where they already rest.
+        const positions = lastPositionsRef.current;
+        positions.clear();
+        for (const node of nodesRef.current) {
+          if (node.x !== undefined && node.y !== undefined) {
+            positions.set(node.id, { x: node.x, y: node.y });
+          }
+        }
         cancelAnimationFrame(rafId);
         cleanup();
         sim.stop();

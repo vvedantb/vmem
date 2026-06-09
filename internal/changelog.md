@@ -1,5 +1,11 @@
 # Changelog
 
+## Memory graph: progressive global view — 2026-06-09
+
+- **Paged loading**: The global graph now loads the newest 500 memories first and grows by 500 per click (up to the 2000 cap), instead of always fetching everything — the Supermemory pattern.
+- **Honest cap**: A "Showing X of Y memories · Load more" pill replaces the old silent truncation; the server returns the user's total memory count with each page.
+- **Stable layout**: Node positions carry over across data swaps (load-more, filter changes, live edges), so only new nodes animate in instead of the whole graph re-shuffling.
+
 ## Memory graph: local neighbourhood by default — 2026-06-09
 
 - **Local-first entry**: The graph now opens on the newest memory's neighbourhood (Obsidian/Neo4j Bloom pattern) instead of fetching the full 2000-node graph — first paint loads ≤500 nodes; "Global graph" is one click away and lives at `?scope=global`.

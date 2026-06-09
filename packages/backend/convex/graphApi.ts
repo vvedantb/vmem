@@ -69,6 +69,12 @@ interface GraphResult {
    * memory); absent on the global graph.
    */
   focusNodeId?: string;
+  /**
+   * Total active/pinned memories (after profile filter). Present in global
+   * mode so the UI can show "Showing X of Y" + Load more instead of
+   * silently truncating.
+   */
+  totalMemoryCount?: number;
 }
 
 interface MemoryGraph {
@@ -102,6 +108,8 @@ interface MemoryGraph {
   mentionsEdges: Array<{ source: string; target: string }>;
   /** Resolved focus (local mode only) — set even when the server picked it. */
   focusNodeId?: string;
+  /** Total active memories (global mode) for the "Showing X of Y" indicator. */
+  totalMemoryCount?: number;
 }
 
 /** Prefix applied to wikiNode ids so they never collide with Neo4j memory ids. */
@@ -146,6 +154,8 @@ export const getGraphData = authAction({
     mode: v.optional(v.union(v.literal("local"), v.literal("global"))),
     /** Local-mode hop depth, clamped to [1, 3] server-side. Default 2. */
     depth: v.optional(v.number()),
+    /** Global-mode page size (newest-first), clamped to [1, 2000]. */
+    nodeLimit: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<GraphResult> => {
     const clerkId = await requireClerkId(ctx);
@@ -163,6 +173,7 @@ export const getGraphData = authAction({
         profileId: args.profileId,
         mode: args.mode,
         depth: args.depth,
+        nodeLimit: args.nodeLimit,
       },
     );
 
@@ -238,6 +249,7 @@ export const getGraphData = authAction({
       wikiParentEdges,
       mentionsEdges: memoryGraph.mentionsEdges,
       focusNodeId: memoryGraph.focusNodeId,
+      totalMemoryCount: memoryGraph.totalMemoryCount,
     };
   },
 });
