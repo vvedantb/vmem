@@ -57,6 +57,12 @@ Codebases:
 
 - Global daily sync: `convex/crons.ts` → `codebaseSync.dailyCodebaseSyncWorkflow` via `@convex-dev/workflow` (one `syncOneCodebaseInternal` step per repo, full action timeout each). Stale = `lastSyncedAt` older than 24h; skips `syncing` and users without GitHub.
 
+Chrome extension auto-sync (`apps/chrome-extension/src/background/sync-scheduler.ts`):
+
+- MV3 reliability uses **mutual-watchdog alarms**: the slow history alarm (30 min) and the frequent heartbeat alarm (`SETTINGS_MIRROR_ALARM_NAME`, 5 min) each re-assert the other on every fire (`ensureSettingsMirrorAlarm` / `startAutoSync`, both idempotent — only create when absent so timers never reset). As long as either alarm survives, both come back. Chrome silently drops periodic alarms (OS sleep/hibernate on Windows, SW crash, extension update) — never rely on a single alarm.
+- The heartbeat is the self-heal path: it re-creates the history alarm and runs `catchUpHistorySyncIfOverdue()`, so a dropped alarm or missed sync recovers within ~5 min instead of waiting for `onStartup`. Don't reduce its handler back to "just refresh settings."
+- Every sync attempt records `lastSyncAttemptAt` + `lastSyncSkipReason` (`recordSyncAttempt`) into storage and the debug report — a silent gap (lost auth, dropped alarm) must stay diagnosable, never look healthy. No-session skips are expected after a browser restart (`chrome.storage.session` token cleared) and recover via the cookie listener / popup TokenSync / heartbeat retry.
+
 Profiles:
 
 - Profiles are for **organizing where memories get saved**

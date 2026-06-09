@@ -220,12 +220,17 @@ async function handleHistoryAlarm(): Promise<void> {
   }
 }
 
-export function dispatchAlarm(alarmName: string): void {
+/**
+ * Drive an alarm handler by name and await it. Mirrors the live
+ * `onAlarm` dispatch but returns the promise so callers/tests can await the
+ * full sync + watchdog cycle. No-op for unknown names.
+ */
+export async function dispatchAlarm(alarmName: string): Promise<void> {
   if (alarmName === HISTORY_ALARM_NAME) {
-    void handleHistoryAlarm();
+    await handleHistoryAlarm();
     return;
   }
   if (alarmName === SETTINGS_MIRROR_ALARM_NAME) {
-    void handleHeartbeat();
+    await handleHeartbeat();
   }
 }
