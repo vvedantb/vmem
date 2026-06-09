@@ -22,6 +22,8 @@ import {
   TabsTrigger,
   TabsContent,
   Button,
+  Card,
+  CardContent,
   Spinner,
   fadeUp,
 } from "@vmem/ui";
@@ -58,7 +60,7 @@ function SignedInContent() {
       <EnsureUser />
       <TokenSync />
       <Tabs defaultValue="save" className="flex flex-1 flex-col">
-        <TabsList className="mx-3 mt-3 w-auto">
+        <TabsList className="mx-5 mt-4 w-auto">
           <TabsTrigger value="save" className="flex-1 gap-1.5">
             <IconDeviceFloppy size={16} stroke={1.8} />
             Save
@@ -98,7 +100,7 @@ function SignedOutContent() {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 p-8">
-      <p className="text-sm text-muted text-center text-pretty">
+      <p className="text-center text-sm text-muted text-pretty">
         Sign in to start saving memories
       </p>
       <div className="flex gap-3">
@@ -106,35 +108,29 @@ function SignedOutContent() {
           <Button variant="outline">Sign in</Button>
         </SignInButton>
         <SignUpButton mode="modal">
-          <Button variant="outline">Sign up</Button>
+          <Button>Sign up</Button>
         </SignUpButton>
       </div>
-      {/*
-        Clerk dev instances mint extension tokens by reading the syncHost
-        cookie. If the user has never signed in on the host site (or their
-        host session has expired) the in-popup sign-in modal silently fails
-        with "Unable to authenticate this browser for your development
-        instance". Surfacing this here saves the user from staring at a
-        broken popup.
-      */}
-      <div className="bg-surface-secondary/40 rounded-lg px-3 py-2.5 text-xs text-muted flex gap-2 max-w-full">
-        <IconInfoCircle size={14} stroke={1.8} className="mt-0.5 shrink-0" />
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <span className="text-pretty">
-            Dev build: sign in on the vmem site first so this extension can sync
-            your session.
-          </span>
-          <a
-            href={CLERK_SYNC_HOST}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="inline-flex items-center gap-1 text-foreground hover:underline self-start"
-          >
-            Open vmem
-            <IconExternalLink size={12} stroke={1.8} />
-          </a>
-        </div>
-      </div>
+      <Card className="max-w-full shadow-none">
+        <CardContent className="flex gap-2 p-3 text-xs text-muted">
+          <IconInfoCircle size={14} stroke={1.8} className="mt-0.5 shrink-0" />
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <span className="text-pretty">
+              Dev build: sign in on the vmem site first so this extension can
+              sync your session.
+            </span>
+            <a
+              href={CLERK_SYNC_HOST}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-1 self-start text-foreground hover:underline"
+            >
+              Open vmem
+              <IconExternalLink size={12} stroke={1.8} />
+            </a>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -143,32 +139,32 @@ export function App() {
   const { isLoaded } = useAuth();
 
   return (
-    <div className="glass-panel text-foreground min-h-[500px] flex flex-col">
-      <header className="flex items-center justify-between px-5 py-3.5 bg-surface-secondary/20">
-        <div className="flex items-center gap-2.5">
-          <span className="text-lg font-serif tracking-tight">
-            v<span className="italic">mem</span>
-          </span>
-        </div>
+    <div className="flex min-h-[500px] flex-col bg-background text-foreground">
+      <header className="flex items-center justify-between bg-surface px-5 py-3.5">
+        <span className="font-serif text-lg tracking-tight">
+          v<span className="italic">mem</span>
+        </span>
         <Show when="signed-in">
           <UserButton />
         </Show>
       </header>
 
-      {!isLoaded ? (
-        <div className="flex flex-1 items-center justify-center">
-          <Spinner />
-        </div>
-      ) : (
-        <>
-          <Show when="signed-in">
-            <SignedInContent />
-          </Show>
-          <Show when="signed-out">
-            <SignedOutContent />
-          </Show>
-        </>
-      )}
+      <main className="flex flex-1 flex-col bg-surface">
+        {!isLoaded ? (
+          <div className="flex flex-1 items-center justify-center">
+            <Spinner />
+          </div>
+        ) : (
+          <>
+            <Show when="signed-in">
+              <SignedInContent />
+            </Show>
+            <Show when="signed-out">
+              <SignedOutContent />
+            </Show>
+          </>
+        )}
+      </main>
     </div>
   );
 }

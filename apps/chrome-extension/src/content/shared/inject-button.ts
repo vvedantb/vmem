@@ -1,6 +1,22 @@
 import { VMEM_BUTTON_STYLES } from "@/lib/constants";
+import { createVmemLogoImg } from "@/content/shared/icons";
 
 let fontInjected = false;
+
+const VMEM_LABEL_SELECTOR = "[data-vmem-label]";
+
+/** Updates button copy without removing the logo icon. */
+export function setVmemButtonLabel(
+  button: HTMLButtonElement,
+  text: string,
+): void {
+  const label = button.querySelector(VMEM_LABEL_SELECTOR);
+  if (label) {
+    label.textContent = text;
+    return;
+  }
+  button.textContent = text;
+}
 
 /**
  * Injects the Instrument Sans Google Font stylesheet into the host page.
@@ -24,9 +40,24 @@ export function createVmemButton(
   onClick: () => void,
 ): HTMLButtonElement {
   const button = document.createElement("button");
-  button.textContent = text;
   button.type = "button";
   button.setAttribute("data-vmem", "true");
+
+  const icon = document.createElement("span");
+  icon.setAttribute("data-vmem-icon", "true");
+  icon.appendChild(createVmemLogoImg("dark", 16));
+  Object.assign(icon.style, {
+    display: "inline-flex",
+    alignItems: "center",
+    flexShrink: "0",
+    lineHeight: "0",
+  });
+
+  const label = document.createElement("span");
+  label.setAttribute("data-vmem-label", "true");
+  label.textContent = text;
+
+  button.append(icon, label);
 
   injectInstrumentSansFont();
   Object.assign(button.style, VMEM_BUTTON_STYLES);

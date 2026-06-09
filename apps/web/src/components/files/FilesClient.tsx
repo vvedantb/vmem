@@ -11,7 +11,7 @@ import FilePreviewModal from "@/components/FilePreviewModal";
 import { filesSearchParams } from "./-searchParams";
 import { sortFiles } from "./_utils";
 import { useFileSelection } from "./_hooks/useFileSelection";
-import { deleteFile, useFilesData } from "./_hooks/useFilesData";
+import { useFilesData } from "./_hooks/useFilesData";
 import BreadcrumbNav from "./BreadcrumbNav";
 import FileToolbar from "./FileToolbar";
 import BulkActionBar from "./BulkActionBar";
@@ -21,6 +21,7 @@ import FileListView from "./FileListView";
 import FileEmptyState from "./FileEmptyState";
 import StorageStatusBar from "./StorageStatusBar";
 import MoveFolderDialog from "./MoveFolderDialog";
+import RenameDialog from "./RenameDialog";
 
 export default function FilesClient() {
   const [params, setParams] = useQueryStates(filesSearchParams);
@@ -30,9 +31,11 @@ export default function FilesClient() {
     isLoading,
     totalBytes,
     storageLimit,
-    removeFileLocally,
-    addFileLocally,
-    updateFilesLocally,
+    uploadFile,
+    createFolder,
+    renameNode,
+    moveNodes,
+    deleteNodes,
   } = useFilesData();
 
   // Modal state
@@ -41,6 +44,8 @@ export default function FilesClient() {
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+  const [pendingMoveIds, setPendingMoveIds] = useState<string[]>([]);
+  const [renameTarget, setRenameTarget] = useState<FileItem | null>(null);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
   // Derived: items in current folder, sorted
@@ -106,26 +111,25 @@ export default function FilesClient() {
   );
 
   const handleDownload = useCallback((item: FileItem) => {
-    const content =
-      item.previewContent ??
-      `Mock content for ${item.name}\n\nThis is a simulated download.`;
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
+    if (!item.url) {
+      toast.error("Download URL unavailable");
+      return;
+    }
     const link = document.createElement("a");
-    link.href = url;
+    link.href = item.url;
     link.download = item.name;
+    link.target = "_blank";
+    link.rel = "noopener";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
     toast.success(`Downloading ${item.name}`);
   }, []);
 
   const handleDelete = useCallback(
     async (item: FileItem) => {
       try {
-        await deleteFile(item.id);
-        removeFileLocally(item.id);
+        await deleteNodes([item.id]);
         toast.success(`Deleted ${item.name}`);
       } catch (err) {
         toast.error(
@@ -133,31 +137,46 @@ export default function FilesClient() {
         );
       }
     },
-    [removeFileLocally],
+    [deleteNodes],
   );
 
-  const handleMoveTo = useCallback((_item: FileItem) => {
+  const handleMoveTo = useCallback((item: FileItem) => {
+    setPendingMoveIds([item.id]);
     setIsMoveDialogOpen(true);
   }, []);
 
-  const handleRename = useCallback((_item: FileItem) => {
-    // Rename is a stub — could be implemented with inline editing later
-    toast.info("Rename coming soon");
+  const handleRename = useCallback((item: FileItem) => {
+    setRenameTarget(item);
   }, []);
 
-  const handleMoveConfirm = useCallback(
-    (targetFolderId: string | null) => {
-      updateFilesLocally((prev) =>
-        prev.map((f) =>
-          selection.selectedIds.has(f.id)
-            ? { ...f, parentFolderId: targetFolderId }
-            : f,
-        ),
-      );
-      selection.clear();
-      toast.success("Items moved");
+  const handleRenameConfirm = useCallback(
+    async (name: string) => {
+      if (!renameTarget) return;
+      try {
+        await renameNode(renameTarget.id, name);
+        toast.success("Renamed");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to rename");
+      } finally {
+        setRenameTarget(null);
+      }
     },
-    [selection, updateFilesLocally],
+    [renameTarget, renameNode],
+  );
+
+  const handleMoveConfirm = useCallback(
+    async (targetFolderId: string | null) => {
+      try {
+        await moveNodes(pendingMoveIds, targetFolderId);
+        toast.success("Items moved");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to move");
+      } finally {
+        selection.clear();
+        setPendingMoveIds([]);
+      }
+    },
+    [pendingMoveIds, moveNodes, selection],
   );
 
   // Bulk actions
@@ -171,49 +190,42 @@ export default function FilesClient() {
   }, [allFiles, selection.selectedIds, handleDownload]);
 
   const handleBulkDelete = useCallback(async () => {
-    const selected = allFiles.filter((f) => selection.selectedIds.has(f.id));
-    for (const item of selected) {
-      await handleDelete(item);
+    try {
+      await deleteNodes(Array.from(selection.selectedIds));
+      toast.success("Items deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete");
+    } finally {
+      selection.clear();
     }
-    selection.clear();
-  }, [allFiles, selection, handleDelete]);
+  }, [selection, deleteNodes]);
 
   const handleBulkMove = useCallback(() => {
+    setPendingMoveIds(Array.from(selection.selectedIds));
     setIsMoveDialogOpen(true);
-  }, []);
+  }, [selection.selectedIds]);
 
   // New folder
   const handleNewFolderConfirm = useCallback(
-    (name: string) => {
-      const newFolder: FileItem = {
-        id: `folder-${Date.now()}`,
-        name,
-        itemType: "folder",
-        mimeType: "",
-        fileCategory: "folder",
-        size: 0,
-        uploadedAt: new Date().toISOString(),
-        parentFolderId: params.folderId ?? null,
-        itemCount: 0,
-      };
-      updateFilesLocally((prev) => [newFolder, ...prev]);
+    async (name: string) => {
       setIsCreatingFolder(false);
-      toast.success(`Created folder "${name}"`);
+      try {
+        await createFolder(name, params.folderId ?? null);
+        toast.success(`Created folder "${name}"`);
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Failed to create folder",
+        );
+      }
     },
-    [params.folderId, updateFilesLocally],
-  );
-  const handleFileUploaded = useCallback(
-    (file: FileItem) => {
-      addFileLocally({ ...file, parentFolderId: params.folderId ?? null });
-    },
-    [addFileLocally, params.folderId],
+    [params.folderId, createFolder],
   );
 
-  const handleFileDeleted = useCallback(
-    (id: string) => {
-      removeFileLocally(id);
+  const handleUpload = useCallback(
+    async (file: File) => {
+      await uploadFile(file, params.folderId ?? null);
     },
-    [removeFileLocally],
+    [uploadFile, params.folderId],
   );
 
   // Drop zone
@@ -328,7 +340,7 @@ export default function FilesClient() {
       <FileUploadModal
         isOpen={isUploadModalOpen}
         onClose={handleUploadModalClose}
-        onFileUploaded={handleFileUploaded}
+        onUpload={handleUpload}
         initialFiles={droppedFiles.length > 0 ? droppedFiles : undefined}
       />
 
@@ -339,16 +351,27 @@ export default function FilesClient() {
           setIsPreviewOpen(false);
           setSelectedFile(null);
         }}
-        onDelete={handleFileDeleted}
+        onDelete={handleDelete}
+      />
+
+      <RenameDialog
+        key={renameTarget?.id ?? "rename"}
+        isOpen={renameTarget !== null}
+        currentName={renameTarget?.name ?? ""}
+        onRename={handleRenameConfirm}
+        onClose={() => setRenameTarget(null)}
       />
 
       <MoveFolderDialog
         isOpen={isMoveDialogOpen}
         folders={allFolders}
         currentFolderId={params.folderId ?? null}
-        itemCount={selection.selectedCount}
+        itemCount={pendingMoveIds.length}
         onMove={handleMoveConfirm}
-        onClose={() => setIsMoveDialogOpen(false)}
+        onClose={() => {
+          setIsMoveDialogOpen(false);
+          setPendingMoveIds([]);
+        }}
       />
     </PageContainer>
   );

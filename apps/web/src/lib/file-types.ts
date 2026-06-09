@@ -20,6 +20,8 @@ export interface FileItem {
   thumbnailUrl?: string;
   previewContent?: string;
   itemCount?: number;
+  /** Convex serving URL for files (download + image preview). */
+  url?: string;
 }
 
 /** Breadcrumb segment for folder navigation */

@@ -207,6 +207,53 @@ export const wikiDeleteSchema = z.object({
   id: z.string().describe("Wiki node id from wiki_list"),
 });
 
+export const filesListSchema = z.object({
+  path: z
+    .string()
+    .optional()
+    .describe(
+      "Folder path to list (e.g. 'ai-images'). Omit to list the entire tree.",
+    ),
+});
+
+export const filesGetSchema = z.object({
+  path: z
+    .string()
+    .describe("File path, e.g. 'ai-images/cat.png' (from files_list)."),
+});
+
+export const filesUploadSchema = z.object({
+  path: z
+    .string()
+    .describe(
+      "Destination path, e.g. 'ai-images/cat.png'. Missing folders are auto-created; an existing file at this path is overwritten.",
+    ),
+  contentBase64: z
+    .string()
+    .optional()
+    .describe(
+      "Base64-encoded file bytes (data: URL prefix allowed). Provide this OR sourceUrl.",
+    ),
+  sourceUrl: z
+    .string()
+    .optional()
+    .describe(
+      "URL the server fetches and stores. Best for generated images/large files. Provide this OR contentBase64.",
+    ),
+  mimeType: z
+    .string()
+    .optional()
+    .describe(
+      "MIME type, e.g. 'image/png'. Inferred from the data URL or response Content-Type when omitted.",
+    ),
+});
+
+export const filesDeleteSchema = z.object({
+  path: z
+    .string()
+    .describe("File or folder path to delete. Folders delete recursively."),
+});
+
 export const codebasesListSchema = z.object({});
 
 export const codebaseOverviewSchema = z.object({

@@ -1,5 +1,34 @@
 # Changelog
 
+## Typecheck performance overhaul — 2026-06-09
+
+- **Web typecheck 39s → ~12s cold / 0.7s warm, backend 25s → ~3s**: found and removed the two type-level bombs dominating every `tsgo` run across the monorepo.
+- **Scoped Google API packages**: the Gmail/Drive connectors now use `@googleapis/gmail` + `@googleapis/drive` instead of the monolithic `googleapis`, whose root types dragged all ~400 Google APIs (~830 declaration files) into any program touching the Convex api graph.
+- **Cloud chat tool schemas**: `openRouterTools.ts` builds provider JSON schemas via `zod-to-json-schema` instead of the AI SDK's `zodSchema()`, whose generics cost ~19s of check time per run (the old `@ts-expect-error TS2589` suppressed the error but not the work); runtime validation unchanged via `schema.parse` in each tool.
+- **Guardrails**: new "TypeScript performance" section in CLAUDE.md documents both bans plus the trace-based workflow for diagnosing future typecheck regressions.
+
+## Shared AI filesystem (web + MCP file tools) — 2026-06-09
+
+- **Real Files backend**: New `fileNodes` table + Convex functions back the `/files` view, replacing the previous all-mock UI — uploads, folders, move, rename, delete, and download now persist (bytes in Convex storage) and update live.
+- **MCP file tools**: Agents can read/write the same filesystem via path-based `files_list`, `files_get`, `files_upload`, `files_delete` — so an image generated in one assistant can be saved to vmem and seen by another.
+- **Agent-friendly uploads**: `files_upload` accepts inline base64 or a `sourceUrl` the server fetches, auto-creates missing folders, and overwrites an existing file at the path; `files_get` returns images as an inline image block (≤4 MB) and text inline (≤100 KB), always with a download URL.
+
+- **Sync timer on icon**: Extension action badge shows minutes until the next auto-sync (e.g. `28m`, `5m`), computed from the real alarm `scheduledTime` so it always reflects what Chrome will fire.
+- **Live countdown**: A new 1-minute heartbeat updates the badge; clears when auto-sync is disabled or toggled off from the popup.
+- **Third watchdog leg**: The minute tick re-asserts the 30-min history alarm (idempotent), so a dropped alarm now self-heals within ~1 minute instead of ~5 — as long as Chrome is open, sync keeps going.
+
+## Chrome extension popup design parity — 2026-06-08
+
+- **Popup UI**: Extension popup uses the same HeroUI tokens, sliding tabs, cards, switches, selects, and settings row layout as the web app — shared `@vmem/ui` components with aligned `globals.css`.
+- **Sync heartbeat**: The 5-minute settings mirror alarm now re-asserts the 30-minute history alarm and catches up overdue syncs, so a dropped MV3 alarm recovers within minutes instead of staying silent for days.
+- **Sync diagnostics**: `lastSyncAttemptAt` and `lastSyncSkipReason` are recorded on every sync attempt for popup/debug-report visibility when auto-sync skips or fails.
+
+## Codebase archive & delete — 2026-06-08
+
+- **Sidebar context menu**: Right-clicking a codebase in the sidebar now offers Archive/Unarchive and Delete.
+- **Delete**: Opens a confirmation modal and permanently removes the codebase row plus all of its indexed Neo4j graph data (the previously orphaned cleanup action is now wired up).
+- **Archive**: Keeps all data but excludes the codebase from scheduled/manual re-syncs and hides it from the main sidebar list under a collapsed "Archived" accordion.
+
 ## Sidebar account menu — 2026-06-07
 
 - **Sidebar footer**: User identity is now a single card (avatar, name, email) that opens an account dropdown — Manage account, light/dark toggle, and Sign out — replacing Clerk's `<UserButton>` plus the standalone theme button.

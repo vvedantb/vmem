@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "tsx scripts/build.ts --watch",
     "build": "tsx scripts/build.ts",
+    "test": "tsx --test tests/sync-watchdog.test.mts",
+    "test:live": "node scripts/live-verify.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -36,6 +38,7 @@
     "@types/turndown": "^5.0.6",
     "@vitejs/plugin-react": "^4.4.0",
     "tailwindcss": "catalog:tailwind4",
+    "tailwindcss-animate": "^1.0.7",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "^6.0.0"

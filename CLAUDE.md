@@ -47,6 +47,13 @@ Convex:
 - Backend layout (Eva-aligned): `convex/` = registered functions + orchestration + `convex/prompts/` + `convex/cloudLib/` (Convex-coupled chat tools). `engine/` = Neo4j/codebase/parsers outside `convex/` (like Eva's `callback-src/`) — imported only from `"use node"` actions. `neo4j-cli/` = seed/eval/unseed scripts. `tests/` = unit tests importing from `engine/` or `convex/` (Eva puts tests at package root, not inside `convex/`). Memory actions: thin `neo4jActions/memories.ts` facade → `neo4jActions/_memories/` (handlers + `actions.ts`). From `convex/`, import narrow `engine/neo4j/memory/*` modules directly.
 - Client package imports: apps import only `@vmem/backend` (Convex `api` + `Doc`/`Id` types) and `@vmem/shared` (cross-app constants + client-safe prompt helpers like `PARSER_VERSION`, `buildSkillsIndexAddition`). Never `@vmem/backend/*` subpaths. `@vmem/backend` root must stay Convex-only — no constants or prompts re-exported.
 
+TypeScript performance (typecheck must stay in seconds — warm ~0.7s, cold ~12s web / ~3s backend):
+
+- Never import the monolithic `googleapis` package — its root types pull all ~400 Google APIs (~830 d.ts files, 115 MB) into every typecheck that touches the Convex api graph (web included). Use scoped `@googleapis/<api>` packages (`@googleapis/gmail`, `@googleapis/drive`).
+- Never call the AI SDK's `zodSchema()` on a concrete `z.object` schema — type-checking one call costs ~5-20s in tsgo (TS2589 territory), and `@ts-expect-error` does NOT avoid the cost (the checker still does the work before discarding the error). Use `jsonSchema<Params>(zodToJsonSchema(schema, { $refStrategy: "none" }))` and re-`parse` inside `execute` (see `convex/cloudLib/openRouterTools.ts`).
+- Both tsgo configs are incremental (`node_modules/.cache/tsgo/*.tsbuildinfo`); never remove that, it's what keeps warm runs sub-second locally and on Vercel.
+- To find typecheck hotspots: `npx tsc -p tsconfig.json --noEmit --generateTrace <dir>` then `npx @typescript/analyze-trace <dir>`; iterate on a single hot file via a throwaway tsconfig that `extends` the real one with `"include": [<that file>]`.
+
 Neo4j:
 
 - Never run parallel `session.run()` calls on the same session — use separate sessions for concurrent queries
@@ -56,6 +63,12 @@ Neo4j:
 Codebases:
 
 - Global daily sync: `convex/crons.ts` → `codebaseSync.dailyCodebaseSyncWorkflow` via `@convex-dev/workflow` (one `syncOneCodebaseInternal` step per repo, full action timeout each). Stale = `lastSyncedAt` older than 24h; skips `syncing` and users without GitHub.
+
+Chrome extension auto-sync (`apps/chrome-extension/src/background/sync-scheduler.ts`):
+
+- MV3 reliability uses **mutual-watchdog alarms**: the slow history alarm (30 min) and the frequent heartbeat alarm (`SETTINGS_MIRROR_ALARM_NAME`, 5 min) each re-assert the other on every fire (`ensureSettingsMirrorAlarm` / `startAutoSync`, both idempotent — only create when absent so timers never reset). As long as either alarm survives, both come back. Chrome silently drops periodic alarms (OS sleep/hibernate on Windows, SW crash, extension update) — never rely on a single alarm.
+- The heartbeat is the self-heal path: it re-creates the history alarm and runs `catchUpHistorySyncIfOverdue()`, so a dropped alarm or missed sync recovers within ~5 min instead of waiting for `onStartup`. Don't reduce its handler back to "just refresh settings."
+- Every sync attempt records `lastSyncAttemptAt` + `lastSyncSkipReason` (`recordSyncAttempt`) into storage and the debug report — a silent gap (lost auth, dropped alarm) must stay diagnosable, never look healthy. No-session skips are expected after a browser restart (`chrome.storage.session` token cleared) and recover via the cookie listener / popup TokenSync / heartbeat retry.
 
 Profiles:
 
@@ -73,6 +86,13 @@ Skills:
 - `skills_list` MCP tool returns index only (no instructions)
 - `skills_create` MCP tool: use when a repeatable problem or automatable workflow was identified and no existing skill covers it (check context prompt / `skills_list` first)
 - `skills_update` MCP tool: patch an existing skill by current name (`skills_get` first); at least one of newName, description, instructions, enabled
+
+Files (shared AI filesystem):
+
+- One `fileNodes` table (folders + files, discriminated by `kind`; `fileNodeFields` in `validators.ts`) backs both the `/files` web view and the MCP file tools. Bytes live in Convex storage (`storageId`), same upload-URL flow as memory imports (`generateFileUploadUrl` → POST → `createFile`).
+- Web functions in `convex/files.ts` (auth\* + internal-by-clerkId). `listTree` returns every node plus a resolved serving `url` per file in one shot — the web maps `Doc<"fileNodes">` → the `FileItem` view-model in `useFilesData` (keeps presentational components on string ids; resolves them back to branded `Id`s at the mutation boundary, no casts). No REST/`/api/files` — that was mock and is gone.
+- MCP tools (`files_list`, `files_get`, `files_upload`, `files_delete`) are **path-based** (`ai-images/cat.png`), user-wide (scoped by clerkId, MCP scope ignored, like wiki). Backend in `convex/mcp/files.ts`; pure path/tree helpers in `convex/files/lib.ts` (`resolveByPath`, `nodePath`, `collectSubtreeIds`, `FILE_STORAGE_LIMIT_BYTES`). Upload auto-creates missing folders and overwrites an existing file at the path (idempotent); accepts `contentBase64` OR `sourceUrl` (server fetches). `files_get` returns an MCP image content block for images ≤4 MB (custom shaping in `tools.ts` `filesGetContent`), text inline ≤100 KB, always a `downloadUrl`. Upload cap 10 MB, storage limit 10 GiB.
+- File tools are MCP-only — intentionally not added to the cloud-chat OpenRouter surface (`cloudLib/openRouterTools.ts` opts in per-tool).
 
 MCP Apps (interactive views in Claude / MCP Apps hosts):
 

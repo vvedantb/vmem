@@ -36,6 +36,8 @@ import type * as dashboardApi from "../dashboardApi.js";
 import type * as dreamMode from "../dreamMode.js";
 import type * as dreamSchedule from "../dreamSchedule.js";
 import type * as fileImport from "../fileImport.js";
+import type * as files from "../files.js";
+import type * as files_lib from "../files/lib.js";
 import type * as github from "../github.js";
 import type * as graphApi from "../graphApi.js";
 import type * as http from "../http.js";
@@ -66,6 +68,7 @@ import type * as lib_runConnectorProviderSync from "../lib/runConnectorProviderS
 import type * as lib_wikiContent from "../lib/wikiContent.js";
 import type * as mcp_bundled_memoryGraphHtml from "../mcp/bundled/memoryGraphHtml.js";
 import type * as mcp_codebases from "../mcp/codebases.js";
+import type * as mcp_files from "../mcp/files.js";
 import type * as mcp_graph from "../mcp/graph.js";
 import type * as mcp_memoryGraphApp from "../mcp/memoryGraphApp.js";
 import type * as mcp_native from "../mcp/native.js";
@@ -192,6 +195,8 @@ declare const fullApi: ApiFromModules<{
   dreamMode: typeof dreamMode;
   dreamSchedule: typeof dreamSchedule;
   fileImport: typeof fileImport;
+  files: typeof files;
+  "files/lib": typeof files_lib;
   github: typeof github;
   graphApi: typeof graphApi;
   http: typeof http;
@@ -222,6 +227,7 @@ declare const fullApi: ApiFromModules<{
   "lib/wikiContent": typeof lib_wikiContent;
   "mcp/bundled/memoryGraphHtml": typeof mcp_bundled_memoryGraphHtml;
   "mcp/codebases": typeof mcp_codebases;
+  "mcp/files": typeof mcp_files;
   "mcp/graph": typeof mcp_graph;
   "mcp/memoryGraphApp": typeof mcp_memoryGraphApp;
   "mcp/native": typeof mcp_native;

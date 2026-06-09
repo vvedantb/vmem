@@ -8,7 +8,7 @@
  * monolithic file did.
  */
 
-import { VMEM_ICON } from "./icons";
+import { mountVmemLogo } from "@/content/shared/icons";
 import { overlayCss } from "./styles";
 
 export const host = document.createElement("vmem-screenshot-overlay");
@@ -69,7 +69,7 @@ saveBtn.type = "button";
 
 export const saveIcon = document.createElement("span");
 saveIcon.className = "icon";
-saveIcon.innerHTML = VMEM_ICON;
+mountVmemLogo(saveIcon, "dark", 14);
 saveBtn.appendChild(saveIcon);
 
 export const saveLabel = document.createElement("span");

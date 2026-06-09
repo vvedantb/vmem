@@ -9,7 +9,8 @@
       "pdf-parse",
       "tar-stream",
       "@modelcontextprotocol/sdk",
-      "googleapis",
+      "@googleapis/gmail",
+      "@googleapis/drive",
       "@notionhq/client"
     ]
   }

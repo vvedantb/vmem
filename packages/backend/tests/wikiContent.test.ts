@@ -3,7 +3,7 @@ import {
   legacyJsonToMarkdown,
   markdownToPlainText,
   mergeMarkdownForAppend,
-} from "../../convex/lib/wikiContent";
+} from "../convex/lib/wikiContent";
 
 describe("wikiContent", () => {
   it("derives plain text from markdown", () => {

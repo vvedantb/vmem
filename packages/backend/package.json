@@ -26,6 +26,8 @@
     "@convex-dev/agent": "catalog:",
     "@convex-dev/crons": "^0.2.0",
     "@convex-dev/workflow": "^0.4.2",
+    "@googleapis/drive": "^20.0.0",
+    "@googleapis/gmail": "^17.0.0",
     "@modelcontextprotocol/ext-apps": "1.7.2",
     "@modelcontextprotocol/sdk": "catalog:",
     "@neo4j/cypher-builder": "^3.0.1",
@@ -37,13 +39,13 @@
     "convex": "catalog:",
     "convex-audit-log": "^0.2.0",
     "convex-helpers": "catalog:",
-    "googleapis": "^144.0.0",
     "jsonwebtoken": "catalog:",
     "neo4j-driver": "^5.28.3",
     "pdf-parse": "^1.1.1",
     "tar-stream": "^3.2.0",
     "ts-morph": "^24.0.0",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
