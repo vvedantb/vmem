@@ -1,5 +1,8 @@
 import { waitForElement } from "@/content/shared/dom-utils";
-import { createVmemButton } from "@/content/shared/inject-button";
+import {
+  createVmemButton,
+  setVmemButtonLabel,
+} from "@/content/shared/inject-button";
 import { SELECTORS } from "./selectors";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import type { MemoryCandidate } from "@/types/api";
@@ -31,14 +34,14 @@ export async function injectUseVmemButton(): Promise<void> {
 
     const currentText = (input.textContent ?? "").trim();
     if (!currentText) {
-      button.textContent = "Type a message first";
+      setVmemButtonLabel(button, "Type a message first");
       setTimeout(() => {
-        button.textContent = "Use vmem";
+        setVmemButtonLabel(button, "Use vmem");
       }, 2000);
       return;
     }
 
-    button.textContent = "Loading...";
+    setVmemButtonLabel(button, "Loading...");
     button.style.opacity = "0.6";
 
     const message: ContentMessage = {
@@ -47,7 +50,7 @@ export async function injectUseVmemButton(): Promise<void> {
     };
 
     safeSendMessage<BackgroundResponse>(message, (response) => {
-      button.textContent = "Use vmem";
+      setVmemButtonLabel(button, "Use vmem");
       button.style.opacity = "1";
 
       if (
@@ -58,9 +61,9 @@ export async function injectUseVmemButton(): Promise<void> {
         setContentEditableValue(input, context + currentText);
         input.focus();
       } else {
-        button.textContent = "No memories found";
+        setVmemButtonLabel(button, "No memories found");
         setTimeout(() => {
-          button.textContent = "Use vmem";
+          setVmemButtonLabel(button, "Use vmem");
         }, 2000);
       }
     });

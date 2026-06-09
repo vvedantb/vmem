@@ -5,6 +5,9 @@ import tailwindcss from "@tailwindcss/vite";
 
 const root = import.meta.dirname;
 
+/** MV3 — no need to downlevel for legacy browsers; avoids esbuild destructuring errors on Clerk chunks. */
+const extensionBuildTarget = "chrome120";
+
 const sharedResolve = {
   alias: {
     "@": resolve(root, "src"),
@@ -21,6 +24,7 @@ export function createPopupConfig(mode: string): UserConfig {
     root: resolve(root, "src/popup"),
     base: "./",
     build: {
+      target: extensionBuildTarget,
       outDir: resolve(root, "dist/popup"),
       emptyOutDir: false,
       sourcemap: mode === "development",
@@ -44,6 +48,7 @@ export function createBackgroundConfig(mode: string): UserConfig {
     },
     resolve: sharedResolve,
     build: {
+      target: extensionBuildTarget,
       outDir: "dist",
       emptyOutDir: false,
       sourcemap: mode === "development",
@@ -67,6 +72,7 @@ export function createOffscreenConfig(mode: string): UserConfig {
     },
     resolve: sharedResolve,
     build: {
+      target: extensionBuildTarget,
       outDir: "dist",
       emptyOutDir: false,
       sourcemap: mode === "development",
@@ -91,6 +97,7 @@ export function createContentScriptConfig(
   return {
     resolve: sharedResolve,
     build: {
+      target: extensionBuildTarget,
       outDir: "dist",
       emptyOutDir: false,
       sourcemap: mode === "development",

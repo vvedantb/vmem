@@ -28,7 +28,8 @@
 
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { safeSendMessage } from "@/lib/safe-message";
-import { CHECK_ICON, ERROR_ICON, VMEM_ICON } from "./icons";
+import { mountVmemLogo } from "@/content/shared/icons";
+import { CHECK_ICON, ERROR_ICON } from "./icons";
 import type { Mode, SelectionRect } from "./types";
 import { blobToBase64, cropImage, requestCapture } from "./capture";
 import {
@@ -74,7 +75,7 @@ function setMode(next: Mode): void {
       croppedBlob = null;
       captionValue = "";
       captionInput.value = "";
-      saveIcon.innerHTML = VMEM_ICON;
+      mountVmemLogo(saveIcon, "dark", 14);
       saveLabel.textContent = "Save";
       saveBtn.disabled = false;
       saveBtn.title = "";
@@ -88,7 +89,7 @@ function setMode(next: Mode): void {
       scrim.classList.remove("active");
       rectEl.classList.remove("active");
       preview.classList.add("visible");
-      saveIcon.innerHTML = VMEM_ICON;
+      mountVmemLogo(saveIcon, "dark", 14);
       saveLabel.textContent = "Save";
       saveBtn.disabled = false;
       // Focus caption input after the popup transitions in
