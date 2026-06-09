@@ -8,6 +8,10 @@ import {
   codebaseImpactSchema,
   codebaseOverviewSchema,
   codebaseSearchSchema,
+  filesDeleteSchema,
+  filesGetSchema,
+  filesListSchema,
+  filesUploadSchema,
   memoryAddInstructionSchema,
   memoryAddSchema,
   memoryDeleteSchema,
@@ -369,6 +373,57 @@ export async function runWikiDelete(
     ctx.ctx.runAction(internal.mcp.wiki.mcpDeleteWiki, {
       clerkId: ctx.clerkUserId,
       id: params.id,
+    }),
+  );
+}
+
+export async function runFilesList(
+  ctx: ToolHandlerContext,
+  params: z.infer<typeof filesListSchema>,
+): Promise<ToolHandlerResult> {
+  return safe("files_list", () =>
+    ctx.ctx.runAction(internal.mcp.files.mcpListFiles, {
+      clerkId: ctx.clerkUserId,
+      path: params.path,
+    }),
+  );
+}
+
+export async function runFilesGet(
+  ctx: ToolHandlerContext,
+  params: z.infer<typeof filesGetSchema>,
+): Promise<ToolHandlerResult> {
+  return safe("files_get", () =>
+    ctx.ctx.runAction(internal.mcp.files.mcpGetFile, {
+      clerkId: ctx.clerkUserId,
+      path: params.path,
+    }),
+  );
+}
+
+export async function runFilesUpload(
+  ctx: ToolHandlerContext,
+  params: z.infer<typeof filesUploadSchema>,
+): Promise<ToolHandlerResult> {
+  return safe("files_upload", () =>
+    ctx.ctx.runAction(internal.mcp.files.mcpUploadFile, {
+      clerkId: ctx.clerkUserId,
+      path: params.path,
+      contentBase64: params.contentBase64,
+      sourceUrl: params.sourceUrl,
+      mimeType: params.mimeType,
+    }),
+  );
+}
+
+export async function runFilesDelete(
+  ctx: ToolHandlerContext,
+  params: z.infer<typeof filesDeleteSchema>,
+): Promise<ToolHandlerResult> {
+  return safe("files_delete", () =>
+    ctx.ctx.runAction(internal.mcp.files.mcpDeleteFile, {
+      clerkId: ctx.clerkUserId,
+      path: params.path,
     }),
   );
 }

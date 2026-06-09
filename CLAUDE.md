@@ -80,6 +80,13 @@ Skills:
 - `skills_create` MCP tool: use when a repeatable problem or automatable workflow was identified and no existing skill covers it (check context prompt / `skills_list` first)
 - `skills_update` MCP tool: patch an existing skill by current name (`skills_get` first); at least one of newName, description, instructions, enabled
 
+Files (shared AI filesystem):
+
+- One `fileNodes` table (folders + files, discriminated by `kind`; `fileNodeFields` in `validators.ts`) backs both the `/files` web view and the MCP file tools. Bytes live in Convex storage (`storageId`), same upload-URL flow as memory imports (`generateFileUploadUrl` → POST → `createFile`).
+- Web functions in `convex/files.ts` (auth\* + internal-by-clerkId). `listTree` returns every node plus a resolved serving `url` per file in one shot — the web maps `Doc<"fileNodes">` → the `FileItem` view-model in `useFilesData` (keeps presentational components on string ids; resolves them back to branded `Id`s at the mutation boundary, no casts). No REST/`/api/files` — that was mock and is gone.
+- MCP tools (`files_list`, `files_get`, `files_upload`, `files_delete`) are **path-based** (`ai-images/cat.png`), user-wide (scoped by clerkId, MCP scope ignored, like wiki). Backend in `convex/mcp/files.ts`; pure path/tree helpers in `convex/files/lib.ts` (`resolveByPath`, `nodePath`, `collectSubtreeIds`, `FILE_STORAGE_LIMIT_BYTES`). Upload auto-creates missing folders and overwrites an existing file at the path (idempotent); accepts `contentBase64` OR `sourceUrl` (server fetches). `files_get` returns an MCP image content block for images ≤4 MB (custom shaping in `tools.ts` `filesGetContent`), text inline ≤100 KB, always a `downloadUrl`. Upload cap 10 MB, storage limit 10 GiB.
+- File tools are MCP-only — intentionally not added to the cloud-chat OpenRouter surface (`cloudLib/openRouterTools.ts` opts in per-tool).
+
 MCP Apps (interactive views in Claude / MCP Apps hosts):
 
 - Use `@modelcontextprotocol/ext-apps` + bundled HTML in `packages/backend/mcp-ui/` → `convex/mcp/bundled/`; do **not** adopt Skybridge for embedded Convex tools (see `internal/mcp-apps.md`)

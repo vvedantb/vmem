@@ -272,3 +272,28 @@ export const wikiNodeFields = {
   createdAt: v.number(),
   updatedAt: v.number(),
 };
+
+/**
+ * Shared filesystem nodes — the `/files` view and the MCP file tools.
+ *
+ * One table holds folders and files, discriminated by `kind`. Folders provide
+ * hierarchy; files carry the storage handle + metadata. The same node tree is
+ * exposed to humans (web UI) and AI agents (MCP files_* tools), so they share a
+ * single namespace addressable by `parentId` chains (web) or `/`-separated
+ * paths (MCP).
+ */
+export const fileNodeFields = {
+  userId: v.id("users"),
+  /** undefined = root-level node */
+  parentId: v.optional(v.id("fileNodes")),
+  kind: v.union(v.literal("folder"), v.literal("file")),
+  name: v.string(),
+  /** files only: MIME type of the stored bytes */
+  mimeType: v.optional(v.string()),
+  /** files only: size in bytes */
+  size: v.optional(v.number()),
+  /** files only: Convex storage handle for the bytes */
+  storageId: v.optional(v.id("_storage")),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+};

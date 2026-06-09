@@ -1,6 +1,10 @@
 # Changelog
 
-## Chrome extension sync badge countdown — 2026-06-09
+## Shared AI filesystem (web + MCP file tools) — 2026-06-09
+
+- **Real Files backend**: New `fileNodes` table + Convex functions back the `/files` view, replacing the previous all-mock UI — uploads, folders, move, rename, delete, and download now persist (bytes in Convex storage) and update live.
+- **MCP file tools**: Agents can read/write the same filesystem via path-based `files_list`, `files_get`, `files_upload`, `files_delete` — so an image generated in one assistant can be saved to vmem and seen by another.
+- **Agent-friendly uploads**: `files_upload` accepts inline base64 or a `sourceUrl` the server fetches, auto-creates missing folders, and overwrites an existing file at the path; `files_get` returns images as an inline image block (≤4 MB) and text inline (≤100 KB), always with a download URL.
 
 - **Sync timer on icon**: Extension action badge shows minutes until the next auto-sync (e.g. `28m`, `5m`), computed from the real alarm `scheduledTime` so it always reflects what Chrome will fire.
 - **Live countdown**: A new 1-minute heartbeat updates the badge; clears when auto-sync is disabled or toggled off from the popup.

@@ -28,7 +28,7 @@ interface FilePreviewModalProps {
   isOpen: boolean;
   file: FileItem | null;
   onClose: () => void;
-  onDelete: (id: string) => void;
+  onDelete: (file: FileItem) => Promise<void> | void;
 }
 
 function formatDate(dateString: string): string {
@@ -71,19 +71,9 @@ export default function FilePreviewModal({
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`/api/files/${file.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to delete file");
-      }
-
-      onDelete(file.id);
+      await onDelete(file);
       setShowDeleteConfirm(false);
       onClose();
-      toast.success("File deleted successfully");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to delete file",
@@ -95,19 +85,18 @@ export default function FilePreviewModal({
 
   const handleDownload = useCallback(() => {
     if (!file) return;
-
-    const content =
-      file.previewContent ||
-      `Mock content for ${file.name}\n\nThis is a simulated download.`;
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
+    if (!file.url) {
+      toast.error("Download URL unavailable");
+      return;
+    }
     const link = document.createElement("a");
-    link.href = url;
+    link.href = file.url;
     link.download = file.name;
+    link.target = "_blank";
+    link.rel = "noopener";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
 
     toast.success(`Downloading ${file.name}`);
   }, [file]);

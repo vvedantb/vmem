@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
   wikiNodeFields,
+  fileNodeFields,
   profileFields,
   teamFields,
   teamMemberFields,
@@ -234,6 +235,10 @@ const schema = defineSchema({
       searchField: "contentText",
       filterFields: ["userId"],
     }),
+
+  fileNodes: defineTable(fileNodeFields)
+    .index("by_user", ["userId"])
+    .index("by_user_parent", ["userId", "parentId"]),
 
   userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
 

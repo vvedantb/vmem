@@ -21,13 +21,13 @@ import {
   IconCheck,
   IconTrash,
 } from "@tabler/icons-react";
-import type { FileItem } from "@/lib/file-types";
 import { formatFileSize } from "@/components/files/_utils";
 
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onFileUploaded: (file: FileItem) => void;
+  /** Persist a single file (Convex upload-url flow lives in the caller). */
+  onUpload: (file: File) => Promise<void>;
   initialFiles?: File[];
 }
 
@@ -47,7 +47,7 @@ function getFileIcon(mimeType: string) {
 export default function FileUploadModal({
   isOpen,
   onClose,
-  onFileUploaded,
+  onUpload,
   initialFiles,
 }: FileUploadModalProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -137,22 +137,9 @@ export default function FileUploadModal({
       }, 200);
 
       try {
-        const formData = new FormData();
-        formData.append("file", queuedFile.file);
-
-        const response = await fetch("/api/files", {
-          method: "POST",
-          body: formData,
-        });
+        await onUpload(queuedFile.file);
 
         clearInterval(progressInterval);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Upload failed");
-        }
-
-        const data = await response.json();
 
         setQueuedFiles((prev) =>
           prev.map((f, i) =>
@@ -161,8 +148,6 @@ export default function FileUploadModal({
               : f,
           ),
         );
-
-        onFileUploaded(data.data);
 
         return true;
       } catch (error) {
@@ -182,7 +167,7 @@ export default function FileUploadModal({
         return false;
       }
     },
-    [onFileUploaded],
+    [onUpload],
   );
 
   const handleUploadAll = useCallback(async () => {

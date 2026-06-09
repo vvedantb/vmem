@@ -39,6 +39,45 @@ function toMcpContent(result: ToolHandlerResult, errorLabel: string) {
   return textContent(formatToolResult(result));
 }
 
+/** JSON for a get-file result with the (large) base64 payload removed. */
+function fileMetadataText(data: object): string {
+  const clone: Record<string, unknown> = { ...data };
+  delete clone.contentBase64;
+  return JSON.stringify(clone, null, 2);
+}
+
+/**
+ * files_get returns an MCP image content block when the file is an inlined
+ * image so hosts (Claude, ChatGPT) render it directly, plus a text block with
+ * the remaining metadata (path, size, downloadUrl). Other files fall back to
+ * the standard JSON text content.
+ */
+function filesGetContent(result: ToolHandlerResult) {
+  if (!result.ok) return errorContent(`Files get failed: ${result.error}`);
+  const data = result.data;
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "contentBase64" in data &&
+    typeof data.contentBase64 === "string" &&
+    "mimeType" in data &&
+    typeof data.mimeType === "string" &&
+    data.mimeType.startsWith("image/")
+  ) {
+    return {
+      content: [
+        {
+          type: "image" as const,
+          data: data.contentBase64,
+          mimeType: data.mimeType,
+        },
+        { type: "text" as const, text: fileMetadataText(data) },
+      ],
+    };
+  }
+  return textContent(formatToolResult(result));
+}
+
 /**
  * Register every vmem tool on the MCP server. Tool name, input schema, and
  * handler all come from the shared catalog (`toolCatalog.ts`); only the
@@ -284,6 +323,46 @@ export function registerTools(
       toMcpContent(
         await toolSpecs.wiki_delete.run(h, params),
         "Wiki delete failed",
+      ),
+  );
+
+  server.tool(
+    toolSpecs.files_list.name,
+    "List files and folders in the shared filesystem. Paths are '/'-separated (e.g. 'ai-images/cat.png'). Omit path to list the entire tree; pass a folder path to list its direct children. Files are user-wide and shared across all your AI clients.",
+    toolSpecs.files_list.schema.shape,
+    async (params) =>
+      toMcpContent(
+        await toolSpecs.files_list.run(h, params),
+        "Files list failed",
+      ),
+  );
+
+  server.tool(
+    toolSpecs.files_get.name,
+    "Read a file by path. Images up to 4 MB are returned as an inline image block (rendered directly); text files up to 100 KB are returned inline. A downloadUrl is always included for larger files. Call files_list first if you don't know the path.",
+    toolSpecs.files_get.schema.shape,
+    async (params) => filesGetContent(await toolSpecs.files_get.run(h, params)),
+  );
+
+  server.tool(
+    toolSpecs.files_upload.name,
+    "Save a file to the shared filesystem at the given path. Provide either contentBase64 (inline bytes, data: URL allowed) or sourceUrl (the server fetches and stores it — best for generated images). Missing parent folders are auto-created; an existing file at the path is overwritten. Max 10 MB.",
+    toolSpecs.files_upload.schema.shape,
+    async (params) =>
+      toMcpContent(
+        await toolSpecs.files_upload.run(h, params),
+        "Files upload failed",
+      ),
+  );
+
+  server.tool(
+    toolSpecs.files_delete.name,
+    "Delete a file or folder by path. Folders are deleted recursively along with their stored contents. This is permanent.",
+    toolSpecs.files_delete.schema.shape,
+    async (params) =>
+      toMcpContent(
+        await toolSpecs.files_delete.run(h, params),
+        "Files delete failed",
       ),
   );
 
