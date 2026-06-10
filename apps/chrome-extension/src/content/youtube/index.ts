@@ -43,71 +43,97 @@ function getChannelName(): string {
 }
 
 // ── Transcript extraction ─────────────────────────────────────────────────────
+//
+// YouTube gates raw caption endpoints behind a per-video proof-of-origin token
+// minted by the page's BotGuard: `timedtext` URLs return an empty 200 without
+// it, and the InnerTube transcript endpoints reject JSON replays (the page
+// itself now sends an encrypted protobuf body). The only reliable path left is
+// the one YouTube's own UI uses — programmatically open the "Show transcript"
+// panel and read the rendered segments out of the DOM, then close the panel.
+
+/** Matches both the new view-model markup and the old polymer renderer. */
+const SEGMENT_SELECTOR =
+  "transcript-segment-view-model, ytd-transcript-segment-renderer";
+
+function querySegments(): Element[] {
+  return [...document.querySelectorAll(SEGMENT_SELECTOR)];
+}
 
 /**
- * Find a `timedtext` baseUrl already embedded in the live page.
- *
- * YouTube hydrates `ytInitialPlayerResponse` into an inline `<script>` tag on
- * every watch page. The previous implementation re-fetched the watch URL from
- * the content script, but that response is served as a partial SPA shell and
- * did not always contain the captions blob — so the regex fell over silently.
- * Reading the already-parsed script tag avoids the round-trip and is much
- * more reliable.
+ * Pull the caption text out of a rendered segment, excluding the timestamp
+ * and its a11y duplicate ("0:07" / "7 seconds") that share the element.
  */
-function findTimedTextUrlInPage(): string | null {
-  const scripts = document.querySelectorAll("script");
-  for (const script of scripts) {
-    const text = script.textContent;
-    if (!text || !text.includes("ytInitialPlayerResponse")) continue;
-    const baseUrlMatch = text.match(
-      /"baseUrl":\s*"(https:\/\/www\.youtube\.com\/api\/timedtext[^"]+)"/,
-    );
-    if (baseUrlMatch && baseUrlMatch[1]) {
-      // YouTube JSON-encodes the URL, so unicode escapes need decoding.
-      return baseUrlMatch[1].replace(/\\u0026/g, "&").replace(/\\\//g, "/");
+function segmentText(segment: Element): string {
+  // New markup: <span role="text"> holds just the snippet.
+  // Old markup: yt-formatted-string.segment-text.
+  const snippet =
+    segment.querySelector('span[role="text"]') ||
+    segment.querySelector(".segment-text");
+  return snippet?.textContent?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+function waitForSegments(timeoutMs: number): Promise<Element[]> {
+  return new Promise((resolve) => {
+    const existing = querySegments();
+    if (existing.length > 0) {
+      resolve(existing);
+      return;
     }
-  }
-  return null;
+    const observer = new MutationObserver(() => {
+      const segments = querySegments();
+      if (segments.length > 0) {
+        clearTimeout(timer);
+        observer.disconnect();
+        resolve(segments);
+      }
+    });
+    const timer = setTimeout(() => {
+      observer.disconnect();
+      resolve(querySegments());
+    }, timeoutMs);
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+}
+
+/** Best-effort: close the engagement panel we opened so the UI is undisturbed. */
+function closeTranscriptPanel(segment: Element): void {
+  const panel = segment.closest("ytd-engagement-panel-section-list-renderer");
+  const closeButton =
+    panel?.querySelector<HTMLButtonElement>("#visibility-button button") ||
+    panel?.querySelector<HTMLButtonElement>('button[aria-label*="lose" i]');
+  closeButton?.click();
 }
 
 async function getTranscript(): Promise<string | null> {
   try {
-    const timedTextUrl = findTimedTextUrlInPage();
-    if (!timedTextUrl) {
-      console.log("[vmem] No timedtext URL found in page scripts");
-      return null;
+    // Segments already in the DOM means the user has the panel open — read
+    // them directly and leave the panel alone.
+    const preexisting = querySegments();
+    if (preexisting.length > 0) {
+      return preexisting.map(segmentText).filter(Boolean).join(" ") || null;
     }
 
-    const transcriptResponse = await fetch(timedTextUrl);
-    if (!transcriptResponse.ok) {
-      console.log("[vmem] timedtext fetch failed:", transcriptResponse.status);
+    // The "Show transcript" button only exists when the video has captions.
+    // .click() works even while the description is collapsed.
+    const openButton = document.querySelector<HTMLButtonElement>(
+      "ytd-video-description-transcript-section-renderer button",
+    );
+    if (!openButton) {
+      console.log("[vmem] No transcript button on this video");
       return null;
     }
-    const transcriptXml = await transcriptResponse.text();
-    if (!transcriptXml.trim()) return null;
+    openButton.click();
 
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(transcriptXml, "text/xml");
-    const textElements = xmlDoc.querySelectorAll("text");
-
-    const transcriptParts: string[] = [];
-    textElements.forEach((el) => {
-      const text = el.textContent?.trim();
-      if (text) {
-        const decoded = text
-          .replace(/&amp;/g, "&")
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/\n/g, " ");
-        transcriptParts.push(decoded);
-      }
-    });
-
-    return transcriptParts.join(" ");
+    const segments = await waitForSegments(10000);
+    if (segments.length === 0) {
+      console.log("[vmem] Transcript panel opened but no segments rendered");
+      return null;
+    }
+    const transcript = segments.map(segmentText).filter(Boolean).join(" ");
+    closeTranscriptPanel(segments[0]);
+    return transcript || null;
   } catch (err) {
-    console.error("[vmem] Failed to fetch transcript:", err);
+    console.error("[vmem] Failed to extract transcript:", err);
     return null;
   }
 }

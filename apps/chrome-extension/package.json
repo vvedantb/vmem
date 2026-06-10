@@ -8,6 +8,7 @@
     "build": "tsx scripts/build.ts",
     "test": "tsx --test tests/sync-watchdog.test.mts",
     "test:live": "node scripts/live-verify.mjs",
+    "test:live:yt": "node scripts/yt-verify.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

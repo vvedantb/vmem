@@ -1,5 +1,11 @@
 # Changelog
 
+## Chrome extension: YouTube transcript capture rebuilt — 2026-06-10
+
+- **Save-to-vmem on YouTube works again**: transcripts silently stopped saving because YouTube now gates its raw caption endpoints behind a per-video BotGuard proof-of-origin token — `timedtext` returns an empty 200 and InnerTube transcript endpoints reject replayed requests.
+- **Panel-driven extraction**: the content script now piggybacks on YouTube's own UI — it programmatically opens the "Show transcript" panel, reads the rendered segments (supports both the new `transcript-segment-view-model` markup and the legacy renderer), and closes the panel afterwards, so it keeps working wherever YouTube's own transcript button works.
+- **Live E2E guard**: new `pnpm test:live:yt` drives the built extension in a real headless browser against a real watch page and asserts the save payload contains an actual transcript — this surface breaks silently, so it's now verifiable in one command.
+
 ## Mobile app: feature + UI parity with web — 2026-06-10
 
 - **Cloud chat on mobile**: The chat screen gains web's Local/Cloud provider toggle — cloud streams OpenRouter free models through the existing thread (model picker sheet, auto-select, key check), while local GGUF chat keeps working offline.
