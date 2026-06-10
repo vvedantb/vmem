@@ -30,7 +30,7 @@ interface ListItemRowProps {
  * `item.kind` for both visual meta (source badge for memories, child count for
  * folders, etc.) and click behaviour:
  *
- *  - memory       → toggles the inline detail panel via onMemoryClick
+ *  - memory       → navigates to /memories/list/[id] via onMemoryClick
  *  - wiki-doc     → navigates to /wiki/<id>
  *  - wiki-folder  → navigates to /wiki (no deep-link to folder yet)
  *  - skill        → navigates to /skills/[id]

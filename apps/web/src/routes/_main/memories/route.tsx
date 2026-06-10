@@ -23,7 +23,7 @@ function GraphHeaderSlot() {
 function MemoriesLayoutShell() {
   const matchRoute = useMatchRoute();
   const isGraph = matchRoute({ to: "/memories/graph" });
-  const isList = matchRoute({ to: "/memories/list" });
+  const isList = matchRoute({ to: "/memories/list", fuzzy: true });
 
   return (
     <PageContainer

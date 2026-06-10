@@ -24,7 +24,7 @@ export function MemoriesTabs() {
           },
         ]}
         getActiveValue={(matchRoute) => {
-          if (matchRoute({ to: "/memories/list" })) return "list";
+          if (matchRoute({ to: "/memories/list", fuzzy: true })) return "list";
           if (matchRoute({ to: "/memories/graph" })) return "graph";
           return "";
         }}
