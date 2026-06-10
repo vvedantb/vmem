@@ -1,4 +1,4 @@
-import { getOpenRouterProviderIcon } from "@/lib/open-router-model-providers";
+import { getOpenRouterProviderIcon } from "@vmem/shared";
 
 interface CloudModelProviderIconProps {
   provider: string;

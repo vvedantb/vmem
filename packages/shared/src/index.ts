@@ -5,6 +5,10 @@ export {
   groupCloudModelsByProvider,
 } from "./cloudModelGroups";
 export { parseEnvVars } from "./envParse";
+export {
+  getOpenRouterProviderIcon,
+  type OpenRouterProviderIconAsset,
+} from "./openRouterProviderIcons";
 export { segmentInputBySkills, type InputSkillSegment } from "./skillSegments";
 export { parseThinkTags } from "./think-tags";
 export { DEFAULT_LOCAL_TIME, localTimeToUtc, utcTimeToLocal } from "./time";

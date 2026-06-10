@@ -8,7 +8,9 @@ import type { FunctionReturnType } from "convex/server";
 import {
   formatOpenRouterProviderLabel,
   groupCloudModelsByProvider,
+  providerFromOpenRouterModelId,
 } from "@vmem/shared";
+import CloudModelProviderIcon from "@/components/chat/CloudModelProviderIcon";
 import BottomSheet from "@/components/ui/BottomSheet";
 import { Text } from "@/components/ui/text";
 import { THEME_COLORS } from "@/lib/theme";
@@ -75,12 +77,15 @@ export default function CloudModelSelectorSheet({
     () =>
       groupCloudModelsByProvider(loadedModels).map(([provider, models]) => ({
         title: formatOpenRouterProviderLabel(provider),
+        provider,
         data: models,
       })),
     [loadedModels],
   );
 
   const label = isLoading ? "Loading…" : (selected?.name ?? "Select model");
+  const selectedProvider =
+    selected !== undefined ? providerFromOpenRouterModelId(selected.id) : null;
 
   return (
     <>
@@ -92,7 +97,11 @@ export default function CloudModelSelectorSheet({
         }`}
         style={{ maxWidth: 180 }}
       >
-        <IconCloud size={12} strokeWidth={1.5} color={theme.muted} />
+        {selectedProvider !== null ? (
+          <CloudModelProviderIcon provider={selectedProvider} size={12} />
+        ) : (
+          <IconCloud size={12} strokeWidth={1.5} color={theme.muted} />
+        )}
         <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
           {label}
         </Text>
@@ -109,9 +118,12 @@ export default function CloudModelSelectorSheet({
           className="px-3 pb-3"
           stickySectionHeadersEnabled={false}
           renderSectionHeader={({ section }) => (
-            <Text className="px-3 pb-1 pt-3 text-[11px] font-sans-semibold uppercase tracking-widest text-muted-foreground">
-              {section.title}
-            </Text>
+            <View className="flex-row items-center gap-1.5 px-3 pb-1 pt-3">
+              <CloudModelProviderIcon provider={section.provider} size={14} />
+              <Text className="text-[11px] font-sans-semibold uppercase tracking-widest text-muted-foreground">
+                {section.title}
+              </Text>
+            </View>
           )}
           renderItem={({ item }) => {
             const isActive = item.id === (modelId ?? selected?.id);

@@ -1,6 +1,10 @@
 /**
  * OpenRouter provider slugs → brand assets (from https://svgl.app).
  * Slug is the segment before `/` in model ids (e.g. `google/gemma-3-27b-it:free`).
+ *
+ * Paths are relative to the web app origin (files live in
+ * `apps/web/public/model-providers/`). Web renders them as-is; mobile prefixes
+ * them with the deployed web app URL and renders via SvgUri.
  */
 
 export type OpenRouterProviderIconAsset =
