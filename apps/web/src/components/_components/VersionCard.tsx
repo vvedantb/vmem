@@ -80,25 +80,29 @@ export default function VersionCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        "w-full rounded-lg p-4 text-left transition-[background-color]",
+        "w-full min-w-0 overflow-hidden rounded-lg p-4 text-left transition-[background-color]",
         isSelected
           ? "bg-surface-tertiary"
           : "bg-surface-secondary hover:bg-surface-tertiary",
       )}
     >
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold tabular-nums text-foreground">
+      <div className="mb-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
           v{version.version}
         </span>
-        <Badge className={cn("text-xs", style.className)}>{style.label}</Badge>
-        <span className="text-xs text-muted">
+        <Badge className={cn("shrink-0 text-xs", style.className)}>
+          {style.label}
+        </Badge>
+        <span className="shrink-0 text-xs text-muted">
           {formatTimestamp(version.createdAt)}
         </span>
-        <span className="text-xs text-muted">· {version.actor}</span>
+        <span className="min-w-0 truncate text-xs text-muted">
+          · {version.actor}
+        </span>
       </div>
 
       {version.changeSummary !== null ? (
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+        <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2 text-xs">
           {version.changeSummary.addedChars > 0 ? (
             <span className="text-success tabular-nums">
               +{version.changeSummary.addedChars} chars
@@ -131,32 +135,32 @@ export default function VersionCard({
       ) : null}
 
       {titleChanged && previousVersion !== null ? (
-        <div className="mb-2 text-sm">
-          <span className="text-muted line-through">
+        <div className="mb-2 flex min-w-0 items-center gap-1 text-sm">
+          <span className="min-w-0 flex-1 truncate text-muted line-through">
             {previousVersion.snapshot.title}
           </span>
-          <span className="text-muted"> → </span>
-          <span className="font-medium text-foreground">
+          <span className="shrink-0 text-muted">→</span>
+          <span className="min-w-0 flex-1 truncate font-medium text-foreground">
             {version.snapshot.title}
           </span>
         </div>
       ) : null}
 
       {isSelected ? (
-        <div className="mt-3 rounded-lg bg-surface-secondary p-3">
+        <div className="mt-3 min-w-0 overflow-hidden rounded-lg bg-surface-secondary p-3">
           {showDiff && previousVersion !== null ? (
             <DiffDisplay
               oldText={previousVersion.snapshot.content}
               newText={version.snapshot.content}
             />
           ) : (
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+            <p className="overflow-hidden break-words whitespace-pre-wrap text-sm leading-relaxed text-foreground">
               {version.snapshot.content}
             </p>
           )}
         </div>
       ) : (
-        <p className="line-clamp-2 text-sm text-muted">
+        <p className="line-clamp-2 overflow-hidden break-words text-sm text-muted">
           {version.snapshot.content}
         </p>
       )}

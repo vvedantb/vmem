@@ -342,8 +342,10 @@ export default function MemorySearch() {
           >
             <div
               className={cn(
-                "flex-1 min-w-0 min-h-0",
-                selectedMemory ? "hidden sm:block" : "",
+                "min-w-0 min-h-0",
+                selectedMemory
+                  ? "hidden sm:block lg:flex-[2] lg:min-w-0"
+                  : "flex-1",
               )}
             >
               <Virtuoso
@@ -376,7 +378,7 @@ export default function MemorySearch() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
-                  className="w-full lg:w-[420px] lg:flex-shrink-0 min-h-0 overflow-y-auto"
+                  className="w-full min-h-0 overflow-y-auto lg:flex-[3] lg:min-w-0"
                 >
                   <MemoryDetailPanel
                     memory={selectedMemory}

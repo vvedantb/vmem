@@ -79,7 +79,7 @@ export default function MemoryDetailPanel({
 
   return (
     <>
-      <Card className="shadow-none p-4 sm:p-5 lg:sticky lg:top-4">
+      <Card className="min-w-0 overflow-hidden shadow-none p-4 sm:p-5 lg:sticky lg:top-4">
         <div className="mb-4 flex items-start justify-between gap-3">
           <h3 className="flex-1 text-lg font-semibold leading-snug text-foreground">
             {memory.title}
