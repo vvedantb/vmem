@@ -29,6 +29,7 @@ import {
 } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import { SettingsForm } from "./_components/SettingsForm";
+import { VmemLogo } from "./_components/VmemLogo";
 import { QuickSave } from "./_components/QuickSave";
 import { ImportPanel } from "./_components/ImportPanel";
 import { TokenSync } from "./_components/TokenSync";
@@ -152,8 +153,11 @@ export function App() {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background text-foreground">
       <header className="flex items-center justify-between bg-surface px-5 py-3.5">
-        <span className="font-serif text-lg tracking-tight">
-          v<span className="italic">mem</span>
+        <span className="flex items-center gap-2">
+          <VmemLogo />
+          <span className="font-serif text-lg tracking-tight">
+            v<span className="italic">mem</span>
+          </span>
         </span>
         <Show when="signed-in">
           <UserButton />

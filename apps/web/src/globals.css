@@ -354,15 +354,20 @@
 }
 
 @layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklch, var(--scrollbar) 80%, transparent)
-      transparent;
-  }
+  /* Firefox-only fallback: standard scrollbar properties are ignored by Chrome
+     121+ when webkit rules exist, so gate them with @supports to give webkit
+     precedence. Chrome gets the instant 6px thumb; Firefox gets thin themed. */
+  @supports not selector(::-webkit-scrollbar) {
+    .scrollbar-thin {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in oklch, var(--scrollbar) 80%, transparent)
+        transparent;
+    }
 
-  .scrollbar-thin:hover {
-    scrollbar-color: color-mix(in oklch, var(--scrollbar) 100%, transparent)
-      transparent;
+    .scrollbar-thin:hover {
+      scrollbar-color: color-mix(in oklch, var(--scrollbar) 100%, transparent)
+        transparent;
+    }
   }
 
   .scrollbar-thin::-webkit-scrollbar {
