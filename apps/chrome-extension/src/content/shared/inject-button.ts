@@ -5,7 +5,10 @@ let fontInjected = false;
 
 const VMEM_LABEL_SELECTOR = "[data-vmem-label]";
 
-/** Updates button copy without removing the logo icon. */
+/**
+ * Updates button copy without removing the logo icon. Icon-only buttons have
+ * no label span, so status text goes to the tooltip/aria-label instead.
+ */
 export function setVmemButtonLabel(
   button: HTMLButtonElement,
   text: string,
@@ -15,7 +18,8 @@ export function setVmemButtonLabel(
     label.textContent = text;
     return;
   }
-  button.textContent = text;
+  button.title = text;
+  button.setAttribute("aria-label", text);
 }
 
 /**
@@ -38,6 +42,7 @@ export function injectInstrumentSansFont(): void {
 export function createVmemButton(
   text: string,
   onClick: () => void,
+  options?: { iconOnly?: boolean },
 ): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
@@ -53,14 +58,28 @@ export function createVmemButton(
     lineHeight: "0",
   });
 
-  const label = document.createElement("span");
-  label.setAttribute("data-vmem-label", "true");
-  label.textContent = text;
-
-  button.append(icon, label);
+  if (options?.iconOnly) {
+    // Circular icon-only variant: the text becomes the tooltip/aria-label.
+    button.append(icon);
+    button.title = text;
+    button.setAttribute("aria-label", text);
+  } else {
+    const label = document.createElement("span");
+    label.setAttribute("data-vmem-label", "true");
+    label.textContent = text;
+    button.append(icon, label);
+  }
 
   injectInstrumentSansFont();
   Object.assign(button.style, VMEM_BUTTON_STYLES);
+  if (options?.iconOnly) {
+    Object.assign(button.style, {
+      width: "40px",
+      padding: "0",
+      borderRadius: "50%",
+      justifyContent: "center",
+    });
+  }
 
   button.addEventListener("mouseenter", () => {
     button.style.transform = "translateY(-2px)";

@@ -29,45 +29,49 @@ export async function injectUseVmemButton(): Promise<void> {
   const parent = inputField.parentElement;
   if (!parent || parent.querySelector("[data-vmem]")) return;
 
-  const button = createVmemButton("Use vmem", () => {
-    const input = document.querySelector(SELECTORS.inputField);
-    if (!(input instanceof HTMLElement)) return;
+  const button = createVmemButton(
+    "Use vmem",
+    () => {
+      const input = document.querySelector(SELECTORS.inputField);
+      if (!(input instanceof HTMLElement)) return;
 
-    const currentText = (input.textContent ?? "").trim();
-    if (!currentText) {
-      setVmemButtonLabel(button, "Type a message first");
-      setTimeout(() => {
-        setVmemButtonLabel(button, "Use vmem");
-      }, 2000);
-      return;
-    }
-
-    setVmemButtonLabel(button, "Loading...");
-    button.style.opacity = "0.6";
-
-    const message: ContentMessage = {
-      type: "RETRIEVE_MEMORIES",
-      query: currentText,
-    };
-
-    safeSendMessage<BackgroundResponse>(message, (response) => {
-      setVmemButtonLabel(button, "Use vmem");
-      button.style.opacity = "1";
-
-      if (
-        response?.type === "RETRIEVE_RESULT" &&
-        response.memories.length > 0
-      ) {
-        const context = formatMemoriesContext(response.memories);
-        setInputValue(input, context + currentText);
-      } else {
-        setVmemButtonLabel(button, "No memories found");
+      const currentText = (input.textContent ?? "").trim();
+      if (!currentText) {
+        setVmemButtonLabel(button, "Type a message first");
         setTimeout(() => {
           setVmemButtonLabel(button, "Use vmem");
         }, 2000);
+        return;
       }
-    });
-  });
+
+      setVmemButtonLabel(button, "Loading...");
+      button.style.opacity = "0.6";
+
+      const message: ContentMessage = {
+        type: "RETRIEVE_MEMORIES",
+        query: currentText,
+      };
+
+      safeSendMessage<BackgroundResponse>(message, (response) => {
+        setVmemButtonLabel(button, "Use vmem");
+        button.style.opacity = "1";
+
+        if (
+          response?.type === "RETRIEVE_RESULT" &&
+          response.memories.length > 0
+        ) {
+          const context = formatMemoriesContext(response.memories);
+          setInputValue(input, context + currentText);
+        } else {
+          setVmemButtonLabel(button, "No memories found");
+          setTimeout(() => {
+            setVmemButtonLabel(button, "Use vmem");
+          }, 2000);
+        }
+      });
+    },
+    { iconOnly: true },
+  );
 
   button.style.marginTop = "4px";
   parent.appendChild(button);
