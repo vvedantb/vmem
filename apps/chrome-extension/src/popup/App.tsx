@@ -53,14 +53,23 @@ function ThemeApplier() {
   return null;
 }
 
+/**
+ * Each tab panel is its own scroll container: the popup window stays a fixed
+ * 600px (see index.html) so the scrollbar lives inside the tab content and
+ * switching tabs never resizes the popup. `scrollbar-gutter: stable` reserves
+ * the thumb's width so content doesn't shift when a tab overflows.
+ */
+const tabContentClassName =
+  "min-h-0 flex-1 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] p-5";
+
 function SignedInContent() {
   return (
     <ExtensionUserSettingsProvider>
       <ThemeApplier />
       <EnsureUser />
       <TokenSync />
-      <Tabs defaultValue="save" className="flex flex-1 flex-col">
-        <TabsList className="mx-5 mt-4 w-auto">
+      <Tabs defaultValue="save" className="flex min-h-0 flex-1 flex-col">
+        <TabsList className="mx-5 mt-4 w-auto shrink-0">
           <TabsTrigger value="save" className="flex-1 gap-1.5">
             <IconDeviceFloppy size={16} stroke={1.8} />
             Save
@@ -75,17 +84,17 @@ function SignedInContent() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="save" className="flex-1 p-5">
+        <TabsContent value="save" className={tabContentClassName}>
           <motion.div variants={fadeUp} initial="hidden" animate="show">
             <QuickSave />
           </motion.div>
         </TabsContent>
-        <TabsContent value="import" className="flex-1 p-5">
+        <TabsContent value="import" className={tabContentClassName}>
           <motion.div variants={fadeUp} initial="hidden" animate="show">
             <ImportPanel />
           </motion.div>
         </TabsContent>
-        <TabsContent value="settings" className="flex-1 p-5">
+        <TabsContent value="settings" className={tabContentClassName}>
           <motion.div variants={fadeUp} initial="hidden" animate="show">
             <SettingsForm />
           </motion.div>
@@ -139,7 +148,7 @@ export function App() {
   const { isLoaded } = useAuth();
 
   return (
-    <div className="flex min-h-[500px] flex-col bg-background text-foreground">
+    <div className="flex h-full flex-col overflow-hidden bg-background text-foreground">
       <header className="flex items-center justify-between bg-surface px-5 py-3.5">
         <span className="font-serif text-lg tracking-tight">
           v<span className="italic">mem</span>
@@ -149,7 +158,7 @@ export function App() {
         </Show>
       </header>
 
-      <main className="flex flex-1 flex-col bg-surface">
+      <main className="flex min-h-0 flex-1 flex-col bg-surface">
         {!isLoaded ? (
           <div className="flex flex-1 items-center justify-center">
             <Spinner />
