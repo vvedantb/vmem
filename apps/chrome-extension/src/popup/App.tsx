@@ -57,10 +57,12 @@ function ThemeApplier() {
  * Each tab panel is its own scroll container: the popup window stays a fixed
  * 600px (see index.html) so the scrollbar lives inside the tab content and
  * switching tabs never resizes the popup. `scrollbar-gutter: stable` reserves
- * the thumb's width so content doesn't shift when a tab overflows.
+ * the thumb's width so content doesn't shift when a tab overflows. The right
+ * inset is split as 8px padding + 6px gutter + 6px margin (= 20px, matching
+ * pl-5) so the scrollbar sits visibly inside the panel, not at the popup edge.
  */
 const tabContentClassName =
-  "min-h-0 flex-1 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] p-5";
+  "min-h-0 flex-1 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] py-5 pl-5 pr-2 mr-1.5";
 
 function SignedInContent() {
   return (

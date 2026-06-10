@@ -209,19 +209,12 @@ input[type="range"] {
   accent-color: var(--accent);
 }
 
-/* Thin themed scrollbar — matches apps/web/src/globals.css */
+/* Thin themed scrollbar — webkit-only on purpose. Setting `scrollbar-width`/
+   `scrollbar-color` (like apps/web does for Firefox) makes Chrome 121+ ignore
+   the ::-webkit-scrollbar rules and fall back to its fluent overlay scrollbar,
+   which auto-hides and fades in with a delay. The extension is Chrome-only,
+   so webkit styling alone gives an always-visible, instant scrollbar. */
 @layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklch, var(--scrollbar) 80%, transparent)
-      transparent;
-  }
-
-  .scrollbar-thin:hover {
-    scrollbar-color: color-mix(in oklch, var(--scrollbar) 100%, transparent)
-      transparent;
-  }
-
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
   }
