@@ -44,13 +44,20 @@ const recentActivityCache = new ActionCache(components.actionCache, {
 });
 
 export const getStats = authAction({
-  args: { profileId: v.optional(v.string()) },
+  args: {
+    profileId: v.optional(v.string()),
+    // Bypass (and refresh) the 30s cache — used by event-driven refetches
+    // (sidebar live stats) where serving the pre-write cache entry would
+    // make the update a no-op.
+    fresh: v.optional(v.boolean()),
+  },
   handler: async (ctx, args): Promise<StatsResult> => {
     const clerkId = await requireClerkId(ctx);
-    return await statsCache.fetch(ctx, {
-      clerkId,
-      profileId: args.profileId,
-    });
+    return await statsCache.fetch(
+      ctx,
+      { clerkId, profileId: args.profileId },
+      args.fresh ? { force: true } : undefined,
+    );
   },
 });
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## Sidebar stats update live — 2026-06-10
+
+- **Today/total counts react to memory writes**: the sidebar footer now subscribes to the same Convex memory-events change feed the rest of the app uses, refetching stats when memories are created/updated/deleted (from any surface — web, extension, MCP) instead of only on page refresh.
+- **Cache-aware refresh**: event-driven refetches bypass and refresh the 30s dashboard stats cache (it predates the write), and are throttled so bulk imports collapse into one count query per window.
+
 ## Chrome extension: YouTube transcript capture rebuilt — 2026-06-10
 
 - **Save-to-vmem on YouTube works again**: transcripts silently stopped saving because YouTube now gates its raw caption endpoints behind a per-video BotGuard proof-of-origin token — `timedtext` returns an empty 200 and InnerTube transcript endpoints reject replayed requests.
