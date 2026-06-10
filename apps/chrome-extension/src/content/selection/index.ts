@@ -1,8 +1,19 @@
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { safeSendMessage } from "@/lib/safe-message";
 import { mountVmemLogo } from "@/content/shared/icons";
+import type { VmemLogoVariant } from "@/content/shared/icons";
 
 const VMEM_LOGO_SIZE = 16;
+
+/**
+ * The popup's background follows prefers-color-scheme (see styles below), so
+ * the logo img must too: black logo on the light pill, white on the dark one.
+ */
+function logoVariant(): VmemLogoVariant {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "light"
+    : "dark";
+}
 
 const CHECK_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
   <polyline points="20 6 9 17 4 12"/>
@@ -99,12 +110,16 @@ styleEl.textContent = `
     transform: translateY(0);
   }
 
-  /* Expand to pill on hover — only in ready state */
+  /* Expand to pill on hover — only in ready state. interpolate-size lets
+     the width animate to max-content, so the label never truncates. */
+  #vmem-popup {
+    interpolate-size: allow-keywords;
+  }
   #vmem-popup.expandable:hover {
     background: rgba(235, 235, 238, 0.95);
     box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 10px 28px rgba(16, 24, 40, 0.12);
     transform: translateY(-1px);
-    width: 152px;
+    width: max-content;
     padding: 8px 14px 8px 10px;
   }
 
@@ -129,7 +144,7 @@ styleEl.textContent = `
 
   #vmem-popup.expandable:hover .vmem-label {
     opacity: 1;
-    max-width: 80px;
+    max-width: max-content;
     margin-left: 6px;
   }
 
@@ -206,7 +221,7 @@ popup.setAttribute("aria-label", "Save selection to vmem");
 
 const iconContainer = document.createElement("div");
 iconContainer.className = "vmem-icon";
-mountVmemLogo(iconContainer, "dark", VMEM_LOGO_SIZE);
+mountVmemLogo(iconContainer, logoVariant(), VMEM_LOGO_SIZE);
 popup.appendChild(iconContainer);
 
 const label = document.createElement("span");
@@ -236,13 +251,13 @@ function transitionTo(next: PopupState): void {
       // Reset icon after hide animation
       setTimeout(() => {
         if (state === "idle") {
-          mountVmemLogo(iconContainer, "dark", VMEM_LOGO_SIZE);
+          mountVmemLogo(iconContainer, logoVariant(), VMEM_LOGO_SIZE);
         }
       }, 250);
       break;
 
     case "ready":
-      mountVmemLogo(iconContainer, "dark", VMEM_LOGO_SIZE);
+      mountVmemLogo(iconContainer, logoVariant(), VMEM_LOGO_SIZE);
       popup.classList.add("visible", "expandable");
       break;
 
