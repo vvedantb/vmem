@@ -72,7 +72,7 @@ export default defineConfig({
     tanstackRouter({
       routesDirectory: "./src/routes",
       routeFileIgnorePattern:
-        "(-searchParams\\.ts|_components|_utils\\.ts|Client\\.tsx|Panel\\.tsx)",
+        "([sS]earchParams\\.ts|_components|_utils\\.ts|Client\\.tsx|Panel\\.tsx)",
       autoCodeSplitting: true,
     }),
     react(),

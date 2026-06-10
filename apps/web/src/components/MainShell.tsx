@@ -40,7 +40,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
             tabIndex={-1}
             className={`relative z-10 flex h-full pt-[calc(3.5rem+env(safe-area-inset-top,0px))] outline-none md:h-screen md:p-2 md:px-2 md:pb-2 md:pt-2 ${
               isSidebarCollapsed ? "md:ml-20" : "md:ml-72"
-            } md:transition-[margin-left] md:duration-[280ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]`}
+            } md:transition-[margin-left] md:[transition-duration:280ms] md:[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]`}
           >
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-surface md:rounded-lg">
               {children}

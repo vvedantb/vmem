@@ -37,6 +37,8 @@ type RelationshipEventHandler = (event: RelationshipEvent) => void;
 
 export function useMemoryEvents(
   onRelationshipEvent?: RelationshipEventHandler,
+  /** Called once per batch of new memory created/updated/deleted events. */
+  onMemoryEvent?: () => void,
 ) {
   const queryClient = useQueryClient();
   const [since] = useState(() => Date.now());
@@ -102,6 +104,7 @@ export function useMemoryEvents(
 
     if (hasMemoryEvent) {
       queryClient.invalidateQueries({ queryKey: ["memories"] });
+      onMemoryEvent?.();
     }
-  }, [events, queryClient, onRelationshipEvent]);
+  }, [events, queryClient, onRelationshipEvent, onMemoryEvent]);
 }

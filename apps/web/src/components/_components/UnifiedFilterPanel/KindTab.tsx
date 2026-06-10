@@ -8,6 +8,7 @@ import {
 } from "@/lib/list-items";
 import { nodeColor } from "../graph-colors";
 import ShapeIndicator from "../ShapeIndicator";
+import { isCheckedByDefault, toggleCheckedByDefault } from "./checkedByDefault";
 
 interface KindTabProps {
   selectedKinds: ListItemKind[];
@@ -25,12 +26,9 @@ export default function KindTab({
   isDark,
 }: KindTabProps) {
   const toggleKind = (kind: ListItemKind) => {
-    if (!onKindsChange) return;
-    if (selectedKinds.includes(kind)) {
-      onKindsChange(selectedKinds.filter((k) => k !== kind));
-    } else {
-      onKindsChange([...selectedKinds, kind]);
-    }
+    onKindsChange?.(
+      toggleCheckedByDefault(selectedKinds, kind, LIST_ITEM_KINDS),
+    );
   };
 
   return (
@@ -57,7 +55,7 @@ export default function KindTab({
       </div>
       <div className="flex-1 overflow-y-auto">
         {LIST_ITEM_KINDS.map((kind) => {
-          const checked = selectedKinds.includes(kind);
+          const checked = isCheckedByDefault(selectedKinds, kind);
           const color = nodeColor([], kind, isDark, null);
           return (
             <label

@@ -1,5 +1,5 @@
 import { useLocation } from "@tanstack/react-router";
-import { useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   Button,
@@ -18,6 +18,7 @@ import { useConvexAuth, useAction } from "convex/react";
 import { api } from "@vmem/backend";
 import { useNotifications } from "./contexts/NotificationContext";
 import { useProposals } from "@/hooks/useProposals";
+import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { IconX } from "@tabler/icons-react";
 import { MorphingMenuIcon } from "./svg-animations";
 import {
@@ -55,30 +56,48 @@ export default function Sidebar({
   const getStats = useAction(api.dashboardApi.getStats);
   const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    let cancelled = false;
-    void (async () => {
+  const refreshStats = useCallback(
+    async (fresh: boolean) => {
       try {
-        const data = await getStats({});
-        const result = data as {
-          memoriesAddedToday: number;
-          totalMemories: number;
-        };
-        if (!cancelled) {
-          setStats({
-            addedToday: result.memoriesAddedToday,
-            total: result.totalMemories,
-          });
-        }
+        const data = await getStats(fresh ? { fresh: true } : {});
+        setStats({
+          addedToday: data.memoriesAddedToday,
+          total: data.totalMemories,
+        });
       } catch {
         // silently fail -- sidebar stats are non-critical
       }
-    })();
+    },
+    [getStats],
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void refreshStats(false);
+  }, [isAuthenticated, refreshStats]);
+
+  // Live updates: the memory-events change feed pushes created/updated/deleted
+  // events over Convex's reactive query; refetch stats with the action cache
+  // bypassed (the cached entry predates the write). Throttled so a burst
+  // (bookmark/history import) collapses into one Neo4j count per window —
+  // later batches re-arm the timer, so counts converge after the burst.
+  const statsRefetchTimer = useRef<number | null>(null);
+  const handleMemoryEvent = useCallback(() => {
+    if (statsRefetchTimer.current !== null) return;
+    statsRefetchTimer.current = window.setTimeout(() => {
+      statsRefetchTimer.current = null;
+      void refreshStats(true);
+    }, 1500);
+  }, [refreshStats]);
+  useMemoryEvents(undefined, handleMemoryEvent);
+
+  useEffect(() => {
     return () => {
-      cancelled = true;
+      if (statsRefetchTimer.current !== null) {
+        window.clearTimeout(statsRefetchTimer.current);
+      }
     };
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
     setMobileMenuOpen(false);

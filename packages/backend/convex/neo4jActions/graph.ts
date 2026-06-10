@@ -54,6 +54,8 @@ function capGraph(data: {
     type: string;
     memoryIds: string[];
   }>;
+  focusNodeId?: string;
+  totalMemoryCount?: number;
 }) {
   const nodes = data.nodes.slice(0, MAX_NODES);
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -89,6 +91,8 @@ function capGraph(data: {
     tagEdges,
     entities,
     mentionsEdges: mentionsEdges.slice(0, MAX_EDGES),
+    focusNodeId: data.focusNodeId,
+    totalMemoryCount: data.totalMemoryCount,
   };
 }
 
@@ -97,12 +101,39 @@ export const getGraphDataInternal = internalAction({
     clerkId: v.string(),
     focus: v.optional(v.string()),
     profileId: v.optional(v.string()),
+    // mode "local" = focus neighbourhood (focus omitted → newest memory).
+    // mode "global" = full capped graph. When mode is absent, fall back to
+    // the old focus-implies-local semantics (MCP graph tool still uses that).
+    mode: v.optional(v.union(v.literal("local"), v.literal("global"))),
+    /** Local-mode hop depth, clamped to [1, 3] downstream. Default 2. */
+    depth: v.optional(v.number()),
+    /**
+     * Global-mode page size (newest-first), clamped to [1, 2000] downstream.
+     * Absent → full 2000 cap (MCP and other existing callers keep the old
+     * behaviour); the web passes 500/1000/… as the user loads more.
+     */
+    nodeLimit: v.optional(v.number()),
   },
   handler: async (_ctx, args) => {
     const driver = getDriver();
-    const raw = args.focus
-      ? await getLocalGraph(driver, args.clerkId, args.focus, args.profileId)
-      : await getGraphData(driver, args.clerkId, args.profileId);
+    const isLocal =
+      args.mode !== undefined
+        ? args.mode === "local"
+        : args.focus !== undefined;
+    const raw = isLocal
+      ? await getLocalGraph(
+          driver,
+          args.clerkId,
+          args.focus ?? null,
+          args.profileId,
+          args.depth,
+        )
+      : await getGraphData(
+          driver,
+          args.clerkId,
+          args.profileId,
+          args.nodeLimit,
+        );
     return capGraph(raw);
   },
 });

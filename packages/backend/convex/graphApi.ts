@@ -63,6 +63,18 @@ interface GraphResult {
   wikiParentEdges: { source: string; target: string }[];
   /** Memory → entity MENTIONS edges. */
   mentionsEdges: { source: string; target: string }[];
+  /**
+   * The memory the local graph is centred on. Present in local mode even
+   * when the server picked the focus itself (no explicit focus → newest
+   * memory); absent on the global graph.
+   */
+  focusNodeId?: string;
+  /**
+   * Total active/pinned memories (after profile filter). Present in global
+   * mode so the UI can show "Showing X of Y" + Load more instead of
+   * silently truncating.
+   */
+  totalMemoryCount?: number;
 }
 
 interface MemoryGraph {
@@ -94,6 +106,10 @@ interface MemoryGraph {
     memoryIds: string[];
   }>;
   mentionsEdges: Array<{ source: string; target: string }>;
+  /** Resolved focus (local mode only) — set even when the server picked it. */
+  focusNodeId?: string;
+  /** Total active memories (global mode) for the "Showing X of Y" indicator. */
+  totalMemoryCount?: number;
 }
 
 /** Prefix applied to wikiNode ids so they never collide with Neo4j memory ids. */
@@ -132,9 +148,22 @@ export const getGraphData = authAction({
   args: {
     focus: v.optional(v.string()),
     profileId: v.optional(v.string()),
+    // mode "local" = focus neighbourhood (focus omitted → server centres on
+    // the newest memory). mode "global" = full capped graph. Absent → old
+    // focus-implies-local semantics (kept for existing callers).
+    mode: v.optional(v.union(v.literal("local"), v.literal("global"))),
+    /** Local-mode hop depth, clamped to [1, 3] server-side. Default 2. */
+    depth: v.optional(v.number()),
+    /** Global-mode page size (newest-first), clamped to [1, 2000]. */
+    nodeLimit: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<GraphResult> => {
     const clerkId = await requireClerkId(ctx);
+
+    const isLocal =
+      args.mode !== undefined
+        ? args.mode === "local"
+        : args.focus !== undefined;
 
     const memoryGraph: MemoryGraph = await ctx.runAction(
       internal.neo4jActions.graph.getGraphDataInternal,
@@ -142,13 +171,16 @@ export const getGraphData = authAction({
         clerkId,
         focus: args.focus,
         profileId: args.profileId,
+        mode: args.mode,
+        depth: args.depth,
+        nodeLimit: args.nodeLimit,
       },
     );
 
     // Wiki nodes are only included for the global graph. When the user focuses
     // a specific memory we show its local Neo4j neighbourhood — wiki docs are
     // orthogonal to memories today and have no edges reaching a memory node.
-    const wikiRows = args.focus
+    const wikiRows = isLocal
       ? []
       : await ctx.runQuery(internal.wiki.listForUserInternal, {
           userId: ctx.userId,
@@ -177,7 +209,7 @@ export const getGraphData = authAction({
     // Skills — same visibility rule as wiki: only in the global graph. Skills
     // are user-level atoms (tools) with no edges into the memory graph today,
     // so they render as isolated hexagons.
-    const skillRows = args.focus
+    const skillRows = isLocal
       ? []
       : await ctx.runQuery(internal.skills.listByClerkIdInternal, {
           clerkId,
@@ -216,6 +248,8 @@ export const getGraphData = authAction({
       tagEdges: memoryGraph.tagEdges,
       wikiParentEdges,
       mentionsEdges: memoryGraph.mentionsEdges,
+      focusNodeId: memoryGraph.focusNodeId,
+      totalMemoryCount: memoryGraph.totalMemoryCount,
     };
   },
 });

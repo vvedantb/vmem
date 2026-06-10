@@ -28,6 +28,7 @@ import {
 import { useGraphData } from "@/hooks/useGraphData";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
+import type { GraphScope } from "@/routes/_main/memories/-searchParams";
 import {
   buildGraphData,
   getAllTags,
@@ -69,6 +70,11 @@ import {
 
 const EMPTY_SET = new Set<string>();
 
+/** Global-graph progressive loading: first page + per-click increment. */
+const GLOBAL_GRAPH_PAGE_SIZE = 500;
+/** Mirrors the backend's hard cap (capGraph MAX_NODES). */
+const GLOBAL_GRAPH_MAX_NODES = 2000;
+
 export interface MemoryGraphController {
   // ----- Raw data -----
   apiNodes: ApiGraphNode[];
@@ -79,6 +85,25 @@ export interface MemoryGraphController {
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
+
+  // ----- Scope (URL) -----
+  /** "local" = focus neighbourhood (default), "global" = full capped graph. */
+  scope: GraphScope;
+  /** Local-graph hop depth, clamped to 1–3. */
+  depth: number;
+  /** Focus the local graph is centred on (server-resolved). null in global. */
+  resolvedFocusNodeId: string | null;
+
+  // ----- Progressive global loading -----
+  /** Memory nodes currently loaded (global scope). */
+  loadedMemoryCount: number;
+  /** Total active memories on the server — null until the first response. */
+  totalMemoryCount: number | null;
+  /** True when more memories exist beyond the loaded page (and the cap). */
+  canLoadMore: boolean;
+  /** True while a bigger page is fetching (previous page stays on screen). */
+  isLoadingMore: boolean;
+  onLoadMore: () => void;
 
   // ----- Derived -----
   graphNodes: GraphNode[];
@@ -140,16 +165,36 @@ export function useMemoryGraphController({
   // Data
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
+  // Scope/depth live in the URL beside the focus id. Depth is clamped here so
+  // a hand-edited URL can't request an unbounded traversal.
+  const scope: GraphScope = params.scope;
+  const depth = Math.min(3, Math.max(1, Math.trunc(params.depth)));
+
+  // Global-scope page size. Session-local (not URL) — "how much I've loaded"
+  // is transient browsing state, not a shareable view. Load-more bumps it;
+  // keepPreviousData in useGraphData keeps the old page visible meanwhile.
+  const [nodeLimit, setNodeLimit] = useState(GLOBAL_GRAPH_PAGE_SIZE);
+
   const {
     apiNodes,
     apiTagEdges,
     allRelatesToEdges,
     apiWikiParentEdges,
     apiMentionsEdges,
+    resolvedFocusNodeId,
+    totalMemoryCount,
     isLoading,
+    isFetching,
     isError,
     error,
-  } = useGraphData(focusNodeId, params.profile, enabled);
+  } = useGraphData(
+    focusNodeId,
+    params.profile,
+    enabled,
+    scope,
+    depth,
+    nodeLimit,
+  );
 
   const searchQuery = params.q.trim();
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -262,6 +307,25 @@ export function useMemoryGraphController({
 
   const hasActiveFilters = hasActiveMemoryViewFilters(filters);
 
+  // ----- Progressive global loading -----
+
+  const loadedMemoryCount = useMemo(
+    () => apiNodes.filter((n) => n.kind === "memory").length,
+    [apiNodes],
+  );
+
+  const canLoadMore =
+    scope === "global" &&
+    totalMemoryCount !== null &&
+    loadedMemoryCount < totalMemoryCount &&
+    nodeLimit < GLOBAL_GRAPH_MAX_NODES;
+
+  const onLoadMore = useCallback(() => {
+    setNodeLimit((prev) =>
+      Math.min(GLOBAL_GRAPH_MAX_NODES, prev + GLOBAL_GRAPH_PAGE_SIZE),
+    );
+  }, []);
+
   // ----- Handlers -----
 
   const onSettingsChange = useCallback((next: GraphSettings) => {
@@ -335,6 +399,18 @@ export function useMemoryGraphController({
     isLoading,
     isError,
     error,
+
+    // Scope
+    scope,
+    depth,
+    resolvedFocusNodeId,
+
+    // Progressive global loading
+    loadedMemoryCount,
+    totalMemoryCount,
+    canLoadMore,
+    isLoadingMore: isFetching && !isLoading,
+    onLoadMore,
 
     // Derived
     graphNodes,

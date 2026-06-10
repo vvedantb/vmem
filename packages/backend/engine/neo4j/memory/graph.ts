@@ -10,9 +10,15 @@
  * Promise.all over per-leg sessions is the parallelism contract.
  */
 import { type Driver, type Session } from "neo4j-driver";
-import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
+import { clampNeo4jLimit } from "../intParams";
+import { toMemoryTypeOrUndefined, toNeoInt, toTagEdge } from "./mappers";
 import { profileFilter, withSession } from "./shared";
 import { type MemoryType, type TagEdge } from "./types";
+
+/** Hard ceiling for one global-graph page; matches MAX_NODES in capGraph. */
+export const GLOBAL_GRAPH_MAX_NODES = 2000;
+/** Default first page for the progressive global graph. */
+export const GLOBAL_GRAPH_DEFAULT_LIMIT = 500;
 
 interface GraphNode {
   id: string;
@@ -41,31 +47,45 @@ export interface GraphData {
     type: string;
     memoryIds: string[];
   }>;
+  /**
+   * The memory the local graph is centred on. Set by getLocalGraph (which
+   * resolves it server-side when no explicit focus is given — newest memory
+   * wins); absent on the global graph.
+   */
+  focusNodeId?: string;
+  /**
+   * Total active/pinned memories the user has (after profile filter). Set by
+   * the global graph so the UI can show an honest "Showing X of Y" instead
+   * of silently truncating at the node limit.
+   */
+  totalMemoryCount?: number;
 }
 
 /**
- * Fetches the top-2000 active/pinned nodes, their RELATES_TO edges, and
- * MENTIONS entities in a single round-trip. The composite index
- * memory_user_status_created lets the planner satisfy both the WHERE and
- * the ORDER BY with one index seek (no Sort op). RELATES_TO is then
- * scoped to the collected node-id list, so the edge scan is
- * O(edges_in_subgraph) rather than O(all_user_edges).
+ * Fetches the newest `nodeLimit` active/pinned nodes, their RELATES_TO edges,
+ * MENTIONS entities, and the user's total memory count in a single
+ * round-trip. The composite index memory_user_status_created lets the
+ * planner satisfy both the WHERE and the ORDER BY with one index seek (no
+ * Sort op). RELATES_TO is then scoped to the collected node-id list, so the
+ * edge scan is O(edges_in_subgraph) rather than O(all_user_edges).
  */
 async function fetchGraphNodesAndEdges(
   session: Session,
   userId: string,
   profileId: string | null | undefined,
+  nodeLimit: number,
 ): Promise<{
   nodes: GraphNode[];
   relatesToEdges: RelatesToEdge[];
   entities: GraphData["entities"];
+  totalMemoryCount: number;
 }> {
   const pf = profileFilter(profileId, "m");
   const result = await session.run(
     `CALL () {
        MATCH (m:Memory {userId: $userId})
        WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
-       WITH m ORDER BY m.createdAt DESC LIMIT 2000
+       WITH m ORDER BY m.createdAt DESC LIMIT $nodeLimit
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
        WITH m, collect(t.name) AS memTags
        RETURN collect({
@@ -89,14 +109,28 @@ async function fetchGraphNodesAndEdges(
          type: e.type, memoryIds: memoryIds
        }) AS entities
      }
-     RETURN nodes, relatesToEdges, entities`,
-    { userId, ...pf.params },
+     CALL () {
+       MATCH (m:Memory {userId: $userId})
+       WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
+       RETURN count(m) AS totalMemoryCount
+     }
+     RETURN nodes, relatesToEdges, entities, totalMemoryCount`,
+    {
+      userId,
+      nodeLimit: clampNeo4jLimit(
+        nodeLimit,
+        GLOBAL_GRAPH_DEFAULT_LIMIT,
+        GLOBAL_GRAPH_MAX_NODES,
+      ),
+      ...pf.params,
+    },
   );
 
   const row = result.records[0];
   const rawNodes = row ? row.get("nodes") : [];
   const rawEdges = row ? row.get("relatesToEdges") : [];
   const rawEntities = row ? row.get("entities") : [];
+  const totalMemoryCount = row ? toNeoInt(row.get("totalMemoryCount")) : 0;
 
   const nodes: GraphNode[] = (Array.isArray(rawNodes) ? rawNodes : []).map(
     (n) => ({
@@ -127,7 +161,7 @@ async function fetchGraphNodesAndEdges(
     memoryIds: Array.isArray(e.memoryIds) ? e.memoryIds.map(String) : [],
   }));
 
-  return { nodes, relatesToEdges, entities };
+  return { nodes, relatesToEdges, entities, totalMemoryCount };
 }
 
 /**
@@ -166,6 +200,7 @@ export async function getGraphData(
   driver: Driver,
   userId: string,
   profileId?: string | null,
+  nodeLimit: number = GLOBAL_GRAPH_MAX_NODES,
 ): Promise<GraphData> {
   // Two parallel sessions — driver doesn't allow concurrent .run() on the
   // same session. The first leg returns nodes + RELATES_TO + entities in
@@ -177,7 +212,7 @@ export async function getGraphData(
   const tagEdgesSession = driver.session();
   try {
     const [nodesAndEdges, tagEdges] = await Promise.all([
-      fetchGraphNodesAndEdges(nodesEdgesSession, userId, profileId),
+      fetchGraphNodesAndEdges(nodesEdgesSession, userId, profileId, nodeLimit),
       fetchTagSharedEdges(tagEdgesSession, userId, profileId),
     ]);
     return { ...nodesAndEdges, tagEdges };
@@ -213,8 +248,9 @@ export async function getMemoryContent(
 export async function getLocalGraph(
   driver: Driver,
   userId: string,
-  focusId: string,
+  focusId: string | null,
   profileId?: string | null,
+  depth: number = 2,
 ): Promise<GraphData> {
   // Mirrors getGraphData: content is NOT part of the graph payload. The
   // frontend fetches it on demand via getMemoryContent when the user hovers
@@ -222,39 +258,62 @@ export async function getLocalGraph(
   const nodesSession = driver.session();
   let nodeIds: string[];
   let nodes: GraphNode[];
+  let resolvedFocusId: string | undefined;
 
   const pfFocus = profileFilter(profileId, "focus");
   // QPP inline filter on the traversal node. Keeps the suppressed/wrong-
   // user nodes from expanding at all, rather than expanding and discarding.
   const pfB = profileFilter(profileId, "b");
 
+  // QPP quantifiers must be literals (Cypher rejects parameters there), so
+  // the hop count is interpolated after clamping to a safe range.
+  const hops = Math.min(3, Math.max(1, Math.trunc(depth)));
+
+  // No explicit focus → centre on the newest active memory. This powers the
+  // default graph entry (local neighbourhood instead of the full graph).
+  const focusMatch =
+    focusId !== null
+      ? `MATCH (focus:Memory {id: $focusId, userId: $userId})
+         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${pfFocus.clause}`
+      : `MATCH (focus:Memory {userId: $userId})
+         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${pfFocus.clause}
+         WITH focus ORDER BY focus.createdAt DESC LIMIT 1`;
+
   try {
     // Quantified Path Pattern replaces the old [:RELATES_TO*1..2] form.
     // QPP filters each hop inline, so the planner stops expansion early at
     // suppressed or wrong-user nodes instead of traversing then discarding.
     const nodesResult = await nodesSession.run(
-      `MATCH (focus:Memory {id: $focusId, userId: $userId})
-       WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${pfFocus.clause}
+      `${focusMatch}
        OPTIONAL MATCH (focus)
          ((a:Memory WHERE coalesce(a.status, 'active') IN ['active', 'pinned'])
           -[:RELATES_TO]-
           (b:Memory WHERE coalesce(b.status, 'active') IN ['active', 'pinned']
              AND b.userId = $userId
              ${pfB.clause})
-         ){1,2}
+         ){1,${hops}}
          (neighbor:Memory)
        WITH focus, collect(DISTINCT neighbor) AS neighbors
-       WITH [focus] + neighbors AS allNodes
+       WITH focus.id AS focusId, [focus] + neighbors AS allNodes
        UNWIND allNodes AS m
-       WITH DISTINCT m LIMIT 500
+       WITH DISTINCT m, focusId LIMIT 500
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-       WITH m, collect(t.name) AS tags
+       WITH m, focusId, collect(t.name) AS tags
        RETURN m.id AS id, m.title AS title,
               tags, m.createdAt AS createdAt,
               m.source AS source, m.type AS type,
-              m.sourceType AS sourceType`,
-      { userId, focusId, ...pfFocus.params },
+              m.sourceType AS sourceType, focusId`,
+      {
+        userId,
+        ...(focusId !== null ? { focusId } : {}),
+        ...pfFocus.params,
+      },
     );
+
+    const firstRecord = nodesResult.records[0];
+    resolvedFocusId = firstRecord
+      ? String(firstRecord.get("focusId"))
+      : undefined;
 
     nodes = nodesResult.records.map((r) => ({
       id: String(r.get("id")),
@@ -274,7 +333,13 @@ export async function getLocalGraph(
   }
 
   if (nodeIds.length === 0) {
-    return { nodes: [], relatesToEdges: [], tagEdges: [], entities: [] };
+    return {
+      nodes: [],
+      relatesToEdges: [],
+      tagEdges: [],
+      entities: [],
+      focusNodeId: resolvedFocusId,
+    };
   }
 
   // Edges scoped to the local neighbourhood: RELATES_TO, tag-shared, and
@@ -339,7 +404,13 @@ export async function getLocalGraph(
 
     const tagEdges = tagEdgesResult.records.map(toTagEdge);
 
-    return { nodes, relatesToEdges, tagEdges, entities };
+    return {
+      nodes,
+      relatesToEdges,
+      tagEdges,
+      entities,
+      focusNodeId: resolvedFocusId,
+    };
   } finally {
     await Promise.all([
       relatesToSession.close(),

@@ -47,7 +47,10 @@ export const mcpMemoryGraphResultValidator = v.object({
 });
 
 const DEFAULT_NODE_LIMIT = 80;
-const MAX_NODE_LIMIT = 150;
+// Hard cap kept low (100): the embedded MCP-UI canvas runs a naive O(n²)
+// main-thread simulation, and the tool result is also injected into the
+// model's context — both punish large payloads.
+const MAX_NODE_LIMIT = 100;
 const MAX_RELATES_EDGES_PER_NODE = 4;
 const MAX_TAG_EDGES_PER_NODE = 3;
 const MAX_EDGE_REASON_CHARS = 120;
@@ -78,6 +81,8 @@ type RawGraph = {
   nodes: MemoryGraphNode[];
   relatesToEdges: RelatesToEdge[];
   tagEdges: Array<McpTagEdge & { sharedTags: string[] }>;
+  /** Total active memories on the server (global fetches only). */
+  totalMemoryCount?: number;
 };
 
 type McpGraphSlice = {
@@ -181,11 +186,16 @@ function capTagEdgesForNodes(
 function capMemoryGraph(
   graph: McpGraphSlice,
   limit: number,
+  // True server-side total for plain global fetches, where the Neo4j query
+  // itself is already limited — graph.nodes.length would under-report and
+  // hide the truncation banner. Omitted for seed-expanded slices, whose
+  // working set IS the relevant total.
+  totalAvailable?: number,
 ): McpGraphSlice & {
   truncated: boolean;
   totalNodesBeforeCap: number;
 } {
-  const totalNodesBeforeCap = graph.nodes.length;
+  const totalNodesBeforeCap = Math.max(graph.nodes.length, totalAvailable ?? 0);
   const nodeSlice = graph.nodes.slice(0, limit);
   const nodeIds = new Set(nodeSlice.map((n) => n.id));
   const maxRelates = limit * MAX_RELATES_EDGES_PER_NODE;
@@ -237,12 +247,18 @@ export const mcpGetMemoryGraph = internalAction({
         ? args.memoryIds[0]
         : undefined);
 
+    const isPlainGlobal = focus === undefined && args.memoryIds === undefined;
+
     const raw: RawGraph = await ctx.runAction(
       internal.neo4jActions.graph.getGraphDataInternal,
       {
         clerkId: args.clerkId,
         focus,
         profileId,
+        // Plain global view gets sliced to `limit` below anyway — fetch only
+        // that many from Neo4j. Seed expansion (memoryIds) keeps the full
+        // fetch: it needs the wider graph to find the seeds' neighbours.
+        nodeLimit: isPlainGlobal ? limit : undefined,
       },
     );
 
@@ -262,7 +278,11 @@ export const mcpGetMemoryGraph = internalAction({
       working = expandMemoryIdSeeds(raw, args.memoryIds);
     }
 
-    const capped = capMemoryGraph(working, limit);
+    const capped = capMemoryGraph(
+      working,
+      limit,
+      isPlainGlobal ? raw.totalMemoryCount : undefined,
+    );
 
     return {
       nodes: capped.nodes,

@@ -41,6 +41,8 @@ function mockActionCtx(): ActionCtx {
     vectorSearch: vi.fn(),
     meta: {
       getFunctionMetadata: vi.fn(),
+      getDeploymentMetadata: vi.fn(),
+      getRequestMetadata: vi.fn(),
     },
   };
 }

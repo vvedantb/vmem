@@ -9,7 +9,7 @@ const Input = forwardRef<TextInput, TextInputProps & { className?: string }>(
         ref={ref}
         placeholderTextColor={placeholderTextColor ?? "hsl(0, 0%, 45%)"}
         className={cn(
-          "h-11 w-full rounded-lg border border-input bg-background px-4 text-base text-foreground",
+          "h-11 w-full rounded-lg border border-input bg-surface px-4 text-base text-foreground",
           props.editable === false && "opacity-50",
           className,
         )}

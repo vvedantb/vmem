@@ -11,6 +11,13 @@ import {
 } from "d3-force";
 import type { GraphNode, GraphEdge } from "./types";
 
+/**
+ * Below this alpha the layout is visually static. The worker stops its tick
+ * interval, and GraphCanvas skips rendering, when alpha is under this value.
+ * Must match SLEEP_ALPHA in simulation-worker.ts.
+ */
+export const SLEEP_ALPHA = 0.005;
+
 type WorkerPositionMessage = {
   type: "positions";
   buffer: Float64Array;
@@ -258,19 +265,23 @@ function createMainThreadSimulation(
     .strength(1)
     .iterations(3);
 
+  // .stop() kills d3's internal timer — GraphCanvas's rAF loop drives ticking
+  // through controller.tick(), which gates on SLEEP_ALPHA so a settled layout
+  // costs nothing per frame.
   const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)
     .force("link", linkForce)
     .force("charge", chargeForce)
     .force("center", centerForce)
     .force("collide", collideForce)
     .alphaDecay(0.03)
-    .velocityDecay(0.5);
+    .velocityDecay(0.5)
+    .stop();
 
   // Warm-up (main thread — blocks but same as original behavior)
   for (let i = 0; i < 150; i++) {
     simulation.tick();
   }
-  simulation.alpha(0.2).restart();
+  simulation.alpha(0.2);
 
   const nodeById = new Map<string, GraphNode>();
   for (const n of nodes) nodeById.set(n.id, n);
@@ -279,22 +290,26 @@ function createMainThreadSimulation(
     alpha: () => simulation.alpha(),
 
     tick() {
+      // Sleep gate: skip force passes once settled, unless a drag is holding
+      // alphaTarget above zero.
+      if (simulation.alpha() < SLEEP_ALPHA && simulation.alphaTarget() === 0)
+        return;
       simulation.tick();
     },
 
     reheat() {
       const current = simulation.alpha();
-      simulation.alpha(Math.max(current, 0.1)).restart();
+      simulation.alpha(Math.max(current, 0.1));
     },
 
     setStrength(s: number) {
       chargeForce.strength(-s * 8);
-      simulation.alpha(0.3).restart();
+      simulation.alpha(0.3);
     },
 
     setGravity(g: number) {
       centerForce.strength(g * 2.0);
-      simulation.alpha(0.3).restart();
+      simulation.alpha(0.3);
     },
 
     dragStart(nodeId: string, x: number, y: number) {
@@ -303,6 +318,9 @@ function createMainThreadSimulation(
         node.fx = x;
         node.fy = y;
       }
+      // Keep the sim warm during the drag so neighbours react (and the
+      // sleep gate in tick() stays open).
+      simulation.alphaTarget(0.3);
     },
 
     dragMove(nodeId: string, x: number, y: number) {
@@ -321,12 +339,13 @@ function createMainThreadSimulation(
         node.fx = null;
         node.fy = null;
       }
+      simulation.alphaTarget(0);
     },
 
     updateData(newNodes: GraphNode[], newEdges: GraphEdge[]) {
       simulation.nodes(newNodes);
       linkForce.links(newEdges);
-      simulation.alpha(0.5).restart();
+      simulation.alpha(0.5);
     },
 
     stop() {

@@ -205,8 +205,42 @@ textarea,
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Tailwind v4 preflight sets `cursor: default` on buttons — restore the
+   pointer affordance for enabled interactive controls. Layered so cursor-*
+   utilities can still override per-element. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 input[type="range"] {
   accent-color: var(--accent);
+}
+
+/* Thin themed scrollbar — webkit-only on purpose. Setting `scrollbar-width`/
+   `scrollbar-color` (like apps/web does for Firefox) makes Chrome 121+ ignore
+   the ::-webkit-scrollbar rules and fall back to its fluent overlay scrollbar,
+   which auto-hides and fades in with a delay. The extension is Chrome-only,
+   so webkit styling alone gives an always-visible, instant scrollbar. */
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklch, var(--scrollbar) 80%, transparent);
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklch, var(--scrollbar) 100%, transparent);
+  }
 }
 
 /* Floating overlays — matches apps/web */

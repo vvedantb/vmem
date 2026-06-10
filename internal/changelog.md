@@ -1,5 +1,44 @@
 # Changelog
 
+## Sidebar stats update live — 2026-06-10
+
+- **Today/total counts react to memory writes**: the sidebar footer now subscribes to the same Convex memory-events change feed the rest of the app uses, refetching stats when memories are created/updated/deleted (from any surface — web, extension, MCP) instead of only on page refresh.
+- **Cache-aware refresh**: event-driven refetches bypass and refresh the 30s dashboard stats cache (it predates the write), and are throttled so bulk imports collapse into one count query per window.
+
+## Chrome extension: YouTube transcript capture rebuilt — 2026-06-10
+
+- **Save-to-vmem on YouTube works again**: transcripts silently stopped saving because YouTube now gates its raw caption endpoints behind a per-video BotGuard proof-of-origin token — `timedtext` returns an empty 200 and InnerTube transcript endpoints reject replayed requests.
+- **Panel-driven extraction**: the content script now piggybacks on YouTube's own UI — it programmatically opens the "Show transcript" panel, reads the rendered segments (supports both the new `transcript-segment-view-model` markup and the legacy renderer), and closes the panel afterwards, so it keeps working wherever YouTube's own transcript button works.
+- **Live E2E guard**: new `pnpm test:live:yt` drives the built extension in a real headless browser against a real watch page and asserts the save payload contains an actual transcript — this surface breaks silently, so it's now verifiable in one command.
+
+## Mobile app: feature + UI parity with web — 2026-06-10
+
+- **Cloud chat on mobile**: The chat screen gains web's Local/Cloud provider toggle — cloud streams OpenRouter free models through the existing thread (model picker sheet, auto-select, key check), while local GGUF chat keeps working offline.
+- **Full message rendering**: Assistant messages now render markdown, collapsible reasoning, tool calls, sources with tap-through citations, per-message token usage (tap for the breakdown sheet), and memory-ref chips that open a retrieval-trace sheet (score bars + reason) — matching web's chat bubbles.
+- **Skills slash picker**: Typing `/` in the chat input opens a tap-friendly skills menu (web's contentEditable editor reimagined for TextInput), with accent-pill previews of mentioned skills.
+- **Clear chat history**: Same confirm-dialog + fresh-thread swap as web.
+- **Voice assistant**: The Record screen replaces its "Coming soon" stub with a port of web's /voice — animated persona orb, push-to-talk OS speech recognition, memory-grounded local-LLM replies, spoken playback via the OS TTS engine, readiness pills, and a collapsible conversation history sharing the chat thread.
+- **Settings parity**: Settings becomes a hub (Models / Preferences / Profiles / Secrets) — adding About me + AI preferences, memory behavior, Dream Mode scheduling, notification toggles, profile CRUD with default-per-source pickers, and encrypted env-var management (incl. bulk .env paste) previously web-only.
+- **Web-matching theme**: Mobile tokens now mirror web's surface ladder and accent semantics; the purple-tinted dark theme is neutralised to web's grey so both apps look the same.
+- **Shared helpers extracted**: think-tag parsing, skill segmentation, cloud model grouping, .env parsing, and UTC/local time helpers moved to `@vmem/shared` so web and mobile use one implementation.
+
+## Memory graph: progressive global view — 2026-06-09
+
+- **Paged loading**: The global graph now loads the newest 500 memories first and grows by 500 per click (up to the 2000 cap), instead of always fetching everything — the Supermemory pattern.
+- **Honest cap**: A "Showing X of Y memories · Load more" pill replaces the old silent truncation; the server returns the user's total memory count with each page.
+- **Stable layout**: Node positions carry over across data swaps (load-more, filter changes, live edges), so only new nodes animate in instead of the whole graph re-shuffling.
+
+## Memory graph: local neighbourhood by default — 2026-06-09
+
+- **Local-first entry**: The graph now opens on the newest memory's neighbourhood (Obsidian/Neo4j Bloom pattern) instead of fetching the full 2000-node graph — first paint loads ≤500 nodes; "Global graph" is one click away and lives at `?scope=global`.
+- **Depth control**: Local view gets a 1–3 hop depth selector (`?depth=`), resolved server-side with a clamped quantified-path traversal.
+- **Server-resolved focus**: When no focus is in the URL the backend centres on the newest memory and returns the resolved id, so the focus ring and detail panel still work; double-click to re-centre on any memory node (non-memory nodes no longer dead-end into an empty graph).
+
+## Memory graph performance: simulation sleep — 2026-06-09
+
+- **Zero idle CPU**: The graph's physics worker now stops its tick loop entirely once the layout settles (previously it ran force passes + position transfers at 30fps forever), and the canvas only repaints when something actually changed — simulation motion, camera movement, hover/drag, or a prop change.
+- **Better drag physics**: Dragging a node now keeps the simulation warm (d3 `alphaTarget` pattern), so neighbours react to the moving node instead of staying frozen until release.
+
 ## Typecheck performance overhaul — 2026-06-09
 
 - **Web typecheck 39s → ~12s cold / 0.7s warm, backend 25s → ~3s**: found and removed the two type-level bombs dominating every `tsgo` run across the monorepo.
