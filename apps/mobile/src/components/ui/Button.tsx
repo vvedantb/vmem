@@ -9,9 +9,9 @@ const buttonVariants = cva("flex-row items-center justify-center rounded-lg", {
     variant: {
       default: "bg-primary active:opacity-90",
       destructive: "bg-destructive active:opacity-90",
-      outline: "border border-border bg-background active:bg-accent",
+      outline: "border border-border bg-surface active:bg-surface-tertiary",
       secondary: "bg-secondary active:opacity-80",
-      ghost: "active:bg-accent",
+      ghost: "active:bg-surface-tertiary",
       link: "",
     },
     size: {

@@ -13,6 +13,8 @@ export interface ModelInfo {
   name: string;
   size: string;
   description: string;
+  /** Conservative context window (llama.rn default n_ctx) used for the usage meter. */
+  contextLength: number;
 }
 
 export const MODELS: ModelInfo[] = [
@@ -21,24 +23,28 @@ export const MODELS: ModelInfo[] = [
     name: "TinyLlama 1.1B",
     size: "~0.7GB",
     description: "Fast, lightweight general chat",
+    contextLength: 2048,
   },
   {
     id: "bartowski/Llama-3.2-3B-Instruct-GGUF/Llama-3.2-3B-Instruct-Q4_K_M.gguf",
     name: "Llama 3.2 3B",
     size: "~2GB",
     description: "Balanced general-purpose",
+    contextLength: 4096,
   },
   {
     id: "bartowski/Phi-3.5-mini-instruct-GGUF/Phi-3.5-mini-instruct-Q4_K_M.gguf",
     name: "Phi-3.5 Mini 3.8B",
     size: "~2.2GB",
     description: "Strong reasoning for its size",
+    contextLength: 4096,
   },
   {
     id: "bartowski/Mistral-7B-Instruct-v0.3-GGUF/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf",
     name: "Mistral 7B v0.3",
     size: "~4.1GB",
     description: "High quality, needs more RAM",
+    contextLength: 8192,
   },
 ];
 

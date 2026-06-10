@@ -16,12 +16,12 @@ import {
   DropdownMenuTrigger,
 } from "@vmem/ui";
 import { api } from "@vmem/backend";
-import CloudModelProviderIcon from "@/components/CloudModelProviderIcon";
 import {
   formatOpenRouterProviderLabel,
   groupCloudModelsByProvider,
   providerFromOpenRouterModelId,
-} from "../_utils/cloudModelGroups";
+} from "@vmem/shared";
+import CloudModelProviderIcon from "@/components/CloudModelProviderIcon";
 
 interface FreeChatModel {
   id: string;

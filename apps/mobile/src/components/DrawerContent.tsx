@@ -57,7 +57,7 @@ function NavItem({
     <Pressable
       onPress={onPress}
       className={`flex-row items-center gap-3 px-4 py-3 rounded-xl mx-2 ${
-        isActive ? "bg-card" : ""
+        isActive ? "bg-surface-tertiary" : ""
       }`}
     >
       <Icon
@@ -133,7 +133,7 @@ export default function DrawerContent({ onClose }: { onClose: () => void }) {
       <View className="border-t border-border/45 px-4 pb-4 pt-3">
         {user && (
           <View className="flex-row items-center gap-3 px-2 mb-3">
-            <View className="h-8 w-8 rounded-full bg-card items-center justify-center">
+            <View className="h-8 w-8 rounded-full bg-surface-tertiary items-center justify-center">
               <Text className="text-sm font-sans-semibold text-foreground">
                 {(user.firstName ?? user.emailAddresses[0]?.emailAddress ?? "?")
                   .charAt(0)

@@ -1,9 +1,9 @@
 import type { Id } from "@vmem/backend";
+import { segmentInputBySkills } from "@vmem/shared";
 import {
   EDITOR_CHIP_CLICKABLE_CLASS,
   SKILL_CHIP_CLASS,
 } from "./mentionChipStyles";
-import { segmentInputBySkills } from "./segmentInputBySkills";
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

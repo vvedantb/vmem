@@ -58,7 +58,7 @@ export default function MainLayout() {
 
   if (!isLoaded || (user !== null && !isUserReady)) {
     return (
-      <View className="flex-1 items-center justify-center bg-background">
+      <View className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );

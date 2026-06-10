@@ -1,5 +1,14 @@
 export { PARSER_VERSION } from "./codebase";
 export {
+  providerFromOpenRouterModelId,
+  formatOpenRouterProviderLabel,
+  groupCloudModelsByProvider,
+} from "./cloudModelGroups";
+export { parseEnvVars } from "./envParse";
+export { segmentInputBySkills, type InputSkillSegment } from "./skillSegments";
+export { parseThinkTags } from "./think-tags";
+export { DEFAULT_LOCAL_TIME, localTimeToUtc, utcTimeToLocal } from "./time";
+export {
   VMEM_CLOUD_CHAT_CORE,
   VMEM_LOCAL_CHAT_CORE,
   VMEM_VOICE_CORE,

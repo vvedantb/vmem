@@ -1,5 +1,16 @@
 # Changelog
 
+## Mobile app: feature + UI parity with web — 2026-06-10
+
+- **Cloud chat on mobile**: The chat screen gains web's Local/Cloud provider toggle — cloud streams OpenRouter free models through the existing thread (model picker sheet, auto-select, key check), while local GGUF chat keeps working offline.
+- **Full message rendering**: Assistant messages now render markdown, collapsible reasoning, tool calls, sources with tap-through citations, per-message token usage (tap for the breakdown sheet), and memory-ref chips that open a retrieval-trace sheet (score bars + reason) — matching web's chat bubbles.
+- **Skills slash picker**: Typing `/` in the chat input opens a tap-friendly skills menu (web's contentEditable editor reimagined for TextInput), with accent-pill previews of mentioned skills.
+- **Clear chat history**: Same confirm-dialog + fresh-thread swap as web.
+- **Voice assistant**: The Record screen replaces its "Coming soon" stub with a port of web's /voice — animated persona orb, push-to-talk OS speech recognition, memory-grounded local-LLM replies, spoken playback via the OS TTS engine, readiness pills, and a collapsible conversation history sharing the chat thread.
+- **Settings parity**: Settings becomes a hub (Models / Preferences / Profiles / Secrets) — adding About me + AI preferences, memory behavior, Dream Mode scheduling, notification toggles, profile CRUD with default-per-source pickers, and encrypted env-var management (incl. bulk .env paste) previously web-only.
+- **Web-matching theme**: Mobile tokens now mirror web's surface ladder and accent semantics; the purple-tinted dark theme is neutralised to web's grey so both apps look the same.
+- **Shared helpers extracted**: think-tag parsing, skill segmentation, cloud model grouping, .env parsing, and UTC/local time helpers moved to `@vmem/shared` so web and mobile use one implementation.
+
 ## Memory graph: progressive global view — 2026-06-09
 
 - **Paged loading**: The global graph now loads the newest 500 memories first and grows by 500 per click (up to the 2000 cap), instead of always fetching everything — the Supermemory pattern.

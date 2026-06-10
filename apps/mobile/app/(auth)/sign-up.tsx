@@ -137,7 +137,7 @@ export default function SignUpScreen() {
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1 bg-background"
+        className="flex-1 bg-surface"
       >
         <ScrollView
           className="flex-1"
@@ -182,7 +182,7 @@ export default function SignUpScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-background"
+      className="flex-1 bg-surface"
     >
       <ScrollView
         className="flex-1"
@@ -237,7 +237,7 @@ export default function SignUpScreen() {
           </View>
           <TouchableOpacity
             onPress={handleGoogleSignUp}
-            className="flex-row items-center justify-center gap-3 rounded-lg border border-border bg-background py-3 px-6"
+            className="flex-row items-center justify-center gap-3 rounded-lg border border-border bg-surface py-3 px-6"
           >
             <IconBrandGoogle size={20} color="#4285F4" />
             <Text className="text-base font-sans-semibold text-foreground">

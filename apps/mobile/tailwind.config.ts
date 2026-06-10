@@ -44,6 +44,24 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          secondary: "hsl(var(--surface-secondary))",
+          tertiary: "hsl(var(--surface-tertiary))",
+        },
+        overlay: {
+          DEFAULT: "hsl(var(--overlay))",
+          foreground: "hsl(var(--overlay-foreground))",
+        },
+        default: {
+          DEFAULT: "hsl(var(--default))",
+          foreground: "hsl(var(--default-foreground))",
+        },
+        segment: {
+          DEFAULT: "hsl(var(--segment))",
+          foreground: "hsl(var(--segment-foreground))",
+        },
+        separator: "hsl(var(--separator))",
       },
       fontFamily: {
         sans: ["InstrumentSans_400Regular"],
