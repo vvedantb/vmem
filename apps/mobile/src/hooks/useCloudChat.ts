@@ -43,7 +43,8 @@ export function useCloudChat() {
       setThreadId(null);
       return;
     }
-    getOrCreateThread()
+    // No profileId: mobile chat resolves the default personal profile.
+    getOrCreateThread({})
       .then((id) => setThreadId(id))
       .catch((error) => {
         console.error("Failed to load chat thread:", error);

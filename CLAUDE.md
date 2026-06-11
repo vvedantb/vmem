@@ -90,7 +90,7 @@ Mobile app (`apps/mobile`, Expo 56 / expo-router drawer):
 - Voice (`record.tsx` + `useVoiceSession`): OS STT (`expo-speech-recognition`, promise-gate the final result after `stop()` — `end` can fire late or never; 3s fallback) → grounded local-LLM reply → persist (`saveLocalMessages` source `vmem-local-voice`, BEFORE TTS so cancel never loses the turn) → `expo-speech` TTS (chunk on `Speech.maxSpeechInputLength`). llama generation can't abort — cancellation is `cancelledRef` checks after each await. `PersonaOrb` ports web's persona keyframes verbatim via reanimated + react-native-svg gradients (no CSS blur on native — wide radial falloff approximates it).
 - Settings is a stack dir (`app/(main)/settings/`: hub index → models/preferences/profiles/secrets) — drawer route name `settings` unchanged. Preferences binds inputs to `api.userSettings.get` + `.withOptimisticUpdate` (no useState mirrors).
 - Theme tokens in `src/global.css` mirror web's `globals.css` (oklch→hsl); mobile dark is neutral grey (no purple tint) since the parity port. Screens use `bg-surface` (web's content panel); the drawer keeps `bg-background` (web's sidebar). `--accent` = primary action (black light / white dark) — never a subtle hover fill.
-- Mobile typecheck: `cd apps/mobile && npx tsc --noEmit`. Known pre-existing failure in `packages/backend/convex/mcp/native.ts` (RN lib types lack `FormData.forEach`).
+- Mobile typecheck: `cd apps/mobile && npx tsc --noEmit` (clean as of 2026-06-11). Convex functions with any args (even all-optional, e.g. `getOrCreateThread`, `skills.listMy`) require an explicit `{}` at mobile call sites — adding an optional arg to a backend function breaks zero-arg callers.
 
 Memory graph view (`apps/web` canvas + `engine/neo4j/memory/graph.ts`):
 
