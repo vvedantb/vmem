@@ -2,6 +2,7 @@ import { createMemory } from "./api-client";
 import { hasActiveClerkSession } from "./auth";
 import { isCancelled, resetCancel } from "./import-cancel";
 import { acquireBookmarkLock, releaseBookmarkLock } from "./sync-lock";
+import { getSyncProfileId } from "./sync-profile";
 import { getStorage, setStorage } from "@/lib/storage";
 
 interface FlatBookmark {
@@ -81,6 +82,9 @@ export async function importBookmarks(silent = false): Promise<ImportResult> {
       (b) => b.dateAdded > lastBookmarkSync,
     );
 
+    // This browser's workspace selection (see sync-profile.ts).
+    const profileId = await getSyncProfileId();
+
     let imported = 0;
     let processed = 0;
 
@@ -96,6 +100,7 @@ export async function importBookmarks(silent = false): Promise<ImportResult> {
           tags: bookmark.folderPath,
           confidence: 0.8,
           url: bookmark.url,
+          profileId,
         });
 
         processed++;
@@ -144,6 +149,7 @@ export async function syncSingleBookmark(
 
   try {
     const folderPath = await getBookmarkPath(bookmark);
+    const profileId = await getSyncProfileId();
 
     await createMemory({
       title: bookmark.title || bookmark.url,
@@ -153,6 +159,7 @@ export async function syncSingleBookmark(
       tags: folderPath,
       confidence: 0.8,
       url: bookmark.url,
+      profileId,
     });
 
     await setStorage({ lastBookmarkSync: Date.now() });

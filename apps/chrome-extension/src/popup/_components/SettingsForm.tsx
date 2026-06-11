@@ -25,7 +25,7 @@ import { VMEM_AI_SYSTEM_PROMPT } from "@/lib/constants";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import type { Profile } from "@/types/api";
-import { listProfiles, setDefaultProfile } from "@/background/api-client";
+import { listProfiles } from "@/background/api-client";
 import { SettingsSelectRow } from "./SettingsSelectRow";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
 
@@ -88,17 +88,13 @@ export function SettingsForm() {
     setStorage({ autoCaptureEnabled: checked });
   }
 
+  // Stored ONLY in chrome.storage.local — per Chrome profile by design,
+  // so a uni and a personal browser profile each keep their own active
+  // workspace. Never sync this to the account-wide default: that made
+  // every browser profile clobber the others.
   async function handleProfileChange(profileId: string) {
     setSelectedProfileId(profileId);
     await setStorage({ defaultProfileId: profileId });
-    const profile = profiles?.find((candidate) => candidate._id === profileId);
-    if (!profile) return;
-
-    try {
-      await setDefaultProfile(profile._id);
-    } catch {
-      // Backend sync failed, but local storage is updated
-    }
   }
 
   async function handleCopyAiPrompt() {
@@ -147,8 +143,8 @@ export function SettingsForm() {
             </SettingsSelectRow>
 
             <SettingsSelectRow
-              label="Default profile"
-              description="Where new memories are saved by default."
+              label="Active profile"
+              description="Where this browser saves new memories — set it separately in each Chrome profile."
             >
               {profiles === null ? (
                 <Skeleton className="h-9 w-[160px] rounded-field" />

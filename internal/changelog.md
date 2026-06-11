@@ -1,5 +1,11 @@
 # Changelog
 
+## Per-browser active profile in the extension — 2026-06-12
+
+- **Why**: with two Chrome profiles (uni and personal) on the same vmem account, both browsers synced into the same workspace — the popup's profile picker wrote an account-wide default, and history/bookmark auto-sync ignored the picker entirely.
+- **Per-browser selection**: the popup's profile choice now lives only in this browser's extension storage, so each Chrome profile keeps its own active workspace; the picker no longer overwrites the account-wide default behind your back.
+- **Auto-sync follows it**: browsing history and bookmark imports now save into the selected workspace instead of always landing in the account default; a selection pointing at a deleted workspace clears itself rather than silently skipping a whole sync window.
+
 ## Entity aliases consolidated — 2026-06-12
 
 - **Why**: the same real-world thing accumulated name variants as separate entities — "Fable", "Fable 5", "Claude Fable 5", "Claude Fable-5" and "Claude Fable" were five nodes for one model — because the extractor never saw the user's existing entities and hyphen/space variants had distinct identities.

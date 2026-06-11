@@ -32,7 +32,7 @@ const PORT = 9224;
 const PROFILE = mkdtempSync(join(tmpdir(), "vmemlive-"));
 const HISTORY = "vmem-history-sync";
 const HEARTBEAT = "vmem-user-settings-mirror";
-const STAMP = "static-sw-20260611-fapi-auth";
+const STAMP = "static-sw-20260612-per-browser-profile";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // AbortSignal.timeout: a half-killed browser can leave the port open but
