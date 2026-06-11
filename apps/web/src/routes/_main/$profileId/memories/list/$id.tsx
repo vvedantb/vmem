@@ -1,13 +1,6 @@
-"use client";
-
 import { createFileRoute } from "@tanstack/react-router";
-import MemorySearch from "@/components/MemorySearch";
 
+/** URL shell for `/memories/list/$id` — list UI is rendered by `list/route.tsx`. */
 export const Route = createFileRoute("/_main/$profileId/memories/list/$id")({
-  component: MemoriesListDetailPage,
+  component: () => null,
 });
-
-function MemoriesListDetailPage() {
-  const { id } = Route.useParams();
-  return <MemorySearch memoryId={id} />;
-}
