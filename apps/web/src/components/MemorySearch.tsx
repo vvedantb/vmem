@@ -473,7 +473,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
-                  className="w-full min-h-0 overflow-y-auto lg:flex-[3] lg:min-w-0"
+                  className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:flex-[3] lg:min-w-0"
                 >
                   {selectedMemory ? (
                     <MemoryDetailPanel
@@ -487,7 +487,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
                       onConsumeAction={handleConsumeAction}
                     />
                   ) : isPanelLoading ? (
-                    <div className="flex items-center justify-center rounded-lg bg-surface-secondary py-14">
+                    <div className="flex h-full items-center justify-center rounded-lg bg-surface-secondary">
                       <VmemSpinner size={20} className="text-muted" />
                     </div>
                   ) : null}

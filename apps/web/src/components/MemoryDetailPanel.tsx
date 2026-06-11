@@ -79,9 +79,9 @@ export default function MemoryDetailPanel({
 
   return (
     <>
-      <Card className="min-w-0 overflow-hidden shadow-none p-4 sm:p-5 lg:sticky lg:top-4">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <h3 className="flex-1 text-lg font-semibold leading-snug text-foreground">
+      <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden shadow-none p-4 sm:p-5">
+        <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
+          <h3 className="min-w-0 flex-1 truncate text-lg font-semibold leading-snug text-foreground">
             {memory.title}
           </h3>
           <Button
@@ -98,14 +98,18 @@ export default function MemoryDetailPanel({
         <Tabs
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as PanelTab)}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <TabsList className="mb-5 w-full sm:w-auto">
+          <TabsList className="mb-5 w-full shrink-0 sm:w-auto">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="connections">Connections</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="details" className="mt-0">
+          <TabsContent
+            value="details"
+            className="mt-0 min-h-0 flex-1 overflow-y-auto scrollbar-thin"
+          >
             <DetailsTab
               memory={memory}
               onMemoryUpdate={onMemoryUpdate}
@@ -117,11 +121,17 @@ export default function MemoryDetailPanel({
             />
           </TabsContent>
 
-          <TabsContent value="history" className="mt-0">
+          <TabsContent
+            value="history"
+            className="mt-0 min-h-0 flex-1 overflow-y-auto scrollbar-thin"
+          >
             <HistoryTab memoryId={memory.id} />
           </TabsContent>
 
-          <TabsContent value="connections" className="mt-0">
+          <TabsContent
+            value="connections"
+            className="mt-0 min-h-0 flex-1 overflow-y-auto scrollbar-thin"
+          >
             <ConnectionsTab
               memoryId={memory.id}
               onSelectRelated={onSelectRelated}
