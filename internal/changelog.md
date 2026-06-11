@@ -1,6 +1,11 @@
 # Changelog
 
-## Team-wide skills, wiki, and files — 2026-06-11
+## Per-workspace chat threads — 2026-06-11
+
+- **Why**: there was one chat thread per account, so a team workspace's chat would have mixed personal and team context.
+- **One thread per workspace**: chat and voice resolve the thread mapped to the active workspace (legacy threads adopt into the default personal workspace); threads stay private to their creator — team members never see each other's conversations.
+- **Grounded to the workspace**: retrieval and memory saves inside chat pin to the thread's workspace, so a team thread searches team memories (and sees team skills) while personal threads behave exactly as before. Mobile and voice keep working unchanged via the personal default.
+- **Security fix**: thread message reads, usage lookups, and local-message saves now verify thread ownership — previously they did not.
 
 - **Why**: only memories were team-shared; skills, wiki docs, and files stayed strictly personal, so a team had no way to share its working context.
 - **Scoping model ("user-wide + team")**: content carries an optional team id — absent means personal (visible in every personal workspace, existing data untouched, no migration), set means it belongs to that team's workspace and is visible to all members.

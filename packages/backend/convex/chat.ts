@@ -9,9 +9,28 @@ import {
   syncStreams,
 } from "@convex-dev/agent";
 import { vStreamArgs, vUsage } from "@convex-dev/agent/validators";
+import type { Doc, Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
+import { getOrCreateDefaultProfile } from "./profiles/helpers";
+import { runAssertProfileAccessInternal } from "./teams/auth";
+
+/**
+ * Defense-in-depth ownership gate shared by every thread-scoped function:
+ * the agent component's thread doc must belong to the caller.
+ */
+async function assertThreadOwned(
+  ctx: QueryCtx | MutationCtx,
+  threadId: string,
+  userId: Id<"users">,
+): Promise<void> {
+  const thread = await getThreadMetadata(ctx, components.agent, { threadId });
+  if (thread.userId !== userId) {
+    throw new Error("Thread not found or not owned by user");
+  }
+}
 
 const memoryRefValidator = v.object({
   id: v.string(),
@@ -57,9 +76,22 @@ export const initiateStreaming = authMutation({
       throw new Error("User identity missing");
     }
 
-    const thread = await getThreadMetadata(ctx, components.agent, { threadId });
-    if (thread.userId !== ctx.userId) {
-      throw new Error("Thread not found or not owned by user");
+    await assertThreadOwned(ctx, threadId, ctx.userId);
+
+    // Ground the stream in the thread's workspace: memory tools pin the
+    // thread's profile, and team threads use the team scope + team skills.
+    const mapping = await ctx.db
+      .query("threadProfiles")
+      .withIndex("by_thread", (q) => q.eq("threadId", threadId))
+      .first();
+    let profileId: string | undefined;
+    let teamId: Id<"teams"> | undefined;
+    if (mapping) {
+      const profile = await ctx.db.get(mapping.profileId);
+      if (profile) {
+        profileId = profile._id;
+        teamId = profile.teamId;
+      }
     }
 
     const { messageId } = await saveMessage(ctx, components.agent, {
@@ -75,6 +107,8 @@ export const initiateStreaming = authMutation({
       userId: ctx.userId,
       modelId,
       clerkId: user.clerkId,
+      profileId,
+      teamId,
     });
 
     return { messageId };
@@ -109,22 +143,74 @@ export const saveCloudMessageMemoryRefs = internalMutation({
   },
 });
 
+/**
+ * Resolve the caller's thread for a workspace: one active thread per
+ * (user, profile). No `profileId` (mobile / voice / pre-workspace clients)
+ * = the default personal profile, so those clients keep resolving the same
+ * personal thread even after the web starts creating team-scoped threads.
+ *
+ * Legacy threads (created before thread↔profile mapping existed) are
+ * lazily adopted into the default personal profile so existing history
+ * shows up there instead of vanishing.
+ */
 export const getOrCreateThread = authMutation({
-  args: {},
-  handler: async (ctx) => {
-    const existing = await ctx.runQuery(
-      components.agent.threads.listThreadsByUserId,
-      {
+  args: { profileId: v.optional(v.id("profiles")) },
+  handler: async (ctx, args) => {
+    let profile: Doc<"profiles">;
+    if (args.profileId) {
+      profile = await runAssertProfileAccessInternal(ctx, {
+        profileId: args.profileId,
         userId: ctx.userId,
-        paginationOpts: { cursor: null, numItems: 1 },
-        order: "desc",
-      },
-    );
-    if (existing.page.length > 0) {
-      return existing.page[0]._id;
+      });
+    } else {
+      profile = await getOrCreateDefaultProfile(ctx, ctx.userId);
     }
+
+    const mapped = await ctx.db
+      .query("threadProfiles")
+      .withIndex("by_user_profile", (q) =>
+        q.eq("userId", ctx.userId).eq("profileId", profile._id),
+      )
+      .order("desc")
+      .first();
+    if (mapped) return mapped.threadId;
+
+    // Legacy adoption — only into the default personal profile, and only
+    // for threads that no workspace has claimed yet.
+    if (profile.teamId === undefined && profile.isDefault) {
+      const existing = await ctx.runQuery(
+        components.agent.threads.listThreadsByUserId,
+        {
+          userId: ctx.userId,
+          paginationOpts: { cursor: null, numItems: 10 },
+          order: "desc",
+        },
+      );
+      for (const thread of existing.page) {
+        const claimed = await ctx.db
+          .query("threadProfiles")
+          .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
+          .first();
+        if (!claimed) {
+          await ctx.db.insert("threadProfiles", {
+            userId: ctx.userId,
+            threadId: thread._id,
+            profileId: profile._id,
+            createdAt: Date.now(),
+          });
+          return thread._id;
+        }
+      }
+    }
+
     const threadId = await createThread(ctx, components.agent, {
       userId: ctx.userId,
+    });
+    await ctx.db.insert("threadProfiles", {
+      userId: ctx.userId,
+      threadId,
+      profileId: profile._id,
+      createdAt: Date.now(),
     });
     return threadId;
   },
@@ -152,10 +238,7 @@ export const clearChatHistory = authMutation({
   handler: async (ctx, { threadId }) => {
     // Defense-in-depth: confirm the caller actually owns this thread before
     // we cascade-delete its history.
-    const thread = await getThreadMetadata(ctx, components.agent, { threadId });
-    if (thread.userId !== ctx.userId) {
-      throw new Error("Thread not found or not owned by user");
-    }
+    await assertThreadOwned(ctx, threadId, ctx.userId);
 
     // Drop our own per-thread sidecar rows. These live in our schema, not
     // in the agent component, so they wouldn't be touched by the cascade.
@@ -176,10 +259,24 @@ export const clearChatHistory = authMutation({
     });
 
     // Hand back a fresh thread so the client can swap atomically with no
-    // visible "no thread" state.
+    // visible "no thread" state. The replacement inherits the old thread's
+    // workspace mapping so the chat stays in the same profile.
     const newThreadId = await createThread(ctx, components.agent, {
       userId: ctx.userId,
     });
+    const mapping = await ctx.db
+      .query("threadProfiles")
+      .withIndex("by_thread", (q) => q.eq("threadId", threadId))
+      .first();
+    if (mapping) {
+      await ctx.db.insert("threadProfiles", {
+        userId: ctx.userId,
+        threadId: newThreadId,
+        profileId: mapping.profileId,
+        createdAt: Date.now(),
+      });
+      await ctx.db.delete(mapping._id);
+    }
     return newThreadId;
   },
 });
@@ -217,6 +314,7 @@ export const saveLocalMessages = authMutation({
       assistantStepOrder,
     },
   ) => {
+    await assertThreadOwned(ctx, threadId, ctx.userId);
     const agentName = source ?? "vmem-local";
     const { messageId: promptId } = await saveMessage(ctx, components.agent, {
       threadId,
@@ -275,6 +373,7 @@ export const saveLocalMessages = authMutation({
 export const getThreadMessageUsage = authQuery({
   args: { threadId: v.string() },
   handler: async (ctx, { threadId }) => {
+    await assertThreadOwned(ctx, threadId, ctx.userId);
     // Track usage sums and the first-seen stepOrder per order group
     // in a single pass through all raw messages.
     const byOrder: Record<
@@ -393,6 +492,7 @@ export const listThreadMessages = authQuery({
     streamArgs: v.optional(vStreamArgs),
   },
   handler: async (ctx, args) => {
+    await assertThreadOwned(ctx, args.threadId, ctx.userId);
     const streams = await syncStreams(ctx, components.agent, {
       threadId: args.threadId,
       streamArgs: args.streamArgs,

@@ -26,6 +26,10 @@ export const streamAsync = internalAction({
     userId: v.id("users"),
     modelId: v.string(),
     clerkId: v.string(),
+    /** The thread's workspace — memory tools are pinned to it. */
+    profileId: v.optional(v.string()),
+    /** Set when the workspace is a team profile (team scope + team skills). */
+    teamId: v.optional(v.id("teams")),
   },
   handler: async (ctx, args) => {
     const start = performance.now();
@@ -35,15 +39,33 @@ export const streamAsync = internalAction({
       "OPENROUTER_API_KEY",
     );
 
-    const skills: SkillIndexEntry[] = await ctx.runAction(
+    // Skills index: always the user's personal skills; team workspaces
+    // additionally see the team's skills (merged).
+    const personalSkills: SkillIndexEntry[] = await ctx.runAction(
       internal.mcp.skills.mcpListSkills,
       { clerkId: args.clerkId },
     );
+    let skills: SkillIndexEntry[] = personalSkills;
+    if (args.teamId !== undefined) {
+      const teamSkills = await ctx.runQuery(
+        internal.skills.listTeamSkillsInternal,
+        { teamId: args.teamId },
+      );
+      skills = [
+        ...personalSkills,
+        ...teamSkills.map((s) => ({
+          name: s.name,
+          description: s.description,
+        })),
+      ];
+    }
 
     const systemPrompt = buildCloudChatSystemPrompt({ skills });
     const memoryRefsById = new Map<string, CloudMemoryRef>();
     const tools = buildOpenRouterTools(ctx, args.clerkId, {
       onMemoryRetrieve: (refs) => addMemoryRefs(memoryRefsById, refs),
+      profileId: args.profileId,
+      scope: args.teamId !== undefined ? "team" : "personal",
     });
 
     const agent = createCloudAgent({

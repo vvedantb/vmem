@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useUIMessages } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import type { ChatMemoryRef, MessageUsageSummary } from "./useLocalChat";
 
 const CLOUD_MODEL_STORAGE_KEY = "vmem:cloudModelId";
@@ -14,6 +15,7 @@ function readStoredModelId(): string | null {
 }
 
 export function useCloudChat() {
+  const activeProfile = useActiveProfile();
   const [threadId, setThreadId] = useState<string | null>(null);
   const [modelId, setModelIdState] = useState<string | null>(readStoredModelId);
   const [isClearing, setIsClearing] = useState(false);
@@ -27,13 +29,15 @@ export function useCloudChat() {
     (entry) => entry.key === "OPENROUTER_API_KEY",
   );
 
+  // One thread per workspace — switching workspaces swaps the thread.
   useEffect(() => {
-    getOrCreateThread()
+    setThreadId(null);
+    getOrCreateThread({ profileId: activeProfile._id })
       .then((id) => setThreadId(id))
       .catch((error) => {
         console.error("Failed to load chat thread:", error);
       });
-  }, [getOrCreateThread]);
+  }, [getOrCreateThread, activeProfile._id]);
 
   const { results: messages } = useUIMessages(
     api.chat.listThreadMessages,

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import { streamText } from "ai";
 import { useUIMessages, type UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
@@ -146,20 +147,34 @@ export function useLocalChat(): LocalChatResult {
   const [isClearing, setIsClearing] = useState(false);
   const orderRef = useRef(0);
 
+  const activeProfile = useActiveProfile();
   const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
   const clearChatHistory = useMutation(api.chat.clearChatHistory);
   const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
-  const mySkills = useQuery(api.skills.listMy) ?? [];
+  // Personal skills always; team workspaces also surface the team's skills.
+  const personalSkills = useQuery(api.skills.listMy, {}) ?? [];
+  const teamSkills =
+    useQuery(
+      api.skills.listMy,
+      activeProfile.teamId !== undefined
+        ? { teamId: activeProfile.teamId }
+        : "skip",
+    ) ?? [];
+  const mySkills = useMemo(
+    () => [...personalSkills, ...teamSkills],
+    [personalSkills, teamSkills],
+  );
 
-  // Load or create the chat thread on mount
+  // Load or create the workspace's chat thread (one per profile).
   useEffect(() => {
-    getOrCreateThread()
+    setThreadId(null);
+    getOrCreateThread({ profileId: activeProfile._id })
       .then((id) => setThreadId(id))
       .catch((error) => {
         console.error("Failed to load chat thread:", error);
       });
-  }, [getOrCreateThread]);
+  }, [getOrCreateThread, activeProfile._id]);
 
   const persistedUsageByKey: Record<string, MessageUsageSummary> =
     useQuery(
@@ -233,6 +248,7 @@ export function useLocalChat(): LocalChatResult {
         try {
           const retrieved = await retrieveMemories({
             query: text,
+            profileId: activeProfile._id,
             limit: RETRIEVE_LIMIT,
           });
           memoryRefs = retrieved.memories.map((m) => ({

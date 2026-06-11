@@ -18,7 +18,7 @@ export function ChatPromptTextarea({
   placeholder,
 }: PromptTextareaProps) {
   const { input, setInput, status } = usePromptInput();
-  const skills = useQuery(api.skills.listMy);
+  const skills = useQuery(api.skills.listMy, {});
 
   const inputDisabled = status === "streaming" || status === "submitted";
 
