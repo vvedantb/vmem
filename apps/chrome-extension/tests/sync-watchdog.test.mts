@@ -77,23 +77,12 @@ globalThis.chrome = {
     },
     async setBadgeBackgroundColor(): Promise<void> {},
   },
-  // Force the offscreen auth refresh to yield no token => hasActiveClerkSession() === false.
-  offscreen: {
-    Reason: { WORKERS: "WORKERS" },
-    async createDocument(): Promise<void> {
-      throw new Error("no offscreen in test");
-    },
-  },
+  // No `cookies` API here: the token refresh guard short-circuits to a
+  // null token (no network) => hasActiveClerkSession() === false.
   runtime: {
-    ContextType: { OFFSCREEN_DOCUMENT: "OFFSCREEN_DOCUMENT" },
+    id: "test-extension",
     getURL(p: string): string {
       return p;
-    },
-    async getContexts(): Promise<unknown[]> {
-      return [];
-    },
-    async sendMessage(): Promise<{ token: string | null }> {
-      return { token: null };
     },
   },
 };

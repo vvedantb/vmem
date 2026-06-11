@@ -1,7 +1,7 @@
 import { ConvexHttpClient } from "convex/browser";
 import { CONVEX_URL } from "@/lib/constants";
 import { getAuthToken, setAuthToken } from "@/lib/storage";
-import { refreshConvexTokenViaOffscreen } from "./offscreen-auth";
+import { refreshConvexTokenFromClerk } from "@/lib/refresh-convex-token";
 
 let pendingRefresh: Promise<string | null> | null = null;
 
@@ -25,23 +25,31 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-async function refreshTokenFromOffscreen(): Promise<string | null> {
+/**
+ * Mint a fresh Convex JWT via Clerk, directly in this service worker.
+ * The SW has chrome.cookies + host permissions, so Clerk's syncHost
+ * bridge can read the web app's session cookie here. (The old offscreen
+ * document could NOT — offscreen contexts only get chrome.runtime, so
+ * after every browser restart auth was unrecoverable until the popup
+ * was opened, and auto-sync sat at "no-session" for days.)
+ */
+async function refreshTokenFromClerk(): Promise<string | null> {
   if (pendingRefresh) return pendingRefresh;
 
   pendingRefresh = (async () => {
     try {
-      const token = await refreshConvexTokenViaOffscreen();
+      const token = await refreshConvexTokenFromClerk();
       if (token) {
         await setAuthToken(token);
         return token;
       }
 
       // Do not clear chrome.storage.session — popup TokenSync may have a
-      // valid token; offscreen often cannot read syncHost cookies.
+      // valid token even when the syncHost cookie is missing.
       return null;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn("[vmem] Offscreen token refresh failed:", message);
+      console.warn("[vmem] Clerk token refresh failed:", message);
       return null;
     } finally {
       pendingRefresh = null;
@@ -57,7 +65,7 @@ async function getConvexAuthToken(): Promise<string | null> {
     return stored;
   }
 
-  const refreshed = await refreshTokenFromOffscreen();
+  const refreshed = await refreshTokenFromClerk();
   if (refreshed) {
     return refreshed;
   }

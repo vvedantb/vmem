@@ -32,15 +32,19 @@ const PORT = 9224;
 const PROFILE = mkdtempSync(join(tmpdir(), "vmemlive-"));
 const HISTORY = "vmem-history-sync";
 const HEARTBEAT = "vmem-user-settings-mirror";
-const STAMP = "static-sw-20260609-sync-watchdog";
+const STAMP = "static-sw-20260611-fapi-auth";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const httpJson = async (p) => (await fetch(`http://127.0.0.1:${PORT}${p}`)).json();
+// AbortSignal.timeout: a half-killed browser can leave the port open but
+// unresponsive — without it, one hung fetch wedges the whole harness.
+const httpJson = async (p) => (await fetch(`http://127.0.0.1:${PORT}${p}`, { signal: AbortSignal.timeout(10_000) })).json();
 const isOurSw = (t) => t.type === "service_worker" && /background\.js/.test(t.url);
 
 class CDP {
   constructor(wsUrl) { this.ws = new WebSocket(wsUrl); this.id = 0; this.p = new Map(); this.open = new Promise((res, rej) => { this.ws.on("open", res); this.ws.on("error", rej); }); this.ws.on("message", (d) => { const m = JSON.parse(d.toString()); if (m.id && this.p.has(m.id)) { const { resolve, reject } = this.p.get(m.id); this.p.delete(m.id); m.error ? reject(new Error(JSON.stringify(m.error))) : resolve(m.result); } }); }
-  send(method, params = {}) { const id = ++this.id; return new Promise((resolve, reject) => { this.p.set(id, { resolve, reject }); this.ws.send(JSON.stringify({ id, method, params })); }); }
+  // 30s cap per CDP call: an evaluate whose promise never settles (e.g. a
+  // sendMessage the SW never answers) must fail the run, not hang it forever.
+  send(method, params = {}) { const id = ++this.id; return new Promise((resolve, reject) => { this.p.set(id, { resolve, reject }); this.ws.send(JSON.stringify({ id, method, params })); setTimeout(() => { if (this.p.has(id)) { this.p.delete(id); reject(new Error(`CDP timeout: ${method}`)); } }, 30_000); }); }
   async evaluate(expression) { const r = await this.send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) throw new Error("eval: " + JSON.stringify(r.exceptionDetails.exception?.description || r.exceptionDetails)); return r.result.value; }
   close() { try { this.ws.close(); } catch {} }
 }

@@ -16,6 +16,8 @@ type DebugReport = {
   lastSyncSkipReason: string;
   autoSyncEnabled: boolean;
   swBuildStamp: string | null;
+  /** Breadcrumbs from the most recent Clerk token refresh (see refresh-convex-token.ts). */
+  lastAuthDebug: Record<string, string | number> | null;
 };
 
 async function hasSyncHostSessionCookie(): Promise<boolean> {
@@ -42,9 +44,22 @@ export async function buildExtensionDebugReport(): Promise<DebugReport> {
     "lastSyncSkipReason",
     "autoSyncEnabled",
     "vmemSwBuildStamp",
+    "lastAuthDebug",
   ]);
 
   const syncHostCookiePresent = await hasSyncHostSessionCookie();
+
+  // Narrow the untyped storage value to a flat string/number record.
+  let authDebug: Record<string, string | number> | null = null;
+  if (
+    typeof stored.lastAuthDebug === "object" &&
+    stored.lastAuthDebug !== null
+  ) {
+    authDebug = {};
+    for (const [k, v] of Object.entries(stored.lastAuthDebug)) {
+      if (typeof v === "string" || typeof v === "number") authDebug[k] = v;
+    }
+  }
 
   const pingResult = await new Promise<{
     ok: boolean;
@@ -109,6 +124,7 @@ export async function buildExtensionDebugReport(): Promise<DebugReport> {
       typeof stored.vmemSwBuildStamp === "string"
         ? stored.vmemSwBuildStamp
         : null,
+    lastAuthDebug: authDebug,
   };
 }
 

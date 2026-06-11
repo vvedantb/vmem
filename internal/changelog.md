@@ -10,9 +10,10 @@
 ## Extension auto-sync survives browser restarts — 2026-06-11
 
 - **Why**: auto-sync went silent for a day at a time — every browser restart wiped the session token, and the offscreen document that was supposed to re-mint it can never read the web app's session cookie (offscreen contexts have no `chrome.cookies`), so every sync skipped "no-session" until the popup was manually opened.
-- **SW-side auth**: the service worker now mints Convex tokens itself through Clerk's syncHost bridge — the first heartbeat after any restart re-authenticates and catches up the overdue sync, no popup needed; the offscreen layer is deleted outright.
-- **Boot-crash fix**: Clerk's UI package (dead code in the worker) was being inlined into the SW bundle and threw an uncaught DOM error on every boot — capable of getting the worker blocklisted so no alarms fire at all; it is now stubbed out of the background build, which also shrinks the worker bundle by ~2 MB.
-- **Harness hardening**: the live browser verification can no longer hang forever on a half-dead browser (CDP/network timeouts), and the unit suite exits cleanly under the heavier Clerk import graph.
+- **SW-side auth**: the service worker now mints Convex tokens itself by calling Clerk's Frontend API directly (cookie → client → session token) — the first heartbeat after any restart re-authenticates and catches up the overdue sync, no popup needed; the offscreen layer is deleted outright.
+- **Why not the Clerk SDK in the worker**: clerk-js treats every service worker as permanently offline (its online check requires `window`), so token minting throws `clerk_offline` even on a healthy network — and bundling it dragged DOM-touching UI code into the worker that crashed it at boot. Clerk now stays popup-only; the worker bundle shrank from 3.2 MB to ~70 KB.
+- **Auth breadcrumbs**: every token refresh records which stage failed (cookie read, client fetch, session resolution, token mint) to extension storage and the debug report, so auth failures are diagnosable instead of all looking like "signed out".
+- **Harness hardening**: the live browser verification can no longer hang forever on a half-dead browser (CDP/network timeouts).
 
 ## Dreaming made visible — 2026-06-11
 
