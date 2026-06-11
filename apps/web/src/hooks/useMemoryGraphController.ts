@@ -70,10 +70,12 @@ import {
 
 const EMPTY_SET = new Set<string>();
 
-/** Global-graph progressive loading: first page + per-click increment. */
-const GLOBAL_GRAPH_PAGE_SIZE = 500;
-/** Mirrors the backend's hard cap (capGraph MAX_NODES). */
-const GLOBAL_GRAPH_MAX_NODES = 2000;
+/**
+ * Client-side ceiling on accumulated global-graph nodes. Pages are 5000
+ * each (server cap per response), so this is 20 "Load more" clicks — the
+ * renderer and simulation are tuned to stay smooth at this scale.
+ */
+const GLOBAL_GRAPH_MAX_NODES = 100_000;
 
 export interface MemoryGraphController {
   // ----- Raw data -----
@@ -170,11 +172,6 @@ export function useMemoryGraphController({
   const scope: GraphScope = params.scope;
   const depth = Math.min(3, Math.max(1, Math.trunc(params.depth)));
 
-  // Global-scope page size. Session-local (not URL) — "how much I've loaded"
-  // is transient browsing state, not a shareable view. Load-more bumps it;
-  // keepPreviousData in useGraphData keeps the old page visible meanwhile.
-  const [nodeLimit, setNodeLimit] = useState(GLOBAL_GRAPH_PAGE_SIZE);
-
   const {
     apiNodes,
     apiTagEdges,
@@ -184,7 +181,9 @@ export function useMemoryGraphController({
     resolvedFocusNodeId,
     totalMemoryCount,
     isLoading,
-    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     isError,
     error,
   } = useGraphData(
@@ -193,7 +192,7 @@ export function useMemoryGraphController({
     enabled,
     scope,
     depth,
-    nodeLimit,
+    params.bench,
   );
 
   const searchQuery = params.q.trim();
@@ -316,15 +315,10 @@ export function useMemoryGraphController({
 
   const canLoadMore =
     scope === "global" &&
-    totalMemoryCount !== null &&
-    loadedMemoryCount < totalMemoryCount &&
-    nodeLimit < GLOBAL_GRAPH_MAX_NODES;
+    hasNextPage &&
+    loadedMemoryCount < GLOBAL_GRAPH_MAX_NODES;
 
-  const onLoadMore = useCallback(() => {
-    setNodeLimit((prev) =>
-      Math.min(GLOBAL_GRAPH_MAX_NODES, prev + GLOBAL_GRAPH_PAGE_SIZE),
-    );
-  }, []);
+  const onLoadMore = fetchNextPage;
 
   // ----- Handlers -----
 
@@ -409,7 +403,7 @@ export function useMemoryGraphController({
     loadedMemoryCount,
     totalMemoryCount,
     canLoadMore,
-    isLoadingMore: isFetching && !isLoading,
+    isLoadingMore: isFetchingNextPage,
     onLoadMore,
 
     // Derived

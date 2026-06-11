@@ -15,6 +15,7 @@ import {
   type SimulationNodeDatum,
   type SimulationLinkDatum,
 } from "d3-force";
+import { physicsProfile } from "./physics-profile";
 
 // ------ Worker-internal node/edge types (lightweight, not shared with main thread) ------
 
@@ -36,11 +37,11 @@ interface WEdge extends SimulationLinkDatum<WNode> {
 // visually static, so we stop the tick interval entirely — zero CPU while
 // idle. Any wake signal (reheat, drag, settings change) calls ensureTicking.
 const SLEEP_ALPHA = 0.005;
-const TICK_INTERVAL_MS = 33;
-// Two physics ticks per posted frame ≈ the pre-sleep effective tick rate
-// (d3's internal timer used to run alongside the interval), so the settle
-// animation keeps its old pace while halving position-message traffic.
-const TICKS_PER_FRAME = 2;
+// Tick cadence comes from the node-count-adaptive physics profile (see
+// physics-profile.ts). Multiple physics ticks per posted frame keep the
+// settle animation's pace while reducing position-message traffic.
+let tickIntervalMs = 33;
+let ticksPerFrame = 2;
 
 let sim: Simulation<WNode, WEdge> | null = null;
 let nodes: WNode[] = [];
@@ -163,8 +164,11 @@ function init(
     weight: e.weight,
   }));
 
+  const profile = physicsProfile(nodes.length);
+  tickIntervalMs = profile.tickIntervalMs;
+  ticksPerFrame = profile.ticksPerFrame;
+
   const chargeStrength = -scalingRatio * 8;
-  const theta = nodes.length > 10_000 ? 1.5 : 0.9;
 
   // Only structural edges participate in physics — tag edges are visual-only.
   // This prevents nodes from clustering just because they share tags, keeping
@@ -176,21 +180,14 @@ function init(
     .distance(70)
     .strength(0.6);
 
-  chargeForceRef = forceManyBody<WNode>().strength(chargeStrength).theta(theta);
+  chargeForceRef = forceManyBody<WNode>()
+    .strength(chargeStrength)
+    .theta(profile.theta);
 
   // Stronger center pull keeps the whole graph bounded in the viewport,
   // preventing isolated nodes from drifting off-screen.
   centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 3.0);
 
-  // Hard non-overlap: radius matches the rendered node (size*2) plus a
-  // breathing-room pad, strength 1 + 3 iterations so the force fully resolves
-  // even in dense clusters where many constraints compete each tick.
-  const collideForce = forceCollide<WNode>()
-    .radius((d) => d.size * 2 + 8)
-    .strength(1)
-    .iterations(3);
-
-  // alphaDecay 0.0228 = d3 default; velocityDecay 0.4 = smoother organic motion.
   // .stop() kills d3's internal timer — ticking is fully manual via
   // ensureTicking's interval, so the sleep check below is the single
   // authority on whether physics runs.
@@ -198,14 +195,33 @@ function init(
     .force("link", linkForce)
     .force("charge", chargeForceRef)
     .force("center", centerForceRef)
-    .force("collide", collideForce)
-    .alphaDecay(0.0228)
+    .alphaDecay(profile.alphaDecay)
     .velocityDecay(0.4)
     .alpha(1)
     .stop();
 
-  // Warm-up ticks run here in the worker (non-blocking for main thread)
-  for (let i = 0; i < 150; i++) {
+  // Hard non-overlap: radius matches the rendered node (size*2) plus a
+  // breathing-room pad. Disabled on very large graphs — collide is the most
+  // expensive force and sub-pixel overlap is invisible at the zoom levels
+  // where such graphs fit on screen.
+  if (profile.collideEnabled) {
+    sim.force(
+      "collide",
+      forceCollide<WNode>()
+        .radius((d) => d.size * 2 + 8)
+        .strength(1)
+        .iterations(profile.collideIterations),
+    );
+  }
+
+  // Post the seeded (spiral / carried-over) positions immediately so the
+  // canvas paints right away — at 100k nodes warm-up takes seconds, and the
+  // layout visibly morphing beats a frozen screen.
+  postPositions();
+
+  // Warm-up ticks run here in the worker (non-blocking for main thread),
+  // scaled down for large graphs where each tick is expensive.
+  for (let i = 0; i < profile.warmupTicks; i++) {
     sim.tick();
   }
   sim.alpha(0.2);
@@ -225,7 +241,7 @@ function ensureTicking(): void {
   if (tickTimer !== null || !sim) return;
   tickTimer = setInterval(() => {
     if (!sim) return;
-    for (let i = 0; i < TICKS_PER_FRAME; i++) {
+    for (let i = 0; i < ticksPerFrame; i++) {
       sim.tick();
     }
     postPositions();
@@ -235,7 +251,7 @@ function ensureTicking(): void {
         tickTimer = null;
       }
     }
-  }, TICK_INTERVAL_MS);
+  }, tickIntervalMs);
 }
 
 // ------ Position transfer ------
@@ -243,7 +259,9 @@ function ensureTicking(): void {
 function postPositions(): void {
   if (!sim) return;
 
-  const buffer = new Float64Array(nodes.length * 2);
+  // Float32 halves the per-frame transfer (1.6 MB → 0.8 MB at 100k nodes);
+  // sub-pixel precision loss is irrelevant for canvas drawing.
+  const buffer = new Float32Array(nodes.length * 2);
   for (let i = 0; i < nodes.length; i++) {
     buffer[i * 2] = nodes[i].x ?? 0;
     buffer[i * 2 + 1] = nodes[i].y ?? 0;

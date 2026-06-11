@@ -15,10 +15,25 @@ import { toMemoryTypeOrUndefined, toNeoInt, toTagEdge } from "./mappers";
 import { profileFilter, withSession } from "./shared";
 import { type MemoryType, type TagEdge } from "./types";
 
-/** Hard ceiling for one global-graph page; matches MAX_NODES in capGraph. */
-export const GLOBAL_GRAPH_MAX_NODES = 2000;
+/**
+ * Hard ceiling for one global-graph page; matches MAX_NODES in capGraph.
+ * Convex enforces an 8192-element cap on any array crossing a function
+ * boundary, so a page can never exceed that — 5000 leaves headroom.
+ */
+export const GLOBAL_GRAPH_MAX_NODES = 5000;
 /** Default first page for the progressive global graph. */
 export const GLOBAL_GRAPH_DEFAULT_LIMIT = 500;
+
+/**
+ * Keyset cursor for paging the global graph (newest-first). `createdAt` is
+ * the primary key with `id` as tiebreaker — bulk imports can write many
+ * memories with identical timestamps, and OFFSET-based paging would either
+ * skip or duplicate rows there (and re-scan the whole prefix every page).
+ */
+export interface GraphCursor {
+  createdAt: string;
+  id: string;
+}
 
 interface GraphNode {
   id: string;
@@ -55,37 +70,72 @@ export interface GraphData {
   focusNodeId?: string;
   /**
    * Total active/pinned memories the user has (after profile filter). Set by
-   * the global graph so the UI can show an honest "Showing X of Y" instead
-   * of silently truncating at the node limit.
+   * the global graph's FIRST page so the UI can show an honest "Showing X of
+   * Y" instead of silently truncating at the node limit.
    */
   totalMemoryCount?: number;
+  /**
+   * Keyset cursor for the next global-graph page; absent when this page
+   * exhausted the data. Pass back via `cursor` to fetch the next page.
+   */
+  nextCursor?: GraphCursor;
 }
 
 /**
- * Fetches the newest `nodeLimit` active/pinned nodes, their RELATES_TO edges,
- * MENTIONS entities, and the user's total memory count in a single
- * round-trip. The composite index memory_user_status_created lets the
- * planner satisfy both the WHERE and the ORDER BY with one index seek (no
- * Sort op). RELATES_TO is then scoped to the collected node-id list, so the
- * edge scan is O(edges_in_subgraph) rather than O(all_user_edges).
+ * Fetches one page of the newest active/pinned nodes (keyset-paged via
+ * `cursor`), their RELATES_TO edges, MENTIONS entities, and — on the first
+ * page only — the user's total memory count, in a single round-trip. The
+ * composite index memory_user_status_created lets the planner satisfy both
+ * the WHERE and the ORDER BY with one index seek (no Sort op).
+ *
+ * RELATES_TO edges are fetched with *either* endpoint in this page (two
+ * directed legs, merged + deduped in TS): with keyset paging an edge can
+ * span two pages, and a both-endpoints filter would silently drop every
+ * cross-page link. Edges whose far endpoint isn't loaded yet simply stay
+ * unresolved on the client until that page arrives.
  */
 async function fetchGraphNodesAndEdges(
   session: Session,
   userId: string,
   profileId: string | null | undefined,
   nodeLimit: number,
+  cursor: GraphCursor | null,
 ): Promise<{
   nodes: GraphNode[];
   relatesToEdges: RelatesToEdge[];
   entities: GraphData["entities"];
-  totalMemoryCount: number;
+  totalMemoryCount: number | undefined;
+  nextCursor: GraphCursor | undefined;
 }> {
   const pf = profileFilter(profileId, "m");
+  // Plain number for the page-fullness check below; Neo4j integer for Cypher.
+  const limit = Math.max(
+    1,
+    Math.min(
+      GLOBAL_GRAPH_MAX_NODES,
+      Math.trunc(nodeLimit || GLOBAL_GRAPH_DEFAULT_LIMIT),
+    ),
+  );
+  const cursorClause = cursor
+    ? `AND (m.createdAt < $cursorCreatedAt
+         OR (m.createdAt = $cursorCreatedAt AND m.id < $cursorId))`
+    : "";
+  // The total-count leg scans the user's whole memory set — only worth paying
+  // on the first page; later pages reuse the first page's number client-side.
+  const countLeg = cursor
+    ? ""
+    : `CALL () {
+         MATCH (m:Memory {userId: $userId})
+         WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
+         RETURN count(m) AS totalMemoryCount
+       }`;
+
   const result = await session.run(
     `CALL () {
        MATCH (m:Memory {userId: $userId})
        WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
-       WITH m ORDER BY m.createdAt DESC LIMIT $nodeLimit
+       ${cursorClause}
+       WITH m ORDER BY m.createdAt DESC, m.id DESC LIMIT $nodeLimit
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
        WITH m, collect(t.name) AS memTags
        RETURN collect({
@@ -97,8 +147,13 @@ async function fetchGraphNodesAndEdges(
      }
      CALL (nodeIds) {
        MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
-       WHERE a.id IN nodeIds AND b.id IN nodeIds
-       RETURN collect({source: a.id, target: b.id, reason: r.reason, score: r.score}) AS relatesToEdges
+       WHERE a.id IN nodeIds AND b.userId = $userId
+       RETURN collect({source: a.id, target: b.id, reason: r.reason, score: r.score}) AS outEdges
+     }
+     CALL (nodeIds) {
+       MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
+       WHERE b.id IN nodeIds AND a.userId = $userId
+       RETURN collect({source: a.id, target: b.id, reason: r.reason, score: r.score}) AS inEdges
      }
      CALL (nodeIds) {
        MATCH (m:Memory)-[:MENTIONS]->(e:Entity)
@@ -109,28 +164,29 @@ async function fetchGraphNodesAndEdges(
          type: e.type, memoryIds: memoryIds
        }) AS entities
      }
-     CALL () {
-       MATCH (m:Memory {userId: $userId})
-       WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
-       RETURN count(m) AS totalMemoryCount
-     }
-     RETURN nodes, relatesToEdges, entities, totalMemoryCount`,
+     ${countLeg}
+     RETURN nodes, outEdges, inEdges, entities${cursor ? "" : ", totalMemoryCount"}`,
     {
       userId,
       nodeLimit: clampNeo4jLimit(
-        nodeLimit,
+        limit,
         GLOBAL_GRAPH_DEFAULT_LIMIT,
         GLOBAL_GRAPH_MAX_NODES,
       ),
+      ...(cursor
+        ? { cursorCreatedAt: cursor.createdAt, cursorId: cursor.id }
+        : {}),
       ...pf.params,
     },
   );
 
   const row = result.records[0];
   const rawNodes = row ? row.get("nodes") : [];
-  const rawEdges = row ? row.get("relatesToEdges") : [];
+  const rawOutEdges = row ? row.get("outEdges") : [];
+  const rawInEdges = row ? row.get("inEdges") : [];
   const rawEntities = row ? row.get("entities") : [];
-  const totalMemoryCount = row ? toNeoInt(row.get("totalMemoryCount")) : 0;
+  const totalMemoryCount =
+    row && !cursor ? toNeoInt(row.get("totalMemoryCount")) : undefined;
 
   const nodes: GraphNode[] = (Array.isArray(rawNodes) ? rawNodes : []).map(
     (n) => ({
@@ -144,13 +200,24 @@ async function fetchGraphNodesAndEdges(
     }),
   );
 
-  const relatesToEdges: RelatesToEdge[] = (
-    Array.isArray(rawEdges) ? rawEdges : []
-  ).map((e) => ({
-    source: String(e.source),
-    target: String(e.target),
-    reason: String(e.reason ?? ""),
-  }));
+  // Merge the two directed legs; an edge with both endpoints in this page
+  // appears in both, so dedupe by pair.
+  const relatesToEdges: RelatesToEdge[] = [];
+  const seenPairs = new Set<string>();
+  for (const raw of [rawOutEdges, rawInEdges]) {
+    for (const e of Array.isArray(raw) ? raw : []) {
+      const source = String(e.source);
+      const target = String(e.target);
+      const key = `${source}|${target}`;
+      if (seenPairs.has(key)) continue;
+      seenPairs.add(key);
+      relatesToEdges.push({
+        source,
+        target,
+        reason: String(e.reason ?? ""),
+      });
+    }
+  }
 
   const entities: GraphData["entities"] = (
     Array.isArray(rawEntities) ? rawEntities : []
@@ -161,7 +228,13 @@ async function fetchGraphNodesAndEdges(
     memoryIds: Array.isArray(e.memoryIds) ? e.memoryIds.map(String) : [],
   }));
 
-  return { nodes, relatesToEdges, entities, totalMemoryCount };
+  // A full page means there may be more — hand back the keyset for the next.
+  const last = nodes.length === limit ? nodes[nodes.length - 1] : undefined;
+  const nextCursor = last
+    ? { createdAt: last.createdAt, id: last.id }
+    : undefined;
+
+  return { nodes, relatesToEdges, entities, totalMemoryCount, nextCursor };
 }
 
 /**
@@ -201,6 +274,7 @@ export async function getGraphData(
   userId: string,
   profileId?: string | null,
   nodeLimit: number = GLOBAL_GRAPH_MAX_NODES,
+  cursor: GraphCursor | null = null,
 ): Promise<GraphData> {
   // Two parallel sessions — driver doesn't allow concurrent .run() on the
   // same session. The first leg returns nodes + RELATES_TO + entities in
@@ -208,16 +282,30 @@ export async function getGraphData(
   // `content` is intentionally NOT returned: the graph canvas only renders
   // it inline in the tooltip/detail panel, both of which fetch on demand
   // via getMemoryContent. Dropping it cuts payload roughly in half at 2k.
+  //
+  // Tag-shared edges are computed across the user's whole graph (not paged),
+  // so only the first page pays for them — follow-up pages skip the leg.
   const nodesEdgesSession = driver.session();
-  const tagEdgesSession = driver.session();
+  const tagEdgesSession = cursor === null ? driver.session() : null;
   try {
     const [nodesAndEdges, tagEdges] = await Promise.all([
-      fetchGraphNodesAndEdges(nodesEdgesSession, userId, profileId, nodeLimit),
-      fetchTagSharedEdges(tagEdgesSession, userId, profileId),
+      fetchGraphNodesAndEdges(
+        nodesEdgesSession,
+        userId,
+        profileId,
+        nodeLimit,
+        cursor,
+      ),
+      tagEdgesSession
+        ? fetchTagSharedEdges(tagEdgesSession, userId, profileId)
+        : Promise.resolve<TagEdge[]>([]),
     ]);
     return { ...nodesAndEdges, tagEdges };
   } finally {
-    await Promise.all([nodesEdgesSession.close(), tagEdgesSession.close()]);
+    await Promise.all([
+      nodesEdgesSession.close(),
+      ...(tagEdgesSession ? [tagEdgesSession.close()] : []),
+    ]);
   }
 }
 

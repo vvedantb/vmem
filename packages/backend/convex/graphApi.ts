@@ -71,10 +71,16 @@ interface GraphResult {
   focusNodeId?: string;
   /**
    * Total active/pinned memories (after profile filter). Present in global
-   * mode so the UI can show "Showing X of Y" + Load more instead of
-   * silently truncating.
+   * mode's FIRST page so the UI can show "Showing X of Y" + Load more
+   * instead of silently truncating.
    */
   totalMemoryCount?: number;
+  /**
+   * Keyset cursor (createdAt + id of this page's last node) for the next
+   * global-graph page; absent when this page exhausted the data.
+   */
+  nextCursorCreatedAt?: string;
+  nextCursorId?: string;
 }
 
 interface MemoryGraph {
@@ -108,8 +114,11 @@ interface MemoryGraph {
   mentionsEdges: Array<{ source: string; target: string }>;
   /** Resolved focus (local mode only) — set even when the server picked it. */
   focusNodeId?: string;
-  /** Total active memories (global mode) for the "Showing X of Y" indicator. */
+  /** Total active memories (global mode, first page) for "Showing X of Y". */
   totalMemoryCount?: number;
+  /** Keyset cursor for the next global page; absent when exhausted. */
+  nextCursorCreatedAt?: string;
+  nextCursorId?: string;
 }
 
 /** Prefix applied to wikiNode ids so they never collide with Neo4j memory ids. */
@@ -154,8 +163,11 @@ export const getGraphData = authAction({
     mode: v.optional(v.union(v.literal("local"), v.literal("global"))),
     /** Local-mode hop depth, clamped to [1, 3] server-side. Default 2. */
     depth: v.optional(v.number()),
-    /** Global-mode page size (newest-first), clamped to [1, 2000]. */
+    /** Global-mode page size (newest-first), clamped to [1, 5000]. */
     nodeLimit: v.optional(v.number()),
+    /** Keyset cursor (previous page's nextCursor*) for the next global page. */
+    cursorCreatedAt: v.optional(v.string()),
+    cursorId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<GraphResult> => {
     const clerkId = await requireClerkId(ctx);
@@ -164,6 +176,7 @@ export const getGraphData = authAction({
       args.mode !== undefined
         ? args.mode === "local"
         : args.focus !== undefined;
+    const isFirstPage = args.cursorCreatedAt === undefined;
 
     const memoryGraph: MemoryGraph = await ctx.runAction(
       internal.neo4jActions.graph.getGraphDataInternal,
@@ -174,17 +187,22 @@ export const getGraphData = authAction({
         mode: args.mode,
         depth: args.depth,
         nodeLimit: args.nodeLimit,
+        cursorCreatedAt: args.cursorCreatedAt,
+        cursorId: args.cursorId,
       },
     );
 
     // Wiki nodes are only included for the global graph. When the user focuses
     // a specific memory we show its local Neo4j neighbourhood — wiki docs are
     // orthogonal to memories today and have no edges reaching a memory node.
-    const wikiRows = isLocal
-      ? []
-      : await ctx.runQuery(internal.wiki.listForUserInternal, {
-          userId: ctx.userId,
-        });
+    // They're whole-account data, so only the FIRST page carries them — later
+    // pages would just duplicate the same rows.
+    const wikiRows =
+      isLocal || !isFirstPage
+        ? []
+        : await ctx.runQuery(internal.wiki.listForUserInternal, {
+            userId: ctx.userId,
+          });
 
     const wikiNodes: GraphNodeEntry[] = wikiRows.map((w: Doc<"wikiNodes">) => ({
       id: `${WIKI_PREFIX}${w._id}`,
@@ -206,14 +224,15 @@ export const getGraphData = authAction({
       }
     }
 
-    // Skills — same visibility rule as wiki: only in the global graph. Skills
-    // are user-level atoms (tools) with no edges into the memory graph today,
-    // so they render as isolated hexagons.
-    const skillRows = isLocal
-      ? []
-      : await ctx.runQuery(internal.skills.listByClerkIdInternal, {
-          clerkId,
-        });
+    // Skills — same visibility rule as wiki: only in the global graph's first
+    // page. Skills are user-level atoms (tools) with no edges into the memory
+    // graph today, so they render as isolated hexagons.
+    const skillRows =
+      isLocal || !isFirstPage
+        ? []
+        : await ctx.runQuery(internal.skills.listByClerkIdInternal, {
+            clerkId,
+          });
 
     const skillNodes: GraphNodeEntry[] = skillRows
       .filter((s: Doc<"skills">) => s.enabled !== false)
@@ -250,6 +269,8 @@ export const getGraphData = authAction({
       mentionsEdges: memoryGraph.mentionsEdges,
       focusNodeId: memoryGraph.focusNodeId,
       totalMemoryCount: memoryGraph.totalMemoryCount,
+      nextCursorCreatedAt: memoryGraph.nextCursorCreatedAt,
+      nextCursorId: memoryGraph.nextCursorId,
     };
   },
 });

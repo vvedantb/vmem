@@ -111,6 +111,12 @@ const memoriesSearchParams = {
   focus: parseAsOptionalString,
   scope: parseAsStringLiteral(GRAPH_SCOPES).withDefault("local"),
   depth: parseAsInteger.withDefault(2),
+  /**
+   * Performance bench: `?bench=100000` renders a synthetic graph of that many
+   * nodes (client-generated, no server fetch) so graph performance can be
+   * verified at scales beyond the account's real data. 0 = off (default).
+   */
+  bench: parseAsInteger.withDefault(0),
   profile: parseAsOptionalString,
   q: parseAsSearchQuery,
   tags: createSanitizedStringArrayParser(),
