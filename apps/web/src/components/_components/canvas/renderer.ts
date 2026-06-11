@@ -12,13 +12,86 @@ import { getConnectorLogo } from "./connector-logos";
 
 const TWO_PI = Math.PI * 2;
 
+// ── Per-node color cache ──────────────────────────────────────────────────────
+// nodeColor hashes the first tag and builds a hex string — and for untagged
+// memories reads getComputedStyle (forced style recalc). Computing it per node
+// per pass per frame dominates frame time on large graphs, so colors are
+// cached per node object and invalidated when the theme object changes (node
+// objects are recreated on data swaps, so WeakMap entries age out naturally).
+let colorCacheTheme: GraphViewTheme | null = null;
+let colorCache = new WeakMap<GraphNode, string>();
+
 function nodeColor(node: GraphNode, theme: GraphViewTheme): string {
-  return getNodeColor(
-    node.tags,
-    node.kind,
-    theme.isDarkCanvas,
-    theme.nodeColorOverride,
-  );
+  if (colorCacheTheme !== theme) {
+    colorCacheTheme = theme;
+    colorCache = new WeakMap();
+  }
+  let color = colorCache.get(node);
+  if (color === undefined) {
+    color = getNodeColor(
+      node.tags,
+      node.kind,
+      theme.isDarkCanvas,
+      theme.nodeColorOverride,
+    );
+    colorCache.set(node, color);
+  }
+  return color;
+}
+
+// ── Per-node label cache ──────────────────────────────────────────────────────
+// fillText's maxWidth argument forces a measure+horizontal-squish slow path in
+// every browser — the single most expensive way to cap label width. Truncating
+// to a character budget once per node (≈ what 150px fit at the 12px base font)
+// renders with the fast fillText overload and looks better: an ellipsis
+// instead of squished glyphs. Node objects are recreated on data swaps, so
+// WeakMap entries age out naturally.
+const LABEL_MAX_CHARS = 26;
+const labelCache = new WeakMap<GraphNode, string>();
+
+function nodeLabel(node: GraphNode): string {
+  let label = labelCache.get(node);
+  if (label === undefined) {
+    label =
+      node.title.length > LABEL_MAX_CHARS
+        ? node.title.slice(0, LABEL_MAX_CHARS - 1) + "…"
+        : node.title;
+    labelCache.set(node, label);
+  }
+  return label;
+}
+
+// ── Per-dataset bucket cache ──────────────────────────────────────────────────
+// Grouping nodes by (kind, color) lets the shape pass batch one beginPath/fill
+// per bucket — but rebuilding the Map (plus 100k array pushes) every frame is
+// pure GC churn. The grouping only depends on the nodes array and the theme,
+// both of which are reference-stable between data swaps, so it's cached on
+// identity. Culling and hover-dim stay per-frame inside the draw loop.
+interface NodeBucket {
+  color: string;
+  kind: GraphNodeKind;
+  nodes: GraphNode[];
+}
+let bucketCacheNodes: GraphNode[] | null = null;
+let bucketCacheTheme: GraphViewTheme | null = null;
+let bucketCache: NodeBucket[] = [];
+
+function nodeBuckets(nodes: GraphNode[], theme: GraphViewTheme): NodeBucket[] {
+  if (bucketCacheNodes === nodes && bucketCacheTheme === theme) {
+    return bucketCache;
+  }
+  const buckets = new Map<string, NodeBucket>();
+  for (const node of nodes) {
+    const color = nodeColor(node, theme);
+    const key = `${node.kind}|${color}`;
+    const bucket = buckets.get(key);
+    if (bucket) bucket.nodes.push(node);
+    else buckets.set(key, { color, kind: node.kind, nodes: [node] });
+  }
+  bucketCacheNodes = nodes;
+  bucketCacheTheme = theme;
+  bucketCache = [...buckets.values()];
+  return bucketCache;
 }
 
 /**
@@ -141,6 +214,38 @@ function isOnScreen(
   return sx + sr > 0 && sx - sr < canvasW && sy + sr > 0 && sy - sr < canvasH;
 }
 
+/**
+ * Cached full-scene bitmap for viewport-only frames. While the user pans or
+ * zooms (and nothing else changes), re-tracing every node and edge per frame
+ * is pure waste — the previous frame's pixels are still correct, just under a
+ * different viewport transform. Blitting the cached bitmap with the delta
+ * transform makes pan/zoom O(1) per frame regardless of graph size; the first
+ * frame after the gesture settles re-renders crisp.
+ */
+export interface WorldLayerCache {
+  layer: HTMLCanvasElement | null;
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  height: number;
+  dpr: number;
+  valid: boolean;
+}
+
+export function createWorldLayerCache(): WorldLayerCache {
+  return {
+    layer: null,
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
+    width: 0,
+    height: 0,
+    dpr: 1,
+    valid: false,
+  };
+}
+
 export function render(
   ctx: CanvasRenderingContext2D,
   canvasW: number,
@@ -157,6 +262,127 @@ export function render(
   isSearchActive: boolean,
   showLabels: boolean,
   connectorLogos: ConnectorLogoMap,
+  /** null = always draw directly (small graphs stay pixel-perfect mid-gesture) */
+  worldCache: WorldLayerCache | null,
+  /** True when ONLY the viewport moved since the last frame — blit-eligible */
+  viewportOnly: boolean,
+  /**
+   * True while a pan/zoom gesture is in flight. Gesture-frame full renders
+   * (snapshot refreshes) drop the glow pass — the dominant per-node cost —
+   * so they fit the frame budget; the settle frame restores it.
+   */
+  gestureActive: boolean = false,
+): void {
+  // Blit path: pan/zoom in progress over an up-to-date cache.
+  if (
+    worldCache &&
+    viewportOnly &&
+    worldCache.valid &&
+    worldCache.layer &&
+    worldCache.width === canvasW &&
+    worldCache.height === canvasH &&
+    worldCache.dpr === dpr
+  ) {
+    const k = vp.scale / worldCache.scale;
+    const dx =
+      vp.offsetX + canvasW / 2 - k * (worldCache.offsetX + canvasW / 2);
+    const dy =
+      vp.offsetY + canvasH / 2 - k * (worldCache.offsetY + canvasH / 2);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, canvasW, canvasH);
+    // Solid background behind the transformed bitmap so margins it no longer
+    // covers (zoom-out, pan) show theme color instead of garbage.
+    ctx.fillStyle = theme.background;
+    ctx.fillRect(0, 0, canvasW, canvasH);
+    ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * dx, dpr * dy);
+    ctx.drawImage(worldCache.layer, 0, 0, canvasW, canvasH);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return;
+  }
+
+  // Full render. With a cache attached, render into the layer canvas and
+  // stamp it 1:1 — the extra full-canvas drawImage is the price of having
+  // the bitmap ready for the next gesture frame.
+  if (worldCache) {
+    if (!worldCache.layer) {
+      worldCache.layer = document.createElement("canvas");
+    }
+    const layer = worldCache.layer;
+    if (layer.width !== canvasW * dpr || layer.height !== canvasH * dpr) {
+      layer.width = canvasW * dpr;
+      layer.height = canvasH * dpr;
+    }
+    const layerCtx = layer.getContext("2d");
+    if (layerCtx) {
+      renderScene(
+        layerCtx,
+        canvasW,
+        canvasH,
+        dpr,
+        nodes,
+        edges,
+        vp,
+        interaction,
+        theme,
+        neighborSet,
+        focusNodeId,
+        searchMatchSet,
+        isSearchActive,
+        showLabels,
+        connectorLogos,
+        gestureActive,
+      );
+      worldCache.scale = vp.scale;
+      worldCache.offsetX = vp.offsetX;
+      worldCache.offsetY = vp.offsetY;
+      worldCache.width = canvasW;
+      worldCache.height = canvasH;
+      worldCache.dpr = dpr;
+      worldCache.valid = true;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, canvasW, canvasH);
+      ctx.drawImage(layer, 0, 0, canvasW, canvasH);
+      return;
+    }
+  }
+
+  renderScene(
+    ctx,
+    canvasW,
+    canvasH,
+    dpr,
+    nodes,
+    edges,
+    vp,
+    interaction,
+    theme,
+    neighborSet,
+    focusNodeId,
+    searchMatchSet,
+    isSearchActive,
+    showLabels,
+    connectorLogos,
+    gestureActive,
+  );
+}
+
+function renderScene(
+  ctx: CanvasRenderingContext2D,
+  canvasW: number,
+  canvasH: number,
+  dpr: number,
+  nodes: GraphNode[],
+  edges: ResolvedEdge[],
+  vp: ViewportState,
+  interaction: InteractionState,
+  theme: GraphViewTheme,
+  neighborSet: Set<string>,
+  focusNodeId: string | null,
+  searchMatchSet: Set<string>,
+  isSearchActive: boolean,
+  showLabels: boolean,
+  connectorLogos: ConnectorLogoMap,
+  gestureActive: boolean,
 ): void {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, canvasW, canvasH);
@@ -205,8 +431,17 @@ export function render(
   ctx.scale(vp.scale, vp.scale);
 
   const nodeCount = nodes.length;
-  const hasHover =
-    interaction.hoveredNodeId !== null || interaction.hoveredEdgeIndex !== null;
+  // Hover dim/highlight repaints the whole scene per mousemove. On huge
+  // graphs at far zoom the highlighted node is sub-pixel — pure cost, no
+  // signal — so hover VISUALS switch off there (tooltips still work; the
+  // frame loop in GraphCanvas mirrors this so hover doesn't even repaint).
+  // Must stay in sync with hoverVisualsEnabled in GraphCanvas.tsx.
+  const hoverVisuals = !(nodeCount > 5000 && vp.scale < 0.4);
+  const hoveredNodeId = hoverVisuals ? interaction.hoveredNodeId : null;
+  const hoveredEdgeIndexVisual = hoverVisuals
+    ? interaction.hoveredEdgeIndex
+    : null;
+  const hasHover = hoveredNodeId !== null || hoveredEdgeIndexVisual !== null;
   // Edges only enter hover mode (dim non-connected, highlight connected) when
   // the hovered node actually has neighbors. Hovering an isolated node would
   // otherwise fade the entire graph to gray with nothing to highlight.
@@ -217,11 +452,36 @@ export function render(
   const veryLowZoom = vp.scale < 0.08;
   const highNodeCount = nodeCount > 5000;
 
+  // World-space view bounds (small margin) for edge culling. An edge whose
+  // bounding box misses the viewport can't paint a pixel — skipping it keeps
+  // the zoomed-in edge pass proportional to what's visible, not to the graph.
+  const viewMinX = (-canvasW / 2 - vp.offsetX) / vp.scale - 40;
+  const viewMaxX = (canvasW / 2 - vp.offsetX) / vp.scale + 40;
+  const viewMinY = (-canvasH / 2 - vp.offsetY) / vp.scale - 40;
+  const viewMaxY = (canvasH / 2 - vp.offsetY) / vp.scale + 40;
+  const edgeVisible = (
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+  ): boolean =>
+    !(
+      (x1 < viewMinX && x2 < viewMinX) ||
+      (x1 > viewMaxX && x2 > viewMaxX) ||
+      (y1 < viewMinY && y2 < viewMinY) ||
+      (y1 > viewMaxY && y2 > viewMaxY)
+    );
+
   // --- Edges (batched by style — single beginPath/stroke per style bucket) ---
   // Skip ALL edges at very low zoom (just render node dots)
   if (!veryLowZoom && edges.length > 0) {
-    // Edge budget: skip tag edges when total edge count is very high
-    const skipTagEdges = edges.length > 10_000;
+    // Edge budget: skip tag edges when total edge count is very high, and on
+    // any edge-heavy graph while a gesture is in flight — a single stroke()
+    // of thousands of batched hairline segments dominates gesture-frame cost,
+    // and the faint tag lattice is the least informative layer. It returns on
+    // the crisp settle frame. Structural edges always draw.
+    const skipTagEdges =
+      edges.length > 10_000 || (gestureActive && edges.length > 1500);
 
     if (!hasHoveredNeighbors) {
       // No hover — three batched passes, one per edge type. Each type gets its
@@ -233,8 +493,13 @@ export function render(
         ctx.beginPath();
         for (const edge of edges) {
           if (edge.edgeType !== "tag") continue;
-          ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
-          ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+          const sx = edge.source.x ?? 0;
+          const sy = edge.source.y ?? 0;
+          const tx = edge.target.x ?? 0;
+          const ty = edge.target.y ?? 0;
+          if (!edgeVisible(sx, sy, tx, ty)) continue;
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(tx, ty);
         }
         ctx.stroke();
       }
@@ -252,8 +517,13 @@ export function render(
           edge.edgeType !== "calls"
         )
           continue;
-        ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
-        ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+        const sx = edge.source.x ?? 0;
+        const sy = edge.source.y ?? 0;
+        const tx = edge.target.x ?? 0;
+        const ty = edge.target.y ?? 0;
+        if (!edgeVisible(sx, sy, tx, ty)) continue;
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(tx, ty);
       }
       ctx.stroke();
 
@@ -272,8 +542,13 @@ export function render(
           edge.edgeType !== "implements"
         )
           continue;
-        ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
-        ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+        const sx = edge.source.x ?? 0;
+        const sy = edge.source.y ?? 0;
+        const tx = edge.target.x ?? 0;
+        const ty = edge.target.y ?? 0;
+        if (!edgeVisible(sx, sy, tx, ty)) continue;
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(tx, ty);
       }
       ctx.stroke();
 
@@ -289,8 +564,13 @@ export function render(
           edge.edgeType !== "includes"
         )
           continue;
-        ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
-        ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+        const sx = edge.source.x ?? 0;
+        const sy = edge.source.y ?? 0;
+        const tx = edge.target.x ?? 0;
+        const ty = edge.target.y ?? 0;
+        if (!edgeVisible(sx, sy, tx, ty)) continue;
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(tx, ty);
       }
       ctx.stroke();
     } else {
@@ -349,8 +629,13 @@ export function render(
           const isConnected =
             neighborSet.has(edge.source.id) && neighborSet.has(edge.target.id);
           if (isConnected) continue;
-          ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
-          ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+          const sx = edge.source.x ?? 0;
+          const sy = edge.source.y ?? 0;
+          const tx = edge.target.x ?? 0;
+          const ty = edge.target.y ?? 0;
+          if (!edgeVisible(sx, sy, tx, ty)) continue;
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(tx, ty);
         }
         ctx.stroke();
         ctx.globalAlpha = 1;
@@ -376,7 +661,7 @@ export function render(
     // "connected" hue so the tooltip has a clear visual anchor. Runs after
     // the batched passes so it always draws on top, even when no node is
     // hovered (the common case when reading an edge tooltip).
-    const hoveredEdgeIdx = interaction.hoveredEdgeIndex;
+    const hoveredEdgeIdx = hoveredEdgeIndexVisual;
     if (hoveredEdgeIdx !== null && hoveredEdgeIdx < edges.length) {
       const edge = edges[hoveredEdgeIdx];
       ctx.strokeStyle = theme.edge.connected;
@@ -389,15 +674,28 @@ export function render(
   }
 
   // --- Nodes ---
-  // Glow pass: skip when highNodeCount or lowZoom (expensive per-node radial gradient)
-  if (theme.glow.enabled && !lowZoom && !highNodeCount) {
+  // Glow pass: one createRadialGradient + fill PER NODE per frame — by far the
+  // most expensive pass (at 5k nodes it's ~80% of the frame: 23ms vs 4.6ms
+  // without). Its budget is much tighter than the label cutoff: past ~1.5k
+  // nodes the halos overlap into soup anyway, so it switches off well before
+  // labels do. Also skipped at lowZoom (halos are sub-pixel) and during
+  // pan/zoom gestures — zoomed into a cluster each halo covers a large screen
+  // area, and gesture-frame snapshot refreshes must fit the frame budget; the
+  // crisp settle frame brings the glow back.
+  const glowNodeBudget = 1500;
+  if (
+    theme.glow.enabled &&
+    !lowZoom &&
+    !gestureActive &&
+    nodeCount <= glowNodeBudget
+  ) {
     for (const node of nodes) {
       const nx = node.x ?? 0;
       const ny = node.y ?? 0;
       const baseRadius = node.size * 2;
       if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
-      const isHovered = interaction.hoveredNodeId === node.id;
+      const isHovered = hoveredNodeId === node.id;
       const isNeighbor = neighborSet.has(node.id);
       const isSearchMatch = searchMatchSet.has(node.id);
       const isDimmed =
@@ -437,53 +735,50 @@ export function render(
   }
 
   // Node shape pass: batched by (color, kind) so we keep O(unique (color,kind))
-  // draw calls. With only 4 kinds today the extra cardinality is negligible,
-  // and it lets us stamp circles / squares / diamonds / hexagons in one path each.
+  // draw calls. Bucket grouping is cached per (nodes, theme) — see nodeBuckets.
   {
-    const buckets = new Map<
-      string,
-      { color: string; kind: GraphNodeKind; nodes: GraphNode[] }
-    >();
-    for (const node of nodes) {
-      const nx = node.x ?? 0;
-      const ny = node.y ?? 0;
-      const baseRadius = node.size * 2;
-      if (!lowZoom && !isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH))
-        continue;
-      const color = nodeColor(node, theme);
-      const key = `${node.kind}|${color}`;
-      const bucket = buckets.get(key);
-      if (bucket) bucket.nodes.push(node);
-      else buckets.set(key, { color, kind: node.kind, nodes: [node] });
-    }
+    const buckets = nodeBuckets(nodes, theme);
+    // When nothing is hovered and no search is active, no node can be dimmed —
+    // skip the per-node Set lookups AND the entire second (dimmed) pass.
+    const needDimChecks = hasHover || isSearchActive;
+    // Below ~2.2 screen pixels a circle/diamond/hexagon is indistinguishable
+    // from a square, and rect() is far cheaper than arc() — at 100k nodes this
+    // is the difference between a sub-frame and a multi-frame shape pass.
+    const tinyShapes = 2.2;
+    // World-space length of 4 screen px: keeps nodes visible at extreme
+    // zoom-out; sqrt-blend preserves hub/leaf ranking at all zoom levels.
+    const minWorld = 4 / vp.scale;
 
-    // Draw non-dimmed nodes first, then dimmed nodes at reduced alpha
-    for (const dimPass of [false, true]) {
+    for (const dimPass of needDimChecks ? [false, true] : [false]) {
       if (dimPass) ctx.globalAlpha = theme.dimAlpha;
 
-      for (const { color, kind, nodes: bucket } of buckets.values()) {
+      for (const { color, kind, nodes: bucket } of buckets) {
         ctx.fillStyle = color;
         ctx.beginPath();
         for (const node of bucket) {
-          const isHovered = interaction.hoveredNodeId === node.id;
-          const isNeighbor = neighborSet.has(node.id);
-          const isSearchMatch = searchMatchSet.has(node.id);
-          const isDimmed =
-            (hasHover && !isHovered && !isNeighbor) ||
-            (isSearchActive && !isSearchMatch);
-          if (isDimmed !== dimPass) continue;
-
           const nx = node.x ?? 0;
           const ny = node.y ?? 0;
           const baseRadius = node.size * 2;
-          // Keep nodes visible at extreme zoom-out. minWorld is the world-space
-          // length of 4 screen pixels; sqrt-blend preserves hub/leaf ranking at
-          // all zoom levels.
-          const minWorld = 4 / vp.scale;
+          if (!lowZoom && !isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH))
+            continue;
+          if (needDimChecks) {
+            const isHovered = hoveredNodeId === node.id;
+            const isNeighbor = neighborSet.has(node.id);
+            const isSearchMatch = searchMatchSet.has(node.id);
+            const isDimmed =
+              (hasHover && !isHovered && !isNeighbor) ||
+              (isSearchActive && !isSearchMatch);
+            if (isDimmed !== dimPass) continue;
+          }
+
           const radius = Math.sqrt(
             baseRadius * baseRadius + minWorld * minWorld,
           );
-          traceShape(ctx, kind, nx, ny, radius);
+          if (radius * vp.scale < tinyShapes) {
+            ctx.rect(nx - radius, ny - radius, radius * 2, radius * 2);
+          } else {
+            traceShape(ctx, kind, nx, ny, radius);
+          }
         }
         ctx.fill();
       }
@@ -512,7 +807,7 @@ export function render(
       const baseRadius = node.size * 2;
       if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
-      const isHovered = interaction.hoveredNodeId === node.id;
+      const isHovered = hoveredNodeId === node.id;
       const isNeighbor = neighborSet.has(node.id);
       const isSearchMatch = searchMatchSet.has(node.id);
       const isDimmed =
@@ -534,10 +829,17 @@ export function render(
     }
   }
 
-  // Outlines pass: only for hovered/dragged/outlined nodes (few nodes, no batch needed)
-  if (!lowZoom) {
+  // Outlines pass: only for hovered/dragged/outlined nodes (few nodes, no batch
+  // needed). When the theme draws no resting outlines and nothing is hovered or
+  // dragged, the whole O(nodes) scan is skipped.
+  if (
+    !lowZoom &&
+    (theme.outline.enabled ||
+      hoveredNodeId !== null ||
+      interaction.draggedNodeId !== null)
+  ) {
     for (const node of nodes) {
-      const isHovered = interaction.hoveredNodeId === node.id;
+      const isHovered = hoveredNodeId === node.id;
       const isDragged = interaction.draggedNodeId === node.id;
       if (!theme.outline.enabled && !isHovered && !isDragged) continue;
 
@@ -593,8 +895,10 @@ export function render(
   }
 
   // --- Edge labels ---
-  const hoveredEdgeIdx = interaction.hoveredEdgeIndex;
-  if (!lowZoom) {
+  // Labels only ever draw for the hovered edge / hovered node's edges, so the
+  // whole O(edges) scan is skipped while nothing is hovered.
+  const hoveredEdgeIdx = hoveredEdgeIndexVisual;
+  if (!lowZoom && (hoveredEdgeIdx !== null || hasHoveredNeighbors)) {
     const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
     ctx.font = `400 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";
@@ -646,6 +950,15 @@ export function render(
     const fontSize = Math.max(10, 12 / Math.max(vp.scale, 0.5));
     ctx.font = `500 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
 
+    // Obsidian-style label thinning: only caption a node big enough on screen
+    // to read. As you zoom out, nodes shrink below this and their labels drop
+    // away (biggest hubs persist longest); zooming in fades them back in. This
+    // is also the dominant render-cost lever — at a dense zoom-out the label
+    // pass (fillText + measureText per node) otherwise costs more than the
+    // entire rest of the frame. Hovered/neighbour nodes ignore the gate so a
+    // hover always reveals its caption regardless of size.
+    const minLabelScreenR = 6;
+
     for (const node of nodes) {
       const nx = node.x ?? 0;
       const ny = node.y ?? 0;
@@ -653,7 +966,7 @@ export function render(
 
       if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
-      const isHovered = interaction.hoveredNodeId === node.id;
+      const isHovered = hoveredNodeId === node.id;
       const isNeighbor = neighborSet.has(node.id);
       const isSearchMatch = searchMatchSet.has(node.id);
       const isDimmed =
@@ -662,11 +975,12 @@ export function render(
 
       if (isDimmed) continue;
 
-      const showLabel = !hasHover || isHovered || isNeighbor;
+      const bigEnough = baseRadius * vp.scale >= minLabelScreenR;
+      const showLabel = isHovered || isNeighbor || (!hasHover && bigEnough);
       if (!showLabel) continue;
 
       ctx.fillStyle = isHovered ? theme.label.color : theme.label.secondary;
-      ctx.fillText(node.title, nx, ny + baseRadius + 4, 150);
+      ctx.fillText(nodeLabel(node), nx, ny + baseRadius + 4);
     }
   }
 

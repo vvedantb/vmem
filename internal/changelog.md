@@ -1,5 +1,14 @@
 # Changelog
 
+## Memory graph: Obsidian-smooth rendering at 5k nodes — 2026-06-11
+
+- **Physics actually runs now**: the d3-force simulation worker silently never started (classic worker + ESM imports dies with an async error the fallback never caught) — every graph was the static spiral seed, and the stuck "settling" state forced a full canvas re-render on every frame forever. The worker now loads as a module and falls back to a main-thread simulation if it ever fails again.
+- **60fps zoom/pan at 5,000 nodes**: pan/zoom gestures blit the cached scene bitmap instead of re-tracing every node/edge per frame, now also while the layout is still settling (the snapshot refreshes ~7×/s so the settle animation keeps moving under the gesture). Verified at `?bench=5000`: zoom, pan, and hover all hold 60fps with zero dropped frames once settled.
+- **Obsidian-style label fade**: node labels only draw once a node is large enough on screen to read, fading out on zoom-out (hubs persist longest) — this halves the full-render cost on dense graphs and removes the worst frame spikes.
+- **Glow budget**: the per-node glow halo (the single most expensive render pass) now switches off past 1.5k nodes, where overlapping halos add cost but no signal.
+- **Idle costs nothing**: a settled, untouched graph issues zero canvas draw calls per frame.
+- **Sharp, attached zoom into clusters**: deep zooms re-render crisply whenever the blitted snapshot drifts past ~25% scale (no more blur-then-pop), the zoom spring is ~2.5× snappier so the view stays attached to the wheel, and gesture frames shed their heaviest passes (glow halos, the faint tag-edge lattice on edge-heavy graphs, label squishing via fillText maxWidth) until the settle frame restores full fidelity.
+
 ## Sidebar stats update live — 2026-06-10
 
 - **Today/total counts react to memory writes**: the sidebar footer now subscribes to the same Convex memory-events change feed the rest of the app uses, refetching stats when memories are created/updated/deleted (from any surface — web, extension, MCP) instead of only on page refresh.
