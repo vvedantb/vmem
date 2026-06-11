@@ -64,6 +64,15 @@ Codebases:
 
 - Global daily sync: `convex/crons.ts` → `codebaseSync.dailyCodebaseSyncWorkflow` via `@convex-dev/workflow` (one `syncOneCodebaseInternal` step per repo, full action timeout each). Stale = `lastSyncedAt` older than 24h; skips `syncing` and users without GitHub.
 
+Dream Mode (V3 — Dynamic Dreaming):
+
+- **Trigger**: every memory write (create/update via `_memories/`, connector batches via `markSyncComplete`) bumps `dreamTriggerState` (one row/user) through `lib/dreamTriggerInvalidate.ts`; a debounced `maybeRunDreamInternal` check applies the pure `lib/dreamTriggerDecision.ts` — run when quiet 30 min + ≥5 new memories, or pile-up ≥25 mid-activity; guards: 2h gap between auto-runs, 4/day cap, counter persists on stop so the next write re-arms. `userSettings.dreamModeAutomatic` defaults ON (absent = true); soft-fails without `OPENROUTER_API_KEY`. Memories with `source='dream-mode'` never bump the trigger (run loop). Daily-schedule cron + manual button still exist (depth "standard").
+- **Adaptive depth**: light/standard/deep from pile size → topAnomalies 5/10/15, mergeClusters 2/4/6. Candidate window = since `profile.lastDreamRunAt` (≤30d, 7d fallback) — each memory seeds one dream, stays reachable as a neighbour after.
+- **Semantic cluster padding**: anomaly clusters with <4 graph members get vector-kNN "semantic" neighbours (any age, cos ≥0.55) so graph-isolated seeds still dream — never reintroduce the old `<2 members → skip` dead-end.
+- **Reconsolidation**: synthesis responses may carry `confidenceAdjustments` — auto-applied (`applyConfidenceAdjustments`, delta clamped ±0.2, pinned/suppressed exempt, audit event per change). `merge` proposal kind = vector ≥0.88 near-dupes (LOW surprisal, separate sweep from anomaly seeds); ALWAYS a proposal, approve creates the consolidation + suppresses sources with `SUPERSEDED_BY` edges — never hard-delete. Contradiction approve takes optional `winnerMemoryId` (winner +0.1 confidence, active losers suppressed; pinned losers untouched).
+- **Portrait**: per-profile `dreamPortrait`/`dreamPortraitUpdatedAt`/`dreamPortraitSources` revised incrementally at end of each pass (when the run produced output, or >7d stale); `portraitPrompt.ts` parser rejects ungrounded output (source ids must be in evidence). Injected into the MCP context prompt as "Inferred Portrait"; shown on workspace home (`DreamPortraitCard`).
+- **UI**: moon icon on memory rows newer than `lastDreamRunAt` ("will be considered in the next dream"); Dream Mode settings = Automatic toggle + auto-accept + optional daily time.
+
 Chrome extension auto-sync (`apps/chrome-extension/src/background/sync-scheduler.ts`):
 
 - MV3 reliability uses **mutual-watchdog alarms**: the slow history alarm (30 min) and the frequent heartbeat alarm (`SETTINGS_MIRROR_ALARM_NAME`, 5 min) each re-assert the other on every fire (`ensureSettingsMirrorAlarm` / `startAutoSync`, both idempotent — only create when absent so timers never reset). As long as either alarm survives, both come back. Chrome silently drops periodic alarms (OS sleep/hibernate on Windows, SW crash, extension update) — never rely on a single alarm.
