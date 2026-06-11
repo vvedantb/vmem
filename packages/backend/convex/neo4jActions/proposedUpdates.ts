@@ -28,6 +28,9 @@ export const resolveProposalInternal = internalAction({
     clerkId: v.string(),
     proposalId: v.string(),
     action: v.string(),
+    /** Contradiction resolution: the source memory the user chose to
+     *  keep. Losers get suppressed; see `applyContradictionResolution`. */
+    winnerMemoryId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const driver = getDriver();
@@ -35,7 +38,12 @@ export const resolveProposalInternal = internalAction({
       args.action === "approve" || args.action === "reject"
         ? args.action
         : "reject";
-    const result = await resolveProposal(driver, args.proposalId, action);
+    const result = await resolveProposal(
+      driver,
+      args.proposalId,
+      action,
+      args.winnerMemoryId,
+    );
 
     // Synthesis approval materializes a NEW memory without an embedding
     // and without enrichment (resolveProposal is pure Cypher — has no

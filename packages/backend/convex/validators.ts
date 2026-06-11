@@ -48,6 +48,41 @@ export const profileFields = {
    */
   dreamModeScheduleEnabled: v.optional(v.boolean()),
   dreamModeScheduleTime: v.optional(v.string()), // "HH:MM" UTC
+  /**
+   * Dream Mode V3 — evolving portrait. A dream-maintained markdown summary
+   * of who this profile's owner is, updated incrementally at the end of
+   * each dream pass. `dreamPortraitSources` carries the Neo4j memory ids
+   * the portrait derives from (grounding — same rule as synthesis
+   * proposals: no claim without traceable sources).
+   */
+  dreamPortrait: v.optional(v.string()),
+  dreamPortraitUpdatedAt: v.optional(v.number()),
+  dreamPortraitSources: v.optional(v.array(v.string())),
+};
+
+/**
+ * Single source of truth for dreamTriggerState table fields.
+ *
+ * One row per user. Powers Dynamic Dreaming: memory writes bump
+ * `newMemoryCount` + `lastWriteAt`; when enough new context piles up and
+ * the user goes quiet, a debounced check fires a dream pass. Mirrors the
+ * contextPromptCache debounce pattern (`checkPending` = a check is
+ * already scheduled, don't pile up scheduler jobs).
+ */
+export const dreamTriggerStateFields = {
+  userId: v.id("users"),
+  /** Memories written since the last auto dream run consumed the counter. */
+  newMemoryCount: v.number(),
+  /** Wall-clock ms of the most recent memory write — the "quiet" signal. */
+  lastWriteAt: v.number(),
+  /** True while a maybeRunDream check is scheduled. */
+  checkPending: v.boolean(),
+  /** Wall-clock ms of the last automatic (trigger-fired) dream run. */
+  lastAutoRunAt: v.optional(v.number()),
+  /** Automatic runs so far on `dayKey` — enforces the daily cap. */
+  runsToday: v.number(),
+  /** UTC day "YYYY-MM-DD" that `runsToday` counts against. */
+  dayKey: v.string(),
 };
 
 /**
@@ -225,6 +260,7 @@ export const openRouterLogRecordFields = {
     v.literal("chat"),
     v.literal("enrichment"),
     v.literal("dream-synthesis"),
+    v.literal("dream-portrait"),
     v.literal("context-prompt"),
     v.literal("fact-extraction"),
     v.literal("entity-backfill"),

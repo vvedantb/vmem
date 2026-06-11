@@ -16,7 +16,8 @@ type ProposedUpdateKind =
   | "insight"
   | "connection"
   | "contradiction"
-  | "anomaly";
+  | "anomaly"
+  | "merge";
 
 interface ProposedUpdateNode {
   id: string;
@@ -66,6 +67,9 @@ export const resolveProposal = authAction({
   args: {
     proposalId: v.string(),
     action: v.string(),
+    /** Contradiction proposals: the source memory the user chose to keep.
+     *  Approving with a winner suppresses the other sources. */
+    winnerMemoryId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<ResolveResult | null> => {
     const clerkId = await requireClerkId(ctx);
@@ -76,6 +80,7 @@ export const resolveProposal = authAction({
         clerkId,
         proposalId: args.proposalId,
         action: args.action,
+        winnerMemoryId: args.winnerMemoryId,
       },
     );
 

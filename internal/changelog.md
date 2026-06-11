@@ -1,5 +1,13 @@
 # Changelog
 
+## Dreams reconsolidate memories — 2026-06-11
+
+- **Why**: dreams only ever ADDED knowledge — old facts kept their day-one confidence, near-duplicates accumulated forever, and contradictions were dismiss-only flags nobody could act on.
+- **Merge proposals**: near-duplicate fragments are detected by similarity (the low-surprisal end the anomaly pass cannot see) and proposed as one consolidated memory; approving supersedes the sources with a traceable link — nothing is hard-deleted.
+- **Contradiction resolution**: approving a contradiction can now name a winner — the kept memory is reinforced and the losing side suppressed, instead of the flag just clearing.
+- **Confidence reweighting**: each synthesis pass may temper or boost the confidence of the memories it examined, applied automatically within tight bounds, pinned memories exempt, one audit event per change.
+- **Isolated memories find neighbours**: anomaly seeds with few graph links pull in their nearest semantic neighbours from the whole corpus (any age), so cross-time connections surface instead of being skipped.
+
 ## Files index into the memory graph — 2026-06-11
 
 - **Why**: the shared filesystem was pure storage — uploaded documents never appeared in memory retrieval, so agents and search could not use their content.
