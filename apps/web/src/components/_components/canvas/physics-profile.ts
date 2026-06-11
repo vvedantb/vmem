@@ -22,6 +22,16 @@ export interface PhysicsProfile {
   theta: number;
   ticksPerFrame: number;
   tickIntervalMs: number;
+  /**
+   * Repulsion range for forceManyBody.distanceMax, in world units. Must grow
+   * with graph size: the settled disc's radius scales ~sqrt(n) (the spiral
+   * seed uses sqrt(n)*40), and if the disc outgrows this range the outer
+   * shell stops feeling the core's repulsion — only the inward centering
+   * pull acts at distance, and the whole cloud slowly collapses into an
+   * overlapping ball. Bounding the range at all is still a big win: far-field
+   * pair interactions dominate many-body cost, and theta coarsens alongside.
+   */
+  chargeDistanceMax: number;
 }
 
 export function physicsProfile(nodeCount: number): PhysicsProfile {
@@ -34,6 +44,7 @@ export function physicsProfile(nodeCount: number): PhysicsProfile {
       theta: 0.9,
       ticksPerFrame: 2,
       tickIntervalMs: 33,
+      chargeDistanceMax: 1500,
     };
   }
   if (nodeCount <= 10_000) {
@@ -45,6 +56,7 @@ export function physicsProfile(nodeCount: number): PhysicsProfile {
       theta: 1.2,
       ticksPerFrame: 1,
       tickIntervalMs: 33,
+      chargeDistanceMax: 3500,
     };
   }
   if (nodeCount <= 30_000) {
@@ -56,6 +68,7 @@ export function physicsProfile(nodeCount: number): PhysicsProfile {
       theta: 1.5,
       ticksPerFrame: 1,
       tickIntervalMs: 50,
+      chargeDistanceMax: 6000,
     };
   }
   return {
@@ -66,5 +79,6 @@ export function physicsProfile(nodeCount: number): PhysicsProfile {
     theta: 1.8,
     ticksPerFrame: 1,
     tickIntervalMs: 66,
+    chargeDistanceMax: 10_000,
   };
 }

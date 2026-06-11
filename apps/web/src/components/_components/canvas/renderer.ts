@@ -955,8 +955,8 @@ function renderScene(
     // away (biggest hubs persist longest); zooming in fades them back in. This
     // is also the dominant render-cost lever — at a dense zoom-out the label
     // pass (fillText + measureText per node) otherwise costs more than the
-    // entire rest of the frame. Hovered/neighbour nodes ignore the gate so a
-    // hover always reveals its caption regardless of size.
+    // entire rest of the frame. The hovered node always shows its caption;
+    // neighbours use a lenient half-threshold (see below).
     const minLabelScreenR = 6;
 
     for (const node of nodes) {
@@ -975,8 +975,16 @@ function renderScene(
 
       if (isDimmed) continue;
 
+      // Neighbour labels get a lenient gate (half the resting threshold):
+      // hover should reveal the neighbourhood, but captioning sub-3px dots in
+      // a dense cluster just stacks unreadable text — Obsidian likewise only
+      // labels neighbours you could actually read at the current zoom.
       const bigEnough = baseRadius * vp.scale >= minLabelScreenR;
-      const showLabel = isHovered || isNeighbor || (!hasHover && bigEnough);
+      const neighborBigEnough = baseRadius * vp.scale >= minLabelScreenR / 2;
+      const showLabel =
+        isHovered ||
+        (isNeighbor && neighborBigEnough) ||
+        (!hasHover && bigEnough);
       if (!showLabel) continue;
 
       ctx.fillStyle = isHovered ? theme.label.color : theme.label.secondary;

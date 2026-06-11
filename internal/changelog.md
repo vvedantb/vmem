@@ -1,5 +1,13 @@
 # Changelog
 
+## Memory graph: Obsidian-style physics — 2026-06-11
+
+- **Clusters breathe**: link strength is now degree-normalized (d3's default) instead of a flat pull — hubs no longer crush their satellites into overlapping rings, which was why hovering a node showed a pile of unreadable stacked labels.
+- **Nodes cannot overlap**: collision radius matches the rendered node plus breathing room, and link distance grows with both endpoints' sizes so big hubs hold neighbours further out.
+- **Stray clusters come home**: centering is a weak per-node pull (like Obsidian's Center force) replacing the old whole-system translation that let disconnected components drift; repulsion range now scales with graph size after the bounded range was found to slowly collapse large graphs into a solid ball.
+- **One physics source of truth**: the worker and the main-thread fallback now share a single force-model module — they had already drifted apart (different damping, different center strength).
+- **Readable hover at any zoom**: neighbour labels only render when the node is big enough on screen to read, so hovering in a dense area highlights the neighbourhood without blanketing it in text.
+
 ## Memory graph: Obsidian-smooth rendering at 5k nodes — 2026-06-11
 
 - **Physics actually runs now**: the d3-force simulation worker silently never started (classic worker + ESM imports dies with an async error the fallback never caught) — every graph was the static spiral seed, and the stuck "settling" state forced a full canvas re-render on every frame forever. The worker now loads as a module and falls back to a main-thread simulation if it ever fails again.

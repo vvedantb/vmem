@@ -7,15 +7,16 @@
  */
 import {
   forceSimulation,
-  forceLink,
-  forceManyBody,
-  forceCenter,
-  forceCollide,
   type Simulation,
   type SimulationNodeDatum,
   type SimulationLinkDatum,
 } from "d3-force";
 import { physicsProfile } from "./physics-profile";
+import {
+  createGraphForces,
+  VELOCITY_DECAY,
+  type GraphForces,
+} from "./physics-forces";
 
 // ------ Worker-internal node/edge types (lightweight, not shared with main thread) ------
 
@@ -49,9 +50,9 @@ let nodeById = new Map<string, WNode>();
 let tickTimer: ReturnType<typeof setInterval> | null = null;
 let draggedId: string | null = null;
 
-// Keep direct references to forces to avoid `as` casts when updating params
-let chargeForceRef: ReturnType<typeof forceManyBody<WNode>> | null = null;
-let centerForceRef: ReturnType<typeof forceCenter<WNode>> | null = null;
+// Force bundle (shared Obsidian-style model — see physics-forces.ts); kept
+// for settings-slider updates without `as` casts.
+let forcesRef: GraphForces<WNode, WEdge> | null = null;
 
 // ------ Message handler ------
 
@@ -72,8 +73,8 @@ self.onmessage = (e: MessageEvent) => {
     }
 
     case "setStrength": {
-      if (chargeForceRef) {
-        chargeForceRef.strength(-msg.scalingRatio * 8);
+      if (forcesRef) {
+        forcesRef.setStrength(msg.scalingRatio);
         sim?.alpha(0.3);
         ensureTicking();
       }
@@ -81,8 +82,8 @@ self.onmessage = (e: MessageEvent) => {
     }
 
     case "setGravity": {
-      if (centerForceRef) {
-        centerForceRef.strength(msg.gravity * 3.0);
+      if (forcesRef) {
+        forcesRef.setGravity(msg.gravity);
         sim?.alpha(0.3);
         ensureTicking();
       }
@@ -168,50 +169,34 @@ function init(
   tickIntervalMs = profile.tickIntervalMs;
   ticksPerFrame = profile.ticksPerFrame;
 
-  const chargeStrength = -scalingRatio * 8;
-
   // Only structural edges participate in physics — tag edges are visual-only.
   // This prevents nodes from clustering just because they share tags, keeping
   // the layout driven by meaningful semantic relationships.
   const structuralEdges = edges.filter((e) => e.edgeType !== "tag");
 
-  const linkForce = forceLink<WNode, WEdge>(structuralEdges)
-    .id((d) => d.id)
-    .distance(70)
-    .strength(0.6);
-
-  chargeForceRef = forceManyBody<WNode>()
-    .strength(chargeStrength)
-    .theta(profile.theta);
-
-  // Stronger center pull keeps the whole graph bounded in the viewport,
-  // preventing isolated nodes from drifting off-screen.
-  centerForceRef = forceCenter<WNode>(0, 0).strength(gravity * 3.0);
+  const forces = createGraphForces<WNode, WEdge>(
+    structuralEdges,
+    scalingRatio,
+    gravity,
+    profile,
+  );
+  forcesRef = forces;
 
   // .stop() kills d3's internal timer — ticking is fully manual via
   // ensureTicking's interval, so the sleep check below is the single
   // authority on whether physics runs.
   sim = forceSimulation<WNode, WEdge>(nodes)
-    .force("link", linkForce)
-    .force("charge", chargeForceRef)
-    .force("center", centerForceRef)
+    .force("link", forces.link)
+    .force("charge", forces.charge)
+    .force("centerX", forces.centerX)
+    .force("centerY", forces.centerY)
     .alphaDecay(profile.alphaDecay)
-    .velocityDecay(0.4)
+    .velocityDecay(VELOCITY_DECAY)
     .alpha(1)
     .stop();
 
-  // Hard non-overlap: radius matches the rendered node (size*2) plus a
-  // breathing-room pad. Disabled on very large graphs — collide is the most
-  // expensive force and sub-pixel overlap is invisible at the zoom levels
-  // where such graphs fit on screen.
-  if (profile.collideEnabled) {
-    sim.force(
-      "collide",
-      forceCollide<WNode>()
-        .radius((d) => d.size * 2 + 8)
-        .strength(1)
-        .iterations(profile.collideIterations),
-    );
+  if (forces.collide) {
+    sim.force("collide", forces.collide);
   }
 
   // Post the seeded (spiral / carried-over) positions immediately so the
@@ -292,4 +277,5 @@ function cleanup(): void {
   nodes = [];
   nodeById.clear();
   draggedId = null;
+  forcesRef = null;
 }

@@ -2,15 +2,10 @@
  * Simulation controller — wraps d3-force in a Web Worker for off-main-thread physics.
  * Falls back to main-thread simulation if Worker creation fails.
  */
-import {
-  forceSimulation,
-  forceLink,
-  forceManyBody,
-  forceCenter,
-  forceCollide,
-} from "d3-force";
+import { forceSimulation } from "d3-force";
 import type { GraphNode, GraphEdge } from "./types";
 import { physicsProfile } from "./physics-profile";
+import { createGraphForces, VELOCITY_DECAY } from "./physics-forces";
 
 /**
  * Below this alpha the layout is visually static. The worker stops its tick
@@ -280,45 +275,33 @@ function createMainThreadSimulation(
   seedNodePositions(nodes);
 
   const profile = physicsProfile(nodes.length);
-  const chargeStrength = -scalingRatio * 8;
 
   // Only structural edges participate in physics — tag edges are visual-only.
   // This prevents nodes from clustering just because they share tags, keeping
   // the layout driven by meaningful semantic relationships.
   const structuralEdges = edges.filter((e) => e.edgeType !== "tag");
 
-  const linkForce = forceLink<GraphNode, GraphEdge>(structuralEdges)
-    .id((d) => d.id)
-    .distance(70)
-    .strength(0.6);
-
-  const chargeForce = forceManyBody<GraphNode>()
-    .strength(chargeStrength)
-    .theta(profile.theta);
-
-  const centerForce = forceCenter<GraphNode>(0, 0).strength(gravity * 2.0);
+  const forces = createGraphForces<GraphNode, GraphEdge>(
+    structuralEdges,
+    scalingRatio,
+    gravity,
+    profile,
+  );
 
   // .stop() kills d3's internal timer — GraphCanvas's rAF loop drives ticking
   // through controller.tick(), which gates on SLEEP_ALPHA so a settled layout
   // costs nothing per frame.
   const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)
-    .force("link", linkForce)
-    .force("charge", chargeForce)
-    .force("center", centerForce)
+    .force("link", forces.link)
+    .force("charge", forces.charge)
+    .force("centerX", forces.centerX)
+    .force("centerY", forces.centerY)
     .alphaDecay(profile.alphaDecay)
-    .velocityDecay(0.5)
+    .velocityDecay(VELOCITY_DECAY)
     .stop();
 
-  // Hard non-overlap, disabled on very large graphs (most expensive force;
-  // sub-pixel overlap is invisible at the zoom levels where they fit).
-  if (profile.collideEnabled) {
-    simulation.force(
-      "collide",
-      forceCollide<GraphNode>()
-        .radius((d) => d.size * 2 + 8)
-        .strength(1)
-        .iterations(profile.collideIterations),
-    );
+  if (forces.collide) {
+    simulation.force("collide", forces.collide);
   }
 
   // Warm-up (main thread — blocks, so the adaptive tick count matters even
@@ -348,12 +331,12 @@ function createMainThreadSimulation(
     },
 
     setStrength(s: number) {
-      chargeForce.strength(-s * 8);
+      forces.setStrength(s);
       simulation.alpha(0.3);
     },
 
     setGravity(g: number) {
-      centerForce.strength(g * 2.0);
+      forces.setGravity(g);
       simulation.alpha(0.3);
     },
 
@@ -389,7 +372,7 @@ function createMainThreadSimulation(
 
     updateData(newNodes: GraphNode[], newEdges: GraphEdge[]) {
       simulation.nodes(newNodes);
-      linkForce.links(newEdges);
+      forces.link.links(newEdges.filter((e) => e.edgeType !== "tag"));
       simulation.alpha(0.5);
     },
 
