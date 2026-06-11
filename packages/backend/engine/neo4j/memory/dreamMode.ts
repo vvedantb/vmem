@@ -224,8 +224,8 @@ export async function fetchAnomalyCluster(
  * source 'dream-mode' and :DERIVED_FROM edges to each source. Used when
  * the profile has `dreamModeAutoAccept = true`.
  *
- * Mirrors `createMemory` minus the same-session/same-domain edge
- * scaffolding (synthesis memories aren't from a session) and minus the
+ * Mirrors `createMemory` minus the same-session edge scaffolding
+ * (synthesis memories aren't from a session) and minus the
  * URL/file-upload metadata.
  */
 export async function materializeSynthesisAsMemory(

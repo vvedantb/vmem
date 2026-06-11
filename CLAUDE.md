@@ -109,6 +109,11 @@ Tags:
 - Server enrichment runs after EVERY create and **replaces** client-supplied tags (applyEnrichment deletes TAGGED_WITH first) — client tags only survive when the user has no OpenRouter key.
 - `pnpm db:tag-stats` (backend) prints the tag usage histogram per user — re-run to check the single-use ratio is dropping.
 
+RELATES_TO edges:
+
+- Per-save creators in `createMemory` (crud.ts): same-session (interactive sources, 15-min window), semantic similarity (vector top-5, thresholded), plus enrichment's LLM "content similarity". **Never reintroduce "same domain" edges** — platform domains (youtube/github/google) made them 73% of all relates edges (18,924), and the un-ordered `LIMIT 10` piled an unbounded incoming star on the ~10 oldest memories per domain (worst node: 578 edges). Purged 2026-06-11; healthy account profile is avg ~5, p95 ~15.
+- `neo4j-cli/node-edges.ts <title-part>` prints a single memory's edge breakdown (tags, relates reasons, tag fan-out, account degree distribution) — first stop for "why does this node have N connections".
+
 Profiles:
 
 - Profiles are for **organizing where memories get saved**

@@ -1,5 +1,12 @@
 # Changelog
 
+## Graph de-noised: same-domain edges removed — 2026-06-11
+
+- **Why**: 18,924 of 25,819 RELATES_TO edges (73%) had reason "same domain" — every saved URL linked to up to 10 existing memories from the same web domain. On real browsing data that is platform affinity, not topical relation (576 youtube.com memories, 212 github.com), and the unordered LIMIT concentrated edges on the ~10 oldest memories per domain — one generic YouTube page had 578 connections.
+- **Creation path removed**: memories now relate only through semantic similarity (vector top-5), the enrichment LLM's content-similarity picks, and short same-session bursts — all bounded and meaningful.
+- **Data purged**: a one-time migration deleted all 18,924 same-domain edges. Account profile went from avg 18.5 / max 578 relates per memory to avg 4.9 / max 70; node sizes, physics hubs, and edge rendering all reflect genuine relationships now.
+- **Diagnostics**: `neo4j-cli/node-edges.ts <title-part>` prints any memory's edge breakdown for future "why is this node huge" questions.
+
 ## Tags become reusable themes — 2026-06-11
 
 - **Why**: an audit found 4,962 distinct tags across 2,775 memories — 73% used exactly once — so tags connected almost nothing. The enrichment prompt rewarded hyper-specific one-off tags ("ferrari-488-gtb") and never saw the user's existing vocabulary, and client-supplied tags reached the database unnormalized ("GCP" vs "gcp" vs "gcp-" as separate tags).

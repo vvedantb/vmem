@@ -170,34 +170,19 @@ export async function createMemory(
       );
     }
 
-    // Create same-domain edge for URL-based memories (browsing history, bookmarks)
-    if (params.url) {
-      try {
-        const domain = new URL(params.url).hostname;
-        await session.run(
-          `MATCH (m:Memory {id: $id})
-           MATCH (m2:Memory {userId: $userId})
-           WHERE m2.id <> $id
-             AND m2.url IS NOT NULL
-             AND m2.url STARTS WITH 'https://' + $domain
-           WITH m, m2 LIMIT 10
-           MERGE (m)-[r:RELATES_TO]->(m2)
-           ON CREATE SET r.reason = 'same domain'`,
-          {
-            id,
-            userId: params.userId,
-            domain,
-          },
-        );
-      } catch {
-        // Invalid URL, skip domain edge creation
-      }
-    }
+    // NOTE: there is deliberately NO "same domain" edge between URL memories.
+    // It existed once and produced 73% of all RELATES_TO edges as noise:
+    // platform domains dominate real browsing (youtube.com, github.com,
+    // google.com), so "same domain" is platform affinity, not topical
+    // relation — and its un-ordered LIMIT 10 concentrated an unbounded
+    // incoming-edge star on the ~10 oldest memories per domain (worst node:
+    // 578 edges). Genuinely related pages are covered by the two similarity
+    // paths below; browsing bursts by the same-session edge above.
 
     // Semantic similarity edges — find top-5 most similar existing memories
     // using the vector index and create RELATES_TO edges above the threshold.
-    // MERGE avoids duplicating edges that already exist from same-session or
-    // same-domain; ON CREATE SET ensures score is only written on new edges.
+    // MERGE avoids duplicating edges that already exist from same-session;
+    // ON CREATE SET ensures score is only written on new edges.
     if (params.embedding !== null) {
       await session.run(
         `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
