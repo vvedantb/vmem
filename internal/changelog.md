@@ -8,6 +8,7 @@
 - **One physics source of truth**: the worker and the main-thread fallback now share a single force-model module — they had already drifted apart (different damping, different center strength).
 - **Readable hover at any zoom**: neighbour labels only render when the node is big enough on screen to read, so hovering in a dense area highlights the neighbourhood without blanketing it in text.
 - **Settle costs half as much**: the layout animation paints only when the physics worker actually posts new positions (~30Hz) instead of re-painting identical frames at 60fps — same visible animation, half the canvas work and spatial-index rebuilds during the settle phase (drag feedback stays per-frame).
+- **Butter zoom on local depth views**: hover now freezes while a zoom is in flight (mid-gesture hover changes fired tooltip re-renders that broke the smooth-blit cadence right under the cursor — Obsidian pauses hover the same way), and the blit cache now covers every graph size — small depth-3 neighbourhoods previously full-rendered every gesture frame and could stutter on high-DPI displays.
 
 ## Memory graph: Obsidian-smooth rendering at 5k nodes — 2026-06-11
 

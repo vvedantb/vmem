@@ -138,6 +138,16 @@ export function attachInputHandlers(
       return;
     }
 
+    // Freeze hover while a zoom gesture is in flight (spring still converging
+    // on its target scale). Hover changes mid-gesture fire React tooltip
+    // state → parent re-render → a forced full canvas repaint that breaks the
+    // gesture's blit cadence — the difference between butter and stutter on
+    // dense graphs. Obsidian likewise pauses hover during zoom; the first
+    // mousemove after the spring settles re-resolves it.
+    if (Math.abs(viewport.targetScale - viewport.scale) > 0.001) {
+      return;
+    }
+
     // Hover detection — nodes take precedence over edges. When the cursor
     // is over a node, the edge hover is cleared so the node tooltip wins.
     const hitNode = getNodeAt(

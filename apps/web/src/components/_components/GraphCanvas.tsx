@@ -42,11 +42,13 @@ export interface GraphCanvasHandle {
   fit: () => void;
 }
 
-// Above this node count a full per-frame render risks missing the 16ms budget
-// (measured: ~500 nodes spikes to 15ms, ~800 to 62ms via label measureText),
-// so pan/zoom switches to blitting the cached bitmap. Below it, full renders
-// are cheap and stay pixel-exact mid-gesture. One memory page is 500 nodes.
-const BLIT_CACHE_MIN_NODES = 400;
+// Every graph gets the world-layer blit cache. Small graphs render fast, but
+// "fast" is not free on a high-DPR display with glow + edges — a ~300-node
+// depth-3 local view could still spike past the frame budget mid-zoom because
+// below the old 400-node threshold every gesture frame was a full render.
+// Blitting is size-independent (~0.02ms), the crisp-zoom band caps drift at
+// ~25% before a re-render, and tiny graphs' cache refreshes are sub-ms anyway.
+const BLIT_CACHE_MIN_NODES = 0;
 
 // While a pan/zoom gesture runs over a HOT simulation, gesture frames blit a
 // snapshot of the moving layout and re-render it at most this often — the
@@ -345,10 +347,8 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       // of re-tracing every node and edge (full render measures 6ms at 500
       // nodes with 15ms spikes, 26ms at ~2.7k — both miss frames mid-gesture).
       // A blit is ~0.01ms regardless of size; the bitmap goes slightly soft
-      // while the gesture is in flight and re-crisps the frame it settles
-      // (see lastFrameWasBlit). The threshold only spares trivially small
-      // graphs, which render under a frame and look sharper staying pixel-exact
-      // mid-zoom. Realistic memory graphs (one 500-node page and up) all blit.
+      // while the gesture is in flight and the crisp-zoom band re-renders it
+      // before drift passes ~25% (see cacheSharp / lastFrameWasBlit).
       const worldCache =
         nodes.length > BLIT_CACHE_MIN_NODES ? createWorldLayerCache() : null;
       let lastFrameWasBlit = false;
