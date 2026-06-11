@@ -9,6 +9,7 @@
 
 import { type Driver } from "neo4j-driver";
 import { withSession } from "./shared";
+import { normalizeTags } from "./tagNormalize";
 
 export async function applyEnrichment(
   driver: Driver,
@@ -34,7 +35,7 @@ export async function applyEnrichment(
            MERGE (t:Tag {name: tagName})
            MERGE (m)-[:TAGGED_WITH]->(t)
          )`,
-        { memoryId, userId, tags },
+        { memoryId, userId, tags: normalizeTags(tags) },
       );
 
       await tx.run(

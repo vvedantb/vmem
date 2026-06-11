@@ -3,7 +3,6 @@ import type { api } from "@vmem/backend";
 import type { Memory, MemoryType } from "./memories";
 import {
   kindPassesFilter,
-  profilePassesFilter,
   sourcePassesFilter,
   tagsPassFilter,
   typePassesFilter,
@@ -133,17 +132,6 @@ export function listItemMatchesTypeFilter(
   return typePassesFilter(
     item.kind === "memory" ? item.type : undefined,
     selectedTypes,
-    item.kind,
-  );
-}
-
-export function listItemMatchesProfileFilter(
-  item: ListItem,
-  selectedProfileId: string | null,
-): boolean {
-  return profilePassesFilter(
-    item.kind === "memory" ? item.profileId : undefined,
-    selectedProfileId,
     item.kind,
   );
 }

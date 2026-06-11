@@ -14,7 +14,11 @@ import { SkillsSearchBar } from "@/components/skills/SkillsSearchBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
 import { WriteSkillDialog } from "@/components/skills/WriteSkillDialog";
 import { UploadSkillDialog } from "@/components/skills/UploadSkillDialog";
-import { skillsSearchParams } from "@/routes/_main/skills/-searchParams";
+import { skillsSearchParams } from "@/routes/_main/$profileId/skills/-searchParams";
+import {
+  useActiveProfileId,
+  useActiveTeamId,
+} from "@/components/workspace/active-profile";
 
 export type SkillsSidebarNavProps = {
   isIconOnly: boolean;
@@ -28,10 +32,12 @@ export function SkillsSidebarNav({
   isMobile,
 }: SkillsSidebarNavProps) {
   const navigate = useNavigate();
+  const profileId = useActiveProfileId();
+  const teamId = useActiveTeamId();
   const params = useParams({ strict: false });
   const skillId = typeof params.id === "string" ? params.id : undefined;
 
-  const skills = useQuery(api.skills.listMy);
+  const skills = useQuery(api.skills.listMy, { teamId });
   const [{ q: searchQuery }, setSearchParams] =
     useQueryStates(skillsSearchParams);
   const [createModal, setCreateModal] = useState<CreateModalState>("none");
@@ -48,7 +54,11 @@ export function SkillsSidebarNav({
   }, [skills, searchQuery]);
 
   const openSkill = (id: Id<"skills">) => {
-    void navigate({ to: "/skills/$id", params: { id } });
+    if (profileId === undefined) return;
+    void navigate({
+      to: "/$profileId/skills/$id",
+      params: { profileId, id },
+    });
   };
 
   const handleSkillCreated = (id: Id<"skills">) => {

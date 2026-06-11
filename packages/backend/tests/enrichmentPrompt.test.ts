@@ -1,9 +1,53 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildFullEnrichmentPrompt,
   normalizeEntityName,
   parseFullEnrichmentResponse,
   sanitizeTag,
 } from "../convex/prompts/enrichmentPrompt";
+import { normalizeTags } from "../engine/neo4j/memory/tagNormalize";
+
+describe("normalizeTags", () => {
+  it("merges case/format variants into one canonical tag", () => {
+    expect(normalizeTags(["GCP", "gcp", "Gcp "])).toEqual(["gcp"]);
+    expect(normalizeTags(["Machine Learning", "machine-learning"])).toEqual([
+      "machine-learning",
+    ]);
+  });
+
+  it("drops tags that sanitize to empty and preserves order", () => {
+    expect(normalizeTags(["!!!", "react", "", "vue"])).toEqual([
+      "react",
+      "vue",
+    ]);
+  });
+
+  it("caps the number of tags", () => {
+    const many = Array.from({ length: 20 }, (_, i) => `tag-${String(i)}`);
+    expect(normalizeTags(many).length).toBe(10);
+    expect(normalizeTags(many, 3).length).toBe(3);
+  });
+});
+
+describe("buildFullEnrichmentPrompt tag vocabulary", () => {
+  it("includes the existing tag vocabulary with usage counts", () => {
+    const prompt = buildFullEnrichmentPrompt(
+      "t",
+      "c",
+      [],
+      [
+        { name: "react", uses: 76 },
+        { name: "llm", uses: 15 },
+      ],
+    );
+    expect(prompt).toContain("react (76), llm (15)");
+  });
+
+  it("notes an empty vocabulary instead of omitting the section", () => {
+    const prompt = buildFullEnrichmentPrompt("t", "c", []);
+    expect(prompt).toContain("(none yet");
+  });
+});
 
 describe("sanitizeTag", () => {
   it("lowercases and hyphenates tags", () => {
@@ -20,6 +64,19 @@ describe("sanitizeTag", () => {
   it("caps tag length at 50 characters", () => {
     const long = "a".repeat(60);
     expect(sanitizeTag(long).length).toBe(50);
+  });
+});
+
+describe("parseFullEnrichmentResponse tag cap", () => {
+  it("caps parsed tags at 4", () => {
+    const result = parseFullEnrichmentResponse(
+      JSON.stringify({
+        tags: ["a1", "b2", "c3", "d4", "e5", "f6"],
+        relatedMemoryIds: [],
+        entities: [],
+      }),
+    );
+    expect(result?.tags).toEqual(["a1", "b2", "c3", "d4"]);
   });
 });
 

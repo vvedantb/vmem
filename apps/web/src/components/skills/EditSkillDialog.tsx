@@ -29,12 +29,14 @@ export function EditSkillDialog({
 }: EditSkillDialogProps) {
   const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
     (localStore, args) => {
-      const current = localStore.getQuery(api.skills.listMy, {});
+      const current = localStore.getQuery(api.skills.listMy, {
+        teamId: skill?.teamId,
+      });
       if (!current) return;
       const now = Date.now();
       localStore.setQuery(
         api.skills.listMy,
-        {},
+        { teamId: skill?.teamId },
         current.map((row) => {
           if (row._id !== args.id) return row;
           return {

@@ -155,19 +155,25 @@ const refreshBodySchema = z.object({
 
 export const token = httpAction(async (ctx, request) => {
   const contentType = request.headers.get("Content-Type") ?? "";
-  let body: Record<string, string>;
+  // Parsed via text/URLSearchParams (not request.formData()) and an entries
+  // walk (not a type assertion) so this file typechecks under apps/mobile's
+  // React Native lib types too — they pull in the convex api graph but their
+  // FormData global has no forEach.
+  const body: Record<string, string> = {};
 
   if (contentType.includes("application/x-www-form-urlencoded")) {
-    const formData = await request.formData();
-    body = {};
-    formData.forEach((value, key) => {
-      if (typeof value === "string") {
-        body[key] = value;
-      }
+    const params = new URLSearchParams(await request.text());
+    params.forEach((value, key) => {
+      body[key] = value;
     });
   } else {
     try {
-      body = (await request.json()) as Record<string, string>;
+      const raw: object | null = await request.json();
+      for (const [key, value] of Object.entries(raw ?? {})) {
+        if (typeof value === "string") {
+          body[key] = value;
+        }
+      }
     } catch (err) {
       console.error("[MCP][token] failed to parse JSON body:", err);
       return Response.json(

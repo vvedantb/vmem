@@ -78,11 +78,15 @@ export const getProfilesStats = authAction({
 });
 
 export const getRecentActivity = authAction({
-  args: { limit: v.optional(v.number()) },
+  args: {
+    profileId: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
   handler: async (ctx, args): Promise<ActivityItem[]> => {
     const clerkId = await requireClerkId(ctx);
     return await recentActivityCache.fetch(ctx, {
       clerkId,
+      profileId: args.profileId,
       limit: args.limit,
     });
   },

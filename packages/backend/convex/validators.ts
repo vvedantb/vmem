@@ -74,6 +74,43 @@ export const teamMemberFields = {
 };
 
 /**
+ * Single source of truth for skills table fields.
+ *
+ * Scoping ("user-wide + team"): `teamId` absent = personal skill, visible in
+ * every personal workspace of `userId`. `teamId` set = team skill, visible to
+ * all members of that team (access via teamMembers); `userId` = creator, kept
+ * for attribution and the creator-or-team-owner delete rule.
+ */
+export const skillFields = {
+  userId: v.id("users"),
+  /** When set, this skill belongs to a team. Access via teamMembers. */
+  teamId: v.optional(v.id("teams")),
+  name: v.string(),
+  description: v.string(),
+  instructions: v.string(),
+  enabled: v.optional(v.boolean()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+};
+
+/**
+ * Single source of truth for threadProfiles table fields.
+ *
+ * Maps an agent-component chat thread to the workspace (profile) it was
+ * started in. The agent component's thread docs can't carry custom
+ * metadata, so this side table provides the profile association:
+ * one active thread per (user, profile); threads stay PRIVATE to their
+ * creator even in team profiles.
+ */
+export const threadProfileFields = {
+  userId: v.id("users"),
+  /** Agent-component thread id (string — lives in the component's tables). */
+  threadId: v.string(),
+  profileId: v.id("profiles"),
+  createdAt: v.number(),
+};
+
+/**
  * Single source of truth for userEnvVars table fields.
  *
  * One document per user. `vars` holds the user's environment variables as
@@ -191,6 +228,7 @@ export const openRouterLogRecordFields = {
     v.literal("context-prompt"),
     v.literal("fact-extraction"),
     v.literal("entity-backfill"),
+    v.literal("tag-consolidation"),
     // Embeddings
     v.literal("memory-save"),
     v.literal("memory-search"),
@@ -259,6 +297,10 @@ export const openRouterLogFields = {
  */
 export const wikiNodeFields = {
   userId: v.id("users"),
+  /** When set, this node belongs to a team wiki (whole subtree shares the
+   *  same teamId — parent/child scope consistency enforced in mutations).
+   *  Absent = personal, user-wide. `userId` = creator for team nodes. */
+  teamId: v.optional(v.id("teams")),
   /** undefined = root-level node */
   parentId: v.optional(v.id("wikiNodes")),
   kind: v.union(v.literal("folder"), v.literal("document")),
@@ -284,6 +326,10 @@ export const wikiNodeFields = {
  */
 export const fileNodeFields = {
   userId: v.id("users"),
+  /** When set, this node belongs to a team drive (whole subtree shares the
+   *  same teamId; team storage quota is pooled per team). Absent = personal.
+   *  `userId` = creator for team nodes. */
+  teamId: v.optional(v.id("teams")),
   /** undefined = root-level node */
   parentId: v.optional(v.id("fileNodes")),
   kind: v.union(v.literal("folder"), v.literal("file")),

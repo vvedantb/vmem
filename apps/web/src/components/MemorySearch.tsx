@@ -1,19 +1,19 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useSearch } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useActiveProfile } from "@/components/workspace/active-profile";
+import { useAction, useQuery as useConvexQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@vmem/ui";
 import { IconMoodEmpty } from "@tabler/icons-react";
-import { AnimatePresence, motion } from "motion/react";
 import { Virtuoso } from "react-virtuoso";
 import { api } from "@vmem/backend";
 import MemoryDetailPanel from "./MemoryDetailPanel";
 import ListItemRow from "./_components/ListItemRow";
 import AnimatedSearchIcon from "./_components/AnimatedSearchIcon";
 import { VmemSpinner } from "@/components/svg-animations";
-import { type Memory } from "@/lib/memories";
+import { type Memory, type MemoryType } from "@/lib/memories";
 import {
   listItemMatchesKindFilter,
-  listItemMatchesProfileFilter,
   listItemMatchesSourceFilter,
   listItemMatchesTagFilter,
   listItemMatchesTypeFilter,
@@ -24,10 +24,44 @@ import {
   type ListItem,
   type ListItemSearchResult,
 } from "@/lib/list-items";
-import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
+import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
 import { useMemoryListFlat } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
+
+function isMemoryType(value: string): value is MemoryType {
+  return value === "profile" || value === "episodic" || value === "knowledge";
+}
+
+function apiMemoryToMemory(m: {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  source: string;
+  tags: string[];
+  createdAt: string;
+  profileId?: string;
+  sourceUrl?: string | null;
+  sourceSyncedAt?: string | null;
+}): Memory {
+  return {
+    id: m.id,
+    title: m.title,
+    content: m.content,
+    type: isMemoryType(m.type) ? m.type : "knowledge",
+    source: m.source,
+    sourceUrl: m.sourceUrl ?? null,
+    sourceSyncedAt: m.sourceSyncedAt ?? null,
+    tags: m.tags,
+    createdAt: m.createdAt,
+    profileId: m.profileId,
+  };
+}
+
+interface MemorySearchProps {
+  memoryId: string | null;
+}
 
 /**
  * The "list" view of /memories. Mirrors the graph view's node set by merging
@@ -41,13 +75,15 @@ import { useTrailData } from "@/hooks/useTrailData";
  * memories via the kind filter the list simply hides them and Virtuoso
  * stops asking for more pages.
  */
-export default function MemorySearch() {
+export default function MemorySearch({ memoryId }: MemorySearchProps) {
+  const navigate = useNavigate();
+  const activeProfile = useActiveProfile();
   const searchParams = useSearch({ strict: false });
   const [params, setParams] = useMemoriesSearchParams();
+  const getMemory = useAction(api.memoryApi.getMemory);
 
   const searchQuery = params.q;
   const normalizedQuery = searchQuery.trim();
-  const trimmedProfile = params.profile ?? null;
 
   // First type in the filter wins for the server-side roundtrip. The server
   // only supports a single type; multi-type is rare in practice and the
@@ -60,7 +96,7 @@ export default function MemorySearch() {
     params.kinds.length === 0 || params.kinds.includes("memory");
 
   const memoryPage = useMemoryListFlat({
-    profileId: trimmedProfile,
+    profileId: activeProfile._id,
     type: primaryType,
     source: primarySource,
     tags: params.tags,
@@ -75,15 +111,18 @@ export default function MemorySearch() {
     isFetchingNextPage,
   } = memoryPage;
 
-  const wikiRows = useQuery(api.wiki.listTree);
-  const skillRows = useQuery(api.skills.listMy);
+  const wikiRows = useConvexQuery(api.wiki.listTree, {
+    teamId: activeProfile.teamId,
+  });
+  const skillRows = useConvexQuery(api.skills.listMy, {
+    teamId: activeProfile.teamId,
+  });
   const { theme } = useThemeContext();
   const isDark = theme === "dark";
 
   const trailTag = params.tags.length === 1 ? params.tags[0] : null;
   const { trailMap } = useTrailData({ tag: trailTag });
 
-  const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
     null,
   );
@@ -142,8 +181,7 @@ export default function MemorySearch() {
         listItemMatchesKindFilter(item, params.kinds) &&
         listItemMatchesTagFilter(item, params.tags) &&
         listItemMatchesSourceFilter(item, params.sources) &&
-        listItemMatchesTypeFilter(item, params.types) &&
-        listItemMatchesProfileFilter(item, params.profile),
+        listItemMatchesTypeFilter(item, params.types),
     );
   }, [
     wikiItemsRaw,
@@ -152,7 +190,6 @@ export default function MemorySearch() {
     params.tags,
     params.sources,
     params.types,
-    params.profile,
   ]);
 
   // If multiple types were selected, the server returned results for only
@@ -222,63 +259,113 @@ export default function MemorySearch() {
   const totalItems =
     memoryItemsAfterKind.length + filteredNonMemoryItems.length;
 
+  const memoryFromList = useMemo<Memory | null>(() => {
+    if (!memoryId) return null;
+    return memoryResults.find((memory) => memory.id === memoryId) ?? null;
+  }, [memoryResults, memoryId]);
+
+  const { data: fetchedMemory, isLoading: isFetchingMemory } = useQuery({
+    queryKey: ["memory", memoryId],
+    enabled: memoryId !== null && memoryFromList === null,
+    queryFn: async () => {
+      if (memoryId === null) return null;
+      return getMemory({ memoryId, profileId: activeProfile._id });
+    },
+  });
+
   const selectedMemory = useMemo<Memory | null>(() => {
-    if (!selectedMemoryId) {
-      return null;
-    }
-    return (
-      memoryResults.find((memory) => memory.id === selectedMemoryId) ?? null
-    );
-  }, [memoryResults, selectedMemoryId]);
+    if (!memoryId) return null;
+    if (memoryFromList) return memoryFromList;
+    if (fetchedMemory) return apiMemoryToMemory(fetchedMemory);
+    return null;
+  }, [memoryId, memoryFromList, fetchedMemory]);
 
   useEffect(() => {
-    if (!selectedMemoryId) return;
-    // Only clear the selection if we've actually finished loading pages and
-    // the memory is still missing — otherwise typing in the search box would
-    // flicker the detail panel off for the one keystroke before the next
-    // page arrives.
+    if (!memoryId) return;
     if (isMemoriesLoading || isFetchingNextPage || hasNextPage) return;
-    if (!memoryResults.some((memory) => memory.id === selectedMemoryId)) {
-      setSelectedMemoryId(null);
+    if (isFetchingMemory) return;
+    const inList = memoryResults.some((memory) => memory.id === memoryId);
+    const hasMemory = inList || fetchedMemory !== null;
+    if (!hasMemory) {
+      void navigate({
+        to: "/$profileId/memories/list",
+        params: { profileId: activeProfile._id },
+      });
     }
   }, [
+    activeProfile._id,
+    memoryId,
     memoryResults,
-    selectedMemoryId,
+    fetchedMemory,
     isMemoriesLoading,
     isFetchingNextPage,
     hasNextPage,
+    isFetchingMemory,
+    navigate,
   ]);
 
-  const handleMemoryUpdate = useCallback((updatedMemory: Memory) => {
-    setSelectedMemoryId(updatedMemory.id);
-  }, []);
+  const openMemory = useCallback(
+    (id: string) => {
+      void navigate({
+        to: "/$profileId/memories/list/$id",
+        params: { profileId: activeProfile._id, id },
+      });
+    },
+    [navigate, activeProfile._id],
+  );
+
+  const closeMemory = useCallback(() => {
+    void navigate({
+      to: "/$profileId/memories/list",
+      params: { profileId: activeProfile._id },
+    });
+  }, [navigate, activeProfile._id]);
+
+  const handleMemoryUpdate = useCallback(
+    (updatedMemory: Memory) => {
+      if (memoryId !== updatedMemory.id) {
+        openMemory(updatedMemory.id);
+      }
+    },
+    [memoryId, openMemory],
+  );
 
   const handleMemoryDelete = useCallback(
     (deletedId: string) => {
-      if (selectedMemoryId === deletedId) {
-        setSelectedMemoryId(null);
+      if (memoryId === deletedId) {
+        closeMemory();
       }
     },
-    [selectedMemoryId],
+    [memoryId, closeMemory],
   );
 
   const handleMemoryClick = useCallback(
     (memory: Memory) => {
       setPanelAction(null);
-      setSelectedMemoryId(selectedMemoryId === memory.id ? null : memory.id);
+      if (memoryId === memory.id) {
+        closeMemory();
+        return;
+      }
+      openMemory(memory.id);
     },
-    [selectedMemoryId],
+    [memoryId, closeMemory, openMemory],
   );
 
-  const handleContextEdit = useCallback((memory: Memory) => {
-    setSelectedMemoryId(memory.id);
-    setPanelAction("edit");
-  }, []);
+  const handleContextEdit = useCallback(
+    (memory: Memory) => {
+      openMemory(memory.id);
+      setPanelAction("edit");
+    },
+    [openMemory],
+  );
 
-  const handleContextDelete = useCallback((memory: Memory) => {
-    setSelectedMemoryId(memory.id);
-    setPanelAction("delete");
-  }, []);
+  const handleContextDelete = useCallback(
+    (memory: Memory) => {
+      openMemory(memory.id);
+      setPanelAction("delete");
+    },
+    [openMemory],
+  );
 
   const handleConsumeAction = useCallback(() => {
     setPanelAction(null);
@@ -289,6 +376,12 @@ export default function MemorySearch() {
       void fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, isMemoriesLoading, fetchNextPage]);
+
+  const hasMemoryRoute = memoryId !== null;
+  const isPanelLoading =
+    hasMemoryRoute &&
+    selectedMemory === null &&
+    (isFetchingMemory || isMemoriesLoading || isFetchingNextPage);
 
   // Initial load: block render until we've heard back from the memory
   // page query at least once. Subsequent page fetches render inline.
@@ -337,13 +430,15 @@ export default function MemorySearch() {
           <div
             className={cn(
               "flex flex-1 min-h-0 gap-4",
-              selectedMemory ? "flex-col lg:flex-row" : "",
+              hasMemoryRoute ? "flex-col lg:flex-row" : "",
             )}
           >
             <div
               className={cn(
-                "flex-1 min-w-0 min-h-0",
-                selectedMemory ? "hidden sm:block" : "",
+                "min-w-0 min-h-0",
+                hasMemoryRoute
+                  ? "hidden sm:block lg:flex-[2] lg:min-w-0"
+                  : "flex-1",
               )}
             >
               <Virtuoso
@@ -356,7 +451,7 @@ export default function MemorySearch() {
                     <ListItemRow
                       item={entry.item}
                       relevanceScore={entry.score}
-                      isSelected={selectedMemoryId === entry.item.id}
+                      isSelected={memoryId === entry.item.id}
                       trailEntry={trailMap.get(entry.item.id)}
                       isDark={isDark}
                       onMemoryClick={handleMemoryClick}
@@ -369,28 +464,27 @@ export default function MemorySearch() {
               />
             </div>
 
-            <AnimatePresence>
-              {selectedMemory && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-full lg:w-[420px] lg:flex-shrink-0 min-h-0 overflow-y-auto"
-                >
+            {hasMemoryRoute ? (
+              <div className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:flex-[3] lg:min-w-0">
+                {selectedMemory ? (
                   <MemoryDetailPanel
+                    key={memoryId}
                     memory={selectedMemory}
-                    onClose={() => setSelectedMemoryId(null)}
+                    onClose={closeMemory}
                     onMemoryUpdate={handleMemoryUpdate}
                     onMemoryDelete={handleMemoryDelete}
-                    onSelectRelated={(memory) => setSelectedMemoryId(memory.id)}
+                    onSelectRelated={(memory) => openMemory(memory.id)}
                     startInEditMode={panelAction === "edit"}
                     startWithDelete={panelAction === "delete"}
                     onConsumeAction={handleConsumeAction}
                   />
-                </motion.div>
-              )}
-            </AnimatePresence>
+                ) : isPanelLoading ? (
+                  <div className="flex h-full items-center justify-center rounded-lg bg-surface-secondary">
+                    <VmemSpinner size={20} className="text-muted" />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         )}
       </div>

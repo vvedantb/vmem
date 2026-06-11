@@ -14,6 +14,7 @@ import {
 import { IconLoader2, IconUpload } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { optimisticId } from "@/lib/optimisticId";
+import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface UploadSkillDialogProps {
   open: boolean;
@@ -49,9 +50,10 @@ export function UploadSkillDialog({
   onOpenChange,
   onCreated,
 }: UploadSkillDialogProps) {
+  const teamId = useActiveTeamId();
   const createSkill = useMutation(api.skills.createSkill).withOptimisticUpdate(
     (localStore, args) => {
-      const current = localStore.getQuery(api.skills.listMy, {});
+      const current = localStore.getQuery(api.skills.listMy, { teamId });
       if (!current || current.length === 0) return;
       const now = Date.now();
       const tempId = optimisticId("skills");
@@ -59,6 +61,7 @@ export function UploadSkillDialog({
         _id: tempId,
         _creationTime: now,
         userId: current[0].userId,
+        teamId,
         name: args.name.trim(),
         description: args.description,
         instructions: args.instructions,
@@ -66,7 +69,7 @@ export function UploadSkillDialog({
         createdAt: now,
         updatedAt: now,
       };
-      localStore.setQuery(api.skills.listMy, {}, [row, ...current]);
+      localStore.setQuery(api.skills.listMy, { teamId }, [row, ...current]);
     },
   );
   const [submitting, setSubmitting] = useState(false);
@@ -96,6 +99,7 @@ export function UploadSkillDialog({
         name: trimmedName,
         description: "",
         instructions,
+        teamId,
       });
       toast.success(`Added ${trimmedName}`);
       onOpenChange(false);

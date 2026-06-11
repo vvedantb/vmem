@@ -2,14 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { ListItem } from "./list-items";
 import {
   listItemMatchesKindFilter,
-  listItemMatchesProfileFilter,
   listItemMatchesSourceFilter,
   listItemMatchesTagFilter,
   listItemMatchesTypeFilter,
 } from "./list-items";
 import type { Memory } from "./memories";
 import {
-  memoryMatchesProfileFilter,
   memoryMatchesSourceFilters,
   memoryMatchesTagFilters,
   memoryMatchesTypeFilters,
@@ -85,13 +83,6 @@ describe("list item filters", () => {
     expect(listItemMatchesTypeFilter(memoryItem, ["episodic"])).toBe(false);
     expect(listItemMatchesTypeFilter(wikiDoc, ["episodic"])).toBe(true);
   });
-
-  it("filters memories by profile while leaving other kinds visible", () => {
-    expect(listItemMatchesProfileFilter(memoryItem, "profile-a")).toBe(true);
-    expect(listItemMatchesProfileFilter(memoryItem, "profile-b")).toBe(false);
-    expect(listItemMatchesProfileFilter(wikiDoc, "profile-b")).toBe(true);
-    expect(listItemMatchesProfileFilter(memoryItem, null)).toBe(true);
-  });
 });
 
 describe("memory filters", () => {
@@ -99,7 +90,6 @@ describe("memory filters", () => {
     expect(memoryMatchesTagFilters(sampleMemory, [])).toBe(true);
     expect(memoryMatchesSourceFilters(sampleMemory, [])).toBe(true);
     expect(memoryMatchesTypeFilters(sampleMemory, [])).toBe(true);
-    expect(memoryMatchesProfileFilter(sampleMemory, null)).toBe(true);
   });
 
   it("matches tags case-insensitively with AND semantics", () => {
@@ -109,14 +99,12 @@ describe("memory filters", () => {
     );
   });
 
-  it("matches source, type, and profile filters", () => {
+  it("matches source and type filters", () => {
     expect(
       memoryMatchesSourceFilters(sampleMemory, ["browser-extension"]),
     ).toBe(true);
     expect(memoryMatchesSourceFilters(sampleMemory, ["web"])).toBe(false);
     expect(memoryMatchesTypeFilters(sampleMemory, ["episodic"])).toBe(true);
     expect(memoryMatchesTypeFilters(sampleMemory, ["knowledge"])).toBe(false);
-    expect(memoryMatchesProfileFilter(sampleMemory, "profile-a")).toBe(true);
-    expect(memoryMatchesProfileFilter(sampleMemory, "profile-b")).toBe(false);
   });
 });

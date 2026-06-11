@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
@@ -25,15 +26,17 @@ interface WikiWorkspaceProps {
  */
 export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const navigate = useNavigate();
-  const nodes = useQuery(api.wiki.listTree);
+  const activeProfile = useActiveProfile();
+  const teamId = activeProfile.teamId;
+  const nodes = useQuery(api.wiki.listTree, { teamId });
   const doc = useQuery(api.wiki.getNode, docId ? { id: docId } : "skip");
   const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
     (localStore, args) => {
-      const tree = localStore.getQuery(api.wiki.listTree, {});
+      const tree = localStore.getQuery(api.wiki.listTree, { teamId });
       if (tree) {
         localStore.setQuery(
           api.wiki.listTree,
-          {},
+          { teamId },
           tree.map((node) =>
             node._id === args.id
               ? { ...node, title: args.title, updatedAt: Date.now() }
@@ -130,12 +133,12 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     const firstId = findFirstDocumentId(tree);
     if (firstId !== null) {
       void navigate({
-        to: "/wiki/$docId",
-        params: { docId: firstId },
+        to: "/$profileId/wiki/$docId",
+        params: { profileId: activeProfile._id, docId: firstId },
         replace: true,
       });
     }
-  }, [hasDocId, nodes, tree, navigate]);
+  }, [hasDocId, nodes, tree, navigate, activeProfile._id]);
 
   // URL points at a folder (not a document) — open first document instead.
   useEffect(() => {
@@ -144,12 +147,12 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     const firstId = findFirstDocumentId(tree);
     if (firstId !== null && firstId !== docId) {
       void navigate({
-        to: "/wiki/$docId",
-        params: { docId: firstId },
+        to: "/$profileId/wiki/$docId",
+        params: { profileId: activeProfile._id, docId: firstId },
         replace: true,
       });
     }
-  }, [hasDocId, docId, doc, nodes, tree, navigate]);
+  }, [hasDocId, docId, doc, nodes, tree, navigate, activeProfile._id]);
 
   return (
     <PageContainer

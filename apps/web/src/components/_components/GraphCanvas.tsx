@@ -23,7 +23,7 @@ import {
   zoomAt,
 } from "./canvas/viewport";
 import { createSpatialIndex, rebuildIndex, markDirty } from "./canvas/hit-test";
-import { render } from "./canvas/renderer";
+import { render, createWorldLayerCache } from "./canvas/renderer";
 import { attachInputHandlers } from "./canvas/input-handler";
 import {
   loadConnectorLogos,
@@ -41,6 +41,20 @@ export interface GraphCanvasHandle {
   zoomOut: () => void;
   fit: () => void;
 }
+
+// Every graph gets the world-layer blit cache. Small graphs render fast, but
+// "fast" is not free on a high-DPR display with glow + edges — a ~300-node
+// depth-3 local view could still spike past the frame budget mid-zoom because
+// below the old 400-node threshold every gesture frame was a full render.
+// Blitting is size-independent (~0.02ms), the crisp-zoom band caps drift at
+// ~25% before a re-render, and tiny graphs' cache refreshes are sub-ms anyway.
+const BLIT_CACHE_MIN_NODES = 0;
+
+// While a pan/zoom gesture runs over a HOT simulation, gesture frames blit a
+// snapshot of the moving layout and re-render it at most this often — the
+// settle animation progresses at ~7fps while the gesture itself stays at
+// frame rate. Once the gesture ends, settle frames render fully again.
+const SETTLE_SNAPSHOT_MS = 150;
 
 interface GraphCanvasProps {
   nodes: GraphNode[];
@@ -319,8 +333,31 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       }
 
       let lastEdgesRef = edgesRef.current;
-      let allEdgesResolved = false;
+      // Resolve edges exactly once per edges-array identity. Comparing counts
+      // (the old approach) re-ran the O(nodes + edges) resolution every frame
+      // when any edge referenced a node that isn't loaded — which is routine
+      // with paged loading (cross-page edges) and suppressed memories.
+      let lastResolvedEdges: GraphEdge[] | null = null;
       let frameCount = 0;
+      // Spatial-index rebuild cadence while positions move: O(n) per rebuild,
+      // so large graphs rebuild less often (hover precision during the settle
+      // animation is not worth 100k-element rebuilds at 20 Hz).
+      const indexRebuildInterval = nodes.length > 20_000 ? 10 : 3;
+      // World-layer blit cache: pan/zoom frames become one drawImage instead
+      // of re-tracing every node and edge (full render measures 6ms at 500
+      // nodes with 15ms spikes, 26ms at ~2.7k — both miss frames mid-gesture).
+      // A blit is ~0.01ms regardless of size; the bitmap goes slightly soft
+      // while the gesture is in flight and the crisp-zoom band re-renders it
+      // before drift passes ~25% (see cacheSharp / lastFrameWasBlit).
+      const worldCache =
+        nodes.length > BLIT_CACHE_MIN_NODES ? createWorldLayerCache() : null;
+      let lastFrameWasBlit = false;
+      // Timestamp of the last full scene render — drives the snapshot-refresh
+      // cadence when a gesture runs over a hot simulation (see viewportOnly).
+      let lastSceneRenderAt = 0;
+      // Sim positions version captured at the last real scene paint (blits
+      // excluded — they reuse the old bitmap). See positionsNeedPaint.
+      let lastPaintedSimVersion = -1;
       // Render-on-demand state. The rAF loop never stops (its idle cost is a
       // handful of comparisons), but all real work — physics-driven index
       // rebuilds and the canvas draw — is skipped while the simulation is
@@ -338,6 +375,14 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         const simActive = sim.alpha() >= SLEEP_ALPHA;
         const isDragging = interactionRef.current.draggedNodeId !== null;
         const positionsMoving = simActive || isDragging;
+        // The worker posts positions at ~30Hz while this loop runs at 60 —
+        // a hot-sim frame whose positions haven't advanced would repaint an
+        // identical scene. Only treat the sim as needing paint when the
+        // version moved. Drags are exempt: the dragged node's x/y is set
+        // synchronously on the main thread per mousemove, between versions.
+        const simVersion = sim.positionsVersion();
+        const positionsFresh = simVersion !== lastPaintedSimVersion;
+        const positionsNeedPaint = isDragging || (simActive && positionsFresh);
 
         // Compare viewport state frame-to-frame: catches spring/momentum from
         // tickViewport AND direct mutations from pan/pinch/wheel handlers.
@@ -351,21 +396,33 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         lastVpScale = vp.scale;
 
         const ix = interactionRef.current;
+        // Mirrors hoverVisuals in renderer.ts: on huge graphs at far zoom the
+        // renderer ignores hover entirely, so hover changes must not count as
+        // frame invalidation either — otherwise sweeping the mouse across a
+        // fitted 100k graph forces a full O(n) repaint per mousemove.
+        const hoverVisualsEnabled = !(
+          nodesRef.current.length > 5000 && vp.scale < 0.4
+        );
         const interactionKey =
-          `${ix.hoveredNodeId}|${ix.hoveredEdgeIndex}|${ix.draggedNodeId}|` +
+          (hoverVisualsEnabled
+            ? `${ix.hoveredNodeId}|${ix.hoveredEdgeIndex}`
+            : "-") +
+          `|${ix.draggedNodeId}|` +
           `${ix.linkSourceId}|${ix.isPanning}|` +
           (ix.linkSourceId ? `${ix.mouseWorldX},${ix.mouseWorldY}` : "");
         const interactionChanged = interactionKey !== lastInteractionKey;
         lastInteractionKey = interactionKey;
 
-        // Spatial index only needs rebuilding while node positions move.
-        if (positionsMoving) {
+        // Spatial index only needs rebuilding while node positions move —
+        // and only on frames where they actually advanced (same 30Hz gate
+        // as painting; rebuilding over unchanged positions is pure waste).
+        if (positionsMoving && positionsNeedPaint) {
           markDirty(spatialIndexRef.current);
           frameCount++;
-          if (frameCount % 3 === 0) {
+          if (frameCount % indexRebuildInterval === 0) {
             rebuildIndex(spatialIndexRef.current, nodesRef.current);
           }
-        } else if (wasMoving) {
+        } else if (!positionsMoving && wasMoving) {
           // One final rebuild + repaint on settle so hit-testing and the
           // canvas both match the resting positions (the worker's last
           // position message can land after the previous rendered frame).
@@ -377,7 +434,6 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
 
         if (edgesRef.current !== lastEdgesRef) {
           buildNeighborMap();
-          allEdgesResolved = false;
           // Clear stale edge-hover index: the old idx could now point to a
           // different edge (or past the end) after the edges array changes.
           if (interactionRef.current.hoveredEdgeIndex !== null) {
@@ -388,10 +444,9 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           needsRenderRef.current = true;
         }
 
-        if (!allEdgesResolved) {
+        if (lastResolvedEdges !== edgesRef.current) {
           resolveEdges();
-          allEdgesResolved =
-            resolvedEdgesCache.length === edgesRef.current.length;
+          lastResolvedEdges = edgesRef.current;
           needsRenderRef.current = true;
         }
 
@@ -405,8 +460,15 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           needsRenderRef.current = true;
         }
 
+        // A blitted frame is approximate (scaled bitmap). The first frame
+        // after the gesture settles must re-render crisp at the final
+        // viewport — otherwise the gate below would freeze the blurry frame.
+        if (lastFrameWasBlit && !viewportMoved) {
+          needsRenderRef.current = true;
+        }
+
         if (
-          !positionsMoving &&
+          !positionsNeedPaint &&
           !viewportMoved &&
           !interactionChanged &&
           !needsRenderRef.current &&
@@ -415,9 +477,52 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           rafId = requestAnimationFrame(tick);
           return;
         }
+        const propsChanged = needsRenderRef.current;
         needsRenderRef.current = false;
+        // Pan/zoom gesture in flight: spring still converging on target
+        // scale/offset, an active pan, or leftover momentum.
+        const gestureActive =
+          ix.isPanning ||
+          Math.abs(vp.targetScale - vp.scale) > 0.001 ||
+          Math.abs(vp.targetOffsetX - vp.offsetX) > 0.5 ||
+          Math.abs(vp.targetOffsetY - vp.offsetY) > 0.5 ||
+          Math.abs(vp.velocityX) > 0.5 ||
+          Math.abs(vp.velocityY) > 0.5;
+        // Viewport-only frames (pure pan/zoom) are blit-eligible. Normally
+        // that requires resting node positions — but when a gesture runs over
+        // a HOT simulation (initial settle, post-drag reheat), re-rendering
+        // the moving layout every frame makes the gesture itself stutter. The
+        // gesture wins: blit the recent snapshot and refresh it once per
+        // SETTLE_SNAPSHOT_MS, so the layout animation visibly progresses while
+        // zoom/pan stays at frame rate. Node drags are exempt (gestureActive
+        // is false then) — dragging needs live per-frame feedback.
+        const snapshotFresh =
+          performance.now() - lastSceneRenderAt < SETTLE_SNAPSHOT_MS;
+        // Blitting a snapshot whose scale has drifted far from the live scale
+        // upscales pixels into visible blur (zooming deep into a cluster could
+        // stretch the bitmap several-fold before the settle frame re-crisped
+        // it). Outside the sharpness band the gesture frame re-renders the
+        // scene instead — gesture renders skip the glow pass so this stays
+        // inside the frame budget.
+        const cacheSharp =
+          worldCache !== null &&
+          worldCache.valid &&
+          vp.scale / worldCache.scale < 1.25 &&
+          vp.scale / worldCache.scale > 0.8;
+        const viewportOnly =
+          viewportMoved &&
+          !interactionChanged &&
+          !propsChanged &&
+          hasFittedRef.current &&
+          cacheSharp &&
+          (!positionsMoving || (gestureActive && snapshotFresh));
 
-        if (!hasFittedRef.current && sim.alpha() < 0.15) {
+        // Fit on the first frame: positions are seeded synchronously (golden
+        // spiral or carried over from the previous simulation), and the spiral
+        // already spans the layout's final extent — so an immediate fit shows
+        // the whole graph morphing into place. The old alpha-gated fit left
+        // big graphs unframed for seconds while warm-up ran.
+        if (!hasFittedRef.current) {
           fitToNodes(viewportRef.current, nodesRef.current, w, h);
           hasFittedRef.current = true;
         }
@@ -456,7 +561,15 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           isSearchActiveRef.current,
           showLabelsRef.current,
           connectorLogosRef.current,
+          worldCache,
+          viewportOnly,
+          gestureActive,
         );
+        lastFrameWasBlit = viewportOnly && worldCache !== null;
+        if (!lastFrameWasBlit) {
+          lastSceneRenderAt = performance.now();
+          lastPaintedSimVersion = simVersion;
+        }
 
         rafId = requestAnimationFrame(tick);
       }

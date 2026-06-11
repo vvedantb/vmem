@@ -4,8 +4,10 @@ import {
   wikiNodeFields,
   fileNodeFields,
   profileFields,
+  skillFields,
   teamFields,
   teamMemberFields,
+  threadProfileFields,
   userEnvVarFields,
   codebaseFields,
   openRouterLogFields,
@@ -212,33 +214,36 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_repo", ["userId", "repoFullName"]),
 
-  skills: defineTable({
-    userId: v.id("users"),
-    name: v.string(),
-    description: v.string(),
-    instructions: v.string(),
-    enabled: v.optional(v.boolean()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
+  /** Thread → workspace mapping for chat (see threadProfileFields). */
+  threadProfiles: defineTable(threadProfileFields)
+    .index("by_thread", ["threadId"])
+    .index("by_user_profile", ["userId", "profileId"]),
+
+  skills: defineTable(skillFields)
     .index("by_user", ["userId"])
-    .index("by_user_name", ["userId", "name"]),
+    .index("by_user_name", ["userId", "name"])
+    .index("by_team", ["teamId"])
+    .index("by_team_name", ["teamId", "name"]),
 
   wikiNodes: defineTable(wikiNodeFields)
     .index("by_user", ["userId"])
     .index("by_user_parent", ["userId", "parentId"])
+    .index("by_team", ["teamId"])
+    .index("by_team_parent", ["teamId", "parentId"])
     .searchIndex("search_title", {
       searchField: "title",
-      filterFields: ["userId"],
+      filterFields: ["userId", "teamId"],
     })
     .searchIndex("search_content", {
       searchField: "contentText",
-      filterFields: ["userId"],
+      filterFields: ["userId", "teamId"],
     }),
 
   fileNodes: defineTable(fileNodeFields)
     .index("by_user", ["userId"])
-    .index("by_user_parent", ["userId", "parentId"]),
+    .index("by_user_parent", ["userId", "parentId"])
+    .index("by_team", ["teamId"])
+    .index("by_team_parent", ["teamId", "parentId"]),
 
   userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
 

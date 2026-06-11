@@ -10,7 +10,7 @@ export default function DiffDisplay({ oldText, newText }: DiffDisplayProps) {
   const changes: Change[] = diffWords(oldText, newText);
 
   return (
-    <div className="font-mono text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+    <div className="overflow-hidden break-words font-mono text-sm leading-relaxed whitespace-pre-wrap text-foreground">
       {changes.map((part, index) => {
         if (part.added) {
           return (

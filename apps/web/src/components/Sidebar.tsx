@@ -14,7 +14,7 @@ import {
   motionEase,
 } from "@vmem/ui";
 import { useUser } from "@clerk/clerk-react";
-import { useConvexAuth, useAction } from "convex/react";
+import { useConvexAuth, useAction, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { useNotifications } from "./contexts/NotificationContext";
 import { useProposals } from "@/hooks/useProposals";
@@ -28,7 +28,9 @@ import {
 } from "./sidebar/SidebarNavigation";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
 import { SidebarFooter, type SidebarStats } from "./sidebar/SidebarFooter";
+import { SidebarWorkspaceSwitcher } from "./sidebar/SidebarWorkspaceSwitcher";
 import { usePageTitle } from "./contexts/PageTitleContext";
+import { useActiveProfileId } from "./workspace/active-profile";
 
 type SidebarProps = {
   isCollapsed: boolean;
@@ -40,6 +42,7 @@ export default function Sidebar({
   onToggleCollapse,
 }: SidebarProps) {
   const { pathname } = useLocation();
+  const activeProfileId = useActiveProfileId();
   const [navView, setNavView] = useState<SidebarNavView>(() =>
     navViewFromPathname(pathname),
   );
@@ -56,10 +59,22 @@ export default function Sidebar({
   const getStats = useAction(api.dashboardApi.getStats);
   const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
 
+  // Whether the active workspace is a team profile — drives the conditional
+  // "Team" nav group (members / team settings).
+  const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
+  const isTeamWorkspace =
+    profiles?.find((p) => p._id === activeProfileId)?.teamId !== undefined;
+
   const refreshStats = useCallback(
     async (fresh: boolean) => {
       try {
-        const data = await getStats(fresh ? { fresh: true } : {});
+        // Scope counts to the active workspace; without one (fresh browser
+        // on /settings) fall back to user-wide totals.
+        const data = await getStats(
+          fresh
+            ? { fresh: true, profileId: activeProfileId }
+            : { profileId: activeProfileId },
+        );
         setStats({
           addedToday: data.memoriesAddedToday,
           total: data.totalMemories,
@@ -68,7 +83,7 @@ export default function Sidebar({
         // silently fail -- sidebar stats are non-critical
       }
     },
-    [getStats],
+    [getStats, activeProfileId],
   );
 
   useEffect(() => {
@@ -176,8 +191,18 @@ export default function Sidebar({
                 mobileCloseButton={mobileMenuCloseButton}
                 onLogoNavigate={() => setMobileMenuOpen(false)}
               />
+              {navView === "main" ? (
+                <div className="mb-4">
+                  <SidebarWorkspaceSwitcher
+                    collapsed={false}
+                    onNavigate={() => setMobileMenuOpen(false)}
+                  />
+                </div>
+              ) : null}
               <SidebarNavigation
                 pathname={pathname}
+                profileId={activeProfileId}
+                isTeamWorkspace={isTeamWorkspace}
                 unreadCount={unreadCount}
                 proposalsCount={proposalsCount}
                 isCollapsed={false}
@@ -212,8 +237,16 @@ export default function Sidebar({
             onToggleCollapse={onToggleCollapse}
           />
 
+          {navView === "main" ? (
+            <div className="mb-4">
+              <SidebarWorkspaceSwitcher collapsed={isCollapsed} />
+            </div>
+          ) : null}
+
           <SidebarNavigation
             pathname={pathname}
+            profileId={activeProfileId}
+            isTeamWorkspace={isTeamWorkspace}
             unreadCount={unreadCount}
             proposalsCount={proposalsCount}
             isCollapsed={isCollapsed}

@@ -2,14 +2,10 @@
  * Simulation controller — wraps d3-force in a Web Worker for off-main-thread physics.
  * Falls back to main-thread simulation if Worker creation fails.
  */
-import {
-  forceSimulation,
-  forceLink,
-  forceManyBody,
-  forceCenter,
-  forceCollide,
-} from "d3-force";
+import { forceSimulation } from "d3-force";
 import type { GraphNode, GraphEdge } from "./types";
+import { physicsProfile } from "./physics-profile";
+import { createGraphForces, VELOCITY_DECAY } from "./physics-forces";
 
 /**
  * Below this alpha the layout is visually static. The worker stops its tick
@@ -20,13 +16,21 @@ export const SLEEP_ALPHA = 0.005;
 
 type WorkerPositionMessage = {
   type: "positions";
-  buffer: Float64Array;
+  buffer: Float32Array;
   alpha: number;
 };
 
 export interface SimulationController {
   /** Current simulation alpha (convergence indicator, 0 = stable) */
   alpha: () => number;
+  /**
+   * Monotonic counter, bumped each time node positions actually change
+   * (worker position message / fallback tick). The worker posts at ~30Hz
+   * while the rAF loop runs at 60 — rendering settle frames whose positions
+   * have not changed is pure waste, so GraphCanvas repaints the hot layout
+   * only when this advances.
+   */
+  positionsVersion: () => number;
   /** Tick the simulation once — no-op for Worker mode (worker ticks itself) */
   tick: () => void;
   reheat: () => void;
@@ -102,9 +106,18 @@ function createWorkerSimulation(
 ): SimulationController {
   seedNodePositions(nodes);
 
-  const worker = new Worker(new URL("./simulation-worker.ts", import.meta.url));
+  // type: "module" is load-bearing: the worker source uses ESM imports, and a
+  // classic worker dies on its first `import` with an ASYNC SyntaxError that
+  // the try/catch around createSimulation never sees — no physics, and alpha
+  // stays 1 forever so GraphCanvas full-renders every frame (no blit, no
+  // idle sleep). The onerror fallback below guards the same failure mode.
+  const worker = new Worker(
+    new URL("./simulation-worker.ts", import.meta.url),
+    { type: "module" },
+  );
 
   let currentAlpha = 1;
+  let positionsVersion = 0;
 
   // Build node index for fast lookups when applying position updates
   const nodeById = new Map<string, GraphNode>();
@@ -145,6 +158,7 @@ function createWorkerSimulation(
     if (msg.type === "positions") {
       const buffer = msg.buffer;
       currentAlpha = msg.alpha;
+      positionsVersion++;
       for (let i = 0; i < nodes.length; i++) {
         // Don't overwrite position of a node being dragged (main thread has authority)
         if (nodes[i].fx !== undefined && nodes[i].fx !== null) continue;
@@ -154,21 +168,49 @@ function createWorkerSimulation(
     }
   };
 
+  // Worker failures are ASYNC (script load/parse errors never hit the sync
+  // try/catch in createSimulation). Without this fallback a dead worker means
+  // no physics AND currentAlpha pinned at 1 — which keeps GraphCanvas's
+  // positionsMoving true so every frame full-renders forever. Swap to the
+  // main-thread simulation instead; every controller method delegates.
+  let fallback: SimulationController | null = null;
+  let stopped = false;
+  worker.onerror = (event: ErrorEvent) => {
+    if (fallback || stopped) return;
+    console.warn(
+      "[simulation] Worker failed, falling back to main thread:",
+      event.message,
+    );
+    worker.terminate();
+    fallback = createMainThreadSimulation(nodes, edges, scalingRatio, gravity);
+  };
+
   return {
-    alpha: () => currentAlpha,
+    alpha: () => (fallback ? fallback.alpha() : currentAlpha),
 
-    // No-op: worker handles its own ticking
-    tick: () => {},
+    positionsVersion: () =>
+      fallback ? fallback.positionsVersion() : positionsVersion,
 
-    reheat: () => worker.postMessage({ type: "reheat" }),
+    // No-op in worker mode (worker ticks itself); drives the fallback sim.
+    tick: () => fallback?.tick(),
 
-    setStrength: (s: number) =>
-      worker.postMessage({ type: "setStrength", scalingRatio: s }),
+    reheat: () => {
+      if (fallback) return fallback.reheat();
+      worker.postMessage({ type: "reheat" });
+    },
 
-    setGravity: (g: number) =>
-      worker.postMessage({ type: "setGravity", gravity: g }),
+    setStrength: (s: number) => {
+      if (fallback) return fallback.setStrength(s);
+      worker.postMessage({ type: "setStrength", scalingRatio: s });
+    },
+
+    setGravity: (g: number) => {
+      if (fallback) return fallback.setGravity(g);
+      worker.postMessage({ type: "setGravity", gravity: g });
+    },
 
     dragStart: (nodeId: string, x: number, y: number) => {
+      if (fallback) return fallback.dragStart(nodeId, x, y);
       // Set on main thread for immediate visual feedback
       const node = nodeById.get(nodeId);
       if (node) {
@@ -179,6 +221,7 @@ function createWorkerSimulation(
     },
 
     dragMove: (nodeId: string, x: number, y: number) => {
+      if (fallback) return fallback.dragMove(nodeId, x, y);
       const node = nodeById.get(nodeId);
       if (node) {
         node.x = x;
@@ -190,6 +233,7 @@ function createWorkerSimulation(
     },
 
     dragEnd: (nodeId: string) => {
+      if (fallback) return fallback.dragEnd(nodeId);
       const node = nodeById.get(nodeId);
       if (node) {
         node.fx = null;
@@ -199,6 +243,7 @@ function createWorkerSimulation(
     },
 
     updateData: (newNodes: GraphNode[], newEdges: GraphEdge[]) => {
+      if (fallback) return fallback.updateData(newNodes, newEdges);
       // Full re-init: terminate and restart would be simpler,
       // but the effect in GraphCanvas.tsx already recreates the simulation on data change.
       // This is here for interface compatibility.
@@ -224,7 +269,11 @@ function createWorkerSimulation(
       });
     },
 
-    stop: () => worker.terminate(),
+    stop: () => {
+      stopped = true;
+      if (fallback) return fallback.stop();
+      worker.terminate();
+    },
   };
 }
 
@@ -238,47 +287,39 @@ function createMainThreadSimulation(
 ): SimulationController {
   seedNodePositions(nodes);
 
-  const chargeStrength = -scalingRatio * 8;
-  const theta = nodes.length > 10_000 ? 1.5 : 0.9;
+  const profile = physicsProfile(nodes.length);
 
   // Only structural edges participate in physics — tag edges are visual-only.
   // This prevents nodes from clustering just because they share tags, keeping
   // the layout driven by meaningful semantic relationships.
   const structuralEdges = edges.filter((e) => e.edgeType !== "tag");
 
-  const linkForce = forceLink<GraphNode, GraphEdge>(structuralEdges)
-    .id((d) => d.id)
-    .distance(70)
-    .strength(0.6);
-
-  const chargeForce = forceManyBody<GraphNode>()
-    .strength(chargeStrength)
-    .theta(theta);
-
-  const centerForce = forceCenter<GraphNode>(0, 0).strength(gravity * 2.0);
-
-  // Hard non-overlap: radius matches the rendered node (size*2) plus a pad,
-  // strength 1 + 3 iterations so the force fully resolves even in dense
-  // clusters where many constraints compete each tick.
-  const collideForce = forceCollide<GraphNode>()
-    .radius((d) => d.size * 2 + 8)
-    .strength(1)
-    .iterations(3);
+  const forces = createGraphForces<GraphNode, GraphEdge>(
+    structuralEdges,
+    scalingRatio,
+    gravity,
+    profile,
+  );
 
   // .stop() kills d3's internal timer — GraphCanvas's rAF loop drives ticking
   // through controller.tick(), which gates on SLEEP_ALPHA so a settled layout
   // costs nothing per frame.
   const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)
-    .force("link", linkForce)
-    .force("charge", chargeForce)
-    .force("center", centerForce)
-    .force("collide", collideForce)
-    .alphaDecay(0.03)
-    .velocityDecay(0.5)
+    .force("link", forces.link)
+    .force("charge", forces.charge)
+    .force("centerX", forces.centerX)
+    .force("centerY", forces.centerY)
+    .alphaDecay(profile.alphaDecay)
+    .velocityDecay(VELOCITY_DECAY)
     .stop();
 
-  // Warm-up (main thread — blocks but same as original behavior)
-  for (let i = 0; i < 150; i++) {
+  if (forces.collide) {
+    simulation.force("collide", forces.collide);
+  }
+
+  // Warm-up (main thread — blocks, so the adaptive tick count matters even
+  // more here than in the worker path)
+  for (let i = 0; i < profile.warmupTicks; i++) {
     simulation.tick();
   }
   simulation.alpha(0.2);
@@ -286,8 +327,12 @@ function createMainThreadSimulation(
   const nodeById = new Map<string, GraphNode>();
   for (const n of nodes) nodeById.set(n.id, n);
 
+  let positionsVersion = 0;
+
   return {
     alpha: () => simulation.alpha(),
+
+    positionsVersion: () => positionsVersion,
 
     tick() {
       // Sleep gate: skip force passes once settled, unless a drag is holding
@@ -295,6 +340,7 @@ function createMainThreadSimulation(
       if (simulation.alpha() < SLEEP_ALPHA && simulation.alphaTarget() === 0)
         return;
       simulation.tick();
+      positionsVersion++;
     },
 
     reheat() {
@@ -303,12 +349,12 @@ function createMainThreadSimulation(
     },
 
     setStrength(s: number) {
-      chargeForce.strength(-s * 8);
+      forces.setStrength(s);
       simulation.alpha(0.3);
     },
 
     setGravity(g: number) {
-      centerForce.strength(g * 2.0);
+      forces.setGravity(g);
       simulation.alpha(0.3);
     },
 
@@ -344,7 +390,7 @@ function createMainThreadSimulation(
 
     updateData(newNodes: GraphNode[], newEdges: GraphEdge[]) {
       simulation.nodes(newNodes);
-      linkForce.links(newEdges);
+      forces.link.links(newEdges.filter((e) => e.edgeType !== "tag"));
       simulation.alpha(0.5);
     },
 

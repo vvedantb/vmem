@@ -45,7 +45,7 @@ export default function VersionChainBar({
   const canGoForward = selectedVersion < total;
 
   return (
-    <div className="rounded-lg bg-surface-secondary p-4">
+    <div className="min-w-0 overflow-hidden rounded-lg bg-surface-secondary p-4">
       <div className="flex items-center justify-center gap-2">
         <button
           type="button"
@@ -96,7 +96,7 @@ export default function VersionChainBar({
         </button>
       </div>
 
-      <p className="mt-3 text-center text-xs text-muted">
+      <p className="mt-3 break-words text-center text-xs text-muted">
         <span className="font-medium tabular-nums text-foreground">
           v{selectedVersion}
         </span>

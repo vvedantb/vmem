@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import {
   Badge,
   cn,
@@ -30,7 +31,7 @@ interface ListItemRowProps {
  * `item.kind` for both visual meta (source badge for memories, child count for
  * folders, etc.) and click behaviour:
  *
- *  - memory       → toggles the inline detail panel via onMemoryClick
+ *  - memory       → navigates to /memories/list/[id] via onMemoryClick
  *  - wiki-doc     → navigates to /wiki/<id>
  *  - wiki-folder  → navigates to /wiki (no deep-link to folder yet)
  *  - skill        → navigates to /skills/[id]
@@ -50,6 +51,7 @@ export default function ListItemRow({
   onContextDelete,
 }: ListItemRowProps) {
   const navigate = useNavigate();
+  const activeProfile = useActiveProfile();
   const color = nodeColor(item.tags, item.kind, isDark, null);
 
   const handleClick = () => {
@@ -72,13 +74,22 @@ export default function ListItemRow({
         return;
       }
       case "wiki-document":
-        navigate({ to: "/wiki/$docId", params: { docId: item.wikiId } });
+        navigate({
+          to: "/$profileId/wiki/$docId",
+          params: { profileId: activeProfile._id, docId: item.wikiId },
+        });
         return;
       case "wiki-folder":
-        navigate({ to: "/wiki" });
+        navigate({
+          to: "/$profileId/wiki",
+          params: { profileId: activeProfile._id },
+        });
         return;
       case "skill":
-        navigate({ to: "/skills/$id", params: { id: item.skillId } });
+        navigate({
+          to: "/$profileId/skills/$id",
+          params: { profileId: activeProfile._id, id: item.skillId },
+        });
         return;
     }
   };

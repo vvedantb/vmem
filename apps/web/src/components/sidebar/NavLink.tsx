@@ -3,6 +3,7 @@ import type { MouseEventHandler } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
 import type { NavItem, NavIcon } from "./types";
+import { navHrefToPath } from "./nav-config";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
 
 /**
@@ -17,6 +18,7 @@ import { SidebarIconTooltip } from "./SidebarIconTooltip";
 export function NavLink({
   item,
   pathname,
+  profileId,
   isIconOnly,
   isMobile,
   unreadCount,
@@ -25,25 +27,30 @@ export function NavLink({
 }: {
   item: NavItem;
   pathname: string;
+  /** Active workspace id; workspace hrefs fall back to /home without one. */
+  profileId: string | undefined;
   isIconOnly: boolean;
   isMobile: boolean;
   unreadCount: number;
   proposalsCount: number;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }) {
+  const resolvedPath = navHrefToPath(item.href, profileId);
   const isActive =
-    pathname === item.href || pathname.startsWith(item.href + "/");
+    pathname === resolvedPath || pathname.startsWith(resolvedPath + "/");
   const Icon = item.icon as NavIcon;
 
   // Resolve the badge count for this route. Adding a new badge route =
   // new branch here + corresponding prop on this component.
-  const badgeCount = item.href === "/inbox" ? proposalsCount + unreadCount : 0;
+  const badgeCount = item.href.endsWith("/inbox")
+    ? proposalsCount + unreadCount
+    : 0;
   const showBadge = badgeCount > 0;
 
   return (
     <SidebarIconTooltip label={item.label} enabled={isIconOnly}>
       <Link
-        to={item.href}
+        to={resolvedPath}
         onClick={onNavigate}
         className={cn(
           "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,background-color,color] duration-200 ease-smooth active:scale-[0.98]",

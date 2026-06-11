@@ -17,6 +17,7 @@ import { useUIMessages } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import { api } from "@vmem/backend";
 import { VMEM_VOICE_CORE, buildLocalChatSystemPrompt } from "@vmem/shared";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import type { ChatMemoryRef } from "@/hooks/useLocalChat";
 import { Persona, type PersonaState } from "@vmem/ui/ai";
 import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
@@ -59,6 +60,7 @@ function highestOrder(messages: UIMessage[]): number {
 export default function VoiceClient() {
   const { model, engineState, loadModel, activeModelId } = useLocalLLM();
   const voice = useVoice();
+  const activeProfile = useActiveProfile();
   const lastVoiceMemoryRefsRef = useRef<ChatMemoryRef[]>([]);
 
   /* -- Thread setup ------------------------------------------------- */
@@ -66,15 +68,16 @@ export default function VoiceClient() {
   const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
   const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
-  const mySkills = useQuery(api.skills.listMy) ?? [];
+  const mySkills = useQuery(api.skills.listMy, {}) ?? [];
 
   useEffect(() => {
-    getOrCreateThread()
+    setThreadId(null);
+    getOrCreateThread({ profileId: activeProfile._id })
       .then(setThreadId)
       .catch((err) => {
         console.error("Failed to get voice thread:", err);
       });
-  }, [getOrCreateThread]);
+  }, [getOrCreateThread, activeProfile._id]);
 
   /* -- Thread messages (shared with /chat) -------------------------- */
   const { results: messages } = useUIMessages(
@@ -116,6 +119,7 @@ export default function VoiceClient() {
       try {
         const retrieved = await retrieveMemories({
           query: transcript,
+          profileId: activeProfile._id,
           limit: RETRIEVE_LIMIT,
         });
         memoryRefs = retrieved.memories.map((m) => ({

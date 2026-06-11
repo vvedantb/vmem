@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import type { FileRouteTypes } from "@/routeTree.gen";
 
 export type NavIcon = ComponentType<{
   className?: string;
@@ -6,8 +7,15 @@ export type NavIcon = ComponentType<{
   stroke?: number;
 }>;
 
+/**
+ * Verified route target. Typing hrefs against the generated route union
+ * means a renamed/moved route breaks nav-config at compile time instead of
+ * silently producing dead links.
+ */
+export type NavHref = FileRouteTypes["to"];
+
 export interface NavItem {
-  href: string;
+  href: NavHref;
   label: string;
   icon: NavIcon;
 }
@@ -19,7 +27,7 @@ export interface NavGroup {
 }
 
 export interface SettingsNavItem {
-  href: string;
+  href: NavHref;
   label: string;
   icon: NavIcon;
 }

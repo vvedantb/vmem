@@ -4,7 +4,6 @@ const subSidebarTitles: Record<Exclude<SidebarNavView, "main">, string> = {
   settings: "Settings",
   skills: "Skills",
   wiki: "Wiki",
-  teams: "Teams",
   codebases: "Codebases",
 };
 

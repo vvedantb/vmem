@@ -1,7 +1,14 @@
 import { v } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { authQuery, authMutation } from "./auth";
 import { scheduleContextPromptInvalidationForUser } from "./lib/contextPromptInvalidate";
+import {
+  assertContentDeletable,
+  assertContentEditable,
+  requireContentScopeAccess,
+} from "./teams/auth";
 
 /** Missing `enabled` is treated as enabled for existing rows. */
 function isSkillEnabled(skill: { enabled?: boolean }): boolean {
@@ -9,40 +16,90 @@ function isSkillEnabled(skill: { enabled?: boolean }): boolean {
 }
 
 /**
- * List all skills owned by the authenticated user, newest-first.
+ * Name-uniqueness lookup within one scope: team skills compete only with
+ * that team's names, personal skills only with the user's personal names.
+ */
+async function findSkillByNameInScope(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+  name: string,
+): Promise<Doc<"skills"> | null> {
+  if (teamId !== undefined) {
+    return await ctx.db
+      .query("skills")
+      .withIndex("by_team_name", (q) => q.eq("teamId", teamId).eq("name", name))
+      .first();
+  }
+  return await ctx.db
+    .query("skills")
+    .withIndex("by_user_name", (q) => q.eq("userId", userId).eq("name", name))
+    .filter((q) => q.eq(q.field("teamId"), undefined))
+    .first();
+}
+
+/**
+ * Skip context-prompt cache invalidation for team-scoped writes: the cached
+ * MCP context prompt only embeds the user's PERSONAL skills index.
+ */
+async function invalidateContextPromptIfPersonal(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+): Promise<void> {
+  if (teamId !== undefined) return;
+  await scheduleContextPromptInvalidationForUser(ctx, userId);
+}
+
+/**
+ * List skills in a scope, newest-first. No `teamId` = the user's personal
+ * skills (shared across all personal workspaces); `teamId` = that team's
+ * skills (members only).
  */
 export const listMy = authQuery({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.db
+  args: { teamId: v.optional(v.id("teams")) },
+  handler: async (ctx, args) => {
+    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
+    if (args.teamId !== undefined) {
+      const teamId = args.teamId;
+      return await ctx.db
+        .query("skills")
+        .withIndex("by_team", (q) => q.eq("teamId", teamId))
+        .order("desc")
+        .collect();
+    }
+    const rows = await ctx.db
       .query("skills")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .order("desc")
       .collect();
+    return rows.filter((s) => s.teamId === undefined);
   },
 });
 
 /**
- * Create a new skill. Duplicate names per user are rejected.
+ * Create a new skill in a scope. Duplicate names per scope are rejected.
  */
 export const createSkill = authMutation({
   args: {
     name: v.string(),
     description: v.string(),
     instructions: v.string(),
+    teamId: v.optional(v.id("teams")),
   },
   handler: async (ctx, args) => {
+    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
     const trimmedName = args.name.trim();
     if (trimmedName.length === 0) {
       throw new Error("Name is required");
     }
 
-    const existing = await ctx.db
-      .query("skills")
-      .withIndex("by_user_name", (q) =>
-        q.eq("userId", ctx.userId).eq("name", trimmedName),
-      )
-      .first();
+    const existing = await findSkillByNameInScope(
+      ctx,
+      ctx.userId,
+      args.teamId,
+      trimmedName,
+    );
     if (existing) {
       throw new Error("A skill with this name already exists");
     }
@@ -50,6 +107,7 @@ export const createSkill = authMutation({
     const now = Date.now();
     const id = await ctx.db.insert("skills", {
       userId: ctx.userId,
+      teamId: args.teamId,
       name: trimmedName,
       description: args.description,
       instructions: args.instructions,
@@ -57,13 +115,14 @@ export const createSkill = authMutation({
       createdAt: now,
       updatedAt: now,
     });
-    await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
+    await invalidateContextPromptIfPersonal(ctx, ctx.userId, args.teamId);
     return id;
   },
 });
 
 /**
- * Update an existing skill. Only provided fields are patched.
+ * Update an existing skill. Personal: owner only. Team: any member
+ * (collaborative). Only provided fields are patched.
  */
 export const updateSkill = authMutation({
   args: {
@@ -77,9 +136,8 @@ export const updateSkill = authMutation({
     const normalizedId = ctx.db.normalizeId("skills", args.id);
     if (!normalizedId) throw new Error("Invalid skill id");
     const skill = await ctx.db.get(normalizedId);
-    if (!skill || skill.userId !== ctx.userId) {
-      throw new Error("Skill not found");
-    }
+    if (!skill) throw new Error("Skill not found");
+    await assertContentEditable(ctx, skill, ctx.userId);
 
     const patch: {
       name?: string;
@@ -94,14 +152,14 @@ export const updateSkill = authMutation({
       if (trimmedName.length === 0) {
         throw new Error("Name is required");
       }
-      // If renaming, ensure no duplicate exists for this user.
+      // If renaming, ensure no duplicate exists within the skill's scope.
       if (trimmedName !== skill.name) {
-        const duplicate = await ctx.db
-          .query("skills")
-          .withIndex("by_user_name", (q) =>
-            q.eq("userId", ctx.userId).eq("name", trimmedName),
-          )
-          .first();
+        const duplicate = await findSkillByNameInScope(
+          ctx,
+          skill.userId,
+          skill.teamId,
+          trimmedName,
+        );
         if (duplicate) {
           throw new Error("A skill with this name already exists");
         }
@@ -113,12 +171,12 @@ export const updateSkill = authMutation({
     if (args.enabled !== undefined) patch.enabled = args.enabled;
 
     await ctx.db.patch(normalizedId, patch);
-    await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
+    await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
   },
 });
 
 /**
- * Delete a skill owned by the authenticated user.
+ * Delete a skill. Personal: owner only. Team: creator or team owner.
  */
 export const deleteSkill = authMutation({
   args: { id: v.string() },
@@ -126,18 +184,19 @@ export const deleteSkill = authMutation({
     const normalizedId = ctx.db.normalizeId("skills", args.id);
     if (!normalizedId) throw new Error("Invalid skill id");
     const skill = await ctx.db.get(normalizedId);
-    if (!skill || skill.userId !== ctx.userId) {
-      throw new Error("Skill not found");
-    }
+    if (!skill) throw new Error("Skill not found");
+    await assertContentDeletable(ctx, skill, ctx.userId);
     await ctx.db.delete(normalizedId);
-    await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
+    await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
   },
 });
 
 // --- Internal helpers (used by MCP HTTP routes after JWT verification) ---
+// MCP stays personal-only for now: every lookup filters `teamId === undefined`
+// so team skills never leak into (or get mutated through) MCP tools.
 
 /**
- * List skills for a given Clerk user id.
+ * List personal skills for a given Clerk user id.
  */
 export const listByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
@@ -153,7 +212,7 @@ export const listByClerkIdInternal = internalQuery({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
       .collect();
-    return rows.filter(isSkillEnabled);
+    return rows.filter((s) => isSkillEnabled(s) && s.teamId === undefined);
   },
 });
 
@@ -181,12 +240,12 @@ export const createByClerkIdInternal = internalMutation({
       throw new Error("Name is required");
     }
 
-    const existing = await ctx.db
-      .query("skills")
-      .withIndex("by_user_name", (q) =>
-        q.eq("userId", user._id).eq("name", trimmedName),
-      )
-      .first();
+    const existing = await findSkillByNameInScope(
+      ctx,
+      user._id,
+      undefined,
+      trimmedName,
+    );
     if (existing) {
       throw new Error("A skill with this name already exists");
     }
@@ -242,12 +301,12 @@ export const updateByClerkIdInternal = internalMutation({
     }
 
     const lookupName = args.name.trim();
-    const skill = await ctx.db
-      .query("skills")
-      .withIndex("by_user_name", (q) =>
-        q.eq("userId", user._id).eq("name", lookupName),
-      )
-      .first();
+    const skill = await findSkillByNameInScope(
+      ctx,
+      user._id,
+      undefined,
+      lookupName,
+    );
     if (!skill) {
       throw new Error("Skill not found");
     }
@@ -266,12 +325,12 @@ export const updateByClerkIdInternal = internalMutation({
         throw new Error("Name is required");
       }
       if (trimmedName !== skill.name) {
-        const duplicate = await ctx.db
-          .query("skills")
-          .withIndex("by_user_name", (q) =>
-            q.eq("userId", user._id).eq("name", trimmedName),
-          )
-          .first();
+        const duplicate = await findSkillByNameInScope(
+          ctx,
+          user._id,
+          undefined,
+          trimmedName,
+        );
         if (duplicate) {
           throw new Error("A skill with this name already exists");
         }
@@ -309,12 +368,12 @@ export const deleteByClerkIdInternal = internalMutation({
     }
 
     const lookupName = args.name.trim();
-    const skill = await ctx.db
-      .query("skills")
-      .withIndex("by_user_name", (q) =>
-        q.eq("userId", user._id).eq("name", lookupName),
-      )
-      .first();
+    const skill = await findSkillByNameInScope(
+      ctx,
+      user._id,
+      undefined,
+      lookupName,
+    );
     if (!skill) {
       throw new Error("Skill not found");
     }
@@ -322,6 +381,23 @@ export const deleteByClerkIdInternal = internalMutation({
     await ctx.db.delete(skill._id);
     await scheduleContextPromptInvalidationForUser(ctx, user._id);
     return null;
+  },
+});
+
+/**
+ * Enabled skills of a team — for cloud chat's merged (personal + team)
+ * skills index when a thread lives in a team workspace. Membership is
+ * verified upstream (thread ownership + profile access in chat).
+ */
+export const listTeamSkillsInternal = internalQuery({
+  args: { teamId: v.id("teams") },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("skills")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .order("desc")
+      .collect();
+    return rows.filter(isSkillEnabled);
   },
 });
 
@@ -338,12 +414,12 @@ export const getByNameInternal = internalQuery({
     if (!user) return null;
 
     const lookupName = args.name.trim();
-    const skill = await ctx.db
-      .query("skills")
-      .withIndex("by_user_name", (q) =>
-        q.eq("userId", user._id).eq("name", lookupName),
-      )
-      .first();
+    const skill = await findSkillByNameInScope(
+      ctx,
+      user._id,
+      undefined,
+      lookupName,
+    );
     if (!skill || !isSkillEnabled(skill)) return null;
     return skill;
   },

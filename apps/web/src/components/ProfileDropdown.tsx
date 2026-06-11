@@ -30,6 +30,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
+import { useActiveProfileId } from "@/components/workspace/active-profile";
 import type { FunctionReturnType } from "convex/server";
 
 const ICON_MAP: Record<string, typeof IconUser> = {
@@ -68,18 +69,13 @@ export function ProfileDropdown({
 }: ProfileDropdownProps) {
   const { isAuthenticated } = useConvexAuth();
   const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
-  const defaultProfileId = useQuery(
-    api.userSettings.getDefaultProfile,
-    isAuthenticated ? { source: "web" } : "skip",
-  );
+  const activeProfileId = useActiveProfileId();
 
   const isLoading = profiles === undefined;
 
-  // Set initial value from web default profile
+  // Default selection = the active workspace (explicit value wins).
   const effectiveValue =
-    value ??
-    (defaultProfileId ? String(defaultProfileId) : undefined) ??
-    profiles?.find((p) => p.isDefault)?._id;
+    value ?? activeProfileId ?? profiles?.find((p) => p.isDefault)?._id;
 
   if (!isAuthenticated) {
     return null;

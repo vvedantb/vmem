@@ -10,7 +10,7 @@
  * React context, no duplicated state/data-fetching.
  *
  * State ownership:
- *   - Filters + search (profile/tags/kinds/sources/types/q): URL via `nuqs`, shared with list view.
+ *   - Filters + search (tags/kinds/sources/types/q): URL via `nuqs`, shared with list view.
  *   - Display (view mode, forces/labels): cookies via `graph-cookies`, per-user.
  *   - Data: Convex action via `useGraphData`.
  */
@@ -27,8 +27,9 @@ import {
 } from "@/lib/graph-cookies";
 import { useGraphData } from "@/hooks/useGraphData";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
-import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
-import type { GraphScope } from "@/routes/_main/memories/-searchParams";
+import { useActiveProfile } from "@/components/workspace/active-profile";
+import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
+import type { GraphScope } from "@/routes/_main/$profileId/memories/-searchParams";
 import {
   buildGraphData,
   getAllTags,
@@ -70,10 +71,12 @@ import {
 
 const EMPTY_SET = new Set<string>();
 
-/** Global-graph progressive loading: first page + per-click increment. */
-const GLOBAL_GRAPH_PAGE_SIZE = 500;
-/** Mirrors the backend's hard cap (capGraph MAX_NODES). */
-const GLOBAL_GRAPH_MAX_NODES = 2000;
+/**
+ * Client-side ceiling on accumulated global-graph nodes. Pages are 5000
+ * each (server cap per response), so this is 20 "Load more" clicks — the
+ * renderer and simulation are tuned to stay smooth at this scale.
+ */
+const GLOBAL_GRAPH_MAX_NODES = 100_000;
 
 export interface MemoryGraphController {
   // ----- Raw data -----
@@ -131,7 +134,6 @@ export interface MemoryGraphController {
   search: string;
 
   // ----- Filter handlers (same shape as list view) -----
-  onProfileChange: (id: string | null) => void;
   onKindsChange: (kinds: ListItemKind[]) => void;
   onTagsChange: (tags: string[]) => void;
   onSourcesChange: (sources: string[]) => void;
@@ -161,6 +163,7 @@ export function useMemoryGraphController({
   // URL-backed filter state — shared with list view so filters persist across
   // view modes and are URL-shareable.
   const [params, setParams] = useMemoriesSearchParams();
+  const activeProfileId = useActiveProfile()._id;
 
   // Data
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
@@ -169,11 +172,6 @@ export function useMemoryGraphController({
   // a hand-edited URL can't request an unbounded traversal.
   const scope: GraphScope = params.scope;
   const depth = Math.min(3, Math.max(1, Math.trunc(params.depth)));
-
-  // Global-scope page size. Session-local (not URL) — "how much I've loaded"
-  // is transient browsing state, not a shareable view. Load-more bumps it;
-  // keepPreviousData in useGraphData keeps the old page visible meanwhile.
-  const [nodeLimit, setNodeLimit] = useState(GLOBAL_GRAPH_PAGE_SIZE);
 
   const {
     apiNodes,
@@ -184,16 +182,18 @@ export function useMemoryGraphController({
     resolvedFocusNodeId,
     totalMemoryCount,
     isLoading,
-    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     isError,
     error,
   } = useGraphData(
     focusNodeId,
-    params.profile,
+    activeProfileId,
     enabled,
     scope,
     depth,
-    nodeLimit,
+    params.bench,
   );
 
   const searchQuery = params.q.trim();
@@ -201,15 +201,11 @@ export function useMemoryGraphController({
   const isSearchActive = searchQuery.length > 0;
 
   const { data: memorySearchResult } = useTanstackQuery({
-    queryKey: [
-      "graph-memory-search",
-      deferredSearchQuery,
-      params.profile ?? "",
-    ],
+    queryKey: ["graph-memory-search", deferredSearchQuery, activeProfileId],
     queryFn: () =>
       listMemoriesAction({
         searchQuery: deferredSearchQuery,
-        profileId: params.profile ?? undefined,
+        profileId: activeProfileId,
         limit: 500,
         offset: 0,
       }),
@@ -224,13 +220,12 @@ export function useMemoryGraphController({
 
   const filters = useMemo<MemoryViewFilterParams>(
     () => ({
-      profile: params.profile,
       kinds: params.kinds,
       tags: params.tags,
       sources: params.sources,
       types: params.types,
     }),
-    [params.profile, params.kinds, params.tags, params.sources, params.types],
+    [params.kinds, params.tags, params.sources, params.types],
   );
 
   const activeFilterCount = useMemo(
@@ -316,15 +311,10 @@ export function useMemoryGraphController({
 
   const canLoadMore =
     scope === "global" &&
-    totalMemoryCount !== null &&
-    loadedMemoryCount < totalMemoryCount &&
-    nodeLimit < GLOBAL_GRAPH_MAX_NODES;
+    hasNextPage &&
+    loadedMemoryCount < GLOBAL_GRAPH_MAX_NODES;
 
-  const onLoadMore = useCallback(() => {
-    setNodeLimit((prev) =>
-      Math.min(GLOBAL_GRAPH_MAX_NODES, prev + GLOBAL_GRAPH_PAGE_SIZE),
-    );
-  }, []);
+  const onLoadMore = fetchNextPage;
 
   // ----- Handlers -----
 
@@ -342,13 +332,6 @@ export function useMemoryGraphController({
     setGraphSettingsState(DEFAULT_GRAPH_SETTINGS);
     setGraphSettings(DEFAULT_GRAPH_SETTINGS);
   }, []);
-
-  const onProfileChange = useCallback(
-    (profile: string | null) => {
-      void setParams({ profile });
-    },
-    [setParams],
-  );
 
   const onKindsChange = useCallback(
     (kinds: ListItemKind[]) => {
@@ -409,7 +392,7 @@ export function useMemoryGraphController({
     loadedMemoryCount,
     totalMemoryCount,
     canLoadMore,
-    isLoadingMore: isFetching && !isLoading,
+    isLoadingMore: isFetchingNextPage,
     onLoadMore,
 
     // Derived
@@ -438,7 +421,6 @@ export function useMemoryGraphController({
     search: params.q,
 
     // Handlers
-    onProfileChange,
     onKindsChange,
     onTagsChange,
     onSourcesChange,

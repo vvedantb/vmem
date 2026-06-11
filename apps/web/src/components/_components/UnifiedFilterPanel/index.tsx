@@ -7,7 +7,6 @@ import {
   IconPlug,
   IconShape,
   IconTag,
-  IconUser,
 } from "@tabler/icons-react";
 import {
   buildTagStats,
@@ -17,7 +16,6 @@ import {
 } from "@/lib/memories";
 import type { ListItemKind } from "@/lib/list-items";
 import type { UnifiedFilterPanelProps } from "./types";
-import ProfileTab from "./ProfileTab";
 import KindTab from "./KindTab";
 import TagsTab from "./TagsTab";
 import SourceTab from "./SourceTab";
@@ -26,15 +24,14 @@ import TypeTab from "./TypeTab";
 export type { UnifiedFilterPanelProps, FilterTab } from "./types";
 
 /**
- * Unified filter panel content that consolidates Profile, Kind, Tags, Source,
- * and Type filters into vertical tabs. The caller wraps this inside their own
+ * Unified filter panel content that consolidates Kind, Tags, Source, and
+ * Type filters into vertical tabs. (Profile is no longer a filter — the
+ * workspace route scopes memories.) The caller wraps this inside their own
  * Popover - this component only renders the panel body.
  */
 export default function UnifiedFilterPanel({
   allMemories = [],
   allItems = [],
-  selectedProfileId,
-  onProfileChange,
   selectedKinds = [],
   onKindsChange,
   kindCounts: kindCountsProp,
@@ -51,17 +48,15 @@ export default function UnifiedFilterPanel({
   totalCount,
   onClearAll,
   isDark,
-  visibleTabs = ["profile", "kind", "tags", "source", "type"],
+  visibleTabs = ["kind", "tags", "source", "type"],
 }: UnifiedFilterPanelProps) {
   const [tagSortMode, setTagSortMode] = useState<TagSortMode>("most-used");
 
-  const profileCount = selectedProfileId ? 1 : 0;
   const kindCount = selectedKinds.length;
   const tagCount = selectedTags.length;
   const sourceCount = selectedSources.length;
   const typeCount = selectedTypes.length;
-  const totalActiveCount =
-    profileCount + kindCount + tagCount + sourceCount + typeCount;
+  const totalActiveCount = kindCount + tagCount + sourceCount + typeCount;
   const hasActiveFilters = totalActiveCount > 0;
 
   const kindCounts = useMemo(() => {
@@ -110,22 +105,11 @@ export default function UnifiedFilterPanel({
 
   return (
     <div className="flex flex-col">
-      <TabsPrimitive.Root defaultValue="profile" className="flex h-[320px]">
+      <TabsPrimitive.Root defaultValue="kind" className="flex h-[320px]">
         <TabsPrimitive.List
           className="flex flex-col justify-start h-full w-12 sm:w-32 shrink-0 border-r border-separator p-1 gap-0.5"
           aria-orientation="vertical"
         >
-          {visibleTabs.includes("profile") && (
-            <TabsPrimitive.Trigger
-              value="profile"
-              aria-label="Profile"
-              className={triggerClass}
-            >
-              <IconUser size={14} />
-              <span className="hidden sm:inline">Profile</span>
-              {tabBadge(profileCount)}
-            </TabsPrimitive.Trigger>
-          )}
           {visibleTabs.includes("kind") && (
             <TabsPrimitive.Trigger
               value="kind"
@@ -173,13 +157,6 @@ export default function UnifiedFilterPanel({
         </TabsPrimitive.List>
 
         <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
-          {visibleTabs.includes("profile") && (
-            <ProfileTab
-              selectedProfileId={selectedProfileId}
-              onProfileChange={onProfileChange}
-              totalCount={totalCount}
-            />
-          )}
           {visibleTabs.includes("kind") && (
             <KindTab
               selectedKinds={selectedKinds}

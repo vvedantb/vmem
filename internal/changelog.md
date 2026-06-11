@@ -1,5 +1,76 @@
 # Changelog
 
+## Workspace cleanup: profile filter retired, saves follow the workspace — 2026-06-11
+
+- **Why**: with the route carrying the workspace, the old `?profile=` filter and per-form profile pickers became a second, conflicting way to say the same thing.
+- **Profile filter removed**: the memories filter panel no longer has a Profile tab — the workspace you are in IS the scope; URLs stay cleaner and shared links always show the right data.
+- **Saves follow the workspace**: the add-memory form and profile dropdown default to the active workspace, and the settings "Web App default profile" row is gone (extension and MCP defaults remain).
+- **Docs**: feature docs updated for workspace URLs, the switcher, team content, and per-workspace chat.
+
+- **Why**: there was one chat thread per account, so a team workspace's chat would have mixed personal and team context.
+- **One thread per workspace**: chat and voice resolve the thread mapped to the active workspace (legacy threads adopt into the default personal workspace); threads stay private to their creator — team members never see each other's conversations.
+- **Grounded to the workspace**: retrieval and memory saves inside chat pin to the thread's workspace, so a team thread searches team memories (and sees team skills) while personal threads behave exactly as before. Mobile and voice keep working unchanged via the personal default.
+- **Security fix**: thread message reads, usage lookups, and local-message saves now verify thread ownership — previously they did not.
+
+- **Why**: only memories were team-shared; skills, wiki docs, and files stayed strictly personal, so a team had no way to share its working context.
+- **Scoping model ("user-wide + team")**: content carries an optional team id — absent means personal (visible in every personal workspace, existing data untouched, no migration), set means it belongs to that team's workspace and is visible to all members.
+- **Permissions**: any team member can create and edit team skills/wiki/files; deleting needs the creator or a team owner. Team drives get their own 10 GiB storage pool, and team memories/files show "Saved by" attribution.
+- **Prompt integration**: in a team workspace the skills index injected into chat merges personal + that team's skills.
+- **MCP stays personal-only for now**: connector tools keep serving personal content, with leak guards on every user-wide query so team content never appears outside its workspace.
+
+- **Why**: with profiles as routes, switching needed to be one click from anywhere — and a separate /teams area no longer made sense when a team IS a workspace.
+- **Switcher**: a workspace card styled like the account card sits at the top of the sidebar, listing personal profiles and teams with the active one checked; switching keeps you on the same page in the new workspace (detail pages fall back sensibly). Creating a profile or team and managing profiles moved into its dropdown, and the command palette gained the same "switch workspace" actions.
+- **Teams folded in**: the /teams section is gone — a team workspace's home is its overview, its memories are the old "knowledge" view, and Members / Team settings appear as a sidebar group only inside team workspaces.
+- **Workspace-scoped stats**: the dashboard and the sidebar footer counts now reflect the active workspace instead of user-wide totals, and recent activity follows the same scope.
+
+## Profiles become workspaces: every page lives under /$profileId — 2026-06-11
+
+- **Why**: switching profiles was buried in settings and a profile only filtered memories; making the profile the top-level route turns profiles into real workspaces (Vercel model) and is the foundation for team workspaces with their own content.
+- **URL structure**: every page now lives under `/$profileId/` — chat, voice, memories, files, codebases, skills, wiki, activity, inbox, home — with only `/settings` staying user-level (machine-consumed routes like `/agent-callback` and the MCP OAuth page are untouched).
+- **Old links keep working**: pre-workspace bookmarks (`/chat`, `/memories/graph?focus=...`, `/teams/$teamId/members`) redirect into the right workspace automatically; deleted or foreign workspace ids land on a clean not-found page instead of crashing.
+- **Entry resolution**: `/home` stays the post-login entry point and now resolves last-visited workspace → web default profile → default personal profile, creating one for brand-new accounts.
+
+## Legacy tag noise consolidated: 4,962 → 421 tags — 2026-06-11
+
+- **Why**: the tag workflow fix (vocabulary-aware enrichment) was forward-looking only — the database still held 4,962 distinct tags across 2,775 memories, 73% used exactly once, so the dashboard count stayed inflated and the graph's tag connections stayed sparse.
+- **Retroactive re-tag**: a new batch migration action re-ran the vocabulary-aware tagging prompt over every memory (one OpenRouter call each, ~2,775 calls) and replaced its tags; entities and relates-to edges were untouched. The vocabulary is refetched per batch, so consolidation compounds — early batches establish themes, later batches reuse them.
+- **Result**: 421 distinct tags (−91%), with heavy reuse at the top (web-development 1,251 uses, youtube 556, social-media 546) and the remaining single-use tags now plausible recurring themes rather than one-off labels; 4,891 orphaned tag nodes swept.
+- **Reusable**: the action stays in the repo (`neo4jActions/migration/retag.ts`) — clear the `retaggedAt` markers and re-run it after any future tagging-prompt change. Failed LLM calls keep their legacy tags and never retry forever.
+
+## Graph de-noised: same-domain edges removed — 2026-06-11
+
+- **Why**: 18,924 of 25,819 RELATES_TO edges (73%) had reason "same domain" — every saved URL linked to up to 10 existing memories from the same web domain. On real browsing data that is platform affinity, not topical relation (576 youtube.com memories, 212 github.com), and the unordered LIMIT concentrated edges on the ~10 oldest memories per domain — one generic YouTube page had 578 connections.
+- **Creation path removed**: memories now relate only through semantic similarity (vector top-5), the enrichment LLM's content-similarity picks, and short same-session bursts — all bounded and meaningful.
+- **Data purged**: a one-time migration deleted all 18,924 same-domain edges. Account profile went from avg 18.5 / max 578 relates per memory to avg 4.9 / max 70; node sizes, physics hubs, and edge rendering all reflect genuine relationships now.
+- **Diagnostics**: `neo4j-cli/node-edges.ts <title-part>` prints any memory's edge breakdown for future "why is this node huge" questions.
+
+## Tags become reusable themes — 2026-06-11
+
+- **Why**: an audit found 4,962 distinct tags across 2,775 memories — 73% used exactly once — so tags connected almost nothing. The enrichment prompt rewarded hyper-specific one-off tags ("ferrari-488-gtb") and never saw the user's existing vocabulary, and client-supplied tags reached the database unnormalized ("GCP" vs "gcp" vs "gcp-" as separate tags).
+- **Vocabulary-aware tagging**: the enrichment LLM now receives the user's top 50 multi-use tags with usage counts and is instructed to reuse them exactly before minting new ones; tags are now defined as recurring themes (2-4 per memory) while specific names stay in the entity layer, with all worked examples rewritten to teach that split.
+- **One normalization chokepoint**: every tag write path (create, update, enrichment, MCP tools, HTTP API) now flows through a single normalize step that lowercases, hyphenates, dedupes, and strips the leading/trailing-hyphen variants that minted near-duplicate tags.
+- **MCP guidance**: the memory_save/memory_update tag fields now tell client models to prefer the user's existing tags and avoid one-off specifics.
+- **Diagnostics**: new `pnpm db:tag-stats` prints the per-user tag usage histogram to track whether the single-use ratio is improving.
+
+## Memory graph: Obsidian-style physics — 2026-06-11
+
+- **Clusters breathe**: link strength is now degree-normalized (d3's default) instead of a flat pull — hubs no longer crush their satellites into overlapping rings, which was why hovering a node showed a pile of unreadable stacked labels.
+- **Nodes cannot overlap**: collision radius matches the rendered node plus breathing room, and link distance grows with both endpoints' sizes so big hubs hold neighbours further out.
+- **Stray clusters come home**: centering is a weak per-node pull (like Obsidian's Center force) replacing the old whole-system translation that let disconnected components drift; repulsion range now scales with graph size after the bounded range was found to slowly collapse large graphs into a solid ball.
+- **One physics source of truth**: the worker and the main-thread fallback now share a single force-model module — they had already drifted apart (different damping, different center strength).
+- **Readable hover at any zoom**: neighbour labels only render when the node is big enough on screen to read, so hovering in a dense area highlights the neighbourhood without blanketing it in text.
+- **Settle costs half as much**: the layout animation paints only when the physics worker actually posts new positions (~30Hz) instead of re-painting identical frames at 60fps — same visible animation, half the canvas work and spatial-index rebuilds during the settle phase (drag feedback stays per-frame).
+- **Butter zoom on local depth views**: hover now freezes while a zoom is in flight (mid-gesture hover changes fired tooltip re-renders that broke the smooth-blit cadence right under the cursor — Obsidian pauses hover the same way), and the blit cache now covers every graph size — small depth-3 neighbourhoods previously full-rendered every gesture frame and could stutter on high-DPI displays.
+
+## Memory graph: Obsidian-smooth rendering at 5k nodes — 2026-06-11
+
+- **Physics actually runs now**: the d3-force simulation worker silently never started (classic worker + ESM imports dies with an async error the fallback never caught) — every graph was the static spiral seed, and the stuck "settling" state forced a full canvas re-render on every frame forever. The worker now loads as a module and falls back to a main-thread simulation if it ever fails again.
+- **60fps zoom/pan at 5,000 nodes**: pan/zoom gestures blit the cached scene bitmap instead of re-tracing every node/edge per frame, now also while the layout is still settling (the snapshot refreshes ~7×/s so the settle animation keeps moving under the gesture). Verified at `?bench=5000`: zoom, pan, and hover all hold 60fps with zero dropped frames once settled.
+- **Obsidian-style label fade**: node labels only draw once a node is large enough on screen to read, fading out on zoom-out (hubs persist longest) — this halves the full-render cost on dense graphs and removes the worst frame spikes.
+- **Glow budget**: the per-node glow halo (the single most expensive render pass) now switches off past 1.5k nodes, where overlapping halos add cost but no signal.
+- **Idle costs nothing**: a settled, untouched graph issues zero canvas draw calls per frame.
+- **Sharp, attached zoom into clusters**: deep zooms re-render crisply whenever the blitted snapshot drifts past ~25% scale (no more blur-then-pop), the zoom spring is ~2.5× snappier so the view stays attached to the wheel, and gesture frames shed their heaviest passes (glow halos, the faint tag-edge lattice on edge-heavy graphs, label squishing via fillText maxWidth) until the settle frame restores full fidelity.
+
 ## Sidebar stats update live — 2026-06-10
 
 - **Today/total counts react to memory writes**: the sidebar footer now subscribes to the same Convex memory-events change feed the rest of the app uses, refetching stats when memories are created/updated/deleted (from any surface — web, extension, MCP) instead of only on page refresh.

@@ -3,14 +3,17 @@ import type { GraphNode, ResolvedEdge } from "./types";
 const CELL_SIZE = 60;
 
 interface SpatialIndex {
-  cells: Map<string, GraphNode[]>;
+  cells: Map<number, GraphNode[]>;
   lastHash: string;
   /** When false, rebuildIndex skips the O(n) hash computation entirely */
   dirty: boolean;
 }
 
-function cellKey(cx: number, cy: number): string {
-  return `${cx},${cy}`;
+// Numeric cell key — string keys allocated one string per node per rebuild,
+// which is pure GC churn at 100k nodes. World extent grows with sqrt(n), so
+// cell coords stay well inside ±32k even at 1M nodes.
+function cellKey(cx: number, cy: number): number {
+  return (cx + 32768) * 65536 + (cy + 32768);
 }
 
 function hashNodes(nodes: GraphNode[]): string {
@@ -78,6 +81,15 @@ export function getEdgeAt(
     const y1 = e.source.y ?? 0;
     const x2 = e.target.x ?? 0;
     const y2 = e.target.y ?? 0;
+    // Cheap bbox reject before the projection math — on 100k+ edge graphs
+    // this prunes almost every edge per mousemove.
+    if (
+      (x1 < worldX - threshold && x2 < worldX - threshold) ||
+      (x1 > worldX + threshold && x2 > worldX + threshold) ||
+      (y1 < worldY - threshold && y2 < worldY - threshold) ||
+      (y1 > worldY + threshold && y2 > worldY + threshold)
+    )
+      continue;
     const dx = x2 - x1;
     const dy = y2 - y1;
     const lenSq = dx * dx + dy * dy;

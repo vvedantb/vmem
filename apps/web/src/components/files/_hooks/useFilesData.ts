@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api, type Id } from "@vmem/backend";
 import type { FileCategory, FileItem } from "@/lib/file-types";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 
 const DEFAULT_STORAGE_LIMIT = 10 * 1024 * 1024 * 1024;
 
@@ -39,7 +40,9 @@ function fileCategoryFor(mimeType: string | undefined): FileCategory {
  * at the mutation boundary (avoids casts).
  */
 export function useFilesData(): UseFilesDataResult {
-  const data = useQuery(api.files.listTree);
+  // Active workspace scope: personal files, or the team's shared drive.
+  const teamId = useActiveProfile().teamId;
+  const data = useQuery(api.files.listTree, { teamId });
   const nodes = useMemo(() => data?.nodes ?? [], [data]);
 
   const generateUploadUrl = useMutation(api.files.generateFileUploadUrl);
@@ -117,16 +120,21 @@ export function useFilesData(): UseFilesDataResult {
         storageId: json.storageId,
         mimeType: file.type || "application/octet-stream",
         size: file.size,
+        teamId,
       });
     },
-    [generateUploadUrl, createFileMutation, toNodeId],
+    [generateUploadUrl, createFileMutation, toNodeId, teamId],
   );
 
   const createFolder = useCallback(
     async (name: string, parentFolderId: string | null): Promise<void> => {
-      await createFolderMutation({ name, parentId: toNodeId(parentFolderId) });
+      await createFolderMutation({
+        name,
+        parentId: toNodeId(parentFolderId),
+        teamId,
+      });
     },
-    [createFolderMutation, toNodeId],
+    [createFolderMutation, toNodeId, teamId],
   );
 
   const renameNode = useCallback(

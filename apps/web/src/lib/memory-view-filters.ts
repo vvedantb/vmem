@@ -3,7 +3,6 @@ import type { ListItemKind } from "./list-items";
 
 /** URL-backed filter fields shared by /memories/list and /memories/graph. */
 export interface MemoryViewFilterParams {
-  profile: string | null;
   kinds: readonly ListItemKind[];
   tags: readonly string[];
   sources: readonly string[];
@@ -11,7 +10,6 @@ export interface MemoryViewFilterParams {
 }
 
 export const CLEARED_MEMORY_VIEW_FILTERS = {
-  profile: null,
   kinds: [] as ListItemKind[],
   tags: [] as string[],
   sources: [] as string[],
@@ -73,25 +71,6 @@ export function typePassesFilter(
   return type !== undefined && selectedTypes.includes(type);
 }
 
-/**
- * Profile filter for list items and memory rows. Graph view applies profile at
- * fetch time (`useGraphData(..., profileId)`) because the API scopes nodes;
- * list view applies this client-side over merged memory/wiki/skill rows.
- */
-export function profilePassesFilter(
-  profileId: string | undefined,
-  selectedProfileId: string | null,
-  kind: ListItemKind,
-): boolean {
-  if (selectedProfileId === null) {
-    return true;
-  }
-  if (kind !== "memory") {
-    return true;
-  }
-  return profileId === selectedProfileId;
-}
-
 export function apiGraphNodePassesFilters(
   node: {
     kind: ListItemKind;
@@ -114,7 +93,6 @@ export function countActiveMemoryViewFilters(
   params: MemoryViewFilterParams,
 ): number {
   let count = 0;
-  if (params.profile !== null) count += 1;
   if (params.kinds.length > 0) count += 1;
   if (params.tags.length > 0) count += 1;
   if (params.sources.length > 0) count += 1;

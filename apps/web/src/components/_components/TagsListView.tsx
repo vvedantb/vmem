@@ -29,7 +29,7 @@ import {
 } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
-import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
+import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
 import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
 import { TagMemoriesPanel } from "@/components/_components/TagMemoriesPanel";
 import { VmemSpinner } from "@/components/svg-animations";
@@ -43,10 +43,8 @@ export default function TagsListView() {
   const { memories, isLoading, updateMemory } = useMemoryContext();
   const [params] = useMemoriesSearchParams();
 
-  const scopedMemories = useMemo(() => {
-    if (params.profile === null) return memories;
-    return memories.filter((m) => m.profileId === params.profile);
-  }, [memories, params.profile]);
+  // The route already scopes memories to the active workspace.
+  const scopedMemories = memories;
 
   const tags = useMemo(() => {
     const stats = buildTagStats(scopedMemories);
@@ -188,7 +186,7 @@ export default function TagsListView() {
   }
 
   if (tags.length === 0) {
-    const isFiltering = params.q.trim().length > 0 || params.profile !== null;
+    const isFiltering = params.q.trim().length > 0;
     return (
       <DetailEmptyState
         icon={IconMoodEmpty}

@@ -77,7 +77,11 @@ export const createMemory = authAction({
 });
 
 export const getMemory = authAction({
-  args: { memoryId: v.string() },
+  args: {
+    memoryId: v.string(),
+    /** Active workspace; team profiles read via the member-wide path. */
+    profileId: v.optional(v.string()),
+  },
   handler: async (ctx, args): Promise<MemoryWithTags | null> =>
     runGetMemory(ctx, args),
 });
@@ -100,6 +104,8 @@ export const listMemories = authAction({
 export const updateMemory = authAction({
   args: {
     memoryId: v.string(),
+    /** Active workspace; team profiles use creator-or-owner permissions. */
+    profileId: v.optional(v.string()),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
     type: v.optional(v.string()),
@@ -113,7 +119,11 @@ export const updateMemory = authAction({
 });
 
 export const deleteMemory = authAction({
-  args: { memoryId: v.string() },
+  args: {
+    memoryId: v.string(),
+    /** Active workspace; team profiles use creator-or-owner permissions. */
+    profileId: v.optional(v.string()),
+  },
   handler: async (ctx, args): Promise<boolean> => runDeleteMemory(ctx, args),
 });
 
@@ -132,6 +142,8 @@ export const deleteAllMemories = authAction({
 
 export const searchMemories = authAction({
   args: {
+    /** Active workspace; team profiles search member-wide. */
+    profileId: v.optional(v.string()),
     query: v.optional(v.string()),
     type: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
@@ -146,6 +158,8 @@ export const searchMemories = authAction({
 export const retrieveMemories = authAction({
   args: {
     query: v.string(),
+    /** Active workspace to ground retrieval in. */
+    profileId: v.optional(v.string()),
     type: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
     limit: v.number(),

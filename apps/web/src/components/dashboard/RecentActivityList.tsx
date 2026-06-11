@@ -3,6 +3,7 @@
 import type { FunctionReturnType } from "convex/server";
 import { IconActivity } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import { motion } from "motion/react";
 import { Card, CardContent } from "@vmem/ui";
 import { api } from "@vmem/backend";
@@ -17,6 +18,7 @@ interface RecentActivityListProps {
 }
 
 export function RecentActivityList({ activity }: RecentActivityListProps) {
+  const activeProfile = useActiveProfile();
   const items = activity.slice(0, 6);
 
   return (
@@ -32,7 +34,8 @@ export function RecentActivityList({ activity }: RecentActivityListProps) {
               Recent activity
             </h2>
             <Link
-              to="/activity/events"
+              to="/$profileId/activity/events"
+              params={{ profileId: activeProfile._id }}
               className="text-xs text-muted transition-colors hover:text-foreground"
             >
               View all

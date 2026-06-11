@@ -35,7 +35,7 @@ import type {
   GraphNode,
   GraphEdge,
 } from "@/components/_components/canvas/types";
-import { codebaseSearchParams } from "@/routes/_main/codebases/-searchParams";
+import { codebaseSearchParams } from "@/routes/_main/$profileId/codebases/-searchParams";
 
 const EMPTY_SET: Set<string> = new Set<string>();
 const NONE_SENTINEL = "__NONE__";

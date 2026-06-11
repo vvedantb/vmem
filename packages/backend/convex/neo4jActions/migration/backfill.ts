@@ -17,6 +17,7 @@ import {
   setEmbeddings,
 } from "../../../engine/neo4j/memory/migration";
 import { getRecentMemoryTitles } from "../../../engine/neo4j/memory/search";
+import { getTopTags } from "../../../engine/neo4j/memory/tags";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { callJsonChat, generateEmbeddings } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
@@ -258,12 +259,12 @@ export const backfillEntitiesInternal = internalAction({
           continue;
         }
 
-        // Get recent memory titles for the enrichment prompt context
-        const existingMemories = await getRecentMemoryTitles(
-          driver,
-          clerkId,
-          "",
-        );
+        // Recent memory titles + established tag vocabulary for the
+        // enrichment prompt context (vocabulary drives tag reuse).
+        const [existingMemories, existingTags] = await Promise.all([
+          getRecentMemoryTitles(driver, clerkId, ""),
+          getTopTags(driver, clerkId, 50),
+        ]);
 
         for (const item of items) {
           try {
@@ -271,6 +272,7 @@ export const backfillEntitiesInternal = internalAction({
               item.title,
               item.content,
               existingMemories,
+              existingTags,
             );
 
             const llmContent = await callJsonChat(ctx, {

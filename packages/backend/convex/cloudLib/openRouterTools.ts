@@ -9,6 +9,7 @@ import type { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { ActionCtx } from "../_generated/server";
 import type { CloudMemoryRef } from "./cloudMemoryRef";
+import type { McpScope } from "../profiles/mcpAccess";
 import { toolSpecs, type ToolSpec } from "../mcp/toolCatalog";
 import type { ToolHandlerContext } from "../mcp/toolHandlers";
 
@@ -16,6 +17,10 @@ export type { CloudMemoryRef };
 
 interface OpenRouterToolOptions {
   onMemoryRetrieve?: (refs: CloudMemoryRef[]) => void;
+  /** Pin memory tools to the chat thread's workspace profile. */
+  profileId?: string;
+  /** "team" when the pinned profile belongs to a team. */
+  scope?: McpScope;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -134,7 +139,12 @@ export function buildOpenRouterTools(
   clerkUserId: string,
   options: OpenRouterToolOptions = {},
 ): ToolSet {
-  const h: ToolHandlerContext = { ctx, clerkUserId, scope: "personal" };
+  const h: ToolHandlerContext = {
+    ctx,
+    clerkUserId,
+    scope: options.scope ?? "personal",
+    fixedProfileId: options.profileId,
+  };
 
   type RetrieveParams = z.infer<typeof toolSpecs.memory_retrieve.schema>;
   const memoryRetrieve: Tool = tool({

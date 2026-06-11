@@ -4,7 +4,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   Button,
-  Input,
   Label,
   Skeleton,
   Dialog,
@@ -27,19 +26,6 @@ import {
   IconEdit,
   IconTrash,
   IconCheck,
-  IconUser,
-  IconBriefcase,
-  IconHome,
-  IconCode,
-  IconBook,
-  IconHeart,
-  IconStar,
-  IconRocket,
-  IconBulb,
-  IconMusic,
-  IconCamera,
-  IconDeviceGamepad,
-  IconWorld,
   IconBrandChrome,
   IconLoader2,
 } from "@tabler/icons-react";
@@ -47,41 +33,12 @@ import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 import { optimisticId } from "@/lib/optimisticId";
 import PageContainer from "@/components/PageContainer";
+import { getProfileIcon } from "@/components/profiles/profile-icon";
+import { CreateEditProfileDialog } from "@/components/profiles/CreateEditProfileDialog";
 
 export const Route = createFileRoute("/_main/settings/profiles")({
   component: ProfilesPage,
 });
-
-const PROFILE_COLORS = [
-  "#171717", // black (brand default)
-  "#10B981", // emerald
-  "#F59E0B", // amber
-  "#EF4444", // red
-  "#8B5CF6", // violet
-  "#EC4899", // pink
-  "#06B6D4", // cyan
-  "#6B7280", // gray
-] as const;
-
-const PROFILE_ICONS = [
-  { name: "user", icon: IconUser },
-  { name: "briefcase", icon: IconBriefcase },
-  { name: "home", icon: IconHome },
-  { name: "code", icon: IconCode },
-  { name: "book", icon: IconBook },
-  { name: "heart", icon: IconHeart },
-  { name: "star", icon: IconStar },
-  { name: "rocket", icon: IconRocket },
-  { name: "lightbulb", icon: IconBulb },
-  { name: "music", icon: IconMusic },
-  { name: "camera", icon: IconCamera },
-  { name: "gamepad", icon: IconDeviceGamepad },
-] as const;
-
-function getProfileIcon(iconName: string) {
-  const found = PROFILE_ICONS.find((i) => i.name === iconName);
-  return found?.icon ?? IconUser;
-}
 
 type Profile = Doc<"profiles">;
 
@@ -144,124 +101,6 @@ function ProfileCard({
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function CreateEditProfileDialog({
-  profile,
-  open,
-  onOpenChange,
-  onSave,
-}: {
-  profile: Profile | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSave: (data: {
-    name: string;
-    color: string;
-    icon: string;
-  }) => Promise<void>;
-}) {
-  const [name, setName] = useState(profile?.name ?? "");
-  const [color, setColor] = useState(profile?.color ?? PROFILE_COLORS[0]);
-  const [icon, setIcon] = useState(profile?.icon ?? "user");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSave = async () => {
-    if (!name.trim()) {
-      setError("Name is required");
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    try {
-      await onSave({ name: name.trim(), color, icon });
-      onOpenChange(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save profile");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {profile ? "Edit Profile" : "Create Profile"}
-          </DialogTitle>
-          <DialogDescription>
-            {profile
-              ? "Update your profile settings"
-              : "Create a new profile to organize your memories"}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Work, Personal, Study"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Color</Label>
-            <div className="flex flex-wrap gap-2">
-              {PROFILE_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className={cn(
-                    "h-8 w-8 rounded-full transition-transform",
-                    color === c &&
-                      "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110",
-                  )}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Icon</Label>
-            <div className="flex flex-wrap gap-2">
-              {PROFILE_ICONS.map((i) => {
-                const IconComponent = i.icon;
-                return (
-                  <button
-                    key={i.name}
-                    type="button"
-                    onClick={() => setIcon(i.name)}
-                    className={cn(
-                      "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
-                      icon === i.name
-                        ? "bg-segment text-foreground"
-                        : "bg-surface-secondary hover:bg-surface-tertiary",
-                    )}
-                  >
-                    <IconComponent className="h-4 w-4" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          {error && <p className="text-sm text-danger">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving && <IconLoader2 size={16} className="mr-2 animate-spin" />}
-            {profile ? "Save Changes" : "Create Profile"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -403,17 +242,14 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
     );
   });
 
-  const webDefaultId = settings?.defaultProfiles?.web ?? null;
   const extensionDefaultId = settings?.defaultProfiles?.extension ?? null;
 
   const defaultProfile = profiles.find((p) => p.isDefault);
-  const webDefault =
-    profiles.find((p) => p._id === webDefaultId) ?? defaultProfile;
   const extensionDefault =
     profiles.find((p) => p._id === extensionDefaultId) ?? defaultProfile;
 
   const handleDefaultProfileChange = async (
-    source: "web" | "extension",
+    source: "extension",
     profileId: string,
   ) => {
     const profile = profiles.find((p) => p._id === profileId);
@@ -437,53 +273,14 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
           Default Profiles
         </h3>
         <p className="mt-0.5 text-xs text-muted">
-          Choose which profile new memories are saved to by default
+          Choose which profile new memories are saved to by default. In the web
+          app, memories save to the active workspace.
         </p>
       </div>
 
       <Card className="shadow-none">
         <CardContent className="space-y-4 p-4">
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <IconWorld className="h-4 w-4 text-muted" />
-                <Label className="text-sm">Web App</Label>
-              </div>
-              <Select
-                value={webDefault?._id ?? ""}
-                onValueChange={(profileId) => {
-                  void handleDefaultProfileChange("web", profileId);
-                }}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue>
-                    {webDefault && (
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="h-2 w-2 rounded-full shrink-0"
-                          style={{ backgroundColor: webDefault.color }}
-                        />
-                        <span className="truncate">{webDefault.name}</span>
-                      </div>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {profiles.map((profile) => (
-                    <SelectItem key={profile._id} value={profile._id}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="h-2 w-2 rounded-full shrink-0"
-                          style={{ backgroundColor: profile.color }}
-                        />
-                        <span>{profile.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <IconBrandChrome className="h-4 w-4 text-muted" />

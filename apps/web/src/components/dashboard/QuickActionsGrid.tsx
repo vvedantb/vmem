@@ -12,7 +12,12 @@ import {
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { Card, CardContent } from "@vmem/ui";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 
+/**
+ * `href` is workspace-relative (resolved against the active profile) except
+ * `/settings/**`, which is user-level and passes through unprefixed.
+ */
 const quickActions: {
   label: string;
   href: string;
@@ -58,6 +63,9 @@ const quickActions: {
 ];
 
 export function QuickActionsGrid() {
+  const activeProfile = useActiveProfile();
+  const resolveHref = (href: string) =>
+    href.startsWith("/settings") ? href : `/${activeProfile._id}${href}`;
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -82,7 +90,7 @@ export function QuickActionsGrid() {
                 }}
               >
                 <Link
-                  to={action.href}
+                  to={resolveHref(action.href)}
                   className="group flex flex-col gap-1.5 rounded-lg px-4 py-3.5 transition-[background-color] hover:bg-surface-tertiary/50"
                 >
                   <div className="flex items-center gap-3">

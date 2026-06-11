@@ -1,4 +1,11 @@
 import { extractJsonString } from "../../engine/llm/extractJsonString";
+import type { TagUsage } from "../../engine/neo4j/memory/tagNormalize";
+import { sanitizeTag } from "../../engine/neo4j/memory/tagNormalize";
+
+// Re-exported for existing imports (enrichment action, tests). The canonical
+// home is the engine tagNormalize module, next to normalizeTags — the
+// chokepoint all tag writes flow through.
+export { sanitizeTag };
 
 const MAX_CONTENT_LENGTH = 2000;
 
@@ -6,14 +13,6 @@ export function truncateAtWord(text: string, maxLen: number): string {
   if (text.length <= maxLen) return text;
   const cut = text.lastIndexOf(" ", maxLen);
   return text.slice(0, cut > 0 ? cut : maxLen);
-}
-
-export function sanitizeTag(tag: string): string {
-  return tag
-    .toLowerCase()
-    .replace(/[\s_]+/g, "-")
-    .replace(/[^a-z0-9\-]/g, "")
-    .slice(0, 50);
 }
 
 const ENTITY_TYPES = ["person", "organization", "place", "technology"] as const;
@@ -38,10 +37,14 @@ export function buildFullEnrichmentPrompt(
   title: string,
   content: string,
   existingMemories: EnrichmentCandidate[],
+  existingTags: TagUsage[] = [],
 ): string {
   const memoryList = existingMemories
     .map((m) => `${m.id}: ${m.title}`)
     .join("\n");
+  const tagVocabulary = existingTags
+    .map((t) => `${t.name} (${String(t.uses)})`)
+    .join(", ");
 
   return `You are a memory tagging and entity extraction system. Respond with ONLY a JSON object — no explanation, no thinking, no markdown.
 
@@ -49,22 +52,28 @@ export function buildFullEnrichmentPrompt(
 
 Given a memory and a list of existing memories, produce three outputs:
 
-1. **Tags** (3-5 items): semantic topic labels. Lowercase, specific, reusable.
+1. **Tags** (2-4 items): recurring THEMES this memory belongs to. Tags connect memories — they are only useful when shared across many memories.
 2. **Related memory IDs**: from the provided list only — strong topical/continuation relationships.
 3. **Named entities**: people, organizations, places, technologies mentioned by name.
 
 # Core Rules
 
-## Preserve Specific Details
+## Tags Are Themes, Entities Are Specifics
 
-Tags and entities must capture the SPECIFIC subject — never generalize away identifying detail.
+The two outputs have OPPOSITE granularity:
 
-- If the memory mentions "Ferrari 488 GTB", the entity is "Ferrari 488 GTB" — NOT "sports car" and NOT just "Ferrari".
-- If the memory mentions "TypeScript 5.4 release notes", a tag should be "typescript" (the specific tech) — NOT "programming" and NOT "article".
-- If the memory mentions "OpenAI o1-preview", the entity is "OpenAI o1-preview" — NOT just "OpenAI" and NOT "AI model".
-- If the memory mentions "the React 19 useOptimistic hook", a tag should be "react" or "useoptimistic" — NOT "frontend" and NOT "hooks".
+- ENTITIES capture the specific named things: "Ferrari 488 GTB", "Sam Altman", "OpenAI o1-preview". Never generalize an entity.
+- TAGS capture the recurring theme the memory belongs to: "supercars", "ai-models", "typescript". A tag that could only ever apply to this one memory is a failed tag.
 
-Proper nouns, version numbers, model names, exact technologies, and qualifiers are the entire point. Strip them and the memory becomes useless.
+Never put a person's name, a product model, an API symbol, or a one-off event in a tag — that is what entities are for. "bianca-francesca-boorer" or "queryclientprovider" as tags are wrong; "people" is too broad; the right call is the theme ("modeling", "react-query") plus the specific entity.
+
+## Reuse the Existing Vocabulary First
+
+The user's existing tags (with usage counts) are listed under "Existing tag vocabulary". For every tag you consider:
+
+1. If an existing tag fits, use it EXACTLY as written — never mint a near-duplicate ("ai-model" when "ai-models" exists, "reactjs" when "react" exists).
+2. Only mint a new tag when the memory introduces a genuinely new theme that will plausibly recur in future memories.
+3. Two well-chosen existing tags beat four new ones.
 
 ## No Fabrication
 
@@ -87,10 +96,10 @@ If the memory uses an abbreviation that has an obvious canonical form (e.g. "JS"
 
 ## Tag Quality
 
-- Lowercase. Hyphenated for multi-word ("graph-algorithms", "machine-learning").
-- Specific over general — prefer "react-server-components" over "react", and "react" over "frontend".
-- Reusable — should plausibly apply to other memories on the same specific topic.
-- Reject generic categories: "programming", "tech", "article", "blog", "notes", "stuff".
+- Lowercase. Hyphenated for multi-word ("machine-learning", "web-development").
+- Mid-level themes: specific enough to mean something, general enough to recur. "react" is right; "react-server-components" only if the user's vocabulary already has it; "frontend" only as a second tag, never the only one.
+- Reject vague catch-alls that say nothing: "stuff", "notes", "article", "misc", "general", "other".
+- Reject one-shot specifics that can never recur: model numbers, person names, API symbols, event names.
 
 ## Entity Quality
 
@@ -103,42 +112,51 @@ If the memory uses an abbreviation that has an obvious canonical form (e.g. "JS"
 
 ## Example 1
 
+Existing tag vocabulary: cars (12), supercars (8), youtube (40), reviews (5)
+
 Memory:
 Title: Ferrari 488 GTB review by Top Gear
 Content: Top Gear's Chris Harris reviewed the Ferrari 488 GTB in 2016. He praised its 3.9L twin-turbo V8 engine and compared it to the McLaren 675LT.
 
 Expected:
-{"tags": ["ferrari-488-gtb", "supercars", "top-gear", "twin-turbo-v8"], "relatedMemoryIds": [], "entities": [{"name": "Ferrari 488 GTB", "type": "technology"}, {"name": "Top Gear", "type": "organization"}, {"name": "Chris Harris", "type": "person"}, {"name": "McLaren 675LT", "type": "technology"}]}
+{"tags": ["supercars", "reviews"], "relatedMemoryIds": [], "entities": [{"name": "Ferrari 488 GTB", "type": "technology"}, {"name": "Top Gear", "type": "organization"}, {"name": "Chris Harris", "type": "person"}, {"name": "McLaren 675LT", "type": "technology"}]}
 
-Note: "supercars" is acceptable because it is a specific category — NOT "cars" which would be generic. The 488 GTB is preserved with its full model name. Chris Harris is included because he is named. We do NOT add "United Kingdom" as a place even though Top Gear is British.
+Note: "supercars" and "reviews" come straight from the vocabulary. The specifics — Ferrari 488 GTB, Top Gear, Chris Harris — are ENTITIES, not tags. "ferrari-488-gtb" or "twin-turbo-v8" as tags would each be used once and never again.
 
 ## Example 2
+
+Existing tag vocabulary: typescript (66), react (76), web-development (37)
 
 Memory:
 Title: TypeScript 5.4 useOptimistic types
 Content: TypeScript 5.4 ships with improved type inference for React 19's useOptimistic hook. The Microsoft team highlighted the NoInfer utility type as part of the same release.
 
 Expected:
-{"tags": ["typescript", "react", "useoptimistic", "noinfer", "type-inference"], "relatedMemoryIds": [], "entities": [{"name": "TypeScript", "type": "technology"}, {"name": "React", "type": "technology"}, {"name": "Microsoft", "type": "organization"}]}
+{"tags": ["typescript", "react"], "relatedMemoryIds": [], "entities": [{"name": "TypeScript", "type": "technology"}, {"name": "React", "type": "technology"}, {"name": "Microsoft", "type": "organization"}]}
 
-Note: We do NOT generalize to "programming" or "frontend". Version numbers do not become entities (TypeScript is the entity, "5.4" is just qualifier). NoInfer is a tag (concept) not an entity (not a proper noun).
+Note: Both tags reuse the vocabulary exactly. "useoptimistic" and "noinfer" are API symbols — they belong in the memory content, not in tags. Two strong tags beat five weak ones.
 
 ## Example 3
+
+Existing tag vocabulary: claude (81), llm (15), coding (9)
 
 Memory:
 Title: Anthropic releases Claude 3.5 Sonnet
 Content: Anthropic announced Claude 3.5 Sonnet on June 20, 2024. CEO Dario Amodei said it outperforms GPT-4o on coding benchmarks.
 
 Expected:
-{"tags": ["anthropic", "claude-3-5-sonnet", "llm", "ai-models"], "relatedMemoryIds": [], "entities": [{"name": "Anthropic", "type": "organization"}, {"name": "Claude 3.5 Sonnet", "type": "technology"}, {"name": "Dario Amodei", "type": "person"}, {"name": "GPT-4o", "type": "technology"}]}
+{"tags": ["claude", "llm", "ai-models"], "relatedMemoryIds": [], "entities": [{"name": "Anthropic", "type": "organization"}, {"name": "Claude 3.5 Sonnet", "type": "technology"}, {"name": "Dario Amodei", "type": "person"}, {"name": "GPT-4o", "type": "technology"}]}
 
-Note: "Claude 3.5 Sonnet" preserved with the full model name — NOT just "Claude". GPT-4o is included as a technology (it is named). We do NOT infer "OpenAI" as an organization because it was not literally mentioned.
+Note: "claude" and "llm" reuse the vocabulary. "ai-models" is a NEW tag — justified because AI model releases are a recurring theme that future memories will share. "Claude 3.5 Sonnet" stays an entity with its full model name; "claude-3-5-sonnet" as a tag would be a one-off.
 
 # Input
 
 Memory:
 Title: ${title}
 Content: ${truncateAtWord(content, MAX_CONTENT_LENGTH)}
+
+Existing tag vocabulary (tag (uses) — reuse these when they fit):
+${tagVocabulary || "(none yet — mint sensible recurring themes)"}
 
 Existing memories:
 ${memoryList || "(none)"}
@@ -211,7 +229,7 @@ export function parseFullEnrichmentResponse(
     const tags = tagsRaw
       .map(sanitizeTag)
       .filter((t) => t.length > 0)
-      .slice(0, 5);
+      .slice(0, 4);
     if (tags.length === 0) return null;
     const relatedMemoryIds =
       relatedRaw !== undefined && isStringArrayAllowEmpty(relatedRaw)
