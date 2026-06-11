@@ -19,10 +19,12 @@ function localTimeToDate(localTime: string): Date {
 }
 
 interface DreamModeCardProps {
+  dreamModeAutomatic: boolean;
   dreamModeAutoAccept: boolean;
   dreamModeScheduleEnabled: boolean;
   /** "HH:MM" UTC or null. */
   dreamModeScheduleTime: string | null;
+  onToggleAutomatic: (value: boolean) => void;
   onToggleAutoAccept: (value: boolean) => void;
   onToggleSchedule: (enabled: boolean) => void;
   /** Receives the picked local "HH:MM". */
@@ -30,9 +32,11 @@ interface DreamModeCardProps {
 }
 
 export default function DreamModeCard({
+  dreamModeAutomatic,
   dreamModeAutoAccept,
   dreamModeScheduleEnabled,
   dreamModeScheduleTime,
+  onToggleAutomatic,
   onToggleAutoAccept,
   onToggleSchedule,
   onChangeScheduleTime,
@@ -57,6 +61,18 @@ export default function DreamModeCard({
 
   return (
     <View className="gap-6 rounded-xl bg-card p-4">
+      <SettingRow
+        label="Automatic dreaming"
+        description="Dream on its own once you go quiet after saving new memories — no schedule needed. Runs at most a few times a day."
+      >
+        <Switch
+          value={dreamModeAutomatic}
+          onValueChange={onToggleAutomatic}
+          trackColor={{ true: theme.accent, false: theme.surfaceTertiary }}
+          thumbColor={theme.surface}
+        />
+      </SettingRow>
+
       <SettingRow
         label="Auto-accept high-confidence synthesis"
         description="When on, high-confidence syntheses save as memories automatically. Otherwise they queue in your inbox for approval. Contradictions always queue regardless."

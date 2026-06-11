@@ -17,7 +17,10 @@ import { api } from "@vmem/backend";
  *   (materialize a NEW memory with `:DERIVED_FROM` edges to sources on
  *   approve).
  * - `contradiction`: Dream Mode flagged two memories that disagree.
- *   V1 dismiss-only — no automatic action on approve/reject.
+ *   Approving with a winner keeps that memory and suppresses the rest;
+ *   approving without one just dismisses the flag.
+ * - `merge`: Dream Mode found near-duplicate fragments. Approving creates
+ *   the consolidated memory and supersedes the sources.
  */
 export type ProposedUpdateKind =
   | "update"
@@ -25,13 +28,15 @@ export type ProposedUpdateKind =
   | "insight"
   | "connection"
   | "contradiction"
-  | "anomaly";
+  | "anomaly"
+  | "merge";
 
 const SYNTHESIS_KINDS = new Set<ProposedUpdateKind>([
   "insight",
   "connection",
   "contradiction",
   "anomaly",
+  "merge",
 ]);
 
 export function isSynthesisKind(kind: ProposedUpdateKind): boolean {
@@ -91,7 +96,8 @@ export function useProposals() {
           p.kind === "insight" ||
           p.kind === "connection" ||
           p.kind === "contradiction" ||
-          p.kind === "anomaly"
+          p.kind === "anomaly" ||
+          p.kind === "merge"
             ? p.kind
             : "update";
         const source: ProposedUpdate["source"] =
@@ -120,10 +126,12 @@ export function useProposals() {
     mutationFn: async (input: {
       proposalId: string;
       action: "approve" | "reject";
+      winnerMemoryId?: string;
     }) => {
       return await resolveAction({
         proposalId: input.proposalId,
         action: input.action,
+        winnerMemoryId: input.winnerMemoryId,
       });
     },
     onSuccess: () => {
@@ -147,6 +155,17 @@ export function useProposals() {
     [resolveMutation],
   );
 
+  /** Contradiction resolution: keep `winnerMemoryId`, suppress the rest. */
+  const keepWinner = useCallback(
+    (proposalId: string, winnerMemoryId: string) =>
+      resolveMutation.mutateAsync({
+        proposalId,
+        action: "approve",
+        winnerMemoryId,
+      }),
+    [resolveMutation],
+  );
+
   const proposals = useMemo(() => listQuery.data ?? [], [listQuery.data]);
   const pendingCount = useMemo(
     () => proposals.filter((p) => p.status === "pending").length,
@@ -160,5 +179,6 @@ export function useProposals() {
     isResolving: resolveMutation.isPending,
     approve,
     reject,
+    keepWinner,
   };
 }

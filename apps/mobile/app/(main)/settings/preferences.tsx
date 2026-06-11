@@ -113,9 +113,13 @@ export default function PreferencesScreen() {
 
           <SectionTitle>Dream Mode</SectionTitle>
           <DreamModeCard
+            dreamModeAutomatic={settings.dreamModeAutomatic}
             dreamModeAutoAccept={settings.dreamModeAutoAccept}
             dreamModeScheduleEnabled={settings.dreamModeScheduleEnabled}
             dreamModeScheduleTime={settings.dreamModeScheduleTime}
+            onToggleAutomatic={(value) =>
+              void updateSettings({ dreamModeAutomatic: value })
+            }
             onToggleAutoAccept={(value) =>
               void updateSettings({ dreamModeAutoAccept: value })
             }

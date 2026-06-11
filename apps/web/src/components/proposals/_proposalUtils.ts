@@ -27,5 +27,7 @@ export function proposalAccentClass(kind: ProposedUpdateKind): string {
       return "bg-success";
     case "anomaly":
       return "bg-warning";
+    case "merge":
+      return "bg-accent";
   }
 }

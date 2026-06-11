@@ -1,5 +1,12 @@
 # Changelog
 
+## Dreaming made visible — 2026-06-11
+
+- **Why**: background reflection the user cannot see might as well not exist — there was no way to tell what would be dreamt on, when the last dream ran, or how to act on the new proposal kinds.
+- **Settings**: Dream Mode gains an Automatic dreaming toggle (web and mobile) and a "Last dreamt" timestamp alongside the existing auto-accept and daily-schedule controls.
+- **Moon indicator**: memories newer than the last dream run carry a small moon on their list row — "will be considered in the next dream" — that clears once a pass completes.
+- **Proposal cards**: merge proposals render the consolidation with a "replaces N memories" panel, and contradiction cards gain per-source "Keep this" buttons that resolve the conflict in one click.
+
 ## Dynamic dreaming: dreams trigger themselves — 2026-06-11
 
 - **Why**: Dream Mode was a fixed daily cron — the system never decided on its own when to reflect, the exact pattern the design set out to beat.

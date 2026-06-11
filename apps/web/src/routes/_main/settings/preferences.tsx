@@ -18,6 +18,7 @@ import {
 } from "@vmem/shared";
 import PageContainer from "@/components/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
+import { formatRelativeTime } from "@/lib/formatters";
 
 export const Route = createFileRoute("/_main/settings/preferences")({
   component: PreferencesPage,
@@ -230,6 +231,28 @@ function PreferencesPage() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Label
+                    htmlFor="dream-automatic"
+                    className="text-sm font-medium"
+                  >
+                    Automatic dreaming
+                  </Label>
+                  <p className="mt-1 text-xs text-muted">
+                    Dream on its own once you go quiet after saving new memories
+                    — no schedule needed. Runs at most a few times a day, deeper
+                    when more context piled up.
+                  </p>
+                </div>
+                <Switch
+                  id="dream-automatic"
+                  checked={settings.dreamModeAutomatic}
+                  onCheckedChange={(checked) => {
+                    void saveSettings({ dreamModeAutomatic: checked });
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label
                     htmlFor="dream-auto-accept"
                     className="text-sm font-medium"
                   >
@@ -283,6 +306,9 @@ function PreferencesPage() {
                   />
                 </div>
               </div>
+              <p className="text-xs text-muted">
+                Last dreamt: {formatRelativeTime(settings.lastDreamRunAt)}
+              </p>
             </CardContent>
           </Card>
         </section>
