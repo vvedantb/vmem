@@ -100,7 +100,7 @@ export default function MemoryDetailPanel({
           onValueChange={(v) => setActiveTab(v as PanelTab)}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <TabsList className="mb-5 w-full shrink-0 sm:w-auto">
+          <TabsList className="mb-5 shrink-0 self-start">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="connections">Connections</TabsTrigger>
@@ -108,7 +108,7 @@ export default function MemoryDetailPanel({
 
           <TabsContent
             value="details"
-            className="mt-0 min-h-0 flex-1 overflow-y-auto scrollbar-thin"
+            className="mt-0 min-h-0 w-full flex-1 overflow-y-auto scrollbar-thin"
           >
             <DetailsTab
               memory={memory}
@@ -123,14 +123,14 @@ export default function MemoryDetailPanel({
 
           <TabsContent
             value="history"
-            className="mt-0 min-h-0 flex-1 overflow-y-auto scrollbar-thin"
+            className="mt-0 min-h-0 w-full flex-1 overflow-y-auto scrollbar-thin"
           >
             <HistoryTab memoryId={memory.id} />
           </TabsContent>
 
           <TabsContent
             value="connections"
-            className="mt-0 min-h-0 flex-1 overflow-y-auto scrollbar-thin"
+            className="mt-0 min-h-0 w-full flex-1 overflow-y-auto scrollbar-thin"
           >
             <ConnectionsTab
               memoryId={memory.id}
