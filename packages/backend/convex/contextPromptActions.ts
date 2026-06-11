@@ -166,6 +166,14 @@ export const regenerateContextPromptInternal = internalAction({
       ? await callSummarizer(ctx, auth.apiKey, auth.userId, recentSnippets)
       : null;
 
+    // Dream-maintained portrait of the MCP-active profile. Unlike About
+    // (user-typed) this is inferred — labelled as such so AI clients can
+    // weigh it accordingly.
+    const dreamPortrait = await ctx.runQuery(
+      internal.profiles.getPortraitForContextPromptInternal,
+      { clerkId: args.clerkId },
+    );
+
     const sections: string[] = [];
     sections.push("# vmem User Profile");
     sections.push("");
@@ -175,6 +183,15 @@ export const regenerateContextPromptInternal = internalAction({
     sections.push("## Preferences");
     sections.push(settings.preferences ?? "_(not provided)_");
     sections.push("");
+    if (dreamPortrait) {
+      sections.push("## Inferred Portrait");
+      sections.push(
+        "_Maintained automatically by Dream Mode from the user's memories; every claim traces back to stored memories._",
+      );
+      sections.push("");
+      sections.push(dreamPortrait.portrait);
+      sections.push("");
+    }
     sections.push("## Pinned Memories");
     sections.push(formatPinnedSection(pinnedSnippets));
     sections.push("");

@@ -1,5 +1,12 @@
 # Changelog
 
+## Evolving workspace portrait — 2026-06-11
+
+- **Why**: the only "who is this user" context AI clients got was the hand-typed About Me — a brittle list of attributes that never learned anything from the memory store.
+- **Dream-maintained**: each productive dream pass incrementally revises a per-workspace portrait — keeping what still holds, rewriting what changed, dropping what the evidence no longer supports — rather than regenerating a summary from scratch.
+- **Grounded**: every portrait must cite the memories it draws on; ungrounded output is rejected outright, same rule as synthesis proposals.
+- **Surfaced**: the portrait is injected into the MCP context prompt as a clearly-labelled inferred section and shown on the workspace home with its source count and last-dreamt time.
+
 ## Dreams reconsolidate memories — 2026-06-11
 
 - **Why**: dreams only ever ADDED knowledge — old facts kept their day-one confidence, near-duplicates accumulated forever, and contradictions were dismiss-only flags nobody could act on.

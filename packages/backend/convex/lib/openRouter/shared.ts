@@ -17,6 +17,7 @@ export type OpenRouterFeature =
   | "chat"
   | "enrichment"
   | "dream-synthesis"
+  | "dream-portrait"
   | "context-prompt"
   | "fact-extraction"
   | "entity-backfill"
