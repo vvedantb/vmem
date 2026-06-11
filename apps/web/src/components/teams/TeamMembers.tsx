@@ -10,7 +10,7 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import type { TeamDetail } from "../-team-detail";
+import type { TeamDetail } from "./team-detail";
 import { AddMemberDialog } from "./AddMemberDialog";
 
 export function TeamMembers({ data }: { data: TeamDetail }) {

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useHotkey } from "@tanstack/react-hotkeys";
-import { useAction, useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useAction, useConvexAuth, useQuery } from "convex/react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -25,7 +25,13 @@ import {
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import type { FunctionReturnType } from "convex/server";
-import { navGroups, settingsNavGroups } from "@/components/sidebar/nav-config";
+import {
+  navGroups,
+  navHrefToPath,
+  settingsNavGroups,
+} from "@/components/sidebar/nav-config";
+import { useActiveProfileId } from "@/components/workspace/active-profile";
+import { workspacePathFor } from "@/components/workspace/workspace-paths";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 
 type MemoryHit = FunctionReturnType<
@@ -40,6 +46,8 @@ export function CommandPalette({ onToggleSidebar }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const workspaceId = useActiveProfileId();
   const { theme, toggleTheme } = useThemeContext();
   const { isAuthenticated } = useConvexAuth();
 
@@ -51,21 +59,6 @@ export function CommandPalette({ onToggleSidebar }: Props) {
   };
 
   const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
-  const setDefaultProfile = useMutation(
-    api.userSettings.setDefaultProfile,
-  ).withOptimisticUpdate((localStore, args) => {
-    const current = localStore.getQuery(api.userSettings.get, {});
-    if (!current) return;
-    const defaults = current.defaultProfiles ?? {};
-    localStore.setQuery(
-      api.userSettings.get,
-      {},
-      {
-        ...current,
-        defaultProfiles: { ...defaults, [args.source]: args.profileId },
-      },
-    );
-  });
 
   const skills = useQuery(api.skills.listMy, isAuthenticated ? {} : "skip");
 
@@ -98,6 +91,13 @@ export function CommandPalette({ onToggleSidebar }: Props) {
     setOpen(false);
   };
 
+  /**
+   * Target within the active workspace, or `/home` (the workspace
+   * resolver) when none has been visited yet.
+   */
+  const workspaceTo = (subPath: string) =>
+    workspaceId === undefined ? "/home" : `/${workspaceId}${subPath}`;
+
   const normalizedQuery = query.trim().toLowerCase();
   const filteredSkills =
     normalizedQuery.length >= 2
@@ -127,7 +127,9 @@ export function CommandPalette({ onToggleSidebar }: Props) {
                   key={item.href}
                   value={`nav ${item.label}`}
                   onSelect={() =>
-                    runAndClose(() => navigate({ to: item.href }))
+                    runAndClose(() =>
+                      navigate({ to: navHrefToPath(item.href, workspaceId) }),
+                    )
                   }
                 >
                   <Icon />
@@ -161,14 +163,20 @@ export function CommandPalette({ onToggleSidebar }: Props) {
         <CommandSeparator />
 
         {profiles && profiles.length > 0 && (
-          <CommandGroup heading="Switch Profile">
+          <CommandGroup heading="Switch workspace">
             {profiles.map((p) => (
               <CommandItem
                 key={p._id}
-                value={`profile ${p.name}`}
+                value={`workspace ${p.name}`}
                 onSelect={() =>
                   runAndClose(() =>
-                    setDefaultProfile({ source: "web", profileId: p._id }),
+                    navigate({
+                      to: workspacePathFor(
+                        pathname,
+                        p._id,
+                        p.teamId !== undefined,
+                      ),
+                    }),
                   )
                 }
               >
@@ -212,7 +220,7 @@ export function CommandPalette({ onToggleSidebar }: Props) {
                   onSelect={() =>
                     runAndClose(() =>
                       navigate({
-                        to: "/memories/graph",
+                        to: workspaceTo("/memories/graph"),
                         search: (prev) => ({ ...prev, focus: m.id }),
                       }),
                     )
@@ -234,10 +242,7 @@ export function CommandPalette({ onToggleSidebar }: Props) {
                 value={`wiki ${w.title} ${w._id}`}
                 onSelect={() =>
                   runAndClose(() =>
-                    navigate({
-                      to: "/wiki/$docId",
-                      params: { docId: w._id },
-                    }),
+                    navigate({ to: workspaceTo(`/wiki/${w._id}`) }),
                   )
                 }
               >
@@ -256,7 +261,7 @@ export function CommandPalette({ onToggleSidebar }: Props) {
                 value={`skill ${s.name} ${s._id}`}
                 onSelect={() =>
                   runAndClose(() =>
-                    navigate({ to: "/skills/$id", params: { id: s._id } }),
+                    navigate({ to: workspaceTo(`/skills/${s._id}`) }),
                   )
                 }
               >

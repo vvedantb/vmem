@@ -3,13 +3,14 @@ import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { Separator, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconChevronRight } from "@tabler/icons-react";
-import type { NavIcon, NavItem } from "./types";
-import { navGroups, settingsNavGroups } from "./nav-config";
+import { IconUsers } from "@tabler/icons-react";
+import { IconTeams, IconSettings } from "../sidebar-icons";
+import type { NavGroup, NavIcon, NavItem } from "./types";
+import { navGroups, navHrefToPath, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { WikiSidebarNav } from "./WikiSidebarNav";
-import { TeamsSidebarNav } from "./TeamsSidebarNav";
 import { CodebasesSidebarNav } from "./CodebasesSidebarNav";
 
 export type SidebarNavView =
@@ -17,15 +18,13 @@ export type SidebarNavView =
   | "settings"
   | "skills"
   | "wiki"
-  | "teams"
   | "codebases";
 
 const subSidebarHrefs = [
-  "/skills",
+  "/$profileId/skills",
   "/settings",
-  "/wiki",
-  "/teams",
-  "/codebases",
+  "/$profileId/wiki",
+  "/$profileId/codebases",
 ] as const;
 
 type SubSidebarHref = (typeof subSidebarHrefs)[number];
@@ -36,15 +35,21 @@ function isSubSidebarHref(href: string): href is SubSidebarHref {
 
 export function navViewFromPathname(pathname: string): SidebarNavView {
   if (pathname.startsWith("/settings")) return "settings";
-  if (pathname.startsWith("/skills")) return "skills";
-  if (pathname.startsWith("/wiki")) return "wiki";
-  if (pathname.startsWith("/teams")) return "teams";
-  if (pathname.startsWith("/codebases")) return "codebases";
+  // Workspace routes carry the profile id as their first segment — strip it
+  // before matching sections.
+  const sub = pathname.replace(/^\/[^/]+/, "");
+  if (sub.startsWith("/skills")) return "skills";
+  if (sub.startsWith("/wiki")) return "wiki";
+  if (sub.startsWith("/codebases")) return "codebases";
   return "main";
 }
 
 export type SidebarNavigationProps = {
   pathname: string;
+  /** Active workspace id for resolving workspace-scoped nav hrefs. */
+  profileId: string | undefined;
+  /** Team workspaces get an extra "Team" nav group (members / settings). */
+  isTeamWorkspace: boolean;
   unreadCount: number;
   proposalsCount: number;
   isCollapsed: boolean;
@@ -52,6 +57,20 @@ export type SidebarNavigationProps = {
   navView: SidebarNavView;
   onNavViewChange: (view: SidebarNavView) => void;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
+};
+
+/** Extra nav group shown only when the active workspace belongs to a team. */
+const teamNavGroup: NavGroup = {
+  title: "Team",
+  icon: IconTeams,
+  items: [
+    { href: "/$profileId/team/members", label: "Members", icon: IconUsers },
+    {
+      href: "/$profileId/team/settings",
+      label: "Team settings",
+      icon: IconSettings,
+    },
+  ],
 };
 
 function SubSidebarNavButton({
@@ -118,6 +137,8 @@ function SubSidebarNavButton({
 
 function MainNav({
   pathname,
+  profileId,
+  isTeamWorkspace,
   unreadCount,
   proposalsCount,
   isIconOnly,
@@ -126,10 +147,11 @@ function MainNav({
   onSettingsClick,
   onSkillsClick,
   onWikiClick,
-  onTeamsClick,
   onCodebasesClick,
 }: {
   pathname: string;
+  profileId: string | undefined;
+  isTeamWorkspace: boolean;
   unreadCount: number;
   proposalsCount: number;
   isIconOnly: boolean;
@@ -138,9 +160,9 @@ function MainNav({
   onSettingsClick: () => void;
   onSkillsClick: () => void;
   onWikiClick: () => void;
-  onTeamsClick: () => void;
   onCodebasesClick: () => void;
 }) {
+  const groups = isTeamWorkspace ? [...navGroups, teamNavGroup] : navGroups;
   return (
     <motion.nav
       className={cn(
@@ -152,7 +174,7 @@ function MainNav({
       exit={{ opacity: 0, x: -12 }}
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
-      {navGroups.map((group) => {
+      {groups.map((group) => {
         const GroupIcon = group.icon as NavIcon;
         return (
           <div key={group.title} className="px-1 mb-4">
@@ -176,17 +198,17 @@ function MainNav({
             <ul className={cn("space-y-1", !isIconOnly && "pl-3")}>
               {group.items.map((item) => {
                 if (isSubSidebarHref(item.href)) {
-                  const isActive = pathname.startsWith(item.href);
+                  const isActive = pathname.startsWith(
+                    navHrefToPath(item.href, profileId),
+                  );
                   const onClick =
-                    item.href === "/skills"
+                    item.href === "/$profileId/skills"
                       ? onSkillsClick
-                      : item.href === "/wiki"
+                      : item.href === "/$profileId/wiki"
                         ? onWikiClick
-                        : item.href === "/teams"
-                          ? onTeamsClick
-                          : item.href === "/codebases"
-                            ? onCodebasesClick
-                            : onSettingsClick;
+                        : item.href === "/$profileId/codebases"
+                          ? onCodebasesClick
+                          : onSettingsClick;
                   return (
                     <li key={item.href}>
                       <SubSidebarNavButton
@@ -204,6 +226,7 @@ function MainNav({
                     <NavLink
                       item={item}
                       pathname={pathname}
+                      profileId={profileId}
                       isIconOnly={isIconOnly}
                       isMobile={isMobile}
                       unreadCount={unreadCount}
@@ -313,6 +336,8 @@ function SettingsNav({
 
 export function SidebarNavigation({
   pathname,
+  profileId,
+  isTeamWorkspace,
   unreadCount,
   proposalsCount,
   isCollapsed,
@@ -345,12 +370,6 @@ export function SidebarNavigation({
           isIconOnly={isIconOnly}
           isMobile={isMobile}
         />
-      ) : navView === "teams" ? (
-        <TeamsSidebarNav
-          key="teams"
-          isIconOnly={isIconOnly}
-          isMobile={isMobile}
-        />
       ) : navView === "codebases" ? (
         <CodebasesSidebarNav
           key="codebases"
@@ -361,6 +380,8 @@ export function SidebarNavigation({
         <MainNav
           key="main"
           pathname={pathname}
+          profileId={profileId}
+          isTeamWorkspace={isTeamWorkspace}
           unreadCount={unreadCount}
           proposalsCount={proposalsCount}
           isIconOnly={isIconOnly}
@@ -369,7 +390,6 @@ export function SidebarNavigation({
           onSettingsClick={() => onNavViewChange("settings")}
           onSkillsClick={() => onNavViewChange("skills")}
           onWikiClick={() => onNavViewChange("wiki")}
-          onTeamsClick={() => onNavViewChange("teams")}
           onCodebasesClick={() => onNavViewChange("codebases")}
         />
       )}

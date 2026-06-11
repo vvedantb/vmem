@@ -4,6 +4,7 @@ import { useConvexAuth, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
+import { useActiveProfile } from "./workspace/active-profile";
 import { DashboardLoadingSkeleton } from "./dashboard/DashboardLoadingSkeleton";
 import { DashboardStatCards } from "./dashboard/DashboardStatCards";
 import { MemoryGrowthChart } from "./dashboard/MemoryGrowthChart";
@@ -17,6 +18,7 @@ type ActivityItem = FunctionReturnType<
 
 export default function Dashboard() {
   const { isAuthenticated } = useConvexAuth();
+  const activeProfile = useActiveProfile();
   const getStats = useAction(api.dashboardApi.getStats);
   const getRecentActivity = useAction(api.dashboardApi.getRecentActivity);
   const [stats, setStats] = useState<StatsData | null>(null);
@@ -31,8 +33,8 @@ export default function Dashboard() {
       setError(null);
 
       const [statsData, activityData] = await Promise.all([
-        getStats({}),
-        getRecentActivity({}),
+        getStats({ profileId: activeProfile._id }),
+        getRecentActivity({ profileId: activeProfile._id }),
       ]);
 
       setStats(statsData);
@@ -42,7 +44,7 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, getStats, getRecentActivity]);
+  }, [isAuthenticated, getStats, getRecentActivity, activeProfile._id]);
 
   useEffect(() => {
     fetchData();

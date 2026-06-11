@@ -5,7 +5,7 @@ import { api } from "@vmem/backend";
 import { Button, Card, CardContent, Input } from "@vmem/ui";
 import { IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import type { TeamDetail } from "../-team-detail";
+import type { TeamDetail } from "./team-detail";
 
 export function TeamSettings({ data }: { data: TeamDetail }) {
   const updateTeam = useMutation(api.teams.updateTeam).withOptimisticUpdate(
@@ -98,7 +98,9 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
     try {
       await deleteTeam({ teamId: data.team._id });
       toast.success(`Deleted ${data.team.name}`);
-      await navigate({ to: "/teams" });
+      // The team workspace just ceased to exist — /home resolves a
+      // personal workspace to land in.
+      await navigate({ to: "/home" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Delete failed");
       setDeleting(false);

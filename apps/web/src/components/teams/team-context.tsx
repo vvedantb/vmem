@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import type { TeamDetail } from "./-team-detail";
+import type { TeamDetail } from "./team-detail";
 
 const TeamDetailContext = createContext<TeamDetail | null>(null);
 

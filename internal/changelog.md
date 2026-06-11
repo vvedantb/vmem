@@ -1,5 +1,12 @@
 # Changelog
 
+## Workspace switcher in the sidebar; teams fold into their workspace — 2026-06-11
+
+- **Why**: with profiles as routes, switching needed to be one click from anywhere — and a separate /teams area no longer made sense when a team IS a workspace.
+- **Switcher**: a workspace card styled like the account card sits at the top of the sidebar, listing personal profiles and teams with the active one checked; switching keeps you on the same page in the new workspace (detail pages fall back sensibly). Creating a profile or team and managing profiles moved into its dropdown, and the command palette gained the same "switch workspace" actions.
+- **Teams folded in**: the /teams section is gone — a team workspace's home is its overview, its memories are the old "knowledge" view, and Members / Team settings appear as a sidebar group only inside team workspaces.
+- **Workspace-scoped stats**: the dashboard and the sidebar footer counts now reflect the active workspace instead of user-wide totals, and recent activity follows the same scope.
+
 ## Profiles become workspaces: every page lives under /$profileId — 2026-06-11
 
 - **Why**: switching profiles was buried in settings and a profile only filtered memories; making the profile the top-level route turns profiles into real workspaces (Vercel model) and is the foundation for team workspaces with their own content.

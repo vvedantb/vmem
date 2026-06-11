@@ -73,12 +73,12 @@ export function CreateTeamDialog({
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      const { teamId } = await createTeam({ name: trimmed });
+      const { profileId } = await createTeam({ name: trimmed });
       toast.success(`Created ${trimmed}`);
       onOpenChange(false);
       setName("");
-      // Navigate into the new team dashboard.
-      await navigate({ to: "/teams/$teamId/overview", params: { teamId } });
+      // Navigate into the new team's workspace.
+      await navigate({ to: "/$profileId/home", params: { profileId } });
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to create team";
