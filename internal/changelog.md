@@ -1,5 +1,12 @@
 # Changelog
 
+## Profiles become workspaces: every page lives under /$profileId — 2026-06-11
+
+- **Why**: switching profiles was buried in settings and a profile only filtered memories; making the profile the top-level route turns profiles into real workspaces (Vercel model) and is the foundation for team workspaces with their own content.
+- **URL structure**: every page now lives under `/$profileId/` — chat, voice, memories, files, codebases, skills, wiki, activity, inbox, home — with only `/settings` staying user-level (machine-consumed routes like `/agent-callback` and the MCP OAuth page are untouched).
+- **Old links keep working**: pre-workspace bookmarks (`/chat`, `/memories/graph?focus=...`, `/teams/$teamId/members`) redirect into the right workspace automatically; deleted or foreign workspace ids land on a clean not-found page instead of crashing.
+- **Entry resolution**: `/home` stays the post-login entry point and now resolves last-visited workspace → web default profile → default personal profile, creating one for brand-new accounts.
+
 ## Legacy tag noise consolidated: 4,962 → 421 tags — 2026-06-11
 
 - **Why**: the tag workflow fix (vocabulary-aware enrichment) was forward-looking only — the database still held 4,962 distinct tags across 2,775 memories, 73% used exactly once, so the dashboard count stayed inflated and the graph's tag connections stayed sparse.

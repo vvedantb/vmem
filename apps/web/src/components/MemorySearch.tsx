@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@vmem/ui";
@@ -14,7 +15,6 @@ import { VmemSpinner } from "@/components/svg-animations";
 import { type Memory, type MemoryType } from "@/lib/memories";
 import {
   listItemMatchesKindFilter,
-  listItemMatchesProfileFilter,
   listItemMatchesSourceFilter,
   listItemMatchesTagFilter,
   listItemMatchesTypeFilter,
@@ -25,7 +25,7 @@ import {
   type ListItem,
   type ListItemSearchResult,
 } from "@/lib/list-items";
-import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
+import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
 import { useMemoryListFlat } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
@@ -78,13 +78,13 @@ interface MemorySearchProps {
  */
 export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const navigate = useNavigate();
+  const activeProfile = useActiveProfile();
   const searchParams = useSearch({ strict: false });
   const [params, setParams] = useMemoriesSearchParams();
   const getMemory = useAction(api.memoryApi.getMemory);
 
   const searchQuery = params.q;
   const normalizedQuery = searchQuery.trim();
-  const trimmedProfile = params.profile ?? null;
 
   // First type in the filter wins for the server-side roundtrip. The server
   // only supports a single type; multi-type is rare in practice and the
@@ -97,7 +97,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     params.kinds.length === 0 || params.kinds.includes("memory");
 
   const memoryPage = useMemoryListFlat({
-    profileId: trimmedProfile,
+    profileId: activeProfile._id,
     type: primaryType,
     source: primarySource,
     tags: params.tags,
@@ -112,8 +112,12 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     isFetchingNextPage,
   } = memoryPage;
 
-  const wikiRows = useConvexQuery(api.wiki.listTree);
-  const skillRows = useConvexQuery(api.skills.listMy);
+  const wikiRows = useConvexQuery(api.wiki.listTree, {
+    teamId: activeProfile.teamId,
+  });
+  const skillRows = useConvexQuery(api.skills.listMy, {
+    teamId: activeProfile.teamId,
+  });
   const { theme } = useThemeContext();
   const isDark = theme === "dark";
 
@@ -178,8 +182,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
         listItemMatchesKindFilter(item, params.kinds) &&
         listItemMatchesTagFilter(item, params.tags) &&
         listItemMatchesSourceFilter(item, params.sources) &&
-        listItemMatchesTypeFilter(item, params.types) &&
-        listItemMatchesProfileFilter(item, params.profile),
+        listItemMatchesTypeFilter(item, params.types),
     );
   }, [
     wikiItemsRaw,
@@ -188,7 +191,6 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     params.tags,
     params.sources,
     params.types,
-    params.profile,
   ]);
 
   // If multiple types were selected, the server returned results for only
@@ -268,7 +270,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     enabled: memoryId !== null && memoryFromList === null,
     queryFn: async () => {
       if (memoryId === null) return null;
-      return getMemory({ memoryId });
+      return getMemory({ memoryId, profileId: activeProfile._id });
     },
   });
 
@@ -286,9 +288,13 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     const inList = memoryResults.some((memory) => memory.id === memoryId);
     const hasMemory = inList || fetchedMemory !== null;
     if (!hasMemory) {
-      void navigate({ to: "/memories/list" });
+      void navigate({
+        to: "/$profileId/memories/list",
+        params: { profileId: activeProfile._id },
+      });
     }
   }, [
+    activeProfile._id,
     memoryId,
     memoryResults,
     fetchedMemory,
@@ -301,14 +307,20 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
 
   const openMemory = useCallback(
     (id: string) => {
-      void navigate({ to: "/memories/list/$id", params: { id } });
+      void navigate({
+        to: "/$profileId/memories/list/$id",
+        params: { profileId: activeProfile._id, id },
+      });
     },
-    [navigate],
+    [navigate, activeProfile._id],
   );
 
   const closeMemory = useCallback(() => {
-    void navigate({ to: "/memories/list" });
-  }, [navigate]);
+    void navigate({
+      to: "/$profileId/memories/list",
+      params: { profileId: activeProfile._id },
+    });
+  }, [navigate, activeProfile._id]);
 
   const handleMemoryUpdate = useCallback(
     (updatedMemory: Memory) => {

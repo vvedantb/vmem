@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import type { Doc } from "@vmem/backend";
 import { cn } from "@vmem/ui";
 import { IconSkills } from "@/components/sidebar-icons";
@@ -21,6 +22,7 @@ export function ChatSkillSlashMenu({
   highlightIndex,
   onSelect,
 }: ChatSkillSlashMenuProps) {
+  const activeProfile = useActiveProfile();
   const safeHighlight =
     filteredSkills.length === 0
       ? 0
@@ -52,7 +54,8 @@ export function ChatSkillSlashMenu({
             <>
               No skills yet.{" "}
               <Link
-                to="/skills"
+                to="/$profileId/skills"
+                params={{ profileId: activeProfile._id }}
                 className="text-foreground underline-offset-4 hover:underline"
               >
                 Create one

@@ -10,7 +10,7 @@
  * React context, no duplicated state/data-fetching.
  *
  * State ownership:
- *   - Filters + search (profile/tags/kinds/sources/types/q): URL via `nuqs`, shared with list view.
+ *   - Filters + search (tags/kinds/sources/types/q): URL via `nuqs`, shared with list view.
  *   - Display (view mode, forces/labels): cookies via `graph-cookies`, per-user.
  *   - Data: Convex action via `useGraphData`.
  */
@@ -27,8 +27,9 @@ import {
 } from "@/lib/graph-cookies";
 import { useGraphData } from "@/hooks/useGraphData";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
-import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
-import type { GraphScope } from "@/routes/_main/memories/-searchParams";
+import { useActiveProfile } from "@/components/workspace/active-profile";
+import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
+import type { GraphScope } from "@/routes/_main/$profileId/memories/-searchParams";
 import {
   buildGraphData,
   getAllTags,
@@ -133,7 +134,6 @@ export interface MemoryGraphController {
   search: string;
 
   // ----- Filter handlers (same shape as list view) -----
-  onProfileChange: (id: string | null) => void;
   onKindsChange: (kinds: ListItemKind[]) => void;
   onTagsChange: (tags: string[]) => void;
   onSourcesChange: (sources: string[]) => void;
@@ -163,6 +163,7 @@ export function useMemoryGraphController({
   // URL-backed filter state — shared with list view so filters persist across
   // view modes and are URL-shareable.
   const [params, setParams] = useMemoriesSearchParams();
+  const activeProfileId = useActiveProfile()._id;
 
   // Data
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
@@ -188,7 +189,7 @@ export function useMemoryGraphController({
     error,
   } = useGraphData(
     focusNodeId,
-    params.profile,
+    activeProfileId,
     enabled,
     scope,
     depth,
@@ -200,15 +201,11 @@ export function useMemoryGraphController({
   const isSearchActive = searchQuery.length > 0;
 
   const { data: memorySearchResult } = useTanstackQuery({
-    queryKey: [
-      "graph-memory-search",
-      deferredSearchQuery,
-      params.profile ?? "",
-    ],
+    queryKey: ["graph-memory-search", deferredSearchQuery, activeProfileId],
     queryFn: () =>
       listMemoriesAction({
         searchQuery: deferredSearchQuery,
-        profileId: params.profile ?? undefined,
+        profileId: activeProfileId,
         limit: 500,
         offset: 0,
       }),
@@ -223,13 +220,12 @@ export function useMemoryGraphController({
 
   const filters = useMemo<MemoryViewFilterParams>(
     () => ({
-      profile: params.profile,
       kinds: params.kinds,
       tags: params.tags,
       sources: params.sources,
       types: params.types,
     }),
-    [params.profile, params.kinds, params.tags, params.sources, params.types],
+    [params.kinds, params.tags, params.sources, params.types],
   );
 
   const activeFilterCount = useMemo(
@@ -337,13 +333,6 @@ export function useMemoryGraphController({
     setGraphSettings(DEFAULT_GRAPH_SETTINGS);
   }, []);
 
-  const onProfileChange = useCallback(
-    (profile: string | null) => {
-      void setParams({ profile });
-    },
-    [setParams],
-  );
-
   const onKindsChange = useCallback(
     (kinds: ListItemKind[]) => {
       void setParams({ kinds });
@@ -432,7 +421,6 @@ export function useMemoryGraphController({
     search: params.q,
 
     // Handlers
-    onProfileChange,
     onKindsChange,
     onTagsChange,
     onSourcesChange,

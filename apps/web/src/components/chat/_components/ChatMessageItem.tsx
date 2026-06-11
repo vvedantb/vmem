@@ -46,6 +46,7 @@ import {
   IconMicrophone,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import type { ChatMemoryRef, MessageUsageSummary } from "@/hooks/useLocalChat";
 
 function StreamingDots() {
@@ -95,9 +96,11 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
  * simply render the link unwrapped.
  */
 function MemoryRefChip({ ref }: { ref: ChatMemoryRef }) {
+  const activeProfile = useActiveProfile();
   const chip = (
     <Link
-      to="/memories/graph"
+      to="/$profileId/memories/graph"
+      params={{ profileId: activeProfile._id }}
       search={(prev) => ({ ...prev, focus: ref.id })}
       className="inline-flex max-w-[220px] items-center rounded-md bg-default px-2 py-0.5 text-[11px] text-muted transition-colors hover:bg-default/78 hover:text-foreground"
     >

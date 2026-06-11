@@ -19,7 +19,7 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
 import { IconMoodEmpty, IconArrowBack } from "@tabler/icons-react";
 import { Button, cn } from "@vmem/ui";
-import type { GraphScope } from "@/routes/_main/memories/-searchParams";
+import type { GraphScope } from "@/routes/_main/$profileId/memories/-searchParams";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { VmemSpinner } from "@/components/svg-animations";
 import { api } from "@vmem/backend";

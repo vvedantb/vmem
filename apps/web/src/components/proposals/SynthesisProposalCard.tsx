@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import { Badge, Button, Progress, type BadgeProps } from "@vmem/ui";
 import {
   IconAlertTriangle,
@@ -28,6 +29,7 @@ export default function SynthesisProposalCard({
   onApprove,
   onReject,
 }: SynthesisProposalCardProps) {
+  const activeProfile = useActiveProfile();
   const meta = getKindMeta(proposal.kind);
   const isDismissOnly =
     proposal.kind === "contradiction" || proposal.kind === "anomaly";
@@ -101,7 +103,8 @@ export default function SynthesisProposalCard({
             {proposal.sourceMemorySnapshots.map((src) => (
               <Link
                 key={src.id}
-                to="/memories/graph"
+                to="/$profileId/memories/graph"
+                params={{ profileId: activeProfile._id }}
                 search={(prev) => ({ ...prev, focus: src.id })}
                 className="group -mx-1 flex min-w-0 items-baseline gap-2 rounded-lg px-2 py-1.5 text-sm transition-[background-color] hover:bg-surface-tertiary/50"
               >

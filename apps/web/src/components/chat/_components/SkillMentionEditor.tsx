@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import type { Doc, Id } from "@vmem/backend";
 import { cn } from "@vmem/ui";
 import { SKILL_CHIP_CLASS } from "../_utils/mentionChipStyles";
@@ -90,6 +91,7 @@ export function SkillMentionEditor({
   onEnterSubmit,
 }: SkillMentionEditorProps) {
   const navigate = useNavigate();
+  const activeProfile = useActiveProfile();
   const editorRef = useRef<HTMLDivElement>(null);
   const [skillMap, setSkillMap] = useState<Map<string, Id<"skills">>>(
     () => new Map(),
@@ -333,9 +335,12 @@ export function SkillMentionEditor({
       if (id === undefined) return;
       e.preventDefault();
       e.stopPropagation();
-      void navigate({ to: "/skills/$id", params: { id } });
+      void navigate({
+        to: "/$profileId/skills/$id",
+        params: { profileId: activeProfile._id, id },
+      });
     },
-    [navigate, skillMap],
+    [navigate, skillMap, activeProfile._id],
   );
 
   const scheduleHover = useCallback(

@@ -30,7 +30,8 @@ import { toast } from "sonner";
 import { CodebaseSidebarItem } from "@/components/codebases/CodebaseSidebarItem";
 import { CodebasesSearchBar } from "@/components/codebases/CodebasesSearchBar";
 import { AddRepoModal } from "@/components/codebases/AddRepoModal";
-import { codebasesListSearchParams } from "@/routes/_main/codebases/-list-searchParams";
+import { codebasesListSearchParams } from "@/routes/_main/$profileId/codebases/-list-searchParams";
+import { useActiveProfileId } from "@/components/workspace/active-profile";
 
 export type CodebasesSidebarNavProps = {
   isIconOnly: boolean;
@@ -42,6 +43,7 @@ export function CodebasesSidebarNav({
   isMobile,
 }: CodebasesSidebarNavProps) {
   const navigate = useNavigate();
+  const profileId = useActiveProfileId();
   const params = useParams({ strict: false });
   const codebaseId = typeof params.id === "string" ? params.id : undefined;
 
@@ -92,7 +94,11 @@ export function CodebasesSidebarNav({
   );
 
   const openCodebase = (id: Id<"codebases">) => {
-    void navigate({ to: "/codebases/$id", params: { id } });
+    if (profileId === undefined) return;
+    void navigate({
+      to: "/$profileId/codebases/$id",
+      params: { profileId, id },
+    });
   };
 
   const handleResyncAll = useCallback(async () => {

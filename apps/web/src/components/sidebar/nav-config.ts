@@ -16,7 +16,6 @@ import {
   IconChat,
   IconVoice,
   IconMemories,
-  IconTeams,
   IconFiles,
   IconCodebases,
   IconSkills,
@@ -25,39 +24,61 @@ import {
   IconInbox,
   IconSettings,
 } from "../sidebar-icons";
-import type { NavGroup, SettingsNavGroup } from "./types";
+import type { NavGroup, NavHref, SettingsNavGroup } from "./types";
 
+/**
+ * Workspace-scoped nav items use the `$profileId` placeholder; resolve them
+ * with `navHrefToPath` (or pass `params` to a typed `<Link>`). Teams have no
+ * nav item — team workspaces live in the sidebar workspace switcher.
+ */
 export const navGroups: NavGroup[] = [
   {
     title: "Workspace",
     icon: IconStack2,
     items: [
-      { href: "/chat", label: "Chat", icon: IconChat },
-      { href: "/voice", label: "Voice", icon: IconVoice },
-      { href: "/memories", label: "Memories", icon: IconMemories },
-      { href: "/teams", label: "Teams", icon: IconTeams },
+      { href: "/$profileId/chat", label: "Chat", icon: IconChat },
+      { href: "/$profileId/voice", label: "Voice", icon: IconVoice },
+      { href: "/$profileId/memories", label: "Memories", icon: IconMemories },
     ],
   },
   {
     title: "Data",
     icon: IconPlug,
     items: [
-      { href: "/files", label: "Files", icon: IconFiles },
-      { href: "/codebases", label: "Codebases", icon: IconCodebases },
-      { href: "/skills", label: "Skills", icon: IconSkills },
-      { href: "/wiki", label: "Wiki", icon: IconWiki },
+      { href: "/$profileId/files", label: "Files", icon: IconFiles },
+      {
+        href: "/$profileId/codebases",
+        label: "Codebases",
+        icon: IconCodebases,
+      },
+      { href: "/$profileId/skills", label: "Skills", icon: IconSkills },
+      { href: "/$profileId/wiki", label: "Wiki", icon: IconWiki },
     ],
   },
   {
     title: "Account",
     icon: IconUserCircle,
     items: [
-      { href: "/activity", label: "Activity", icon: IconActivity },
-      { href: "/inbox", label: "Inbox", icon: IconInbox },
+      { href: "/$profileId/activity", label: "Activity", icon: IconActivity },
+      { href: "/$profileId/inbox", label: "Inbox", icon: IconInbox },
       { href: "/settings", label: "Settings", icon: IconSettings },
     ],
   },
 ];
+
+/**
+ * Resolve a nav href into a concrete pathname for the active workspace.
+ * Without a known workspace, workspace-scoped hrefs fall back to `/home`
+ * (the workspace resolver route); user-level hrefs pass through untouched.
+ */
+export function navHrefToPath(
+  href: NavHref,
+  profileId: string | undefined,
+): string {
+  if (!href.includes("$profileId")) return href;
+  if (profileId === undefined) return "/home";
+  return href.replace("$profileId", profileId);
+}
 
 /**
  * Settings sub-nav, grouped into 3 sections rendered with headers in the
