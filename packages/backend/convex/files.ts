@@ -3,9 +3,11 @@ import { authMutation, authQuery } from "./auth";
 import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 import {
   FILE_STORAGE_LIMIT_BYTES,
   collectSubtreeIds,
+  detectFileKind,
   isAncestorOrSelf,
 } from "./files/lib";
 import {
@@ -161,7 +163,8 @@ export const createFile = authMutation({
     }
 
     const now = Date.now();
-    return await ctx.db.insert("fileNodes", {
+    const indexable = detectFileKind(args.name, args.mimeType) !== null;
+    const nodeId = await ctx.db.insert("fileNodes", {
       userId: ctx.userId,
       teamId: args.teamId,
       parentId: args.parentId,
@@ -170,9 +173,18 @@ export const createFile = authMutation({
       mimeType: args.mimeType,
       size: args.size,
       storageId: args.storageId,
+      indexStatus: indexable ? "pending" : "skipped",
       createdAt: now,
       updatedAt: now,
     });
+    if (indexable) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.fileIndexing.indexFileNodeInternal,
+        { fileNodeId: nodeId },
+      );
+    }
+    return nodeId;
   },
 });
 
@@ -207,6 +219,24 @@ export const renameNode = authMutation({
     if (!node) throw new Error("Not found");
     await assertContentEditable(ctx, node, ctx.userId);
     await ctx.db.patch(args.nodeId, { name: args.name, updatedAt: Date.now() });
+
+    // Keep the derived memory's title in sync (content is unchanged, so a
+    // cheap title patch — not a full re-index). Memory ops run under the
+    // CREATOR's clerkId: Neo4j matches memories on their author's userId.
+    if (node.kind === "file" && node.memoryId) {
+      const creator = await ctx.db.get(node.userId);
+      if (creator?.clerkId) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.neo4jActions.memories.updateMemoryInternal,
+          {
+            clerkId: creator.clerkId,
+            memoryId: node.memoryId,
+            title: args.name,
+          },
+        );
+      }
+    }
   },
 });
 
@@ -255,6 +285,11 @@ export const moveNodes = authMutation({
  * Delete a node and (for folders) its entire subtree, dropping each file's
  * stored blob. Builds the children map over one scope-wide collect().
  * Permission: personal → owner; team → creator or team owner (per root).
+ *
+ * Indexed files also schedule cleanup of their derived memories. Cleanup
+ * runs post-commit (scheduler), so its "any surviving fileNode still
+ * references this memory?" guard sees the deletes. Each entry carries the
+ * CREATOR's clerkId (team nodes can be deleted by a non-creator).
  */
 async function deleteSubtree(
   ctx: MutationCtx,
@@ -269,12 +304,32 @@ async function deleteSubtree(
 
   const ids = collectSubtreeIds(allNodes, rootId);
   const byId = new Map(allNodes.map((n) => [n._id, n]));
+  const memoryEntries: Array<{ memoryId: string; clerkId: string }> = [];
+  const clerkIdByUser = new Map<Id<"users">, string | null>();
   for (const id of ids) {
     const node = byId.get(id);
     if (node?.kind === "file" && node.storageId) {
       await ctx.storage.delete(node.storageId);
     }
+    if (node?.kind === "file" && node.memoryId) {
+      let clerkId = clerkIdByUser.get(node.userId);
+      if (clerkId === undefined) {
+        const creator = await ctx.db.get(node.userId);
+        clerkId = creator?.clerkId ?? null;
+        clerkIdByUser.set(node.userId, clerkId);
+      }
+      if (clerkId !== null) {
+        memoryEntries.push({ memoryId: node.memoryId, clerkId });
+      }
+    }
     await ctx.db.delete(id);
+  }
+  if (memoryEntries.length > 0) {
+    await ctx.scheduler.runAfter(
+      0,
+      internal.fileIndexing.cleanupFileMemoriesInternal,
+      { entries: memoryEntries },
+    );
   }
   return ids.length;
 }
@@ -399,6 +454,8 @@ export const upsertFileByPathInternal = internalMutation({
     ).filter((s) => s.teamId === undefined);
     const existing = siblings.find((s) => s.name === fileName);
 
+    const indexable = detectFileKind(fileName, args.mimeType) !== null;
+
     if (existing) {
       if (existing.kind !== "file") {
         throw new Error(`A folder already exists at "${fileName}"`);
@@ -406,12 +463,24 @@ export const upsertFileByPathInternal = internalMutation({
       if (existing.storageId) {
         await ctx.storage.delete(existing.storageId);
       }
+      // Re-index on overwrite (content changed). Also schedule when the old
+      // content was indexed but the new bytes aren't indexable — the action
+      // cleans up the now-stale memory.
+      const needsIndexing = indexable || existing.memoryId !== undefined;
       await ctx.db.patch(existing._id, {
         storageId: args.storageId,
         mimeType: args.mimeType,
         size: args.size,
+        indexStatus: needsIndexing ? "pending" : "skipped",
         updatedAt: now,
       });
+      if (needsIndexing) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.fileIndexing.indexFileNodeInternal,
+          { fileNodeId: existing._id },
+        );
+      }
       return { nodeId: existing._id };
     }
 
@@ -423,9 +492,17 @@ export const upsertFileByPathInternal = internalMutation({
       mimeType: args.mimeType,
       size: args.size,
       storageId: args.storageId,
+      indexStatus: indexable ? "pending" : "skipped",
       createdAt: now,
       updatedAt: now,
     });
+    if (indexable) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.fileIndexing.indexFileNodeInternal,
+        { fileNodeId: nodeId },
+      );
+    }
     return { nodeId };
   },
 });
@@ -450,5 +527,79 @@ export const deleteStorageInternal = internalMutation({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, args): Promise<void> => {
     await ctx.storage.delete(args.storageId);
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Memory-graph indexing support (see fileIndexing.ts for the pipeline).
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface NodeForIndexResult {
+  node: Doc<"fileNodes">;
+  /** clerkId of the node's CREATOR — memory ops match on the author. */
+  clerkId: string;
+}
+
+/** A file node plus its creator's clerkId, for the indexing action. */
+export const getNodeForIndexInternal = internalQuery({
+  args: { fileNodeId: v.id("fileNodes") },
+  handler: async (ctx, args): Promise<NodeForIndexResult | null> => {
+    const node = await ctx.db.get(args.fileNodeId);
+    if (!node) return null;
+    const creator = await ctx.db.get(node.userId);
+    if (!creator?.clerkId) return null;
+    return { node, clerkId: creator.clerkId };
+  },
+});
+
+/** Record the outcome of an indexing run on the file node. */
+export const setIndexResultInternal = internalMutation({
+  args: {
+    fileNodeId: v.id("fileNodes"),
+    indexStatus: v.union(
+      v.literal("indexed"),
+      v.literal("skipped"),
+      v.literal("failed"),
+    ),
+    memoryId: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    const node = await ctx.db.get(args.fileNodeId);
+    if (!node) return; // deleted while indexing ran — cleanup already handled
+    await ctx.db.patch(args.fileNodeId, {
+      indexStatus: args.indexStatus,
+      memoryId: args.memoryId,
+      indexedAt: args.indexStatus === "indexed" ? Date.now() : undefined,
+    });
+  },
+});
+
+/**
+ * Does any OTHER surviving file node still reference this memory?
+ * Identical-content files dedup onto one memory — it must outlive all but
+ * the last referencing file.
+ */
+export const hasOtherNodeForMemoryInternal = internalQuery({
+  args: {
+    memoryId: v.string(),
+    excludeNodeId: v.optional(v.id("fileNodes")),
+  },
+  handler: async (ctx, args): Promise<boolean> => {
+    const nodes = await ctx.db
+      .query("fileNodes")
+      .withIndex("by_memory", (q) => q.eq("memoryId", args.memoryId))
+      .collect();
+    return nodes.some((n) => n._id !== args.excludeNodeId);
+  },
+});
+
+/** All unindexed file docs (no indexStatus yet) — backfill input. */
+export const listUnindexedFilesInternal = internalQuery({
+  args: {},
+  handler: async (ctx): Promise<Array<Id<"fileNodes">>> => {
+    const all = await ctx.db.query("fileNodes").collect();
+    return all
+      .filter((n) => n.kind === "file" && n.indexStatus === undefined)
+      .map((n) => n._id);
   },
 });

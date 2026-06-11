@@ -243,7 +243,10 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_parent", ["userId", "parentId"])
     .index("by_team", ["teamId"])
-    .index("by_team_parent", ["teamId", "parentId"]),
+    .index("by_team_parent", ["teamId", "parentId"])
+    // Reverse lookup for the index-cleanup guard: is any surviving file still
+    // pointing at this derived memory? (identical-content files share one)
+    .index("by_memory", ["memoryId"]),
 
   userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
 

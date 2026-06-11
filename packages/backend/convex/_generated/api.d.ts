@@ -36,6 +36,7 @@ import type * as dashboardApi from "../dashboardApi.js";
 import type * as dreamMode from "../dreamMode.js";
 import type * as dreamSchedule from "../dreamSchedule.js";
 import type * as fileImport from "../fileImport.js";
+import type * as fileIndexing from "../fileIndexing.js";
 import type * as files from "../files.js";
 import type * as files_lib from "../files/lib.js";
 import type * as github from "../github.js";
@@ -196,6 +197,7 @@ declare const fullApi: ApiFromModules<{
   dreamMode: typeof dreamMode;
   dreamSchedule: typeof dreamSchedule;
   fileImport: typeof fileImport;
+  fileIndexing: typeof fileIndexing;
   files: typeof files;
   "files/lib": typeof files_lib;
   github: typeof github;

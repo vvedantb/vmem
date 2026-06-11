@@ -340,6 +340,19 @@ export const fileNodeFields = {
   size: v.optional(v.number()),
   /** files only: Convex storage handle for the bytes */
   storageId: v.optional(v.id("_storage")),
+  /** files only: Neo4j Memory id this file was indexed into (see fileIndexing.ts) */
+  memoryId: v.optional(v.string()),
+  /** files only: memory-graph indexing state. Absent = uploaded before indexing shipped. */
+  indexStatus: v.optional(
+    v.union(
+      v.literal("pending"),
+      v.literal("indexed"),
+      v.literal("skipped"),
+      v.literal("failed"),
+    ),
+  ),
+  /** files only: when indexing last completed successfully */
+  indexedAt: v.optional(v.number()),
   createdAt: v.number(),
   updatedAt: v.number(),
 };

@@ -243,6 +243,21 @@ export const getDefaultByUserIdInternal = internalQuery({
   },
 });
 
+/**
+ * Get a team's profile (every team has exactly one — created with the team).
+ * Used by file indexing to write team-drive file memories under the team
+ * profile so they surface in team-scoped memory reads.
+ */
+export const getByTeamInternal = internalQuery({
+  args: { teamId: v.id("teams") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("profiles")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .first();
+  },
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Dream Mode V2 — per-profile rate-limit stamp
 //
