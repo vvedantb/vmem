@@ -1,7 +1,7 @@
 import type { Memory, MemoryType, TagSortMode, TagStats } from "@/lib/memories";
 import type { ListItem, ListItemKind } from "@/lib/list-items";
 
-export type FilterTab = "profile" | "kind" | "tags" | "source" | "type";
+export type FilterTab = "kind" | "tags" | "source" | "type";
 
 export const TAG_SORT_LABELS: Record<TagSortMode, string> = {
   "a-z": "A–Z",
@@ -20,10 +20,6 @@ export interface UnifiedFilterPanelProps {
   allMemories?: Memory[];
   /** All items (memories + wiki + skills) for kind counts (list view) */
   allItems?: ListItem[];
-
-  // Profile
-  selectedProfileId: string | null;
-  onProfileChange: (id: string | null) => void;
 
   // Kinds - supports both array (list) and Set (graph) styles
   selectedKinds?: ListItemKind[];

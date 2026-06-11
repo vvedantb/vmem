@@ -1,5 +1,3 @@
-import { profilePassesFilter } from "./memory-view-filters";
-
 export type MemoryType = "profile" | "episodic" | "knowledge";
 
 export const MEMORY_TYPES: readonly MemoryType[] = [
@@ -29,13 +27,6 @@ export interface Memory {
   tags: string[];
   createdAt: string;
   profileId?: string;
-}
-
-export function memoryMatchesProfileFilter(
-  memory: Memory,
-  selectedProfileId: string | null,
-): boolean {
-  return profilePassesFilter(memory.profileId, selectedProfileId, "memory");
 }
 
 const MEMORY_SOURCE_LABELS: Record<string, string> = {

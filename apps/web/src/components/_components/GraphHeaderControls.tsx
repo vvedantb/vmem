@@ -33,7 +33,7 @@ import AddMemoryModal from "@/components/AddMemoryModal";
 import SearchPopover from "./SearchPopover";
 import GraphLegend from "./GraphLegend";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
-import { MemoryFiltersButton } from "@/routes/_main/memories/_components/MemoryFiltersButton";
+import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
 import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
 import { VIEW_MODE_LABELS, type ViewMode } from "./graph-view-themes";
@@ -125,7 +125,6 @@ function GraphFiltersButton({
 }) {
   const {
     filters,
-    onProfileChange,
     onKindsChange,
     onTagsChange,
     onSourcesChange,
@@ -180,7 +179,6 @@ function GraphFiltersButton({
   return (
     <MemoryFiltersButton
       filters={filters}
-      onProfileChange={onProfileChange}
       onKindsChange={onKindsChange}
       onTagsChange={onTagsChange}
       onSourcesChange={onSourcesChange}

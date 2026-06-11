@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 import { ProfileDropdown } from "./ProfileDropdown";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import { buildTagStats } from "@/lib/memories";
 import { formatFileSize } from "@/components/files/_utils";
 
@@ -58,6 +59,7 @@ export default function AddMemoryModal({
   trigger?: React.ReactNode;
 }) {
   const { memories, createMemory, uploadMemoryFile } = useMemoryContext();
+  const activeProfileId = useActiveProfile()._id;
   const [open, setOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
@@ -141,7 +143,7 @@ export default function AddMemoryModal({
     try {
       await uploadMemoryFile({
         file: pendingFile,
-        profileId: selectedProfileId,
+        profileId: selectedProfileId ?? activeProfileId,
       });
       toast.success("File imported", {
         description: `${pendingFile.name} added as a memory`,
@@ -161,7 +163,7 @@ export default function AddMemoryModal({
     try {
       await createMemory({
         ...data,
-        profileId: selectedProfileId,
+        profileId: selectedProfileId ?? activeProfileId,
       });
       toast.success("Memory saved");
       resetForm();

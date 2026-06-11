@@ -115,13 +115,24 @@ RELATES_TO edges:
 - Per-save creators in `createMemory` (crud.ts): same-session (interactive sources, 15-min window), semantic similarity (vector top-5, thresholded), plus enrichment's LLM "content similarity". **Never reintroduce "same domain" edges** — platform domains (youtube/github/google) made them 73% of all relates edges (18,924), and the un-ordered `LIMIT 10` piled an unbounded incoming star on the ~10 oldest memories per domain (worst node: 578 edges). Purged 2026-06-11; healthy account profile is avg ~5, p95 ~15.
 - `neo4j-cli/node-edges.ts <title-part>` prints a single memory's edge breakdown (tags, relates reasons, tag fan-out, account degree distribution) — first stop for "why does this node have N connections".
 
-Profiles:
+Workspaces (profiles as route prefix — Vercel model):
 
-- Profiles are for **organizing where memories get saved**
-- Profile filtering IS allowed in views (list/graph) via URL params, just not as a route-level prefix (e.g., no `/work/memories` vs `/personal/memories`)
-- Dashboard stats, sidebar stats, activity feed always show user-wide totals (not filtered by profile)
-- Profile filter uses nuqs like other filters (tags, sources, types) — persists to URL for shareability
-- Switching profiles in save forms changes which profile new memories are saved to
+- Profiles ARE workspaces. Every app route except `/settings/**` (and `/`, `/agent-callback`, `/mcp/oauth/authorize` — machine-consumed, never move them) lives under `/$profileId/` (raw Convex profile id). Route files in `apps/web/src/routes/_main/$profileId/`.
+- The `$profileId` layout validates the param against `api.profiles.list` (string-safe; `profiles.get` takes `v.id` and throws on garbage) and provides the doc via `ActiveProfileProvider`. Inside the outlet use `useActiveProfile()`; in shell components (sidebar, command palette) use `useActiveProfileId()` / `useActiveTeamId()` (param → localStorage `vmem:last-profile-id` fallback) — all in `components/workspace/active-profile.tsx`.
+- `/home` stays a real route: it's Clerk's `signInFallbackRedirectUrl`, the agent-callback target, and carries the MCP OAuth bounce — its component resolves last-visited → web default → isDefault → first profile and redirects to `/$profileId/home`.
+- Legacy bare paths redirect: single-segment ones (`/chat`) hit the `$profileId` layout's legacy check; multi-segment ones (`/memories/graph`) hit the root `notFoundComponent` (`LegacyPathRedirect`, preserves search). Old `/teams/$teamId/*` maps onto the team workspace.
+- Workspace switcher (`SidebarWorkspaceSwitcher`, styled like the account card) sits at the top of the sidebar; switching keeps the current sub-route via `workspacePathFor` (detail ids dropped, `/team/*` → `/home` for personal targets). Teams are created/switched from the switcher — there is no `/teams` route anymore; team Members/Settings live at `/$profileId/team/*` and appear as a conditional "Team" nav group.
+- Nav hrefs in `nav-config.ts` are typed `FileRouteTypes["to"]` with a `$profileId` placeholder, resolved via `navHrefToPath` — never plain strings (they silently bypass route typechecking).
+- Memories views are scoped by the route (no more `?profile=` nuqs filter; ProfileTab is gone). Save forms default to the active workspace. Dashboard/home + sidebar stats are workspace-scoped (`getStats({profileId})`); activity/inbox keep their own filters for now.
+- Per-workspace chat: `threadProfiles` side table maps agent threads → profiles (the agent component can't carry custom metadata). `getOrCreateThread({profileId?})` is profile-mapped, NOT latest-thread; no-arg callers (mobile, voice) resolve the default personal profile, and legacy threads are lazily adopted into it. `initiateStreaming` resolves the thread's workspace and pins memory tools to it (`ToolHandlerContext.fixedProfileId`); team threads use scope "team" + merged personal+team skills. Threads stay private to their creator.
+
+Content scoping ("user-wide + team", NOT per-profile):
+
+- `skills`, `wikiNodes`, `fileNodes` carry optional `teamId`. Absent = personal (visible in every personal workspace — no migration needed); set = team-scoped. `userId` stays the creator for attribution.
+- Permissions via `convex/teams/auth.ts`: `requireContentScopeAccess` (list/create), `assertContentEditable` (team = any member, collaborative), `assertContentDeletable` (creator or team owner). Subtrees never mix scopes; each team drive has its own 10 GiB storage pool.
+- **Leak guards**: every `by_user*` read of these tables must filter `teamId === undefined` (incl. all `*ByClerkIdInternal` MCP paths and `wiki.listForUserInternal`); wiki search indexes carry `teamId` in filterFields and personal searches pin `.eq("teamId", undefined)`. MCP tools stay personal-only for now (team MCP data needs a contextPromptCache key redesign — deferred).
+- Web passes `teamId` (from the active workspace) on list/create; by-id mutations take no scope arg — permissions derive from the doc. Convex optimistic updates must key `localStore.get/setQuery` with the SAME args object (`{ teamId }`) the live query uses.
+- `memoryApi` list/search/get/update/delete resolve scope server-side: a team `profileId` delegates to the member-wide team handlers (`runResolveMemoryScopeInternal` pattern). Team hybrid RETRIEVAL is still per-caller (member-wide retrieval = follow-up).
 
 Skills:
 

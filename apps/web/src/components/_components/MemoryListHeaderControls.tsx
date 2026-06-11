@@ -27,19 +27,19 @@ import {
   DropdownMenuTrigger,
 } from "@vmem/ui";
 import { api } from "@vmem/backend";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import AddMemoryModal from "@/components/AddMemoryModal";
 import SearchPopover from "./SearchPopover";
-import { MemoryFiltersButton } from "@/routes/_main/memories/_components/MemoryFiltersButton";
+import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
 import {
   CLEARED_MEMORY_VIEW_FILTERS,
   type MemoryViewFilterParams,
 } from "@/lib/memory-view-filters";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
-import type { ListViewMode } from "@/routes/_main/memories/-searchParams";
+import type { ListViewMode } from "@/routes/_main/$profileId/memories/-searchParams";
 import {
   listItemMatchesKindFilter,
-  listItemMatchesProfileFilter,
   listItemMatchesSourceFilter,
   listItemMatchesTagFilter,
   listItemMatchesTypeFilter,
@@ -48,13 +48,14 @@ import {
   wikiRowsToListItems,
   type ListItem,
 } from "@/lib/list-items";
-import { useMemoriesSearchParams } from "@/routes/_main/memories/useMemoriesSearchParams";
+import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
 
 export default function MemoryListHeaderControls() {
+  const teamId = useActiveProfile().teamId;
   const [params, setParams] = useMemoriesSearchParams();
   const { memories: allMemories } = useMemoryContext();
-  const wikiRows = useQuery(api.wiki.listTree);
-  const skillRows = useQuery(api.skills.listMy);
+  const wikiRows = useQuery(api.wiki.listTree, { teamId });
+  const skillRows = useQuery(api.skills.listMy, { teamId });
   const { theme } = useThemeContext();
   const isDark = theme === "dark";
 
@@ -79,27 +80,18 @@ export default function MemoryListHeaderControls() {
         (params.sources.length === 0 ||
           listItemMatchesSourceFilter(item, params.sources)) &&
         (params.types.length === 0 ||
-          listItemMatchesTypeFilter(item, params.types)) &&
-        listItemMatchesProfileFilter(item, params.profile),
+          listItemMatchesTypeFilter(item, params.types)),
     );
-  }, [
-    allItems,
-    params.kinds,
-    params.tags,
-    params.sources,
-    params.types,
-    params.profile,
-  ]);
+  }, [allItems, params.kinds, params.tags, params.sources, params.types]);
 
   const filters = useMemo<MemoryViewFilterParams>(
     () => ({
-      profile: params.profile,
       kinds: params.kinds,
       tags: params.tags,
       sources: params.sources,
       types: params.types,
     }),
-    [params.profile, params.kinds, params.tags, params.sources, params.types],
+    [params.kinds, params.tags, params.sources, params.types],
   );
 
   const isTagsView = params.view === "tags";
@@ -120,7 +112,6 @@ export default function MemoryListHeaderControls() {
       />
       <MemoryFiltersButton
         filters={filters}
-        onProfileChange={(profile) => setParams({ profile })}
         onKindsChange={(kinds) => setParams({ kinds })}
         onTagsChange={(tags) => setParams({ tags })}
         onSourcesChange={(sources) => setParams({ sources })}

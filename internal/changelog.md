@@ -1,6 +1,11 @@
 # Changelog
 
-## Per-workspace chat threads — 2026-06-11
+## Workspace cleanup: profile filter retired, saves follow the workspace — 2026-06-11
+
+- **Why**: with the route carrying the workspace, the old `?profile=` filter and per-form profile pickers became a second, conflicting way to say the same thing.
+- **Profile filter removed**: the memories filter panel no longer has a Profile tab — the workspace you are in IS the scope; URLs stay cleaner and shared links always show the right data.
+- **Saves follow the workspace**: the add-memory form and profile dropdown default to the active workspace, and the settings "Web App default profile" row is gone (extension and MCP defaults remain).
+- **Docs**: feature docs updated for workspace URLs, the switcher, team content, and per-workspace chat.
 
 - **Why**: there was one chat thread per account, so a team workspace's chat would have mixed personal and team context.
 - **One thread per workspace**: chat and voice resolve the thread mapped to the active workspace (legacy threads adopt into the default personal workspace); threads stay private to their creator — team members never see each other's conversations.
