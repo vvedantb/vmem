@@ -137,11 +137,14 @@ export interface MergedEntry {
  *    Approve creates a NEW :Memory + :DERIVED_FROM edges to sources.
  * - "connection": Bridge across two+ memories that share an entity/theme
  *    but weren't explicitly linked. Approve creates a NEW :Memory.
- * - "contradiction": Two memories disagree. V1 dismiss-only (user
- *    manually resolves the underlying conflict). No new memory on
- *    approve in V1 — this is informational.
+ * - "contradiction": Two memories disagree. Approve with a
+ *    `winnerMemoryId` resolves it (winner's confidence boosted, losers
+ *    suppressed); approve without one just dismisses the flag.
  * - "anomaly": A single memory stands out from related memories. Approve
  *    creates a NEW :Memory summarizing the anomaly.
+ * - "merge": Dream Mode found near-duplicate fragments. Approve creates
+ *    a consolidated :Memory and suppresses the sources with
+ *    :SUPERSEDED_BY edges to the new memory (no hard delete).
  */
 export type ProposedUpdateKind =
   | "update"
@@ -149,7 +152,8 @@ export type ProposedUpdateKind =
   | "insight"
   | "connection"
   | "contradiction"
-  | "anomaly";
+  | "anomaly"
+  | "merge";
 
 export const ALL_PROPOSED_UPDATE_KINDS: ReadonlySet<string> = new Set<string>([
   "update",
@@ -158,6 +162,7 @@ export const ALL_PROPOSED_UPDATE_KINDS: ReadonlySet<string> = new Set<string>([
   "connection",
   "contradiction",
   "anomaly",
+  "merge",
 ]);
 
 export function isProposedUpdateKind(

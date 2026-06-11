@@ -586,6 +586,199 @@ async function applySynthesisApproval(
 }
 
 /**
+ * Merge approval — reconsolidation. Creates the consolidated :Memory
+ * (like `applySynthesisApproval`), then retires each source: status →
+ * 'suppressed' (drops out of retrieval, stays inspectable) plus a
+ * `(src)-[:SUPERSEDED_BY]->(new)` edge so the graph shows the
+ * consolidation. Never hard-deletes. Sources that are no longer
+ * 'active' at approval time (pinned/suppressed since the proposal was
+ * filed) are left untouched — the DERIVED_FROM edge still records them.
+ */
+async function applyMergeApproval(
+  session: Session,
+  proposalId: string,
+  lookup: ProposalLookup,
+  now: string,
+): Promise<ResolveResult> {
+  if (lookup.sourceMemoryIds.length < 2) {
+    // A merge needs at least two sources — reject malformed proposals
+    // rather than suppress a lone memory.
+    await session.run(
+      `MATCH (p:ProposedUpdate {id: $proposalId})
+       SET p.status = 'rejected', p.resolvedAt = $now`,
+      { proposalId, now },
+    );
+    return { status: "rejected", memoryId: lookup.memoryId, kind: "merge" };
+  }
+
+  const newMemoryId = crypto.randomUUID();
+  const contentHash = computeContentHash(
+    lookup.proposedTitle,
+    lookup.proposedContent,
+  );
+
+  const result = await session.run(
+    `MATCH (p:ProposedUpdate {id: $proposalId})
+     SET p.status = 'approved', p.resolvedAt = $now
+     WITH p
+     CREATE (m:Memory {
+       id: $newMemoryId,
+       userId: $userId,
+       profileId: $profileId,
+       title: $title,
+       content: $content,
+       type: 'knowledge',
+       source: 'dream-mode',
+       confidence: $confidence,
+       status: 'active',
+       createdAt: $now,
+       updatedAt: $now,
+       expiresAt: null,
+       url: null,
+       embedding: null,
+       contentHash: $contentHash,
+       sourceType: null,
+       sourceId: null,
+       storageId: null,
+       mimeType: null,
+       originalFilename: null,
+       visitCount: 1,
+       firstVisitAt: $now,
+       lastVisitAt: $now
+     })
+     WITH m
+     MERGE (s:Source {name: 'dream-mode'})
+     CREATE (m)-[:FROM_SOURCE]->(s)
+     WITH m
+     UNWIND $sourceMemoryIds AS sid
+     MATCH (src:Memory {id: sid, userId: $userId})
+     MERGE (m)-[:DERIVED_FROM]->(src)
+     WITH m, src
+     WHERE src.status = 'active'
+     SET src.status = 'suppressed', src.updatedAt = $now
+     MERGE (src)-[:SUPERSEDED_BY]->(m)
+     RETURN collect(src.id) AS supersededIds`,
+    {
+      proposalId,
+      now,
+      newMemoryId,
+      userId: lookup.userId,
+      profileId: lookup.sourceProfileId,
+      title: lookup.proposedTitle,
+      content: lookup.proposedContent,
+      confidence: lookup.confidence,
+      contentHash,
+      sourceMemoryIds: lookup.sourceMemoryIds,
+    },
+  );
+
+  await logEvent(
+    session,
+    newMemoryId,
+    "created",
+    "dream-mode",
+    { kind: "merge", source: "synthesis-approve" },
+    toSnapshot({
+      title: lookup.proposedTitle,
+      content: lookup.proposedContent,
+      type: "knowledge",
+      status: "active",
+      confidence: lookup.confidence ?? 0,
+      tags: [],
+    }),
+  );
+
+  const supersededRaw: unknown = result.records[0]?.get("supersededIds");
+  const supersededIds: string[] = Array.isArray(supersededRaw)
+    ? supersededRaw.filter((x: unknown): x is string => typeof x === "string")
+    : [];
+  for (const sid of supersededIds) {
+    await logEvent(
+      session,
+      sid,
+      "superseded",
+      "dream-mode",
+      { by: newMemoryId, kind: "merge" },
+      null,
+    );
+  }
+
+  return {
+    status: "approved",
+    memoryId: newMemoryId,
+    materializedMemoryId: newMemoryId,
+    kind: "merge",
+  };
+}
+
+/**
+ * Contradiction resolution with a chosen winner: the winner's confidence
+ * gets a small boost (the user just re-affirmed it), every other source
+ * that is still 'active' is suppressed. Pinned losers are left alone —
+ * pinning outranks a dream flag.
+ */
+async function applyContradictionResolution(
+  session: Session,
+  proposalId: string,
+  lookup: ProposalLookup,
+  winnerMemoryId: string,
+  now: string,
+): Promise<ResolveResult> {
+  const loserIds = lookup.sourceMemoryIds.filter((id) => id !== winnerMemoryId);
+
+  await session.run(
+    `MATCH (p:ProposedUpdate {id: $proposalId})
+     SET p.status = 'approved', p.resolvedAt = $now
+     WITH p
+     MATCH (w:Memory {id: $winnerId, userId: $userId})
+     SET w.confidence = CASE
+           WHEN coalesce(w.confidence, 0.5) + 0.1 > 1.0 THEN 1.0
+           ELSE coalesce(w.confidence, 0.5) + 0.1
+         END,
+         w.updatedAt = $now`,
+    { proposalId, winnerId: winnerMemoryId, userId: lookup.userId, now },
+  );
+
+  const suppressed = await session.run(
+    `UNWIND $loserIds AS lid
+     MATCH (l:Memory {id: lid, userId: $userId})
+     WHERE l.status = 'active'
+     SET l.status = 'suppressed', l.updatedAt = $now
+     RETURN collect(l.id) AS suppressedIds`,
+    { loserIds, userId: lookup.userId, now },
+  );
+
+  await logEvent(
+    session,
+    winnerMemoryId,
+    "contradiction_resolved",
+    "dream-mode",
+    { outcome: "kept", proposalId },
+    null,
+  );
+  const suppressedRaw: unknown = suppressed.records[0]?.get("suppressedIds");
+  const suppressedIds: string[] = Array.isArray(suppressedRaw)
+    ? suppressedRaw.filter((x: unknown): x is string => typeof x === "string")
+    : [];
+  for (const lid of suppressedIds) {
+    await logEvent(
+      session,
+      lid,
+      "contradiction_resolved",
+      "dream-mode",
+      { outcome: "suppressed", winner: winnerMemoryId, proposalId },
+      null,
+    );
+  }
+
+  return {
+    status: "approved",
+    memoryId: winnerMemoryId,
+    kind: "contradiction",
+  };
+}
+
+/**
  * Approve or reject a proposed update / delete / synthesis. Returns null
  * when the proposal id doesn't exist. Caller verifies ownership before
  * invoking.
@@ -594,9 +787,13 @@ async function applySynthesisApproval(
  * - update + approve: copy `proposedContent` onto the existing memory.
  * - delete + approve: hard-delete the existing memory + its chunks.
  *
- * Dream Mode V2 synthesis kinds (DERIVED_FROM-bound, no UPDATE_FOR):
+ * Dream Mode synthesis kinds (DERIVED_FROM-bound, no UPDATE_FOR):
  * - insight / connection + approve: materialise a new :Memory.
- * - contradiction / anomaly + approve OR reject: V1 just marks resolved.
+ * - merge + approve: materialise the consolidation + suppress sources
+ *   with :SUPERSEDED_BY edges.
+ * - contradiction + approve with `winnerMemoryId`: boost the winner,
+ *   suppress the active losers. Without a winner: just marks resolved.
+ * - anomaly + approve OR reject: just marks resolved.
  *
  * Reject (any kind): mark resolved, no graph mutation.
  */
@@ -604,6 +801,7 @@ export async function resolveProposal(
   driver: Driver,
   proposalId: string,
   action: "approve" | "reject",
+  winnerMemoryId?: string,
 ): Promise<ResolveResult | null> {
   return withSession(driver, async (session) => {
     const now = new Date().toISOString();
@@ -620,11 +818,29 @@ export async function resolveProposal(
       case "update":
         return applyUpdateApproval(session, proposalId, now);
       case "contradiction":
+        // Winner must be one of the sources — anything else falls back
+        // to the dismiss-only path rather than suppressing blindly.
+        if (
+          winnerMemoryId !== undefined &&
+          lookup.sourceMemoryIds.includes(winnerMemoryId) &&
+          lookup.sourceMemoryIds.length >= 2
+        ) {
+          return applyContradictionResolution(
+            session,
+            proposalId,
+            lookup,
+            winnerMemoryId,
+            now,
+          );
+        }
+        return applyDismissOnlyApproval(session, proposalId, lookup, now);
       case "anomaly":
         return applyDismissOnlyApproval(session, proposalId, lookup, now);
       case "insight":
       case "connection":
         return applySynthesisApproval(session, proposalId, lookup, now);
+      case "merge":
+        return applyMergeApproval(session, proposalId, lookup, now);
     }
   });
 }
@@ -682,7 +898,7 @@ export async function createSynthesisProposal(
   driver: Driver,
   params: {
     userId: string;
-    kind: "insight" | "connection" | "contradiction" | "anomaly";
+    kind: "insight" | "connection" | "contradiction" | "anomaly" | "merge";
     proposedTitle: string;
     proposedContent: string;
     reason: string;

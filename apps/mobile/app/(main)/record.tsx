@@ -45,7 +45,8 @@ export default function RecordScreen() {
       setThreadId(null);
       return;
     }
-    getOrCreateThread()
+    // No profileId: mobile voice resolves the default personal profile.
+    getOrCreateThread({})
       .then(setThreadId)
       .catch((err) => {
         console.error("Failed to get voice thread:", err);

@@ -65,30 +65,6 @@ export function createBackgroundConfig(mode: string): UserConfig {
   };
 }
 
-export function createOffscreenConfig(mode: string): UserConfig {
-  return {
-    define: {
-      "process.env.NODE_ENV": JSON.stringify(mode),
-    },
-    resolve: sharedResolve,
-    build: {
-      target: extensionBuildTarget,
-      outDir: "dist",
-      emptyOutDir: false,
-      sourcemap: mode === "development",
-      lib: {
-        entry: resolve(root, "src/offscreen/offscreen.ts"),
-        formats: ["es"],
-        fileName: () => "offscreen.js",
-      },
-      rollupOptions: {
-        output: { inlineDynamicImports: true },
-      },
-    },
-    publicDir: false,
-  };
-}
-
 export function createContentScriptConfig(
   name: string,
   entry: string,

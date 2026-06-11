@@ -6,6 +6,7 @@ import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import { extractPdfText } from "../engine/parsers/pdf";
 import { extractTextFromBlob } from "../engine/parsers/text";
+import { detectFileKind } from "./files/lib";
 import type { Id } from "./_generated/dataModel";
 
 /**
@@ -15,28 +16,6 @@ import type { Id } from "./_generated/dataModel";
  * against action timeouts.
  */
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
-
-/**
- * Mapping from file extension → file kind. Used in addition to the
- * browser-supplied mimeType (which is sometimes empty for `.md` files
- * since markdown has no universally-registered MIME type).
- */
-type FileKind = "pdf" | "text";
-
-function detectFileKind(filename: string, mimeType: string): FileKind | null {
-  const lower = filename.toLowerCase();
-  if (lower.endsWith(".pdf") || mimeType === "application/pdf") return "pdf";
-  if (
-    lower.endsWith(".md") ||
-    lower.endsWith(".markdown") ||
-    lower.endsWith(".txt") ||
-    mimeType === "text/markdown" ||
-    mimeType === "text/plain"
-  ) {
-    return "text";
-  }
-  return null;
-}
 
 /**
  * Pick a sensible memory title from the extracted text. Uses the first
@@ -103,7 +82,7 @@ export const importMemoryFromFile = authAction({
     const kind = detectFileKind(args.filename, args.mimeType);
     if (kind === null) {
       throw new Error(
-        `Unsupported file type: ${args.filename}. Only .pdf, .txt, and .md files are supported.`,
+        `Unsupported file type: ${args.filename}. Only PDF and text-like files (.txt, .md, json, xml) are supported.`,
       );
     }
 

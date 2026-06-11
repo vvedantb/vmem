@@ -11,6 +11,7 @@ import {
   userEnvVarFields,
   codebaseFields,
   openRouterLogFields,
+  dreamTriggerStateFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -117,10 +118,23 @@ const schema = defineSchema({
      *  pass. Time stored as "HH:MM" — same shape the time picker produces. */
     dreamModeScheduleEnabled: v.optional(v.boolean()),
     dreamModeScheduleTime: v.optional(v.string()), // "HH:MM" UTC
+    /** Dynamic Dreaming (V3) — when true (the default; absent = true),
+     *  dream passes fire automatically once the user goes quiet after
+     *  enough new memories, instead of waiting for the daily schedule or
+     *  the manual button. Soft-fails without an OpenRouter key. */
+    dreamModeAutomatic: v.optional(v.boolean()),
     /** Wall-clock ms of the last successful Dream Mode run. Used to
      *  rate-limit the manual "Start Dreaming" button (1 run/hour). */
     lastDreamRunAt: v.optional(v.number()),
   }).index("by_user", ["userId"]),
+
+  /**
+   * Dynamic Dreaming trigger state — one row per user (see
+   * `dreamTriggerStateFields` for the debounce/cap semantics).
+   */
+  dreamTriggerState: defineTable(dreamTriggerStateFields).index("by_user", [
+    "userId",
+  ]),
 
   profiles: defineTable(profileFields)
     .index("by_user", ["userId"])
@@ -243,7 +257,10 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_parent", ["userId", "parentId"])
     .index("by_team", ["teamId"])
-    .index("by_team_parent", ["teamId", "parentId"]),
+    .index("by_team_parent", ["teamId", "parentId"])
+    // Reverse lookup for the index-cleanup guard: is any surviving file still
+    // pointing at this derived memory? (identical-content files share one)
+    .index("by_memory", ["memoryId"]),
 
   userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
 

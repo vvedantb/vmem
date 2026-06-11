@@ -298,6 +298,7 @@ export async function runLinearSync(
 
     await markSyncComplete(ctx, {
       connectorId: args.connectorId,
+      clerkId: args.clerkId,
       totalSynced,
     });
 

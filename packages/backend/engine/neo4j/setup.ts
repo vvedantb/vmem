@@ -111,12 +111,14 @@ export async function setupDatabase(driver: Driver): Promise<void> {
        FOR (m:Memory) ON (m.userId, m.status, m.createdAt)`,
     );
     // Entity nodes — per-user named entities extracted during LLM enrichment.
-    // Composite uniqueness so "React" (technology) for user A doesn't collide
-    // with "React" (technology) for user B, and "Apple" (organization) coexists
-    // with "Apple" (place) for the same user.
+    // Identity is (userId, normalizedName) ONLY — type is a plain property.
+    // Type used to be part of the key, but LLM extraction oscillates on
+    // classification ("agenteva1[bot]" person vs technology, a repo as
+    // organization vs technology), which minted duplicate nodes for the same
+    // real-world entity (84 dupe groups on one account). First-seen type wins.
     await session.run(
-      `CREATE CONSTRAINT entity_user_name_type IF NOT EXISTS
-       FOR (e:Entity) REQUIRE (e.userId, e.normalizedName, e.type) IS UNIQUE`,
+      `CREATE CONSTRAINT entity_user_name IF NOT EXISTS
+       FOR (e:Entity) REQUIRE (e.userId, e.normalizedName) IS UNIQUE`,
     );
     await session.run(
       `CREATE INDEX entity_user_id IF NOT EXISTS FOR (e:Entity) ON (e.userId)`,

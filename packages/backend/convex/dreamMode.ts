@@ -18,6 +18,8 @@ interface RunResult {
   proposalsCreated: number;
   memoriesMaterialized: number;
   clustersScanned: number;
+  /** Memories whose confidence the reconsolidation pass adjusted. */
+  reweighted: number;
   reason: "ok" | "no-key" | "no-recent-memories" | "rate-limited";
 }
 
@@ -44,6 +46,7 @@ export const runDreamForUser = authAction({
         proposalsCreated: result.proposalsCreated,
         memoriesMaterialized: result.memoriesMaterialized,
         clustersScanned: result.clustersScanned,
+        reweighted: result.reweighted,
       },
       severity: "info",
     });

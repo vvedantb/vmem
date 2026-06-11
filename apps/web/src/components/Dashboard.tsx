@@ -7,6 +7,7 @@ import { api } from "@vmem/backend";
 import { useActiveProfile } from "./workspace/active-profile";
 import { DashboardLoadingSkeleton } from "./dashboard/DashboardLoadingSkeleton";
 import { DashboardStatCards } from "./dashboard/DashboardStatCards";
+import { DreamPortraitCard } from "./dashboard/DreamPortraitCard";
 import { MemoryGrowthChart } from "./dashboard/MemoryGrowthChart";
 import { QuickActionsGrid } from "./dashboard/QuickActionsGrid";
 import { RecentActivityList } from "./dashboard/RecentActivityList";
@@ -79,6 +80,8 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-8">
       <DashboardStatCards stats={stats} />
+
+      <DreamPortraitCard />
 
       <MemoryGrowthChart growthData={stats.growthData} />
 

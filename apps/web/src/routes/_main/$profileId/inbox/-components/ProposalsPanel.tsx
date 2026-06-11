@@ -11,8 +11,15 @@ import {
 } from "@/hooks/useProposals";
 
 export function ProposalsPanel() {
-  const { proposals, isLoading, isResolving, approve, reject, pendingCount } =
-    useProposals();
+  const {
+    proposals,
+    isLoading,
+    isResolving,
+    approve,
+    reject,
+    keepWinner,
+    pendingCount,
+  } = useProposals();
 
   const handleApprove = async (p: ProposedUpdate) => {
     try {
@@ -29,6 +36,15 @@ export function ProposalsPanel() {
       toast.success("Proposal dismissed");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to reject");
+    }
+  };
+
+  const handleKeepWinner = async (p: ProposedUpdate, winnerId: string) => {
+    try {
+      await keepWinner(p.id, winnerId);
+      toast.success("Contradiction resolved — the other side was suppressed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to resolve");
     }
   };
 
@@ -65,6 +81,7 @@ export function ProposalsPanel() {
               isResolving={isResolving}
               onApprove={() => void handleApprove(p)}
               onReject={() => void handleReject(p)}
+              onKeepWinner={(winnerId) => void handleKeepWinner(p, winnerId)}
             />
           ) : (
             <UpdateProposalCard
@@ -109,6 +126,8 @@ function approveMessage(p: ProposedUpdate): string {
       return "Anomaly saved as a new memory";
     case "contradiction":
       return "Contradiction acknowledged";
+    case "merge":
+      return "Memories merged — sources superseded";
   }
 }
 

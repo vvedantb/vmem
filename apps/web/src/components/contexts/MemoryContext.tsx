@@ -211,6 +211,10 @@ export function useMemoryListFlat(filters: MemoryListFilters) {
     memories,
     total,
     isLoading: query.isLoading,
+    // A failed load renders identically to "no memories" otherwise —
+    // callers must surface this instead of showing a silent blank list.
+    isError: query.isError,
+    refetch: query.refetch,
     isFetching: query.isFetching,
     isFetchingNextPage: query.isFetchingNextPage,
     hasNextPage: query.hasNextPage,

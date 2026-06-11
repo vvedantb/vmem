@@ -5,7 +5,6 @@ import {
   createPopupConfig,
   createBackgroundConfig,
   createContentScriptConfig,
-  createOffscreenConfig,
 } from "../vite.config.js";
 
 const root = resolve(import.meta.dirname, "..");
@@ -28,13 +27,6 @@ await build(createPopupConfig(mode));
 
 console.log("Building background service worker...");
 await build(createBackgroundConfig(mode));
-
-cpSync(
-  resolve(root, "src/offscreen/offscreen.html"),
-  resolve(dist, "offscreen.html"),
-);
-console.log("Building offscreen document...");
-await build(createOffscreenConfig(mode));
 
 console.log("Building ChatGPT content script...");
 await build(

@@ -243,6 +243,21 @@ export const getDefaultByUserIdInternal = internalQuery({
   },
 });
 
+/**
+ * Get a team's profile (every team has exactly one — created with the team).
+ * Used by file indexing to write team-drive file memories under the team
+ * profile so they surface in team-scoped memory reads.
+ */
+export const getByTeamInternal = internalQuery({
+  args: { teamId: v.id("teams") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("profiles")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .first();
+  },
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Dream Mode V2 — per-profile rate-limit stamp
 //
@@ -261,4 +276,53 @@ export const setLastDreamRunAtInternal = internalMutation({
     timestamp: v.number(),
   },
   handler: async (ctx, args) => runSetLastDreamRunAtInternal(ctx, args),
+});
+
+/**
+ * Dream Mode V3 — store the evolving portrait the Dreamer produced for
+ * this profile, with the memory ids it is grounded in.
+ */
+export const setDreamPortraitInternal = internalMutation({
+  args: {
+    profileId: v.id("profiles"),
+    portrait: v.string(),
+    sourceMemoryIds: v.array(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.profileId);
+    if (!profile) return null;
+    await ctx.db.patch(args.profileId, {
+      dreamPortrait: args.portrait,
+      dreamPortraitUpdatedAt: Date.now(),
+      dreamPortraitSources: args.sourceMemoryIds,
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+/**
+ * Portrait for the user-wide MCP context prompt: the MCP-active personal
+ * profile's dream portrait (the same profile MCP memory tools write to
+ * by default). Null when no portrait has been dreamt yet.
+ */
+export const getPortraitForContextPromptInternal = internalQuery({
+  args: { clerkId: v.string() },
+  returns: v.union(
+    v.object({ portrait: v.string(), updatedAt: v.number() }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const profile = await getActiveProfileForMcpScope(
+      ctx,
+      args.clerkId,
+      "personal",
+    );
+    if (!profile?.dreamPortrait) return null;
+    return {
+      portrait: profile.dreamPortrait,
+      updatedAt: profile.dreamPortraitUpdatedAt ?? 0,
+    };
+  },
 });

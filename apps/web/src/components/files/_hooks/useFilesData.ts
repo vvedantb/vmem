@@ -77,6 +77,8 @@ export function useFilesData(): UseFilesDataResult {
         thumbnailUrl: !isFolder && category === "image" ? url : undefined,
         url,
         itemCount: isFolder ? (childCount.get(node._id) ?? 0) : undefined,
+        memoryId: node.memoryId,
+        indexStatus: node.indexStatus,
       };
     });
   }, [nodes]);

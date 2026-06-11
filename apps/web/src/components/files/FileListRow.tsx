@@ -15,11 +15,13 @@ import {
   IconFolderOpen,
   IconDownload,
   IconFolderSymlink,
+  IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
 import type { FileItem } from "@/lib/file-types";
 import { formatFileSize, formatDate, getFileIcon } from "./_utils";
 import FileContextMenu from "./FileContextMenu";
+import MemoryIndexBadge from "./MemoryIndexBadge";
 
 interface FileListRowProps {
   item: FileItem;
@@ -113,6 +115,7 @@ export default function FileListRow({
             <span className="text-sm font-medium text-foreground truncate">
               {item.name}
             </span>
+            <MemoryIndexBadge item={item} />
           </div>
         </td>
 
@@ -159,6 +162,10 @@ export default function FileListRow({
               <DropdownMenuItem onClick={() => onMoveTo(item)}>
                 <IconFolderSymlink size={16} stroke={1.5} />
                 Move to…
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onRename(item)}>
+                <IconPencil size={16} stroke={1.5} />
+                Rename
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-danger focus:text-danger"

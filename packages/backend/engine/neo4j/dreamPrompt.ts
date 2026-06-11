@@ -46,8 +46,24 @@ export interface DreamClusterMember {
   /**
    * The anomaly seed is rendered first in the prompt so the LLM has a
    * focal point — `related` and `shared-entity` neighbors come after.
+   * `semantic` = vector-nearest neighbour pulled in when the seed had
+   * few graph links (isolated memories still find their neighbours).
    */
-  relation: "anomaly" | "related" | "shared-entity";
+  relation: "anomaly" | "related" | "shared-entity" | "semantic";
+}
+
+/**
+ * Reconsolidation side-channel: while synthesizing, the model may also
+ * reweight cluster members whose stored confidence no longer matches the
+ * evidence (corroborated → raise, contradicted/outdated → lower). The
+ * orchestrator auto-applies these (clamped, pinned memories exempt) with
+ * an audit event per change.
+ */
+export interface ConfidenceAdjustment {
+  memoryId: string;
+  /** Proposed absolute confidence 0.05–1. Engine clamps the delta. */
+  newConfidence: number;
+  reason: string;
 }
 
 export interface ParsedSynthesis {
@@ -59,6 +75,8 @@ export interface ParsedSynthesis {
   sourceMemoryIds: string[];
   /** 0–1. Caller drops anything below the confidence floor (0.6). */
   confidence: number;
+  /** Optional reweighting of cluster members. Ids validated against the cluster. */
+  confidenceAdjustments: ConfidenceAdjustment[];
 }
 
 function truncateAtWord(text: string, maxLen: number): string {
@@ -93,7 +111,7 @@ export function buildDreamSynthesisPrompt(
 
 # Task
 
-The first memory in the cluster is the "anomaly seed" — it scored high on surprisal (semantically distant from its neighbors). The remaining memories are its 1-hop graph neighborhood (memories linked via RELATES_TO, or that share a named entity via MENTIONS).
+The first memory in the cluster is the "anomaly seed" — it scored high on surprisal (semantically distant from its neighbors). The remaining memories are its 1-hop graph neighborhood (memories linked via RELATES_TO, or that share a named entity via MENTIONS), plus — when the seed had few graph links — its closest semantic neighbours from the whole corpus, marked (semantic). Semantic neighbours may be much older than the seed; a connection across time is exactly the kind worth surfacing.
 
 Pick ONE of these synthesis kinds, or skip:
 
@@ -107,7 +125,9 @@ Pick ONE of these synthesis kinds, or skip:
 
 Respond with ONLY this JSON, no other text:
 
-{"type": "insight" | "connection" | "contradiction" | "anomaly" | "skip", "title": "short headline", "content": "1–3 sentences stating the synthesis", "reason": "why this synthesis follows from the source memories", "sourceMemoryIds": ["id1", "id2"], "confidence": 0.0-1.0}
+{"type": "insight" | "connection" | "contradiction" | "anomaly" | "skip", "title": "short headline", "content": "1–3 sentences stating the synthesis", "reason": "why this synthesis follows from the source memories", "sourceMemoryIds": ["id1", "id2"], "confidence": 0.0-1.0, "confidenceAdjustments": [{"memoryId": "id", "newConfidence": 0.0-1.0, "reason": "short"}]}
+
+\`confidenceAdjustments\` is optional reweighting, independent of the synthesis (you may emit it even with type "skip"). Use it ONLY when the cluster gives clear evidence a memory's stored confidence is wrong: several independent memories corroborating a fact → nudge it up; a memory contradicted or clearly outdated by more recent ones → nudge it down. Keep changes small (within ±0.2), reference only ids from the cluster, and omit the field entirely (or use []) when there is no clear evidence — most clusters need no adjustments.
 
 # Hard rules — content quality
 
@@ -155,6 +175,39 @@ function isSynthesisType(value: string): value is SynthesisType {
 }
 
 /**
+ * Validate the optional `confidenceAdjustments` array: ids must come from
+ * the cluster (never invented), newConfidence clamped to [0.05, 1] so a
+ * model can't zero a memory out, one entry per memory. Anything malformed
+ * is dropped silently — adjustments are a best-effort side-channel.
+ */
+function parseConfidenceAdjustments(
+  raw: unknown,
+  validIds: ReadonlySet<string>,
+): ConfidenceAdjustment[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const adjustments: ConfidenceAdjustment[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const memoryId = Reflect.get(entry, "memoryId");
+    const newConfidence = Reflect.get(entry, "newConfidence");
+    const reason = Reflect.get(entry, "reason");
+    if (typeof memoryId !== "string" || !validIds.has(memoryId)) continue;
+    if (seen.has(memoryId)) continue;
+    if (typeof newConfidence !== "number" || !Number.isFinite(newConfidence)) {
+      continue;
+    }
+    seen.add(memoryId);
+    adjustments.push({
+      memoryId,
+      newConfidence: Math.max(0.05, Math.min(1, newConfidence)),
+      reason: typeof reason === "string" ? reason.slice(0, 300) : "",
+    });
+  }
+  return adjustments;
+}
+
+/**
  * Parse the LLM response. Returns null when the JSON is malformed,
  * required fields are missing, or any sourceMemoryId isn't in the
  * provided cluster (we never let the model invent ids).
@@ -174,6 +227,7 @@ export function parseDreamSynthesisResponse(
     const reasonRaw = Reflect.get(parsed, "reason");
     const sourceIdsRaw = Reflect.get(parsed, "sourceMemoryIds");
     const confidenceRaw = Reflect.get(parsed, "confidence");
+    const adjustmentsRaw = Reflect.get(parsed, "confidenceAdjustments");
 
     if (typeof typeRaw !== "string" || !isSynthesisType(typeRaw)) return null;
 
@@ -188,6 +242,10 @@ export function parseDreamSynthesisResponse(
     }
 
     const validIds = new Set<string>(clusterIds);
+    const confidenceAdjustments = parseConfidenceAdjustments(
+      adjustmentsRaw,
+      validIds,
+    );
     let sourceMemoryIds: string[] = [];
     if (Array.isArray(sourceIdsRaw)) {
       const seen = new Set<string>();
@@ -201,6 +259,8 @@ export function parseDreamSynthesisResponse(
     }
 
     if (typeRaw === "skip") {
+      // Adjustments survive a skip — the prompt allows reweighting even
+      // when no synthesis is worth surfacing.
       return {
         type: "skip",
         title: "",
@@ -208,6 +268,7 @@ export function parseDreamSynthesisResponse(
         reason,
         sourceMemoryIds: [],
         confidence: 0,
+        confidenceAdjustments,
       };
     }
 
@@ -230,9 +291,134 @@ export function parseDreamSynthesisResponse(
       reason,
       sourceMemoryIds,
       confidence,
+      confidenceAdjustments,
     };
   } catch {
     console.error("[dream] Failed to parse LLM synthesis response:", raw);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Merge synthesis — reconsolidation of near-duplicate fragments.
+//
+// Detection is vector-similarity based (`findMergeCandidates`), the
+// opposite end of the spectrum from the surprisal-seeded clusters above:
+// near-duplicates score LOW on surprisal, so they need their own pass.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface MergeClusterMember {
+  id: string;
+  title: string;
+  content: string;
+}
+
+export interface ParsedMerge {
+  title: string;
+  content: string;
+  /** ≥2 ids from the cluster — the memories the consolidation replaces. */
+  sourceMemoryIds: string[];
+  confidence: number;
+}
+
+/**
+ * Build the prompt for one near-duplicate cluster. The model either
+ * consolidates (type "merge") or declines (type "skip") — declining is
+ * the right call whenever each memory still adds standalone value.
+ */
+export function buildMergeSynthesisPrompt(
+  cluster: MergeClusterMember[],
+): string {
+  const memoryBlock = cluster
+    .map((m, i) => {
+      const truncated = truncateAtWord(m.content, MAX_CONTENT_LENGTH);
+      return [
+        `[${String(i + 1)}] id=${m.id}`,
+        `Title: ${m.title}`,
+        `Content: ${truncated}`,
+      ].join("\n");
+    })
+    .join("\n\n");
+
+  return `You are a memory reconsolidation system. The memories below are semantically near-identical fragments from a single user's memory store. Decide whether they are redundant records of the SAME fact/topic that should be consolidated into one memory. Respond with ONLY a JSON object — no explanation, no thinking, no markdown.
+
+# Task
+
+- **merge** — The memories redundantly describe the same fact, preference, or event (e.g. the same article saved twice, the same preference phrased two ways). Produce ONE consolidated memory that preserves EVERY distinct fact from the sources — merging must lose no information. The sources will be retired and replaced by your consolidation.
+- **skip** — The memories are merely similar, not redundant: each adds standalone value (different events, different facts about the same topic, evolving states over time). Prefer skip whenever you are unsure — a wrong merge destroys nuance.
+
+# Output
+
+Respond with ONLY this JSON, no other text:
+
+{"type": "merge" | "skip", "title": "title for the consolidated memory", "content": "the consolidated memory", "sourceMemoryIds": ["id1", "id2"], "confidence": 0.0-1.0}
+
+# Field rules
+
+- \`title\`: <= 80 chars, first-person where natural.
+- \`content\`: <= 600 chars. A self-contained statement covering every distinct fact from the sources. Never refer to "the memories" or describe the merge — the reader sees only this text.
+- \`sourceMemoryIds\`: the ids being consolidated — at least 2, every id must literally appear in the cluster below. You may merge a subset and leave the rest alone.
+- \`confidence\`: be strict. < 0.6 is dropped automatically. 0.9+ only for unmistakable duplicates.
+- For \`skip\`: set confidence to 0 and sourceMemoryIds to []. Title and content can be empty strings.
+
+# Cluster
+
+${memoryBlock}
+
+# Output
+
+Respond with ONLY the JSON object specified above.`;
+}
+
+/**
+ * Parse the merge response. Returns null for skip, malformed JSON, or a
+ * merge that names fewer than 2 valid cluster ids (a 1-source "merge" is
+ * meaningless — there is nothing to consolidate).
+ */
+export function parseMergeSynthesisResponse(
+  raw: string,
+  clusterIds: string[],
+): ParsedMerge | null {
+  try {
+    const jsonStr = extractJsonString(raw);
+    const parsed: unknown = JSON.parse(jsonStr);
+    if (typeof parsed !== "object" || parsed === null) return null;
+
+    const typeRaw = Reflect.get(parsed, "type");
+    if (typeRaw !== "merge") return null;
+
+    const titleRaw = Reflect.get(parsed, "title");
+    const contentRaw = Reflect.get(parsed, "content");
+    const sourceIdsRaw = Reflect.get(parsed, "sourceMemoryIds");
+    const confidenceRaw = Reflect.get(parsed, "confidence");
+
+    const title = typeof titleRaw === "string" ? titleRaw.slice(0, 200) : "";
+    const content =
+      typeof contentRaw === "string" ? contentRaw.slice(0, 800) : "";
+    if (title.trim().length === 0 || content.trim().length === 0) return null;
+
+    const validIds = new Set<string>(clusterIds);
+    const sourceMemoryIds: string[] = [];
+    if (Array.isArray(sourceIdsRaw)) {
+      const seen = new Set<string>();
+      for (const id of sourceIdsRaw) {
+        if (typeof id !== "string") continue;
+        if (!validIds.has(id)) continue;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        sourceMemoryIds.push(id);
+      }
+    }
+    if (sourceMemoryIds.length < 2) return null;
+
+    let confidence = 0;
+    if (typeof confidenceRaw === "number" && Number.isFinite(confidenceRaw)) {
+      confidence = Math.max(0, Math.min(1, confidenceRaw));
+    }
+
+    return { title, content, sourceMemoryIds, confidence };
+  } catch {
+    console.error("[dream] Failed to parse LLM merge response:", raw);
     return null;
   }
 }

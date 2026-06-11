@@ -136,7 +136,8 @@ export function useLocalChat(): LocalChatResult {
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
   const clearChatHistory = useMutation(api.chat.clearChatHistory);
   const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
-  const mySkills = useQuery(api.skills.listMy) ?? [];
+  // Personal scope ({}): mobile has no team workspaces.
+  const mySkills = useQuery(api.skills.listMy, {}) ?? [];
 
   const refreshLocalModel = useCallback(async () => {
     const modelId = await getActiveModelIdOrDefault();
@@ -159,7 +160,8 @@ export function useLocalChat(): LocalChatResult {
       setThreadId(null);
       return;
     }
-    getOrCreateThread()
+    // No profileId: mobile chat resolves the default personal profile.
+    getOrCreateThread({})
       .then((id) => setThreadId(id))
       .catch((error) => {
         console.error("Failed to load chat thread:", error);

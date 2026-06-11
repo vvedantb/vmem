@@ -162,6 +162,7 @@ export async function runGmailSync(
 
     await markSyncComplete(ctx, {
       connectorId: args.connectorId,
+      clerkId: args.clerkId,
       totalSynced,
     });
 

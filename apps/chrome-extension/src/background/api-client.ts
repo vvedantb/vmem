@@ -189,19 +189,3 @@ export async function listProfiles(): Promise<Profile[]> {
     isDefault: p.isDefault,
   }));
 }
-
-export async function setDefaultProfile(
-  profileId: Id<"profiles">,
-): Promise<void> {
-  const client = await getAuthenticatedClient();
-  if (!client) {
-    throw new Error(
-      "Not authenticated - please sign in via the extension popup",
-    );
-  }
-
-  await client.mutation(api.userSettings.setDefaultProfile, {
-    source: "extension",
-    profileId,
-  });
-}

@@ -1,4 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useQuery } from "convex/react";
+import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import {
   Badge,
@@ -7,8 +9,11 @@ import {
   ContextMenuTrigger,
   ContextMenuContent,
   ContextMenuItem,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@vmem/ui";
-import { IconEdit, IconTrash } from "@tabler/icons-react";
+import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
 import { formatMemorySourceLabel, timeAgo, type Memory } from "@/lib/memories";
 import type { ListItem } from "@/lib/list-items";
 import type { TrailEntry } from "@/hooks/useTrailData";
@@ -53,6 +58,15 @@ export default function ListItemRow({
   const navigate = useNavigate();
   const activeProfile = useActiveProfile();
   const color = nodeColor(item.tags, item.kind, isDark, null);
+  // Dynamic Dreaming indicator: memories newer than the last dream run
+  // haven't been dreamt on yet. Convex dedupes this subscription across
+  // rows, so per-row useQuery costs one websocket subscription total.
+  const settings = useQuery(api.userSettings.get);
+  const awaitingDream =
+    item.kind === "memory" &&
+    settings !== undefined &&
+    (settings.lastDreamRunAt === null ||
+      Date.parse(item.createdAt) > settings.lastDreamRunAt);
 
   const handleClick = () => {
     switch (item.kind) {
@@ -126,6 +140,21 @@ export default function ListItemRow({
             </span>
           )}
           <div className="flex items-center gap-1.5 shrink-0">
+            {awaitingDream && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <IconMoon
+                    size={12}
+                    stroke={1.5}
+                    className="shrink-0 text-muted/60"
+                    aria-label="Will be considered in the next dream"
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={6}>
+                  Will be considered in the next dream
+                </TooltipContent>
+              </Tooltip>
+            )}
             <KindMeta item={item} />
             <span className="text-xs text-muted/50 tabular-nums whitespace-nowrap">
               {timeAgo(item.createdAt)}

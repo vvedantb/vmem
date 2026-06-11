@@ -144,6 +144,7 @@ export async function runOneDriveSync(
 
     await markSyncComplete(ctx, {
       connectorId: args.connectorId,
+      clerkId: args.clerkId,
       totalSynced,
     });
 

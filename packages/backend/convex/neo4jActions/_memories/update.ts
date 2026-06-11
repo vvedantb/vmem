@@ -18,6 +18,7 @@ import {
   toMemoryStatus,
   toMemoryType,
 } from "./shared";
+import { scheduleDreamTriggerCheck } from "../../lib/dreamTriggerInvalidate";
 
 export interface UpdateMemoryArgs {
   clerkId: string;
@@ -79,6 +80,12 @@ export async function runUpdateMemory(
   }
 
   await scheduleContextPromptInvalidation(ctx, args.clerkId);
+
+  // Dynamic Dreaming: an edited memory is new context too. Dream-mode
+  // memories are exempt (dream output must not re-trigger dreaming).
+  if (result.source !== "dream-mode") {
+    await scheduleDreamTriggerCheck(ctx, args.clerkId);
+  }
 
   return result;
 }

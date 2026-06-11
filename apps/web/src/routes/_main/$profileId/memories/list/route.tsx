@@ -4,7 +4,16 @@ import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
 import { Suspense } from "react";
 import MemorySearch from "@/components/MemorySearch";
 import TagsListView from "@/components/_components/TagsListView";
+import { VmemSpinner } from "@/components/svg-animations";
 import { useMemoriesSearchParams } from "../useMemoriesSearchParams";
+
+/** A bare Suspense renders NOTHING while suspended — a stuck query then
+ *  looks like an empty workspace. Always show the spinner instead. */
+const suspenseFallback = (
+  <div className="flex h-full min-h-0 items-center justify-center">
+    <VmemSpinner size={24} className="text-muted" />
+  </div>
+);
 
 export const Route = createFileRoute("/_main/$profileId/memories/list")({
   component: MemoriesListLayout,
@@ -31,14 +40,14 @@ function MemoriesListLayout() {
 
   if (isTagsView) {
     return (
-      <Suspense>
+      <Suspense fallback={suspenseFallback}>
         <TagsListView />
       </Suspense>
     );
   }
 
   return (
-    <Suspense>
+    <Suspense fallback={suspenseFallback}>
       <MemorySearch memoryId={memoryId} />
       <Outlet />
     </Suspense>

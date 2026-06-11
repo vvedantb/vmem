@@ -18,8 +18,16 @@ export function truncateAtWord(text: string, maxLen: number): string {
 const ENTITY_TYPES = ["person", "organization", "place", "technology"] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
 
+// Hyphens count as spaces for IDENTITY (display names keep them): the LLM
+// writes the same entity as "Claude Fable-5" one day and "Claude Fable 5"
+// the next, and those must resolve to one node.
 export function normalizeEntityName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, " ").slice(0, 100);
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\-]+/g, " ")
+    .trim()
+    .slice(0, 100);
 }
 
 export interface ExtractedEntity {
@@ -33,17 +41,26 @@ export interface EnrichmentCandidate {
   title: string;
 }
 
+export interface KnownEntity {
+  name: string;
+  type: string;
+}
+
 export function buildFullEnrichmentPrompt(
   title: string,
   content: string,
   existingMemories: EnrichmentCandidate[],
   existingTags: TagUsage[] = [],
+  existingEntities: KnownEntity[] = [],
 ): string {
   const memoryList = existingMemories
     .map((m) => `${m.id}: ${m.title}`)
     .join("\n");
   const tagVocabulary = existingTags
     .map((t) => `${t.name} (${String(t.uses)})`)
+    .join(", ");
+  const entityVocabulary = existingEntities
+    .map((e) => `${e.name} [${e.type}]`)
     .join(", ");
 
   return `You are a memory tagging and entity extraction system. Respond with ONLY a JSON object — no explanation, no thinking, no markdown.
@@ -94,6 +111,10 @@ Use the canonical full form when one is conventionally written.
 
 If the memory uses an abbreviation that has an obvious canonical form (e.g. "JS" → "JavaScript"), expand it. If there is no clear canonical form, use what the memory says verbatim.
 
+## Reuse Known Entities
+
+The user's existing entities are listed under "Known entities". If a mention refers to one of them — including a shorthand, fuller form, or alias of it — output the EXISTING name exactly as listed. "Fable 5" in the text when "Claude Fable 5" is known → output "Claude Fable 5". Only introduce a new entity name when the mention is genuinely a different thing.
+
 ## Tag Quality
 
 - Lowercase. Hyphenated for multi-word ("machine-learning", "web-development").
@@ -106,6 +127,8 @@ If the memory uses an abbreviation that has an obvious canonical form (e.g. "JS"
 - Only entities that are explicitly named in the text.
 - Use full canonical name when conventional.
 - Skip vague references ("a startup", "some library", "the company") — these are not named entities.
+- NEVER extract raw identifiers as entities: no URLs, hostnames, file paths, branch names, commit hashes, or email addresses. Name the underlying thing instead — "Evalucom", not "https://github.com/evalucom"; nothing at all for a git branch like "revert-411-eva/task-m57...".
+- One entry per entity. If something could be classified two ways (a bot account, a repo), pick the single best type — never list it twice.
 - Cap at 10 entities; pick the most specific and identifying ones if there are more.
 
 # Worked Examples
@@ -158,6 +181,9 @@ Content: ${truncateAtWord(content, MAX_CONTENT_LENGTH)}
 Existing tag vocabulary (tag (uses) — reuse these when they fit):
 ${tagVocabulary || "(none yet — mint sensible recurring themes)"}
 
+Known entities (name [type] — reuse the exact name for any mention of these):
+${entityVocabulary || "(none yet)"}
+
 Existing memories:
 ${memoryList || "(none)"}
 
@@ -206,9 +232,11 @@ function parseEntities(raw: unknown): ExtractedEntity[] {
     if (typeof name !== "string" || name.trim().length === 0) continue;
     if (typeof type !== "string" || !isValidEntityType(type)) continue;
     const normalizedName = normalizeEntityName(name);
-    const dedupKey = `${normalizedName}:${type}`;
-    if (seen.has(dedupKey)) continue;
-    seen.add(dedupKey);
+    // Dedup on name alone (no type): entity identity in the graph is
+    // (userId, normalizedName) — the same name under two types is one
+    // entity the LLM classified inconsistently, not two entities.
+    if (seen.has(normalizedName)) continue;
+    seen.add(normalizedName);
     result.push({ name: name.trim(), normalizedName, type });
   }
   return result.slice(0, 10);

@@ -177,6 +177,7 @@ export async function runNotionSync(
 
     await markSyncComplete(ctx, {
       connectorId: args.connectorId,
+      clerkId: args.clerkId,
       totalSynced,
     });
 

@@ -20,6 +20,7 @@ import {
   resolveBestEffortEmbedAuth,
   type BestEffortEmbedAuth,
 } from "../../lib/openRouter/bestEffortEmbed";
+import { scheduleDreamTriggerCheck } from "../../lib/dreamTriggerInvalidate";
 
 /** Resolved auth pair carried through a sync — `null` if the user has no
  *  OPENROUTER_API_KEY configured. */
@@ -102,10 +103,16 @@ export async function maybeReportProgress(
   });
 }
 
-/** Mark sync done at 100% with current timestamp. */
+/** Mark sync done at 100% with current timestamp. Counts the synced
+ *  batch toward the Dynamic Dreaming trigger in one bump — an import is
+ *  exactly the "enough new context piled up" signal a dream feeds on. */
 export async function markSyncComplete(
   ctx: ActionCtx,
-  params: { connectorId: Id<"connectors">; totalSynced: number },
+  params: {
+    connectorId: Id<"connectors">;
+    totalSynced: number;
+    clerkId: string;
+  },
 ): Promise<void> {
   await ctx.runMutation(internal.connectors.crud.updateSyncProgressInternal, {
     id: params.connectorId,
@@ -115,6 +122,9 @@ export async function markSyncComplete(
     lastSyncAt: Date.now(),
     syncStartedAt: undefined,
   });
+  if (params.totalSynced > 0) {
+    await scheduleDreamTriggerCheck(ctx, params.clerkId, params.totalSynced);
+  }
 }
 
 /** Mark sync errored with the resolved message. Caller still rethrows. */

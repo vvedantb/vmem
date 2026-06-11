@@ -1,6 +1,7 @@
 import { createMemory } from "./api-client";
 import { isCancelled, resetCancel } from "./import-cancel";
 import { acquireHistoryLock, releaseHistoryLock } from "./sync-lock";
+import { getSyncProfileId } from "./sync-profile";
 import { getStorage, setStorage } from "@/lib/storage";
 import type { ImportResult } from "./import-bookmarks";
 
@@ -99,6 +100,10 @@ export async function importHistory(
       return true;
     });
 
+    // This browser's workspace selection — uni and personal Chrome
+    // profiles each sync into their own vmem profile.
+    const profileId = await getSyncProfileId();
+
     let imported = 0;
     let processed = 0;
 
@@ -116,6 +121,7 @@ export async function importHistory(
           tags: [hostname],
           confidence: 0.6,
           url: entry.url,
+          profileId,
         });
 
         processed++;

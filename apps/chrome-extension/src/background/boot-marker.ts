@@ -2,7 +2,7 @@ const BOOT_AT_KEY = "vmemSwBootAt";
 const BOOT_ERROR_KEY = "vmemSwBootError";
 const BOOT_PHASE_KEY = "vmemSwBootPhase";
 /** Bumped when SW bundle shape changes — visible in debug report to confirm reload. */
-export const SW_BUILD_STAMP = "static-sw-20260609-sync-watchdog";
+export const SW_BUILD_STAMP = "static-sw-20260612-per-browser-profile";
 
 void chrome.storage.local
   .set({ vmemSwBuildStamp: SW_BUILD_STAMP })

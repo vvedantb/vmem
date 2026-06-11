@@ -1,5 +1,71 @@
 # Changelog
 
+## Per-browser active profile in the extension — 2026-06-12
+
+- **Why**: with two Chrome profiles (uni and personal) on the same vmem account, both browsers synced into the same workspace — the popup's profile picker wrote an account-wide default, and history/bookmark auto-sync ignored the picker entirely.
+- **Per-browser selection**: the popup's profile choice now lives only in this browser's extension storage, so each Chrome profile keeps its own active workspace; the picker no longer overwrites the account-wide default behind your back.
+- **Auto-sync follows it**: browsing history and bookmark imports now save into the selected workspace instead of always landing in the account default; a selection pointing at a deleted workspace clears itself rather than silently skipping a whole sync window.
+
+## Entity aliases consolidated — 2026-06-12
+
+- **Why**: the same real-world thing accumulated name variants as separate entities — "Fable", "Fable 5", "Claude Fable 5", "Claude Fable-5" and "Claude Fable" were five nodes for one model — because the extractor never saw the user's existing entities and hyphen/space variants had distinct identities.
+- **Prevention**: the enrichment prompt now receives the user's top 150 known entities and must reuse an existing name exactly when a mention refers to it; entity identity treats hyphens as spaces (display names keep them).
+- **Retroactive merge**: a new migration action re-keys all entities under the hyphen rule, builds alias candidates by name containment, and has an LLM partition each candidate group into same-entity clusters — only confirmed clusters merge (survivor keeps all mention edges). Run with a strong adjudication model; the default cheap model over-merged distinct products in dry runs.
+- **Result**: 84 variant nodes merged on the audited account; the five Fable nodes are now one "Claude Fable 5" with all 20 mentions.
+
+## Entity duplicates eliminated — 2026-06-11
+
+- **Why**: the same real-world entity appeared as multiple nodes ("Eva" three times, "agenteva1[bot]" twice, 84 duplicate groups in all) because the entity's LLM-assigned type was part of its database identity — and models oscillate on whether a bot is a person or a technology, or a repo an organization.
+- **Identity fix**: an entity is now unique per (user, normalized name); type is just a property, first classification wins. The per-response parser dedups the same way, and the uniqueness constraint was swapped to match.
+- **Data merged**: a one-time migration collapsed all 86 duplicate nodes onto their most-mentioned survivor (re-pointing mention edges, preferring the capitalised display name — "Eva" now shows 59 mentions on one node). The migration script stays re-runnable.
+- **Less identifier junk**: the extraction prompt now forbids URLs, hostnames, file paths, and branch names as entities — it must name the underlying thing ("Evalucom", not its GitHub URL).
+
+## Extension auto-sync survives browser restarts — 2026-06-11
+
+- **Why**: auto-sync went silent for a day at a time — every browser restart wiped the session token, and the offscreen document that was supposed to re-mint it can never read the web app's session cookie (offscreen contexts have no `chrome.cookies`), so every sync skipped "no-session" until the popup was manually opened.
+- **SW-side auth**: the service worker now mints Convex tokens itself by calling Clerk's Frontend API directly (cookie → client → session token) — the first heartbeat after any restart re-authenticates and catches up the overdue sync, no popup needed; the offscreen layer is deleted outright.
+- **Why not the Clerk SDK in the worker**: clerk-js treats every service worker as permanently offline (its online check requires `window`), so token minting throws `clerk_offline` even on a healthy network — and bundling it dragged DOM-touching UI code into the worker that crashed it at boot. Clerk now stays popup-only; the worker bundle shrank from 3.2 MB to ~70 KB.
+- **Auth breadcrumbs**: every token refresh records which stage failed (cookie read, client fetch, session resolution, token mint) to extension storage and the debug report, so auth failures are diagnosable instead of all looking like "signed out".
+- **Harness hardening**: the live browser verification can no longer hang forever on a half-dead browser (CDP/network timeouts).
+
+## Dreaming made visible — 2026-06-11
+
+- **Why**: background reflection the user cannot see might as well not exist — there was no way to tell what would be dreamt on, when the last dream ran, or how to act on the new proposal kinds.
+- **Settings**: Dream Mode gains an Automatic dreaming toggle (web and mobile) and a "Last dreamt" timestamp alongside the existing auto-accept and daily-schedule controls.
+- **Moon indicator**: memories newer than the last dream run carry a small moon on their list row — "will be considered in the next dream" — that clears once a pass completes.
+- **Proposal cards**: merge proposals render the consolidation with a "replaces N memories" panel, and contradiction cards gain per-source "Keep this" buttons that resolve the conflict in one click.
+
+## Dynamic dreaming: dreams trigger themselves — 2026-06-11
+
+- **Why**: Dream Mode was a fixed daily cron — the system never decided on its own when to reflect, the exact pattern the design set out to beat.
+- **Quiet-triggered**: saving a handful of memories and going quiet for half an hour starts a dream pass on its own; a big mid-session pile-up (including connector imports, counted as one batch) triggers one without waiting for quiet.
+- **Bounded**: at most one automatic run per two hours and four per day; progress persists when a check stands down, so the next save re-arms it. On by default and cost-free without an API key; dream-produced memories never re-trigger dreaming.
+- **Adaptive depth**: a quick reflection after a short session, a deeper dive after a heavy day — anomaly and merge budgets scale with how much accumulated, and the candidate window runs from the last dream so each memory seeds exactly one pass.
+- **Fallbacks intact**: the daily schedule and the manual button still work, both at standard depth.
+
+## Evolving workspace portrait — 2026-06-11
+
+- **Why**: the only "who is this user" context AI clients got was the hand-typed About Me — a brittle list of attributes that never learned anything from the memory store.
+- **Dream-maintained**: each productive dream pass incrementally revises a per-workspace portrait — keeping what still holds, rewriting what changed, dropping what the evidence no longer supports — rather than regenerating a summary from scratch.
+- **Grounded**: every portrait must cite the memories it draws on; ungrounded output is rejected outright, same rule as synthesis proposals.
+- **Surfaced**: the portrait is injected into the MCP context prompt as a clearly-labelled inferred section and shown on the workspace home with its source count and last-dreamt time.
+
+## Dreams reconsolidate memories — 2026-06-11
+
+- **Why**: dreams only ever ADDED knowledge — old facts kept their day-one confidence, near-duplicates accumulated forever, and contradictions were dismiss-only flags nobody could act on.
+- **Merge proposals**: near-duplicate fragments are detected by similarity (the low-surprisal end the anomaly pass cannot see) and proposed as one consolidated memory; approving supersedes the sources with a traceable link — nothing is hard-deleted.
+- **Contradiction resolution**: approving a contradiction can now name a winner — the kept memory is reinforced and the losing side suppressed, instead of the flag just clearing.
+- **Confidence reweighting**: each synthesis pass may temper or boost the confidence of the memories it examined, applied automatically within tight bounds, pinned memories exempt, one audit event per change.
+- **Isolated memories find neighbours**: anomaly seeds with few graph links pull in their nearest semantic neighbours from the whole corpus (any age), so cross-time connections surface instead of being skipped.
+
+## Files index into the memory graph — 2026-06-11
+
+- **Why**: the shared filesystem was pure storage — uploaded documents never appeared in memory retrieval, so agents and search could not use their content.
+- **Auto-indexing**: every PDF/text-like upload (web or MCP `files_upload`) now becomes a memory through the same pipeline as imports — dedup, embedding, enrichment, chunking — so file content surfaces in `memory_search`, retrieval, and chat grounding.
+- **Lifecycle sync**: overwriting a file re-indexes it fresh; deleting a file removes its derived memory (guarded so shared or pre-existing memories survive); renames will sync the memory title once file rename ships in the UI.
+- **Workspace-aware**: personal files index under the creator's default profile; team-drive files index under the team's profile, visible to every member in team memory views.
+- **Visible state**: `/files` shows an "In memory" badge linking straight to the derived memory, and a one-shot backfill (`fileIndexing:backfillFileNodeIndex`) indexes files uploaded before this shipped.
+
 ## Workspace cleanup: profile filter retired, saves follow the workspace — 2026-06-11
 
 - **Why**: with the route carrying the workspace, the old `?profile=` filter and per-form profile pickers became a second, conflicting way to say the same thing.

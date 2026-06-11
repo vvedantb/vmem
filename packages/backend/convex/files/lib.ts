@@ -10,6 +10,35 @@ import type { Doc, Id } from "../_generated/dataModel";
 /** Default per-user storage limit surfaced in the UI and enforced on upload. */
 export const FILE_STORAGE_LIMIT_BYTES = 10 * 1024 * 1024 * 1024; // 10 GiB
 
+/**
+ * File kinds the memory-graph indexer can extract text from. Checked by
+ * extension first (browsers often send an empty MIME for `.md`), then MIME.
+ * `pdf` routes through pdf-parse; `text` is decoded straight from the blob.
+ * Anything else (images, binaries) is stored but not indexed.
+ */
+export type IndexableFileKind = "pdf" | "text";
+
+export function detectFileKind(
+  filename: string,
+  mimeType: string,
+): IndexableFileKind | null {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith(".pdf") || mimeType === "application/pdf") return "pdf";
+  if (
+    lower.endsWith(".md") ||
+    lower.endsWith(".markdown") ||
+    lower.endsWith(".txt") ||
+    mimeType.startsWith("text/") ||
+    mimeType === "application/json" ||
+    mimeType.endsWith("+json") ||
+    mimeType.includes("xml") ||
+    mimeType.includes("markdown")
+  ) {
+    return "text";
+  }
+  return null;
+}
+
 const ROOT_KEY = "__root__";
 
 /** Map a node's parentId to the children-bucket key (root nodes share one key). */

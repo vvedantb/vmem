@@ -91,7 +91,8 @@ export function useVoiceSession({ threadId, messages }: VoiceSessionArgs) {
 
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
   const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
-  const mySkills = useQuery(api.skills.listMy) ?? [];
+  // Personal scope ({}): mobile has no team workspaces.
+  const mySkills = useQuery(api.skills.listMy, {}) ?? [];
   const skillsRef = useRef(mySkills);
   skillsRef.current = mySkills;
 
