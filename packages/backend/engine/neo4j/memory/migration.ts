@@ -361,3 +361,132 @@ export async function markEntityExtracted(
     );
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tag consolidation re-tag (2026-06: collapse legacy one-off tags)
+//
+// The pre-vocabulary enrichment prompt minted hyper-specific single-use tags
+// (73% of one account's 4,962 tags). These helpers drive a one-shot re-tag:
+// `retagMemoriesInternal` re-runs the (now vocabulary-aware) tagging prompt
+// per memory and replaces its TAGGED_WITH edges. `m.retaggedAt` is the
+// resume marker.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Batch of a user's memories not yet re-tagged, oldest first (the oldest
+ *  carry the worst legacy tags, and re-tagging them first builds vocabulary
+ *  usage counts that later batches then reuse). Includes current tags so
+ *  dry runs can show before/after. */
+export async function listUnretagged(
+  driver: Driver,
+  userId: string,
+  limit: number,
+): Promise<
+  Array<{
+    id: string;
+    profileId: string | null;
+    title: string;
+    content: string;
+    tags: string[];
+  }>
+> {
+  return withSession(driver, async (session) => {
+    const result = await session.run(
+      `MATCH (m:Memory {userId: $userId})
+       WHERE m.retaggedAt IS NULL
+         AND coalesce(m.status, 'active') IN ['active', 'pinned']
+       OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+       WITH m, collect(t.name) AS tags
+       ORDER BY m.createdAt ASC
+       LIMIT $limit
+       RETURN m.id AS id, m.profileId AS profileId, m.title AS title,
+              m.content AS content, tags`,
+      { userId, limit: neo4j.int(limit) },
+    );
+    return result.records.map((r) => {
+      const rawProfileId = r.get("profileId");
+      const rawTags: unknown = r.get("tags");
+      return {
+        id: String(r.get("id")),
+        profileId:
+          typeof rawProfileId === "string" && rawProfileId.length > 0
+            ? rawProfileId
+            : null,
+        title: String(r.get("title")),
+        content: String(r.get("content") ?? ""),
+        tags: Array.isArray(rawTags) ? rawTags.map(String) : [],
+      };
+    });
+  });
+}
+
+export async function countUnretagged(
+  driver: Driver,
+  userId: string,
+): Promise<number> {
+  return withSession(driver, async (session) => {
+    const result = await session.run(
+      `MATCH (m:Memory {userId: $userId})
+       WHERE m.retaggedAt IS NULL
+         AND coalesce(m.status, 'active') IN ['active', 'pinned']
+       RETURN count(m) AS n`,
+      { userId },
+    );
+    const record = result.records[0];
+    return record ? toNeoInt(record.get("n")) : 0;
+  });
+}
+
+/** Replace a memory's TAGGED_WITH edges and stamp the resume marker in one
+ *  transaction. Tags must already be normalized by the caller. */
+export async function replaceTagsAndMarkRetagged(
+  driver: Driver,
+  memoryId: string,
+  userId: string,
+  tags: string[],
+): Promise<void> {
+  await withSession(driver, async (session) => {
+    await session.run(
+      `MATCH (m:Memory {id: $memoryId, userId: $userId})
+       OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
+       DELETE r
+       WITH DISTINCT m
+       FOREACH (tagName IN $tags |
+         MERGE (t:Tag {name: tagName})
+         MERGE (m)-[:TAGGED_WITH]->(t)
+       )
+       SET m.retaggedAt = datetime()`,
+      { memoryId, userId, tags },
+    );
+  });
+}
+
+/** Stamp the resume marker without touching tags (LLM/parse failure path —
+ *  the memory keeps its legacy tags rather than retrying forever). */
+export async function markRetaggedOnly(
+  driver: Driver,
+  ids: string[],
+): Promise<void> {
+  if (ids.length === 0) return;
+  await withSession(driver, async (session) => {
+    await session.run(
+      `UNWIND $ids AS memId
+       MATCH (m:Memory {id: memId})
+       SET m.retaggedAt = datetime()`,
+      { ids },
+    );
+  });
+}
+
+/** Delete Tag nodes no memory points at any more (post-re-tag sweep). */
+export async function deleteOrphanTags(driver: Driver): Promise<number> {
+  return withSession(driver, async (session) => {
+    const result = await session.run(
+      `MATCH (t:Tag)
+       WHERE NOT (t)<-[:TAGGED_WITH]-()
+       DETACH DELETE t
+       RETURN count(t) AS deleted`,
+    );
+    const record = result.records[0];
+    return record ? toNeoInt(record.get("deleted")) : 0;
+  });
+}

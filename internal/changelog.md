@@ -1,5 +1,12 @@
 # Changelog
 
+## Legacy tag noise consolidated: 4,962 → 421 tags — 2026-06-11
+
+- **Why**: the tag workflow fix (vocabulary-aware enrichment) was forward-looking only — the database still held 4,962 distinct tags across 2,775 memories, 73% used exactly once, so the dashboard count stayed inflated and the graph's tag connections stayed sparse.
+- **Retroactive re-tag**: a new batch migration action re-ran the vocabulary-aware tagging prompt over every memory (one OpenRouter call each, ~2,775 calls) and replaced its tags; entities and relates-to edges were untouched. The vocabulary is refetched per batch, so consolidation compounds — early batches establish themes, later batches reuse them.
+- **Result**: 421 distinct tags (−91%), with heavy reuse at the top (web-development 1,251 uses, youtube 556, social-media 546) and the remaining single-use tags now plausible recurring themes rather than one-off labels; 4,891 orphaned tag nodes swept.
+- **Reusable**: the action stays in the repo (`neo4jActions/migration/retag.ts`) — clear the `retaggedAt` markers and re-run it after any future tagging-prompt change. Failed LLM calls keep their legacy tags and never retry forever.
+
 ## Graph de-noised: same-domain edges removed — 2026-06-11
 
 - **Why**: 18,924 of 25,819 RELATES_TO edges (73%) had reason "same domain" — every saved URL linked to up to 10 existing memories from the same web domain. On real browsing data that is platform affinity, not topical relation (576 youtube.com memories, 212 github.com), and the unordered LIMIT concentrated edges on the ~10 oldest memories per domain — one generic YouTube page had 578 connections.

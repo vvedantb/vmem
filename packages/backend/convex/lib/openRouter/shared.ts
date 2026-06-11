@@ -20,6 +20,7 @@ export type OpenRouterFeature =
   | "context-prompt"
   | "fact-extraction"
   | "entity-backfill"
+  | "tag-consolidation"
   // Embeddings
   | "memory-save"
   | "memory-search"

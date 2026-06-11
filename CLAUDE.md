@@ -108,6 +108,7 @@ Tags:
 - The enrichment prompt receives the user's top-50 multi-use tags (`getTopTags`) and is instructed to reuse them exactly before minting new ones; parser caps at 4 tags.
 - Server enrichment runs after EVERY create and **replaces** client-supplied tags (applyEnrichment deletes TAGGED_WITH first) — client tags only survive when the user has no OpenRouter key.
 - `pnpm db:tag-stats` (backend) prints the tag usage histogram per user — re-run to check the single-use ratio is dropping.
+- Retroactive consolidation: `neo4jActions/migration/retag.ts` re-runs the vocabulary-aware tagging prompt per memory and REPLACES its TAGGED_WITH edges (entities/RELATES_TO untouched); `m.retaggedAt` is the resume marker (clear it to re-run a full pass). One OpenRouter call per memory — drive manually via `npx convex run`, never a cron. Sweeps orphaned Tag nodes when drained. Failures keep legacy tags and advance the marker.
 
 RELATES_TO edges:
 
