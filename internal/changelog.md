@@ -1,5 +1,12 @@
 # Changelog
 
+## Entity aliases consolidated — 2026-06-12
+
+- **Why**: the same real-world thing accumulated name variants as separate entities — "Fable", "Fable 5", "Claude Fable 5", "Claude Fable-5" and "Claude Fable" were five nodes for one model — because the extractor never saw the user's existing entities and hyphen/space variants had distinct identities.
+- **Prevention**: the enrichment prompt now receives the user's top 150 known entities and must reuse an existing name exactly when a mention refers to it; entity identity treats hyphens as spaces (display names keep them).
+- **Retroactive merge**: a new migration action re-keys all entities under the hyphen rule, builds alias candidates by name containment, and has an LLM partition each candidate group into same-entity clusters — only confirmed clusters merge (survivor keeps all mention edges). Run with a strong adjudication model; the default cheap model over-merged distinct products in dry runs.
+- **Result**: 84 variant nodes merged on the audited account; the five Fable nodes are now one "Claude Fable 5" with all 20 mentions.
+
 ## Entity duplicates eliminated — 2026-06-11
 
 - **Why**: the same real-world entity appeared as multiple nodes ("Eva" three times, "agenteva1[bot]" twice, 84 duplicate groups in all) because the entity's LLM-assigned type was part of its database identity — and models oscillate on whether a bot is a person or a technology, or a repo an organization.

@@ -112,6 +112,11 @@ describe("normalizeEntityName", () => {
   it("caps entity names at 100 characters", () => {
     expect(normalizeEntityName("x".repeat(120)).length).toBe(100);
   });
+
+  it("treats hyphens as spaces so hyphen variants share identity", () => {
+    expect(normalizeEntityName("Claude Fable-5")).toBe("claude fable 5");
+    expect(normalizeEntityName("Claude Fable 5")).toBe("claude fable 5");
+  });
 });
 
 describe("parseFullEnrichmentResponse", () => {

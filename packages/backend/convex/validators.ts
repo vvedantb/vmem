@@ -265,6 +265,7 @@ export const openRouterLogRecordFields = {
     v.literal("fact-extraction"),
     v.literal("entity-backfill"),
     v.literal("tag-consolidation"),
+    v.literal("entity-aliases"),
     // Embeddings
     v.literal("memory-save"),
     v.literal("memory-search"),

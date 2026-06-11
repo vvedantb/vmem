@@ -126,8 +126,10 @@ Tags:
 Entities:
 
 - Entity identity is `(userId, normalizedName)` — `type` is a plain property (first-seen wins), NEVER part of the MERGE key or constraint. LLM extraction oscillates on classification (bot = person vs technology, repo = organization vs technology); type-in-key minted 84 duplicate groups on one account ("Eva" ×3). Parser dedups per response on normalizedName alone.
+- `normalizeEntityName` treats hyphens as spaces ("Claude Fable-5" ≡ "claude fable 5") — display names keep their hyphens, identity ignores them.
+- Alias prevention mirrors tags: `getTopEntities` (engine `entities.ts`, ≥2 mentions, top 150) feeds the prompt's "Known entities" list — a mention of a known entity must reuse the existing name exactly ("Fable 5" → "Claude Fable 5"), so variants stop minting.
 - The enrichment prompt forbids raw identifiers as entities (URLs, hostnames, file paths, branch names, commit hashes, emails) — name the underlying thing instead.
-- `neo4j-cli/merge-duplicate-entities.ts` collapses any (userId, normalizedName) dupe groups (survivor = most mentions, prefers capitalised display name) and swaps the old triple constraint — already run 2026-06-11 (86 nodes removed); re-runnable if dupes ever reappear.
+- Retroactive cleanup: `neo4j-cli/merge-duplicate-entities.ts` (exact-key dupes, ran 2026-06-11, 86 removed) and `neo4jActions/migration/entityAliases.ts` (alias variants: containment heuristic builds candidate groups, an LLM partitions each into same-entity clusters, only clusters merge). Run the alias action with `"model":"anthropic/claude-sonnet-4.6"` — the default cheap model over-merges (it equated Neon and Heroku Postgres); ran 2026-06-12 (6 renorm + 78 alias merges, "Fable"×5 → one "Claude Fable 5"). Both re-runnable.
 
 RELATES_TO edges:
 
