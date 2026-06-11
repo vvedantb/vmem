@@ -3,8 +3,12 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
-import { cn } from "@vmem/ui";
-import { IconMoodEmpty } from "@tabler/icons-react";
+import { Button, cn } from "@vmem/ui";
+import {
+  IconAlertCircle,
+  IconMoodEmpty,
+  IconRefresh,
+} from "@tabler/icons-react";
 import { Virtuoso } from "react-virtuoso";
 import { api } from "@vmem/backend";
 import MemoryDetailPanel from "./MemoryDetailPanel";
@@ -106,6 +110,8 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const {
     memories: memoryResults,
     isLoading: isMemoriesLoading,
+    isError: isMemoriesError,
+    refetch: refetchMemories,
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
@@ -389,6 +395,32 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
         <VmemSpinner size={24} className="text-muted" />
+      </div>
+    );
+  }
+
+  // A failed list load must never masquerade as an empty workspace —
+  // that exact silence cost a debugging session once.
+  if (isMemoriesError && memoryResults.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
+          <IconAlertCircle className="w-6 h-6 text-danger" />
+        </div>
+        <h3 className="text-lg font-medium text-foreground mb-2">
+          Failed to load memories
+        </h3>
+        <p className="text-sm text-muted mb-4">
+          Something went wrong fetching this workspace's memories.
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void refetchMemories()}
+        >
+          <IconRefresh size={16} />
+          Try again
+        </Button>
       </div>
     );
   }
