@@ -355,6 +355,9 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       // Timestamp of the last full scene render — drives the snapshot-refresh
       // cadence when a gesture runs over a hot simulation (see viewportOnly).
       let lastSceneRenderAt = 0;
+      // Sim positions version captured at the last real scene paint (blits
+      // excluded — they reuse the old bitmap). See positionsNeedPaint.
+      let lastPaintedSimVersion = -1;
       // Render-on-demand state. The rAF loop never stops (its idle cost is a
       // handful of comparisons), but all real work — physics-driven index
       // rebuilds and the canvas draw — is skipped while the simulation is
@@ -372,6 +375,14 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         const simActive = sim.alpha() >= SLEEP_ALPHA;
         const isDragging = interactionRef.current.draggedNodeId !== null;
         const positionsMoving = simActive || isDragging;
+        // The worker posts positions at ~30Hz while this loop runs at 60 —
+        // a hot-sim frame whose positions haven't advanced would repaint an
+        // identical scene. Only treat the sim as needing paint when the
+        // version moved. Drags are exempt: the dragged node's x/y is set
+        // synchronously on the main thread per mousemove, between versions.
+        const simVersion = sim.positionsVersion();
+        const positionsFresh = simVersion !== lastPaintedSimVersion;
+        const positionsNeedPaint = isDragging || (simActive && positionsFresh);
 
         // Compare viewport state frame-to-frame: catches spring/momentum from
         // tickViewport AND direct mutations from pan/pinch/wheel handlers.
@@ -402,14 +413,16 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         const interactionChanged = interactionKey !== lastInteractionKey;
         lastInteractionKey = interactionKey;
 
-        // Spatial index only needs rebuilding while node positions move.
-        if (positionsMoving) {
+        // Spatial index only needs rebuilding while node positions move —
+        // and only on frames where they actually advanced (same 30Hz gate
+        // as painting; rebuilding over unchanged positions is pure waste).
+        if (positionsMoving && positionsNeedPaint) {
           markDirty(spatialIndexRef.current);
           frameCount++;
           if (frameCount % indexRebuildInterval === 0) {
             rebuildIndex(spatialIndexRef.current, nodesRef.current);
           }
-        } else if (wasMoving) {
+        } else if (!positionsMoving && wasMoving) {
           // One final rebuild + repaint on settle so hit-testing and the
           // canvas both match the resting positions (the worker's last
           // position message can land after the previous rendered frame).
@@ -455,7 +468,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         }
 
         if (
-          !positionsMoving &&
+          !positionsNeedPaint &&
           !viewportMoved &&
           !interactionChanged &&
           !needsRenderRef.current &&
@@ -553,7 +566,10 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           gestureActive,
         );
         lastFrameWasBlit = viewportOnly && worldCache !== null;
-        if (!lastFrameWasBlit) lastSceneRenderAt = performance.now();
+        if (!lastFrameWasBlit) {
+          lastSceneRenderAt = performance.now();
+          lastPaintedSimVersion = simVersion;
+        }
 
         rafId = requestAnimationFrame(tick);
       }

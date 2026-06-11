@@ -23,6 +23,14 @@ type WorkerPositionMessage = {
 export interface SimulationController {
   /** Current simulation alpha (convergence indicator, 0 = stable) */
   alpha: () => number;
+  /**
+   * Monotonic counter, bumped each time node positions actually change
+   * (worker position message / fallback tick). The worker posts at ~30Hz
+   * while the rAF loop runs at 60 — rendering settle frames whose positions
+   * have not changed is pure waste, so GraphCanvas repaints the hot layout
+   * only when this advances.
+   */
+  positionsVersion: () => number;
   /** Tick the simulation once — no-op for Worker mode (worker ticks itself) */
   tick: () => void;
   reheat: () => void;
@@ -109,6 +117,7 @@ function createWorkerSimulation(
   );
 
   let currentAlpha = 1;
+  let positionsVersion = 0;
 
   // Build node index for fast lookups when applying position updates
   const nodeById = new Map<string, GraphNode>();
@@ -149,6 +158,7 @@ function createWorkerSimulation(
     if (msg.type === "positions") {
       const buffer = msg.buffer;
       currentAlpha = msg.alpha;
+      positionsVersion++;
       for (let i = 0; i < nodes.length; i++) {
         // Don't overwrite position of a node being dragged (main thread has authority)
         if (nodes[i].fx !== undefined && nodes[i].fx !== null) continue;
@@ -177,6 +187,9 @@ function createWorkerSimulation(
 
   return {
     alpha: () => (fallback ? fallback.alpha() : currentAlpha),
+
+    positionsVersion: () =>
+      fallback ? fallback.positionsVersion() : positionsVersion,
 
     // No-op in worker mode (worker ticks itself); drives the fallback sim.
     tick: () => fallback?.tick(),
@@ -314,8 +327,12 @@ function createMainThreadSimulation(
   const nodeById = new Map<string, GraphNode>();
   for (const n of nodes) nodeById.set(n.id, n);
 
+  let positionsVersion = 0;
+
   return {
     alpha: () => simulation.alpha(),
+
+    positionsVersion: () => positionsVersion,
 
     tick() {
       // Sleep gate: skip force passes once settled, unless a drag is holding
@@ -323,6 +340,7 @@ function createMainThreadSimulation(
       if (simulation.alpha() < SLEEP_ALPHA && simulation.alphaTarget() === 0)
         return;
       simulation.tick();
+      positionsVersion++;
     },
 
     reheat() {

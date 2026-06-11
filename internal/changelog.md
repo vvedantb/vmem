@@ -7,6 +7,7 @@
 - **Stray clusters come home**: centering is a weak per-node pull (like Obsidian's Center force) replacing the old whole-system translation that let disconnected components drift; repulsion range now scales with graph size after the bounded range was found to slowly collapse large graphs into a solid ball.
 - **One physics source of truth**: the worker and the main-thread fallback now share a single force-model module — they had already drifted apart (different damping, different center strength).
 - **Readable hover at any zoom**: neighbour labels only render when the node is big enough on screen to read, so hovering in a dense area highlights the neighbourhood without blanketing it in text.
+- **Settle costs half as much**: the layout animation paints only when the physics worker actually posts new positions (~30Hz) instead of re-painting identical frames at 60fps — same visible animation, half the canvas work and spatial-index rebuilds during the settle phase (drag feedback stays per-frame).
 
 ## Memory graph: Obsidian-smooth rendering at 5k nodes — 2026-06-11
 
