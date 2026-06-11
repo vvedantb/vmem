@@ -1,5 +1,13 @@
 # Changelog
 
+## Files index into the memory graph — 2026-06-11
+
+- **Why**: the shared filesystem was pure storage — uploaded documents never appeared in memory retrieval, so agents and search could not use their content.
+- **Auto-indexing**: every PDF/text-like upload (web or MCP `files_upload`) now becomes a memory through the same pipeline as imports — dedup, embedding, enrichment, chunking — so file content surfaces in `memory_search`, retrieval, and chat grounding.
+- **Lifecycle sync**: overwriting a file re-indexes it fresh; deleting a file removes its derived memory (guarded so shared or pre-existing memories survive); renames will sync the memory title once file rename ships in the UI.
+- **Workspace-aware**: personal files index under the creator's default profile; team-drive files index under the team's profile, visible to every member in team memory views.
+- **Visible state**: `/files` shows an "In memory" badge linking straight to the derived memory, and a one-shot backfill (`fileIndexing:backfillFileNodeIndex`) indexes files uploaded before this shipped.
+
 ## Workspace cleanup: profile filter retired, saves follow the workspace — 2026-06-11
 
 - **Why**: with the route carrying the workspace, the old `?profile=` filter and per-form profile pickers became a second, conflicting way to say the same thing.

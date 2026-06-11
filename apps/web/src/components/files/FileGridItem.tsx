@@ -5,6 +5,7 @@ import { Checkbox, cn } from "@vmem/ui";
 import type { FileItem } from "@/lib/file-types";
 import { formatFileSize, getFileIcon } from "./_utils";
 import FileContextMenu from "./FileContextMenu";
+import MemoryIndexBadge from "./MemoryIndexBadge";
 
 interface FileGridItemProps {
   item: FileItem;
@@ -113,6 +114,13 @@ export default function FileGridItem({
           {!isFolder && (
             <p className="text-xs text-muted">{formatFileSize(item.size)}</p>
           )}
+          {!isFolder &&
+            (item.indexStatus === "indexed" ||
+              item.indexStatus === "failed") && (
+              <div className="mt-1 flex justify-center">
+                <MemoryIndexBadge item={item} />
+              </div>
+            )}
           {isFolder && item.itemCount !== undefined && (
             <p className="text-xs text-muted">
               {item.itemCount} {item.itemCount === 1 ? "item" : "items"}

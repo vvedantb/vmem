@@ -20,6 +20,7 @@ import {
 import type { FileItem } from "@/lib/file-types";
 import { formatFileSize, formatDate, getFileIcon } from "./_utils";
 import FileContextMenu from "./FileContextMenu";
+import MemoryIndexBadge from "./MemoryIndexBadge";
 
 interface FileListRowProps {
   item: FileItem;
@@ -113,6 +114,7 @@ export default function FileListRow({
             <span className="text-sm font-medium text-foreground truncate">
               {item.name}
             </span>
+            <MemoryIndexBadge item={item} />
           </div>
         </td>
 
