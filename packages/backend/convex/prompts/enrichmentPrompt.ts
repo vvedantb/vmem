@@ -106,6 +106,8 @@ If the memory uses an abbreviation that has an obvious canonical form (e.g. "JS"
 - Only entities that are explicitly named in the text.
 - Use full canonical name when conventional.
 - Skip vague references ("a startup", "some library", "the company") — these are not named entities.
+- NEVER extract raw identifiers as entities: no URLs, hostnames, file paths, branch names, commit hashes, or email addresses. Name the underlying thing instead — "Evalucom", not "https://github.com/evalucom"; nothing at all for a git branch like "revert-411-eva/task-m57...".
+- One entry per entity. If something could be classified two ways (a bot account, a repo), pick the single best type — never list it twice.
 - Cap at 10 entities; pick the most specific and identifying ones if there are more.
 
 # Worked Examples
@@ -206,9 +208,11 @@ function parseEntities(raw: unknown): ExtractedEntity[] {
     if (typeof name !== "string" || name.trim().length === 0) continue;
     if (typeof type !== "string" || !isValidEntityType(type)) continue;
     const normalizedName = normalizeEntityName(name);
-    const dedupKey = `${normalizedName}:${type}`;
-    if (seen.has(dedupKey)) continue;
-    seen.add(dedupKey);
+    // Dedup on name alone (no type): entity identity in the graph is
+    // (userId, normalizedName) — the same name under two types is one
+    // entity the LLM classified inconsistently, not two entities.
+    if (seen.has(normalizedName)) continue;
+    seen.add(normalizedName);
     result.push({ name: name.trim(), normalizedName, type });
   }
   return result.slice(0, 10);

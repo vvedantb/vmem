@@ -66,8 +66,8 @@ export async function applyEnrichment(
            DELETE r
            WITH m
            FOREACH (ent IN $entities |
-             MERGE (e:Entity {userId: $userId, normalizedName: ent.normalizedName, type: ent.type})
-             ON CREATE SET e.name = ent.name, e.id = randomUUID(), e.createdAt = datetime()
+             MERGE (e:Entity {userId: $userId, normalizedName: ent.normalizedName})
+             ON CREATE SET e.name = ent.name, e.type = ent.type, e.id = randomUUID(), e.createdAt = datetime()
              MERGE (m)-[:MENTIONS]->(e)
            )`,
           { memoryId, userId, entities },
@@ -104,8 +104,8 @@ export async function applyEntitiesOnly(
        DELETE r
        WITH m
        FOREACH (ent IN $entities |
-         MERGE (e:Entity {userId: $userId, normalizedName: ent.normalizedName, type: ent.type})
-         ON CREATE SET e.name = ent.name, e.id = randomUUID(), e.createdAt = datetime()
+         MERGE (e:Entity {userId: $userId, normalizedName: ent.normalizedName})
+         ON CREATE SET e.name = ent.name, e.type = ent.type, e.id = randomUUID(), e.createdAt = datetime()
          MERGE (m)-[:MENTIONS]->(e)
        )`,
       { memoryId, userId, entities },

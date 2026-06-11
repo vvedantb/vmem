@@ -1,5 +1,19 @@
 # Changelog
 
+## Entity duplicates eliminated — 2026-06-11
+
+- **Why**: the same real-world entity appeared as multiple nodes ("Eva" three times, "agenteva1[bot]" twice, 84 duplicate groups in all) because the entity's LLM-assigned type was part of its database identity — and models oscillate on whether a bot is a person or a technology, or a repo an organization.
+- **Identity fix**: an entity is now unique per (user, normalized name); type is just a property, first classification wins. The per-response parser dedups the same way, and the uniqueness constraint was swapped to match.
+- **Data merged**: a one-time migration collapsed all 86 duplicate nodes onto their most-mentioned survivor (re-pointing mention edges, preferring the capitalised display name — "Eva" now shows 59 mentions on one node). The migration script stays re-runnable.
+- **Less identifier junk**: the extraction prompt now forbids URLs, hostnames, file paths, and branch names as entities — it must name the underlying thing ("Evalucom", not its GitHub URL).
+
+## Extension auto-sync survives browser restarts — 2026-06-11
+
+- **Why**: auto-sync went silent for a day at a time — every browser restart wiped the session token, and the offscreen document that was supposed to re-mint it can never read the web app's session cookie (offscreen contexts have no `chrome.cookies`), so every sync skipped "no-session" until the popup was manually opened.
+- **SW-side auth**: the service worker now mints Convex tokens itself through Clerk's syncHost bridge — the first heartbeat after any restart re-authenticates and catches up the overdue sync, no popup needed; the offscreen layer is deleted outright.
+- **Boot-crash fix**: Clerk's UI package (dead code in the worker) was being inlined into the SW bundle and threw an uncaught DOM error on every boot — capable of getting the worker blocklisted so no alarms fire at all; it is now stubbed out of the background build, which also shrinks the worker bundle by ~2 MB.
+- **Harness hardening**: the live browser verification can no longer hang forever on a half-dead browser (CDP/network timeouts), and the unit suite exits cleanly under the heavier Clerk import graph.
+
 ## Dreaming made visible — 2026-06-11
 
 - **Why**: background reflection the user cannot see might as well not exist — there was no way to tell what would be dreamt on, when the last dream ran, or how to act on the new proposal kinds.

@@ -67,6 +67,28 @@ describe("sanitizeTag", () => {
   });
 });
 
+describe("parseFullEnrichmentResponse entity dedup", () => {
+  it("collapses the same name under two types into one entity (first type wins)", () => {
+    const result = parseFullEnrichmentResponse(
+      JSON.stringify({
+        tags: ["ai"],
+        relatedMemoryIds: [],
+        entities: [
+          { name: "agenteva1[bot]", type: "person" },
+          { name: "Agenteva1[bot]", type: "technology" },
+        ],
+      }),
+    );
+    expect(result?.entities).toEqual([
+      {
+        name: "agenteva1[bot]",
+        normalizedName: "agenteva1[bot]",
+        type: "person",
+      },
+    ]);
+  });
+});
+
 describe("parseFullEnrichmentResponse tag cap", () => {
   it("caps parsed tags at 4", () => {
     const result = parseFullEnrichmentResponse(
