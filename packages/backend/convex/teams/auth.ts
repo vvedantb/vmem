@@ -33,7 +33,7 @@ export async function getMembershipOrNull(
 }
 
 export async function requireTeamRole(
-  ctx: MutationCtx,
+  ctx: QueryCtx | MutationCtx,
   teamId: Id<"teams">,
   userId: Id<"users">,
   allowed: Array<"owner" | "member">,
@@ -44,6 +44,78 @@ export async function requireTeamRole(
     throw new Error(`Requires role: ${allowed.join(" or ")}`);
   }
   return membership;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Content scoping (skills / wikiNodes / fileNodes) — "user-wide + team".
+//
+// A content doc carries `userId` (creator) and optional `teamId`:
+//   - teamId absent → personal: only the owner can read or mutate.
+//   - teamId set    → team: any member reads AND edits (collaborative);
+//                     delete requires the creator or a team owner.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ScopedContentDoc {
+  userId: Id<"users">;
+  teamId?: Id<"teams">;
+}
+
+/** List/create gate: membership when a teamId scope is requested. */
+export async function requireContentScopeAccess(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+): Promise<void> {
+  if (teamId === undefined) return;
+  const membership = await getMembershipOrNull(ctx, teamId, userId);
+  if (!membership) throw new Error("Not a member of this team");
+}
+
+/** True when the caller may read this doc (owner, or team member). */
+export async function isContentReadable(
+  ctx: QueryCtx | MutationCtx,
+  doc: ScopedContentDoc,
+  userId: Id<"users">,
+): Promise<boolean> {
+  if (doc.teamId === undefined) return doc.userId === userId;
+  const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
+  return membership !== null;
+}
+
+/** Edit gate: personal → owner only; team → any member (collaborative). */
+export async function assertContentEditable(
+  ctx: QueryCtx | MutationCtx,
+  doc: ScopedContentDoc,
+  userId: Id<"users">,
+): Promise<void> {
+  if (doc.teamId === undefined) {
+    if (doc.userId !== userId) throw new Error("Not found");
+    return;
+  }
+  const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
+  if (!membership) throw new Error("Not found");
+}
+
+/** Delete gate: personal → owner; team → creator or team owner. */
+export async function assertContentDeletable(
+  ctx: QueryCtx | MutationCtx,
+  doc: ScopedContentDoc,
+  userId: Id<"users">,
+): Promise<void> {
+  if (doc.teamId === undefined) {
+    if (doc.userId !== userId) throw new Error("Not found");
+    return;
+  }
+  if (doc.userId === userId) {
+    // Creator must still be a member to act on team content.
+    const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
+    if (!membership) throw new Error("Not found");
+    return;
+  }
+  const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
+  if (!membership || membership.role !== "owner") {
+    throw new Error("Only the creator or a team owner can delete this");
+  }
 }
 
 interface AssertProfileAccessArgs {

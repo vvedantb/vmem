@@ -1,6 +1,12 @@
 # Changelog
 
-## Workspace switcher in the sidebar; teams fold into their workspace — 2026-06-11
+## Team-wide skills, wiki, and files — 2026-06-11
+
+- **Why**: only memories were team-shared; skills, wiki docs, and files stayed strictly personal, so a team had no way to share its working context.
+- **Scoping model ("user-wide + team")**: content carries an optional team id — absent means personal (visible in every personal workspace, existing data untouched, no migration), set means it belongs to that team's workspace and is visible to all members.
+- **Permissions**: any team member can create and edit team skills/wiki/files; deleting needs the creator or a team owner. Team drives get their own 10 GiB storage pool, and team memories/files show "Saved by" attribution.
+- **Prompt integration**: in a team workspace the skills index injected into chat merges personal + that team's skills.
+- **MCP stays personal-only for now**: connector tools keep serving personal content, with leak guards on every user-wide query so team content never appears outside its workspace.
 
 - **Why**: with profiles as routes, switching needed to be one click from anywhere — and a separate /teams area no longer made sense when a team IS a workspace.
 - **Switcher**: a workspace card styled like the account card sits at the top of the sidebar, listing personal profiles and teams with the active one checked; switching keeps you on the same page in the new workspace (detail pages fall back sensibly). Creating a profile or team and managing profiles moved into its dropdown, and the command palette gained the same "switch workspace" actions.

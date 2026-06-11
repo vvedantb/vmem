@@ -25,6 +25,7 @@ import type { WikiTreeNode } from "./_utils";
 import RenameDialog from "./RenameDialog";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { optimisticId } from "@/lib/optimisticId";
+import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface WikiTreeProps {
   tree: WikiTreeNode[];
@@ -44,9 +45,10 @@ export default function WikiTree({
   selectedId,
   onSelect,
 }: WikiTreeProps) {
+  const teamId = useActiveTeamId();
   const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
     (localStore, args) => {
-      const tree = localStore.getQuery(api.wiki.listTree, {});
+      const tree = localStore.getQuery(api.wiki.listTree, { teamId });
       if (!tree || tree.length === 0) return;
       const siblings = tree.filter((n) => n.parentId === args.parentId);
       const nextOrder =
@@ -59,6 +61,7 @@ export default function WikiTree({
         _id: tempId,
         _creationTime: now,
         userId: tree[0].userId,
+        teamId,
         parentId: args.parentId,
         kind: args.kind,
         title: args.title,
@@ -68,16 +71,16 @@ export default function WikiTree({
         createdAt: now,
         updatedAt: now,
       };
-      localStore.setQuery(api.wiki.listTree, {}, [...tree, row]);
+      localStore.setQuery(api.wiki.listTree, { teamId }, [...tree, row]);
     },
   );
   const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
     (localStore, args) => {
-      const tree = localStore.getQuery(api.wiki.listTree, {});
+      const tree = localStore.getQuery(api.wiki.listTree, { teamId });
       if (tree) {
         localStore.setQuery(
           api.wiki.listTree,
-          {},
+          { teamId },
           tree.map((node) =>
             node._id === args.id
               ? { ...node, title: args.title, updatedAt: Date.now() }
@@ -97,7 +100,7 @@ export default function WikiTree({
   );
   const deleteNode = useMutation(api.wiki.deleteNode).withOptimisticUpdate(
     (localStore, args) => {
-      const tree = localStore.getQuery(api.wiki.listTree, {});
+      const tree = localStore.getQuery(api.wiki.listTree, { teamId });
       if (!tree) return;
       const childrenByParent = new Map<string, Array<Id<"wikiNodes">>>();
       for (const node of tree) {
@@ -118,7 +121,7 @@ export default function WikiTree({
       }
       localStore.setQuery(
         api.wiki.listTree,
-        {},
+        { teamId },
         tree.filter((node) => !remove.has(node._id)),
       );
       const open = localStore.getQuery(api.wiki.getNode, { id: args.id });
@@ -138,7 +141,7 @@ export default function WikiTree({
   const handleCreateInFolder = useCallback(
     async (parentId: Id<"wikiNodes">, kind: "folder" | "document") => {
       const title = kind === "folder" ? "Untitled folder" : "Untitled";
-      const newId = await createNode({ parentId, kind, title });
+      const newId = await createNode({ parentId, kind, title, teamId });
       if (kind === "document") {
         onSelect(newId);
       }

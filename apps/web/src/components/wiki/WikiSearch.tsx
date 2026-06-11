@@ -7,6 +7,7 @@ import { IconSearch, IconFileText, IconFolder } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { Input } from "@vmem/ui";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
+import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface WikiSearchProps {
   onSelect: (id: string) => void;
@@ -14,16 +15,18 @@ interface WikiSearchProps {
 
 /**
  * Top-of-left-pane search. Debounced text input with inline results below.
- * Uses the convex full-text search indexes on title + contentText.
+ * Uses the convex full-text search indexes on title + contentText, scoped
+ * to the active workspace (personal or team wiki).
  */
 export default function WikiSearch({ onSelect }: WikiSearchProps) {
   const [raw, setRaw] = useState("");
   const [debounced] = useDebounceValue(raw, 200);
+  const teamId = useActiveTeamId();
 
   const trimmed = debounced.trim();
   const results = useQuery(
     api.wiki.search,
-    trimmed.length > 0 ? { queryText: trimmed } : "skip",
+    trimmed.length > 0 ? { queryText: trimmed, teamId } : "skip",
   );
 
   const isSearching = raw.trim().length > 0;

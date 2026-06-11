@@ -8,13 +8,23 @@ import {
   collectSubtreeIds,
   isAncestorOrSelf,
 } from "./files/lib";
+import {
+  assertContentDeletable,
+  assertContentEditable,
+  requireContentScopeAccess,
+} from "./teams/auth";
 
 /**
  * Shared filesystem backend — powers the `/files` web view and the MCP file
  * tools (`mcp/files.ts`). A single `fileNodes` table holds folders and files
  * (discriminated by `kind`); files reference Convex storage via `storageId`.
  *
- * listTree returns every node for the current user in one shot (trees are
+ * Scoping ("user-wide + team"): nodes without `teamId` are personal and
+ * visible in every personal workspace; nodes with `teamId` form a team drive
+ * shared by all members (any member edits, creator-or-owner deletes). A
+ * subtree never mixes scopes, and each team has its own storage pool.
+ *
+ * listTree returns every node in the requested scope in one shot (trees are
  * assembled client-side) plus a resolved serving `url` per file, so the grid,
  * preview, and download paths never need a second round-trip.
  */
@@ -30,14 +40,34 @@ interface ListTreeResult {
   storageLimit: number;
 }
 
-/** All file nodes owned by the current user, each file enriched with its URL. */
-export const listTree = authQuery({
-  args: {},
-  handler: async (ctx): Promise<ListTreeResult> => {
-    const nodes = await ctx.db
+/** Every file node in a scope: a team's drive, or the user's personal files. */
+async function listScopeNodes(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+): Promise<Array<Doc<"fileNodes">>> {
+  if (teamId !== undefined) {
+    return await ctx.db
       .query("fileNodes")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+      .withIndex("by_team", (q) => q.eq("teamId", teamId))
       .collect();
+  }
+  const nodes = await ctx.db
+    .query("fileNodes")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  return nodes.filter((n) => n.teamId === undefined);
+}
+
+/**
+ * All file nodes in a scope, each file enriched with its URL. No `teamId` =
+ * the user's personal files; `teamId` = that team's drive (members only).
+ */
+export const listTree = authQuery({
+  args: { teamId: v.optional(v.id("teams")) },
+  handler: async (ctx, args): Promise<ListTreeResult> => {
+    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
+    const nodes = await listScopeNodes(ctx, ctx.userId, args.teamId);
 
     let totalBytes = 0;
     const withUrls: Array<FileNodeWithUrl> = await Promise.all(
@@ -69,30 +99,36 @@ export const generateFileUploadUrl = authMutation({
   },
 });
 
-/** Sum of all file sizes owned by a user — used for storage-limit checks. */
-async function totalBytesForUser(
+/**
+ * Sum of all file sizes in a scope — used for storage-limit checks.
+ * Each team drive has its own pool, separate from members' personal pools.
+ */
+async function totalBytesForScope(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
 ): Promise<number> {
-  const nodes = await ctx.db
-    .query("fileNodes")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
-    .collect();
+  const nodes = await listScopeNodes(ctx, userId, teamId);
   return nodes.reduce(
     (sum, node) => sum + (node.kind === "file" ? (node.size ?? 0) : 0),
     0,
   );
 }
 
-/** Validate that `parentId` (when set) is a folder owned by `userId`. */
+/** Validate that `parentId` (when set) is a folder in the same scope. */
 async function assertParentFolder(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
   parentId: Id<"fileNodes"> | undefined,
 ): Promise<void> {
   if (parentId === undefined) return;
   const parent = await ctx.db.get(parentId);
-  if (!parent || parent.userId !== userId) {
+  if (
+    !parent ||
+    parent.teamId !== teamId ||
+    (teamId === undefined && parent.userId !== userId)
+  ) {
     throw new Error("Parent folder not found");
   }
   if (parent.kind !== "folder") {
@@ -112,11 +148,13 @@ export const createFile = authMutation({
     storageId: v.id("_storage"),
     mimeType: v.string(),
     size: v.number(),
+    teamId: v.optional(v.id("teams")),
   },
   handler: async (ctx, args): Promise<Id<"fileNodes">> => {
-    await assertParentFolder(ctx, ctx.userId, args.parentId);
+    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
+    await assertParentFolder(ctx, ctx.userId, args.teamId, args.parentId);
 
-    const used = await totalBytesForUser(ctx, ctx.userId);
+    const used = await totalBytesForScope(ctx, ctx.userId, args.teamId);
     if (used + args.size > FILE_STORAGE_LIMIT_BYTES) {
       await ctx.storage.delete(args.storageId);
       throw new Error("Storage limit exceeded");
@@ -125,6 +163,7 @@ export const createFile = authMutation({
     const now = Date.now();
     return await ctx.db.insert("fileNodes", {
       userId: ctx.userId,
+      teamId: args.teamId,
       parentId: args.parentId,
       kind: "file",
       name: args.name,
@@ -137,17 +176,20 @@ export const createFile = authMutation({
   },
 });
 
-/** Create an empty folder under `parentId` (or at root). */
+/** Create an empty folder under `parentId` (or at the scope's root). */
 export const createFolder = authMutation({
   args: {
     name: v.string(),
     parentId: v.optional(v.id("fileNodes")),
+    teamId: v.optional(v.id("teams")),
   },
   handler: async (ctx, args): Promise<Id<"fileNodes">> => {
-    await assertParentFolder(ctx, ctx.userId, args.parentId);
+    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
+    await assertParentFolder(ctx, ctx.userId, args.teamId, args.parentId);
     const now = Date.now();
     return await ctx.db.insert("fileNodes", {
       userId: ctx.userId,
+      teamId: args.teamId,
       parentId: args.parentId,
       kind: "folder",
       name: args.name,
@@ -157,36 +199,44 @@ export const createFolder = authMutation({
   },
 });
 
-/** Rename a file or folder. */
+/** Rename a file or folder (any team member for team nodes). */
 export const renameNode = authMutation({
   args: { nodeId: v.id("fileNodes"), name: v.string() },
   handler: async (ctx, args): Promise<void> => {
     const node = await ctx.db.get(args.nodeId);
-    if (!node || node.userId !== ctx.userId) {
-      throw new Error("Not found");
-    }
+    if (!node) throw new Error("Not found");
+    await assertContentEditable(ctx, node, ctx.userId);
     await ctx.db.patch(args.nodeId, { name: args.name, updatedAt: Date.now() });
   },
 });
 
-/** Move one or more nodes under a new parent (or to root). Rejects cycles. */
+/**
+ * Move one or more nodes under a new parent (or to root). Rejects cycles
+ * and cross-scope moves (personal ↔ team). All nodes must share one scope,
+ * inferred from the first node.
+ */
 export const moveNodes = authMutation({
   args: {
     nodeIds: v.array(v.id("fileNodes")),
     targetParentId: v.optional(v.id("fileNodes")),
   },
   handler: async (ctx, args): Promise<void> => {
-    await assertParentFolder(ctx, ctx.userId, args.targetParentId);
+    const firstId = args.nodeIds[0];
+    if (firstId === undefined) return;
+    const first = await ctx.db.get(firstId);
+    if (!first) throw new Error("Not found");
+    const scopeTeamId = first.teamId;
 
-    const allNodes = await ctx.db
-      .query("fileNodes")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .collect();
+    await requireContentScopeAccess(ctx, ctx.userId, scopeTeamId);
+    await assertParentFolder(ctx, ctx.userId, scopeTeamId, args.targetParentId);
+
+    const allNodes = await listScopeNodes(ctx, first.userId, scopeTeamId);
 
     const now = Date.now();
     for (const nodeId of args.nodeIds) {
       const node = allNodes.find((n) => n._id === nodeId);
       if (!node) throw new Error("Not found");
+      await assertContentEditable(ctx, node, ctx.userId);
       if (
         args.targetParentId !== undefined &&
         isAncestorOrSelf(allNodes, nodeId, args.targetParentId)
@@ -203,21 +253,19 @@ export const moveNodes = authMutation({
 
 /**
  * Delete a node and (for folders) its entire subtree, dropping each file's
- * stored blob. Builds the children map over one user-scoped collect().
+ * stored blob. Builds the children map over one scope-wide collect().
+ * Permission: personal → owner; team → creator or team owner (per root).
  */
 async function deleteSubtree(
   ctx: MutationCtx,
-  userId: Id<"users">,
+  actorUserId: Id<"users">,
   rootId: Id<"fileNodes">,
 ): Promise<number> {
   const root = await ctx.db.get(rootId);
-  if (!root || root.userId !== userId) {
-    throw new Error("Not found");
-  }
-  const allNodes = await ctx.db
-    .query("fileNodes")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
-    .collect();
+  if (!root) throw new Error("Not found");
+  await assertContentDeletable(ctx, root, actorUserId);
+
+  const allNodes = await listScopeNodes(ctx, root.userId, root.teamId);
 
   const ids = collectSubtreeIds(allNodes, rootId);
   const byId = new Map(allNodes.map((n) => [n._id, n]));
@@ -261,15 +309,16 @@ async function getUserIdByClerkId(
   return user._id;
 }
 
-/** All file nodes for a user, by clerkId. MCP path resolution runs over this. */
+/**
+ * All PERSONAL file nodes for a user, by clerkId. MCP path resolution runs
+ * over this — MCP stays personal-only, so team nodes never leak into the
+ * MCP path namespace.
+ */
 export const listByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args): Promise<Array<Doc<"fileNodes">>> => {
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
-    return await ctx.db
-      .query("fileNodes")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
+    return await listScopeNodes(ctx, userId, undefined);
   },
 });
 
@@ -301,23 +350,26 @@ export const upsertFileByPathInternal = internalMutation({
     }
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
 
-    const used = await totalBytesForUser(ctx, userId);
+    const used = await totalBytesForScope(ctx, userId, undefined);
     if (used + args.size > FILE_STORAGE_LIMIT_BYTES) {
       await ctx.storage.delete(args.storageId);
       throw new Error("Storage limit exceeded");
     }
 
     const now = Date.now();
-    // Walk/auto-create folder segments (all but the last).
+    // Walk/auto-create folder segments (all but the last). Personal scope
+    // only — team nodes are filtered out so the MCP namespace stays clean.
     let parentId: Id<"fileNodes"> | undefined;
     for (let i = 0; i < args.segments.length - 1; i++) {
       const name = args.segments[i];
-      const siblings = await ctx.db
-        .query("fileNodes")
-        .withIndex("by_user_parent", (q) =>
-          q.eq("userId", userId).eq("parentId", parentId),
-        )
-        .collect();
+      const siblings = (
+        await ctx.db
+          .query("fileNodes")
+          .withIndex("by_user_parent", (q) =>
+            q.eq("userId", userId).eq("parentId", parentId),
+          )
+          .collect()
+      ).filter((s) => s.teamId === undefined);
       const existing = siblings.find((s) => s.name === name);
       if (existing) {
         if (existing.kind !== "folder") {
@@ -337,12 +389,14 @@ export const upsertFileByPathInternal = internalMutation({
     }
 
     const fileName = args.segments[args.segments.length - 1];
-    const siblings = await ctx.db
-      .query("fileNodes")
-      .withIndex("by_user_parent", (q) =>
-        q.eq("userId", userId).eq("parentId", parentId),
-      )
-      .collect();
+    const siblings = (
+      await ctx.db
+        .query("fileNodes")
+        .withIndex("by_user_parent", (q) =>
+          q.eq("userId", userId).eq("parentId", parentId),
+        )
+        .collect()
+    ).filter((s) => s.teamId === undefined);
     const existing = siblings.find((s) => s.name === fileName);
 
     if (existing) {
@@ -381,6 +435,11 @@ export const deleteByIdForClerkInternal = internalMutation({
   args: { clerkId: v.string(), nodeId: v.id("fileNodes") },
   handler: async (ctx, args): Promise<{ deletedCount: number }> => {
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
+    const node = await ctx.db.get(args.nodeId);
+    // MCP is personal-only: team nodes are invisible here.
+    if (!node || node.userId !== userId || node.teamId !== undefined) {
+      throw new Error("Not found");
+    }
     const deletedCount = await deleteSubtree(ctx, userId, args.nodeId);
     return { deletedCount };
   },

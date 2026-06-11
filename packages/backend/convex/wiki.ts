@@ -4,6 +4,12 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { wikiNodeFields } from "./validators";
+import {
+  assertContentDeletable,
+  assertContentEditable,
+  isContentReadable,
+  requireContentScopeAccess,
+} from "./teams/auth";
 
 /**
  * Wiki (Obsidian-style notes) backend.
@@ -11,21 +17,71 @@ import { wikiNodeFields } from "./validators";
  * A single wikiNodes table holds both folders and documents, discriminated by
  * `kind`. Folders just provide hierarchy; content lives on documents.
  *
- * listTree returns every node for the current user in one shot — trees are
+ * Scoping ("user-wide + team"): nodes without `teamId` are personal and
+ * visible in every personal workspace; nodes with `teamId` form a team wiki
+ * shared by all members (any member edits, creator-or-owner deletes). A
+ * subtree never mixes scopes — parent/child consistency is enforced on
+ * create and move.
+ *
+ * listTree returns every node in the requested scope in one shot — trees are
  * assembled on the client. This keeps live-reactivity simple (one subscription
  * invalidates the whole tree on any change).
  */
 
 const MAX_SEARCH_RESULTS = 20;
 
-/** Returns all wikiNodes owned by the current user, sorted by `order` ascending. */
-export const listTree = authQuery({
-  args: {},
-  handler: async (ctx) => {
-    const nodes = await ctx.db
+/** Every node in a scope: a team's wiki, or the user's personal nodes. */
+async function listScopeNodes(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+): Promise<Array<Doc<"wikiNodes">>> {
+  if (teamId !== undefined) {
+    return await ctx.db
       .query("wikiNodes")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+      .withIndex("by_team", (q) => q.eq("teamId", teamId))
       .collect();
+  }
+  const nodes = await ctx.db
+    .query("wikiNodes")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  return nodes.filter((n) => n.teamId === undefined);
+}
+
+/** Siblings under one parent within a scope (for order assignment). */
+async function listScopeSiblings(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+  parentId: Id<"wikiNodes"> | undefined,
+): Promise<Array<Doc<"wikiNodes">>> {
+  if (teamId !== undefined) {
+    return await ctx.db
+      .query("wikiNodes")
+      .withIndex("by_team_parent", (q) =>
+        q.eq("teamId", teamId).eq("parentId", parentId),
+      )
+      .collect();
+  }
+  const siblings = await ctx.db
+    .query("wikiNodes")
+    .withIndex("by_user_parent", (q) =>
+      q.eq("userId", userId).eq("parentId", parentId),
+    )
+    .collect();
+  return siblings.filter((n) => n.teamId === undefined);
+}
+
+/**
+ * Returns all wikiNodes in the requested scope, sorted by `order` ascending.
+ * No `teamId` = personal nodes; `teamId` = that team's wiki (members only).
+ */
+export const listTree = authQuery({
+  args: { teamId: v.optional(v.id("teams")) },
+  handler: async (ctx, args) => {
+    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
+    const nodes = await listScopeNodes(ctx, ctx.userId, args.teamId);
     return nodes.sort((a, b) => a.order - b.order);
   },
 });
@@ -48,40 +104,52 @@ export const listForUserInternal = internalQuery({
     }),
   ),
   handler: async (ctx, args) => {
-    return await ctx.db
+    const nodes = await ctx.db
       .query("wikiNodes")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
+    // Graph payloads are personal-scope only — never include team nodes.
+    return nodes.filter((n) => n.teamId === undefined);
   },
 });
 
-/** Fetch a single node by id (scoped to current user). Returns null if missing or cross-user. */
+/** Fetch a single node by id. Returns null if missing or not readable (owner or team member). */
 export const getNode = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
     const normalized = ctx.db.normalizeId("wikiNodes", args.id);
     if (!normalized) return null;
     const node = await ctx.db.get(normalized);
-    if (!node || node.userId !== ctx.userId) return null;
+    if (!node) return null;
+    if (!(await isContentReadable(ctx, node, ctx.userId))) return null;
     return node;
   },
 });
 
 /**
- * Create a new folder or document under `parentId` (or at root when undefined).
- * Automatically assigns `order = max(sibling.order) + 1`.
+ * Create a new folder or document under `parentId` (or at root when undefined),
+ * in the personal scope or a team's wiki. Automatically assigns
+ * `order = max(sibling.order) + 1`.
  */
 export const createNode = authMutation({
   args: {
     parentId: v.optional(v.id("wikiNodes")),
     kind: v.union(v.literal("folder"), v.literal("document")),
     title: v.string(),
+    teamId: v.optional(v.id("teams")),
   },
   handler: async (ctx, args) => {
-    // Guard: parent must exist, belong to user, and be a folder.
+    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
+
+    // Guard: parent must exist, be a folder, and live in the SAME scope —
+    // a subtree never mixes personal and team nodes.
     if (args.parentId !== undefined) {
       const parent = await ctx.db.get(args.parentId);
-      if (!parent || parent.userId !== ctx.userId) {
+      if (
+        !parent ||
+        parent.teamId !== args.teamId ||
+        (args.teamId === undefined && parent.userId !== ctx.userId)
+      ) {
         throw new Error("Parent not found");
       }
       if (parent.kind !== "folder") {
@@ -89,18 +157,19 @@ export const createNode = authMutation({
       }
     }
 
-    const siblings = await ctx.db
-      .query("wikiNodes")
-      .withIndex("by_user_parent", (q) =>
-        q.eq("userId", ctx.userId).eq("parentId", args.parentId),
-      )
-      .collect();
+    const siblings = await listScopeSiblings(
+      ctx,
+      ctx.userId,
+      args.teamId,
+      args.parentId,
+    );
     const nextOrder =
       siblings.length === 0 ? 0 : Math.max(...siblings.map((s) => s.order)) + 1;
 
     const now = Date.now();
     const id = await ctx.db.insert("wikiNodes", {
       userId: ctx.userId,
+      teamId: args.teamId,
       parentId: args.parentId,
       kind: args.kind,
       title: args.title,
@@ -114,14 +183,13 @@ export const createNode = authMutation({
   },
 });
 
-/** Rename a folder or document. */
+/** Rename a folder or document (any team member for team nodes). */
 export const renameNode = authMutation({
   args: { id: v.id("wikiNodes"), title: v.string() },
   handler: async (ctx, args) => {
     const node = await ctx.db.get(args.id);
-    if (!node || node.userId !== ctx.userId) {
-      throw new Error("Not found");
-    }
+    if (!node) throw new Error("Not found");
+    await assertContentEditable(ctx, node, ctx.userId);
     await ctx.db.patch(args.id, { title: args.title, updatedAt: Date.now() });
   },
 });
@@ -140,9 +208,8 @@ export const updateContent = authMutation({
   },
   handler: async (ctx, args) => {
     const node = await ctx.db.get(args.id);
-    if (!node || node.userId !== ctx.userId) {
-      throw new Error("Not found");
-    }
+    if (!node) throw new Error("Not found");
+    await assertContentEditable(ctx, node, ctx.userId);
     if (node.kind !== "document") {
       throw new Error("Cannot write content to a folder");
     }
@@ -157,23 +224,20 @@ export const updateContent = authMutation({
 /**
  * Recursively delete a node and every descendant.
  *
- * Builds a parentId → children map over a single user-scoped collect(), then
- * walks the tree in-memory — avoiding N recursive queries.
+ * Builds a parentId → children map over a single scope-wide collect(), then
+ * walks the tree in-memory — avoiding N recursive queries. The caller is
+ * responsible for the permission check on the root (deletable gate).
  */
 async function deleteWikiSubtree(
   ctx: MutationCtx,
-  userId: Id<"users">,
+  actorUserId: Id<"users">,
   rootId: Id<"wikiNodes">,
 ): Promise<number> {
   const root = await ctx.db.get(rootId);
-  if (!root || root.userId !== userId) {
-    throw new Error("Not found");
-  }
+  if (!root) throw new Error("Not found");
+  await assertContentDeletable(ctx, root, actorUserId);
 
-  const allNodes = await ctx.db
-    .query("wikiNodes")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
-    .collect();
+  const allNodes = await listScopeNodes(ctx, root.userId, root.teamId);
 
   const childrenByParent = new Map<string, Array<Doc<"wikiNodes">>>();
   for (const node of allNodes) {
@@ -211,6 +275,7 @@ export const deleteNode = authMutation({
 
 /**
  * Move a node to a new parent and/or reorder within its siblings.
+ * Cross-scope moves (personal ↔ team) are rejected.
  * Exposed for future drag-to-reorder UI; v1 UI doesn't use it yet.
  */
 export const moveNode = authMutation({
@@ -221,12 +286,15 @@ export const moveNode = authMutation({
   },
   handler: async (ctx, args) => {
     const node = await ctx.db.get(args.id);
-    if (!node || node.userId !== ctx.userId) {
-      throw new Error("Not found");
-    }
+    if (!node) throw new Error("Not found");
+    await assertContentEditable(ctx, node, ctx.userId);
     if (args.newParentId !== undefined) {
       const parent = await ctx.db.get(args.newParentId);
-      if (!parent || parent.userId !== ctx.userId) {
+      if (
+        !parent ||
+        parent.teamId !== node.teamId ||
+        (node.teamId === undefined && parent.userId !== node.userId)
+      ) {
         throw new Error("Parent not found");
       }
       if (parent.kind !== "folder") {
@@ -251,26 +319,39 @@ export const moveNode = authMutation({
 });
 
 /**
- * Union search across title + content full-text indexes.
+ * Union search across title + content full-text indexes, within one scope
+ * (personal by default, a team's wiki when `teamId` is set).
  * Returns unique nodes, documents preferred, capped at 20.
  */
 export const search = authQuery({
-  args: { queryText: v.string() },
+  args: { queryText: v.string(), teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
+    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
     const trimmed = args.queryText.trim();
     if (trimmed.length === 0) return [];
+    const teamId = args.teamId;
 
     const titleMatches = await ctx.db
       .query("wikiNodes")
       .withSearchIndex("search_title", (q) =>
-        q.search("title", trimmed).eq("userId", ctx.userId),
+        teamId !== undefined
+          ? q.search("title", trimmed).eq("teamId", teamId)
+          : q
+              .search("title", trimmed)
+              .eq("userId", ctx.userId)
+              .eq("teamId", undefined),
       )
       .take(MAX_SEARCH_RESULTS);
 
     const contentMatches = await ctx.db
       .query("wikiNodes")
       .withSearchIndex("search_content", (q) =>
-        q.search("contentText", trimmed).eq("userId", ctx.userId),
+        teamId !== undefined
+          ? q.search("contentText", trimmed).eq("teamId", teamId)
+          : q
+              .search("contentText", trimmed)
+              .eq("userId", ctx.userId)
+              .eq("teamId", undefined),
       )
       .take(MAX_SEARCH_RESULTS);
 
@@ -302,6 +383,10 @@ async function getUserIdByClerkId(
   return user._id;
 }
 
+/**
+ * MCP stays personal-only for now: team nodes are invisible to (and
+ * immutable through) the clerkId-based internals.
+ */
 async function getOwnedNode(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -310,7 +395,9 @@ async function getOwnedNode(
   const normalized = ctx.db.normalizeId("wikiNodes", id);
   if (!normalized) return null;
   const node = await ctx.db.get(normalized);
-  if (!node || node.userId !== userId) return null;
+  if (!node || node.userId !== userId || node.teamId !== undefined) {
+    return null;
+  }
   return node;
 }
 
@@ -318,10 +405,7 @@ export const listByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
-    const nodes = await ctx.db
-      .query("wikiNodes")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
+    const nodes = await listScopeNodes(ctx, userId, undefined);
     return nodes.sort((a, b) => a.order - b.order);
   },
 });
@@ -344,14 +428,17 @@ export const searchByClerkIdInternal = internalQuery({
     const titleMatches = await ctx.db
       .query("wikiNodes")
       .withSearchIndex("search_title", (q) =>
-        q.search("title", trimmed).eq("userId", userId),
+        q.search("title", trimmed).eq("userId", userId).eq("teamId", undefined),
       )
       .take(MAX_SEARCH_RESULTS);
 
     const contentMatches = await ctx.db
       .query("wikiNodes")
       .withSearchIndex("search_content", (q) =>
-        q.search("contentText", trimmed).eq("userId", userId),
+        q
+          .search("contentText", trimmed)
+          .eq("userId", userId)
+          .eq("teamId", undefined),
       )
       .take(MAX_SEARCH_RESULTS);
 
@@ -381,7 +468,7 @@ export const createByClerkIdInternal = internalMutation({
 
     if (args.parentId !== undefined) {
       const parent = await ctx.db.get(args.parentId);
-      if (!parent || parent.userId !== userId) {
+      if (!parent || parent.userId !== userId || parent.teamId !== undefined) {
         throw new Error("Parent not found");
       }
       if (parent.kind !== "folder") {
@@ -389,12 +476,12 @@ export const createByClerkIdInternal = internalMutation({
       }
     }
 
-    const siblings = await ctx.db
-      .query("wikiNodes")
-      .withIndex("by_user_parent", (q) =>
-        q.eq("userId", userId).eq("parentId", args.parentId),
-      )
-      .collect();
+    const siblings = await listScopeSiblings(
+      ctx,
+      userId,
+      undefined,
+      args.parentId,
+    );
     const nextOrder =
       siblings.length === 0 ? 0 : Math.max(...siblings.map((s) => s.order)) + 1;
 
