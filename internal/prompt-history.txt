@@ -1,5 +1,15 @@
-[] build ci/cd for extension and the vmem sdk - sdk should take in api key
-[] evals are done by building session context inside the test and then calling api per message and reviewing results per message, see vid
+[] shared filesystem for ai
+[] files is not for you, but for agents to
+[] mcp exposes get file, upload files, etc
+[] test it by generating image, then asking ai to save image to vmem, then getting image from claude and seeing it
+
+[] mobile app!!!
+
+[] figure out how to measure results, and get results for the meeting
+
+[] build ci/cd for extension and the vmem s dk - sdk should take in api key
+[] evals are done by building session context inside the test and then calling api per message and reviewing results per message, see vidvmem
+
 [x] update chat to include tool calls and use openrouter I guess - so cloud switch
 [x] add / for skills in chat
 [x] add nuqs for search in graph , also it aint working

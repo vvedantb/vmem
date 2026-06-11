@@ -17,9 +17,12 @@
       "mcp__claude_ai_Eva__list_repos",
       "mcp__claude_ai_Eva__create_tasks_batch",
       "Skill(code-review:code-review)",
-      "mcp__codex-cli__websearch"
+      "mcp__codex-cli__websearch",
+      "PowerShell(pnpm install)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate"
     ]
   },
-  "enabledMcpjsonServers": ["neo4j-mcp"],
-  "enableAllProjectMcpServers": true
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": ["neo4j-mcp"]
 }
