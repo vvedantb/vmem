@@ -15,6 +15,7 @@ import {
   IconFolderOpen,
   IconDownload,
   IconFolderSymlink,
+  IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
 import type { FileItem } from "@/lib/file-types";
@@ -161,6 +162,10 @@ export default function FileListRow({
               <DropdownMenuItem onClick={() => onMoveTo(item)}>
                 <IconFolderSymlink size={16} stroke={1.5} />
                 Move to…
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onRename(item)}>
+                <IconPencil size={16} stroke={1.5} />
+                Rename
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-danger focus:text-danger"

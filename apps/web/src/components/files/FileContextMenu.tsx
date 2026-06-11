@@ -54,12 +54,10 @@ export default function FileContextMenu({
           <IconFolderSymlink size={16} stroke={1.5} />
           Move to…
         </ContextMenuItem>
-        {isFolder && (
-          <ContextMenuItem onClick={onRename}>
-            <IconPencil size={16} stroke={1.5} />
-            Rename
-          </ContextMenuItem>
-        )}
+        <ContextMenuItem onClick={onRename}>
+          <IconPencil size={16} stroke={1.5} />
+          Rename
+        </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem
           className="text-danger focus:text-danger data-[highlighted]:text-danger"
