@@ -16,6 +16,7 @@ import { buildAndRun } from "../cypherHelpers";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { toMemoryWithTags, toNeoInt, toSnapshot } from "./mappers";
 import { logEvent, withSession } from "./shared";
+import { normalizeTags } from "./tagNormalize";
 import {
   type MemoryStatus,
   type MemoryType,
@@ -107,7 +108,9 @@ export async function createMemory(
         type: params.type,
         source: params.source,
         confidence: params.confidence,
-        tags: params.tags,
+        // Chokepoint normalization: client tags (MCP, HTTP API, web form)
+        // arrive raw — "GCP" vs "gcp" would mint separate Tag nodes.
+        tags: normalizeTags(params.tags),
         now,
         expiresAt: params.expiresAt ?? null,
         url: params.url ?? null,
@@ -425,7 +428,7 @@ export async function updateMemory(
 
     let tagUpdate: Cypher.Raw | undefined;
     if (updates.tags !== undefined) {
-      const newTags = Array.from(new Set(updates.tags));
+      const newTags = normalizeTags(updates.tags);
       tagUpdate = new Cypher.Raw(() => [
         `WITH m
 OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)

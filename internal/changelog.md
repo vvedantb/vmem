@@ -1,5 +1,13 @@
 # Changelog
 
+## Tags become reusable themes — 2026-06-11
+
+- **Why**: an audit found 4,962 distinct tags across 2,775 memories — 73% used exactly once — so tags connected almost nothing. The enrichment prompt rewarded hyper-specific one-off tags ("ferrari-488-gtb") and never saw the user's existing vocabulary, and client-supplied tags reached the database unnormalized ("GCP" vs "gcp" vs "gcp-" as separate tags).
+- **Vocabulary-aware tagging**: the enrichment LLM now receives the user's top 50 multi-use tags with usage counts and is instructed to reuse them exactly before minting new ones; tags are now defined as recurring themes (2-4 per memory) while specific names stay in the entity layer, with all worked examples rewritten to teach that split.
+- **One normalization chokepoint**: every tag write path (create, update, enrichment, MCP tools, HTTP API) now flows through a single normalize step that lowercases, hyphenates, dedupes, and strips the leading/trailing-hyphen variants that minted near-duplicate tags.
+- **MCP guidance**: the memory_save/memory_update tag fields now tell client models to prefer the user's existing tags and avoid one-off specifics.
+- **Diagnostics**: new `pnpm db:tag-stats` prints the per-user tag usage histogram to track whether the single-use ratio is improving.
+
 ## Memory graph: Obsidian-style physics — 2026-06-11
 
 - **Clusters breathe**: link strength is now degree-normalized (d3's default) instead of a flat pull — hubs no longer crush their satellites into overlapping rings, which was why hovering a node showed a pile of unreadable stacked labels.

@@ -80,7 +80,12 @@ export const memoryAddSchema = z.object({
     .describe(
       "Where this memory came from (e.g. 'claude', 'chatgpt', 'manual')",
     ),
-  tags: z.array(z.string()).optional().describe("Tags for categorization"),
+  tags: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "1-3 broad recurring THEME tags (lowercase-hyphenated, e.g. 'react', 'health'). Reuse tags you've seen on the user's existing memories; never mint hyper-specific one-offs — named people/products belong in the content, not tags. Omit to let server enrichment tag automatically.",
+    ),
   confidence: z
     .number()
     .min(0)
@@ -113,7 +118,12 @@ export const memoryUpdateSchema = z.object({
   status: memoryStatusSchema
     .optional()
     .describe("New status: active, pinned, suppressed, expired"),
-  tags: z.array(z.string()).optional().describe("New tags (replaces all)"),
+  tags: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "New tags, replaces all. 1-3 broad recurring themes (lowercase-hyphenated); reuse the user's existing tags where possible.",
+    ),
   confidence: z
     .number()
     .min(0)

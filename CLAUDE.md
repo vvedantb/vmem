@@ -101,6 +101,14 @@ Memory graph view (`apps/web` canvas + `engine/neo4j/memory/graph.ts`):
 - **Stable empty identities in `useGraphData`**: the loading/bench return branches use module-level `EMPTY_*` array constants — inline `[]` minted fresh identities per render, invalidating `buildGraphData`'s memo and re-running GraphCanvas's `[nodes, edges]` effect, which tears down and rebuilds the whole simulation worker.
 - MCP `memory_graph` tool: max 100 nodes (naive O(n²) sim in the bundled MCP-UI canvas + tool results land in model context); plain global fetches pass `nodeLimit` to Neo4j instead of slicing 2000.
 
+Tags:
+
+- Tags are recurring THEMES (the connective tissue between memories); specifics (people, products, API symbols) belong to the entity layer. Never reintroduce "specific over general" tag guidance in the enrichment prompt — it produced 3,623 single-use tags out of 4,962 (73%) for one account.
+- Every tag write flows through `normalizeTags` (`engine/neo4j/memory/tagNormalize.ts` — pure, V8-safe; `tags.ts` holds the Neo4j queries and is Node-only). Client tags (MCP, HTTP, web form) arrive raw — "GCP" vs "gcp" vs "gcp-" minted separate Tag nodes before this.
+- The enrichment prompt receives the user's top-50 multi-use tags (`getTopTags`) and is instructed to reuse them exactly before minting new ones; parser caps at 4 tags.
+- Server enrichment runs after EVERY create and **replaces** client-supplied tags (applyEnrichment deletes TAGGED_WITH first) — client tags only survive when the user has no OpenRouter key.
+- `pnpm db:tag-stats` (backend) prints the tag usage histogram per user — re-run to check the single-use ratio is dropping.
+
 Profiles:
 
 - Profiles are for **organizing where memories get saved**

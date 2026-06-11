@@ -5,6 +5,7 @@ import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { applyEnrichment } from "../../engine/neo4j/memory/enrichment";
 import { getRecentMemoryTitles } from "../../engine/neo4j/memory/search";
+import { getTopTags } from "../../engine/neo4j/memory/tags";
 import { getDriver } from "../../engine/neo4j/driver";
 import {
   sanitizeTag,
@@ -45,17 +46,19 @@ export const enrichMemoryInternal = internalAction({
 
       const driver = getDriver();
 
-      // Get recent memories for the LLM to find relationships
-      const existingMemories = await getRecentMemoryTitles(
-        driver,
-        args.clerkId,
-        args.memoryId,
-      );
+      // Get recent memories for the LLM to find relationships, and the
+      // user's established tag vocabulary so recurring themes converge on
+      // one tag name instead of minting near-duplicates per memory.
+      const [existingMemories, existingTags] = await Promise.all([
+        getRecentMemoryTitles(driver, args.clerkId, args.memoryId),
+        getTopTags(driver, args.clerkId, 50),
+      ]);
 
       const prompt = buildFullEnrichmentPrompt(
         args.title,
         args.content,
         existingMemories,
+        existingTags,
       );
 
       const rawText = await callJsonChat(ctx, {
@@ -84,7 +87,7 @@ export const enrichMemoryInternal = internalAction({
       const sanitizedTags = parsed.tags
         .map(sanitizeTag)
         .filter((t) => t.length > 0)
-        .slice(0, 5);
+        .slice(0, 4);
 
       if (sanitizedTags.length === 0) {
         return { enriched: false };
