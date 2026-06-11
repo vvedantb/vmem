@@ -6,11 +6,19 @@ import type { Id } from "../../_generated/dataModel";
 import { v } from "convex/values";
 import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
 import {
+  applyConfidenceAdjustments,
   computeSurprisalScore,
   fetchAnomalyCluster,
+  fetchPortraitEvidence,
+  findMergeCandidates,
   findRecentMemoriesForDream,
   materializeSynthesisAsMemory,
 } from "../../../engine/neo4j/memory/dreamMode";
+import {
+  buildPortraitUpdatePrompt,
+  parsePortraitResponse,
+} from "../../../engine/neo4j/portraitPrompt";
+import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
 import {
   createSynthesisProposal,
   hasOverlappingPendingProposal,
@@ -19,24 +27,60 @@ import { getDriver } from "../../../engine/neo4j/driver";
 import { callJsonChat, generateEmbedding } from "../../lib/openRouter";
 import {
   buildDreamSynthesisPrompt,
+  buildMergeSynthesisPrompt,
   parseDreamSynthesisResponse,
+  parseMergeSynthesisResponse,
   type DreamClusterMember,
   type ParsedSynthesis,
 } from "../../../engine/neo4j/dreamPrompt";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
+import type { DreamDepth } from "../../lib/dreamTriggerDecision";
 
 /**
  * Hard caps for one Dream Mode pass. Keeps cost predictable per user/day:
  *   - 1 vector query per recent memory (cheap, indexed)
  *   - 1 LLM call per anomaly cluster (~5–10 calls/run/user typical)
  */
-const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // last 7 days
+const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // never dreamt: last 7 days
+const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // dreamt long ago: cap at 30d
 const RECENT_MEMORY_LIMIT = 100;
 const SURPRISAL_NEIGHBORS = 5;
-const TOP_ANOMALY_COUNT = 10;
 const MAX_CLUSTER_SIZE = 8;
 const CONFIDENCE_FLOOR = 0.6;
 const DEDUP_OVERLAP_THRESHOLD = 0.5;
+/** Cosine floor for two memories to count as near-duplicate merge candidates. */
+const MERGE_SIM_THRESHOLD = 0.88;
+/** Merge clusters cap at fewer members than anomaly clusters — a "merge"
+ *  of 8 memories is a rewrite, not a consolidation. */
+const MAX_MERGE_CLUSTER_SIZE = 5;
+/** Reweighting can move a memory's confidence at most this far per dream. */
+const REWEIGHT_MAX_DELTA = 0.2;
+/** Portrait refreshes when the run changed anything, or at least this often. */
+const PORTRAIT_REFRESH_MS = 7 * 24 * 60 * 60 * 1000;
+/** Evidence memories the portrait prompt sees per refresh. */
+const PORTRAIT_EVIDENCE_LIMIT = 30;
+
+/** Convex validator for the depth arg (single definition, reused by the
+ *  user-wide wrapper in entryPoints.ts). */
+export const dreamDepthValidator = v.union(
+  v.literal("light"),
+  v.literal("standard"),
+  v.literal("deep"),
+);
+
+/**
+ * Dynamic Dreaming — how deep one pass goes. Depth is decided by the
+ * trigger from how much new context piled up (see `depthForCount`);
+ * manual button and daily cron run "standard".
+ */
+const DEPTH_PARAMS: Record<
+  DreamDepth,
+  { topAnomalies: number; mergeClusters: number }
+> = {
+  light: { topAnomalies: 5, mergeClusters: 2 },
+  standard: { topAnomalies: 10, mergeClusters: 4 },
+  deep: { topAnomalies: 15, mergeClusters: 6 },
+};
 
 /** Manual button rate-limit: at most one run per profile per hour. */
 export const MANUAL_RATE_LIMIT_MS = 60 * 60 * 1000;
@@ -45,6 +89,8 @@ export interface DreamRunResult {
   proposalsCreated: number;
   memoriesMaterialized: number;
   clustersScanned: number;
+  /** Memories whose confidence the reconsolidation pass adjusted. */
+  reweighted: number;
   reason: "ok" | "no-key" | "no-recent-memories" | "rate-limited";
 }
 
@@ -102,12 +148,15 @@ export const runDreamForProfileInternal = internalAction({
      * after the user-wide migration) can still respect the user's choice.
      */
     autoAcceptOverride: v.optional(v.boolean()),
+    /** How deep to dream — set by the dynamic trigger. Default "standard". */
+    depth: v.optional(dreamDepthValidator),
   },
   handler: async (ctx, args): Promise<DreamRunResult> => {
     const result: DreamRunResult = {
       proposalsCreated: 0,
       memoriesMaterialized: 0,
       clustersScanned: 0,
+      reweighted: 0,
       reason: "ok",
     };
 
@@ -139,11 +188,19 @@ export const runDreamForProfileInternal = internalAction({
         : args.autoAcceptOverride !== undefined
           ? args.autoAcceptOverride
           : profile.dreamModeAutoAccept === true;
+    const depthParams = DEPTH_PARAMS[args.depth ?? "standard"];
 
     const driver = getDriver();
 
-    // 1. Recent memories with embeddings.
-    const sinceMs = Date.now() - RECENT_WINDOW_MS;
+    // 1. Recent memories with embeddings. Window = since the last dream
+    // run (each memory seeds exactly one dream; it stays reachable later
+    // as a cluster neighbour), capped at 30d for users returning after a
+    // long gap, defaulting to 7d when this profile has never dreamt.
+    const now = Date.now();
+    const sinceMs = Math.max(
+      profile.lastDreamRunAt ?? now - DEFAULT_WINDOW_MS,
+      now - MAX_WINDOW_MS,
+    );
     const recent = await findRecentMemoriesForDream(driver, {
       userId: args.clerkId,
       profileId: args.profileId,
@@ -162,7 +219,11 @@ export const runDreamForProfileInternal = internalAction({
     }
 
     // 2. Surprisal scoring — vector queries are cheap, do all of them.
-    const scored: Array<{ id: string; surprisal: number }> = [];
+    const scored: Array<{
+      id: string;
+      surprisal: number;
+      embedding: number[];
+    }> = [];
     for (const m of recent) {
       const surprisal = await computeSurprisalScore(driver, {
         userId: args.clerkId,
@@ -171,11 +232,11 @@ export const runDreamForProfileInternal = internalAction({
         k: SURPRISAL_NEIGHBORS,
       });
       if (surprisal !== null) {
-        scored.push({ id: m.id, surprisal });
+        scored.push({ id: m.id, surprisal, embedding: m.embedding });
       }
     }
     scored.sort((a, b) => b.surprisal - a.surprisal);
-    const topAnomalies = scored.slice(0, TOP_ANOMALY_COUNT);
+    const topAnomalies = scored.slice(0, depthParams.topAnomalies);
     console.log(
       `[dream] profile=${args.profileId} recent=${String(recent.length)} scored=${String(scored.length)} top=${String(topAnomalies.length)}`,
     );
@@ -186,9 +247,12 @@ export const runDreamForProfileInternal = internalAction({
         const cluster = await fetchAnomalyCluster(driver, {
           userId: args.clerkId,
           anomalyId: anomaly.id,
+          embedding: anomaly.embedding,
           maxClusterSize: MAX_CLUSTER_SIZE,
         });
-        if (cluster.length < 2) continue; // need at least one neighbor
+        // Even with the semantic top-up a seed can come back alone (tiny
+        // corpus, nothing above the similarity floor) — nothing to do.
+        if (cluster.length < 2) continue;
 
         result.clustersScanned += 1;
 
@@ -200,6 +264,18 @@ export const runDreamForProfileInternal = internalAction({
           cluster,
         );
         if (!synthesis) continue;
+
+        // Reconsolidation reweighting rides along on every synthesis
+        // response (including "skip") — auto-applied with an audit event
+        // per change, pinned memories exempt.
+        if (synthesis.confidenceAdjustments.length > 0) {
+          result.reweighted += await applyConfidenceAdjustments(driver, {
+            userId: args.clerkId,
+            adjustments: synthesis.confidenceAdjustments,
+            maxDelta: REWEIGHT_MAX_DELTA,
+          });
+        }
+
         if (synthesis.type === "skip") continue;
         if (synthesis.confidence < CONFIDENCE_FLOOR) continue;
         if (synthesis.sourceMemoryIds.length === 0) continue;
@@ -315,6 +391,133 @@ export const runDreamForProfileInternal = internalAction({
       }
     }
 
+    // 8. Reconsolidation: merge near-duplicate fragments. Detection is
+    // the inverse of the surprisal pass (duplicates score LOW), so it
+    // gets its own sweep over the same recent pool. Merges are ALWAYS
+    // proposals — approval suppresses the source memories, which is too
+    // consequential for auto-accept.
+    try {
+      const mergeClusters = await findMergeCandidates(driver, {
+        userId: args.clerkId,
+        profileId: args.profileId,
+        pool: recent,
+        simThreshold: MERGE_SIM_THRESHOLD,
+        maxClusters: depthParams.mergeClusters,
+        maxClusterSize: MAX_MERGE_CLUSTER_SIZE,
+      });
+      for (const cluster of mergeClusters) {
+        result.clustersScanned += 1;
+        const rawText = await callJsonChat(ctx, {
+          apiKey: auth.apiKey,
+          userId: auth.userId,
+          profileId: args.profileId,
+          feature: "dream-synthesis",
+          role: "You are a memory reconsolidation system.",
+          prompt: buildMergeSynthesisPrompt(cluster),
+          temperature: 0.2,
+        });
+        if (rawText === null) continue;
+        const merge = parseMergeSynthesisResponse(
+          rawText,
+          cluster.map((m) => m.id),
+        );
+        if (!merge) continue;
+        if (merge.confidence < CONFIDENCE_FLOOR) continue;
+
+        const overlaps = await hasOverlappingPendingProposal(driver, {
+          userId: args.clerkId,
+          sourceMemoryIds: merge.sourceMemoryIds,
+          overlapThreshold: DEDUP_OVERLAP_THRESHOLD,
+        });
+        if (overlaps) continue;
+
+        const proposal = await createSynthesisProposal(driver, {
+          userId: args.clerkId,
+          kind: "merge",
+          proposedTitle: merge.title,
+          proposedContent: merge.content,
+          reason:
+            "These memories are near-duplicate records of the same information; approving replaces them with this consolidation.",
+          sourceMemoryIds: merge.sourceMemoryIds,
+          confidence: merge.confidence,
+        });
+        result.proposalsCreated += 1;
+
+        await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+          clerkId: args.clerkId,
+          eventType: "dream_synthesis_proposed",
+          memoryId: proposal.id,
+          payload: JSON.stringify({
+            kind: "merge",
+            sourceMemoryIds: merge.sourceMemoryIds,
+            confidence: merge.confidence,
+          }),
+        });
+      }
+    } catch (e) {
+      console.error(
+        `[dream] merge pass failed for profile ${args.profileId}`,
+        e,
+      );
+    }
+
+    // 9. Evolving portrait — revise the profile's "who this user is"
+    // summary when this run changed anything, or when the portrait is
+    // missing/stale. Incremental: the current portrait goes into the
+    // prompt and the model keeps/revises/drops against fresh evidence.
+    try {
+      const producedOutput =
+        result.proposalsCreated +
+          result.memoriesMaterialized +
+          result.reweighted >
+        0;
+      const portraitStale =
+        profile.dreamPortraitUpdatedAt === undefined ||
+        Date.now() - profile.dreamPortraitUpdatedAt > PORTRAIT_REFRESH_MS;
+      if (producedOutput || portraitStale) {
+        const evidence = await fetchPortraitEvidence(driver, {
+          userId: args.clerkId,
+          profileId: args.profileId,
+          limit: PORTRAIT_EVIDENCE_LIMIT,
+        });
+        if (evidence.length > 0) {
+          const rawText = await callJsonChat(ctx, {
+            apiKey: auth.apiKey,
+            userId: auth.userId,
+            profileId: args.profileId,
+            feature: "dream-portrait",
+            role: "You maintain a grounded user portrait for a memory system.",
+            prompt: buildPortraitUpdatePrompt(
+              profile.dreamPortrait ?? null,
+              evidence,
+            ),
+            temperature: 0.2,
+          });
+          const portrait =
+            rawText === null
+              ? null
+              : parsePortraitResponse(
+                  rawText,
+                  evidence.map((m) => m.id),
+                );
+          if (portrait) {
+            await ctx.runMutation(internal.profiles.setDreamPortraitInternal, {
+              profileId: args.profileId,
+              portrait: portrait.portrait,
+              sourceMemoryIds: portrait.sourceMemoryIds,
+            });
+            // The MCP context prompt embeds the portrait — refresh it.
+            await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
+          }
+        }
+      }
+    } catch (e) {
+      console.error(
+        `[dream] portrait update failed for profile ${args.profileId}`,
+        e,
+      );
+    }
+
     // Stamp lastDreamRunAt for rate-limit accounting.
     await ctx.runMutation(internal.profiles.setLastDreamRunAtInternal, {
       profileId: args.profileId,
@@ -322,7 +525,7 @@ export const runDreamForProfileInternal = internalAction({
     });
 
     console.log(
-      `[dream] profile=${args.profileId} done: proposals=${String(result.proposalsCreated)} materialized=${String(result.memoriesMaterialized)} clusters=${String(result.clustersScanned)}`,
+      `[dream] profile=${args.profileId} done: proposals=${String(result.proposalsCreated)} materialized=${String(result.memoriesMaterialized)} clusters=${String(result.clustersScanned)} reweighted=${String(result.reweighted)}`,
     );
     return result;
   },

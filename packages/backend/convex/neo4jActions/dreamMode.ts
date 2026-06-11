@@ -9,6 +9,7 @@
 export { runDreamForProfileInternal } from "./dreamMode/runProfile";
 
 export {
+  maybeRunDreamInternal,
   runDreamForProfileById,
   runDreamForActiveProfile,
   runDreamForUserInternal,

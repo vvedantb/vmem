@@ -33,6 +33,7 @@ const defaults: {
   dreamModeAutoAccept: boolean;
   dreamModeScheduleEnabled: boolean;
   dreamModeScheduleTime: string | null;
+  dreamModeAutomatic: boolean;
   lastDreamRunAt: number | null;
 } = {
   theme: "system",
@@ -52,6 +53,8 @@ const defaults: {
   dreamModeAutoAccept: false,
   dreamModeScheduleEnabled: false,
   dreamModeScheduleTime: null,
+  // Dynamic Dreaming is on by default — soft-fails without an API key.
+  dreamModeAutomatic: true,
   lastDreamRunAt: null,
 };
 
@@ -93,6 +96,8 @@ export const get = authQuery({
         doc?.dreamModeScheduleEnabled ?? defaults.dreamModeScheduleEnabled,
       dreamModeScheduleTime:
         doc?.dreamModeScheduleTime ?? defaults.dreamModeScheduleTime,
+      dreamModeAutomatic:
+        doc?.dreamModeAutomatic ?? defaults.dreamModeAutomatic,
       lastDreamRunAt: doc?.lastDreamRunAt ?? defaults.lastDreamRunAt,
     };
   },
@@ -140,6 +145,7 @@ export const update = authMutation({
     aboutMe: v.optional(v.string()),
     preferences: v.optional(v.string()),
     dreamModeAutoAccept: v.optional(v.boolean()),
+    dreamModeAutomatic: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -173,6 +179,8 @@ export const update = authMutation({
     if (args.preferences !== undefined) fields.preferences = args.preferences;
     if (args.dreamModeAutoAccept !== undefined)
       fields.dreamModeAutoAccept = args.dreamModeAutoAccept;
+    if (args.dreamModeAutomatic !== undefined)
+      fields.dreamModeAutomatic = args.dreamModeAutomatic;
 
     if (existing) {
       await ctx.db.patch(existing._id, fields);

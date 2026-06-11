@@ -113,6 +113,7 @@ export async function runGoogleDriveSync(
 
     await markSyncComplete(ctx, {
       connectorId: args.connectorId,
+      clerkId: args.clerkId,
       totalSynced,
     });
 

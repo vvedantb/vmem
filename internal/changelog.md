@@ -1,5 +1,13 @@
 # Changelog
 
+## Dynamic dreaming: dreams trigger themselves — 2026-06-11
+
+- **Why**: Dream Mode was a fixed daily cron — the system never decided on its own when to reflect, the exact pattern the design set out to beat.
+- **Quiet-triggered**: saving a handful of memories and going quiet for half an hour starts a dream pass on its own; a big mid-session pile-up (including connector imports, counted as one batch) triggers one without waiting for quiet.
+- **Bounded**: at most one automatic run per two hours and four per day; progress persists when a check stands down, so the next save re-arms it. On by default and cost-free without an API key; dream-produced memories never re-trigger dreaming.
+- **Adaptive depth**: a quick reflection after a short session, a deeper dive after a heavy day — anomaly and merge budgets scale with how much accumulated, and the candidate window runs from the last dream so each memory seeds exactly one pass.
+- **Fallbacks intact**: the daily schedule and the manual button still work, both at standard depth.
+
 ## Evolving workspace portrait — 2026-06-11
 
 - **Why**: the only "who is this user" context AI clients got was the hand-typed About Me — a brittle list of attributes that never learned anything from the memory store.

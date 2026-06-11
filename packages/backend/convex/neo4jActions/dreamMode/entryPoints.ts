@@ -3,7 +3,68 @@
 import { internalAction } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v } from "convex/values";
-import { MANUAL_RATE_LIMIT_MS, type DreamRunResult } from "./runProfile";
+import { decideDreamCheck } from "../../lib/dreamTriggerDecision";
+import {
+  dreamDepthValidator,
+  MANUAL_RATE_LIMIT_MS,
+  type DreamRunResult,
+} from "./runProfile";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dynamic Dreaming check — scheduled (debounced) by memory writes via
+// `lib/dreamTriggerInvalidate.ts`. Decides via the pure `decideDreamCheck`:
+//   - user still writing → reschedule for the rest of the quiet window
+//   - quiet + enough new memories (or a big pile-up) → consume the trigger
+//     and run a user-wide dream pass at the decided depth
+//   - guards fail (gap/cap/automatic off) → stand down; the counter
+//     persists and the next write re-arms the check
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const maybeRunDreamInternal = internalAction({
+  args: { clerkId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    const inputs = await ctx.runQuery(
+      internal.dreamTrigger.getDecisionInputsInternal,
+      { clerkId: args.clerkId },
+    );
+    if (!inputs) return null;
+
+    const decision = decideDreamCheck(
+      inputs.state,
+      inputs.automaticEnabled,
+      Date.now(),
+    );
+
+    if (decision.action === "reschedule") {
+      await ctx.scheduler.runAfter(
+        decision.delayMs,
+        internal.neo4jActions.dreamMode.maybeRunDreamInternal,
+        { clerkId: args.clerkId },
+      );
+      return null;
+    }
+
+    if (decision.action === "stop") {
+      await ctx.runMutation(internal.dreamTrigger.clearPendingInternal, {
+        userId: inputs.userId,
+      });
+      return null;
+    }
+
+    await ctx.runMutation(internal.dreamTrigger.consumeRunInternal, {
+      userId: inputs.userId,
+    });
+    console.log(
+      `[dream] dynamic trigger fired: user=${inputs.userId} depth=${decision.depth} newMemories=${String(inputs.state.newMemoryCount)}`,
+    );
+    await ctx.runAction(
+      internal.neo4jActions.dreamMode.runDreamForUserInternal,
+      { clerkId: args.clerkId, userId: inputs.userId, depth: decision.depth },
+    );
+    return null;
+  },
+});
 export const runDreamForProfileById = internalAction({
   args: {
     profileId: v.id("profiles"),
@@ -20,6 +81,7 @@ export const runDreamForProfileById = internalAction({
         proposalsCreated: 0,
         memoriesMaterialized: 0,
         clustersScanned: 0,
+        reweighted: 0,
         reason: "no-recent-memories",
       };
     }
@@ -34,6 +96,7 @@ export const runDreamForProfileById = internalAction({
         proposalsCreated: 0,
         memoriesMaterialized: 0,
         clustersScanned: 0,
+        reweighted: 0,
         reason: "no-key",
       };
     }
@@ -74,6 +137,7 @@ export const runDreamForActiveProfile = internalAction({
           proposalsCreated: 0,
           memoriesMaterialized: 0,
           clustersScanned: 0,
+          reweighted: 0,
           reason: "rate-limited",
         };
       }
@@ -105,12 +169,15 @@ export const runDreamForUserInternal = internalAction({
     clerkId: v.string(),
     userId: v.id("users"),
     forceProposals: v.optional(v.boolean()),
+    /** How deep to dream — set by the dynamic trigger. Default "standard". */
+    depth: v.optional(dreamDepthValidator),
   },
   handler: async (ctx, args): Promise<DreamRunResult> => {
     const aggregate: DreamRunResult = {
       proposalsCreated: 0,
       memoriesMaterialized: 0,
       clustersScanned: 0,
+      reweighted: 0,
       reason: "ok",
     };
 
@@ -142,11 +209,13 @@ export const runDreamForUserInternal = internalAction({
           profileId: profile._id,
           forceProposals: args.forceProposals,
           autoAcceptOverride: config.dreamModeAutoAccept,
+          depth: args.depth,
         },
       );
       aggregate.proposalsCreated += result.proposalsCreated;
       aggregate.memoriesMaterialized += result.memoriesMaterialized;
       aggregate.clustersScanned += result.clustersScanned;
+      aggregate.reweighted += result.reweighted;
       if (result.reason === "ok") {
         okSeen = true;
       } else if (nonOkReason === null) {
@@ -183,6 +252,7 @@ export const runDreamForUserById = internalAction({
         proposalsCreated: 0,
         memoriesMaterialized: 0,
         clustersScanned: 0,
+        reweighted: 0,
         reason: "no-key",
       };
     }
@@ -214,6 +284,7 @@ export const runDreamForActiveUser = internalAction({
           proposalsCreated: 0,
           memoriesMaterialized: 0,
           clustersScanned: 0,
+          reweighted: 0,
           reason: "rate-limited",
         };
       }
