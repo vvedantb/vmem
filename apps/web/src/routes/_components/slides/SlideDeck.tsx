@@ -204,6 +204,27 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
       ref={containerRef}
       className={`fixed inset-0 flex items-center justify-center overflow-hidden bg-background ${theme}`}
     >
+      {/* Ambient orb glows — bg-foreground inverts with the slide theme
+          (white orbs on dark slides, dark orbs on light). Purely decorative,
+          drifting slowly behind the stage. */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <motion.div
+          className="absolute -left-[10%] -top-[15%] h-[55vh] w-[55vh] rounded-full bg-foreground opacity-[0.07] blur-[120px]"
+          animate={{ x: [0, 60, 0], y: [0, 40, 0] }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -bottom-[20%] -right-[8%] h-[65vh] w-[65vh] rounded-full bg-foreground opacity-[0.06] blur-[140px]"
+          animate={{ x: [0, -70, 0], y: [0, -45, 0] }}
+          transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute left-[45%] top-[55%] h-[35vh] w-[35vh] rounded-full bg-foreground opacity-[0.05] blur-[100px]"
+          animate={{ x: [0, 45, 0], y: [0, -55, 0] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
       {/* Scaled stage */}
       <div
         ref={stageRef}

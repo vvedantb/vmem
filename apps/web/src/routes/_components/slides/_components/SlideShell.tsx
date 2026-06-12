@@ -152,7 +152,7 @@ export function SlideShell({
 }: SlideShellProps) {
   return (
     <div
-      className={`relative flex h-full w-full flex-col overflow-hidden bg-background px-20 py-16 ${center ? "items-center justify-center" : ""} ${className}`}
+      className={`relative flex h-full w-full flex-col overflow-hidden px-20 py-16 ${center ? "items-center justify-center" : ""} ${className}`}
     >
       {children}
     </div>

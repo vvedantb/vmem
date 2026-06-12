@@ -1,10 +1,10 @@
 import type { ComponentType } from "react";
 import { IconDeviceMobile, IconBrandChrome } from "@tabler/icons-react";
 import { IconChat, IconMemories } from "@/components/sidebar-icons";
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
   SlideKicker,
-  SlideTitle,
   SlideBody,
   SlideReveal,
   SlideStagger,
@@ -35,12 +35,10 @@ export function Slide03What() {
     <SlideShell>
       <SlideReveal delay={0}>
         <SlideKicker>What vmem is</SlideKicker>
-        <SlideTitle>
-          Graph-native memory,
-          <br />
-          shared across everything.
-        </SlideTitle>
       </SlideReveal>
+      <BlurWordsTitle
+        lines={["Graph-native memory,", "shared across everything."]}
+      />
       <SlideReveal step={1} className="mt-8 max-w-2xl">
         <SlideBody>
           vmem is a memory layer that sits between you and your AI tools.

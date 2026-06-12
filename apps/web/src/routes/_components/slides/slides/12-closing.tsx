@@ -5,10 +5,10 @@ import {
   IconBolt,
   IconMapPin,
 } from "@tabler/icons-react";
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
   SlideKicker,
-  SlideTitle,
   SlideBody,
   SlideReveal,
   SlideStagger,
@@ -41,12 +41,10 @@ export function Slide12Closing() {
         <div className="flex flex-1 flex-col justify-center">
           <SlideReveal delay={0}>
             <SlideKicker>What&apos;s next</SlideKicker>
-            <SlideTitle>
-              The memory layer
-              <br />
-              is just getting started.
-            </SlideTitle>
           </SlideReveal>
+          <BlurWordsTitle
+            lines={["The memory layer", "is just getting started."]}
+          />
           <SlideReveal step={1} className="mt-6 max-w-lg">
             <SlideBody>
               vmem is live. The foundation — graph storage, hybrid recall,

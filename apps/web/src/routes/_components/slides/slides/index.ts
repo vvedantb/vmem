@@ -11,6 +11,8 @@ import { Slide09Safe } from "./09-safe";
 import { Slide10Workspaces } from "./10-workspaces";
 import { Slide11Comparison } from "./11-comparison";
 import { Slide12Closing } from "./12-closing";
+import { Slide13Bento } from "./13-bento";
+import { Slide14Questions } from "./14-questions";
 
 export interface SlideEntry {
   id: string;
@@ -121,5 +123,21 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide12Closing,
     steps: 2,
+  },
+  // step 0: full bento board (tiles cascade in)
+  {
+    id: "13",
+    title: "Everything vmem",
+    theme: "dark",
+    Component: Slide13Bento,
+    steps: 0,
+  },
+  // step 0: everything
+  {
+    id: "14",
+    title: "Questions",
+    theme: "dark",
+    Component: Slide14Questions,
+    steps: 0,
   },
 ];

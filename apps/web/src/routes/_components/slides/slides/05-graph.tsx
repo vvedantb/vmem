@@ -1,8 +1,8 @@
-import { LandingMemoryPreview } from "@/routes/_components/landing/LandingMemoryPreview";
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
+import { SlideMemoryPreview } from "../_components/SlideMemoryPreview";
 import {
   SlideShell,
   SlideKicker,
-  SlideTitle,
   SlideBody,
   SlideReveal,
   SlideStagger,
@@ -22,8 +22,8 @@ export function Slide05Graph() {
         <div className="flex flex-1 flex-col justify-center">
           <SlideReveal delay={0}>
             <SlideKicker>Memory graph</SlideKicker>
-            <SlideTitle size="xl">Context as a living graph.</SlideTitle>
           </SlideReveal>
+          <BlurWordsTitle lines={["Context as a living graph."]} size="xl" />
           <SlideReveal step={1} className="mt-6">
             <SlideBody>
               Memories are nodes. Tags are recurring themes. Entities are named
@@ -54,7 +54,7 @@ export function Slide05Graph() {
           delay={0.1}
           className="flex w-[380px] shrink-0 flex-col justify-center"
         >
-          <LandingMemoryPreview />
+          <SlideMemoryPreview />
           <p className="mt-3 text-center text-xs text-muted/60">
             Click a node during the talk.
           </p>

@@ -1,10 +1,10 @@
 import type { ComponentType } from "react";
 import { IconBrandChrome, IconDeviceMobile } from "@tabler/icons-react";
 import { IconChat, IconFiles } from "@/components/sidebar-icons";
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
   SlideKicker,
-  SlideTitle,
   SlideBody,
   SlideReveal,
   SlideStagger,
@@ -68,8 +68,11 @@ export function Slide07Capture() {
     <SlideShell>
       <SlideReveal delay={0}>
         <SlideKicker>Capture everywhere</SlideKicker>
-        <SlideTitle size="xl">Memory flows in from every surface.</SlideTitle>
       </SlideReveal>
+      <BlurWordsTitle
+        lines={["Memory flows in from every surface."]}
+        size="xl"
+      />
 
       <SlideStagger
         className="mt-8 grid grid-cols-4 gap-4"

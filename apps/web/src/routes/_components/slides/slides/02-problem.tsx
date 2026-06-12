@@ -1,10 +1,10 @@
 import type { ComponentType } from "react";
 import { IconRobot, IconMessageOff } from "@tabler/icons-react";
 import { IconMemories } from "@/components/sidebar-icons";
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
   SlideKicker,
-  SlideTitle,
   SlideBody,
   SlideReveal,
   SlideStagger,
@@ -47,8 +47,8 @@ export function Slide02Problem() {
     <SlideShell>
       <SlideReveal delay={0}>
         <SlideKicker>The problem</SlideKicker>
-        <SlideTitle>AI tools forget everything.</SlideTitle>
       </SlideReveal>
+      <BlurWordsTitle lines={["AI tools forget everything."]} />
       <SlideStagger
         className="mt-10 grid grid-cols-3 gap-6"
         delayChildren={0.06}

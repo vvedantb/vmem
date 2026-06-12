@@ -1,7 +1,7 @@
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
   SlideKicker,
-  SlideTitle,
   SlideBody,
   SlideReveal,
   SlideStagger,
@@ -36,8 +36,8 @@ export function Slide06Trace() {
     <SlideShell>
       <SlideReveal delay={0}>
         <SlideKicker>Context Trace — differentiator</SlideKicker>
-        <SlideTitle size="xl">Every recall explains itself.</SlideTitle>
       </SlideReveal>
+      <BlurWordsTitle lines={["Every recall explains itself."]} size="xl" />
       <SlideReveal delay={0.08} className="mt-4 max-w-xl">
         <SlideBody>
           Mem0 and Supermemory give you memories back. vmem gives you memories{" "}

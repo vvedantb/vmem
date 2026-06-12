@@ -4,10 +4,10 @@ import {
   IconGitMerge,
   IconUser,
 } from "@tabler/icons-react";
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
   SlideKicker,
-  SlideTitle,
   SlideBody,
   SlideReveal,
   SlideStagger,
@@ -40,8 +40,8 @@ export function Slide08Dream() {
     <SlideShell>
       <SlideReveal delay={0}>
         <SlideKicker>Dream Mode</SlideKicker>
-        <SlideTitle size="xl">Proactive memory intelligence.</SlideTitle>
       </SlideReveal>
+      <BlurWordsTitle lines={["Proactive memory intelligence."]} size="xl" />
       <SlideReveal delay={0.08} className="mt-4 max-w-2xl">
         <SlideBody>
           Runs automatically after you accumulate enough new memories. While you

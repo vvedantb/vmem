@@ -1,11 +1,7 @@
 import { LandingAmbientGraph } from "@/routes/_components/landing/LandingAmbientGraph";
 import { VmemBrand } from "@/components/VmemBrand";
-import {
-  SlideShell,
-  SlideTitle,
-  SlideBody,
-  SlideReveal,
-} from "../_components/SlideShell";
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
+import { SlideShell, SlideBody, SlideReveal } from "../_components/SlideShell";
 
 export function Slide01Title() {
   return (
@@ -15,13 +11,11 @@ export function Slide01Title() {
         <SlideReveal delay={0}>
           <VmemBrand iconSize={40} textClassName="text-4xl" className="mb-6" />
         </SlideReveal>
-        <SlideReveal delay={0.1}>
-          <SlideTitle size="3xl">
-            A memory layer
-            <br />
-            for your AI tools.
-          </SlideTitle>
-        </SlideReveal>
+        <BlurWordsTitle
+          lines={["A memory layer", "for your AI tools."]}
+          size="3xl"
+          delay={0.1}
+        />
         <SlideReveal step={1} className="mt-6 max-w-xl">
           <SlideBody>
             One shared memory store for Claude, agents, extensions, and mobile —

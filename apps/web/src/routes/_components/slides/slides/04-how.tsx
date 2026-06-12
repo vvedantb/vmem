@@ -6,10 +6,10 @@ import {
   IconGitFork,
 } from "@tabler/icons-react";
 import { IconMemories } from "@/components/sidebar-icons";
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
   SlideKicker,
-  SlideTitle,
   SlideBody,
   SlideReveal,
 } from "../_components/SlideShell";
@@ -60,8 +60,8 @@ export function Slide04How() {
     <SlideShell>
       <SlideReveal delay={0}>
         <SlideKicker>How it works</SlideKicker>
-        <SlideTitle size="xl">Four stages, one pipeline.</SlideTitle>
       </SlideReveal>
+      <BlurWordsTitle lines={["Four stages, one pipeline."]} size="xl" />
       <SlideReveal delay={0.1} className="mt-8">
         <SlideBody>
           Every memory passes through capture → enrich → graph → recall. Nothing

@@ -1,10 +1,10 @@
 import type { ComponentType } from "react";
 import { IconPin, IconEyeOff, IconClock } from "@tabler/icons-react";
 import { IconInbox, IconActivity } from "@/components/sidebar-icons";
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
   SlideKicker,
-  SlideTitle,
   SlideBody,
   SlideReveal,
   SlideStagger,
@@ -57,8 +57,8 @@ export function Slide09Safe() {
     <SlideShell>
       <SlideReveal delay={0}>
         <SlideKicker>Safe by design</SlideKicker>
-        <SlideTitle size="xl">You stay in control.</SlideTitle>
       </SlideReveal>
+      <BlurWordsTitle lines={["You stay in control."]} size="xl" />
       <SlideReveal delay={0.08} className="mt-4 max-w-2xl">
         <SlideBody>
           Memory should not be a black box. vmem gives you a full lifecycle —

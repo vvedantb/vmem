@@ -7,10 +7,10 @@ import {
   IconWiki,
   IconFiles,
 } from "@/components/sidebar-icons";
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
   SlideKicker,
-  SlideTitle,
   SlideBody,
   SlideReveal,
 } from "../_components/SlideShell";
@@ -44,8 +44,8 @@ export function Slide10Workspaces() {
     <SlideShell>
       <SlideReveal delay={0}>
         <SlideKicker>Workspaces &amp; teams</SlideKicker>
-        <SlideTitle size="xl">Personal and shared memory.</SlideTitle>
       </SlideReveal>
+      <BlurWordsTitle lines={["Personal and shared memory."]} size="xl" />
       <SlideReveal delay={0.08} className="mt-6 max-w-2xl">
         <SlideBody>
           Profiles are workspaces. Each workspace has its own memory scope.

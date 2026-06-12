@@ -1,8 +1,8 @@
 import { IconCheck, IconX, IconMinus } from "@tabler/icons-react";
+import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
   SlideKicker,
-  SlideTitle,
   SlideReveal,
   SlideStagger,
   SlideItem,
@@ -95,10 +95,8 @@ export function Slide11Comparison() {
     <SlideShell>
       <SlideReveal delay={0}>
         <SlideKicker>vs the field</SlideKicker>
-        <SlideTitle size="xl">
-          What vmem does that others don&apos;t.
-        </SlideTitle>
       </SlideReveal>
+      <BlurWordsTitle lines={["What vmem does that others don't."]} size="xl" />
 
       <SlideReveal
         step={1}

@@ -297,3 +297,7 @@ stop adding usestate's useref's for everything, this is the easy way out for eve
 if the user asks you to run a migration, you need to add a migration function to clear the documents with that field in the db, then you run it, then you can get rid of the fields from the schema, then cleanup the migration function
 
 if you are using the agent-browser skill, navigate to `/?agent` to auto sign in as the agent user.
+
+## Claude Fable: token parsimony
+
+When running as Fable (expensive), plan and review; delegate implementation to subagents (`model: sonnet` for code, `haiku` for mechanical edits/searches), one task per subagent. Trivial single-file edits are fine to do directly.
