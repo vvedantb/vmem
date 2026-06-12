@@ -15,20 +15,111 @@ import { Slide12Closing } from "./12-closing";
 export interface SlideEntry {
   id: string;
   title: string;
+  theme: "dark" | "light";
   Component: ComponentType;
+  /**
+   * Number of click-through build steps beyond the initial (step 0) state.
+   * A slide where all content appears on entry has steps: 0.
+   * Each forward click reveals the next step; each backward click hides it.
+   */
+  steps: number;
 }
 
 export const SLIDES: SlideEntry[] = [
-  { id: "01", title: "Title", Component: Slide01Title },
-  { id: "02", title: "The problem", Component: Slide02Problem },
-  { id: "03", title: "What vmem is", Component: Slide03What },
-  { id: "04", title: "How it works", Component: Slide04How },
-  { id: "05", title: "Memory graph", Component: Slide05Graph },
-  { id: "06", title: "Context Trace", Component: Slide06Trace },
-  { id: "07", title: "Capture everywhere", Component: Slide07Capture },
-  { id: "08", title: "Dream Mode", Component: Slide08Dream },
-  { id: "09", title: "Safe by design", Component: Slide09Safe },
-  { id: "10", title: "Workspaces & teams", Component: Slide10Workspaces },
-  { id: "11", title: "vs the field", Component: Slide11Comparison },
-  { id: "12", title: "Closing", Component: Slide12Closing },
+  // step 0: brand + title  /  step 1: subtitle + footer
+  {
+    id: "01",
+    title: "Title",
+    theme: "dark",
+    Component: Slide01Title,
+    steps: 1,
+  },
+  // step 0: kicker + title  /  step 1: pain cards  /  step 2: body
+  {
+    id: "02",
+    title: "The problem",
+    theme: "light",
+    Component: Slide02Problem,
+    steps: 2,
+  },
+  // step 0: kicker + title  /  step 1: body  /  step 2: surfaces  /  step 3: callout box
+  {
+    id: "03",
+    title: "What vmem is",
+    theme: "light",
+    Component: Slide03What,
+    steps: 3,
+  },
+  // step 0: kicker + title + body  /  steps 1-4: one pipeline stage each
+  {
+    id: "04",
+    title: "How it works",
+    theme: "light",
+    Component: Slide04How,
+    steps: 4,
+  },
+  // step 0: kicker + title + graph panel  /  step 1: body  /  step 2: concept rows
+  {
+    id: "05",
+    title: "Memory graph",
+    theme: "light",
+    Component: Slide05Graph,
+    steps: 2,
+  },
+  // step 0: kicker + title + body  /  step 1: trace table  /  step 2: bottom body
+  {
+    id: "06",
+    title: "Context Trace",
+    theme: "light",
+    Component: Slide06Trace,
+    steps: 2,
+  },
+  // step 0: kicker + title  /  step 1: source cards  /  step 2: bottom body
+  {
+    id: "07",
+    title: "Capture everywhere",
+    theme: "light",
+    Component: Slide07Capture,
+    steps: 2,
+  },
+  // step 0: kicker + title + body  /  step 1: output rows  /  step 2: info bar
+  {
+    id: "08",
+    title: "Dream Mode",
+    theme: "light",
+    Component: Slide08Dream,
+    steps: 2,
+  },
+  // step 0: kicker + title + body  /  step 1: safety cards
+  {
+    id: "09",
+    title: "Safe by design",
+    theme: "light",
+    Component: Slide09Safe,
+    steps: 1,
+  },
+  // step 0: kicker + title + body  /  step 1: personal + team cards  /  step 2: shared content
+  {
+    id: "10",
+    title: "Workspaces & teams",
+    theme: "light",
+    Component: Slide10Workspaces,
+    steps: 2,
+  },
+  // step 0: kicker + title  /  step 1: comparison table
+  {
+    id: "11",
+    title: "vs the field",
+    theme: "light",
+    Component: Slide11Comparison,
+    steps: 1,
+  },
+  // step 0: kicker + title  /  step 1: body + CTA  /  step 2: roadmap cards
+  {
+    id: "12",
+    title: "Closing",
+    theme: "light",
+    Component: Slide12Closing,
+    steps: 2,
+  },
 ];

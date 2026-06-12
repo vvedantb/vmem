@@ -1,5 +1,12 @@
 import { IconCheck, IconX, IconMinus } from "@tabler/icons-react";
-import { SlideShell, SlideKicker, SlideTitle } from "../_components/SlideShell";
+import {
+  SlideShell,
+  SlideKicker,
+  SlideTitle,
+  SlideReveal,
+  SlideStagger,
+  SlideItem,
+} from "../_components/SlideShell";
 
 type CellValue = "yes" | "no" | "partial";
 
@@ -86,10 +93,17 @@ function Cell({ value }: { value: CellValue }) {
 export function Slide11Comparison() {
   return (
     <SlideShell>
-      <SlideKicker>vs the field</SlideKicker>
-      <SlideTitle size="xl">What vmem does that others don&apos;t.</SlideTitle>
+      <SlideReveal delay={0}>
+        <SlideKicker>vs the field</SlideKicker>
+        <SlideTitle size="xl">
+          What vmem does that others don&apos;t.
+        </SlideTitle>
+      </SlideReveal>
 
-      <div className="mt-8 overflow-hidden rounded-2xl bg-surface-secondary/40">
+      <SlideReveal
+        step={1}
+        className="mt-8 overflow-hidden rounded-2xl bg-surface-secondary/40"
+      >
         <div className="grid grid-cols-[1fr_80px_80px_100px] border-b border-separator/30 px-5 py-2.5">
           <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
             Feature
@@ -100,23 +114,28 @@ export function Slide11Comparison() {
           <span className="text-center text-xs text-muted">Mem0</span>
           <span className="text-center text-xs text-muted">Supermemory</span>
         </div>
-        {rows.map((row) => (
-          <div
-            key={row.feature}
-            className="grid grid-cols-[1fr_80px_80px_100px] px-5 py-2.5 hover:bg-surface-secondary/60"
-          >
-            <span className="text-sm text-foreground/80">{row.feature}</span>
-            <Cell value={row.vmem} />
-            <Cell value={row.mem0} />
-            <Cell value={row.supermemory} />
-          </div>
-        ))}
-      </div>
+        <SlideStagger delayChildren={0.12} staggerChildren={0.04} step={1}>
+          {rows.map((row) => (
+            <SlideItem key={row.feature}>
+              <div className="grid grid-cols-[1fr_80px_80px_100px] px-5 py-2.5 hover:bg-surface-secondary/60">
+                <span className="text-sm text-foreground/80">
+                  {row.feature}
+                </span>
+                <Cell value={row.vmem} />
+                <Cell value={row.mem0} />
+                <Cell value={row.supermemory} />
+              </div>
+            </SlideItem>
+          ))}
+        </SlideStagger>
+      </SlideReveal>
 
-      <p className="mt-4 text-xs text-muted/60">
-        Partial = basic or limited implementation. Data based on public
-        documentation.
-      </p>
+      <SlideReveal step={1} delay={0.1} className="mt-4">
+        <p className="text-xs text-muted/60">
+          Partial = basic or limited implementation. Data based on public
+          documentation.
+        </p>
+      </SlideReveal>
     </SlideShell>
   );
 }

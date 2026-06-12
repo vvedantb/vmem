@@ -1,4 +1,142 @@
+import { createContext, useContext } from "react";
 import type { ReactNode } from "react";
+import { motion } from "motion/react";
+import { motionDuration, motionEase } from "@vmem/ui";
+
+// ---------------------------------------------------------------------------
+// Step context — provided by SlideDeck, consumed by reveal primitives
+// ---------------------------------------------------------------------------
+
+/**
+ * The current build step for the active slide. 0 = initial state (no clicks
+ * yet). Provided by SlideDeck; defaults to 0 so slides are usable standalone.
+ */
+export const SlideStepContext = createContext<number>(0);
+
+// ---------------------------------------------------------------------------
+// Animation primitives
+// ---------------------------------------------------------------------------
+
+/** Shared fade-up variant used by SlideReveal and SlideItem. */
+const fadeUpVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+};
+
+interface SlideRevealProps {
+  children: ReactNode;
+  /** Seconds to delay the entrance (use to stagger manual blocks). */
+  delay?: number;
+  className?: string;
+  /**
+   * Build step at which this element becomes visible. 0 = on slide entry
+   * (default). Set to N to reveal on the Nth click advance within the slide.
+   */
+  step?: number;
+}
+
+/**
+ * Wraps any content in a fade-up entrance. With the default step=0 it plays
+ * on every slide mount. With step>0 it stays hidden until the presenter
+ * clicks through to that build step, then animates in.
+ */
+export function SlideReveal({
+  children,
+  delay = 0,
+  step = 0,
+  className = "",
+}: SlideRevealProps) {
+  const contextStep = useContext(SlideStepContext);
+  const isVisible = contextStep >= step;
+  return (
+    <motion.div
+      initial={isVisible ? "show" : "hidden"}
+      animate={isVisible ? "show" : "hidden"}
+      variants={fadeUpVariants}
+      transition={{
+        duration: motionDuration.base,
+        ease: motionEase,
+        delay: isVisible ? delay : 0,
+      }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+interface SlideStaggerProps {
+  children: ReactNode;
+  className?: string;
+  /** Seconds before the first child starts animating. Default 0.1. */
+  delayChildren?: number;
+  /** Seconds between each child. Default 0.07. */
+  staggerChildren?: number;
+  /**
+   * Build step at which this stagger group becomes visible. 0 = on slide
+   * entry (default). The whole group reveals together; items still stagger.
+   */
+  step?: number;
+}
+
+/**
+ * Container that staggers its `SlideItem` children one after another.
+ * Use for card grids, bullet lists, and step rows. Add step>0 to gate the
+ * entire group behind a build step click.
+ */
+export function SlideStagger({
+  children,
+  className = "",
+  delayChildren = 0.1,
+  staggerChildren = 0.07,
+  step = 0,
+}: SlideStaggerProps) {
+  const contextStep = useContext(SlideStepContext);
+  const isVisible = contextStep >= step;
+  return (
+    <motion.div
+      initial={isVisible ? "show" : "hidden"}
+      animate={isVisible ? "show" : "hidden"}
+      variants={{
+        hidden: {},
+        show: {
+          transition: {
+            staggerChildren,
+            delayChildren,
+          },
+        },
+      }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+interface SlideItemProps {
+  children: ReactNode;
+  className?: string;
+}
+
+/**
+ * A single animated child inside a `SlideStagger`. Inherits the stagger
+ * timing from its parent — no delay prop needed here.
+ */
+export function SlideItem({ children, className = "" }: SlideItemProps) {
+  return (
+    <motion.div
+      variants={fadeUpVariants}
+      transition={{ duration: motionDuration.base, ease: motionEase }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Layout primitives
+// ---------------------------------------------------------------------------
 
 interface SlideShellProps {
   children: ReactNode;

@@ -1,25 +1,34 @@
+import type { ComponentType } from "react";
+import { IconUser } from "@tabler/icons-react";
+import type { SidebarIconProps } from "@/components/sidebar-icons/BaseIcon";
 import {
-  IconUsers,
-  IconUser,
-  IconBook,
-  IconCode,
+  IconTeams,
+  IconSkills,
+  IconWiki,
   IconFiles,
-} from "@tabler/icons-react";
+} from "@/components/sidebar-icons";
 import {
   SlideShell,
   SlideKicker,
   SlideTitle,
   SlideBody,
+  SlideReveal,
 } from "../_components/SlideShell";
 
-const sharedContent = [
+interface SharedContentItem {
+  icon: ComponentType<SidebarIconProps>;
+  label: string;
+  desc: string;
+}
+
+const sharedContent: SharedContentItem[] = [
   {
-    icon: IconCode,
+    icon: IconSkills,
     label: "Skills",
     desc: "Reusable prompt instructions injected into any AI session.",
   },
   {
-    icon: IconBook,
+    icon: IconWiki,
     label: "Wiki",
     desc: "Team knowledge base linked into agent context.",
   },
@@ -33,17 +42,22 @@ const sharedContent = [
 export function Slide10Workspaces() {
   return (
     <SlideShell>
-      <SlideKicker>Workspaces &amp; teams</SlideKicker>
-      <SlideTitle size="xl">Personal and shared memory.</SlideTitle>
-      <div className="mt-6 max-w-2xl">
+      <SlideReveal delay={0}>
+        <SlideKicker>Workspaces &amp; teams</SlideKicker>
+        <SlideTitle size="xl">Personal and shared memory.</SlideTitle>
+      </SlideReveal>
+      <SlideReveal delay={0.08} className="mt-6 max-w-2xl">
         <SlideBody>
           Profiles are workspaces. Each workspace has its own memory scope.
           Teams share skills, wiki, and files — personal memories stay private.
         </SlideBody>
-      </div>
+      </SlideReveal>
 
       <div className="mt-10 flex gap-8">
-        <div className="flex-1 rounded-2xl bg-surface-secondary/60 px-6 py-5">
+        <SlideReveal
+          step={1}
+          className="flex-1 rounded-2xl bg-surface-secondary/60 px-6 py-5"
+        >
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground text-background">
               <IconUser size={15} stroke={1.5} />
@@ -68,12 +82,16 @@ export function Slide10Workspaces() {
               </li>
             ))}
           </ul>
-        </div>
+        </SlideReveal>
 
-        <div className="flex-1 rounded-2xl bg-surface-secondary/60 px-6 py-5">
+        <SlideReveal
+          step={1}
+          delay={0.07}
+          className="flex-1 rounded-2xl bg-surface-secondary/60 px-6 py-5"
+        >
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground text-background">
-              <IconUsers size={15} stroke={1.5} />
+              <IconTeams size={15} stroke={1.5} />
             </div>
             <p className="text-sm font-medium text-foreground">
               Team workspace
@@ -95,9 +113,12 @@ export function Slide10Workspaces() {
               </li>
             ))}
           </ul>
-        </div>
+        </SlideReveal>
 
-        <div className="flex-1 rounded-2xl bg-surface-secondary/40 px-6 py-5">
+        <SlideReveal
+          step={2}
+          className="flex-1 rounded-2xl bg-surface-secondary/40 px-6 py-5"
+        >
           <p className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-muted">
             Team-scoped content
           </p>
@@ -116,7 +137,7 @@ export function Slide10Workspaces() {
               </div>
             ))}
           </div>
-        </div>
+        </SlideReveal>
       </div>
     </SlideShell>
   );

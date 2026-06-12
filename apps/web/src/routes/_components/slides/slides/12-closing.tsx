@@ -10,6 +10,9 @@ import {
   SlideKicker,
   SlideTitle,
   SlideBody,
+  SlideReveal,
+  SlideStagger,
+  SlideItem,
 } from "../_components/SlideShell";
 
 const roadmapItems = [
@@ -36,44 +39,51 @@ export function Slide12Closing() {
       <LandingAmbientGraph />
       <div className="relative z-10 flex h-full gap-16">
         <div className="flex flex-1 flex-col justify-center">
-          <SlideKicker>What&apos;s next</SlideKicker>
-          <SlideTitle>
-            The memory layer
-            <br />
-            is just getting started.
-          </SlideTitle>
-          <div className="mt-6 max-w-lg">
+          <SlideReveal delay={0}>
+            <SlideKicker>What&apos;s next</SlideKicker>
+            <SlideTitle>
+              The memory layer
+              <br />
+              is just getting started.
+            </SlideTitle>
+          </SlideReveal>
+          <SlideReveal step={1} className="mt-6 max-w-lg">
             <SlideBody>
               vmem is live. The foundation — graph storage, hybrid recall,
               Context Trace, Dream Mode, workspaces — is in place. Connectors
               and richer recall are next.
             </SlideBody>
-          </div>
-          <div className="mt-8 flex items-center gap-2 text-sm font-medium text-foreground/60">
-            <span>vmem.app</span>
-            <IconArrowRight size={14} stroke={1.5} />
-            <span>try it now</span>
-          </div>
+          </SlideReveal>
+          <SlideReveal step={1} delay={0.08} className="mt-8">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground/60">
+              <span>vmem.app</span>
+              <IconArrowRight size={14} stroke={1.5} />
+              <span>try it now</span>
+            </div>
+          </SlideReveal>
         </div>
 
-        <div className="flex w-[360px] shrink-0 flex-col justify-center gap-4">
+        <SlideStagger
+          className="flex w-[360px] shrink-0 flex-col justify-center gap-4"
+          delayChildren={0.07}
+          step={2}
+        >
           {roadmapItems.map(({ icon: Icon, title, body }) => (
-            <div
-              key={title}
-              className="flex gap-4 rounded-2xl bg-surface-secondary/60 px-5 py-4"
-            >
-              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
-                <Icon size={15} stroke={1.5} />
+            <SlideItem key={title}>
+              <div className="flex gap-4 rounded-2xl bg-surface-secondary/60 px-5 py-4">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
+                  <Icon size={15} stroke={1.5} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">{title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted">
+                    {body}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">{title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted">
-                  {body}
-                </p>
-              </div>
-            </div>
+            </SlideItem>
           ))}
-        </div>
+        </SlideStagger>
       </div>
     </SlideShell>
   );

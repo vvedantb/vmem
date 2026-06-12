@@ -3,6 +3,9 @@ import {
   SlideKicker,
   SlideTitle,
   SlideBody,
+  SlideReveal,
+  SlideStagger,
+  SlideItem,
 } from "../_components/SlideShell";
 
 const traceRows = [
@@ -31,49 +34,58 @@ const traceRows = [
 export function Slide06Trace() {
   return (
     <SlideShell>
-      <SlideKicker>Context Trace — differentiator</SlideKicker>
-      <SlideTitle size="xl">Every recall explains itself.</SlideTitle>
-      <div className="mt-4 max-w-xl">
+      <SlideReveal delay={0}>
+        <SlideKicker>Context Trace — differentiator</SlideKicker>
+        <SlideTitle size="xl">Every recall explains itself.</SlideTitle>
+      </SlideReveal>
+      <SlideReveal delay={0.08} className="mt-4 max-w-xl">
         <SlideBody>
           Mem0 and Supermemory give you memories back. vmem gives you memories{" "}
           <em>with receipts</em> — a scored breakdown of exactly why each one
           surfaced.
         </SlideBody>
-      </div>
+      </SlideReveal>
 
-      <div className="mt-8 rounded-2xl bg-surface-secondary/60 px-6 py-5">
+      <SlideReveal
+        step={1}
+        className="mt-8 rounded-2xl bg-surface-secondary/60 px-6 py-5"
+      >
         <div className="mb-3 flex items-baseline justify-between">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
             memory.retrieve result
           </p>
           <p className="font-mono text-xs text-muted/60">1 match · 4 signals</p>
         </div>
-        <div className="space-y-2">
+        <SlideStagger
+          className="space-y-2"
+          delayChildren={0.12}
+          staggerChildren={0.08}
+          step={1}
+        >
           {traceRows.map(({ label, score, reason }) => (
-            <div
-              key={label}
-              className="flex items-start gap-4 rounded-xl bg-surface-secondary/80 px-3 py-2.5"
-            >
-              <span className="w-14 shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-center font-mono text-[10px] text-foreground/70">
-                {label}
-              </span>
-              <span className="w-9 shrink-0 font-mono text-xs font-medium text-foreground">
-                {score}
-              </span>
-              <span className="text-xs leading-relaxed text-muted">
-                {reason}
-              </span>
-            </div>
+            <SlideItem key={label}>
+              <div className="flex items-start gap-4 rounded-xl bg-surface-secondary/80 px-3 py-2.5">
+                <span className="w-14 shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-center font-mono text-[10px] text-foreground/70">
+                  {label}
+                </span>
+                <span className="w-9 shrink-0 font-mono text-xs font-medium text-foreground">
+                  {score}
+                </span>
+                <span className="text-xs leading-relaxed text-muted">
+                  {reason}
+                </span>
+              </div>
+            </SlideItem>
           ))}
-        </div>
-      </div>
+        </SlideStagger>
+      </SlideReveal>
 
-      <div className="mt-6">
+      <SlideReveal step={2} className="mt-6">
         <SlideBody>
           Agents can decide how much weight to give each memory. No black-box
           retrieval.
         </SlideBody>
-      </div>
+      </SlideReveal>
     </SlideShell>
   );
 }

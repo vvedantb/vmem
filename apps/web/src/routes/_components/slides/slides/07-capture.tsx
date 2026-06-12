@@ -1,19 +1,30 @@
-import {
-  IconBrandChrome,
-  IconDeviceMobile,
-  IconPlug,
-  IconFileUpload,
-  IconBrandYoutube,
-  IconHistory,
-} from "@tabler/icons-react";
+import type { ComponentType } from "react";
+import { IconBrandChrome, IconDeviceMobile } from "@tabler/icons-react";
+import { IconChat, IconFiles } from "@/components/sidebar-icons";
 import {
   SlideShell,
   SlideKicker,
   SlideTitle,
   SlideBody,
+  SlideReveal,
+  SlideStagger,
+  SlideItem,
 } from "../_components/SlideShell";
 
-const sources = [
+/** Minimal icon props that both @tabler/icons-react and sidebar icons satisfy. */
+interface IconProps {
+  size?: number;
+  stroke?: number;
+  className?: string;
+}
+
+interface Source {
+  icon: ComponentType<IconProps>;
+  title: string;
+  items: string[];
+}
+
+const sources: Source[] = [
   {
     icon: IconBrandChrome,
     title: "Chrome extension",
@@ -33,7 +44,7 @@ const sources = [
     ],
   },
   {
-    icon: IconPlug,
+    icon: IconChat,
     title: "MCP / Claude Desktop",
     items: [
       "memory.save, memory.retrieve as MCP tools",
@@ -42,7 +53,7 @@ const sources = [
     ],
   },
   {
-    icon: IconFileUpload,
+    icon: IconFiles,
     title: "File uploads",
     items: [
       "PDF, text — indexed as memories",
@@ -55,39 +66,46 @@ const sources = [
 export function Slide07Capture() {
   return (
     <SlideShell>
-      <SlideKicker>Capture everywhere</SlideKicker>
-      <SlideTitle size="xl">Memory flows in from every surface.</SlideTitle>
+      <SlideReveal delay={0}>
+        <SlideKicker>Capture everywhere</SlideKicker>
+        <SlideTitle size="xl">Memory flows in from every surface.</SlideTitle>
+      </SlideReveal>
 
-      <div className="mt-8 grid grid-cols-4 gap-4">
+      <SlideStagger
+        className="mt-8 grid grid-cols-4 gap-4"
+        delayChildren={0.07}
+        step={1}
+      >
         {sources.map(({ icon: Icon, title, items }) => (
-          <div
-            key={title}
-            className="flex flex-col rounded-2xl bg-surface-secondary/60 px-4 py-4"
-          >
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background">
-              <Icon size={16} stroke={1.5} />
+          <SlideItem key={title}>
+            <div className="flex flex-col rounded-2xl bg-surface-secondary/60 px-4 py-4">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background">
+                <Icon size={16} stroke={1.5} />
+              </div>
+              <p className="mb-2 text-sm font-medium text-foreground">
+                {title}
+              </p>
+              <ul className="space-y-1.5">
+                {items.map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-foreground/30" />
+                    <span className="text-[11px] leading-relaxed text-muted">
+                      {item}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <p className="mb-2 text-sm font-medium text-foreground">{title}</p>
-            <ul className="space-y-1.5">
-              {items.map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-foreground/30" />
-                  <span className="text-[11px] leading-relaxed text-muted">
-                    {item}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          </SlideItem>
         ))}
-      </div>
+      </SlideStagger>
 
-      <div className="mt-6">
+      <SlideReveal step={2} className="mt-6">
         <SlideBody>
           All sources converge in the same graph — no data siloes, no sync to
           manage.
         </SlideBody>
-      </div>
+      </SlideReveal>
     </SlideShell>
   );
 }

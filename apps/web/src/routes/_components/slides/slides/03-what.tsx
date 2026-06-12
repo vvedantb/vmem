@@ -1,58 +1,74 @@
-import {
-  IconPlugConnected,
-  IconDeviceMobile,
-  IconBrandChrome,
-  IconTerminal2,
-} from "@tabler/icons-react";
+import type { ComponentType } from "react";
+import { IconDeviceMobile, IconBrandChrome } from "@tabler/icons-react";
+import { IconChat, IconMemories } from "@/components/sidebar-icons";
 import {
   SlideShell,
   SlideKicker,
   SlideTitle,
   SlideBody,
+  SlideReveal,
+  SlideStagger,
+  SlideItem,
 } from "../_components/SlideShell";
 
-const surfaces = [
-  { icon: IconTerminal2, label: "MCP / Claude" },
+/** Minimal icon props that both @tabler/icons-react and sidebar icons satisfy. */
+interface IconProps {
+  size?: number;
+  stroke?: number;
+  className?: string;
+}
+
+interface Surface {
+  icon: ComponentType<IconProps>;
+  label: string;
+}
+
+const surfaces: Surface[] = [
+  { icon: IconChat, label: "MCP / Claude" },
   { icon: IconBrandChrome, label: "Chrome extension" },
   { icon: IconDeviceMobile, label: "Mobile app" },
-  { icon: IconPlugConnected, label: "HTTP API" },
+  { icon: IconMemories, label: "HTTP API" },
 ];
 
 export function Slide03What() {
   return (
     <SlideShell>
-      <SlideKicker>What vmem is</SlideKicker>
-      <SlideTitle>
-        Graph-native memory,
-        <br />
-        shared across everything.
-      </SlideTitle>
-      <div className="mt-8 max-w-2xl">
+      <SlideReveal delay={0}>
+        <SlideKicker>What vmem is</SlideKicker>
+        <SlideTitle>
+          Graph-native memory,
+          <br />
+          shared across everything.
+        </SlideTitle>
+      </SlideReveal>
+      <SlideReveal step={1} className="mt-8 max-w-2xl">
         <SlideBody>
           vmem is a memory layer that sits between you and your AI tools.
           Memories are stored as nodes in a graph — tagged, entity-linked, and
           semantically embedded — so every tool shares the same contextual
           foundation.
         </SlideBody>
-      </div>
+      </SlideReveal>
 
-      <div className="mt-10 flex gap-4">
+      <SlideStagger className="mt-10 flex gap-4" delayChildren={0.06} step={2}>
         {surfaces.map(({ icon: Icon, label }) => (
-          <div
-            key={label}
-            className="flex items-center gap-2.5 rounded-2xl bg-surface-secondary/60 px-4 py-3"
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground text-background">
-              <Icon size={16} stroke={1.5} />
+          <SlideItem key={label}>
+            <div className="flex items-center gap-2.5 rounded-2xl bg-surface-secondary/60 px-4 py-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground text-background">
+                <Icon size={16} stroke={1.5} />
+              </div>
+              <span className="text-sm font-medium text-foreground/80">
+                {label}
+              </span>
             </div>
-            <span className="text-sm font-medium text-foreground/80">
-              {label}
-            </span>
-          </div>
+          </SlideItem>
         ))}
-      </div>
+      </SlideStagger>
 
-      <div className="mt-8 rounded-2xl bg-surface-secondary/40 px-6 py-5">
+      <SlideReveal
+        step={3}
+        className="mt-8 rounded-2xl bg-surface-secondary/40 px-6 py-5"
+      >
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
           One memory store
         </p>
@@ -61,7 +77,7 @@ export function Slide03What() {
           Claude knows what your extension saved. Your agent knows what you told
           your phone.
         </p>
-      </div>
+      </SlideReveal>
     </SlideShell>
   );
 }

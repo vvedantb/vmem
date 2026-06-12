@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { SLIDES } from "./slides/index";
+import { SlideStepContext } from "./_components/SlideShell";
 
 const DESIGN_W = 1280;
 const DESIGN_H = 720;
@@ -23,15 +24,72 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
   const [scale, setScale] = useState(1);
   // direction: 1 = forward, -1 = backward
   const [direction, setDirection] = useState(1);
+  // Current build step within the active slide (ephemeral — not in URL).
+  const [step, setStep] = useState(0);
+  // Track the last slide we navigated to via go() so we can detect
+  // external URL changes (browser back/forward) and reset step.
+  const lastNavigatedSlide = useRef(slide);
 
+  useEffect(() => {
+    if (slide !== lastNavigatedSlide.current) {
+      lastNavigatedSlide.current = slide;
+      setStep(0);
+    }
+  }, [slide]);
+
+  const index = clamp(slide - 1, 0, TOTAL - 1);
+
+  /**
+   * Move forward or backward through slides AND build steps.
+   *  delta > 0 = advance: reveal next build step, or go to next slide at step 0.
+   *  delta < 0 = retreat: hide last revealed step, or go to previous slide fully revealed.
+   *  delta = 0 with a slide number = jump directly (Home/End).
+   */
   const go = useCallback(
-    (next: number) => {
+    (next: number, opts?: { forceStep?: number; delta?: number }) => {
+      const delta = opts?.delta;
+
+      // Step-aware forward/backward when delta is provided.
+      if (delta === 1) {
+        const currentSteps = SLIDES[index].steps;
+        if (step < currentSteps) {
+          setStep(step + 1);
+          return;
+        }
+        // Slide fully revealed — advance to next slide.
+        const nextSlide = clamp(slide + 1, 1, TOTAL);
+        if (nextSlide === slide) return;
+        lastNavigatedSlide.current = nextSlide;
+        setDirection(1);
+        setStep(0);
+        onNavigate(nextSlide);
+        return;
+      }
+
+      if (delta === -1) {
+        if (step > 0) {
+          setStep(step - 1);
+          return;
+        }
+        // At step 0 — go to previous slide fully revealed.
+        const prevSlide = clamp(slide - 1, 1, TOTAL);
+        if (prevSlide === slide) return;
+        lastNavigatedSlide.current = prevSlide;
+        setDirection(-1);
+        setStep(SLIDES[clamp(prevSlide - 1, 0, TOTAL - 1)].steps);
+        onNavigate(prevSlide);
+        return;
+      }
+
+      // Direct jump (Home / End).
       const clamped = clamp(next, 1, TOTAL);
-      if (clamped === slide) return;
+      if (clamped === slide && opts?.forceStep === undefined) return;
+      lastNavigatedSlide.current = clamped;
       setDirection(clamped > slide ? 1 : -1);
+      setStep(opts?.forceStep ?? 0);
       onNavigate(clamped);
     },
-    [slide, onNavigate],
+    [slide, step, index, onNavigate],
   );
 
   // Compute scale on mount and resize
@@ -54,20 +112,20 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
         case " ":
         case "PageDown":
           e.preventDefault();
-          go(slide + 1);
+          go(0, { delta: 1 });
           break;
         case "ArrowLeft":
         case "PageUp":
           e.preventDefault();
-          go(slide - 1);
+          go(0, { delta: -1 });
           break;
         case "Home":
           e.preventDefault();
-          go(1);
+          go(1, { forceStep: 0 });
           break;
         case "End":
           e.preventDefault();
-          go(TOTAL);
+          go(TOTAL, { forceStep: SLIDES[TOTAL - 1].steps });
           break;
         case "f":
         case "F":
@@ -97,14 +155,30 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
     const x = e.clientX - rect.left;
     const third = rect.width / 3;
     if (x < third) {
-      go(slide - 1);
+      go(0, { delta: -1 });
     } else if (x > third * 2) {
-      go(slide + 1);
+      go(0, { delta: 1 });
     }
   }
 
-  const index = clamp(slide - 1, 0, TOTAL - 1);
-  const { Component } = SLIDES[index];
+  const { Component, theme } = SLIDES[index];
+
+  // Apply the slide's theme on <html> while presenting. A local wrapper
+  // class is not enough: opacity-modified token utilities (e.g.
+  // text-foreground/50) resolve against the html-level theme vars, not a
+  // nested .light/.dark wrapper. Restore the user's theme on unmount.
+  useEffect(() => {
+    const root = document.documentElement;
+    const hadDark = root.classList.contains("dark");
+    const hadLight = root.classList.contains("light");
+    root.classList.remove("dark", "light");
+    root.classList.add(theme);
+    return () => {
+      root.classList.remove("dark", "light");
+      if (hadDark) root.classList.add("dark");
+      if (hadLight) root.classList.add("light");
+    };
+  }, [theme]);
 
   const variants = {
     enter: (dir: number) => ({
@@ -128,7 +202,7 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 flex items-center justify-center overflow-hidden bg-background"
+      className={`fixed inset-0 flex items-center justify-center overflow-hidden bg-background ${theme}`}
     >
       {/* Scaled stage */}
       <div
@@ -139,7 +213,7 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
           transform: `scale(${scale})`,
           transformOrigin: "center center",
         }}
-        className="relative cursor-pointer overflow-hidden"
+        className="relative shrink-0 cursor-pointer overflow-hidden"
         onClick={handleStageClick}
         role="presentation"
       >
@@ -153,7 +227,9 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
             exit="exit"
             className="absolute inset-0"
           >
-            <Component />
+            <SlideStepContext.Provider value={step}>
+              <Component />
+            </SlideStepContext.Provider>
           </motion.div>
         </AnimatePresence>
       </div>

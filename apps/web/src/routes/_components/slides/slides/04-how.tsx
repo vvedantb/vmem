@@ -1,18 +1,34 @@
+import type { ComponentType } from "react";
 import {
   IconArrowRight,
   IconCapture,
   IconSparkles,
   IconGitFork,
-  IconZoomScan,
 } from "@tabler/icons-react";
+import { IconMemories } from "@/components/sidebar-icons";
 import {
   SlideShell,
   SlideKicker,
   SlideTitle,
   SlideBody,
+  SlideReveal,
 } from "../_components/SlideShell";
 
-const steps = [
+/** Minimal icon props that both @tabler/icons-react and sidebar icons satisfy. */
+interface IconProps {
+  size?: number;
+  stroke?: number;
+  className?: string;
+}
+
+interface Step {
+  index: string;
+  icon: ComponentType<IconProps>;
+  title: string;
+  body: string;
+}
+
+const steps: Step[] = [
   {
     index: "01",
     icon: IconCapture,
@@ -33,7 +49,7 @@ const steps = [
   },
   {
     index: "04",
-    icon: IconZoomScan,
+    icon: IconMemories,
     title: "Recall",
     body: "Agents pull context via MCP tools. Hybrid retrieval: vector kNN + graph traversal + entity match, with a scored trace.",
   },
@@ -42,18 +58,25 @@ const steps = [
 export function Slide04How() {
   return (
     <SlideShell>
-      <SlideKicker>How it works</SlideKicker>
-      <SlideTitle size="xl">Four stages, one pipeline.</SlideTitle>
-      <div className="mt-8">
+      <SlideReveal delay={0}>
+        <SlideKicker>How it works</SlideKicker>
+        <SlideTitle size="xl">Four stages, one pipeline.</SlideTitle>
+      </SlideReveal>
+      <SlideReveal delay={0.1} className="mt-8">
         <SlideBody>
           Every memory passes through capture → enrich → graph → recall. Nothing
           is stored raw.
         </SlideBody>
-      </div>
+      </SlideReveal>
 
+      {/* Each pipeline stage reveals on its own click step (1–4). */}
       <div className="mt-8 flex items-stretch gap-3">
         {steps.map(({ index, icon: Icon, title, body }, i) => (
-          <div key={title} className="flex flex-1 items-stretch gap-3">
+          <SlideReveal
+            key={title}
+            step={i + 1}
+            className="flex flex-1 items-stretch gap-3"
+          >
             <div className="flex flex-1 flex-col rounded-2xl bg-surface-secondary/60 px-4 py-4">
               <div className="mb-3 flex items-center justify-between">
                 <span className="font-instrumentSerif text-2xl tabular-nums text-muted/50">
@@ -77,7 +100,7 @@ export function Slide04How() {
                 />
               </div>
             )}
-          </div>
+          </SlideReveal>
         ))}
       </div>
     </SlideShell>
