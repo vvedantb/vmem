@@ -63,7 +63,7 @@ export function BlurWordsTitle({
     hidden: {},
     show: {
       transition: {
-        staggerChildren: 0.12,
+        staggerChildren: 0.2,
         delayChildren: delay,
       },
     },
