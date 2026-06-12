@@ -32,6 +32,7 @@ import { CodebasesSearchBar } from "@/components/codebases/CodebasesSearchBar";
 import { AddRepoModal } from "@/components/codebases/AddRepoModal";
 import { codebasesListSearchParams } from "@/routes/_main/$profileId/codebases/-list-searchParams";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
+import { SharedLayoutBackground } from "./SharedLayoutBackground";
 
 export type CodebasesSidebarNavProps = {
   isIconOnly: boolean;
@@ -192,20 +193,27 @@ export function CodebasesSidebarNav({
               ) : null
             ) : (
               <>
-                <div className="flex flex-col gap-0.5">
+                <SharedLayoutBackground.Root
+                  pinnedId={codebaseId ?? null}
+                  className="gap-0.5"
+                >
                   {activeCodebases.map((codebase) => (
-                    <CodebaseSidebarItem
+                    <SharedLayoutBackground.Item
                       key={codebase._id}
-                      codebase={codebase}
-                      selected={codebaseId === codebase._id}
-                      onSelect={() => openCodebase(codebase._id)}
-                    />
+                      id={codebase._id}
+                    >
+                      <CodebaseSidebarItem
+                        codebase={codebase}
+                        selected={codebaseId === codebase._id}
+                        onSelect={() => openCodebase(codebase._id)}
+                      />
+                    </SharedLayoutBackground.Item>
                   ))}
-                </div>
+                </SharedLayoutBackground.Root>
 
                 {!isIconOnly && archivedCodebases.length > 0 ? (
                   <Collapsible className="mt-2">
-                    <CollapsibleTrigger className="group flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-muted transition-[background-color] hover:bg-surface-tertiary">
+                    <CollapsibleTrigger className="group flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-muted transition-[color] hover:text-foreground">
                       <IconChevronRight
                         size={14}
                         className="shrink-0 transition-transform group-data-[state=open]:rotate-90"
@@ -216,15 +224,28 @@ export function CodebasesSidebarNav({
                         {archivedCodebases.length}
                       </span>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-0.5 flex flex-col gap-0.5">
-                      {archivedCodebases.map((codebase) => (
-                        <CodebaseSidebarItem
-                          key={codebase._id}
-                          codebase={codebase}
-                          selected={codebaseId === codebase._id}
-                          onSelect={() => openCodebase(codebase._id)}
-                        />
-                      ))}
+                    <CollapsibleContent className="mt-0.5">
+                      <SharedLayoutBackground.Root
+                        pinnedId={
+                          archivedCodebases.some((cb) => cb._id === codebaseId)
+                            ? (codebaseId ?? null)
+                            : null
+                        }
+                        className="gap-0.5"
+                      >
+                        {archivedCodebases.map((codebase) => (
+                          <SharedLayoutBackground.Item
+                            key={codebase._id}
+                            id={codebase._id}
+                          >
+                            <CodebaseSidebarItem
+                              codebase={codebase}
+                              selected={codebaseId === codebase._id}
+                              onSelect={() => openCodebase(codebase._id)}
+                            />
+                          </SharedLayoutBackground.Item>
+                        ))}
+                      </SharedLayoutBackground.Root>
                     </CollapsibleContent>
                   </Collapsible>
                 ) : null}

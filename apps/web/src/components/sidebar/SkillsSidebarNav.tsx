@@ -15,6 +15,7 @@ import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
 import { WriteSkillDialog } from "@/components/skills/WriteSkillDialog";
 import { UploadSkillDialog } from "@/components/skills/UploadSkillDialog";
 import { skillsSearchParams } from "@/routes/_main/$profileId/skills/-searchParams";
+import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import {
   useActiveProfileId,
   useActiveTeamId,
@@ -105,16 +106,20 @@ export function SkillsSidebarNav({
                 </p>
               ) : null
             ) : (
-              <div className="flex flex-col gap-0.5">
+              <SharedLayoutBackground.Root
+                pinnedId={skillId ?? null}
+                className="gap-0.5"
+              >
                 {filteredSkills.map((skill) => (
-                  <SkillCard
-                    key={skill._id}
-                    skill={skill}
-                    selected={skillId === skill._id}
-                    onSelect={() => openSkill(skill._id)}
-                  />
+                  <SharedLayoutBackground.Item key={skill._id} id={skill._id}>
+                    <SkillCard
+                      skill={skill}
+                      selected={skillId === skill._id}
+                      onSelect={() => openSkill(skill._id)}
+                    />
+                  </SharedLayoutBackground.Item>
                 ))}
-              </div>
+              </SharedLayoutBackground.Root>
             )}
           </>
         )}
