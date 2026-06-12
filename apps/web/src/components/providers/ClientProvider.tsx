@@ -15,7 +15,7 @@ import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import { Navigate } from "@tanstack/react-router";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { SonnerToaster, TooltipProvider } from "@vmem/ui";
-import { VmemSpinner } from "@/components/svg-animations";
+import { AppSkeleton } from "@/components/AppSkeleton";
 import { ThemeProvider } from "@/components/contexts/ThemeContext";
 import { NotificationProvider } from "@/components/contexts/NotificationContext";
 import { MemoryProvider } from "@/components/contexts/MemoryContext";
@@ -95,14 +95,6 @@ function EnsureUser() {
   }, [isAuthenticated, ensureUserExists]);
 
   return null;
-}
-
-function AppSkeleton() {
-  return (
-    <div className="flex h-screen items-center justify-center bg-background">
-      <VmemSpinner size={32} className="text-muted" />
-    </div>
-  );
 }
 
 export function ClientProvider({ children }: { children: React.ReactNode }) {

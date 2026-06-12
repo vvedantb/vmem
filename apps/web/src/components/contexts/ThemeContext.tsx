@@ -18,6 +18,10 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function isTheme(value: string | undefined): value is Theme {
+  return value === "light" || value === "dark" || value === "system";
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const {
     theme: nextTheme,
@@ -47,7 +51,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setNextTheme(convexTheme);
   }, [mounted, settings?.theme, setNextTheme]);
 
-  const theme: Theme = (settings?.theme as Theme) ?? "system";
+  const theme: Theme = isTheme(settings?.theme) ? settings.theme : "system";
 
   const handleSetTheme = (newTheme: Theme) => {
     setNextTheme(newTheme);
