@@ -147,6 +147,12 @@
       "sourceType": "github",
       "computedHash": "574cf4b7c901ebc7d88d34e2c3e3d08fdec127bd0047f888de148ff0af787d4e"
     },
+    "no-ui-flash": {
+      "source": "RhysSullivan/skills",
+      "sourceType": "github",
+      "skillPath": "skills/no-ui-flash/SKILL.md",
+      "computedHash": "02d9a4a17e1220d6312a64628977e172792b29505c20e2747e1eb046c3d18b2e"
+    },
     "prd-to-issues": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -156,6 +162,12 @@
       "source": "mattpocock/skills",
       "sourceType": "github",
       "computedHash": "b602c684d70f1a27bce4d9db8fe5cca15e2923c083d6e4e6eda9d3fc0895afed"
+    },
+    "quality-code": {
+      "source": "RhysSullivan/skills",
+      "sourceType": "github",
+      "skillPath": "skills/quality-code/SKILL.md",
+      "computedHash": "0d342067e1896598ba221a7862edcec412d58c072fd689bc6f0d379261e31008"
     },
     "redesign-existing-projects": {
       "source": "Leonxlnx/taste-skill",
@@ -215,6 +227,12 @@
       "source": "mattpocock/skills",
       "sourceType": "github",
       "computedHash": "3b58a16bde08f84ed490cd449ecdc40289216d660e070c485f53bc2d1ed2b843"
+    },
+    "write-better-error-messages": {
+      "source": "RhysSullivan/skills",
+      "sourceType": "github",
+      "skillPath": "skills/write-better-error-messages/SKILL.md",
+      "computedHash": "f8fa1e176be82422a0e7368230f2eb374bc23f10d3563f27e17f40f5bc3e0a52"
     }
   }
 }
