@@ -13,6 +13,7 @@ import { Slide11Comparison } from "./11-comparison";
 import { Slide12Closing } from "./12-closing";
 import { Slide13Bento } from "./13-bento";
 import { Slide14Questions } from "./14-questions";
+import { Slide15Showcase } from "./15-showcase";
 
 export interface SlideEntry {
   id: string;
@@ -123,6 +124,14 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide12Closing,
     steps: 2,
+  },
+  // step 0: 3D screenshot showcase (panels fly in, idle float)
+  {
+    id: "15",
+    title: "Showcase",
+    theme: "dark",
+    Component: Slide15Showcase,
+    steps: 0,
   },
   // step 0: full bento board (tiles cascade in)
   {
