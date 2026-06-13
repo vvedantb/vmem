@@ -14,6 +14,7 @@ import { Slide12Closing } from "./12-closing";
 import { Slide13Bento } from "./13-bento";
 import { Slide14Questions } from "./14-questions";
 import { Slide15Showcase } from "./15-showcase";
+import { Slide16Tomorrow } from "./16-tomorrow";
 
 export interface SlideEntry {
   id: string;
@@ -139,6 +140,14 @@ export const SLIDES: SlideEntry[] = [
     title: "Everything vmem",
     theme: "dark",
     Component: Slide13Bento,
+    steps: 0,
+  },
+  // step 0: four lines blur in sequentially (past dim, future bright)
+  {
+    id: "16",
+    title: "Tomorrow",
+    theme: "dark",
+    Component: Slide16Tomorrow,
     steps: 0,
   },
   // step 0: everything
