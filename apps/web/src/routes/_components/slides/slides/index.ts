@@ -16,6 +16,7 @@ import { Slide14Questions } from "./14-questions";
 import { Slide15Showcase } from "./15-showcase";
 import { Slide16Tomorrow } from "./16-tomorrow";
 import { Slide17Pipeline } from "./17-pipeline";
+import { Slide18Local } from "./18-local";
 
 export interface SlideEntry {
   id: string;
@@ -150,6 +151,14 @@ export const SLIDES: SlideEntry[] = [
     theme: "dark",
     Component: Slide13Bento,
     steps: 0,
+  },
+  // step 0: title  /  step 1: two trend cards  /  step 2: opus-local stat  /  step 3: closing line
+  {
+    id: "18",
+    title: "Local models",
+    theme: "dark",
+    Component: Slide18Local,
+    steps: 3,
   },
   // step 0: four lines blur in sequentially (past dim, future bright)
   {
