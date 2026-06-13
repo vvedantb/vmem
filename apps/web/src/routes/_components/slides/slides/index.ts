@@ -15,6 +15,7 @@ import { Slide13Bento } from "./13-bento";
 import { Slide14Questions } from "./14-questions";
 import { Slide15Showcase } from "./15-showcase";
 import { Slide16Tomorrow } from "./16-tomorrow";
+import { Slide17Pipeline } from "./17-pipeline";
 
 export interface SlideEntry {
   id: string;
@@ -61,6 +62,14 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide04How,
     steps: 4,
+  },
+  // step 0: kicker + title  /  step 1: before chain  /  step 2: after chain
+  {
+    id: "17",
+    title: "One call",
+    theme: "light",
+    Component: Slide17Pipeline,
+    steps: 2,
   },
   // step 0: kicker + title + graph panel  /  step 1: body  /  step 2: concept rows
   {
