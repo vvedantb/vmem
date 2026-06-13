@@ -31,6 +31,7 @@ import { Slide29VmemSolves } from "./29-vmemsolves";
 import { Slide30Weaknesses } from "./30-weaknesses";
 import { Slide31Defensibility } from "./31-defensibility";
 import { Slide32Demo } from "./32-demo";
+import { Slide33Questions } from "./33-questions";
 
 export interface SlideEntry {
   id: string;
@@ -61,6 +62,14 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide02Problem,
     steps: 2,
+  },
+  // step 0: title  /  step 1: seven question cards build in
+  {
+    id: "33",
+    title: "The questions",
+    theme: "light",
+    Component: Slide33Questions,
+    steps: 1,
   },
   // step 0: kicker + title  /  step 1: body  /  step 2: surfaces  /  step 3: callout box
   {
