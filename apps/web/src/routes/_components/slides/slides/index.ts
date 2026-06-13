@@ -25,6 +25,9 @@ import { Slide23Trust } from "./23-trust";
 import { Slide24Benchmarks } from "./24-benchmarks";
 import { Slide25Moat } from "./25-moat";
 import { Slide26Stickiness } from "./26-stickiness";
+import { Slide27Landscape } from "./27-landscape";
+import { Slide28Gaps } from "./28-gaps";
+import { Slide29VmemSolves } from "./29-vmemsolves";
 
 export interface SlideEntry {
   id: string;
@@ -126,6 +129,30 @@ export const SLIDES: SlideEntry[] = [
     title: "Workspaces & teams",
     theme: "light",
     Component: Slide10Workspaces,
+    steps: 2,
+  },
+  // step 0: title  /  step 1: RAG/GraphRAG/context cards  /  step 2: context insight
+  {
+    id: "27",
+    title: "How others solve it",
+    theme: "light",
+    Component: Slide27Landscape,
+    steps: 2,
+  },
+  // step 0: title  /  step 1: three gap cards  /  step 2: flat-pile takeaway
+  {
+    id: "28",
+    title: "Where they fall short",
+    theme: "light",
+    Component: Slide28Gaps,
+    steps: 2,
+  },
+  // step 0: title  /  step 1: dream/relationship/sync cards  /  step 2: takeaway
+  {
+    id: "29",
+    title: "How vmem solves it",
+    theme: "light",
+    Component: Slide29VmemSolves,
     steps: 2,
   },
   // step 0: kicker + title  /  step 1: comparison table
