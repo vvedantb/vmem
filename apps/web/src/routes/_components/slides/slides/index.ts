@@ -32,6 +32,7 @@ import { Slide30Weaknesses } from "./30-weaknesses";
 import { Slide31Defensibility } from "./31-defensibility";
 import { Slide32Demo } from "./32-demo";
 import { Slide33Questions } from "./33-questions";
+import { Slide34Surfaces } from "./34-surfaces";
 
 export interface SlideEntry {
   id: string;
@@ -269,6 +270,14 @@ export const SLIDES: SlideEntry[] = [
     title: "Live demo",
     theme: "dark",
     Component: Slide32Demo,
+    steps: 0,
+  },
+  // step 0: rotating 3D showcase of skills/wiki/connectors screenshots
+  {
+    id: "34",
+    title: "More of the app",
+    theme: "dark",
+    Component: Slide34Surfaces,
     steps: 0,
   },
   // step 0: full bento board (tiles cascade in)
