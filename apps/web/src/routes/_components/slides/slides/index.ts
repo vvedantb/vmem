@@ -30,6 +30,7 @@ import { Slide28Gaps } from "./28-gaps";
 import { Slide29VmemSolves } from "./29-vmemsolves";
 import { Slide30Weaknesses } from "./30-weaknesses";
 import { Slide31Defensibility } from "./31-defensibility";
+import { Slide32Demo } from "./32-demo";
 
 export interface SlideEntry {
   id: string;
@@ -251,6 +252,14 @@ export const SLIDES: SlideEntry[] = [
     title: "Showcase",
     theme: "dark",
     Component: Slide15Showcase,
+    steps: 0,
+  },
+  // step 0: laptop-mockup Ken-Burns zoom over the graph screenshot
+  {
+    id: "32",
+    title: "Live demo",
+    theme: "dark",
+    Component: Slide32Demo,
     steps: 0,
   },
   // step 0: full bento board (tiles cascade in)
