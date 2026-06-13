@@ -4,14 +4,13 @@ import {
   IconFileText,
   IconMessageQuestion,
   IconPencil,
-  IconSparkles,
 } from "@tabler/icons-react";
 import type { ComponentType } from "react";
+import { EvaIcon } from "@/components/brand-icons";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideBody,
   SlideItem,
-  SlideKicker,
   SlideReveal,
   SlideShell,
   SlideStagger,
@@ -40,7 +39,12 @@ export function Slide21Eva() {
   return (
     <SlideShell>
       <SlideReveal delay={0}>
-        <SlideKicker>Dogfooding</SlideKicker>
+        <div className="mb-4 flex items-center gap-2.5">
+          <EvaIcon size={26} className="rounded-md" />
+          <span className="text-xs font-medium uppercase tracking-[0.22em] text-muted">
+            Dogfooding
+          </span>
+        </div>
       </SlideReveal>
       <BlurWordsTitle lines={["Eva runs on vmem."]} size="xl" />
       <SlideReveal delay={0.1} className="mt-4 max-w-2xl">
@@ -74,7 +78,7 @@ export function Slide21Eva() {
       {/* Step 2 — the compounding flywheel */}
       <SlideReveal step={2} className="mt-6">
         <div className="flex items-center gap-4 rounded-2xl bg-foreground px-6 py-5 text-background">
-          <IconSparkles size={26} stroke={1.5} className="shrink-0" />
+          <EvaIcon size={28} className="shrink-0 rounded-md" />
           <p className="text-base leading-relaxed">
             She keeps getting better as the data vmem holds grows — continuous
             iteration, learning from every mistake.

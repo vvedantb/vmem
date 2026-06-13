@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { IconCheck, IconSparkles } from "@tabler/icons-react";
+import { IconCheck } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import ClaudeLogo from "@/components/settings/ClaudeLogo";
-import { LinearIcon, SharePointIcon } from "@/components/brand-icons";
+import { EvaIcon, LinearIcon, SharePointIcon } from "@/components/brand-icons";
 import { VmemDrawInIcon } from "@/components/svg-animations";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
@@ -152,13 +152,7 @@ export function Slide17Pipeline() {
           </SlideItem>
           <SlideItem>
             <ToolCallCard
-              icon={
-                <IconSparkles
-                  size={15}
-                  stroke={1.5}
-                  className="text-foreground"
-                />
-              }
+              icon={<EvaIcon size={16} className="rounded" />}
               call={'eva_query("tender history")'}
               result="6 records fetched"
             />
@@ -203,11 +197,7 @@ export function Slide17Pipeline() {
                   SharePoint
                   <span className="text-muted/50">·</span>
                   <ResultLogo>
-                    <IconSparkles
-                      size={13}
-                      stroke={1.5}
-                      className="text-foreground"
-                    />
+                    <EvaIcon size={14} className="rounded-[3px]" />
                   </ResultLogo>
                   Eva — one graph, already connected
                 </span>
