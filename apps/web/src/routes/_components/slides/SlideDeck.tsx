@@ -204,27 +204,6 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
       ref={containerRef}
       className={`fixed inset-0 flex items-center justify-center overflow-hidden bg-background ${theme}`}
     >
-      {/* Ambient orb glows — bg-foreground inverts with the slide theme
-          (white orbs on dark slides, dark orbs on light). Purely decorative,
-          drifting slowly behind the stage. */}
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <motion.div
-          className="absolute -left-[10%] -top-[15%] h-[55vh] w-[55vh] rounded-full bg-foreground opacity-[0.07] blur-[120px]"
-          animate={{ x: [0, 60, 0], y: [0, 40, 0] }}
-          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute -bottom-[20%] -right-[8%] h-[65vh] w-[65vh] rounded-full bg-foreground opacity-[0.06] blur-[140px]"
-          animate={{ x: [0, -70, 0], y: [0, -45, 0] }}
-          transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute left-[45%] top-[55%] h-[35vh] w-[35vh] rounded-full bg-foreground opacity-[0.05] blur-[100px]"
-          animate={{ x: [0, 45, 0], y: [0, -55, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
-
       {/* Scaled stage */}
       <div
         ref={stageRef}
@@ -238,6 +217,40 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
         onClick={handleStageClick}
         role="presentation"
       >
+        {/* Ambient orb glows — inside the stage so they're part of the
+            slide composition and scale with it. Dark slides get soft white
+            orbs; light slides get a gentler warm cream aura (a black glow
+            on a light background reads as smog). */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          <motion.div
+            className={`absolute -left-44 -top-40 h-[560px] w-[560px] rounded-full blur-[110px] ${
+              theme === "dark"
+                ? "bg-foreground opacity-[0.14]"
+                : "bg-[#e3d5b8] opacity-[0.26]"
+            }`}
+            animate={{ x: [0, 70, 0], y: [0, 50, 0] }}
+            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className={`absolute -bottom-52 -right-40 h-[640px] w-[640px] rounded-full blur-[120px] ${
+              theme === "dark"
+                ? "bg-foreground opacity-[0.12]"
+                : "bg-[#e8dcc4] opacity-[0.22]"
+            }`}
+            animate={{ x: [0, -80, 0], y: [0, -55, 0] }}
+            transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className={`absolute left-[52%] top-[58%] h-[380px] w-[380px] rounded-full blur-[100px] ${
+              theme === "dark"
+                ? "bg-foreground opacity-[0.09]"
+                : "bg-[#e3d5b8] opacity-[0.16]"
+            }`}
+            animate={{ x: [0, 55, 0], y: [0, -65, 0] }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </div>
+
         <AnimatePresence custom={direction} mode="wait">
           <motion.div
             key={slide}
