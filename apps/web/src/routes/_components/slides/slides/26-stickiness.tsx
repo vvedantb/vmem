@@ -1,4 +1,8 @@
-import { IconChevronDown, IconArrowsExchange } from "@tabler/icons-react";
+import {
+  IconChevronDown,
+  IconArrowsExchange,
+  IconBrandGithub,
+} from "@tabler/icons-react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideItem,
@@ -68,6 +72,21 @@ export function Slide26Stickiness() {
             ))}
           </div>
         </div>
+      </SlideReveal>
+
+      <SlideReveal step={2} delay={0.12} className="mt-4">
+        <p className="flex items-center gap-2.5 text-base leading-relaxed text-foreground/80">
+          <IconBrandGithub
+            size={20}
+            stroke={1.5}
+            className="shrink-0 text-foreground"
+          />
+          And vmem itself is{" "}
+          <span className="font-medium text-foreground">
+            open source and self-hostable anywhere
+          </span>{" "}
+          — no lock-in by design.
+        </p>
       </SlideReveal>
     </SlideShell>
   );
