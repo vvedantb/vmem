@@ -17,6 +17,7 @@ import { Slide15Showcase } from "./15-showcase";
 import { Slide16Tomorrow } from "./16-tomorrow";
 import { Slide17Pipeline } from "./17-pipeline";
 import { Slide18Local } from "./18-local";
+import { Slide19UseCases } from "./19-usecases";
 
 export interface SlideEntry {
   id: string;
@@ -126,6 +127,14 @@ export const SLIDES: SlideEntry[] = [
     title: "vs the field",
     theme: "light",
     Component: Slide11Comparison,
+    steps: 1,
+  },
+  // step 0: title  /  step 1: four domain use-case cards
+  {
+    id: "19",
+    title: "Use cases",
+    theme: "light",
+    Component: Slide19UseCases,
     steps: 1,
   },
   // step 0: kicker + title  /  step 1: body + CTA  /  step 2: roadmap cards
