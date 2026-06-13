@@ -22,6 +22,7 @@ import { Slide20CompanyBrain } from "./20-companybrain";
 import { Slide21Eva } from "./21-eva";
 import { Slide22FormFactors } from "./22-formfactors";
 import { Slide23Trust } from "./23-trust";
+import { Slide24Benchmarks } from "./24-benchmarks";
 
 export interface SlideEntry {
   id: string;
@@ -132,6 +133,14 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide11Comparison,
     steps: 1,
+  },
+  // step 0: title  /  step 1: in-progress benchmark rows  /  step 2: personal-use quote
+  {
+    id: "24",
+    title: "Benchmarks",
+    theme: "light",
+    Component: Slide24Benchmarks,
+    steps: 2,
   },
   // step 0: title  /  step 1: four domain use-case cards
   {
