@@ -19,6 +19,7 @@ import { Slide17Pipeline } from "./17-pipeline";
 import { Slide18Local } from "./18-local";
 import { Slide19UseCases } from "./19-usecases";
 import { Slide20CompanyBrain } from "./20-companybrain";
+import { Slide21Eva } from "./21-eva";
 
 export interface SlideEntry {
   id: string;
@@ -145,6 +146,14 @@ export const SLIDES: SlideEntry[] = [
     theme: "dark",
     Component: Slide20CompanyBrain,
     steps: 1,
+  },
+  // step 0: title + body  /  step 1: working-memory grid  /  step 2: flywheel callout
+  {
+    id: "21",
+    title: "Eva",
+    theme: "light",
+    Component: Slide21Eva,
+    steps: 2,
   },
   // step 0: kicker + title  /  step 1: body + CTA  /  step 2: roadmap cards
   {
