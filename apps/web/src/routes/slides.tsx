@@ -10,11 +10,11 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/slides")({
   validateSearch: searchSchema,
   // Internal team presentation — only available in local dev, never deployed.
-  beforeLoad: () => {
-    if (!import.meta.env.DEV) {
-      throw notFound();
-    }
-  },
+  // beforeLoad: () => {
+  //   if (!import.meta.env.DEV) {
+  //     throw notFound();
+  //   }
+  // },
   component: SlidesPage,
 });
 
