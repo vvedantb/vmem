@@ -6,3 +6,4 @@ export { default as NotionIcon } from "./NotionIcon";
 export { default as SlackIcon } from "./SlackIcon";
 export { default as GitHubIcon } from "./GitHubIcon";
 export { default as LinearIcon } from "./LinearIcon";
+export { default as SharePointIcon } from "./SharePointIcon";

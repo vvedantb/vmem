@@ -1,5 +1,9 @@
-import { IconArrowRight } from "@tabler/icons-react";
-import { Fragment } from "react";
+import type { ReactNode } from "react";
+import { IconCheck, IconSparkles } from "@tabler/icons-react";
+import { motion } from "motion/react";
+import ClaudeLogo from "@/components/settings/ClaudeLogo";
+import { LinearIcon, SharePointIcon } from "@/components/brand-icons";
+import { VmemDrawInIcon } from "@/components/svg-animations";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideItem,
@@ -10,71 +14,87 @@ import {
 } from "../_components/SlideShell";
 
 /**
- * Before/after pipeline comparison: without vmem Claude re-fetches and
- * re-reasons over every tool on every prompt; with vmem one memory call
- * returns data that is already connected and already reasoned over.
- * Chain pills stagger in left-to-right so the length difference lands.
+ * Before/after tool-call transcript, styled like Claude's tool-use blocks:
+ * each external call is a card with the real product logo, a mono function
+ * line, and a result note; "Reasoning" rows pulse between calls. Without
+ * vmem Claude chains three tools and re-reasons after each; with vmem one
+ * memory call returns the same data already connected and reasoned over.
  */
 
-interface ChainStep {
-  label: string;
-  /** Visual emphasis: agent = Claude, tool = external call, reason = thinking, answer = output. */
-  kind: "agent" | "tool" | "reason" | "answer";
+function ReasoningRow() {
+  return (
+    <div className="flex items-center gap-2 py-1 pl-4">
+      <span className="flex gap-1">
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            className="h-1 w-1 rounded-full bg-muted"
+            animate={{ opacity: [0.25, 1, 0.25] }}
+            transition={{
+              duration: 1.2,
+              repeat: Infinity,
+              delay: i * 0.18,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </span>
+      <span className="text-xs italic text-muted">Reasoning…</span>
+    </div>
+  );
 }
 
-const BEFORE_CHAIN: ChainStep[] = [
-  { label: "Claude", kind: "agent" },
-  { label: "Linear tool", kind: "tool" },
-  { label: "Reason", kind: "reason" },
-  { label: "SharePoint tool", kind: "tool" },
-  { label: "Reason", kind: "reason" },
-  { label: "Eva tool", kind: "tool" },
-  { label: "Reason", kind: "reason" },
-  { label: "Final answer", kind: "answer" },
-];
+interface ToolCallCardProps {
+  icon: ReactNode;
+  call: string;
+  result: string;
+}
 
-const AFTER_CHAIN: ChainStep[] = [
-  { label: "Claude", kind: "agent" },
-  { label: "vmem tool", kind: "tool" },
-  { label: "Reason", kind: "reason" },
-  { label: "Final answer", kind: "answer" },
-];
-
-const KIND_CLASSES: Record<ChainStep["kind"], string> = {
-  agent: "bg-foreground text-background",
-  tool: "bg-surface-secondary text-foreground",
-  reason: "bg-surface-secondary/50 text-muted",
-  answer: "bg-foreground text-background",
-};
-
-function Chain({ steps, step }: { steps: ChainStep[]; step: number }) {
+/** A Claude-style tool-use block: logo, mono call line, result note. */
+function ToolCallCard({ icon, call, result }: ToolCallCardProps) {
   return (
-    <SlideStagger
-      className="flex flex-wrap items-center gap-2"
-      staggerChildren={0.18}
-      step={step}
-    >
-      {steps.map((s, i) => (
-        <Fragment key={`${s.label}-${i}`}>
-          {i > 0 ? (
-            <SlideItem>
-              <IconArrowRight
-                size={16}
-                stroke={1.5}
-                className="text-muted/60"
-              />
-            </SlideItem>
-          ) : null}
-          <SlideItem>
-            <span
-              className={`inline-flex items-center whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium ${KIND_CLASSES[s.kind]}`}
-            >
-              {s.label}
-            </span>
-          </SlideItem>
-        </Fragment>
-      ))}
-    </SlideStagger>
+    <div className="rounded-xl bg-surface-secondary/60 px-4 py-3">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface">
+          {icon}
+        </span>
+        <code className="font-mono text-[13px] text-foreground">{call}</code>
+      </div>
+      <p className="mt-1.5 pl-[38px] text-xs text-muted">{result}</p>
+    </div>
+  );
+}
+
+function AnswerCard({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl bg-foreground px-4 py-3">
+      <IconCheck size={16} stroke={2} className="shrink-0 text-background" />
+      <p className="text-[13px] font-medium text-background">{children}</p>
+    </div>
+  );
+}
+
+function ColumnHeader({ label, body }: { label: string; body: string }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">
+        {label}
+      </p>
+      <p className="mt-2 min-h-[3.75rem] text-sm leading-relaxed text-muted">
+        {body}
+      </p>
+    </div>
+  );
+}
+
+/** Claude header row that opens each transcript column. */
+function ClaudeRow() {
+  return (
+    <div className="flex items-center gap-2.5 py-1">
+      <ClaudeLogo className="h-5 w-5 text-[#D97757]" />
+      <span className="text-sm font-medium text-foreground">Claude</span>
+      <span className="text-xs text-muted">received your prompt</span>
+    </div>
   );
 }
 
@@ -86,33 +106,92 @@ export function Slide17Pipeline() {
       </SlideReveal>
       <BlurWordsTitle lines={["One call, not five."]} size="xl" />
 
-      {/* BEFORE — long chain, re-fetched and re-reasoned every prompt */}
-      <SlideReveal step={1} className="mt-10">
-        <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">
-          Before — without vmem
-        </p>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
-          Claude pieces the data together and reasons over it again on every
-          single prompt.
-        </p>
-      </SlideReveal>
-      <div className="mt-4 rounded-2xl bg-surface-secondary/40 px-6 py-5">
-        <Chain steps={BEFORE_CHAIN} step={1} />
-      </div>
+      <div className="mt-8 grid grid-cols-2 gap-10">
+        {/* BEFORE — three tools, re-fetched and re-reasoned every prompt */}
+        <SlideStagger
+          className="flex flex-col gap-2.5"
+          staggerChildren={0.3}
+          step={1}
+        >
+          <SlideItem>
+            <ColumnHeader
+              label="Before — without vmem"
+              body="Claude pieces the data together and reasons over it again on every single prompt."
+            />
+          </SlideItem>
+          <SlideItem>
+            <ClaudeRow />
+          </SlideItem>
+          <SlideItem>
+            <ToolCallCard
+              icon={<LinearIcon size={16} />}
+              call={'linear_search("Q3 roadmap")'}
+              result="14 issues fetched"
+            />
+          </SlideItem>
+          <SlideItem>
+            <ReasoningRow />
+          </SlideItem>
+          <SlideItem>
+            <ToolCallCard
+              icon={<SharePointIcon size={16} />}
+              call={'sharepoint_get("Q3 PRD.docx")'}
+              result="1 document fetched"
+            />
+          </SlideItem>
+          <SlideItem>
+            <ReasoningRow />
+          </SlideItem>
+          <SlideItem>
+            <ToolCallCard
+              icon={
+                <IconSparkles
+                  size={15}
+                  stroke={1.5}
+                  className="text-foreground"
+                />
+              }
+              call={'eva_query("tender history")'}
+              result="6 records fetched"
+            />
+          </SlideItem>
+          <SlideItem>
+            <ReasoningRow />
+          </SlideItem>
+          <SlideItem>
+            <AnswerCard>Final answer — rebuilt from scratch</AnswerCard>
+          </SlideItem>
+        </SlideStagger>
 
-      {/* AFTER — one memory call, already connected, already reasoned over */}
-      <SlideReveal step={2} className="mt-10">
-        <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">
-          After — with vmem
-        </p>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
-          One call to memory returns the Linear, SharePoint, and Eva data
-          already stored in one place — already connected, already reasoned
-          over.
-        </p>
-      </SlideReveal>
-      <div className="mt-4 rounded-2xl bg-surface-secondary/40 px-6 py-5">
-        <Chain steps={AFTER_CHAIN} step={2} />
+        {/* AFTER — one memory call, already connected, already reasoned over */}
+        <SlideStagger
+          className="flex flex-col gap-2.5"
+          staggerChildren={0.3}
+          step={2}
+        >
+          <SlideItem>
+            <ColumnHeader
+              label="After — with vmem"
+              body="One call to memory returns the Linear, SharePoint, and Eva data already connected and already reasoned over."
+            />
+          </SlideItem>
+          <SlideItem>
+            <ClaudeRow />
+          </SlideItem>
+          <SlideItem>
+            <ToolCallCard
+              icon={<VmemDrawInIcon size={16} className="text-foreground" />}
+              call={'memory_retrieve("Q3 context")'}
+              result="Linear · SharePoint · Eva — one graph, already connected"
+            />
+          </SlideItem>
+          <SlideItem>
+            <ReasoningRow />
+          </SlideItem>
+          <SlideItem>
+            <AnswerCard>Final answer — straight from memory</AnswerCard>
+          </SlideItem>
+        </SlideStagger>
       </div>
     </SlideShell>
   );
