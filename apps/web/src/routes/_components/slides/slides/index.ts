@@ -28,6 +28,8 @@ import { Slide26Stickiness } from "./26-stickiness";
 import { Slide27Landscape } from "./27-landscape";
 import { Slide28Gaps } from "./28-gaps";
 import { Slide29VmemSolves } from "./29-vmemsolves";
+import { Slide30Weaknesses } from "./30-weaknesses";
+import { Slide31Defensibility } from "./31-defensibility";
 
 export interface SlideEntry {
   id: string;
@@ -225,6 +227,22 @@ export const SLIDES: SlideEntry[] = [
     title: "Cost of stickiness",
     theme: "dark",
     Component: Slide26Stickiness,
+    steps: 2,
+  },
+  // step 0: title  /  step 1: three honest weakness cards
+  {
+    id: "30",
+    title: "Weaknesses",
+    theme: "dark",
+    Component: Slide30Weaknesses,
+    steps: 1,
+  },
+  // step 0: title  /  step 1: three defensibility cards  /  step 2: takeaway
+  {
+    id: "31",
+    title: "Defensibility",
+    theme: "dark",
+    Component: Slide31Defensibility,
     steps: 2,
   },
   // step 0: 3D screenshot showcase (panels fly in, idle float)
