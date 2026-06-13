@@ -20,6 +20,7 @@ import { Slide18Local } from "./18-local";
 import { Slide19UseCases } from "./19-usecases";
 import { Slide20CompanyBrain } from "./20-companybrain";
 import { Slide21Eva } from "./21-eva";
+import { Slide22FormFactors } from "./22-formfactors";
 
 export interface SlideEntry {
   id: string;
@@ -186,6 +187,14 @@ export const SLIDES: SlideEntry[] = [
     theme: "dark",
     Component: Slide18Local,
     steps: 3,
+  },
+  // step 0: title  /  step 1: three form-factor cards  /  step 2: connect-vmem punchline
+  {
+    id: "22",
+    title: "Form factors",
+    theme: "dark",
+    Component: Slide22FormFactors,
+    steps: 2,
   },
   // step 0: four lines blur in sequentially (past dim, future bright)
   {
