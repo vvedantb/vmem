@@ -23,7 +23,7 @@ import {
 
 function ReasoningRow() {
   return (
-    <div className="flex items-center gap-2 py-1 pl-4">
+    <div className="flex items-center gap-2 pl-4">
       <span className="flex gap-1">
         {[0, 1, 2].map((i) => (
           <motion.span
@@ -47,21 +47,29 @@ function ReasoningRow() {
 interface ToolCallCardProps {
   icon: ReactNode;
   call: string;
-  result: string;
+  /** Plain result note, or a node (e.g. inline-logo list) for richer output. */
+  result: ReactNode;
 }
 
 /** A Claude-style tool-use block: logo, mono call line, result note. */
 function ToolCallCard({ icon, call, result }: ToolCallCardProps) {
   return (
-    <div className="rounded-xl bg-surface-secondary/60 px-4 py-3">
+    <div className="rounded-xl bg-surface-secondary/60 px-3.5 py-2.5">
       <div className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-surface">
           {icon}
         </span>
         <code className="font-mono text-[13px] text-foreground">{call}</code>
       </div>
-      <p className="mt-1.5 pl-[38px] text-xs text-muted">{result}</p>
+      <div className="mt-1 pl-[34px] text-xs text-muted">{result}</div>
     </div>
+  );
+}
+
+/** Small inline logo used inside a result note. */
+function ResultLogo({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex h-3.5 w-3.5 items-center">{children}</span>
   );
 }
 
@@ -80,7 +88,7 @@ function ColumnHeader({ label, body }: { label: string; body: string }) {
       <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">
         {label}
       </p>
-      <p className="mt-2 min-h-[3.75rem] text-sm leading-relaxed text-muted">
+      <p className="mt-1.5 min-h-[3rem] text-sm leading-snug text-muted">
         {body}
       </p>
     </div>
@@ -106,10 +114,10 @@ export function Slide17Pipeline() {
       </SlideReveal>
       <BlurWordsTitle lines={["One call, not five."]} size="xl" />
 
-      <div className="mt-8 grid grid-cols-2 gap-10">
+      <div className="mt-6 grid grid-cols-2 gap-10">
         {/* BEFORE — three tools, re-fetched and re-reasoned every prompt */}
         <SlideStagger
-          className="flex flex-col gap-2.5"
+          className="flex flex-col gap-2"
           staggerChildren={0.3}
           step={1}
         >
@@ -165,7 +173,7 @@ export function Slide17Pipeline() {
 
         {/* AFTER — one memory call, already connected, already reasoned over */}
         <SlideStagger
-          className="flex flex-col gap-2.5"
+          className="flex flex-col gap-2"
           staggerChildren={0.3}
           step={2}
         >
@@ -182,7 +190,28 @@ export function Slide17Pipeline() {
             <ToolCallCard
               icon={<VmemDrawInIcon size={16} className="text-foreground" />}
               call={'memory_retrieve("Q3 context")'}
-              result="Linear · SharePoint · Eva — one graph, already connected"
+              result={
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  <ResultLogo>
+                    <LinearIcon size={14} />
+                  </ResultLogo>
+                  Linear
+                  <span className="text-muted/50">·</span>
+                  <ResultLogo>
+                    <SharePointIcon size={14} />
+                  </ResultLogo>
+                  SharePoint
+                  <span className="text-muted/50">·</span>
+                  <ResultLogo>
+                    <IconSparkles
+                      size={13}
+                      stroke={1.5}
+                      className="text-foreground"
+                    />
+                  </ResultLogo>
+                  Eva — one graph, already connected
+                </span>
+              }
             />
           </SlideItem>
           <SlideItem>
