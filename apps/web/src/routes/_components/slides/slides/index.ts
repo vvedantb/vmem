@@ -24,6 +24,7 @@ import { Slide22FormFactors } from "./22-formfactors";
 import { Slide23Trust } from "./23-trust";
 import { Slide24Benchmarks } from "./24-benchmarks";
 import { Slide25Moat } from "./25-moat";
+import { Slide26Stickiness } from "./26-stickiness";
 
 export interface SlideEntry {
   id: string;
@@ -189,6 +190,14 @@ export const SLIDES: SlideEntry[] = [
     title: "Memory is the moat",
     theme: "dark",
     Component: Slide25Moat,
+    steps: 2,
+  },
+  // step 0: title  /  step 1: lock-in spiral  /  step 2: portability resolution
+  {
+    id: "26",
+    title: "Cost of stickiness",
+    theme: "dark",
+    Component: Slide26Stickiness,
     steps: 2,
   },
   // step 0: 3D screenshot showcase (panels fly in, idle float)
