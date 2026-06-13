@@ -21,6 +21,7 @@ import { Slide19UseCases } from "./19-usecases";
 import { Slide20CompanyBrain } from "./20-companybrain";
 import { Slide21Eva } from "./21-eva";
 import { Slide22FormFactors } from "./22-formfactors";
+import { Slide23Trust } from "./23-trust";
 
 export interface SlideEntry {
   id: string;
@@ -155,6 +156,14 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide21Eva,
     steps: 2,
+  },
+  // step 0: title  /  step 1: three trust pillars
+  {
+    id: "23",
+    title: "Trust",
+    theme: "light",
+    Component: Slide23Trust,
+    steps: 1,
   },
   // step 0: kicker + title  /  step 1: body + CTA  /  step 2: roadmap cards
   {
