@@ -276,6 +276,26 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
         />
       </div>
 
+      {/* Build-step indicator — shows reveals consumed vs total for this
+          slide so you know whether another click reveals more content or
+          advances to the next slide. Hidden on slides with no build steps. */}
+      {SLIDES[index].steps > 0 ? (
+        <div className="pointer-events-none absolute bottom-8 right-4 flex items-center gap-1.5 font-mono text-xs tabular-nums">
+          <span
+            className={
+              step < SLIDES[index].steps
+                ? "text-foreground/70"
+                : "text-muted/40"
+            }
+          >
+            {step < SLIDES[index].steps ? "more ↓" : "end"}
+          </span>
+          <span className="text-muted/40">
+            {step} / {SLIDES[index].steps}
+          </span>
+        </div>
+      ) : null}
+
       {/* Slide counter */}
       <div className="pointer-events-none absolute bottom-3 right-4 font-mono text-xs tabular-nums text-muted/40">
         {slide} / {TOTAL}
