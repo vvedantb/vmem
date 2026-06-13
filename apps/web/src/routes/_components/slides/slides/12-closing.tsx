@@ -52,6 +52,13 @@ export function Slide12Closing() {
               and richer recall are next.
             </SlideBody>
           </SlideReveal>
+          <SlideReveal step={1} delay={0.04} className="mt-4 max-w-lg">
+            <SlideBody>
+              The memory layer is entering its own GPT-3 moment — early, but
+              improving fast. You can already see it: Claude now references past
+              chats and memories.
+            </SlideBody>
+          </SlideReveal>
           <SlideReveal step={1} delay={0.08} className="mt-8">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground/60">
               <span>vmem.app</span>

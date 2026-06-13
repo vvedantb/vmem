@@ -23,6 +23,7 @@ import { Slide21Eva } from "./21-eva";
 import { Slide22FormFactors } from "./22-formfactors";
 import { Slide23Trust } from "./23-trust";
 import { Slide24Benchmarks } from "./24-benchmarks";
+import { Slide25Moat } from "./25-moat";
 
 export interface SlideEntry {
   id: string;
@@ -180,6 +181,14 @@ export const SLIDES: SlideEntry[] = [
     title: "Closing",
     theme: "light",
     Component: Slide12Closing,
+    steps: 2,
+  },
+  // step 0: title  /  step 1: three thesis cards  /  step 2: ownership punchline
+  {
+    id: "25",
+    title: "Memory is the moat",
+    theme: "dark",
+    Component: Slide25Moat,
     steps: 2,
   },
   // step 0: 3D screenshot showcase (panels fly in, idle float)
