@@ -1,4 +1,9 @@
-import { IconEyeglass, IconDeviceWatch, IconRobot } from "@tabler/icons-react";
+import {
+  IconEyeglass,
+  IconDeviceWatch,
+  IconRobot,
+  IconUserScan,
+} from "@tabler/icons-react";
 import type { ComponentType } from "react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
@@ -37,6 +42,11 @@ const FORM_FACTORS: FormFactor[] = [
     title: "Personal robots",
     body: "An assistant that arrives already understanding your world.",
   },
+  {
+    icon: IconUserScan,
+    title: "Digital twin",
+    body: "A model of you that reasons and acts on your behalf — grounded in everything you've stored.",
+  },
 ];
 
 export function Slide22FormFactors() {
@@ -49,7 +59,7 @@ export function Slide22FormFactors() {
 
       {/* Step 1 — the emerging form factors */}
       <SlideStagger
-        className="mt-8 grid grid-cols-3 gap-5"
+        className="mt-8 grid grid-cols-4 gap-4"
         delayChildren={0.06}
         staggerChildren={0.13}
         step={1}
