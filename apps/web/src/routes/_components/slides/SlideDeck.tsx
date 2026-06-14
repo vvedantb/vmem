@@ -224,37 +224,42 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
             slide composition and scale with it. Dark slides get soft white
             orbs; light slides get a gentler warm cream aura (a black glow
             on a light background reads as smog). */}
-        {showOrbs ? (
-          <div className="pointer-events-none absolute inset-0" aria-hidden>
-            <motion.div
-              className={`absolute -left-44 -top-40 h-[560px] w-[560px] rounded-full blur-[110px] ${
-                theme === "dark"
-                  ? "bg-foreground opacity-[0.14]"
-                  : "bg-[#e3d5b8] opacity-[0.26]"
-              }`}
-              animate={{ x: [0, 70, 0], y: [0, 50, 0] }}
-              transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-              className={`absolute -bottom-52 -right-40 h-[640px] w-[640px] rounded-full blur-[120px] ${
-                theme === "dark"
-                  ? "bg-foreground opacity-[0.12]"
-                  : "bg-[#e8dcc4] opacity-[0.22]"
-              }`}
-              animate={{ x: [0, -80, 0], y: [0, -55, 0] }}
-              transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-              className={`absolute left-[52%] top-[58%] h-[380px] w-[380px] rounded-full blur-[100px] ${
-                theme === "dark"
-                  ? "bg-foreground opacity-[0.09]"
-                  : "bg-[#e3d5b8] opacity-[0.16]"
-              }`}
-              animate={{ x: [0, 55, 0], y: [0, -65, 0] }}
-              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </div>
-        ) : null}
+        {/* Always mounted so the orbs fade (not pop) when leaving the black
+            opener — a hard mount flashed the white glow in mid-transition. */}
+        <motion.div
+          className="pointer-events-none absolute inset-0"
+          aria-hidden
+          animate={{ opacity: showOrbs ? 1 : 0 }}
+          transition={{ duration: motionDuration.base, ease: motionEase }}
+        >
+          <motion.div
+            className={`absolute -left-44 -top-40 h-[560px] w-[560px] rounded-full blur-[110px] ${
+              theme === "dark"
+                ? "bg-foreground opacity-[0.14]"
+                : "bg-[#e3d5b8] opacity-[0.26]"
+            }`}
+            animate={{ x: [0, 70, 0], y: [0, 50, 0] }}
+            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className={`absolute -bottom-52 -right-40 h-[640px] w-[640px] rounded-full blur-[120px] ${
+              theme === "dark"
+                ? "bg-foreground opacity-[0.12]"
+                : "bg-[#e8dcc4] opacity-[0.22]"
+            }`}
+            animate={{ x: [0, -80, 0], y: [0, -55, 0] }}
+            transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className={`absolute left-[52%] top-[58%] h-[380px] w-[380px] rounded-full blur-[100px] ${
+              theme === "dark"
+                ? "bg-foreground opacity-[0.09]"
+                : "bg-[#e3d5b8] opacity-[0.16]"
+            }`}
+            animate={{ x: [0, 55, 0], y: [0, -65, 0] }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </motion.div>
 
         <AnimatePresence custom={direction} mode="wait">
           <motion.div
