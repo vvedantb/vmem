@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { Slide00Black } from "./00-black";
 import { Slide01Title } from "./01-title";
 import { Slide02Problem } from "./02-problem";
 import { Slide03What } from "./03-what";
@@ -48,6 +49,14 @@ export interface SlideEntry {
 }
 
 export const SLIDES: SlideEntry[] = [
+  // Blank opener — click forward to play the title's entrance live.
+  {
+    id: "00",
+    title: "Start",
+    theme: "dark",
+    Component: Slide00Black,
+    steps: 0,
+  },
   // step 0: brand + title  /  step 1: subtitle + footer
   {
     id: "01",
