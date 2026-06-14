@@ -229,8 +229,9 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
         <motion.div
           className="pointer-events-none absolute inset-0"
           aria-hidden
+          initial={false}
           animate={{ opacity: showOrbs ? 1 : 0 }}
-          transition={{ duration: motionDuration.base, ease: motionEase }}
+          transition={{ duration: showOrbs ? 1.6 : 0.4, ease: "easeInOut" }}
         >
           <motion.div
             className={`absolute -left-44 -top-40 h-[560px] w-[560px] rounded-full blur-[110px] ${
