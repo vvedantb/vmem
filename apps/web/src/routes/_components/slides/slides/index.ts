@@ -34,6 +34,7 @@ import { Slide31Defensibility } from "./31-defensibility";
 import { Slide32Demo } from "./32-demo";
 import { Slide33Questions } from "./33-questions";
 import { Slide34Surfaces } from "./34-surfaces";
+import { Slide35Sovereignty } from "./35-sovereignty";
 
 export interface SlideEntry {
   id: string;
@@ -247,6 +248,14 @@ export const SLIDES: SlideEntry[] = [
     title: "Cost of stickiness",
     theme: "dark",
     Component: Slide26Stickiness,
+    steps: 2,
+  },
+  // step 0: title  /  step 1: shutdown→swap→retain scenario  /  step 2: quote
+  {
+    id: "35",
+    title: "The real test",
+    theme: "dark",
+    Component: Slide35Sovereignty,
     steps: 2,
   },
   // step 0: title  /  step 1: three honest weakness cards
