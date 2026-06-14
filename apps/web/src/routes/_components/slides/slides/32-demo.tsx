@@ -32,8 +32,9 @@ export function Slide32Demo() {
           {/* Camera notch */}
           <div className="absolute left-1/2 top-1 h-1 w-10 -translate-x-1/2 rounded-full bg-neutral-700" />
           <div className="overflow-hidden rounded-[6px] bg-surface">
-            {/* Live, clickable graph preview — the actual product mock */}
-            <SlideMemoryPreview />
+            {/* Live, clickable graph preview — the actual product mock.
+                Counter + typewriter play once (no loop) on this slide. */}
+            <SlideMemoryPreview loop={false} />
           </div>
         </div>
         {/* Laptop base / hinge */}

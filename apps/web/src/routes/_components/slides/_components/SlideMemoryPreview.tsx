@@ -29,10 +29,18 @@ function toggleNode(
  * landing.css is imported here so the `landing-graph-dash` and
  * `landing-preview-pulse` keyframes work even when LandingPage is not mounted.
  */
-export function SlideMemoryPreview() {
+interface SlideMemoryPreviewProps {
+  /**
+   * When true the node counter and typewriter restart endlessly; when false
+   * they play once on mount and hold. Defaults to true.
+   */
+  loop?: boolean;
+}
+
+export function SlideMemoryPreview({ loop = true }: SlideMemoryPreviewProps) {
   const [activeNodeId, setActiveNodeId] = useState<PreviewNodeId | null>(null);
 
-  // ── Counter roll: 0 → 128 (looping) ────────────────────────────────────────
+  // ── Counter roll: 0 → 128 (loops only when `loop`) ─────────────────────────
   const countMV = useMotionValue(0);
   const displayCount = useTransform(countMV, (v) => String(Math.round(v)));
 
@@ -41,18 +49,20 @@ export function SlideMemoryPreview() {
       const controls = animate(countMV, NODE_COUNT_TARGET, {
         duration: 1,
         ease: [0.16, 1, 0.3, 1],
-        onComplete: () => {
-          countMV.set(0);
-          animate_counter();
-        },
+        onComplete: loop
+          ? () => {
+              countMV.set(0);
+              animate_counter();
+            }
+          : undefined,
       });
       return controls;
     };
     const controls = animate_counter();
     return () => controls.stop();
-  }, [countMV]);
+  }, [countMV, loop]);
 
-  // ── Typewriter: types out "memory.retrieve" then resets and loops ──────────
+  // ── Typewriter: types "memory.retrieve" (loops only when `loop`) ───────────
   const charCountMV = useMotionValue(0);
   const typedText = useTransform(charCountMV, (v) =>
     SNIPPET_TARGET.slice(0, Math.round(v)),
@@ -65,16 +75,18 @@ export function SlideMemoryPreview() {
       const controls = animate(charCountMV, SNIPPET_TARGET.length, {
         duration: typingDuration,
         ease: "linear",
-        onComplete: () => {
-          charCountMV.set(0);
-          animate_typewriter();
-        },
+        onComplete: loop
+          ? () => {
+              charCountMV.set(0);
+              animate_typewriter();
+            }
+          : undefined,
       });
       return controls;
     };
     const controls = animate_typewriter();
     return () => controls.stop();
-  }, [charCountMV, typingDuration]);
+  }, [charCountMV, typingDuration, loop]);
 
   const activeNode = previewNodes.find((node) => node.id === activeNodeId);
   const snippet =
