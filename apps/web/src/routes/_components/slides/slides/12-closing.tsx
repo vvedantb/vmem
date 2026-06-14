@@ -40,7 +40,7 @@ export function Slide12Closing() {
       <div className="relative z-10 flex h-full items-center gap-16">
         {/* Frosted panel: the graph lines stay visible but blur out behind the
             text so the copy reads cleanly. */}
-        <div className="flex flex-1 flex-col justify-center rounded-3xl bg-background/55 px-8 py-8 backdrop-blur-xl">
+        <div className="flex flex-1 flex-col justify-center rounded-3xl bg-background/25 px-8 py-8 backdrop-blur-md">
           <SlideReveal delay={0}>
             <SlideKicker>What&apos;s next</SlideKicker>
           </SlideReveal>
