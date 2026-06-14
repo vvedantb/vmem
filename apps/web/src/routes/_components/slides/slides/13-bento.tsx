@@ -1,8 +1,23 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { motion } from "motion/react";
 import type { Variants } from "motion/react";
+import {
+  IconBolt,
+  IconBook2,
+  IconBrowser,
+  IconCode,
+  IconDeviceMobile,
+  IconFiles,
+  IconLayoutDashboard,
+  IconLayoutGrid,
+  IconPlug,
+  IconPlugConnected,
+  IconBinaryTree2,
+} from "@tabler/icons-react";
 import { motionEase } from "@vmem/ui";
 import { SlideShell } from "../_components/SlideShell";
+
+type TablerIcon = ComponentType<{ size?: number; stroke?: number }>;
 
 // Apple keynote-style bento entrance: each tile slides in from outside
 // the board (its nearest edge) and glides into its grid spot, lightly
@@ -66,6 +81,8 @@ interface BentoTileProps {
   inverted?: boolean;
   /** Anchor content to the bottom (Apple-style) instead of centering. */
   bottom?: boolean;
+  /** Per-tile glyph shown faded in the top-right corner. */
+  icon?: TablerIcon;
   children?: ReactNode;
 }
 
@@ -75,14 +92,27 @@ function BentoTile({
   large = false,
   inverted = false,
   bottom = false,
+  icon: Icon,
   children,
 }: BentoTileProps) {
   return (
     <div
-      className={`flex h-full flex-col rounded-3xl p-6 ${
+      className={`relative flex h-full flex-col overflow-hidden rounded-3xl p-6 ${
         bottom ? "justify-end" : "justify-center"
       } ${inverted ? "bg-foreground" : "bg-surface-secondary"}`}
     >
+      {Icon ? (
+        <span
+          className={`pointer-events-none absolute right-5 top-5 ${
+            inverted
+              ? "text-background opacity-25"
+              : "text-foreground opacity-15"
+          }`}
+          aria-hidden
+        >
+          <Icon size={large ? 28 : 22} stroke={1.5} />
+        </span>
+      ) : null}
       <h3
         className={`font-instrumentSerif font-normal leading-tight tracking-tight ${
           large ? "text-4xl" : "text-2xl"
@@ -129,6 +159,7 @@ export function Slide13Bento() {
               large
               inverted
               bottom
+              icon={IconLayoutDashboard}
             />
           </BentoCell>
           <BentoCell from={{ y: -240 }} className="col-span-2 row-span-2">
@@ -137,10 +168,11 @@ export function Slide13Bento() {
               description="Sync browser history, bookmarks, and other data"
               large
               bottom
+              icon={IconBrowser}
             />
           </BentoCell>
           <BentoCell from={{ x: 280 }} className="col-span-1 row-span-4">
-            <BentoTile title="Integrations" bottom>
+            <BentoTile title="Integrations" bottom icon={IconPlugConnected}>
               <ul className="mt-2 space-y-1 text-sm text-muted">
                 {integrations.map((name) => (
                   <li key={name}>{name}</li>
@@ -156,6 +188,7 @@ export function Slide13Bento() {
               title="MCP Connector"
               description="One connection, everywhere"
               bottom
+              icon={IconPlug}
             />
           </BentoCell>
           <BentoCell from={{ y: 220, x: 60 }} className="col-span-1 row-span-2">
@@ -163,18 +196,21 @@ export function Slide13Bento() {
               title="Developer SDK"
               description="Cut agentic memory development times"
               bottom
+              icon={IconCode}
             />
           </BentoCell>
           <BentoCell from={{ x: -240 }} className="col-span-1 row-span-1">
             <BentoTile
               title="Mobile"
               description="Interact with your data, privately"
+              icon={IconDeviceMobile}
             />
           </BentoCell>
           <BentoCell from={{ y: 200 }} className="col-span-1 row-span-1">
             <BentoTile
               title="Files"
               description="Give your agent its own file explorer"
+              icon={IconFiles}
             />
           </BentoCell>
           <BentoCell from={{ y: 240 }} className="col-span-1 row-span-2">
@@ -182,6 +218,7 @@ export function Slide13Bento() {
               title="Wiki"
               description="Knowledge system for the agent to store longer texts"
               bottom
+              icon={IconBook2}
             />
           </BentoCell>
           <BentoCell from={{ x: 260 }} className="col-span-1 row-span-2">
@@ -189,18 +226,21 @@ export function Slide13Bento() {
               title="Codebases"
               description="Sync code structure"
               bottom
+              icon={IconBinaryTree2}
             />
           </BentoCell>
           <BentoCell from={{ x: -240 }} className="col-span-1 row-span-1">
             <BentoTile
               title="Skills"
               description="Define skills once, use everywhere"
+              icon={IconBolt}
             />
           </BentoCell>
           <BentoCell from={{ y: 200 }} className="col-span-1 row-span-1">
             <BentoTile
               title="Profiles"
               description="Create spaces for your memories"
+              icon={IconLayoutGrid}
             />
           </BentoCell>
         </motion.div>
