@@ -1,4 +1,4 @@
-import { LandingAmbientGraph } from "@/routes/_components/landing/LandingAmbientGraph";
+import { SlideAmbientGraph } from "../_components/SlideAmbientGraph";
 import {
   IconArrowRight,
   IconPlug,
@@ -36,7 +36,7 @@ const roadmapItems = [
 export function Slide12Closing() {
   return (
     <SlideShell>
-      <LandingAmbientGraph />
+      <SlideAmbientGraph />
       <div className="relative z-10 flex h-full items-center gap-16">
         {/* Frosted panel: the graph lines stay visible but blur out behind the
             text so the copy reads cleanly. */}
