@@ -1,12 +1,13 @@
-import { LandingAmbientGraph } from "@/routes/_components/landing/LandingAmbientGraph";
 import { VmemBrand } from "@/components/VmemBrand";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
+import { SlideAmbientGraph } from "../_components/SlideAmbientGraph";
 import { SlideShell, SlideBody, SlideReveal } from "../_components/SlideShell";
 
 export function Slide01Title() {
   return (
     <SlideShell center>
-      <LandingAmbientGraph />
+      {/* Graph lines around the edges, fading out behind the centred title. */}
+      <SlideAmbientGraph className="[-webkit-mask-image:radial-gradient(ellipse_58%_54%_at_50%_50%,transparent_34%,black_72%)] [mask-image:radial-gradient(ellipse_58%_54%_at_50%_50%,transparent_34%,black_72%)]" />
       <div className="relative z-10 flex flex-col items-center text-center">
         <SlideReveal delay={0}>
           <VmemBrand iconSize={40} textClassName="text-4xl" className="mb-6" />

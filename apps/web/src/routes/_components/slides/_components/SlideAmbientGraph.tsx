@@ -20,7 +20,7 @@ export function SlideAmbientGraph({ className = "" }: SlideAmbientGraphProps) {
     >
       {/* Dotted grid */}
       <div
-        className="absolute inset-0 opacity-[0.7] dark:opacity-[0.4]"
+        className="absolute inset-0 opacity-[0.7] dark:opacity-[0.6]"
         style={{
           backgroundImage:
             "radial-gradient(circle, color-mix(in oklch, var(--foreground) 14%, transparent) 1px, transparent 1px)",
@@ -32,10 +32,10 @@ export function SlideAmbientGraph({ className = "" }: SlideAmbientGraphProps) {
 
       {/* Soft edge vignette — keeps the centre clear of hard edges without
           erasing the lines the way the landing version's heavier fade does. */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_75%_at_50%_45%,transparent_45%,var(--background)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_90%_at_50%_45%,transparent_72%,var(--background)_100%)]" />
 
       <svg
-        className="landing-ambient-drift absolute inset-0 h-full w-full text-foreground/[0.22] dark:text-foreground/[0.12]"
+        className="landing-ambient-drift absolute inset-0 h-full w-full text-foreground/[0.22] dark:text-foreground/[0.22]"
         viewBox="0 0 900 700"
         preserveAspectRatio="xMidYMid slice"
         fill="none"
