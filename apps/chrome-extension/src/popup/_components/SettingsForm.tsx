@@ -8,6 +8,8 @@ import {
   IconBrain,
   IconSend,
   IconCopy,
+  IconRefresh,
+  IconClock,
 } from "@tabler/icons-react";
 import {
   Button,
@@ -21,13 +23,20 @@ import {
   SelectItem,
 } from "@vmem/ui";
 import { getStorage, setStorage } from "@/lib/storage";
-import { VMEM_AI_SYSTEM_PROMPT } from "@/lib/constants";
+import {
+  VMEM_AI_SYSTEM_PROMPT,
+  SYNC_INTERVAL_PRESETS,
+  DEFAULT_SYNC_INTERVAL_MINUTES,
+  describeSyncInterval,
+  shortSyncInterval,
+} from "@/lib/constants";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import type { Profile } from "@/types/api";
 import { listProfiles } from "@/background/api-client";
 import { SettingsSelectRow } from "./SettingsSelectRow";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
+import { SettingsSliderRow } from "./SettingsSliderRow";
 
 type Theme = "light" | "dark" | "system";
 
@@ -76,6 +85,14 @@ export function SettingsForm() {
 
   function handleSelectionPopupToggle(checked: boolean) {
     void update({ extensionSelectionPopupEnabled: checked });
+  }
+
+  function handleAutoSyncToggle(checked: boolean) {
+    void update({ extensionAutoSyncEnabled: checked });
+  }
+
+  function handleSyncIntervalChange(minutes: number) {
+    void update({ extensionAutoSyncIntervalMinutes: minutes });
   }
 
   function handleAutoSearchToggle(checked: boolean) {
@@ -207,6 +224,40 @@ export function SettingsForm() {
               checked={autoCaptureEnabled}
               onCheckedChange={handleAutoCaptureToggle}
               icon={<IconSend size={16} />}
+            />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-base font-medium text-foreground">Browsing sync</h3>
+        <Card className="shadow-none">
+          <CardContent className="space-y-6 p-4">
+            <SettingsSwitchRow
+              id="auto-sync-toggle"
+              label="Auto-sync history & bookmarks"
+              description="Periodically import new browsing history and bookmarks into your memories."
+              checked={settings?.extensionAutoSyncEnabled ?? true}
+              onCheckedChange={handleAutoSyncToggle}
+              disabled={settings === undefined}
+              icon={<IconRefresh size={16} />}
+            />
+            <SettingsSliderRow
+              id="sync-frequency-slider"
+              label="Sync frequency"
+              description="How often to check for new history and bookmarks."
+              value={
+                settings?.extensionAutoSyncIntervalMinutes ??
+                DEFAULT_SYNC_INTERVAL_MINUTES
+              }
+              presets={SYNC_INTERVAL_PRESETS}
+              format={describeSyncInterval}
+              formatShort={shortSyncInterval}
+              onValueChange={handleSyncIntervalChange}
+              disabled={
+                settings === undefined || !settings.extensionAutoSyncEnabled
+              }
+              icon={<IconClock size={16} />}
             />
           </CardContent>
         </Card>

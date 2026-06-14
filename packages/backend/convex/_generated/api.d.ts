@@ -129,6 +129,7 @@ import type * as neo4jActions_memories from "../neo4jActions/memories.js";
 import type * as neo4jActions_migration from "../neo4jActions/migration.js";
 import type * as neo4jActions_migration_backfill from "../neo4jActions/migration/backfill.js";
 import type * as neo4jActions_migration_dedup from "../neo4jActions/migration/dedup.js";
+import type * as neo4jActions_migration_entityAliases from "../neo4jActions/migration/entityAliases.js";
 import type * as neo4jActions_migration_profiles from "../neo4jActions/migration/profiles.js";
 import type * as neo4jActions_migration_retag from "../neo4jActions/migration/retag.js";
 import type * as neo4jActions_proposedUpdates from "../neo4jActions/proposedUpdates.js";
@@ -293,6 +294,7 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/migration": typeof neo4jActions_migration;
   "neo4jActions/migration/backfill": typeof neo4jActions_migration_backfill;
   "neo4jActions/migration/dedup": typeof neo4jActions_migration_dedup;
+  "neo4jActions/migration/entityAliases": typeof neo4jActions_migration_entityAliases;
   "neo4jActions/migration/profiles": typeof neo4jActions_migration_profiles;
   "neo4jActions/migration/retag": typeof neo4jActions_migration_retag;
   "neo4jActions/proposedUpdates": typeof neo4jActions_proposedUpdates;

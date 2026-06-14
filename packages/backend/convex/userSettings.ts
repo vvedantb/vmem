@@ -21,6 +21,7 @@ const defaults: {
   memoryAutoTag: boolean;
   notificationsEnabled: boolean;
   extensionAutoSyncEnabled: boolean;
+  extensionAutoSyncIntervalMinutes: number;
   extensionSelectionPopupEnabled: boolean;
   memoryAutoExtract: boolean;
   memoryConfidenceThreshold: number;
@@ -41,6 +42,7 @@ const defaults: {
   memoryAutoTag: true,
   notificationsEnabled: false,
   extensionAutoSyncEnabled: true,
+  extensionAutoSyncIntervalMinutes: 30,
   extensionSelectionPopupEnabled: true,
   memoryAutoExtract: true,
   memoryConfidenceThreshold: 70,
@@ -76,6 +78,9 @@ export const get = authQuery({
         doc?.notificationsEnabled ?? defaults.notificationsEnabled,
       extensionAutoSyncEnabled:
         doc?.extensionAutoSyncEnabled ?? defaults.extensionAutoSyncEnabled,
+      extensionAutoSyncIntervalMinutes:
+        doc?.extensionAutoSyncIntervalMinutes ??
+        defaults.extensionAutoSyncIntervalMinutes,
       extensionSelectionPopupEnabled:
         doc?.extensionSelectionPopupEnabled ??
         defaults.extensionSelectionPopupEnabled,
@@ -136,6 +141,7 @@ export const update = authMutation({
     memoryAutoTag: v.optional(v.boolean()),
     notificationsEnabled: v.optional(v.boolean()),
     extensionAutoSyncEnabled: v.optional(v.boolean()),
+    extensionAutoSyncIntervalMinutes: v.optional(v.number()),
     extensionSelectionPopupEnabled: v.optional(v.boolean()),
     memoryAutoExtract: v.optional(v.boolean()),
     memoryConfidenceThreshold: v.optional(v.number()),
@@ -162,6 +168,9 @@ export const update = authMutation({
       fields.notificationsEnabled = args.notificationsEnabled;
     if (args.extensionAutoSyncEnabled !== undefined)
       fields.extensionAutoSyncEnabled = args.extensionAutoSyncEnabled;
+    if (args.extensionAutoSyncIntervalMinutes !== undefined)
+      fields.extensionAutoSyncIntervalMinutes =
+        args.extensionAutoSyncIntervalMinutes;
     if (args.extensionSelectionPopupEnabled !== undefined)
       fields.extensionSelectionPopupEnabled =
         args.extensionSelectionPopupEnabled;

@@ -1,4 +1,5 @@
 import { api, type Id } from "@vmem/backend";
+import type { FunctionArgs } from "convex/server";
 import { createAuthenticatedConvexClient } from "./auth";
 import type {
   CreateMemoryParams,
@@ -6,6 +7,12 @@ import type {
   MemoryCandidate,
   Profile,
 } from "@/types/api";
+
+/** Args accepted by the userSettings.update mutation — sourced from the
+ * Convex validator so the popup write path can never drift from the schema. */
+export type UserSettingsUpdateArgs = FunctionArgs<
+  typeof api.userSettings.update
+>;
 
 async function getAuthenticatedClient() {
   return await createAuthenticatedConvexClient();
@@ -188,4 +195,31 @@ export async function listProfiles(): Promise<Profile[]> {
     icon: p.icon,
     isDefault: p.isDefault,
   }));
+}
+
+/**
+ * Persist user-settings changes through the background's authenticated HTTP
+ * client — the same reliable path every other popup write already uses
+ * (createMemory, listProfiles, etc.).
+ *
+ * Why this exists: the popup also fires the websocket mutation for instant
+ * optimistic UI, but that socket can stall or never flush before the
+ * short-lived popup closes (see CLAUDE.md). A dropped write left Convex stale,
+ * and the SW settings mirror (refreshUserSettingsMirrorFromConvex) then
+ * re-pulled the old value into chrome.storage and reverted behaviour — most
+ * visibly resetting the history-sync alarm back to 30m after the user picked a
+ * longer interval. This one-shot HTTP request is the durable write, so Convex
+ * always reflects the change and the mirror has nothing stale to clobber.
+ */
+export async function updateUserSettings(
+  args: UserSettingsUpdateArgs,
+): Promise<void> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    throw new Error(
+      "Not authenticated - please sign in via the extension popup",
+    );
+  }
+
+  await client.mutation(api.userSettings.update, args);
 }

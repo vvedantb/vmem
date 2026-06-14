@@ -1,5 +1,20 @@
 # Changelog
 
+## Configurable extension sync frequency — 2026-06-14
+
+- **Why**: the extension's browsing-history and bookmark auto-sync ran on a fixed 30-minute cycle with no way to turn it off or change the cadence from the popup.
+- **On/off toggle**: Settings now has an "Auto-sync history & bookmarks" switch, surfacing the existing enable flag that previously had no UI control.
+- **Frequency slider**: a snap-to-preset slider sets how often sync runs — from every 15 minutes up to every 24 hours (default 30 minutes) — so heavy and light browsers can each pick a sensible cadence.
+- **Follows your account**: the chosen frequency is stored per-account and syncs across browsers, matching how the on/off state already worked; changing it reschedules the background sync timer right away instead of waiting for the next cycle.
+
+## In-app presentation deck with theme switching and build steps — 2026-06-12
+
+- **Dev-only route**: `/slides` is a fullscreen, themeable presentation for presenting vmem to the team; it 404s outside dev (checked at beforeLoad) and is strictly isolated to two paths for easy deletion later.
+- **Per-slide theming**: each slide declares `theme: "dark" | "light"` — slide 1 (title) is dark, slides 2–12 are light. The theme class is applied at `<html>` level so opacity-modified utilities (e.g. `text-foreground/50`) resolve against the correct token set; the user's theme is restored when leaving the route.
+- **Branded and iconic**: the title slide uses the real `VmemBrand` component (draw-in icon + "v*mem*" italic); content slides reuse the app's sidebar icons (`IconMemories`, `IconChat`, `IconInbox`, etc.) instead of generic Tabler icons wherever they depict app features.
+- **Entrance animations and build steps**: slides reveal their content via staggered entrance animations (fade + rise, using `motionDuration` and `motionEase`); advancing (→ / Space / PageDown / click right) steps through each slide's build (kicker+title, then body, then cards/bullets in chunks — 1-4 clicks per slide); at the end of a slide's build, advancing goes to the next slide; going back hides the last revealed step, and at step 0 it jumps to the previous slide fully revealed (classic PowerPoint behavior).
+- **No build caching**: the step counter is ephemeral (not in URL), so refreshing restarts the current slide's build — useful for practice runs.
+
 ## Per-browser active profile in the extension — 2026-06-12
 
 - **Why**: with two Chrome profiles (uni and personal) on the same vmem account, both browsers synced into the same workspace — the popup's profile picker wrote an account-wide default, and history/bookmark auto-sync ignored the picker entirely.

@@ -11,6 +11,7 @@ import {
   catchUpHistorySyncIfOverdue,
   registerAlarmListener,
   registerBookmarkListener,
+  rescheduleHistorySync,
   startAutoSync,
   stopAutoSync,
 } from "./sync-scheduler";
@@ -48,12 +49,20 @@ chrome.runtime.onStartup.addListener(async () => {
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
-  const autoSyncChange = changes["autoSyncEnabled"];
-  if (!autoSyncChange) return;
 
-  if (autoSyncChange.newValue === true) {
-    void startAutoSync();
-  } else {
-    void stopAutoSync();
+  const autoSyncChange = changes["autoSyncEnabled"];
+  if (autoSyncChange) {
+    if (autoSyncChange.newValue === true) {
+      void startAutoSync();
+    } else {
+      void stopAutoSync();
+    }
+    return;
+  }
+
+  // The frequency slider changed the sync period — reschedule the alarm with
+  // the new period (no-op while auto-sync is disabled).
+  if (changes["autoSyncIntervalMinutes"]) {
+    void rescheduleHistorySync();
   }
 });

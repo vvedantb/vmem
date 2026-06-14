@@ -89,6 +89,8 @@ const schema = defineSchema({
     memoryAutoTag: v.optional(v.boolean()),
     notificationsEnabled: v.optional(v.boolean()),
     extensionAutoSyncEnabled: v.optional(v.boolean()),
+    // History-sync period for the browser extension, in minutes (15–1440).
+    extensionAutoSyncIntervalMinutes: v.optional(v.number()),
     extensionSelectionPopupEnabled: v.optional(v.boolean()),
     // Memory behavior defaults
     memoryAutoExtract: v.optional(v.boolean()),

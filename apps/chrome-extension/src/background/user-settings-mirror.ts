@@ -21,6 +21,7 @@ export async function refreshUserSettingsMirrorFromConvex(): Promise<void> {
     const settings = await client.query(api.userSettings.get, {});
     await setStorage({
       autoSyncEnabled: settings.extensionAutoSyncEnabled,
+      autoSyncIntervalMinutes: settings.extensionAutoSyncIntervalMinutes,
       selectionPopupEnabled: settings.extensionSelectionPopupEnabled,
     });
     if (settings.extensionAutoSyncEnabled) {
