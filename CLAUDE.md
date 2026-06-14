@@ -75,7 +75,8 @@ Dream Mode (V3 — Dynamic Dreaming):
 
 Chrome extension auto-sync (`apps/chrome-extension/src/background/sync-scheduler.ts`):
 
-- MV3 reliability uses **mutual-watchdog alarms**: the slow history alarm (30 min) and the frequent heartbeat alarm (`SETTINGS_MIRROR_ALARM_NAME`, 5 min) each re-assert the other on every fire (`ensureSettingsMirrorAlarm` / `startAutoSync`, both idempotent — only create when absent so timers never reset). As long as either alarm survives, both come back. Chrome silently drops periodic alarms (OS sleep/hibernate on Windows, SW crash, extension update) — never rely on a single alarm.
+- MV3 reliability uses **mutual-watchdog alarms**: the slow history alarm (configurable, default 30 min — see frequency bullet) and the frequent heartbeat alarm (`SETTINGS_MIRROR_ALARM_NAME`, 5 min) each re-assert the other on every fire (`ensureSettingsMirrorAlarm` / `startAutoSync` — idempotent for an UNCHANGED period: create when absent, and `startAutoSync` recreates the history alarm only when the configured period actually differs, so a heartbeat/badge-tick re-assert never resets the timer). As long as either alarm survives, both come back. Chrome silently drops periodic alarms (OS sleep/hibernate on Windows, SW crash, extension update) — never rely on a single alarm.
+- **History-sync frequency is user-configurable** (15 min–24 h, default 30): `userSettings.extensionAutoSyncIntervalMinutes` (Convex, cross-device — paired with the `extensionAutoSyncEnabled` on/off toggle) mirrors to `chrome.storage.local.autoSyncIntervalMinutes` via both the popup hook and `refreshUserSettingsMirrorFromConvex`. `getHistorySyncIntervalMinutes()` reads + clamps it for the alarm period AND the `catchUpHistorySyncIfOverdue` threshold; a slider move fires `storage.onChanged` → `rescheduleHistorySync()` (re-creates the alarm with the new period; no-op while disabled). Popup controls = `SettingsForm`'s "Browsing sync" section (`SettingsSwitchRow` toggle + snap-to-preset `SettingsSliderRow`, a native Chromium range input themed via `accent-color`); presets/bounds/formatters shared from `lib/constants.ts` (`SYNC_INTERVAL_PRESETS`). Badge renders whole hours past 60 min so long intervals don't show as e.g. "359m".
 - The heartbeat is the self-heal path: it re-creates the history alarm and runs `catchUpHistorySyncIfOverdue()`, so a dropped alarm or missed sync recovers within ~5 min instead of waiting for `onStartup`. Don't reduce its handler back to "just refresh settings."
 - Every sync attempt records `lastSyncAttemptAt` + `lastSyncSkipReason` (`recordSyncAttempt`) into storage and the debug report — a silent gap (lost auth, dropped alarm) must stay diagnosable, never look healthy. No-session skips after a browser restart (`chrome.storage.session` token cleared) self-recover within one heartbeat: the SW mints a fresh Convex JWT itself.
 - **Background token refresh is a hand-rolled Clerk FAPI flow in the service worker** (`refresh-convex-token.ts`: cookie via `chrome.cookies` → `GET /v1/client` → `POST /v1/client/sessions/<id>/tokens/convex`; dev = `__clerk_db_jwt` query param, prod = `__client` Bearer + `_is_native=1`). Two hard-won constraints: (1) never route this through an offscreen document — offscreen contexts have no `chrome.cookies`, so Clerk silently reports "signed out" and every post-restart sync skips "no-session" until the popup is opened (root cause of day-long silent gaps); (2) **never run clerk-js / `@clerk/chrome-extension` in the SW** — clerk-js's `isValidBrowserOnline()` requires `window`, so every SW is treated as permanently offline and `session.getToken()` throws `clerk_offline` even with working network; bundling it also inlines `@clerk/ui`, whose module body touches `document` at eval and crashes the worker at boot (repeated boot crashes get the SW blocklisted for the session — no alarms fire at all). Clerk stays popup-only; the SW bundle is clerk-free (~70 KB, was 3.2 MB).
@@ -301,3 +302,15 @@ if you are using the agent-browser skill, navigate to `/?agent` to auto sign in 
 ## Claude Fable: token parsimony
 
 When running as Fable (expensive), plan and review; delegate implementation to subagents (`model: sonnet` for code, `haiku` for mechanical edits/searches), one task per subagent. Trivial single-file edits are fine to do directly.
+
+explain vmem using verbs instead of nouns.
+
+“We’re building a cloud platform for AI”
+
+No one knew that that meant, their eyes glazed over. Then I started saying this instead:
+
+“We containerize your code and run it on GPUs in the cloud so you don’t have to manage the infra yourself”
+
+That clicked way more. Our brains understand verbs because they’re more concrete. If you describe your company using nouns, you risk people not understanding you.
+
+And no one buys or invests in things they don’t understand.

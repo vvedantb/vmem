@@ -1,5 +1,12 @@
 # Changelog
 
+## Configurable extension sync frequency — 2026-06-14
+
+- **Why**: the extension's browsing-history and bookmark auto-sync ran on a fixed 30-minute cycle with no way to turn it off or change the cadence from the popup.
+- **On/off toggle**: Settings now has an "Auto-sync history & bookmarks" switch, surfacing the existing enable flag that previously had no UI control.
+- **Frequency slider**: a snap-to-preset slider sets how often sync runs — from every 15 minutes up to every 24 hours (default 30 minutes) — so heavy and light browsers can each pick a sensible cadence.
+- **Follows your account**: the chosen frequency is stored per-account and syncs across browsers, matching how the on/off state already worked; changing it reschedules the background sync timer right away instead of waiting for the next cycle.
+
 ## In-app presentation deck with theme switching and build steps — 2026-06-12
 
 - **Dev-only route**: `/slides` is a fullscreen, themeable presentation for presenting vmem to the team; it 404s outside dev (checked at beforeLoad) and is strictly isolated to two paths for easy deletion later.

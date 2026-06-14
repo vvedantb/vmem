@@ -95,6 +95,7 @@ const {
   bootstrapSyncSchedulers,
   startAutoSync,
   stopAutoSync,
+  rescheduleHistorySync,
   ensureSettingsMirrorAlarm,
   catchUpHistorySyncIfOverdue,
   dispatchAlarm,
@@ -235,4 +236,90 @@ test("badge tick retires itself and clears the badge when auto-sync is disabled"
   await dispatchAlarm(BADGE_TICK_ALARM_NAME);
   assert.ok(!alarms.has(BADGE_TICK_ALARM_NAME), "badge tick alarm removed");
   assert.equal(badgeTexts.at(-1), "", "badge cleared while disabled");
+});
+
+// ── Configurable sync frequency ──────────────────────────────────────────────
+
+test("startAutoSync honors a non-default interval and stays idempotent", async () => {
+  resetState({
+    autoSyncEnabled: true,
+    autoSyncIntervalMinutes: 120,
+    lastHistorySync: FRESH,
+  });
+  await startAutoSync();
+  await startAutoSync();
+  assert.equal(
+    alarms.get(HISTORY_ALARM_NAME)?.periodInMinutes,
+    120,
+    "alarm uses the configured 2h period",
+  );
+  assert.equal(
+    createCalls.filter((n) => n === HISTORY_ALARM_NAME).length,
+    1,
+    "unchanged interval never recreates the alarm (no timer reset)",
+  );
+});
+
+test("changing the interval reschedules the history alarm to the new period", async () => {
+  resetState({
+    autoSyncEnabled: true,
+    autoSyncIntervalMinutes: 30,
+    lastHistorySync: FRESH,
+  });
+  await startAutoSync();
+  assert.equal(alarms.get(HISTORY_ALARM_NAME)?.periodInMinutes, 30);
+  // User drags the frequency slider to 6 hours; the storage mirror updates.
+  local.autoSyncIntervalMinutes = 360;
+  await rescheduleHistorySync();
+  assert.equal(
+    alarms.get(HISTORY_ALARM_NAME)?.periodInMinutes,
+    360,
+    "alarm rescheduled to the new 6h period",
+  );
+  assert.equal(
+    createCalls.filter((n) => n === HISTORY_ALARM_NAME).length,
+    2,
+    "recreated exactly once for the changed period",
+  );
+});
+
+test("an out-of-range stored interval is clamped, not passed through", async () => {
+  resetState({
+    autoSyncEnabled: true,
+    autoSyncIntervalMinutes: 5, // below the 15-min floor
+    lastHistorySync: FRESH,
+  });
+  await startAutoSync();
+  assert.equal(
+    alarms.get(HISTORY_ALARM_NAME)?.periodInMinutes,
+    15,
+    "sub-minimum interval clamps up to 15 min",
+  );
+});
+
+test("rescheduleHistorySync is a no-op while auto-sync is disabled", async () => {
+  resetState({
+    autoSyncEnabled: false,
+    autoSyncIntervalMinutes: 60,
+    lastHistorySync: FRESH,
+  });
+  await rescheduleHistorySync();
+  assert.ok(
+    !alarms.has(HISTORY_ALARM_NAME),
+    "disabled extension never gets a live history alarm",
+  );
+});
+
+test("badge shows whole hours once the countdown passes an hour", async () => {
+  resetState({
+    autoSyncEnabled: true,
+    autoSyncIntervalMinutes: 360,
+    lastHistorySync: FRESH,
+  });
+  await startAutoSync();
+  assert.equal(
+    badgeTexts.at(-1),
+    "6h",
+    "a 6h interval renders as hours, not 360m",
+  );
 });

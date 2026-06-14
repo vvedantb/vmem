@@ -30,12 +30,15 @@ function useExtensionUserSettingsInner() {
     void getStorage().then((local) => {
       if (
         local.autoSyncEnabled === settings.extensionAutoSyncEnabled &&
+        local.autoSyncIntervalMinutes ===
+          settings.extensionAutoSyncIntervalMinutes &&
         local.selectionPopupEnabled === settings.extensionSelectionPopupEnabled
       ) {
         return;
       }
       void update({
         extensionAutoSyncEnabled: local.autoSyncEnabled,
+        extensionAutoSyncIntervalMinutes: local.autoSyncIntervalMinutes,
         extensionSelectionPopupEnabled: local.selectionPopupEnabled,
       });
     });
@@ -45,6 +48,7 @@ function useExtensionUserSettingsInner() {
     if (settings === undefined) return;
     void setStorage({
       autoSyncEnabled: settings.extensionAutoSyncEnabled,
+      autoSyncIntervalMinutes: settings.extensionAutoSyncIntervalMinutes,
       selectionPopupEnabled: settings.extensionSelectionPopupEnabled,
     });
   }, [settings]);

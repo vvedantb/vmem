@@ -3,6 +3,7 @@ export interface ExtensionStorage {
   lastBookmarkSync: number; // epoch ms, 0 = never synced
   lastHistorySync: number; // epoch ms, 0 = never synced
   autoSyncEnabled: boolean;
+  autoSyncIntervalMinutes: number; // history-sync period (min); mirrors Convex extensionAutoSyncIntervalMinutes
   defaultProfileId: string; // Default profile for saving memories
   autoSearchEnabled: boolean; // Auto-search memories while typing in AI chats
   autoCaptureEnabled: boolean; // Auto-capture prompts sent to AI chats
@@ -18,6 +19,7 @@ export const STORAGE_DEFAULTS: ExtensionStorage = {
   lastBookmarkSync: 0,
   lastHistorySync: 0,
   autoSyncEnabled: true,
+  autoSyncIntervalMinutes: 30, // every 30 min by default
   defaultProfileId: "", // Empty = use user's default profile
   autoSearchEnabled: true, // On by default — core feature
   autoCaptureEnabled: false, // Off by default — opt-in
