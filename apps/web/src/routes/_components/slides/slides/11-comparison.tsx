@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { IconCheck, IconX, IconMinus } from "@tabler/icons-react";
-import { VmemDrawInIcon } from "@/components/svg-animations";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
@@ -139,7 +138,14 @@ export function Slide11Comparison() {
           <BrandCol
             label="vmem"
             emphasised
-            logo={<VmemDrawInIcon size={16} className="text-foreground" />}
+            logo={
+              <img
+                src="/icon.png"
+                alt="vmem"
+                className="h-7 w-7 rounded-lg"
+                draggable={false}
+              />
+            }
           />
           <BrandCol
             label="Mem0"

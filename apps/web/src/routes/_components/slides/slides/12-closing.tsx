@@ -37,15 +37,10 @@ export function Slide12Closing() {
   return (
     <SlideShell>
       <LandingAmbientGraph />
-      {/* Reading scrim: wash the left half back to the background so the body
-          text stays legible over the graph lines. Fades out before the
-          roadmap cards (which carry their own surface). */}
-      <div
-        className="pointer-events-none absolute inset-0 z-[5] bg-[linear-gradient(to_right,var(--background)_0%,var(--background)_42%,transparent_68%)]"
-        aria-hidden
-      />
-      <div className="relative z-10 flex h-full gap-16">
-        <div className="flex flex-1 flex-col justify-center">
+      <div className="relative z-10 flex h-full items-center gap-16">
+        {/* Frosted panel: the graph lines stay visible but blur out behind the
+            text so the copy reads cleanly. */}
+        <div className="flex flex-1 flex-col justify-center rounded-3xl bg-background/55 px-8 py-8 backdrop-blur-xl">
           <SlideReveal delay={0}>
             <SlideKicker>What&apos;s next</SlideKicker>
           </SlideReveal>
