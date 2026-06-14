@@ -12,14 +12,15 @@ export function Slide01Title() {
           <VmemBrand iconSize={40} textClassName="text-4xl" className="mb-6" />
         </SlideReveal>
         <BlurWordsTitle
-          lines={["A memory layer", "for your AI tools."]}
+          lines={["Remember everything", "you tell your AI."]}
           size="3xl"
           delay={0.1}
         />
         <SlideReveal step={1} className="mt-6 max-w-xl">
           <SlideBody>
-            One shared memory store for Claude, agents, extensions, and mobile —
-            graph-native, queryable, and alive between sessions.
+            vmem captures what you tell Claude, your agents, your extension, and
+            your phone — then hands it back, already connected, the next time
+            you ask.
           </SlideBody>
         </SlideReveal>
       </div>

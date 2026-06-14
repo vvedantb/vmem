@@ -34,17 +34,14 @@ export function Slide03What() {
   return (
     <SlideShell>
       <SlideReveal delay={0}>
-        <SlideKicker>What vmem is</SlideKicker>
+        <SlideKicker>What vmem does</SlideKicker>
       </SlideReveal>
-      <BlurWordsTitle
-        lines={["Graph-native memory,", "shared across everything."]}
-      />
+      <BlurWordsTitle lines={["Capture it once,", "recall it everywhere."]} />
       <SlideReveal step={1} className="mt-8 max-w-2xl">
         <SlideBody>
-          vmem is a memory layer that sits between you and your AI tools.
-          Memories are stored as nodes in a graph — tagged, entity-linked, and
-          semantically embedded — so every tool shares the same contextual
-          foundation.
+          vmem stores what you tell any tool as a connected graph — tagging it,
+          linking the people and things it mentions, and embedding it — so every
+          other tool can pull it back with its full context.
         </SlideBody>
       </SlideReveal>
 
