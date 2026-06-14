@@ -7,10 +7,15 @@ import "@/routes/_components/landing/landing.css";
  * pattern reads on light slides. Pair with a frosted-glass text panel to keep
  * copy legible while the lines stay visible (blurred) underneath.
  */
-export function SlideAmbientGraph() {
+interface SlideAmbientGraphProps {
+  /** Extra classes on the root — e.g. a mask to fade lines near text. */
+  className?: string;
+}
+
+export function SlideAmbientGraph({ className = "" }: SlideAmbientGraphProps) {
   return (
     <div
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+      className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       aria-hidden
     >
       {/* Dotted grid */}

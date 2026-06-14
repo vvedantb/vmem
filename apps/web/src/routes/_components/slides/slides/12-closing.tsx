@@ -36,11 +36,11 @@ const roadmapItems = [
 export function Slide12Closing() {
   return (
     <SlideShell>
-      <SlideAmbientGraph />
+      {/* Graph lines fade out as they approach the text on both sides so the
+          copy reads cleanly with no panel or blur over it. */}
+      <SlideAmbientGraph className="[-webkit-mask-image:linear-gradient(to_right,transparent_36%,black_50%,black_66%,transparent_80%)] [mask-image:linear-gradient(to_right,transparent_36%,black_50%,black_66%,transparent_80%)]" />
       <div className="relative z-10 flex h-full items-center gap-16">
-        {/* Frosted panel: the graph lines stay visible but blur out behind the
-            text so the copy reads cleanly. */}
-        <div className="flex flex-1 flex-col justify-center rounded-3xl bg-background/25 px-8 py-8 backdrop-blur-md">
+        <div className="flex flex-1 flex-col justify-center">
           <SlideReveal delay={0}>
             <SlideKicker>What&apos;s next</SlideKicker>
           </SlideReveal>
