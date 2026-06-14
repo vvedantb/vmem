@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { SlideMemoryPreview } from "../_components/SlideMemoryPreview";
 import {
   SlideKicker,
   SlideReveal,
@@ -6,9 +7,10 @@ import {
 } from "../_components/SlideShell";
 
 /**
- * Device-mockup-zoom demo (remocn-inspired, pure motion/react): the real
- * graph screenshot sits inside a laptop frame and slowly pushes in and pans
- * across the canvas (Ken Burns), looping, so it reads as a live product demo.
+ * Live demo: the real interactive memory-graph preview sits inside a laptop
+ * frame. Nodes are clickable (they carry role="button", so the deck's
+ * click-to-advance ignores them) — recall surfaces live as you click during
+ * the talk, with the typewriter recall line and node counter running.
  */
 
 export function Slide32Demo() {
@@ -18,7 +20,7 @@ export function Slide32Demo() {
         <SlideKicker>Live demo</SlideKicker>
       </SlideReveal>
 
-      {/* Laptop mockup — springs in, then the screen content Ken-Burns loops */}
+      {/* Laptop mockup — springs in, then the live preview runs on screen */}
       <motion.div
         className="mt-5 flex flex-col items-center"
         initial={{ opacity: 0, scale: 0.92, y: 24 }}
@@ -29,24 +31,9 @@ export function Slide32Demo() {
         <div className="relative w-[680px] rounded-[14px] bg-neutral-800 p-2.5 shadow-[0_40px_90px_-30px_rgba(0,0,0,0.8)]">
           {/* Camera notch */}
           <div className="absolute left-1/2 top-1 h-1 w-10 -translate-x-1/2 rounded-full bg-neutral-700" />
-          <div className="aspect-[8/5] overflow-hidden rounded-[6px] bg-black">
-            <motion.img
-              src="/slides/app-graph.png"
-              alt="vmem memory graph"
-              className="h-full w-full origin-center object-cover"
-              draggable={false}
-              animate={{
-                scale: [1, 1.22, 1.22, 1],
-                x: ["0%", "-6%", "6%", "0%"],
-                y: ["0%", "4%", "-3%", "0%"],
-              }}
-              transition={{
-                duration: 16,
-                times: [0, 0.4, 0.7, 1],
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
+          <div className="overflow-hidden rounded-[6px] bg-surface">
+            {/* Live, clickable graph preview — the actual product mock */}
+            <SlideMemoryPreview />
           </div>
         </div>
         {/* Laptop base / hinge */}
