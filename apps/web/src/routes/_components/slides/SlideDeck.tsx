@@ -162,9 +162,11 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
   }
 
   const { Component, theme, id } = SLIDES[index];
-  // The blank opener stays pure black so the title's entrance plays from
-  // nothing when the presenter clicks forward.
-  const showOrbs = id !== "00";
+  // No deck orbs on the opener (pure black) or the title (it has its own
+  // LandingAmbientGraph atmosphere). With both orb-free, the black↔title
+  // transition has no orb change in either direction — so the orbs never
+  // fade in/out over those slides and can't flash. They appear from slide 02.
+  const showOrbs = id !== "00" && id !== "01";
 
   // Apply the slide's theme on <html> while presenting. A local wrapper
   // class is not enough: opacity-modified token utilities (e.g.
@@ -223,15 +225,17 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
         {/* Ambient orb glows — inside the stage so they're part of the
             slide composition and scale with it. Dark slides get soft white
             orbs; light slides get a gentler warm cream aura (a black glow
-            on a light background reads as smog). */}
-        {/* Always mounted so the orbs fade (not pop) when leaving the black
-            opener — a hard mount flashed the white glow in mid-transition. */}
-        <motion.div
-          className="pointer-events-none absolute inset-0"
+            on a light background reads as smog).
+
+            Always mounted; visibility is a plain CSS opacity transition (not
+            framer) because framer didn't reliably re-animate this persistent
+            layer across slide changes. Off on the opener + title so the
+            black↔title boundary never toggles the orbs (no flash); they fade
+            in/out only at the slide-02 boundary, gently over 1.6s. */}
+        <div
+          className="pointer-events-none absolute inset-0 transition-opacity duration-[1600ms] ease-in-out"
           aria-hidden
-          initial={false}
-          animate={{ opacity: showOrbs ? 1 : 0 }}
-          transition={{ duration: showOrbs ? 1.6 : 0.4, ease: "easeInOut" }}
+          style={{ opacity: showOrbs ? 1 : 0 }}
         >
           <motion.div
             className={`absolute -left-44 -top-40 h-[560px] w-[560px] rounded-full blur-[110px] ${
@@ -260,7 +264,7 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
             animate={{ x: [0, 55, 0], y: [0, -65, 0] }}
             transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
           />
-        </motion.div>
+        </div>
 
         <AnimatePresence custom={direction} mode="wait">
           <motion.div
