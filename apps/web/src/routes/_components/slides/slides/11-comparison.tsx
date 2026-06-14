@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import { IconCheck, IconX, IconMinus } from "@tabler/icons-react";
+import { VmemDrawInIcon } from "@/components/svg-animations";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
@@ -68,6 +70,34 @@ const rows: ComparisonRow[] = [
   },
 ];
 
+/** Brand logo chip + name, stacked, for a comparison column header. */
+function BrandCol({
+  logo,
+  label,
+  emphasised = false,
+}: {
+  logo: ReactNode;
+  label: string;
+  emphasised?: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface">
+        {logo}
+      </span>
+      <span
+        className={
+          emphasised
+            ? "text-xs font-medium text-foreground"
+            : "text-xs text-muted"
+        }
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
 function Cell({ value }: { value: CellValue }) {
   if (value === "yes") {
     return (
@@ -102,15 +132,37 @@ export function Slide11Comparison() {
         step={1}
         className="mt-8 overflow-hidden rounded-2xl bg-surface-secondary/40"
       >
-        <div className="grid grid-cols-[1fr_80px_80px_100px] border-b border-separator/30 px-5 py-2.5">
+        <div className="grid grid-cols-[1fr_80px_80px_100px] items-end border-b border-separator/30 px-5 py-3">
           <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
             Feature
           </span>
-          <span className="text-center text-xs font-medium text-foreground">
-            vmem
-          </span>
-          <span className="text-center text-xs text-muted">Mem0</span>
-          <span className="text-center text-xs text-muted">Supermemory</span>
+          <BrandCol
+            label="vmem"
+            emphasised
+            logo={<VmemDrawInIcon size={16} className="text-foreground" />}
+          />
+          <BrandCol
+            label="Mem0"
+            logo={
+              <img
+                src="/slides/logo-mem0.svg"
+                alt="Mem0"
+                className="h-4 w-4"
+                draggable={false}
+              />
+            }
+          />
+          <BrandCol
+            label="Supermemory"
+            logo={
+              <img
+                src="/slides/logo-supermemory.svg"
+                alt="Supermemory"
+                className="h-4 w-4"
+                draggable={false}
+              />
+            }
+          />
         </div>
         <SlideStagger delayChildren={0.12} staggerChildren={0.04} step={1}>
           {rows.map((row) => (

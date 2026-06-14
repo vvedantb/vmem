@@ -37,6 +37,13 @@ export function Slide12Closing() {
   return (
     <SlideShell>
       <LandingAmbientGraph />
+      {/* Reading scrim: wash the left half back to the background so the body
+          text stays legible over the graph lines. Fades out before the
+          roadmap cards (which carry their own surface). */}
+      <div
+        className="pointer-events-none absolute inset-0 z-[5] bg-[linear-gradient(to_right,var(--background)_0%,var(--background)_42%,transparent_68%)]"
+        aria-hidden
+      />
       <div className="relative z-10 flex h-full gap-16">
         <div className="flex flex-1 flex-col justify-center">
           <SlideReveal delay={0}>
