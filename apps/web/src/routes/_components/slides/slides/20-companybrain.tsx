@@ -1,7 +1,6 @@
 import { IconBulb, IconDatabase, IconPlugConnected } from "@tabler/icons-react";
 import type { ComponentType } from "react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
-import { ConvergenceField } from "../_components/ConvergenceField";
 import {
   SlideBody,
   SlideItem,
@@ -44,9 +43,7 @@ const PILLARS: Pillar[] = [
 export function Slide20CompanyBrain() {
   return (
     <SlideShell center>
-      {/* Ambient data fragments converging into one central node, behind content. */}
-      <ConvergenceField />
-      <div className="relative z-10 flex w-full max-w-5xl flex-col items-center text-center">
+      <div className="flex w-full max-w-5xl flex-col items-center text-center">
         <SlideReveal delay={0}>
           <SlideKicker>The bigger picture</SlideKicker>
         </SlideReveal>

@@ -5,7 +5,6 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
-import { DreamConstellation } from "../_components/DreamConstellation";
 import {
   SlideShell,
   SlideKicker,
@@ -39,9 +38,7 @@ const dreamOutputs = [
 export function Slide08Dream() {
   return (
     <SlideShell>
-      {/* New connections drawing themselves in the dark, behind the content. */}
-      <DreamConstellation />
-      <SlideReveal delay={0} className="relative z-10">
+      <SlideReveal delay={0}>
         <SlideKicker>Dream Mode</SlideKicker>
       </SlideReveal>
       <BlurWordsTitle lines={["Proactive memory intelligence."]} size="xl" />
