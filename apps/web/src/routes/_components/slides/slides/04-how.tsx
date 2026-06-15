@@ -22,23 +22,39 @@ import {
  */
 function FlowRail() {
   return (
-    <div className="relative mt-6 h-2">
-      {/* Faint full-width track */}
-      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-foreground/10" />
-      {/* Travelling token with a soft comet glow */}
+    <div className="relative mt-6 h-3 overflow-hidden">
+      {/* Track */}
+      <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-foreground/12" />
+      {/* A bright segment sweeps along the track, lighting it up as it passes */}
       <motion.div
-        className="absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-foreground"
+        className="absolute top-1/2 h-0.5 w-1/3 -translate-y-1/2 rounded-full"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, color-mix(in oklch, var(--foreground) 80%, transparent), transparent)",
+        }}
+        initial={{ left: "-33%" }}
+        animate={{ left: ["-33%", "100%"] }}
+        transition={{
+          duration: 2.8,
+          repeat: Infinity,
+          ease: [0.45, 0, 0.55, 1],
+          repeatDelay: 0.3,
+        }}
+      />
+      {/* Glowing comet head riding the leading edge of the sweep */}
+      <motion.div
+        className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground"
         style={{
           boxShadow:
-            "0 0 12px 3px color-mix(in oklch, var(--foreground) 45%, transparent)",
+            "0 0 16px 4px color-mix(in oklch, var(--foreground) 55%, transparent)",
         }}
         initial={{ left: "0%" }}
         animate={{ left: ["0%", "100%"] }}
         transition={{
-          duration: 3.2,
+          duration: 2.8,
           repeat: Infinity,
           ease: [0.45, 0, 0.55, 1],
-          repeatDelay: 0.4,
+          repeatDelay: 0.3,
         }}
       />
     </div>

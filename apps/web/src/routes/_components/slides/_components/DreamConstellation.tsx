@@ -39,7 +39,7 @@ const EDGES = [
 export function DreamConstellation() {
   return (
     <svg
-      className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.4] dark:opacity-[0.55] [-webkit-mask-image:linear-gradient(125deg,transparent_0%,transparent_42%,black_78%)] [mask-image:linear-gradient(125deg,transparent_0%,transparent_42%,black_78%)]"
+      className="pointer-events-none absolute inset-0 h-full w-full opacity-90 [-webkit-mask-image:linear-gradient(120deg,transparent_4%,black_46%)] [mask-image:linear-gradient(120deg,transparent_4%,black_46%)]"
       viewBox="0 0 1280 720"
       fill="none"
       aria-hidden
@@ -56,8 +56,8 @@ export function DreamConstellation() {
             x2={to.x}
             y2={to.y}
             stroke="currentColor"
-            strokeWidth={1}
-            className="text-foreground/20"
+            strokeWidth={1.5}
+            className="text-foreground/40"
             strokeDasharray={length}
             initial={{ strokeDashoffset: length, opacity: 0 }}
             animate={{
@@ -80,9 +80,9 @@ export function DreamConstellation() {
           key={i}
           cx={n.x}
           cy={n.y}
-          r={3}
-          className="fill-foreground/60"
-          animate={{ opacity: [0.3, 0.85, 0.3], r: [2.5, 3.5, 2.5] }}
+          r={4}
+          className="fill-foreground/80"
+          animate={{ opacity: [0.4, 1, 0.4], r: [3.5, 5, 3.5] }}
           transition={{
             duration: 3.5,
             repeat: Infinity,

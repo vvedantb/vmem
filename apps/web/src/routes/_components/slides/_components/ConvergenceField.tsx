@@ -1,71 +1,107 @@
 import { motion } from "motion/react";
 
 /**
- * Ambient background for the company-brain slide: scattered fragments drift
- * inward to a central node and dissolve, on staggered loops — "all your data
- * converging into one place". Sits behind the slide content at low opacity so
- * it never competes with the text. Positions are deterministic (no random) so
- * the layout is stable across renders.
+ * Ambient backdrop for the company-brain slide: scattered data fragments fly
+ * inward along trails to a bright central node and merge, on staggered loops —
+ * "all your data converging into one place". Rendered as SVG (cheap repaint,
+ * no layout thrash) in a 1280×720 viewBox matching the design stage. Positions
+ * are deterministic so layout is stable.
  */
 
-// Perimeter start points (percent of the field), spread around the centre.
+const CENTER = { x: 640, y: 360 };
+
+// Perimeter start points spread around the centre.
 const FRAGMENTS = [
-  { x: 6, y: 18 },
-  { x: 92, y: 12 },
-  { x: 14, y: 78 },
-  { x: 88, y: 82 },
-  { x: 50, y: 6 },
-  { x: 4, y: 48 },
-  { x: 96, y: 52 },
-  { x: 30, y: 92 },
-  { x: 70, y: 90 },
-  { x: 20, y: 30 },
-  { x: 80, y: 34 },
-  { x: 60, y: 96 },
+  { x: 120, y: 110 },
+  { x: 1160, y: 90 },
+  { x: 180, y: 620 },
+  { x: 1120, y: 640 },
+  { x: 640, y: 60 },
+  { x: 70, y: 360 },
+  { x: 1210, y: 380 },
+  { x: 400, y: 660 },
+  { x: 900, y: 650 },
+  { x: 300, y: 200 },
+  { x: 1000, y: 220 },
+  { x: 760, y: 680 },
 ] as const;
 
-const CENTER = { x: 50, y: 50 };
+const DURATION = 3.4;
+const STAGGER = 0.28;
 
 export function ConvergenceField() {
   return (
-    <div
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+    <svg
+      className="pointer-events-none absolute inset-0 h-full w-full text-foreground"
+      viewBox="0 0 1280 720"
+      fill="none"
       aria-hidden
     >
-      {/* Central node — the brain everything converges into */}
-      <motion.div
-        className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/40"
-        style={{
-          left: `${CENTER.x}%`,
-          top: `${CENTER.y}%`,
-          boxShadow:
-            "0 0 24px 6px color-mix(in oklch, var(--foreground) 22%, transparent)",
-        }}
-        animate={{ scale: [1, 1.25, 1], opacity: [0.4, 0.7, 0.4] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-      />
+      {/* Trails + travelling fragments */}
+      {FRAGMENTS.map((f, i) => {
+        const delay = (i % FRAGMENTS.length) * STAGGER;
+        return (
+          <g key={i}>
+            {/* Faint trail the fragment rides in along */}
+            <motion.line
+              x1={f.x}
+              y1={f.y}
+              x2={CENTER.x}
+              y2={CENTER.y}
+              stroke="currentColor"
+              strokeWidth={1}
+              className="text-foreground/15"
+              animate={{ opacity: [0, 0.5, 0] }}
+              transition={{
+                duration: DURATION,
+                repeat: Infinity,
+                delay,
+                repeatDelay: 0.5,
+                ease: "easeInOut",
+              }}
+            />
+            {/* The fragment itself, flying from perimeter to centre */}
+            <motion.circle
+              r={5}
+              fill="currentColor"
+              className="text-foreground/80"
+              initial={{ cx: f.x, cy: f.y, opacity: 0 }}
+              animate={{
+                cx: [f.x, CENTER.x],
+                cy: [f.y, CENTER.y],
+                opacity: [0, 1, 1, 0],
+                scale: [1, 1, 0.4],
+              }}
+              transition={{
+                duration: DURATION,
+                times: [0, 0.15, 0.85, 1],
+                repeat: Infinity,
+                delay,
+                repeatDelay: 0.5,
+                ease: [0.5, 0, 0.5, 1],
+              }}
+            />
+          </g>
+        );
+      })}
 
-      {FRAGMENTS.map((f, i) => (
-        <motion.span
-          key={i}
-          className="absolute h-1.5 w-1.5 rounded-full bg-foreground/50"
-          style={{ left: `${f.x}%`, top: `${f.y}%` }}
-          initial={false}
-          animate={{
-            left: [`${f.x}%`, `${CENTER.x}%`],
-            top: [`${f.y}%`, `${CENTER.y}%`],
-            opacity: [0, 0.6, 0],
-            scale: [1, 0.4],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: [0.4, 0, 0.5, 1],
-            delay: (i % FRAGMENTS.length) * 0.42,
-            repeatDelay: 0.6,
-          }}
-        />
-      ))}
-    </div>
+      {/* Central node — the brain everything merges into */}
+      <motion.circle
+        cx={CENTER.x}
+        cy={CENTER.y}
+        fill="currentColor"
+        className="text-foreground"
+        animate={{ r: [8, 12, 8], opacity: [0.5, 0.9, 0.5] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.circle
+        cx={CENTER.x}
+        cy={CENTER.y}
+        fill="currentColor"
+        className="text-foreground/30"
+        animate={{ r: [12, 34], opacity: [0.4, 0] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeOut" }}
+      />
+    </svg>
   );
 }
