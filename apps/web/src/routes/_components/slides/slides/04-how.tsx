@@ -5,6 +5,7 @@ import {
   IconSparkles,
   IconGitFork,
 } from "@tabler/icons-react";
+import { motion } from "motion/react";
 import { IconMemories } from "@/components/sidebar-icons";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
@@ -13,6 +14,36 @@ import {
   SlideBody,
   SlideReveal,
 } from "../_components/SlideShell";
+
+/**
+ * A thin rail under the pipeline with a glowing token that travels
+ * capture → enrich → graph → recall on a loop, so the stages read as a
+ * flow rather than four static cards.
+ */
+function FlowRail() {
+  return (
+    <div className="relative mt-6 h-2">
+      {/* Faint full-width track */}
+      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-foreground/10" />
+      {/* Travelling token with a soft comet glow */}
+      <motion.div
+        className="absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-foreground"
+        style={{
+          boxShadow:
+            "0 0 12px 3px color-mix(in oklch, var(--foreground) 45%, transparent)",
+        }}
+        initial={{ left: "0%" }}
+        animate={{ left: ["0%", "100%"] }}
+        transition={{
+          duration: 3.2,
+          repeat: Infinity,
+          ease: [0.45, 0, 0.55, 1],
+          repeatDelay: 0.4,
+        }}
+      />
+    </div>
+  );
+}
 
 /** Minimal icon props that both @tabler/icons-react and sidebar icons satisfy. */
 interface IconProps {
@@ -69,8 +100,10 @@ export function Slide04How() {
         </SlideBody>
       </SlideReveal>
 
+      <FlowRail />
+
       {/* Each pipeline stage reveals on its own click step (1–4). */}
-      <div className="mt-8 flex items-stretch gap-3">
+      <div className="mt-2 flex items-stretch gap-3">
         {steps.map(({ index, icon: Icon, title, body }, i) => (
           <SlideReveal
             key={title}
