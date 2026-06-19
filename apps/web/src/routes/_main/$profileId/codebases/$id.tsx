@@ -16,6 +16,7 @@ import { CodebaseGraph } from "@/components/codebases/CodebaseGraph";
 import CodebaseGraphHeaderControls from "@/components/codebases/CodebaseGraphHeaderControls";
 import { useCodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 import { VmemSpinner } from "@/components/svg-animations";
+import { formatRelativeTime } from "@/lib/formatters";
 
 export const Route = createFileRoute("/_main/$profileId/codebases/$id")({
   component: CodebaseDetailPage,
@@ -96,6 +97,18 @@ function CodebaseDetailView({
       rightSection={
         <div className="flex items-center gap-1.5">
           <CodebaseGraphHeaderControls controller={controller} />
+          <span
+            className="text-xs text-muted whitespace-nowrap"
+            title={
+              codebase.lastSyncedAt
+                ? new Date(codebase.lastSyncedAt).toLocaleString()
+                : undefined
+            }
+          >
+            {codebase.lastSyncedAt
+              ? `Synced ${formatRelativeTime(codebase.lastSyncedAt)}`
+              : "Never synced"}
+          </span>
           <Button
             variant="outline"
             size="sm"
