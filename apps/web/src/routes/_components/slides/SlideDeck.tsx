@@ -38,7 +38,7 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
     setStep(0);
     const maxSteps = SLIDES[clamp(slide - 1, 0, TOTAL - 1)].steps;
     if (maxSteps === 0) return;
-    const STAGGER_MS = 600;
+    const STAGGER_MS = 2000;
     const timers: number[] = [];
     for (let s = 1; s <= maxSteps; s++) {
       timers.push(window.setTimeout(() => setStep(s), STAGGER_MS * s));
