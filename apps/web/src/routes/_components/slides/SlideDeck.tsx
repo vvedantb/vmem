@@ -9,7 +9,7 @@ const DESIGN_W = 1280;
 const DESIGN_H = 720;
 const TOTAL = SLIDES.length;
 // Default gap between auto-revealed build steps; per-slide `staggerMs` overrides.
-const DEFAULT_STAGGER_MS = 2000;
+const DEFAULT_STAGGER_MS = 1000;
 
 interface SlideDeckProps {
   /** 1-based current slide index. */

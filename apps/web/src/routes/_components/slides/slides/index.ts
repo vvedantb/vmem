@@ -103,8 +103,6 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide04How,
     steps: 4,
-    // Four quick pipeline stages — keep them snappier than the 2s default.
-    staggerMs: 1100,
   },
   // step 0: kicker + title  /  step 1: before chain  /  step 2: after chain
   {
