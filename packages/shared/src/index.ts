@@ -1,4 +1,8 @@
-export { PARSER_VERSION } from "./codebase";
+export {
+  PARSER_VERSION,
+  STALE_SYNCING_MS,
+  isCodebaseSyncStalled,
+} from "./codebase";
 export {
   providerFromOpenRouterModelId,
   formatOpenRouterProviderLabel,

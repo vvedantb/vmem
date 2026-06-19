@@ -3,6 +3,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
+import { isCodebaseSyncStalled } from "@vmem/shared";
 import PageContainer from "@/components/PageContainer";
 import { Breadcrumb, BreadcrumbPage, Button } from "@vmem/ui";
 import {
@@ -71,6 +72,12 @@ function CodebaseDetailView({
   const syncCodebase = useAction(api.codebases.syncCodebase);
   const [syncing, setSyncing] = useState(false);
   const controller = useCodebaseGraphController(id);
+  // A stalled sync still reads `status === "syncing"`; treat it as retryable so
+  // the Sync button isn't disabled forever waiting on a dead run.
+  const stalled = isCodebaseSyncStalled(
+    codebase.status,
+    codebase.syncStartedAt,
+  );
 
   const handleSync = useCallback(async () => {
     setSyncing(true);
@@ -113,7 +120,7 @@ function CodebaseDetailView({
             variant="outline"
             size="sm"
             onClick={handleSync}
-            disabled={syncing || codebase.status === "syncing"}
+            disabled={syncing || (codebase.status === "syncing" && !stalled)}
           >
             {syncing ? (
               <IconLoader2 size={16} className="animate-spin" />

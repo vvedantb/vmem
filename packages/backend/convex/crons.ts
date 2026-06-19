@@ -19,4 +19,13 @@ crons.cron(
   {},
 );
 
+// Every 30 min — flip codebases stuck in `syncing` past the stale window to
+// `error` so a dead sync action stops spinning forever in the UI.
+crons.interval(
+  "recover stale codebase syncs",
+  { minutes: 30 },
+  internal.codebases.recoverStaleSyncingInternal,
+  {},
+);
+
 export default crons;

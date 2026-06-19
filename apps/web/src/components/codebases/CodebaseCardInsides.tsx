@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { api } from "@vmem/backend";
+import { isCodebaseSyncStalled } from "@vmem/shared";
 import type { FunctionReturnType } from "convex/server";
 import { Badge, Card, CardContent } from "@vmem/ui";
 import {
@@ -60,6 +61,14 @@ const statusConfig = {
   },
 };
 
+// A `syncing` row whose action died never reaches a terminal status — until
+// the recovery sweep flips it, show it as stalled rather than a live spinner.
+const stalledDisplay = {
+  label: "Sync stalled",
+  icon: IconAlertTriangle,
+  variant: "secondary" as const,
+};
+
 function timeAgo(ms: number): string {
   const seconds = Math.floor((Date.now() - ms) / 1000);
   if (seconds < 60) return "just now";
@@ -86,7 +95,11 @@ export function CodebaseCardInsides({
   codebase,
   headerMenuSlot,
 }: CodebaseCardInsidesProps) {
-  const status = statusConfig[codebase.status];
+  const stalled = isCodebaseSyncStalled(
+    codebase.status,
+    codebase.syncStartedAt,
+  );
+  const status = stalled ? stalledDisplay : statusConfig[codebase.status];
   const StatusIcon = status.icon;
   const langColor = codebase.language
     ? (codebaseLanguageColors[codebase.language] ?? "#8b8b8b")
@@ -140,7 +153,9 @@ export function CodebaseCardInsides({
                 <StatusIcon
                   size={12}
                   className={
-                    codebase.status === "syncing" ? "animate-spin" : ""
+                    !stalled && codebase.status === "syncing"
+                      ? "animate-spin"
+                      : ""
                   }
                 />
                 {status.label}
@@ -156,16 +171,18 @@ export function CodebaseCardInsides({
           </p>
         )}
 
-        {codebase.status === "syncing" && codebase.totalFiles > 0 && (
-          <div className="mt-3">
-            <div className="h-1 w-full rounded-full bg-surface-secondary">
-              <div
-                className="h-1 rounded-full bg-accent transition-all"
-                style={{ width: `${progress}%` }}
-              />
+        {!stalled &&
+          codebase.status === "syncing" &&
+          codebase.totalFiles > 0 && (
+            <div className="mt-3">
+              <div className="h-1 w-full rounded-full bg-surface-secondary">
+                <div
+                  className="h-1 rounded-full bg-accent transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         <div className="mt-3 flex items-center gap-3 text-xs text-muted flex-wrap">
           {langColor && codebase.language && (

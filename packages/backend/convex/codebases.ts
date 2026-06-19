@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
-import { DAILY_SYNC_STALE_MS, STALE_SYNCING_MS } from "./codebaseSyncConstants";
+import { DAILY_SYNC_STALE_MS } from "./codebaseSyncConstants";
+import { isCodebaseSyncStalled } from "@vmem/shared";
 import type { Id } from "./_generated/dataModel";
 import { decryptToken } from "./lib/crypto";
 import { retrier } from "./retrier";
@@ -364,6 +365,34 @@ export const getByIdForSyncInternal = internalQuery({
 });
 
 /**
+ * Flip codebases wedged in `syncing` past the stale window to `error`. A sync
+ * action that times out or whose host dies never writes a terminal status, so
+ * the row would otherwise spin forever in the UI and look "in progress" to
+ * every consumer that trusts `status`. Runs on a cron (and can be invoked
+ * manually) to keep the stored state honest. Returns the number of rows reset.
+ */
+export const recoverStaleSyncingInternal = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const now = Date.now();
+    const all = await ctx.db.query("codebases").collect();
+    let reset = 0;
+    for (const cb of all) {
+      if (!isCodebaseSyncStalled(cb.status, cb.syncStartedAt, now)) continue;
+      await ctx.db.patch(cb._id, {
+        status: "error",
+        errorMessage:
+          "Sync stalled — the previous run was interrupted before finishing. Click Sync to retry.",
+        lastParseError: "Sync stalled — interrupted before completion.",
+      });
+      reset += 1;
+    }
+    return reset;
+  },
+});
+
+/**
  * Codebases eligible for the global daily sync workflow.
  * Skips in-progress syncs, fresh syncs, and users without GitHub connected.
  */
@@ -377,11 +406,14 @@ export const listForDailySyncInternal = internalQuery({
 
     for (const cb of all) {
       if (cb.isArchived) continue;
-      const syncingStale =
+      // Skip rows that are genuinely mid-sync; a stalled `syncing` row is
+      // eligible for a re-run (same predicate the UI and recovery sweep use).
+      if (
         cb.status === "syncing" &&
-        (cb.syncStartedAt === undefined ||
-          Date.now() - cb.syncStartedAt >= STALE_SYNCING_MS);
-      if (cb.status === "syncing" && !syncingStale) continue;
+        !isCodebaseSyncStalled(cb.status, cb.syncStartedAt)
+      ) {
+        continue;
+      }
       if (cb.lastSyncedAt !== undefined && cb.lastSyncedAt >= cutoff) {
         continue;
       }
