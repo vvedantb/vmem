@@ -27,6 +27,7 @@ Implementation:
 - Prefer explicit over magical behaviour.
 - All decisions should optimize for long-term maintainability.
 - Do not run any dev / lint / build commands unless the user asks you to
+- If you are creating any plans, then make sure that running /ship skill is the final step (unless the user explicitly says not to)
 
 Convex:
 
@@ -182,6 +183,13 @@ MCP Apps (interactive views in Claude / MCP Apps hosts):
 - Use `@modelcontextprotocol/ext-apps` + bundled HTML in `packages/backend/mcp-ui/` → `convex/mcp/bundled/`; do **not** adopt Skybridge for embedded Convex tools (see `internal/mcp-apps.md`)
 - Dev MCP only: `https://outgoing-reindeer-268.eu-west-1.convex.site/mcp`; `WEB_APP_URL` = `https://vmem-git-staging-vedantb.vercel.app`
 - `memory_graph`: `memoryGraphApp.ts`, `mcpGraph.ts`, build via `build:mcp-graph-ui`
+
+Benchmarking (LoCoMo effectiveness):
+
+- Harness in `packages/backend/neo4j-cli/bench/` measures vmem's LLM-judge accuracy (J) + per-category + token/latency against comparators (full-context now; mem0/supermemory = Phase 2) under ONE shared answer+judge model so rows are comparable (vendor blog numbers are NOT — included only as a cited section). Scripts: `bench:download` (dataset, gitignored), `bench:locomo`, `bench:report` (→ `internal/bench/locomo-results.md`), `bench:cleanup`.
+- The vmem provider drives PRODUCTION engine paths from the CLI: bench extraction → per-fact `retrieveMemories` → production `buildUpdateDecisionPrompt` ADD/UPDATE/DELETE/NONE → engine create/update/delete w/ dedup → production enrichment; QA-time retrieval is unmodified `retrieveMemories`. Isolation = synthetic `bench_locomo_<conv>_<runId>` userIds (cleanup is prefix-scoped, never touches real data); `--user/--profile` ingests under a real clerkId for the graph view.
+- Default models are OpenRouter `:free` (memory/answer `openai/gpt-oss-20b:free`, judge `openai/gpt-oss-120b:free`); **temperature is OMITTED** — the gpt-5 family rejects non-default temperature. Embeddings (`text-embedding-3-small`) are NOT free but cost ~nothing. Free tier has rate limits (20/min + daily cap) → use `--max-sessions`/`--max-questions`/`--conversations` for smoke runs; a full 10-conversation run needs paid (cheap gpt-5-nano) or multi-day pacing.
+- CLI scripts read `OPENROUTER_API_KEY` from `packages/backend/.env.local` (per `--env-file`). It is NOT in Convex env (vmem stores the OpenRouter key per-user in the DB); add it to `.env.local` manually for any CLI script using `cliEmbeddings` (bench, `eval:retrieval`, `db:seed:eval`). Use `fileURLToPath`, never `URL.pathname`, for on-disk paths (Windows `/C:/…` bug).
 
 Git commits:
 

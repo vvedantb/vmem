@@ -17,6 +17,10 @@
     "db:unseed": "npx tsx --env-file=.env.local neo4j-cli/unseed.ts",
     "db:tag-stats": "npx tsx --env-file=.env.local neo4j-cli/tag-stats.ts",
     "eval:retrieval": "npx tsx --env-file=.env.local neo4j-cli/eval/run.ts",
+    "bench:download": "npx tsx neo4j-cli/bench/datasets/download.ts",
+    "bench:locomo": "npx tsx --env-file=.env.local neo4j-cli/bench/run.ts",
+    "bench:report": "npx tsx neo4j-cli/bench/report.ts",
+    "bench:cleanup": "npx tsx --env-file=.env.local neo4j-cli/bench/cleanup.ts",
     "build:mcp-graph-ui": "node scripts/build-memory-graph-mcp-app.mjs"
   },
   "dependencies": {

@@ -6,6 +6,7 @@
 
 import {
   createOpenRouterClient,
+  isTransientNetworkError,
   readOpenRouterError,
 } from "../../convex/lib/openRouter/client";
 
@@ -13,6 +14,17 @@ const EMBEDDING_MODEL = "openai/text-embedding-3-small";
 const EMBEDDING_DIMENSIONS = 1536;
 const EMBEDDING_BATCH_SIZE = 20;
 const EMBEDDING_MAX_INPUT_CHARS = 6000;
+// Embeddings are the most-called endpoint in a bench run (one per fact, per
+// dedup check, per query). A single transient socket reset must not abort the
+// whole run, so retry transient faults / 429 / 5xx with backoff before giving
+// up — mirrors the retry policy in neo4j-cli/bench/llm.ts.
+const EMBEDDING_MAX_ATTEMPTS = 5;
+const EMBEDDING_RETRY_BASE_MS = 800;
+const EMBEDDING_RATE_LIMIT_BASE_MS = 6000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function truncateForEmbedding(text: string): string {
   return text.length > EMBEDDING_MAX_INPUT_CHARS
@@ -114,32 +126,49 @@ async function generateOpenRouterEmbeddings(
       .slice(offset, offset + EMBEDDING_BATCH_SIZE)
       .map(truncateForEmbedding);
 
-    try {
-      const response = await client.embeddings.generate({
-        requestBody: {
-          model: EMBEDDING_MODEL,
-          input,
-        },
-      });
-
-      if (typeof response === "string") {
-        throw new Error("embedding response: unexpected string body");
-      }
-
-      const vectors = validateEmbeddingItems(response.data, input.length);
-      for (let i = 0; i < vectors.length; i++) {
-        const vector = vectors[i];
-        if (vector) out[offset + i] = vector;
-      }
-    } catch (err) {
-      const { status, message } = readOpenRouterError(err);
-      throw new Error(
-        `openRouter embedding ${String(status)}: ${message.slice(0, 200)}`,
-      );
+    const vectors = await generateBatchWithRetry(client, input);
+    for (let i = 0; i < vectors.length; i++) {
+      const vector = vectors[i];
+      if (vector) out[offset + i] = vector;
     }
   }
 
   return out;
+}
+
+async function generateBatchWithRetry(
+  client: ReturnType<typeof createOpenRouterClient>,
+  input: string[],
+): Promise<number[][]> {
+  let lastError = "unknown error";
+  for (let attempt = 1; attempt <= EMBEDDING_MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await client.embeddings.generate({
+        requestBody: { model: EMBEDDING_MODEL, input },
+      });
+      if (typeof response === "string") {
+        throw new Error("embedding response: unexpected string body");
+      }
+      return validateEmbeddingItems(response.data, input.length);
+    } catch (err) {
+      const { status, message } = readOpenRouterError(err);
+      lastError = `${String(status)}: ${message.slice(0, 200)}`;
+      const retryable =
+        status === 429 ||
+        status >= 500 ||
+        (status === 0 && isTransientNetworkError(err));
+      if (attempt < EMBEDDING_MAX_ATTEMPTS && retryable) {
+        const base =
+          status === 429
+            ? EMBEDDING_RATE_LIMIT_BASE_MS
+            : EMBEDDING_RETRY_BASE_MS;
+        await sleep(base * attempt);
+        continue;
+      }
+      throw new Error(`openRouter embedding ${lastError}`);
+    }
+  }
+  throw new Error(`openRouter embedding exhausted retries (${lastError})`);
 }
 
 function generateSyntheticEmbeddings(texts: string[]): number[][] {
