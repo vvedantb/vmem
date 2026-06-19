@@ -8,6 +8,8 @@ import { SlideStepContext } from "./_components/SlideShell";
 const DESIGN_W = 1280;
 const DESIGN_H = 720;
 const TOTAL = SLIDES.length;
+// Default gap between auto-revealed build steps; per-slide `staggerMs` overrides.
+const DEFAULT_STAGGER_MS = 2000;
 
 interface SlideDeckProps {
   /** 1-based current slide index. */
@@ -36,12 +38,12 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
   // each step in turn on a fixed stagger so nothing pops in all at once.
   useEffect(() => {
     setStep(0);
-    const maxSteps = SLIDES[clamp(slide - 1, 0, TOTAL - 1)].steps;
-    if (maxSteps === 0) return;
-    const STAGGER_MS = 2000;
+    const entry = SLIDES[clamp(slide - 1, 0, TOTAL - 1)];
+    if (entry.steps === 0) return;
+    const stagger = entry.staggerMs ?? DEFAULT_STAGGER_MS;
     const timers: number[] = [];
-    for (let s = 1; s <= maxSteps; s++) {
-      timers.push(window.setTimeout(() => setStep(s), STAGGER_MS * s));
+    for (let s = 1; s <= entry.steps; s++) {
+      timers.push(window.setTimeout(() => setStep(s), stagger * s));
     }
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, [slide]);

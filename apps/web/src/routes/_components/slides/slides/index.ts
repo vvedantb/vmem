@@ -42,11 +42,17 @@ export interface SlideEntry {
   theme: "dark" | "light";
   Component: ComponentType;
   /**
-   * Number of click-through build steps beyond the initial (step 0) state.
-   * A slide where all content appears on entry has steps: 0.
-   * Each forward click reveals the next step; each backward click hides it.
+   * Number of build steps beyond the initial (step 0) state. A slide where all
+   * content appears on entry has steps: 0. Steps auto-reveal on a stagger once
+   * the slide loads (see SlideDeck) — no clicking.
    */
   steps: number;
+  /**
+   * Optional per-slide override (ms) for the gap between auto-revealed build
+   * steps. Defaults to DEFAULT_STAGGER_MS in SlideDeck. Use a smaller value on
+   * slides with many quick steps so they do not drag.
+   */
+  staggerMs?: number;
 }
 
 export const SLIDES: SlideEntry[] = [
@@ -97,6 +103,8 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide04How,
     steps: 4,
+    // Four quick pipeline stages — keep them snappier than the 2s default.
+    staggerMs: 1100,
   },
   // step 0: kicker + title  /  step 1: before chain  /  step 2: after chain
   {
