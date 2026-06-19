@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { useTheme } from "next-themes";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { SLIDES } from "./slides/index";
 import { SlideStepContext } from "./_components/SlideShell";
@@ -168,22 +169,39 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
   // fade in/out over those slides and can't flash. They appear from slide 02.
   const showOrbs = id !== "00" && id !== "01";
 
-  // Apply the slide's theme on <html> while presenting. A local wrapper
-  // class is not enough: opacity-modified token utilities (e.g.
-  // text-foreground/50) resolve against the html-level theme vars, not a
-  // nested .light/.dark wrapper. Restore the user's theme on unmount.
+  // The user's real theme, so we can restore it when leaving the deck.
+  const { resolvedTheme } = useTheme();
+
+  // Force the slide's theme on <html> while presenting. A local wrapper class
+  // is not enough: opacity-modified token utilities (text-foreground/50) and
+  // `dark:` variants resolve against the html-level theme. The app drives the
+  // class through next-themes, which re-asserts the user's theme whenever the
+  // Convex settings query resolves — clobbering ours and leaving e.g. a light
+  // slide rendering with dark (white) text. So we re-apply on every <html>
+  // class mutation via an observer; on unmount we hand control back by
+  // restoring the user's resolved theme.
   useEffect(() => {
     const root = document.documentElement;
-    const hadDark = root.classList.contains("dark");
-    const hadLight = root.classList.contains("light");
-    root.classList.remove("dark", "light");
-    root.classList.add(theme);
-    return () => {
-      root.classList.remove("dark", "light");
-      if (hadDark) root.classList.add("dark");
-      if (hadLight) root.classList.add("light");
+    const opposite = theme === "dark" ? "light" : "dark";
+    const enforce = () => {
+      if (
+        root.classList.contains(opposite) ||
+        !root.classList.contains(theme)
+      ) {
+        root.classList.remove("dark", "light");
+        root.classList.add(theme);
+      }
     };
-  }, [theme]);
+    enforce();
+    const observer = new MutationObserver(enforce);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => {
+      observer.disconnect();
+      const restore = resolvedTheme === "light" ? "light" : "dark";
+      root.classList.remove("dark", "light");
+      root.classList.add(restore);
+    };
+  }, [theme, resolvedTheme]);
 
   const variants = {
     enter: (dir: number) => ({
