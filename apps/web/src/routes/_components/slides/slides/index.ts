@@ -307,13 +307,14 @@ export const SLIDES: SlideEntry[] = [
     steps: 5,
     staggerMs: 1400,
   },
-  // step 0: panel + title  /  step 1: history timeline  /  step 2: connections
+  // active tab auto-cycles Details → History → Connections as steps advance
   {
     id: "37",
     title: "Node detail",
     theme: "dark",
     Component: Slide37NodeDetail,
     steps: 2,
+    staggerMs: 2600,
   },
   // step 0: rotating 3D showcase of skills/wiki/connectors screenshots
   {
