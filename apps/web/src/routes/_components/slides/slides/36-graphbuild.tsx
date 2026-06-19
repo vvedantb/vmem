@@ -1,4 +1,5 @@
 import { useContext } from "react";
+import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
@@ -9,63 +10,82 @@ import {
 } from "../_components/SlideShell";
 
 /**
- * Animated mock memory graph (slide build steps drive it):
- *  step 0 — one central memory node
- *  steps 1-4 — a new node appears each step, drawn in with a relationship label
- *  step 5 — the cluster zooms out and a scatter of further nodes fades in
- * All mock data; nothing live.
+ * Animated mock memory graph, driven by the slide's auto-playing build steps:
+ *  step 0   — one central memory node
+ *  steps 1-4 — a satellite node appears each step, its edge grows out from the
+ *              centre with a relationship label
+ *  step 5   — the whole cluster zooms out and a field of further nodes fades in
+ * Nodes are HTML chips (crisp, on-brand pills); edges are an SVG layer in the
+ * same 0-100 percentage space. All mock data.
  */
 
-const CENTER = { x: 500, y: 250 };
+const CENTER = { l: 50, t: 50 };
 
 interface Satellite {
-  x: number;
-  y: number;
+  l: number;
+  t: number;
   label: string;
   /** Relationship shown on the connecting edge. */
   relation: string;
 }
 
-// Revealed one per step (1-4), each with its edge + relationship label.
 const SATELLITES: Satellite[] = [
-  { x: 235, y: 120, label: "Clerk MV3 setup", relation: "part of" },
-  { x: 775, y: 130, label: "SW offline bug", relation: "caused" },
-  { x: 215, y: 395, label: "Prefers Clerk over Auth0", relation: "because" },
-  { x: 785, y: 385, label: "Extension token refresh", relation: "depends on" },
+  { l: 24, t: 23, label: "Clerk MV3 setup", relation: "part of" },
+  { l: 77, t: 25, label: "SW offline bug", relation: "caused" },
+  { l: 21, t: 78, label: "Prefers Clerk over Auth0", relation: "because" },
+  { l: 79, t: 75, label: "Extension token refresh", relation: "depends on" },
 ];
 
-// Far-field nodes that fade in (no labels/edges) once the cluster zooms out.
+// Far-field nodes (no labels/edges) that fade in once the cluster zooms out.
 const OUTER_NODES = [
-  { x: 90, y: 70 },
-  { x: 910, y: 60 },
-  { x: 120, y: 470 },
-  { x: 880, y: 480 },
-  { x: 500, y: 30 },
-  { x: 60, y: 250 },
-  { x: 945, y: 270 },
-  { x: 500, y: 500 },
-  { x: 330, y: 30 },
-  { x: 690, y: 500 },
+  { l: 8, t: 12 },
+  { l: 92, t: 9 },
+  { l: 5, t: 55 },
+  { l: 95, t: 60 },
+  { l: 50, t: 5 },
+  { l: 13, t: 92 },
+  { l: 88, t: 93 },
+  { l: 50, t: 95 },
+  { l: 31, t: 7 },
+  { l: 69, t: 94 },
 ] as const;
 
-function NodeDot({
-  x,
-  y,
-  r = 9,
-  highlight = false,
+/** Absolutely positioned at a percentage point, centred on it. */
+function At({ l, t, children }: { l: number; t: number; children: ReactNode }) {
+  return (
+    <div
+      className="absolute -translate-x-1/2 -translate-y-1/2"
+      style={{ left: `${l}%`, top: `${t}%` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function NodeChip({
+  label,
+  center = false,
 }: {
-  x: number;
-  y: number;
-  r?: number;
-  highlight?: boolean;
+  label: string;
+  center?: boolean;
 }) {
   return (
-    <circle
-      cx={x}
-      cy={y}
-      r={r}
-      className={highlight ? "fill-foreground" : "fill-foreground/70"}
-    />
+    <div
+      className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 ${
+        center
+          ? "bg-foreground text-background"
+          : "bg-surface-secondary text-foreground"
+      }`}
+    >
+      <span
+        className={`h-2 w-2 shrink-0 rounded-full ${
+          center ? "bg-background" : "bg-foreground/60"
+        }`}
+      />
+      <span className={center ? "text-base font-medium" : "text-sm"}>
+        {label}
+      </span>
+    </div>
   );
 }
 
@@ -80,138 +100,108 @@ export function Slide36GraphBuild() {
       </SlideReveal>
       <BlurWordsTitle lines={["One memory becomes a web."]} size="xl" />
 
-      <div className="mt-4 flex-1">
-        <svg
-          viewBox="0 0 1000 520"
-          className="h-full w-full"
-          fill="none"
-          aria-hidden
+      <div className="relative mt-4 min-h-0 flex-1">
+        {/* Cluster — scales down on the zoom-out step (about its centre). */}
+        <motion.div
+          className="absolute inset-0"
+          style={{ transformOrigin: "center" }}
+          animate={{ scale: zoomed ? 0.62 : 1 }}
+          transition={{ duration: 1, ease: [0.4, 0, 0.2, 1] }}
         >
-          {/* Core cluster — scales down on the zoom-out step. fill-box origin
-              centres the scale on the (symmetric) cluster's own bounds. */}
-          <motion.g
-            style={{ transformBox: "fill-box", transformOrigin: "center" }}
-            animate={{ scale: zoomed ? 0.6 : 1 }}
-            transition={{ duration: 1, ease: [0.4, 0, 0.2, 1] }}
+          {/* Edge layer — percentage coordinate space, crisp strokes. */}
+          <svg
+            className="absolute inset-0 h-full w-full text-foreground/35"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            fill="none"
+            aria-hidden
           >
-            {/* Edges + relationship labels, revealed per step */}
             {SATELLITES.map((s, i) => {
               const visible = step >= i + 1;
-              const midX = (CENTER.x + s.x) / 2;
-              const midY = (CENTER.y + s.y) / 2;
               return (
-                <motion.g
+                <motion.line
                   key={s.label}
+                  x1={CENTER.l}
+                  y1={CENTER.t}
+                  stroke="currentColor"
+                  strokeWidth={1.25}
+                  vectorEffect="non-scaling-stroke"
                   initial={false}
-                  animate={{ opacity: visible ? 1 : 0 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                >
-                  <motion.line
-                    x1={CENTER.x}
-                    y1={CENTER.y}
-                    x2={s.x}
-                    y2={s.y}
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                    className="text-foreground/30"
-                    initial={false}
-                    animate={{ pathLength: visible ? 1 : 0 }}
-                    transition={{ duration: 0.6, ease: "easeInOut" }}
-                  />
-                  {/* Relationship label on a faint backing pill */}
-                  <rect
-                    x={midX - s.relation.length * 4.4 - 8}
-                    y={midY - 13}
-                    width={s.relation.length * 8.8 + 16}
-                    height={26}
-                    rx={13}
-                    className="fill-background"
-                  />
-                  <text
-                    x={midX}
-                    y={midY + 4}
-                    textAnchor="middle"
-                    className="fill-foreground/70"
-                    style={{
-                      fontSize: 14,
-                      fontFamily: "var(--font-mono, monospace)",
-                    }}
-                  >
-                    {s.relation}
-                  </text>
-                </motion.g>
+                  animate={{
+                    x2: visible ? s.l : CENTER.l,
+                    y2: visible ? s.t : CENTER.t,
+                    opacity: visible ? 1 : 0,
+                  }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                />
               );
             })}
+          </svg>
 
-            {/* Satellite nodes + labels */}
-            {SATELLITES.map((s, i) => {
-              const visible = step >= i + 1;
-              return (
-                <motion.g
-                  key={`node-${s.label}`}
+          {/* Relationship labels at edge midpoints */}
+          {SATELLITES.map((s, i) => {
+            const visible = step >= i + 1;
+            return (
+              <At
+                key={`rel-${s.label}`}
+                l={(CENTER.l + s.l) / 2}
+                t={(CENTER.t + s.t) / 2}
+              >
+                <motion.span
+                  className="rounded-full bg-surface px-2.5 py-1 font-mono text-[11px] text-muted"
                   initial={false}
                   animate={{
                     opacity: visible ? 1 : 0,
-                    scale: visible ? 1 : 0.3,
+                    scale: visible ? 1 : 0.8,
                   }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  style={{
-                    transformBox: "fill-box",
-                    transformOrigin: "center",
-                  }}
+                  transition={{ duration: 0.4, delay: visible ? 0.35 : 0 }}
                 >
-                  <NodeDot x={s.x} y={s.y} />
-                  <text
-                    x={s.x}
-                    y={s.y + 30}
-                    textAnchor="middle"
-                    className="fill-foreground"
-                    style={{
-                      fontSize: 17,
-                      fontFamily: "Instrument Sans, sans-serif",
-                    }}
-                  >
-                    {s.label}
-                  </text>
-                </motion.g>
-              );
-            })}
+                  {s.relation}
+                </motion.span>
+              </At>
+            );
+          })}
 
-            {/* Central node — always present */}
-            <NodeDot x={CENTER.x} y={CENTER.y} r={13} highlight />
-            <text
-              x={CENTER.x}
-              y={CENTER.y - 26}
-              textAnchor="middle"
-              className="fill-foreground"
-              style={{
-                fontSize: 20,
-                fontFamily: "Instrument Sans, sans-serif",
-              }}
-            >
-              Migrate auth to Clerk
-            </text>
-          </motion.g>
+          {/* Satellite nodes */}
+          {SATELLITES.map((s, i) => {
+            const visible = step >= i + 1;
+            return (
+              <At key={`node-${s.label}`} l={s.l} t={s.t}>
+                <motion.div
+                  initial={false}
+                  animate={{
+                    opacity: visible ? 1 : 0,
+                    scale: visible ? 1 : 0.5,
+                  }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
+                >
+                  <NodeChip label={s.label} />
+                </motion.div>
+              </At>
+            );
+          })}
 
-          {/* Far-field nodes — fade in once zoomed out, no labels or edges */}
-          {OUTER_NODES.map((n, i) => (
-            <motion.circle
-              key={i}
-              cx={n.x}
-              cy={n.y}
-              r={5}
-              className="fill-foreground/40"
+          {/* Central node — always present */}
+          <At l={CENTER.l} t={CENTER.t}>
+            <NodeChip label="Migrate auth to Clerk" center />
+          </At>
+        </motion.div>
+
+        {/* Far-field nodes — full size, fade in once zoomed out. */}
+        {OUTER_NODES.map((n, i) => (
+          <At key={`outer-${i}`} l={n.l} t={n.t}>
+            <motion.span
+              className="block h-2.5 w-2.5 rounded-full bg-foreground/35"
               initial={false}
-              animate={{ opacity: zoomed ? 1 : 0, scale: zoomed ? 1 : 0.2 }}
+              animate={{ opacity: zoomed ? 1 : 0, scale: zoomed ? 1 : 0.3 }}
               transition={{
-                duration: 0.6,
+                duration: 0.5,
                 delay: zoomed ? 0.3 + i * 0.05 : 0,
                 ease: "easeOut",
               }}
-              style={{ transformBox: "fill-box", transformOrigin: "center" }}
             />
-          ))}
-        </svg>
+          </At>
+        ))}
       </div>
     </SlideShell>
   );
