@@ -1,8 +1,28 @@
 import { useContext } from "react";
+import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import type { Variants } from "motion/react";
 import { motionEase } from "@vmem/ui";
 import { SlideStepContext } from "./SlideShell";
+
+// Matches the brand word "vmem" (case-insensitive) with optional trailing
+// punctuation, so a title word like "vmem." renders the "mem" in italics —
+// mirroring VmemBrandText (`v<span italic>mem</span>`).
+const VMEM_WORD = /^(v)(mem)([.,!?:;'"]*)$/i;
+
+/** Render a title word, italicising the "mem" of any "vmem" brand word. */
+function renderWord(word: string): ReactNode {
+  const match = VMEM_WORD.exec(word);
+  if (!match) return word;
+  const [, v, mem, trailing] = match;
+  return (
+    <>
+      {v}
+      <span className="italic">{mem}</span>
+      {trailing}
+    </>
+  );
+}
 
 /**
  * Per-word entrance: each word fades up from a blurred state, staggered
@@ -87,7 +107,7 @@ export function BlurWordsTitle({
             className="inline-block"
             style={{ marginRight: "0.22em" }}
           >
-            {word}
+            {renderWord(word)}
           </motion.span>
         ));
         // Insert a <br> after each line except the last so the stagger
