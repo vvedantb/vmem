@@ -35,6 +35,8 @@ import { Slide32Demo } from "./32-demo";
 import { Slide33Questions } from "./33-questions";
 import { Slide34Surfaces } from "./34-surfaces";
 import { Slide35Sovereignty } from "./35-sovereignty";
+import { Slide36GraphBuild } from "./36-graphbuild";
+import { Slide37NodeDetail } from "./37-nodedetail";
 
 export interface SlideEntry {
   id: string;
@@ -295,6 +297,23 @@ export const SLIDES: SlideEntry[] = [
     theme: "dark",
     Component: Slide32Demo,
     steps: 0,
+  },
+  // step 0: one node  /  steps 1-4: nodes + relationship edges build in  /  step 5: zoom out
+  {
+    id: "36",
+    title: "Graph build-up",
+    theme: "dark",
+    Component: Slide36GraphBuild,
+    steps: 5,
+    staggerMs: 1400,
+  },
+  // step 0: panel + title  /  step 1: history timeline  /  step 2: connections
+  {
+    id: "37",
+    title: "Node detail",
+    theme: "dark",
+    Component: Slide37NodeDetail,
+    steps: 2,
   },
   // step 0: rotating 3D showcase of skills/wiki/connectors screenshots
   {
