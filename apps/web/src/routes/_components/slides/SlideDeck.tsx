@@ -26,71 +26,46 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
   // direction: 1 = forward, -1 = backward
   const [direction, setDirection] = useState(1);
   // Current build step within the active slide (ephemeral — not in URL).
+  // Auto-advances on a timer (see effect below) so each slide's content
+  // reveals in a stagger without the presenter clicking through it.
   const [step, setStep] = useState(0);
-  // Track the last slide we navigated to via go() so we can detect
-  // external URL changes (browser back/forward) and reset step.
-  const lastNavigatedSlide = useRef(slide);
-
-  useEffect(() => {
-    if (slide !== lastNavigatedSlide.current) {
-      lastNavigatedSlide.current = slide;
-      setStep(0);
-    }
-  }, [slide]);
 
   const index = clamp(slide - 1, 0, TOTAL - 1);
 
+  // Auto-play the slide's build steps: reset to 0 on slide change, then reveal
+  // each step in turn on a fixed stagger so nothing pops in all at once.
+  useEffect(() => {
+    setStep(0);
+    const maxSteps = SLIDES[clamp(slide - 1, 0, TOTAL - 1)].steps;
+    if (maxSteps === 0) return;
+    const STAGGER_MS = 600;
+    const timers: number[] = [];
+    for (let s = 1; s <= maxSteps; s++) {
+      timers.push(window.setTimeout(() => setStep(s), STAGGER_MS * s));
+    }
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [slide]);
+
   /**
-   * Move forward or backward through slides AND build steps.
-   *  delta > 0 = advance: reveal next build step, or go to next slide at step 0.
-   *  delta < 0 = retreat: hide last revealed step, or go to previous slide fully revealed.
-   *  delta = 0 with a slide number = jump directly (Home/End).
+   * Navigate between slides. Build steps auto-play on a timer (see above), so
+   * forward/back move whole slides — no per-step clicking.
+   *  delta > 0 = next slide, delta < 0 = previous slide.
+   *  delta omitted with a slide number = jump directly (Home/End).
    */
   const go = useCallback(
-    (next: number, opts?: { forceStep?: number; delta?: number }) => {
+    (next: number, opts?: { delta?: number }) => {
       const delta = opts?.delta;
-
-      // Step-aware forward/backward when delta is provided.
-      if (delta === 1) {
-        const currentSteps = SLIDES[index].steps;
-        if (step < currentSteps) {
-          setStep(step + 1);
-          return;
-        }
-        // Slide fully revealed — advance to next slide.
-        const nextSlide = clamp(slide + 1, 1, TOTAL);
-        if (nextSlide === slide) return;
-        lastNavigatedSlide.current = nextSlide;
-        setDirection(1);
-        setStep(0);
-        onNavigate(nextSlide);
-        return;
-      }
-
-      if (delta === -1) {
-        if (step > 0) {
-          setStep(step - 1);
-          return;
-        }
-        // At step 0 — go to previous slide fully revealed.
-        const prevSlide = clamp(slide - 1, 1, TOTAL);
-        if (prevSlide === slide) return;
-        lastNavigatedSlide.current = prevSlide;
-        setDirection(-1);
-        setStep(SLIDES[clamp(prevSlide - 1, 0, TOTAL - 1)].steps);
-        onNavigate(prevSlide);
-        return;
-      }
-
-      // Direct jump (Home / End).
-      const clamped = clamp(next, 1, TOTAL);
-      if (clamped === slide && opts?.forceStep === undefined) return;
-      lastNavigatedSlide.current = clamped;
-      setDirection(clamped > slide ? 1 : -1);
-      setStep(opts?.forceStep ?? 0);
-      onNavigate(clamped);
+      const target =
+        delta === 1
+          ? clamp(slide + 1, 1, TOTAL)
+          : delta === -1
+            ? clamp(slide - 1, 1, TOTAL)
+            : clamp(next, 1, TOTAL);
+      if (target === slide) return;
+      setDirection(target > slide ? 1 : -1);
+      onNavigate(target);
     },
-    [slide, step, index, onNavigate],
+    [slide, onNavigate],
   );
 
   // Compute scale on mount and resize
@@ -122,11 +97,11 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
           break;
         case "Home":
           e.preventDefault();
-          go(1, { forceStep: 0 });
+          go(1);
           break;
         case "End":
           e.preventDefault();
-          go(TOTAL, { forceStep: SLIDES[TOTAL - 1].steps });
+          go(TOTAL);
           break;
         case "f":
         case "F":
@@ -308,26 +283,6 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
           style={{ width: `${progressPct}%` }}
         />
       </div>
-
-      {/* Build-step indicator — shows reveals consumed vs total for this
-          slide so you know whether another click reveals more content or
-          advances to the next slide. Hidden on slides with no build steps. */}
-      {SLIDES[index].steps > 0 ? (
-        <div className="pointer-events-none absolute bottom-8 right-4 flex items-center gap-1.5 font-mono text-xs tabular-nums">
-          <span
-            className={
-              step < SLIDES[index].steps
-                ? "text-foreground/70"
-                : "text-muted/40"
-            }
-          >
-            {step < SLIDES[index].steps ? "more ↓" : "end"}
-          </span>
-          <span className="text-muted/40">
-            {step} / {SLIDES[index].steps}
-          </span>
-        </div>
-      ) : null}
 
       {/* Slide counter */}
       <div className="pointer-events-none absolute bottom-3 right-4 font-mono text-xs tabular-nums text-muted/40">
