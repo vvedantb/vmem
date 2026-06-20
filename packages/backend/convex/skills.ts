@@ -201,6 +201,29 @@ export const deleteSkill = authMutation({
 });
 
 /**
+ * Bulk-delete skills (each with its version snapshots). Same per-skill
+ * permission gate as `deleteSkill`; ids already gone are skipped. The personal
+ * skills index is invalidated once at the end if any personal skill was removed.
+ */
+export const deleteSkills = authMutation({
+  args: { ids: v.array(v.id("skills")) },
+  handler: async (ctx, args) => {
+    let anyPersonal = false;
+    for (const id of args.ids) {
+      const skill = await ctx.db.get(id);
+      if (!skill) continue;
+      await assertContentDeletable(ctx, skill, ctx.userId);
+      await deleteVersionsForSkill(ctx, id);
+      await ctx.db.delete(id);
+      if (skill.teamId === undefined) anyPersonal = true;
+    }
+    if (anyPersonal) {
+      await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
+    }
+  },
+});
+
+/**
  * Restore a skill to a previous version. Checkpoints the current state first
  * (force) so the restore is itself reversible, then patches the skill from the
  * snapshot. Rejects when the snapshot's name now collides with another skill in

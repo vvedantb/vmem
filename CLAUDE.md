@@ -178,11 +178,11 @@ Version history (wiki docs & skills):
 - UI: "Version history" in the wiki doc ⋯ menu (`WikiDocActionsMenu`) and skill ⋯ menu (`SkillHeaderActions`) opens a two-column Dialog (`WikiHistoryPanel`/`SkillHistoryPanel`): list (relative time + author badge) | read-only preview | Restore. Wiki preview reuses `_editorExtensions.ts` (shared with `WikiEditor`) in a `editable:false` TipTap. Retention = keep everything (no cap). Inline diff deferred.
 - **Cleanup on delete**: deleting a node/skill must drop its snapshots — `deleteVersionsForWikiNode` runs per node inside `deleteWikiSubtree`, `deleteVersionsForSkill` runs in both skill delete paths. Never delete a doc/skill without clearing `wikiNodeVersions`/`skillVersions` or you orphan rows.
 
-Wiki sidebar bulk delete:
+Sidebar bulk delete (wiki docs & skills):
 
-- `WikiTree` takes optional `selectionMode`/`selectedNodeIds: ReadonlySet<Id<"wikiNodes">>`/`onToggleSelect` — in select mode rows show a (pointer-events-none) `Checkbox` and the row click toggles selection; the folder chevron keeps expanding via a `stopPropagation` span. Selection ids stay branded `Id<"wikiNodes">` end-to-end so `deleteNodes` needs no `as`.
-- `WikiSidebarNav` owns `selectionMode` + `selectedIds`; a "Select" ghost button enters it, `WikiBulkDeleteBar` (count + confirm-gated Delete + Cancel) exits it. The Add menu hides while selecting.
-- `wiki.deleteNodes({ ids })` loops `deleteWikiSubtree`, skipping ids already gone within an ancestor's subtree (folder+child selections are safe). `collectSubtreeIds` (`wiki/_utils.ts`) expands roots→descendants for the optimistic `listTree` filter and to detect when the open doc was deleted (→ navigate to first remaining).
+- Pattern: the list row component takes optional `selectionMode`/`checked`(or `selectedNodeIds`)/`onToggleSelect` — in select mode rows show a (pointer-events-none) `Checkbox` and the row click toggles selection instead of opening. Selection ids stay branded (`Id<"wikiNodes">`/`Id<"skills">`) end-to-end so the bulk mutation needs no `as`. The sidebar nav owns `selectionMode` + `selectedIds`; a "Select" ghost button enters it, a `*BulkDeleteBar` (count + confirm-gated Delete + Cancel) exits it; the Add menu hides while selecting.
+- Wiki (`WikiTree` + `WikiBulkDeleteBar` + `wiki.deleteNodes`): the folder chevron keeps expanding via a `stopPropagation` span. `deleteNodes({ ids })` loops `deleteWikiSubtree`, skipping ids already gone within an ancestor's subtree (folder+child selections safe). `collectSubtreeIds` (`wiki/_utils.ts`) expands roots→descendants for the optimistic `listTree` filter and to detect when the open doc was deleted (→ navigate to first remaining).
+- Skills (`SkillCard` + `SkillBulkDeleteBar` + `skills.deleteSkills`): simpler (no subtree). `deleteSkills({ ids })` deletes each (with version cleanup), invalidating the personal context prompt once if any personal skill went. No nav handling needed — the skills route already redirects when the open skill disappears. `SharedLayoutBackground` pinned id is forced null in select mode so the route pill doesn't fight the checkboxes.
 
 Files (shared AI filesystem):
 

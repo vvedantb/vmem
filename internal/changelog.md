@@ -1,9 +1,9 @@
 # Changelog
 
-## Multi-select bulk delete in the wiki sidebar — 2026-06-20
+## Multi-select bulk delete in the sidebar — 2026-06-20
 
-- **Why**: removing several documents meant right-clicking and confirming each one in turn — tedious for clearing out a batch.
-- **Select mode**: a "Select" toggle in the wiki sidebar turns on checkboxes; pick any mix of documents and folders and delete them in one confirmed action. Deleting a folder removes everything inside it.
+- **Why**: removing several documents or skills meant right-clicking and confirming each one in turn — tedious for clearing out a batch.
+- **Select mode**: a "Select" toggle in the wiki and skills sidebars turns on checkboxes; pick any mix of items and delete them in one confirmed action. For wiki, deleting a folder removes everything inside it.
 
 ## Version history for wiki docs and skills — 2026-06-20
 

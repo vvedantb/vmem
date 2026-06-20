@@ -7,9 +7,10 @@ import { useQueryStates } from "nuqs";
 import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { cn, motionDuration, motionEase } from "@vmem/ui";
+import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconBolt } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
+import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
 import { SkillsSearchBar } from "@/components/skills/SkillsSearchBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
 import { WriteSkillDialog } from "@/components/skills/WriteSkillDialog";
@@ -42,6 +43,27 @@ export function SkillsSidebarNav({
   const [{ q: searchQuery }, setSearchParams] =
     useQueryStates(skillsSearchParams);
   const [createModal, setCreateModal] = useState<CreateModalState>("none");
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<Id<"skills">>>(
+    () => new Set(),
+  );
+
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelect = (id: Id<"skills">) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const filteredSkills = useMemo(() => {
     if (!skills) return [];
@@ -99,6 +121,26 @@ export function SkillsSidebarNav({
                 }}
               />
             ) : null}
+            {!isIconOnly ? (
+              selectionMode ? (
+                <SkillBulkDeleteBar
+                  selectedIds={selectedIds}
+                  teamId={teamId}
+                  onExit={exitSelection}
+                />
+              ) : (
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-muted"
+                    onClick={() => setSelectionMode(true)}
+                  >
+                    Select
+                  </Button>
+                </div>
+              )
+            ) : null}
             {filteredSkills.length === 0 ? (
               !isIconOnly ? (
                 <p className="px-2 py-4 text-center text-xs text-muted">
@@ -107,7 +149,7 @@ export function SkillsSidebarNav({
               ) : null
             ) : (
               <SharedLayoutBackground.Root
-                pinnedId={skillId ?? null}
+                pinnedId={selectionMode ? null : (skillId ?? null)}
                 className="gap-0.5"
               >
                 {filteredSkills.map((skill) => (
@@ -116,6 +158,9 @@ export function SkillsSidebarNav({
                       skill={skill}
                       selected={skillId === skill._id}
                       onSelect={() => openSkill(skill._id)}
+                      selectionMode={selectionMode && !isIconOnly}
+                      checked={selectedIds.has(skill._id)}
+                      onToggleSelect={() => toggleSelect(skill._id)}
                     />
                   </SharedLayoutBackground.Item>
                 ))}
@@ -125,7 +170,7 @@ export function SkillsSidebarNav({
         )}
       </div>
 
-      {!isIconOnly ? (
+      {!isIconOnly && !selectionMode ? (
         <div className="shrink-0 px-1 pt-2">
           <SkillsAddMenu
             className="w-full gap-2"
