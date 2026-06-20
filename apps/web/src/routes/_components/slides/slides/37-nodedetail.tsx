@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { IconClockHour4, IconLink, IconX } from "@tabler/icons-react";
 import {
@@ -14,8 +14,9 @@ import {
   SlideKicker,
   SlideReveal,
   SlideShell,
-  SlideStepContext,
 } from "../_components/SlideShell";
+
+const TAB_CYCLE_MS = 2600;
 
 /**
  * Mock of the web app: clicking a node in the memory graph opens the detail
@@ -95,8 +96,16 @@ function SectionLabel({
 }
 
 export function Slide37NodeDetail() {
-  const step = useContext(SlideStepContext);
-  const activeTab = TAB_FOR_STEP[Math.min(step, TAB_FOR_STEP.length - 1)];
+  // Active tab cycles Details → History → Connections endlessly.
+  const [tabIndex, setTabIndex] = useState(0);
+  useEffect(() => {
+    const id = setInterval(
+      () => setTabIndex((i) => (i + 1) % TAB_FOR_STEP.length),
+      TAB_CYCLE_MS,
+    );
+    return () => clearInterval(id);
+  }, []);
+  const activeTab = TAB_FOR_STEP[tabIndex];
 
   return (
     <SlideShell>
