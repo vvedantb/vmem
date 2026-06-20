@@ -31,6 +31,8 @@ export interface EffectiveSkill {
   instructions: string;
   enabled: boolean;
   source: "personal" | "system";
+  /** The personal skill's id — present only for `source === "personal"`. */
+  skillId?: Id<"skills">;
   /** Present only for `source === "system"`. */
   systemSkillId?: Id<"systemSkills">;
 }
@@ -65,6 +67,7 @@ async function resolveEffectiveSkills(
       instructions: skill.instructions,
       enabled: true,
       source: "personal",
+      skillId: skill._id,
     });
   }
 

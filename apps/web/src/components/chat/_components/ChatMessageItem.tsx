@@ -4,7 +4,13 @@ import { Fragment, useState, useCallback, type ReactNode } from "react";
 import { useSmoothText } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import { segmentInputBySkills } from "@vmem/shared";
-import { SKILL_CHIP_CLASS } from "../_utils/mentionChipStyles";
+import { api } from "@vmem/backend";
+import type { FunctionReturnType } from "convex/server";
+import {
+  SKILL_CHIP_CLASS,
+  SKILL_CHIP_INTERACTIVE_CLASS,
+} from "../_utils/mentionChipStyles";
+import { SkillChipHoverPreview } from "./SkillChipHoverPreview";
 import {
   isReasoningUIPart,
   isToolOrDynamicToolUIPart,
@@ -40,7 +46,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "@vmem/ui/ai";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@vmem/ui";
+import { HoverCard, HoverCardContent, HoverCardTrigger, cn } from "@vmem/ui";
 import {
   IconCheck,
   IconCloud,
@@ -191,24 +197,74 @@ function getProviderMeta(agentName?: string): {
 /** Fallback when caller doesn't know the model's context window. */
 const DEFAULT_MAX_CONTEXT_TOKENS = 4096;
 
+type SkillChip = FunctionReturnType<
+  typeof api.skills.listEffectiveSkills
+>[number];
+
 /**
- * Render a user message, wrapping any `/skill` mentions in the same accent
- * pill the prompt input uses. Plain text when no skill names are known.
+ * A `/skill` mention in a sent message: the same accent pill as the input,
+ * but clickable (opens the skill's detail page) with a hover preview.
+ */
+function SkillMentionChip({
+  skill,
+  label,
+}: {
+  skill: SkillChip;
+  label: string;
+}) {
+  const { _id: profileId } = useActiveProfile();
+  const chipClass = cn(SKILL_CHIP_CLASS, SKILL_CHIP_INTERACTIVE_CLASS);
+
+  const chip =
+    skill.source === "system" && skill.systemSkillId !== undefined ? (
+      <Link
+        to="/$profileId/skills/system/$skillId"
+        params={{ profileId, skillId: skill.systemSkillId }}
+        className={chipClass}
+      >
+        {label}
+      </Link>
+    ) : skill.skillId !== undefined ? (
+      <Link
+        to="/$profileId/skills/$id"
+        params={{ profileId, id: skill.skillId }}
+        className={chipClass}
+      >
+        {label}
+      </Link>
+    ) : (
+      <span className={SKILL_CHIP_CLASS}>{label}</span>
+    );
+
+  return (
+    <HoverCard openDelay={150} closeDelay={80}>
+      <HoverCardTrigger asChild>{chip}</HoverCardTrigger>
+      <HoverCardContent align="start" className="w-72">
+        <SkillChipHoverPreview skill={skill} />
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
+/**
+ * Render a user message, turning recognized `/skill` mentions into the
+ * interactive chips above. Plain text when no skills are known.
  */
 function renderUserText(
   text: string,
-  skillNames?: ReadonlySet<string>,
+  skillsByName?: ReadonlyMap<string, SkillChip>,
 ): ReactNode {
-  if (!skillNames || skillNames.size === 0) return text;
-  return segmentInputBySkills(text, skillNames).map((segment, index) =>
-    segment.kind === "skill" ? (
-      <span key={index} className={SKILL_CHIP_CLASS}>
-        {segment.text}
-      </span>
+  if (!skillsByName || skillsByName.size === 0) return text;
+  const names = new Set(skillsByName.keys());
+  return segmentInputBySkills(text, names).map((segment, index) => {
+    const skill =
+      segment.kind === "skill" ? skillsByName.get(segment.name) : undefined;
+    return skill ? (
+      <SkillMentionChip key={index} skill={skill} label={segment.text} />
     ) : (
       <Fragment key={index}>{segment.text}</Fragment>
-    ),
-  );
+    );
+  });
 }
 
 interface ChatMessageItemProps {
@@ -217,8 +273,8 @@ interface ChatMessageItemProps {
   memoryRefs?: ChatMemoryRef[];
   /** Model's context window size in tokens. Defaults to 4096. */
   maxContextTokens?: number;
-  /** Skill names to highlight as pills in user messages. */
-  skillNames?: ReadonlySet<string>;
+  /** The user's effective skills, keyed by name, for rendering `/skill` chips. */
+  skillsByName?: ReadonlyMap<string, SkillChip>;
 }
 
 export default function ChatMessageItem({
@@ -226,7 +282,7 @@ export default function ChatMessageItem({
   usage,
   memoryRefs,
   maxContextTokens = DEFAULT_MAX_CONTEXT_TOKENS,
-  skillNames,
+  skillsByName,
 }: ChatMessageItemProps) {
   const [copied, setCopied] = useState(false);
   const isStreaming = message.status === "streaming";
@@ -323,7 +379,7 @@ export default function ChatMessageItem({
             <MessageResponse>{displayText}</MessageResponse>
           ) : (
             <span className="whitespace-pre-wrap">
-              {renderUserText(displayText, skillNames)}
+              {renderUserText(displayText, skillsByName)}
             </span>
           )}
         </MessageContent>

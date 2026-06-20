@@ -166,13 +166,15 @@ export default function Chat() {
   } = useChatProvider();
   const { engineState, loadedModelId } = useLocalLLM();
 
-  // Names of the user's effective skills (personal + installed system) so
-  // `/skill` mentions in sent messages render as pills, like the input does.
+  // The user's effective skills (personal + installed system), keyed by name,
+  // so `/skill` mentions in sent messages render as the same interactive pills
+  // (hover preview + click) the prompt input uses.
   const effectiveSkills = useQuery(api.skills.listEffectiveSkills, {});
-  const skillNames = useMemo(
-    () => new Set((effectiveSkills ?? []).map((skill) => skill.name)),
-    [effectiveSkills],
-  );
+  const skillsByName = useMemo(() => {
+    const map = new Map<string, NonNullable<typeof effectiveSkills>[number]>();
+    for (const skill of effectiveSkills ?? []) map.set(skill.name, skill);
+    return map;
+  }, [effectiveSkills]);
 
   const [clearOpen, setClearOpen] = useState(false);
 
@@ -382,7 +384,7 @@ export default function Chat() {
               usage={usageByMessageKey[message.key]}
               memoryRefs={memoryRefsByMessageKey[message.key]}
               maxContextTokens={maxContextTokens}
-              skillNames={skillNames}
+              skillsByName={skillsByName}
             />
           ))}
         </ConversationContent>

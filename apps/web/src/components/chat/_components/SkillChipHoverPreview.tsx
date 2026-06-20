@@ -1,7 +1,6 @@
-import type { Doc } from "@vmem/backend";
-
 interface SkillChipHoverPreviewProps {
-  skill: Doc<"skills">;
+  /** Any skill-like value — a personal skill doc or an effective/system skill. */
+  skill: { name: string; description?: string; instructions: string };
 }
 
 export function SkillChipHoverPreview({ skill }: SkillChipHoverPreviewProps) {
