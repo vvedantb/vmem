@@ -361,11 +361,11 @@
 
   /* Opacity modifiers don't work on bare oklch --muted; mix explicitly. */
   .sidebar-section-label {
-    color: color-mix(in oklch, var(--muted) 45%, transparent);
+    color: color-mix(in oklch, var(--muted) 55%, transparent);
   }
 
   .sidebar-section-label:hover {
-    color: color-mix(in oklch, var(--muted) 65%, transparent);
+    color: color-mix(in oklch, var(--muted) 80%, transparent);
   }
 }
 
