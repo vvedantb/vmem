@@ -1,5 +1,11 @@
 # Changelog
 
+## Wiki outline (table of contents) redesign — 2026-06-20
+
+- **Why**: the wiki doc outline rendered every heading identically and never showed where you were — it was hard to read the document's structure or track your position while scrolling.
+- **Active heading tracking**: the outline now highlights the heading you're scrolled to (accent rail + tint + bolder text) and follows along as you scroll, keeping the active row in view.
+- **Readable hierarchy**: headings now show their level at a glance — H1 anchors the structure in full strength, deeper levels fade and indent further.
+
 ## Skills Hub with installable system skills — 2026-06-20
 
 - **Why**: turning a codebase into a knowledge base meant building it by hand, and there was no way to ship reusable, maintainer-curated skills to everyone — every skill was personal and hand-written.

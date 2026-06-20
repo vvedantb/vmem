@@ -253,6 +253,7 @@ Layout & Surface Colors:
 - App shell: `MainShell` → outer `bg-background`, main card `bg-surface`, sidebar `bg-background`.
 - Nested blocks on surface: `bg-surface-secondary` or `/40` opacity; hover → `bg-surface-tertiary`.
 - `--muted` is secondary **text** only — never a resting row/card background (use surface tokens).
+- `text-foreground/<NN>` is a **no-op** (renders full opacity — the oklch text token ignores Tailwind's alpha modifier; verified `/75` `/55` === full). For graded text emphasis use `text-muted` or inline `style={{ opacity }}`. Surface bg tokens DO support the modifier (`bg-surface-secondary/40` etc.).
 - Sidebar is always the darker surface, main content the lighter surface (both light and dark mode).
 - Hierarchy comes from: tonal surface contrast > whitespace > typography weight/size.
 

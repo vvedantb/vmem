@@ -67,6 +67,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   } = useWikiSidebar();
 
   const [headings, setHeadings] = useState<OutlineHeading[]>([]);
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [jumpRequest, setJumpRequest] = useState<{ pos: number; n: number }>({
     pos: 0,
     n: 0,
@@ -207,6 +208,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
               <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-lg bg-surface-secondary/40 p-2 scrollbar-thin md:block">
                 <WikiOutline
                   headings={headings}
+                  activeHeadingId={activeHeadingId}
                   onJump={handleJumpToHeading}
                   hasDoc={hasDoc}
                 />
@@ -225,6 +227,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
                   restoreDocumentRef.current = handler;
                 }}
                 onHeadingsChange={setHeadings}
+                onActiveHeadingChange={setActiveHeadingId}
                 onWordCountChange={setWordCount}
                 jumpRequest={jumpRequest}
               />
@@ -260,6 +263,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           <div className="max-h-[60vh] overflow-y-auto scrollbar-thin">
             <WikiOutline
               headings={headings}
+              activeHeadingId={activeHeadingId}
               onJump={handleJumpToHeading}
               hasDoc={hasDoc}
             />
