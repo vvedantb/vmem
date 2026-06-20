@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { IconClockHour4, IconLink, IconX } from "@tabler/icons-react";
 import {
   Badge,
@@ -18,17 +18,23 @@ import {
 } from "../_components/SlideShell";
 
 /**
- * Mock of the web app, driven by one looping animated cursor: it clicks the
- * graph node to open the detail panel, then travels to each tab in turn —
- * Details → History → Connections → repeat — clicking through them. The cursor
- * is a single element moved via motion `layoutId`, so it glides between the
- * node and the tabs without any DOM measurement. All mock data.
+ * Mock of the web app on a self-running loop:
+ *  1. a cursor appears and clicks the memory node → the detail panel opens,
+ *  2. the cursor disappears and the panel rotates through all three tabs
+ *     (Details → History → Connections) on its own,
+ *  3. the panel closes and the whole sequence repeats.
+ * The cursor only ever shows for the node click — never on tab switches.
+ * All mock data.
  */
 
-// Cursor choreography (ms from mount).
-const NODE_CLICK_AT = 1200; // cursor reaches + clicks the node, panel opens
-const TABS_START_AT = 1900; // cursor moves up to the first tab
-const TAB_CYCLE_MS = 2400; // gap between tab clicks once looping
+// Cycle timeline (ms from the start of each loop).
+const CLICK_AT = 1100; // cursor clicks the node, panel opens
+const CURSOR_GONE_AT = 1700; // cursor fades away
+const TAB_DWELL = 2000; // how long each tab is shown
+const TAB1_AT = CURSOR_GONE_AT + TAB_DWELL;
+const TAB2_AT = TAB1_AT + TAB_DWELL;
+const PANEL_CLOSE_AT = TAB2_AT + TAB_DWELL;
+const LOOP_AT = PANEL_CLOSE_AT + 900; // brief beat, then restart
 
 const CENTER = { l: 50, t: 50 };
 
@@ -94,31 +100,6 @@ function Cursor() {
   );
 }
 
-/** The one shared cursor — `layoutId` makes motion glide it between mounts. */
-function SharedCursor() {
-  return (
-    <motion.div
-      layoutId="detail-cursor"
-      className="pointer-events-none absolute z-20"
-      transition={{ type: "spring", stiffness: 90, damping: 18 }}
-    >
-      <Cursor />
-    </motion.div>
-  );
-}
-
-/** Expanding click ring; `keyed` remounts it so the pulse replays per click. */
-function ClickRipple() {
-  return (
-    <motion.span
-      className="pointer-events-none absolute left-0 top-0 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-foreground/50"
-      initial={{ scale: 0.4, opacity: 0.7 }}
-      animate={{ scale: 2.2, opacity: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-    />
-  );
-}
-
 function At({ l, t, children }: { l: number; t: number; children: ReactNode }) {
   return (
     <div
@@ -146,46 +127,48 @@ function SectionLabel({
 }
 
 export function Slide37NodeDetail() {
-  // phase: node = cursor clicking the node; tabs = cursor looping the tab bar.
-  const [phase, setPhase] = useState<"node" | "tabs">("node");
+  const [cursorVisible, setCursorVisible] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
-  // Bumps on every click so the ripple remounts and replays.
+  // Bumps when the node is clicked so the ripple remounts and replays.
   const [clickKey, setClickKey] = useState(0);
 
-  // Intro: cursor presses the node (panel opens), then moves up to the tabs.
+  // Self-running loop: click node → open → rotate tabs → close → repeat.
   useEffect(() => {
-    const tClick = setTimeout(() => setClickKey((k) => k + 1), NODE_CLICK_AT);
-    const tTabs = setTimeout(() => {
-      setPhase("tabs");
-      setClickKey((k) => k + 1);
-    }, TABS_START_AT);
+    let cancelled = false;
+    const timers: number[] = [];
+    const at = (fn: () => void, ms: number) => {
+      timers.push(
+        window.setTimeout(() => {
+          if (!cancelled) fn();
+        }, ms),
+      );
+    };
+
+    const runCycle = () => {
+      setCursorVisible(true);
+      setPanelOpen(false);
+      setTabIndex(0);
+
+      at(() => {
+        setClickKey((k) => k + 1); // ripple on the node
+        setPanelOpen(true); // panel opens on Details
+      }, CLICK_AT);
+      at(() => setCursorVisible(false), CURSOR_GONE_AT);
+      at(() => setTabIndex(1), TAB1_AT); // History
+      at(() => setTabIndex(2), TAB2_AT); // Connections
+      at(() => setPanelOpen(false), PANEL_CLOSE_AT);
+      at(runCycle, LOOP_AT);
+    };
+    runCycle();
+
     return () => {
-      clearTimeout(tClick);
-      clearTimeout(tTabs);
+      cancelled = true;
+      timers.forEach((t) => window.clearTimeout(t));
     };
   }, []);
 
-  // Loop: once on the tabs, the cursor clicks the next tab on each tick.
-  useEffect(() => {
-    if (phase !== "tabs") return;
-    const id = setInterval(() => {
-      setTabIndex((i) => (i + 1) % TAB_IDS.length);
-      setClickKey((k) => k + 1);
-    }, TAB_CYCLE_MS);
-    return () => clearInterval(id);
-  }, [phase]);
-
-  const open = clickKey > 0; // panel opens on the first (node) click
   const activeTab = TAB_IDS[tabIndex];
-
-  /** Cursor + ripple, mounted inside the active tab while looping. */
-  const tabCursor = (tab: string) =>
-    phase === "tabs" && activeTab === tab ? (
-      <span className="absolute left-[62%] top-[64%]">
-        <SharedCursor />
-        <ClickRipple key={clickKey} />
-      </span>
-    ) : null;
 
   return (
     <SlideShell>
@@ -226,13 +209,13 @@ export function Slide37NodeDetail() {
             </At>
           ))}
 
-          {/* Selected node — gains its ring/glow once clicked */}
+          {/* Selected node — ring/glow while the panel is open */}
           <At l={CENTER.l} t={CENTER.t}>
             <motion.div
               className="relative inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-foreground px-4 py-2 text-background"
               initial={false}
               animate={{
-                boxShadow: open
+                boxShadow: panelOpen
                   ? "0 0 0 5px color-mix(in oklch, var(--foreground) 20%, transparent)"
                   : "0 0 0 0px color-mix(in oklch, var(--foreground) 0%, transparent)",
               }}
@@ -243,21 +226,40 @@ export function Slide37NodeDetail() {
                 Migrate auth to Clerk
               </span>
 
-              {/* Cursor + ripple live on the node until the tab loop starts */}
-              {phase === "node" ? (
-                <span className="absolute left-[88%] top-[78%]">
-                  <SharedCursor />
-                  {clickKey > 0 ? <ClickRipple key={clickKey} /> : null}
-                </span>
+              {/* Click ripple — replays each cycle when the node is clicked */}
+              {clickKey > 0 ? (
+                <motion.span
+                  key={clickKey}
+                  className="pointer-events-none absolute left-1/2 top-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background/60"
+                  initial={{ scale: 0.4, opacity: 0.7 }}
+                  animate={{ scale: 2.2, opacity: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                />
               ) : null}
+
+              {/* Cursor — only for the node click; gone during tab rotation */}
+              <AnimatePresence>
+                {cursorVisible ? (
+                  <motion.span
+                    key="cursor"
+                    className="pointer-events-none absolute left-[80%] top-[72%]"
+                    initial={{ opacity: 0, x: 26, y: 26 }}
+                    animate={{ opacity: 1, x: 0, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                  >
+                    <Cursor />
+                  </motion.span>
+                ) : null}
+              </AnimatePresence>
             </motion.div>
           </At>
         </div>
 
-        {/* Right — the detail panel; slides in once the node is clicked */}
+        {/* Right — the detail panel; opens/closes with each cycle */}
         <motion.div
           initial={false}
-          animate={{ opacity: open ? 1 : 0, x: open ? 0 : 28 }}
+          animate={{ opacity: panelOpen ? 1 : 0, x: panelOpen ? 0 : 28 }}
           transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
         >
           <Card className="flex h-full flex-col p-5 shadow-none">
@@ -273,18 +275,9 @@ export function Slide37NodeDetail() {
               className="mt-4 flex min-h-0 flex-1 flex-col"
             >
               <TabsList className="self-start">
-                <TabsTrigger value="details" className="relative">
-                  Details
-                  {tabCursor("details")}
-                </TabsTrigger>
-                <TabsTrigger value="history" className="relative">
-                  History
-                  {tabCursor("history")}
-                </TabsTrigger>
-                <TabsTrigger value="connections" className="relative">
-                  Connections
-                  {tabCursor("connections")}
-                </TabsTrigger>
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="history">History</TabsTrigger>
+                <TabsTrigger value="connections">Connections</TabsTrigger>
               </TabsList>
 
               {/* Details */}
