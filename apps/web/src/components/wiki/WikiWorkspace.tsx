@@ -24,6 +24,7 @@ interface WikiWorkspaceProps {
 /**
  * Wiki editor shell. Document tree and Add live in the root sidebar.
  * Page header: breadcrumb + inline title; outline toggle and actions grouped on the right.
+ * Outline pane sits left of the editor when visible.
  */
 export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const navigate = useNavigate();
@@ -202,6 +203,16 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
       <div className="flex h-full min-h-0 flex-1 flex-col">
         {hasDoc || isDocLoading ? (
           <div className="flex min-h-0 min-w-0 flex-1 gap-4">
+            {outlineVisible && !isMobileViewport && hasDoc ? (
+              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-lg bg-surface-secondary/40 p-2 scrollbar-thin md:block">
+                <WikiOutline
+                  headings={headings}
+                  onJump={handleJumpToHeading}
+                  hasDoc={hasDoc}
+                />
+              </div>
+            ) : null}
+
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <WikiEditor
                 docId={docId}
@@ -218,16 +229,6 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
                 jumpRequest={jumpRequest}
               />
             </div>
-
-            {outlineVisible && !isMobileViewport && hasDoc ? (
-              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-lg bg-surface-secondary/40 p-2 scrollbar-thin md:block">
-                <WikiOutline
-                  headings={headings}
-                  onJump={handleJumpToHeading}
-                  hasDoc={hasDoc}
-                />
-              </div>
-            ) : null}
           </div>
         ) : nodes === undefined ? (
           <div className="flex flex-1 items-center justify-center">

@@ -10,7 +10,7 @@ interface WikiOutlineProps {
 }
 
 /**
- * Right-pane outline: flat list of headings extracted from the editor JSON.
+ * Left-pane outline: flat list of headings extracted from the editor JSON.
  * Click a heading to scroll the editor to it.
  *
  * Indentation is level-based (h1 flush, h2 +8px, etc.) — matches Obsidian.
