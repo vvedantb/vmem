@@ -27,8 +27,12 @@ const containerVariants: Variants = {
 export function Slide14Questions() {
   return (
     <SlideShell center>
-      {/* Graph lines around the edges, fading out behind the centred word. */}
-      <SlideAmbientGraph className="[-webkit-mask-image:radial-gradient(ellipse_58%_54%_at_50%_50%,transparent_34%,black_72%)] [mask-image:radial-gradient(ellipse_58%_54%_at_50%_50%,transparent_34%,black_72%)]" />
+      {/* Graph lines around the edges, fading out behind the centred word.
+          animateDraw = the connectors draw themselves in on slide load. */}
+      <SlideAmbientGraph
+        animateDraw
+        className="[-webkit-mask-image:radial-gradient(ellipse_58%_54%_at_50%_50%,transparent_34%,black_72%)] [mask-image:radial-gradient(ellipse_58%_54%_at_50%_50%,transparent_34%,black_72%)]"
+      />
       {/* Outer wrapper flashes twice every 3s once the word has assembled. */}
       <motion.div
         animate={{ opacity: [1, 0.2, 1, 0.2, 1, 1] }}
