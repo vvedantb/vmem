@@ -185,6 +185,8 @@ function SkillsLayout() {
     <PageContainer
       title={pageTitle}
       noScroll
+      // The Hub has no breadcrumb, so surface "Skills Hub" as the header title.
+      showTitle={onHub ? true : undefined}
       breadcrumb={
         !onHub && (hasSkill || isSkillLoading) ? (
           <SkillPageTitle
