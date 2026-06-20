@@ -178,6 +178,10 @@ Version history (wiki docs & skills):
 - UI: "Version history" in the wiki doc ⋯ menu (`WikiDocActionsMenu`) and skill ⋯ menu (`SkillHeaderActions`) opens a two-column Dialog (`WikiHistoryPanel`/`SkillHistoryPanel`): list (relative time + author badge) | read-only preview | Restore. Wiki preview reuses `_editorExtensions.ts` (shared with `WikiEditor`) in a `editable:false` TipTap. Retention = keep everything (no cap). Inline diff deferred.
 - **Cleanup on delete**: deleting a node/skill must drop its snapshots — `deleteVersionsForWikiNode` runs per node inside `deleteWikiSubtree`, `deleteVersionsForSkill` runs in both skill delete paths. Never delete a doc/skill without clearing `wikiNodeVersions`/`skillVersions` or you orphan rows.
 
+Sidebar nav layout:
+
+- Search + Add are **grouped at the top** (search input, then the full-width Add button directly below it) — never a bottom-pinned Add button. Shared by `WikiSidebarNav`/`SkillsSidebarNav`/`CodebasesSidebarNav`: define the Add control as an `addMenu`/`actionButton` element and render it inside the top group (and in the empty state so first-item creation stays reachable, since the search is omitted when the list is empty). Add hides while in select mode (the bulk bar takes over).
+
 Sidebar bulk delete (wiki docs & skills):
 
 - Pattern: the list row component takes optional `selectionMode`/`checked`(or `selectedNodeIds`)/`onToggleSelect` — in select mode rows show a (pointer-events-none) `Checkbox` and the row click toggles selection instead of opening. Selection ids stay branded (`Id<"wikiNodes">`/`Id<"skills">`) end-to-end so the bulk mutation needs no `as`. The sidebar nav owns `selectionMode` + `selectedIds`; a "Select" ghost button enters it, a `*BulkDeleteBar` (count + confirm-gated Delete + Cancel) exits it; the Add menu hides while selecting.

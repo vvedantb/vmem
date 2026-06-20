@@ -131,6 +131,16 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
     [createNode, navigate, profileId],
   );
 
+  // Grouped with the search at the top of the sidebar (shared by the empty and
+  // populated states), replacing the old bottom-pinned button.
+  const addMenu = (
+    <WikiAddMenu
+      className="w-full gap-2"
+      onCreateDocument={() => handleCreateRoot("document")}
+      onCreateFolder={() => handleCreateRoot("folder")}
+    />
+  );
+
   return (
     <motion.nav
       className={cn(
@@ -148,15 +158,23 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
           </div>
         ) : tree.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
-            <IconBook size={28} className="mb-2 text-muted" />
-            {!isIconOnly ? (
-              <p className="text-xs text-muted">No documents yet</p>
-            ) : null}
-          </div>
+          <>
+            {!isIconOnly ? addMenu : null}
+            <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
+              <IconBook size={28} className="mb-2 text-muted" />
+              {!isIconOnly ? (
+                <p className="text-xs text-muted">No documents yet</p>
+              ) : null}
+            </div>
+          </>
         ) : (
           <>
-            {!isIconOnly ? <WikiSearch onSelect={handleSelectNode} /> : null}
+            {!isIconOnly && !selectionMode ? (
+              <div className="flex flex-col gap-2">
+                <WikiSearch onSelect={handleSelectNode} />
+                {addMenu}
+              </div>
+            ) : null}
             {!isIconOnly ? (
               selectionMode ? (
                 <WikiBulkDeleteBar
@@ -191,16 +209,6 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
           </>
         )}
       </div>
-
-      {!isIconOnly && !selectionMode ? (
-        <div className="shrink-0 px-1 pt-2">
-          <WikiAddMenu
-            className="w-full gap-2"
-            onCreateDocument={() => handleCreateRoot("document")}
-            onCreateFolder={() => handleCreateRoot("folder")}
-          />
-        </div>
-      ) : null}
     </motion.nav>
   );
 }

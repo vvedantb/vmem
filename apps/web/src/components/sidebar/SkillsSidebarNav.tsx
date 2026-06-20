@@ -88,6 +88,16 @@ export function SkillsSidebarNav({
     openSkill(id);
   };
 
+  // Grouped with the search at the top of the sidebar (shared by the empty and
+  // populated states), replacing the old bottom-pinned button.
+  const addMenu = (
+    <SkillsAddMenu
+      className="w-full gap-2"
+      onWriteSkill={() => setCreateModal("write")}
+      onUploadSkill={() => setCreateModal("upload")}
+    />
+  );
+
   return (
     <motion.nav
       className={cn(
@@ -105,21 +115,27 @@ export function SkillsSidebarNav({
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
           </div>
         ) : skills.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
-            <IconBolt size={28} className="mb-2 text-muted" />
-            {!isIconOnly ? (
-              <p className="text-xs text-muted">No skills yet</p>
-            ) : null}
-          </div>
+          <>
+            {!isIconOnly ? addMenu : null}
+            <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
+              <IconBolt size={28} className="mb-2 text-muted" />
+              {!isIconOnly ? (
+                <p className="text-xs text-muted">No skills yet</p>
+              ) : null}
+            </div>
+          </>
         ) : (
           <>
-            {!isIconOnly ? (
-              <SkillsSearchBar
-                value={searchQuery}
-                onChange={(value) => {
-                  void setSearchParams({ q: value });
-                }}
-              />
+            {!isIconOnly && !selectionMode ? (
+              <div className="flex flex-col gap-2">
+                <SkillsSearchBar
+                  value={searchQuery}
+                  onChange={(value) => {
+                    void setSearchParams({ q: value });
+                  }}
+                />
+                {addMenu}
+              </div>
             ) : null}
             {!isIconOnly ? (
               selectionMode ? (
@@ -169,16 +185,6 @@ export function SkillsSidebarNav({
           </>
         )}
       </div>
-
-      {!isIconOnly && !selectionMode ? (
-        <div className="shrink-0 px-1 pt-2">
-          <SkillsAddMenu
-            className="w-full gap-2"
-            onWriteSkill={() => setCreateModal("write")}
-            onUploadSkill={() => setCreateModal("upload")}
-          />
-        </div>
-      ) : null}
 
       <WriteSkillDialog
         open={createModal === "write"}
