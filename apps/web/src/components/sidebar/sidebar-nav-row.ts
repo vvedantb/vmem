@@ -1,11 +1,11 @@
 import { cn } from "@vmem/ui";
 
-/** Section headers sit below tab labels — extra muted on the same token. */
+/** Section headers — dimmer than full text-muted tabs (see .sidebar-section-label). */
 export const sidebarSectionButtonClass =
-  "flex w-full items-center gap-1.5 px-1 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted/40 transition-colors hover:text-muted/55";
+  "sidebar-section-label flex w-full items-center gap-1.5 px-1 py-1 text-[11px] font-medium uppercase tracking-[0.08em] transition-colors";
 
 export const sidebarSectionChevronClass =
-  "shrink-0 text-muted/40 transition-transform duration-200";
+  "shrink-0 text-current transition-transform duration-200";
 
 /** Inactive tabs use full muted; active uses foreground. */
 export function sidebarNavLinkTextClass(isActive: boolean): string {

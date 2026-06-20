@@ -358,6 +358,15 @@
     @apply bg-overlay;
     box-shadow: var(--overlay-shadow);
   }
+
+  /* Opacity modifiers don't work on bare oklch --muted; mix explicitly. */
+  .sidebar-section-label {
+    color: color-mix(in oklch, var(--muted) 45%, transparent);
+  }
+
+  .sidebar-section-label:hover {
+    color: color-mix(in oklch, var(--muted) 65%, transparent);
+  }
 }
 
 @layer utilities {
