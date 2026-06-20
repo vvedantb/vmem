@@ -5,7 +5,7 @@ import { cn, motionDuration, motionEase } from "@vmem/ui";
 import type { NavItem, NavIcon } from "./types";
 import { navHrefToPath } from "./nav-config";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
-import { sidebarNavRowClass } from "./sidebar-nav-row";
+import { sidebarNavRowClass, sidebarNavLinkTextClass } from "./sidebar-nav-row";
 
 /**
  * Sidebar nav link.
@@ -56,7 +56,7 @@ export function NavLink({
         className={cn(
           "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.98]",
           sidebarNavRowClass(isIconOnly),
-          isActive ? "text-foreground" : "text-muted hover:text-foreground",
+          sidebarNavLinkTextClass(isActive),
         )}
       >
         <span className="flex h-5 w-5 items-center justify-center text-current">

@@ -14,7 +14,7 @@ import { WikiSidebarNav } from "./WikiSidebarNav";
 import { CodebasesSidebarNav } from "./CodebasesSidebarNav";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { NavSection } from "./NavSection";
-import { sidebarNavRowClass } from "./sidebar-nav-row";
+import { sidebarNavRowClass, sidebarNavLinkTextClass } from "./sidebar-nav-row";
 
 export type SidebarNavView =
   | "main"
@@ -99,7 +99,7 @@ function SubSidebarNavButton({
         className={cn(
           "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.98]",
           sidebarNavRowClass(isIconOnly),
-          isActive ? "text-foreground" : "text-muted hover:text-foreground",
+          sidebarNavLinkTextClass(isActive),
         )}
       >
         <span className="flex h-5 w-5 items-center justify-center text-current">
@@ -290,9 +290,7 @@ function SettingsNav({
                       className={cn(
                         "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.98]",
                         sidebarNavRowClass(isIconOnly),
-                        isActive
-                          ? "text-foreground"
-                          : "text-muted hover:text-foreground",
+                        sidebarNavLinkTextClass(isActive),
                       )}
                     >
                       <span className="flex h-5 w-5 items-center justify-center text-current">

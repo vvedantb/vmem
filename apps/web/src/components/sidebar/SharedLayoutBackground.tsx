@@ -3,6 +3,7 @@
 import { cn } from "@vmem/ui";
 import { motion } from "motion/react";
 import { createContext, use, useId, useState, type ReactNode } from "react";
+import { sidebarSharedLayoutTransition } from "./sidebar-nav-row";
 
 type SharedLayoutContextValue = {
   hoverId: string | null;
@@ -75,11 +76,7 @@ function Item({ id, className, children }: ItemProps) {
       {isBackgroundTarget ? (
         <motion.div
           layoutId={layoutGroupId}
-          transition={{
-            type: "spring",
-            stiffness: 205,
-            damping: 22,
-          }}
+          transition={sidebarSharedLayoutTransition}
           className="pointer-events-none absolute inset-0 rounded-lg bg-surface-tertiary"
         />
       ) : null}
