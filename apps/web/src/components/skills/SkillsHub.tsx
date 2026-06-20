@@ -115,73 +115,69 @@ export function SkillsHub() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin px-1 pb-4">
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4">
-        {isAdmin ? (
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setForm({ mode: "create" })}
-            >
-              <IconPlus size={16} />
-              New system skill
-            </Button>
-          </div>
-        ) : null}
+    <div className="space-y-6">
+      {isAdmin ? (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setForm({ mode: "create" })}
+          >
+            <IconPlus size={16} />
+            New system skill
+          </Button>
+        </div>
+      ) : null}
 
-        {catalog === undefined ? (
-          <div className="flex flex-1 items-center justify-center">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
-          </div>
-        ) : catalog.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <IconApps size={40} className="mb-3 text-muted" />
-            <p className="text-sm text-muted">
-              No system skills available yet.
-            </p>
-          </div>
-        ) : (
-          grouped.map(([category, entries]) => (
-            <section key={category} className="space-y-2">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
-                {category}
-              </h2>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {entries.map((entry) => (
-                  <SystemSkillCard
-                    key={entry._id}
-                    entry={entry}
-                    isAdmin={isAdmin}
-                    onView={() => setViewing(entry)}
-                    onInstall={() =>
-                      void run(
-                        () => install({ systemSkillId: entry._id }),
-                        "Failed to add",
-                      )
-                    }
-                    onUninstall={() =>
-                      void run(
-                        () => uninstall({ systemSkillId: entry._id }),
-                        "Failed to remove",
-                      )
-                    }
-                    onToggleEnabled={(enabled) =>
-                      void run(
-                        () => setEnabled({ systemSkillId: entry._id, enabled }),
-                        "Failed to update",
-                      )
-                    }
-                    onEdit={() => setForm({ mode: "edit", entry })}
-                    onDelete={() => setDeleting(entry)}
-                  />
-                ))}
-              </div>
-            </section>
-          ))
-        )}
-      </div>
+      {catalog === undefined ? (
+        <div className="flex justify-center py-20">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+        </div>
+      ) : catalog.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <IconApps size={40} className="mb-3 text-muted" />
+          <p className="text-sm text-muted">No system skills available yet.</p>
+        </div>
+      ) : (
+        grouped.map(([category, entries]) => (
+          <section key={category} className="space-y-2">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
+              {category}
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {entries.map((entry) => (
+                <SystemSkillCard
+                  key={entry._id}
+                  entry={entry}
+                  isAdmin={isAdmin}
+                  onView={() => setViewing(entry)}
+                  onInstall={() =>
+                    void run(
+                      () => install({ systemSkillId: entry._id }),
+                      "Failed to add",
+                    )
+                  }
+                  onUninstall={() =>
+                    void run(
+                      () => uninstall({ systemSkillId: entry._id }),
+                      "Failed to remove",
+                    )
+                  }
+                  onToggleEnabled={(enabled) =>
+                    void run(
+                      () => setEnabled({ systemSkillId: entry._id, enabled }),
+                      "Failed to update",
+                    )
+                  }
+                  onEdit={() => setForm({ mode: "edit", entry })}
+                  onDelete={() => setDeleting(entry)}
+                />
+              ))}
+            </div>
+          </section>
+        ))
+      )}
 
       <SystemSkillFormDialog
         open={form.mode !== "closed"}

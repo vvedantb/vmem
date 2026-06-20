@@ -94,11 +94,8 @@ function SkillsLayout() {
       ? skills?.find((skill) => skill._id === modal.skillId)
       : undefined;
 
-  const pageTitle = onHub
-    ? "Skills Hub"
-    : hasSkill && viewedSkill
-      ? nameDraft || viewedSkill.name
-      : "Skills";
+  const pageTitle =
+    hasSkill && viewedSkill ? nameDraft || viewedSkill.name : "Skills";
 
   const handleNameCommit = useCallback(async () => {
     if (!viewedSkill) return;
@@ -181,14 +178,22 @@ function SkillsLayout() {
     });
   };
 
+  // The Hub is its own page — use the settings convention (centered, titled
+  // container) rather than the editor-style detail layout below.
+  if (onHub) {
+    return (
+      <PageContainer title="Skills Hub" centeredMaxWidth showTitle>
+        <SkillsHub />
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer
       title={pageTitle}
       noScroll
-      // The Hub has no breadcrumb, so surface "Skills Hub" as the header title.
-      showTitle={onHub ? true : undefined}
       breadcrumb={
-        !onHub && (hasSkill || isSkillLoading) ? (
+        hasSkill || isSkillLoading ? (
           <SkillPageTitle
             name={nameDraft}
             onNameChange={setNameDraft}
@@ -197,7 +202,7 @@ function SkillsLayout() {
         ) : undefined
       }
       rightSection={
-        !onHub && hasSkill && viewedSkill ? (
+        hasSkill && viewedSkill ? (
           <SkillHeaderActions
             skill={viewedSkill}
             onEdit={() => setModal({ mode: "edit", skillId: viewedSkill._id })}
@@ -207,9 +212,7 @@ function SkillsLayout() {
       }
     >
       <div className="flex h-full min-h-0 flex-1 flex-col">
-        {onHub ? (
-          <SkillsHub />
-        ) : hasSkill && viewedSkill ? (
+        {hasSkill && viewedSkill ? (
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <ViewSkillPanel skill={viewedSkill} />
           </div>
