@@ -25,14 +25,25 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-  // direction: 1 = forward, -1 = backward
-  const [direction, setDirection] = useState(1);
+  // Transition direction (1 = forward, -1 = back), derived from the change in
+  // the `slide` prop rather than set only inside `go`. Deriving it means
+  // externally driven changes — a viewer following a live presenter — also
+  // animate in the correct direction, not just the local presenter's clicks.
+  const prevSlideRef = useRef(slide);
+  const direction = slide >= prevSlideRef.current ? 1 : -1;
   // Current build step within the active slide (ephemeral — not in URL).
   // Auto-advances on a timer (see effect below) so each slide's content
   // reveals in a stagger without the presenter clicking through it.
   const [step, setStep] = useState(0);
 
   const index = clamp(slide - 1, 0, TOTAL - 1);
+
+  // Track the last rendered slide so `direction` (derived above) reflects the
+  // next change. Runs after paint, so the current render still sees the prior
+  // value and computes the right enter/exit direction.
+  useEffect(() => {
+    prevSlideRef.current = slide;
+  }, [slide]);
 
   // Auto-play the slide's build steps: reset to 0 on slide change, then reveal
   // each step in turn on a fixed stagger so nothing pops in all at once.
@@ -64,7 +75,6 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
             ? clamp(slide - 1, 1, TOTAL)
             : clamp(next, 1, TOTAL);
       if (target === slide) return;
-      setDirection(target > slide ? 1 : -1);
       onNavigate(target);
     },
     [slide, onNavigate],

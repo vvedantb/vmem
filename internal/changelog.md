@@ -1,5 +1,14 @@
 # Changelog
 
+## Slides live-share — presenter-led viewing — 2026-06-20
+
+- **Why**: presenting the deck to a group meant sending the slide link and hoping everyone stayed in sync as you clicked through — there was no way to drive the group through the slides together.
+- **Share link**: the presenter clicks Share on `/slides` and gets a public link; anyone opening it joins the live session and sees the deck update in real time as the presenter navigates.
+- **Follow or browse**: viewers can either follow the presenter's slide live or detach to browse on their own (arrow keys work, link re-syncs to "live" on click), then jump back to follow later.
+- **Presenter control only**: the presenter is the sole driver — no take-control handoff, no viewer inputs on the deck. Full presentation authority stays with the sharer.
+- **Lightweight sync**: only the slide number syncs; build-step animations replay locally on each client (timer-driven, so they self-converge), keeping payloads small and state simple.
+- **Presence**: the presenter sees a "Live · N watching" pill with a list of the viewers' names (heartbeat-based, ~15s refresh). Viewers have no control affordance.
+
 ## Floating overlay shadows aligned with Eva — 2026-06-06
 
 - **Why**: popovers, hover cards, tooltips, selects, and context menus still used the older `glass-panel-strong` shadow while dropdowns and skill chip previews had moved to Eva's crisper `border + shadow-lg` treatment — floating UI felt inconsistent.

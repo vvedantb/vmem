@@ -16,6 +16,8 @@ import {
   codebaseFields,
   openRouterLogFields,
   dreamTriggerStateFields,
+  presentationSessionFields,
+  presentationParticipantFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -361,6 +363,24 @@ const schema = defineSchema({
     redirectUris: v.array(v.string()),
     registeredAt: v.number(),
   }).index("by_clientId", ["clientId"]),
+
+  /**
+   * Live "share" sessions for the `/slides` deck (see
+   * `presentationSessionFields`). Looked up by the public share `code`.
+   */
+  presentationSessions: defineTable(presentationSessionFields).index(
+    "by_code",
+    ["code"],
+  ),
+
+  /**
+   * Heartbeat-backed presence for a live slide session (see
+   * `presentationParticipantFields`). `by_code` lists everyone in a session;
+   * `by_code_participant` is the per-client upsert key for the heartbeat.
+   */
+  presentationParticipants: defineTable(presentationParticipantFields)
+    .index("by_code", ["code"])
+    .index("by_code_participant", ["code", "participantKey"]),
 });
 
 export default schema;
