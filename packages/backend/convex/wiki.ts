@@ -10,7 +10,10 @@ import {
   isContentReadable,
   requireContentScopeAccess,
 } from "./teams/auth";
-import { maybeSnapshotWikiVersion } from "./lib/versionSnapshot";
+import {
+  deleteVersionsForWikiNode,
+  maybeSnapshotWikiVersion,
+} from "./lib/versionSnapshot";
 
 /**
  * Wiki (Obsidian-style notes) backend.
@@ -275,6 +278,7 @@ async function deleteWikiSubtree(
   }
 
   for (const id of toDelete) {
+    await deleteVersionsForWikiNode(ctx, id);
     await ctx.db.delete(id);
   }
 
@@ -285,6 +289,22 @@ export const deleteNode = authMutation({
   args: { id: v.id("wikiNodes") },
   handler: async (ctx, args) => {
     await deleteWikiSubtree(ctx, ctx.userId, args.id);
+  },
+});
+
+/**
+ * Bulk-delete several nodes, each recursively (with its version snapshots).
+ * Ids already removed as part of an earlier node's subtree are skipped, so a
+ * selection that mixes a folder and its descendants is safe.
+ */
+export const deleteNodes = authMutation({
+  args: { ids: v.array(v.id("wikiNodes")) },
+  handler: async (ctx, args) => {
+    for (const id of args.ids) {
+      const node = await ctx.db.get(id);
+      if (!node) continue; // already deleted within an ancestor's subtree
+      await deleteWikiSubtree(ctx, ctx.userId, id);
+    }
   },
 });
 

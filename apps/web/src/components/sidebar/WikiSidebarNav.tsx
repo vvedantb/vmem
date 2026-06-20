@@ -1,16 +1,17 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
-import { cn, motionDuration, motionEase } from "@vmem/ui";
+import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconBook } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
 import WikiSearch from "@/components/wiki/WikiSearch";
 import { WikiAddMenu } from "@/components/wiki/WikiAddMenu";
+import { WikiBulkDeleteBar } from "@/components/wiki/WikiBulkDeleteBar";
 import { buildTree, findFirstDocumentId } from "@/components/wiki/_utils";
 import { optimisticId } from "@/lib/optimisticId";
 import {
@@ -64,6 +65,28 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
   );
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
+
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<Id<"wikiNodes">>>(
+    () => new Set(),
+  );
+
+  const exitSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleSelect = useCallback((id: Id<"wikiNodes">) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   const handleSelectNode = useCallback(
     (id: string) => {
@@ -134,16 +157,42 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
         ) : (
           <>
             {!isIconOnly ? <WikiSearch onSelect={handleSelectNode} /> : null}
+            {!isIconOnly ? (
+              selectionMode ? (
+                <WikiBulkDeleteBar
+                  selectedIds={selectedIds}
+                  nodes={nodes ?? []}
+                  teamId={teamId}
+                  currentDocId={docId}
+                  onExit={exitSelection}
+                  onCurrentRemoved={() => handleSelectNode("")}
+                />
+              ) : (
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-muted"
+                    onClick={() => setSelectionMode(true)}
+                  >
+                    Select
+                  </Button>
+                </div>
+              )
+            ) : null}
             <WikiTree
               tree={tree}
               selectedId={docId}
               onSelect={handleSelectNode}
+              selectionMode={selectionMode && !isIconOnly}
+              selectedNodeIds={selectedIds}
+              onToggleSelect={toggleSelect}
             />
           </>
         )}
       </div>
 
-      {!isIconOnly ? (
+      {!isIconOnly && !selectionMode ? (
         <div className="shrink-0 px-1 pt-2">
           <WikiAddMenu
             className="w-full gap-2"

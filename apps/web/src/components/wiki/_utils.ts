@@ -37,6 +37,36 @@ export function buildTree(nodes: Array<Doc<"wikiNodes">>): WikiTreeNode[] {
   return build(ROOT_KEY);
 }
 
+/**
+ * Expand a set of root ids to include every descendant, given the flat node
+ * list. Used so bulk delete (and its optimistic update) can drop whole subtrees
+ * and tell whether the open document is among the casualties.
+ */
+export function collectSubtreeIds(
+  nodes: Array<{ _id: string; parentId?: string }>,
+  rootIds: Iterable<string>,
+): Set<string> {
+  const childrenByParent = new Map<string, string[]>();
+  for (const node of nodes) {
+    const key = node.parentId ?? "__root__";
+    const list = childrenByParent.get(key) ?? [];
+    list.push(node._id);
+    childrenByParent.set(key, list);
+  }
+
+  const result = new Set<string>();
+  const stack: string[] = [...rootIds];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (current === undefined || result.has(current)) continue;
+    result.add(current);
+    for (const child of childrenByParent.get(current) ?? []) {
+      stack.push(child);
+    }
+  }
+  return result;
+}
+
 /** First document in tree display order (depth-first), or null if none exist. */
 export function findFirstDocumentId(
   tree: WikiTreeNode[],

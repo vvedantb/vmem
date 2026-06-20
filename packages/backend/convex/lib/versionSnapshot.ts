@@ -155,3 +155,31 @@ export async function maybeSnapshotSkillVersion(
     createdAt: now,
   });
 }
+
+/** Remove every version snapshot of a wiki node (call when deleting the node). */
+export async function deleteVersionsForWikiNode(
+  ctx: MutationCtx,
+  nodeId: Id<"wikiNodes">,
+): Promise<void> {
+  const versions = await ctx.db
+    .query("wikiNodeVersions")
+    .withIndex("by_node", (q) => q.eq("nodeId", nodeId))
+    .collect();
+  for (const version of versions) {
+    await ctx.db.delete(version._id);
+  }
+}
+
+/** Remove every version snapshot of a skill (call when deleting the skill). */
+export async function deleteVersionsForSkill(
+  ctx: MutationCtx,
+  skillId: Id<"skills">,
+): Promise<void> {
+  const versions = await ctx.db
+    .query("skillVersions")
+    .withIndex("by_skill", (q) => q.eq("skillId", skillId))
+    .collect();
+  for (const version of versions) {
+    await ctx.db.delete(version._id);
+  }
+}

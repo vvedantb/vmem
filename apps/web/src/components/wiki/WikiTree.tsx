@@ -12,6 +12,7 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import {
+  Checkbox,
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
@@ -29,6 +30,10 @@ interface WikiTreeProps {
   tree: WikiTreeNode[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** When true, rows show checkboxes and clicking toggles selection instead of opening. */
+  selectionMode?: boolean;
+  selectedNodeIds?: ReadonlySet<Id<"wikiNodes">>;
+  onToggleSelect?: (id: Id<"wikiNodes">) => void;
 }
 
 /**
@@ -42,6 +47,9 @@ export default function WikiTree({
   tree,
   selectedId,
   onSelect,
+  selectionMode = false,
+  selectedNodeIds,
+  onToggleSelect,
 }: WikiTreeProps) {
   const teamId = useActiveTeamId();
   const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
@@ -160,6 +168,9 @@ export default function WikiTree({
             depth={0}
             selectedId={selectedId}
             onSelect={onSelect}
+            selectionMode={selectionMode}
+            selectedNodeIds={selectedNodeIds}
+            onToggleSelect={onToggleSelect}
             onCreateInside={handleCreateInFolder}
             onRequestRename={setRenameTarget}
             onRequestDelete={setDeleteTarget}
@@ -193,6 +204,9 @@ interface TreeListProps {
   depth: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  selectionMode: boolean;
+  selectedNodeIds?: ReadonlySet<Id<"wikiNodes">>;
+  onToggleSelect?: (id: Id<"wikiNodes">) => void;
   onCreateInside: (
     parentId: Id<"wikiNodes">,
     kind: "folder" | "document",
@@ -206,6 +220,9 @@ function TreeList({
   depth,
   selectedId,
   onSelect,
+  selectionMode,
+  selectedNodeIds,
+  onToggleSelect,
   onCreateInside,
   onRequestRename,
   onRequestDelete,
@@ -219,6 +236,9 @@ function TreeList({
           depth={depth}
           selectedId={selectedId}
           onSelect={onSelect}
+          selectionMode={selectionMode}
+          selectedNodeIds={selectedNodeIds}
+          onToggleSelect={onToggleSelect}
           onCreateInside={onCreateInside}
           onRequestRename={onRequestRename}
           onRequestDelete={onRequestDelete}
@@ -233,6 +253,9 @@ interface TreeItemProps {
   depth: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  selectionMode: boolean;
+  selectedNodeIds?: ReadonlySet<Id<"wikiNodes">>;
+  onToggleSelect?: (id: Id<"wikiNodes">) => void;
   onCreateInside: (
     parentId: Id<"wikiNodes">,
     kind: "folder" | "document",
@@ -246,15 +269,23 @@ function TreeItem({
   depth,
   selectedId,
   onSelect,
+  selectionMode,
+  selectedNodeIds,
+  onToggleSelect,
   onCreateInside,
   onRequestRename,
   onRequestDelete,
 }: TreeItemProps) {
   const [expanded, setExpanded] = useState(depth === 0);
   const isFolder = item.node.kind === "folder";
-  const isSelected = selectedId === item.node._id;
+  const isChecked = selectedNodeIds?.has(item.node._id) ?? false;
+  const highlighted = selectionMode ? isChecked : selectedId === item.node._id;
 
   const handleActivate = () => {
+    if (selectionMode) {
+      onToggleSelect?.(item.node._id);
+      return;
+    }
     if (isFolder) {
       setExpanded((prev) => !prev);
     } else {
@@ -271,19 +302,38 @@ function TreeItem({
             onClick={handleActivate}
             className={cn(
               "group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm transition-[background-color,color]",
-              isSelected
+              highlighted
                 ? "bg-surface-tertiary font-medium text-foreground"
                 : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
             )}
           >
-            {isFolder ? (
-              <IconChevronRight
-                size={14}
-                className={cn(
-                  "shrink-0 text-muted transition-transform",
-                  expanded && "rotate-90",
-                )}
+            {selectionMode ? (
+              <Checkbox
+                checked={isChecked}
+                tabIndex={-1}
+                aria-hidden
+                className="pointer-events-none shrink-0"
               />
+            ) : null}
+            {isFolder ? (
+              <span
+                role="button"
+                tabIndex={-1}
+                aria-label={expanded ? "Collapse folder" : "Expand folder"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded((prev) => !prev);
+                }}
+                className="inline-flex shrink-0"
+              >
+                <IconChevronRight
+                  size={14}
+                  className={cn(
+                    "text-muted transition-transform",
+                    expanded && "rotate-90",
+                  )}
+                />
+              </span>
             ) : (
               <span className="inline-block w-[14px] shrink-0" />
             )}
@@ -329,6 +379,9 @@ function TreeItem({
             depth={depth + 1}
             selectedId={selectedId}
             onSelect={onSelect}
+            selectionMode={selectionMode}
+            selectedNodeIds={selectedNodeIds}
+            onToggleSelect={onToggleSelect}
             onCreateInside={onCreateInside}
             onRequestRename={onRequestRename}
             onRequestDelete={onRequestDelete}

@@ -176,6 +176,13 @@ Version history (wiki docs & skills):
 - Read APIs: `wikiVersions.ts` + `skillVersions.ts` (`list` lightweight, `get` full, both gate via `isContentReadable` on the parent). Skill restore = `skills.restoreVersion` (lives in skills.ts to reuse name-uniqueness + context-prompt invalidation); force-checkpoints current, then patches.
 - **Wiki restore is client-driven** (no collab sync): `WikiEditor` registers a `restoreToContent(markdown)` handler (like its copy handler) that loads the version into the editor and saves with `updateContent({ forceSnapshot: true })`. No server wiki-restore mutation — the open editor is the source of truth for the live doc.
 - UI: "Version history" in the wiki doc ⋯ menu (`WikiDocActionsMenu`) and skill ⋯ menu (`SkillHeaderActions`) opens a two-column Dialog (`WikiHistoryPanel`/`SkillHistoryPanel`): list (relative time + author badge) | read-only preview | Restore. Wiki preview reuses `_editorExtensions.ts` (shared with `WikiEditor`) in a `editable:false` TipTap. Retention = keep everything (no cap). Inline diff deferred.
+- **Cleanup on delete**: deleting a node/skill must drop its snapshots — `deleteVersionsForWikiNode` runs per node inside `deleteWikiSubtree`, `deleteVersionsForSkill` runs in both skill delete paths. Never delete a doc/skill without clearing `wikiNodeVersions`/`skillVersions` or you orphan rows.
+
+Wiki sidebar bulk delete:
+
+- `WikiTree` takes optional `selectionMode`/`selectedNodeIds: ReadonlySet<Id<"wikiNodes">>`/`onToggleSelect` — in select mode rows show a (pointer-events-none) `Checkbox` and the row click toggles selection; the folder chevron keeps expanding via a `stopPropagation` span. Selection ids stay branded `Id<"wikiNodes">` end-to-end so `deleteNodes` needs no `as`.
+- `WikiSidebarNav` owns `selectionMode` + `selectedIds`; a "Select" ghost button enters it, `WikiBulkDeleteBar` (count + confirm-gated Delete + Cancel) exits it. The Add menu hides while selecting.
+- `wiki.deleteNodes({ ids })` loops `deleteWikiSubtree`, skipping ids already gone within an ancestor's subtree (folder+child selections are safe). `collectSubtreeIds` (`wiki/_utils.ts`) expands roots→descendants for the optimistic `listTree` filter and to detect when the open doc was deleted (→ navigate to first remaining).
 
 Files (shared AI filesystem):
 

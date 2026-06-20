@@ -1,5 +1,10 @@
 # Changelog
 
+## Multi-select bulk delete in the wiki sidebar — 2026-06-20
+
+- **Why**: removing several documents meant right-clicking and confirming each one in turn — tedious for clearing out a batch.
+- **Select mode**: a "Select" toggle in the wiki sidebar turns on checkboxes; pick any mix of documents and folders and delete them in one confirmed action. Deleting a folder removes everything inside it.
+
 ## Version history for wiki docs and skills — 2026-06-20
 
 - **Why**: wiki docs and skills are editable from both the web UI and MCP agents, and every write overwrote in place — an agent or a stray autosave could silently clobber content with no way to see what changed or roll it back.

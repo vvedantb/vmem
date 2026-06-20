@@ -4,7 +4,10 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { authQuery, authMutation } from "./auth";
 import { scheduleContextPromptInvalidationForUser } from "./lib/contextPromptInvalidate";
-import { maybeSnapshotSkillVersion } from "./lib/versionSnapshot";
+import {
+  deleteVersionsForSkill,
+  maybeSnapshotSkillVersion,
+} from "./lib/versionSnapshot";
 import {
   assertContentDeletable,
   assertContentEditable,
@@ -191,6 +194,7 @@ export const deleteSkill = authMutation({
     const skill = await ctx.db.get(normalizedId);
     if (!skill) throw new Error("Skill not found");
     await assertContentDeletable(ctx, skill, ctx.userId);
+    await deleteVersionsForSkill(ctx, normalizedId);
     await ctx.db.delete(normalizedId);
     await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
   },
@@ -434,6 +438,7 @@ export const deleteByClerkIdInternal = internalMutation({
       throw new Error("Skill not found");
     }
 
+    await deleteVersionsForSkill(ctx, skill._id);
     await ctx.db.delete(skill._id);
     await scheduleContextPromptInvalidationForUser(ctx, user._id);
     return null;
