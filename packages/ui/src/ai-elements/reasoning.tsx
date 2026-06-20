@@ -127,7 +127,11 @@ function ReasoningTrigger({
     ? "Thinking..."
     : getThinkingMessage
       ? getThinkingMessage(duration)
-      : `Thought for ${duration} second${duration !== 1 ? "s" : ""}`;
+      : duration > 0
+        ? `Thought for ${duration} second${duration === 1 ? "" : "s"}`
+        : // Duration is client-measured during live streaming; reloaded or
+          // sub-second messages have no real measurement, so don't claim "0s".
+          "Thought process";
 
   return (
     <CollapsibleTrigger
