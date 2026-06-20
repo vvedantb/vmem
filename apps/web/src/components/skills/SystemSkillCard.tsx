@@ -33,11 +33,6 @@ export function SystemSkillCard({ entry, profileId }: SystemSkillCardProps) {
               <h3 className="text-sm font-semibold text-foreground">
                 {entry.name}
               </h3>
-              {entry.category ? (
-                <Badge variant="secondary" className="h-5 text-[10px]">
-                  {entry.category}
-                </Badge>
-              ) : null}
               {!entry.published ? (
                 <Badge variant="outline" className="h-5 text-[10px]">
                   Draft
