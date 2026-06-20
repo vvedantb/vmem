@@ -54,7 +54,7 @@ export function Slide05Graph() {
           delay={0.1}
           className="flex w-[380px] shrink-0 flex-col justify-center"
         >
-          <SlideMemoryPreview />
+          <SlideMemoryPreview loop={false} />
           <p className="mt-3 text-center text-xs text-muted/60">
             Click a node during the talk.
           </p>
