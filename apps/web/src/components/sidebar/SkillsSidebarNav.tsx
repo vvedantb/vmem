@@ -17,6 +17,7 @@ import { WriteSkillDialog } from "@/components/skills/WriteSkillDialog";
 import { UploadSkillDialog } from "@/components/skills/UploadSkillDialog";
 import { skillsSearchParams } from "@/routes/_main/$profileId/skills/-searchParams";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
+import { sidebarListRowClass } from "./sidebar-nav-row";
 import {
   useActiveProfileId,
   useActiveTeamId,
@@ -38,6 +39,8 @@ export function SkillsSidebarNav({
   const teamId = useActiveTeamId();
   const params = useParams({ strict: false });
   const skillId = typeof params.id === "string" ? params.id : undefined;
+  const activeSystemSkillId =
+    typeof params.skillId === "string" ? params.skillId : undefined;
   const pathname = useLocation({ select: (l) => l.pathname });
   const onHub = pathname.endsWith("/skills/hub");
 
@@ -134,30 +137,43 @@ export function SkillsSidebarNav({
     </Button>
   );
 
-  // Installed (linked) system skills — read-only here; manage them in the Hub.
+  // Installed (linked) system skills — same active-pill + sliding treatment as
+  // personal skills; clicking opens the read-only detail page.
   const installedSection =
     !isIconOnly && !selectionMode && installedSystemSkills.length > 0 ? (
-      <div className="mt-3 space-y-0.5">
+      <div className="mt-3 space-y-1">
         <p className="px-3 py-1 text-xs font-medium text-muted">
           Installed system skills
         </p>
-        {installedSystemSkills.map((entry) => (
-          <button
-            key={entry._id}
-            type="button"
-            onClick={() => goSystemSkill(entry._id)}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm text-muted transition-[color] hover:bg-surface-tertiary/50 hover:text-foreground"
-          >
-            <span
-              aria-hidden
-              className={cn(
-                "size-2 shrink-0 rounded-full",
-                entry.installEnabled ? "bg-success" : "bg-default",
-              )}
-            />
-            <span className="min-w-0 truncate">{entry.name}</span>
-          </button>
-        ))}
+        <SharedLayoutBackground.Root
+          pinnedId={activeSystemSkillId ?? null}
+          className="gap-0.5"
+        >
+          {installedSystemSkills.map((entry) => (
+            <SharedLayoutBackground.Item key={entry._id} id={entry._id}>
+              <button
+                type="button"
+                onClick={() => goSystemSkill(entry._id)}
+                className={cn(
+                  "flex w-full min-w-0 items-center rounded-lg text-left text-sm transition-[color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+                  sidebarListRowClass,
+                  activeSystemSkillId === entry._id
+                    ? "text-foreground"
+                    : "text-muted hover:text-foreground",
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "size-2 shrink-0 rounded-full",
+                    entry.installEnabled ? "bg-success" : "bg-default",
+                  )}
+                />
+                <span className="min-w-0 truncate">{entry.name}</span>
+              </button>
+            </SharedLayoutBackground.Item>
+          ))}
+        </SharedLayoutBackground.Root>
       </div>
     ) : null;
 
