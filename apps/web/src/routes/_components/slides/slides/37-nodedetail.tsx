@@ -17,39 +17,18 @@ import {
   SlideShell,
 } from "../_components/SlideShell";
 
-const TAB_CYCLE_MS = 2600;
-// Click choreography: cursor glides in, presses the node, panel opens.
-const CLICK_AT_MS = 1500;
-const OPEN_AT_MS = 2050;
-
-/** Classic OS pointer arrow, white-filled so it reads on the dark graph. */
-function Cursor() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="26"
-      height="26"
-      className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-      aria-hidden
-    >
-      <path
-        d="M5 3 L5 19 L9.5 14.5 L12.5 21 L15 20 L12 13.5 L18 13.5 Z"
-        fill="white"
-        stroke="black"
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 /**
- * Mock of the web app: clicking a node in the memory graph opens the detail
- * panel on the right. Left = the graph with the selected node highlighted;
- * right = the real Card + Tabs panel, whose active tab auto-cycles through
- * Details → History → Connections as the slide's build steps advance. All
- * mock data.
+ * Mock of the web app, driven by one looping animated cursor: it clicks the
+ * graph node to open the detail panel, then travels to each tab in turn —
+ * Details → History → Connections → repeat — clicking through them. The cursor
+ * is a single element moved via motion `layoutId`, so it glides between the
+ * node and the tabs without any DOM measurement. All mock data.
  */
+
+// Cursor choreography (ms from mount).
+const NODE_CLICK_AT = 1200; // cursor reaches + clicks the node, panel opens
+const TABS_START_AT = 1900; // cursor moves up to the first tab
+const TAB_CYCLE_MS = 2400; // gap between tab clicks once looping
 
 const CENTER = { l: 50, t: 50 };
 
@@ -60,7 +39,7 @@ const SATELLITES = [
   { l: 79, t: 75, label: "Extension token refresh" },
 ] as const;
 
-const TAB_FOR_STEP = ["details", "history", "connections"] as const;
+const TAB_IDS = ["details", "history", "connections"] as const;
 
 const TIMELINE = [
   {
@@ -94,6 +73,52 @@ const CONNECTIONS = [
 
 const TAGS = ["auth", "clerk", "chrome-extension", "decision"] as const;
 
+/** Classic OS pointer arrow, white-filled so it reads on the dark UI. */
+function Cursor() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+      aria-hidden
+    >
+      <path
+        d="M5 3 L5 19 L9.5 14.5 L12.5 21 L15 20 L12 13.5 L18 13.5 Z"
+        fill="white"
+        stroke="black"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** The one shared cursor — `layoutId` makes motion glide it between mounts. */
+function SharedCursor() {
+  return (
+    <motion.div
+      layoutId="detail-cursor"
+      className="pointer-events-none absolute z-20"
+      transition={{ type: "spring", stiffness: 90, damping: 18 }}
+    >
+      <Cursor />
+    </motion.div>
+  );
+}
+
+/** Expanding click ring; `keyed` remounts it so the pulse replays per click. */
+function ClickRipple() {
+  return (
+    <motion.span
+      className="pointer-events-none absolute left-0 top-0 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-foreground/50"
+      initial={{ scale: 0.4, opacity: 0.7 }}
+      animate={{ scale: 2.2, opacity: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+    />
+  );
+}
+
 function At({ l, t, children }: { l: number; t: number; children: ReactNode }) {
   return (
     <div
@@ -121,30 +146,46 @@ function SectionLabel({
 }
 
 export function Slide37NodeDetail() {
-  // Click choreography: cursor glides to the node (approach), presses it
-  // (click), then the detail panel opens (open).
-  const [phase, setPhase] = useState<"approach" | "click" | "open">("approach");
+  // phase: node = cursor clicking the node; tabs = cursor looping the tab bar.
+  const [phase, setPhase] = useState<"node" | "tabs">("node");
+  const [tabIndex, setTabIndex] = useState(0);
+  // Bumps on every click so the ripple remounts and replays.
+  const [clickKey, setClickKey] = useState(0);
+
+  // Intro: cursor presses the node (panel opens), then moves up to the tabs.
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase("click"), CLICK_AT_MS);
-    const t2 = setTimeout(() => setPhase("open"), OPEN_AT_MS);
+    const tClick = setTimeout(() => setClickKey((k) => k + 1), NODE_CLICK_AT);
+    const tTabs = setTimeout(() => {
+      setPhase("tabs");
+      setClickKey((k) => k + 1);
+    }, TABS_START_AT);
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+      clearTimeout(tClick);
+      clearTimeout(tTabs);
     };
   }, []);
-  const clicked = phase === "click" || phase === "open";
-  const open = phase === "open";
 
-  // Active tab cycles Details → History → Connections endlessly.
-  const [tabIndex, setTabIndex] = useState(0);
+  // Loop: once on the tabs, the cursor clicks the next tab on each tick.
   useEffect(() => {
-    const id = setInterval(
-      () => setTabIndex((i) => (i + 1) % TAB_FOR_STEP.length),
-      TAB_CYCLE_MS,
-    );
+    if (phase !== "tabs") return;
+    const id = setInterval(() => {
+      setTabIndex((i) => (i + 1) % TAB_IDS.length);
+      setClickKey((k) => k + 1);
+    }, TAB_CYCLE_MS);
     return () => clearInterval(id);
-  }, []);
-  const activeTab = TAB_FOR_STEP[tabIndex];
+  }, [phase]);
+
+  const open = clickKey > 0; // panel opens on the first (node) click
+  const activeTab = TAB_IDS[tabIndex];
+
+  /** Cursor + ripple, mounted inside the active tab while looping. */
+  const tabCursor = (tab: string) =>
+    phase === "tabs" && activeTab === tab ? (
+      <span className="absolute left-[62%] top-[64%]">
+        <SharedCursor />
+        <ClickRipple key={clickKey} />
+      </span>
+    ) : null;
 
   return (
     <SlideShell>
@@ -184,59 +225,33 @@ export function Slide37NodeDetail() {
               </div>
             </At>
           ))}
-          {/* Click ripple — expands out of the node when pressed */}
-          <At l={CENTER.l} t={CENTER.t}>
-            <motion.span
-              className="block h-10 w-10 rounded-full border-2 border-foreground/50"
-              initial={false}
-              animate={
-                clicked
-                  ? { scale: [0.4, 2.4], opacity: [0.7, 0] }
-                  : { scale: 0.4, opacity: 0 }
-              }
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            />
-          </At>
 
-          {/* The node — gains its selected ring/glow only once clicked */}
+          {/* Selected node — gains its ring/glow once clicked */}
           <At l={CENTER.l} t={CENTER.t}>
             <motion.div
-              className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-foreground px-4 py-2 text-background"
+              className="relative inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-foreground px-4 py-2 text-background"
               initial={false}
               animate={{
-                scale: clicked ? [1, 0.92, 1] : 1,
-                boxShadow: clicked
+                boxShadow: open
                   ? "0 0 0 5px color-mix(in oklch, var(--foreground) 20%, transparent)"
                   : "0 0 0 0px color-mix(in oklch, var(--foreground) 0%, transparent)",
               }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.4 }}
             >
               <span className="h-2 w-2 shrink-0 rounded-full bg-background" />
               <span className="text-base font-medium">
                 Migrate auth to Clerk
               </span>
+
+              {/* Cursor + ripple live on the node until the tab loop starts */}
+              {phase === "node" ? (
+                <span className="absolute left-[88%] top-[78%]">
+                  <SharedCursor />
+                  {clickKey > 0 ? <ClickRipple key={clickKey} /> : null}
+                </span>
+              ) : null}
             </motion.div>
           </At>
-
-          {/* Cursor — glides in to the node, presses, then fades as panel opens */}
-          <motion.div
-            className="pointer-events-none absolute z-10"
-            initial={{ left: "80%", top: "88%", opacity: 0 }}
-            animate={{
-              left: "49%",
-              top: "49%",
-              opacity: open ? 0 : 1,
-              scale: clicked && !open ? 0.85 : 1,
-            }}
-            transition={{
-              left: { duration: 1.4, ease: [0.4, 0, 0.2, 1] },
-              top: { duration: 1.4, ease: [0.4, 0, 0.2, 1] },
-              opacity: { duration: open ? 0.4 : 0.5, delay: open ? 0.1 : 0 },
-              scale: { duration: 0.2 },
-            }}
-          >
-            <Cursor />
-          </motion.div>
         </div>
 
         {/* Right — the detail panel; slides in once the node is clicked */}
@@ -258,9 +273,18 @@ export function Slide37NodeDetail() {
               className="mt-4 flex min-h-0 flex-1 flex-col"
             >
               <TabsList className="self-start">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="history">History</TabsTrigger>
-                <TabsTrigger value="connections">Connections</TabsTrigger>
+                <TabsTrigger value="details" className="relative">
+                  Details
+                  {tabCursor("details")}
+                </TabsTrigger>
+                <TabsTrigger value="history" className="relative">
+                  History
+                  {tabCursor("history")}
+                </TabsTrigger>
+                <TabsTrigger value="connections" className="relative">
+                  Connections
+                  {tabCursor("connections")}
+                </TabsTrigger>
               </TabsList>
 
               {/* Details */}
