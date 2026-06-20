@@ -3,6 +3,7 @@
 import type { KeyboardEvent } from "react";
 import type { Doc } from "@vmem/backend";
 import { cn } from "@vmem/ui";
+import { sidebarListRowClass } from "@/components/sidebar/sidebar-nav-row";
 
 interface SkillCardProps {
   skill: Doc<"skills">;
@@ -28,7 +29,8 @@ export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-left cursor-pointer transition-[color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+        "flex min-w-0 items-center rounded-lg text-left cursor-pointer transition-[color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+        sidebarListRowClass,
         selected ? "text-foreground" : "text-muted hover:text-foreground",
       )}
     >

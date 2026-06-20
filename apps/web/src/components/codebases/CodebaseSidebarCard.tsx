@@ -2,6 +2,7 @@
 
 import type { KeyboardEvent } from "react";
 import { cn } from "@vmem/ui";
+import { sidebarListRowClass } from "@/components/sidebar/sidebar-nav-row";
 import { IconLoader2, IconLock } from "@tabler/icons-react";
 import {
   codebaseLanguageColors,
@@ -45,7 +46,8 @@ export function CodebaseSidebarCard({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-left cursor-pointer transition-[color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+        "flex min-w-0 items-center rounded-lg text-left cursor-pointer transition-[color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+        sidebarListRowClass,
         selected ? "text-foreground" : "hover:text-foreground",
       )}
     >
