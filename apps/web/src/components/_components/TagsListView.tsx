@@ -349,7 +349,7 @@ function DisplayRow({
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={onDelete}
-            className="text-danger focus:text-danger"
+            className="text-danger focus:text-danger data-[highlighted]:text-danger"
           >
             <IconTrash size={14} stroke={1.5} />
             Delete

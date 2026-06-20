@@ -171,7 +171,7 @@ export function SkillHeaderActions({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="text-danger focus:text-danger"
+            className="text-danger focus:text-danger data-[highlighted]:text-danger"
             onSelect={() => setDeleteConfirmOpen(true)}
           >
             <IconTrash size={14} />

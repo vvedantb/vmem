@@ -227,6 +227,7 @@ export function SystemSkillDetail({
                   />
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  className="text-danger focus:text-danger data-[highlighted]:text-danger"
                   onSelect={() =>
                     void run(
                       () => uninstall({ systemSkillId: entry._id }),
@@ -247,7 +248,7 @@ export function SystemSkillDetail({
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="text-danger focus:text-danger"
+                  className="text-danger focus:text-danger data-[highlighted]:text-danger"
                   onSelect={() => setDeleteOpen(true)}
                 >
                   <IconTrash size={14} />

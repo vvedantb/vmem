@@ -163,7 +163,7 @@ export function NotificationsPanel() {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem
-                    className="text-danger focus:text-danger"
+                    className="text-danger focus:text-danger data-[highlighted]:text-danger"
                     onClick={() => deleteNotification(notification._id)}
                   >
                     <IconTrash size={16} stroke={1.5} />
