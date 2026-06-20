@@ -50,7 +50,7 @@ export function SkillCard({
       onClick={activate}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex min-w-0 items-center rounded-lg text-left cursor-pointer transition-[color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+        "flex min-w-0 items-center rounded-lg text-left text-sm cursor-pointer transition-[color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
         sidebarListRowClass,
         highlighted ? "text-foreground" : "text-muted hover:text-foreground",
       )}
@@ -71,14 +71,7 @@ export function SkillCard({
           )}
         />
       )}
-      <span
-        className={cn(
-          "min-w-0 truncate text-sm font-semibold",
-          isEnabled ? "text-foreground" : "text-muted",
-        )}
-      >
-        {skill.name}
-      </span>
+      <span className="min-w-0 truncate">{skill.name}</span>
     </div>
   );
 }
