@@ -1,2 +1,6 @@
 .env.local
 node_modules
+
+# benchmark dataset (license + size) and run journals
+neo4j-cli/bench/datasets/*.json
+neo4j-cli/bench/results/

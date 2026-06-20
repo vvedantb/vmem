@@ -1,5 +1,12 @@
 # Changelog
 
+## Codebase sync date and stalled-sync recovery — 2026-06-19
+
+- **Last sync date**: the codebase detail page now shows when the repo last synced ("Synced 3h ago", "Synced yesterday") next to the Sync button, with the exact timestamp on hover and a "Never synced" label for repos that have not finished a first sync.
+- **Why**: a sync action that times out or whose host dies never writes a finished status, so the repo sat in "syncing" forever — the sidebar kept spinning while the detail page still read "Synced yesterday", and the Sync button stayed disabled, leaving no way to recover.
+- **Stalled, not spinning**: a repo stuck in "syncing" past the 20-minute window now shows a "Sync stalled" badge instead of a live spinner, and the Sync button is re-enabled so a stalled run can be retried by hand.
+- **Self-healing**: a background sweep runs every 30 minutes and flips any repo wedged in "syncing" past the window to an error state with a clear "Sync stalled" message, so a dead run no longer looks in-progress to the rest of the app.
+
 ## Configurable extension sync frequency — 2026-06-14
 
 - **Why**: the extension's browsing-history and bookmark auto-sync ran on a fixed 30-minute cycle with no way to turn it off or change the cadence from the popup.

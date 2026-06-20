@@ -31,3 +31,61 @@ export function readOpenRouterError(
   }
   return { status: fallbackStatus, message: "unknown error" };
 }
+
+/**
+ * Transient network faults that should be retried (or, at process level,
+ * swallowed) rather than treated as a hard failure. These come from the
+ * fetch/undici layer — not the OpenRouter API — and are especially common
+ * in long batch jobs where the connection pool reuses a keep-alive socket
+ * the server has already closed (surfaces as an undici "terminated" /
+ * ECONNRESET, sometimes as an *unhandled* rejection with no awaiter).
+ *
+ * Matches on both the error and its `cause` chain (undici nests the socket
+ * error under `cause`), checking Node error `code`s and known message
+ * fragments. Deliberately narrow: anything not listed here is a real error.
+ */
+const TRANSIENT_CODES: ReadonlySet<string> = new Set([
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ECONNREFUSED",
+  "EPIPE",
+  "EAI_AGAIN",
+  "ENOTFOUND",
+  "UND_ERR_SOCKET",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+]);
+
+const TRANSIENT_MESSAGE_FRAGMENTS: readonly string[] = [
+  "terminated",
+  "socket hang up",
+  "fetch failed",
+  "other side closed",
+  "network socket disconnected",
+  // Neo4j driver pool faults under burst load against a managed cloud
+  // instance (Aura): a cold connection burst after an idle gap can exceed
+  // the acquisition timeout even though the instance is healthy. Transient —
+  // a brief pause + retry finds the now-warm pool.
+  "connection acquisition timed out",
+  "pool is closed",
+];
+
+export function isTransientNetworkError(err: unknown): boolean {
+  let current: unknown = err;
+  // Walk the cause chain (undici puts the real socket error under `cause`).
+  for (let depth = 0; depth < 5 && current != null; depth++) {
+    if (current instanceof Error) {
+      const code = Reflect.get(current, "code");
+      if (typeof code === "string" && TRANSIENT_CODES.has(code)) return true;
+      const message = current.message.toLowerCase();
+      if (TRANSIENT_MESSAGE_FRAGMENTS.some((f) => message.includes(f))) {
+        return true;
+      }
+      current = Reflect.get(current, "cause");
+    } else {
+      break;
+    }
+  }
+  return false;
+}

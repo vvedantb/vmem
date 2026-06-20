@@ -3,6 +3,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
+import { isCodebaseSyncStalled } from "@vmem/shared";
 import PageContainer from "@/components/PageContainer";
 import { Breadcrumb, BreadcrumbPage, Button } from "@vmem/ui";
 import {
@@ -16,6 +17,7 @@ import { CodebaseGraph } from "@/components/codebases/CodebaseGraph";
 import CodebaseGraphHeaderControls from "@/components/codebases/CodebaseGraphHeaderControls";
 import { useCodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 import { VmemSpinner } from "@/components/svg-animations";
+import { formatRelativeTime } from "@/lib/formatters";
 
 export const Route = createFileRoute("/_main/$profileId/codebases/$id")({
   component: CodebaseDetailPage,
@@ -70,6 +72,12 @@ function CodebaseDetailView({
   const syncCodebase = useAction(api.codebases.syncCodebase);
   const [syncing, setSyncing] = useState(false);
   const controller = useCodebaseGraphController(id);
+  // A stalled sync still reads `status === "syncing"`; treat it as retryable so
+  // the Sync button isn't disabled forever waiting on a dead run.
+  const stalled = isCodebaseSyncStalled(
+    codebase.status,
+    codebase.syncStartedAt,
+  );
 
   const handleSync = useCallback(async () => {
     setSyncing(true);
@@ -96,11 +104,23 @@ function CodebaseDetailView({
       rightSection={
         <div className="flex items-center gap-1.5">
           <CodebaseGraphHeaderControls controller={controller} />
+          <span
+            className="text-xs text-muted whitespace-nowrap"
+            title={
+              codebase.lastSyncedAt
+                ? new Date(codebase.lastSyncedAt).toLocaleString()
+                : undefined
+            }
+          >
+            {codebase.lastSyncedAt
+              ? `Synced ${formatRelativeTime(codebase.lastSyncedAt)}`
+              : "Never synced"}
+          </span>
           <Button
             variant="outline"
             size="sm"
             onClick={handleSync}
-            disabled={syncing || codebase.status === "syncing"}
+            disabled={syncing || (codebase.status === "syncing" && !stalled)}
           >
             {syncing ? (
               <IconLoader2 size={16} className="animate-spin" />

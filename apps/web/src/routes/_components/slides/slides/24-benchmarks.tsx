@@ -9,7 +9,19 @@ import {
   SlideStagger,
 } from "../_components/SlideShell";
 
-const COMPETITORS = ["Supermemory", "Mem0"] as const;
+const COMPETITORS = [
+  { name: "Supermemory", logo: "/slides/logo-supermemory.svg" },
+  { name: "Mem0", logo: "/slides/logo-mem0.svg" },
+] as const;
+
+/** Square logo chip, matching the comparison slide's brand columns. */
+function LogoChip({ src, alt }: { src: string; alt: string }) {
+  return (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface">
+      <img src={src} alt={alt} className="h-5 w-5" draggable={false} />
+    </span>
+  );
+}
 
 /** Pulsing "running" dot for the in-progress benchmark rows. */
 function RunningDot() {
@@ -37,11 +49,19 @@ export function Slide24Benchmarks() {
         staggerChildren={0.14}
         step={1}
       >
-        {COMPETITORS.map((name) => (
+        {COMPETITORS.map(({ name, logo }) => (
           <SlideItem key={name}>
             <div className="flex items-center justify-between rounded-2xl bg-surface-secondary/60 px-5 py-4">
-              <div>
-                <p className="text-sm text-muted">vmem vs</p>
+              <div className="flex items-center gap-2.5">
+                {/* vmem icon is a filled square app icon — fill the chip. */}
+                <img
+                  src="/icon.png"
+                  alt="vmem"
+                  className="h-8 w-8 shrink-0 rounded-lg"
+                  draggable={false}
+                />
+                <span className="text-sm text-muted">vs</span>
+                <LogoChip src={logo} alt={name} />
                 <p className="text-lg font-medium text-foreground">{name}</p>
               </div>
               <span className="flex items-center gap-2 text-xs font-medium text-muted">

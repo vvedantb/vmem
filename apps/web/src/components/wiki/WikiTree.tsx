@@ -6,8 +6,6 @@ import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 import {
   IconChevronRight,
-  IconFolder,
-  IconFolderOpen,
   IconFileText,
   IconFolderPlus,
   IconPencil,
@@ -26,7 +24,6 @@ import RenameDialog from "./RenameDialog";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { optimisticId } from "@/lib/optimisticId";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
-import { SharedLayoutBackground } from "@/components/sidebar/SharedLayoutBackground";
 
 interface WikiTreeProps {
   tree: WikiTreeNode[];
@@ -204,14 +201,6 @@ interface TreeListProps {
   onRequestDelete: (node: Doc<"wikiNodes">) => void;
 }
 
-function pinnedTreeId(
-  nodes: WikiTreeNode[],
-  selectedId: string | null,
-): string | null {
-  if (selectedId === null) return null;
-  return nodes.some((node) => node.node._id === selectedId) ? selectedId : null;
-}
-
 function TreeList({
   nodes,
   depth,
@@ -222,10 +211,7 @@ function TreeList({
   onRequestDelete,
 }: TreeListProps) {
   return (
-    <SharedLayoutBackground.Root
-      pinnedId={pinnedTreeId(nodes, selectedId)}
-      className="flex flex-col"
-    >
+    <div className="flex flex-col gap-0.5">
       {nodes.map((item) => (
         <TreeItem
           key={item.node._id}
@@ -238,7 +224,7 @@ function TreeList({
           onRequestDelete={onRequestDelete}
         />
       ))}
-    </SharedLayoutBackground.Root>
+    </div>
   );
 }
 
@@ -278,87 +264,76 @@ function TreeItem({
 
   return (
     <>
-      <SharedLayoutBackground.Item id={item.node._id}>
-        <ContextMenu>
-          <ContextMenuTrigger asChild>
-            <button
-              type="button"
-              onClick={handleActivate}
-              className={cn(
-                "group w-full flex items-center gap-1.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-[color]",
-                isSelected
-                  ? "text-foreground"
-                  : "text-muted hover:text-foreground",
-              )}
-              style={{ paddingLeft: `${depth * 12 + 8}px` }}
-            >
-              {isFolder ? (
-                <>
-                  <IconChevronRight
-                    size={14}
-                    className={cn(
-                      "text-muted transition-transform",
-                      expanded && "rotate-90",
-                    )}
-                  />
-                  {expanded ? (
-                    <IconFolderOpen size={14} className="text-muted" />
-                  ) : (
-                    <IconFolder size={14} className="text-muted" />
-                  )}
-                </>
-              ) : (
-                <>
-                  <span className="inline-block w-[14px]" />
-                  <IconFileText size={14} className="text-muted" />
-                </>
-              )}
-              <span className="truncate">{item.node.title}</span>
-            </button>
-          </ContextMenuTrigger>
-          <ContextMenuContent>
-            {isFolder && (
-              <>
-                <ContextMenuItem
-                  onSelect={() => onCreateInside(item.node._id, "document")}
-                >
-                  <IconFileText size={16} className="text-muted" />
-                  New document
-                </ContextMenuItem>
-                <ContextMenuItem
-                  onSelect={() => onCreateInside(item.node._id, "folder")}
-                >
-                  <IconFolderPlus size={16} className="text-muted" />
-                  New folder
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-              </>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <button
+            type="button"
+            onClick={handleActivate}
+            className={cn(
+              "group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm transition-[background-color,color]",
+              isSelected
+                ? "bg-surface-tertiary font-medium text-foreground"
+                : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
             )}
-            <ContextMenuItem onSelect={() => onRequestRename(item.node)}>
-              <IconPencil size={16} className="text-muted" />
-              Rename
-            </ContextMenuItem>
-            <ContextMenuItem
-              onSelect={() => onRequestDelete(item.node)}
-              className="text-danger focus:text-danger data-[highlighted]:text-danger"
-            >
-              <IconTrash size={16} />
-              Delete
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
-      </SharedLayoutBackground.Item>
+          >
+            {isFolder ? (
+              <IconChevronRight
+                size={14}
+                className={cn(
+                  "shrink-0 text-muted transition-transform",
+                  expanded && "rotate-90",
+                )}
+              />
+            ) : (
+              <span className="inline-block w-[14px] shrink-0" />
+            )}
+            <span className="truncate">{item.node.title}</span>
+          </button>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          {isFolder && (
+            <>
+              <ContextMenuItem
+                onSelect={() => onCreateInside(item.node._id, "document")}
+              >
+                <IconFileText size={16} className="text-muted" />
+                New document
+              </ContextMenuItem>
+              <ContextMenuItem
+                onSelect={() => onCreateInside(item.node._id, "folder")}
+              >
+                <IconFolderPlus size={16} className="text-muted" />
+                New folder
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+            </>
+          )}
+          <ContextMenuItem onSelect={() => onRequestRename(item.node)}>
+            <IconPencil size={16} className="text-muted" />
+            Rename
+          </ContextMenuItem>
+          <ContextMenuItem
+            onSelect={() => onRequestDelete(item.node)}
+            className="text-danger focus:text-danger data-[highlighted]:text-danger"
+          >
+            <IconTrash size={16} />
+            Delete
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
 
       {isFolder && expanded && item.children.length > 0 ? (
-        <TreeList
-          nodes={item.children}
-          depth={depth + 1}
-          selectedId={selectedId}
-          onSelect={onSelect}
-          onCreateInside={onCreateInside}
-          onRequestRename={onRequestRename}
-          onRequestDelete={onRequestDelete}
-        />
+        <div className="ml-[15px] border-l border-separator pl-2">
+          <TreeList
+            nodes={item.children}
+            depth={depth + 1}
+            selectedId={selectedId}
+            onSelect={onSelect}
+            onCreateInside={onCreateInside}
+            onRequestRename={onRequestRename}
+            onRequestDelete={onRequestDelete}
+          />
+        </div>
       ) : null}
     </>
   );
