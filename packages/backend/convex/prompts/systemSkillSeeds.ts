@@ -1,6 +1,7 @@
 /**
  * Shipped catalog seeds for the Skills Hub. `seedSystemSkillsInternal`
- * idempotently upserts these by name. Editing the text here and re-running
+ * idempotently upserts these by name (and renames in place via
+ * `previousNames`, preserving installs). Editing the text here and re-running
  * the seed updates every installer (system skills are linked, not copied).
  *
  * Instructions are a markdown PLAYBOOK aimed at an MCP agent (e.g. Claude
@@ -13,13 +14,20 @@ export interface SystemSkillSeed {
   description: string;
   instructions: string;
   category?: string;
+  /**
+   * Former names of this seed. If no row matches `name` but one matches a
+   * previous name, it is renamed in place (id + installs preserved) instead
+   * of inserting a duplicate.
+   */
+  previousNames?: string[];
 }
 
-const CODEBASE_KNOWLEDGE_BASE_INSTRUCTIONS = `# Codebase Knowledge Base
+const SETUP_WIKI_INSTRUCTIONS = `# setup-wiki — Codebase Knowledge Base
 
 Build a living, source-grounded knowledge base for the current codebase as a
 **wiki inside vmem** — one folder of linked pages. Everything is stored in vmem
-via the wiki tools; nothing is written to the repo or to GitHub.
+via the wiki tools; nothing is written to the repo or to GitHub. Use this the
+FIRST time a codebase needs a knowledge base; use \`update-wiki\` to refresh it later.
 
 You have vmem's MCP tools available. The relevant ones:
 - \`codebases_list\` — vmem's synced codebases (id, repo name, language, stats).
@@ -50,9 +58,9 @@ Then decide a page set that FITS THIS REPO — do not force a fixed template. Ty
 
 Keep it proportional: a small repo may need 3 pages, a large one 6–8.
 
-## Step 3 — Re-run safely (idempotent)
+## Step 3 — Don't duplicate
 
-Before creating anything, \`wiki_search\` / \`wiki_list\` for an existing knowledge-base folder for this repo (e.g. titled "<owner/repo> — Knowledge Base"). If it exists, UPDATE its pages with \`wiki_update\` (mode "replace") instead of creating a duplicate folder. Only create pages that are missing.
+Before creating anything, \`wiki_search\` / \`wiki_list\` for an existing knowledge-base folder for this repo (e.g. titled "<owner/repo> — Knowledge Base"). If it already exists, STOP and run \`update-wiki\` instead — that refreshes pages in place rather than duplicating the folder.
 
 ## Step 4 — Create the linked folder
 
@@ -68,14 +76,55 @@ For each planned page, \`wiki_create\` a **document** under the folder (\`parent
 
 ## Step 6 — Report
 
-Tell the user the folder you created or updated, the pages written, and whether it was linked to a synced codebase. Suggest re-running this skill after significant changes to keep the knowledge base current.`;
+Tell the user the folder you created, the pages written, and whether it was linked to a synced codebase. Suggest running \`update-wiki\` after significant changes to keep the knowledge base current.`;
+
+const UPDATE_WIKI_INSTRUCTIONS = `# update-wiki — Refresh a Codebase Knowledge Base
+
+Bring an existing codebase knowledge base in vmem back in line with the current
+code. Use this AFTER the codebase has changed and a knowledge base (built with
+\`setup-wiki\`) already exists. Update pages in place — do not rebuild from scratch.
+Everything stays in vmem via the wiki tools.
+
+Relevant tools: \`codebases_list\`, \`codebase_overview\` / \`codebase_graph\` / \`codebase_search\` / \`codebase_context\`, \`wiki_list\`, \`wiki_search\`, \`wiki_get\`, \`wiki_update\`, \`wiki_create\`.
+
+## Step 1 — Find the existing knowledge base
+
+1. Determine the repo (\`owner/name\`); \`codebases_list\` to find the matching synced codebase id (if any).
+2. \`wiki_search\` / \`wiki_list\` for the knowledge-base folder for this repo (e.g. "<owner/repo> — Knowledge Base"). If there is NONE, stop and tell the user to run \`setup-wiki\` first — this skill only refreshes an existing base.
+3. \`wiki_get\` each page in the folder so you know what the base currently claims.
+
+## Step 2 — Find what changed
+
+- If synced: \`codebase_overview\` + \`codebase_graph\` for the current structure and flows; compare against what the pages describe. \`codebase_search\` / \`codebase_context\` to confirm specific symbols still exist.
+- If not synced: read the current working tree (README, manifests, entry points, changed areas).
+- Identify three buckets: (a) pages whose described files/symbols changed or no longer exist, (b) new modules/flows that have no page yet, (c) pages that are still accurate.
+
+## Step 3 — Update in place
+
+- For each drifted page (bucket a): \`wiki_get\` it, then \`wiki_update\` (mode "replace") with corrected, re-grounded markdown. Keep the parts that are still right.
+- For genuinely new areas (bucket b): \`wiki_create\` a new document under the existing folder (\`parentId\` = the folder id).
+- If a page describes something that was removed, correct it to reflect reality — never leave stale claims.
+- Leave accurate pages (bucket c) untouched.
+- Same grounding rule as setup: reference real file paths and symbol names; never invent. If unsure, say so.
+
+## Step 4 — Report
+
+Tell the user which pages you updated, which you added, and anything you flagged as removed or uncertain — and confirm what you left unchanged.`;
 
 export const SYSTEM_SKILL_SEEDS: SystemSkillSeed[] = [
   {
-    name: "Codebase Knowledge Base",
+    name: "setup-wiki",
     category: "Codebases",
     description:
-      "Build an adaptive, source-grounded knowledge base for the current codebase as a linked wiki inside vmem (a folder of pages), using vmem's codebase and wiki tools.",
-    instructions: CODEBASE_KNOWLEDGE_BASE_INSTRUCTIONS,
+      "Build an adaptive, source-grounded knowledge base for a codebase as a linked wiki inside vmem (a folder of pages), using vmem's codebase and wiki tools.",
+    instructions: SETUP_WIKI_INSTRUCTIONS,
+    previousNames: ["Codebase Knowledge Base"],
+  },
+  {
+    name: "update-wiki",
+    category: "Codebases",
+    description:
+      "Refresh an existing codebase knowledge base in vmem — update pages to match the current code, add missing areas, and correct stale content in place.",
+    instructions: UPDATE_WIKI_INSTRUCTIONS,
   },
 ];

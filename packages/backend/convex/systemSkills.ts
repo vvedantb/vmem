@@ -288,18 +288,38 @@ export const adminDelete = authMutation({
 
 // --- Maintenance (run via `npx convex run`) ---
 
-/** Idempotently upsert the shipped catalog seeds by name. */
+/**
+ * Idempotently upsert the shipped catalog seeds. Matches by `name`, falling
+ * back to `previousNames` so a renamed seed adopts (renames) the existing row
+ * in place — its id and every install survive — instead of orphaning it.
+ */
 export const seedSystemSkillsInternal = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
     for (const seed of SYSTEM_SKILL_SEEDS) {
-      const existing = await ctx.db
+      let existing = await ctx.db
         .query("systemSkills")
         .withIndex("by_name", (q) => q.eq("name", seed.name))
         .first();
+
+      // No row under the current name — adopt one under a former name (rename).
+      if (!existing && seed.previousNames) {
+        for (const prev of seed.previousNames) {
+          const legacy = await ctx.db
+            .query("systemSkills")
+            .withIndex("by_name", (q) => q.eq("name", prev))
+            .first();
+          if (legacy) {
+            existing = legacy;
+            break;
+          }
+        }
+      }
+
       if (existing) {
         await ctx.db.patch(existing._id, {
+          name: seed.name, // applies the rename when adopted under a former name
           description: seed.description,
           instructions: seed.instructions,
           category: seed.category,
