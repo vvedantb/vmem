@@ -8,7 +8,15 @@ import {
   IconCircleFilled,
 } from "@tabler/icons-react";
 import { cn } from "../utils/cn";
-import { menuContentClass } from "./_menu-classes";
+import {
+  menuCheckboxRadioItemClass,
+  menuContentClass,
+  menuItemClass,
+  menuLabelClass,
+  menuSeparatorClass,
+  menuShortcutClass,
+  menuSubTriggerClass,
+} from "./_menu-classes";
 
 const ContextMenu = ContextMenuPrimitive.Root;
 const ContextMenuTrigger = ContextMenuPrimitive.Trigger;
@@ -25,11 +33,7 @@ const ContextMenuSubTrigger = React.forwardRef<
 >(({ className, inset, children, ...props }, ref) => (
   <ContextMenuPrimitive.SubTrigger
     ref={ref}
-    className={cn(
-      "flex cursor-default select-none items-center gap-2 rounded-md px-2.5 py-2 text-sm text-foreground outline-none transition-[background-color,color] focus:bg-default focus:text-foreground data-[highlighted]:bg-default data-[highlighted]:text-foreground data-[state=open]:bg-default [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-      inset && "pl-8",
-      className,
-    )}
+    className={cn(menuSubTriggerClass, inset && "pl-8", className)}
     {...props}
   >
     {children}
@@ -72,11 +76,7 @@ const ContextMenuItem = React.forwardRef<
 >(({ className, inset, ...props }, ref) => (
   <ContextMenuPrimitive.Item
     ref={ref}
-    className={cn(
-      "relative flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-2 text-sm outline-none transition-[background-color,color] focus:bg-default focus:text-foreground data-[highlighted]:bg-default data-[highlighted]:text-foreground data-[disabled]:pointer-events-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0 [&_svg]:pointer-events-none",
-      inset && "pl-8",
-      className,
-    )}
+    className={cn(menuItemClass, inset && "pl-8", className)}
     {...props}
   />
 ));
@@ -88,10 +88,7 @@ const ContextMenuCheckboxItem = React.forwardRef<
 >(({ className, children, checked, ...props }, ref) => (
   <ContextMenuPrimitive.CheckboxItem
     ref={ref}
-    className={cn(
-      "relative flex cursor-default select-none items-center rounded-md py-2 pl-8 pr-2.5 text-sm outline-none transition-[background-color,color] focus:bg-default focus:text-foreground data-[highlighted]:bg-default data-[highlighted]:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      className,
-    )}
+    className={cn(menuCheckboxRadioItemClass, className)}
     checked={checked}
     {...props}
   >
@@ -112,10 +109,7 @@ const ContextMenuRadioItem = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <ContextMenuPrimitive.RadioItem
     ref={ref}
-    className={cn(
-      "relative flex cursor-default select-none items-center rounded-md py-2 pl-8 pr-2.5 text-sm outline-none transition-[background-color,color] focus:bg-default focus:text-foreground data-[highlighted]:bg-default data-[highlighted]:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      className,
-    )}
+    className={cn(menuCheckboxRadioItemClass, className)}
     {...props}
   >
     <span className="absolute left-2.5 flex h-3.5 w-3.5 items-center justify-center">
@@ -136,11 +130,7 @@ const ContextMenuLabel = React.forwardRef<
 >(({ className, inset, ...props }, ref) => (
   <ContextMenuPrimitive.Label
     ref={ref}
-    className={cn(
-      "px-2.5 py-1.5 text-xs font-semibold uppercase tracking-widest text-muted",
-      inset && "pl-8",
-      className,
-    )}
+    className={cn(menuLabelClass, inset && "pl-8", className)}
     {...props}
   />
 ));
@@ -152,7 +142,7 @@ const ContextMenuSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ContextMenuPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1.5 my-1 h-px bg-separator", className)}
+    className={cn(menuSeparatorClass, className)}
     {...props}
   />
 ));
@@ -162,12 +152,7 @@ const ContextMenuShortcut = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLSpanElement>) => {
-  return (
-    <span
-      className={cn("ml-auto text-xs tracking-wide text-muted/90", className)}
-      {...props}
-    />
-  );
+  return <span className={cn(menuShortcutClass, className)} {...props} />;
 };
 ContextMenuShortcut.displayName = "ContextMenuShortcut";
 
