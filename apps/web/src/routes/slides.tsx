@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { SlideDeck } from "./_components/slides/SlideDeck";
 import { usePresentationSync } from "./_components/slides/usePresentationSync";
 import { PresentationControls } from "./_components/slides/_components/PresentationControls";
-import { JoinNamePrompt } from "./_components/slides/_components/JoinNamePrompt";
+import { PresentationDeckProvider } from "./_components/slides/_components/PresentationDeckContext";
 
 const searchSchema = z.object({
   slide: z.number().int().min(1).optional().default(1),
@@ -37,13 +37,22 @@ function SlidesPage() {
     updateSearch,
   });
 
+  // Surfaced to slide components (poll slides) that render with no props.
+  const deckContext = useMemo(
+    () => ({
+      sessionCode: session,
+      participantKey: sync.participantKey,
+      hostKey: sync.hostKey,
+    }),
+    [session, sync.participantKey, sync.hostKey],
+  );
+
   return (
     <>
-      <SlideDeck slide={sync.effectiveSlide} onNavigate={sync.onNavigate} />
+      <PresentationDeckProvider value={deckContext}>
+        <SlideDeck slide={sync.effectiveSlide} onNavigate={sync.onNavigate} />
+      </PresentationDeckProvider>
       <PresentationControls sync={sync} />
-      {sync.needsName && (
-        <JoinNamePrompt hostName={sync.hostName} onSubmit={sync.setName} />
-      )}
     </>
   );
 }

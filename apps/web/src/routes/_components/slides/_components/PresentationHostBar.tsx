@@ -6,12 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@vmem/ui";
-import {
-  IconCopy,
-  IconCheck,
-  IconPlayerStop,
-  IconUsers,
-} from "@tabler/icons-react";
+import { IconCopy, IconCheck, IconPlayerStop } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { PresentationSync } from "../usePresentationSync";
 
@@ -22,8 +17,9 @@ interface PresentationHostBarProps {
 }
 
 /**
- * The presenter's control: a "Live · N watching" pill that opens a popover
- * with the share link (copy), the live viewer list, and Stop sharing.
+ * The presenter's control: a "● Live" pill that opens a popover with the
+ * shareable link (copy) and Stop sharing. Viewers are anonymous, so there is
+ * no watcher list.
  */
 export function PresentationHostBar({
   sync,
@@ -55,9 +51,6 @@ export function PresentationHostBar({
             <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
           </span>
           Live
-          <span className="text-muted">·</span>
-          <IconUsers size={14} className="text-muted" />
-          <span className="tabular-nums">{sync.viewerCount}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 space-y-3">
@@ -83,27 +76,9 @@ export function PresentationHostBar({
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">
-            Watching ({sync.viewerCount})
-          </p>
-          {sync.viewers.length === 0 ? (
-            <p className="text-sm text-muted">
-              No one yet. Share the link to invite viewers.
-            </p>
-          ) : (
-            <ul className="max-h-40 space-y-1 overflow-y-auto">
-              {sync.viewers.map((viewer) => (
-                <li
-                  key={viewer.participantKey}
-                  className="truncate text-sm text-foreground"
-                >
-                  {viewer.name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <p className="text-xs leading-relaxed text-muted">
+          Anyone with the link follows your slides live and can vote in polls.
+        </p>
 
         <Button
           variant="ghost"

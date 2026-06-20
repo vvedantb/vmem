@@ -1,28 +1,25 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { useUser } from "@clerk/clerk-react";
 import { api } from "@vmem/backend";
 
 /**
  * Live "follow the presenter" sync for the `/slides` deck (Teams-style, no
- * take-control). One person — the presenter — drives; everyone else either
- * follows live or detaches to browse on their own, then re-syncs.
+ * take-control, anonymous viewers). One person — the presenter — drives;
+ * everyone else either follows live or detaches to browse on their own.
  *
- * Who is the presenter? Whoever holds the secret `hostKey` for this session
- * code (returned once from `createSession`, kept in localStorage). That key
- * never reaches viewers, so only the presenter can move the deck.
+ * The presenter is whoever holds the secret `hostKey` for this session code
+ * (returned once from `createSession`, kept in localStorage). That key never
+ * reaches viewers, so only the presenter can move the deck.
  *
- * The slide is the only synced state — build-step animations replay locally
- * on every client (they are timer-driven, so they converge on their own).
+ * The slide is the only synced state — build-step animations replay locally on
+ * every client (timer-driven, so they converge). `participantKey` is exposed
+ * for poll voting (one vote per browser).
  */
 
 const PARTICIPANT_KEY_STORAGE = "vmem:presentation-participant-key";
-const NAME_STORAGE = "vmem:presentation-name";
 const hostKeyStorage = (code: string) => `vmem:presentation-host:${code}`;
 
-const HEARTBEAT_INTERVAL_MS = 15_000;
-
-/** Stable per-browser id for presence, minted once and persisted. */
+/** Stable per-browser id (votes are one-per-participant), minted once. */
 function readParticipantKey(): string {
   if (typeof window === "undefined") return "";
   const existing = window.localStorage.getItem(PARTICIPANT_KEY_STORAGE);
@@ -30,11 +27,6 @@ function readParticipantKey(): string {
   const key = crypto.randomUUID();
   window.localStorage.setItem(PARTICIPANT_KEY_STORAGE, key);
   return key;
-}
-
-function readStoredName(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(NAME_STORAGE);
 }
 
 interface UsePresentationSyncArgs {
@@ -59,11 +51,7 @@ export function usePresentationSync({
   sessionCode,
   updateSearch,
 }: UsePresentationSyncArgs) {
-  const { user } = useUser();
-  const hostDisplayName = user?.fullName ?? user?.firstName ?? "Presenter";
-
   const [participantKey] = useState(readParticipantKey);
-  const [name, setNameState] = useState<string | null>(readStoredName);
 
   // Per-session host token. Present == this browser is the presenter. Read
   // synchronously on mount (so a host reload doesn't flash the viewer UI), and
@@ -88,20 +76,15 @@ export function usePresentationSync({
     setMode("following");
   }, [sessionCode]);
 
-  // Subscriptions: viewers watch the slide; the presenter watches presence.
+  // Viewers subscribe to the live slide; the presenter drives via the URL.
   const session = useQuery(
     api.presentations.getSession,
     sessionCode && !isHost ? { code: sessionCode } : "skip",
-  );
-  const participants = useQuery(
-    api.presentations.listParticipants,
-    sessionCode && isHost ? { code: sessionCode } : "skip",
   );
 
   const createSessionMut = useMutation(api.presentations.createSession);
   const setSlideMut = useMutation(api.presentations.setSlide);
   const stopSharingMut = useMutation(api.presentations.stopSharing);
-  const heartbeatMut = useMutation(api.presentations.heartbeat);
 
   const [isStarting, setIsStarting] = useState(false);
 
@@ -114,9 +97,6 @@ export function usePresentationSync({
         : session === null
           ? "notfound"
           : session.status;
-
-  // The presenter uses their account name; a viewer uses their entered name.
-  const effectiveName = isHost ? hostDisplayName : name;
 
   const isFollowing =
     !isHost && mode === "following" && sessionState === "live";
@@ -146,10 +126,7 @@ export function usePresentationSync({
   const startSharing = useCallback(async () => {
     setIsStarting(true);
     try {
-      const result = await createSessionMut({
-        slide,
-        hostName: hostDisplayName,
-      });
+      const result = await createSessionMut({ slide });
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
           hostKeyStorage(result.code),
@@ -161,7 +138,7 @@ export function usePresentationSync({
     } finally {
       setIsStarting(false);
     }
-  }, [createSessionMut, slide, hostDisplayName, updateSearch]);
+  }, [createSessionMut, slide, updateSearch]);
 
   const stopSharing = useCallback(async () => {
     if (!sessionCode || !hostKey) return;
@@ -177,66 +154,21 @@ export function usePresentationSync({
     setMode("following");
   }, []);
 
-  const setName = useCallback((value: string) => {
-    const trimmed = value.trim() || "Guest";
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(NAME_STORAGE, trimmed);
-    }
-    setNameState(trimmed);
-  }, []);
-
-  // Presence heartbeat — one ping on entry, then every 15s while live.
-  useEffect(() => {
-    if (!sessionCode || !effectiveName || sessionState !== "live") return;
-    const role = isHost ? "host" : "viewer";
-    const ping = () => {
-      void heartbeatMut({
-        code: sessionCode,
-        participantKey,
-        name: effectiveName,
-        role,
-      }).catch(() => undefined);
-    };
-    ping();
-    const id = window.setInterval(ping, HEARTBEAT_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [
-    sessionCode,
-    effectiveName,
-    sessionState,
-    isHost,
-    participantKey,
-    heartbeatMut,
-  ]);
-
-  const viewers = useMemo(
-    () => (participants ?? []).filter((p) => p.role === "viewer"),
-    [participants],
-  );
-
   const shareUrl =
     sessionCode && typeof window !== "undefined"
       ? `${window.location.origin}/slides?session=${sessionCode}`
       : null;
 
-  const needsName =
-    !!sessionCode && !isHost && name === null && sessionState === "live";
-
   return {
     isHost,
     mode,
     sessionState,
-    /** Presenter's display name (from the server) — for the follower bar. */
-    hostName: session?.hostName ?? null,
     effectiveSlide,
     onNavigate,
-    viewerCount: viewers.length,
-    viewers: viewers.map((viewer) => ({
-      participantKey: viewer.participantKey,
-      name: viewer.name,
-    })),
-    needsName,
-    setName,
+    /** Stable per-browser id — passed to poll slides for one-vote-per-browser. */
+    participantKey,
+    /** Secret host token (presenter only) — passed to poll slides for reset etc. */
+    hostKey,
     startSharing,
     stopSharing,
     backToLive,

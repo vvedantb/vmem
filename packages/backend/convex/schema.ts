@@ -17,7 +17,7 @@ import {
   openRouterLogFields,
   dreamTriggerStateFields,
   presentationSessionFields,
-  presentationParticipantFields,
+  presentationVoteFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -374,13 +374,13 @@ const schema = defineSchema({
   ),
 
   /**
-   * Heartbeat-backed presence for a live slide session (see
-   * `presentationParticipantFields`). `by_code` lists everyone in a session;
-   * `by_code_participant` is the per-client upsert key for the heartbeat.
+   * Anonymous votes for curated poll slides (see `presentationVoteFields`).
+   * `by_code_poll` tallies a poll (and, by `code` prefix, finds a session's
+   * votes for cleanup); `by_code_poll_participant` is the one-vote upsert key.
    */
-  presentationParticipants: defineTable(presentationParticipantFields)
-    .index("by_code", ["code"])
-    .index("by_code_participant", ["code", "participantKey"]),
+  presentationVotes: defineTable(presentationVoteFields)
+    .index("by_code_poll", ["code", "pollId"])
+    .index("by_code_poll_participant", ["code", "pollId", "participantKey"]),
 });
 
 export default schema;

@@ -1,5 +1,11 @@
 # Changelog
 
+## Live audience polls on the shared deck — 2026-06-20
+
+- **Why**: a shared presentation is only worth sharing if the audience can take part — watching in sync isn't engagement on its own.
+- **Live polls**: curated poll slides let the audience vote with a tap, and the bars grow in real time on every screen as votes land. One vote per person, changeable, and each share session tallies fresh.
+- **Fully anonymous**: viewers no longer enter a name and there's no "who's watching" list — joining is friction-free and the (intentionally temporary) feature stays lightweight.
+
 ## Slides live-share — presenter-led viewing — 2026-06-20
 
 - **Why**: presenting the deck to a group meant sending the slide link and hoping everyone stayed in sync as you clicked through — there was no way to drive the group through the slides together.
@@ -7,7 +13,7 @@
 - **Follow or browse**: viewers can either follow the presenter's slide live or detach to browse on their own (arrow keys work, link re-syncs to "live" on click), then jump back to follow later.
 - **Presenter control only**: the presenter is the sole driver — no take-control handoff, no viewer inputs on the deck. Full presentation authority stays with the sharer.
 - **Lightweight sync**: only the slide number syncs; build-step animations replay locally on each client (timer-driven, so they self-converge), keeping payloads small and state simple.
-- **Presence**: the presenter sees a "Live · N watching" pill with a list of the viewers' names (heartbeat-based, ~15s refresh). Viewers have no control affordance.
+- **Anonymous viewers**: no sign-in and no name entry to join the live session; viewers have no control affordance over the deck.
 
 ## Floating overlay shadows aligned with Eva — 2026-06-06
 

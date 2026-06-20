@@ -88,7 +88,7 @@ export function PresentationControls({ sync }: PresentationControlsProps) {
     body = (
       <div className={PILL}>
         <IconEye size={15} className="text-muted" />
-        Following {sync.hostName ?? "the presenter"}
+        Following · live
       </div>
     );
   }

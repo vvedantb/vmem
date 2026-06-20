@@ -485,10 +485,10 @@ export const userSystemSkillFields = {
  * Single source of truth for presentationSessions table fields.
  *
  * One live "share" of the `/slides` deck. The presenter is the sole driver:
- * only the browser holding the secret `hostKey` may write `slide`. Viewers
- * subscribe to the row (`getSession`) and either follow `slide` live or
- * detach to browse on their own. Ephemeral — pruned daily once `ended` or
- * idle past 24h (see `presentations.pruneStaleInternal`).
+ * only the browser holding the secret `hostKey` may write `slide`. Viewers are
+ * anonymous — they subscribe to the row (`getSession`) and either follow
+ * `slide` live or detach to browse on their own. Ephemeral — pruned daily once
+ * `ended` or idle past 24h (see `presentations.pruneStaleInternal`).
  */
 export const presentationSessionFields = {
   /** Short, URL-friendly share code (the `?session=` value). */
@@ -496,30 +496,25 @@ export const presentationSessionFields = {
   /** Secret driver token — returned once from `createSession`, kept only in
    *  the presenter's localStorage. Required to `setSlide` / `stopSharing`. */
   hostKey: v.string(),
-  /** Display name of the presenter, shown to followers ("X is presenting"). */
-  hostName: v.string(),
-  /** Set opportunistically when the creator is signed in (attribution only). */
-  hostUserId: v.optional(v.id("users")),
   /** Current 1-based slide the presenter is on. */
   slide: v.number(),
   status: v.union(v.literal("live"), v.literal("ended")),
-  createdAt: v.number(),
-  /** Bumped on every drive; drives the idle-prune window. */
+  /** Bumped on every drive / vote; drives the idle-prune window. */
   lastActiveAt: v.number(),
 };
 
 /**
- * Single source of truth for presentationParticipants table fields.
+ * Single source of truth for presentationVotes table fields.
  *
- * One row per viewer (and the host) in a live session, refreshed by a
- * client heartbeat (~15s). Powers the presenter's "N watching" list:
- * `listParticipants` returns rows seen within the last 30s. `participantKey`
- * is a client-minted UUID persisted in localStorage so reloads stay one row.
+ * One row per participant per poll within a share session — re-voting replaces
+ * the row's `optionId`, so a tally never double-counts. `participantKey` is a
+ * client-minted UUID in localStorage; `pollId` is the curated poll slide's
+ * stable id. Votes are scoped to the session `code`, so each run tallies fresh
+ * and they are dropped with the session on prune.
  */
-export const presentationParticipantFields = {
+export const presentationVoteFields = {
   code: v.string(),
+  pollId: v.string(),
   participantKey: v.string(),
-  name: v.string(),
-  role: v.union(v.literal("host"), v.literal("viewer")),
-  lastSeenAt: v.number(),
+  optionId: v.string(),
 };
