@@ -36,9 +36,9 @@ export function WikiDocActionsMenu({
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
-          variant="ghost"
+          variant="secondary"
           size="sm"
-          className="shrink-0 gap-1.5 text-muted"
+          className="shrink-0 gap-1.5"
           aria-label="Document options"
           disabled={copyDisabled}
         >
