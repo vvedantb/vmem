@@ -42,11 +42,11 @@ export function SystemSkillCard({
   onDelete,
 }: SystemSkillCardProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg bg-surface-secondary/40 p-4 transition-[background-color] hover:bg-surface-secondary/70">
+    <div className="flex flex-col gap-3 rounded-lg bg-surface-secondary/40 p-4 transition-[background-color] hover:bg-surface-tertiary/50">
       <button
         type="button"
         onClick={onView}
-        className="flex flex-col items-start gap-1.5 text-left focus-visible:outline-none"
+        className="flex flex-col items-start gap-1.5 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
       >
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-foreground">
