@@ -239,7 +239,11 @@ function SkillMentionChip({
   return (
     <HoverCard openDelay={150} closeDelay={80}>
       <HoverCardTrigger asChild>{chip}</HoverCardTrigger>
-      <HoverCardContent align="start" className="w-72">
+      <HoverCardContent
+        align="start"
+        side="top"
+        className="w-auto border-0 bg-transparent p-0 shadow-none"
+      >
         <SkillChipHoverPreview skill={skill} />
       </HoverCardContent>
     </HoverCard>

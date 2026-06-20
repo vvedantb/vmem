@@ -1,3 +1,7 @@
+/** Eva-aligned shell for skill chip hover previews (border + shadow-lg). */
+export const SKILL_CHIP_HOVER_CARD_CLASS =
+  "w-72 rounded-lg border border-border bg-overlay p-3 text-overlay-foreground shadow-lg";
+
 interface SkillChipHoverPreviewProps {
   /** Any skill-like value — a personal skill doc or an effective/system skill. */
   skill: { name: string; description?: string; instructions: string };
@@ -5,7 +9,7 @@ interface SkillChipHoverPreviewProps {
 
 export function SkillChipHoverPreview({ skill }: SkillChipHoverPreviewProps) {
   return (
-    <>
+    <div className={SKILL_CHIP_HOVER_CARD_CLASS}>
       <p className="mb-2 truncate text-xs font-medium text-foreground">
         /{skill.name}
       </p>
@@ -17,6 +21,6 @@ export function SkillChipHoverPreview({ skill }: SkillChipHoverPreviewProps) {
           {skill.instructions}
         </pre>
       </div>
-    </>
+    </div>
   );
 }
