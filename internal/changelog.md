@@ -1,5 +1,10 @@
 # Changelog
 
+## Floating overlay shadows aligned with Eva — 2026-06-06
+
+- **Why**: popovers, hover cards, tooltips, selects, and context menus still used the older `glass-panel-strong` shadow while dropdowns and skill chip previews had moved to Eva's crisper `border + shadow-lg` treatment — floating UI felt inconsistent.
+- **Shared surface token**: `floatingSurfaceClass` in `@vmem/ui` so all overlay primitives and ad-hoc portals (skill `/` picker, tag autocomplete) share the same elevation.
+
 ## Wiki outline (table of contents) redesign — 2026-06-20
 
 - **Why**: the wiki doc outline rendered every heading identically and never showed where you were — it was hard to read the document's structure or track your position while scrolling.

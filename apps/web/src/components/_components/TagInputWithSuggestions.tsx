@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { Button, Input, Badge } from "@vmem/ui";
+import { Button, Input, Badge, cn, floatingSurfaceClass } from "@vmem/ui";
 import { IconX } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
@@ -94,7 +94,12 @@ export default function TagInputWithSuggestions({
           className="h-8 rounded-field border-border bg-field-background text-foreground placeholder:text-field-placeholder hover:bg-field-background focus-visible:border-focus"
         />
         {showSuggestions && filteredSuggestions.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 max-h-32 overflow-y-auto rounded-lg bg-overlay shadow-lg text-overlay-foreground">
+          <div
+            className={cn(
+              "absolute z-50 mt-1 max-h-32 w-full overflow-y-auto",
+              floatingSurfaceClass,
+            )}
+          >
             {filteredSuggestions.slice(0, 5).map((item) => (
               <Button
                 key={item.tag}

@@ -1,6 +1,6 @@
-/** Eva-aligned shell for skill chip hover previews (border + shadow-lg). */
-export const SKILL_CHIP_HOVER_CARD_CLASS =
-  "w-72 rounded-lg border border-border bg-overlay p-3 text-overlay-foreground shadow-lg";
+import { cn, floatingSurfaceClass } from "@vmem/ui";
+
+export const SKILL_CHIP_HOVER_CARD_CLASS = cn(floatingSurfaceClass, "w-72 p-3");
 
 interface SkillChipHoverPreviewProps {
   /** Any skill-like value — a personal skill doc or an effective/system skill. */
