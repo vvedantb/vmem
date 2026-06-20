@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import PageContainer from "@/components/PageContainer";
 import { SkillsHub } from "@/components/skills/SkillsHub";
+import { SystemSkillDetail } from "@/components/skills/SystemSkillDetail";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SkillPageTitle } from "@/components/skills/SkillPageTitle";
 import { SkillHeaderActions } from "@/components/skills/SkillHeaderActions";
@@ -39,6 +40,8 @@ function SkillsLayout() {
   // pattern as the skill detail view (the layout owns rendering).
   const pathname = useLocation({ select: (l) => l.pathname });
   const onHub = pathname.endsWith("/skills/hub");
+  const systemSkillId =
+    typeof params.skillId === "string" ? params.skillId : undefined;
 
   const skills = useQuery(api.skills.listMy, { teamId });
   const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
@@ -183,8 +186,15 @@ function SkillsLayout() {
   if (onHub) {
     return (
       <PageContainer title="Skills Hub" centeredMaxWidth showTitle>
-        <SkillsHub />
+        <SkillsHub profileId={profileId} />
       </PageContainer>
+    );
+  }
+
+  // A catalog system skill has its own read-only detail page.
+  if (systemSkillId !== undefined) {
+    return (
+      <SystemSkillDetail systemSkillId={systemSkillId} profileId={profileId} />
     );
   }
 

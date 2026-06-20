@@ -110,6 +110,14 @@ export function SkillsSidebarNav({
     void navigate({ to: "/$profileId/skills/hub", params: { profileId } });
   };
 
+  const goSystemSkill = (id: Id<"systemSkills">) => {
+    if (profileId === undefined) return;
+    void navigate({
+      to: "/$profileId/skills/system/$skillId",
+      params: { profileId, skillId: id },
+    });
+  };
+
   // Browse-the-catalog entry point, grouped with the Add control.
   const hubButton = (
     <Button
@@ -137,7 +145,7 @@ export function SkillsSidebarNav({
           <button
             key={entry._id}
             type="button"
-            onClick={goHub}
+            onClick={() => goSystemSkill(entry._id)}
             className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm text-muted transition-[color] hover:bg-surface-tertiary/50 hover:text-foreground"
           >
             <span
