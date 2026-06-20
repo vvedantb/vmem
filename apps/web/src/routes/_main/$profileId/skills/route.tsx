@@ -192,6 +192,7 @@ function SkillsLayout() {
     <PageContainer
       title={pageTitle}
       noScroll
+      centeredMaxWidth
       breadcrumb={
         hasSkill || isSkillLoading ? (
           <SkillPageTitle
