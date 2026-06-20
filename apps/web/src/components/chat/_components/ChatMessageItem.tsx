@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useCallback, type ReactNode } from "react";
+import { Fragment, useState, useCallback, type ReactNode } from "react";
 import { useSmoothText } from "@convex-dev/agent/react";
 import type { UIMessage } from "@convex-dev/agent/react";
+import { segmentInputBySkills } from "@vmem/shared";
+import { SKILL_CHIP_CLASS } from "../_utils/mentionChipStyles";
 import {
   isReasoningUIPart,
   isToolOrDynamicToolUIPart,
@@ -189,12 +191,34 @@ function getProviderMeta(agentName?: string): {
 /** Fallback when caller doesn't know the model's context window. */
 const DEFAULT_MAX_CONTEXT_TOKENS = 4096;
 
+/**
+ * Render a user message, wrapping any `/skill` mentions in the same accent
+ * pill the prompt input uses. Plain text when no skill names are known.
+ */
+function renderUserText(
+  text: string,
+  skillNames?: ReadonlySet<string>,
+): ReactNode {
+  if (!skillNames || skillNames.size === 0) return text;
+  return segmentInputBySkills(text, skillNames).map((segment, index) =>
+    segment.kind === "skill" ? (
+      <span key={index} className={SKILL_CHIP_CLASS}>
+        {segment.text}
+      </span>
+    ) : (
+      <Fragment key={index}>{segment.text}</Fragment>
+    ),
+  );
+}
+
 interface ChatMessageItemProps {
   message: UIMessage;
   usage?: MessageUsageSummary;
   memoryRefs?: ChatMemoryRef[];
   /** Model's context window size in tokens. Defaults to 4096. */
   maxContextTokens?: number;
+  /** Skill names to highlight as pills in user messages. */
+  skillNames?: ReadonlySet<string>;
 }
 
 export default function ChatMessageItem({
@@ -202,6 +226,7 @@ export default function ChatMessageItem({
   usage,
   memoryRefs,
   maxContextTokens = DEFAULT_MAX_CONTEXT_TOKENS,
+  skillNames,
 }: ChatMessageItemProps) {
   const [copied, setCopied] = useState(false);
   const isStreaming = message.status === "streaming";
@@ -297,7 +322,9 @@ export default function ChatMessageItem({
           ) : isAssistant ? (
             <MessageResponse>{displayText}</MessageResponse>
           ) : (
-            <span className="whitespace-pre-wrap">{displayText}</span>
+            <span className="whitespace-pre-wrap">
+              {renderUserText(displayText, skillNames)}
+            </span>
           )}
         </MessageContent>
 

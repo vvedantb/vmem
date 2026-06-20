@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@vmem/backend";
 import {
   IconAlertTriangle,
   IconCpu,
@@ -163,6 +165,14 @@ export default function Chat() {
     setCloudModelId,
   } = useChatProvider();
   const { engineState, loadedModelId } = useLocalLLM();
+
+  // Names of the user's effective skills (personal + installed system) so
+  // `/skill` mentions in sent messages render as pills, like the input does.
+  const effectiveSkills = useQuery(api.skills.listEffectiveSkills, {});
+  const skillNames = useMemo(
+    () => new Set((effectiveSkills ?? []).map((skill) => skill.name)),
+    [effectiveSkills],
+  );
 
   const [clearOpen, setClearOpen] = useState(false);
 
@@ -372,6 +382,7 @@ export default function Chat() {
               usage={usageByMessageKey[message.key]}
               memoryRefs={memoryRefsByMessageKey[message.key]}
               maxContextTokens={maxContextTokens}
+              skillNames={skillNames}
             />
           ))}
         </ConversationContent>
