@@ -167,6 +167,16 @@ Skills:
 - `skills_create` MCP tool: use when a repeatable problem or automatable workflow was identified and no existing skill covers it (check context prompt / `skills_list` first)
 - `skills_update` MCP tool: patch an existing skill by current name (`skills_get` first); at least one of newName, description, instructions, enabled
 
+Version history (wiki docs & skills):
+
+- Custom tables, NOT a component (`convex-timeline` rejected: v0.1.x, `any`-typed snapshots, half-used undo/redo model). Mirrors Eva's `docVersions` pattern. Tables `wikiNodeVersions` (by_node) + `skillVersions` (by_skill); fields in `validators.ts`.
+- **Snapshot-before-overwrite model**: `lib/versionSnapshot.ts` (`maybeSnapshotWikiVersion`/`maybeSnapshotSkillVersion`) snapshots the PREVIOUS state, called inside the existing update mutations BEFORE `ctx.db.patch`. Live row = HEAD; versions strictly older. "Undo the agent" = restore the newest version.
+- **When a version is cut**: a burst boundary — `force` (MCP writes + restores), OR no prior version, OR >`BURST_MS` (15 min) since the last version, OR a different author/source. Consecutive identical snapshots are skipped (also stops empty new docs minting junk). So a doc's FIRST edit (non-empty) cuts a version immediately; web autosave within a burst does not.
+- **Attribution**: every snapshot stores `authorUserId` + `source: "web" | "mcp"`. MCP write paths (`wiki/skills.updateByClerkIdInternal`) pass `source:"mcp", force:true` so agent edits ALWAYS checkpoint and badge "Agent". `resolveVersionAuthorLabel` → "Agent" / "You" / member name.
+- Read APIs: `wikiVersions.ts` + `skillVersions.ts` (`list` lightweight, `get` full, both gate via `isContentReadable` on the parent). Skill restore = `skills.restoreVersion` (lives in skills.ts to reuse name-uniqueness + context-prompt invalidation); force-checkpoints current, then patches.
+- **Wiki restore is client-driven** (no collab sync): `WikiEditor` registers a `restoreToContent(markdown)` handler (like its copy handler) that loads the version into the editor and saves with `updateContent({ forceSnapshot: true })`. No server wiki-restore mutation — the open editor is the source of truth for the live doc.
+- UI: "Version history" in the wiki doc ⋯ menu (`WikiDocActionsMenu`) and skill ⋯ menu (`SkillHeaderActions`) opens a two-column Dialog (`WikiHistoryPanel`/`SkillHistoryPanel`): list (relative time + author badge) | read-only preview | Restore. Wiki preview reuses `_editorExtensions.ts` (shared with `WikiEditor`) in a `editable:false` TipTap. Retention = keep everything (no cap). Inline diff deferred.
+
 Files (shared AI filesystem):
 
 - One `fileNodes` table (folders + files, discriminated by `kind`; `fileNodeFields` in `validators.ts`) backs both the `/files` web view and the MCP file tools. Bytes live in Convex storage (`storageId`), same upload-URL flow as memory imports (`generateFileUploadUrl` → POST → `createFile`).

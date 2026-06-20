@@ -2,9 +2,11 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
   wikiNodeFields,
+  wikiNodeVersionFields,
   fileNodeFields,
   profileFields,
   skillFields,
+  skillVersionFields,
   teamFields,
   teamMemberFields,
   threadProfileFields,
@@ -241,6 +243,9 @@ const schema = defineSchema({
     .index("by_team", ["teamId"])
     .index("by_team_name", ["teamId", "name"]),
 
+  /** Immutable pre-overwrite snapshots of skills (see lib/versionSnapshot.ts). */
+  skillVersions: defineTable(skillVersionFields).index("by_skill", ["skillId"]),
+
   wikiNodes: defineTable(wikiNodeFields)
     .index("by_user", ["userId"])
     .index("by_user_parent", ["userId", "parentId"])
@@ -254,6 +259,11 @@ const schema = defineSchema({
       searchField: "contentText",
       filterFields: ["userId", "teamId"],
     }),
+
+  /** Immutable pre-overwrite snapshots of wiki docs (see lib/versionSnapshot.ts). */
+  wikiNodeVersions: defineTable(wikiNodeVersionFields).index("by_node", [
+    "nodeId",
+  ]),
 
   fileNodes: defineTable(fileNodeFields)
     .index("by_user", ["userId"])

@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { authQuery, authMutation } from "./auth";
 import { scheduleContextPromptInvalidationForUser } from "./lib/contextPromptInvalidate";
+import { maybeSnapshotSkillVersion } from "./lib/versionSnapshot";
 import {
   assertContentDeletable,
   assertContentEditable,
@@ -170,6 +171,10 @@ export const updateSkill = authMutation({
     if (args.instructions !== undefined) patch.instructions = args.instructions;
     if (args.enabled !== undefined) patch.enabled = args.enabled;
 
+    await maybeSnapshotSkillVersion(ctx, skill, {
+      source: "web",
+      authorUserId: ctx.userId,
+    });
     await ctx.db.patch(normalizedId, patch);
     await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
   },
@@ -187,6 +192,51 @@ export const deleteSkill = authMutation({
     if (!skill) throw new Error("Skill not found");
     await assertContentDeletable(ctx, skill, ctx.userId);
     await ctx.db.delete(normalizedId);
+    await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
+  },
+});
+
+/**
+ * Restore a skill to a previous version. Checkpoints the current state first
+ * (force) so the restore is itself reversible, then patches the skill from the
+ * snapshot. Rejects when the snapshot's name now collides with another skill in
+ * the same scope. Lives here (not skillVersions.ts) to reuse the scope's
+ * name-uniqueness check and context-prompt invalidation.
+ */
+export const restoreVersion = authMutation({
+  args: { versionId: v.id("skillVersions") },
+  handler: async (ctx, args) => {
+    const version = await ctx.db.get(args.versionId);
+    if (!version) throw new Error("Version not found");
+    const skill = await ctx.db.get(version.skillId);
+    if (!skill) throw new Error("Skill not found");
+    await assertContentEditable(ctx, skill, ctx.userId);
+
+    if (version.name !== skill.name) {
+      const duplicate = await findSkillByNameInScope(
+        ctx,
+        skill.userId,
+        skill.teamId,
+        version.name,
+      );
+      if (duplicate) {
+        throw new Error("A skill with this name already exists");
+      }
+    }
+
+    await maybeSnapshotSkillVersion(ctx, skill, {
+      source: "web",
+      authorUserId: ctx.userId,
+      force: true,
+    });
+
+    await ctx.db.patch(skill._id, {
+      name: version.name,
+      description: version.description,
+      instructions: version.instructions,
+      enabled: version.enabled,
+      updatedAt: Date.now(),
+    });
     await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
   },
 });
@@ -341,6 +391,12 @@ export const updateByClerkIdInternal = internalMutation({
     if (args.instructions !== undefined) patch.instructions = args.instructions;
     if (args.enabled !== undefined) patch.enabled = args.enabled;
 
+    // Agent (MCP) writes always checkpoint the pre-write state.
+    await maybeSnapshotSkillVersion(ctx, skill, {
+      source: "mcp",
+      authorUserId: user._id,
+      force: true,
+    });
     await ctx.db.patch(skill._id, patch);
     await scheduleContextPromptInvalidationForUser(ctx, user._id);
 

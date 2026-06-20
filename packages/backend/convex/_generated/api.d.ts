@@ -69,6 +69,7 @@ import type * as lib_openRouter_embedding from "../lib/openRouter/embedding.js";
 import type * as lib_openRouter_jsonChat from "../lib/openRouter/jsonChat.js";
 import type * as lib_openRouter_shared from "../lib/openRouter/shared.js";
 import type * as lib_runConnectorProviderSync from "../lib/runConnectorProviderSync.js";
+import type * as lib_versionSnapshot from "../lib/versionSnapshot.js";
 import type * as lib_wikiContent from "../lib/wikiContent.js";
 import type * as mcp_bundled_memoryGraphHtml from "../mcp/bundled/memoryGraphHtml.js";
 import type * as mcp_codebases from "../mcp/codebases.js";
@@ -151,6 +152,7 @@ import type * as prompts_v2Prompt from "../prompts/v2Prompt.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
 import type * as relationshipApi from "../relationshipApi.js";
 import type * as retrier from "../retrier.js";
+import type * as skillVersions from "../skillVersions.js";
 import type * as skills from "../skills.js";
 import type * as teams from "../teams.js";
 import type * as teams_auth from "../teams/auth.js";
@@ -164,6 +166,7 @@ import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
 import type * as wiki from "../wiki.js";
+import type * as wikiVersions from "../wikiVersions.js";
 import type * as workflow from "../workflow.js";
 
 import type {
@@ -234,6 +237,7 @@ declare const fullApi: ApiFromModules<{
   "lib/openRouter/jsonChat": typeof lib_openRouter_jsonChat;
   "lib/openRouter/shared": typeof lib_openRouter_shared;
   "lib/runConnectorProviderSync": typeof lib_runConnectorProviderSync;
+  "lib/versionSnapshot": typeof lib_versionSnapshot;
   "lib/wikiContent": typeof lib_wikiContent;
   "mcp/bundled/memoryGraphHtml": typeof mcp_bundled_memoryGraphHtml;
   "mcp/codebases": typeof mcp_codebases;
@@ -316,6 +320,7 @@ declare const fullApi: ApiFromModules<{
   proposedUpdateApi: typeof proposedUpdateApi;
   relationshipApi: typeof relationshipApi;
   retrier: typeof retrier;
+  skillVersions: typeof skillVersions;
   skills: typeof skills;
   teams: typeof teams;
   "teams/auth": typeof teams_auth;
@@ -329,6 +334,7 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   validators: typeof validators;
   wiki: typeof wiki;
+  wikiVersions: typeof wikiVersions;
   workflow: typeof workflow;
 }>;
 

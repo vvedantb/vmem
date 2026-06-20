@@ -129,6 +129,26 @@ export const skillFields = {
 };
 
 /**
+ * Single source of truth for skillVersions table fields.
+ *
+ * An immutable snapshot of a skill's state *before* an overwrite (see
+ * `lib/versionSnapshot.ts`). The live `skills` row is always HEAD; versions are
+ * strictly older. `source` distinguishes web edits from MCP-agent writes so the
+ * UI can badge "You" vs "Agent" and the user can undo exactly what an agent did.
+ */
+export const skillVersionFields = {
+  skillId: v.id("skills"),
+  name: v.string(),
+  description: v.string(),
+  instructions: v.string(),
+  enabled: v.optional(v.boolean()),
+  /** Who authored the write that this snapshot was taken just before. */
+  authorUserId: v.id("users"),
+  source: v.union(v.literal("web"), v.literal("mcp")),
+  createdAt: v.number(),
+};
+
+/**
  * Single source of truth for threadProfiles table fields.
  *
  * Maps an agent-component chat thread to the workspace (profile) it was
@@ -350,6 +370,28 @@ export const wikiNodeFields = {
   order: v.number(),
   createdAt: v.number(),
   updatedAt: v.number(),
+};
+
+/**
+ * Single source of truth for wikiNodeVersions table fields.
+ *
+ * An immutable snapshot of a document's state *before* an overwrite (see
+ * `lib/versionSnapshot.ts`). The live `wikiNodes` row is always HEAD; versions
+ * are strictly older. `contentText` is stored alongside `content` so a restore
+ * keeps the full-text search index correct without re-deriving plain text.
+ * `source` distinguishes web edits from MCP-agent writes.
+ */
+export const wikiNodeVersionFields = {
+  nodeId: v.id("wikiNodes"),
+  title: v.string(),
+  /** Canonical markdown body at snapshot time. */
+  content: v.string(),
+  /** Plain-text mirror, mirrors wikiNodes.contentText for search on restore. */
+  contentText: v.string(),
+  /** Who authored the write that this snapshot was taken just before. */
+  authorUserId: v.id("users"),
+  source: v.union(v.literal("web"), v.literal("mcp")),
+  createdAt: v.number(),
 };
 
 /**

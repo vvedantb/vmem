@@ -10,6 +10,7 @@ import {
   isContentReadable,
   requireContentScopeAccess,
 } from "./teams/auth";
+import { maybeSnapshotWikiVersion } from "./lib/versionSnapshot";
 
 /**
  * Wiki (Obsidian-style notes) backend.
@@ -190,6 +191,10 @@ export const renameNode = authMutation({
     const node = await ctx.db.get(args.id);
     if (!node) throw new Error("Not found");
     await assertContentEditable(ctx, node, ctx.userId);
+    await maybeSnapshotWikiVersion(ctx, node, {
+      source: "web",
+      authorUserId: ctx.userId,
+    });
     await ctx.db.patch(args.id, { title: args.title, updatedAt: Date.now() });
   },
 });
@@ -205,6 +210,11 @@ export const updateContent = authMutation({
     id: v.id("wikiNodes"),
     content: v.string(),
     contentText: v.string(),
+    /**
+     * Restore path: force a pre-overwrite snapshot regardless of the burst
+     * boundary so restoring an old version is itself reversible.
+     */
+    forceSnapshot: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const node = await ctx.db.get(args.id);
@@ -213,6 +223,11 @@ export const updateContent = authMutation({
     if (node.kind !== "document") {
       throw new Error("Cannot write content to a folder");
     }
+    await maybeSnapshotWikiVersion(ctx, node, {
+      source: "web",
+      authorUserId: ctx.userId,
+      force: args.forceSnapshot,
+    });
     await ctx.db.patch(args.id, {
       content: args.content,
       contentText: args.contentText,
@@ -539,6 +554,13 @@ export const updateByClerkIdInternal = internalMutation({
       }
     }
 
+    // Agent (MCP) writes always checkpoint the pre-write state so the user can
+    // see and undo exactly what the agent changed.
+    await maybeSnapshotWikiVersion(ctx, node, {
+      source: "mcp",
+      authorUserId: userId,
+      force: true,
+    });
     await ctx.db.patch(node._id, patch);
     return node._id;
   },

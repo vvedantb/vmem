@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { Markdown } from "tiptap-markdown";
 import { useDebounceCallback } from "usehooks-ts";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
+import { wikiEditorExtensions } from "./_editorExtensions";
 import {
   countWords,
   docToPlainText,
@@ -23,6 +22,14 @@ interface WikiEditorProps {
   docId: string | null;
   titleForCopy: string;
   onRegisterCopy: (handler: (() => Promise<void>) | null) => void;
+  /**
+   * Registers a restore handler the history panel calls with a version's
+   * markdown. The editor loads it and force-checkpoints the pre-restore state,
+   * so the restore is itself reversible.
+   */
+  onRegisterRestore: (
+    handler: ((markdown: string) => Promise<void>) | null,
+  ) => void;
   onHeadingsChange: (headings: OutlineHeading[]) => void;
   onWordCountChange: (count: number) => void;
   /** Bumped whenever the outline pane requests a jump. `n` forces effect re-runs. */
@@ -53,6 +60,7 @@ export default function WikiEditor({
   docId,
   titleForCopy,
   onRegisterCopy,
+  onRegisterRestore,
   onHeadingsChange,
   onWordCountChange,
   jumpRequest,
@@ -100,14 +108,7 @@ export default function WikiEditor({
   );
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Markdown.configure({
-        html: false,
-        transformPastedText: true,
-        transformCopiedText: true,
-      }),
-    ],
+    extensions: wikiEditorExtensions(),
     content: "",
     immediatelyRender: false,
     editorProps: {
@@ -202,6 +203,39 @@ export default function WikiEditor({
 
     return () => onRegisterCopy(null);
   }, [editor, onRegisterCopy, titleForCopy]);
+
+  // Restore: load a version's markdown into the editor and persist it with a
+  // forced snapshot so the pre-restore state is captured (restore is reversible).
+  const restoreToContent = useCallback(
+    async (markdown: string) => {
+      if (!editor) return;
+      const activeId = loadedDocIdRef.current;
+      if (!activeId) return;
+      debouncedSave.cancel(); // we persist this write explicitly, not via autosave
+      suppressNextUpdateRef.current = true;
+      editor.commands.setContent(markdown);
+      const jsonDoc = editor.getJSON();
+      onHeadingsChange(extractHeadings(jsonDoc));
+      onWordCountChange(countWords(docToPlainText(jsonDoc)));
+      try {
+        await updateContent({
+          id: activeId,
+          content: getMarkdownFromEditor(editor),
+          contentText: docToPlainText(jsonDoc),
+          forceSnapshot: true,
+        });
+        toast.success("Version restored");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to restore");
+      }
+    },
+    [editor, updateContent, debouncedSave, onHeadingsChange, onWordCountChange],
+  );
+
+  useEffect(() => {
+    onRegisterRestore(editor ? restoreToContent : null);
+    return () => onRegisterRestore(null);
+  }, [editor, restoreToContent, onRegisterRestore]);
 
   if (docId === null || docId.length === 0) {
     return (

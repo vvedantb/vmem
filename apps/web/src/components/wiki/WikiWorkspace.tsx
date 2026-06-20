@@ -15,6 +15,7 @@ import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
 import { WikiPageBreadcrumb } from "./WikiPageBreadcrumb";
 import { WikiDocActionsMenu } from "./WikiDocActionsMenu";
+import { WikiHistoryPanel } from "./WikiHistoryPanel";
 
 interface WikiWorkspaceProps {
   docId: string | null;
@@ -57,6 +58,8 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const {
     outlineVisible,
     setOutlineVisible,
+    historyVisible,
+    setHistoryVisible,
     wordCount,
     setWordCount,
     setHasDoc,
@@ -71,6 +74,9 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const [copyReady, setCopyReady] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const copyDocumentRef = useRef<(() => Promise<void>) | null>(null);
+  const restoreDocumentRef = useRef<
+    ((markdown: string) => Promise<void>) | null
+  >(null);
 
   const tree = nodes ? buildTree(nodes) : [];
   const hasDocId = docId !== null && docId.length > 0;
@@ -104,6 +110,10 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     void copyDocumentRef.current?.();
   }, []);
 
+  const handleRestore = useCallback(async (markdown: string) => {
+    await restoreDocumentRef.current?.(markdown);
+  }, []);
+
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
     const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
@@ -116,10 +126,18 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     setHasDoc(hasDoc);
     if (!hasDocId) {
       setOutlineVisible(false);
+      setHistoryVisible(false);
       setWordCount(0);
       setTitleDraft("");
     }
-  }, [hasDoc, hasDocId, setHasDoc, setOutlineVisible, setWordCount]);
+  }, [
+    hasDoc,
+    hasDocId,
+    setHasDoc,
+    setOutlineVisible,
+    setHistoryVisible,
+    setWordCount,
+  ]);
 
   useEffect(() => {
     if (doc?.kind === "document") {
@@ -173,6 +191,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           <WikiDocActionsMenu
             outlineVisible={outlineVisible}
             onOutlineVisibleChange={setOutlineVisible}
+            onShowHistory={() => setHistoryVisible(true)}
             wordCount={wordCount}
             onCopy={handleCopy}
             copyDisabled={!copyReady}
@@ -190,6 +209,9 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
                 onRegisterCopy={(handler) => {
                   copyDocumentRef.current = handler;
                   setCopyReady(handler !== null);
+                }}
+                onRegisterRestore={(handler) => {
+                  restoreDocumentRef.current = handler;
                 }}
                 onHeadingsChange={setHeadings}
                 onWordCountChange={setWordCount}
@@ -243,6 +265,13 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <WikiHistoryPanel
+        open={historyVisible}
+        onOpenChange={setHistoryVisible}
+        docId={hasDoc && doc ? doc._id : null}
+        onRestore={handleRestore}
+      />
     </PageContainer>
   );
 }

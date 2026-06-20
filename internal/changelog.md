@@ -1,6 +1,11 @@
 # Changelog
 
-## Codebase sync date and stalled-sync recovery — 2026-06-19
+## Version history for wiki docs and skills — 2026-06-20
+
+- **Why**: wiki docs and skills are editable from both the web UI and MCP agents, and every write overwrote in place — an agent or a stray autosave could silently clobber content with no way to see what changed or roll it back.
+- **Version history**: the wiki doc and skill ⋯ menus now have a "Version history" view — a list of past snapshots (with relative time and a "You"/"Agent" author badge), a read-only preview of any version, and one-click Restore.
+- **Undo what an agent changed**: every MCP/agent edit checkpoints the previous state, so the most recent version is always the pre-agent content; restoring it cleanly reverts the agent's change. Restores are themselves reversible.
+- **Quiet by default**: web edits only cut a new version on a burst boundary (a gap of 15+ minutes, or a different author) so continuous autosaving never floods the history, and identical or empty snapshots are skipped.
 
 - **Last sync date**: the codebase detail page now shows when the repo last synced ("Synced 3h ago", "Synced yesterday") next to the Sync button, with the exact timestamp on hover and a "Never synced" label for repos that have not finished a first sync.
 - **Why**: a sync action that times out or whose host dies never writes a finished status, so the repo sat in "syncing" forever — the sidebar kept spinning while the detail page still read "Synced yesterday", and the Sync button stayed disabled, leaving no way to recover.
