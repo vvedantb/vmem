@@ -198,6 +198,12 @@ export const wikiCreateSchema = z.object({
     .string()
     .optional()
     .describe("Initial markdown body (documents only)"),
+  sourceCodebaseId: z
+    .string()
+    .optional()
+    .describe(
+      "On a folder: link it to a synced codebase (id from codebases_list). Set on the root folder of a generated codebase knowledge base.",
+    ),
 });
 
 export const wikiUpdateSchema = z.object({

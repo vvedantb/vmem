@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
+import type { EffectiveSkill } from "../skills";
 
 export interface SkillIndexRow {
   name: string;
@@ -12,12 +13,13 @@ export interface SkillIndexRow {
 
 /**
  * MCP entry point: list enabled skills (index only — no instructions).
+ * Includes installed system skills (effective list).
  */
 export const mcpListSkills = internalAction({
   args: { clerkId: v.string() },
   handler: async (ctx, args): Promise<SkillIndexRow[]> => {
-    const rows: Doc<"skills">[] = await ctx.runQuery(
-      internal.skills.listByClerkIdInternal,
+    const rows = await ctx.runQuery(
+      internal.skills.listEffectiveByClerkIdInternal,
       {
         clerkId: args.clerkId,
       },
@@ -30,12 +32,13 @@ export const mcpListSkills = internalAction({
 });
 
 /**
- * MCP entry point: fetch a single skill by name for the authenticated user.
+ * MCP entry point: fetch a single skill by name (personal or installed
+ * system skill) for the authenticated user — full instructions.
  */
 export const mcpGetSkill = internalAction({
   args: { clerkId: v.string(), name: v.string() },
-  handler: async (ctx, args): Promise<Doc<"skills"> | null> => {
-    return await ctx.runQuery(internal.skills.getByNameInternal, {
+  handler: async (ctx, args): Promise<EffectiveSkill | null> => {
+    return await ctx.runQuery(internal.skills.getEffectiveByNameInternal, {
       clerkId: args.clerkId,
       name: args.name,
     });

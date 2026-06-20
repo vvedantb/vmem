@@ -353,6 +353,7 @@ export async function runWikiCreate(
       title: params.title,
       parentId: params.parentId,
       contentMarkdown: params.contentMarkdown,
+      sourceCodebaseId: params.sourceCodebaseId,
     }),
   );
 }

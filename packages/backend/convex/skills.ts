@@ -20,6 +20,97 @@ function isSkillEnabled(skill: { enabled?: boolean }): boolean {
 }
 
 /**
+ * A skill as seen by every prompt surface, regardless of whether it is a
+ * personal skill or an installed system skill. The single shape lets the
+ * MCP context prompt, skills_list/skills_get, and chat/voice all treat both
+ * sources identically.
+ */
+export interface EffectiveSkill {
+  name: string;
+  description: string;
+  instructions: string;
+  enabled: boolean;
+  source: "personal" | "system";
+  /** Present only for `source === "system"`. */
+  systemSkillId?: Id<"systemSkills">;
+}
+
+/**
+ * Resolve a user's EFFECTIVE skills = their enabled personal skills + the
+ * system skills they have installed-and-enabled (resolved LIVE from the
+ * catalog — installs are links, not copies, so a maintainer edit changes
+ * every installer's result here). Deduped by name (case-insensitive),
+ * personal skills winning a clash. Only enabled entries are returned.
+ */
+async function resolveEffectiveSkills(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+): Promise<EffectiveSkill[]> {
+  const personalRows = await ctx.db
+    .query("skills")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  const out: EffectiveSkill[] = [];
+  const seen = new Set<string>();
+
+  for (const skill of personalRows) {
+    if (skill.teamId !== undefined || !isSkillEnabled(skill)) continue;
+    const key = skill.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      name: skill.name,
+      description: skill.description,
+      instructions: skill.instructions,
+      enabled: true,
+      source: "personal",
+    });
+  }
+
+  const installs = await ctx.db
+    .query("userSystemSkills")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  for (const install of installs) {
+    if (install.enabled === false) continue;
+    const sys = await ctx.db.get(install.systemSkillId);
+    if (!sys) continue; // catalog row was deleted
+    const key = sys.name.toLowerCase();
+    if (seen.has(key)) continue; // personal (or an earlier install) wins
+    seen.add(key);
+    out.push({
+      name: sys.name,
+      description: sys.description,
+      instructions: sys.instructions,
+      enabled: true,
+      source: "system",
+      systemSkillId: sys._id,
+    });
+  }
+
+  return out;
+}
+
+/** True when the user has installed a system skill with this exact name. */
+async function userHasInstalledSystemSkillNamed(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  name: string,
+): Promise<boolean> {
+  const installs = await ctx.db
+    .query("userSystemSkills")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  for (const install of installs) {
+    const sys = await ctx.db.get(install.systemSkillId);
+    if (sys && sys.name === name) return true;
+  }
+  return false;
+}
+
+/**
  * Name-uniqueness lookup within one scope: team skills compete only with
  * that team's names, personal skills only with the user's personal names.
  */
@@ -82,6 +173,18 @@ export const listMy = authQuery({
 });
 
 /**
+ * The caller's effective skills (enabled personal + installed-and-enabled
+ * system skills), resolved live. Client prompt surfaces (local chat, voice,
+ * mobile) read this so installed system skills behave like personal ones.
+ */
+export const listEffectiveSkills = authQuery({
+  args: {},
+  handler: async (ctx): Promise<EffectiveSkill[]> => {
+    return await resolveEffectiveSkills(ctx, ctx.userId);
+  },
+});
+
+/**
  * Create a new skill in a scope. Duplicate names per scope are rejected.
  */
 export const createSkill = authMutation({
@@ -106,6 +209,16 @@ export const createSkill = authMutation({
     );
     if (existing) {
       throw new Error("A skill with this name already exists");
+    }
+    // Personal skills share a namespace with installed system skills (both
+    // resolve into the same effective list), so reject a clash there too.
+    if (
+      args.teamId === undefined &&
+      (await userHasInstalledSystemSkillNamed(ctx, ctx.userId, trimmedName))
+    ) {
+      throw new Error(
+        "A system skill with this name is installed. Uninstall it or choose another name.",
+      );
     }
 
     const now = Date.now();
@@ -273,6 +386,41 @@ export const restoreVersion = authMutation({
 // so team skills never leak into (or get mutated through) MCP tools.
 
 /**
+ * Effective skills (personal + installed system skills) for a Clerk user id.
+ * The single source for the MCP context-prompt index and `skills_list`.
+ */
+export const listEffectiveByClerkIdInternal = internalQuery({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args): Promise<EffectiveSkill[]> => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) return [];
+    return await resolveEffectiveSkills(ctx, user._id);
+  },
+});
+
+/**
+ * Resolve one effective skill by name for a Clerk user id (personal first,
+ * then installed system skills). Powers `skills_get` so an agent can load a
+ * system skill's full instructions exactly like a personal one.
+ */
+export const getEffectiveByNameInternal = internalQuery({
+  args: { clerkId: v.string(), name: v.string() },
+  handler: async (ctx, args): Promise<EffectiveSkill | null> => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) return null;
+    const lookup = args.name.trim().toLowerCase();
+    const effective = await resolveEffectiveSkills(ctx, user._id);
+    return effective.find((s) => s.name.toLowerCase() === lookup) ?? null;
+  },
+});
+
+/**
  * List personal skills for a given Clerk user id.
  */
 export const listByClerkIdInternal = internalQuery({
@@ -325,6 +473,11 @@ export const createByClerkIdInternal = internalMutation({
     );
     if (existing) {
       throw new Error("A skill with this name already exists");
+    }
+    if (await userHasInstalledSystemSkillNamed(ctx, user._id, trimmedName)) {
+      throw new Error(
+        "A system skill with this name is installed. Uninstall it or choose another name.",
+      );
     }
 
     const now = Date.now();
@@ -482,29 +635,5 @@ export const listTeamSkillsInternal = internalQuery({
       .order("desc")
       .collect();
     return rows.filter(isSkillEnabled);
-  },
-});
-
-/**
- * Fetch a single skill by name for a given Clerk user id.
- */
-export const getByNameInternal = internalQuery({
-  args: { clerkId: v.string(), name: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-    if (!user) return null;
-
-    const lookupName = args.name.trim();
-    const skill = await findSkillByNameInScope(
-      ctx,
-      user._id,
-      undefined,
-      lookupName,
-    );
-    if (!skill || !isSkillEnabled(skill)) return null;
-    return skill;
   },
 });

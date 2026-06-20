@@ -497,6 +497,8 @@ export const createByClerkIdInternal = internalMutation({
     title: v.string(),
     content: v.optional(v.string()),
     contentText: v.optional(v.string()),
+    /** Plain-string codebase id (MCP threads ids as strings); validated below. */
+    sourceCodebaseId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
@@ -509,6 +511,19 @@ export const createByClerkIdInternal = internalMutation({
       if (parent.kind !== "folder") {
         throw new Error("Parent must be a folder");
       }
+    }
+
+    // Validate the optional codebase link belongs to this user.
+    let sourceCodebaseId: Id<"codebases"> | undefined;
+    if (
+      args.sourceCodebaseId !== undefined &&
+      args.sourceCodebaseId.length > 0
+    ) {
+      const cbId = ctx.db.normalizeId("codebases", args.sourceCodebaseId);
+      if (!cbId) throw new Error("Invalid codebase id");
+      const cb = await ctx.db.get(cbId);
+      if (!cb || cb.userId !== userId) throw new Error("Codebase not found");
+      sourceCodebaseId = cbId;
     }
 
     const siblings = await listScopeSiblings(
@@ -530,6 +545,7 @@ export const createByClerkIdInternal = internalMutation({
       content: isDocument ? (args.content ?? "") : undefined,
       contentText: isDocument ? (args.contentText ?? "") : undefined,
       order: nextOrder,
+      sourceCodebaseId,
       createdAt: now,
       updatedAt: now,
     });

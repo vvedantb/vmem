@@ -1,5 +1,15 @@
 # Changelog
 
+## Skills Hub with installable system skills — 2026-06-20
+
+- **Why**: turning a codebase into a knowledge base meant building it by hand, and there was no way to ship reusable, maintainer-curated skills to everyone — every skill was personal and hand-written.
+- **Skills Hub**: a new catalog (`/skills/hub`) of curated "system skills" a user can install with one click, browse by category, enable/disable, or remove. Installed skills also surface in the skills sidebar.
+- **Linked, not copied**: installing references the catalog entry rather than duplicating it, so when a maintainer edits a system skill it updates instantly for everyone who installed it — users can toggle or remove an install but never fork its instructions.
+- **Works everywhere a skill does**: installed system skills flow into the MCP context prompt, `skills_list`/`skills_get`, cloud chat, local chat, and voice through one shared resolver, behaving exactly like personal skills.
+- **Flagship "Codebase Knowledge Base" skill**: a playbook that drives an agent (e.g. Claude Code with vmem connected) to build a source-grounded wiki knowledge base for a repo inside vmem — through vmem's own tools, with no GitHub access or server-side generation.
+- **Codebase-linked wiki folders**: a generated knowledge-base folder can be tied to a synced codebase, marked with an indicator in the wiki tree.
+- **Maintainer admin**: an `isAdmin` flag gates creating, editing, and deleting catalog skills from the Hub.
+
 ## Multi-select bulk delete in the sidebar — 2026-06-20
 
 - **Why**: removing several documents or skills meant right-clicking and confirming each one in turn — tedious for clearing out a batch.

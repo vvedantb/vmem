@@ -3,6 +3,7 @@
 import {
   createFileRoute,
   Outlet,
+  useLocation,
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
@@ -14,6 +15,7 @@ import { IconBolt } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import PageContainer from "@/components/PageContainer";
+import { SkillsHub } from "@/components/skills/SkillsHub";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SkillPageTitle } from "@/components/skills/SkillPageTitle";
 import { SkillHeaderActions } from "@/components/skills/SkillHeaderActions";
@@ -33,6 +35,10 @@ function SkillsLayout() {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const skillId = typeof params.id === "string" ? params.id : undefined;
+  // The Hub is a child route (/skills/hub) rendered by this layout — same
+  // pattern as the skill detail view (the layout owns rendering).
+  const pathname = useLocation({ select: (l) => l.pathname });
+  const onHub = pathname.endsWith("/skills/hub");
 
   const skills = useQuery(api.skills.listMy, { teamId });
   const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
@@ -88,8 +94,11 @@ function SkillsLayout() {
       ? skills?.find((skill) => skill._id === modal.skillId)
       : undefined;
 
-  const pageTitle =
-    hasSkill && viewedSkill ? nameDraft || viewedSkill.name : "Skills";
+  const pageTitle = onHub
+    ? "Skills Hub"
+    : hasSkill && viewedSkill
+      ? nameDraft || viewedSkill.name
+      : "Skills";
 
   const handleNameCommit = useCallback(async () => {
     if (!viewedSkill) return;
@@ -177,7 +186,7 @@ function SkillsLayout() {
       title={pageTitle}
       noScroll
       breadcrumb={
-        hasSkill || isSkillLoading ? (
+        !onHub && (hasSkill || isSkillLoading) ? (
           <SkillPageTitle
             name={nameDraft}
             onNameChange={setNameDraft}
@@ -186,7 +195,7 @@ function SkillsLayout() {
         ) : undefined
       }
       rightSection={
-        hasSkill && viewedSkill ? (
+        !onHub && hasSkill && viewedSkill ? (
           <SkillHeaderActions
             skill={viewedSkill}
             onEdit={() => setModal({ mode: "edit", skillId: viewedSkill._id })}
@@ -196,7 +205,9 @@ function SkillsLayout() {
       }
     >
       <div className="flex h-full min-h-0 flex-1 flex-col">
-        {hasSkill && viewedSkill ? (
+        {onHub ? (
+          <SkillsHub />
+        ) : hasSkill && viewedSkill ? (
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <ViewSkillPanel skill={viewedSkill} />
           </div>

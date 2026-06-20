@@ -7,6 +7,8 @@ import {
   profileFields,
   skillFields,
   skillVersionFields,
+  systemSkillFields,
+  userSystemSkillFields,
   teamFields,
   teamMemberFields,
   threadProfileFields,
@@ -24,6 +26,8 @@ const schema = defineSchema({
     lastName: v.optional(v.string()),
     fullName: v.optional(v.string()),
     theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
+    /** Maintainer flag — gates system-skill catalog CRUD. Absent = not admin. */
+    isAdmin: v.optional(v.boolean()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
@@ -245,6 +249,17 @@ const schema = defineSchema({
 
   /** Immutable pre-overwrite snapshots of skills (see lib/versionSnapshot.ts). */
   skillVersions: defineTable(skillVersionFields).index("by_skill", ["skillId"]),
+
+  /** Global maintainer-curated skill catalog (the Skills Hub). */
+  systemSkills: defineTable(systemSkillFields)
+    .index("by_name", ["name"])
+    .index("by_published", ["published"]),
+
+  /** Per-user install LINK to a systemSkills row (linked, never copied). */
+  userSystemSkills: defineTable(userSystemSkillFields)
+    .index("by_user", ["userId"])
+    .index("by_user_systemSkill", ["userId", "systemSkillId"])
+    .index("by_systemSkill", ["systemSkillId"]),
 
   wikiNodes: defineTable(wikiNodeFields)
     .index("by_user", ["userId"])

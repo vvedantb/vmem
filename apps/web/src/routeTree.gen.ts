@@ -61,6 +61,7 @@ import { Route as MainSettingsApiKeysRouteImport } from './routes/_main/settings
 import { Route as MainProfileIdWikiDocIdRouteImport } from './routes/_main/$profileId/wiki/$docId'
 import { Route as MainProfileIdTeamSettingsRouteImport } from './routes/_main/$profileId/team/settings'
 import { Route as MainProfileIdTeamMembersRouteImport } from './routes/_main/$profileId/team/members'
+import { Route as MainProfileIdSkillsHubRouteImport } from './routes/_main/$profileId/skills/hub'
 import { Route as MainProfileIdSkillsIdRouteImport } from './routes/_main/$profileId/skills/$id'
 import { Route as MainProfileIdMemoriesTagsRouteImport } from './routes/_main/$profileId/memories/tags'
 import { Route as MainProfileIdMemoriesGraphRouteImport } from './routes/_main/$profileId/memories/graph'
@@ -351,6 +352,11 @@ const MainProfileIdTeamMembersRoute =
     path: '/members',
     getParentRoute: () => MainProfileIdTeamRouteRoute,
   } as any)
+const MainProfileIdSkillsHubRoute = MainProfileIdSkillsHubRouteImport.update({
+  id: '/hub',
+  path: '/hub',
+  getParentRoute: () => MainProfileIdSkillsRouteRoute,
+} as any)
 const MainProfileIdSkillsIdRoute = MainProfileIdSkillsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -457,6 +463,7 @@ export interface FileRoutesByFullPath {
   '/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
   '/$profileId/memories/tags': typeof MainProfileIdMemoriesTagsRoute
   '/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
+  '/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
   '/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
   '/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
   '/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
@@ -511,6 +518,7 @@ export interface FileRoutesByTo {
   '/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
   '/$profileId/memories/tags': typeof MainProfileIdMemoriesTagsRoute
   '/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
+  '/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
   '/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
   '/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
   '/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
@@ -577,6 +585,7 @@ export interface FileRoutesById {
   '/_main/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
   '/_main/$profileId/memories/tags': typeof MainProfileIdMemoriesTagsRoute
   '/_main/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
+  '/_main/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
   '/_main/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
   '/_main/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
   '/_main/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
@@ -643,6 +652,7 @@ export interface FileRouteTypes {
     | '/$profileId/memories/graph'
     | '/$profileId/memories/tags'
     | '/$profileId/skills/$id'
+    | '/$profileId/skills/hub'
     | '/$profileId/team/members'
     | '/$profileId/team/settings'
     | '/$profileId/wiki/$docId'
@@ -697,6 +707,7 @@ export interface FileRouteTypes {
     | '/$profileId/memories/graph'
     | '/$profileId/memories/tags'
     | '/$profileId/skills/$id'
+    | '/$profileId/skills/hub'
     | '/$profileId/team/members'
     | '/$profileId/team/settings'
     | '/$profileId/wiki/$docId'
@@ -762,6 +773,7 @@ export interface FileRouteTypes {
     | '/_main/$profileId/memories/graph'
     | '/_main/$profileId/memories/tags'
     | '/_main/$profileId/skills/$id'
+    | '/_main/$profileId/skills/hub'
     | '/_main/$profileId/team/members'
     | '/_main/$profileId/team/settings'
     | '/_main/$profileId/wiki/$docId'
@@ -1161,6 +1173,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainProfileIdTeamMembersRouteImport
       parentRoute: typeof MainProfileIdTeamRouteRoute
     }
+    '/_main/$profileId/skills/hub': {
+      id: '/_main/$profileId/skills/hub'
+      path: '/hub'
+      fullPath: '/$profileId/skills/hub'
+      preLoaderRoute: typeof MainProfileIdSkillsHubRouteImport
+      parentRoute: typeof MainProfileIdSkillsRouteRoute
+    }
     '/_main/$profileId/skills/$id': {
       id: '/_main/$profileId/skills/$id'
       path: '/$id'
@@ -1316,12 +1335,14 @@ const MainProfileIdMemoriesRouteRouteWithChildren =
 
 interface MainProfileIdSkillsRouteRouteChildren {
   MainProfileIdSkillsIdRoute: typeof MainProfileIdSkillsIdRoute
+  MainProfileIdSkillsHubRoute: typeof MainProfileIdSkillsHubRoute
   MainProfileIdSkillsIndexRoute: typeof MainProfileIdSkillsIndexRoute
 }
 
 const MainProfileIdSkillsRouteRouteChildren: MainProfileIdSkillsRouteRouteChildren =
   {
     MainProfileIdSkillsIdRoute: MainProfileIdSkillsIdRoute,
+    MainProfileIdSkillsHubRoute: MainProfileIdSkillsHubRoute,
     MainProfileIdSkillsIndexRoute: MainProfileIdSkillsIndexRoute,
   }
 

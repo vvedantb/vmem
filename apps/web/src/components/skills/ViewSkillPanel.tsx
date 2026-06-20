@@ -1,9 +1,8 @@
 "use client";
 
-import type { Doc } from "@vmem/backend";
-
 interface ViewSkillPanelProps {
-  skill: Doc<"skills">;
+  /** Any skill-like value — personal skill doc or a system-skill catalog row. */
+  skill: { description?: string; instructions: string };
 }
 
 export function ViewSkillPanel({ skill }: ViewSkillPanelProps) {

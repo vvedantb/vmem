@@ -152,8 +152,9 @@ export function useLocalChat(): LocalChatResult {
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
   const clearChatHistory = useMutation(api.chat.clearChatHistory);
   const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
-  // Personal skills always; team workspaces also surface the team's skills.
-  const personalSkills = useQuery(api.skills.listMy, {}) ?? [];
+  // Effective skills (personal + installed system skills); team workspaces
+  // also surface the team's skills.
+  const effectiveSkills = useQuery(api.skills.listEffectiveSkills, {}) ?? [];
   const teamSkills =
     useQuery(
       api.skills.listMy,
@@ -162,8 +163,8 @@ export function useLocalChat(): LocalChatResult {
         : "skip",
     ) ?? [];
   const mySkills = useMemo(
-    () => [...personalSkills, ...teamSkills],
-    [personalSkills, teamSkills],
+    () => [...effectiveSkills, ...teamSkills],
+    [effectiveSkills, teamSkills],
   );
 
   // Load or create the workspace's chat thread (one per profile).

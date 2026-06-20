@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
-import { IconBolt } from "@tabler/icons-react";
+import { IconApps, IconBolt } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
 import { SkillsSearchBar } from "@/components/skills/SkillsSearchBar";
@@ -38,8 +38,15 @@ export function SkillsSidebarNav({
   const teamId = useActiveTeamId();
   const params = useParams({ strict: false });
   const skillId = typeof params.id === "string" ? params.id : undefined;
+  const pathname = useLocation({ select: (l) => l.pathname });
+  const onHub = pathname.endsWith("/skills/hub");
 
   const skills = useQuery(api.skills.listMy, { teamId });
+  const catalog = useQuery(api.systemSkills.listCatalog, {});
+  const installedSystemSkills = useMemo(
+    () => (catalog ?? []).filter((entry) => entry.installed),
+    [catalog],
+  );
   const [{ q: searchQuery }, setSearchParams] =
     useQueryStates(skillsSearchParams);
   const [createModal, setCreateModal] = useState<CreateModalState>("none");
@@ -98,6 +105,54 @@ export function SkillsSidebarNav({
     />
   );
 
+  const goHub = () => {
+    if (profileId === undefined) return;
+    void navigate({ to: "/$profileId/skills/hub", params: { profileId } });
+  };
+
+  // Browse-the-catalog entry point, grouped with the Add control.
+  const hubButton = (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={cn(
+        "w-full justify-start gap-2 text-muted hover:text-foreground",
+        onHub && "bg-surface-tertiary text-foreground",
+      )}
+      onClick={goHub}
+    >
+      <IconApps size={16} />
+      Skills Hub
+    </Button>
+  );
+
+  // Installed (linked) system skills — read-only here; manage them in the Hub.
+  const installedSection =
+    !isIconOnly && !selectionMode && installedSystemSkills.length > 0 ? (
+      <div className="mt-3 space-y-0.5">
+        <p className="px-3 py-1 text-xs font-medium text-muted">
+          Installed system skills
+        </p>
+        {installedSystemSkills.map((entry) => (
+          <button
+            key={entry._id}
+            type="button"
+            onClick={goHub}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm text-muted transition-[color] hover:bg-surface-tertiary/50 hover:text-foreground"
+          >
+            <span
+              aria-hidden
+              className={cn(
+                "size-2 shrink-0 rounded-full",
+                entry.installEnabled ? "bg-success" : "bg-default",
+              )}
+            />
+            <span className="min-w-0 truncate">{entry.name}</span>
+          </button>
+        ))}
+      </div>
+    ) : null;
+
   return (
     <motion.nav
       className={cn(
@@ -116,7 +171,12 @@ export function SkillsSidebarNav({
           </div>
         ) : skills.length === 0 ? (
           <>
-            {!isIconOnly ? addMenu : null}
+            {!isIconOnly ? (
+              <div className="flex flex-col gap-2">
+                {addMenu}
+                {hubButton}
+              </div>
+            ) : null}
             <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
               <IconBolt size={28} className="mb-2 text-muted" />
               {!isIconOnly ? (
@@ -135,6 +195,7 @@ export function SkillsSidebarNav({
                   }}
                 />
                 {addMenu}
+                {hubButton}
               </div>
             ) : null}
             {!isIconOnly ? (
@@ -184,6 +245,7 @@ export function SkillsSidebarNav({
             )}
           </>
         )}
+        {installedSection}
       </div>
 
       <WriteSkillDialog

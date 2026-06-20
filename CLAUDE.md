@@ -167,6 +167,19 @@ Skills:
 - `skills_create` MCP tool: use when a repeatable problem or automatable workflow was identified and no existing skill covers it (check context prompt / `skills_list` first)
 - `skills_update` MCP tool: patch an existing skill by current name (`skills_get` first); at least one of newName, description, instructions, enabled
 
+Skills Hub (system skills — linked, not copied):
+
+- A "system skill" is a maintainer-curated entry in the **global** `systemSkills` catalog (no userId/teamId). Users **install a LINK** (`userSystemSkills`: userId + systemSkillId + enabled), never a copy — so a maintainer edit propagates to every installer instantly (content always resolves live from the catalog). Fields in `validators.ts` (`systemSkillFields`/`userSystemSkillFields`).
+- **The single merge point is `skills.resolveEffectiveSkills`** → `EffectiveSkill[]` = enabled personal skills + installed-and-enabled system skills (deduped by name, personal wins). Exposed as `skills.listEffectiveByClerkIdInternal` (clerkId) + `skills.getEffectiveByNameInternal` + `skills.listEffectiveSkills` (authQuery). EVERY skill-prompt surface reads through these: MCP context prompt (`contextPromptActions`), `skills_list`/`skills_get` (`mcp/skills`), cloud chat (`chatStreamActions` via `mcpListSkills`, then merges team skills), web/mobile local chat + voice (`listEffectiveSkills`). `skills.listByClerkIdInternal` stays personal-only (graphApi skills-on-graph). Never reintroduce a personal-only read into a prompt surface.
+- Effective-namespace uniqueness is enforced at write: `install` rejects a name clashing with a personal skill; `createSkill`/`createByClerkIdInternal` reject a name clashing with an installed system skill.
+- Catalog CRUD lives in `convex/systemSkills.ts`, gated by `requireAdmin` (the new `users.isAdmin` field). `adminUpdate` invalidates all installers' context prompts only when name/description/published changed (instructions resolve live, no cache); `adminDelete` cascades the `userSystemSkills` rows + invalidates those users. `install`/`uninstall`/`setInstalledEnabled` invalidate the caller's context prompt. Seeds live in `convex/prompts/systemSkillSeeds.ts`; (re)apply with `npx convex run systemSkills:seedSystemSkillsInternal`. Grant admin via `npx convex run systemSkills:setAdminByClerkIdInternal '{"clerkId":"...","isAdmin":true}'`.
+- Web Hub = a child route `/$profileId/skills/hub` rendered BY the skills layout (`skills/route.tsx` detects `onHub` via `useLocation`; `hub.tsx` is a stub, same pattern as `$id`). Catalog cards (`SystemSkillCard`) install/toggle/remove + admin edit/delete (`SystemSkillFormDialog`); orchestrated by `SkillsHub.tsx`. `SkillsSidebarNav` adds a "Skills Hub" button + an "Installed system skills" read-only section. The personal `skills/$id` list/detail is unchanged (system skills have no `skills._id` — they are NOT merged into that route; only into the resolver).
+- The flagship seed "Codebase Knowledge Base" is a PLAYBOOK that drives an MCP agent (Claude Code) to build a source-grounded wiki KB inside vmem via `wiki_*`/`codebase_*` tools — agent-driven, no GitHub token, no server-side generation.
+
+Codebase-linked wiki folders:
+
+- `wikiNodeFields.sourceCodebaseId` (optional `v.id("codebases")`) ties a generated KB folder root to a synced codebase. Set via MCP `wiki_create` (`mcpCreateWiki` → `createByClerkIdInternal`, which normalises the string id and validates owner). `WikiTree` shows a database icon on folders that have it. Optional ⇒ no migration; only ever set on folder roots.
+
 Version history (wiki docs & skills):
 
 - Custom tables, NOT a component (`convex-timeline` rejected: v0.1.x, `any`-typed snapshots, half-used undo/redo model). Mirrors Eva's `docVersions` pattern. Tables `wikiNodeVersions` (by_node) + `skillVersions` (by_skill); fields in `validators.ts`.

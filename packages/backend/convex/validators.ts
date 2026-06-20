@@ -368,6 +368,13 @@ export const wikiNodeFields = {
   contentText: v.optional(v.string()),
   /** Manual ordering within a parent; higher = later. */
   order: v.number(),
+  /**
+   * Set on the ROOT folder of a knowledge base generated from a synced
+   * codebase (the agent passes it through `wiki_create`). Optional — absent
+   * on all hand-authored nodes. Lets the UI badge "Generated from <repo>"
+   * and tie the subtree back to its source. Only ever set on a folder root.
+   */
+  sourceCodebaseId: v.optional(v.id("codebases")),
   createdAt: v.number(),
   updatedAt: v.number(),
 };
@@ -434,4 +441,42 @@ export const fileNodeFields = {
   indexedAt: v.optional(v.number()),
   createdAt: v.number(),
   updatedAt: v.number(),
+};
+
+/**
+ * Single source of truth for systemSkills table fields.
+ *
+ * A "system skill" is a maintainer-curated skill in the global catalog (the
+ * Skills Hub). Unlike `skills`, it has no `userId`/`teamId` — it is global.
+ * Users do not COPY it; they INSTALL a link to it (see userSystemSkillFields),
+ * so a maintainer edit propagates to everyone instantly. Only admins
+ * (`users.isAdmin`) may create/edit/delete catalog rows.
+ */
+export const systemSkillFields = {
+  name: v.string(),
+  description: v.string(),
+  instructions: v.string(),
+  /** Hub grouping label, e.g. "Codebases". */
+  category: v.optional(v.string()),
+  /** Draft vs visible in the Hub. Installed rows resolve regardless. */
+  published: v.boolean(),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+};
+
+/**
+ * Single source of truth for userSystemSkills table fields.
+ *
+ * The install LINK between a user and a catalog `systemSkills` row. Installs
+ * are user-wide (personal) — there is no `teamId`, matching the MCP
+ * personal-only model. `enabled` lets a user mute an install without
+ * removing it; uninstall = delete the row. The skill's content always
+ * resolves live from the linked catalog row (never duplicated here).
+ */
+export const userSystemSkillFields = {
+  userId: v.id("users"),
+  systemSkillId: v.id("systemSkills"),
+  /** Per-user toggle. Missing is treated as enabled for forward-compat. */
+  enabled: v.boolean(),
+  installedAt: v.number(),
 };

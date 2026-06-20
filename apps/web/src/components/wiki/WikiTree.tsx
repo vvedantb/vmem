@@ -6,6 +6,7 @@ import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 import {
   IconChevronRight,
+  IconDatabase,
   IconFileText,
   IconFolderPlus,
   IconPencil,
@@ -338,6 +339,14 @@ function TreeItem({
               <span className="inline-block w-[14px] shrink-0" />
             )}
             <span className="truncate">{item.node.title}</span>
+            {isFolder && item.node.sourceCodebaseId ? (
+              <span
+                title="Generated from a synced codebase"
+                className="ml-auto inline-flex shrink-0"
+              >
+                <IconDatabase size={13} className="text-muted" />
+              </span>
+            ) : null}
           </button>
         </ContextMenuTrigger>
         <ContextMenuContent>

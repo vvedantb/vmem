@@ -112,6 +112,8 @@ export const mcpCreateWiki = internalAction({
     title: v.string(),
     parentId: v.optional(v.string()),
     contentMarkdown: v.optional(v.string()),
+    /** Link a folder to a synced codebase (validated owner-side). */
+    sourceCodebaseId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<WikiGetResult> => {
     let parentId: Id<"wikiNodes"> | undefined;
@@ -140,6 +142,7 @@ export const mcpCreateWiki = internalAction({
         title: args.title,
         content,
         contentText,
+        sourceCodebaseId: args.sourceCodebaseId,
       },
     );
 
