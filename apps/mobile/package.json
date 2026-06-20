@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "prebuild:android": "expo prebuild --platform android --clean && expo run:android",
     "ios": "expo run:ios",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo -p tsconfig.json",
     "clear": "expo start --clear"
   },
   "dependencies": {
@@ -57,6 +57,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "catalog:",
+    "@typescript/native-preview": "catalog:",
     "typescript": "catalog:"
   }
 }

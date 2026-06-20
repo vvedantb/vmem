@@ -16,6 +16,7 @@
     "docs:dev": "pnpm --filter docs exec mint dev --port 3001",
     "lint": "pnpm --filter web lint",
     "typecheck": "pnpm --filter web typecheck",
+    "typecheck:all": "pnpm --parallel --filter web --filter @vmem/backend --filter mobile typecheck",
     "convex": "pnpm --filter @vmem/backend dev",
     "convex:deploy": "pnpm --filter @vmem/backend run deploy",
     "prepare": "husky",

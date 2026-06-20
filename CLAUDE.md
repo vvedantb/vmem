@@ -39,7 +39,7 @@ Convex:
 - Convex types are the single source of truth.
 - If the schema changes, all consumers must update automatically.
 - Never duplicate schema types manually.
-- To typecheck Convex: `cd packages/backend && npx convex codegen --typecheck enable` (no dev server needed)
+- To typecheck Convex: `pnpm --filter @vmem/backend typecheck` (= `tsgo -p tsconfig.json`, ~1.4s warm / ~3.6s cold, no dev server needed). Do NOT use `convex codegen --typecheck enable` — it spends ~13s on cloud round-trips (download/upload deployment state) then SKIPS the typecheck ("No `tsgo` binary found", exits 1) because pnpm hoists `tsgo` to the workspace-root `.bin` and Convex only looks in the package-local `.bin`. tsgo checks against the already-generated `_generated/` (excluded from the config but loaded via imports); if you changed schema/functions and the dev server isn't running, run `pnpm convex` (or `convex codegen`) once to refresh `_generated/` first.
 - **`pnpm convex`** = Convex **dev** server (`npx convex dev` → dev deployment). When the user says "run convex" / `pnpm convex`, use this — **not** deploy.
 - **`pnpm convex:deploy`** = prod deploy — only when the user explicitly asks to deploy.
 - Schema migration chicken-egg problem: When changing a field type with existing data, use v.union(oldType, newType) temporarily → deploy → run migration → change to only newType
@@ -48,11 +48,11 @@ Convex:
 - Backend layout (Eva-aligned): `convex/` = registered functions + orchestration + `convex/prompts/` + `convex/cloudLib/` (Convex-coupled chat tools). `engine/` = Neo4j/codebase/parsers outside `convex/` (like Eva's `callback-src/`) — imported only from `"use node"` actions. `neo4j-cli/` = seed/eval/unseed scripts. `tests/` = unit tests importing from `engine/` or `convex/` (Eva puts tests at package root, not inside `convex/`). Memory actions: thin `neo4jActions/memories.ts` facade → `neo4jActions/_memories/` (handlers + `actions.ts`). From `convex/`, import narrow `engine/neo4j/memory/*` modules directly.
 - Client package imports: apps import only `@vmem/backend` (Convex `api` + `Doc`/`Id` types) and `@vmem/shared` (cross-app constants + client-safe prompt helpers like `PARSER_VERSION`, `buildSkillsIndexAddition`). Never `@vmem/backend/*` subpaths. `@vmem/backend` root must stay Convex-only — no constants or prompts re-exported.
 
-TypeScript performance (typecheck must stay in seconds — warm ~0.7s, cold ~12s web / ~3s backend):
+TypeScript performance (typecheck must stay in seconds — web, backend AND mobile all run `tsgo`; warm ~1.5s, cold ~3.5–4.5s each. `pnpm typecheck:all` runs the three in parallel, ~3s warm):
 
 - Never import the monolithic `googleapis` package — its root types pull all ~400 Google APIs (~830 d.ts files, 115 MB) into every typecheck that touches the Convex api graph (web included). Use scoped `@googleapis/<api>` packages (`@googleapis/gmail`, `@googleapis/drive`).
 - Never call the AI SDK's `zodSchema()` on a concrete `z.object` schema — type-checking one call costs ~5-20s in tsgo (TS2589 territory), and `@ts-expect-error` does NOT avoid the cost (the checker still does the work before discarding the error). Use `jsonSchema<Params>(zodToJsonSchema(schema, { $refStrategy: "none" }))` and re-`parse` inside `execute` (see `convex/cloudLib/openRouterTools.ts`).
-- Both tsgo configs are incremental (`node_modules/.cache/tsgo/*.tsbuildinfo`); never remove that, it's what keeps warm runs sub-second locally and on Vercel.
+- All three tsgo configs (web, backend, mobile) are incremental (`node_modules/.cache/tsgo/*.tsbuildinfo`); never remove that, it's what keeps warm runs ~1.5s locally and on Vercel. Never move a package's `typecheck` back to legacy `tsc` — mobile on `tsc --noEmit` was ~28s vs ~1.4s on tsgo.
 - To find typecheck hotspots: `npx tsc -p tsconfig.json --noEmit --generateTrace <dir>` then `npx @typescript/analyze-trace <dir>`; iterate on a single hot file via a throwaway tsconfig that `extends` the real one with `"include": [<that file>]`.
 
 Neo4j:
@@ -97,7 +97,7 @@ Mobile app (`apps/mobile`, Expo 56 / expo-router drawer):
 - Voice (`record.tsx` + `useVoiceSession`): OS STT (`expo-speech-recognition`, promise-gate the final result after `stop()` — `end` can fire late or never; 3s fallback) → grounded local-LLM reply → persist (`saveLocalMessages` source `vmem-local-voice`, BEFORE TTS so cancel never loses the turn) → `expo-speech` TTS (chunk on `Speech.maxSpeechInputLength`). llama generation can't abort — cancellation is `cancelledRef` checks after each await. `PersonaOrb` ports web's persona keyframes verbatim via reanimated + react-native-svg gradients (no CSS blur on native — wide radial falloff approximates it).
 - Settings is a stack dir (`app/(main)/settings/`: hub index → models/preferences/profiles/secrets) — drawer route name `settings` unchanged. Preferences binds inputs to `api.userSettings.get` + `.withOptimisticUpdate` (no useState mirrors).
 - Theme tokens in `src/global.css` mirror web's `globals.css` (oklch→hsl); mobile dark is neutral grey (no purple tint) since the parity port. Screens use `bg-surface` (web's content panel); the drawer keeps `bg-background` (web's sidebar). `--accent` = primary action (black light / white dark) — never a subtle hover fill.
-- Mobile typecheck: `cd apps/mobile && npx tsc --noEmit` (clean as of 2026-06-11). Convex functions with any args (even all-optional, e.g. `getOrCreateThread`, `skills.listMy`) require an explicit `{}` at mobile call sites — adding an optional arg to a backend function breaks zero-arg callers.
+- Mobile typecheck: `pnpm --filter mobile typecheck` (= `tsgo -p tsconfig.json`, ~1.4s warm / ~4s cold; was `tsc --noEmit` at ~28s — clean as of 2026-06-20). Convex functions with any args (even all-optional, e.g. `getOrCreateThread`, `skills.listMy`) require an explicit `{}` at mobile call sites — adding an optional arg to a backend function breaks zero-arg callers.
 
 Memory graph view (`apps/web` canvas + `engine/neo4j/memory/graph.ts`):
 
