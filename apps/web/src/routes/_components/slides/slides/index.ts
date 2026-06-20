@@ -37,6 +37,8 @@ import { Slide34Surfaces } from "./34-surfaces";
 import { Slide35Sovereignty } from "./35-sovereignty";
 import { Slide36GraphBuild } from "./36-graphbuild";
 import { Slide37NodeDetail } from "./37-nodedetail";
+import { Slide38Poll } from "./38-poll";
+import { Slide39ClaudeChat } from "./39-claudechat";
 
 export interface SlideEntry {
   id: string;
@@ -210,6 +212,14 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide19UseCases,
     steps: 1,
   },
+  // Live audience poll — voting works only while the deck is shared.
+  {
+    id: "38",
+    title: "Quick poll",
+    theme: "light",
+    Component: Slide38Poll,
+    steps: 0,
+  },
   // step 0: title + body  /  step 1: three pillars
   {
     id: "20",
@@ -314,6 +324,15 @@ export const SLIDES: SlideEntry[] = [
     theme: "dark",
     Component: Slide37NodeDetail,
     steps: 0,
+  },
+  // 1:1 Claude chat: user asks, vmem tool call, curated reply
+  {
+    id: "39",
+    title: "In your chat",
+    theme: "dark",
+    Component: Slide39ClaudeChat,
+    steps: 2,
+    staggerMs: 1500,
   },
   // step 0: rotating 3D showcase of skills/wiki/connectors screenshots
   {

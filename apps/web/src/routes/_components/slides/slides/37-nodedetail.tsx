@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { motion } from "motion/react";
 import { IconClockHour4, IconLink, IconX } from "@tabler/icons-react";
 import {
   Badge,
@@ -17,6 +18,30 @@ import {
 } from "../_components/SlideShell";
 
 const TAB_CYCLE_MS = 2600;
+// Click choreography: cursor glides in, presses the node, panel opens.
+const CLICK_AT_MS = 1500;
+const OPEN_AT_MS = 2050;
+
+/** Classic OS pointer arrow, white-filled so it reads on the dark graph. */
+function Cursor() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="26"
+      height="26"
+      className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+      aria-hidden
+    >
+      <path
+        d="M5 3 L5 19 L9.5 14.5 L12.5 21 L15 20 L12 13.5 L18 13.5 Z"
+        fill="white"
+        stroke="black"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 /**
  * Mock of the web app: clicking a node in the memory graph opens the detail
@@ -96,6 +121,20 @@ function SectionLabel({
 }
 
 export function Slide37NodeDetail() {
+  // Click choreography: cursor glides to the node (approach), presses it
+  // (click), then the detail panel opens (open).
+  const [phase, setPhase] = useState<"approach" | "click" | "open">("approach");
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase("click"), CLICK_AT_MS);
+    const t2 = setTimeout(() => setPhase("open"), OPEN_AT_MS);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+  const clicked = phase === "click" || phase === "open";
+  const open = phase === "open";
+
   // Active tab cycles Details → History → Connections endlessly.
   const [tabIndex, setTabIndex] = useState(0);
   useEffect(() => {
@@ -145,19 +184,67 @@ export function Slide37NodeDetail() {
               </div>
             </At>
           ))}
-          {/* Selected node — ringed + glow */}
+          {/* Click ripple — expands out of the node when pressed */}
           <At l={CENTER.l} t={CENTER.t}>
-            <div className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-foreground px-4 py-2 text-background shadow-[0_0_0_5px_color-mix(in_oklch,var(--foreground)_20%,transparent)]">
+            <motion.span
+              className="block h-10 w-10 rounded-full border-2 border-foreground/50"
+              initial={false}
+              animate={
+                clicked
+                  ? { scale: [0.4, 2.4], opacity: [0.7, 0] }
+                  : { scale: 0.4, opacity: 0 }
+              }
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            />
+          </At>
+
+          {/* The node — gains its selected ring/glow only once clicked */}
+          <At l={CENTER.l} t={CENTER.t}>
+            <motion.div
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-foreground px-4 py-2 text-background"
+              initial={false}
+              animate={{
+                scale: clicked ? [1, 0.92, 1] : 1,
+                boxShadow: clicked
+                  ? "0 0 0 5px color-mix(in oklch, var(--foreground) 20%, transparent)"
+                  : "0 0 0 0px color-mix(in oklch, var(--foreground) 0%, transparent)",
+              }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
               <span className="h-2 w-2 shrink-0 rounded-full bg-background" />
               <span className="text-base font-medium">
                 Migrate auth to Clerk
               </span>
-            </div>
+            </motion.div>
           </At>
+
+          {/* Cursor — glides in to the node, presses, then fades as panel opens */}
+          <motion.div
+            className="pointer-events-none absolute z-10"
+            initial={{ left: "80%", top: "88%", opacity: 0 }}
+            animate={{
+              left: "49%",
+              top: "49%",
+              opacity: open ? 0 : 1,
+              scale: clicked && !open ? 0.85 : 1,
+            }}
+            transition={{
+              left: { duration: 1.4, ease: [0.4, 0, 0.2, 1] },
+              top: { duration: 1.4, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: open ? 0.4 : 0.5, delay: open ? 0.1 : 0 },
+              scale: { duration: 0.2 },
+            }}
+          >
+            <Cursor />
+          </motion.div>
         </div>
 
-        {/* Right — the real detail panel (Card + Tabs), tabs auto-cycle */}
-        <SlideReveal>
+        {/* Right — the detail panel; slides in once the node is clicked */}
+        <motion.div
+          initial={false}
+          animate={{ opacity: open ? 1 : 0, x: open ? 0 : 28 }}
+          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+        >
           <Card className="flex h-full flex-col p-5 shadow-none">
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-base font-semibold leading-snug text-foreground">
@@ -252,7 +339,7 @@ export function Slide37NodeDetail() {
               </TabsContent>
             </Tabs>
           </Card>
-        </SlideReveal>
+        </motion.div>
       </div>
     </SlideShell>
   );
