@@ -39,6 +39,7 @@ import { Slide36GraphBuild } from "./36-graphbuild";
 import { Slide37NodeDetail } from "./37-nodedetail";
 import { Slide38Poll } from "./38-poll";
 import { Slide39ClaudeChat } from "./39-claudechat";
+import { Slide40Privacy } from "./40-privacy";
 
 export interface SlideEntry {
   id: string;
@@ -356,6 +357,14 @@ export const SLIDES: SlideEntry[] = [
     theme: "dark",
     Component: Slide18Local,
     steps: 3,
+  },
+  // step 0: title + body  /  step 1: blocker/unlock/trajectory cards  /  step 2: payoff
+  {
+    id: "40",
+    title: "Private by design",
+    theme: "dark",
+    Component: Slide40Privacy,
+    steps: 2,
   },
   // step 0: title  /  step 1: three form-factor cards  /  step 2: connect-vmem punchline
   {

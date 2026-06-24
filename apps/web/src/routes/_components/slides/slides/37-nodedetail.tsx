@@ -39,10 +39,10 @@ const LOOP_AT = PANEL_CLOSE_AT + 900; // brief beat, then restart
 const CENTER = { l: 50, t: 50 };
 
 const SATELLITES = [
-  { l: 24, t: 23, label: "Clerk MV3 setup" },
-  { l: 77, t: 25, label: "SW offline bug" },
-  { l: 21, t: 78, label: "Prefers Clerk over Auth0" },
-  { l: 79, t: 75, label: "Extension token refresh" },
+  { l: 24, t: 23, label: "Kyoto ryokan booked" },
+  { l: 77, t: 25, label: "Loved the ramen in Shibuya" },
+  { l: 21, t: 78, label: "Get a Suica card" },
+  { l: 79, t: 75, label: "Prefers a window seat" },
 ] as const;
 
 const TAB_IDS = ["details", "history", "connections"] as const;
@@ -53,31 +53,31 @@ const TIMELINE = [
     action: "Updated",
     actorClass: "bg-default text-default-foreground",
     actor: "dream-mode",
-    body: "Linked to “Extension token refresh” — same auth migration.",
+    body: "Linked to “Loved the ramen in Shibuya” — same trip.",
   },
   {
     when: "5d ago",
     action: "Updated",
     actorClass: "bg-default text-default-foreground",
     actor: "you",
-    body: "Confirmed Clerk over Auth0 for MV3 service-worker support.",
+    body: "Added the Kyoto leg and booked the ryokan.",
   },
   {
     when: "12d ago",
     action: "Created",
     actorClass: "bg-success/15 text-success",
     actor: "Claude",
-    body: "Decided to migrate auth to Clerk.",
+    body: "Started planning the trip to Japan.",
   },
 ] as const;
 
 const CONNECTIONS = [
-  { title: "Extension token refresh", reason: "depends on" },
-  { title: "SW offline bug", reason: "caused" },
-  { title: "Prefers Clerk over Auth0", reason: "because" },
+  { title: "Kyoto ryokan booked", reason: "part of" },
+  { title: "Get a Suica card", reason: "tip" },
+  { title: "Loved the ramen in Shibuya", reason: "last time" },
 ] as const;
 
-const TAGS = ["auth", "clerk", "chrome-extension", "decision"] as const;
+const TAGS = ["travel", "japan", "tokyo", "planning"] as const;
 
 /** Classic OS pointer arrow, white-filled so it reads on the dark UI. */
 function Cursor() {
@@ -222,9 +222,7 @@ export function Slide37NodeDetail() {
               transition={{ duration: 0.4 }}
             >
               <span className="h-2 w-2 shrink-0 rounded-full bg-background" />
-              <span className="text-base font-medium">
-                Migrate auth to Clerk
-              </span>
+              <span className="text-base font-medium">Trip to Japan</span>
 
               {/* Click ripple — replays each cycle when the node is clicked */}
               {clickKey > 0 ? (
@@ -265,7 +263,7 @@ export function Slide37NodeDetail() {
           <Card className="flex h-full flex-col p-5 shadow-none">
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-base font-semibold leading-snug text-foreground">
-                Migrate auth to Clerk
+                Trip to Japan
               </h3>
               <IconX size={16} className="mt-0.5 shrink-0 text-muted" />
             </div>
@@ -284,9 +282,9 @@ export function Slide37NodeDetail() {
               <TabsContent value="details" className="mt-5">
                 <div className="rounded-lg bg-surface-secondary p-4">
                   <p className="text-sm leading-relaxed text-foreground">
-                    Decided to migrate auth to Clerk for the Chrome extension —
-                    its service-worker token refresh works under MV3 where Auth0
-                    did not.
+                    A week in Japan in March — Tokyo, then Kyoto. The Shinjuku
+                    hotel and a Kyoto ryokan are booked; still need to sort the
+                    metro pass.
                   </p>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-1.5">
@@ -302,7 +300,7 @@ export function Slide37NodeDetail() {
                     12 Jun 2026
                   </span>
                   <span className="px-2 text-muted">·</span>
-                  decision
+                  plan
                   <span className="px-2 text-muted">·</span>
                   Chat
                 </p>

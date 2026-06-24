@@ -25,7 +25,7 @@ const HOLD_UNTIL = 5600; // dwell on the full exchange
 const LOOP_AT = HOLD_UNTIL + 400; // reset + restart
 
 const USER_TEXT =
-  "Remind me — what did we decide on auth for the Chrome extension, and why?";
+  "Remind me — what have we sorted for my Japan trip, and what did I love last time?";
 
 /**
  * Same facts, two voices. The retrieved memory is identical — only the
@@ -36,11 +36,11 @@ const USER_TEXT =
 function ClaudeAnswer({ color }: { color: string }) {
   return (
     <p className="text-[13px] leading-relaxed" style={{ color }}>
-      You moved auth to <span style={{ fontWeight: 600 }}>Clerk</span>. The
-      extension&rsquo;s MV3 service worker needed token refresh that Auth0
-      couldn&rsquo;t handle under the new manifest — Clerk does, so that settled
-      it. You&rsquo;d also noted a standing preference for Clerk over Auth0, and
-      it ties into your &ldquo;Extension token refresh&rdquo; work.
+      You&rsquo;re going for a week in March —{" "}
+      <span style={{ fontWeight: 600 }}>Tokyo, then Kyoto</span>. The Shinjuku
+      hotel and a Kyoto ryokan are booked, and you noted to grab a Suica card
+      for the metro. Last time you loved the ramen in Shibuya, and you prefer a
+      window seat on the flight.
     </p>
   );
 }
@@ -50,17 +50,20 @@ function ChatGptAnswer({ color }: { color: string }) {
   return (
     <div className="space-y-1.5 text-[13px] leading-relaxed" style={{ color }}>
       <p>
-        Short version: you switched the extension to{" "}
-        <span style={{ fontWeight: 600 }}>Clerk</span>. Here&rsquo;s the why:
+        Quick recap of your{" "}
+        <span style={{ fontWeight: 600 }}>March Japan trip</span>:
       </p>
       <ul className="space-y-1">
         {[
+          ["Route", "a week — Tokyo, then Kyoto."],
           [
-            "Reason",
-            "MV3’s service worker needed token refresh Auth0 couldn’t do — Clerk handles it.",
+            "Booked",
+            "Shinjuku hotel + a Kyoto ryokan; still grab a Suica card.",
           ],
-          ["Also", "you’d logged a standing preference for Clerk over Auth0."],
-          ["Linked to", "your “Extension token refresh” memory."],
+          [
+            "Last time",
+            "you loved the ramen in Shibuya — and prefer a window seat.",
+          ],
         ].map(([label, rest]) => (
           <li key={label} className="flex gap-1.5">
             <span aria-hidden>•</span>
@@ -141,7 +144,7 @@ function ToolUseBlock({ p }: { p: Palette }) {
           className="truncate font-mono text-[11px]"
           style={{ color: p.muted }}
         >
-          memory_retrieve(&quot;auth decision&quot;)
+          memory_retrieve(&quot;Japan trip&quot;)
         </span>
         <IconCheck
           size={13}

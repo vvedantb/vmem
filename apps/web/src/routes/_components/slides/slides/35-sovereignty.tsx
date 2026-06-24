@@ -87,6 +87,9 @@ export function Slide35Sovereignty() {
         <p className="mt-3 text-sm leading-relaxed text-muted">
           That is the key test of your control and sovereignty in the era ahead.
         </p>
+        <p className="mt-4 text-sm font-medium text-foreground">
+          — Satya Nadella, CEO of Microsoft
+        </p>
       </SlideReveal>
     </SlideShell>
   );
