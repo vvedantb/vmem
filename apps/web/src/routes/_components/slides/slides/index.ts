@@ -325,14 +325,13 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide37NodeDetail,
     steps: 0,
   },
-  // 1:1 Claude chat: user asks, vmem tool call, curated reply
+  // Claude + ChatGPT side by side, same vmem call + answer, synced loop
   {
     id: "39",
-    title: "In your chat",
+    title: "Same answer, any model",
     theme: "dark",
     Component: Slide39ClaudeChat,
-    steps: 2,
-    staggerMs: 1500,
+    steps: 0,
   },
   // step 0: rotating 3D showcase of skills/wiki/connectors screenshots
   {
