@@ -27,15 +27,50 @@ const LOOP_AT = HOLD_UNTIL + 400; // reset + restart
 const USER_TEXT =
   "Remind me — what did we decide on auth for the Chrome extension, and why?";
 
-/** Shared answer — identical across both providers (that's the whole point). */
-function Answer({ color }: { color: string }) {
+/**
+ * Same facts, two voices. The retrieved memory is identical — only the
+ * model's writing style differs, which is the realistic outcome.
+ */
+
+/** Claude: a measured, flowing paragraph. */
+function ClaudeAnswer({ color }: { color: string }) {
   return (
     <p className="text-[13px] leading-relaxed" style={{ color }}>
       You moved auth to <span style={{ fontWeight: 600 }}>Clerk</span>. The
-      extension&rsquo;s MV3 service worker needed token refresh Auth0
-      couldn&rsquo;t do — Clerk handles it. You&rsquo;d also logged a standing
-      preference for Clerk over Auth0.
+      extension&rsquo;s MV3 service worker needed token refresh that Auth0
+      couldn&rsquo;t handle under the new manifest — Clerk does, so that settled
+      it. You&rsquo;d also noted a standing preference for Clerk over Auth0, and
+      it ties into your &ldquo;Extension token refresh&rdquo; work.
     </p>
+  );
+}
+
+/** ChatGPT: a quick summary line, then tidy labelled bullets. */
+function ChatGptAnswer({ color }: { color: string }) {
+  return (
+    <div className="space-y-1.5 text-[13px] leading-relaxed" style={{ color }}>
+      <p>
+        Short version: you switched the extension to{" "}
+        <span style={{ fontWeight: 600 }}>Clerk</span>. Here&rsquo;s the why:
+      </p>
+      <ul className="space-y-1">
+        {[
+          [
+            "Reason",
+            "MV3’s service worker needed token refresh Auth0 couldn’t do — Clerk handles it.",
+          ],
+          ["Also", "you’d logged a standing preference for Clerk over Auth0."],
+          ["Linked to", "your “Extension token refresh” memory."],
+        ].map(([label, rest]) => (
+          <li key={label} className="flex gap-1.5">
+            <span aria-hidden>•</span>
+            <span>
+              <span style={{ fontWeight: 600 }}>{label}:</span> {rest}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -125,6 +160,8 @@ interface ProviderWindowProps {
   name: string;
   avatar: ReactNode;
   palette: Palette;
+  /** The model's answer, in its own voice. */
+  answer: ReactNode;
   phase: number;
 }
 
@@ -133,6 +170,7 @@ function ProviderWindow({
   name,
   avatar,
   palette: p,
+  answer,
   phase,
 }: ProviderWindowProps) {
   const reveal = (show: boolean) => ({
@@ -174,9 +212,7 @@ function ProviderWindow({
           <motion.div {...reveal(phase >= 1)}>
             <ToolUseBlock p={p} />
           </motion.div>
-          <motion.div {...reveal(phase >= 2)}>
-            <Answer color={p.text} />
-          </motion.div>
+          <motion.div {...reveal(phase >= 2)}>{answer}</motion.div>
         </div>
       </div>
     </div>
@@ -214,19 +250,21 @@ export function Slide39ClaudeChat() {
       <SlideReveal delay={0}>
         <SlideKicker>Claude or ChatGPT</SlideKicker>
       </SlideReveal>
-      <BlurWordsTitle lines={["Same memory, same answer."]} size="xl" />
+      <BlurWordsTitle lines={["Same memory, same result."]} size="xl" />
 
       <SlideReveal className="mt-6 grid grid-cols-2 gap-6">
         <ProviderWindow
           name="Claude"
           avatar={<ClaudeLogo className="h-5 w-5 shrink-0 text-[#D97757]" />}
           palette={CLAUDE}
+          answer={<ClaudeAnswer color={CLAUDE.text} />}
           phase={phase}
         />
         <ProviderWindow
           name="ChatGPT"
           avatar={<ChatGptLogo className="h-5 w-5 shrink-0 text-white" />}
           palette={CHATGPT}
+          answer={<ChatGptAnswer color={CHATGPT.text} />}
           phase={phase}
         />
       </SlideReveal>
