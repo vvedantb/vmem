@@ -81,6 +81,7 @@ interface Args {
   user?: string;
   profile?: string;
   factsPerSession: number;
+  fastIngest: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -109,6 +110,7 @@ function parseArgs(argv: string[]): Args {
     user: get("--user"),
     profile: get("--profile"),
     factsPerSession: Number(get("--facts-per-session") ?? "4"),
+    fastIngest: has("--fast-ingest"),
   };
 }
 
@@ -126,6 +128,7 @@ function buildProvider(
     memoryLlm: BenchLlm;
     user?: string;
     profile?: string;
+    fastIngest: boolean;
   },
 ): MemoryProvider {
   switch (name) {
@@ -137,6 +140,7 @@ function buildProvider(
         embed: generateCliEmbedding,
         userOverride: deps.user,
         profileOverride: deps.profile,
+        fastIngest: deps.fastIngest,
       });
     case "full-context":
       return new FullContextProvider();
@@ -165,8 +169,14 @@ function printDryRun(conversations: LocomoConversation[], args: Args): void {
   const hasVmem = args.providers.includes("vmem");
   const f = args.factsPerSession;
 
-  // vmem ingestion: per session 1 extract + F decisions + ~0.7·F enrich.
-  const vmemIngest = hasVmem ? sessions * (1 + f + Math.round(0.7 * f)) : 0;
+  // vmem ingestion LLM calls: full pipeline = per session 1 extract + F
+  // decisions + ~0.7·F enrich; fast-ingest = just 1 extract per session
+  // (facts stored directly, no per-fact decision or enrichment call).
+  const vmemIngest = hasVmem
+    ? args.fastIngest
+      ? sessions
+      : sessions * (1 + f + Math.round(0.7 * f))
+    : 0;
   // QA: every provider answers + the judge grades once each.
   const qa = questions * args.providers.length * 2;
   const total = vmemIngest + qa;
@@ -294,19 +304,35 @@ async function gradeQuestion(
  * swallowed dangling rejection does not strand in-flight work.
  */
 function installTransientNetworkGuard(): void {
-  const handle = (label: string, err: unknown): void => {
+  const message = (err: unknown): string =>
+    err instanceof Error ? err.message : String(err);
+
+  // An *unhandled rejection* is, by definition, off the awaited critical path:
+  // every awaited call (LLM send, session ingest, search) has its own
+  // try/catch + retry, so a dangling rejection cannot strand in-flight work.
+  // In a long unattended run a single such blip (an SDK parsing an empty body,
+  // a stray socket reset) must NOT kill thousands of dollars-minutes of
+  // progress. Log it loudly and continue — recognized transients get a quieter
+  // line. The journal makes any genuinely lost work re-runnable.
+  process.on("unhandledRejection", (reason) => {
+    if (isTransientNetworkError(reason)) {
+      console.warn(`[bench] swallowed transient rejection: ${message(reason)}`);
+    } else {
+      console.warn(`[bench] swallowed unhandled rejection: ${message(reason)}`);
+    }
+  });
+
+  // An *uncaught synchronous exception* is genuinely unrecoverable — the stack
+  // is gone. Swallow only recognized transients; crash on anything else so a
+  // real bug surfaces rather than corrupting the run silently.
+  process.on("uncaughtException", (err) => {
     if (isTransientNetworkError(err)) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.warn(`[bench] swallowed transient network ${label}: ${message}`);
+      console.warn(`[bench] swallowed transient exception: ${message(err)}`);
       return;
     }
-    console.error(`[bench] fatal ${label}:`, err);
+    console.error("[bench] fatal uncaughtException:", err);
     process.exit(1);
-  };
-  process.on("unhandledRejection", (reason) =>
-    handle("unhandledRejection", reason),
-  );
-  process.on("uncaughtException", (err) => handle("uncaughtException", err));
+  });
 }
 
 async function main(): Promise<void> {
@@ -346,6 +372,9 @@ async function main(): Promise<void> {
     `models:      memory=${args.memoryModel} answer=${args.answerModel} judge=${args.judgeModel}`,
   );
   console.log(
+    `fast-ingest: ${args.fastIngest ? "on (direct ADD, no decision/enrich)" : "off (full pipeline)"}`,
+  );
+  console.log(
     `max calls:   ${args.maxCalls === 0 ? "unlimited" : String(args.maxCalls)}`,
   );
   console.log("");
@@ -362,6 +391,7 @@ async function main(): Promise<void> {
         memoryLlm,
         user: args.user,
         profile: args.profile,
+        fastIngest: args.fastIngest,
       });
       console.log(`\n══ provider: ${provider.name} ══`);
 

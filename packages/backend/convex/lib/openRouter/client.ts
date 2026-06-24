@@ -69,6 +69,11 @@ const TRANSIENT_MESSAGE_FRAGMENTS: readonly string[] = [
   // a brief pause + retry finds the now-warm pool.
   "connection acquisition timed out",
   "pool is closed",
+  // OpenRouter SDK parsing an empty/truncated response body (a gateway hiccup,
+  // more common under throughput routing like ":nitro"). Surfaces as
+  // "Unexpected end of JSON input" from the SDK's response matcher, sometimes
+  // on a detached promise. Transient — retry gets a complete body.
+  "unexpected end of json input",
 ];
 
 export function isTransientNetworkError(err: unknown): boolean {

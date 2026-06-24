@@ -9,3 +9,4 @@ build
 .eslintcache
 *.tsbuildinfo
 .tanstack
+internal/bench

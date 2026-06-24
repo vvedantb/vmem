@@ -74,6 +74,16 @@ export interface VmemProviderConfig {
   userOverride?: string;
   /** Profile id paired with userOverride. */
   profileOverride?: string;
+  /**
+   * Fast-ingest mode. Stores each extracted fact directly (keeping the
+   * content-hash + 0.95 semantic dedup) but skips the per-fact retrieval +
+   * ADD/UPDATE/DELETE/NONE decision call AND the per-fact enrichment call —
+   * the two dominant ingestion costs against a throttled cloud database.
+   * QA-time retrieval is UNCHANGED, so this measures vmem's retrieval
+   * faithfully; only the entity/RELATES_TO graph legs are less populated
+   * (a documented floor — the full pipeline scores equal or higher).
+   */
+  fastIngest?: boolean;
 }
 
 export class VmemProvider implements MemoryProvider {
@@ -148,7 +158,12 @@ export class VmemProvider implements MemoryProvider {
     if (!extracted) return;
 
     for (const fact of extracted.facts) {
-      await this.applyFact(conversationId, fact.text);
+      if (this.config.fastIngest) {
+        // Fast path: store the fact directly, no retrieve/decide/enrich.
+        await this.createWithDedup(conversationId, fact.text);
+      } else {
+        await this.applyFact(conversationId, fact.text);
+      }
     }
   }
 
@@ -236,7 +251,11 @@ export class VmemProvider implements MemoryProvider {
       sourceType: BENCH_SOURCE,
     });
 
-    await this.enrich(userId, created.id, title, text);
+    // Fast-ingest skips enrichment (the per-memory LLM call + graph writes);
+    // the full pipeline enriches so the entity/RELATES_TO legs are populated.
+    if (!this.config.fastIngest) {
+      await this.enrich(userId, created.id, title, text);
+    }
   }
 
   private async applyUpdate(
