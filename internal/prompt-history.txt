@@ -1,3 +1,10 @@
+add a share url button to the slides that basically viewers can use to view the link and follow the user (but also option to take control, and then sync with sharer as well, like in teams)
+
+GitHub wiki tab
+For GitHub-hosted repositories, AutoWiki automatically syncs the generated content to the repository's built-in wiki tab. Your team can browse the documentation directly from the repo page, without visiting the Factory app.
+
+
+
 [] shared filesystem for ai
 [] files is not for you, but for agents to
 [] mcp exposes get file, upload files, etc

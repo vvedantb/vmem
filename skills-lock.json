@@ -59,6 +59,24 @@
       "sourceType": "github",
       "computedHash": "e0c50de6d64f528cb4ea32b142e2ec499e291efbc6996369ac4a1eea76d4870c"
     },
+    "einstein-simplify": {
+      "source": "jmsmrgn/einstein-simplify",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "57a13aa9abbccc1bb646119da9fafb834619f88de62e74442f01c9d39d8ccd2d"
+    },
+    "elite-powerpoint-designer": {
+      "source": "willem4130/claude-code-skills",
+      "sourceType": "github",
+      "skillPath": "skills/elite-powerpoint-designer/SKILL.md",
+      "computedHash": "c2ca991e1785f41aae6508efc3979b287cc74589160099ecf6b09a3e262828d1"
+    },
+    "framer-motion-animator": {
+      "source": "patricio0312rev/skills",
+      "sourceType": "github",
+      "skillPath": "frontend/framer-motion-animator/SKILL.md",
+      "computedHash": "22a8401fab0cdf32d5c153b98aba5e95435a479810896879535dc7ac3710efbe"
+    },
     "full-output-enforcement": {
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
@@ -190,6 +208,12 @@
       "sourceType": "github",
       "skillPath": "skills/stitch-skill/SKILL.md",
       "computedHash": "acf2921a7e50c06e637f072ba52e36a994cbb44ecbe6e31435bc113b894f5499"
+    },
+    "stop-slop": {
+      "source": "hardikpandya/stop-slop",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "5c1c27a2c9f80806b8cfa4364882d4caf10cd735fad4fa7b8a87d7430c220934"
     },
     "tdd": {
       "source": "mattpocock/skills",
