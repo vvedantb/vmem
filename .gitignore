@@ -10,3 +10,8 @@ build
 *.tsbuildinfo
 .tanstack
 internal/bench
+
+# Presentation deck — local/dissertation only
+apps/web/src/routes/slides.tsx
+apps/web/src/routes/_components/slides/
+apps/web/public/slides/

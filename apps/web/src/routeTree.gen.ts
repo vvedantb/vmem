@@ -8,1282 +8,1262 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as SlidesRouteImport } from './routes/slides'
-import { Route as AgentCallbackRouteImport } from './routes/agent-callback'
-import { Route as MainRouteRouteImport } from './routes/_main/route'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as MainHomeRouteImport } from './routes/_main/home'
-import { Route as MainProfileIdRouteRouteImport } from './routes/_main/$profileId/route'
-import { Route as MainSvgPlaygroundIndexRouteImport } from './routes/_main/svg-playground/index'
-import { Route as MainSettingsIndexRouteImport } from './routes/_main/settings/index'
-import { Route as MainProfileIdIndexRouteImport } from './routes/_main/$profileId/index'
-import { Route as McpOauthAuthorizeRouteImport } from './routes/mcp/oauth/authorize'
-import { Route as MainSettingsUsageRouteImport } from './routes/_main/settings/usage'
-import { Route as MainSettingsSecretsRouteImport } from './routes/_main/settings/secrets'
-import { Route as MainSettingsProfilesRouteImport } from './routes/_main/settings/profiles'
-import { Route as MainSettingsPreferencesRouteImport } from './routes/_main/settings/preferences'
-import { Route as MainSettingsModelsRouteImport } from './routes/_main/settings/models'
-import { Route as MainSettingsExtensionRouteImport } from './routes/_main/settings/extension'
-import { Route as MainSettingsConnectorsRouteImport } from './routes/_main/settings/connectors'
-import { Route as MainProfileIdVoiceRouteImport } from './routes/_main/$profileId/voice'
-import { Route as MainProfileIdProposalsRouteImport } from './routes/_main/$profileId/proposals'
-import { Route as MainProfileIdNotificationsRouteImport } from './routes/_main/$profileId/notifications'
-import { Route as MainProfileIdHomeRouteImport } from './routes/_main/$profileId/home'
-import { Route as MainProfileIdFilesRouteImport } from './routes/_main/$profileId/files'
-import { Route as MainProfileIdChatRouteImport } from './routes/_main/$profileId/chat'
-import { Route as MainSettingsDataControlsRouteRouteImport } from './routes/_main/settings/data-controls/route'
-import { Route as MainSettingsApiRouteRouteImport } from './routes/_main/settings/api/route'
-import { Route as MainProfileIdWikiRouteRouteImport } from './routes/_main/$profileId/wiki/route'
-import { Route as MainProfileIdTeamRouteRouteImport } from './routes/_main/$profileId/team/route'
-import { Route as MainProfileIdSkillsRouteRouteImport } from './routes/_main/$profileId/skills/route'
-import { Route as MainProfileIdMemoriesRouteRouteImport } from './routes/_main/$profileId/memories/route'
-import { Route as MainProfileIdInboxRouteRouteImport } from './routes/_main/$profileId/inbox/route'
-import { Route as MainProfileIdActivityRouteRouteImport } from './routes/_main/$profileId/activity/route'
-import { Route as MainSettingsPlaygroundIndexRouteImport } from './routes/_main/settings/playground/index'
-import { Route as MainSettingsDataControlsIndexRouteImport } from './routes/_main/settings/data-controls/index'
-import { Route as MainSettingsApiIndexRouteImport } from './routes/_main/settings/api/index'
-import { Route as MainProfileIdWikiIndexRouteImport } from './routes/_main/$profileId/wiki/index'
-import { Route as MainProfileIdTeamIndexRouteImport } from './routes/_main/$profileId/team/index'
-import { Route as MainProfileIdSkillsIndexRouteImport } from './routes/_main/$profileId/skills/index'
-import { Route as MainProfileIdOpenrouterLogsIndexRouteImport } from './routes/_main/$profileId/openrouter-logs/index'
-import { Route as MainProfileIdMemoriesIndexRouteImport } from './routes/_main/$profileId/memories/index'
-import { Route as MainProfileIdInboxIndexRouteImport } from './routes/_main/$profileId/inbox/index'
-import { Route as MainProfileIdCodebasesIndexRouteImport } from './routes/_main/$profileId/codebases/index'
-import { Route as MainProfileIdAiLogsIndexRouteImport } from './routes/_main/$profileId/ai-logs/index'
-import { Route as MainProfileIdActivityIndexRouteImport } from './routes/_main/$profileId/activity/index'
-import { Route as MainSettingsPlaygroundCallbackRouteImport } from './routes/_main/settings/playground/callback'
-import { Route as MainSettingsDataControlsImportRouteImport } from './routes/_main/settings/data-controls/import'
-import { Route as MainSettingsDataControlsExportRouteImport } from './routes/_main/settings/data-controls/export'
-import { Route as MainSettingsDataControlsDangerRouteImport } from './routes/_main/settings/data-controls/danger'
-import { Route as MainSettingsApiUsageRouteImport } from './routes/_main/settings/api/usage'
-import { Route as MainSettingsApiKeysRouteImport } from './routes/_main/settings/api/keys'
-import { Route as MainProfileIdWikiDocIdRouteImport } from './routes/_main/$profileId/wiki/$docId'
-import { Route as MainProfileIdTeamSettingsRouteImport } from './routes/_main/$profileId/team/settings'
-import { Route as MainProfileIdTeamMembersRouteImport } from './routes/_main/$profileId/team/members'
-import { Route as MainProfileIdSkillsHubRouteImport } from './routes/_main/$profileId/skills/hub'
-import { Route as MainProfileIdSkillsIdRouteImport } from './routes/_main/$profileId/skills/$id'
-import { Route as MainProfileIdMemoriesTagsRouteImport } from './routes/_main/$profileId/memories/tags'
-import { Route as MainProfileIdMemoriesGraphRouteImport } from './routes/_main/$profileId/memories/graph'
-import { Route as MainProfileIdInboxProposalsRouteImport } from './routes/_main/$profileId/inbox/proposals'
-import { Route as MainProfileIdInboxNotificationsRouteImport } from './routes/_main/$profileId/inbox/notifications'
-import { Route as MainProfileIdCodebasesIdRouteImport } from './routes/_main/$profileId/codebases/$id'
-import { Route as MainProfileIdActivityEventsRouteImport } from './routes/_main/$profileId/activity/events'
-import { Route as MainProfileIdActivityAiLogsRouteImport } from './routes/_main/$profileId/activity/ai-logs'
-import { Route as MainProfileIdMemoriesListRouteRouteImport } from './routes/_main/$profileId/memories/list/route'
-import { Route as MainProfileIdMemoriesListIndexRouteImport } from './routes/_main/$profileId/memories/list/index'
-import { Route as MainProfileIdSkillsSystemSkillIdRouteImport } from './routes/_main/$profileId/skills/system.$skillId'
-import { Route as MainProfileIdMemoriesListIdRouteImport } from './routes/_main/$profileId/memories/list/$id'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as AgentCallbackRouteImport } from "./routes/agent-callback";
+import { Route as MainRouteRouteImport } from "./routes/_main/route";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as MainHomeRouteImport } from "./routes/_main/home";
+import { Route as MainProfileIdRouteRouteImport } from "./routes/_main/$profileId/route";
+import { Route as MainSvgPlaygroundIndexRouteImport } from "./routes/_main/svg-playground/index";
+import { Route as MainSettingsIndexRouteImport } from "./routes/_main/settings/index";
+import { Route as MainProfileIdIndexRouteImport } from "./routes/_main/$profileId/index";
+import { Route as McpOauthAuthorizeRouteImport } from "./routes/mcp/oauth/authorize";
+import { Route as MainSettingsUsageRouteImport } from "./routes/_main/settings/usage";
+import { Route as MainSettingsSecretsRouteImport } from "./routes/_main/settings/secrets";
+import { Route as MainSettingsProfilesRouteImport } from "./routes/_main/settings/profiles";
+import { Route as MainSettingsPreferencesRouteImport } from "./routes/_main/settings/preferences";
+import { Route as MainSettingsModelsRouteImport } from "./routes/_main/settings/models";
+import { Route as MainSettingsExtensionRouteImport } from "./routes/_main/settings/extension";
+import { Route as MainSettingsConnectorsRouteImport } from "./routes/_main/settings/connectors";
+import { Route as MainProfileIdVoiceRouteImport } from "./routes/_main/$profileId/voice";
+import { Route as MainProfileIdProposalsRouteImport } from "./routes/_main/$profileId/proposals";
+import { Route as MainProfileIdNotificationsRouteImport } from "./routes/_main/$profileId/notifications";
+import { Route as MainProfileIdHomeRouteImport } from "./routes/_main/$profileId/home";
+import { Route as MainProfileIdFilesRouteImport } from "./routes/_main/$profileId/files";
+import { Route as MainProfileIdChatRouteImport } from "./routes/_main/$profileId/chat";
+import { Route as MainSettingsDataControlsRouteRouteImport } from "./routes/_main/settings/data-controls/route";
+import { Route as MainSettingsApiRouteRouteImport } from "./routes/_main/settings/api/route";
+import { Route as MainProfileIdWikiRouteRouteImport } from "./routes/_main/$profileId/wiki/route";
+import { Route as MainProfileIdTeamRouteRouteImport } from "./routes/_main/$profileId/team/route";
+import { Route as MainProfileIdSkillsRouteRouteImport } from "./routes/_main/$profileId/skills/route";
+import { Route as MainProfileIdMemoriesRouteRouteImport } from "./routes/_main/$profileId/memories/route";
+import { Route as MainProfileIdInboxRouteRouteImport } from "./routes/_main/$profileId/inbox/route";
+import { Route as MainProfileIdActivityRouteRouteImport } from "./routes/_main/$profileId/activity/route";
+import { Route as MainSettingsPlaygroundIndexRouteImport } from "./routes/_main/settings/playground/index";
+import { Route as MainSettingsDataControlsIndexRouteImport } from "./routes/_main/settings/data-controls/index";
+import { Route as MainSettingsApiIndexRouteImport } from "./routes/_main/settings/api/index";
+import { Route as MainProfileIdWikiIndexRouteImport } from "./routes/_main/$profileId/wiki/index";
+import { Route as MainProfileIdTeamIndexRouteImport } from "./routes/_main/$profileId/team/index";
+import { Route as MainProfileIdSkillsIndexRouteImport } from "./routes/_main/$profileId/skills/index";
+import { Route as MainProfileIdOpenrouterLogsIndexRouteImport } from "./routes/_main/$profileId/openrouter-logs/index";
+import { Route as MainProfileIdMemoriesIndexRouteImport } from "./routes/_main/$profileId/memories/index";
+import { Route as MainProfileIdInboxIndexRouteImport } from "./routes/_main/$profileId/inbox/index";
+import { Route as MainProfileIdCodebasesIndexRouteImport } from "./routes/_main/$profileId/codebases/index";
+import { Route as MainProfileIdAiLogsIndexRouteImport } from "./routes/_main/$profileId/ai-logs/index";
+import { Route as MainProfileIdActivityIndexRouteImport } from "./routes/_main/$profileId/activity/index";
+import { Route as MainSettingsPlaygroundCallbackRouteImport } from "./routes/_main/settings/playground/callback";
+import { Route as MainSettingsDataControlsImportRouteImport } from "./routes/_main/settings/data-controls/import";
+import { Route as MainSettingsDataControlsExportRouteImport } from "./routes/_main/settings/data-controls/export";
+import { Route as MainSettingsDataControlsDangerRouteImport } from "./routes/_main/settings/data-controls/danger";
+import { Route as MainSettingsApiUsageRouteImport } from "./routes/_main/settings/api/usage";
+import { Route as MainSettingsApiKeysRouteImport } from "./routes/_main/settings/api/keys";
+import { Route as MainProfileIdWikiDocIdRouteImport } from "./routes/_main/$profileId/wiki/$docId";
+import { Route as MainProfileIdTeamSettingsRouteImport } from "./routes/_main/$profileId/team/settings";
+import { Route as MainProfileIdTeamMembersRouteImport } from "./routes/_main/$profileId/team/members";
+import { Route as MainProfileIdSkillsHubRouteImport } from "./routes/_main/$profileId/skills/hub";
+import { Route as MainProfileIdSkillsIdRouteImport } from "./routes/_main/$profileId/skills/$id";
+import { Route as MainProfileIdMemoriesTagsRouteImport } from "./routes/_main/$profileId/memories/tags";
+import { Route as MainProfileIdMemoriesGraphRouteImport } from "./routes/_main/$profileId/memories/graph";
+import { Route as MainProfileIdInboxProposalsRouteImport } from "./routes/_main/$profileId/inbox/proposals";
+import { Route as MainProfileIdInboxNotificationsRouteImport } from "./routes/_main/$profileId/inbox/notifications";
+import { Route as MainProfileIdCodebasesIdRouteImport } from "./routes/_main/$profileId/codebases/$id";
+import { Route as MainProfileIdActivityEventsRouteImport } from "./routes/_main/$profileId/activity/events";
+import { Route as MainProfileIdActivityAiLogsRouteImport } from "./routes/_main/$profileId/activity/ai-logs";
+import { Route as MainProfileIdMemoriesListRouteRouteImport } from "./routes/_main/$profileId/memories/list/route";
+import { Route as MainProfileIdMemoriesListIndexRouteImport } from "./routes/_main/$profileId/memories/list/index";
+import { Route as MainProfileIdSkillsSystemSkillIdRouteImport } from "./routes/_main/$profileId/skills/system.$skillId";
+import { Route as MainProfileIdMemoriesListIdRouteImport } from "./routes/_main/$profileId/memories/list/$id";
 
-const SlidesRoute = SlidesRouteImport.update({
-  id: '/slides',
-  path: '/slides',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AgentCallbackRoute = AgentCallbackRouteImport.update({
-  id: '/agent-callback',
-  path: '/agent-callback',
+  id: "/agent-callback",
+  path: "/agent-callback",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const MainRouteRoute = MainRouteRouteImport.update({
-  id: '/_main',
+  id: "/_main",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const MainHomeRoute = MainHomeRouteImport.update({
-  id: '/home',
-  path: '/home',
+  id: "/home",
+  path: "/home",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainProfileIdRouteRoute = MainProfileIdRouteRouteImport.update({
-  id: '/$profileId',
-  path: '/$profileId',
+  id: "/$profileId",
+  path: "/$profileId",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainSvgPlaygroundIndexRoute = MainSvgPlaygroundIndexRouteImport.update({
-  id: '/svg-playground/',
-  path: '/svg-playground/',
+  id: "/svg-playground/",
+  path: "/svg-playground/",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainSettingsIndexRoute = MainSettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
+  id: "/settings/",
+  path: "/settings/",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainProfileIdIndexRoute = MainProfileIdIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => MainProfileIdRouteRoute,
-} as any)
+} as any);
 const McpOauthAuthorizeRoute = McpOauthAuthorizeRouteImport.update({
-  id: '/mcp/oauth/authorize',
-  path: '/mcp/oauth/authorize',
+  id: "/mcp/oauth/authorize",
+  path: "/mcp/oauth/authorize",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const MainSettingsUsageRoute = MainSettingsUsageRouteImport.update({
-  id: '/settings/usage',
-  path: '/settings/usage',
+  id: "/settings/usage",
+  path: "/settings/usage",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainSettingsSecretsRoute = MainSettingsSecretsRouteImport.update({
-  id: '/settings/secrets',
-  path: '/settings/secrets',
+  id: "/settings/secrets",
+  path: "/settings/secrets",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainSettingsProfilesRoute = MainSettingsProfilesRouteImport.update({
-  id: '/settings/profiles',
-  path: '/settings/profiles',
+  id: "/settings/profiles",
+  path: "/settings/profiles",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainSettingsPreferencesRoute = MainSettingsPreferencesRouteImport.update({
-  id: '/settings/preferences',
-  path: '/settings/preferences',
+  id: "/settings/preferences",
+  path: "/settings/preferences",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainSettingsModelsRoute = MainSettingsModelsRouteImport.update({
-  id: '/settings/models',
-  path: '/settings/models',
+  id: "/settings/models",
+  path: "/settings/models",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainSettingsExtensionRoute = MainSettingsExtensionRouteImport.update({
-  id: '/settings/extension',
-  path: '/settings/extension',
+  id: "/settings/extension",
+  path: "/settings/extension",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainSettingsConnectorsRoute = MainSettingsConnectorsRouteImport.update({
-  id: '/settings/connectors',
-  path: '/settings/connectors',
+  id: "/settings/connectors",
+  path: "/settings/connectors",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainProfileIdVoiceRoute = MainProfileIdVoiceRouteImport.update({
-  id: '/voice',
-  path: '/voice',
+  id: "/voice",
+  path: "/voice",
   getParentRoute: () => MainProfileIdRouteRoute,
-} as any)
+} as any);
 const MainProfileIdProposalsRoute = MainProfileIdProposalsRouteImport.update({
-  id: '/proposals',
-  path: '/proposals',
+  id: "/proposals",
+  path: "/proposals",
   getParentRoute: () => MainProfileIdRouteRoute,
-} as any)
+} as any);
 const MainProfileIdNotificationsRoute =
   MainProfileIdNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
+    id: "/notifications",
+    path: "/notifications",
     getParentRoute: () => MainProfileIdRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdHomeRoute = MainProfileIdHomeRouteImport.update({
-  id: '/home',
-  path: '/home',
+  id: "/home",
+  path: "/home",
   getParentRoute: () => MainProfileIdRouteRoute,
-} as any)
+} as any);
 const MainProfileIdFilesRoute = MainProfileIdFilesRouteImport.update({
-  id: '/files',
-  path: '/files',
+  id: "/files",
+  path: "/files",
   getParentRoute: () => MainProfileIdRouteRoute,
-} as any)
+} as any);
 const MainProfileIdChatRoute = MainProfileIdChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
+  id: "/chat",
+  path: "/chat",
   getParentRoute: () => MainProfileIdRouteRoute,
-} as any)
+} as any);
 const MainSettingsDataControlsRouteRoute =
   MainSettingsDataControlsRouteRouteImport.update({
-    id: '/settings/data-controls',
-    path: '/settings/data-controls',
+    id: "/settings/data-controls",
+    path: "/settings/data-controls",
     getParentRoute: () => MainRouteRoute,
-  } as any)
+  } as any);
 const MainSettingsApiRouteRoute = MainSettingsApiRouteRouteImport.update({
-  id: '/settings/api',
-  path: '/settings/api',
+  id: "/settings/api",
+  path: "/settings/api",
   getParentRoute: () => MainRouteRoute,
-} as any)
+} as any);
 const MainProfileIdWikiRouteRoute = MainProfileIdWikiRouteRouteImport.update({
-  id: '/wiki',
-  path: '/wiki',
+  id: "/wiki",
+  path: "/wiki",
   getParentRoute: () => MainProfileIdRouteRoute,
-} as any)
+} as any);
 const MainProfileIdTeamRouteRoute = MainProfileIdTeamRouteRouteImport.update({
-  id: '/team',
-  path: '/team',
+  id: "/team",
+  path: "/team",
   getParentRoute: () => MainProfileIdRouteRoute,
-} as any)
+} as any);
 const MainProfileIdSkillsRouteRoute =
   MainProfileIdSkillsRouteRouteImport.update({
-    id: '/skills',
-    path: '/skills',
+    id: "/skills",
+    path: "/skills",
     getParentRoute: () => MainProfileIdRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdMemoriesRouteRoute =
   MainProfileIdMemoriesRouteRouteImport.update({
-    id: '/memories',
-    path: '/memories',
+    id: "/memories",
+    path: "/memories",
     getParentRoute: () => MainProfileIdRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdInboxRouteRoute = MainProfileIdInboxRouteRouteImport.update({
-  id: '/inbox',
-  path: '/inbox',
+  id: "/inbox",
+  path: "/inbox",
   getParentRoute: () => MainProfileIdRouteRoute,
-} as any)
+} as any);
 const MainProfileIdActivityRouteRoute =
   MainProfileIdActivityRouteRouteImport.update({
-    id: '/activity',
-    path: '/activity',
+    id: "/activity",
+    path: "/activity",
     getParentRoute: () => MainProfileIdRouteRoute,
-  } as any)
+  } as any);
 const MainSettingsPlaygroundIndexRoute =
   MainSettingsPlaygroundIndexRouteImport.update({
-    id: '/settings/playground/',
-    path: '/settings/playground/',
+    id: "/settings/playground/",
+    path: "/settings/playground/",
     getParentRoute: () => MainRouteRoute,
-  } as any)
+  } as any);
 const MainSettingsDataControlsIndexRoute =
   MainSettingsDataControlsIndexRouteImport.update({
-    id: '/',
-    path: '/',
+    id: "/",
+    path: "/",
     getParentRoute: () => MainSettingsDataControlsRouteRoute,
-  } as any)
+  } as any);
 const MainSettingsApiIndexRoute = MainSettingsApiIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => MainSettingsApiRouteRoute,
-} as any)
+} as any);
 const MainProfileIdWikiIndexRoute = MainProfileIdWikiIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => MainProfileIdWikiRouteRoute,
-} as any)
+} as any);
 const MainProfileIdTeamIndexRoute = MainProfileIdTeamIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => MainProfileIdTeamRouteRoute,
-} as any)
+} as any);
 const MainProfileIdSkillsIndexRoute =
   MainProfileIdSkillsIndexRouteImport.update({
-    id: '/',
-    path: '/',
+    id: "/",
+    path: "/",
     getParentRoute: () => MainProfileIdSkillsRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdOpenrouterLogsIndexRoute =
   MainProfileIdOpenrouterLogsIndexRouteImport.update({
-    id: '/openrouter-logs/',
-    path: '/openrouter-logs/',
+    id: "/openrouter-logs/",
+    path: "/openrouter-logs/",
     getParentRoute: () => MainProfileIdRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdMemoriesIndexRoute =
   MainProfileIdMemoriesIndexRouteImport.update({
-    id: '/',
-    path: '/',
+    id: "/",
+    path: "/",
     getParentRoute: () => MainProfileIdMemoriesRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdInboxIndexRoute = MainProfileIdInboxIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => MainProfileIdInboxRouteRoute,
-} as any)
+} as any);
 const MainProfileIdCodebasesIndexRoute =
   MainProfileIdCodebasesIndexRouteImport.update({
-    id: '/codebases/',
-    path: '/codebases/',
+    id: "/codebases/",
+    path: "/codebases/",
     getParentRoute: () => MainProfileIdRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdAiLogsIndexRoute =
   MainProfileIdAiLogsIndexRouteImport.update({
-    id: '/ai-logs/',
-    path: '/ai-logs/',
+    id: "/ai-logs/",
+    path: "/ai-logs/",
     getParentRoute: () => MainProfileIdRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdActivityIndexRoute =
   MainProfileIdActivityIndexRouteImport.update({
-    id: '/',
-    path: '/',
+    id: "/",
+    path: "/",
     getParentRoute: () => MainProfileIdActivityRouteRoute,
-  } as any)
+  } as any);
 const MainSettingsPlaygroundCallbackRoute =
   MainSettingsPlaygroundCallbackRouteImport.update({
-    id: '/settings/playground/callback',
-    path: '/settings/playground/callback',
+    id: "/settings/playground/callback",
+    path: "/settings/playground/callback",
     getParentRoute: () => MainRouteRoute,
-  } as any)
+  } as any);
 const MainSettingsDataControlsImportRoute =
   MainSettingsDataControlsImportRouteImport.update({
-    id: '/import',
-    path: '/import',
+    id: "/import",
+    path: "/import",
     getParentRoute: () => MainSettingsDataControlsRouteRoute,
-  } as any)
+  } as any);
 const MainSettingsDataControlsExportRoute =
   MainSettingsDataControlsExportRouteImport.update({
-    id: '/export',
-    path: '/export',
+    id: "/export",
+    path: "/export",
     getParentRoute: () => MainSettingsDataControlsRouteRoute,
-  } as any)
+  } as any);
 const MainSettingsDataControlsDangerRoute =
   MainSettingsDataControlsDangerRouteImport.update({
-    id: '/danger',
-    path: '/danger',
+    id: "/danger",
+    path: "/danger",
     getParentRoute: () => MainSettingsDataControlsRouteRoute,
-  } as any)
+  } as any);
 const MainSettingsApiUsageRoute = MainSettingsApiUsageRouteImport.update({
-  id: '/usage',
-  path: '/usage',
+  id: "/usage",
+  path: "/usage",
   getParentRoute: () => MainSettingsApiRouteRoute,
-} as any)
+} as any);
 const MainSettingsApiKeysRoute = MainSettingsApiKeysRouteImport.update({
-  id: '/keys',
-  path: '/keys',
+  id: "/keys",
+  path: "/keys",
   getParentRoute: () => MainSettingsApiRouteRoute,
-} as any)
+} as any);
 const MainProfileIdWikiDocIdRoute = MainProfileIdWikiDocIdRouteImport.update({
-  id: '/$docId',
-  path: '/$docId',
+  id: "/$docId",
+  path: "/$docId",
   getParentRoute: () => MainProfileIdWikiRouteRoute,
-} as any)
+} as any);
 const MainProfileIdTeamSettingsRoute =
   MainProfileIdTeamSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
+    id: "/settings",
+    path: "/settings",
     getParentRoute: () => MainProfileIdTeamRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdTeamMembersRoute =
   MainProfileIdTeamMembersRouteImport.update({
-    id: '/members',
-    path: '/members',
+    id: "/members",
+    path: "/members",
     getParentRoute: () => MainProfileIdTeamRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdSkillsHubRoute = MainProfileIdSkillsHubRouteImport.update({
-  id: '/hub',
-  path: '/hub',
+  id: "/hub",
+  path: "/hub",
   getParentRoute: () => MainProfileIdSkillsRouteRoute,
-} as any)
+} as any);
 const MainProfileIdSkillsIdRoute = MainProfileIdSkillsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
+  id: "/$id",
+  path: "/$id",
   getParentRoute: () => MainProfileIdSkillsRouteRoute,
-} as any)
+} as any);
 const MainProfileIdMemoriesTagsRoute =
   MainProfileIdMemoriesTagsRouteImport.update({
-    id: '/tags',
-    path: '/tags',
+    id: "/tags",
+    path: "/tags",
     getParentRoute: () => MainProfileIdMemoriesRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdMemoriesGraphRoute =
   MainProfileIdMemoriesGraphRouteImport.update({
-    id: '/graph',
-    path: '/graph',
+    id: "/graph",
+    path: "/graph",
     getParentRoute: () => MainProfileIdMemoriesRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdInboxProposalsRoute =
   MainProfileIdInboxProposalsRouteImport.update({
-    id: '/proposals',
-    path: '/proposals',
+    id: "/proposals",
+    path: "/proposals",
     getParentRoute: () => MainProfileIdInboxRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdInboxNotificationsRoute =
   MainProfileIdInboxNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
+    id: "/notifications",
+    path: "/notifications",
     getParentRoute: () => MainProfileIdInboxRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdCodebasesIdRoute =
   MainProfileIdCodebasesIdRouteImport.update({
-    id: '/codebases/$id',
-    path: '/codebases/$id',
+    id: "/codebases/$id",
+    path: "/codebases/$id",
     getParentRoute: () => MainProfileIdRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdActivityEventsRoute =
   MainProfileIdActivityEventsRouteImport.update({
-    id: '/events',
-    path: '/events',
+    id: "/events",
+    path: "/events",
     getParentRoute: () => MainProfileIdActivityRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdActivityAiLogsRoute =
   MainProfileIdActivityAiLogsRouteImport.update({
-    id: '/ai-logs',
-    path: '/ai-logs',
+    id: "/ai-logs",
+    path: "/ai-logs",
     getParentRoute: () => MainProfileIdActivityRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdMemoriesListRouteRoute =
   MainProfileIdMemoriesListRouteRouteImport.update({
-    id: '/list',
-    path: '/list',
+    id: "/list",
+    path: "/list",
     getParentRoute: () => MainProfileIdMemoriesRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdMemoriesListIndexRoute =
   MainProfileIdMemoriesListIndexRouteImport.update({
-    id: '/',
-    path: '/',
+    id: "/",
+    path: "/",
     getParentRoute: () => MainProfileIdMemoriesListRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdSkillsSystemSkillIdRoute =
   MainProfileIdSkillsSystemSkillIdRouteImport.update({
-    id: '/system/$skillId',
-    path: '/system/$skillId',
+    id: "/system/$skillId",
+    path: "/system/$skillId",
     getParentRoute: () => MainProfileIdSkillsRouteRoute,
-  } as any)
+  } as any);
 const MainProfileIdMemoriesListIdRoute =
   MainProfileIdMemoriesListIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
+    id: "/$id",
+    path: "/$id",
     getParentRoute: () => MainProfileIdMemoriesListRouteRoute,
-  } as any)
+  } as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/agent-callback': typeof AgentCallbackRoute
-  '/slides': typeof SlidesRoute
-  '/$profileId': typeof MainProfileIdRouteRouteWithChildren
-  '/home': typeof MainHomeRoute
-  '/$profileId/activity': typeof MainProfileIdActivityRouteRouteWithChildren
-  '/$profileId/inbox': typeof MainProfileIdInboxRouteRouteWithChildren
-  '/$profileId/memories': typeof MainProfileIdMemoriesRouteRouteWithChildren
-  '/$profileId/skills': typeof MainProfileIdSkillsRouteRouteWithChildren
-  '/$profileId/team': typeof MainProfileIdTeamRouteRouteWithChildren
-  '/$profileId/wiki': typeof MainProfileIdWikiRouteRouteWithChildren
-  '/settings/api': typeof MainSettingsApiRouteRouteWithChildren
-  '/settings/data-controls': typeof MainSettingsDataControlsRouteRouteWithChildren
-  '/$profileId/chat': typeof MainProfileIdChatRoute
-  '/$profileId/files': typeof MainProfileIdFilesRoute
-  '/$profileId/home': typeof MainProfileIdHomeRoute
-  '/$profileId/notifications': typeof MainProfileIdNotificationsRoute
-  '/$profileId/proposals': typeof MainProfileIdProposalsRoute
-  '/$profileId/voice': typeof MainProfileIdVoiceRoute
-  '/settings/connectors': typeof MainSettingsConnectorsRoute
-  '/settings/extension': typeof MainSettingsExtensionRoute
-  '/settings/models': typeof MainSettingsModelsRoute
-  '/settings/preferences': typeof MainSettingsPreferencesRoute
-  '/settings/profiles': typeof MainSettingsProfilesRoute
-  '/settings/secrets': typeof MainSettingsSecretsRoute
-  '/settings/usage': typeof MainSettingsUsageRoute
-  '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
-  '/$profileId/': typeof MainProfileIdIndexRoute
-  '/settings/': typeof MainSettingsIndexRoute
-  '/svg-playground/': typeof MainSvgPlaygroundIndexRoute
-  '/$profileId/memories/list': typeof MainProfileIdMemoriesListRouteRouteWithChildren
-  '/$profileId/activity/ai-logs': typeof MainProfileIdActivityAiLogsRoute
-  '/$profileId/activity/events': typeof MainProfileIdActivityEventsRoute
-  '/$profileId/codebases/$id': typeof MainProfileIdCodebasesIdRoute
-  '/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
-  '/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
-  '/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
-  '/$profileId/memories/tags': typeof MainProfileIdMemoriesTagsRoute
-  '/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
-  '/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
-  '/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
-  '/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
-  '/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
-  '/settings/api/keys': typeof MainSettingsApiKeysRoute
-  '/settings/api/usage': typeof MainSettingsApiUsageRoute
-  '/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
-  '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
-  '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
-  '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
-  '/$profileId/activity/': typeof MainProfileIdActivityIndexRoute
-  '/$profileId/ai-logs/': typeof MainProfileIdAiLogsIndexRoute
-  '/$profileId/codebases/': typeof MainProfileIdCodebasesIndexRoute
-  '/$profileId/inbox/': typeof MainProfileIdInboxIndexRoute
-  '/$profileId/memories/': typeof MainProfileIdMemoriesIndexRoute
-  '/$profileId/openrouter-logs/': typeof MainProfileIdOpenrouterLogsIndexRoute
-  '/$profileId/skills/': typeof MainProfileIdSkillsIndexRoute
-  '/$profileId/team/': typeof MainProfileIdTeamIndexRoute
-  '/$profileId/wiki/': typeof MainProfileIdWikiIndexRoute
-  '/settings/api/': typeof MainSettingsApiIndexRoute
-  '/settings/data-controls/': typeof MainSettingsDataControlsIndexRoute
-  '/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
-  '/$profileId/memories/list/$id': typeof MainProfileIdMemoriesListIdRoute
-  '/$profileId/skills/system/$skillId': typeof MainProfileIdSkillsSystemSkillIdRoute
-  '/$profileId/memories/list/': typeof MainProfileIdMemoriesListIndexRoute
+  "/": typeof IndexRoute;
+  "/agent-callback": typeof AgentCallbackRoute;
+  "/$profileId": typeof MainProfileIdRouteRouteWithChildren;
+  "/home": typeof MainHomeRoute;
+  "/$profileId/activity": typeof MainProfileIdActivityRouteRouteWithChildren;
+  "/$profileId/inbox": typeof MainProfileIdInboxRouteRouteWithChildren;
+  "/$profileId/memories": typeof MainProfileIdMemoriesRouteRouteWithChildren;
+  "/$profileId/skills": typeof MainProfileIdSkillsRouteRouteWithChildren;
+  "/$profileId/team": typeof MainProfileIdTeamRouteRouteWithChildren;
+  "/$profileId/wiki": typeof MainProfileIdWikiRouteRouteWithChildren;
+  "/settings/api": typeof MainSettingsApiRouteRouteWithChildren;
+  "/settings/data-controls": typeof MainSettingsDataControlsRouteRouteWithChildren;
+  "/$profileId/chat": typeof MainProfileIdChatRoute;
+  "/$profileId/files": typeof MainProfileIdFilesRoute;
+  "/$profileId/home": typeof MainProfileIdHomeRoute;
+  "/$profileId/notifications": typeof MainProfileIdNotificationsRoute;
+  "/$profileId/proposals": typeof MainProfileIdProposalsRoute;
+  "/$profileId/voice": typeof MainProfileIdVoiceRoute;
+  "/settings/connectors": typeof MainSettingsConnectorsRoute;
+  "/settings/extension": typeof MainSettingsExtensionRoute;
+  "/settings/models": typeof MainSettingsModelsRoute;
+  "/settings/preferences": typeof MainSettingsPreferencesRoute;
+  "/settings/profiles": typeof MainSettingsProfilesRoute;
+  "/settings/secrets": typeof MainSettingsSecretsRoute;
+  "/settings/usage": typeof MainSettingsUsageRoute;
+  "/mcp/oauth/authorize": typeof McpOauthAuthorizeRoute;
+  "/$profileId/": typeof MainProfileIdIndexRoute;
+  "/settings/": typeof MainSettingsIndexRoute;
+  "/svg-playground/": typeof MainSvgPlaygroundIndexRoute;
+  "/$profileId/memories/list": typeof MainProfileIdMemoriesListRouteRouteWithChildren;
+  "/$profileId/activity/ai-logs": typeof MainProfileIdActivityAiLogsRoute;
+  "/$profileId/activity/events": typeof MainProfileIdActivityEventsRoute;
+  "/$profileId/codebases/$id": typeof MainProfileIdCodebasesIdRoute;
+  "/$profileId/inbox/notifications": typeof MainProfileIdInboxNotificationsRoute;
+  "/$profileId/inbox/proposals": typeof MainProfileIdInboxProposalsRoute;
+  "/$profileId/memories/graph": typeof MainProfileIdMemoriesGraphRoute;
+  "/$profileId/memories/tags": typeof MainProfileIdMemoriesTagsRoute;
+  "/$profileId/skills/$id": typeof MainProfileIdSkillsIdRoute;
+  "/$profileId/skills/hub": typeof MainProfileIdSkillsHubRoute;
+  "/$profileId/team/members": typeof MainProfileIdTeamMembersRoute;
+  "/$profileId/team/settings": typeof MainProfileIdTeamSettingsRoute;
+  "/$profileId/wiki/$docId": typeof MainProfileIdWikiDocIdRoute;
+  "/settings/api/keys": typeof MainSettingsApiKeysRoute;
+  "/settings/api/usage": typeof MainSettingsApiUsageRoute;
+  "/settings/data-controls/danger": typeof MainSettingsDataControlsDangerRoute;
+  "/settings/data-controls/export": typeof MainSettingsDataControlsExportRoute;
+  "/settings/data-controls/import": typeof MainSettingsDataControlsImportRoute;
+  "/settings/playground/callback": typeof MainSettingsPlaygroundCallbackRoute;
+  "/$profileId/activity/": typeof MainProfileIdActivityIndexRoute;
+  "/$profileId/ai-logs/": typeof MainProfileIdAiLogsIndexRoute;
+  "/$profileId/codebases/": typeof MainProfileIdCodebasesIndexRoute;
+  "/$profileId/inbox/": typeof MainProfileIdInboxIndexRoute;
+  "/$profileId/memories/": typeof MainProfileIdMemoriesIndexRoute;
+  "/$profileId/openrouter-logs/": typeof MainProfileIdOpenrouterLogsIndexRoute;
+  "/$profileId/skills/": typeof MainProfileIdSkillsIndexRoute;
+  "/$profileId/team/": typeof MainProfileIdTeamIndexRoute;
+  "/$profileId/wiki/": typeof MainProfileIdWikiIndexRoute;
+  "/settings/api/": typeof MainSettingsApiIndexRoute;
+  "/settings/data-controls/": typeof MainSettingsDataControlsIndexRoute;
+  "/settings/playground/": typeof MainSettingsPlaygroundIndexRoute;
+  "/$profileId/memories/list/$id": typeof MainProfileIdMemoriesListIdRoute;
+  "/$profileId/skills/system/$skillId": typeof MainProfileIdSkillsSystemSkillIdRoute;
+  "/$profileId/memories/list/": typeof MainProfileIdMemoriesListIndexRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/agent-callback': typeof AgentCallbackRoute
-  '/slides': typeof SlidesRoute
-  '/home': typeof MainHomeRoute
-  '/$profileId/chat': typeof MainProfileIdChatRoute
-  '/$profileId/files': typeof MainProfileIdFilesRoute
-  '/$profileId/home': typeof MainProfileIdHomeRoute
-  '/$profileId/notifications': typeof MainProfileIdNotificationsRoute
-  '/$profileId/proposals': typeof MainProfileIdProposalsRoute
-  '/$profileId/voice': typeof MainProfileIdVoiceRoute
-  '/settings/connectors': typeof MainSettingsConnectorsRoute
-  '/settings/extension': typeof MainSettingsExtensionRoute
-  '/settings/models': typeof MainSettingsModelsRoute
-  '/settings/preferences': typeof MainSettingsPreferencesRoute
-  '/settings/profiles': typeof MainSettingsProfilesRoute
-  '/settings/secrets': typeof MainSettingsSecretsRoute
-  '/settings/usage': typeof MainSettingsUsageRoute
-  '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
-  '/$profileId': typeof MainProfileIdIndexRoute
-  '/settings': typeof MainSettingsIndexRoute
-  '/svg-playground': typeof MainSvgPlaygroundIndexRoute
-  '/$profileId/activity/ai-logs': typeof MainProfileIdActivityAiLogsRoute
-  '/$profileId/activity/events': typeof MainProfileIdActivityEventsRoute
-  '/$profileId/codebases/$id': typeof MainProfileIdCodebasesIdRoute
-  '/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
-  '/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
-  '/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
-  '/$profileId/memories/tags': typeof MainProfileIdMemoriesTagsRoute
-  '/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
-  '/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
-  '/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
-  '/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
-  '/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
-  '/settings/api/keys': typeof MainSettingsApiKeysRoute
-  '/settings/api/usage': typeof MainSettingsApiUsageRoute
-  '/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
-  '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
-  '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
-  '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
-  '/$profileId/activity': typeof MainProfileIdActivityIndexRoute
-  '/$profileId/ai-logs': typeof MainProfileIdAiLogsIndexRoute
-  '/$profileId/codebases': typeof MainProfileIdCodebasesIndexRoute
-  '/$profileId/inbox': typeof MainProfileIdInboxIndexRoute
-  '/$profileId/memories': typeof MainProfileIdMemoriesIndexRoute
-  '/$profileId/openrouter-logs': typeof MainProfileIdOpenrouterLogsIndexRoute
-  '/$profileId/skills': typeof MainProfileIdSkillsIndexRoute
-  '/$profileId/team': typeof MainProfileIdTeamIndexRoute
-  '/$profileId/wiki': typeof MainProfileIdWikiIndexRoute
-  '/settings/api': typeof MainSettingsApiIndexRoute
-  '/settings/data-controls': typeof MainSettingsDataControlsIndexRoute
-  '/settings/playground': typeof MainSettingsPlaygroundIndexRoute
-  '/$profileId/memories/list/$id': typeof MainProfileIdMemoriesListIdRoute
-  '/$profileId/skills/system/$skillId': typeof MainProfileIdSkillsSystemSkillIdRoute
-  '/$profileId/memories/list': typeof MainProfileIdMemoriesListIndexRoute
+  "/": typeof IndexRoute;
+  "/agent-callback": typeof AgentCallbackRoute;
+  "/home": typeof MainHomeRoute;
+  "/$profileId/chat": typeof MainProfileIdChatRoute;
+  "/$profileId/files": typeof MainProfileIdFilesRoute;
+  "/$profileId/home": typeof MainProfileIdHomeRoute;
+  "/$profileId/notifications": typeof MainProfileIdNotificationsRoute;
+  "/$profileId/proposals": typeof MainProfileIdProposalsRoute;
+  "/$profileId/voice": typeof MainProfileIdVoiceRoute;
+  "/settings/connectors": typeof MainSettingsConnectorsRoute;
+  "/settings/extension": typeof MainSettingsExtensionRoute;
+  "/settings/models": typeof MainSettingsModelsRoute;
+  "/settings/preferences": typeof MainSettingsPreferencesRoute;
+  "/settings/profiles": typeof MainSettingsProfilesRoute;
+  "/settings/secrets": typeof MainSettingsSecretsRoute;
+  "/settings/usage": typeof MainSettingsUsageRoute;
+  "/mcp/oauth/authorize": typeof McpOauthAuthorizeRoute;
+  "/$profileId": typeof MainProfileIdIndexRoute;
+  "/settings": typeof MainSettingsIndexRoute;
+  "/svg-playground": typeof MainSvgPlaygroundIndexRoute;
+  "/$profileId/activity/ai-logs": typeof MainProfileIdActivityAiLogsRoute;
+  "/$profileId/activity/events": typeof MainProfileIdActivityEventsRoute;
+  "/$profileId/codebases/$id": typeof MainProfileIdCodebasesIdRoute;
+  "/$profileId/inbox/notifications": typeof MainProfileIdInboxNotificationsRoute;
+  "/$profileId/inbox/proposals": typeof MainProfileIdInboxProposalsRoute;
+  "/$profileId/memories/graph": typeof MainProfileIdMemoriesGraphRoute;
+  "/$profileId/memories/tags": typeof MainProfileIdMemoriesTagsRoute;
+  "/$profileId/skills/$id": typeof MainProfileIdSkillsIdRoute;
+  "/$profileId/skills/hub": typeof MainProfileIdSkillsHubRoute;
+  "/$profileId/team/members": typeof MainProfileIdTeamMembersRoute;
+  "/$profileId/team/settings": typeof MainProfileIdTeamSettingsRoute;
+  "/$profileId/wiki/$docId": typeof MainProfileIdWikiDocIdRoute;
+  "/settings/api/keys": typeof MainSettingsApiKeysRoute;
+  "/settings/api/usage": typeof MainSettingsApiUsageRoute;
+  "/settings/data-controls/danger": typeof MainSettingsDataControlsDangerRoute;
+  "/settings/data-controls/export": typeof MainSettingsDataControlsExportRoute;
+  "/settings/data-controls/import": typeof MainSettingsDataControlsImportRoute;
+  "/settings/playground/callback": typeof MainSettingsPlaygroundCallbackRoute;
+  "/$profileId/activity": typeof MainProfileIdActivityIndexRoute;
+  "/$profileId/ai-logs": typeof MainProfileIdAiLogsIndexRoute;
+  "/$profileId/codebases": typeof MainProfileIdCodebasesIndexRoute;
+  "/$profileId/inbox": typeof MainProfileIdInboxIndexRoute;
+  "/$profileId/memories": typeof MainProfileIdMemoriesIndexRoute;
+  "/$profileId/openrouter-logs": typeof MainProfileIdOpenrouterLogsIndexRoute;
+  "/$profileId/skills": typeof MainProfileIdSkillsIndexRoute;
+  "/$profileId/team": typeof MainProfileIdTeamIndexRoute;
+  "/$profileId/wiki": typeof MainProfileIdWikiIndexRoute;
+  "/settings/api": typeof MainSettingsApiIndexRoute;
+  "/settings/data-controls": typeof MainSettingsDataControlsIndexRoute;
+  "/settings/playground": typeof MainSettingsPlaygroundIndexRoute;
+  "/$profileId/memories/list/$id": typeof MainProfileIdMemoriesListIdRoute;
+  "/$profileId/skills/system/$skillId": typeof MainProfileIdSkillsSystemSkillIdRoute;
+  "/$profileId/memories/list": typeof MainProfileIdMemoriesListIndexRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/_main': typeof MainRouteRouteWithChildren
-  '/agent-callback': typeof AgentCallbackRoute
-  '/slides': typeof SlidesRoute
-  '/_main/$profileId': typeof MainProfileIdRouteRouteWithChildren
-  '/_main/home': typeof MainHomeRoute
-  '/_main/$profileId/activity': typeof MainProfileIdActivityRouteRouteWithChildren
-  '/_main/$profileId/inbox': typeof MainProfileIdInboxRouteRouteWithChildren
-  '/_main/$profileId/memories': typeof MainProfileIdMemoriesRouteRouteWithChildren
-  '/_main/$profileId/skills': typeof MainProfileIdSkillsRouteRouteWithChildren
-  '/_main/$profileId/team': typeof MainProfileIdTeamRouteRouteWithChildren
-  '/_main/$profileId/wiki': typeof MainProfileIdWikiRouteRouteWithChildren
-  '/_main/settings/api': typeof MainSettingsApiRouteRouteWithChildren
-  '/_main/settings/data-controls': typeof MainSettingsDataControlsRouteRouteWithChildren
-  '/_main/$profileId/chat': typeof MainProfileIdChatRoute
-  '/_main/$profileId/files': typeof MainProfileIdFilesRoute
-  '/_main/$profileId/home': typeof MainProfileIdHomeRoute
-  '/_main/$profileId/notifications': typeof MainProfileIdNotificationsRoute
-  '/_main/$profileId/proposals': typeof MainProfileIdProposalsRoute
-  '/_main/$profileId/voice': typeof MainProfileIdVoiceRoute
-  '/_main/settings/connectors': typeof MainSettingsConnectorsRoute
-  '/_main/settings/extension': typeof MainSettingsExtensionRoute
-  '/_main/settings/models': typeof MainSettingsModelsRoute
-  '/_main/settings/preferences': typeof MainSettingsPreferencesRoute
-  '/_main/settings/profiles': typeof MainSettingsProfilesRoute
-  '/_main/settings/secrets': typeof MainSettingsSecretsRoute
-  '/_main/settings/usage': typeof MainSettingsUsageRoute
-  '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
-  '/_main/$profileId/': typeof MainProfileIdIndexRoute
-  '/_main/settings/': typeof MainSettingsIndexRoute
-  '/_main/svg-playground/': typeof MainSvgPlaygroundIndexRoute
-  '/_main/$profileId/memories/list': typeof MainProfileIdMemoriesListRouteRouteWithChildren
-  '/_main/$profileId/activity/ai-logs': typeof MainProfileIdActivityAiLogsRoute
-  '/_main/$profileId/activity/events': typeof MainProfileIdActivityEventsRoute
-  '/_main/$profileId/codebases/$id': typeof MainProfileIdCodebasesIdRoute
-  '/_main/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
-  '/_main/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
-  '/_main/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
-  '/_main/$profileId/memories/tags': typeof MainProfileIdMemoriesTagsRoute
-  '/_main/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
-  '/_main/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
-  '/_main/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
-  '/_main/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
-  '/_main/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
-  '/_main/settings/api/keys': typeof MainSettingsApiKeysRoute
-  '/_main/settings/api/usage': typeof MainSettingsApiUsageRoute
-  '/_main/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
-  '/_main/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
-  '/_main/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
-  '/_main/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
-  '/_main/$profileId/activity/': typeof MainProfileIdActivityIndexRoute
-  '/_main/$profileId/ai-logs/': typeof MainProfileIdAiLogsIndexRoute
-  '/_main/$profileId/codebases/': typeof MainProfileIdCodebasesIndexRoute
-  '/_main/$profileId/inbox/': typeof MainProfileIdInboxIndexRoute
-  '/_main/$profileId/memories/': typeof MainProfileIdMemoriesIndexRoute
-  '/_main/$profileId/openrouter-logs/': typeof MainProfileIdOpenrouterLogsIndexRoute
-  '/_main/$profileId/skills/': typeof MainProfileIdSkillsIndexRoute
-  '/_main/$profileId/team/': typeof MainProfileIdTeamIndexRoute
-  '/_main/$profileId/wiki/': typeof MainProfileIdWikiIndexRoute
-  '/_main/settings/api/': typeof MainSettingsApiIndexRoute
-  '/_main/settings/data-controls/': typeof MainSettingsDataControlsIndexRoute
-  '/_main/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
-  '/_main/$profileId/memories/list/$id': typeof MainProfileIdMemoriesListIdRoute
-  '/_main/$profileId/skills/system/$skillId': typeof MainProfileIdSkillsSystemSkillIdRoute
-  '/_main/$profileId/memories/list/': typeof MainProfileIdMemoriesListIndexRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/_main": typeof MainRouteRouteWithChildren;
+  "/agent-callback": typeof AgentCallbackRoute;
+  "/_main/$profileId": typeof MainProfileIdRouteRouteWithChildren;
+  "/_main/home": typeof MainHomeRoute;
+  "/_main/$profileId/activity": typeof MainProfileIdActivityRouteRouteWithChildren;
+  "/_main/$profileId/inbox": typeof MainProfileIdInboxRouteRouteWithChildren;
+  "/_main/$profileId/memories": typeof MainProfileIdMemoriesRouteRouteWithChildren;
+  "/_main/$profileId/skills": typeof MainProfileIdSkillsRouteRouteWithChildren;
+  "/_main/$profileId/team": typeof MainProfileIdTeamRouteRouteWithChildren;
+  "/_main/$profileId/wiki": typeof MainProfileIdWikiRouteRouteWithChildren;
+  "/_main/settings/api": typeof MainSettingsApiRouteRouteWithChildren;
+  "/_main/settings/data-controls": typeof MainSettingsDataControlsRouteRouteWithChildren;
+  "/_main/$profileId/chat": typeof MainProfileIdChatRoute;
+  "/_main/$profileId/files": typeof MainProfileIdFilesRoute;
+  "/_main/$profileId/home": typeof MainProfileIdHomeRoute;
+  "/_main/$profileId/notifications": typeof MainProfileIdNotificationsRoute;
+  "/_main/$profileId/proposals": typeof MainProfileIdProposalsRoute;
+  "/_main/$profileId/voice": typeof MainProfileIdVoiceRoute;
+  "/_main/settings/connectors": typeof MainSettingsConnectorsRoute;
+  "/_main/settings/extension": typeof MainSettingsExtensionRoute;
+  "/_main/settings/models": typeof MainSettingsModelsRoute;
+  "/_main/settings/preferences": typeof MainSettingsPreferencesRoute;
+  "/_main/settings/profiles": typeof MainSettingsProfilesRoute;
+  "/_main/settings/secrets": typeof MainSettingsSecretsRoute;
+  "/_main/settings/usage": typeof MainSettingsUsageRoute;
+  "/mcp/oauth/authorize": typeof McpOauthAuthorizeRoute;
+  "/_main/$profileId/": typeof MainProfileIdIndexRoute;
+  "/_main/settings/": typeof MainSettingsIndexRoute;
+  "/_main/svg-playground/": typeof MainSvgPlaygroundIndexRoute;
+  "/_main/$profileId/memories/list": typeof MainProfileIdMemoriesListRouteRouteWithChildren;
+  "/_main/$profileId/activity/ai-logs": typeof MainProfileIdActivityAiLogsRoute;
+  "/_main/$profileId/activity/events": typeof MainProfileIdActivityEventsRoute;
+  "/_main/$profileId/codebases/$id": typeof MainProfileIdCodebasesIdRoute;
+  "/_main/$profileId/inbox/notifications": typeof MainProfileIdInboxNotificationsRoute;
+  "/_main/$profileId/inbox/proposals": typeof MainProfileIdInboxProposalsRoute;
+  "/_main/$profileId/memories/graph": typeof MainProfileIdMemoriesGraphRoute;
+  "/_main/$profileId/memories/tags": typeof MainProfileIdMemoriesTagsRoute;
+  "/_main/$profileId/skills/$id": typeof MainProfileIdSkillsIdRoute;
+  "/_main/$profileId/skills/hub": typeof MainProfileIdSkillsHubRoute;
+  "/_main/$profileId/team/members": typeof MainProfileIdTeamMembersRoute;
+  "/_main/$profileId/team/settings": typeof MainProfileIdTeamSettingsRoute;
+  "/_main/$profileId/wiki/$docId": typeof MainProfileIdWikiDocIdRoute;
+  "/_main/settings/api/keys": typeof MainSettingsApiKeysRoute;
+  "/_main/settings/api/usage": typeof MainSettingsApiUsageRoute;
+  "/_main/settings/data-controls/danger": typeof MainSettingsDataControlsDangerRoute;
+  "/_main/settings/data-controls/export": typeof MainSettingsDataControlsExportRoute;
+  "/_main/settings/data-controls/import": typeof MainSettingsDataControlsImportRoute;
+  "/_main/settings/playground/callback": typeof MainSettingsPlaygroundCallbackRoute;
+  "/_main/$profileId/activity/": typeof MainProfileIdActivityIndexRoute;
+  "/_main/$profileId/ai-logs/": typeof MainProfileIdAiLogsIndexRoute;
+  "/_main/$profileId/codebases/": typeof MainProfileIdCodebasesIndexRoute;
+  "/_main/$profileId/inbox/": typeof MainProfileIdInboxIndexRoute;
+  "/_main/$profileId/memories/": typeof MainProfileIdMemoriesIndexRoute;
+  "/_main/$profileId/openrouter-logs/": typeof MainProfileIdOpenrouterLogsIndexRoute;
+  "/_main/$profileId/skills/": typeof MainProfileIdSkillsIndexRoute;
+  "/_main/$profileId/team/": typeof MainProfileIdTeamIndexRoute;
+  "/_main/$profileId/wiki/": typeof MainProfileIdWikiIndexRoute;
+  "/_main/settings/api/": typeof MainSettingsApiIndexRoute;
+  "/_main/settings/data-controls/": typeof MainSettingsDataControlsIndexRoute;
+  "/_main/settings/playground/": typeof MainSettingsPlaygroundIndexRoute;
+  "/_main/$profileId/memories/list/$id": typeof MainProfileIdMemoriesListIdRoute;
+  "/_main/$profileId/skills/system/$skillId": typeof MainProfileIdSkillsSystemSkillIdRoute;
+  "/_main/$profileId/memories/list/": typeof MainProfileIdMemoriesListIndexRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/agent-callback'
-    | '/slides'
-    | '/$profileId'
-    | '/home'
-    | '/$profileId/activity'
-    | '/$profileId/inbox'
-    | '/$profileId/memories'
-    | '/$profileId/skills'
-    | '/$profileId/team'
-    | '/$profileId/wiki'
-    | '/settings/api'
-    | '/settings/data-controls'
-    | '/$profileId/chat'
-    | '/$profileId/files'
-    | '/$profileId/home'
-    | '/$profileId/notifications'
-    | '/$profileId/proposals'
-    | '/$profileId/voice'
-    | '/settings/connectors'
-    | '/settings/extension'
-    | '/settings/models'
-    | '/settings/preferences'
-    | '/settings/profiles'
-    | '/settings/secrets'
-    | '/settings/usage'
-    | '/mcp/oauth/authorize'
-    | '/$profileId/'
-    | '/settings/'
-    | '/svg-playground/'
-    | '/$profileId/memories/list'
-    | '/$profileId/activity/ai-logs'
-    | '/$profileId/activity/events'
-    | '/$profileId/codebases/$id'
-    | '/$profileId/inbox/notifications'
-    | '/$profileId/inbox/proposals'
-    | '/$profileId/memories/graph'
-    | '/$profileId/memories/tags'
-    | '/$profileId/skills/$id'
-    | '/$profileId/skills/hub'
-    | '/$profileId/team/members'
-    | '/$profileId/team/settings'
-    | '/$profileId/wiki/$docId'
-    | '/settings/api/keys'
-    | '/settings/api/usage'
-    | '/settings/data-controls/danger'
-    | '/settings/data-controls/export'
-    | '/settings/data-controls/import'
-    | '/settings/playground/callback'
-    | '/$profileId/activity/'
-    | '/$profileId/ai-logs/'
-    | '/$profileId/codebases/'
-    | '/$profileId/inbox/'
-    | '/$profileId/memories/'
-    | '/$profileId/openrouter-logs/'
-    | '/$profileId/skills/'
-    | '/$profileId/team/'
-    | '/$profileId/wiki/'
-    | '/settings/api/'
-    | '/settings/data-controls/'
-    | '/settings/playground/'
-    | '/$profileId/memories/list/$id'
-    | '/$profileId/skills/system/$skillId'
-    | '/$profileId/memories/list/'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/agent-callback"
+    | "/$profileId"
+    | "/home"
+    | "/$profileId/activity"
+    | "/$profileId/inbox"
+    | "/$profileId/memories"
+    | "/$profileId/skills"
+    | "/$profileId/team"
+    | "/$profileId/wiki"
+    | "/settings/api"
+    | "/settings/data-controls"
+    | "/$profileId/chat"
+    | "/$profileId/files"
+    | "/$profileId/home"
+    | "/$profileId/notifications"
+    | "/$profileId/proposals"
+    | "/$profileId/voice"
+    | "/settings/connectors"
+    | "/settings/extension"
+    | "/settings/models"
+    | "/settings/preferences"
+    | "/settings/profiles"
+    | "/settings/secrets"
+    | "/settings/usage"
+    | "/mcp/oauth/authorize"
+    | "/$profileId/"
+    | "/settings/"
+    | "/svg-playground/"
+    | "/$profileId/memories/list"
+    | "/$profileId/activity/ai-logs"
+    | "/$profileId/activity/events"
+    | "/$profileId/codebases/$id"
+    | "/$profileId/inbox/notifications"
+    | "/$profileId/inbox/proposals"
+    | "/$profileId/memories/graph"
+    | "/$profileId/memories/tags"
+    | "/$profileId/skills/$id"
+    | "/$profileId/skills/hub"
+    | "/$profileId/team/members"
+    | "/$profileId/team/settings"
+    | "/$profileId/wiki/$docId"
+    | "/settings/api/keys"
+    | "/settings/api/usage"
+    | "/settings/data-controls/danger"
+    | "/settings/data-controls/export"
+    | "/settings/data-controls/import"
+    | "/settings/playground/callback"
+    | "/$profileId/activity/"
+    | "/$profileId/ai-logs/"
+    | "/$profileId/codebases/"
+    | "/$profileId/inbox/"
+    | "/$profileId/memories/"
+    | "/$profileId/openrouter-logs/"
+    | "/$profileId/skills/"
+    | "/$profileId/team/"
+    | "/$profileId/wiki/"
+    | "/settings/api/"
+    | "/settings/data-controls/"
+    | "/settings/playground/"
+    | "/$profileId/memories/list/$id"
+    | "/$profileId/skills/system/$skillId"
+    | "/$profileId/memories/list/";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/agent-callback'
-    | '/slides'
-    | '/home'
-    | '/$profileId/chat'
-    | '/$profileId/files'
-    | '/$profileId/home'
-    | '/$profileId/notifications'
-    | '/$profileId/proposals'
-    | '/$profileId/voice'
-    | '/settings/connectors'
-    | '/settings/extension'
-    | '/settings/models'
-    | '/settings/preferences'
-    | '/settings/profiles'
-    | '/settings/secrets'
-    | '/settings/usage'
-    | '/mcp/oauth/authorize'
-    | '/$profileId'
-    | '/settings'
-    | '/svg-playground'
-    | '/$profileId/activity/ai-logs'
-    | '/$profileId/activity/events'
-    | '/$profileId/codebases/$id'
-    | '/$profileId/inbox/notifications'
-    | '/$profileId/inbox/proposals'
-    | '/$profileId/memories/graph'
-    | '/$profileId/memories/tags'
-    | '/$profileId/skills/$id'
-    | '/$profileId/skills/hub'
-    | '/$profileId/team/members'
-    | '/$profileId/team/settings'
-    | '/$profileId/wiki/$docId'
-    | '/settings/api/keys'
-    | '/settings/api/usage'
-    | '/settings/data-controls/danger'
-    | '/settings/data-controls/export'
-    | '/settings/data-controls/import'
-    | '/settings/playground/callback'
-    | '/$profileId/activity'
-    | '/$profileId/ai-logs'
-    | '/$profileId/codebases'
-    | '/$profileId/inbox'
-    | '/$profileId/memories'
-    | '/$profileId/openrouter-logs'
-    | '/$profileId/skills'
-    | '/$profileId/team'
-    | '/$profileId/wiki'
-    | '/settings/api'
-    | '/settings/data-controls'
-    | '/settings/playground'
-    | '/$profileId/memories/list/$id'
-    | '/$profileId/skills/system/$skillId'
-    | '/$profileId/memories/list'
+    | "/"
+    | "/agent-callback"
+    | "/home"
+    | "/$profileId/chat"
+    | "/$profileId/files"
+    | "/$profileId/home"
+    | "/$profileId/notifications"
+    | "/$profileId/proposals"
+    | "/$profileId/voice"
+    | "/settings/connectors"
+    | "/settings/extension"
+    | "/settings/models"
+    | "/settings/preferences"
+    | "/settings/profiles"
+    | "/settings/secrets"
+    | "/settings/usage"
+    | "/mcp/oauth/authorize"
+    | "/$profileId"
+    | "/settings"
+    | "/svg-playground"
+    | "/$profileId/activity/ai-logs"
+    | "/$profileId/activity/events"
+    | "/$profileId/codebases/$id"
+    | "/$profileId/inbox/notifications"
+    | "/$profileId/inbox/proposals"
+    | "/$profileId/memories/graph"
+    | "/$profileId/memories/tags"
+    | "/$profileId/skills/$id"
+    | "/$profileId/skills/hub"
+    | "/$profileId/team/members"
+    | "/$profileId/team/settings"
+    | "/$profileId/wiki/$docId"
+    | "/settings/api/keys"
+    | "/settings/api/usage"
+    | "/settings/data-controls/danger"
+    | "/settings/data-controls/export"
+    | "/settings/data-controls/import"
+    | "/settings/playground/callback"
+    | "/$profileId/activity"
+    | "/$profileId/ai-logs"
+    | "/$profileId/codebases"
+    | "/$profileId/inbox"
+    | "/$profileId/memories"
+    | "/$profileId/openrouter-logs"
+    | "/$profileId/skills"
+    | "/$profileId/team"
+    | "/$profileId/wiki"
+    | "/settings/api"
+    | "/settings/data-controls"
+    | "/settings/playground"
+    | "/$profileId/memories/list/$id"
+    | "/$profileId/skills/system/$skillId"
+    | "/$profileId/memories/list";
   id:
-    | '__root__'
-    | '/'
-    | '/_main'
-    | '/agent-callback'
-    | '/slides'
-    | '/_main/$profileId'
-    | '/_main/home'
-    | '/_main/$profileId/activity'
-    | '/_main/$profileId/inbox'
-    | '/_main/$profileId/memories'
-    | '/_main/$profileId/skills'
-    | '/_main/$profileId/team'
-    | '/_main/$profileId/wiki'
-    | '/_main/settings/api'
-    | '/_main/settings/data-controls'
-    | '/_main/$profileId/chat'
-    | '/_main/$profileId/files'
-    | '/_main/$profileId/home'
-    | '/_main/$profileId/notifications'
-    | '/_main/$profileId/proposals'
-    | '/_main/$profileId/voice'
-    | '/_main/settings/connectors'
-    | '/_main/settings/extension'
-    | '/_main/settings/models'
-    | '/_main/settings/preferences'
-    | '/_main/settings/profiles'
-    | '/_main/settings/secrets'
-    | '/_main/settings/usage'
-    | '/mcp/oauth/authorize'
-    | '/_main/$profileId/'
-    | '/_main/settings/'
-    | '/_main/svg-playground/'
-    | '/_main/$profileId/memories/list'
-    | '/_main/$profileId/activity/ai-logs'
-    | '/_main/$profileId/activity/events'
-    | '/_main/$profileId/codebases/$id'
-    | '/_main/$profileId/inbox/notifications'
-    | '/_main/$profileId/inbox/proposals'
-    | '/_main/$profileId/memories/graph'
-    | '/_main/$profileId/memories/tags'
-    | '/_main/$profileId/skills/$id'
-    | '/_main/$profileId/skills/hub'
-    | '/_main/$profileId/team/members'
-    | '/_main/$profileId/team/settings'
-    | '/_main/$profileId/wiki/$docId'
-    | '/_main/settings/api/keys'
-    | '/_main/settings/api/usage'
-    | '/_main/settings/data-controls/danger'
-    | '/_main/settings/data-controls/export'
-    | '/_main/settings/data-controls/import'
-    | '/_main/settings/playground/callback'
-    | '/_main/$profileId/activity/'
-    | '/_main/$profileId/ai-logs/'
-    | '/_main/$profileId/codebases/'
-    | '/_main/$profileId/inbox/'
-    | '/_main/$profileId/memories/'
-    | '/_main/$profileId/openrouter-logs/'
-    | '/_main/$profileId/skills/'
-    | '/_main/$profileId/team/'
-    | '/_main/$profileId/wiki/'
-    | '/_main/settings/api/'
-    | '/_main/settings/data-controls/'
-    | '/_main/settings/playground/'
-    | '/_main/$profileId/memories/list/$id'
-    | '/_main/$profileId/skills/system/$skillId'
-    | '/_main/$profileId/memories/list/'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/_main"
+    | "/agent-callback"
+    | "/_main/$profileId"
+    | "/_main/home"
+    | "/_main/$profileId/activity"
+    | "/_main/$profileId/inbox"
+    | "/_main/$profileId/memories"
+    | "/_main/$profileId/skills"
+    | "/_main/$profileId/team"
+    | "/_main/$profileId/wiki"
+    | "/_main/settings/api"
+    | "/_main/settings/data-controls"
+    | "/_main/$profileId/chat"
+    | "/_main/$profileId/files"
+    | "/_main/$profileId/home"
+    | "/_main/$profileId/notifications"
+    | "/_main/$profileId/proposals"
+    | "/_main/$profileId/voice"
+    | "/_main/settings/connectors"
+    | "/_main/settings/extension"
+    | "/_main/settings/models"
+    | "/_main/settings/preferences"
+    | "/_main/settings/profiles"
+    | "/_main/settings/secrets"
+    | "/_main/settings/usage"
+    | "/mcp/oauth/authorize"
+    | "/_main/$profileId/"
+    | "/_main/settings/"
+    | "/_main/svg-playground/"
+    | "/_main/$profileId/memories/list"
+    | "/_main/$profileId/activity/ai-logs"
+    | "/_main/$profileId/activity/events"
+    | "/_main/$profileId/codebases/$id"
+    | "/_main/$profileId/inbox/notifications"
+    | "/_main/$profileId/inbox/proposals"
+    | "/_main/$profileId/memories/graph"
+    | "/_main/$profileId/memories/tags"
+    | "/_main/$profileId/skills/$id"
+    | "/_main/$profileId/skills/hub"
+    | "/_main/$profileId/team/members"
+    | "/_main/$profileId/team/settings"
+    | "/_main/$profileId/wiki/$docId"
+    | "/_main/settings/api/keys"
+    | "/_main/settings/api/usage"
+    | "/_main/settings/data-controls/danger"
+    | "/_main/settings/data-controls/export"
+    | "/_main/settings/data-controls/import"
+    | "/_main/settings/playground/callback"
+    | "/_main/$profileId/activity/"
+    | "/_main/$profileId/ai-logs/"
+    | "/_main/$profileId/codebases/"
+    | "/_main/$profileId/inbox/"
+    | "/_main/$profileId/memories/"
+    | "/_main/$profileId/openrouter-logs/"
+    | "/_main/$profileId/skills/"
+    | "/_main/$profileId/team/"
+    | "/_main/$profileId/wiki/"
+    | "/_main/settings/api/"
+    | "/_main/settings/data-controls/"
+    | "/_main/settings/playground/"
+    | "/_main/$profileId/memories/list/$id"
+    | "/_main/$profileId/skills/system/$skillId"
+    | "/_main/$profileId/memories/list/";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  MainRouteRoute: typeof MainRouteRouteWithChildren
-  AgentCallbackRoute: typeof AgentCallbackRoute
-  SlidesRoute: typeof SlidesRoute
-  McpOauthAuthorizeRoute: typeof McpOauthAuthorizeRoute
+  IndexRoute: typeof IndexRoute;
+  MainRouteRoute: typeof MainRouteRouteWithChildren;
+  AgentCallbackRoute: typeof AgentCallbackRoute;
+  McpOauthAuthorizeRoute: typeof McpOauthAuthorizeRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/slides': {
-      id: '/slides'
-      path: '/slides'
-      fullPath: '/slides'
-      preLoaderRoute: typeof SlidesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agent-callback': {
-      id: '/agent-callback'
-      path: '/agent-callback'
-      fullPath: '/agent-callback'
-      preLoaderRoute: typeof AgentCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_main': {
-      id: '/_main'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof MainRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_main/home': {
-      id: '/_main/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof MainHomeRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/$profileId': {
-      id: '/_main/$profileId'
-      path: '/$profileId'
-      fullPath: '/$profileId'
-      preLoaderRoute: typeof MainProfileIdRouteRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/svg-playground/': {
-      id: '/_main/svg-playground/'
-      path: '/svg-playground'
-      fullPath: '/svg-playground/'
-      preLoaderRoute: typeof MainSvgPlaygroundIndexRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/settings/': {
-      id: '/_main/settings/'
-      path: '/settings'
-      fullPath: '/settings/'
-      preLoaderRoute: typeof MainSettingsIndexRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/$profileId/': {
-      id: '/_main/$profileId/'
-      path: '/'
-      fullPath: '/$profileId/'
-      preLoaderRoute: typeof MainProfileIdIndexRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/mcp/oauth/authorize': {
-      id: '/mcp/oauth/authorize'
-      path: '/mcp/oauth/authorize'
-      fullPath: '/mcp/oauth/authorize'
-      preLoaderRoute: typeof McpOauthAuthorizeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_main/settings/usage': {
-      id: '/_main/settings/usage'
-      path: '/settings/usage'
-      fullPath: '/settings/usage'
-      preLoaderRoute: typeof MainSettingsUsageRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/settings/secrets': {
-      id: '/_main/settings/secrets'
-      path: '/settings/secrets'
-      fullPath: '/settings/secrets'
-      preLoaderRoute: typeof MainSettingsSecretsRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/settings/profiles': {
-      id: '/_main/settings/profiles'
-      path: '/settings/profiles'
-      fullPath: '/settings/profiles'
-      preLoaderRoute: typeof MainSettingsProfilesRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/settings/preferences': {
-      id: '/_main/settings/preferences'
-      path: '/settings/preferences'
-      fullPath: '/settings/preferences'
-      preLoaderRoute: typeof MainSettingsPreferencesRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/settings/models': {
-      id: '/_main/settings/models'
-      path: '/settings/models'
-      fullPath: '/settings/models'
-      preLoaderRoute: typeof MainSettingsModelsRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/settings/extension': {
-      id: '/_main/settings/extension'
-      path: '/settings/extension'
-      fullPath: '/settings/extension'
-      preLoaderRoute: typeof MainSettingsExtensionRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/settings/connectors': {
-      id: '/_main/settings/connectors'
-      path: '/settings/connectors'
-      fullPath: '/settings/connectors'
-      preLoaderRoute: typeof MainSettingsConnectorsRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/$profileId/voice': {
-      id: '/_main/$profileId/voice'
-      path: '/voice'
-      fullPath: '/$profileId/voice'
-      preLoaderRoute: typeof MainProfileIdVoiceRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/proposals': {
-      id: '/_main/$profileId/proposals'
-      path: '/proposals'
-      fullPath: '/$profileId/proposals'
-      preLoaderRoute: typeof MainProfileIdProposalsRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/notifications': {
-      id: '/_main/$profileId/notifications'
-      path: '/notifications'
-      fullPath: '/$profileId/notifications'
-      preLoaderRoute: typeof MainProfileIdNotificationsRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/home': {
-      id: '/_main/$profileId/home'
-      path: '/home'
-      fullPath: '/$profileId/home'
-      preLoaderRoute: typeof MainProfileIdHomeRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/files': {
-      id: '/_main/$profileId/files'
-      path: '/files'
-      fullPath: '/$profileId/files'
-      preLoaderRoute: typeof MainProfileIdFilesRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/chat': {
-      id: '/_main/$profileId/chat'
-      path: '/chat'
-      fullPath: '/$profileId/chat'
-      preLoaderRoute: typeof MainProfileIdChatRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/settings/data-controls': {
-      id: '/_main/settings/data-controls'
-      path: '/settings/data-controls'
-      fullPath: '/settings/data-controls'
-      preLoaderRoute: typeof MainSettingsDataControlsRouteRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/settings/api': {
-      id: '/_main/settings/api'
-      path: '/settings/api'
-      fullPath: '/settings/api'
-      preLoaderRoute: typeof MainSettingsApiRouteRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/$profileId/wiki': {
-      id: '/_main/$profileId/wiki'
-      path: '/wiki'
-      fullPath: '/$profileId/wiki'
-      preLoaderRoute: typeof MainProfileIdWikiRouteRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/team': {
-      id: '/_main/$profileId/team'
-      path: '/team'
-      fullPath: '/$profileId/team'
-      preLoaderRoute: typeof MainProfileIdTeamRouteRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/skills': {
-      id: '/_main/$profileId/skills'
-      path: '/skills'
-      fullPath: '/$profileId/skills'
-      preLoaderRoute: typeof MainProfileIdSkillsRouteRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/memories': {
-      id: '/_main/$profileId/memories'
-      path: '/memories'
-      fullPath: '/$profileId/memories'
-      preLoaderRoute: typeof MainProfileIdMemoriesRouteRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/inbox': {
-      id: '/_main/$profileId/inbox'
-      path: '/inbox'
-      fullPath: '/$profileId/inbox'
-      preLoaderRoute: typeof MainProfileIdInboxRouteRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/activity': {
-      id: '/_main/$profileId/activity'
-      path: '/activity'
-      fullPath: '/$profileId/activity'
-      preLoaderRoute: typeof MainProfileIdActivityRouteRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/settings/playground/': {
-      id: '/_main/settings/playground/'
-      path: '/settings/playground'
-      fullPath: '/settings/playground/'
-      preLoaderRoute: typeof MainSettingsPlaygroundIndexRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/settings/data-controls/': {
-      id: '/_main/settings/data-controls/'
-      path: '/'
-      fullPath: '/settings/data-controls/'
-      preLoaderRoute: typeof MainSettingsDataControlsIndexRouteImport
-      parentRoute: typeof MainSettingsDataControlsRouteRoute
-    }
-    '/_main/settings/api/': {
-      id: '/_main/settings/api/'
-      path: '/'
-      fullPath: '/settings/api/'
-      preLoaderRoute: typeof MainSettingsApiIndexRouteImport
-      parentRoute: typeof MainSettingsApiRouteRoute
-    }
-    '/_main/$profileId/wiki/': {
-      id: '/_main/$profileId/wiki/'
-      path: '/'
-      fullPath: '/$profileId/wiki/'
-      preLoaderRoute: typeof MainProfileIdWikiIndexRouteImport
-      parentRoute: typeof MainProfileIdWikiRouteRoute
-    }
-    '/_main/$profileId/team/': {
-      id: '/_main/$profileId/team/'
-      path: '/'
-      fullPath: '/$profileId/team/'
-      preLoaderRoute: typeof MainProfileIdTeamIndexRouteImport
-      parentRoute: typeof MainProfileIdTeamRouteRoute
-    }
-    '/_main/$profileId/skills/': {
-      id: '/_main/$profileId/skills/'
-      path: '/'
-      fullPath: '/$profileId/skills/'
-      preLoaderRoute: typeof MainProfileIdSkillsIndexRouteImport
-      parentRoute: typeof MainProfileIdSkillsRouteRoute
-    }
-    '/_main/$profileId/openrouter-logs/': {
-      id: '/_main/$profileId/openrouter-logs/'
-      path: '/openrouter-logs'
-      fullPath: '/$profileId/openrouter-logs/'
-      preLoaderRoute: typeof MainProfileIdOpenrouterLogsIndexRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/memories/': {
-      id: '/_main/$profileId/memories/'
-      path: '/'
-      fullPath: '/$profileId/memories/'
-      preLoaderRoute: typeof MainProfileIdMemoriesIndexRouteImport
-      parentRoute: typeof MainProfileIdMemoriesRouteRoute
-    }
-    '/_main/$profileId/inbox/': {
-      id: '/_main/$profileId/inbox/'
-      path: '/'
-      fullPath: '/$profileId/inbox/'
-      preLoaderRoute: typeof MainProfileIdInboxIndexRouteImport
-      parentRoute: typeof MainProfileIdInboxRouteRoute
-    }
-    '/_main/$profileId/codebases/': {
-      id: '/_main/$profileId/codebases/'
-      path: '/codebases'
-      fullPath: '/$profileId/codebases/'
-      preLoaderRoute: typeof MainProfileIdCodebasesIndexRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/ai-logs/': {
-      id: '/_main/$profileId/ai-logs/'
-      path: '/ai-logs'
-      fullPath: '/$profileId/ai-logs/'
-      preLoaderRoute: typeof MainProfileIdAiLogsIndexRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/activity/': {
-      id: '/_main/$profileId/activity/'
-      path: '/'
-      fullPath: '/$profileId/activity/'
-      preLoaderRoute: typeof MainProfileIdActivityIndexRouteImport
-      parentRoute: typeof MainProfileIdActivityRouteRoute
-    }
-    '/_main/settings/playground/callback': {
-      id: '/_main/settings/playground/callback'
-      path: '/settings/playground/callback'
-      fullPath: '/settings/playground/callback'
-      preLoaderRoute: typeof MainSettingsPlaygroundCallbackRouteImport
-      parentRoute: typeof MainRouteRoute
-    }
-    '/_main/settings/data-controls/import': {
-      id: '/_main/settings/data-controls/import'
-      path: '/import'
-      fullPath: '/settings/data-controls/import'
-      preLoaderRoute: typeof MainSettingsDataControlsImportRouteImport
-      parentRoute: typeof MainSettingsDataControlsRouteRoute
-    }
-    '/_main/settings/data-controls/export': {
-      id: '/_main/settings/data-controls/export'
-      path: '/export'
-      fullPath: '/settings/data-controls/export'
-      preLoaderRoute: typeof MainSettingsDataControlsExportRouteImport
-      parentRoute: typeof MainSettingsDataControlsRouteRoute
-    }
-    '/_main/settings/data-controls/danger': {
-      id: '/_main/settings/data-controls/danger'
-      path: '/danger'
-      fullPath: '/settings/data-controls/danger'
-      preLoaderRoute: typeof MainSettingsDataControlsDangerRouteImport
-      parentRoute: typeof MainSettingsDataControlsRouteRoute
-    }
-    '/_main/settings/api/usage': {
-      id: '/_main/settings/api/usage'
-      path: '/usage'
-      fullPath: '/settings/api/usage'
-      preLoaderRoute: typeof MainSettingsApiUsageRouteImport
-      parentRoute: typeof MainSettingsApiRouteRoute
-    }
-    '/_main/settings/api/keys': {
-      id: '/_main/settings/api/keys'
-      path: '/keys'
-      fullPath: '/settings/api/keys'
-      preLoaderRoute: typeof MainSettingsApiKeysRouteImport
-      parentRoute: typeof MainSettingsApiRouteRoute
-    }
-    '/_main/$profileId/wiki/$docId': {
-      id: '/_main/$profileId/wiki/$docId'
-      path: '/$docId'
-      fullPath: '/$profileId/wiki/$docId'
-      preLoaderRoute: typeof MainProfileIdWikiDocIdRouteImport
-      parentRoute: typeof MainProfileIdWikiRouteRoute
-    }
-    '/_main/$profileId/team/settings': {
-      id: '/_main/$profileId/team/settings'
-      path: '/settings'
-      fullPath: '/$profileId/team/settings'
-      preLoaderRoute: typeof MainProfileIdTeamSettingsRouteImport
-      parentRoute: typeof MainProfileIdTeamRouteRoute
-    }
-    '/_main/$profileId/team/members': {
-      id: '/_main/$profileId/team/members'
-      path: '/members'
-      fullPath: '/$profileId/team/members'
-      preLoaderRoute: typeof MainProfileIdTeamMembersRouteImport
-      parentRoute: typeof MainProfileIdTeamRouteRoute
-    }
-    '/_main/$profileId/skills/hub': {
-      id: '/_main/$profileId/skills/hub'
-      path: '/hub'
-      fullPath: '/$profileId/skills/hub'
-      preLoaderRoute: typeof MainProfileIdSkillsHubRouteImport
-      parentRoute: typeof MainProfileIdSkillsRouteRoute
-    }
-    '/_main/$profileId/skills/$id': {
-      id: '/_main/$profileId/skills/$id'
-      path: '/$id'
-      fullPath: '/$profileId/skills/$id'
-      preLoaderRoute: typeof MainProfileIdSkillsIdRouteImport
-      parentRoute: typeof MainProfileIdSkillsRouteRoute
-    }
-    '/_main/$profileId/memories/tags': {
-      id: '/_main/$profileId/memories/tags'
-      path: '/tags'
-      fullPath: '/$profileId/memories/tags'
-      preLoaderRoute: typeof MainProfileIdMemoriesTagsRouteImport
-      parentRoute: typeof MainProfileIdMemoriesRouteRoute
-    }
-    '/_main/$profileId/memories/graph': {
-      id: '/_main/$profileId/memories/graph'
-      path: '/graph'
-      fullPath: '/$profileId/memories/graph'
-      preLoaderRoute: typeof MainProfileIdMemoriesGraphRouteImport
-      parentRoute: typeof MainProfileIdMemoriesRouteRoute
-    }
-    '/_main/$profileId/inbox/proposals': {
-      id: '/_main/$profileId/inbox/proposals'
-      path: '/proposals'
-      fullPath: '/$profileId/inbox/proposals'
-      preLoaderRoute: typeof MainProfileIdInboxProposalsRouteImport
-      parentRoute: typeof MainProfileIdInboxRouteRoute
-    }
-    '/_main/$profileId/inbox/notifications': {
-      id: '/_main/$profileId/inbox/notifications'
-      path: '/notifications'
-      fullPath: '/$profileId/inbox/notifications'
-      preLoaderRoute: typeof MainProfileIdInboxNotificationsRouteImport
-      parentRoute: typeof MainProfileIdInboxRouteRoute
-    }
-    '/_main/$profileId/codebases/$id': {
-      id: '/_main/$profileId/codebases/$id'
-      path: '/codebases/$id'
-      fullPath: '/$profileId/codebases/$id'
-      preLoaderRoute: typeof MainProfileIdCodebasesIdRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/activity/events': {
-      id: '/_main/$profileId/activity/events'
-      path: '/events'
-      fullPath: '/$profileId/activity/events'
-      preLoaderRoute: typeof MainProfileIdActivityEventsRouteImport
-      parentRoute: typeof MainProfileIdActivityRouteRoute
-    }
-    '/_main/$profileId/activity/ai-logs': {
-      id: '/_main/$profileId/activity/ai-logs'
-      path: '/ai-logs'
-      fullPath: '/$profileId/activity/ai-logs'
-      preLoaderRoute: typeof MainProfileIdActivityAiLogsRouteImport
-      parentRoute: typeof MainProfileIdActivityRouteRoute
-    }
-    '/_main/$profileId/memories/list': {
-      id: '/_main/$profileId/memories/list'
-      path: '/list'
-      fullPath: '/$profileId/memories/list'
-      preLoaderRoute: typeof MainProfileIdMemoriesListRouteRouteImport
-      parentRoute: typeof MainProfileIdMemoriesRouteRoute
-    }
-    '/_main/$profileId/memories/list/': {
-      id: '/_main/$profileId/memories/list/'
-      path: '/'
-      fullPath: '/$profileId/memories/list/'
-      preLoaderRoute: typeof MainProfileIdMemoriesListIndexRouteImport
-      parentRoute: typeof MainProfileIdMemoriesListRouteRoute
-    }
-    '/_main/$profileId/skills/system/$skillId': {
-      id: '/_main/$profileId/skills/system/$skillId'
-      path: '/system/$skillId'
-      fullPath: '/$profileId/skills/system/$skillId'
-      preLoaderRoute: typeof MainProfileIdSkillsSystemSkillIdRouteImport
-      parentRoute: typeof MainProfileIdSkillsRouteRoute
-    }
-    '/_main/$profileId/memories/list/$id': {
-      id: '/_main/$profileId/memories/list/$id'
-      path: '/$id'
-      fullPath: '/$profileId/memories/list/$id'
-      preLoaderRoute: typeof MainProfileIdMemoriesListIdRouteImport
-      parentRoute: typeof MainProfileIdMemoriesListRouteRoute
-    }
+    "/agent-callback": {
+      id: "/agent-callback";
+      path: "/agent-callback";
+      fullPath: "/agent-callback";
+      preLoaderRoute: typeof AgentCallbackRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_main": {
+      id: "/_main";
+      path: "";
+      fullPath: "/";
+      preLoaderRoute: typeof MainRouteRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_main/home": {
+      id: "/_main/home";
+      path: "/home";
+      fullPath: "/home";
+      preLoaderRoute: typeof MainHomeRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/$profileId": {
+      id: "/_main/$profileId";
+      path: "/$profileId";
+      fullPath: "/$profileId";
+      preLoaderRoute: typeof MainProfileIdRouteRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/svg-playground/": {
+      id: "/_main/svg-playground/";
+      path: "/svg-playground";
+      fullPath: "/svg-playground/";
+      preLoaderRoute: typeof MainSvgPlaygroundIndexRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/settings/": {
+      id: "/_main/settings/";
+      path: "/settings";
+      fullPath: "/settings/";
+      preLoaderRoute: typeof MainSettingsIndexRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/$profileId/": {
+      id: "/_main/$profileId/";
+      path: "/";
+      fullPath: "/$profileId/";
+      preLoaderRoute: typeof MainProfileIdIndexRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/mcp/oauth/authorize": {
+      id: "/mcp/oauth/authorize";
+      path: "/mcp/oauth/authorize";
+      fullPath: "/mcp/oauth/authorize";
+      preLoaderRoute: typeof McpOauthAuthorizeRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_main/settings/usage": {
+      id: "/_main/settings/usage";
+      path: "/settings/usage";
+      fullPath: "/settings/usage";
+      preLoaderRoute: typeof MainSettingsUsageRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/settings/secrets": {
+      id: "/_main/settings/secrets";
+      path: "/settings/secrets";
+      fullPath: "/settings/secrets";
+      preLoaderRoute: typeof MainSettingsSecretsRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/settings/profiles": {
+      id: "/_main/settings/profiles";
+      path: "/settings/profiles";
+      fullPath: "/settings/profiles";
+      preLoaderRoute: typeof MainSettingsProfilesRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/settings/preferences": {
+      id: "/_main/settings/preferences";
+      path: "/settings/preferences";
+      fullPath: "/settings/preferences";
+      preLoaderRoute: typeof MainSettingsPreferencesRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/settings/models": {
+      id: "/_main/settings/models";
+      path: "/settings/models";
+      fullPath: "/settings/models";
+      preLoaderRoute: typeof MainSettingsModelsRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/settings/extension": {
+      id: "/_main/settings/extension";
+      path: "/settings/extension";
+      fullPath: "/settings/extension";
+      preLoaderRoute: typeof MainSettingsExtensionRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/settings/connectors": {
+      id: "/_main/settings/connectors";
+      path: "/settings/connectors";
+      fullPath: "/settings/connectors";
+      preLoaderRoute: typeof MainSettingsConnectorsRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/$profileId/voice": {
+      id: "/_main/$profileId/voice";
+      path: "/voice";
+      fullPath: "/$profileId/voice";
+      preLoaderRoute: typeof MainProfileIdVoiceRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/proposals": {
+      id: "/_main/$profileId/proposals";
+      path: "/proposals";
+      fullPath: "/$profileId/proposals";
+      preLoaderRoute: typeof MainProfileIdProposalsRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/notifications": {
+      id: "/_main/$profileId/notifications";
+      path: "/notifications";
+      fullPath: "/$profileId/notifications";
+      preLoaderRoute: typeof MainProfileIdNotificationsRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/home": {
+      id: "/_main/$profileId/home";
+      path: "/home";
+      fullPath: "/$profileId/home";
+      preLoaderRoute: typeof MainProfileIdHomeRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/files": {
+      id: "/_main/$profileId/files";
+      path: "/files";
+      fullPath: "/$profileId/files";
+      preLoaderRoute: typeof MainProfileIdFilesRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/chat": {
+      id: "/_main/$profileId/chat";
+      path: "/chat";
+      fullPath: "/$profileId/chat";
+      preLoaderRoute: typeof MainProfileIdChatRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/settings/data-controls": {
+      id: "/_main/settings/data-controls";
+      path: "/settings/data-controls";
+      fullPath: "/settings/data-controls";
+      preLoaderRoute: typeof MainSettingsDataControlsRouteRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/settings/api": {
+      id: "/_main/settings/api";
+      path: "/settings/api";
+      fullPath: "/settings/api";
+      preLoaderRoute: typeof MainSettingsApiRouteRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/$profileId/wiki": {
+      id: "/_main/$profileId/wiki";
+      path: "/wiki";
+      fullPath: "/$profileId/wiki";
+      preLoaderRoute: typeof MainProfileIdWikiRouteRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/team": {
+      id: "/_main/$profileId/team";
+      path: "/team";
+      fullPath: "/$profileId/team";
+      preLoaderRoute: typeof MainProfileIdTeamRouteRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/skills": {
+      id: "/_main/$profileId/skills";
+      path: "/skills";
+      fullPath: "/$profileId/skills";
+      preLoaderRoute: typeof MainProfileIdSkillsRouteRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/memories": {
+      id: "/_main/$profileId/memories";
+      path: "/memories";
+      fullPath: "/$profileId/memories";
+      preLoaderRoute: typeof MainProfileIdMemoriesRouteRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/inbox": {
+      id: "/_main/$profileId/inbox";
+      path: "/inbox";
+      fullPath: "/$profileId/inbox";
+      preLoaderRoute: typeof MainProfileIdInboxRouteRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/activity": {
+      id: "/_main/$profileId/activity";
+      path: "/activity";
+      fullPath: "/$profileId/activity";
+      preLoaderRoute: typeof MainProfileIdActivityRouteRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/settings/playground/": {
+      id: "/_main/settings/playground/";
+      path: "/settings/playground";
+      fullPath: "/settings/playground/";
+      preLoaderRoute: typeof MainSettingsPlaygroundIndexRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/settings/data-controls/": {
+      id: "/_main/settings/data-controls/";
+      path: "/";
+      fullPath: "/settings/data-controls/";
+      preLoaderRoute: typeof MainSettingsDataControlsIndexRouteImport;
+      parentRoute: typeof MainSettingsDataControlsRouteRoute;
+    };
+    "/_main/settings/api/": {
+      id: "/_main/settings/api/";
+      path: "/";
+      fullPath: "/settings/api/";
+      preLoaderRoute: typeof MainSettingsApiIndexRouteImport;
+      parentRoute: typeof MainSettingsApiRouteRoute;
+    };
+    "/_main/$profileId/wiki/": {
+      id: "/_main/$profileId/wiki/";
+      path: "/";
+      fullPath: "/$profileId/wiki/";
+      preLoaderRoute: typeof MainProfileIdWikiIndexRouteImport;
+      parentRoute: typeof MainProfileIdWikiRouteRoute;
+    };
+    "/_main/$profileId/team/": {
+      id: "/_main/$profileId/team/";
+      path: "/";
+      fullPath: "/$profileId/team/";
+      preLoaderRoute: typeof MainProfileIdTeamIndexRouteImport;
+      parentRoute: typeof MainProfileIdTeamRouteRoute;
+    };
+    "/_main/$profileId/skills/": {
+      id: "/_main/$profileId/skills/";
+      path: "/";
+      fullPath: "/$profileId/skills/";
+      preLoaderRoute: typeof MainProfileIdSkillsIndexRouteImport;
+      parentRoute: typeof MainProfileIdSkillsRouteRoute;
+    };
+    "/_main/$profileId/openrouter-logs/": {
+      id: "/_main/$profileId/openrouter-logs/";
+      path: "/openrouter-logs";
+      fullPath: "/$profileId/openrouter-logs/";
+      preLoaderRoute: typeof MainProfileIdOpenrouterLogsIndexRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/memories/": {
+      id: "/_main/$profileId/memories/";
+      path: "/";
+      fullPath: "/$profileId/memories/";
+      preLoaderRoute: typeof MainProfileIdMemoriesIndexRouteImport;
+      parentRoute: typeof MainProfileIdMemoriesRouteRoute;
+    };
+    "/_main/$profileId/inbox/": {
+      id: "/_main/$profileId/inbox/";
+      path: "/";
+      fullPath: "/$profileId/inbox/";
+      preLoaderRoute: typeof MainProfileIdInboxIndexRouteImport;
+      parentRoute: typeof MainProfileIdInboxRouteRoute;
+    };
+    "/_main/$profileId/codebases/": {
+      id: "/_main/$profileId/codebases/";
+      path: "/codebases";
+      fullPath: "/$profileId/codebases/";
+      preLoaderRoute: typeof MainProfileIdCodebasesIndexRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/ai-logs/": {
+      id: "/_main/$profileId/ai-logs/";
+      path: "/ai-logs";
+      fullPath: "/$profileId/ai-logs/";
+      preLoaderRoute: typeof MainProfileIdAiLogsIndexRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/activity/": {
+      id: "/_main/$profileId/activity/";
+      path: "/";
+      fullPath: "/$profileId/activity/";
+      preLoaderRoute: typeof MainProfileIdActivityIndexRouteImport;
+      parentRoute: typeof MainProfileIdActivityRouteRoute;
+    };
+    "/_main/settings/playground/callback": {
+      id: "/_main/settings/playground/callback";
+      path: "/settings/playground/callback";
+      fullPath: "/settings/playground/callback";
+      preLoaderRoute: typeof MainSettingsPlaygroundCallbackRouteImport;
+      parentRoute: typeof MainRouteRoute;
+    };
+    "/_main/settings/data-controls/import": {
+      id: "/_main/settings/data-controls/import";
+      path: "/import";
+      fullPath: "/settings/data-controls/import";
+      preLoaderRoute: typeof MainSettingsDataControlsImportRouteImport;
+      parentRoute: typeof MainSettingsDataControlsRouteRoute;
+    };
+    "/_main/settings/data-controls/export": {
+      id: "/_main/settings/data-controls/export";
+      path: "/export";
+      fullPath: "/settings/data-controls/export";
+      preLoaderRoute: typeof MainSettingsDataControlsExportRouteImport;
+      parentRoute: typeof MainSettingsDataControlsRouteRoute;
+    };
+    "/_main/settings/data-controls/danger": {
+      id: "/_main/settings/data-controls/danger";
+      path: "/danger";
+      fullPath: "/settings/data-controls/danger";
+      preLoaderRoute: typeof MainSettingsDataControlsDangerRouteImport;
+      parentRoute: typeof MainSettingsDataControlsRouteRoute;
+    };
+    "/_main/settings/api/usage": {
+      id: "/_main/settings/api/usage";
+      path: "/usage";
+      fullPath: "/settings/api/usage";
+      preLoaderRoute: typeof MainSettingsApiUsageRouteImport;
+      parentRoute: typeof MainSettingsApiRouteRoute;
+    };
+    "/_main/settings/api/keys": {
+      id: "/_main/settings/api/keys";
+      path: "/keys";
+      fullPath: "/settings/api/keys";
+      preLoaderRoute: typeof MainSettingsApiKeysRouteImport;
+      parentRoute: typeof MainSettingsApiRouteRoute;
+    };
+    "/_main/$profileId/wiki/$docId": {
+      id: "/_main/$profileId/wiki/$docId";
+      path: "/$docId";
+      fullPath: "/$profileId/wiki/$docId";
+      preLoaderRoute: typeof MainProfileIdWikiDocIdRouteImport;
+      parentRoute: typeof MainProfileIdWikiRouteRoute;
+    };
+    "/_main/$profileId/team/settings": {
+      id: "/_main/$profileId/team/settings";
+      path: "/settings";
+      fullPath: "/$profileId/team/settings";
+      preLoaderRoute: typeof MainProfileIdTeamSettingsRouteImport;
+      parentRoute: typeof MainProfileIdTeamRouteRoute;
+    };
+    "/_main/$profileId/team/members": {
+      id: "/_main/$profileId/team/members";
+      path: "/members";
+      fullPath: "/$profileId/team/members";
+      preLoaderRoute: typeof MainProfileIdTeamMembersRouteImport;
+      parentRoute: typeof MainProfileIdTeamRouteRoute;
+    };
+    "/_main/$profileId/skills/hub": {
+      id: "/_main/$profileId/skills/hub";
+      path: "/hub";
+      fullPath: "/$profileId/skills/hub";
+      preLoaderRoute: typeof MainProfileIdSkillsHubRouteImport;
+      parentRoute: typeof MainProfileIdSkillsRouteRoute;
+    };
+    "/_main/$profileId/skills/$id": {
+      id: "/_main/$profileId/skills/$id";
+      path: "/$id";
+      fullPath: "/$profileId/skills/$id";
+      preLoaderRoute: typeof MainProfileIdSkillsIdRouteImport;
+      parentRoute: typeof MainProfileIdSkillsRouteRoute;
+    };
+    "/_main/$profileId/memories/tags": {
+      id: "/_main/$profileId/memories/tags";
+      path: "/tags";
+      fullPath: "/$profileId/memories/tags";
+      preLoaderRoute: typeof MainProfileIdMemoriesTagsRouteImport;
+      parentRoute: typeof MainProfileIdMemoriesRouteRoute;
+    };
+    "/_main/$profileId/memories/graph": {
+      id: "/_main/$profileId/memories/graph";
+      path: "/graph";
+      fullPath: "/$profileId/memories/graph";
+      preLoaderRoute: typeof MainProfileIdMemoriesGraphRouteImport;
+      parentRoute: typeof MainProfileIdMemoriesRouteRoute;
+    };
+    "/_main/$profileId/inbox/proposals": {
+      id: "/_main/$profileId/inbox/proposals";
+      path: "/proposals";
+      fullPath: "/$profileId/inbox/proposals";
+      preLoaderRoute: typeof MainProfileIdInboxProposalsRouteImport;
+      parentRoute: typeof MainProfileIdInboxRouteRoute;
+    };
+    "/_main/$profileId/inbox/notifications": {
+      id: "/_main/$profileId/inbox/notifications";
+      path: "/notifications";
+      fullPath: "/$profileId/inbox/notifications";
+      preLoaderRoute: typeof MainProfileIdInboxNotificationsRouteImport;
+      parentRoute: typeof MainProfileIdInboxRouteRoute;
+    };
+    "/_main/$profileId/codebases/$id": {
+      id: "/_main/$profileId/codebases/$id";
+      path: "/codebases/$id";
+      fullPath: "/$profileId/codebases/$id";
+      preLoaderRoute: typeof MainProfileIdCodebasesIdRouteImport;
+      parentRoute: typeof MainProfileIdRouteRoute;
+    };
+    "/_main/$profileId/activity/events": {
+      id: "/_main/$profileId/activity/events";
+      path: "/events";
+      fullPath: "/$profileId/activity/events";
+      preLoaderRoute: typeof MainProfileIdActivityEventsRouteImport;
+      parentRoute: typeof MainProfileIdActivityRouteRoute;
+    };
+    "/_main/$profileId/activity/ai-logs": {
+      id: "/_main/$profileId/activity/ai-logs";
+      path: "/ai-logs";
+      fullPath: "/$profileId/activity/ai-logs";
+      preLoaderRoute: typeof MainProfileIdActivityAiLogsRouteImport;
+      parentRoute: typeof MainProfileIdActivityRouteRoute;
+    };
+    "/_main/$profileId/memories/list": {
+      id: "/_main/$profileId/memories/list";
+      path: "/list";
+      fullPath: "/$profileId/memories/list";
+      preLoaderRoute: typeof MainProfileIdMemoriesListRouteRouteImport;
+      parentRoute: typeof MainProfileIdMemoriesRouteRoute;
+    };
+    "/_main/$profileId/memories/list/": {
+      id: "/_main/$profileId/memories/list/";
+      path: "/";
+      fullPath: "/$profileId/memories/list/";
+      preLoaderRoute: typeof MainProfileIdMemoriesListIndexRouteImport;
+      parentRoute: typeof MainProfileIdMemoriesListRouteRoute;
+    };
+    "/_main/$profileId/skills/system/$skillId": {
+      id: "/_main/$profileId/skills/system/$skillId";
+      path: "/system/$skillId";
+      fullPath: "/$profileId/skills/system/$skillId";
+      preLoaderRoute: typeof MainProfileIdSkillsSystemSkillIdRouteImport;
+      parentRoute: typeof MainProfileIdSkillsRouteRoute;
+    };
+    "/_main/$profileId/memories/list/$id": {
+      id: "/_main/$profileId/memories/list/$id";
+      path: "/$id";
+      fullPath: "/$profileId/memories/list/$id";
+      preLoaderRoute: typeof MainProfileIdMemoriesListIdRouteImport;
+      parentRoute: typeof MainProfileIdMemoriesListRouteRoute;
+    };
   }
 }
 
 interface MainProfileIdActivityRouteRouteChildren {
-  MainProfileIdActivityAiLogsRoute: typeof MainProfileIdActivityAiLogsRoute
-  MainProfileIdActivityEventsRoute: typeof MainProfileIdActivityEventsRoute
-  MainProfileIdActivityIndexRoute: typeof MainProfileIdActivityIndexRoute
+  MainProfileIdActivityAiLogsRoute: typeof MainProfileIdActivityAiLogsRoute;
+  MainProfileIdActivityEventsRoute: typeof MainProfileIdActivityEventsRoute;
+  MainProfileIdActivityIndexRoute: typeof MainProfileIdActivityIndexRoute;
 }
 
 const MainProfileIdActivityRouteRouteChildren: MainProfileIdActivityRouteRouteChildren =
@@ -1291,17 +1271,17 @@ const MainProfileIdActivityRouteRouteChildren: MainProfileIdActivityRouteRouteCh
     MainProfileIdActivityAiLogsRoute: MainProfileIdActivityAiLogsRoute,
     MainProfileIdActivityEventsRoute: MainProfileIdActivityEventsRoute,
     MainProfileIdActivityIndexRoute: MainProfileIdActivityIndexRoute,
-  }
+  };
 
 const MainProfileIdActivityRouteRouteWithChildren =
   MainProfileIdActivityRouteRoute._addFileChildren(
     MainProfileIdActivityRouteRouteChildren,
-  )
+  );
 
 interface MainProfileIdInboxRouteRouteChildren {
-  MainProfileIdInboxNotificationsRoute: typeof MainProfileIdInboxNotificationsRoute
-  MainProfileIdInboxProposalsRoute: typeof MainProfileIdInboxProposalsRoute
-  MainProfileIdInboxIndexRoute: typeof MainProfileIdInboxIndexRoute
+  MainProfileIdInboxNotificationsRoute: typeof MainProfileIdInboxNotificationsRoute;
+  MainProfileIdInboxProposalsRoute: typeof MainProfileIdInboxProposalsRoute;
+  MainProfileIdInboxIndexRoute: typeof MainProfileIdInboxIndexRoute;
 }
 
 const MainProfileIdInboxRouteRouteChildren: MainProfileIdInboxRouteRouteChildren =
@@ -1309,34 +1289,34 @@ const MainProfileIdInboxRouteRouteChildren: MainProfileIdInboxRouteRouteChildren
     MainProfileIdInboxNotificationsRoute: MainProfileIdInboxNotificationsRoute,
     MainProfileIdInboxProposalsRoute: MainProfileIdInboxProposalsRoute,
     MainProfileIdInboxIndexRoute: MainProfileIdInboxIndexRoute,
-  }
+  };
 
 const MainProfileIdInboxRouteRouteWithChildren =
   MainProfileIdInboxRouteRoute._addFileChildren(
     MainProfileIdInboxRouteRouteChildren,
-  )
+  );
 
 interface MainProfileIdMemoriesListRouteRouteChildren {
-  MainProfileIdMemoriesListIdRoute: typeof MainProfileIdMemoriesListIdRoute
-  MainProfileIdMemoriesListIndexRoute: typeof MainProfileIdMemoriesListIndexRoute
+  MainProfileIdMemoriesListIdRoute: typeof MainProfileIdMemoriesListIdRoute;
+  MainProfileIdMemoriesListIndexRoute: typeof MainProfileIdMemoriesListIndexRoute;
 }
 
 const MainProfileIdMemoriesListRouteRouteChildren: MainProfileIdMemoriesListRouteRouteChildren =
   {
     MainProfileIdMemoriesListIdRoute: MainProfileIdMemoriesListIdRoute,
     MainProfileIdMemoriesListIndexRoute: MainProfileIdMemoriesListIndexRoute,
-  }
+  };
 
 const MainProfileIdMemoriesListRouteRouteWithChildren =
   MainProfileIdMemoriesListRouteRoute._addFileChildren(
     MainProfileIdMemoriesListRouteRouteChildren,
-  )
+  );
 
 interface MainProfileIdMemoriesRouteRouteChildren {
-  MainProfileIdMemoriesListRouteRoute: typeof MainProfileIdMemoriesListRouteRouteWithChildren
-  MainProfileIdMemoriesGraphRoute: typeof MainProfileIdMemoriesGraphRoute
-  MainProfileIdMemoriesTagsRoute: typeof MainProfileIdMemoriesTagsRoute
-  MainProfileIdMemoriesIndexRoute: typeof MainProfileIdMemoriesIndexRoute
+  MainProfileIdMemoriesListRouteRoute: typeof MainProfileIdMemoriesListRouteRouteWithChildren;
+  MainProfileIdMemoriesGraphRoute: typeof MainProfileIdMemoriesGraphRoute;
+  MainProfileIdMemoriesTagsRoute: typeof MainProfileIdMemoriesTagsRoute;
+  MainProfileIdMemoriesIndexRoute: typeof MainProfileIdMemoriesIndexRoute;
 }
 
 const MainProfileIdMemoriesRouteRouteChildren: MainProfileIdMemoriesRouteRouteChildren =
@@ -1346,18 +1326,18 @@ const MainProfileIdMemoriesRouteRouteChildren: MainProfileIdMemoriesRouteRouteCh
     MainProfileIdMemoriesGraphRoute: MainProfileIdMemoriesGraphRoute,
     MainProfileIdMemoriesTagsRoute: MainProfileIdMemoriesTagsRoute,
     MainProfileIdMemoriesIndexRoute: MainProfileIdMemoriesIndexRoute,
-  }
+  };
 
 const MainProfileIdMemoriesRouteRouteWithChildren =
   MainProfileIdMemoriesRouteRoute._addFileChildren(
     MainProfileIdMemoriesRouteRouteChildren,
-  )
+  );
 
 interface MainProfileIdSkillsRouteRouteChildren {
-  MainProfileIdSkillsIdRoute: typeof MainProfileIdSkillsIdRoute
-  MainProfileIdSkillsHubRoute: typeof MainProfileIdSkillsHubRoute
-  MainProfileIdSkillsIndexRoute: typeof MainProfileIdSkillsIndexRoute
-  MainProfileIdSkillsSystemSkillIdRoute: typeof MainProfileIdSkillsSystemSkillIdRoute
+  MainProfileIdSkillsIdRoute: typeof MainProfileIdSkillsIdRoute;
+  MainProfileIdSkillsHubRoute: typeof MainProfileIdSkillsHubRoute;
+  MainProfileIdSkillsIndexRoute: typeof MainProfileIdSkillsIndexRoute;
+  MainProfileIdSkillsSystemSkillIdRoute: typeof MainProfileIdSkillsSystemSkillIdRoute;
 }
 
 const MainProfileIdSkillsRouteRouteChildren: MainProfileIdSkillsRouteRouteChildren =
@@ -1367,17 +1347,17 @@ const MainProfileIdSkillsRouteRouteChildren: MainProfileIdSkillsRouteRouteChildr
     MainProfileIdSkillsIndexRoute: MainProfileIdSkillsIndexRoute,
     MainProfileIdSkillsSystemSkillIdRoute:
       MainProfileIdSkillsSystemSkillIdRoute,
-  }
+  };
 
 const MainProfileIdSkillsRouteRouteWithChildren =
   MainProfileIdSkillsRouteRoute._addFileChildren(
     MainProfileIdSkillsRouteRouteChildren,
-  )
+  );
 
 interface MainProfileIdTeamRouteRouteChildren {
-  MainProfileIdTeamMembersRoute: typeof MainProfileIdTeamMembersRoute
-  MainProfileIdTeamSettingsRoute: typeof MainProfileIdTeamSettingsRoute
-  MainProfileIdTeamIndexRoute: typeof MainProfileIdTeamIndexRoute
+  MainProfileIdTeamMembersRoute: typeof MainProfileIdTeamMembersRoute;
+  MainProfileIdTeamSettingsRoute: typeof MainProfileIdTeamSettingsRoute;
+  MainProfileIdTeamIndexRoute: typeof MainProfileIdTeamIndexRoute;
 }
 
 const MainProfileIdTeamRouteRouteChildren: MainProfileIdTeamRouteRouteChildren =
@@ -1385,47 +1365,47 @@ const MainProfileIdTeamRouteRouteChildren: MainProfileIdTeamRouteRouteChildren =
     MainProfileIdTeamMembersRoute: MainProfileIdTeamMembersRoute,
     MainProfileIdTeamSettingsRoute: MainProfileIdTeamSettingsRoute,
     MainProfileIdTeamIndexRoute: MainProfileIdTeamIndexRoute,
-  }
+  };
 
 const MainProfileIdTeamRouteRouteWithChildren =
   MainProfileIdTeamRouteRoute._addFileChildren(
     MainProfileIdTeamRouteRouteChildren,
-  )
+  );
 
 interface MainProfileIdWikiRouteRouteChildren {
-  MainProfileIdWikiDocIdRoute: typeof MainProfileIdWikiDocIdRoute
-  MainProfileIdWikiIndexRoute: typeof MainProfileIdWikiIndexRoute
+  MainProfileIdWikiDocIdRoute: typeof MainProfileIdWikiDocIdRoute;
+  MainProfileIdWikiIndexRoute: typeof MainProfileIdWikiIndexRoute;
 }
 
 const MainProfileIdWikiRouteRouteChildren: MainProfileIdWikiRouteRouteChildren =
   {
     MainProfileIdWikiDocIdRoute: MainProfileIdWikiDocIdRoute,
     MainProfileIdWikiIndexRoute: MainProfileIdWikiIndexRoute,
-  }
+  };
 
 const MainProfileIdWikiRouteRouteWithChildren =
   MainProfileIdWikiRouteRoute._addFileChildren(
     MainProfileIdWikiRouteRouteChildren,
-  )
+  );
 
 interface MainProfileIdRouteRouteChildren {
-  MainProfileIdActivityRouteRoute: typeof MainProfileIdActivityRouteRouteWithChildren
-  MainProfileIdInboxRouteRoute: typeof MainProfileIdInboxRouteRouteWithChildren
-  MainProfileIdMemoriesRouteRoute: typeof MainProfileIdMemoriesRouteRouteWithChildren
-  MainProfileIdSkillsRouteRoute: typeof MainProfileIdSkillsRouteRouteWithChildren
-  MainProfileIdTeamRouteRoute: typeof MainProfileIdTeamRouteRouteWithChildren
-  MainProfileIdWikiRouteRoute: typeof MainProfileIdWikiRouteRouteWithChildren
-  MainProfileIdChatRoute: typeof MainProfileIdChatRoute
-  MainProfileIdFilesRoute: typeof MainProfileIdFilesRoute
-  MainProfileIdHomeRoute: typeof MainProfileIdHomeRoute
-  MainProfileIdNotificationsRoute: typeof MainProfileIdNotificationsRoute
-  MainProfileIdProposalsRoute: typeof MainProfileIdProposalsRoute
-  MainProfileIdVoiceRoute: typeof MainProfileIdVoiceRoute
-  MainProfileIdIndexRoute: typeof MainProfileIdIndexRoute
-  MainProfileIdCodebasesIdRoute: typeof MainProfileIdCodebasesIdRoute
-  MainProfileIdAiLogsIndexRoute: typeof MainProfileIdAiLogsIndexRoute
-  MainProfileIdCodebasesIndexRoute: typeof MainProfileIdCodebasesIndexRoute
-  MainProfileIdOpenrouterLogsIndexRoute: typeof MainProfileIdOpenrouterLogsIndexRoute
+  MainProfileIdActivityRouteRoute: typeof MainProfileIdActivityRouteRouteWithChildren;
+  MainProfileIdInboxRouteRoute: typeof MainProfileIdInboxRouteRouteWithChildren;
+  MainProfileIdMemoriesRouteRoute: typeof MainProfileIdMemoriesRouteRouteWithChildren;
+  MainProfileIdSkillsRouteRoute: typeof MainProfileIdSkillsRouteRouteWithChildren;
+  MainProfileIdTeamRouteRoute: typeof MainProfileIdTeamRouteRouteWithChildren;
+  MainProfileIdWikiRouteRoute: typeof MainProfileIdWikiRouteRouteWithChildren;
+  MainProfileIdChatRoute: typeof MainProfileIdChatRoute;
+  MainProfileIdFilesRoute: typeof MainProfileIdFilesRoute;
+  MainProfileIdHomeRoute: typeof MainProfileIdHomeRoute;
+  MainProfileIdNotificationsRoute: typeof MainProfileIdNotificationsRoute;
+  MainProfileIdProposalsRoute: typeof MainProfileIdProposalsRoute;
+  MainProfileIdVoiceRoute: typeof MainProfileIdVoiceRoute;
+  MainProfileIdIndexRoute: typeof MainProfileIdIndexRoute;
+  MainProfileIdCodebasesIdRoute: typeof MainProfileIdCodebasesIdRoute;
+  MainProfileIdAiLogsIndexRoute: typeof MainProfileIdAiLogsIndexRoute;
+  MainProfileIdCodebasesIndexRoute: typeof MainProfileIdCodebasesIndexRoute;
+  MainProfileIdOpenrouterLogsIndexRoute: typeof MainProfileIdOpenrouterLogsIndexRoute;
 }
 
 const MainProfileIdRouteRouteChildren: MainProfileIdRouteRouteChildren = {
@@ -1446,31 +1426,31 @@ const MainProfileIdRouteRouteChildren: MainProfileIdRouteRouteChildren = {
   MainProfileIdAiLogsIndexRoute: MainProfileIdAiLogsIndexRoute,
   MainProfileIdCodebasesIndexRoute: MainProfileIdCodebasesIndexRoute,
   MainProfileIdOpenrouterLogsIndexRoute: MainProfileIdOpenrouterLogsIndexRoute,
-}
+};
 
 const MainProfileIdRouteRouteWithChildren =
-  MainProfileIdRouteRoute._addFileChildren(MainProfileIdRouteRouteChildren)
+  MainProfileIdRouteRoute._addFileChildren(MainProfileIdRouteRouteChildren);
 
 interface MainSettingsApiRouteRouteChildren {
-  MainSettingsApiKeysRoute: typeof MainSettingsApiKeysRoute
-  MainSettingsApiUsageRoute: typeof MainSettingsApiUsageRoute
-  MainSettingsApiIndexRoute: typeof MainSettingsApiIndexRoute
+  MainSettingsApiKeysRoute: typeof MainSettingsApiKeysRoute;
+  MainSettingsApiUsageRoute: typeof MainSettingsApiUsageRoute;
+  MainSettingsApiIndexRoute: typeof MainSettingsApiIndexRoute;
 }
 
 const MainSettingsApiRouteRouteChildren: MainSettingsApiRouteRouteChildren = {
   MainSettingsApiKeysRoute: MainSettingsApiKeysRoute,
   MainSettingsApiUsageRoute: MainSettingsApiUsageRoute,
   MainSettingsApiIndexRoute: MainSettingsApiIndexRoute,
-}
+};
 
 const MainSettingsApiRouteRouteWithChildren =
-  MainSettingsApiRouteRoute._addFileChildren(MainSettingsApiRouteRouteChildren)
+  MainSettingsApiRouteRoute._addFileChildren(MainSettingsApiRouteRouteChildren);
 
 interface MainSettingsDataControlsRouteRouteChildren {
-  MainSettingsDataControlsDangerRoute: typeof MainSettingsDataControlsDangerRoute
-  MainSettingsDataControlsExportRoute: typeof MainSettingsDataControlsExportRoute
-  MainSettingsDataControlsImportRoute: typeof MainSettingsDataControlsImportRoute
-  MainSettingsDataControlsIndexRoute: typeof MainSettingsDataControlsIndexRoute
+  MainSettingsDataControlsDangerRoute: typeof MainSettingsDataControlsDangerRoute;
+  MainSettingsDataControlsExportRoute: typeof MainSettingsDataControlsExportRoute;
+  MainSettingsDataControlsImportRoute: typeof MainSettingsDataControlsImportRoute;
+  MainSettingsDataControlsIndexRoute: typeof MainSettingsDataControlsIndexRoute;
 }
 
 const MainSettingsDataControlsRouteRouteChildren: MainSettingsDataControlsRouteRouteChildren =
@@ -1479,29 +1459,29 @@ const MainSettingsDataControlsRouteRouteChildren: MainSettingsDataControlsRouteR
     MainSettingsDataControlsExportRoute: MainSettingsDataControlsExportRoute,
     MainSettingsDataControlsImportRoute: MainSettingsDataControlsImportRoute,
     MainSettingsDataControlsIndexRoute: MainSettingsDataControlsIndexRoute,
-  }
+  };
 
 const MainSettingsDataControlsRouteRouteWithChildren =
   MainSettingsDataControlsRouteRoute._addFileChildren(
     MainSettingsDataControlsRouteRouteChildren,
-  )
+  );
 
 interface MainRouteRouteChildren {
-  MainProfileIdRouteRoute: typeof MainProfileIdRouteRouteWithChildren
-  MainHomeRoute: typeof MainHomeRoute
-  MainSettingsApiRouteRoute: typeof MainSettingsApiRouteRouteWithChildren
-  MainSettingsDataControlsRouteRoute: typeof MainSettingsDataControlsRouteRouteWithChildren
-  MainSettingsConnectorsRoute: typeof MainSettingsConnectorsRoute
-  MainSettingsExtensionRoute: typeof MainSettingsExtensionRoute
-  MainSettingsModelsRoute: typeof MainSettingsModelsRoute
-  MainSettingsPreferencesRoute: typeof MainSettingsPreferencesRoute
-  MainSettingsProfilesRoute: typeof MainSettingsProfilesRoute
-  MainSettingsSecretsRoute: typeof MainSettingsSecretsRoute
-  MainSettingsUsageRoute: typeof MainSettingsUsageRoute
-  MainSettingsIndexRoute: typeof MainSettingsIndexRoute
-  MainSvgPlaygroundIndexRoute: typeof MainSvgPlaygroundIndexRoute
-  MainSettingsPlaygroundCallbackRoute: typeof MainSettingsPlaygroundCallbackRoute
-  MainSettingsPlaygroundIndexRoute: typeof MainSettingsPlaygroundIndexRoute
+  MainProfileIdRouteRoute: typeof MainProfileIdRouteRouteWithChildren;
+  MainHomeRoute: typeof MainHomeRoute;
+  MainSettingsApiRouteRoute: typeof MainSettingsApiRouteRouteWithChildren;
+  MainSettingsDataControlsRouteRoute: typeof MainSettingsDataControlsRouteRouteWithChildren;
+  MainSettingsConnectorsRoute: typeof MainSettingsConnectorsRoute;
+  MainSettingsExtensionRoute: typeof MainSettingsExtensionRoute;
+  MainSettingsModelsRoute: typeof MainSettingsModelsRoute;
+  MainSettingsPreferencesRoute: typeof MainSettingsPreferencesRoute;
+  MainSettingsProfilesRoute: typeof MainSettingsProfilesRoute;
+  MainSettingsSecretsRoute: typeof MainSettingsSecretsRoute;
+  MainSettingsUsageRoute: typeof MainSettingsUsageRoute;
+  MainSettingsIndexRoute: typeof MainSettingsIndexRoute;
+  MainSvgPlaygroundIndexRoute: typeof MainSvgPlaygroundIndexRoute;
+  MainSettingsPlaygroundCallbackRoute: typeof MainSettingsPlaygroundCallbackRoute;
+  MainSettingsPlaygroundIndexRoute: typeof MainSettingsPlaygroundIndexRoute;
 }
 
 const MainRouteRouteChildren: MainRouteRouteChildren = {
@@ -1521,19 +1501,18 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSvgPlaygroundIndexRoute: MainSvgPlaygroundIndexRoute,
   MainSettingsPlaygroundCallbackRoute: MainSettingsPlaygroundCallbackRoute,
   MainSettingsPlaygroundIndexRoute: MainSettingsPlaygroundIndexRoute,
-}
+};
 
 const MainRouteRouteWithChildren = MainRouteRoute._addFileChildren(
   MainRouteRouteChildren,
-)
+);
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MainRouteRoute: MainRouteRouteWithChildren,
   AgentCallbackRoute: AgentCallbackRoute,
-  SlidesRoute: SlidesRoute,
   McpOauthAuthorizeRoute: McpOauthAuthorizeRoute,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();
