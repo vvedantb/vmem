@@ -16,7 +16,7 @@ type WikiSidebarContextValue = {
 const WikiSidebarContext = createContext<WikiSidebarContextValue | null>(null);
 
 export function WikiSidebarProvider({ children }: { children: ReactNode }) {
-  const [outlineVisible, setOutlineVisible] = useState(false);
+  const [outlineVisible, setOutlineVisible] = useState(true);
   const [historyVisible, setHistoryVisible] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [hasDoc, setHasDoc] = useState(false);
