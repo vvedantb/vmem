@@ -499,7 +499,7 @@ export const presentationSessionFields = {
   /** Current 1-based slide the presenter is on. */
   slide: v.number(),
   status: v.union(v.literal("live"), v.literal("ended")),
-  /** Bumped on every drive / vote; drives the idle-prune window. */
+  /** Bumped on every slide change; drives the idle-prune window. */
   lastActiveAt: v.number(),
 };
 

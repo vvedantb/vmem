@@ -4,6 +4,7 @@ import { useTheme } from "next-themes";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { SLIDES } from "./slides/index";
 import { SlideStepContext } from "./_components/SlideShell";
+import { SlideOutlinePanel } from "./_components/SlideOutlinePanel";
 
 const DESIGN_W = 1280;
 const DESIGN_H = 720;
@@ -23,6 +24,7 @@ function clamp(value: number, min: number, max: number): number {
 
 export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const stageAreaRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   // Transition direction (1 = forward, -1 = back), derived from the change in
@@ -80,16 +82,21 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
     [slide, onNavigate],
   );
 
-  // Compute scale on mount and resize
+  // Compute scale from the stage area (excludes the outline sidebar).
   useEffect(() => {
+    const el = stageAreaRef.current;
+    if (!el) return;
+
     function measure() {
-      setScale(
-        Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H),
-      );
+      const node = stageAreaRef.current;
+      if (!node) return;
+      const { width, height } = node.getBoundingClientRect();
+      setScale(Math.min(width / DESIGN_W, height / DESIGN_H));
     }
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   // Keyboard navigation
@@ -212,22 +219,28 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
   return (
     <div
       ref={containerRef}
-      className={`fixed inset-0 flex items-center justify-center overflow-hidden bg-background ${theme}`}
+      className="fixed inset-0 flex overflow-hidden bg-background"
     >
-      {/* Scaled stage */}
+      <SlideOutlinePanel slide={slide} onNavigate={go} />
+
       <div
-        ref={stageRef}
-        style={{
-          width: DESIGN_W,
-          height: DESIGN_H,
-          transform: `scale(${scale})`,
-          transformOrigin: "center center",
-        }}
-        className="relative shrink-0 cursor-pointer overflow-hidden"
-        onClick={handleStageClick}
-        role="presentation"
+        ref={stageAreaRef}
+        className={`relative flex min-w-0 flex-1 items-center justify-center overflow-hidden ${theme}`}
       >
-        {/* Ambient orb glows — inside the stage so they're part of the
+        {/* Scaled stage */}
+        <div
+          ref={stageRef}
+          style={{
+            width: DESIGN_W,
+            height: DESIGN_H,
+            transform: `scale(${scale})`,
+            transformOrigin: "center center",
+          }}
+          className="relative shrink-0 cursor-pointer overflow-hidden"
+          onClick={handleStageClick}
+          role="presentation"
+        >
+          {/* Ambient orb glows — inside the stage so they're part of the
             slide composition and scale with it. Dark slides get soft white
             orbs; light slides get a gentler warm cream aura (a black glow
             on a light background reads as smog).
@@ -237,68 +250,69 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
             layer across slide changes. Off on the opener + title so the
             black↔title boundary never toggles the orbs (no flash); they fade
             in/out only at the slide-02 boundary, gently over 1.6s. */}
-        <div
-          className="pointer-events-none absolute inset-0 transition-opacity duration-[1600ms] ease-in-out"
-          aria-hidden
-          style={{ opacity: showOrbs ? 1 : 0 }}
-        >
-          <motion.div
-            className={`absolute -left-44 -top-40 h-[560px] w-[560px] rounded-full blur-[110px] ${
-              theme === "dark"
-                ? "bg-foreground opacity-[0.14]"
-                : "bg-[#e3d5b8] opacity-[0.26]"
-            }`}
-            animate={{ x: [0, 70, 0], y: [0, 50, 0] }}
-            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className={`absolute -bottom-52 -right-40 h-[640px] w-[640px] rounded-full blur-[120px] ${
-              theme === "dark"
-                ? "bg-foreground opacity-[0.12]"
-                : "bg-[#e8dcc4] opacity-[0.22]"
-            }`}
-            animate={{ x: [0, -80, 0], y: [0, -55, 0] }}
-            transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className={`absolute left-[52%] top-[58%] h-[380px] w-[380px] rounded-full blur-[100px] ${
-              theme === "dark"
-                ? "bg-foreground opacity-[0.09]"
-                : "bg-[#e3d5b8] opacity-[0.16]"
-            }`}
-            animate={{ x: [0, 55, 0], y: [0, -65, 0] }}
-            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+          <div
+            className="pointer-events-none absolute inset-0 transition-opacity duration-[1600ms] ease-in-out"
+            aria-hidden
+            style={{ opacity: showOrbs ? 1 : 0 }}
+          >
+            <motion.div
+              className={`absolute -left-44 -top-40 h-[560px] w-[560px] rounded-full blur-[110px] ${
+                theme === "dark"
+                  ? "bg-foreground opacity-[0.14]"
+                  : "bg-[#e3d5b8] opacity-[0.26]"
+              }`}
+              animate={{ x: [0, 70, 0], y: [0, 50, 0] }}
+              transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className={`absolute -bottom-52 -right-40 h-[640px] w-[640px] rounded-full blur-[120px] ${
+                theme === "dark"
+                  ? "bg-foreground opacity-[0.12]"
+                  : "bg-[#e8dcc4] opacity-[0.22]"
+              }`}
+              animate={{ x: [0, -80, 0], y: [0, -55, 0] }}
+              transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className={`absolute left-[52%] top-[58%] h-[380px] w-[380px] rounded-full blur-[100px] ${
+                theme === "dark"
+                  ? "bg-foreground opacity-[0.09]"
+                  : "bg-[#e3d5b8] opacity-[0.16]"
+              }`}
+              animate={{ x: [0, 55, 0], y: [0, -65, 0] }}
+              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </div>
+
+          <AnimatePresence custom={direction} mode="wait">
+            <motion.div
+              key={slide}
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="absolute inset-0"
+            >
+              <SlideStepContext.Provider value={step}>
+                <Component />
+              </SlideStepContext.Provider>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Progress bar — outside scaled stage so it's always full width */}
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-0.5 bg-foreground/5">
+          <div
+            className="h-full bg-foreground/25 transition-[width] duration-300"
+            style={{ width: `${progressPct}%` }}
           />
         </div>
 
-        <AnimatePresence custom={direction} mode="wait">
-          <motion.div
-            key={slide}
-            custom={direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            className="absolute inset-0"
-          >
-            <SlideStepContext.Provider value={step}>
-              <Component />
-            </SlideStepContext.Provider>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Progress bar — outside scaled stage so it's always full width */}
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-0.5 bg-foreground/5">
-        <div
-          className="h-full bg-foreground/25 transition-[width] duration-300"
-          style={{ width: `${progressPct}%` }}
-        />
-      </div>
-
-      {/* Slide counter */}
-      <div className="pointer-events-none absolute bottom-3 right-4 font-mono text-xs tabular-nums text-muted/40">
-        {slide} / {TOTAL}
+        {/* Slide counter */}
+        <div className="pointer-events-none absolute bottom-3 right-4 font-mono text-xs tabular-nums text-muted/40">
+          {slide} / {TOTAL}
+        </div>
       </div>
     </div>
   );

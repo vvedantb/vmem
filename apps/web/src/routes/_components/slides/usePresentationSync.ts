@@ -167,7 +167,7 @@ export function usePresentationSync({
     onNavigate,
     /** Stable per-browser id — passed to poll slides for one-vote-per-browser. */
     participantKey,
-    /** Secret host token (presenter only) — passed to poll slides for reset etc. */
+    /** Secret host token when this browser is the presenter. */
     hostKey,
     startSharing,
     stopSharing,

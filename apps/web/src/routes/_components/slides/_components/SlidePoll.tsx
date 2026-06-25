@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { useMutation, useQuery } from "convex/react";
 import { IconCheck } from "@tabler/icons-react";
@@ -18,63 +17,65 @@ interface SlidePollProps {
   question: string;
   options: PollOption[];
   kicker?: string;
+  /** Tap toggles multiple options; bars show share of all selections. */
+  multiSelect?: boolean;
 }
 
-const voteStorageKey = (code: string, pollId: string) =>
-  `vmem:poll-vote:${code}:${pollId}`;
-
 /**
- * A curated poll slide. In a live share session every viewer can tap an option
- * and the bars grow in real time (Convex reactive tally) — one vote per
- * browser (`participantKey`), re-tapping changes it. With no session (solo
- * deck) it renders statically with a hint to share.
+ * A curated poll slide. In a live share session every viewer can tap options
+ * and bars grow in real time. Checkmarks and counts come from Convex (not
+ * localStorage) so tallies stay honest across reloads and format changes.
  */
 export function SlidePoll({
   pollId,
   question,
   options,
   kicker,
+  multiSelect = false,
 }: SlidePollProps) {
-  const { sessionCode, participantKey } = usePresentationDeck();
+  const { sessionCode, participantKey, hostKey } = usePresentationDeck();
   const live = sessionCode !== undefined;
 
   const results = useQuery(
     api.presentations.pollResults,
     sessionCode ? { code: sessionCode, pollId } : "skip",
   );
-  const sendVote = useMutation(api.presentations.sendVote);
-
-  // Own choice — drives the highlight, persisted so a reload keeps it. The
-  // server upsert (keyed by participantKey) is the source of truth for counts.
-  const [myOption, setMyOption] = useState<string | null>(() =>
-    sessionCode && typeof window !== "undefined"
-      ? window.localStorage.getItem(voteStorageKey(sessionCode, pollId))
-      : null,
+  const mySelections = useQuery(
+    api.presentations.getMyPollSelections,
+    sessionCode ? { code: sessionCode, pollId, participantKey } : "skip",
   );
-  useEffect(() => {
-    if (!sessionCode || typeof window === "undefined") {
-      setMyOption(null);
-      return;
-    }
-    setMyOption(
-      window.localStorage.getItem(voteStorageKey(sessionCode, pollId)),
-    );
-  }, [sessionCode, pollId]);
+  const sendVote = useMutation(api.presentations.sendVote);
+  const togglePollOption = useMutation(api.presentations.togglePollOption);
+  const clearPollVotes = useMutation(api.presentations.clearPollVotes);
 
-  const vote = (optionId: string) => {
+  const selectedSet = new Set(mySelections ?? []);
+
+  const voteSingle = (optionId: string) => {
     if (!sessionCode) return;
-    setMyOption(optionId);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        voteStorageKey(sessionCode, pollId),
-        optionId,
-      );
-    }
     void sendVote({
       code: sessionCode,
       pollId,
       participantKey,
       optionId,
+    }).catch(() => undefined);
+  };
+
+  const voteMulti = (optionId: string) => {
+    if (!sessionCode) return;
+    void togglePollOption({
+      code: sessionCode,
+      pollId,
+      participantKey,
+      optionId,
+    }).catch(() => undefined);
+  };
+
+  const resetPoll = () => {
+    if (!sessionCode || !hostKey) return;
+    void clearPollVotes({
+      code: sessionCode,
+      hostKey,
+      pollId,
     }).catch(() => undefined);
   };
 
@@ -96,13 +97,15 @@ export function SlidePoll({
         {options.map((option) => {
           const count = countByOption.get(option.id) ?? 0;
           const pct = total > 0 ? (count / total) * 100 : 0;
-          const mine = myOption === option.id;
+          const mine = selectedSet.has(option.id);
           return (
             <button
               key={option.id}
               type="button"
               disabled={!live}
-              onClick={() => vote(option.id)}
+              onClick={() =>
+                multiSelect ? voteMulti(option.id) : voteSingle(option.id)
+              }
               className={cn(
                 "relative w-full overflow-hidden rounded-2xl px-5 py-4 text-left transition-[background-color]",
                 live
@@ -143,12 +146,26 @@ export function SlidePoll({
         })}
       </div>
 
-      <SlideReveal delay={0.15} className="mt-6">
+      <SlideReveal
+        delay={0.15}
+        className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2"
+      >
         <p className="text-sm text-muted">
           {live
-            ? "Tap to vote — results update live for everyone."
+            ? multiSelect
+              ? "Tap all that apply — results update live for everyone."
+              : "Tap to vote — results update live for everyone."
             : "Share the deck to collect live votes."}
         </p>
+        {live && hostKey ? (
+          <button
+            type="button"
+            onClick={resetPoll}
+            className="text-sm text-muted underline-offset-2 transition-[color] hover:text-foreground hover:underline"
+          >
+            Reset poll
+          </button>
+        ) : null}
       </SlideReveal>
     </SlideShell>
   );

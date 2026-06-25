@@ -2,6 +2,14 @@ import type { ComponentType } from "react";
 import { Slide00Black } from "./00-black";
 import { Slide01Title } from "./01-title";
 import { Slide02Problem } from "./02-problem";
+import { SlidePollModels } from "./poll-models";
+import { SlidePollSwitch } from "./poll-switch";
+import { SlidePollStickiness } from "./poll-stickiness";
+import { SlidePollPrivacy } from "./poll-privacy";
+import { SlidePollConnectors } from "./poll-connectors";
+import { SlidePollFragmentation } from "./poll-fragmentation";
+import { SlideFragmentScatter } from "./frag-scatter";
+import { SlideFragmentCollapse } from "./frag-collapse";
 import { Slide03What } from "./03-what";
 import { Slide04How } from "./04-how";
 import { Slide05Graph } from "./05-graph";
@@ -37,7 +45,6 @@ import { Slide34Surfaces } from "./34-surfaces";
 import { Slide35Sovereignty } from "./35-sovereignty";
 import { Slide36GraphBuild } from "./36-graphbuild";
 import { Slide37NodeDetail } from "./37-nodedetail";
-import { Slide38Poll } from "./38-poll";
 import { Slide39ClaudeChat } from "./39-claudechat";
 import { Slide40Privacy } from "./40-privacy";
 
@@ -77,6 +84,65 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide01Title,
     steps: 1,
   },
+  {
+    id: "poll-models",
+    title: "Poll — AI models",
+    theme: "light",
+    Component: SlidePollModels,
+    steps: 0,
+  },
+  {
+    id: "poll-switch",
+    title: "Poll — switch scenario",
+    theme: "light",
+    Component: SlidePollSwitch,
+    steps: 0,
+  },
+  {
+    id: "poll-stickiness",
+    title: "Poll — stickiness",
+    theme: "light",
+    Component: SlidePollStickiness,
+    steps: 0,
+  },
+  {
+    id: "poll-privacy",
+    title: "Poll — personal data",
+    theme: "light",
+    Component: SlidePollPrivacy,
+    steps: 0,
+  },
+  {
+    id: "poll-connectors",
+    title: "Poll — Claude Connectors",
+    theme: "light",
+    Component: SlidePollConnectors,
+    steps: 0,
+  },
+  // "how many tools know you" poll → scatter → collapse into one vmem layer
+  {
+    id: "poll-fragmentation",
+    title: "Poll — fragmentation",
+    theme: "light",
+    Component: SlidePollFragmentation,
+    steps: 0,
+  },
+  // step 0: kicker + title  /  step 1: six tool cards  /  step 2: sting line
+  {
+    id: "frag-scatter",
+    title: "Fragmentation",
+    theme: "light",
+    Component: SlideFragmentScatter,
+    steps: 2,
+  },
+  // step 0: scattered tool nodes  /  step 1: vmem node + edges  /  step 2: payoff
+  {
+    id: "frag-collapse",
+    title: "One layer",
+    theme: "light",
+    Component: SlideFragmentCollapse,
+    steps: 2,
+  },
   // step 0: kicker + title  /  step 1: pain cards  /  step 2: body
   {
     id: "02",
@@ -100,6 +166,7 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide03What,
     steps: 3,
+    staggerMs: 1200,
   },
   // step 0: kicker + title + body  /  steps 1-4: one pipeline stage each
   {
@@ -133,6 +200,7 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide06Trace,
     steps: 2,
+    staggerMs: 1200,
   },
   // step 0: kicker + title  /  step 1: source cards  /  step 2: bottom body
   {
@@ -141,6 +209,7 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide07Capture,
     steps: 2,
+    staggerMs: 1200,
   },
   // step 0: kicker + title + body  /  step 1: output rows  /  step 2: info bar
   {
@@ -149,6 +218,7 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide08Dream,
     steps: 2,
+    staggerMs: 1200,
   },
   // step 0: kicker + title + body  /  step 1: safety cards
   {
@@ -213,14 +283,6 @@ export const SLIDES: SlideEntry[] = [
     theme: "light",
     Component: Slide19UseCases,
     steps: 1,
-  },
-  // Live audience poll — voting works only while the deck is shared.
-  {
-    id: "38",
-    title: "Quick poll",
-    theme: "light",
-    Component: Slide38Poll,
-    steps: 0,
   },
   // step 0: title + body  /  step 1: three pillars
   {

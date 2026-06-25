@@ -380,7 +380,13 @@ const schema = defineSchema({
    */
   presentationVotes: defineTable(presentationVoteFields)
     .index("by_code_poll", ["code", "pollId"])
-    .index("by_code_poll_participant", ["code", "pollId", "participantKey"]),
+    .index("by_code_poll_participant", ["code", "pollId", "participantKey"])
+    .index("by_code_poll_participant_option", [
+      "code",
+      "pollId",
+      "participantKey",
+      "optionId",
+    ]),
 });
 
 export default schema;

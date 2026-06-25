@@ -37,7 +37,6 @@ function SlidesPage() {
     updateSearch,
   });
 
-  // Surfaced to slide components (poll slides) that render with no props.
   const deckContext = useMemo(
     () => ({
       sessionCode: session,
