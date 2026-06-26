@@ -39,7 +39,7 @@ export function ProposalShell({
                 {formatProposalRelativeDate(timestamp)}
               </time>
             </div>
-            <h3 className="text-base font-medium leading-snug text-foreground">
+            <h3 className="text-base font-medium leading-snug text-foreground text-balance">
               {title}
             </h3>
           </div>

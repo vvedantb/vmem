@@ -112,7 +112,7 @@ export default function ImportPageClient() {
               <section key={p.id} className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Logo className={`h-6 w-6 shrink-0 ${p.logoClassName}`} />
-                  <h3 className="text-base font-medium text-foreground">
+                  <h3 className="text-base font-medium text-foreground text-balance">
                     {p.label}
                   </h3>
                 </div>
@@ -131,7 +131,7 @@ export default function ImportPageClient() {
             <section key={p.id} className="space-y-3">
               <div className="flex items-center gap-3">
                 <Logo className={`h-6 w-6 shrink-0 ${p.logoClassName}`} />
-                <h3 className="text-base font-medium text-foreground">
+                <h3 className="text-base font-medium text-foreground text-balance">
                   {p.label}
                 </h3>
               </div>
