@@ -1,5 +1,12 @@
 # Changelog
 
+## Web UI micro-interaction polish — 2026-06-26
+
+- **Why**: small tactile and typographic inconsistencies (press scale, tabular numbers, mount animations, image edges) made parts of the app feel less refined than the design system intends.
+- **Press feedback**: sidebar nav, voice controls, provider toggle, graph zoom controls, and breadcrumbs now use consistent `0.96` press scale and proper hit areas.
+- **Motion hygiene**: product `AnimatePresence` surfaces skip enter-on-mount; bulk-action exits are subtler.
+- **Typography & images**: dynamic counts use tabular numerals; key headings use `text-balance`; avatars and file thumbnails get subtle image outlines.
+
 ## Live audience polls on the shared deck — 2026-06-20
 
 - **Why**: a shared presentation is only worth sharing if the audience can take part — watching in sync isn't engagement on its own.

@@ -236,7 +236,7 @@ export function Slide37NodeDetail() {
               ) : null}
 
               {/* Cursor — only for the node click; gone during tab rotation */}
-              <AnimatePresence>
+              <AnimatePresence initial={false}>
                 {cursorVisible ? (
                   <motion.span
                     key="cursor"

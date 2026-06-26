@@ -253,7 +253,7 @@ export default function TagsListView() {
           </div>
         </div>
 
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {selectedTag && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -336,7 +336,7 @@ function DisplayRow({
             variant="ghost"
             size="icon-sm"
             aria-label={`Actions for tag ${tag}`}
-            className="h-7 w-7 text-muted"
+            className="text-muted"
             onClick={(e) => e.stopPropagation()}
           >
             <IconDotsVertical size={14} />

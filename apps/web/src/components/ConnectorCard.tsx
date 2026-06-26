@@ -99,7 +99,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-medium text-foreground">
+                <h3 className="font-medium text-foreground text-balance">
                   {connector.name}
                 </h3>
                 {isSyncing && (
@@ -148,7 +148,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                     value={connector.syncProgress}
                     className="h-1.5 bg-surface-secondary [&>div]:bg-accent"
                   />
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-muted tabular-nums">
                     {connector.syncProgress}% complete
                   </p>
                 </div>

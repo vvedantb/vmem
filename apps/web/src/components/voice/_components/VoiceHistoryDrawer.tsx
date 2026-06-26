@@ -43,7 +43,7 @@ export default function VoiceHistoryDrawer({
   return (
     <div className="relative w-full max-w-2xl mx-auto">
       {/* Drawer panel — slides up above trigger */}
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
             className="absolute bottom-full left-0 right-0 mb-2 bg-surface-secondary/40 rounded-lg overflow-hidden"
@@ -80,7 +80,7 @@ export default function VoiceHistoryDrawer({
           "text-xs font-medium text-muted",
           "transition-colors hover:bg-surface-tertiary/50",
         )}
-        whileTap={{ scale: 0.97 }}
+        whileTap={{ scale: 0.96 }}
         aria-label={isOpen ? "Hide conversation" : "Show conversation"}
         aria-expanded={isOpen}
       >

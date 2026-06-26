@@ -68,11 +68,7 @@ export default function TagsTab({
           </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="h-6 w-6 text-muted"
-              >
+              <Button variant="ghost" size="icon-xs" className="text-muted">
                 <IconArrowsSort size={12} stroke={1.5} />
               </Button>
             </DropdownMenuTrigger>

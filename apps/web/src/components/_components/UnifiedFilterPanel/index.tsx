@@ -196,7 +196,7 @@ export default function UnifiedFilterPanel({
       </TabsPrimitive.Root>
 
       <div className="flex items-center justify-between border-t border-separator px-3 py-2">
-        <span className="text-xs text-muted">
+        <span className="text-xs text-muted tabular-nums">
           Showing {filteredCount} of {totalCount} items
         </span>
         {hasActiveFilters && (

@@ -348,7 +348,7 @@ export default function AddMemoryModal({
                               <IconHash size={12} className="text-muted" />
                               {item.tag}
                             </span>
-                            <span className="text-xs text-muted">
+                            <span className="text-xs text-muted tabular-nums">
                               {item.count}
                             </span>
                           </button>

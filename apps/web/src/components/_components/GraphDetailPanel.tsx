@@ -54,7 +54,7 @@ export default function GraphDetailPanel({
   const [isDeleting, setIsDeleting] = useState(false);
 
   return (
-    <AnimatePresence>
+    <AnimatePresence initial={false}>
       {nodeData && (
         <motion.div
           key="detail-panel"
@@ -67,7 +67,7 @@ export default function GraphDetailPanel({
           {/* Header */}
           <div className="flex items-start justify-between p-4 pb-2">
             <div className="min-w-0 flex-1">
-              <h2 className="text-base font-semibold text-foreground truncate">
+              <h2 className="text-base font-semibold text-foreground truncate text-balance">
                 {nodeData.title}
               </h2>
               <p className="text-xs text-muted mt-0.5">
