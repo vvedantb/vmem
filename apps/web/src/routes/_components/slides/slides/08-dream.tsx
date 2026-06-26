@@ -1,33 +1,11 @@
-import { IconAlertTriangle, IconGitMerge, IconUser } from "@tabler/icons-react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
-import { DreamModePanel } from "../_components/DreamModePanel";
+import { DreamProposalMock } from "../_components/DreamProposalMock";
 import {
   SlideShell,
   SlideKicker,
   SlideBody,
   SlideReveal,
 } from "../_components/SlideShell";
-
-const dreamOutputs = [
-  {
-    icon: IconAlertTriangle,
-    kind: "Contradiction",
-    example:
-      '"Works from home Fridays" conflicts with "back in the office full-time" — you pick which one wins.',
-  },
-  {
-    icon: IconGitMerge,
-    kind: "Merge proposal",
-    example:
-      '"Loved the Rome trip" and "Italy was amazing" look like the same thing — merge them?',
-  },
-  {
-    icon: IconUser,
-    kind: "Portrait",
-    example:
-      "From 40 memories: you lead the marketing team, prefer short updates, and work best in the mornings.",
-  },
-];
 
 export function Slide08Dream() {
   return (
@@ -41,11 +19,20 @@ export function Slide08Dream() {
       />
       <SlideReveal delay={0.08} className="mt-3 max-w-2xl">
         <SlideBody className="text-base text-foreground">
-          While you're away, vmem revisits your memories and tidies them up.
+          While you&rsquo;re away, vmem spots conflicts and duplicates — and
+          asks before it changes anything.
         </SlideBody>
       </SlideReveal>
 
-      <DreamModePanel outputs={dreamOutputs} />
+      <SlideReveal step={1} className="mt-6">
+        <DreamProposalMock />
+      </SlideReveal>
+
+      <SlideReveal step={2} className="mt-4">
+        <SlideBody className="text-sm">
+          It proposes; you approve or reject — never a silent overwrite.
+        </SlideBody>
+      </SlideReveal>
     </SlideShell>
   );
 }
