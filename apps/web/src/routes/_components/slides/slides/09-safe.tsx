@@ -28,27 +28,27 @@ const safetyFeatures: SafetyFeature[] = [
   {
     icon: IconInbox,
     title: "Proposed updates",
-    body: "Conflicts never silently overwrite. vmem surfaces a proposal — you approve or reject. Your memories stay accurate.",
+    body: "Approve or reject — never silent overwrites.",
   },
   {
     icon: IconPin,
     title: "Pin",
-    body: "Pin a memory so it can't be changed, hidden, or touched when vmem reorganises overnight.",
+    body: "Lock a memory so nothing can change it.",
   },
   {
     icon: IconEyeOff,
     title: "Hide",
-    body: "Stop a memory showing up without deleting it. Useful when something is wrong or no longer relevant.",
+    body: "Stop it showing up, without deleting it.",
   },
   {
     icon: IconClock,
     title: "Expire",
-    body: "Give a memory an expiry date. Temporary things — meeting prep, event notes — vanish when no longer needed.",
+    body: "Set an expiry for temporary things.",
   },
   {
     icon: IconActivity,
     title: "History",
-    body: "Every change is recorded — what changed, where it came from, when, and why.",
+    body: "Every change recorded — what, when, why.",
   },
 ];
 
@@ -61,8 +61,7 @@ export function Slide09Safe() {
       <BlurWordsTitle lines={["You stay in control."]} size="xl" />
       <SlideReveal delay={0.08} className="mt-4 max-w-2xl">
         <SlideBody>
-          Memory should not be a black box. vmem gives you full control —
-          approve, pin, hide, expire, and a clear history of every change.
+          Memory should not be a black box. You stay in control.
         </SlideBody>
       </SlideReveal>
 

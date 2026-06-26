@@ -6,6 +6,8 @@ import {
   IconShieldLock,
 } from "@tabler/icons-react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
+import { PollCallback } from "../_components/PollCallback";
+import { POLL_PRIVACY } from "../_components/pollDefs";
 import {
   SlideBody,
   SlideItem,
@@ -102,6 +104,10 @@ export function Slide40Privacy() {
             — and vmem already runs on them, on-device.
           </p>
         </div>
+      </SlideReveal>
+
+      <SlideReveal step={2} delay={0.15} className="mt-5">
+        <PollCallback poll={POLL_PRIVACY} prefix="You said" />
       </SlideReveal>
     </SlideShell>
   );

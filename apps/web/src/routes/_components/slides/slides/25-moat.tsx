@@ -5,6 +5,8 @@ import {
 } from "@tabler/icons-react";
 import type { ComponentType } from "react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
+import { PollCallback } from "../_components/PollCallback";
+import { POLL_STICKINESS } from "../_components/pollDefs";
 import {
   SlideItem,
   SlideKicker,
@@ -78,6 +80,10 @@ export function Slide25Moat() {
           <span className="font-medium text-foreground">that&rsquo;s you</span>{" "}
           — not the lab.
         </p>
+      </SlideReveal>
+
+      <SlideReveal step={2} delay={0.15} className="mt-5">
+        <PollCallback poll={POLL_STICKINESS} prefix="You just told me" />
       </SlideReveal>
     </SlideShell>
   );

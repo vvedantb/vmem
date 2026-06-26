@@ -25,17 +25,17 @@ const sharedContent: SharedContentItem[] = [
   {
     icon: IconSkills,
     label: "Skills",
-    desc: "Reusable instructions any AI session can follow.",
+    desc: "Instructions any AI follows.",
   },
   {
     icon: IconWiki,
     label: "Wiki",
-    desc: "A shared knowledge base your AI can read.",
+    desc: "A shared knowledge base.",
   },
   {
     icon: IconFiles,
     label: "Files",
-    desc: "Shared files, searchable as memories and available to your AI.",
+    desc: "Shared, searchable files.",
   },
 ];
 

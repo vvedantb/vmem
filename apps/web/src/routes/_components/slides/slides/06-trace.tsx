@@ -40,8 +40,7 @@ export function Slide06Trace() {
       <SlideReveal delay={0.08} className="mt-3 max-w-xl">
         <SlideBody className="text-base text-foreground">
           Other tools hand you memories with no explanation. vmem shows you why
-          each one matched — same topic, same person, same conversation,
-          overlapping labels.
+          each one matched.
         </SlideBody>
       </SlideReveal>
 

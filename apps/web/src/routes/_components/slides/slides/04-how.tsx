@@ -17,25 +17,25 @@ const stages: PipelineStage[] = [
     index: "01",
     icon: IconCapture,
     title: "Capture",
-    body: "Chat, browser saves, file uploads, YouTube transcripts, other apps — everything lands in one place.",
+    body: "Chat, browser, files, voice — all in one place.",
   },
   {
     index: "02",
     icon: IconSparkles,
     title: "Enrich",
-    body: "vmem labels each memory with topics, pulls out the people and things you named, and maps how it relates to your other memories.",
+    body: "Labels topics, pulls out names, finds connections.",
   },
   {
     index: "03",
     icon: IconGitFork,
     title: "Connect",
-    body: "Related memories link together — same conversation, same topic, or clearly about the same thing. People and topics you mention become links you can follow.",
+    body: "Related memories link up automatically.",
   },
   {
     index: "04",
     icon: IconMemories,
     title: "Recall",
-    body: "When you ask a question, vmem searches by meaning, follows the links, and matches names you used — then shows you which memories it used and why.",
+    body: "Ask, and get the full picture back — with sources.",
   },
 ];
 
@@ -48,9 +48,7 @@ export function Slide04How() {
       <BlurWordsTitle lines={["Four steps, start to finish."]} size="xl" />
       <SlideReveal delay={0.1} className="mt-8">
         <SlideBody className="text-foreground">
-          Something you capture becomes a memory. vmem tidies it up and connects
-          it to the rest of your data, then hands the full picture back when you
-          ask. Nothing sits in a drawer unchanged.
+          Capture once — vmem does the rest.
         </SlideBody>
       </SlideReveal>
 

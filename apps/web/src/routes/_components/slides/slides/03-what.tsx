@@ -38,11 +38,8 @@ export function Slide03What() {
       <BlurWordsTitle lines={["Capture it once,", "recall it everywhere."]} />
       <SlideReveal step={1} className="mt-8 max-w-2xl">
         <SlideBody className="text-foreground">
-          You capture something once — a page, a file, something you said in
-          chat, voice on your phone. vmem stores it as a memory, labels the
-          topic, links the people and things involved, and ties it to what you
-          already know. When you ask from another app, you get the full picture
-          back.
+          Capture something once, anywhere. Ask from any other app, and the
+          whole picture comes back.
         </SlideBody>
       </SlideReveal>
 

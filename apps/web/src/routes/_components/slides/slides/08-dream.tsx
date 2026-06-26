@@ -41,9 +41,7 @@ export function Slide08Dream() {
       />
       <SlideReveal delay={0.08} className="mt-3 max-w-2xl">
         <SlideBody className="text-base text-foreground">
-          After enough new memories pile up, vmem runs a background pass. It
-          looks for conflicts, duplicates saying the same thing, and patterns
-          across everything you have captured.
+          While you're away, vmem revisits your memories and tidies them up.
         </SlideBody>
       </SlideReveal>
 
