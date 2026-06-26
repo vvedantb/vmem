@@ -53,7 +53,9 @@ export function SlideReveal({
   const isVisible = contextStep >= step;
   return (
     <motion.div
-      initial={isVisible ? "show" : "hidden"}
+      // Always mount hidden — if step=0 is already visible, initial="show"
+      // would skip the entrance (same rule as BlurWordsTitle).
+      initial="hidden"
       animate={isVisible ? "show" : "hidden"}
       variants={fadeUpVariants}
       transition={{
@@ -98,7 +100,9 @@ export function SlideStagger({
   const isVisible = contextStep >= step;
   return (
     <motion.div
-      initial={isVisible ? "show" : "hidden"}
+      // Always mount hidden — if step=0 is already visible, initial="show"
+      // would skip the entrance (same rule as BlurWordsTitle).
+      initial="hidden"
       animate={isVisible ? "show" : "hidden"}
       variants={{
         hidden: {},

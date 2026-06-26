@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import type { ComponentType } from "react";
 import { IconMoonStars, IconCheck } from "@tabler/icons-react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { SlideStepContext } from "./SlideShell";
 
@@ -34,7 +34,6 @@ const cardSpring = {
  */
 export function DreamModePanel({ outputs }: { outputs: DreamOutputRow[] }) {
   const step = useContext(SlideStepContext);
-  const reduceMotion = useReducedMotion();
   const rowsLive = step >= 1;
   const statusLive = step >= 2;
 
@@ -50,11 +49,7 @@ export function DreamModePanel({ outputs }: { outputs: DreamOutputRow[] }) {
               className="flex gap-4 rounded-2xl bg-surface-secondary/60 px-5 py-3"
               initial={{ opacity: 0, y: 12 }}
               animate={rowsLive ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-              transition={
-                reduceMotion === true
-                  ? { duration: 0 }
-                  : { ...cardSpring, delay: i * 0.08 }
-              }
+              transition={{ ...cardSpring, delay: i * 0.08 }}
             >
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
                 <Icon size={15} stroke={1.5} />
@@ -77,7 +72,7 @@ export function DreamModePanel({ outputs }: { outputs: DreamOutputRow[] }) {
         initial={{ opacity: 0, y: 8 }}
         animate={statusLive ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
         transition={{
-          duration: reduceMotion === true ? 0 : motionDuration.slow,
+          duration: motionDuration.slow,
           ease: motionEase,
         }}
       >
@@ -95,8 +90,8 @@ export function DreamModePanel({ outputs }: { outputs: DreamOutputRow[] }) {
                 statusLive ? { opacity: 1, x: 0 } : { opacity: 0, x: -6 }
               }
               transition={{
-                duration: reduceMotion === true ? 0 : motionDuration.base,
-                delay: reduceMotion === true ? 0 : i * 0.1,
+                duration: motionDuration.base,
+                delay: i * 0.1,
                 ease: motionEase,
               }}
             >

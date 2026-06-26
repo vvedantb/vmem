@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import type { ComponentType } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { IconMemories } from "@/components/sidebar-icons";
 import { SlideStepContext } from "./SlideShell";
 
@@ -27,7 +27,6 @@ const cardSpring = {
  */
 export function CaptureSourcesPanel({ sources }: { sources: CaptureSource[] }) {
   const step = useContext(SlideStepContext);
-  const reduceMotion = useReducedMotion();
   const cardsLive = step >= 1;
   const bannerLive = step >= 2;
 
@@ -43,11 +42,7 @@ export function CaptureSourcesPanel({ sources }: { sources: CaptureSource[] }) {
               className="flex flex-col rounded-2xl bg-surface-secondary/60 px-4 py-4"
               initial={{ opacity: 0, y: 14 }}
               animate={cardsLive ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }}
-              transition={
-                reduceMotion === true
-                  ? { duration: 0 }
-                  : { ...cardSpring, delay: i * 0.06 }
-              }
+              transition={{ ...cardSpring, delay: i * 0.06 }}
             >
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background">
                 <Icon size={16} stroke={1.5} />
@@ -76,11 +71,7 @@ export function CaptureSourcesPanel({ sources }: { sources: CaptureSource[] }) {
         animate={
           bannerLive ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.94 }
         }
-        transition={
-          reduceMotion === true
-            ? { duration: 0 }
-            : { ...cardSpring, delay: 0.08 }
-        }
+        transition={{ ...cardSpring, delay: 0.08 }}
       >
         <IconMemories size={18} stroke={1.5} />
         <span className="text-sm font-medium">One memory store</span>

@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { SlideStepContext } from "./SlideShell";
 
@@ -26,7 +26,6 @@ export function TraceMatchPanel({
   footer?: string;
 }) {
   const step = useContext(SlideStepContext);
-  const reduceMotion = useReducedMotion();
   const live = step >= 1;
   const footerLive = step >= 2;
 
@@ -54,7 +53,7 @@ export function TraceMatchPanel({
           const fraction = parseScore(row.score);
           const isTop =
             live && row.label === topScore.label && topScore.value > 0;
-          const barDelay = reduceMotion === true ? 0 : i * 0.1;
+          const barDelay = i * 0.1;
 
           return (
             <motion.div
@@ -67,7 +66,7 @@ export function TraceMatchPanel({
               initial={{ opacity: 0, y: 10 }}
               animate={live ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
               transition={{
-                duration: reduceMotion === true ? 0 : motionDuration.base,
+                duration: motionDuration.base,
                 delay: barDelay,
                 ease: motionEase,
               }}
@@ -86,7 +85,7 @@ export function TraceMatchPanel({
                   initial={{ scaleX: 0 }}
                   animate={live ? { scaleX: fraction } : { scaleX: 0 }}
                   transition={{
-                    duration: reduceMotion === true ? 0 : 0.55,
+                    duration: 0.55,
                     delay: barDelay + 0.06,
                     ease: motionEase,
                   }}
@@ -106,7 +105,7 @@ export function TraceMatchPanel({
           initial={{ opacity: 0, y: 6 }}
           animate={footerLive ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
           transition={{
-            duration: reduceMotion === true ? 0 : motionDuration.base,
+            duration: motionDuration.base,
             ease: motionEase,
           }}
         >

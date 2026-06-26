@@ -1,8 +1,7 @@
 import { useContext } from "react";
 import type { ComponentType } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { IconMemories } from "@/components/sidebar-icons";
-import { motionDuration, motionEase } from "@vmem/ui";
 import { SlideStepContext } from "./SlideShell";
 
 interface IconProps {
@@ -28,7 +27,6 @@ const cardSpring = {
  */
 export function WhatMemoryFlow({ sources }: { sources: MemorySource[] }) {
   const step = useContext(SlideStepContext);
-  const reduceMotion = useReducedMotion();
   const sourcesLive = step >= 2;
   const storeLive = step >= 3;
 
@@ -46,11 +44,7 @@ export function WhatMemoryFlow({ sources }: { sources: MemorySource[] }) {
               animate={
                 sourcesLive ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }
               }
-              transition={
-                reduceMotion === true
-                  ? { duration: 0 }
-                  : { ...cardSpring, delay: i * 0.07 }
-              }
+              transition={{ ...cardSpring, delay: i * 0.07 }}
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-foreground text-background">
                 <Icon size={18} stroke={1.5} />
@@ -67,11 +61,7 @@ export function WhatMemoryFlow({ sources }: { sources: MemorySource[] }) {
         className="mt-6 overflow-hidden rounded-2xl bg-foreground px-8 py-7 text-background"
         initial={{ opacity: 0, y: 20 }}
         animate={storeLive ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-        transition={
-          reduceMotion === true
-            ? { duration: 0 }
-            : { ...cardSpring, delay: 0.05 }
-        }
+        transition={{ ...cardSpring, delay: 0.05 }}
       >
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-background text-foreground">

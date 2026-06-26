@@ -1,6 +1,6 @@
 import { Fragment, useContext } from "react";
 import type { ComponentType } from "react";
-import { motion, useReducedMotion, type Variants } from "motion/react";
+import { motion, type Variants } from "motion/react";
 import { IconArrowRight } from "@tabler/icons-react";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { SlideStepContext } from "./SlideShell";
@@ -64,15 +64,18 @@ const contentStagger: Variants = {
   },
 };
 
+const focusRingSpring = {
+  type: "spring" as const,
+  stiffness: 380,
+  damping: 32,
+};
+
 /**
  * Four-stage pipeline for ?slide=6. Build steps 1–4 reveal each card from the
  * left; a progress rail and travelling dot show where you are in the flow.
- * Motion follows framer-motion-animator + elite-powerpoint-designer: springs,
- * GPU transforms, one focal stage, reduced-motion safe.
  */
 export function PipelineHowStages({ stages }: PipelineHowStagesProps) {
   const step = useContext(SlideStepContext);
-  const reduceMotion = useReducedMotion();
 
   return (
     <div className="mt-8">
@@ -88,14 +91,9 @@ export function PipelineHowStages({ stages }: PipelineHowStagesProps) {
                 <PipelineConnector
                   travelling={step === i + 1}
                   complete={step > i + 1}
-                  reduceMotion={reduceMotion === true}
                 />
               ) : null}
-              <PipelineStageCard
-                stage={stage}
-                active={step === i + 1}
-                reduceMotion={reduceMotion === true}
-              />
+              <PipelineStageCard stage={stage} active={step === i + 1} />
             </Fragment>
           );
         })}
@@ -144,11 +142,9 @@ function PipelineProgressRail({
 function PipelineStageCard({
   stage,
   active,
-  reduceMotion,
 }: {
   stage: PipelineStage;
   active: boolean;
-  reduceMotion: boolean;
 }) {
   const Icon = stage.icon;
 
@@ -160,17 +156,13 @@ function PipelineStageCard({
       variants={cardVariants}
       initial="hidden"
       animate="show"
-      transition={reduceMotion ? { duration: 0 } : cardSpring}
+      transition={cardSpring}
     >
       {active ? (
         <motion.div
           layoutId="pipeline-stage-focus"
           className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-foreground/14"
-          transition={
-            reduceMotion
-              ? { duration: 0 }
-              : { type: "spring", stiffness: 380, damping: 32 }
-          }
+          transition={focusRingSpring}
         />
       ) : null}
 
@@ -190,9 +182,7 @@ function PipelineStageCard({
           <motion.div
             className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground text-background"
             variants={contentVariants}
-            animate={
-              active && !reduceMotion ? { scale: [1, 1.07, 1] } : { scale: 1 }
-            }
+            animate={active ? { scale: [1, 1.07, 1] } : { scale: 1 }}
             transition={
               active
                 ? { duration: 0.55, ease: motionEase }
@@ -222,18 +212,12 @@ function PipelineStageCard({
 function PipelineConnector({
   travelling,
   complete,
-  reduceMotion,
 }: {
   travelling: boolean;
   complete: boolean;
-  reduceMotion: boolean;
 }) {
   const filled = complete || travelling;
-  const travelDuration = reduceMotion
-    ? 0
-    : travelling
-      ? 0.7
-      : motionDuration.fast;
+  const travelDuration = travelling ? 0.7 : motionDuration.fast;
 
   return (
     <motion.div
