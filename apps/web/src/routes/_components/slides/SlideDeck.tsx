@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useTheme } from "next-themes";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { SLIDES } from "./slides/index";
-import { SlideStepContext } from "./_components/SlideShell";
+import { SlideStepContext, SlideThemeContext } from "./_components/SlideShell";
 import { SlideOutlinePanel } from "./_components/SlideOutlinePanel";
 
 const DESIGN_W = 1280;
@@ -16,13 +16,22 @@ interface SlideDeckProps {
   /** 1-based current slide index. */
   slide: number;
   onNavigate: (slide: number) => void;
+  /** When false, keyboard / click navigation is disabled (stage follows presenter pop-out). */
+  allowNavigation?: boolean;
+  /** PowerPoint-style slide list on the left. */
+  showOutline?: boolean;
 }
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
+export function SlideDeck({
+  slide,
+  onNavigate,
+  allowNavigation = true,
+  showOutline = true,
+}: SlideDeckProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageAreaRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -99,8 +108,9 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
     return () => observer.disconnect();
   }, []);
 
-  // Keyboard navigation
+  // Keyboard navigation (presenter pop-out drives when disabled on stage).
   useEffect(() => {
+    if (!allowNavigation) return;
     function onKey(e: KeyboardEvent) {
       switch (e.key) {
         case "ArrowRight":
@@ -134,10 +144,11 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [slide, go]);
+  }, [slide, go, allowNavigation]);
 
   // Click left/right thirds
   function handleStageClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (!allowNavigation) return;
     // Don't navigate when the click lands on an interactive element
     // inside a slide (e.g. the mock memory-graph nodes).
     if (
@@ -221,7 +232,7 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
       ref={containerRef}
       className="fixed inset-0 flex overflow-hidden bg-background"
     >
-      <SlideOutlinePanel slide={slide} onNavigate={go} />
+      <SlideOutlinePanel slide={slide} onNavigate={go} hidden={!showOutline} />
 
       <div
         ref={stageAreaRef}
@@ -294,9 +305,11 @@ export function SlideDeck({ slide, onNavigate }: SlideDeckProps) {
               exit="exit"
               className="absolute inset-0"
             >
-              <SlideStepContext.Provider value={step}>
-                <Component />
-              </SlideStepContext.Provider>
+              <SlideThemeContext.Provider value={theme}>
+                <SlideStepContext.Provider value={step}>
+                  <Component />
+                </SlideStepContext.Provider>
+              </SlideThemeContext.Provider>
             </motion.div>
           </AnimatePresence>
         </div>

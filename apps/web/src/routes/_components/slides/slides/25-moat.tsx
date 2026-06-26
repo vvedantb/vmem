@@ -29,7 +29,7 @@ const ARGUMENTS: Argument[] = [
   {
     icon: IconChevronsDown,
     title: "Models converge",
-    body: "SOTA updates from frontier labs trickle down over time — everyone catches up.",
+    body: "The best models' improvements spread over time — everyone catches up.",
   },
   {
     icon: IconCopy,

@@ -28,7 +28,7 @@ const stages: PipelineStage[] = [
   {
     index: "03",
     icon: IconGitFork,
-    title: "Graph",
+    title: "Connect",
     body: "Related memories link together — same conversation, same topic, or clearly about the same thing. People and topics you mention become links you can follow.",
   },
   {

@@ -9,6 +9,7 @@ import { SLIDES } from "../slides/index";
 interface SlideOutlinePanelProps {
   slide: number;
   onNavigate: (slide: number) => void;
+  hidden?: boolean;
 }
 
 /**
@@ -18,14 +19,17 @@ interface SlideOutlinePanelProps {
 export function SlideOutlinePanel({
   slide,
   onNavigate,
+  hidden = false,
 }: SlideOutlinePanelProps) {
   const [open, setOpen] = useState(true);
   const activeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || hidden) return;
     activeRef.current?.scrollIntoView({ block: "nearest" });
-  }, [slide, open]);
+  }, [slide, open, hidden]);
+
+  if (hidden) return null;
 
   if (!open) {
     return (

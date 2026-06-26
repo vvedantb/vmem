@@ -52,7 +52,7 @@ const TIMELINE = [
     when: "2d ago",
     action: "Updated",
     actorClass: "bg-default text-default-foreground",
-    actor: "dream-mode",
+    actor: "Dream Mode",
     body: "Linked to “Loved the ramen in Shibuya” — same trip.",
   },
   {
@@ -173,7 +173,7 @@ export function Slide37NodeDetail() {
   return (
     <SlideShell>
       <SlideReveal delay={0}>
-        <SlideKicker>Click any node</SlideKicker>
+        <SlideKicker>Click any memory</SlideKicker>
       </SlideReveal>
       <BlurWordsTitle lines={["Every memory, fully traceable."]} size="xl" />
 

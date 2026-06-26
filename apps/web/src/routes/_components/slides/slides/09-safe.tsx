@@ -33,22 +33,22 @@ const safetyFeatures: SafetyFeature[] = [
   {
     icon: IconPin,
     title: "Pin",
-    body: "Pin a memory to prevent it being modified, suppressed, or altered by Dream Mode reconsolidation.",
+    body: "Pin a memory so it can't be changed, hidden, or touched when vmem reorganises overnight.",
   },
   {
     icon: IconEyeOff,
-    title: "Suppress",
-    body: "Remove a memory from recall without deleting it. Useful when something is wrong or no longer relevant.",
+    title: "Hide",
+    body: "Stop a memory showing up without deleting it. Useful when something is wrong or no longer relevant.",
   },
   {
     icon: IconClock,
     title: "Expire",
-    body: "Set a time-to-live. Temporary context (meeting prep, sprint notes) vanishes when no longer needed.",
+    body: "Give a memory an expiry date. Temporary things — meeting prep, event notes — vanish when no longer needed.",
   },
   {
     icon: IconActivity,
-    title: "Audit trail",
-    body: "Every memory write, update, and suppression is logged with source, timestamp, and reason.",
+    title: "History",
+    body: "Every change is recorded — what changed, where it came from, when, and why.",
   },
 ];
 
@@ -61,8 +61,8 @@ export function Slide09Safe() {
       <BlurWordsTitle lines={["You stay in control."]} size="xl" />
       <SlideReveal delay={0.08} className="mt-4 max-w-2xl">
         <SlideBody>
-          Memory should not be a black box. vmem gives you a full lifecycle —
-          approve, pin, suppress, expire, audit.
+          Memory should not be a black box. vmem gives you full control —
+          approve, pin, hide, expire, and a clear history of every change.
         </SlideBody>
       </SlideReveal>
 

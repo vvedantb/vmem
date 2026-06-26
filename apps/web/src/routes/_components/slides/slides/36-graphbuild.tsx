@@ -96,7 +96,7 @@ export function Slide36GraphBuild() {
   return (
     <SlideShell>
       <SlideReveal delay={0}>
-        <SlideKicker>Memory graph</SlideKicker>
+        <SlideKicker>How it connects</SlideKicker>
       </SlideReveal>
       <BlurWordsTitle lines={["One memory becomes a web."]} size="xl" />
 

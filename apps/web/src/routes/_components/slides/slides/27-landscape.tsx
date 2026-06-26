@@ -29,18 +29,18 @@ interface Approach {
 const APPROACHES: Approach[] = [
   {
     icon: IconSearch,
-    title: "RAG",
-    body: "Retrieve top-k similar chunks by embedding and stuff them into the prompt.",
+    title: "Search & paste",
+    body: "Find a few notes that look similar, and paste them in for the AI to read.",
   },
   {
     icon: IconHierarchy2,
-    title: "GraphRAG",
-    body: "Build a knowledge graph over the corpus and retrieve across connected nodes.",
+    title: "Connected search",
+    body: "Map how things relate first, then pull in the connected pieces too.",
   },
   {
     icon: IconAdjustmentsHorizontal,
-    title: "Context engineering",
-    body: "Curate exactly what enters the window — the right facts, in the right order.",
+    title: "The right context",
+    body: "Hand the AI exactly the right facts, in the right order — nothing spare.",
   },
 ];
 
@@ -50,7 +50,7 @@ export function Slide27Landscape() {
       <SlideReveal delay={0}>
         <SlideKicker>The landscape</SlideKicker>
       </SlideReveal>
-      <BlurWordsTitle lines={["How memory engines solve this."]} size="xl" />
+      <BlurWordsTitle lines={["How others tackle this."]} size="xl" />
 
       <SlideStagger
         className="mt-8 grid grid-cols-3 gap-5"
@@ -75,10 +75,10 @@ export function Slide27Landscape() {
 
       <SlideReveal step={2} className="mt-7 max-w-3xl">
         <SlideBody>
-          Models reason well — they fail at finding the relevant information. It
-          all comes down to context. Get it right and you improve accuracy{" "}
-          <span className="font-medium text-foreground">and</span> cut token
-          cost on every response.
+          AI thinks well — it struggles to find the right information. It all
+          comes down to context. Get it right and answers get more accurate{" "}
+          <span className="font-medium text-foreground">and</span> cheaper,
+          every time.
         </SlideBody>
       </SlideReveal>
     </SlideShell>

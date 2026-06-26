@@ -31,7 +31,7 @@ const PILLARS: Pillar[] = [
   {
     icon: IconDatabase,
     title: "All company data in one place",
-    body: "Linear, SharePoint, docs, conversations — unified into one connected graph.",
+    body: "Linear, SharePoint, docs, conversations — unified into one connected place.",
   },
   {
     icon: IconPlugConnected,

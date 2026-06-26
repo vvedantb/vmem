@@ -13,19 +13,19 @@ const dreamOutputs = [
     icon: IconAlertTriangle,
     kind: "Contradiction",
     example:
-      '"Uses vim" conflicts with "switched to VS Code last month" — you pick which one wins.',
+      '"Works from home Fridays" conflicts with "back in the office full-time" — you pick which one wins.',
   },
   {
     icon: IconGitMerge,
     kind: "Merge proposal",
     example:
-      '"Database slow" and "graph feels laggy" look like the same issue — merge them?',
+      '"Loved the Rome trip" and "Italy was amazing" look like the same thing — merge them?',
   },
   {
     icon: IconUser,
     kind: "Portrait",
     example:
-      "From 40 memories: you work on backend, like short answers, active in the evenings.",
+      "From 40 memories: you lead the marketing team, prefer short updates, and work best in the mornings.",
   },
 ];
 

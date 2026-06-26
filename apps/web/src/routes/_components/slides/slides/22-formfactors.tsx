@@ -6,6 +6,7 @@ import {
 } from "@tabler/icons-react";
 import type { ComponentType } from "react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
+import { SlideReferences } from "../_components/SlideReferences";
 import {
   SlideItem,
   SlideKicker,
@@ -45,7 +46,7 @@ const FORM_FACTORS: FormFactor[] = [
   {
     icon: IconUserScan,
     title: "Digital twin",
-    body: "A model of you that reasons and acts on your behalf — grounded in everything you've stored.",
+    body: "A digital version of you that thinks and acts on your behalf — built on everything you've stored.",
   },
 ];
 
@@ -90,6 +91,16 @@ export function Slide22FormFactors() {
           .
         </p>
       </SlideReveal>
+
+      <SlideReferences
+        className="mt-auto"
+        items={[
+          {
+            label: "Digital twin · BBC News",
+            href: "https://www.bbc.co.uk/news/articles/c1d907lq6nyo",
+          },
+        ]}
+      />
     </SlideShell>
   );
 }

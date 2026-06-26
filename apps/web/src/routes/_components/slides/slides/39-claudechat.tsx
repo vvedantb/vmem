@@ -144,7 +144,7 @@ function ToolUseBlock({ p }: { p: Palette }) {
           className="truncate font-mono text-[11px]"
           style={{ color: p.muted }}
         >
-          memory_retrieve(&quot;Japan trip&quot;)
+          recalling your Japan trip
         </span>
         <IconCheck
           size={13}

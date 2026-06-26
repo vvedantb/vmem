@@ -53,6 +53,49 @@ function At({ l, t, children }: { l: number; t: number; children: ReactNode }) {
   );
 }
 
+interface Point {
+  l: number;
+  t: number;
+}
+
+/**
+ * A dot that travels along an edge between two percentage points, looping
+ * forever. Two per edge (opposite directions) give the bidirectional "feeding"
+ * flow: tools feed memory into vmem, vmem feeds it back. Positioned in the same
+ * 0-100 space as the nodes, so it tracks the SVG edges exactly.
+ */
+function FeedDot({
+  from,
+  to,
+  delay,
+  className,
+}: {
+  from: Point;
+  to: Point;
+  delay: number;
+  className: string;
+}) {
+  return (
+    <motion.span
+      aria-hidden
+      className={`pointer-events-none absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${className}`}
+      initial={{ left: `${from.l}%`, top: `${from.t}%`, opacity: 0 }}
+      animate={{
+        left: [`${from.l}%`, `${to.l}%`],
+        top: [`${from.t}%`, `${to.t}%`],
+        opacity: [0, 1, 1, 0],
+      }}
+      transition={{
+        duration: 1.8,
+        ease: "easeInOut",
+        repeat: Infinity,
+        repeatDelay: 0.15,
+        delay,
+      }}
+    />
+  );
+}
+
 export function SlideFragmentCollapse() {
   const step = useContext(SlideStepContext);
   const connected = step >= 1;
@@ -101,6 +144,27 @@ export function SlideFragmentCollapse() {
             </div>
           </At>
         ))}
+
+        {/* Feeding dots — bidirectional flow along every edge once connected.
+            Rendered before the vmem node so the node covers the convergence
+            point: dots look absorbed into vmem and emitted back out. */}
+        {connected &&
+          TOOLS.flatMap((tool, i) => [
+            <FeedDot
+              key={`in-${tool.label}`}
+              from={{ l: tool.l, t: tool.t }}
+              to={CENTER}
+              delay={0.4 + i * 0.14}
+              className="bg-foreground"
+            />,
+            <FeedDot
+              key={`out-${tool.label}`}
+              from={CENTER}
+              to={{ l: tool.l, t: tool.t }}
+              delay={0.4 + i * 0.14 + 0.9}
+              className="bg-foreground/45"
+            />,
+          ])}
 
         {/* vmem node — pops in at the centre on step 1. */}
         <At l={CENTER.l} t={CENTER.t}>

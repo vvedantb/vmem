@@ -6,12 +6,16 @@ import {
   IconLoader2,
   IconEye,
   IconArrowBackUp,
+  IconNotes,
 } from "@tabler/icons-react";
 import type { PresentationSync } from "../usePresentationSync";
 import { PresentationHostBar } from "./PresentationHostBar";
 
 interface PresentationControlsProps {
   sync: PresentationSync;
+  canOpenPresenter?: boolean;
+  presenterDetached?: boolean;
+  onOpenPresenter?: () => void;
 }
 
 /** Shared pill styling (floating overlay → shadow is allowed here). */
@@ -25,7 +29,12 @@ const PILL =
  * pill. The wrapper is click-through; only the pill itself is interactive, so
  * the deck's click-to-navigate still works across the top strip.
  */
-export function PresentationControls({ sync }: PresentationControlsProps) {
+export function PresentationControls({
+  sync,
+  canOpenPresenter = false,
+  presenterDetached = false,
+  onOpenPresenter,
+}: PresentationControlsProps) {
   const [revealed, setRevealed] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -94,7 +103,25 @@ export function PresentationControls({ sync }: PresentationControlsProps) {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end p-4">
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex items-start justify-end gap-2 p-4">
+      {canOpenPresenter && !presenterDetached && onOpenPresenter ? (
+        <div
+          className={cn(
+            "transition-opacity duration-300",
+            visible ? "pointer-events-auto opacity-100" : "opacity-0",
+          )}
+        >
+          <Button
+            size="sm"
+            variant="secondary"
+            className="shadow-lg"
+            onClick={onOpenPresenter}
+          >
+            <IconNotes size={15} />
+            Presenter view
+          </Button>
+        </div>
+      ) : null}
       <div
         className={cn(
           "transition-opacity duration-300",

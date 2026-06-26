@@ -74,8 +74,7 @@ export function Slide24Benchmarks() {
       </SlideStagger>
       <SlideReveal step={1} delay={0.2} className="mt-3">
         <p className="text-sm text-muted">
-          Formal results on recall quality, latency, and token cost are in
-          progress.
+          Formal results on answer quality, speed, and cost are in progress.
         </p>
       </SlideReveal>
 

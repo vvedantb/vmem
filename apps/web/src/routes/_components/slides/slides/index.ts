@@ -1,12 +1,10 @@
 import type { ComponentType } from "react";
 import { Slide00Black } from "./00-black";
 import { Slide01Title } from "./01-title";
-import { Slide02Problem } from "./02-problem";
 import { SlidePollModels } from "./poll-models";
 import { SlidePollSwitch } from "./poll-switch";
 import { SlidePollStickiness } from "./poll-stickiness";
 import { SlidePollPrivacy } from "./poll-privacy";
-import { SlidePollConnectors } from "./poll-connectors";
 import { SlidePollFragmentation } from "./poll-fragmentation";
 import { SlideFragmentScatter } from "./frag-scatter";
 import { SlideFragmentCollapse } from "./frag-collapse";
@@ -67,8 +65,14 @@ export interface SlideEntry {
   staggerMs?: number;
 }
 
+/**
+ * Running order, grouped into acts. Theme is set HERE (not in the slide files),
+ * so the deck keeps a clean dark-open → light-body → dark-finale arc with only
+ * two theme transitions. Slides not in this list (02 The problem, poll-connectors)
+ * still exist as files and can be re-added.
+ */
 export const SLIDES: SlideEntry[] = [
-  // Blank opener — click forward to play the title's entrance live.
+  // ── Act 1 · Open (dark) ──────────────────────────────────────────────
   {
     id: "00",
     title: "Start",
@@ -76,14 +80,15 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide00Black,
     steps: 0,
   },
-  // step 0: brand + title  /  step 1: subtitle + footer
   {
     id: "01",
     title: "Title",
     theme: "dark",
     Component: Slide01Title,
-    steps: 1,
+    steps: 2,
   },
+
+  // ── Act 2 · Hook polls (light) ───────────────────────────────────────
   {
     id: "poll-models",
     title: "Poll — AI models",
@@ -99,35 +104,15 @@ export const SLIDES: SlideEntry[] = [
     steps: 0,
   },
   {
-    id: "poll-stickiness",
-    title: "Poll — stickiness",
-    theme: "light",
-    Component: SlidePollStickiness,
-    steps: 0,
-  },
-  {
-    id: "poll-privacy",
-    title: "Poll — personal data",
-    theme: "light",
-    Component: SlidePollPrivacy,
-    steps: 0,
-  },
-  {
-    id: "poll-connectors",
-    title: "Poll — Claude Connectors",
-    theme: "light",
-    Component: SlidePollConnectors,
-    steps: 0,
-  },
-  // "how many tools know you" poll → scatter → collapse into one vmem layer
-  {
     id: "poll-fragmentation",
     title: "Poll — fragmentation",
     theme: "light",
     Component: SlidePollFragmentation,
     steps: 0,
   },
-  // step 0: kicker + title  /  step 1: six tool cards  /  step 2: sting line
+
+  // ── Act 3 · The problem, made visual (light) ─────────────────────────
+  // poll → scatter → collapse into one vmem layer (replaces old "02 The problem")
   {
     id: "frag-scatter",
     title: "Fragmentation",
@@ -135,7 +120,6 @@ export const SLIDES: SlideEntry[] = [
     Component: SlideFragmentScatter,
     steps: 2,
   },
-  // step 0: scattered tool nodes  /  step 1: vmem node + edges  /  step 2: payoff
   {
     id: "frag-collapse",
     title: "One layer",
@@ -143,23 +127,15 @@ export const SLIDES: SlideEntry[] = [
     Component: SlideFragmentCollapse,
     steps: 2,
   },
-  // step 0: kicker + title  /  step 1: pain cards  /  step 2: body
-  {
-    id: "02",
-    title: "The problem",
-    theme: "light",
-    Component: Slide02Problem,
-    steps: 2,
-  },
-  // step 0: title  /  step 1: seven question cards build in
   {
     id: "33",
-    title: "The questions",
+    title: "Everyone's asking",
     theme: "light",
     Component: Slide33Questions,
     steps: 1,
   },
-  // step 0: kicker + title  /  step 1: body  /  step 2: surfaces  /  step 3: callout box
+
+  // ── Act 4 · What vmem is + how it works (light) ──────────────────────
   {
     id: "03",
     title: "What vmem is",
@@ -168,7 +144,6 @@ export const SLIDES: SlideEntry[] = [
     steps: 3,
     staggerMs: 1200,
   },
-  // step 0: kicker + title + body  /  steps 1-4: one pipeline stage each
   {
     id: "04",
     title: "How it works",
@@ -177,15 +152,14 @@ export const SLIDES: SlideEntry[] = [
     steps: 4,
     staggerMs: 1200,
   },
-  // step 0: kicker + title  /  step 1: before chain  /  step 2: after chain
   {
     id: "17",
     title: "One call",
     theme: "light",
     Component: Slide17Pipeline,
-    steps: 2,
+    steps: 1,
+    staggerMs: 7000,
   },
-  // step 0: kicker + title + graph panel  /  step 1: body  /  step 2: concept rows
   {
     id: "05",
     title: "Memory graph",
@@ -193,7 +167,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide05Graph,
     steps: 2,
   },
-  // step 0: kicker + title + body  /  step 1: trace table  /  step 2: bottom body
   {
     id: "06",
     title: "Context Trace",
@@ -202,7 +175,6 @@ export const SLIDES: SlideEntry[] = [
     steps: 2,
     staggerMs: 1200,
   },
-  // step 0: kicker + title  /  step 1: source cards  /  step 2: bottom body
   {
     id: "07",
     title: "Capture everywhere",
@@ -211,7 +183,6 @@ export const SLIDES: SlideEntry[] = [
     steps: 2,
     staggerMs: 1200,
   },
-  // step 0: kicker + title + body  /  step 1: output rows  /  step 2: info bar
   {
     id: "08",
     title: "Dream Mode",
@@ -220,7 +191,6 @@ export const SLIDES: SlideEntry[] = [
     steps: 2,
     staggerMs: 1200,
   },
-  // step 0: kicker + title + body  /  step 1: safety cards
   {
     id: "09",
     title: "Safe by design",
@@ -228,7 +198,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide09Safe,
     steps: 1,
   },
-  // step 0: kicker + title + body  /  step 1: personal + team cards  /  step 2: shared content
   {
     id: "10",
     title: "Workspaces & teams",
@@ -236,7 +205,8 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide10Workspaces,
     steps: 2,
   },
-  // step 0: title  /  step 1: RAG/GraphRAG/context cards  /  step 2: context insight
+
+  // ── Act 5 · Proof — vs the field + credibility (light) ────────────────
   {
     id: "27",
     title: "How others solve it",
@@ -244,7 +214,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide27Landscape,
     steps: 2,
   },
-  // step 0: title  /  step 1: three gap cards  /  step 2: flat-pile takeaway
   {
     id: "28",
     title: "Where they fall short",
@@ -252,7 +221,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide28Gaps,
     steps: 2,
   },
-  // step 0: title  /  step 1: dream/relationship/sync cards  /  step 2: takeaway
   {
     id: "29",
     title: "How vmem solves it",
@@ -260,7 +228,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide29VmemSolves,
     steps: 2,
   },
-  // step 0: kicker + title  /  step 1: comparison table
   {
     id: "11",
     title: "vs the field",
@@ -268,7 +235,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide11Comparison,
     steps: 1,
   },
-  // step 0: title  /  step 1: in-progress benchmark rows  /  step 2: personal-use quote
   {
     id: "24",
     title: "Benchmarks",
@@ -276,7 +242,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide24Benchmarks,
     steps: 2,
   },
-  // step 0: title  /  step 1: four domain use-case cards
   {
     id: "19",
     title: "Use cases",
@@ -284,23 +249,14 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide19UseCases,
     steps: 1,
   },
-  // step 0: title + body  /  step 1: three pillars
-  {
-    id: "20",
-    title: "Company brain",
-    theme: "dark",
-    Component: Slide20CompanyBrain,
-    steps: 1,
-  },
-  // step 0: title + body  /  step 1: working-memory grid  /  step 2: flywheel callout
   {
     id: "21",
     title: "Eva",
     theme: "light",
     Component: Slide21Eva,
     steps: 2,
+    staggerMs: 2800,
   },
-  // step 0: title  /  step 1: three trust pillars
   {
     id: "23",
     title: "Trust",
@@ -308,55 +264,15 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide23Trust,
     steps: 1,
   },
-  // step 0: kicker + title  /  step 1: body + CTA  /  step 2: roadmap cards
+
+  // ── Act 6 · The vision + see it live (dark) ──────────────────────────
   {
-    id: "12",
-    title: "Closing",
-    theme: "light",
-    Component: Slide12Closing,
-    steps: 2,
-  },
-  // step 0: title  /  step 1: three thesis cards  /  step 2: ownership punchline
-  {
-    id: "25",
-    title: "Memory is the moat",
+    id: "20",
+    title: "Company brain",
     theme: "dark",
-    Component: Slide25Moat,
-    steps: 2,
-  },
-  // step 0: title  /  step 1: lock-in spiral  /  step 2: portability resolution
-  {
-    id: "26",
-    title: "Cost of stickiness",
-    theme: "dark",
-    Component: Slide26Stickiness,
-    steps: 2,
-  },
-  // step 0: title  /  step 1: shutdown→swap→retain scenario  /  step 2: quote
-  {
-    id: "35",
-    title: "The real test",
-    theme: "dark",
-    Component: Slide35Sovereignty,
-    steps: 2,
-  },
-  // step 0: title  /  step 1: three honest weakness cards
-  {
-    id: "30",
-    title: "Weaknesses",
-    theme: "dark",
-    Component: Slide30Weaknesses,
+    Component: Slide20CompanyBrain,
     steps: 1,
   },
-  // step 0: title  /  step 1: three defensibility cards  /  step 2: takeaway
-  {
-    id: "31",
-    title: "Defensibility",
-    theme: "dark",
-    Component: Slide31Defensibility,
-    steps: 2,
-  },
-  // step 0: 3D screenshot showcase (panels fly in, idle float)
   {
     id: "15",
     title: "Showcase",
@@ -364,7 +280,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide15Showcase,
     steps: 0,
   },
-  // step 0: laptop-mockup Ken-Burns zoom over the graph screenshot
   {
     id: "32",
     title: "Live demo",
@@ -372,7 +287,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide32Demo,
     steps: 0,
   },
-  // step 0: one node  /  steps 1-4: nodes + relationship edges build in  /  step 5: zoom out
   {
     id: "36",
     title: "Graph build-up",
@@ -381,7 +295,6 @@ export const SLIDES: SlideEntry[] = [
     steps: 5,
     staggerMs: 1400,
   },
-  // active tab auto-cycles Details → History → Connections on a loop (internal timer)
   {
     id: "37",
     title: "Node detail",
@@ -389,7 +302,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide37NodeDetail,
     steps: 0,
   },
-  // Claude + ChatGPT side by side, same vmem call + answer, synced loop
   {
     id: "39",
     title: "Same answer, any model",
@@ -397,7 +309,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide39ClaudeChat,
     steps: 0,
   },
-  // step 0: rotating 3D showcase of skills/wiki/connectors screenshots
   {
     id: "34",
     title: "More of the app",
@@ -405,15 +316,47 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide34Surfaces,
     steps: 0,
   },
-  // step 0: full bento board (tiles cascade in)
+
+  // ── Act 7 · Why it's defensible — the moat (dark) ─────────────────────
+  // poll-stickiness now lands right before its payoff (theme flipped to dark)
   {
-    id: "13",
-    title: "Everything vmem",
+    id: "poll-stickiness",
+    title: "Poll — stickiness",
     theme: "dark",
-    Component: Slide13Bento,
+    Component: SlidePollStickiness,
     steps: 0,
   },
-  // step 0: title  /  step 1: two trend cards  /  step 2: opus-local stat  /  step 3: closing line
+  {
+    id: "25",
+    title: "Memory is the moat",
+    theme: "dark",
+    Component: Slide25Moat,
+    steps: 2,
+  },
+  {
+    id: "26",
+    title: "Cost of stickiness",
+    theme: "dark",
+    Component: Slide26Stickiness,
+    steps: 2,
+  },
+  {
+    id: "35",
+    title: "The real test",
+    theme: "dark",
+    Component: Slide35Sovereignty,
+    steps: 2,
+  },
+
+  // ── Act 8 · Privacy & sovereignty (dark) ─────────────────────────────
+  // poll-privacy now lands right before the local-models payoff (flipped dark)
+  {
+    id: "poll-privacy",
+    title: "Poll — personal data",
+    theme: "dark",
+    Component: SlidePollPrivacy,
+    steps: 0,
+  },
   {
     id: "18",
     title: "Local models",
@@ -421,7 +364,6 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide18Local,
     steps: 3,
   },
-  // step 0: title + body  /  step 1: blocker/unlock/trajectory cards  /  step 2: payoff
   {
     id: "40",
     title: "Private by design",
@@ -429,7 +371,22 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide40Privacy,
     steps: 2,
   },
-  // step 0: title  /  step 1: three form-factor cards  /  step 2: connect-vmem punchline
+
+  // ── Act 9 · Honest + close (dark) ────────────────────────────────────
+  {
+    id: "30",
+    title: "Weaknesses",
+    theme: "dark",
+    Component: Slide30Weaknesses,
+    steps: 1,
+  },
+  {
+    id: "31",
+    title: "Defensibility",
+    theme: "dark",
+    Component: Slide31Defensibility,
+    steps: 2,
+  },
   {
     id: "22",
     title: "Form factors",
@@ -437,7 +394,13 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide22FormFactors,
     steps: 2,
   },
-  // step 0: four lines blur in sequentially (past dim, future bright)
+  {
+    id: "13",
+    title: "Everything vmem",
+    theme: "dark",
+    Component: Slide13Bento,
+    steps: 0,
+  },
   {
     id: "16",
     title: "Tomorrow",
@@ -445,7 +408,15 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide16Tomorrow,
     steps: 0,
   },
-  // step 0: everything
+  // Closing flipped to dark so the finale stays one continuous dark block —
+  // VERIFY visually: this slide uses SlideAmbientGraph + roadmap cards.
+  {
+    id: "12",
+    title: "Closing",
+    theme: "dark",
+    Component: Slide12Closing,
+    steps: 2,
+  },
   {
     id: "14",
     title: "Questions",

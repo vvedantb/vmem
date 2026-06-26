@@ -11,22 +11,22 @@ const traceRows = [
   {
     label: "meaning",
     score: "0.91",
-    reason: "Same project context — different words, same topic",
+    reason: "Same project — different words, same topic",
   },
   {
     label: "name",
     score: "0.85",
-    reason: "Both mention the same database slowdown from March",
+    reason: "Both mention the budget review from March",
   },
   {
     label: "conversation",
     score: "0.72",
-    reason: "Saved within 15 minutes of your debugging memory",
+    reason: "Saved minutes after your planning note",
   },
   {
     label: "topic",
     score: "0.68",
-    reason: "Shared labels: debugging, backend, performance",
+    reason: "Shared topics: planning, budget, Q3",
   },
 ];
 

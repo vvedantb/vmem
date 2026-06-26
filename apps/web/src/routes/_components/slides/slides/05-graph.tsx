@@ -10,9 +10,12 @@ import {
 } from "../_components/SlideShell";
 
 const graphConcepts = [
-  ["Tags", "Recurring themes — generalised vocabulary across all memories."],
-  ["Entities", "Specific names: people, products, repos, APIs."],
-  ["Edges", "Same session, semantic similarity, or LLM-detected relation."],
+  ["Topics", "The themes that come up again and again across your memories."],
+  ["Names", "The people, products, and projects you mention."],
+  [
+    "Links",
+    "How memories connect — same chat, same subject, or similar meaning.",
+  ],
 ] as const;
 
 export function Slide05Graph() {
@@ -21,14 +24,17 @@ export function Slide05Graph() {
       <div className="flex h-full gap-14">
         <div className="flex flex-1 flex-col justify-center">
           <SlideReveal delay={0}>
-            <SlideKicker>Memory graph</SlideKicker>
+            <SlideKicker>How it connects</SlideKicker>
           </SlideReveal>
-          <BlurWordsTitle lines={["Context as a living graph."]} size="xl" />
+          <BlurWordsTitle
+            lines={["Everything links to everything."]}
+            size="xl"
+          />
           <SlideReveal step={1} className="mt-6">
             <SlideBody>
-              Memories are nodes. Tags are recurring themes. Entities are named
-              specifics — people, projects, tools. Relates-to edges connect
-              memories by content, session, and similarity.
+              Every memory links to the people, topics, and other memories it
+              touches. One thing leads to the next — so when you ask, the whole
+              web of context comes back, not just a single note.
             </SlideBody>
           </SlideReveal>
           <SlideStagger
@@ -56,7 +62,7 @@ export function Slide05Graph() {
         >
           <SlideMemoryPreview loop={false} />
           <p className="mt-3 text-center text-xs text-muted/60">
-            Click a node during the talk.
+            Click any memory during the talk.
           </p>
         </SlideReveal>
       </div>

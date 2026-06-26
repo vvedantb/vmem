@@ -19,17 +19,17 @@ const roadmapItems = [
   {
     icon: IconPlug,
     title: "Connectors",
-    body: "Ingest from Notion, GitHub, Linear, Gmail — structured data flowing into the graph automatically.",
+    body: "Pull your data in from Notion, GitHub, Linear, and Gmail — automatically.",
   },
   {
     icon: IconBolt,
-    title: "Richer recall",
-    body: "Multi-hop graph traversal, temporal decay, relevance feedback from agents.",
+    title: "Smarter recall",
+    body: "Follows deeper connections, lets old context fade, and learns what's useful.",
   },
   {
     icon: IconMapPin,
-    title: "Memory API v2",
-    body: "Scoped tokens, per-agent memory namespaces, read-only access grants.",
+    title: "Finer access control",
+    body: "Give each tool or teammate exactly the access they need — nothing more.",
   },
 ];
 
@@ -49,16 +49,16 @@ export function Slide12Closing() {
           />
           <SlideReveal step={1} className="mt-6 max-w-lg">
             <SlideBody>
-              vmem is live. The foundation — graph storage, hybrid recall,
-              Context Trace, Dream Mode, workspaces — is in place. Connectors
-              and richer recall are next.
+              vmem is live. The foundation — connected memory, recall you can
+              trust, Dream Mode, workspaces — is in place. Connectors and
+              smarter recall are next.
             </SlideBody>
           </SlideReveal>
           <SlideReveal step={1} delay={0.04} className="mt-4 max-w-lg">
             <SlideBody>
-              The memory layer is entering its own GPT-3 moment — early, but
-              improving fast. You can already see it: Claude now references past
-              chats and memories.
+              The memory layer is at its earliest days — like when ChatGPT first
+              landed: rough, but improving fast. You can already see it: Claude
+              now references your past chats and memories.
             </SlideBody>
           </SlideReveal>
           <SlideReveal step={1} delay={0.08} className="mt-8">

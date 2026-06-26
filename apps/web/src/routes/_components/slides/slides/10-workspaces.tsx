@@ -25,17 +25,17 @@ const sharedContent: SharedContentItem[] = [
   {
     icon: IconSkills,
     label: "Skills",
-    desc: "Reusable prompt instructions injected into any AI session.",
+    desc: "Reusable instructions any AI session can follow.",
   },
   {
     icon: IconWiki,
     label: "Wiki",
-    desc: "Team knowledge base linked into agent context.",
+    desc: "A shared knowledge base your AI can read.",
   },
   {
     icon: IconFiles,
     label: "Files",
-    desc: "Shared AI filesystem — indexed as memories, served to agents.",
+    desc: "Shared files, searchable as memories and available to your AI.",
   },
 ];
 
@@ -48,8 +48,8 @@ export function Slide10Workspaces() {
       <BlurWordsTitle lines={["Personal and shared memory."]} size="xl" />
       <SlideReveal delay={0.08} className="mt-6 max-w-2xl">
         <SlideBody>
-          Profiles are workspaces. Each workspace has its own memory scope.
-          Teams share skills, wiki, and files — personal memories stay private.
+          Each workspace keeps its own memories. Teams share skills, wiki, and
+          files — your personal memories stay private.
         </SlideBody>
       </SlideReveal>
 
@@ -71,7 +71,7 @@ export function Slide10Workspaces() {
               "Private memories",
               "Personal skills and wiki",
               "Own chat threads",
-              "Syncs to extension + mobile",
+              "Syncs to browser and phone",
             ].map((item) => (
               <li
                 key={item}
@@ -99,9 +99,9 @@ export function Slide10Workspaces() {
           </div>
           <ul className="space-y-2">
             {[
-              "Shared memory scope for all members",
+              "Shared memories for all members",
               "Team-wide skills and wiki",
-              "Shared file drive (10 GiB)",
+              "Shared file drive (10 GB)",
               "Any member can create + edit",
             ].map((item) => (
               <li

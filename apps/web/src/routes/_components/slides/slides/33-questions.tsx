@@ -13,8 +13,8 @@ const QUESTIONS = [
   "How do I connect my data to memories?",
   "Why do I only have limited memories stored?",
   "Why can't the model learn, update, and delete irrelevant memories?",
-  "How can we transfer memories across providers?",
-  "How do we optimise context windows for token usage and accuracy?",
+  "How do we move memories between AI providers?",
+  "How do we keep long chats accurate without the cost?",
 ] as const;
 
 export function Slide33Questions() {

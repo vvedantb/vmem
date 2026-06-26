@@ -30,7 +30,7 @@ const sources: Source[] = [
     items: [
       "Quick-save any page",
       "Auto-sync browsing history",
-      "YouTube transcript extraction",
+      "Save what a YouTube video said",
     ],
   },
   {
@@ -38,7 +38,7 @@ const sources: Source[] = [
     title: "Mobile app",
     items: [
       "Voice becomes a memory",
-      "Works offline with a model on your phone",
+      "Works offline, right on your phone",
       "Online chat when you have a connection",
     ],
   },

@@ -29,13 +29,13 @@ const SOLUTIONS: Solution[] = [
   },
   {
     icon: IconShare2,
-    title: "Relationship-first recall",
-    body: "Retrieves memories by how they connect, not just by surface similarity.",
+    title: "Connected recall",
+    body: "Brings back memories by how they connect — not just which ones look alike.",
   },
   {
     icon: IconRefresh,
     title: "Always in sync",
-    body: "Connectors stream your data in continuously, wiring it into the graph as it arrives.",
+    body: "Your tools feed data in continuously, connecting it as it arrives.",
   },
 ];
 
