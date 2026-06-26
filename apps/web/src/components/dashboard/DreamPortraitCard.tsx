@@ -22,7 +22,7 @@ export function DreamPortraitCard() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <IconMoonStars size={16} className="text-muted" stroke={1.5} />
-            <h3 className="text-sm font-medium text-foreground">
+            <h3 className="text-sm font-medium text-foreground text-balance">
               Inferred portrait
             </h3>
           </div>
