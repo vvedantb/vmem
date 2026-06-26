@@ -407,7 +407,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
         <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
           <IconAlertCircle className="w-6 h-6 text-danger" />
         </div>
-        <h3 className="text-lg font-medium text-foreground mb-2">
+        <h3 className="text-lg font-medium text-foreground mb-2 text-balance">
           Failed to load memories
         </h3>
         <p className="text-sm text-muted mb-4">
@@ -431,7 +431,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
         <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
           <IconMoodEmpty className="w-6 h-6 text-muted" />
         </div>
-        <h3 className="text-lg font-medium text-foreground mb-2">
+        <h3 className="text-lg font-medium text-foreground mb-2 text-balance">
           Nothing here yet
         </h3>
         <p className="text-sm text-muted">
@@ -449,7 +449,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
             <div className="w-10 h-10 rounded-full bg-surface-secondary flex items-center justify-center mb-3">
               <AnimatedSearchIcon className="text-muted" />
             </div>
-            <h3 className="text-base font-medium text-foreground mb-1">
+            <h3 className="text-base font-medium text-foreground mb-1 text-balance">
               No results found
             </h3>
             <p className="text-sm text-muted">

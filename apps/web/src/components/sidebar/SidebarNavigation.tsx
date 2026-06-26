@@ -97,7 +97,7 @@ function SubSidebarNavButton({
         type="button"
         onClick={onClick}
         className={cn(
-          "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.98]",
+          "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.96]",
           sidebarNavRowClass(isIconOnly),
           sidebarNavLinkTextClass(isActive),
         )}
@@ -288,7 +288,7 @@ function SettingsNav({
                       to={item.href}
                       onClick={onNavigate}
                       className={cn(
-                        "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.98]",
+                        "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.96]",
                         sidebarNavRowClass(isIconOnly),
                         sidebarNavLinkTextClass(isActive),
                       )}

@@ -6,6 +6,7 @@
 
 import { motion, useSpring, useTransform, useInView } from "motion/react";
 import { useEffect, useRef } from "react";
+import { cn } from "@vmem/ui";
 
 interface AnimatedCounterProps {
   /** Target value to count up to */
@@ -45,7 +46,7 @@ export function AnimatedCounter({
   }, [value, springValue, animateOnView, isInView]);
 
   return (
-    <motion.span ref={ref} className={className}>
+    <motion.span ref={ref} className={cn("tabular-nums", className)}>
       {displayValue}
     </motion.span>
   );

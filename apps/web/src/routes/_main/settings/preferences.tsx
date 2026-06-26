@@ -219,7 +219,7 @@ function PreferencesPage() {
         </Card>
 
         <section className="space-y-3">
-          <h3 className="text-base font-medium text-foreground">
+          <h3 className="text-base font-medium text-foreground text-balance">
             Memory Behavior
           </h3>
           <Card className="shadow-none">
@@ -252,7 +252,9 @@ function PreferencesPage() {
         </section>
 
         <section className="space-y-3">
-          <h3 className="text-base font-medium text-foreground">Dream Mode</h3>
+          <h3 className="text-base font-medium text-foreground text-balance">
+            Dream Mode
+          </h3>
           <Card className="shadow-none">
             <CardContent className="space-y-6 p-6">
               <div className="flex items-center justify-between gap-3">
@@ -341,7 +343,7 @@ function PreferencesPage() {
         </section>
 
         <section className="space-y-3">
-          <h3 className="text-base font-medium text-foreground">
+          <h3 className="text-base font-medium text-foreground text-balance">
             Notification Preferences
           </h3>
           <Card className="shadow-none">

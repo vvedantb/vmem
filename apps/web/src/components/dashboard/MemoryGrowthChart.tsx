@@ -27,7 +27,7 @@ export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
       <Card className="shadow-none">
         <CardContent className="p-5 sm:p-6">
           <div className="mb-5 flex flex-col gap-1 sm:mb-6">
-            <h2 className="text-base font-medium text-foreground sm:text-lg">
+            <h2 className="text-base font-medium text-foreground sm:text-lg text-balance">
               Memory growth
             </h2>
             <p className="text-sm text-muted">Last 7 days</p>

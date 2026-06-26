@@ -64,7 +64,7 @@ export default function FileDropZone({
     >
       {children}
 
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isDragging && (
           <motion.div
             initial={{ opacity: 0 }}

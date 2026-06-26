@@ -106,7 +106,7 @@ export default function FileListRow({
                 <img
                   src={item.thumbnailUrl}
                   alt={item.name}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover outline outline-1 -outline-offset-1 outline-foreground/10"
                 />
               ) : (
                 <FileIcon size={18} stroke={1.5} className="text-muted" />

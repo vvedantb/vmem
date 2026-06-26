@@ -30,7 +30,11 @@ export default function BreadcrumbNav({
 
         return (
           <BreadcrumbLink key={key} asChild>
-            <button type="button" onClick={() => onNavigate(crumb.id)}>
+            <button
+              type="button"
+              onClick={() => onNavigate(crumb.id)}
+              className="transition-transform active:scale-[0.96]"
+            >
               {crumb.name}
             </button>
           </BreadcrumbLink>

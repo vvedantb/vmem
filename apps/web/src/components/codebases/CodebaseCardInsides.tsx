@@ -177,7 +177,7 @@ export function CodebaseCardInsides({
             <div className="mt-3">
               <div className="h-1 w-full rounded-full bg-surface-secondary">
                 <div
-                  className="h-1 rounded-full bg-accent transition-all"
+                  className="h-1 rounded-full bg-accent transition-[width]"
                   style={{ width: `${progress}%` }}
                 />
               </div>

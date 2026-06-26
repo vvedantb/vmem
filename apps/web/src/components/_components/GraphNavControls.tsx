@@ -5,6 +5,7 @@ import {
   IconZoomOut,
   IconFocusCentered,
 } from "@tabler/icons-react";
+import { Button, cn } from "@vmem/ui";
 
 interface GraphNavControlsProps {
   onZoomIn: () => void;
@@ -19,21 +20,45 @@ export default function GraphNavControls({
   onFit,
   isDarkCanvas,
 }: GraphNavControlsProps) {
-  const btnClass = isDarkCanvas
-    ? "w-8 h-8 flex items-center justify-center rounded-lg bg-surface-secondary/80 hover:bg-surface-tertiary text-foreground transition-colors"
-    : "w-8 h-8 flex items-center justify-center rounded-lg bg-surface-secondary/40 hover:bg-surface-tertiary/50 text-muted hover:text-foreground transition-colors";
+  const btnClass = cn(
+    "h-8 w-8",
+    isDarkCanvas
+      ? "bg-surface-secondary/80 text-foreground hover:bg-surface-tertiary"
+      : "bg-surface-secondary/40 text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
+  );
 
   return (
     <div className="absolute bottom-3 left-3 z-10 hidden md:flex flex-col gap-1">
-      <button type="button" onClick={onZoomIn} className={btnClass}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        onClick={onZoomIn}
+        className={btnClass}
+        aria-label="Zoom in"
+      >
         <IconZoomIn size={16} />
-      </button>
-      <button type="button" onClick={onZoomOut} className={btnClass}>
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        onClick={onZoomOut}
+        className={btnClass}
+        aria-label="Zoom out"
+      >
         <IconZoomOut size={16} />
-      </button>
-      <button type="button" onClick={onFit} className={btnClass}>
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        onClick={onFit}
+        className={btnClass}
+        aria-label="Fit graph to view"
+      >
         <IconFocusCentered size={16} />
-      </button>
+      </Button>
     </div>
   );
 }

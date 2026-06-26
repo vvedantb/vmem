@@ -46,7 +46,7 @@ export default function VoiceStatusLine({
 
   return (
     <div className="flex flex-col items-center gap-2 min-h-[3.5rem]">
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={phase}
           className="flex items-center gap-2"

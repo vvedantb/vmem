@@ -206,7 +206,7 @@ export default function MemoryGraph({
         <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
           <IconMoodEmpty className="w-6 h-6 text-muted" />
         </div>
-        <h3 className="text-lg font-medium text-foreground mb-2">
+        <h3 className="text-lg font-medium text-foreground mb-2 text-balance">
           Failed to load graph
         </h3>
         <p className="text-sm text-muted max-w-sm">{error?.message}</p>
@@ -220,7 +220,7 @@ export default function MemoryGraph({
         <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
           <IconMoodEmpty className="w-6 h-6 text-muted" />
         </div>
-        <h3 className="text-lg font-medium text-foreground mb-2">
+        <h3 className="text-lg font-medium text-foreground mb-2 text-balance">
           No memories to visualize
         </h3>
         <p className="text-sm text-muted">
@@ -309,7 +309,7 @@ export default function MemoryGraph({
         totalMemoryCount !== null &&
         loadedMemoryCount < totalMemoryCount && (
           <div className="absolute top-2 left-2 z-10 flex items-center gap-2 rounded-lg bg-surface-secondary/40 py-1 pl-3 pr-1">
-            <span className="text-xs text-muted">
+            <span className="text-xs text-muted tabular-nums">
               Showing {loadedMemoryCount.toLocaleString()} of{" "}
               {totalMemoryCount.toLocaleString()} memories
             </span>

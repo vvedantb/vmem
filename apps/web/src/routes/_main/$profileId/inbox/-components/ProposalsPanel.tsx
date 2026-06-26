@@ -162,7 +162,7 @@ function EmptyState() {
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
           <IconSparkles size={28} className="text-muted" stroke={1.5} />
         </div>
-        <h3 className="mb-1 text-base font-medium text-foreground">
+        <h3 className="mb-1 text-base font-medium text-foreground text-balance">
           No pending proposals
         </h3>
         <p className="mb-6 max-w-sm text-sm text-muted text-balance">

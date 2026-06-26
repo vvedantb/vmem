@@ -22,7 +22,7 @@ export default function ProviderToggle({
         disabled={disabled}
         onClick={() => onChange("local")}
         className={cn(
-          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] transition-[background-color,color]",
+          "relative inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] transition-[transform,background-color,color] active:scale-[0.96] before:absolute before:inset-[-4px] before:content-['']",
           provider === "local"
             ? "bg-surface text-foreground"
             : "text-muted hover:text-foreground",
@@ -36,7 +36,7 @@ export default function ProviderToggle({
         disabled={disabled}
         onClick={() => onChange("cloud")}
         className={cn(
-          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] transition-[background-color,color]",
+          "relative inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] transition-[transform,background-color,color] active:scale-[0.96] before:absolute before:inset-[-4px] before:content-['']",
           provider === "cloud"
             ? "bg-surface text-foreground"
             : "text-muted hover:text-foreground",

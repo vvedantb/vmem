@@ -110,7 +110,9 @@ export default function TagInputWithSuggestions({
                 className="w-full h-auto px-3 py-1.5 text-left flex items-center justify-between hover:bg-surface-tertiary transition-colors"
               >
                 <span className="text-sm text-foreground">{item.tag}</span>
-                <span className="text-xs text-muted">{item.count}</span>
+                <span className="text-xs text-muted tabular-nums">
+                  {item.count}
+                </span>
               </Button>
             ))}
           </div>

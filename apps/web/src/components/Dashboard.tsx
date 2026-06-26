@@ -61,7 +61,7 @@ export default function Dashboard() {
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-danger/10">
           <IconAlertCircle className="h-6 w-6 text-danger" stroke={1.5} />
         </div>
-        <h3 className="mb-2 text-lg font-medium text-foreground">
+        <h3 className="mb-2 text-lg font-medium text-foreground text-balance">
           Failed to load dashboard
         </h3>
         <p className="mb-4 text-sm text-muted">{error}</p>

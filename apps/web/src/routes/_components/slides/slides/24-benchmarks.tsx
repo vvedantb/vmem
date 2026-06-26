@@ -18,7 +18,12 @@ const COMPETITORS = [
 function LogoChip({ src, alt }: { src: string; alt: string }) {
   return (
     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface">
-      <img src={src} alt={alt} className="h-5 w-5" draggable={false} />
+      <img
+        src={src}
+        alt={alt}
+        className="h-5 w-5 outline outline-1 -outline-offset-1 outline-foreground/10"
+        draggable={false}
+      />
     </span>
   );
 }
