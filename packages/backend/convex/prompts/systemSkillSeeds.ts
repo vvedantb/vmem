@@ -111,6 +111,82 @@ Relevant tools: \`codebases_list\`, \`codebase_overview\` / \`codebase_graph\` /
 
 Tell the user which pages you updated, which you added, and anything you flagged as removed or uncertain — and confirm what you left unchanged.`;
 
+const WRITEUP_INSTRUCTIONS = `# writeup — Async learning (read later)
+
+User invokes: \`/writeup <topic, link, or resource>\` — one line. They want a **wiki
+writeup to read later**, not a lecture in chat.
+
+## Know the learner first (do not ask)
+
+Before writing, load the user's context from vmem — **never** prompt them for "your
+level" or "what you already know" if this data exists:
+
+1. Read MCP resource \`vmem://context_prompt\` (profile, preferences, pinned memories, portrait).
+2. Optionally \`memory_retrieve\` with the topic/resource as query for relevant prior knowledge.
+
+Calibrate depth, jargon, and skipped prerequisites from that context only. Ask the user
+only if context is genuinely empty for the domain.
+
+## vmem tools
+
+- \`wiki_list\` / \`wiki_search\` — \`Learning\` folder (create if missing).
+- \`wiki_create\` / \`wiki_update\` — full markdown writeup under \`Learning/\`.
+- \`memory_add\` (optional) — stub with URL + pointer to wiki doc.
+
+## Teaching rules
+
+1. Fetch or read the resource (WebFetch, pasted text). If unreadable, ask for a paste.
+2. Teach step by step — each step a **chapter** in the wiki doc.
+3. **Write the entire explainer into wiki at once** (complete artifact).
+4. Hard concepts: subdivide + concrete examples.
+5. Fix poor source prose; optimize for clarity.
+
+## Wiki doc structure
+
+- **TL;DR**, numbered **Chapters**, **Key takeaways**, **Source** link/citation.
+
+## Chat response
+
+ONLY: wiki title/path, 2-sentence teaser, estimated read time. **No full writeup in chat.**`;
+
+const TEACH_ME_INSTRUCTIONS = `# teach-me — Interactive deep learning
+
+User invokes: \`/teach-me <topic, link, or resources>\` — one line (may include several
+links in the message). **Interactive** session: one step per turn, validate before advancing.
+Can span days or weeks.
+
+## Know the learner first (do not ask)
+
+Same as \`writeup\`: read \`vmem://context_prompt\` + \`memory_retrieve\` for the topic
+**before** step 1. Infer presumed knowledge and goals from vmem — do not ask the user to
+state their background unless context is empty.
+
+## vmem tools
+
+- \`wiki_list\` / \`wiki_search\` / \`wiki_get\` — course under \`Learning/<topic-slug>/\`.
+- \`wiki_create\` / \`wiki_update\` — syllabus, validated chapters, progress markers.
+- \`memory_add\` (optional) — durable facts after validation.
+
+## Session rules
+
+1. **One step at a time** in chat — never dump the full curriculum.
+2. Teach the current step; use examples for subtle points.
+3. **Validate** before the next step (explain back, short scenario, or spot-the-error).
+4. Weak understanding → re-teach; do not advance.
+5. Solid understanding → checkpoint to wiki, then next step.
+6. Ground claims in user-supplied resources + fetch where needed; no invented citations.
+
+## Wiki notebook
+
+Folder \`Learning/<topic-slug>/\`: index (syllabus, resources, current step), chapter docs
+for each **validated** step only.
+
+## Do NOT
+
+- One-shot the whole course to wiki (that is \`writeup\`).
+- Skip validation on "just continue".
+- Save wrong explanations as canonical wiki text.`;
+
 export const SYSTEM_SKILL_SEEDS: SystemSkillSeed[] = [
   {
     name: "setup-wiki",
@@ -126,5 +202,21 @@ export const SYSTEM_SKILL_SEEDS: SystemSkillSeed[] = [
     description:
       "Refresh an existing codebase knowledge base in vmem — update pages to match the current code, add missing areas, and correct stale content in place.",
     instructions: UPDATE_WIKI_INSTRUCTIONS,
+  },
+  {
+    name: "writeup",
+    category: "Learning",
+    description:
+      "/writeup <link or topic> — chapter-style wiki explainer in Learning/ to read later; teaser only in chat.",
+    instructions: WRITEUP_INSTRUCTIONS,
+    previousNames: ["read-quick-dont-validate"],
+  },
+  {
+    name: "teach-me",
+    category: "Learning",
+    description:
+      "/teach-me <topic or resources> — interactive tutor: one step at a time, validate before advancing; progress in wiki.",
+    instructions: TEACH_ME_INSTRUCTIONS,
+    previousNames: ["validate-my-understanding-and-teach-me"],
   },
 ];
