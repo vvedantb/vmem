@@ -261,9 +261,13 @@ export async function runSkillsMatchMessage(
       { clerkId: ctx.clerkUserId },
     );
     const match = matchSkillsForMessage(skills, params.message);
+    const toolCallingNote =
+      match.matchedNames.length > 0
+        ? "\n\n---\nvmem MCP: call tools by **exact name** (memory_retrieve, wiki_create, …). Do NOT use tool_search for vmem tools."
+        : "";
     return {
       matchedNames: match.matchedNames,
-      instructionsMarkdown: match.instructionsMarkdown,
+      instructionsMarkdown: match.instructionsMarkdown + toolCallingNote,
     };
   });
 }

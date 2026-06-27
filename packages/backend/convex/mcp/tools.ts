@@ -144,7 +144,7 @@ export function registerTools(
 
   server.tool(
     toolSpecs.memory_retrieve.name,
-    "Retrieve the most relevant memories for a natural language query. Returns scored results with Context Trace explaining WHY each memory matched (score breakdown: fulltext, recency, confidence). Defaults to the active profile unless profileId is specified.",
+    "memory_retrieve — RAG retrieval for a natural-language question about the user's memories. Call this tool directly by exact name; do NOT use tool_search (it often surfaces memory_related or profile tools instead). Returns scored results with Context Trace (fulltext, recency, confidence). Defaults to active profile unless profileId is set.",
     toolSpecs.memory_retrieve.schema.shape,
     async (params) =>
       toMcpContent(

@@ -132,14 +132,21 @@ chat, you violated this skill. The wiki doc is the product; chat is a pointer.
 Before writing, load the user's context from vmem — **never** prompt them for "your
 level" or "what you already know" if this data exists:
 
-1. Read MCP resource \`vmem://context_prompt\` (profile, preferences, pinned memories, portrait).
-2. Optionally \`memory_retrieve\` with the topic/resource as query for relevant prior knowledge.
+1. \`vmem://context_prompt\` (profile, preferences, pinned memories, portrait) — usually
+   already loaded at conversation start; re-read if needed.
+2. Optional: call \`memory_retrieve\` **by exact tool name** with the topic as \`query\`.
+   Do **not** use tool_search to find vmem tools — it often returns
+   \`memory_related\`, \`list_profiles\`, or \`set_active_profile\` instead. If
+   \`memory_retrieve\` is unavailable, skip it or use \`memory_search\` by exact name;
+   never block the writeup on retrieval.
 
 Calibrate depth, jargon, and skipped prerequisites from that context only. Ask the user
 only if context is genuinely empty for the domain.
 
-## vmem tools
+## vmem tools (exact names — never tool_search)
 
+- \`skills_match_message\` — first call each turn with the user's message.
+- \`memory_retrieve\` / \`memory_search\` — optional topic context (exact name only).
 - \`wiki_list\` / \`wiki_search\` — \`Learning\` folder (create if missing).
 - \`wiki_create\` / \`wiki_update\` — full markdown writeup under \`Learning/\`.
 - \`memory_add\` (optional) — stub with URL + pointer to wiki doc.
@@ -177,9 +184,9 @@ Can span days or weeks.
 
 ## Know the learner first (do not ask)
 
-Same as \`writeup\`: read \`vmem://context_prompt\` + \`memory_retrieve\` for the topic
-**before** step 1. Infer presumed knowledge and goals from vmem — do not ask the user to
-state their background unless context is empty.
+Same as \`writeup\`: \`vmem://context_prompt\` + optional \`memory_retrieve\` **by exact
+tool name** (never tool_search) for the topic **before** step 1. Infer presumed knowledge
+and goals from vmem — do not ask the user to state their background unless context is empty.
 
 ## vmem tools
 

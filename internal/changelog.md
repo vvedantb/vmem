@@ -5,6 +5,7 @@
 - **Why**: Claude MCP loaded only the skills index from `vmem://context_prompt`; models skipped `skills_get` and lectured in chat instead of saving wiki writeups.
 - **`skills_match_message` MCP tool**: call with the user's message each turn to auto-inject full skill playbooks (parity with local chat's `findSkillsReferencedInMessage`).
 - **Hardened `writeup` / `teach-me` seeds**: mandatory workflow blocks and stricter descriptions (wiki-first, teaser-only in chat).
+- **tool_search mitigation**: skill playbooks and `memory_retrieve` description tell models to call vmem tools by exact name (Claude lazy-load often surfaces `memory_related` / profile tools instead).
 
 ## Learning skills + slimmer agent context — 2026-06-27
 
