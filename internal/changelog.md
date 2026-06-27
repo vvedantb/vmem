@@ -1,5 +1,11 @@
 # Changelog
 
+## MCP eager skill loading for writeup/teach-me — 2026-06-27
+
+- **Why**: Claude MCP loaded only the skills index from `vmem://context_prompt`; models skipped `skills_get` and lectured in chat instead of saving wiki writeups.
+- **`skills_match_message` MCP tool**: call with the user's message each turn to auto-inject full skill playbooks (parity with local chat's `findSkillsReferencedInMessage`).
+- **Hardened `writeup` / `teach-me` seeds**: mandatory workflow blocks and stricter descriptions (wiki-first, teaser-only in chat).
+
 ## Learning skills + slimmer agent context — 2026-06-27
 
 - **Why**: users queue papers and links for later via Claude + vmem; long `CLAUDE.md` also inflated every agent session with architecture detail that belongs in a separate reference.

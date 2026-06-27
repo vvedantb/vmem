@@ -116,6 +116,17 @@ const WRITEUP_INSTRUCTIONS = `# writeup — Async learning (read later)
 User invokes: \`/writeup <topic, link, or resource>\` — one line. They want a **wiki
 writeup to read later**, not a lecture in chat.
 
+## MANDATORY workflow (do not skip)
+
+1. You are running under this skill (via \`skills_match_message\` or \`skills_get\`).
+2. Read \`vmem://context_prompt\` + optional \`memory_retrieve\` for the topic.
+3. **\`wiki_create\`** (or \`wiki_update\`) with the **full** markdown writeup under
+   \`Learning/\` — **before** any user-visible reply.
+4. Chat reply: wiki path + 2-sentence teaser + estimated read time **only**.
+
+**Failure mode:** If you output more than two short paragraphs of teaching content in
+chat, you violated this skill. The wiki doc is the product; chat is a pointer.
+
 ## Know the learner first (do not ask)
 
 Before writing, load the user's context from vmem — **never** prompt them for "your
@@ -154,6 +165,15 @@ const TEACH_ME_INSTRUCTIONS = `# teach-me — Interactive deep learning
 User invokes: \`/teach-me <topic, link, or resources>\` — one line (may include several
 links in the message). **Interactive** session: one step per turn, validate before advancing.
 Can span days or weeks.
+
+## MANDATORY workflow (do not skip)
+
+1. You are running under this skill (via \`skills_match_message\` or \`skills_get\`).
+2. Read \`vmem://context_prompt\` + \`memory_retrieve\` for the topic **before** step 1.
+3. **One teaching step per chat turn** — validate understanding before advancing.
+4. Checkpoint validated steps to wiki under \`Learning/<topic-slug>/\`.
+
+**Not this skill:** One-shot dumping the full course to wiki or chat — that is \`writeup\`.
 
 ## Know the learner first (do not ask)
 
@@ -207,7 +227,7 @@ export const SYSTEM_SKILL_SEEDS: SystemSkillSeed[] = [
     name: "writeup",
     category: "Learning",
     description:
-      "/writeup <link or topic> — chapter-style wiki explainer in Learning/ to read later; teaser only in chat.",
+      "/writeup <topic> — MUST wiki_create under Learning/ BEFORE replying; chat = path + 2-sentence teaser ONLY. Never lecture in chat.",
     instructions: WRITEUP_INSTRUCTIONS,
     previousNames: ["read-quick-dont-validate"],
   },
@@ -215,7 +235,7 @@ export const SYSTEM_SKILL_SEEDS: SystemSkillSeed[] = [
     name: "teach-me",
     category: "Learning",
     description:
-      "/teach-me <topic or resources> — interactive tutor: one step at a time, validate before advancing; progress in wiki.",
+      "/teach-me <topic> — interactive tutor: one step per turn, validate before advancing; checkpoint progress to Learning/ wiki. Not one-shot writeup.",
     instructions: TEACH_ME_INSTRUCTIONS,
     previousNames: ["validate-my-understanding-and-teach-me"],
   },

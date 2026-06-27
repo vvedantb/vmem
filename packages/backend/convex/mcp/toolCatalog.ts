@@ -25,6 +25,7 @@ import {
   runSkillsDelete,
   runSkillsGet,
   runSkillsList,
+  runSkillsMatchMessage,
   runSkillsUpdate,
   runWhoami,
   runWikiCreate,
@@ -59,6 +60,7 @@ import {
   skillsDeleteSchema,
   skillsGetSchema,
   skillsListSchema,
+  skillsMatchMessageSchema,
   skillsUpdateSchema,
   whoamiSchema,
   wikiCreateSchema,
@@ -156,6 +158,11 @@ export const toolSpecs = {
     name: "skills_list",
     schema: skillsListSchema,
     run: runSkillsList,
+  }),
+  skills_match_message: toolSpec({
+    name: "skills_match_message",
+    schema: skillsMatchMessageSchema,
+    run: runSkillsMatchMessage,
   }),
   skills_get: toolSpec({
     name: "skills_get",

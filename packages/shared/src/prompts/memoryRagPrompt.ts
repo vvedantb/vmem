@@ -72,7 +72,8 @@ export function buildSkillsIndexAddition(
 
   if (options.mcpClient) {
     lines.push(
-      "When a skill applies, call `skills_get` with its exact name to load full markdown instructions, then follow them.",
+      "**Every user turn:** call `skills_match_message` with the user's full message as your **first** tool call. If it returns skill instructions, follow them exactly before any other tool or reply — do not answer from the index alone.",
+      "When a skill applies but was not auto-loaded, call `skills_get` with its exact name to load full markdown instructions, then follow them.",
       "When you identified a repeatable problem or automatable workflow and no skill above covers it yet, call `skills_create` (after confirming with `skills_list` if needed).",
       "When an existing skill's playbook should change, call `skills_get` then `skills_update` with the current name and patched fields.",
     );
@@ -90,13 +91,45 @@ export function buildSkillsIndexAddition(
   return lines.join("\n").trimEnd();
 }
 
-/** Local chat pulls full instructions when the user message mentions a skill by name. */
+/** True when the user message names or slash-invokes a skill (e.g. `/writeup`). */
+export function isSkillReferencedInMessage(
+  skillName: string,
+  userMessage: string,
+): boolean {
+  const lower = userMessage.toLowerCase();
+  const name = skillName.toLowerCase();
+  if (lower.includes(`/${name}`)) return true;
+  return lower.includes(name);
+}
+
+/** Local chat and MCP `skills_match_message` pull full instructions when referenced. */
 export function findSkillsReferencedInMessage(
   skills: SkillPromptEntry[],
   userMessage: string,
 ): SkillPromptEntry[] {
-  const lower = userMessage.toLowerCase();
-  return skills.filter((skill) => lower.includes(skill.name.toLowerCase()));
+  return skills.filter((skill) =>
+    isSkillReferencedInMessage(skill.name, userMessage),
+  );
+}
+
+export interface SkillsMatchResult {
+  matchedNames: string[];
+  instructionsMarkdown: string;
+}
+
+/** Match enabled skills in a user message and return full instruction markdown. */
+export function matchSkillsForMessage(
+  skills: SkillPromptEntry[],
+  userMessage: string,
+): SkillsMatchResult {
+  const referenced = findSkillsReferencedInMessage(
+    filterEnabledSkills(skills),
+    userMessage,
+  );
+  return {
+    matchedNames: referenced.map((skill) => skill.name),
+    instructionsMarkdown: buildSkillInstructionsAddition(referenced),
+  };
 }
 
 export function buildSkillInstructionsAddition(
@@ -140,7 +173,7 @@ export const VMEM_CLOUD_CHAT_CORE = [
   "Use memory_search and memory_retrieve to find relevant memories before answering factual questions about the user.",
   "If the user asks you to remember, update, or delete something, explain that cloud chat currently requires the user to make that change through the app or an MCP client.",
   "When the Available skills section is present, check whether the user's request matches any skill before answering.",
-  "When a skill applies, call skills_get with its exact name to load full instructions, then follow them.",
+  "On MCP, call skills_match_message with the user's message first each turn; when a skill applies, follow returned instructions or call skills_get.",
   "Be concise and helpful. Reference specific memories when answering.",
 ].join(" ");
 

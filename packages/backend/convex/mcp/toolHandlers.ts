@@ -1,6 +1,7 @@
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { McpScope } from "../profiles/mcpAccess";
+import { matchSkillsForMessage } from "@vmem/shared";
 import type { z } from "zod";
 import {
   codebaseContextSchema,
@@ -23,6 +24,7 @@ import {
   skillsCreateSchema,
   skillsDeleteSchema,
   skillsGetSchema,
+  skillsMatchMessageSchema,
   skillsUpdateSchema,
   wikiCreateSchema,
   wikiDeleteSchema,
@@ -247,6 +249,23 @@ export async function runSkillsList(
       clerkId: ctx.clerkUserId,
     }),
   );
+}
+
+export async function runSkillsMatchMessage(
+  ctx: ToolHandlerContext,
+  params: z.infer<typeof skillsMatchMessageSchema>,
+): Promise<ToolHandlerResult> {
+  return safe("skills_match_message", async () => {
+    const skills = await ctx.ctx.runQuery(
+      internal.skills.listEffectiveByClerkIdInternal,
+      { clerkId: ctx.clerkUserId },
+    );
+    const match = matchSkillsForMessage(skills, params.message);
+    return {
+      matchedNames: match.matchedNames,
+      instructionsMarkdown: match.instructionsMarkdown,
+    };
+  });
 }
 
 export async function runSkillsGet(

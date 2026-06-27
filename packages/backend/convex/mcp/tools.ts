@@ -209,8 +209,19 @@ export function registerTools(
   );
 
   server.tool(
+    toolSpecs.skills_match_message.name,
+    "Eager skill loader — call FIRST every user turn with the user's full message. Returns matched skill names and full markdown instructions (same as local chat auto-load). If instructionsMarkdown is non-empty, follow it exactly before any other tool or reply. Slash commands like /writeup and /teach-me are detected automatically.",
+    toolSpecs.skills_match_message.schema.shape,
+    async (params) =>
+      toMcpContent(
+        await toolSpecs.skills_match_message.run(h, params),
+        "Match skills for message failed",
+      ),
+  );
+
+  server.tool(
     toolSpecs.skills_list.name,
-    "List enabled skills (name + description only). The skills index is also in the vmem://context_prompt resource — check there first. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them. Before skills_create, confirm no listed skill already covers the workflow.",
+    "List enabled skills (name + description only). The skills index is also in the vmem://context_prompt resource. Prefer skills_match_message each turn; use skills_get when you need one skill by exact name.",
     toolSpecs.skills_list.schema.shape,
     async (params) =>
       toMcpContent(
@@ -221,7 +232,7 @@ export function registerTools(
 
   server.tool(
     toolSpecs.skills_get.name,
-    "Fetch a single enabled skill by exact name, including full markdown instructions. Call this after identifying a matching skill from the Available Skills section in vmem://context_prompt or from skills_list.",
+    "Fetch a single enabled skill by exact name, including full markdown instructions. Prefer skills_match_message at turn start; use this when you already know the exact skill name.",
     toolSpecs.skills_get.schema.shape,
     async (params) =>
       toMcpContent(
@@ -295,7 +306,7 @@ export function registerTools(
 
   server.tool(
     toolSpecs.wiki_create.name,
-    "Create a wiki folder or document. Documents accept contentMarkdown stored as canonical markdown (same as the web editor). Optional parentId must be a folder id from wiki_list.",
+    "Create a wiki folder or document. Documents accept contentMarkdown stored as canonical markdown (same as the web editor). Optional parentId must be a folder id from wiki_list. For /writeup skill: create the full Learning/ explainer here BEFORE replying in chat (teaser only in chat).",
     toolSpecs.wiki_create.schema.shape,
     async (params) =>
       toMcpContent(

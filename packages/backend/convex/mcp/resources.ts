@@ -31,7 +31,7 @@ export function registerResources(
     {
       title: "User Profile",
       description:
-        "Synthesized user profile (about + preferences + pinned memories + recent activity summary + available skills index). Read at conversation start.",
+        "Synthesized user profile (about + preferences + pinned memories + recent activity summary + available skills index). Read at conversation start. Each turn: call skills_match_message with the user's message first to eager-load matching skill playbooks.",
       mimeType: "text/markdown",
     },
     async (uri) => {
