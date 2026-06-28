@@ -1,5 +1,11 @@
 # Changelog
 
+## Full LoCoMo + Claude CLI bench — 2026-06-23
+
+- **Why**: the 20-question MCP smoke test was not publishable; full LoCoMo needs the production harness with Claude answering/judging.
+- **`bench:locomo:claude`**: same ingest → retrieve → answer → judge pipeline as OpenRouter bench, but answer + judge go through `claude -p` (default **sonnet** for subscription limits).
+- **`claude-locomo-bench.ps1`**: now delegates to the TS harness; `-McpMode` keeps the legacy MCP connector smoke test.
+
 ## Claude Code LoCoMo bench — 2026-06-28
 
 - **Why**: publishable “Claude with vs without vmem” must use `claude -p` + MCP, not OpenRouter answer models.

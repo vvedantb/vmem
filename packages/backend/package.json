@@ -20,6 +20,7 @@
     "eval:retrieval": "npx tsx --env-file=.env.local neo4j-cli/eval/run.ts",
     "bench:download": "npx tsx neo4j-cli/bench/datasets/download.ts",
     "bench:locomo": "npx tsx --env-file=.env.local neo4j-cli/bench/run.ts",
+    "bench:locomo:claude": "npx tsx --env-file=.env.local neo4j-cli/bench/run.ts --answer-backend claude --judge-backend claude",
     "bench:report": "npx tsx neo4j-cli/bench/report.ts",
     "bench:cleanup": "npx tsx --env-file=.env.local neo4j-cli/bench/cleanup.ts",
     "bench:export-questions": "npx tsx neo4j-cli/bench/exportQuestions.ts",

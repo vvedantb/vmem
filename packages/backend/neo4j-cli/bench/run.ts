@@ -27,6 +27,9 @@
  *   --memory-model S       extract/decide/enrich model (default gpt-5-nano)
  *   --answer-model S       answerer model (default gpt-5-nano)
  *   --judge-model S        judge model (default gpt-5-mini)
+ *   --answer-backend S     openrouter | claude (default openrouter)
+ *   --judge-backend S      openrouter | claude (default openrouter)
+ *   --claude-model S       Claude CLI model when backend=claude (default sonnet)
  *   --user S --profile S   ingest vmem under a real clerkId for the graph view
  *   --facts-per-session N  dry-run assumption (default 4)
  */
@@ -42,6 +45,8 @@ import {
   createBenchLlm,
   type BenchLlm,
 } from "./llm";
+import { createBenchClaudeLlm } from "./claudeCli";
+import { resolveBenchProfileId } from "./resolveBenchProfile";
 import { buildAnswerPrompt } from "./qa/answerPrompt";
 import { buildJudgePrompt, parseJudgeResponse } from "./qa/judgePrompt";
 import { FullContextProvider } from "./providers/fullContext";
@@ -66,6 +71,14 @@ const DEFAULT_MEMORY_MODEL = "openai/gpt-oss-20b:free";
 const DEFAULT_ANSWER_MODEL = "openai/gpt-oss-20b:free";
 const DEFAULT_JUDGE_MODEL = "openai/gpt-oss-120b:free";
 
+type LlmBackend = "openrouter" | "claude";
+
+function parseBackend(raw: string | undefined, flag: string): LlmBackend {
+  if (raw === undefined || raw === "openrouter") return "openrouter";
+  if (raw === "claude") return "claude";
+  throw new Error(`${flag} must be "openrouter" or "claude" (got "${raw}")`);
+}
+
 interface Args {
   conversations: number | null;
   maxSessions: number | null;
@@ -79,6 +92,9 @@ interface Args {
   memoryModel: string;
   answerModel: string;
   judgeModel: string;
+  answerBackend: LlmBackend;
+  judgeBackend: LlmBackend;
+  claudeModel: string;
   user?: string;
   profile?: string;
   factsPerSession: number;
@@ -108,6 +124,9 @@ function parseArgs(argv: string[]): Args {
     memoryModel: get("--memory-model") ?? DEFAULT_MEMORY_MODEL,
     answerModel: get("--answer-model") ?? DEFAULT_ANSWER_MODEL,
     judgeModel: get("--judge-model") ?? DEFAULT_JUDGE_MODEL,
+    answerBackend: parseBackend(get("--answer-backend"), "--answer-backend"),
+    judgeBackend: parseBackend(get("--judge-backend"), "--judge-backend"),
+    claudeModel: get("--claude-model") ?? "sonnet",
     user: get("--user"),
     profile: get("--profile"),
     factsPerSession: Number(get("--facts-per-session") ?? "4"),
@@ -126,7 +145,7 @@ function buildProvider(
   name: string,
   deps: {
     runId: string;
-    memoryLlm: BenchLlm;
+    memoryLlm: BenchLlm | null;
     user?: string;
     profile?: string;
     fastIngest: boolean;
@@ -134,6 +153,9 @@ function buildProvider(
 ): MemoryProvider {
   switch (name) {
     case "vmem":
+      if (!deps.memoryLlm) {
+        throw new Error("vmem provider requires OPENROUTER_API_KEY for ingest");
+      }
       return new VmemProvider({
         runId: deps.runId,
         driver: getDriver(),
@@ -189,6 +211,9 @@ function printDryRun(conversations: LocomoConversation[], args: Args): void {
   console.log(`sessions:             ${String(sessions)}`);
   console.log(`questions (non-adv):  ${String(questions)}`);
   console.log(`providers:            ${args.providers.join(", ")}`);
+  console.log(
+    `backends:             answer=${args.answerBackend} judge=${args.judgeBackend}`,
+  );
   console.log(
     `assumed facts/session: ${String(f)} (override with --facts-per-session)`,
   );
@@ -352,16 +377,50 @@ async function main(): Promise<void> {
     return;
   }
 
+  const needsOpenRouter =
+    args.providers.includes("vmem") ||
+    args.answerBackend === "openrouter" ||
+    args.judgeBackend === "openrouter";
+
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
+  if (needsOpenRouter && !apiKey) {
     throw new Error(
-      "OPENROUTER_API_KEY is required — the bench must use real embeddings/LLMs.",
+      "OPENROUTER_API_KEY is required for vmem ingest and/or OpenRouter answer/judge backends.",
     );
   }
+
+  let profile = args.profile;
+  if (args.user && !profile) {
+    profile = resolveBenchProfileId(args.user);
+    console.log(`resolved profile ${profile} for user ${args.user}`);
+  }
+
   const budget = new CallBudget(args.maxCalls);
-  const memoryLlm = createBenchLlm({ apiKey, model: args.memoryModel, budget });
-  const answerLlm = createBenchLlm({ apiKey, model: args.answerModel, budget });
-  const judgeLlm = createBenchLlm({ apiKey, model: args.judgeModel, budget });
+  const memoryLlm =
+    args.providers.includes("vmem") && apiKey
+      ? createBenchLlm({ apiKey, model: args.memoryModel, budget })
+      : null;
+  if (args.providers.includes("vmem") && !memoryLlm) {
+    throw new Error(
+      "vmem provider requires OPENROUTER_API_KEY for memory ingest.",
+    );
+  }
+  const answerLlm: BenchLlm =
+    args.answerBackend === "claude"
+      ? createBenchClaudeLlm({ budget, model: args.claudeModel })
+      : createBenchLlm({
+          apiKey: apiKey ?? "",
+          model: args.answerModel,
+          budget,
+        });
+  const judgeLlm: BenchLlm =
+    args.judgeBackend === "claude"
+      ? createBenchClaudeLlm({ budget, model: args.claudeModel })
+      : createBenchLlm({
+          apiKey: apiKey ?? "",
+          model: args.judgeModel,
+          budget,
+        });
 
   const path = resultsPathFor(args.runId);
   const priorRows = args.resume ? readRows(path) : [];
@@ -372,7 +431,7 @@ async function main(): Promise<void> {
   console.log(`journal:     ${path}`);
   console.log(`providers:   ${args.providers.join(", ")}`);
   console.log(
-    `models:      memory=${args.memoryModel} answer=${args.answerModel} judge=${args.judgeModel}`,
+    `models:      memory=${args.memoryModel} answer=${args.answerBackend === "claude" ? `claude:${args.claudeModel}` : args.answerModel} judge=${args.judgeBackend === "claude" ? `claude:${args.claudeModel}` : args.judgeModel}`,
   );
   console.log(
     `fast-ingest: ${args.fastIngest ? "on (direct ADD, no decision/enrich)" : "off (full pipeline)"}`,
@@ -393,7 +452,7 @@ async function main(): Promise<void> {
         runId: args.runId,
         memoryLlm,
         user: args.user,
-        profile: args.profile,
+        profile,
         fastIngest: args.fastIngest,
       });
       console.log(`\n══ provider: ${provider.name} ══`);
@@ -452,7 +511,7 @@ async function main(): Promise<void> {
 
     printSummary(path, args.providers);
     const totalCost =
-      memoryLlm.totals.costUsd +
+      (memoryLlm?.totals.costUsd ?? 0) +
       answerLlm.totals.costUsd +
       judgeLlm.totals.costUsd;
     console.log(
