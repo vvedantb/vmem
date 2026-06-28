@@ -74,10 +74,22 @@ export function resolveWikiMove<TId extends string>(
   return { id: active._id, newParentId, newOrder };
 }
 
+/** Folders first, then documents; each group sorted A–Z by title. */
+export function compareWikiTreeSiblings(
+  a: Pick<Doc<"wikiNodes">, "kind" | "title">,
+  b: Pick<Doc<"wikiNodes">, "kind" | "title">,
+): number {
+  const aRank = a.kind === "folder" ? 0 : 1;
+  const bRank = b.kind === "folder" ? 0 : 1;
+  if (aRank !== bRank) return aRank - bRank;
+  return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+}
+
 /**
  * Build a hierarchical tree of WikiTreeNodes from the flat listTree result.
- * Roots have `parentId === undefined`. Children are sorted by order ascending
- * (the backend already sorts, but we re-sort defensively after grouping).
+ * Roots have `parentId === undefined`. Siblings are folders first, then
+ * documents, each group sorted A–Z by title (display order only; `order` is
+ * still used for drag-and-drop mutations).
  */
 export function buildTree(nodes: Array<Doc<"wikiNodes">>): WikiTreeNode[] {
   const childrenByParent = new Map<string, Array<Doc<"wikiNodes">>>();
@@ -94,7 +106,7 @@ export function buildTree(nodes: Array<Doc<"wikiNodes">>): WikiTreeNode[] {
     const siblings = childrenByParent.get(parentKey) ?? [];
     return siblings
       .slice()
-      .sort((a, b) => a.order - b.order)
+      .sort(compareWikiTreeSiblings)
       .map((node) => ({
         node,
         children: build(node._id),

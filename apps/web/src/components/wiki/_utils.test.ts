@@ -1,5 +1,86 @@
 import { describe, expect, it } from "vitest";
-import { resolveWikiMove, WIKI_ROOT_DROP_ID } from "./_utils";
+import {
+  buildTree,
+  compareWikiTreeSiblings,
+  resolveWikiMove,
+  WIKI_ROOT_DROP_ID,
+} from "./_utils";
+import type { Doc, Id } from "@vmem/backend";
+
+function wikiId(raw: string): Id<"wikiNodes"> {
+  return raw;
+}
+
+function userId(raw: string): Id<"users"> {
+  return raw;
+}
+
+function wikiNode(
+  id: Id<"wikiNodes">,
+  title: string,
+  kind: "folder" | "document",
+  parentId?: Id<"wikiNodes">,
+  order = 0,
+): Doc<"wikiNodes"> {
+  return {
+    _id: id,
+    _creationTime: 0,
+    userId: userId("u1"),
+    parentId,
+    kind,
+    title,
+    order,
+    createdAt: 0,
+    updatedAt: 0,
+  };
+}
+
+describe("compareWikiTreeSiblings", () => {
+  it("sorts folders before documents", () => {
+    const folder = wikiNode(wikiId("f1"), "Zebra", "folder");
+    const doc = wikiNode(wikiId("d1"), "Alpha", "document");
+    expect(compareWikiTreeSiblings(folder, doc)).toBeLessThan(0);
+    expect(compareWikiTreeSiblings(doc, folder)).toBeGreaterThan(0);
+  });
+
+  it("sorts titles A–Z within the same kind", () => {
+    const a = wikiNode(wikiId("a"), "Alpha", "document");
+    const b = wikiNode(wikiId("b"), "Beta", "document");
+    expect(compareWikiTreeSiblings(a, b)).toBeLessThan(0);
+  });
+});
+
+describe("buildTree", () => {
+  it("orders siblings folders first then documents, each A–Z", () => {
+    const nodes: Doc<"wikiNodes">[] = [
+      wikiNode(wikiId("d2"), "Zulu doc", "document", undefined, 0),
+      wikiNode(wikiId("f2"), "Beta folder", "folder", undefined, 1),
+      wikiNode(wikiId("d1"), "Alpha doc", "document", undefined, 2),
+      wikiNode(wikiId("f1"), "Alpha folder", "folder", undefined, 3),
+    ];
+    const titles = buildTree(nodes).map((item) => item.node.title);
+    expect(titles).toEqual([
+      "Alpha folder",
+      "Beta folder",
+      "Alpha doc",
+      "Zulu doc",
+    ]);
+  });
+
+  it("applies the same sort inside folders", () => {
+    const parent = wikiId("parent");
+    const nodes: Doc<"wikiNodes">[] = [
+      wikiNode(parent, "Parent", "folder"),
+      wikiNode(wikiId("c2"), "zebra", "document", parent),
+      wikiNode(wikiId("c1"), "mango", "folder", parent),
+      wikiNode(wikiId("c3"), "apple", "document", parent),
+    ];
+    const childTitles = buildTree(nodes)[0].children.map(
+      (item) => item.node.title,
+    );
+    expect(childTitles).toEqual(["mango", "apple", "zebra"]);
+  });
+});
 
 /** Plain-string node fixture; `resolveWikiMove` is generic over the id type. */
 interface TestNode {

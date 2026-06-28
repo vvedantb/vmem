@@ -1,5 +1,10 @@
 # Changelog
 
+## Wiki sidebar A–Z sort — 2026-06-28
+
+- **Why**: manual `order` made the tree hard to scan; folders and pages should group predictably.
+- **Display order**: at each level, folders first then documents, each group sorted A–Z by title (drag-and-drop `order` unchanged).
+
 ## Wiki sidebar drag-and-drop — 2026-06-28
 
 - **Why**: pages and folders could only be created in place — no way to re-home a node after creation.
