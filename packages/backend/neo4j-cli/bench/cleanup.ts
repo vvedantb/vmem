@@ -72,6 +72,18 @@ async function cleanupUser(userId: string): Promise<void> {
     );
     const deleted = result.records[0]?.get("deleted")?.toNumber() ?? 0;
     console.log(`  deleted ${String(deleted)} memories`);
+
+    const entityResult = await session.run(
+      `MATCH (e:Entity {userId: $userId})
+       WHERE NOT EXISTS { MATCH (e)-[:RELATES_TO]->(:Memory) }
+       DETACH DELETE e
+       RETURN count(e) AS deleted`,
+      { userId },
+    );
+    console.log(
+      `  swept ${String(entityResult.records[0]?.get("deleted")?.toNumber() ?? 0)} orphan entities`,
+    );
+
     await sweepOrphans(session);
   } finally {
     await session.close();

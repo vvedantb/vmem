@@ -4,10 +4,10 @@
 
 ## Primary path: Claude Code (what you asked for)
 
-| Condition     | How                                                                    |
-| ------------- | ---------------------------------------------------------------------- |
-| **no-memory** | `claude -p --bare` + MCP disabled — disconnected chat                  |
-| **vmem**      | `claude -p` + vmem HTTP MCP only — `memory_retrieve` / `memory_search` |
+| Condition     | How                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------- |
+| **no-memory** | `claude -p` + MCP disabled — answer from reasoning/general knowledge (no stored memories) |
+| **vmem**      | `claude -p` + vmem HTTP MCP only — `memory_retrieve` / `memory_search`                    |
 
 **Benchmark:** LoCoMo QA (public dataset). **Judge:** Claude (`claude -p`), not OpenRouter.
 

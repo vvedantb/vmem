@@ -43,13 +43,23 @@ $CommonClaude = @(
 
 function Invoke-ClaudeJson {
     param([string[]]$ExtraArgs, [string]$Prompt)
-    $lines = & claude -p $Prompt @CommonClaude @ExtraArgs 2>&1
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $lines = @("") | & claude -p $Prompt @CommonClaude @ExtraArgs 2>&1
+    }
+    finally {
+        $ErrorActionPreference = $prevEap
+    }
+    $lines = @($lines) | Where-Object { $_ -is [string] -or $_ -is [System.Management.Automation.ErrorRecord] } | ForEach-Object {
+        if ($_ -is [System.Management.Automation.ErrorRecord]) { [string]$_.Exception.Message } else { $_ }
+    }
     $jsonLine = $lines | Where-Object { $_ -match '^\{"type":"result"' } | Select-Object -Last 1
     if (-not $jsonLine) {
-        $jsonLine = $lines | Select-Object -Last 1
+        $jsonLine = $lines | Where-Object { $_ -match '^\{' } | Select-Object -Last 1
     }
     if ([string]::IsNullOrWhiteSpace($jsonLine)) {
-        throw "claude returned no JSON result line"
+        throw "claude returned no JSON result line. Last lines: $($lines | Select-Object -Last 3 | Out-String)"
     }
     return $jsonLine | ConvertFrom-Json
 }
@@ -75,10 +85,10 @@ Question: $Question
 Gold answer: $Gold
 Generated answer: $Generated
 
-Reply with JSON only (no markdown): {"correct": true|false, "reason": "one sentence"}
+Reply with JSON only (no markdown): { "correct": true or false, "reason": "one sentence" }
 Mark correct if the generated answer contains the same factual content as gold, allowing paraphrase.
 "@
-    $r = Invoke-ClaudeJson -ExtraArgs @("--bare") -Prompt $prompt
+    $r = Invoke-ClaudeJson -ExtraArgs @() -Prompt $prompt
     $raw = Get-AnswerText $r
     try {
         $parsed = $raw | ConvertFrom-Json
@@ -98,8 +108,18 @@ Mark correct if the generated answer contains the same factual content as gold, 
 }
 
 if (-not $SkipIngest) {
-    Write-Host "[ingest] Loading LoCoMo into vmem under clerk $ClerkId ($MaxSessions sessions per conv)..."
+    Write-Host "[profile] Resolving MCP active profile for $ClerkId..."
     Push-Location (Join-Path $Root "packages/backend")
+    $profileId = & pnpm exec tsx neo4j-cli/bench/resolveMcpProfile.ts $ClerkId 2>&1
+    if ($LASTEXITCODE -ne 0) { Pop-Location; throw "could not resolve MCP profile: $profileId" }
+    $profileId = ($profileId | Out-String).Trim()
+    if ([string]::IsNullOrWhiteSpace($profileId)) {
+        Pop-Location
+        throw "resolveMcpProfile.ts returned empty profile id"
+    }
+    Write-Host "[profile] Using profile $profileId"
+
+    Write-Host "[ingest] Loading LoCoMo into vmem under clerk $ClerkId ($MaxSessions sessions per conv)..."
     $ingestArgs = @(
         "bench:locomo",
         "--run-id", "ingest-$RunId",
@@ -108,6 +128,7 @@ if (-not $SkipIngest) {
         "--max-sessions", "$MaxSessions",
         "--max-questions", "0",
         "--user", $ClerkId,
+        "--profile", $profileId,
         "--fast-ingest"
     )
     & pnpm @ingestArgs
@@ -117,14 +138,21 @@ if (-not $SkipIngest) {
 
 Write-Host "[export] Loading questions..."
 Push-Location (Join-Path $Root "packages/backend")
-$questionsJson = & pnpm exec tsx neo4j-cli/bench/exportQuestions.ts -- --conversations $Conversations --max-questions $MaxQuestions
+$questionsRaw = & pnpm exec tsx neo4j-cli/bench/exportQuestions.ts -- --conversations $Conversations --max-questions $MaxQuestions 2>&1
 Pop-Location
+$rawText = ($questionsRaw | Out-String).Trim()
+$start = $rawText.IndexOf('[')
+$end = $rawText.LastIndexOf(']')
+if ($start -lt 0 -or $end -le $start) {
+    throw "exportQuestions.ts did not print a JSON array (pnpm noise or missing dataset; run pnpm bench:download)"
+}
+$questionsJson = $rawText.Substring($start, $end - $start + 1)
 $questions = $questionsJson | ConvertFrom-Json
 
 $rows = @()
 foreach ($q in $questions) {
     $slug = "$($q.conversationId)-q$($q.qaIndex)"
-    Write-Host "[qa] $slug — $($q.question.Substring(0, [Math]::Min(60, $q.question.Length)))..."
+    Write-Host "[qa] $slug - $($q.question.Substring(0, [Math]::Min(60, $q.question.Length)))..."
 
     $baseRules = "Reply with ONLY the short factual answer. No preamble, no markdown headers."
 
@@ -134,10 +162,9 @@ $baseRules
 
 Question: $($q.question)
 
-You have no access to prior conversations or external memory. If unknown, answer: I don't know.
+You have no access to stored memories, MCP, or prior conversations. Reason from the question and general knowledge; give your best short factual answer. Do not use tools. Only say you cannot determine the answer if it truly requires private conversation history you do not have.
 "@
     $noMem = Invoke-ClaudeJson -ExtraArgs @(
-        "--bare",
         "--disallowed-tools", "mcp__*"
     ) -Prompt $noMemPrompt
     $noMemAns = Get-AnswerText $noMem
@@ -194,23 +221,29 @@ $n = $rows.Count
 $noJ = if ($n -gt 0) { [math]::Round(100 * $noCorrect / $n, 1) } else { 0 }
 $vmemJ = if ($n -gt 0) { [math]::Round(100 * $vmemCorrect / $n, 1) } else { 0 }
 
-$mdPath = Join-Path $PSScriptRoot "claude-locomo-results.md"
+$liftPp = [math]::Round($vmemJ - $noJ, 1)
+$avgNoCost = [math]::Round(($rows | Measure-Object no_memory_cost -Average).Average, 4)
+$avgVmemCost = [math]::Round(($rows | Measure-Object vmem_cost -Average).Average, 4)
+$avgNoTurns = [math]::Round(($rows | Measure-Object no_memory_turns -Average).Average, 2)
+$avgVmemTurns = [math]::Round(($rows | Measure-Object vmem_turns -Average).Average, 2)
+$generatedAt = Get-Date -Format "yyyy-MM-dd HH:mm"
+
 $md = @"
 # Claude Code LoCoMo effectiveness (MCP on vs off)
 
-**Run id:** ``$RunId``  
-**Generated:** $(Get-Date -Format "yyyy-MM-dd HH:mm")  
+**Run id:** $RunId  
+**Generated:** $generatedAt  
 **Questions:** $n (LoCoMo, adversarial excluded)  
-**Answer + judge:** Claude Code CLI (\`claude -p\`), not OpenRouter
+**Answer + judge:** Claude Code CLI (claude -p), not OpenRouter
 
 ## Headline (LLM-judge accuracy J)
 
 | Condition | J | Correct |
 |---|---:|---:|
-| **no-memory** (MCP off, \`--bare\`) | **${noJ}%** | $noCorrect / $n |
+| **no-memory** (MCP off, bare) | **${noJ}%** | $noCorrect / $n |
 | **vmem** (MCP on, memory tools only) | **${vmemJ}%** | $vmemCorrect / $n |
 
-**Lift (vmem − no-memory):** $([math]::Round($vmemJ - $noJ, 1)) pp
+**Lift (vmem vs no-memory):** $liftPp pp
 
 ## Per category
 
@@ -224,27 +257,29 @@ foreach ($g in $cats) {
     $nn = $sub.Count
     $nc = ($sub | Where-Object no_memory_correct).Count
     $vc = ($sub | Where-Object vmem_correct).Count
-    $md += "| $($g.Name) | $([math]::Round(100*$nc/$nn,1))% ($nc/$nn) | $([math]::Round(100*$vc/$nn,1))% ($vc/$nn) |`n"
+    $md += "`n| $($g.Name) | $([math]::Round(100*$nc/$nn,1))% ($nc/$nn) | $([math]::Round(100*$vc/$nn,1))% ($vc/$nn) |"
 }
 
 $md += @"
 
 ## Methodology
 
-- **Ingest:** production vmem bench pipeline (\`bench:locomo --max-questions 0\`) into account \`$ClerkId\` so MCP retrieval sees the LoCoMo sessions.
-- **no-memory:** \`claude -p --bare --disallowed-tools mcp__*\` — no connector, no repo tools, no CLAUDE.md.
-- **vmem:** \`claude -p --strict-mcp-config\` with vmem HTTP MCP only; repo tools blocked.
-- **Judge:** separate \`claude -p --bare\` JSON verdict per answer (same family as answer model).
+- **Ingest:** production vmem bench pipeline (bench:locomo --max-questions 0) into account $ClerkId so MCP retrieval sees the LoCoMo sessions.
+- **no-memory:** claude -p with MCP tools disabled - no connector, no repo tools.
+- **vmem:** claude -p --strict-mcp-config with vmem HTTP MCP only; repo tools blocked.
+- **Judge:** separate claude -p JSON verdict per answer (same family as answer model).
 
 ## Costs (USD, Claude billing)
 
 | | no-memory | vmem |
 |---|---:|---:|
-| Avg answer cost | $([math]::Round(($rows | Measure-Object no_memory_cost -Average).Average, 4)) | $([math]::Round(($rows | Measure-Object vmem_cost -Average).Average, 4)) |
-| Avg turns | $([math]::Round(($rows | Measure-Object no_memory_turns -Average).Average, 2)) | $([math]::Round(($rows | Measure-Object vmem_turns -Average).Average, 2)) |
+| Avg answer cost | $avgNoCost | $avgVmemCost |
+| Avg turns | $avgNoTurns | $avgVmemTurns |
 
-Raw: ``claude-locomo-runs.csv``, ``claude-locomo-runs/*.json``
+Raw: claude-locomo-runs.csv, claude-locomo-runs/*.json
 "@
+
+$mdPath = Join-Path $PSScriptRoot "claude-locomo-results.md"
 
 [System.IO.File]::WriteAllText($mdPath, $md)
 Write-Host "Done. J: no-memory=$noJ% vmem=$vmemJ% -> $mdPath"
