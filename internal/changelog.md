@@ -1,5 +1,11 @@
 # Changelog
 
+## Wiki sidebar drag-and-drop — 2026-06-28
+
+- **Why**: pages and folders could only be created in place — no way to re-home a node after creation.
+- **Drag to move**: drag any wiki page or folder onto a folder to nest it inside, or onto empty space to move it back to the top level (no sibling reordering).
+- Built on `@dnd-kit/core`; reuses the existing `moveNode` mutation (cycle/scope guards already server-side) with an optimistic cache update so the tree reorganises instantly.
+
 ## wiki_create parentPath — 2026-06-23
 
 - **Why**: Claude often called `wiki_create` without `parentId`, so `/wiki-writeup` docs landed at wiki root instead of `Learning/`.

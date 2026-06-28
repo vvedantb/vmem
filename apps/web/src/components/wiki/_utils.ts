@@ -8,6 +8,73 @@ export interface WikiTreeNode {
 }
 
 /**
+ * Droppable id for the sidebar's root container — dropping a node here moves it
+ * to the top level (`parentId === undefined`). Distinct from any real node id.
+ */
+export const WIKI_ROOT_DROP_ID = "__wiki_root__";
+
+/** Minimal node shape `resolveWikiMove` needs; `Doc<"wikiNodes">` satisfies it. */
+interface MovableNode<TId extends string> {
+  _id: TId;
+  parentId?: TId;
+  kind: "folder" | "document";
+  order: number;
+}
+
+/**
+ * Work out the `moveNode` arguments for a drag-and-drop drop, or `null` when the
+ * drop is a no-op or invalid (so the caller can skip the mutation entirely).
+ *
+ * `overId` is either `WIKI_ROOT_DROP_ID` (move to top level) or the id of a
+ * folder node (move inside it). The new order appends the node to the end of its
+ * destination siblings — the sidebar does not support precise reordering.
+ *
+ * Returns `null` when the drop targets the node itself, its current parent (no
+ * change), a non-folder, or one of its own descendants (which would create a
+ * cycle — mirrors the backend guard so we never fire a doomed mutation).
+ *
+ * Generic over the id type so production infers `Id<"wikiNodes">` from
+ * `Doc<"wikiNodes">` while tests can pass plain-string ids.
+ */
+export function resolveWikiMove<TId extends string>(
+  nodes: Array<MovableNode<TId>>,
+  activeId: string,
+  overId: string | undefined,
+): { id: TId; newParentId: TId | undefined; newOrder: number } | null {
+  if (overId === undefined || activeId === overId) return null;
+
+  const active = nodes.find((n) => n._id === activeId);
+  if (!active) return null;
+
+  let newParentId: TId | undefined;
+  if (overId === WIKI_ROOT_DROP_ID) {
+    newParentId = undefined;
+  } else {
+    const target = nodes.find((n) => n._id === overId);
+    if (!target || target.kind !== "folder") return null;
+    newParentId = target._id;
+  }
+
+  // No-op: the node already lives directly under this parent.
+  if ((active.parentId ?? undefined) === newParentId) return null;
+
+  // Block dropping a node into its own subtree (would create a cycle).
+  if (newParentId !== undefined) {
+    const subtree = collectSubtreeIds(nodes, [activeId]);
+    if (subtree.has(newParentId)) return null;
+  }
+
+  // Append to the end of the destination's existing siblings.
+  const siblings = nodes.filter(
+    (n) => (n.parentId ?? undefined) === newParentId && n._id !== activeId,
+  );
+  const newOrder =
+    siblings.length === 0 ? 0 : Math.max(...siblings.map((s) => s.order)) + 1;
+
+  return { id: active._id, newParentId, newOrder };
+}
+
+/**
  * Build a hierarchical tree of WikiTreeNodes from the flat listTree result.
  * Roots have `parentId === undefined`. Children are sorted by order ascending
  * (the backend already sorts, but we re-sort defensively after grouping).
