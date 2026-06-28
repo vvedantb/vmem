@@ -6,13 +6,12 @@ import {
   WIKI_ROOT_DROP_ID,
 } from "./_utils";
 import type { Doc, Id } from "@vmem/backend";
+import { optimisticId } from "@/lib/optimisticId";
 
-function wikiId(raw: string): Id<"wikiNodes"> {
-  return raw;
-}
-
-function userId(raw: string): Id<"users"> {
-  return raw;
+/** Stable branded wiki id for tests (`optimisticId` requires UUID-shaped strings). */
+function testWikiId(suffix: string): Id<"wikiNodes"> {
+  const tail = suffix.padEnd(12, "0").slice(0, 12);
+  return optimisticId("wikiNodes", `00000000-0000-4000-8000-${tail}`);
 }
 
 function wikiNode(
@@ -25,7 +24,7 @@ function wikiNode(
   return {
     _id: id,
     _creationTime: 0,
-    userId: userId("u1"),
+    userId: optimisticId("users", "00000000-0000-4000-8000-000000000001"),
     parentId,
     kind,
     title,
@@ -37,15 +36,15 @@ function wikiNode(
 
 describe("compareWikiTreeSiblings", () => {
   it("sorts folders before documents", () => {
-    const folder = wikiNode(wikiId("f1"), "Zebra", "folder");
-    const doc = wikiNode(wikiId("d1"), "Alpha", "document");
+    const folder = wikiNode(testWikiId("f1"), "Zebra", "folder");
+    const doc = wikiNode(testWikiId("d1"), "Alpha", "document");
     expect(compareWikiTreeSiblings(folder, doc)).toBeLessThan(0);
     expect(compareWikiTreeSiblings(doc, folder)).toBeGreaterThan(0);
   });
 
   it("sorts titles A–Z within the same kind", () => {
-    const a = wikiNode(wikiId("a"), "Alpha", "document");
-    const b = wikiNode(wikiId("b"), "Beta", "document");
+    const a = wikiNode(testWikiId("a0"), "Alpha", "document");
+    const b = wikiNode(testWikiId("b0"), "Beta", "document");
     expect(compareWikiTreeSiblings(a, b)).toBeLessThan(0);
   });
 });
@@ -53,10 +52,10 @@ describe("compareWikiTreeSiblings", () => {
 describe("buildTree", () => {
   it("orders siblings folders first then documents, each A–Z", () => {
     const nodes: Doc<"wikiNodes">[] = [
-      wikiNode(wikiId("d2"), "Zulu doc", "document", undefined, 0),
-      wikiNode(wikiId("f2"), "Beta folder", "folder", undefined, 1),
-      wikiNode(wikiId("d1"), "Alpha doc", "document", undefined, 2),
-      wikiNode(wikiId("f1"), "Alpha folder", "folder", undefined, 3),
+      wikiNode(testWikiId("d2"), "Zulu doc", "document", undefined, 0),
+      wikiNode(testWikiId("f2"), "Beta folder", "folder", undefined, 1),
+      wikiNode(testWikiId("d1"), "Alpha doc", "document", undefined, 2),
+      wikiNode(testWikiId("f1"), "Alpha folder", "folder", undefined, 3),
     ];
     const titles = buildTree(nodes).map((item) => item.node.title);
     expect(titles).toEqual([
@@ -68,12 +67,12 @@ describe("buildTree", () => {
   });
 
   it("applies the same sort inside folders", () => {
-    const parent = wikiId("parent");
+    const parent = testWikiId("parent00");
     const nodes: Doc<"wikiNodes">[] = [
       wikiNode(parent, "Parent", "folder"),
-      wikiNode(wikiId("c2"), "zebra", "document", parent),
-      wikiNode(wikiId("c1"), "mango", "folder", parent),
-      wikiNode(wikiId("c3"), "apple", "document", parent),
+      wikiNode(testWikiId("c2"), "zebra", "document", parent),
+      wikiNode(testWikiId("c1"), "mango", "folder", parent),
+      wikiNode(testWikiId("c3"), "apple", "document", parent),
     ];
     const childTitles = buildTree(nodes)[0].children.map(
       (item) => item.node.title,
