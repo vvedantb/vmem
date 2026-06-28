@@ -22,6 +22,7 @@
     "bench:locomo": "npx tsx --env-file=.env.local neo4j-cli/bench/run.ts",
     "bench:report": "npx tsx neo4j-cli/bench/report.ts",
     "bench:cleanup": "npx tsx --env-file=.env.local neo4j-cli/bench/cleanup.ts",
+    "bench:export-questions": "npx tsx neo4j-cli/bench/exportQuestions.ts",
     "build:mcp-graph-ui": "node scripts/build-memory-graph-mcp-app.mjs"
   },
   "dependencies": {

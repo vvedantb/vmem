@@ -1,5 +1,11 @@
 # Changelog
 
+## Claude Code LoCoMo bench — 2026-06-28
+
+- **Why**: publishable “Claude with vs without vmem” must use `claude -p` + MCP, not OpenRouter answer models.
+- **`claude-locomo-bench.ps1`**: ingests LoCoMo into the user's vmem account, then scores **no-memory** (`--bare`, MCP off) vs **vmem** (MCP only) with Claude as judge → `claude-locomo-results.md`.
+- **OpenRouter `bench:locomo`** stays for engine regression only; protocol doc updated.
+
 ## Wiki sidebar A–Z sort — 2026-06-28
 
 - **Why**: manual `order` made the tree hard to scan; folders and pages should group predictably.

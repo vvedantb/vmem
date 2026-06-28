@@ -12,6 +12,9 @@ build
 internal/bench/*
 !internal/bench/evaluation-protocol.md
 !internal/bench/comparator-claims.md
+!internal/bench/claude-locomo-bench.ps1
+!internal/bench/claude-token-bench.ps1
+!internal/bench/claude-mcp-vmem-only.json
 internal/dissertation
 
 # Presentation deck — local/dissertation only

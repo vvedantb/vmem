@@ -1,84 +1,62 @@
 # vmem effectiveness evaluation (publishable protocol)
 
-**Goal:** reproducible numbers for “does vmem help?” that you can share without
-vendor-grade hand-waving.
+**Goal:** reproducible “does vmem help Claude?” numbers you can share.
 
-## What we measure
+## Primary path: Claude Code (what you asked for)
 
-| Row              | Meaning                                      | Analogue                                       |
-| ---------------- | -------------------------------------------- | ---------------------------------------------- |
-| **no-memory**    | Answer model sees **no** retrieved context   | Claude / ChatGPT **without** vmem MCP          |
-| **vmem**         | Production ingest + `retrieveMemories` top-k | Claude **with** vmem connector                 |
-| **full-context** | Entire LoCoMo transcript in context          | Oracle ceiling (not a fair “no vmem” baseline) |
+| Condition     | How                                                                    |
+| ------------- | ---------------------------------------------------------------------- |
+| **no-memory** | `claude -p --bare` + MCP disabled — disconnected chat                  |
+| **vmem**      | `claude -p` + vmem HTTP MCP only — `memory_retrieve` / `memory_search` |
 
-**Primary metric:** **J** — LLM-judge accuracy on [LoCoMo](https://github.com/snap-research/locomo)
-(non-adversarial categories only). Same answer + judge models for every row.
+**Benchmark:** LoCoMo QA (public dataset). **Judge:** Claude (`claude -p`), not OpenRouter.
 
-**Secondary metrics:**
+### Run
 
-- **Context tokens** (chars/4) — cost of memory at answer time
-- **Search latency** p50/p95 — retrieval speed (vmem only)
-- **Per-category J** — multi-hop, temporal, open-domain, single-hop
+```powershell
+$env:VMEM_BENCH_CLERK_ID = "<your-clerk-id>"   # memories must be on this account for MCP
 
-## How to run (CLI harness)
+pwsh -File internal/bench/claude-locomo-bench.ps1 `
+  -Conversations 1 -MaxSessions 5 -MaxQuestions 10
 
-From `packages/backend` (needs `NEO4J_*` + `OPENROUTER_API_KEY` in `.env.local`):
-
-```bash
-pnpm bench:download   # once
-pnpm bench:locomo \
-  --run-id publish-2026-06-28 \
-  --providers no-memory,vmem,full-context \
-  --conversations 10 \
-  --fast-ingest \
-  --memory-model openai/gpt-4.1-nano \
-  --answer-model openai/gpt-4.1-nano \
-  --judge-model openai/gpt-4.1-mini
-
-pnpm bench:report --run-id publish-2026-06-28
-# → internal/bench/locomo-results.md
-
-pnpm bench:cleanup   # remove synthetic bench_locomo_* users
+# Re-run QA only if already ingested:
+pwsh -File internal/bench/claude-locomo-bench.ps1 -SkipIngest -MaxQuestions 10
 ```
 
-**Smoke (rate-limit friendly):**
+**Output:** `internal/bench/claude-locomo-results.md` + `claude-locomo-runs.csv`
+
+**Ingest note:** the first step still uses `bench:locomo` (OpenRouter) to write memories into Neo4j under your Clerk id — that is setup, not the scored answer path. Answers and judging are 100% Claude Code.
+
+### Codebase token bench (secondary)
+
+`internal/bench/claude-token-bench.ps1` — explore (Read/Grep) vs vmem MCP on **repo** questions. Measures tokens/cost, not LoCoMo recall. See `claude-token-results.md`.
+
+---
+
+## Secondary path: OpenRouter harness (engine QA, not Claude)
+
+For **production engine** regression without Claude billing:
 
 ```bash
-pnpm bench:locomo \
-  --run-id smoke-1 \
-  --conversations 1 --max-sessions 2 --max-questions 5 \
-  --providers no-memory,vmem,full-context --fast-ingest
+cd packages/backend
+pnpm bench:locomo --providers no-memory,vmem,full-context ...
+pnpm bench:report --run-id <id>
 ```
 
-Resume after interruption: same `--run-id` + `--resume`.
+Same LoCoMo **J** metric, but answer+judge models are OpenRouter — useful for CI, not for “Claude with connector” claims.
+
+---
 
 ## What to publish
 
-Copy the **measured table** from `locomo-results.md`. Lead with:
+Lead with **Claude Code LoCoMo J**:
 
-1. **vmem vs no-memory** — absolute J lift + token savings vs full-context
-2. **Methodology** — one shared judge, public dataset, open harness in this repo
-3. **Caveats** — bench uses CLI engine path (not MCP wire format); ingest uses
-   production extraction/decision/enrichment; category 5 excluded
+> On LoCoMo, Claude **with vmem MCP** scored **X%** vs **Y%** with MCP off (**+Z pp**), using Claude as judge.
 
-Put vendor claims (Mem0, Supermemory, OpenAI “Dreaming”, etc.) in a **separate
-cited section** — see `comparator-claims.md`. Never mix with measured rows.
-
-## Claude Code MCP spot-check (optional, qualitative)
-
-LoCoMo is the quantitative backbone. For “feels like vmem in Claude”:
-
-1. Ingest one LoCoMo conversation under a bench profile (`--user` / `--profile`).
-2. **With MCP:** ask the same 5 questions; note tool calls (`memory_retrieve`).
-3. **Without MCP:** new chat, same questions — no tools.
-4. Log pass/fail manually; do not merge into J table (different answer model).
-
-`claude -p "…"` can script the qualitative arm later; the harness above is the
-shareable score.
+Add token/cost table from the same run. Put vendor claims in `comparator-claims.md` only.
 
 ## Improvement backlog
 
-- [ ] Phase 2 comparators: mem0, supermemory (same harness + judge)
-- [ ] Multi-seed runs + confidence intervals on J
-- [ ] Frozen model matrix in CI artifact
-- [ ] MCP-path provider (Convex actions, not CLI) for production parity
+- [ ] Multi-conversation full LoCoMo (10 conv) Claude run
+- [ ] Optional claude.ai parity (manual — no `claude -p` on web)
+- [ ] Phase 2: mem0/supermemory under OpenRouter harness for vendor comparison
