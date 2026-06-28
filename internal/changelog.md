@@ -1,16 +1,16 @@
 # Changelog
 
-## MCP eager skill loading for writeup/teach-me — 2026-06-27
+## MCP context_prompt_get + wiki-writeup rename — 2026-06-23
 
-- **Why**: Claude MCP loaded only the skills index from `vmem://context_prompt`; models skipped `skills_get` and lectured in chat instead of saving wiki writeups.
-- **`skills_match_message` MCP tool**: call with the user's message each turn to auto-inject full skill playbooks (parity with local chat's `findSkillsReferencedInMessage`).
-- **Hardened `writeup` / `teach-me` seeds**: mandatory workflow blocks and stricter descriptions (wiki-first, teaser-only in chat).
-- **tool_search mitigation**: skill playbooks and `memory_retrieve` description tell models to call vmem tools by exact name (Claude lazy-load often surfaces `memory_related` / profile tools instead).
+- **Why**: claude.ai cannot re-read `vmem://context_prompt` mid-chat; skill-routing hacks on memory tools were writeup-specific and broke teach-me.
+- **Reverted** memory-tool skill routing, `skills_match_message`, preload playbooks in context, and verb-stuffed tool descriptions.
+- **`context_prompt_get` MCP tool**: returns the same markdown as `vmem://context_prompt` (profile + Available Skills index) on demand; personal connector only.
+- **Renamed** learning skill `writeup` → `wiki-writeup` (`/wiki-writeup <topic>`); seed `previousNames` preserves installs (`writeup`, `read-quick-dont-validate`).
 
 ## Learning skills + slimmer agent context — 2026-06-27
 
 - **Why**: users queue papers and links for later via Claude + vmem; long `CLAUDE.md` also inflated every agent session with architecture detail that belongs in a separate reference.
-- **`writeup` / `teach-me` Skills Hub seeds**: `/writeup` saves a chapter-style wiki explainer in `Learning/` for read-later; `/teach-me` runs an interactive tutor (validate each step, checkpoint to wiki). Both pull depth from `vmem://context_prompt` and memories — no "what's your level?" prompts.
+- **`wiki-writeup` / `teach-me` Skills Hub seeds**: `/wiki-writeup` saves a chapter-style wiki explainer in `Learning/` for read-later; `/teach-me` runs an interactive tutor (validate each step, checkpoint to wiki). Both pull depth from `context_prompt_get` / `vmem://context_prompt` and memories — no "what's your level?" prompts.
 - **`CODEBASE.md`**: vmem-specific architecture and feature invariants moved out of `CLAUDE.md`; `AGENTS.md` stays a short pointer.
 
 ## Web UI micro-interaction polish — 2026-06-26

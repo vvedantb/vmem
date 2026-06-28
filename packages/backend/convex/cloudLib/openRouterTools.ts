@@ -180,6 +180,11 @@ export function buildOpenRouterTools(
       toolSpecs.list_profiles,
       h,
     ),
+    context_prompt_get: defineReadOnlyCloudTool(
+      "Returns the full vmem user profile markdown (profile, memories summary, Available Skills index).",
+      toolSpecs.context_prompt_get,
+      h,
+    ),
     memory_search: defineReadOnlyCloudTool(
       "Search your memories by query text, type, tags, or source.",
       toolSpecs.memory_search,

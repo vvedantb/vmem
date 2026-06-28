@@ -111,44 +111,28 @@ Relevant tools: \`codebases_list\`, \`codebase_overview\` / \`codebase_graph\` /
 
 Tell the user which pages you updated, which you added, and anything you flagged as removed or uncertain — and confirm what you left unchanged.`;
 
-const WRITEUP_INSTRUCTIONS = `# writeup — Async learning (read later)
+const WIKI_WRITEUP_INSTRUCTIONS = `# wiki-writeup — Async learning (read later)
 
-User invokes: \`/writeup <topic, link, or resource>\` — one line. They want a **wiki
+User invokes: \`/wiki-writeup <topic, link, or resource>\` — one line. They want a **wiki
 writeup to read later**, not a lecture in chat.
-
-## MANDATORY workflow (do not skip)
-
-1. You are running under this skill (via \`skills_match_message\` or \`skills_get\`).
-2. Read \`vmem://context_prompt\` + optional \`memory_retrieve\` for the topic.
-3. **\`wiki_create\`** (or \`wiki_update\`) with the **full** markdown writeup under
-   \`Learning/\` — **before** any user-visible reply.
-4. Chat reply: wiki path + 2-sentence teaser + estimated read time **only**.
-
-**Failure mode:** If you output more than two short paragraphs of teaching content in
-chat, you violated this skill. The wiki doc is the product; chat is a pointer.
 
 ## Know the learner first (do not ask)
 
 Before writing, load the user's context from vmem — **never** prompt them for "your
 level" or "what you already know" if this data exists:
 
-1. \`vmem://context_prompt\` (profile, preferences, pinned memories, portrait) — usually
-   already loaded at conversation start; re-read if needed.
-2. Optional: call \`memory_retrieve\` **by exact tool name** with the topic as \`query\`.
-   Do **not** use tool_search to find vmem tools — it often returns
-   \`memory_related\`, \`list_profiles\`, or \`set_active_profile\` instead. If
-   \`memory_retrieve\` is unavailable, skip it or use \`memory_search\` by exact name;
-   never block the writeup on retrieval.
+1. \`context_prompt_get\` or MCP resource \`vmem://context_prompt\` (profile, preferences,
+   pinned memories, portrait, Available Skills index).
+2. Optionally \`memory_retrieve\` with the topic/resource as query for relevant prior knowledge.
 
 Calibrate depth, jargon, and skipped prerequisites from that context only. Ask the user
 only if context is genuinely empty for the domain.
 
-## vmem tools (exact names — never tool_search)
+## vmem tools
 
-- \`skills_match_message\` — first call each turn with the user's message.
-- \`memory_retrieve\` / \`memory_search\` — optional topic context (exact name only).
+- \`skills_get\` with name \`wiki-writeup\` when you need this playbook mid-session.
 - \`wiki_list\` / \`wiki_search\` — \`Learning\` folder (create if missing).
-- \`wiki_create\` / \`wiki_update\` — full markdown writeup under \`Learning/\`.
+- \`wiki_create\` / \`wiki_update\` — full markdown writeup under \`Learning/\` **before** chat reply.
 - \`memory_add\` (optional) — stub with URL + pointer to wiki doc.
 
 ## Teaching rules
@@ -175,18 +159,18 @@ Can span days or weeks.
 
 ## MANDATORY workflow (do not skip)
 
-1. You are running under this skill (via \`skills_match_message\` or \`skills_get\`).
-2. Read \`vmem://context_prompt\` + \`memory_retrieve\` for the topic **before** step 1.
+1. \`skills_get\` with name \`teach-me\` when you need this playbook mid-session.
+2. Read \`context_prompt_get\` or \`vmem://context_prompt\` + optional \`memory_retrieve\` for the topic **before** step 1.
 3. **One teaching step per chat turn** — validate understanding before advancing.
 4. Checkpoint validated steps to wiki under \`Learning/<topic-slug>/\`.
 
-**Not this skill:** One-shot dumping the full course to wiki or chat — that is \`writeup\`.
+**Not this skill:** One-shot dumping the full course to wiki or chat — that is \`wiki-writeup\`.
 
 ## Know the learner first (do not ask)
 
-Same as \`writeup\`: \`vmem://context_prompt\` + optional \`memory_retrieve\` **by exact
-tool name** (never tool_search) for the topic **before** step 1. Infer presumed knowledge
-and goals from vmem — do not ask the user to state their background unless context is empty.
+Same as \`wiki-writeup\`: \`context_prompt_get\` or \`vmem://context_prompt\` + optional
+\`memory_retrieve\` for the topic **before** step 1. Infer presumed knowledge and goals
+from vmem — do not ask the user to state their background unless context is empty.
 
 ## vmem tools
 
@@ -210,7 +194,7 @@ for each **validated** step only.
 
 ## Do NOT
 
-- One-shot the whole course to wiki (that is \`writeup\`).
+- One-shot the whole course to wiki (that is \`wiki-writeup\`).
 - Skip validation on "just continue".
 - Save wrong explanations as canonical wiki text.`;
 
@@ -231,18 +215,18 @@ export const SYSTEM_SKILL_SEEDS: SystemSkillSeed[] = [
     instructions: UPDATE_WIKI_INSTRUCTIONS,
   },
   {
-    name: "writeup",
+    name: "wiki-writeup",
     category: "Learning",
     description:
-      "/writeup <topic> — MUST wiki_create under Learning/ BEFORE replying; chat = path + 2-sentence teaser ONLY. Never lecture in chat.",
-    instructions: WRITEUP_INSTRUCTIONS,
-    previousNames: ["read-quick-dont-validate"],
+      "/wiki-writeup <topic> — chapter-style wiki explainer in Learning/ to read later; chat = path + 2-sentence teaser only.",
+    instructions: WIKI_WRITEUP_INSTRUCTIONS,
+    previousNames: ["writeup", "read-quick-dont-validate"],
   },
   {
     name: "teach-me",
     category: "Learning",
     description:
-      "/teach-me <topic> — interactive tutor: one step per turn, validate before advancing; checkpoint progress to Learning/ wiki. Not one-shot writeup.",
+      "/teach-me <topic> — interactive tutor: one step per turn, validate before advancing; checkpoint progress to Learning/ wiki. Not one-shot wiki-writeup.",
     instructions: TEACH_ME_INSTRUCTIONS,
     previousNames: ["validate-my-understanding-and-teach-me"],
   },

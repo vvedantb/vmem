@@ -131,6 +131,19 @@ export function registerTools(
       ),
   );
 
+  if (scope === "personal") {
+    server.tool(
+      toolSpecs.context_prompt_get.name,
+      "Returns the full vmem user profile markdown (same as MCP resource vmem://context_prompt): About, Preferences, pinned memories, profile summary, and Available Skills (name + description). Call at session start or when a skill might apply — claude.ai cannot re-read the resource mid-chat. Then call skills_get with the exact skill name to load the playbook.",
+      toolSpecs.context_prompt_get.schema.shape,
+      async (params) =>
+        toMcpContent(
+          await toolSpecs.context_prompt_get.run(h, params),
+          "Context prompt get failed",
+        ),
+    );
+  }
+
   server.tool(
     toolSpecs.memory_search.name,
     "Search your memories by query text, type, tags, or source. Returns matching memories with metadata. Defaults to the active profile unless profileId is specified.",
@@ -144,7 +157,7 @@ export function registerTools(
 
   server.tool(
     toolSpecs.memory_retrieve.name,
-    "memory_retrieve — RAG retrieval for a natural-language question about the user's memories. Call this tool directly by exact name; do NOT use tool_search (it often surfaces memory_related or profile tools instead). Returns scored results with Context Trace (fulltext, recency, confidence). Defaults to active profile unless profileId is set.",
+    "Retrieve the most relevant memories for a natural language query. Returns scored results with Context Trace explaining WHY each memory matched (score breakdown: fulltext, recency, confidence). Defaults to the active profile unless profileId is specified.",
     toolSpecs.memory_retrieve.schema.shape,
     async (params) =>
       toMcpContent(
@@ -209,19 +222,8 @@ export function registerTools(
   );
 
   server.tool(
-    toolSpecs.skills_match_message.name,
-    "Eager skill loader — call FIRST every user turn with the user's full message. Returns matched skill names and full markdown instructions (same as local chat auto-load). If instructionsMarkdown is non-empty, follow it exactly before any other tool or reply. Slash commands like /writeup and /teach-me are detected automatically.",
-    toolSpecs.skills_match_message.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.skills_match_message.run(h, params),
-        "Match skills for message failed",
-      ),
-  );
-
-  server.tool(
     toolSpecs.skills_list.name,
-    "List enabled skills (name + description only). The skills index is also in the vmem://context_prompt resource. Prefer skills_match_message each turn; use skills_get when you need one skill by exact name.",
+    "List enabled skills (name + description only). Same data as the Available Skills section in context_prompt_get / vmem://context_prompt. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them.",
     toolSpecs.skills_list.schema.shape,
     async (params) =>
       toMcpContent(
@@ -232,7 +234,7 @@ export function registerTools(
 
   server.tool(
     toolSpecs.skills_get.name,
-    "Fetch a single enabled skill by exact name, including full markdown instructions. Prefer skills_match_message at turn start; use this when you already know the exact skill name.",
+    "Fetch a single enabled skill by exact name, including full markdown instructions. Call after identifying a matching skill from context_prompt_get, skills_list, or the Available Skills section in vmem://context_prompt.",
     toolSpecs.skills_get.schema.shape,
     async (params) =>
       toMcpContent(
@@ -306,7 +308,7 @@ export function registerTools(
 
   server.tool(
     toolSpecs.wiki_create.name,
-    "Create a wiki folder or document. Documents accept contentMarkdown stored as canonical markdown (same as the web editor). Optional parentId must be a folder id from wiki_list. For /writeup skill: create the full Learning/ explainer here BEFORE replying in chat (teaser only in chat).",
+    "Create a wiki folder or document. Documents accept contentMarkdown stored as canonical markdown (same as the web editor). Optional parentId must be a folder id from wiki_list.",
     toolSpecs.wiki_create.schema.shape,
     async (params) =>
       toMcpContent(

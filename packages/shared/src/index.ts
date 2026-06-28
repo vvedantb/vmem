@@ -29,10 +29,7 @@ export {
   composeSystemPrompt,
   filterEnabledSkills,
   findSkillsReferencedInMessage,
-  isSkillReferencedInMessage,
-  matchSkillsForMessage,
   type MemoryRagCandidate,
   type SkillIndexEntry,
   type SkillPromptEntry,
-  type SkillsMatchResult,
 } from "./prompts/memoryRagPrompt";

@@ -1,7 +1,6 @@
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { McpScope } from "../profiles/mcpAccess";
-import { matchSkillsForMessage } from "@vmem/shared";
 import type { z } from "zod";
 import {
   codebaseContextSchema,
@@ -24,8 +23,8 @@ import {
   skillsCreateSchema,
   skillsDeleteSchema,
   skillsGetSchema,
-  skillsMatchMessageSchema,
   skillsUpdateSchema,
+  contextPromptGetSchema,
   wikiCreateSchema,
   wikiDeleteSchema,
   wikiGetSchema,
@@ -96,6 +95,23 @@ export async function runWhoami(
 ): Promise<ToolHandlerResult> {
   return safe("whoami", () =>
     ctx.ctx.runAction(internal.mcp.profiles.mcpWhoami, scopedClerk(ctx)),
+  );
+}
+
+export async function runContextPromptGet(
+  ctx: ToolHandlerContext,
+): Promise<ToolHandlerResult> {
+  if (ctx.scope === "team") {
+    return {
+      ok: false,
+      error:
+        "context_prompt is only available on the personal vmem MCP connector",
+    };
+  }
+  return safe("context_prompt_get", () =>
+    ctx.ctx.runAction(internal.contextPromptApi.mcpGetContextPrompt, {
+      clerkId: ctx.clerkUserId,
+    }),
   );
 }
 
@@ -249,27 +265,6 @@ export async function runSkillsList(
       clerkId: ctx.clerkUserId,
     }),
   );
-}
-
-export async function runSkillsMatchMessage(
-  ctx: ToolHandlerContext,
-  params: z.infer<typeof skillsMatchMessageSchema>,
-): Promise<ToolHandlerResult> {
-  return safe("skills_match_message", async () => {
-    const skills = await ctx.ctx.runQuery(
-      internal.skills.listEffectiveByClerkIdInternal,
-      { clerkId: ctx.clerkUserId },
-    );
-    const match = matchSkillsForMessage(skills, params.message);
-    const toolCallingNote =
-      match.matchedNames.length > 0
-        ? "\n\n---\nvmem MCP: call tools by **exact name** (memory_retrieve, wiki_create, …). Do NOT use tool_search for vmem tools."
-        : "";
-    return {
-      matchedNames: match.matchedNames,
-      instructionsMarkdown: match.instructionsMarkdown + toolCallingNote,
-    };
-  });
 }
 
 export async function runSkillsGet(

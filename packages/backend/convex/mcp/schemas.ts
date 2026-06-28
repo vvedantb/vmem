@@ -144,13 +144,7 @@ export const memoryRelatedSchema = z.object({
 
 export const skillsListSchema = z.object({});
 
-export const skillsMatchMessageSchema = z.object({
-  message: z
-    .string()
-    .describe(
-      "The user's full latest message for this turn (include slash commands like /writeup)",
-    ),
-});
+export const contextPromptGetSchema = z.object({});
 
 export const skillsGetSchema = z.object({
   name: z.string().describe("Exact skill name (case sensitive)"),
