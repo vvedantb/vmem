@@ -119,6 +119,7 @@ ${judgeFailures > 0 ? `> ${String(judgeFailures)} judge response(s) failed to pa
 - **Answer model:** \`${models.answer}\` · **Judge model:** \`${models.judge}\` · **vmem memory model:** \`${models.memory}\` (all via OpenRouter).
 - **Answer + judge prompts:** adapted from \`mem0ai/memory-benchmarks\` (paraphrased, not verbatim — the upstream prompts are the methodology reference). The SAME prompts grade every provider, so absolute J depends on the judge but the ranking between systems does not.
 - **Embeddings:** \`text-embedding-3-small\` (vmem's production model).
+- **Providers:** \`no-memory\` (empty context — disconnected chat), \`vmem\` (retrieval), \`full-context\` (oracle transcript ceiling).
 - **vmem path:** production engine code — bench extraction → per-fact hybrid retrieval → ADD/UPDATE/DELETE/NONE decision → engine create/update/delete with dedup → production enrichment (tags/entities/RELATES_TO). QA-time retrieval is the unmodified production \`retrieveMemories\` (RRF fusion, graph expansion, MMR).
 
 ### Deviations from production (vmem row)

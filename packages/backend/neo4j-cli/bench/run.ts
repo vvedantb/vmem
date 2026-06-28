@@ -45,6 +45,7 @@ import {
 import { buildAnswerPrompt } from "./qa/answerPrompt";
 import { buildJudgePrompt, parseJudgeResponse } from "./qa/judgePrompt";
 import { FullContextProvider } from "./providers/fullContext";
+import { NoMemoryProvider } from "./providers/noMemory";
 import { VmemProvider } from "./providers/vmem";
 import type { MemoryProvider } from "./providers/types";
 import {
@@ -144,9 +145,11 @@ function buildProvider(
       });
     case "full-context":
       return new FullContextProvider();
+    case "no-memory":
+      return new NoMemoryProvider();
     default:
       throw new Error(
-        `unknown provider "${name}". Available: vmem, full-context`,
+        `unknown provider "${name}". Available: vmem, full-context, no-memory`,
       );
   }
 }

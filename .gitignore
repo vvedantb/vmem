@@ -9,7 +9,9 @@ build
 .eslintcache
 *.tsbuildinfo
 .tanstack
-internal/bench
+internal/bench/*
+!internal/bench/evaluation-protocol.md
+!internal/bench/comparator-claims.md
 internal/dissertation
 
 # Presentation deck — local/dissertation only
