@@ -7,6 +7,13 @@ import {
   mergeMarkdownForAppend,
   wikiExcerpt,
 } from "../lib/wikiContent";
+import {
+  buildWikiChildrenByParent,
+  findWikiChild,
+  normalizeWikiPathSegments,
+  wikiPathNodesFromDocs,
+} from "../wiki/path";
+import type { ActionCtx } from "../_generated/server";
 
 export interface WikiListItem {
   id: string;
@@ -61,6 +68,58 @@ function toGetResult(node: Doc<"wikiNodes">): WikiGetResult {
   };
 }
 
+/** Walk `parentPath`, creating missing folder segments (e.g. `Learning/topic`). */
+async function ensureWikiFolderPath(
+  ctx: ActionCtx,
+  clerkId: string,
+  parentPath: string,
+): Promise<Id<"wikiNodes">> {
+  const segments = normalizeWikiPathSegments(parentPath);
+  if (segments.length === 0) {
+    throw new Error("parentPath must name at least one folder");
+  }
+
+  let nodes: Doc<"wikiNodes">[] = await ctx.runQuery(
+    internal.wiki.listByClerkIdInternal,
+    { clerkId },
+  );
+  let pathNodes = wikiPathNodesFromDocs(nodes);
+  let byParent = buildWikiChildrenByParent(pathNodes);
+  let currentParent: Id<"wikiNodes"> | undefined;
+
+  for (const title of segments) {
+    const existing = findWikiChild(byParent, currentParent ?? null, title);
+    if (existing) {
+      if (existing.kind !== "folder") {
+        throw new Error(`Wiki path segment "${title}" is not a folder`);
+      }
+      currentParent = existing.id;
+      continue;
+    }
+
+    const newId: Id<"wikiNodes"> = await ctx.runMutation(
+      internal.wiki.createByClerkIdInternal,
+      {
+        clerkId,
+        parentId: currentParent,
+        kind: "folder",
+        title,
+      },
+    );
+    currentParent = newId;
+    nodes = await ctx.runQuery(internal.wiki.listByClerkIdInternal, {
+      clerkId,
+    });
+    pathNodes = wikiPathNodesFromDocs(nodes);
+    byParent = buildWikiChildrenByParent(pathNodes);
+  }
+
+  if (!currentParent) {
+    throw new Error("Failed to resolve parentPath");
+  }
+  return currentParent;
+}
+
 function toSearchItem(node: Doc<"wikiNodes">): WikiSearchItem {
   const body = node.kind === "document" ? documentMarkdown(node) : "";
   return {
@@ -111,13 +170,22 @@ export const mcpCreateWiki = internalAction({
     kind: v.union(v.literal("folder"), v.literal("document")),
     title: v.string(),
     parentId: v.optional(v.string()),
+    /** Slash path of ancestor folders; missing segments are created as folders. */
+    parentPath: v.optional(v.string()),
     contentMarkdown: v.optional(v.string()),
     /** Link a folder to a synced codebase (validated owner-side). */
     sourceCodebaseId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<WikiGetResult> => {
+    const hasParentId = args.parentId !== undefined && args.parentId.length > 0;
+    const parentPathTrimmed = args.parentPath?.trim() ?? "";
+    const hasParentPath = parentPathTrimmed.length > 0;
+    if (hasParentId && hasParentPath) {
+      throw new Error("Provide parentId or parentPath, not both");
+    }
+
     let parentId: Id<"wikiNodes"> | undefined;
-    if (args.parentId !== undefined && args.parentId.length > 0) {
+    if (hasParentId && args.parentId !== undefined) {
       const parent: Doc<"wikiNodes"> | null = await ctx.runQuery(
         internal.wiki.getByIdInternal,
         { clerkId: args.clerkId, id: args.parentId },
@@ -126,6 +194,12 @@ export const mcpCreateWiki = internalAction({
         throw new Error("Parent folder not found");
       }
       parentId = parent._id;
+    } else if (hasParentPath) {
+      parentId = await ensureWikiFolderPath(
+        ctx,
+        args.clerkId,
+        parentPathTrimmed,
+      );
     }
 
     const content =

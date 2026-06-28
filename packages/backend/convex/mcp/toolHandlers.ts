@@ -370,6 +370,7 @@ export async function runWikiCreate(
       kind: params.kind,
       title: params.title,
       parentId: params.parentId,
+      parentPath: params.parentPath,
       contentMarkdown: params.contentMarkdown,
       sourceCodebaseId: params.sourceCodebaseId,
     }),

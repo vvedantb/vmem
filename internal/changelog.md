@@ -1,5 +1,11 @@
 # Changelog
 
+## wiki_create parentPath — 2026-06-23
+
+- **Why**: Claude often called `wiki_create` without `parentId`, so `/wiki-writeup` docs landed at wiki root instead of `Learning/`.
+- **`parentPath` on `wiki_create`**: pass e.g. `"Learning"` or `"Learning/topic"` — server resolves the folder chain and creates missing segments; mutually exclusive with `parentId`.
+- **`wiki-writeup` / `teach-me` seeds**: playbooks now require `parentPath` instead of a `wiki_list` → id dance.
+
 ## MCP context_prompt_get + wiki-writeup rename — 2026-06-23
 
 - **Why**: claude.ai cannot re-read `vmem://context_prompt` mid-chat; skill-routing hacks on memory tools were writeup-specific and broke teach-me.

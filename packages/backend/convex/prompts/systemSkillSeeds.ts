@@ -131,15 +131,16 @@ only if context is genuinely empty for the domain.
 ## vmem tools
 
 - \`skills_get\` with name \`wiki-writeup\` when you need this playbook mid-session.
-- \`wiki_list\` / \`wiki_search\` — \`Learning\` folder (create if missing).
-- \`wiki_create\` / \`wiki_update\` — full markdown writeup under \`Learning/\` **before** chat reply.
+- \`wiki_search\` (optional) — avoid duplicate titles under \`Learning/\`.
+- \`wiki_create\` with \`parentPath: "Learning"\` — full markdown writeup **before** chat reply (server creates \`Learning\` if missing; never omit or the doc lands at wiki root).
+- \`wiki_update\` — revise an existing writeup.
 - \`memory_add\` (optional) — stub with URL + pointer to wiki doc.
 
 ## Teaching rules
 
 1. Fetch or read the resource (WebFetch, pasted text). If unreadable, ask for a paste.
 2. Teach step by step — each step a **chapter** in the wiki doc.
-3. **Write the entire explainer into wiki at once** (complete artifact).
+3. **Write the entire explainer into wiki at once** via \`wiki_create\` (\`kind: "document"\`, \`parentPath: "Learning"\`, \`contentMarkdown\` = full doc). Do not call \`wiki_create\` without \`parentPath\`.
 4. Hard concepts: subdivide + concrete examples.
 5. Fix poor source prose; optimize for clarity.
 
@@ -175,7 +176,7 @@ from vmem — do not ask the user to state their background unless context is em
 ## vmem tools
 
 - \`wiki_list\` / \`wiki_search\` / \`wiki_get\` — course under \`Learning/<topic-slug>/\`.
-- \`wiki_create\` / \`wiki_update\` — syllabus, validated chapters, progress markers.
+- \`wiki_create\` with \`parentPath: "Learning/<topic-slug>"\` / \`wiki_update\` — syllabus, validated chapters, progress markers.
 - \`memory_add\` (optional) — durable facts after validation.
 
 ## Session rules
