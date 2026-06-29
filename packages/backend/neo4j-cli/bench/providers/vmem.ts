@@ -84,17 +84,31 @@ export interface VmemProviderConfig {
    * (a documented floor — the full pipeline scores equal or higher).
    */
   fastIngest?: boolean;
+  /** Memory `source` tag (default `locomo-bench`). Per-benchmark for clean cleanup. */
+  benchSource?: string;
+  /** Synthetic-user id prefix (default `bench_locomo_`). Per-benchmark namespacing. */
+  syntheticPrefix?: string;
 }
 
 export class VmemProvider implements MemoryProvider {
   readonly name = "vmem";
+  // Memories persist in Neo4j, so a resumed run can trust the ingested marker.
+  readonly persistsIngest = true;
 
   constructor(private readonly config: VmemProviderConfig) {}
+
+  private get benchSource(): string {
+    return this.config.benchSource ?? BENCH_SOURCE;
+  }
+
+  private get syntheticPrefix(): string {
+    return this.config.syntheticPrefix ?? SYNTHETIC_PREFIX;
+  }
 
   private userId(conversationId: string): string {
     return (
       this.config.userOverride ??
-      `${SYNTHETIC_PREFIX}${conversationId}_${this.config.runId}`
+      `${this.syntheticPrefix}${conversationId}_${this.config.runId}`
     );
   }
 
@@ -106,7 +120,7 @@ export class VmemProvider implements MemoryProvider {
     const userId = this.userId(conversationId);
     const session = this.config.driver.session();
     try {
-      if (userId.startsWith(SYNTHETIC_PREFIX)) {
+      if (userId.startsWith(this.syntheticPrefix)) {
         // Synthetic user: full wipe of everything carrying this userId.
         await session.run(`MATCH (c:Chunk {userId: $userId}) DETACH DELETE c`, {
           userId,
@@ -128,7 +142,7 @@ export class VmemProvider implements MemoryProvider {
            OPTIONAL MATCH (c:Chunk {memoryId: m.id})
            OPTIONAL MATCH (ev:MemoryEvent)-[:EVENT_FOR]->(m)
            DETACH DELETE c, ev, m`,
-          { userId, source: BENCH_SOURCE },
+          { userId, source: this.benchSource },
         );
       }
     } finally {
@@ -243,12 +257,12 @@ export class VmemProvider implements MemoryProvider {
       title,
       content: text,
       type: "knowledge",
-      source: BENCH_SOURCE,
+      source: this.benchSource,
       tags: [],
       confidence: 0.9,
       embedding,
       contentHash,
-      sourceType: BENCH_SOURCE,
+      sourceType: this.benchSource,
     });
 
     // Fast-ingest skips enrichment (the per-memory LLM call + graph writes);

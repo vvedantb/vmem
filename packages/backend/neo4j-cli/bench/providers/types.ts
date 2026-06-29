@@ -29,6 +29,16 @@ export interface MemoryProvider {
   /** Stable provider key used in result rows and the report ("vmem", "mem0"…). */
   readonly name: string;
 
+  /**
+   * Whether ingested state survives a process restart, so a persisted "ingested"
+   * marker can be trusted to skip re-ingest on `--resume`. True for stores backed
+   * by a database (vmem→Neo4j). FALSE for providers that hold ingest state only in
+   * process memory (full-context): on resume their store is empty, so they MUST
+   * re-ingest or search would return nothing (a blind oracle). No-memory has no
+   * ingest state to lose, so the marker is safe to trust.
+   */
+  readonly persistsIngest: boolean;
+
   /** Remove all prior state for one conversation namespace (idempotent). */
   reset(conversationId: string): Promise<void>;
 

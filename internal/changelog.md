@@ -1,5 +1,14 @@
 # Changelog
 
+## Vendor-format multi-benchmark bench (LongMemEval + BEAM) — 2026-06-29
+
+- **Why**: needed publishable, vendor-comparable numbers (Mem0/Supermemory retrieve→read→judge protocol) on LongMemEval-S and BEAM, not just LoCoMo.
+- **Multi-benchmark harness**: `run.ts --benchmark locomo|longmemeval|beam` maps all three into one shape; arms are vmem (engine retrieval) + full-context oracle, Claude **sonnet** reader + **gpt-4o-mini** judge, reporting absolute J, % of oracle, and abstention (`bench:vendor`).
+- **BEAM loader rewrite**: parses the real Hugging Face schema (Python-literal `probing_questions` dict, sessioned chat) via a new dependency-free Python-literal parser; 8/10 abilities gold-graded, the two rubric/compliance abilities excluded and logged.
+- **JSON-mode extraction fix**: forces valid JSON on all extraction/decision/enrichment calls, removing a ~28% silent fact-drop that understated vmem on every benchmark.
+- **Resume + oracle safety**: non-persistent providers (full-context) re-ingest on `--resume` instead of answering blind; over-budget oracle prompts are skipped, logged, and excluded from accuracy.
+- **LongMemEval handling**: deterministic seeded stratified sampling for indicative slices, plus numeric-answer coercion; abstention (`_abs`) questions scored by a dedicated abstention-aware judge; per-benchmark cleanup via `--source`/`--prefix`.
+
 ## Full LoCoMo + Claude CLI bench — 2026-06-23
 
 - **Why**: the 20-question MCP smoke test was not publishable; full LoCoMo needs the production harness with Claude answering/judging.

@@ -11,6 +11,8 @@ import type { LocomoSession } from "../datasets/locomo";
 
 export class NoMemoryProvider implements MemoryProvider {
   readonly name = "no-memory";
+  // No ingest state at all, so the marker is safe to trust on resume.
+  readonly persistsIngest = true;
 
   reset(_conversationId: string): Promise<void> {
     return Promise.resolve();

@@ -18,6 +18,8 @@ function row(overrides: Partial<QaResultRow>): QaResultRow {
     judgeParsed: true,
     contextTokens: 100,
     searchLatencyMs: 10,
+    isAbstention: false,
+    skipped: false,
     ...overrides,
   };
 }
@@ -91,6 +93,39 @@ describe("computeProviderMetrics", () => {
 
   it("reports zero accuracy with no rows", () => {
     expect(computeProviderMetrics("vmem", []).accuracy).toBe(0);
+  });
+
+  it("excludes abstention rows from headline J and rolls them up separately", () => {
+    const rows: QaResultRow[] = [
+      row({ correct: true }),
+      row({ qaIndex: 1, correct: false }),
+      row({ qaIndex: 2, correct: true, isAbstention: true }),
+      row({ qaIndex: 3, correct: true, isAbstention: true }),
+      row({ qaIndex: 4, correct: false, isAbstention: true }),
+    ];
+    const m = computeProviderMetrics("vmem", rows);
+    // Headline = answerable only: 1/2.
+    expect(m.total).toBe(2);
+    expect(m.correct).toBe(1);
+    expect(m.accuracy).toBe(0.5);
+    // Abstention rolled up separately: 2/3.
+    expect(m.abstention.total).toBe(3);
+    expect(m.abstention.correct).toBe(2);
+    expect(m.abstention.accuracy).toBeCloseTo(2 / 3);
+  });
+
+  it("excludes skipped arms from accuracy and counts them", () => {
+    const rows: QaResultRow[] = [
+      row({ correct: true }),
+      row({ qaIndex: 1, correct: false, skipped: true }),
+      row({ qaIndex: 2, correct: false, skipped: true }),
+    ];
+    const m = computeProviderMetrics("vmem", rows);
+    // Only the non-skipped row counts toward J.
+    expect(m.total).toBe(1);
+    expect(m.correct).toBe(1);
+    expect(m.accuracy).toBe(1);
+    expect(m.skipped).toBe(2);
   });
 });
 

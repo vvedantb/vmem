@@ -10,8 +10,9 @@
  * (source = "locomo-bench") under that real user — used after a `--user`
  * visual-inspection ingest.
  *
- * Usage: pnpm bench:cleanup            # all synthetic bench users
- *        pnpm bench:cleanup --user user_abc123
+ * Usage: pnpm bench:cleanup                          # all locomo synthetic users
+ *        pnpm bench:cleanup --prefix bench_beam_      # a specific benchmark's synthetic users
+ *        pnpm bench:cleanup --user user_abc123 --source beam-bench
  */
 
 import { closeDriver, getDriver } from "../../engine/neo4j/driver";
@@ -19,33 +20,33 @@ import { closeDriver, getDriver } from "../../engine/neo4j/driver";
 const SYNTHETIC_PREFIX = "bench_locomo_";
 const BENCH_SOURCE = "locomo-bench";
 
-function userArg(): string | undefined {
-  const idx = process.argv.indexOf("--user");
+function argValue(flag: string): string | undefined {
+  const idx = process.argv.indexOf(flag);
   return idx >= 0 ? process.argv[idx + 1] : undefined;
 }
 
-async function cleanupSynthetic(): Promise<void> {
+async function cleanupSynthetic(prefix: string): Promise<void> {
   const driver = getDriver();
   const session = driver.session();
   try {
     console.log(
-      `deleting synthetic bench users (userId starts with "${SYNTHETIC_PREFIX}")…`,
+      `deleting synthetic bench users (userId starts with "${prefix}")…`,
     );
 
     await session.run(
       `MATCH (c:Chunk) WHERE c.userId STARTS WITH $prefix DETACH DELETE c`,
-      { prefix: SYNTHETIC_PREFIX },
+      { prefix },
     );
     await session.run(
       `MATCH (e:Entity) WHERE e.userId STARTS WITH $prefix DETACH DELETE e`,
-      { prefix: SYNTHETIC_PREFIX },
+      { prefix },
     );
     const memResult = await session.run(
       `MATCH (m:Memory) WHERE m.userId STARTS WITH $prefix
        OPTIONAL MATCH (ev:MemoryEvent)-[:EVENT_FOR]->(m)
        DETACH DELETE ev, m
        RETURN count(DISTINCT m) AS deleted`,
-      { prefix: SYNTHETIC_PREFIX },
+      { prefix },
     );
     const deleted = memResult.records[0]?.get("deleted")?.toNumber() ?? 0;
     console.log(`  deleted ${String(deleted)} memories`);
@@ -57,18 +58,20 @@ async function cleanupSynthetic(): Promise<void> {
   }
 }
 
-async function cleanupUser(userId: string): Promise<void> {
+async function cleanupUser(userId: string, source: string): Promise<void> {
   const driver = getDriver();
   const session = driver.session();
   try {
-    console.log(`deleting bench-tagged memories for user ${userId}…`);
+    console.log(
+      `deleting bench-tagged memories (source="${source}") for user ${userId}…`,
+    );
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId, source: $source})
        OPTIONAL MATCH (c:Chunk {memoryId: m.id})
        OPTIONAL MATCH (ev:MemoryEvent)-[:EVENT_FOR]->(m)
        DETACH DELETE c, ev, m
        RETURN count(DISTINCT m) AS deleted`,
-      { userId, source: BENCH_SOURCE },
+      { userId, source },
     );
     const deleted = result.records[0]?.get("deleted")?.toNumber() ?? 0;
     console.log(`  deleted ${String(deleted)} memories`);
@@ -111,11 +114,13 @@ async function sweepOrphans(
 }
 
 async function main(): Promise<void> {
-  const user = userArg();
+  const user = argValue("--user");
+  const source = argValue("--source") ?? BENCH_SOURCE;
+  const prefix = argValue("--prefix") ?? SYNTHETIC_PREFIX;
   if (user) {
-    await cleanupUser(user);
+    await cleanupUser(user, source);
   } else {
-    await cleanupSynthetic();
+    await cleanupSynthetic(prefix);
   }
   console.log("cleanup complete");
 }

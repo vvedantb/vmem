@@ -89,6 +89,8 @@ export interface LocomoQa {
   evidence: string[];
   category: number;
   categoryLabel: string;
+  /** True for negative/abstention questions (LongMemEval `_abs`, BEAM abstention). */
+  isAbstention: boolean;
 }
 
 export interface LocomoConversation {
@@ -142,6 +144,7 @@ function parseQa(qa: z.infer<typeof qaSchema>[]): LocomoQa[] {
       evidence: item.evidence ?? [],
       category: item.category,
       categoryLabel: LOCOMO_CATEGORY_LABELS[item.category] ?? "unknown",
+      isAbstention: false,
     });
   });
   return result;

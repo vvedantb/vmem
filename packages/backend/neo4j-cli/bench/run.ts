@@ -38,7 +38,13 @@ import { closeDriver, getDriver } from "../../engine/neo4j/driver";
 import { ensureNeo4jSetupIfNeeded } from "../../engine/neo4j/setup";
 import { isTransientNetworkError } from "../../convex/lib/openRouter/client";
 import { generateCliEmbedding } from "../eval/cliEmbeddings";
-import { loadLocomo, type LocomoConversation } from "./datasets/locomo";
+import type { LocomoConversation } from "./datasets/locomo";
+import {
+  loadBenchmark,
+  isBenchmarkName,
+  stratifiedSample,
+  type BenchmarkName,
+} from "./benchmarks";
 import {
   CallBudget,
   CallCapExceededError,
@@ -49,10 +55,11 @@ import { createBenchClaudeLlm } from "./claudeCli";
 import { resolveBenchProfileId } from "./resolveBenchProfile";
 import { buildAnswerPrompt } from "./qa/answerPrompt";
 import { buildJudgePrompt, parseJudgeResponse } from "./qa/judgePrompt";
+import { buildAbstentionJudgePrompt } from "./qa/abstentionJudgePrompt";
 import { FullContextProvider } from "./providers/fullContext";
 import { NoMemoryProvider } from "./providers/noMemory";
 import { VmemProvider } from "./providers/vmem";
-import type { MemoryProvider } from "./providers/types";
+import { approxTokens, type MemoryProvider } from "./providers/types";
 import {
   appendRow,
   gradedKeys,
@@ -71,6 +78,11 @@ const DEFAULT_MEMORY_MODEL = "openai/gpt-oss-20b:free";
 const DEFAULT_ANSWER_MODEL = "openai/gpt-oss-20b:free";
 const DEFAULT_JUDGE_MODEL = "openai/gpt-oss-120b:free";
 
+// Skip an arm whose answer prompt would exceed the reader's context. Conservative
+// vs Sonnet's ~200k so prompt overhead + the chars/4 estimate's fuzziness can't
+// push a real request over — mainly guards the full-context oracle on big haystacks.
+const MAX_ANSWER_PROMPT_TOKENS = 180_000;
+
 type LlmBackend = "openrouter" | "claude";
 
 function parseBackend(raw: string | undefined, flag: string): LlmBackend {
@@ -80,6 +92,11 @@ function parseBackend(raw: string | undefined, flag: string): LlmBackend {
 }
 
 interface Args {
+  benchmark: BenchmarkName;
+  beamSplit: string;
+  chunkTokens: number;
+  stratifiedSample: number | null;
+  seed: number;
   conversations: number | null;
   maxSessions: number | null;
   maxQuestions: number | null;
@@ -111,7 +128,19 @@ function parseArgs(argv: string[]): Args {
   const conversationsRaw = get("--conversations");
   const maxSessionsRaw = get("--max-sessions");
   const maxQuestionsRaw = get("--max-questions");
+  const benchmarkRaw = get("--benchmark") ?? "locomo";
+  if (!isBenchmarkName(benchmarkRaw)) {
+    throw new Error(
+      `--benchmark must be "locomo", "longmemeval", or "beam" (got "${benchmarkRaw}")`,
+    );
+  }
+  const stratifiedRaw = get("--stratified-sample");
   return {
+    benchmark: benchmarkRaw,
+    beamSplit: get("--beam-split") ?? "100K",
+    chunkTokens: Number(get("--chunk-tokens") ?? "3000"),
+    stratifiedSample: stratifiedRaw ? Number(stratifiedRaw) : null,
+    seed: Number(get("--seed") ?? "123"),
     conversations: conversationsRaw ? Number(conversationsRaw) : null,
     maxSessions: maxSessionsRaw ? Number(maxSessionsRaw) : null,
     maxQuestions: maxQuestionsRaw ? Number(maxQuestionsRaw) : null,
@@ -136,9 +165,19 @@ function parseArgs(argv: string[]): Args {
 
 function selectConversations(
   all: LocomoConversation[],
-  n: number | null,
+  args: Args,
 ): LocomoConversation[] {
-  return n === null ? all : all.slice(0, Math.max(0, n));
+  if (args.stratifiedSample !== null) {
+    if (args.conversations !== null) {
+      console.warn(
+        "--stratified-sample is set; ignoring --conversations (stratified slice takes precedence)",
+      );
+    }
+    return stratifiedSample(all, args.stratifiedSample, args.seed);
+  }
+  return args.conversations === null
+    ? all
+    : all.slice(0, Math.max(0, args.conversations));
 }
 
 function buildProvider(
@@ -149,6 +188,8 @@ function buildProvider(
     user?: string;
     profile?: string;
     fastIngest: boolean;
+    benchSource: string;
+    syntheticPrefix: string;
   },
 ): MemoryProvider {
   switch (name) {
@@ -164,6 +205,8 @@ function buildProvider(
         userOverride: deps.user,
         profileOverride: deps.profile,
         fastIngest: deps.fastIngest,
+        benchSource: deps.benchSource,
+        syntheticPrefix: deps.syntheticPrefix,
       });
     case "full-context":
       return new FullContextProvider();
@@ -288,20 +331,39 @@ async function gradeQuestion(
   judgeLlm: BenchLlm,
 ): Promise<QaResultRow> {
   const outcome = await provider.search(conversation.id, qa.question, args.k);
-
-  const answerRaw = await answerLlm.chatText(
-    buildAnswerPrompt(
-      qa.question,
-      outcome.results,
-      conversation.latestDateTime,
-    ),
+  const answerPrompt = buildAnswerPrompt(
+    qa.question,
+    outcome.results,
+    conversation.latestDateTime,
   );
-  const generated = answerRaw?.trim() ?? "";
 
-  const judgeRaw = await judgeLlm.chatJson(
-    buildJudgePrompt(qa.question, qa.answer, generated),
-  );
-  const verdict = judgeRaw ? parseJudgeResponse(judgeRaw) : null;
+  let generated = "";
+  let correct = false;
+  let judgeParsed = false;
+  let skipped = false;
+
+  // Oracle token guard: never send an over-budget prompt (it would fail the
+  // expensive call and dirty resume). Skip the arm, log it, and exclude it from
+  // accuracy downstream — mainly trips on full-context over a huge haystack.
+  if (approxTokens(answerPrompt) > MAX_ANSWER_PROMPT_TOKENS) {
+    skipped = true;
+    console.warn(
+      `  [${conversation.id}] q${String(qa.index)} ${provider.name}: answer prompt ~${String(approxTokens(answerPrompt))} tok exceeds ${String(MAX_ANSWER_PROMPT_TOKENS)} — skipping arm (excluded from accuracy)`,
+    );
+  } else {
+    const answerRaw = await answerLlm.chatText(answerPrompt);
+    generated = answerRaw?.trim() ?? "";
+
+    // Abstention rows are graded by the abstention-aware judge (correct ⇔ the
+    // model declines); answerable rows use the shared gold-answer judge.
+    const judgePrompt = qa.isAbstention
+      ? buildAbstentionJudgePrompt(qa.question, qa.answer, generated)
+      : buildJudgePrompt(qa.question, qa.answer, generated);
+    const judgeRaw = await judgeLlm.chatJson(judgePrompt);
+    const verdict = judgeRaw ? parseJudgeResponse(judgeRaw) : null;
+    correct = verdict?.correct ?? false;
+    judgeParsed = verdict !== null;
+  }
 
   return {
     type: "qa",
@@ -314,10 +376,12 @@ async function gradeQuestion(
     question: qa.question,
     gold: qa.answer,
     generated,
-    correct: verdict?.correct ?? false,
-    judgeParsed: verdict !== null,
+    correct,
+    judgeParsed,
     contextTokens: outcome.contextTokens,
     searchLatencyMs: outcome.latencyMs,
+    isAbstention: qa.isAbstention,
+    skipped,
   };
 }
 
@@ -367,7 +431,11 @@ async function main(): Promise<void> {
   installTransientNetworkGuard();
   const args = parseArgs(process.argv.slice(2));
 
-  const conversations = selectConversations(loadLocomo(), args.conversations);
+  const allConversations = loadBenchmark(args.benchmark, {
+    beamSplit: args.beamSplit,
+    chunkTokens: args.chunkTokens,
+  });
+  const conversations = selectConversations(allConversations, args);
   if (conversations.length === 0) {
     throw new Error("no conversations selected");
   }
@@ -427,6 +495,9 @@ async function main(): Promise<void> {
   const alreadyIngested = ingestedKeys(priorRows);
   const alreadyGraded = gradedKeys(priorRows);
 
+  console.log(
+    `benchmark:   ${args.benchmark}${args.benchmark === "beam" ? ` (split ${args.beamSplit})` : ""}`,
+  );
   console.log(`run id:      ${args.runId}`);
   console.log(`journal:     ${path}`);
   console.log(`providers:   ${args.providers.join(", ")}`);
@@ -454,6 +525,8 @@ async function main(): Promise<void> {
         user: args.user,
         profile,
         fastIngest: args.fastIngest,
+        benchSource: `${args.benchmark}-bench`,
+        syntheticPrefix: `bench_${args.benchmark}_`,
       });
       console.log(`\n══ provider: ${provider.name} ══`);
 
@@ -464,19 +537,27 @@ async function main(): Promise<void> {
             : conversation.sessions.slice(0, args.maxSessions);
 
         const ingestKey = `${provider.name}::${conversation.id}`;
-        if (!alreadyIngested.has(ingestKey)) {
+        // Only trust the persisted marker for providers whose ingest survives a
+        // restart. Non-persistent providers (full-context) MUST re-ingest on
+        // resume or their in-memory store is empty and search returns nothing.
+        const ingestCached =
+          provider.persistsIngest && alreadyIngested.has(ingestKey);
+        if (!ingestCached) {
           console.log(
-            `  [${conversation.id}] ingesting ${String(sessionsToIngest.length)} sessions…`,
+            `  [${conversation.id}] ingesting ${String(sessionsToIngest.length)} sessions…${provider.persistsIngest ? "" : " (non-persistent — re-ingested each run)"}`,
           );
           await provider.reset(conversation.id);
           for (const session of sessionsToIngest) {
             await ingestSessionWithRetry(provider, conversation, session);
           }
-          appendRow(path, {
-            type: "ingested",
-            provider: provider.name,
-            conversationId: conversation.id,
-          });
+          // Write the marker once (skip on re-ingest of a non-persistent provider).
+          if (!alreadyIngested.has(ingestKey)) {
+            appendRow(path, {
+              type: "ingested",
+              provider: provider.name,
+              conversationId: conversation.id,
+            });
+          }
         } else {
           console.log(`  [${conversation.id}] ingest cached, skipping`);
         }

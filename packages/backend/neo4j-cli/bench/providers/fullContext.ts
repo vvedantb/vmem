@@ -18,6 +18,9 @@ import type { LocomoSession } from "../datasets/locomo";
 
 export class FullContextProvider implements MemoryProvider {
   readonly name = "full-context";
+  // Transcripts live only in this in-process Map, so a resumed run MUST
+  // re-ingest — otherwise search() returns nothing and the oracle answers blind.
+  readonly persistsIngest = false;
 
   /** conversationId → ordered session blocks. */
   private readonly store = new Map<string, string[]>();

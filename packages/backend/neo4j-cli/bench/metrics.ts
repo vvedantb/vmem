@@ -17,8 +17,15 @@ export interface CategoryMetrics {
   accuracy: number;
 }
 
+export interface AbstentionMetrics {
+  total: number;
+  correct: number;
+  accuracy: number;
+}
+
 export interface ProviderMetrics {
   provider: string;
+  /** Headline metrics are over ANSWERABLE rows only (abstention excluded). */
   total: number;
   correct: number;
   accuracy: number;
@@ -28,6 +35,10 @@ export interface ProviderMetrics {
   searchLatencyP95: number;
   /** Questions whose judge response failed to parse (counted as WRONG). */
   judgeParseFailures: number;
+  /** Negative/abstention subset, scored by the abstention-aware judge. */
+  abstention: AbstentionMetrics;
+  /** Arms skipped for exceeding the context budget (excluded from all accuracy). */
+  skipped: number;
 }
 
 /** Nearest-rank percentile on a copy of the values. Empty → 0. */
@@ -52,11 +63,20 @@ export function computeProviderMetrics(
   provider: string,
   rows: QaResultRow[],
 ): ProviderMetrics {
-  const own = rows.filter((r) => r.provider === provider);
-  const correct = own.filter((r) => r.correct).length;
+  const ownAll = rows.filter((r) => r.provider === provider);
+  // Skipped arms (over-budget prompt) are excluded from all accuracy; counted
+  // separately so the skip is visible in the report.
+  const own = ownAll.filter((r) => !r.skipped);
+  const skipped = ownAll.length - own.length;
+  // Headline + per-category exclude abstention rows; abstention is rolled up
+  // separately (it is graded by a different judge and not part of J).
+  const answerable = own.filter((r) => !r.isAbstention);
+  const abstentionRows = own.filter((r) => r.isAbstention);
+  const correct = answerable.filter((r) => r.correct).length;
+  const abstentionCorrect = abstentionRows.filter((r) => r.correct).length;
 
   const byCategory = new Map<number, { label: string; rows: QaResultRow[] }>();
-  for (const row of own) {
+  for (const row of answerable) {
     const bucket = byCategory.get(row.category) ?? {
       label: row.categoryLabel,
       rows: [],
@@ -80,20 +100,26 @@ export function computeProviderMetrics(
 
   return {
     provider,
-    total: own.length,
+    total: answerable.length,
     correct,
-    accuracy: accuracy(correct, own.length),
+    accuracy: accuracy(correct, answerable.length),
     perCategory,
-    meanContextTokens: mean(own.map((r) => r.contextTokens)),
+    meanContextTokens: mean(answerable.map((r) => r.contextTokens)),
     searchLatencyP50: percentile(
-      own.map((r) => r.searchLatencyMs),
+      answerable.map((r) => r.searchLatencyMs),
       50,
     ),
     searchLatencyP95: percentile(
-      own.map((r) => r.searchLatencyMs),
+      answerable.map((r) => r.searchLatencyMs),
       95,
     ),
     judgeParseFailures: own.filter((r) => !r.judgeParsed).length,
+    abstention: {
+      total: abstentionRows.length,
+      correct: abstentionCorrect,
+      accuracy: accuracy(abstentionCorrect, abstentionRows.length),
+    },
+    skipped,
   };
 }
 

@@ -97,7 +97,11 @@ export function createBenchLlm(config: BenchLlmConfig): BenchLlm {
     costUsd: 0,
   };
 
-  async function send(system: string, prompt: string): Promise<string | null> {
+  async function send(
+    system: string,
+    prompt: string,
+    jsonMode: boolean,
+  ): Promise<string | null> {
     if (config.budget) config.budget.record();
     totals.calls += 1;
 
@@ -114,6 +118,12 @@ export function createBenchLlm(config: BenchLlmConfig): BenchLlm {
             ...(config.temperature === undefined
               ? {}
               : { temperature: config.temperature }),
+            // Force valid JSON for JSON-mode calls (extraction/decision/
+            // enrichment). Without this, models (incl. gpt-4o-mini) intermittently
+            // emit malformed JSON for the structured prompts and the response is
+            // dropped — silently losing facts. The system prompt already contains
+            // "JSON", which json_object mode requires.
+            ...(jsonMode ? { responseFormat: { type: "json_object" } } : {}),
             stream: false,
           },
         });
@@ -149,10 +159,10 @@ export function createBenchLlm(config: BenchLlmConfig): BenchLlm {
       const system = role
         ? `${role} ${JSON_SYSTEM_INSTRUCTION}`
         : JSON_SYSTEM_INSTRUCTION;
-      return send(system, prompt);
+      return send(system, prompt, true);
     },
     chatText(prompt, role) {
-      return send(role ?? "You are a helpful assistant.", prompt);
+      return send(role ?? "You are a helpful assistant.", prompt, false);
     },
   };
 }

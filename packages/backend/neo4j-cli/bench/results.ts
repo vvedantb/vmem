@@ -27,6 +27,13 @@ const qaRowSchema = z.object({
   judgeParsed: z.boolean(),
   contextTokens: z.number(),
   searchLatencyMs: z.number(),
+  // Negative/abstention question (LongMemEval `_abs`, BEAM abstention). Graded
+  // by the abstention-aware judge and reported separately from headline J.
+  isAbstention: z.boolean().default(false),
+  // Arm skipped because the answer prompt exceeded the model context budget
+  // (e.g. a full-context oracle over a huge haystack). Excluded from accuracy,
+  // counted + reported so the skip is never silent.
+  skipped: z.boolean().default(false),
 });
 
 const ingestedRowSchema = z.object({
