@@ -4,6 +4,7 @@ import { motion, type Variants } from "motion/react";
 import { IconArrowRight } from "@tabler/icons-react";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { SlideStepContext } from "./SlideShell";
+import { StageVisual, type StageVisualKind } from "./PipelineStageVisuals";
 
 interface IconProps {
   size?: number;
@@ -16,6 +17,8 @@ export interface PipelineStage {
   icon: ComponentType<IconProps>;
   title: string;
   body: string;
+  /** Which looping mini-scene plays under the card. */
+  visual: StageVisualKind;
 }
 
 interface PipelineHowStagesProps {
@@ -204,6 +207,9 @@ function PipelineStageCard({
         >
           {stage.body}
         </motion.p>
+        <motion.div className="mt-4" variants={contentVariants}>
+          <StageVisual kind={stage.visual} />
+        </motion.div>
       </motion.div>
     </motion.div>
   );

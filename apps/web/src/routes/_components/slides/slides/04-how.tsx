@@ -18,24 +18,28 @@ const stages: PipelineStage[] = [
     icon: IconCapture,
     title: "Capture",
     body: "Chat, browser, files, voice — all in one place.",
+    visual: "capture",
   },
   {
     index: "02",
     icon: IconSparkles,
     title: "Enrich",
     body: "Labels topics, pulls out names, finds connections.",
+    visual: "enrich",
   },
   {
     index: "03",
     icon: IconGitFork,
     title: "Connect",
     body: "Related memories link up automatically.",
+    visual: "connect",
   },
   {
     index: "04",
     icon: IconMemories,
     title: "Recall",
     body: "Ask, and get the full picture back — with sources.",
+    visual: "recall",
   },
 ];
 
