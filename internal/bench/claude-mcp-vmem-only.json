@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "vmem": {
-      "type": "http",
-      "url": "https://outgoing-reindeer-268.eu-west-1.convex.site/mcp"
-    }
-  }
-}

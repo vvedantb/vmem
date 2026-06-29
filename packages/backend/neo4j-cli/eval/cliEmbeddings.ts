@@ -14,10 +14,9 @@ const EMBEDDING_MODEL = "openai/text-embedding-3-small";
 const EMBEDDING_DIMENSIONS = 1536;
 const EMBEDDING_BATCH_SIZE = 20;
 const EMBEDDING_MAX_INPUT_CHARS = 6000;
-// Embeddings are the most-called endpoint in a bench run (one per fact, per
-// dedup check, per query). A single transient socket reset must not abort the
-// whole run, so retry transient faults / 429 / 5xx with backoff before giving
-// up — mirrors the retry policy in neo4j-cli/bench/llm.ts.
+// Embeddings are the most-called endpoint in an eval run (one per memory at
+// seed time, one per query). A single transient socket reset must not abort the
+// whole run, so retry transient faults / 429 / 5xx with backoff before giving up.
 const EMBEDDING_MAX_ATTEMPTS = 5;
 const EMBEDDING_RETRY_BASE_MS = 800;
 const EMBEDDING_RATE_LIMIT_BASE_MS = 6000;

@@ -1,5 +1,12 @@
 # vmem effectiveness evaluation (publishable protocol)
 
+> **Historical.** This documents the external-benchmark protocol (LoCoMo /
+> LongMemEval / BEAM) that was investigated. The harness **code was removed** —
+> the primary evaluation is now the internal benchmark
+> (`packages/backend/neo4j-cli/eval/`, report in `vmem-internal-eval.md`). Kept
+> for history; see `external-benchmarks-investigation.md` for why it is not the
+> primary path. The `bench:*` / `pwsh` commands below no longer exist.
+
 **Goal:** reproducible “does vmem help Claude?” numbers you can share.
 
 ## Vendor-format multi-benchmark harness (`bench:vendor`) — LoCoMo / LongMemEval / BEAM

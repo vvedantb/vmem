@@ -1,5 +1,12 @@
 # Changelog
 
+## Internal eval is primary; external benchmark code removed — 2026-06-29
+
+- **Why**: the third-party benchmarks (LoCoMo / LongMemEval / BEAM) are infeasible to run at publishable scale on a Max-plan budget, and their judged-answer step conflates retrieval quality with reader/judge behaviour. Pivoted to a cheap, reproducible internal eval that isolates what vmem changes.
+- **New primary eval** (`packages/backend/neo4j-cli/eval/`): deterministic labelled corpus (~488 memories, ~78 graded queries, 8 query types), per-leg ablation (`pnpm eval:bench` → `internal/bench/vmem-internal-eval.md`), and a deterministic differentiator suite (`pnpm test:behavioral`) — embeddings + Neo4j only, no reader/judge LLM.
+- **Removed**: the entire `neo4j-cli/bench/` harness (LoCoMo + vendor-format runner/reporting/loaders) and the `claude-*` LoCoMo runner scripts, plus all `bench:*` package scripts. Nothing in production or the internal eval depended on it.
+- **Kept for history**: the markdown results/protocol docs under `internal/bench/` (`beam-results.md`, `locomo-results.md`, `comparator-claims.md`, `evaluation-protocol.md`), plus a new `external-benchmarks-investigation.md` explaining why public benchmarks were not the primary evaluation.
+
 ## Vendor-format multi-benchmark bench (LongMemEval + BEAM) — 2026-06-29
 
 - **Why**: needed publishable, vendor-comparable numbers (Mem0/Supermemory retrieve→read→judge protocol) on LongMemEval-S and BEAM, not just LoCoMo.

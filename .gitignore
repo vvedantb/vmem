@@ -10,14 +10,14 @@ build
 *.tsbuildinfo
 .tanstack
 internal/bench/*
+# Internal eval (primary) + retained markdown history of the external-benchmark
+# investigation. The external-benchmark *code* was removed; these docs stay.
+!internal/bench/vmem-internal-eval.md
+!internal/bench/external-benchmarks-investigation.md
 !internal/bench/evaluation-protocol.md
 !internal/bench/comparator-claims.md
-!internal/bench/claude-locomo-bench.ps1
-!internal/bench/claude-token-bench.ps1
-!internal/bench/claude-mcp-vmem-only.json
-!internal/bench/longmemeval-results.md
 !internal/bench/beam-results.md
-!internal/bench/vmem-internal-eval.md
+!internal/bench/locomo-results.md
 internal/dissertation
 
 # Presentation deck — local/dissertation only
