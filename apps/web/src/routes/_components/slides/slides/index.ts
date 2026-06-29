@@ -122,10 +122,10 @@ export const SLIDES: SlideEntry[] = [
   },
   {
     id: "frag-collapse",
-    title: "One layer",
+    title: "Everything in, any model out",
     theme: "light",
     Component: SlideFragmentCollapse,
-    steps: 2,
+    steps: 0,
   },
   {
     id: "33",
