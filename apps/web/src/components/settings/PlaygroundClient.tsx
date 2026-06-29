@@ -324,7 +324,7 @@ export default function PlaygroundClient() {
             className="mx-auto text-muted mb-4"
             stroke={1.5}
           />
-          <h3 className="text-lg font-medium text-foreground mb-2">
+          <h3 className="text-lg font-medium text-foreground mb-2 text-balance">
             MCP Playground
           </h3>
           <p className="text-muted mb-6 max-w-md mx-auto">

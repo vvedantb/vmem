@@ -136,8 +136,9 @@ export function useLocalChat(): LocalChatResult {
   const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
   const clearChatHistory = useMutation(api.chat.clearChatHistory);
   const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
-  // Personal scope ({}): mobile has no team workspaces.
-  const mySkills = useQuery(api.skills.listMy, {}) ?? [];
+  // Effective skills (personal + installed system skills); mobile has no team
+  // workspaces.
+  const mySkills = useQuery(api.skills.listEffectiveSkills, {}) ?? [];
 
   const refreshLocalModel = useCallback(async () => {
     const modelId = await getActiveModelIdOrDefault();

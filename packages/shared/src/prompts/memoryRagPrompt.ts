@@ -72,6 +72,7 @@ export function buildSkillsIndexAddition(
 
   if (options.mcpClient) {
     lines.push(
+      "Call `context_prompt_get` (or read `vmem://context_prompt` at session start) for profile + this skills index.",
       "When a skill applies, call `skills_get` with its exact name to load full markdown instructions, then follow them.",
       "When you identified a repeatable problem or automatable workflow and no skill above covers it yet, call `skills_create` (after confirming with `skills_list` if needed).",
       "When an existing skill's playbook should change, call `skills_get` then `skills_update` with the current name and patched fields.",

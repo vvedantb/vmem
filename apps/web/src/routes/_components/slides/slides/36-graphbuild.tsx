@@ -30,10 +30,10 @@ interface Satellite {
 }
 
 const SATELLITES: Satellite[] = [
-  { l: 24, t: 23, label: "Clerk MV3 setup", relation: "part of" },
-  { l: 77, t: 25, label: "SW offline bug", relation: "caused" },
-  { l: 21, t: 78, label: "Prefers Clerk over Auth0", relation: "because" },
-  { l: 79, t: 75, label: "Extension token refresh", relation: "depends on" },
+  { l: 24, t: 23, label: "Kyoto ryokan booked", relation: "part of" },
+  { l: 77, t: 25, label: "Loved the ramen in Shibuya", relation: "last time" },
+  { l: 21, t: 78, label: "Get a Suica card", relation: "tip" },
+  { l: 79, t: 75, label: "Prefers a window seat", relation: "noted" },
 ];
 
 // Far-field nodes (no labels/edges) that fade in once the cluster zooms out.
@@ -96,7 +96,7 @@ export function Slide36GraphBuild() {
   return (
     <SlideShell>
       <SlideReveal delay={0}>
-        <SlideKicker>Memory graph</SlideKicker>
+        <SlideKicker>How it connects</SlideKicker>
       </SlideReveal>
       <BlurWordsTitle lines={["One memory becomes a web."]} size="xl" />
 
@@ -183,7 +183,7 @@ export function Slide36GraphBuild() {
 
           {/* Central node — always present */}
           <At l={CENTER.l} t={CENTER.t}>
-            <NodeChip label="Migrate auth to Clerk" center />
+            <NodeChip label="Trip to Japan" center />
           </At>
         </motion.div>
 

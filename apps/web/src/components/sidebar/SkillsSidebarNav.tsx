@@ -1,21 +1,23 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { cn, motionDuration, motionEase } from "@vmem/ui";
-import { IconBolt } from "@tabler/icons-react";
+import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
+import { IconApps, IconBolt } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
+import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
 import { SkillsSearchBar } from "@/components/skills/SkillsSearchBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
 import { WriteSkillDialog } from "@/components/skills/WriteSkillDialog";
 import { UploadSkillDialog } from "@/components/skills/UploadSkillDialog";
 import { skillsSearchParams } from "@/routes/_main/$profileId/skills/-searchParams";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
+import { sidebarListRowClass } from "./sidebar-nav-row";
 import {
   useActiveProfileId,
   useActiveTeamId,
@@ -37,11 +39,41 @@ export function SkillsSidebarNav({
   const teamId = useActiveTeamId();
   const params = useParams({ strict: false });
   const skillId = typeof params.id === "string" ? params.id : undefined;
+  const activeSystemSkillId =
+    typeof params.skillId === "string" ? params.skillId : undefined;
+  const pathname = useLocation({ select: (l) => l.pathname });
+  const onHub = pathname.endsWith("/skills/hub");
 
   const skills = useQuery(api.skills.listMy, { teamId });
+  const catalog = useQuery(api.systemSkills.listCatalog, {});
+  const installedSystemSkills = useMemo(
+    () => (catalog ?? []).filter((entry) => entry.installed),
+    [catalog],
+  );
   const [{ q: searchQuery }, setSearchParams] =
     useQueryStates(skillsSearchParams);
   const [createModal, setCreateModal] = useState<CreateModalState>("none");
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<Id<"skills">>>(
+    () => new Set(),
+  );
+
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelect = (id: Id<"skills">) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const filteredSkills = useMemo(() => {
     if (!skills) return [];
@@ -66,6 +98,85 @@ export function SkillsSidebarNav({
     openSkill(id);
   };
 
+  // Grouped with the search at the top of the sidebar (shared by the empty and
+  // populated states), replacing the old bottom-pinned button.
+  const addMenu = (
+    <SkillsAddMenu
+      className="w-full gap-2"
+      onWriteSkill={() => setCreateModal("write")}
+      onUploadSkill={() => setCreateModal("upload")}
+    />
+  );
+
+  const goHub = () => {
+    if (profileId === undefined) return;
+    void navigate({ to: "/$profileId/skills/hub", params: { profileId } });
+  };
+
+  const goSystemSkill = (id: Id<"systemSkills">) => {
+    if (profileId === undefined) return;
+    void navigate({
+      to: "/$profileId/skills/system/$skillId",
+      params: { profileId, skillId: id },
+    });
+  };
+
+  // Browse-the-catalog entry point, grouped with the Add control.
+  const hubButton = (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={cn(
+        "w-full justify-start gap-2 text-muted hover:text-foreground",
+        onHub && "bg-surface-tertiary text-foreground",
+      )}
+      onClick={goHub}
+    >
+      <IconApps size={16} />
+      Skills Hub
+    </Button>
+  );
+
+  // Installed (linked) system skills — same active-pill + sliding treatment as
+  // personal skills; clicking opens the read-only detail page.
+  const installedSection =
+    !isIconOnly && !selectionMode && installedSystemSkills.length > 0 ? (
+      <div className="mt-3 space-y-1">
+        <p className="px-3 py-1 text-xs font-medium text-muted">
+          Installed system skills
+        </p>
+        <SharedLayoutBackground.Root
+          pinnedId={activeSystemSkillId ?? null}
+          className="gap-0.5"
+        >
+          {installedSystemSkills.map((entry) => (
+            <SharedLayoutBackground.Item key={entry._id} id={entry._id}>
+              <button
+                type="button"
+                onClick={() => goSystemSkill(entry._id)}
+                className={cn(
+                  "flex w-full min-w-0 items-center rounded-lg text-left text-sm transition-[color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+                  sidebarListRowClass,
+                  activeSystemSkillId === entry._id
+                    ? "text-foreground"
+                    : "text-muted hover:text-foreground",
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "size-2 shrink-0 rounded-full",
+                    entry.installEnabled ? "bg-success" : "bg-default",
+                  )}
+                />
+                <span className="min-w-0 truncate">{entry.name}</span>
+              </button>
+            </SharedLayoutBackground.Item>
+          ))}
+        </SharedLayoutBackground.Root>
+      </div>
+    ) : null;
+
   return (
     <motion.nav
       className={cn(
@@ -83,21 +194,53 @@ export function SkillsSidebarNav({
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
           </div>
         ) : skills.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
-            <IconBolt size={28} className="mb-2 text-muted" />
-            {!isIconOnly ? (
-              <p className="text-xs text-muted">No skills yet</p>
-            ) : null}
-          </div>
-        ) : (
           <>
             {!isIconOnly ? (
-              <SkillsSearchBar
-                value={searchQuery}
-                onChange={(value) => {
-                  void setSearchParams({ q: value });
-                }}
-              />
+              <div className="flex flex-col gap-2">
+                {addMenu}
+                {hubButton}
+              </div>
+            ) : null}
+            <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
+              <IconBolt size={28} className="mb-2 text-muted" />
+              {!isIconOnly ? (
+                <p className="text-xs text-muted">No skills yet</p>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <>
+            {!isIconOnly && !selectionMode ? (
+              <div className="flex flex-col gap-2">
+                <SkillsSearchBar
+                  value={searchQuery}
+                  onChange={(value) => {
+                    void setSearchParams({ q: value });
+                  }}
+                />
+                {addMenu}
+                {hubButton}
+              </div>
+            ) : null}
+            {!isIconOnly ? (
+              selectionMode ? (
+                <SkillBulkDeleteBar
+                  selectedIds={selectedIds}
+                  teamId={teamId}
+                  onExit={exitSelection}
+                />
+              ) : (
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-muted"
+                    onClick={() => setSelectionMode(true)}
+                  >
+                    Select
+                  </Button>
+                </div>
+              )
             ) : null}
             {filteredSkills.length === 0 ? (
               !isIconOnly ? (
@@ -107,7 +250,7 @@ export function SkillsSidebarNav({
               ) : null
             ) : (
               <SharedLayoutBackground.Root
-                pinnedId={skillId ?? null}
+                pinnedId={selectionMode ? null : (skillId ?? null)}
                 className="gap-0.5"
               >
                 {filteredSkills.map((skill) => (
@@ -116,6 +259,9 @@ export function SkillsSidebarNav({
                       skill={skill}
                       selected={skillId === skill._id}
                       onSelect={() => openSkill(skill._id)}
+                      selectionMode={selectionMode && !isIconOnly}
+                      checked={selectedIds.has(skill._id)}
+                      onToggleSelect={() => toggleSelect(skill._id)}
                     />
                   </SharedLayoutBackground.Item>
                 ))}
@@ -123,17 +269,8 @@ export function SkillsSidebarNav({
             )}
           </>
         )}
+        {installedSection}
       </div>
-
-      {!isIconOnly ? (
-        <div className="shrink-0 px-1 pt-2">
-          <SkillsAddMenu
-            className="w-full gap-2"
-            onWriteSkill={() => setCreateModal("write")}
-            onUploadSkill={() => setCreateModal("upload")}
-          />
-        </div>
-      ) : null}
 
       <WriteSkillDialog
         open={createModal === "write"}

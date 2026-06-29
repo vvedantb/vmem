@@ -10,6 +10,10 @@ import {
   isContentReadable,
   requireContentScopeAccess,
 } from "./teams/auth";
+import {
+  deleteVersionsForWikiNode,
+  maybeSnapshotWikiVersion,
+} from "./lib/versionSnapshot";
 
 /**
  * Wiki (Obsidian-style notes) backend.
@@ -190,6 +194,10 @@ export const renameNode = authMutation({
     const node = await ctx.db.get(args.id);
     if (!node) throw new Error("Not found");
     await assertContentEditable(ctx, node, ctx.userId);
+    await maybeSnapshotWikiVersion(ctx, node, {
+      source: "web",
+      authorUserId: ctx.userId,
+    });
     await ctx.db.patch(args.id, { title: args.title, updatedAt: Date.now() });
   },
 });
@@ -205,6 +213,11 @@ export const updateContent = authMutation({
     id: v.id("wikiNodes"),
     content: v.string(),
     contentText: v.string(),
+    /**
+     * Restore path: force a pre-overwrite snapshot regardless of the burst
+     * boundary so restoring an old version is itself reversible.
+     */
+    forceSnapshot: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const node = await ctx.db.get(args.id);
@@ -213,6 +226,11 @@ export const updateContent = authMutation({
     if (node.kind !== "document") {
       throw new Error("Cannot write content to a folder");
     }
+    await maybeSnapshotWikiVersion(ctx, node, {
+      source: "web",
+      authorUserId: ctx.userId,
+      force: args.forceSnapshot,
+    });
     await ctx.db.patch(args.id, {
       content: args.content,
       contentText: args.contentText,
@@ -260,6 +278,7 @@ async function deleteWikiSubtree(
   }
 
   for (const id of toDelete) {
+    await deleteVersionsForWikiNode(ctx, id);
     await ctx.db.delete(id);
   }
 
@@ -270,6 +289,22 @@ export const deleteNode = authMutation({
   args: { id: v.id("wikiNodes") },
   handler: async (ctx, args) => {
     await deleteWikiSubtree(ctx, ctx.userId, args.id);
+  },
+});
+
+/**
+ * Bulk-delete several nodes, each recursively (with its version snapshots).
+ * Ids already removed as part of an earlier node's subtree are skipped, so a
+ * selection that mixes a folder and its descendants is safe.
+ */
+export const deleteNodes = authMutation({
+  args: { ids: v.array(v.id("wikiNodes")) },
+  handler: async (ctx, args) => {
+    for (const id of args.ids) {
+      const node = await ctx.db.get(id);
+      if (!node) continue; // already deleted within an ancestor's subtree
+      await deleteWikiSubtree(ctx, ctx.userId, id);
+    }
   },
 });
 
@@ -462,6 +497,8 @@ export const createByClerkIdInternal = internalMutation({
     title: v.string(),
     content: v.optional(v.string()),
     contentText: v.optional(v.string()),
+    /** Plain-string codebase id (MCP threads ids as strings); validated below. */
+    sourceCodebaseId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
@@ -474,6 +511,19 @@ export const createByClerkIdInternal = internalMutation({
       if (parent.kind !== "folder") {
         throw new Error("Parent must be a folder");
       }
+    }
+
+    // Validate the optional codebase link belongs to this user.
+    let sourceCodebaseId: Id<"codebases"> | undefined;
+    if (
+      args.sourceCodebaseId !== undefined &&
+      args.sourceCodebaseId.length > 0
+    ) {
+      const cbId = ctx.db.normalizeId("codebases", args.sourceCodebaseId);
+      if (!cbId) throw new Error("Invalid codebase id");
+      const cb = await ctx.db.get(cbId);
+      if (!cb || cb.userId !== userId) throw new Error("Codebase not found");
+      sourceCodebaseId = cbId;
     }
 
     const siblings = await listScopeSiblings(
@@ -495,6 +545,7 @@ export const createByClerkIdInternal = internalMutation({
       content: isDocument ? (args.content ?? "") : undefined,
       contentText: isDocument ? (args.contentText ?? "") : undefined,
       order: nextOrder,
+      sourceCodebaseId,
       createdAt: now,
       updatedAt: now,
     });
@@ -539,6 +590,13 @@ export const updateByClerkIdInternal = internalMutation({
       }
     }
 
+    // Agent (MCP) writes always checkpoint the pre-write state so the user can
+    // see and undo exactly what the agent changed.
+    await maybeSnapshotWikiVersion(ctx, node, {
+      source: "mcp",
+      authorUserId: userId,
+      force: true,
+    });
     await ctx.db.patch(node._id, patch);
     return node._id;
   },

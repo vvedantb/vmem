@@ -1,6 +1,117 @@
 # Changelog
 
-## Codebase sync date and stalled-sync recovery — 2026-06-19
+## Internal eval is primary; external benchmark code removed — 2026-06-29
+
+- **Why**: the third-party benchmarks (LoCoMo / LongMemEval / BEAM) are infeasible to run at publishable scale on a Max-plan budget, and their judged-answer step conflates retrieval quality with reader/judge behaviour. Pivoted to a cheap, reproducible internal eval that isolates what vmem changes.
+- **New primary eval** (`packages/backend/neo4j-cli/eval/`): deterministic labelled corpus (~488 memories, ~78 graded queries, 8 query types), per-leg ablation (`pnpm eval:bench` → `internal/bench/vmem-internal-eval.md`), and a deterministic differentiator suite (`pnpm test:behavioral`) — embeddings + Neo4j only, no reader/judge LLM.
+- **Removed**: the entire `neo4j-cli/bench/` harness (LoCoMo + vendor-format runner/reporting/loaders) and the `claude-*` LoCoMo runner scripts, plus all `bench:*` package scripts. Nothing in production or the internal eval depended on it.
+- **Kept for history**: the markdown results/protocol docs under `internal/bench/` (`beam-results.md`, `locomo-results.md`, `comparator-claims.md`, `evaluation-protocol.md`), plus a new `external-benchmarks-investigation.md` explaining why public benchmarks were not the primary evaluation.
+
+## Vendor-format multi-benchmark bench (LongMemEval + BEAM) — 2026-06-29
+
+- **Why**: needed publishable, vendor-comparable numbers (Mem0/Supermemory retrieve→read→judge protocol) on LongMemEval-S and BEAM, not just LoCoMo.
+- **Multi-benchmark harness**: `run.ts --benchmark locomo|longmemeval|beam` maps all three into one shape; arms are vmem (engine retrieval) + full-context oracle, Claude **sonnet** reader + **gpt-4o-mini** judge, reporting absolute J, % of oracle, and abstention (`bench:vendor`).
+- **BEAM loader rewrite**: parses the real Hugging Face schema (Python-literal `probing_questions` dict, sessioned chat) via a new dependency-free Python-literal parser; 8/10 abilities gold-graded, the two rubric/compliance abilities excluded and logged.
+- **JSON-mode extraction fix**: forces valid JSON on all extraction/decision/enrichment calls, removing a ~28% silent fact-drop that understated vmem on every benchmark.
+- **Resume + oracle safety**: non-persistent providers (full-context) re-ingest on `--resume` instead of answering blind; over-budget oracle prompts are skipped, logged, and excluded from accuracy.
+- **LongMemEval handling**: deterministic seeded stratified sampling for indicative slices, plus numeric-answer coercion; abstention (`_abs`) questions scored by a dedicated abstention-aware judge; per-benchmark cleanup via `--source`/`--prefix`.
+
+## Full LoCoMo + Claude CLI bench — 2026-06-23
+
+- **Why**: the 20-question MCP smoke test was not publishable; full LoCoMo needs the production harness with Claude answering/judging.
+- **`bench:locomo:claude`**: same ingest → retrieve → answer → judge pipeline as OpenRouter bench, but answer + judge go through `claude -p` (default **sonnet** for subscription limits).
+- **`claude-locomo-bench.ps1`**: now delegates to the TS harness; `-McpMode` keeps the legacy MCP connector smoke test.
+
+## Claude Code LoCoMo bench — 2026-06-28
+
+- **Why**: publishable “Claude with vs without vmem” must use `claude -p` + MCP, not OpenRouter answer models.
+- **`claude-locomo-bench.ps1`**: ingests LoCoMo into the user's vmem account, then scores **no-memory** (`--bare`, MCP off) vs **vmem** (MCP only) with Claude as judge → `claude-locomo-results.md`.
+- **OpenRouter `bench:locomo`** stays for engine regression only; protocol doc updated.
+
+## Wiki sidebar A–Z sort — 2026-06-28
+
+- **Why**: manual `order` made the tree hard to scan; folders and pages should group predictably.
+- **Display order**: at each level, folders first then documents, each group sorted A–Z by title (drag-and-drop `order` unchanged).
+
+## Wiki sidebar drag-and-drop — 2026-06-28
+
+- **Why**: pages and folders could only be created in place — no way to re-home a node after creation.
+- **Drag to move**: drag any wiki page or folder onto a folder to nest it inside, or onto empty space to move it back to the top level (no sibling reordering).
+- Built on `@dnd-kit/core`; reuses the existing `moveNode` mutation (cycle/scope guards already server-side) with an optimistic cache update so the tree reorganises instantly.
+
+## wiki_create parentPath — 2026-06-23
+
+- **Why**: Claude often called `wiki_create` without `parentId`, so `/wiki-writeup` docs landed at wiki root instead of `Learning/`.
+- **`parentPath` on `wiki_create`**: pass e.g. `"Learning"` or `"Learning/topic"` — server resolves the folder chain and creates missing segments; mutually exclusive with `parentId`.
+- **`wiki-writeup` / `teach-me` seeds**: playbooks now require `parentPath` instead of a `wiki_list` → id dance.
+
+## MCP context_prompt_get + wiki-writeup rename — 2026-06-23
+
+- **Why**: claude.ai cannot re-read `vmem://context_prompt` mid-chat; skill-routing hacks on memory tools were writeup-specific and broke teach-me.
+- **Reverted** memory-tool skill routing, `skills_match_message`, preload playbooks in context, and verb-stuffed tool descriptions.
+- **`context_prompt_get` MCP tool**: returns the same markdown as `vmem://context_prompt` (profile + Available Skills index) on demand; personal connector only.
+- **Renamed** learning skill `writeup` → `wiki-writeup` (`/wiki-writeup <topic>`); seed `previousNames` preserves installs (`writeup`, `read-quick-dont-validate`).
+
+## Learning skills + slimmer agent context — 2026-06-27
+
+- **Why**: users queue papers and links for later via Claude + vmem; long `CLAUDE.md` also inflated every agent session with architecture detail that belongs in a separate reference.
+- **`wiki-writeup` / `teach-me` Skills Hub seeds**: `/wiki-writeup` saves a chapter-style wiki explainer in `Learning/` for read-later; `/teach-me` runs an interactive tutor (validate each step, checkpoint to wiki). Both pull depth from `context_prompt_get` / `vmem://context_prompt` and memories — no "what's your level?" prompts.
+- **`CODEBASE.md`**: vmem-specific architecture and feature invariants moved out of `CLAUDE.md`; `AGENTS.md` stays a short pointer.
+
+## Web UI micro-interaction polish — 2026-06-26
+
+- **Why**: small tactile and typographic inconsistencies (press scale, tabular numbers, mount animations, image edges) made parts of the app feel less refined than the design system intends.
+- **Press feedback**: sidebar nav, voice controls, provider toggle, graph zoom controls, and breadcrumbs now use consistent `0.96` press scale and proper hit areas.
+- **Motion hygiene**: product `AnimatePresence` surfaces skip enter-on-mount; bulk-action exits are subtler.
+- **Typography & images**: dynamic counts use tabular numerals; key headings use `text-balance`; avatars and file thumbnails get subtle image outlines.
+
+## Live audience polls on the shared deck — 2026-06-20
+
+- **Why**: a shared presentation is only worth sharing if the audience can take part — watching in sync isn't engagement on its own.
+- **Live polls**: curated poll slides let the audience vote with a tap, and the bars grow in real time on every screen as votes land. One vote per person, changeable, and each share session tallies fresh.
+- **Fully anonymous**: viewers no longer enter a name and there's no "who's watching" list — joining is friction-free and the (intentionally temporary) feature stays lightweight.
+
+## Slides live-share — presenter-led viewing — 2026-06-20
+
+- **Why**: presenting the deck to a group meant sending the slide link and hoping everyone stayed in sync as you clicked through — there was no way to drive the group through the slides together.
+- **Share link**: the presenter clicks Share on `/slides` and gets a public link; anyone opening it joins the live session and sees the deck update in real time as the presenter navigates.
+- **Follow or browse**: viewers can either follow the presenter's slide live or detach to browse on their own (arrow keys work, link re-syncs to "live" on click), then jump back to follow later.
+- **Presenter control only**: the presenter is the sole driver — no take-control handoff, no viewer inputs on the deck. Full presentation authority stays with the sharer.
+- **Lightweight sync**: only the slide number syncs; build-step animations replay locally on each client (timer-driven, so they self-converge), keeping payloads small and state simple.
+- **Anonymous viewers**: no sign-in and no name entry to join the live session; viewers have no control affordance over the deck.
+
+## Floating overlay shadows aligned with Eva — 2026-06-06
+
+- **Why**: popovers, hover cards, tooltips, selects, and context menus still used the older `glass-panel-strong` shadow while dropdowns and skill chip previews had moved to Eva's crisper `border + shadow-lg` treatment — floating UI felt inconsistent.
+- **Shared surface token**: `floatingSurfaceClass` in `@vmem/ui` so all overlay primitives and ad-hoc portals (skill `/` picker, tag autocomplete) share the same elevation.
+
+## Wiki outline (table of contents) redesign — 2026-06-20
+
+- **Why**: the wiki doc outline rendered every heading identically and never showed where you were — it was hard to read the document's structure or track your position while scrolling.
+- **Active heading tracking**: the outline now highlights the heading you're scrolled to (accent rail + tint + bolder text) and follows along as you scroll, keeping the active row in view.
+- **Readable hierarchy**: headings now show their level at a glance — H1 anchors the structure in full strength, deeper levels fade and indent further.
+
+## Skills Hub with installable system skills — 2026-06-20
+
+- **Why**: turning a codebase into a knowledge base meant building it by hand, and there was no way to ship reusable, maintainer-curated skills to everyone — every skill was personal and hand-written.
+- **Skills Hub**: a new catalog (`/skills/hub`) of curated "system skills" a user can install with one click, browse by category, enable/disable, or remove. Installed skills also surface in the skills sidebar.
+- **Linked, not copied**: installing references the catalog entry rather than duplicating it, so when a maintainer edits a system skill it updates instantly for everyone who installed it — users can toggle or remove an install but never fork its instructions.
+- **Works everywhere a skill does**: installed system skills flow into the MCP context prompt, `skills_list`/`skills_get`, cloud chat, local chat, and voice through one shared resolver, behaving exactly like personal skills.
+- **Flagship "Codebase Knowledge Base" skill**: a playbook that drives an agent (e.g. Claude Code with vmem connected) to build a source-grounded wiki knowledge base for a repo inside vmem — through vmem's own tools, with no GitHub access or server-side generation.
+- **Codebase-linked wiki folders**: a generated knowledge-base folder can be tied to a synced codebase, marked with an indicator in the wiki tree.
+- **Maintainer admin**: an `isAdmin` flag gates creating, editing, and deleting catalog skills from the Hub.
+
+## Multi-select bulk delete in the sidebar — 2026-06-20
+
+- **Why**: removing several documents or skills meant right-clicking and confirming each one in turn — tedious for clearing out a batch.
+- **Select mode**: a "Select" toggle in the wiki and skills sidebars turns on checkboxes; pick any mix of items and delete them in one confirmed action. For wiki, deleting a folder removes everything inside it.
+
+## Version history for wiki docs and skills — 2026-06-20
+
+- **Why**: wiki docs and skills are editable from both the web UI and MCP agents, and every write overwrote in place — an agent or a stray autosave could silently clobber content with no way to see what changed or roll it back.
+- **Version history**: the wiki doc and skill ⋯ menus now have a "Version history" view — a list of past snapshots (with relative time and a "You"/"Agent" author badge), a read-only preview of any version, and one-click Restore.
+- **Undo what an agent changed**: every MCP/agent edit checkpoints the previous state, so the most recent version is always the pre-agent content; restoring it cleanly reverts the agent's change. Restores are themselves reversible.
+- **Quiet by default**: web edits only cut a new version on a burst boundary (a gap of 15+ minutes, or a different author) so continuous autosaving never floods the history, and identical or empty snapshots are skipped.
 
 - **Last sync date**: the codebase detail page now shows when the repo last synced ("Synced 3h ago", "Synced yesterday") next to the Sync button, with the exact timestamp on hover and a "Never synced" label for repos that have not finished a first sync.
 - **Why**: a sync action that times out or whose host dies never writes a finished status, so the repo sat in "syncing" forever — the sidebar kept spinning while the detail page still read "Synced yesterday", and the Sync button stayed disabled, leaving no way to recover.

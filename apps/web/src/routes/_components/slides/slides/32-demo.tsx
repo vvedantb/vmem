@@ -45,7 +45,7 @@ export function Slide32Demo() {
 
       <SlideReveal delay={0.3} className="mt-5">
         <p className="text-sm text-muted">
-          Every node a memory — click one and recall surfaces what connects.
+          Every dot is a memory — click one and see what connects.
         </p>
       </SlideReveal>
     </SlideShell>

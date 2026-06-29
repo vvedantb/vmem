@@ -3,7 +3,7 @@
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import { listMemories } from "../engine/neo4j/memory/crud";
 import { getDriver } from "../engine/neo4j/driver";
 import { buildSkillsIndexAddition } from "@vmem/shared";
@@ -198,12 +198,13 @@ export const regenerateContextPromptInternal = internalAction({
     sections.push("## Profile Summary");
     sections.push(summary ?? "_(summary unavailable)_");
 
+    // Effective skills = personal + installed system skills (resolved live).
     const skillRows = await ctx.runQuery(
-      internal.skills.listByClerkIdInternal,
+      internal.skills.listEffectiveByClerkIdInternal,
       { clerkId: args.clerkId },
     );
     const skillsIndex = buildSkillsIndexAddition(
-      skillRows.map((skill: Doc<"skills">) => ({
+      skillRows.map((skill) => ({
         name: skill.name,
         description: skill.description,
       })),

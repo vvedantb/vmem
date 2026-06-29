@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import {
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/_main/settings/preferences")({
 
 function PreferencesPage() {
   const settings = useQuery(api.userSettings.get);
+  const aboutMeBaselineRef = useRef<string | null>(null);
+  const preferencesBaselineRef = useRef<string | null>(null);
   // Optimistic update patches the local query cache so the controlled
   // textareas stay in sync with keystrokes without waiting for the server.
   const updateSettings = useMutation(
@@ -59,6 +62,17 @@ function PreferencesPage() {
       toast.success("Saved!");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
+    }
+  };
+
+  const toastIfTextFieldChanged = (
+    baselineRef: { current: string | null },
+    current: string,
+  ) => {
+    const baseline = baselineRef.current;
+    baselineRef.current = null;
+    if (baseline !== null && baseline !== current) {
+      toast.success("Saved!");
     }
   };
 
@@ -155,11 +169,16 @@ function PreferencesPage() {
                 id="about-me"
                 placeholder="A few lines on who you are, what you do, and what you're working toward."
                 value={settings.aboutMe}
+                onFocus={() => {
+                  aboutMeBaselineRef.current = settings.aboutMe;
+                }}
                 onChange={(e) => {
-                  void updateSettings({ aboutMe: e.target.value });
+                  const next = e.target.value;
+                  if (next === settings.aboutMe) return;
+                  void updateSettings({ aboutMe: next });
                 }}
                 onBlur={() => {
-                  toast.success("Saved!");
+                  toastIfTextFieldChanged(aboutMeBaselineRef, settings.aboutMe);
                 }}
                 rows={4}
                 maxLength={500}
@@ -178,11 +197,19 @@ function PreferencesPage() {
                 id="preferences"
                 placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
                 value={settings.preferences}
+                onFocus={() => {
+                  preferencesBaselineRef.current = settings.preferences;
+                }}
                 onChange={(e) => {
-                  void updateSettings({ preferences: e.target.value });
+                  const next = e.target.value;
+                  if (next === settings.preferences) return;
+                  void updateSettings({ preferences: next });
                 }}
                 onBlur={() => {
-                  toast.success("Saved!");
+                  toastIfTextFieldChanged(
+                    preferencesBaselineRef,
+                    settings.preferences,
+                  );
                 }}
                 rows={4}
                 maxLength={500}
@@ -192,7 +219,7 @@ function PreferencesPage() {
         </Card>
 
         <section className="space-y-3">
-          <h3 className="text-base font-medium text-foreground">
+          <h3 className="text-base font-medium text-foreground text-balance">
             Memory Behavior
           </h3>
           <Card className="shadow-none">
@@ -225,7 +252,9 @@ function PreferencesPage() {
         </section>
 
         <section className="space-y-3">
-          <h3 className="text-base font-medium text-foreground">Dream Mode</h3>
+          <h3 className="text-base font-medium text-foreground text-balance">
+            Dream Mode
+          </h3>
           <Card className="shadow-none">
             <CardContent className="space-y-6 p-6">
               <div className="flex items-center justify-between gap-3">
@@ -314,7 +343,7 @@ function PreferencesPage() {
         </section>
 
         <section className="space-y-3">
-          <h3 className="text-base font-medium text-foreground">
+          <h3 className="text-base font-medium text-foreground text-balance">
             Notification Preferences
           </h3>
           <Card className="shadow-none">

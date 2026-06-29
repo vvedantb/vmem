@@ -116,6 +116,24 @@ export function CodebasesSidebarNav({
     }
   }, [syncAllMy]);
 
+  // Grouped with the search at the top of the sidebar, replacing the old
+  // bottom-pinned button. "Add repository" when connected, else "Connect GitHub".
+  const actionButton = isConnected ? (
+    <Button
+      variant="outline"
+      size="sm"
+      className="w-full gap-2"
+      onClick={() => setAddModalOpen(true)}
+    >
+      <IconPlus size={16} />
+      Add repository
+    </Button>
+  ) : (
+    <Button variant="outline" size="sm" className="w-full" asChild>
+      <Link to="/settings/connectors">Connect GitHub</Link>
+    </Button>
+  );
+
   return (
     <motion.nav
       className={cn(
@@ -162,6 +180,20 @@ export function CodebasesSidebarNav({
           </div>
         ) : null}
 
+        {!isIconOnly ? (
+          <div className="mb-2 flex flex-col gap-2">
+            {codebases !== undefined && codebases.length > 0 ? (
+              <CodebasesSearchBar
+                value={searchQuery}
+                onChange={(value) => {
+                  void setSearchParams({ q: value });
+                }}
+              />
+            ) : null}
+            {actionButton}
+          </div>
+        ) : null}
+
         {codebases === undefined ? (
           <div className="flex items-center justify-center py-10">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
@@ -177,14 +209,6 @@ export function CodebasesSidebarNav({
           </div>
         ) : (
           <>
-            {!isIconOnly ? (
-              <CodebasesSearchBar
-                value={searchQuery}
-                onChange={(value) => {
-                  void setSearchParams({ q: value });
-                }}
-              />
-            ) : null}
             {filteredCodebases.length === 0 ? (
               !isIconOnly ? (
                 <p className="px-2 py-4 text-center text-xs text-muted">
@@ -254,26 +278,6 @@ export function CodebasesSidebarNav({
           </>
         )}
       </div>
-
-      {!isIconOnly ? (
-        <div className="shrink-0 space-y-2 px-1 pt-2">
-          {isConnected ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-2"
-              onClick={() => setAddModalOpen(true)}
-            >
-              <IconPlus size={16} />
-              Add repository
-            </Button>
-          ) : (
-            <Button variant="outline" size="sm" className="w-full" asChild>
-              <Link to="/settings/connectors">Connect GitHub</Link>
-            </Button>
-          )}
-        </div>
-      ) : null}
 
       {isConnected && connection ? (
         <AddRepoModal

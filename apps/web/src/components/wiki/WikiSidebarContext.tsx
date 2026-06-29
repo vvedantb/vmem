@@ -5,6 +5,8 @@ import { createContext, use, useState, type ReactNode } from "react";
 type WikiSidebarContextValue = {
   outlineVisible: boolean;
   setOutlineVisible: (visible: boolean) => void;
+  historyVisible: boolean;
+  setHistoryVisible: (visible: boolean) => void;
   wordCount: number;
   setWordCount: (count: number) => void;
   hasDoc: boolean;
@@ -14,7 +16,8 @@ type WikiSidebarContextValue = {
 const WikiSidebarContext = createContext<WikiSidebarContextValue | null>(null);
 
 export function WikiSidebarProvider({ children }: { children: ReactNode }) {
-  const [outlineVisible, setOutlineVisible] = useState(false);
+  const [outlineVisible, setOutlineVisible] = useState(true);
+  const [historyVisible, setHistoryVisible] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [hasDoc, setHasDoc] = useState(false);
 
@@ -23,6 +26,8 @@ export function WikiSidebarProvider({ children }: { children: ReactNode }) {
       value={{
         outlineVisible,
         setOutlineVisible,
+        historyVisible,
+        setHistoryVisible,
         wordCount,
         setWordCount,
         hasDoc,

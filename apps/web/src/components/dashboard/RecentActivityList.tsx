@@ -30,7 +30,7 @@ export function RecentActivityList({ activity }: RecentActivityListProps) {
       <Card className="shadow-none">
         <CardContent className="p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3 sm:mb-5">
-            <h2 className="text-base font-medium text-foreground sm:text-lg">
+            <h2 className="text-base font-medium text-foreground sm:text-lg text-balance">
               Recent activity
             </h2>
             <Link

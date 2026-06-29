@@ -31,9 +31,7 @@ export function SkillChipHoverPortal({
       onMouseLeave={onMouseLeave}
     >
       <div className="h-3 shrink-0" aria-hidden />
-      <div className="rounded-lg bg-overlay p-3 text-overlay-foreground shadow-lg">
-        <SkillChipHoverPreview skill={skill} />
-      </div>
+      <SkillChipHoverPreview skill={skill} />
     </div>,
     document.body,
   );

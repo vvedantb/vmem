@@ -15,9 +15,27 @@ import {
   IconBinaryTree2,
 } from "@tabler/icons-react";
 import { motionEase } from "@vmem/ui";
+import {
+  GoogleDriveIcon,
+  OneDriveIcon,
+  DropboxIcon,
+  GmailIcon,
+  NotionIcon,
+  GitHubIcon,
+  LinearIcon,
+} from "@/components/brand-icons";
 import { SlideShell } from "../_components/SlideShell";
+import {
+  HistoryMockup,
+  WikiMockup,
+  FileTreeMockup,
+  McpMockup,
+  WebMockup,
+  SkillsMockup,
+} from "../_components/BentoMockups";
 
 type TablerIcon = ComponentType<{ size?: number; stroke?: number }>;
+type BrandIcon = ComponentType<{ size?: number; className?: string }>;
 
 // Apple keynote-style bento entrance: each tile slides in from outside
 // the board (its nearest edge) and glides into its grid spot, lightly
@@ -75,57 +93,101 @@ function BentoCell({ children, from, className = "" }: BentoCellProps) {
 interface BentoTileProps {
   title: string;
   description?: string;
-  /** Larger serif title for hero/feature tiles. */
-  large?: boolean;
   /** Inverted tile (foreground background) for the hero. */
   inverted?: boolean;
   /** Anchor content to the bottom (Apple-style) instead of centering. */
   bottom?: boolean;
-  /** Per-tile glyph shown faded in the top-right corner. */
+  /** Per-tile glyph shown inline above the title. */
   icon?: TablerIcon;
+  /**
+   * Mini mockup that fills the upper area of the tile and fades toward the
+   * title (reference-deck style). When set, the title + description anchor to
+   * the bottom and the glyph moves inline above the title.
+   */
+  preview?: ReactNode;
+  /** Fade the preview into the title. Off for content lists (e.g. Connectors). */
+  previewMask?: boolean;
+  /** Horizontal layout (glyph left, text right) — fits the short 1×1 tiles. */
+  compact?: boolean;
   children?: ReactNode;
 }
 
 function BentoTile({
   title,
   description,
-  large = false,
   inverted = false,
   bottom = false,
   icon: Icon,
+  preview,
+  previewMask = true,
+  compact = false,
   children,
 }: BentoTileProps) {
+  const surface = inverted ? "bg-foreground" : "bg-surface-secondary";
+  const titleColor = inverted ? "text-background" : "text-foreground";
+  const descColor = inverted ? "text-background opacity-60" : "text-muted";
+
+  // Compact tiles lay the glyph beside the text so a short 1×1 cell isn't
+  // squished by a stacked glyph + title + description.
+  if (compact) {
+    return (
+      <div
+        className={`relative flex h-full items-center gap-3.5 overflow-hidden rounded-3xl p-5 ${surface}`}
+      >
+        {Icon ? (
+          <span className={`shrink-0 opacity-50 ${titleColor}`} aria-hidden>
+            <Icon size={22} stroke={1.5} />
+          </span>
+        ) : null}
+        <div className="min-w-0">
+          <h3
+            className={`font-instrumentSerif text-2xl font-normal leading-tight tracking-tight ${titleColor}`}
+          >
+            {title}
+          </h3>
+          {description ? (
+            <p className={`mt-0.5 text-xs leading-snug ${descColor}`}>
+              {description}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`relative flex h-full flex-col overflow-hidden rounded-3xl p-6 ${
-        bottom ? "justify-end" : "justify-center"
-      } ${inverted ? "bg-foreground" : "bg-surface-secondary"}`}
+        preview ? "" : bottom ? "justify-end" : "justify-center"
+      } ${surface}`}
     >
-      {Icon ? (
-        <span
-          className={`pointer-events-none absolute right-5 top-5 ${
-            inverted
-              ? "text-background opacity-25"
-              : "text-foreground opacity-15"
+      {/* Mockup fills the upper area (centred) and fades into the title below. */}
+      {preview ? (
+        <div
+          className={`relative mb-4 flex min-h-0 flex-1 flex-col justify-center overflow-hidden ${
+            previewMask
+              ? "[-webkit-mask-image:linear-gradient(to_bottom,transparent,black_16%,black_84%,transparent)] [mask-image:linear-gradient(to_bottom,transparent,black_16%,black_84%,transparent)]"
+              : ""
           }`}
-          aria-hidden
         >
-          <Icon size={large ? 28 : 22} stroke={1.5} />
+          {preview}
+        </div>
+      ) : null}
+
+      {/* Inline glyph above the title — on every tile. */}
+      {Icon ? (
+        <span className={`mb-2 shrink-0 opacity-50 ${titleColor}`} aria-hidden>
+          <Icon size={18} stroke={1.5} />
         </span>
       ) : null}
+
       <h3
-        className={`font-instrumentSerif font-normal leading-tight tracking-tight ${
-          large ? "text-4xl" : "text-2xl"
-        } ${inverted ? "text-background" : "text-foreground"}`}
+        className={`font-instrumentSerif text-2xl font-normal leading-tight tracking-tight ${titleColor}`}
       >
         {title}
       </h3>
       {description ? (
-        <p
-          className={`mt-1.5 text-xs leading-snug ${
-            inverted ? "text-background opacity-60" : "text-muted"
-          }`}
-        >
+        <p className={`mt-1.5 text-xs leading-snug ${descColor}`}>
           {description}
         </p>
       ) : null}
@@ -134,12 +196,15 @@ function BentoTile({
   );
 }
 
-const integrations = [
-  "AgentMail",
-  "AgentCard",
-  "AgentBrowser",
-  "AgentSandbox",
-] as const;
+const connectors: { name: string; Icon: BrandIcon }[] = [
+  { name: "Google Drive", Icon: GoogleDriveIcon },
+  { name: "OneDrive", Icon: OneDriveIcon },
+  { name: "Dropbox", Icon: DropboxIcon },
+  { name: "Gmail", Icon: GmailIcon },
+  { name: "Notion", Icon: NotionIcon },
+  { name: "Linear", Icon: LinearIcon },
+  { name: "GitHub", Icon: GitHubIcon },
+];
 
 export function Slide13Bento() {
   return (
@@ -154,93 +219,106 @@ export function Slide13Bento() {
         >
           <BentoCell from={{ x: -280 }} className="col-span-1 row-span-4">
             <BentoTile
-              title="Web"
-              description="Manage your memories"
-              large
+              title="MCP Connector"
+              description="One connection, everywhere"
               inverted
-              bottom
-              icon={IconLayoutDashboard}
+              icon={IconPlug}
+              preview={<McpMockup />}
             />
           </BentoCell>
           <BentoCell from={{ y: -240 }} className="col-span-2 row-span-2">
             <BentoTile
               title="Browser extension"
               description="Sync browser history, bookmarks, and other data"
-              large
-              bottom
               icon={IconBrowser}
+              preview={<HistoryMockup />}
             />
           </BentoCell>
           <BentoCell from={{ x: 280 }} className="col-span-1 row-span-4">
-            <BentoTile title="Integrations" bottom icon={IconPlugConnected}>
-              <ul className="mt-2 space-y-1 text-sm text-muted">
-                {integrations.map((name) => (
-                  <li key={name}>{name}</li>
-                ))}
-              </ul>
-            </BentoTile>
+            <BentoTile
+              title="Connectors"
+              description="Pull in files, docs, and issues from the tools you already use."
+              icon={IconPlugConnected}
+              previewMask={false}
+              preview={
+                <ul className="space-y-2">
+                  {connectors.map(({ name, Icon }) => (
+                    <li key={name} className="flex items-center gap-2.5">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white text-neutral-900">
+                        <Icon size={14} />
+                      </span>
+                      <span className="text-sm text-muted">{name}</span>
+                    </li>
+                  ))}
+                </ul>
+              }
+            />
           </BentoCell>
           <BentoCell
             from={{ y: 220, x: -60 }}
             className="col-span-1 row-span-2"
           >
             <BentoTile
-              title="MCP Connector"
-              description="One connection, everywhere"
-              bottom
-              icon={IconPlug}
+              title="Web"
+              description="Browse, search, and curate."
+              icon={IconLayoutDashboard}
+              preview={<WebMockup />}
             />
           </BentoCell>
           <BentoCell from={{ y: 220, x: 60 }} className="col-span-1 row-span-2">
             <BentoTile
-              title="Developer SDK"
-              description="Cut agentic memory development times"
-              bottom
-              icon={IconCode}
+              title="Wiki"
+              description="Long-form docs for your agent."
+              icon={IconBook2}
+              preview={<WikiMockup />}
             />
           </BentoCell>
-          <BentoCell from={{ x: -240 }} className="col-span-1 row-span-1">
+          <BentoCell from={{ x: -240 }} className="col-span-1 row-span-2">
+            <BentoTile
+              title="Codebases"
+              description="Sync how your code fits together."
+              icon={IconBinaryTree2}
+              preview={<FileTreeMockup />}
+            />
+          </BentoCell>
+          <BentoCell from={{ y: 240 }} className="col-span-1 row-span-2">
+            <BentoTile
+              title="Skills"
+              description="Define skills once, use everywhere"
+              icon={IconBolt}
+              preview={<SkillsMockup />}
+            />
+          </BentoCell>
+          <BentoCell from={{ y: 200 }} className="col-span-1 row-span-1">
+            <BentoTile
+              title="Developer SDK"
+              description="Add memory to your agents."
+              icon={IconCode}
+              compact
+            />
+          </BentoCell>
+          <BentoCell from={{ x: 260 }} className="col-span-1 row-span-1">
             <BentoTile
               title="Mobile"
-              description="Interact with your data, privately"
+              description="Privately interact with data."
               icon={IconDeviceMobile}
+              compact
             />
           </BentoCell>
           <BentoCell from={{ y: 200 }} className="col-span-1 row-span-1">
             <BentoTile
               title="Files"
-              description="Give your agent its own file explorer"
+              description="A file system for agents."
               icon={IconFiles}
+              compact
             />
           </BentoCell>
-          <BentoCell from={{ y: 240 }} className="col-span-1 row-span-2">
-            <BentoTile
-              title="Wiki"
-              description="Knowledge system for the agent to store longer texts"
-              bottom
-              icon={IconBook2}
-            />
-          </BentoCell>
-          <BentoCell from={{ x: 260 }} className="col-span-1 row-span-2">
-            <BentoTile
-              title="Codebases"
-              description="Sync code structure"
-              bottom
-              icon={IconBinaryTree2}
-            />
-          </BentoCell>
-          <BentoCell from={{ x: -240 }} className="col-span-1 row-span-1">
-            <BentoTile
-              title="Skills"
-              description="Define skills once, use everywhere"
-              icon={IconBolt}
-            />
-          </BentoCell>
-          <BentoCell from={{ y: 200 }} className="col-span-1 row-span-1">
+          <BentoCell from={{ x: 260 }} className="col-span-1 row-span-1">
             <BentoTile
               title="Profiles"
-              description="Create spaces for your memories"
+              description="Personal and work spaces."
               icon={IconLayoutGrid}
+              compact
             />
           </BentoCell>
         </motion.div>

@@ -2,9 +2,13 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
   wikiNodeFields,
+  wikiNodeVersionFields,
   fileNodeFields,
   profileFields,
   skillFields,
+  skillVersionFields,
+  systemSkillFields,
+  userSystemSkillFields,
   teamFields,
   teamMemberFields,
   threadProfileFields,
@@ -12,6 +16,8 @@ import {
   codebaseFields,
   openRouterLogFields,
   dreamTriggerStateFields,
+  presentationSessionFields,
+  presentationVoteFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -22,6 +28,8 @@ const schema = defineSchema({
     lastName: v.optional(v.string()),
     fullName: v.optional(v.string()),
     theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
+    /** Maintainer flag — gates system-skill catalog CRUD. Absent = not admin. */
+    isAdmin: v.optional(v.boolean()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
@@ -241,6 +249,20 @@ const schema = defineSchema({
     .index("by_team", ["teamId"])
     .index("by_team_name", ["teamId", "name"]),
 
+  /** Immutable pre-overwrite snapshots of skills (see lib/versionSnapshot.ts). */
+  skillVersions: defineTable(skillVersionFields).index("by_skill", ["skillId"]),
+
+  /** Global maintainer-curated skill catalog (the Skills Hub). */
+  systemSkills: defineTable(systemSkillFields)
+    .index("by_name", ["name"])
+    .index("by_published", ["published"]),
+
+  /** Per-user install LINK to a systemSkills row (linked, never copied). */
+  userSystemSkills: defineTable(userSystemSkillFields)
+    .index("by_user", ["userId"])
+    .index("by_user_systemSkill", ["userId", "systemSkillId"])
+    .index("by_systemSkill", ["systemSkillId"]),
+
   wikiNodes: defineTable(wikiNodeFields)
     .index("by_user", ["userId"])
     .index("by_user_parent", ["userId", "parentId"])
@@ -254,6 +276,11 @@ const schema = defineSchema({
       searchField: "contentText",
       filterFields: ["userId", "teamId"],
     }),
+
+  /** Immutable pre-overwrite snapshots of wiki docs (see lib/versionSnapshot.ts). */
+  wikiNodeVersions: defineTable(wikiNodeVersionFields).index("by_node", [
+    "nodeId",
+  ]),
 
   fileNodes: defineTable(fileNodeFields)
     .index("by_user", ["userId"])
@@ -336,6 +363,30 @@ const schema = defineSchema({
     redirectUris: v.array(v.string()),
     registeredAt: v.number(),
   }).index("by_clientId", ["clientId"]),
+
+  /**
+   * Live "share" sessions for the `/slides` deck (see
+   * `presentationSessionFields`). Looked up by the public share `code`.
+   */
+  presentationSessions: defineTable(presentationSessionFields).index(
+    "by_code",
+    ["code"],
+  ),
+
+  /**
+   * Anonymous votes for curated poll slides (see `presentationVoteFields`).
+   * `by_code_poll` tallies a poll (and, by `code` prefix, finds a session's
+   * votes for cleanup); `by_code_poll_participant` is the one-vote upsert key.
+   */
+  presentationVotes: defineTable(presentationVoteFields)
+    .index("by_code_poll", ["code", "pollId"])
+    .index("by_code_poll_participant", ["code", "pollId", "participantKey"])
+    .index("by_code_poll_participant_option", [
+      "code",
+      "pollId",
+      "participantKey",
+      "optionId",
+    ]),
 });
 
 export default schema;

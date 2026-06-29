@@ -15,6 +15,7 @@ import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
 import { WikiPageBreadcrumb } from "./WikiPageBreadcrumb";
 import { WikiDocActionsMenu } from "./WikiDocActionsMenu";
+import { WikiHistoryPanel } from "./WikiHistoryPanel";
 
 interface WikiWorkspaceProps {
   docId: string | null;
@@ -23,6 +24,7 @@ interface WikiWorkspaceProps {
 /**
  * Wiki editor shell. Document tree and Add live in the root sidebar.
  * Page header: breadcrumb + inline title; outline toggle and actions grouped on the right.
+ * Outline pane sits left of the editor when visible.
  */
 export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const navigate = useNavigate();
@@ -57,12 +59,15 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const {
     outlineVisible,
     setOutlineVisible,
+    historyVisible,
+    setHistoryVisible,
     wordCount,
     setWordCount,
     setHasDoc,
   } = useWikiSidebar();
 
   const [headings, setHeadings] = useState<OutlineHeading[]>([]);
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [jumpRequest, setJumpRequest] = useState<{ pos: number; n: number }>({
     pos: 0,
     n: 0,
@@ -71,6 +76,9 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const [copyReady, setCopyReady] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const copyDocumentRef = useRef<(() => Promise<void>) | null>(null);
+  const restoreDocumentRef = useRef<
+    ((markdown: string) => Promise<void>) | null
+  >(null);
 
   const tree = nodes ? buildTree(nodes) : [];
   const hasDocId = docId !== null && docId.length > 0;
@@ -104,6 +112,10 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     void copyDocumentRef.current?.();
   }, []);
 
+  const handleRestore = useCallback(async (markdown: string) => {
+    await restoreDocumentRef.current?.(markdown);
+  }, []);
+
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
     const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
@@ -116,10 +128,18 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     setHasDoc(hasDoc);
     if (!hasDocId) {
       setOutlineVisible(false);
+      setHistoryVisible(false);
       setWordCount(0);
       setTitleDraft("");
     }
-  }, [hasDoc, hasDocId, setHasDoc, setOutlineVisible, setWordCount]);
+  }, [
+    hasDoc,
+    hasDocId,
+    setHasDoc,
+    setOutlineVisible,
+    setHistoryVisible,
+    setWordCount,
+  ]);
 
   useEffect(() => {
     if (doc?.kind === "document") {
@@ -173,6 +193,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           <WikiDocActionsMenu
             outlineVisible={outlineVisible}
             onOutlineVisibleChange={setOutlineVisible}
+            onShowHistory={() => setHistoryVisible(true)}
             wordCount={wordCount}
             onCopy={handleCopy}
             copyDisabled={!copyReady}
@@ -183,6 +204,17 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
       <div className="flex h-full min-h-0 flex-1 flex-col">
         {hasDoc || isDocLoading ? (
           <div className="flex min-h-0 min-w-0 flex-1 gap-4">
+            {outlineVisible && !isMobileViewport && hasDoc ? (
+              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-lg bg-surface-secondary/40 p-2 scrollbar-thin md:block">
+                <WikiOutline
+                  headings={headings}
+                  activeHeadingId={activeHeadingId}
+                  onJump={handleJumpToHeading}
+                  hasDoc={hasDoc}
+                />
+              </div>
+            ) : null}
+
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <WikiEditor
                 docId={docId}
@@ -191,21 +223,15 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
                   copyDocumentRef.current = handler;
                   setCopyReady(handler !== null);
                 }}
+                onRegisterRestore={(handler) => {
+                  restoreDocumentRef.current = handler;
+                }}
                 onHeadingsChange={setHeadings}
+                onActiveHeadingChange={setActiveHeadingId}
                 onWordCountChange={setWordCount}
                 jumpRequest={jumpRequest}
               />
             </div>
-
-            {outlineVisible && !isMobileViewport && hasDoc ? (
-              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-lg bg-surface-secondary/40 p-2 scrollbar-thin md:block">
-                <WikiOutline
-                  headings={headings}
-                  onJump={handleJumpToHeading}
-                  hasDoc={hasDoc}
-                />
-              </div>
-            ) : null}
           </div>
         ) : nodes === undefined ? (
           <div className="flex flex-1 items-center justify-center">
@@ -237,12 +263,20 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           <div className="max-h-[60vh] overflow-y-auto scrollbar-thin">
             <WikiOutline
               headings={headings}
+              activeHeadingId={activeHeadingId}
               onJump={handleJumpToHeading}
               hasDoc={hasDoc}
             />
           </div>
         </DialogContent>
       </Dialog>
+
+      <WikiHistoryPanel
+        open={historyVisible}
+        onOpenChange={setHistoryVisible}
+        docId={hasDoc && doc ? doc._id : null}
+        onRestore={handleRestore}
+      />
     </PageContainer>
   );
 }

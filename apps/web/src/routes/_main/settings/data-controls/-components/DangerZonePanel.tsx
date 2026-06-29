@@ -19,7 +19,7 @@ export function DangerZonePanel() {
       <section className="space-y-3">
         <div className="flex items-center gap-3">
           <IconAlertTriangle size={20} className="text-danger" stroke={1.75} />
-          <h3 className="text-base font-medium text-foreground">
+          <h3 className="text-base font-medium text-foreground text-balance">
             Delete all memories
           </h3>
         </div>

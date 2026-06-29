@@ -35,7 +35,7 @@ const MOATS: Moat[] = [
   {
     icon: IconCpu,
     title: "Runs on local models",
-    body: "Private, on-device recall — independent of any single lab's roadmap.",
+    body: "Private answers on your own devices — not tied to any one company.",
   },
 ];
 

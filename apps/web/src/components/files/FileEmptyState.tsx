@@ -13,7 +13,7 @@ export default function FileEmptyState({
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4">
       <IconFolder size={40} stroke={1.2} className="text-muted/60 mb-3" />
-      <h3 className="text-base font-medium text-foreground mb-1">
+      <h3 className="text-base font-medium text-foreground mb-1 text-balance">
         {isRoot ? "No files yet" : "This folder is empty"}
       </h3>
       <p className="text-sm text-muted mb-4">

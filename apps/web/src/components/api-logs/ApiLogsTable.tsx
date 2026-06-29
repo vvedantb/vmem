@@ -34,7 +34,7 @@ function ApiLogsEmptyState() {
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
             <IconChartBar size={28} className="text-muted" stroke={1.5} />
           </div>
-          <h3 className="mb-1 text-base font-medium text-foreground">
+          <h3 className="mb-1 text-base font-medium text-foreground text-balance">
             No API requests yet
           </h3>
           <p className="max-w-sm text-sm text-muted text-balance">

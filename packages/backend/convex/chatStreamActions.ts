@@ -39,8 +39,9 @@ export const streamAsync = internalAction({
       "OPENROUTER_API_KEY",
     );
 
-    // Skills index: always the user's personal skills; team workspaces
-    // additionally see the team's skills (merged).
+    // Skills index: the user's effective skills (personal + installed system
+    // skills — mcpListSkills resolves both); team workspaces additionally see
+    // the team's skills (merged).
     const personalSkills: SkillIndexEntry[] = await ctx.runAction(
       internal.mcp.skills.mcpListSkills,
       { clerkId: args.clerkId },

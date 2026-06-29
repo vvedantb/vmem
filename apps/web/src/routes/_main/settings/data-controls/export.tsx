@@ -11,7 +11,7 @@ function ExportRoute() {
     <Card className="shadow-none">
       <CardContent className="flex min-h-[320px] flex-col items-center justify-center gap-3 px-6 py-16 text-center">
         <IconFileExport size={28} className="text-muted" stroke={1.5} />
-        <h3 className="text-base font-medium text-foreground">
+        <h3 className="text-base font-medium text-foreground text-balance">
           Export coming soon
         </h3>
         <p className="max-w-sm text-sm text-muted">

@@ -8,9 +8,88 @@ export interface WikiTreeNode {
 }
 
 /**
+ * Droppable id for the sidebar's root container — dropping a node here moves it
+ * to the top level (`parentId === undefined`). Distinct from any real node id.
+ */
+export const WIKI_ROOT_DROP_ID = "__wiki_root__";
+
+/** Minimal node shape `resolveWikiMove` needs; `Doc<"wikiNodes">` satisfies it. */
+interface MovableNode<TId extends string> {
+  _id: TId;
+  parentId?: TId;
+  kind: "folder" | "document";
+  order: number;
+}
+
+/**
+ * Work out the `moveNode` arguments for a drag-and-drop drop, or `null` when the
+ * drop is a no-op or invalid (so the caller can skip the mutation entirely).
+ *
+ * `overId` is either `WIKI_ROOT_DROP_ID` (move to top level) or the id of a
+ * folder node (move inside it). The new order appends the node to the end of its
+ * destination siblings — the sidebar does not support precise reordering.
+ *
+ * Returns `null` when the drop targets the node itself, its current parent (no
+ * change), a non-folder, or one of its own descendants (which would create a
+ * cycle — mirrors the backend guard so we never fire a doomed mutation).
+ *
+ * Generic over the id type so production infers `Id<"wikiNodes">` from
+ * `Doc<"wikiNodes">` while tests can pass plain-string ids.
+ */
+export function resolveWikiMove<TId extends string>(
+  nodes: Array<MovableNode<TId>>,
+  activeId: string,
+  overId: string | undefined,
+): { id: TId; newParentId: TId | undefined; newOrder: number } | null {
+  if (overId === undefined || activeId === overId) return null;
+
+  const active = nodes.find((n) => n._id === activeId);
+  if (!active) return null;
+
+  let newParentId: TId | undefined;
+  if (overId === WIKI_ROOT_DROP_ID) {
+    newParentId = undefined;
+  } else {
+    const target = nodes.find((n) => n._id === overId);
+    if (!target || target.kind !== "folder") return null;
+    newParentId = target._id;
+  }
+
+  // No-op: the node already lives directly under this parent.
+  if ((active.parentId ?? undefined) === newParentId) return null;
+
+  // Block dropping a node into its own subtree (would create a cycle).
+  if (newParentId !== undefined) {
+    const subtree = collectSubtreeIds(nodes, [activeId]);
+    if (subtree.has(newParentId)) return null;
+  }
+
+  // Append to the end of the destination's existing siblings.
+  const siblings = nodes.filter(
+    (n) => (n.parentId ?? undefined) === newParentId && n._id !== activeId,
+  );
+  const newOrder =
+    siblings.length === 0 ? 0 : Math.max(...siblings.map((s) => s.order)) + 1;
+
+  return { id: active._id, newParentId, newOrder };
+}
+
+/** Folders first, then documents; each group sorted A–Z by title. */
+export function compareWikiTreeSiblings(
+  a: Pick<Doc<"wikiNodes">, "kind" | "title">,
+  b: Pick<Doc<"wikiNodes">, "kind" | "title">,
+): number {
+  const aRank = a.kind === "folder" ? 0 : 1;
+  const bRank = b.kind === "folder" ? 0 : 1;
+  if (aRank !== bRank) return aRank - bRank;
+  return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+}
+
+/**
  * Build a hierarchical tree of WikiTreeNodes from the flat listTree result.
- * Roots have `parentId === undefined`. Children are sorted by order ascending
- * (the backend already sorts, but we re-sort defensively after grouping).
+ * Roots have `parentId === undefined`. Siblings are folders first, then
+ * documents, each group sorted A–Z by title (display order only; `order` is
+ * still used for drag-and-drop mutations).
  */
 export function buildTree(nodes: Array<Doc<"wikiNodes">>): WikiTreeNode[] {
   const childrenByParent = new Map<string, Array<Doc<"wikiNodes">>>();
@@ -27,7 +106,7 @@ export function buildTree(nodes: Array<Doc<"wikiNodes">>): WikiTreeNode[] {
     const siblings = childrenByParent.get(parentKey) ?? [];
     return siblings
       .slice()
-      .sort((a, b) => a.order - b.order)
+      .sort(compareWikiTreeSiblings)
       .map((node) => ({
         node,
         children: build(node._id),
@@ -35,6 +114,36 @@ export function buildTree(nodes: Array<Doc<"wikiNodes">>): WikiTreeNode[] {
   }
 
   return build(ROOT_KEY);
+}
+
+/**
+ * Expand a set of root ids to include every descendant, given the flat node
+ * list. Used so bulk delete (and its optimistic update) can drop whole subtrees
+ * and tell whether the open document is among the casualties.
+ */
+export function collectSubtreeIds(
+  nodes: Array<{ _id: string; parentId?: string }>,
+  rootIds: Iterable<string>,
+): Set<string> {
+  const childrenByParent = new Map<string, string[]>();
+  for (const node of nodes) {
+    const key = node.parentId ?? "__root__";
+    const list = childrenByParent.get(key) ?? [];
+    list.push(node._id);
+    childrenByParent.set(key, list);
+  }
+
+  const result = new Set<string>();
+  const stack: string[] = [...rootIds];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (current === undefined || result.has(current)) continue;
+    result.add(current);
+    for (const child of childrenByParent.get(current) ?? []) {
+      stack.push(child);
+    }
+  }
+  return result;
 }
 
 /** First document in tree display order (depth-first), or null if none exist. */

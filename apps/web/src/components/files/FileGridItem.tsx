@@ -66,7 +66,7 @@ export default function FileGridItem({
     >
       <div
         className={cn(
-          "group relative flex flex-col items-center gap-2 rounded-lg border p-3 cursor-pointer transition-all",
+          "group relative flex flex-col items-center gap-2 rounded-lg border p-3 cursor-pointer transition-[background-color,box-shadow,transform]",
           "hover:bg-surface-tertiary/50",
           isSelected
             ? "border-accent/50 bg-accent/5 ring-1 ring-accent/30"

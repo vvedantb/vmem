@@ -28,7 +28,7 @@ const PILLARS: TrustPillar[] = [
     points: [
       "View all your memories",
       "Modify or delete anytime",
-      "Open source & self-hostable",
+      "Open source — run it yourself",
     ],
   },
   {
@@ -44,8 +44,8 @@ const PILLARS: TrustPillar[] = [
     icon: IconDeviceMobile,
     title: "Runs on your devices",
     points: [
-      "Runs on local models",
-      "Mobile app runs on-device",
+      "Works without the cloud",
+      "Phone app runs on your phone",
       "No internet required",
       "Laptop models will rival Opus soon",
     ],

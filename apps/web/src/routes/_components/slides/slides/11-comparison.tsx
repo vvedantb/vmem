@@ -20,49 +20,49 @@ interface ComparisonRow {
 
 const rows: ComparisonRow[] = [
   {
-    feature: "Graph-native storage",
+    feature: "Memories that connect to each other",
     vmem: "yes",
     mem0: "partial",
     supermemory: "no",
   },
   {
-    feature: "Context Trace (scored recall)",
+    feature: "Shows why each memory matched",
     vmem: "yes",
     mem0: "no",
     supermemory: "no",
   },
   {
-    feature: "Proposed updates (approve/reject)",
+    feature: "Asks before it overwrites",
     vmem: "yes",
     mem0: "no",
     supermemory: "no",
   },
   {
-    feature: "Pin / suppress / expire lifecycle",
+    feature: "Pin, hide, or expire memories",
     vmem: "yes",
     mem0: "partial",
     supermemory: "no",
   },
   {
-    feature: "Implicit memory via MCP Resources",
+    feature: "Works automatically in the background",
     vmem: "yes",
     mem0: "no",
     supermemory: "no",
   },
   {
-    feature: "Dream Mode (proactive analysis)",
+    feature: "Improves your memories on its own",
     vmem: "yes",
     mem0: "no",
     supermemory: "no",
   },
   {
-    feature: "Chrome extension + mobile capture",
+    feature: "Capture from browser and phone",
     vmem: "yes",
     mem0: "no",
     supermemory: "partial",
   },
   {
-    feature: "Team workspaces",
+    feature: "Shared team spaces",
     vmem: "yes",
     mem0: "partial",
     supermemory: "partial",
@@ -188,8 +188,7 @@ export function Slide11Comparison() {
 
       <SlideReveal step={1} delay={0.1} className="mt-4">
         <p className="text-xs text-muted/60">
-          Partial = basic or limited implementation. Data based on public
-          documentation.
+          Partial = basic or limited. Based on public information.
         </p>
       </SlideReveal>
     </SlideShell>

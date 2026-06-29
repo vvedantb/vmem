@@ -1,4 +1,8 @@
 export { cn } from "./utils/cn";
+export {
+  floatingSurfaceAnimateClass,
+  floatingSurfaceClass,
+} from "./ui/_menu-classes";
 export * from "./motion/presets";
 
 export * from "./ui/badge";

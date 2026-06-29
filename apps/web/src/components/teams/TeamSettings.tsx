@@ -112,7 +112,9 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
       <Card className="shadow-none">
         <CardContent className="space-y-4 p-6">
           <div>
-            <h3 className="text-base font-medium text-foreground">Team name</h3>
+            <h3 className="text-base font-medium text-foreground text-balance">
+              Team name
+            </h3>
             <p className="mt-1 text-sm text-muted">
               Renaming the team also updates the shared profile name.
             </p>
@@ -136,7 +138,9 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
       <Card className="shadow-none">
         <CardContent className="space-y-4 p-6">
           <div>
-            <h3 className="text-base font-medium text-danger">Danger zone</h3>
+            <h3 className="text-base font-medium text-danger text-balance">
+              Danger zone
+            </h3>
             <p className="mt-1 text-sm text-muted">
               Deleting a team removes the shared profile and all team memories
               for every member. This cannot be undone.

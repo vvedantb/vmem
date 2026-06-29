@@ -20,9 +20,19 @@ export function getDriver(): Driver {
   //   a few minutes; without this, the first query on a stale connection
   //   waits for a TCP timeout before the driver retries. 2s means connections
   //   idle longer than 2s get a cheap ping before reuse.
+  //
+  // Both the pool size and acquisition timeout are overridable via env vars,
+  // defaulting to the production values above. Batch CLI workloads (the
+  // benchmark harness) run against the same Aura free tier but with a very
+  // different access pattern — bursts of concurrent sessions after idle gaps —
+  // where a larger pool and a longer acquisition timeout absorb the burst
+  // instead of failing fast. Production (no env vars set) is unchanged.
+  const maxPool = Number(process.env.NEO4J_MAX_POOL_SIZE) || 10;
+  const acqTimeout =
+    Number(process.env.NEO4J_CONNECTION_ACQUISITION_TIMEOUT_MS) || 10_000;
   driver = neo4j.driver(uri, neo4j.auth.basic(user, password), {
-    maxConnectionPoolSize: 10,
-    connectionAcquisitionTimeout: 10_000,
+    maxConnectionPoolSize: maxPool,
+    connectionAcquisitionTimeout: acqTimeout,
     connectionLivenessCheckTimeout: 2000,
   });
   return driver;

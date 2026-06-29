@@ -144,6 +144,8 @@ export const memoryRelatedSchema = z.object({
 
 export const skillsListSchema = z.object({});
 
+export const contextPromptGetSchema = z.object({});
+
 export const skillsGetSchema = z.object({
   name: z.string().describe("Exact skill name (case sensitive)"),
 });
@@ -193,11 +195,26 @@ export const wikiSearchSchema = z.object({
 export const wikiCreateSchema = z.object({
   kind: z.enum(["folder", "document"]).describe("folder or document"),
   title: z.string().describe("Node title"),
-  parentId: z.string().optional().describe("Parent folder id (omit for root)"),
+  parentId: z
+    .string()
+    .optional()
+    .describe("Parent folder id from wiki_list (omit for root)"),
+  parentPath: z
+    .string()
+    .optional()
+    .describe(
+      'Ancestor folder path from wiki root, e.g. "Learning" or "Learning/my-topic". Missing folders are created automatically. Use instead of parentId when you know the path.',
+    ),
   contentMarkdown: z
     .string()
     .optional()
     .describe("Initial markdown body (documents only)"),
+  sourceCodebaseId: z
+    .string()
+    .optional()
+    .describe(
+      "On a folder: link it to a synced codebase (id from codebases_list). Set on the root folder of a generated codebase knowledge base.",
+    ),
 });
 
 export const wikiUpdateSchema = z.object({

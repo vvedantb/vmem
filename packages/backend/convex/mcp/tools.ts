@@ -131,6 +131,19 @@ export function registerTools(
       ),
   );
 
+  if (scope === "personal") {
+    server.tool(
+      toolSpecs.context_prompt_get.name,
+      "Returns the full vmem user profile markdown (same as MCP resource vmem://context_prompt): About, Preferences, pinned memories, profile summary, and Available Skills (name + description). Call at session start or when a skill might apply — claude.ai cannot re-read the resource mid-chat. Then call skills_get with the exact skill name to load the playbook.",
+      toolSpecs.context_prompt_get.schema.shape,
+      async (params) =>
+        toMcpContent(
+          await toolSpecs.context_prompt_get.run(h, params),
+          "Context prompt get failed",
+        ),
+    );
+  }
+
   server.tool(
     toolSpecs.memory_search.name,
     "Search your memories by query text, type, tags, or source. Returns matching memories with metadata. Defaults to the active profile unless profileId is specified.",
@@ -210,7 +223,7 @@ export function registerTools(
 
   server.tool(
     toolSpecs.skills_list.name,
-    "List enabled skills (name + description only). The skills index is also in the vmem://context_prompt resource — check there first. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them. Before skills_create, confirm no listed skill already covers the workflow.",
+    "List enabled skills (name + description only). Same data as the Available Skills section in context_prompt_get / vmem://context_prompt. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them.",
     toolSpecs.skills_list.schema.shape,
     async (params) =>
       toMcpContent(
@@ -221,7 +234,7 @@ export function registerTools(
 
   server.tool(
     toolSpecs.skills_get.name,
-    "Fetch a single enabled skill by exact name, including full markdown instructions. Call this after identifying a matching skill from the Available Skills section in vmem://context_prompt or from skills_list.",
+    "Fetch a single enabled skill by exact name, including full markdown instructions. Call after identifying a matching skill from context_prompt_get, skills_list, or the Available Skills section in vmem://context_prompt.",
     toolSpecs.skills_get.schema.shape,
     async (params) =>
       toMcpContent(

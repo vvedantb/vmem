@@ -74,7 +74,7 @@ export function QuickActionsGrid() {
     >
       <Card className="shadow-none">
         <CardContent className="p-5 sm:p-6">
-          <h2 className="mb-4 text-base font-medium text-foreground sm:mb-5 sm:text-lg">
+          <h2 className="mb-4 text-base font-medium text-foreground sm:mb-5 sm:text-lg text-balance">
             Quick actions
           </h2>
           <div className="grid grid-cols-1 gap-2 xs:grid-cols-2">

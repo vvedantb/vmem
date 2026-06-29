@@ -253,7 +253,7 @@ export default function VoiceClient() {
           />
 
           {/* Readiness pills — fade out when all models are loaded */}
-          <AnimatePresence>
+          <AnimatePresence initial={false}>
             {!allReady && (
               <VoiceReadinessOverlay
                 readiness={readiness}

@@ -69,6 +69,7 @@ import type * as lib_openRouter_embedding from "../lib/openRouter/embedding.js";
 import type * as lib_openRouter_jsonChat from "../lib/openRouter/jsonChat.js";
 import type * as lib_openRouter_shared from "../lib/openRouter/shared.js";
 import type * as lib_runConnectorProviderSync from "../lib/runConnectorProviderSync.js";
+import type * as lib_versionSnapshot from "../lib/versionSnapshot.js";
 import type * as lib_wikiContent from "../lib/wikiContent.js";
 import type * as mcp_bundled_memoryGraphHtml from "../mcp/bundled/memoryGraphHtml.js";
 import type * as mcp_codebases from "../mcp/codebases.js";
@@ -139,6 +140,7 @@ import type * as notifications from "../notifications.js";
 import type * as oauthState from "../oauthState.js";
 import type * as openRouterLogs from "../openRouterLogs.js";
 import type * as openRouterModels from "../openRouterModels.js";
+import type * as presentations from "../presentations.js";
 import type * as profiles from "../profiles.js";
 import type * as profiles_dream from "../profiles/dream.js";
 import type * as profiles_handlers from "../profiles/handlers.js";
@@ -147,11 +149,14 @@ import type * as profiles_lifecycle from "../profiles/lifecycle.js";
 import type * as profiles_mcpAccess from "../profiles/mcpAccess.js";
 import type * as prompts_enrichmentPrompt from "../prompts/enrichmentPrompt.js";
 import type * as prompts_sdkPrompt from "../prompts/sdkPrompt.js";
+import type * as prompts_systemSkillSeeds from "../prompts/systemSkillSeeds.js";
 import type * as prompts_v2Prompt from "../prompts/v2Prompt.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
 import type * as relationshipApi from "../relationshipApi.js";
 import type * as retrier from "../retrier.js";
+import type * as skillVersions from "../skillVersions.js";
 import type * as skills from "../skills.js";
+import type * as systemSkills from "../systemSkills.js";
 import type * as teams from "../teams.js";
 import type * as teams_auth from "../teams/auth.js";
 import type * as teams_handlers from "../teams/handlers.js";
@@ -164,6 +169,7 @@ import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
 import type * as wiki from "../wiki.js";
+import type * as wikiVersions from "../wikiVersions.js";
 import type * as workflow from "../workflow.js";
 
 import type {
@@ -234,6 +240,7 @@ declare const fullApi: ApiFromModules<{
   "lib/openRouter/jsonChat": typeof lib_openRouter_jsonChat;
   "lib/openRouter/shared": typeof lib_openRouter_shared;
   "lib/runConnectorProviderSync": typeof lib_runConnectorProviderSync;
+  "lib/versionSnapshot": typeof lib_versionSnapshot;
   "lib/wikiContent": typeof lib_wikiContent;
   "mcp/bundled/memoryGraphHtml": typeof mcp_bundled_memoryGraphHtml;
   "mcp/codebases": typeof mcp_codebases;
@@ -304,6 +311,7 @@ declare const fullApi: ApiFromModules<{
   oauthState: typeof oauthState;
   openRouterLogs: typeof openRouterLogs;
   openRouterModels: typeof openRouterModels;
+  presentations: typeof presentations;
   profiles: typeof profiles;
   "profiles/dream": typeof profiles_dream;
   "profiles/handlers": typeof profiles_handlers;
@@ -312,11 +320,14 @@ declare const fullApi: ApiFromModules<{
   "profiles/mcpAccess": typeof profiles_mcpAccess;
   "prompts/enrichmentPrompt": typeof prompts_enrichmentPrompt;
   "prompts/sdkPrompt": typeof prompts_sdkPrompt;
+  "prompts/systemSkillSeeds": typeof prompts_systemSkillSeeds;
   "prompts/v2Prompt": typeof prompts_v2Prompt;
   proposedUpdateApi: typeof proposedUpdateApi;
   relationshipApi: typeof relationshipApi;
   retrier: typeof retrier;
+  skillVersions: typeof skillVersions;
   skills: typeof skills;
+  systemSkills: typeof systemSkills;
   teams: typeof teams;
   "teams/auth": typeof teams_auth;
   "teams/handlers": typeof teams_handlers;
@@ -329,6 +340,7 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   validators: typeof validators;
   wiki: typeof wiki;
+  wikiVersions: typeof wikiVersions;
   workflow: typeof workflow;
 }>;
 

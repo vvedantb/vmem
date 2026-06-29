@@ -269,7 +269,7 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-base font-medium text-foreground">
+        <h3 className="text-base font-medium text-foreground text-balance">
           Default Profiles
         </h3>
         <p className="mt-0.5 text-xs text-muted">

@@ -1,12 +1,15 @@
-import type { Doc } from "@vmem/backend";
+import { cn, floatingSurfaceClass } from "@vmem/ui";
+
+export const SKILL_CHIP_HOVER_CARD_CLASS = cn(floatingSurfaceClass, "w-72 p-3");
 
 interface SkillChipHoverPreviewProps {
-  skill: Doc<"skills">;
+  /** Any skill-like value — a personal skill doc or an effective/system skill. */
+  skill: { name: string; description?: string; instructions: string };
 }
 
 export function SkillChipHoverPreview({ skill }: SkillChipHoverPreviewProps) {
   return (
-    <>
+    <div className={SKILL_CHIP_HOVER_CARD_CLASS}>
       <p className="mb-2 truncate text-xs font-medium text-foreground">
         /{skill.name}
       </p>
@@ -18,6 +21,6 @@ export function SkillChipHoverPreview({ skill }: SkillChipHoverPreviewProps) {
           {skill.instructions}
         </pre>
       </div>
-    </>
+    </div>
   );
 }

@@ -9,3 +9,18 @@ build
 .eslintcache
 *.tsbuildinfo
 .tanstack
+internal/bench/*
+# Internal eval (primary) + retained markdown history of the external-benchmark
+# investigation. The external-benchmark *code* was removed; these docs stay.
+!internal/bench/vmem-internal-eval.md
+!internal/bench/external-benchmarks-investigation.md
+!internal/bench/evaluation-protocol.md
+!internal/bench/comparator-claims.md
+!internal/bench/beam-results.md
+!internal/bench/locomo-results.md
+internal/dissertation
+
+# Presentation deck — local/dissertation only
+# apps/web/src/routes/slides.tsx
+# apps/web/src/routes/_components/slides/
+# apps/web/public/slides/

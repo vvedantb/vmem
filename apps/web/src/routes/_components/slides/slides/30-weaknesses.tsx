@@ -5,6 +5,7 @@ import {
 } from "@tabler/icons-react";
 import type { ComponentType } from "react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
+import { SlideReferences } from "../_components/SlideReferences";
 import {
   SlideItem,
   SlideKicker,
@@ -28,13 +29,13 @@ interface Weakness {
 const WEAKNESSES: Weakness[] = [
   {
     icon: IconHourglassLow,
-    title: "Queries can be slow",
-    body: "Graph traversal and hybrid recall add latency — retrieval is not instant.",
+    title: "Answers can be slower",
+    body: "Following all those connections takes a moment — it isn't instant.",
   },
   {
     icon: IconGauge,
-    title: "Not the fastest engine",
-    body: "Purpose-built memory engines still beat vmem on raw lookup speed.",
+    title: "Not the fastest",
+    body: "Simpler tools built only for speed can look things up quicker.",
   },
   {
     icon: IconTrendingUp,
@@ -71,6 +72,20 @@ export function Slide30Weaknesses() {
           </SlideItem>
         ))}
       </SlideStagger>
+
+      <SlideReferences
+        className="mt-auto"
+        items={[
+          {
+            label: "ChatGPT memory · OpenAI",
+            href: "https://openai.com/index/chatgpt-memory-dreaming/",
+          },
+          {
+            label: "Self-improving memory · Perplexity",
+            href: "https://www.perplexity.ai/hub/blog/self-improving-memory-for-agents",
+          },
+        ]}
+      />
     </SlideShell>
   );
 }

@@ -76,7 +76,7 @@ export function CodebaseSymbolPanel({
   );
 
   return (
-    <AnimatePresence>
+    <AnimatePresence initial={false}>
       {selectedSymbolId && (
         <motion.div
           key="symbol-panel"

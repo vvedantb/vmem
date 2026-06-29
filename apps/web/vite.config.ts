@@ -109,6 +109,11 @@ export default defineConfig({
   build: {
     outDir: "dist",
     chunkSizeWarningLimit: 1000,
+    // Skip the gzip-size computation pass over emitted chunks. With multi-MB
+    // lazy AI vendor bundles (webllm ~6MB, transformers/kokoro ~1.3MB each)
+    // recompressing every chunk just to print a size table costs build time
+    // for no runtime benefit. Drops the size report from `vite build` output.
+    reportCompressedSize: false,
     rolldownOptions: {
       output: {
         codeSplitting: {

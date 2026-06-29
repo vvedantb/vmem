@@ -13,6 +13,9 @@ import { motionDuration, motionEase } from "@vmem/ui";
  */
 export const SlideStepContext = createContext<number>(0);
 
+/** Active slide theme — set by SlideDeck so children can theme-aware styling. */
+export const SlideThemeContext = createContext<"dark" | "light">("light");
+
 // ---------------------------------------------------------------------------
 // Animation primitives
 // ---------------------------------------------------------------------------

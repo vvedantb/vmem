@@ -24,6 +24,7 @@ import {
   skillsDeleteSchema,
   skillsGetSchema,
   skillsUpdateSchema,
+  contextPromptGetSchema,
   wikiCreateSchema,
   wikiDeleteSchema,
   wikiGetSchema,
@@ -94,6 +95,23 @@ export async function runWhoami(
 ): Promise<ToolHandlerResult> {
   return safe("whoami", () =>
     ctx.ctx.runAction(internal.mcp.profiles.mcpWhoami, scopedClerk(ctx)),
+  );
+}
+
+export async function runContextPromptGet(
+  ctx: ToolHandlerContext,
+): Promise<ToolHandlerResult> {
+  if (ctx.scope === "team") {
+    return {
+      ok: false,
+      error:
+        "context_prompt is only available on the personal vmem MCP connector",
+    };
+  }
+  return safe("context_prompt_get", () =>
+    ctx.ctx.runAction(internal.contextPromptApi.mcpGetContextPrompt, {
+      clerkId: ctx.clerkUserId,
+    }),
   );
 }
 
@@ -352,7 +370,9 @@ export async function runWikiCreate(
       kind: params.kind,
       title: params.title,
       parentId: params.parentId,
+      parentPath: params.parentPath,
       contentMarkdown: params.contentMarkdown,
+      sourceCodebaseId: params.sourceCodebaseId,
     }),
   );
 }

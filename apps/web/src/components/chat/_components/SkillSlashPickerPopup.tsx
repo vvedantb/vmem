@@ -1,6 +1,7 @@
 "use client";
 
 import type { Doc } from "@vmem/backend";
+import { cn, floatingSurfaceClass } from "@vmem/ui";
 import type { MentionPopupPlacement } from "../_utils/mentionPopupPosition";
 import { ChatSkillSlashMenu } from "./ChatSkillSlashMenu";
 
@@ -23,7 +24,10 @@ export function SkillSlashPickerPopup({
     <div
       role="listbox"
       aria-label="Skills"
-      className="fixed z-50 overflow-hidden rounded-lg bg-overlay text-overlay-foreground shadow-lg animate-in fade-in-0 zoom-in-95 duration-150"
+      className={cn(
+        "fixed z-50 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150",
+        floatingSurfaceClass,
+      )}
       style={{
         left: placement.left,
         top: placement.top,

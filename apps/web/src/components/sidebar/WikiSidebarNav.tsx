@@ -1,16 +1,17 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
-import { cn, motionDuration, motionEase } from "@vmem/ui";
+import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconBook } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
 import WikiSearch from "@/components/wiki/WikiSearch";
 import { WikiAddMenu } from "@/components/wiki/WikiAddMenu";
+import { WikiBulkDeleteBar } from "@/components/wiki/WikiBulkDeleteBar";
 import { buildTree, findFirstDocumentId } from "@/components/wiki/_utils";
 import { optimisticId } from "@/lib/optimisticId";
 import {
@@ -65,6 +66,28 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
 
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<Id<"wikiNodes">>>(
+    () => new Set(),
+  );
+
+  const exitSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleSelect = useCallback((id: Id<"wikiNodes">) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
   const handleSelectNode = useCallback(
     (id: string) => {
       if (profileId === undefined) return;
@@ -108,6 +131,16 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
     [createNode, navigate, profileId],
   );
 
+  // Grouped with the search at the top of the sidebar (shared by the empty and
+  // populated states), replacing the old bottom-pinned button.
+  const addMenu = (
+    <WikiAddMenu
+      className="w-full gap-2"
+      onCreateDocument={() => handleCreateRoot("document")}
+      onCreateFolder={() => handleCreateRoot("folder")}
+    />
+  );
+
   return (
     <motion.nav
       className={cn(
@@ -125,33 +158,58 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
           </div>
         ) : tree.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
-            <IconBook size={28} className="mb-2 text-muted" />
-            {!isIconOnly ? (
-              <p className="text-xs text-muted">No documents yet</p>
-            ) : null}
-          </div>
+          <>
+            {!isIconOnly ? addMenu : null}
+            <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
+              <IconBook size={28} className="mb-2 text-muted" />
+              {!isIconOnly ? (
+                <p className="text-xs text-muted">No documents yet</p>
+              ) : null}
+            </div>
+          </>
         ) : (
           <>
-            {!isIconOnly ? <WikiSearch onSelect={handleSelectNode} /> : null}
+            {!isIconOnly && !selectionMode ? (
+              <div className="flex flex-col gap-2">
+                <WikiSearch onSelect={handleSelectNode} />
+                {addMenu}
+              </div>
+            ) : null}
+            {!isIconOnly ? (
+              selectionMode ? (
+                <WikiBulkDeleteBar
+                  selectedIds={selectedIds}
+                  nodes={nodes ?? []}
+                  teamId={teamId}
+                  currentDocId={docId}
+                  onExit={exitSelection}
+                  onCurrentRemoved={() => handleSelectNode("")}
+                />
+              ) : (
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-muted"
+                    onClick={() => setSelectionMode(true)}
+                  >
+                    Select
+                  </Button>
+                </div>
+              )
+            ) : null}
             <WikiTree
               tree={tree}
+              nodes={nodes ?? []}
               selectedId={docId}
               onSelect={handleSelectNode}
+              selectionMode={selectionMode && !isIconOnly}
+              selectedNodeIds={selectedIds}
+              onToggleSelect={toggleSelect}
             />
           </>
         )}
       </div>
-
-      {!isIconOnly ? (
-        <div className="shrink-0 px-1 pt-2">
-          <WikiAddMenu
-            className="w-full gap-2"
-            onCreateDocument={() => handleCreateRoot("document")}
-            onCreateFolder={() => handleCreateRoot("folder")}
-          />
-        </div>
-      ) : null}
     </motion.nav>
   );
 }

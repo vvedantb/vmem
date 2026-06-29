@@ -5,6 +5,10 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import { authQuery, authMutation } from "./auth";
 import { scheduleContextPromptInvalidationForUser } from "./lib/contextPromptInvalidate";
 import {
+  deleteVersionsForSkill,
+  maybeSnapshotSkillVersion,
+} from "./lib/versionSnapshot";
+import {
   assertContentDeletable,
   assertContentEditable,
   requireContentScopeAccess,
@@ -13,6 +17,100 @@ import {
 /** Missing `enabled` is treated as enabled for existing rows. */
 function isSkillEnabled(skill: { enabled?: boolean }): boolean {
   return skill.enabled !== false;
+}
+
+/**
+ * A skill as seen by every prompt surface, regardless of whether it is a
+ * personal skill or an installed system skill. The single shape lets the
+ * MCP context prompt, skills_list/skills_get, and chat/voice all treat both
+ * sources identically.
+ */
+export interface EffectiveSkill {
+  name: string;
+  description: string;
+  instructions: string;
+  enabled: boolean;
+  source: "personal" | "system";
+  /** The personal skill's id — present only for `source === "personal"`. */
+  skillId?: Id<"skills">;
+  /** Present only for `source === "system"`. */
+  systemSkillId?: Id<"systemSkills">;
+}
+
+/**
+ * Resolve a user's EFFECTIVE skills = their enabled personal skills + the
+ * system skills they have installed-and-enabled (resolved LIVE from the
+ * catalog — installs are links, not copies, so a maintainer edit changes
+ * every installer's result here). Deduped by name (case-insensitive),
+ * personal skills winning a clash. Only enabled entries are returned.
+ */
+async function resolveEffectiveSkills(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+): Promise<EffectiveSkill[]> {
+  const personalRows = await ctx.db
+    .query("skills")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  const out: EffectiveSkill[] = [];
+  const seen = new Set<string>();
+
+  for (const skill of personalRows) {
+    if (skill.teamId !== undefined || !isSkillEnabled(skill)) continue;
+    const key = skill.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      name: skill.name,
+      description: skill.description,
+      instructions: skill.instructions,
+      enabled: true,
+      source: "personal",
+      skillId: skill._id,
+    });
+  }
+
+  const installs = await ctx.db
+    .query("userSystemSkills")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  for (const install of installs) {
+    if (install.enabled === false) continue;
+    const sys = await ctx.db.get(install.systemSkillId);
+    if (!sys) continue; // catalog row was deleted
+    const key = sys.name.toLowerCase();
+    if (seen.has(key)) continue; // personal (or an earlier install) wins
+    seen.add(key);
+    out.push({
+      name: sys.name,
+      description: sys.description,
+      instructions: sys.instructions,
+      enabled: true,
+      source: "system",
+      systemSkillId: sys._id,
+    });
+  }
+
+  return out;
+}
+
+/** True when the user has installed a system skill with this exact name. */
+async function userHasInstalledSystemSkillNamed(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  name: string,
+): Promise<boolean> {
+  const installs = await ctx.db
+    .query("userSystemSkills")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  for (const install of installs) {
+    const sys = await ctx.db.get(install.systemSkillId);
+    if (sys && sys.name === name) return true;
+  }
+  return false;
 }
 
 /**
@@ -78,6 +176,18 @@ export const listMy = authQuery({
 });
 
 /**
+ * The caller's effective skills (enabled personal + installed-and-enabled
+ * system skills), resolved live. Client prompt surfaces (local chat, voice,
+ * mobile) read this so installed system skills behave like personal ones.
+ */
+export const listEffectiveSkills = authQuery({
+  args: {},
+  handler: async (ctx): Promise<EffectiveSkill[]> => {
+    return await resolveEffectiveSkills(ctx, ctx.userId);
+  },
+});
+
+/**
  * Create a new skill in a scope. Duplicate names per scope are rejected.
  */
 export const createSkill = authMutation({
@@ -102,6 +212,16 @@ export const createSkill = authMutation({
     );
     if (existing) {
       throw new Error("A skill with this name already exists");
+    }
+    // Personal skills share a namespace with installed system skills (both
+    // resolve into the same effective list), so reject a clash there too.
+    if (
+      args.teamId === undefined &&
+      (await userHasInstalledSystemSkillNamed(ctx, ctx.userId, trimmedName))
+    ) {
+      throw new Error(
+        "A system skill with this name is installed. Uninstall it or choose another name.",
+      );
     }
 
     const now = Date.now();
@@ -170,6 +290,10 @@ export const updateSkill = authMutation({
     if (args.instructions !== undefined) patch.instructions = args.instructions;
     if (args.enabled !== undefined) patch.enabled = args.enabled;
 
+    await maybeSnapshotSkillVersion(ctx, skill, {
+      source: "web",
+      authorUserId: ctx.userId,
+    });
     await ctx.db.patch(normalizedId, patch);
     await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
   },
@@ -186,7 +310,76 @@ export const deleteSkill = authMutation({
     const skill = await ctx.db.get(normalizedId);
     if (!skill) throw new Error("Skill not found");
     await assertContentDeletable(ctx, skill, ctx.userId);
+    await deleteVersionsForSkill(ctx, normalizedId);
     await ctx.db.delete(normalizedId);
+    await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
+  },
+});
+
+/**
+ * Bulk-delete skills (each with its version snapshots). Same per-skill
+ * permission gate as `deleteSkill`; ids already gone are skipped. The personal
+ * skills index is invalidated once at the end if any personal skill was removed.
+ */
+export const deleteSkills = authMutation({
+  args: { ids: v.array(v.id("skills")) },
+  handler: async (ctx, args) => {
+    let anyPersonal = false;
+    for (const id of args.ids) {
+      const skill = await ctx.db.get(id);
+      if (!skill) continue;
+      await assertContentDeletable(ctx, skill, ctx.userId);
+      await deleteVersionsForSkill(ctx, id);
+      await ctx.db.delete(id);
+      if (skill.teamId === undefined) anyPersonal = true;
+    }
+    if (anyPersonal) {
+      await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
+    }
+  },
+});
+
+/**
+ * Restore a skill to a previous version. Checkpoints the current state first
+ * (force) so the restore is itself reversible, then patches the skill from the
+ * snapshot. Rejects when the snapshot's name now collides with another skill in
+ * the same scope. Lives here (not skillVersions.ts) to reuse the scope's
+ * name-uniqueness check and context-prompt invalidation.
+ */
+export const restoreVersion = authMutation({
+  args: { versionId: v.id("skillVersions") },
+  handler: async (ctx, args) => {
+    const version = await ctx.db.get(args.versionId);
+    if (!version) throw new Error("Version not found");
+    const skill = await ctx.db.get(version.skillId);
+    if (!skill) throw new Error("Skill not found");
+    await assertContentEditable(ctx, skill, ctx.userId);
+
+    if (version.name !== skill.name) {
+      const duplicate = await findSkillByNameInScope(
+        ctx,
+        skill.userId,
+        skill.teamId,
+        version.name,
+      );
+      if (duplicate) {
+        throw new Error("A skill with this name already exists");
+      }
+    }
+
+    await maybeSnapshotSkillVersion(ctx, skill, {
+      source: "web",
+      authorUserId: ctx.userId,
+      force: true,
+    });
+
+    await ctx.db.patch(skill._id, {
+      name: version.name,
+      description: version.description,
+      instructions: version.instructions,
+      enabled: version.enabled,
+      updatedAt: Date.now(),
+    });
     await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
   },
 });
@@ -194,6 +387,41 @@ export const deleteSkill = authMutation({
 // --- Internal helpers (used by MCP HTTP routes after JWT verification) ---
 // MCP stays personal-only for now: every lookup filters `teamId === undefined`
 // so team skills never leak into (or get mutated through) MCP tools.
+
+/**
+ * Effective skills (personal + installed system skills) for a Clerk user id.
+ * The single source for the MCP context-prompt index and `skills_list`.
+ */
+export const listEffectiveByClerkIdInternal = internalQuery({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args): Promise<EffectiveSkill[]> => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) return [];
+    return await resolveEffectiveSkills(ctx, user._id);
+  },
+});
+
+/**
+ * Resolve one effective skill by name for a Clerk user id (personal first,
+ * then installed system skills). Powers `skills_get` so an agent can load a
+ * system skill's full instructions exactly like a personal one.
+ */
+export const getEffectiveByNameInternal = internalQuery({
+  args: { clerkId: v.string(), name: v.string() },
+  handler: async (ctx, args): Promise<EffectiveSkill | null> => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) return null;
+    const lookup = args.name.trim().toLowerCase();
+    const effective = await resolveEffectiveSkills(ctx, user._id);
+    return effective.find((s) => s.name.toLowerCase() === lookup) ?? null;
+  },
+});
 
 /**
  * List personal skills for a given Clerk user id.
@@ -248,6 +476,11 @@ export const createByClerkIdInternal = internalMutation({
     );
     if (existing) {
       throw new Error("A skill with this name already exists");
+    }
+    if (await userHasInstalledSystemSkillNamed(ctx, user._id, trimmedName)) {
+      throw new Error(
+        "A system skill with this name is installed. Uninstall it or choose another name.",
+      );
     }
 
     const now = Date.now();
@@ -341,6 +574,12 @@ export const updateByClerkIdInternal = internalMutation({
     if (args.instructions !== undefined) patch.instructions = args.instructions;
     if (args.enabled !== undefined) patch.enabled = args.enabled;
 
+    // Agent (MCP) writes always checkpoint the pre-write state.
+    await maybeSnapshotSkillVersion(ctx, skill, {
+      source: "mcp",
+      authorUserId: user._id,
+      force: true,
+    });
     await ctx.db.patch(skill._id, patch);
     await scheduleContextPromptInvalidationForUser(ctx, user._id);
 
@@ -378,6 +617,7 @@ export const deleteByClerkIdInternal = internalMutation({
       throw new Error("Skill not found");
     }
 
+    await deleteVersionsForSkill(ctx, skill._id);
     await ctx.db.delete(skill._id);
     await scheduleContextPromptInvalidationForUser(ctx, user._id);
     return null;
@@ -398,29 +638,5 @@ export const listTeamSkillsInternal = internalQuery({
       .order("desc")
       .collect();
     return rows.filter(isSkillEnabled);
-  },
-});
-
-/**
- * Fetch a single skill by name for a given Clerk user id.
- */
-export const getByNameInternal = internalQuery({
-  args: { clerkId: v.string(), name: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-    if (!user) return null;
-
-    const lookupName = args.name.trim();
-    const skill = await findSkillByNameInScope(
-      ctx,
-      user._id,
-      undefined,
-      lookupName,
-    );
-    if (!skill || !isSkillEnabled(skill)) return null;
-    return skill;
   },
 });

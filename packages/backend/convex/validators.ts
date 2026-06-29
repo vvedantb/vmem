@@ -129,6 +129,26 @@ export const skillFields = {
 };
 
 /**
+ * Single source of truth for skillVersions table fields.
+ *
+ * An immutable snapshot of a skill's state *before* an overwrite (see
+ * `lib/versionSnapshot.ts`). The live `skills` row is always HEAD; versions are
+ * strictly older. `source` distinguishes web edits from MCP-agent writes so the
+ * UI can badge "You" vs "Agent" and the user can undo exactly what an agent did.
+ */
+export const skillVersionFields = {
+  skillId: v.id("skills"),
+  name: v.string(),
+  description: v.string(),
+  instructions: v.string(),
+  enabled: v.optional(v.boolean()),
+  /** Who authored the write that this snapshot was taken just before. */
+  authorUserId: v.id("users"),
+  source: v.union(v.literal("web"), v.literal("mcp")),
+  createdAt: v.number(),
+};
+
+/**
  * Single source of truth for threadProfiles table fields.
  *
  * Maps an agent-component chat thread to the workspace (profile) it was
@@ -348,8 +368,37 @@ export const wikiNodeFields = {
   contentText: v.optional(v.string()),
   /** Manual ordering within a parent; higher = later. */
   order: v.number(),
+  /**
+   * Set on the ROOT folder of a knowledge base generated from a synced
+   * codebase (the agent passes it through `wiki_create`). Optional — absent
+   * on all hand-authored nodes. Lets the UI badge "Generated from <repo>"
+   * and tie the subtree back to its source. Only ever set on a folder root.
+   */
+  sourceCodebaseId: v.optional(v.id("codebases")),
   createdAt: v.number(),
   updatedAt: v.number(),
+};
+
+/**
+ * Single source of truth for wikiNodeVersions table fields.
+ *
+ * An immutable snapshot of a document's state *before* an overwrite (see
+ * `lib/versionSnapshot.ts`). The live `wikiNodes` row is always HEAD; versions
+ * are strictly older. `contentText` is stored alongside `content` so a restore
+ * keeps the full-text search index correct without re-deriving plain text.
+ * `source` distinguishes web edits from MCP-agent writes.
+ */
+export const wikiNodeVersionFields = {
+  nodeId: v.id("wikiNodes"),
+  title: v.string(),
+  /** Canonical markdown body at snapshot time. */
+  content: v.string(),
+  /** Plain-text mirror, mirrors wikiNodes.contentText for search on restore. */
+  contentText: v.string(),
+  /** Who authored the write that this snapshot was taken just before. */
+  authorUserId: v.id("users"),
+  source: v.union(v.literal("web"), v.literal("mcp")),
+  createdAt: v.number(),
 };
 
 /**
@@ -392,4 +441,80 @@ export const fileNodeFields = {
   indexedAt: v.optional(v.number()),
   createdAt: v.number(),
   updatedAt: v.number(),
+};
+
+/**
+ * Single source of truth for systemSkills table fields.
+ *
+ * A "system skill" is a maintainer-curated skill in the global catalog (the
+ * Skills Hub). Unlike `skills`, it has no `userId`/`teamId` — it is global.
+ * Users do not COPY it; they INSTALL a link to it (see userSystemSkillFields),
+ * so a maintainer edit propagates to everyone instantly. Only admins
+ * (`users.isAdmin`) may create/edit/delete catalog rows.
+ */
+export const systemSkillFields = {
+  name: v.string(),
+  description: v.string(),
+  instructions: v.string(),
+  /** Hub grouping label, e.g. "Codebases". */
+  category: v.optional(v.string()),
+  /** Draft vs visible in the Hub. Installed rows resolve regardless. */
+  published: v.boolean(),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+};
+
+/**
+ * Single source of truth for userSystemSkills table fields.
+ *
+ * The install LINK between a user and a catalog `systemSkills` row. Installs
+ * are user-wide (personal) — there is no `teamId`, matching the MCP
+ * personal-only model. `enabled` lets a user mute an install without
+ * removing it; uninstall = delete the row. The skill's content always
+ * resolves live from the linked catalog row (never duplicated here).
+ */
+export const userSystemSkillFields = {
+  userId: v.id("users"),
+  systemSkillId: v.id("systemSkills"),
+  /** Per-user toggle. Missing is treated as enabled for forward-compat. */
+  enabled: v.boolean(),
+  installedAt: v.number(),
+};
+
+/**
+ * Single source of truth for presentationSessions table fields.
+ *
+ * One live "share" of the `/slides` deck. The presenter is the sole driver:
+ * only the browser holding the secret `hostKey` may write `slide`. Viewers are
+ * anonymous — they subscribe to the row (`getSession`) and either follow
+ * `slide` live or detach to browse on their own. Ephemeral — pruned daily once
+ * `ended` or idle past 24h (see `presentations.pruneStaleInternal`).
+ */
+export const presentationSessionFields = {
+  /** Short, URL-friendly share code (the `?session=` value). */
+  code: v.string(),
+  /** Secret driver token — returned once from `createSession`, kept only in
+   *  the presenter's localStorage. Required to `setSlide` / `stopSharing`. */
+  hostKey: v.string(),
+  /** Current 1-based slide the presenter is on. */
+  slide: v.number(),
+  status: v.union(v.literal("live"), v.literal("ended")),
+  /** Bumped on every slide change; drives the idle-prune window. */
+  lastActiveAt: v.number(),
+};
+
+/**
+ * Single source of truth for presentationVotes table fields.
+ *
+ * One row per participant per poll within a share session — re-voting replaces
+ * the row's `optionId`, so a tally never double-counts. `participantKey` is a
+ * client-minted UUID in localStorage; `pollId` is the curated poll slide's
+ * stable id. Votes are scoped to the session `code`, so each run tallies fresh
+ * and they are dropped with the session on prune.
+ */
+export const presentationVoteFields = {
+  code: v.string(),
+  pollId: v.string(),
+  participantKey: v.string(),
+  optionId: v.string(),
 };

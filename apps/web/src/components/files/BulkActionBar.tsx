@@ -26,12 +26,12 @@ export default function BulkActionBar({
   onClear,
 }: BulkActionBarProps) {
   return (
-    <AnimatePresence>
+    <AnimatePresence initial={false}>
       {selectedCount > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
+          exit={{ opacity: 0, y: -4 }}
           transition={{ duration: motionDuration.fast, ease: motionEase }}
           className="flex items-center gap-2 rounded-lg bg-default px-4 py-2"
         >

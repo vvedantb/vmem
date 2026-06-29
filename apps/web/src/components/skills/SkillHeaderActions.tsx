@@ -22,12 +22,14 @@ import {
 import {
   IconCopy,
   IconDots,
+  IconHistory,
   IconLoader2,
   IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { formatSkillForClipboard } from "./_utils";
+import { SkillHistoryPanel } from "./SkillHistoryPanel";
 
 interface SkillHeaderActionsProps {
   skill: Doc<"skills">;
@@ -42,6 +44,7 @@ export function SkillHeaderActions({
 }: SkillHeaderActionsProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const deleteSkill = useMutation(api.skills.deleteSkill).withOptimisticUpdate(
     (localStore, args) => {
@@ -162,9 +165,13 @@ export function SkillHeaderActions({
             <IconPencil size={14} />
             Edit
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setHistoryOpen(true)}>
+            <IconHistory size={14} />
+            Version history
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="text-danger focus:text-danger"
+            className="text-danger focus:text-danger data-[highlighted]:text-danger"
             onSelect={() => setDeleteConfirmOpen(true)}
           >
             <IconTrash size={14} />
@@ -214,6 +221,12 @@ export function SkillHeaderActions({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SkillHistoryPanel
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        skillId={skill._id}
+      />
     </>
   );
 }

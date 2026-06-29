@@ -3,6 +3,7 @@
 import {
   createFileRoute,
   Outlet,
+  useLocation,
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
@@ -14,6 +15,8 @@ import { IconBolt } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import PageContainer from "@/components/PageContainer";
+import { SkillsHub } from "@/components/skills/SkillsHub";
+import { SystemSkillDetail } from "@/components/skills/SystemSkillDetail";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SkillPageTitle } from "@/components/skills/SkillPageTitle";
 import { SkillHeaderActions } from "@/components/skills/SkillHeaderActions";
@@ -33,6 +36,12 @@ function SkillsLayout() {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const skillId = typeof params.id === "string" ? params.id : undefined;
+  // The Hub is a child route (/skills/hub) rendered by this layout — same
+  // pattern as the skill detail view (the layout owns rendering).
+  const pathname = useLocation({ select: (l) => l.pathname });
+  const onHub = pathname.endsWith("/skills/hub");
+  const systemSkillId =
+    typeof params.skillId === "string" ? params.skillId : undefined;
 
   const skills = useQuery(api.skills.listMy, { teamId });
   const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
@@ -172,10 +181,28 @@ function SkillsLayout() {
     });
   };
 
+  // The Hub is its own page — use the settings convention (centered, titled
+  // container) rather than the editor-style detail layout below.
+  if (onHub) {
+    return (
+      <PageContainer title="Skills Hub" centeredMaxWidth showTitle>
+        <SkillsHub profileId={profileId} />
+      </PageContainer>
+    );
+  }
+
+  // A catalog system skill has its own read-only detail page.
+  if (systemSkillId !== undefined) {
+    return (
+      <SystemSkillDetail systemSkillId={systemSkillId} profileId={profileId} />
+    );
+  }
+
   return (
     <PageContainer
       title={pageTitle}
       noScroll
+      centeredMaxWidth
       breadcrumb={
         hasSkill || isSkillLoading ? (
           <SkillPageTitle

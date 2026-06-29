@@ -46,7 +46,7 @@ export default function VoiceControls({
             disabled && !isProcessing && "opacity-40 cursor-not-allowed",
             isProcessing && "opacity-50 cursor-not-allowed",
           )}
-          whileTap={disabled || isProcessing ? undefined : { scale: 0.93 }}
+          whileTap={disabled || isProcessing ? undefined : { scale: 0.96 }}
           transition={{ duration: motionDuration.fast, ease: motionEase }}
           aria-label={isListening ? "Stop recording" : "Start recording"}
         >
@@ -63,7 +63,7 @@ export default function VoiceControls({
       </div>
 
       {/* Cancel button — visible during active session */}
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {!isIdle && (
           <motion.button
             type="button"

@@ -81,7 +81,7 @@ export default function MemoryDetailPanel({
     <>
       <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden shadow-none p-4 sm:p-5">
         <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
-          <h3 className="min-w-0 flex-1 truncate text-lg font-semibold leading-snug text-foreground">
+          <h3 className="min-w-0 flex-1 truncate text-lg font-semibold leading-snug text-foreground text-balance">
             {memory.title}
           </h3>
           <Button

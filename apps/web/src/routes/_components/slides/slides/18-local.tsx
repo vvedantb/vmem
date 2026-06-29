@@ -31,12 +31,12 @@ const TRENDS: Trend[] = [
   {
     icon: IconBrain,
     title: "Getting smarter, fast",
-    body: "Open models close the gap with frontier labs every few months.",
+    body: "Free, open models close the gap with the best every few months.",
   },
   {
     icon: IconDeviceMobile,
     title: "Already on phones",
-    body: "Small models run on-device today — private, offline, instant.",
+    body: "Small models run on your phone today — private, offline, instant.",
   },
 ];
 
@@ -79,7 +79,7 @@ export function Slide18Local() {
               An Opus-level model already runs locally — today.
             </p>
             <p className="mt-1 text-sm opacity-70">
-              The catch: it needs serious GPUs to run.
+              The catch: it needs a powerful, pricey machine to run.
             </p>
           </div>
           <div className="flex items-center gap-1 text-2xl font-medium">

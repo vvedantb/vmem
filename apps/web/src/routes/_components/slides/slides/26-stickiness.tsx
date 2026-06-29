@@ -83,7 +83,7 @@ export function Slide26Stickiness() {
           />
           And vmem itself is{" "}
           <span className="font-medium text-foreground">
-            open source and self-hostable anywhere
+            open source — run it on your own servers
           </span>{" "}
           — no lock-in by design.
         </p>

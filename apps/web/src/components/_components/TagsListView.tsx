@@ -253,7 +253,7 @@ export default function TagsListView() {
           </div>
         </div>
 
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {selectedTag && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -336,7 +336,7 @@ function DisplayRow({
             variant="ghost"
             size="icon-sm"
             aria-label={`Actions for tag ${tag}`}
-            className="h-7 w-7 text-muted"
+            className="text-muted"
             onClick={(e) => e.stopPropagation()}
           >
             <IconDotsVertical size={14} />
@@ -349,7 +349,7 @@ function DisplayRow({
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={onDelete}
-            className="text-danger focus:text-danger"
+            className="text-danger focus:text-danger data-[highlighted]:text-danger"
           >
             <IconTrash size={14} stroke={1.5} />
             Delete

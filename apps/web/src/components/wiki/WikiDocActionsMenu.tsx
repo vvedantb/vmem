@@ -1,6 +1,6 @@
 "use client";
 
-import { IconCopy, IconDots } from "@tabler/icons-react";
+import { IconCopy, IconDots, IconHistory } from "@tabler/icons-react";
 import {
   Button,
   DropdownMenu,
@@ -15,6 +15,7 @@ import {
 interface WikiDocActionsMenuProps {
   outlineVisible: boolean;
   onOutlineVisibleChange: (visible: boolean) => void;
+  onShowHistory: () => void;
   wordCount: number;
   onCopy: () => void;
   copyDisabled?: boolean;
@@ -23,6 +24,7 @@ interface WikiDocActionsMenuProps {
 export function WikiDocActionsMenu({
   outlineVisible,
   onOutlineVisibleChange,
+  onShowHistory,
   wordCount,
   onCopy,
   copyDisabled = false,
@@ -34,13 +36,14 @@ export function WikiDocActionsMenu({
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="shrink-0 text-muted"
-          aria-label="Document actions"
+          variant="secondary"
+          size="sm"
+          className="shrink-0 gap-1.5"
+          aria-label="Document options"
           disabled={copyDisabled}
         >
           <IconDots size={16} />
+          Options
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-52 w-52">
@@ -61,6 +64,10 @@ export function WikiDocActionsMenu({
           />
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onShowHistory}>
+          <IconHistory size={14} />
+          Version history
+        </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => {
             onCopy();

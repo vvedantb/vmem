@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { Markdown } from "tiptap-markdown";
 import { useDebounceCallback } from "usehooks-ts";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
+import { wikiEditorExtensions } from "./_editorExtensions";
 import {
   countWords,
   docToPlainText,
@@ -23,7 +22,17 @@ interface WikiEditorProps {
   docId: string | null;
   titleForCopy: string;
   onRegisterCopy: (handler: (() => Promise<void>) | null) => void;
+  /**
+   * Registers a restore handler the history panel calls with a version's
+   * markdown. The editor loads it and force-checkpoints the pre-restore state,
+   * so the restore is itself reversible.
+   */
+  onRegisterRestore: (
+    handler: ((markdown: string) => Promise<void>) | null,
+  ) => void;
   onHeadingsChange: (headings: OutlineHeading[]) => void;
+  /** Reports the heading the reader is currently scrolled to (outline highlight). */
+  onActiveHeadingChange: (id: string | null) => void;
   onWordCountChange: (count: number) => void;
   /** Bumped whenever the outline pane requests a jump. `n` forces effect re-runs. */
   jumpRequest: { pos: number; n: number };
@@ -31,6 +40,22 @@ interface WikiEditorProps {
 
 const AUTOSAVE_MS = 800;
 const SAVE_TOAST_MS = 2000;
+/** A heading stays "active" until its top scrolls this far below the viewport top. */
+const ACTIVE_OFFSET_PX = 80;
+
+/**
+ * Resolve the heading DOM element for a ProseMirror position (outline scroll-spy).
+ * Mirrors the click-to-jump path, which also resolves headings via `domAtPos`.
+ */
+function resolveHeadingElement(editor: Editor, pos: number): Element | null {
+  try {
+    const { node } = editor.view.domAtPos(pos);
+    const element = node instanceof Element ? node : node.parentElement;
+    return element?.closest("h1, h2, h3, h4, h5, h6") ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function getMarkdownFromEditor(editor: Editor): string {
   const markdownBucket = editor.storage.markdown;
@@ -53,7 +78,9 @@ export default function WikiEditor({
   docId,
   titleForCopy,
   onRegisterCopy,
+  onRegisterRestore,
   onHeadingsChange,
+  onActiveHeadingChange,
   onWordCountChange,
   jumpRequest,
 }: WikiEditorProps) {
@@ -78,6 +105,10 @@ export default function WikiEditor({
 
   const loadedDocIdRef = useRef<Id<"wikiNodes"> | null>(null);
   const suppressNextUpdateRef = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const headingsRef = useRef<OutlineHeading[]>([]);
+  const computeFrameRef = useRef(0);
+  const scheduleRef = useRef<() => void>(() => {});
 
   const debouncedSaveToast = useDebounceCallback(() => {
     toast.success("Saved!");
@@ -99,15 +130,23 @@ export default function WikiEditor({
     AUTOSAVE_MS,
   );
 
+  // Update the outline's heading list and keep a ref copy for scroll-spy.
+  const publishHeadings = useCallback(
+    (next: OutlineHeading[]) => {
+      headingsRef.current = next;
+      onHeadingsChange(next);
+    },
+    [onHeadingsChange],
+  );
+
+  // Scroll handler reads the latest scheduler via ref — the editor's onUpdate
+  // closure is fixed at creation and can't see a fresher useCallback otherwise.
+  const handleScroll = useCallback(() => {
+    scheduleRef.current();
+  }, []);
+
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Markdown.configure({
-        html: false,
-        transformPastedText: true,
-        transformCopiedText: true,
-      }),
-    ],
+    extensions: wikiEditorExtensions(),
     content: "",
     immediatelyRender: false,
     editorProps: {
@@ -122,14 +161,84 @@ export default function WikiEditor({
         return;
       }
       const jsonDoc = instance.getJSON();
-      onHeadingsChange(extractHeadings(jsonDoc));
+      publishHeadings(extractHeadings(jsonDoc));
       onWordCountChange(countWords(docToPlainText(jsonDoc)));
+      scheduleRef.current();
       const activeId = loadedDocIdRef.current;
       if (activeId) {
         debouncedSave(activeId, getMarkdownFromEditor(instance), jsonDoc);
       }
     },
   });
+
+  // Determine which heading the reader is currently on, from scroll position.
+  const computeActiveHeading = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!editor || editor.isDestroyed || !container) return;
+    const headings = headingsRef.current;
+    if (headings.length === 0) {
+      onActiveHeadingChange(null);
+      return;
+    }
+
+    const atBottom =
+      container.scrollTop + container.clientHeight >=
+      container.scrollHeight - 2;
+    const containerTop = container.getBoundingClientRect().top;
+
+    // Active = the last heading whose top has scrolled above the offset line.
+    let firstId: string | null = null;
+    let activeId: string | null = null;
+    for (const heading of headings) {
+      const element = resolveHeadingElement(editor, heading.pos);
+      if (!element) continue;
+      if (firstId === null) firstId = heading.id;
+      const relativeTop = element.getBoundingClientRect().top - containerTop;
+      if (relativeTop <= ACTIVE_OFFSET_PX) {
+        activeId = heading.id;
+      } else {
+        break;
+      }
+    }
+
+    // At the very bottom, a short trailing section never reaches the offset —
+    // pin the last heading so it can still become active.
+    if (atBottom) {
+      for (let i = headings.length - 1; i >= 0; i--) {
+        const heading = headings[i];
+        if (heading && resolveHeadingElement(editor, heading.pos)) {
+          activeId = heading.id;
+          break;
+        }
+      }
+    }
+
+    // Before the first heading is reached, highlight it rather than nothing.
+    onActiveHeadingChange(activeId ?? firstId);
+  }, [editor, onActiveHeadingChange]);
+
+  const scheduleComputeActive = useCallback(() => {
+    if (computeFrameRef.current) return;
+    computeFrameRef.current = requestAnimationFrame(() => {
+      computeFrameRef.current = 0;
+      computeActiveHeading();
+    });
+  }, [computeActiveHeading]);
+
+  // Keep the ref the onUpdate/scroll closures call pointed at the latest scheduler.
+  useEffect(() => {
+    scheduleRef.current = scheduleComputeActive;
+  }, [scheduleComputeActive]);
+
+  // Cancel any queued scroll-spy frame on unmount.
+  useEffect(() => {
+    return () => {
+      if (computeFrameRef.current) {
+        cancelAnimationFrame(computeFrameRef.current);
+        computeFrameRef.current = 0;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!editor) return;
@@ -139,8 +248,9 @@ export default function WikiEditor({
         suppressNextUpdateRef.current = true;
         editor.commands.setContent("");
         loadedDocIdRef.current = null;
-        onHeadingsChange([]);
+        publishHeadings([]);
         onWordCountChange(0);
+        scheduleComputeActive();
       }
       return;
     }
@@ -154,9 +264,10 @@ export default function WikiEditor({
     editor.commands.setContent(markdown);
     loadedDocIdRef.current = doc._id;
     const jsonDoc = editor.getJSON();
-    onHeadingsChange(extractHeadings(jsonDoc));
+    publishHeadings(extractHeadings(jsonDoc));
     onWordCountChange(countWords(docToPlainText(jsonDoc)));
-  }, [doc, editor, onHeadingsChange, onWordCountChange]);
+    scheduleComputeActive();
+  }, [doc, editor, publishHeadings, onWordCountChange, scheduleComputeActive]);
 
   useEffect(() => {
     if (!editor || jumpRequest.n === 0) return;
@@ -203,6 +314,47 @@ export default function WikiEditor({
     return () => onRegisterCopy(null);
   }, [editor, onRegisterCopy, titleForCopy]);
 
+  // Restore: load a version's markdown into the editor and persist it with a
+  // forced snapshot so the pre-restore state is captured (restore is reversible).
+  const restoreToContent = useCallback(
+    async (markdown: string) => {
+      if (!editor) return;
+      const activeId = loadedDocIdRef.current;
+      if (!activeId) return;
+      debouncedSave.cancel(); // we persist this write explicitly, not via autosave
+      suppressNextUpdateRef.current = true;
+      editor.commands.setContent(markdown);
+      const jsonDoc = editor.getJSON();
+      publishHeadings(extractHeadings(jsonDoc));
+      onWordCountChange(countWords(docToPlainText(jsonDoc)));
+      scheduleComputeActive();
+      try {
+        await updateContent({
+          id: activeId,
+          content: getMarkdownFromEditor(editor),
+          contentText: docToPlainText(jsonDoc),
+          forceSnapshot: true,
+        });
+        toast.success("Version restored");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to restore");
+      }
+    },
+    [
+      editor,
+      updateContent,
+      debouncedSave,
+      publishHeadings,
+      onWordCountChange,
+      scheduleComputeActive,
+    ],
+  );
+
+  useEffect(() => {
+    onRegisterRestore(editor ? restoreToContent : null);
+    return () => onRegisterRestore(null);
+  }, [editor, restoreToContent, onRegisterRestore]);
+
   if (docId === null || docId.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -240,7 +392,11 @@ export default function WikiEditor({
   }
 
   return (
-    <div className="wiki-editor flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin">
+    <div
+      ref={scrollContainerRef}
+      onScroll={handleScroll}
+      className="wiki-editor flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin"
+    >
       <EditorContent editor={editor} />
     </div>
   );

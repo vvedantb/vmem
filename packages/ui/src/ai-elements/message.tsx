@@ -41,7 +41,7 @@ function MessageContent({ className, ...props }: MessageContentProps) {
     <div
       className={cn(
         "w-fit max-w-4xl rounded-lg px-4 py-3 text-sm",
-        "group-data-[role=user]:bg-accent group-data-[role=user]:text-accent-foreground group-data-[role=user]:rounded-br-md",
+        "group-data-[role=user]:bg-surface-secondary group-data-[role=user]:text-foreground group-data-[role=user]:rounded-br-md",
         "group-data-[role=assistant]:text-foreground group-data-[role=assistant]:px-0",
         className,
       )}

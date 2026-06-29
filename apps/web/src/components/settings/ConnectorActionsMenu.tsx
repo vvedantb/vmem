@@ -91,7 +91,7 @@ export default function ConnectorActionsMenu({
         {showSyncActions && hasDestructive ? <DropdownMenuSeparator /> : null}
         {showDisconnect ? (
           <DropdownMenuItem
-            className="text-danger focus:text-danger"
+            className="text-danger focus:text-danger data-[highlighted]:text-danger"
             onSelect={onDisconnect}
             disabled={isBusy}
           >
@@ -101,7 +101,7 @@ export default function ConnectorActionsMenu({
         ) : null}
         {showDeleteData ? (
           <DropdownMenuItem
-            className="text-danger focus:text-danger"
+            className="text-danger focus:text-danger data-[highlighted]:text-danger"
             onSelect={onDeleteData}
             disabled={isBusy}
           >

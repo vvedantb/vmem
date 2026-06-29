@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsgo -p tsconfig.json && vite build",
-    "typecheck": "tsgo -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && vite build",
+    "typecheck": "tsc -p tsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -15,6 +15,8 @@
     "@built-in-ai/web-llm": "^1.0.1",
     "@clerk/clerk-react": "^5.22.4",
     "@convex-dev/agent": "catalog:",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
     "@huggingface/transformers": "^4.0.1",
     "@mediapipe/tasks-genai": "^0.10.27",
@@ -80,7 +82,6 @@
   },
   "devDependencies": {
     "@tanstack/router-plugin": "^1.167.22",
-    "@typescript/native-preview": "catalog:",
     "@types/d3-force": "^3.0.10",
     "@types/node": "catalog:node-types-20",
     "@types/react": "catalog:",
@@ -91,7 +92,7 @@
     "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "catalog:tailwind3",
     "typescript": "catalog:",
-    "vite": "^8.0.14",
+    "vite": "^8.1.0",
     "vitest": "^3.2.4"
   }
 }
