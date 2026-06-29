@@ -26,13 +26,14 @@ function Dot({ l, t, big }: { l: number; t: number; big?: boolean }) {
   );
 }
 
-/** capture — a prompt bubble emits a packet that saves into a memory node. */
+/** capture — a chat message saves into a memory node. */
 function CaptureVisual() {
   return (
     <div className={BOX}>
-      <div className="absolute left-0 top-1/2 w-[42%] -translate-y-1/2 space-y-1 rounded-lg bg-surface-tertiary px-2 py-2">
-        <div className="h-1 w-full rounded-full bg-foreground/30" />
-        <div className="h-1 w-2/3 rounded-full bg-foreground/30" />
+      <div className="absolute left-0 top-1/2 w-[66%] -translate-y-1/2 rounded-xl rounded-bl-sm bg-surface-tertiary px-2.5 py-1.5">
+        <p className="text-[10px] leading-snug text-foreground">
+          Met James for coffee
+        </p>
       </div>
       <motion.div
         className="absolute right-1 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-foreground"
@@ -42,7 +43,7 @@ function CaptureVisual() {
       <motion.span
         className="absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-foreground"
         initial={false}
-        animate={{ left: ["44%", "92%"], opacity: [0, 1, 1, 0] }}
+        animate={{ left: ["66%", "92%"], opacity: [0, 1, 1, 0] }}
         transition={{
           duration: 2.2,
           repeat: Infinity,
