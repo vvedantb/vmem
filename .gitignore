@@ -17,6 +17,7 @@ internal/bench/*
 !internal/bench/claude-mcp-vmem-only.json
 !internal/bench/longmemeval-results.md
 !internal/bench/beam-results.md
+!internal/bench/vmem-internal-eval.md
 internal/dissertation
 
 # Presentation deck — local/dissertation only
