@@ -1,5 +1,9 @@
 # Comparator published claims (cited, NOT measured by us)
 
+> **Archived.** The benchmark harness and its `report.ts` (referenced below) were
+> removed. Kept for history; vendor figures here are context only. Current
+> evaluation: [`vmem-internal-eval.md`](./vmem-internal-eval.md).
+
 > Vendor-published figures for the report's "cited claims" section. **Not
 > comparable** to vmem's measured LoCoMo J: different datasets, judges, and
 > methodologies. Keep in a separate table from harness rows.

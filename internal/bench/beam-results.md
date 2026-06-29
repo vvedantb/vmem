@@ -1,5 +1,11 @@
 # vmem BEAM 100K benchmark results
 
+> **Archived results.** The benchmark harness that produced these was removed;
+> any `bench:*` commands referenced below no longer exist. Kept for history. The
+> current evaluation is the internal benchmark — see
+> [`vmem-internal-eval.md`](./vmem-internal-eval.md) and
+> [`external-benchmarks-investigation.md`](./external-benchmarks-investigation.md).
+
 > ⚠️ **DIRECTIONALLY COMPARABLE ONLY.** Reader = `claude:sonnet`, judge = `openai/gpt-4o-mini` — not the vendors' gpt-4o-mini reader + gpt-4o judge, so these numbers do **not** claim strict leaderboard parity with Mem0 / Supermemory.
 
 Run id: `beam-combined` · Generated: 2026-06-29 · Conversations: 1

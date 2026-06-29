@@ -1,5 +1,11 @@
 # vmem LoCoMo Benchmark Results
 
+> **Archived results.** The benchmark harness that produced these was removed;
+> any `bench:*` commands referenced below no longer exist. Kept for history. The
+> current evaluation is the internal benchmark — see
+> [`vmem-internal-eval.md`](./vmem-internal-eval.md) and
+> [`external-benchmarks-investigation.md`](./external-benchmarks-investigation.md).
+
 **Produced:** 19 June 2026 (fast-ingest run, `fast-3`); 15 June 2026
 (full-pipeline run, `capped-free-3`). **Harness:**
 `packages/backend/neo4j-cli/bench/` driving vmem's production engine paths.
@@ -18,10 +24,10 @@ against the gold answer.
 
 ### 1a. Same-model comparison — `gpt-5-nano:nitro`, 3 conversations, 60 questions
 
-| System | Configuration | **J (accuracy)** | Context tokens/question |
-|---|---|---|---|
-| **vmem** | fast-ingest (graph/decision off) | **63.3%** (38/60) | **263** |
-| Full-context baseline | entire conversation in the prompt | 88.3% (53/60) | 19,168 |
+| System                | Configuration                     | **J (accuracy)**  | Context tokens/question |
+| --------------------- | --------------------------------- | ----------------- | ----------------------- |
+| **vmem**              | fast-ingest (graph/decision off)  | **63.3%** (38/60) | **263**                 |
+| Full-context baseline | entire conversation in the prompt | 88.3% (53/60)     | 19,168                  |
 
 Efficiency headline: **vmem reaches 72% of the full-context ceiling's accuracy
 using 1.4% of the context — a 73× token reduction.** Full-context is the
@@ -30,14 +36,15 @@ pastes the whole history into every prompt.
 
 ### 1b. Full-pipeline accuracy — `gpt-oss-20b` (free), 2 conversations, 40 questions
 
-| System | Configuration | **J (accuracy)** | Context tokens/question |
-|---|---|---|---|
-| **vmem** | full pipeline (enrichment + decision on) | **75.0%** (30/40) | 328 |
+| System   | Configuration                            | **J (accuracy)**  | Context tokens/question |
+| -------- | ---------------------------------------- | ----------------- | ----------------------- |
+| **vmem** | full pipeline (enrichment + decision on) | **75.0%** (30/40) | 328                     |
 
-This used vmem's complete production configuration and **meets the proposal's
->75% objective**. Free model tier, two conversations — treat it as the
-production-config indication; §1a is the same-model, baseline-anchored, larger
-sample.
+This used vmem's complete production configuration and \*\*meets the proposal's
+
+> 75% objective\*\*. Free model tier, two conversations — treat it as the
+> production-config indication; §1a is the same-model, baseline-anchored, larger
+> sample.
 
 ---
 
@@ -45,20 +52,20 @@ sample.
 
 ### Per category (run 1a, same model)
 
-| Category | vmem | Full-context | Gap |
-|---|---|---|---|
-| Temporal | 70% (21/30) | 87% (26/30) | 17 |
-| Multi-hop | 61% (14/23) | 96% (22/23) | **35** |
-| Open-domain | 40% (2/5) | 60% (3/5) | 20 |
-| Single-hop | 50% (1/2) | 100% (2/2) | small n |
+| Category    | vmem        | Full-context | Gap     |
+| ----------- | ----------- | ------------ | ------- |
+| Temporal    | 70% (21/30) | 87% (26/30)  | 17      |
+| Multi-hop   | 61% (14/23) | 96% (22/23)  | **35**  |
+| Open-domain | 40% (2/5)   | 60% (3/5)    | 20      |
+| Single-hop  | 50% (1/2)   | 100% (2/2)   | small n |
 
 ### Per conversation (vmem, run 1a)
 
 | Conversation | Sessions | vmem | Full-context |
-|---|---|---|---|
-| conv-26 | 19 | 70% | 90% |
-| conv-30 | 19 | 55% | 100% |
-| conv-41 | 32 | 65% | 75% |
+| ------------ | -------- | ---- | ------------ |
+| conv-26      | 19       | 70%  | 90%          |
+| conv-30      | 19       | 55%  | 100%         |
+| conv-41      | 32       | 65%  | 75%          |
 
 ### Key finding — the graph layer carries multi-hop reasoning
 
@@ -84,19 +91,20 @@ measured p50 3.4 s for the same code).
 Vendor-published figures on **different benchmarks, judges and (mostly)
 undisclosed methods**. They cannot share a table with §1; shown for context.
 
-| System | Reported | Benchmark | Independently verifiable? |
-|---|---|---|---|
-| Mem0 | ~66% (J) | LoCoMo | Partial (paper arXiv 2504.19413 + OSS harness) |
-| Mem0 Platform v3 | 94.4% | LongMemEval | Vendor (github.com/mem0ai/memory-benchmarks) |
-| Supermemory | 95% (recall@15) | LongMemEval-S | Vendor blog |
-| ByteRover 2.0 | 92.2% | LoCoMo | Vendor blog |
-| Mastra | 95% | LongMemEval | Vendor blog |
-| **OpenAI "Dreaming" V3** | 82.8% factual recall; 71.3% preference; 75.1% time-sensitive | OpenAI-internal | **No — method/dataset unpublished** |
-| **Perplexity "Brain"** | +25% accuracy, +16% recall, −13% cost (relative) | Internal agent tasks | **No — relative only, no absolute, not LoCoMo** |
+| System                   | Reported                                                     | Benchmark            | Independently verifiable?                       |
+| ------------------------ | ------------------------------------------------------------ | -------------------- | ----------------------------------------------- |
+| Mem0                     | ~66% (J)                                                     | LoCoMo               | Partial (paper arXiv 2504.19413 + OSS harness)  |
+| Mem0 Platform v3         | 94.4%                                                        | LongMemEval          | Vendor (github.com/mem0ai/memory-benchmarks)    |
+| Supermemory              | 95% (recall@15)                                              | LongMemEval-S        | Vendor blog                                     |
+| ByteRover 2.0            | 92.2%                                                        | LoCoMo               | Vendor blog                                     |
+| Mastra                   | 95%                                                          | LongMemEval          | Vendor blog                                     |
+| **OpenAI "Dreaming" V3** | 82.8% factual recall; 71.3% preference; 75.1% time-sensitive | OpenAI-internal      | **No — method/dataset unpublished**             |
+| **Perplexity "Brain"**   | +25% accuracy, +16% recall, −13% cost (relative)             | Internal agent tasks | **No — relative only, no absolute, not LoCoMo** |
 
 Notes:
+
 - **OpenAI Dreaming** (shipped 2 June 2026) and **Perplexity Brain** are the same
-  *category* as vmem's Dream Mode — a background process that consolidates past
+  _category_ as vmem's Dream Mode — a background process that consolidates past
   sessions into reusable memory. Their figures are vendor-internal and not
   reproducible; vmem's §1 numbers are a reproducible result on a public
   benchmark. That methodological contrast favours vmem even where headline
@@ -116,6 +124,7 @@ judge model scores the answer against the gold label. The same answer and judge
 models are used for every row in §1.
 
 **Documented deviations from production.**
+
 - LLM calls via the CLI OpenRouter client, not Convex `callJsonChat` (same
   prompts, same models).
 - Run 1a uses **fast-ingest**: facts are stored directly (content-hash + 0.95
@@ -129,6 +138,7 @@ models are used for every row in §1.
   stamps `createdAt = now`.
 
 **Limitations.**
+
 - **Scope:** 3 conversations (1a) / 2 (1b) of LoCoMo's 10. Capped for cost and
   free-tier database throughput.
 - **Judge:** correctness is an LLM judgment, not human-verified.
@@ -143,17 +153,7 @@ throttles vmem ingestion (≈5 concurrent sessions per fact decision) to
 60–90 min/conversation. A paid Aura tier removes it; the harness is otherwise
 complete and resumable.
 
-**Reproduce.**
-```
-# same-model baseline comparison (fast, ~minutes, ~$0.34)
-NEO4J_MAX_POOL_SIZE=24 NEO4J_CONNECTION_ACQUISITION_TIMEOUT_MS=60000 \
-pnpm bench:locomo --run-id fast-3 --conversations 3 \
-  --providers vmem,full-context --fast-ingest --max-questions 20 \
-  --memory-model openai/gpt-5-nano:nitro \
-  --answer-model openai/gpt-5-nano:nitro \
-  --judge-model  openai/gpt-5-nano:nitro
-
-# full-pipeline accuracy (slow on free-tier Aura; drop --fast-ingest)
-```
-Journals: `neo4j-cli/bench/results/fast-3.jsonl` (1a),
-`capped-free-3.jsonl` (1b).
+**Reproduce.** No longer reproducible — the LoCoMo harness and its `bench:*`
+commands were removed (the original journals were run ids `fast-3` and
+`capped-free-3`). The current, reproducible evaluation is the internal
+benchmark: `pnpm db:seed:bench` → `pnpm eval:bench`.
