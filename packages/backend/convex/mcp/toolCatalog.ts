@@ -7,6 +7,7 @@ import {
   runCodebaseOverview,
   runCodebaseSearch,
   runCodebasesList,
+  runContextPromptGet,
   runFilesDelete,
   runFilesGet,
   runFilesList,
@@ -41,6 +42,7 @@ import {
   codebaseOverviewSchema,
   codebaseSearchSchema,
   codebasesListSchema,
+  contextPromptGetSchema,
   filesDeleteSchema,
   filesGetSchema,
   filesListSchema,
@@ -151,6 +153,11 @@ export const toolSpecs = {
     name: "memory_related",
     schema: memoryRelatedSchema,
     run: runMemoryRelated,
+  }),
+  context_prompt_get: toolSpec({
+    name: "context_prompt_get",
+    schema: contextPromptGetSchema,
+    run: runContextPromptGet,
   }),
   skills_list: toolSpec({
     name: "skills_list",

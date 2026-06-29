@@ -1,9 +1,61 @@
 # Changelog
 
+## Internal eval is primary; external benchmark code removed — 2026-06-29
+
+- **Why**: the third-party benchmarks (LoCoMo / LongMemEval / BEAM) are infeasible to run at publishable scale on a Max-plan budget, and their judged-answer step conflates retrieval quality with reader/judge behaviour. Pivoted to a cheap, reproducible internal eval that isolates what vmem changes.
+- **New primary eval** (`packages/backend/neo4j-cli/eval/`): deterministic labelled corpus (~488 memories, ~78 graded queries, 8 query types), per-leg ablation (`pnpm eval:bench` → `internal/bench/vmem-internal-eval.md`), and a deterministic differentiator suite (`pnpm test:behavioral`) — embeddings + Neo4j only, no reader/judge LLM.
+- **Removed**: the entire `neo4j-cli/bench/` harness (LoCoMo + vendor-format runner/reporting/loaders) and the `claude-*` LoCoMo runner scripts, plus all `bench:*` package scripts. Nothing in production or the internal eval depended on it.
+- **Kept for history**: the markdown results/protocol docs under `internal/bench/` (`beam-results.md`, `locomo-results.md`, `comparator-claims.md`, `evaluation-protocol.md`), plus a new `external-benchmarks-investigation.md` explaining why public benchmarks were not the primary evaluation.
+
+## Vendor-format multi-benchmark bench (LongMemEval + BEAM) — 2026-06-29
+
+- **Why**: needed publishable, vendor-comparable numbers (Mem0/Supermemory retrieve→read→judge protocol) on LongMemEval-S and BEAM, not just LoCoMo.
+- **Multi-benchmark harness**: `run.ts --benchmark locomo|longmemeval|beam` maps all three into one shape; arms are vmem (engine retrieval) + full-context oracle, Claude **sonnet** reader + **gpt-4o-mini** judge, reporting absolute J, % of oracle, and abstention (`bench:vendor`).
+- **BEAM loader rewrite**: parses the real Hugging Face schema (Python-literal `probing_questions` dict, sessioned chat) via a new dependency-free Python-literal parser; 8/10 abilities gold-graded, the two rubric/compliance abilities excluded and logged.
+- **JSON-mode extraction fix**: forces valid JSON on all extraction/decision/enrichment calls, removing a ~28% silent fact-drop that understated vmem on every benchmark.
+- **Resume + oracle safety**: non-persistent providers (full-context) re-ingest on `--resume` instead of answering blind; over-budget oracle prompts are skipped, logged, and excluded from accuracy.
+- **LongMemEval handling**: deterministic seeded stratified sampling for indicative slices, plus numeric-answer coercion; abstention (`_abs`) questions scored by a dedicated abstention-aware judge; per-benchmark cleanup via `--source`/`--prefix`.
+
+## Full LoCoMo + Claude CLI bench — 2026-06-23
+
+- **Why**: the 20-question MCP smoke test was not publishable; full LoCoMo needs the production harness with Claude answering/judging.
+- **`bench:locomo:claude`**: same ingest → retrieve → answer → judge pipeline as OpenRouter bench, but answer + judge go through `claude -p` (default **sonnet** for subscription limits).
+- **`claude-locomo-bench.ps1`**: now delegates to the TS harness; `-McpMode` keeps the legacy MCP connector smoke test.
+
+## Claude Code LoCoMo bench — 2026-06-28
+
+- **Why**: publishable “Claude with vs without vmem” must use `claude -p` + MCP, not OpenRouter answer models.
+- **`claude-locomo-bench.ps1`**: ingests LoCoMo into the user's vmem account, then scores **no-memory** (`--bare`, MCP off) vs **vmem** (MCP only) with Claude as judge → `claude-locomo-results.md`.
+- **OpenRouter `bench:locomo`** stays for engine regression only; protocol doc updated.
+
+## Wiki sidebar A–Z sort — 2026-06-28
+
+- **Why**: manual `order` made the tree hard to scan; folders and pages should group predictably.
+- **Display order**: at each level, folders first then documents, each group sorted A–Z by title (drag-and-drop `order` unchanged).
+
+## Wiki sidebar drag-and-drop — 2026-06-28
+
+- **Why**: pages and folders could only be created in place — no way to re-home a node after creation.
+- **Drag to move**: drag any wiki page or folder onto a folder to nest it inside, or onto empty space to move it back to the top level (no sibling reordering).
+- Built on `@dnd-kit/core`; reuses the existing `moveNode` mutation (cycle/scope guards already server-side) with an optimistic cache update so the tree reorganises instantly.
+
+## wiki_create parentPath — 2026-06-23
+
+- **Why**: Claude often called `wiki_create` without `parentId`, so `/wiki-writeup` docs landed at wiki root instead of `Learning/`.
+- **`parentPath` on `wiki_create`**: pass e.g. `"Learning"` or `"Learning/topic"` — server resolves the folder chain and creates missing segments; mutually exclusive with `parentId`.
+- **`wiki-writeup` / `teach-me` seeds**: playbooks now require `parentPath` instead of a `wiki_list` → id dance.
+
+## MCP context_prompt_get + wiki-writeup rename — 2026-06-23
+
+- **Why**: claude.ai cannot re-read `vmem://context_prompt` mid-chat; skill-routing hacks on memory tools were writeup-specific and broke teach-me.
+- **Reverted** memory-tool skill routing, `skills_match_message`, preload playbooks in context, and verb-stuffed tool descriptions.
+- **`context_prompt_get` MCP tool**: returns the same markdown as `vmem://context_prompt` (profile + Available Skills index) on demand; personal connector only.
+- **Renamed** learning skill `writeup` → `wiki-writeup` (`/wiki-writeup <topic>`); seed `previousNames` preserves installs (`writeup`, `read-quick-dont-validate`).
+
 ## Learning skills + slimmer agent context — 2026-06-27
 
 - **Why**: users queue papers and links for later via Claude + vmem; long `CLAUDE.md` also inflated every agent session with architecture detail that belongs in a separate reference.
-- **`writeup` / `teach-me` Skills Hub seeds**: `/writeup` saves a chapter-style wiki explainer in `Learning/` for read-later; `/teach-me` runs an interactive tutor (validate each step, checkpoint to wiki). Both pull depth from `vmem://context_prompt` and memories — no "what's your level?" prompts.
+- **`wiki-writeup` / `teach-me` Skills Hub seeds**: `/wiki-writeup` saves a chapter-style wiki explainer in `Learning/` for read-later; `/teach-me` runs an interactive tutor (validate each step, checkpoint to wiki). Both pull depth from `context_prompt_get` / `vmem://context_prompt` and memories — no "what's your level?" prompts.
 - **`CODEBASE.md`**: vmem-specific architecture and feature invariants moved out of `CLAUDE.md`; `AGENTS.md` stays a short pointer.
 
 ## Web UI micro-interaction polish — 2026-06-26

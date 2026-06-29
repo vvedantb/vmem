@@ -16,7 +16,7 @@ import {
   toMemoryWithTags,
   toNeoInt,
 } from "./mappers";
-import { profileFilter, withSession } from "./shared";
+import { profileFilter, visibleStatusClause, withSession } from "./shared";
 import {
   type GraphExpansion,
   type MemoryCandidate,
@@ -27,9 +27,35 @@ import {
 } from "./types";
 
 const TOP_N_SEEDS = 5;
+// Per-leg RRF weights. RRF rewards a memory for appearing in multiple legs, so
+// a weak leg (BM25/fulltext) lifts distractors that also appear faintly in the
+// strong leg (vector), dragging fused ranking below pure vector. Internal
+// benchmarking (internal/bench/vmem-internal-eval.md) showed the vector leg is
+// by far the most reliable signal, so it carries full weight while the lexical
+// legs are down-weighted to noise-suppressing levels — keeping enough BM25
+// weight to still win exact-token (code/ID) queries that vector blurs.
+const VECTOR_RRF_WEIGHT = 1.0;
+const FULLTEXT_RRF_WEIGHT = 0.45;
+const ENTITY_RRF_WEIGHT = 0.8;
 const CHUNK_RRF_WEIGHT = 0.85;
 const GRAPH_RRF_WEIGHT = 0.85;
-const MMR_LAMBDA = 0.7;
+// Near-duplicate suppression threshold (cosine). The previous MMR balanced
+// relevance against diversity, but its diversity penalty demoted genuinely
+// related memories (a project's sibling facts, a multi-hop gold near its
+// bridge) for merely resembling an already-selected result, which lowered
+// retrieval quality below pure vector search. A memory system needs dedup (do
+// not repeat the same fact), not broad diversity, so we instead keep the
+// relevance order and only defer NEAR-IDENTICAL results (cosine ≥ threshold) to
+// the tail. Tuned via internal/bench/vmem-internal-eval.md.
+const DEDUP_COSINE_THRESHOLD = 0.92;
+// Recency/confidence modulate relevance as a BOUNDED MULTIPLIER, not a flat
+// additive term. RRF scores are numerically tiny (~0.01–0.03), so the old
+// additive boost (recency*0.225 + confidence*0.225 ≈ 0.4) swamped relevance and
+// effectively sorted by recency. As a multiplier, a recent/high-confidence
+// memory is lifted among similarly-relevant results but cannot outrank a
+// clearly more relevant one. Tuned via internal/bench/vmem-internal-eval.md.
+const RECENCY_BOOST = 0.5;
+const CONFIDENCE_BOOST = 0.3;
 
 interface RetrieveParams {
   userId: string;
@@ -48,6 +74,20 @@ interface RetrieveParams {
     query: string,
     candidates: Array<{ title: string; content: string }>,
   ) => Promise<number[] | null>;
+  /**
+   * Per-leg toggles for ablation / naive-baseline evaluation. Each defaults to
+   * ON when omitted, so production callers (no `legs`) get the full hybrid
+   * pipeline unchanged. Used by the internal benchmark to isolate legs
+   * (e.g. `{ vector: true, fulltext: false, ... , mmr: false }` = vector-only).
+   */
+  legs?: {
+    fulltext?: boolean;
+    vector?: boolean;
+    chunk?: boolean;
+    entity?: boolean;
+    graph?: boolean;
+    dedup?: boolean;
+  };
 }
 
 interface RankedRecord {
@@ -67,15 +107,17 @@ function featureFlagEnabled(name: string): boolean {
 
 function computeRrf(entry: MergedEntry): number {
   return (
-    (entry.ftRank === null ? 0 : rrfScore(entry.ftRank)) +
-    (entry.vecRank === null ? 0 : rrfScore(entry.vecRank)) +
+    (entry.ftRank === null ? 0 : rrfScore(entry.ftRank) * FULLTEXT_RRF_WEIGHT) +
+    (entry.vecRank === null ? 0 : rrfScore(entry.vecRank) * VECTOR_RRF_WEIGHT) +
     (entry.chunkRank === null
       ? 0
       : rrfScore(entry.chunkRank) * CHUNK_RRF_WEIGHT) +
     (entry.graphRank === null
       ? 0
       : rrfScore(entry.graphRank) * GRAPH_RRF_WEIGHT) +
-    (entry.entityRank === null ? 0 : rrfScore(entry.entityRank))
+    (entry.entityRank === null
+      ? 0
+      : rrfScore(entry.entityRank) * ENTITY_RRF_WEIGHT)
   );
 }
 
@@ -134,7 +176,7 @@ async function runFulltextLeg(
       return session.run(
         `CALL db.index.fulltext.queryNodes('memory_content', $query)
        YIELD node AS m, score AS fulltextScore
-       WHERE m.userId = $userId ${pf.clause}
+       WHERE m.userId = $userId ${pf.clause} AND ${visibleStatusClause("m")}
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
        WITH m, collect(t.name) AS tags, fulltextScore,
             duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
@@ -166,7 +208,7 @@ async function runVectorQuery(
   return session.run(
     `CALL db.index.vector.queryNodes('memory_embedding', $k, $queryVector)
      YIELD node AS m, score AS vectorScore
-     WHERE m.userId = $userId ${pf.clause}
+     WHERE m.userId = $userId ${pf.clause} AND ${visibleStatusClause("m")}
      OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
      WITH m, collect(t.name) AS tags, vectorScore,
           duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
@@ -212,7 +254,7 @@ async function runChunkQuery(
        YIELD node AS c, score AS chunkScore
        WHERE c.userId = $userId
        MATCH (m:Memory {id: c.memoryId})
-       WHERE m.userId = $userId ${pf.clause}
+       WHERE m.userId = $userId ${pf.clause} AND ${visibleStatusClause("m")}
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
        WITH m, collect(DISTINCT t.name) AS tags, chunkScore, c.content AS chunkContent,
             c.position AS chunkPosition,
@@ -326,7 +368,7 @@ async function runEntityLeg(
       `MATCH (m:Memory {userId: $userId})-[:MENTIONS]->(e:Entity)
        WHERE (toLower(coalesce(e.name, e.normalizedName)) IN $queryEntities
           OR toLower(e.normalizedName) IN $queryEntities)
-         ${pf.clause}
+         ${pf.clause} AND ${visibleStatusClause("m")}
        WITH m,
             count(DISTINCT e) AS overlap,
             sum(CASE
@@ -550,10 +592,12 @@ function scoreEntry(
   queryEmbedding: number[] | null,
 ): MemoryCandidate {
   const rrfCombined = computeRrf(entry);
-  const signalBoost = hasStrongDirectMatch(entry)
-    ? entry.recencyScore * 0.225 + entry.confidenceScore * 0.225
-    : 0;
-  const totalScore = rrfCombined * 0.55 + signalBoost;
+  const boost = hasStrongDirectMatch(entry)
+    ? 1 +
+      entry.recencyScore * RECENCY_BOOST +
+      entry.confidenceScore * CONFIDENCE_BOOST
+    : 1;
+  const totalScore = rrfCombined * boost;
 
   const reasons = buildReasons(entry, queryEmbedding);
   const scoreBreakdown: ScoreBreakdown = {
@@ -700,48 +744,36 @@ function cosineSimilarity(a: number[] | null, b: number[] | null): number {
   return dot / (Math.sqrt(aMagnitude) * Math.sqrt(bMagnitude));
 }
 
-function applyMmr(
+function applyDedup(
   scored: ScoredEntry[],
   queryEmbedding: number[] | null,
 ): ScoredEntry[] {
   if (queryEmbedding === null) return scored;
   if (!scored.some((item) => item.entry.embedding !== null)) return scored;
 
-  const first = scored[0];
-  if (first === undefined) return scored;
-
-  const selected: ScoredEntry[] = [first];
-  const remaining = scored.slice(1);
-
-  while (remaining.length > 0) {
-    let bestIndex = 0;
-    let bestScore = Number.NEGATIVE_INFINITY;
-
-    for (let i = 0; i < remaining.length; i++) {
-      const item = remaining[i];
-      if (item === undefined) continue;
-      const relevance = cosineSimilarity(queryEmbedding, item.entry.embedding);
-      const diversityPenalty =
-        selected.length === 0
-          ? 0
-          : Math.max(
-              ...selected.map((chosen) =>
-                cosineSimilarity(item.entry.embedding, chosen.entry.embedding),
-              ),
-            );
-      const score =
-        MMR_LAMBDA * relevance - (1 - MMR_LAMBDA) * diversityPenalty;
-      if (score > bestScore) {
-        bestScore = score;
-        bestIndex = i;
-      }
+  // `scored` is already ordered by fused relevance. Keep that order and only
+  // defer near-identical results (cosine ≥ threshold to an already-kept item)
+  // to the tail, so a duplicate fact does not waste a top-k slot while
+  // genuinely related memories stay where their relevance puts them.
+  const kept: ScoredEntry[] = [];
+  const deferred: ScoredEntry[] = [];
+  for (const item of scored) {
+    const embedding = item.entry.embedding;
+    if (embedding === null) {
+      kept.push(item);
+      continue;
     }
-
-    const best = remaining.splice(bestIndex, 1)[0];
-    if (best !== undefined) selected.push(best);
+    const isNearDuplicate = kept.some((chosen) => {
+      const other = chosen.entry.embedding;
+      return (
+        other !== null &&
+        cosineSimilarity(embedding, other) >= DEDUP_COSINE_THRESHOLD
+      );
+    });
+    if (isNearDuplicate) deferred.push(item);
+    else kept.push(item);
   }
-
-  return selected;
+  return [...kept, ...deferred];
 }
 
 async function applyReranker(
@@ -794,12 +826,26 @@ export async function retrieveMemories(
   const legLimit = Math.max(params.limit * 4, 20);
   const queryEmbeddings = await queryEmbeddingsForRetrieval(params);
 
+  // Per-leg toggles (default on) — let the internal benchmark isolate legs.
+  const useFulltext = params.legs?.fulltext !== false;
+  const useVector = params.legs?.vector !== false;
+  const useChunk = params.legs?.chunk !== false;
+  const useEntity = params.legs?.entity !== false;
+  const useGraph = params.legs?.graph !== false;
+  const useDedup = params.legs?.dedup !== false;
+
   const [ftResult, vectorRanked, chunkRanked, entityRanked] = await Promise.all(
     [
-      runFulltextLeg(driver, params, legLimit),
-      runVectorLeg(driver, params, legLimit, queryEmbeddings),
-      runChunkLeg(driver, params, legLimit, queryEmbeddings),
-      runEntityLeg(driver, params, legLimit),
+      useFulltext
+        ? runFulltextLeg(driver, params, legLimit)
+        : Promise.resolve({ records: [] }),
+      useVector
+        ? runVectorLeg(driver, params, legLimit, queryEmbeddings)
+        : Promise.resolve([]),
+      useChunk
+        ? runChunkLeg(driver, params, legLimit, queryEmbeddings)
+        : Promise.resolve([]),
+      useEntity ? runEntityLeg(driver, params, legLimit) : Promise.resolve([]),
     ],
   );
 
@@ -818,7 +864,7 @@ export async function retrieveMemories(
   );
 
   const graphNeighbors =
-    seedIds.length > 0
+    useGraph && seedIds.length > 0
       ? await expandViaGraph(driver, seedIds, params.userId, params.limit * 10)
       : [];
 
@@ -864,7 +910,9 @@ export async function retrieveMemories(
     }))
     .sort((a, b) => b.candidate.trace.score - a.candidate.trace.score);
 
-  scored = applyMmr(scored, params.queryEmbedding);
+  if (useDedup) {
+    scored = applyDedup(scored, params.queryEmbedding);
+  }
   scored = await applyReranker(params.query, scored, params.rerankCandidates);
 
   return scored.slice(0, params.limit).map((item) => {
