@@ -42,7 +42,6 @@ function CaptureVisual() {
       />
       <motion.span
         className="absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-foreground"
-        initial={false}
         animate={{ left: ["66%", "92%"], opacity: [0, 1, 1, 0] }}
         transition={{
           duration: 2.2,
@@ -110,7 +109,6 @@ function ConnectVisual() {
             stroke="currentColor"
             strokeWidth={1.5}
             vectorEffect="non-scaling-stroke"
-            initial={false}
             animate={{
               x2: [C.l, n.l, n.l, C.l],
               y2: [C.t, n.t, n.t, C.t],
@@ -149,7 +147,6 @@ function RecallVisual() {
         <motion.span
           key={i}
           className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground"
-          initial={false}
           animate={{
             left: [`${s.l}%`, `${C.l}%`],
             top: [`${s.t}%`, `${C.t}%`],

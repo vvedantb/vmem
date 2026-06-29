@@ -123,6 +123,10 @@ Icons:
 
 - Get logo SVGs from https://svgl.app
 
+Motion (framer-motion / motion-react):
+
+- Never put `initial={false}` on a self-running keyframe loop (`animate={{ x: [...] }}` + `repeat: Infinity`). `initial={false}` skips the enter animation, so the loop never starts. It works in dev only because React StrictMode double-mounts and re-kicks it — in the production build it renders frozen. Symptom: an animation that's fine on local dev but static on the deployed/prod build. For loops, omit `initial` (motion uses the first keyframe) or pass an explicit initial object. `initial={false}` is correct only for state-driven animations (animate value changes on state/prop change, no keyframe array).
+
 Verification Rules after implementation:
 
 - Ensure no `any`, `unknown`, or `as` exists.
