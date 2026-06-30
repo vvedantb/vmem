@@ -278,14 +278,14 @@ export default function Chat() {
                     height={22}
                     alt="vmem"
                     src="/icon-dark.svg"
-                    className="block dark:hidden outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
+                    className="block dark:hidden outline outline-1 -outline-offset-1 outline-separator rounded-full"
                   />
                   <img
                     width={22}
                     height={22}
                     alt="vmem"
                     src="/icon-light.svg"
-                    className="hidden dark:block outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
+                    className="hidden dark:block outline outline-1 -outline-offset-1 outline-separator rounded-full"
                   />
                 </div>
               }
@@ -310,14 +310,14 @@ export default function Chat() {
                     height={22}
                     alt="vmem"
                     src="/icon-dark.svg"
-                    className="block dark:hidden outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
+                    className="block dark:hidden outline outline-1 -outline-offset-1 outline-separator rounded-full"
                   />
                   <img
                     width={22}
                     height={22}
                     alt="vmem"
                     src="/icon-light.svg"
-                    className="hidden dark:block outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
+                    className="hidden dark:block outline outline-1 -outline-offset-1 outline-separator rounded-full"
                   />
                 </div>
               }
@@ -342,14 +342,14 @@ export default function Chat() {
                     height={22}
                     alt="vmem"
                     src="/icon-dark.svg"
-                    className="block dark:hidden outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
+                    className="block dark:hidden outline outline-1 -outline-offset-1 outline-separator rounded-full"
                   />
                   <img
                     width={22}
                     height={22}
                     alt="vmem"
                     src="/icon-light.svg"
-                    className="hidden dark:block outline outline-1 -outline-offset-1 outline-foreground/10 rounded-full"
+                    className="hidden dark:block outline outline-1 -outline-offset-1 outline-separator rounded-full"
                   />
                 </div>
               }

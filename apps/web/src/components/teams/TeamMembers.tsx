@@ -166,7 +166,7 @@ function MemberAvatar({ imageUrl }: { imageUrl: string | undefined }) {
       <img
         src={imageUrl}
         alt=""
-        className="h-8 w-8 shrink-0 rounded-lg object-cover outline outline-1 -outline-offset-1 outline-foreground/10"
+        className="h-8 w-8 shrink-0 rounded-lg object-cover outline outline-1 -outline-offset-1 outline-separator"
       />
     );
   }

@@ -82,7 +82,7 @@ export function SidebarUserMenu({ collapsed }: SidebarUserMenuProps) {
                 <img
                   src={user.imageUrl}
                   alt={name}
-                  className="h-7 w-7 rounded-full object-cover outline outline-1 -outline-offset-1 outline-foreground/10"
+                  className="h-7 w-7 rounded-full object-cover outline outline-1 -outline-offset-1 outline-separator"
                 />
               </button>
             </SidebarIconTooltip>
@@ -94,7 +94,7 @@ export function SidebarUserMenu({ collapsed }: SidebarUserMenuProps) {
               <img
                 src={user.imageUrl}
                 alt={name}
-                className="h-7 w-7 shrink-0 rounded-full object-cover outline outline-1 -outline-offset-1 outline-foreground/10"
+                className="h-7 w-7 shrink-0 rounded-full object-cover outline outline-1 -outline-offset-1 outline-separator"
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium leading-tight text-foreground">
