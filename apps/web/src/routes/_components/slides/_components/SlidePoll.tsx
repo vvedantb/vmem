@@ -111,9 +111,7 @@ export function SlidePoll({
                 live
                   ? "cursor-pointer hover:bg-surface-tertiary/70"
                   : "cursor-default",
-                mine
-                  ? "bg-surface-tertiary ring-2 ring-foreground/25"
-                  : "bg-surface-secondary/60",
+                mine ? "bg-surface-tertiary" : "bg-surface-secondary/60",
               )}
             >
               {live && (

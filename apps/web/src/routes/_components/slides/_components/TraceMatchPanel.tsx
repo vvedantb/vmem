@@ -59,9 +59,7 @@ export function TraceMatchPanel({
             <motion.div
               key={row.label}
               className={`rounded-xl px-3 py-2.5 ${
-                isTop
-                  ? "bg-surface-tertiary ring-2 ring-foreground/12"
-                  : "bg-surface-secondary/80"
+                isTop ? "bg-surface-tertiary" : "bg-surface-secondary/80"
               }`}
               initial={{ opacity: 0, y: 10 }}
               animate={live ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}

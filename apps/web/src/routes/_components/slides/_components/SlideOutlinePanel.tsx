@@ -80,7 +80,7 @@ export function SlideOutlinePanel({
                   className={cn(
                     "flex w-full gap-2.5 rounded-xl px-2 py-2 text-left transition-[background-color]",
                     isActive
-                      ? "bg-surface-tertiary ring-2 ring-foreground/10"
+                      ? "bg-surface-tertiary"
                       : "hover:bg-surface-tertiary/50",
                   )}
                 >
