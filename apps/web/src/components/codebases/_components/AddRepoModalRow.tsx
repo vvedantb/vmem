@@ -47,7 +47,7 @@ export function AddRepoModalRow({
         alt={repo.owner}
         width={36}
         height={36}
-        className="size-9 shrink-0 rounded-full outline outline-1 -outline-offset-1 outline-foreground/10"
+        className="size-9 shrink-0 rounded-full outline outline-1 -outline-offset-1 outline-separator"
       />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1">
