@@ -138,7 +138,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           alt="vmem"
           width={56}
           height={56}
-          className="rounded-lg outline outline-1 outline-foreground/10"
+          className="rounded-lg outline outline-1 outline-separator"
         />
         {children}
       </div>
