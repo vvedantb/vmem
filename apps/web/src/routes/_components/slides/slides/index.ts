@@ -45,6 +45,7 @@ import { Slide36GraphBuild } from "./36-graphbuild";
 import { Slide37NodeDetail } from "./37-nodedetail";
 import { Slide39ClaudeChat } from "./39-claudechat";
 import { Slide40Privacy } from "./40-privacy";
+import { Slide41MultiModel } from "./41-multimodel";
 
 export interface SlideEntry {
   id: string;
@@ -338,6 +339,13 @@ export const SLIDES: SlideEntry[] = [
     title: "Cost of stickiness",
     theme: "dark",
     Component: Slide26Stickiness,
+    steps: 2,
+  },
+  {
+    id: "41",
+    title: "The token bill",
+    theme: "dark",
+    Component: Slide41MultiModel,
     steps: 2,
   },
   {
