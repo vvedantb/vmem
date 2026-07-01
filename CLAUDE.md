@@ -73,6 +73,7 @@ Layout & Surface Colors:
 - `--muted` is secondary **text** only — never a resting row/card background (use surface tokens).
 - `text-foreground/<NN>` is a **no-op** (renders full opacity — the oklch text token ignores Tailwind's alpha modifier; verified `/75` `/55` === full). For graded text emphasis use `text-muted` or inline `style={{ opacity }}`. Surface bg tokens DO support the modifier (`bg-surface-secondary/40` etc.).
 - `ring-foreground/<NN>` is **worse than a no-op** — the alpha modifier produces no valid ring colour, so Tailwind falls back to its **default `ring-blue-500/50`**, i.e. a stray blue ring. Symptom: an unexplained blue glow on a selected/active element. For selected state prefer a background shift (design system: bg change indicates state); if a ring is truly needed use a real colour token (`ring-success`, or `ring-foreground` with no alpha).
+- `outline-foreground/<NN>` shares the root cause but a different symptom: the outline keeps the foreground colour and **drops the alpha**, so the intended faint hairline renders as a **solid near-black outline** (`oklch(0.21 0 0)`) — a stray black border. Same fix: drop the outline (prefer tonal contrast) or use a real colour token with no alpha.
 - Sidebar is always the darker surface, main content the lighter surface (both light and dark mode).
 - Hierarchy comes from: tonal surface contrast > whitespace > typography weight/size.
 
