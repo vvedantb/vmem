@@ -46,6 +46,7 @@ export const SPEAKER_NOTES: Record<string, string> = {
   "23": "Why you can trust it: you own your data — view, edit, or delete it anytime. It's private by default. And it runs on your own devices, no cloud required.",
 
   "20": "Zoom out and this becomes the company brain. One living memory for the whole organisation — every decision, every reason, every source — that any person or any AI can think inside.",
+  "42": "Here's what that looks like. Everyone's work connects through the same shared knowledge — the Acme account, the Q3 roadmap, the pricing decision, the wiki. Maya in sales and Tom in support both plug into the same account history. Nobody re-explains context to anyone — or to the AI. And to be clear: your personal memories stay yours. It's the shared knowledge that becomes one brain the whole team, and every AI, can think inside.",
   "15": "This is the product today — the memory graph, the dashboard, your memories.",
   "32": "Let me show you live. Every dot is a memory — click one and you see what connects to it.",
   "36": "Watch one memory become a web. A trip to Japan links to the ryokan, the ramen, the travel card — and it keeps branching out.",

@@ -46,6 +46,7 @@ import { Slide37NodeDetail } from "./37-nodedetail";
 import { Slide39ClaudeChat } from "./39-claudechat";
 import { Slide40Privacy } from "./40-privacy";
 import { Slide41MultiModel } from "./41-multimodel";
+import { Slide42SharedBrain } from "./42-sharedbrain";
 
 export interface SlideEntry {
   id: string;
@@ -273,6 +274,14 @@ export const SLIDES: SlideEntry[] = [
     theme: "dark",
     Component: Slide20CompanyBrain,
     steps: 1,
+  },
+  {
+    id: "42",
+    title: "Shared brain",
+    theme: "dark",
+    Component: Slide42SharedBrain,
+    steps: 3,
+    staggerMs: 1600,
   },
   {
     id: "15",
