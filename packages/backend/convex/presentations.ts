@@ -65,10 +65,22 @@ async function deleteParticipantOptionVotes(
   }
 }
 
+/**
+ * A hex code is number-like when it contains only digits (`1234567`) or forms
+ * scientific notation (`4952e29`). The web router's default search parser
+ * JSON-parses `?session=` values, turning such codes into numbers and breaking
+ * the share link, so we reject them. Any non-`e` hex letter (a/b/c/d/f) makes
+ * the code safe.
+ */
+function isNumberLikeCode(code: string): boolean {
+  return /^\d+(e\d+)?$/.test(code);
+}
+
 /** Generate a short, URL-friendly share code, retrying on collision. */
 async function generateUniqueCode(ctx: MutationCtx): Promise<string> {
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < 8; attempt++) {
     const code = crypto.randomUUID().replace(/-/g, "").slice(0, CODE_LENGTH);
+    if (isNumberLikeCode(code)) continue;
     const existing = await ctx.db
       .query("presentationSessions")
       .withIndex("by_code", (q) => q.eq("code", code))
