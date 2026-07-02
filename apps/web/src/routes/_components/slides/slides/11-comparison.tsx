@@ -21,10 +21,18 @@ interface ComparisonRow {
   claude: CellValue;
 }
 
-// Competitor states based on public information, July 2026. ChatGPT and Claude
-// both ship background + self-improving memory now (conceded as "yes");
-// Supermemory added a shared team knowledge graph (team "yes", graph "partial")
-// but its automatic-background capture is recent, so left crossed.
+// Competitor capabilities, checked against public docs, July 2026. Only two
+// rows are genuinely vmem-only — "shows why each memory matched" and "asks
+// before it overwrites"; everything else is shared or partial and marked
+// honestly rather than overclaimed:
+//  - Connected graph: Mem0 (graph memory) + Supermemory (knowledge graph) = yes.
+//  - Background + self-improving: ChatGPT (Dreaming) + Claude (24h distillation)
+//    = yes; Mem0/Supermemory do some auto forget/update = partial.
+//  - Lifecycle: everyone has some edit/delete/expire = partial; vmem full = yes.
+//  - Team: Supermemory (shared graph), ChatGPT (shared projects), Claude (team
+//    memory) all ship it = yes; Mem0 has multi-tenant scoping = partial.
+//  - Capture surfaces: Mem0/Supermemory browser extensions + ChatGPT Atlas
+//    browser memories = partial; Claude has no browser-activity capture = no.
 const rows: ComparisonRow[] = [
   {
     feature: "Memories that connect to each other",
@@ -54,41 +62,41 @@ const rows: ComparisonRow[] = [
     feature: "Pin, hide, or expire memories",
     vmem: "yes",
     mem0: "partial",
-    supermemory: "no",
+    supermemory: "partial",
     chatgpt: "partial",
     claude: "partial",
   },
   {
     feature: "Works automatically in the background",
     vmem: "yes",
-    mem0: "no",
-    supermemory: "no",
+    mem0: "partial",
+    supermemory: "partial",
     chatgpt: "yes",
     claude: "yes",
   },
   {
     feature: "Improves your memories on its own",
     vmem: "yes",
-    mem0: "no",
-    supermemory: "no",
+    mem0: "partial",
+    supermemory: "partial",
     chatgpt: "yes",
     claude: "yes",
   },
   {
     feature: "Capture from browser and phone",
     vmem: "yes",
-    mem0: "no",
+    mem0: "partial",
     supermemory: "partial",
     chatgpt: "partial",
-    claude: "partial",
+    claude: "no",
   },
   {
     feature: "Shared team spaces",
     vmem: "yes",
     mem0: "partial",
     supermemory: "yes",
-    chatgpt: "no",
-    claude: "no",
+    chatgpt: "yes",
+    claude: "yes",
   },
 ];
 

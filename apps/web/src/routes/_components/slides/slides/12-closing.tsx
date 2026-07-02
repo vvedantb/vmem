@@ -1,10 +1,5 @@
 import { SlideAmbientGraph } from "../_components/SlideAmbientGraph";
-import {
-  IconArrowRight,
-  IconPlug,
-  IconBolt,
-  IconMapPin,
-} from "@tabler/icons-react";
+import { IconPlug, IconBolt, IconMapPin } from "@tabler/icons-react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideShell,
@@ -18,8 +13,8 @@ import {
 const roadmapItems = [
   {
     icon: IconPlug,
-    title: "Connectors",
-    body: "Pull your data in from Notion, GitHub, Linear, and Gmail — automatically.",
+    title: "More connectors",
+    body: "More sources plugged in automatically — beyond the Notion, GitHub, Linear and Gmail already connected.",
   },
   {
     icon: IconBolt,
@@ -49,9 +44,10 @@ export function Slide12Closing() {
           />
           <SlideReveal step={1} className="mt-6 max-w-lg">
             <SlideBody>
-              vmem is live. The foundation — connected memory, recall you can
-              trust, Dream Mode, workspaces — is in place. Connectors and
-              smarter recall are next.
+              The foundation&rsquo;s already here — connected memory, recall you
+              can trust, Dream Mode, workspaces, and the first connectors.
+              Smarter recall, more connectors, and finer access are what&rsquo;s
+              next.
             </SlideBody>
           </SlideReveal>
           <SlideReveal step={1} delay={0.04} className="mt-4 max-w-lg">
@@ -60,13 +56,6 @@ export function Slide12Closing() {
               landed: rough, but improving fast. You can already see it: Claude
               now references your past chats and memories.
             </SlideBody>
-          </SlideReveal>
-          <SlideReveal step={1} delay={0.08} className="mt-8">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground/60">
-              <span>vmem.app</span>
-              <IconArrowRight size={14} stroke={1.5} />
-              <span>try it now</span>
-            </div>
           </SlideReveal>
         </div>
 

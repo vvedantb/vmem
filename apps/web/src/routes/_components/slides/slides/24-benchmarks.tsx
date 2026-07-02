@@ -1,6 +1,11 @@
+import {
+  IconTrendingDown,
+  IconTargetArrow,
+  IconQuote,
+} from "@tabler/icons-react";
+import type { ComponentType } from "react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
-  SlideBody,
   SlideItem,
   SlideKicker,
   SlideReveal,
@@ -9,32 +14,33 @@ import {
 } from "../_components/SlideShell";
 
 /**
- * Real Chapter 5 retrieval-benchmark results, told for a non-technical room:
- * four intuitive headline numbers, then an honest scope/caveat line (controlled
- * internal benchmark, not a public head-to-head with Mem0/Supermemory).
+ * Deliberately qualitative — early internal testing only, no hard numbers and
+ * no competitor comparison (that invites scrutiny the results can't back yet).
+ * Two plain signals, then a short first-person callout.
  */
 
-interface Metric {
-  value: string;
-  label: string;
+interface IconProps {
+  size?: number;
+  stroke?: number;
+  className?: string;
 }
 
-const METRICS: Metric[] = [
+interface Signal {
+  icon: ComponentType<IconProps>;
+  title: string;
+  body: string;
+}
+
+const SIGNALS: Signal[] = [
   {
-    value: "93%",
-    label: "of the time, the right memory was in the top 5 results",
+    icon: IconTrendingDown,
+    title: "Far fewer tokens",
+    body: "It only sends the model the memories that matter — so each question costs a fraction of what it otherwise would.",
   },
   {
-    value: "58×",
-    label: "less context sent to the model than dumping it all in",
-  },
-  {
-    value: "~0.2s",
-    label: "to find the right memories, typically",
-  },
-  {
-    value: "6/6",
-    label: "behaviour tests passed — dedup, pin, suppress, trace, update",
+    icon: IconTargetArrow,
+    title: "The right memories",
+    body: "When I ask it something, it pulls back the correct memories the large majority of the time.",
   },
 ];
 
@@ -42,36 +48,44 @@ export function Slide24Benchmarks() {
   return (
     <SlideShell>
       <SlideReveal delay={0}>
-        <SlideKicker>Benchmarks &amp; results</SlideKicker>
+        <SlideKicker>Early results</SlideKicker>
       </SlideReveal>
-      <BlurWordsTitle lines={["The numbers are in."]} size="xl" />
+      <BlurWordsTitle lines={["The early signs are good."]} size="xl" />
 
       <SlideStagger
-        className="mt-8 grid grid-cols-4 gap-4"
+        className="mt-8 grid grid-cols-2 gap-5"
         delayChildren={0.06}
-        staggerChildren={0.12}
+        staggerChildren={0.14}
         step={1}
       >
-        {METRICS.map(({ value, label }) => (
-          <SlideItem key={value}>
-            <div className="flex h-full flex-col gap-2 rounded-2xl bg-surface-secondary/60 px-5 py-5">
-              <p className="font-instrumentSerif text-5xl leading-none text-foreground">
-                {value}
+        {SIGNALS.map(({ icon: Icon, title, body }) => (
+          <SlideItem key={title}>
+            <div className="flex h-full flex-col rounded-2xl bg-surface-secondary/60 px-5 py-5">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-foreground text-background">
+                <Icon size={19} stroke={1.5} />
+              </div>
+              <p className="mb-1.5 text-base font-medium text-foreground">
+                {title}
               </p>
-              <p className="text-sm leading-snug text-muted">{label}</p>
+              <p className="text-sm leading-relaxed text-muted">{body}</p>
             </div>
           </SlideItem>
         ))}
       </SlideStagger>
 
-      <SlideReveal step={2} className="mt-7 max-w-3xl">
-        <SlideBody>
-          That&rsquo;s from a controlled test — 488 memories and 78 questions,
-          each with the right answer labelled by hand — where it also hit 95% in
-          the top ten and ranked the most useful memories near the top.
-          It&rsquo;s an honest internal benchmark, mind — not a public
-          head-to-head with Mem0 or Supermemory yet.
-        </SlideBody>
+      <SlideReveal step={2} className="mt-6">
+        <div className="flex max-w-3xl gap-4 rounded-2xl bg-foreground px-6 py-5 text-background">
+          <IconQuote size={26} stroke={1.5} className="shrink-0 opacity-50" />
+          <div>
+            <p className="text-lg leading-snug">
+              With everything in one place, nothing&rsquo;s invisible to Claude
+              any more.
+            </p>
+            <p className="mt-2 text-sm opacity-60">
+              From my personal usage — testing is still ongoing.
+            </p>
+          </div>
+        </div>
       </SlideReveal>
     </SlideShell>
   );

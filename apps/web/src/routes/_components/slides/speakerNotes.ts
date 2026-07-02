@@ -70,7 +70,7 @@ Next, it links that memory up to the related ones you already have, so they're a
 And finally, recall — when you ask a question later, it hands back the whole connected picture, and tells you where each bit came from.
 So really, you capture things once, and vmem quietly does the rest in the background.`,
   "17": `So this is what changes under the hood, and it's a big one.
-Normally, every time you ask an AI something, it has to rebuild all your context from scratch — go search Linear, open SharePoint, dig through past chats, and reason over all of it again, every single time.
+Normally, every time you ask an AI something, it has to rebuild all your context from scratch — go search Linear, open SharePoint, dig through OneDrive and Notion, and reason over all of it again, every single time.
 That's slow, and it burns a load of computing power on every question.
 With vmem, all that connecting and reasoning has already been done and stored.
 So instead of rebuilding everything each time, it's just one quick lookup — the answer's already sitting there, connected and ready.
@@ -126,18 +126,19 @@ It goes back over your memories overnight and improves them, like I showed with 
 It brings things back based on how they actually connect to each other — not just what happens to look similar on the surface.
 And it stays in sync with your real data, so as your documents and tools change, the memory keeps up.
 So it's not a static pile of notes — it's a living thing that gets better over time.`,
-  "11": `So here's vmem side by side with the main alternatives, Mem0 and Supermemory.
-Memories that connect to each other, showing you why something matched, asking before it overwrites anything, giving you full control of each memory, and improving itself overnight.
-Down the vmem column, it's yes all the way.
-The others do bits and pieces, but there's a real gap.
-So as you can see, there's a fair few things we do that they just don't.`,
-  "24": `So I've actually got some real numbers now.
-I ran a proper test — 488 memories, 78 questions, each with the right answer marked out by hand — and checked whether vmem pulled back the right one.
-It found it in the top five results 93% of the time, and the top ten 95% of the time.
-And here's the big one — it did that while sending the model about 58 times less context: a small, relevant slice instead of dumping everything in.
-So it's not just accurate, it's efficient — and that's what keeps it fast and cheap to run.
-Now I'll be honest — this is a controlled test of our own system, not a public head-to-head against Mem0 or Supermemory.
-But on top of the numbers, I've been running it on my own Claude and ChatGPT every day for weeks, and it's genuinely been brilliant.`,
+  "11": `So here's vmem next to the main alternatives — the dedicated memory tools, Mem0 and Supermemory, and the big providers' own memory, ChatGPT and Claude.
+And I'll be honest — a lot of these rows are going yes across the board now.
+Connecting memories, working in the background, improving on their own — everyone's racing on that, and that's fine.
+But look at the two rows where only vmem has a tick.
+It's the only one that shows you why each memory matched — everyone else just hands it over and you trust it.
+And it's the only one that asks you before it overwrites anything, instead of quietly changing your memory behind your back.
+So I'm not claiming we're the only ones with memory — we're the ones that are transparent about it and keep you in control.`,
+  "24": `So on results — this is early internal testing, and testing's still ongoing.
+Two things are standing out so far.
+First, it's using far fewer tokens — because it only sends the model the memories that matter, not everything, each question costs a fraction of what it otherwise would.
+And second, when I ask it something, it's pulling back the right memories the large majority of the time.
+And honestly, the nicest part — I've been running it on my own Claude for weeks, and giving it access to all my browsing history and bookmarks has been brilliant.
+When everything's in one place like that, nothing's invisible to it any more.`,
   "19": `So this isn't just a personal thing — it matters in pretty much every team.
 Think about support: it'd remember a customer's whole history, so nobody's asking them to repeat themselves.
 Healthcare — the context carries over between visits, so care doesn't start from scratch each time.
@@ -161,12 +162,11 @@ It becomes the company brain.
 One shared, living memory for the whole organisation — every decision that's been made, every reason behind it, every source.
 And any person, or any AI, can think inside that shared memory.
 So instead of knowledge being locked in people's heads and scattered across apps, it all lives in one place the whole company can draw on.`,
-  "42": `So here's what that actually looks like in practice.
-Everyone's work connects through the same shared knowledge — the Acme account, the Q3 roadmap, the pricing decision, the team wiki.
-So Maya over in sales and Tom in support are both plugged into the same account history — they're not each keeping their own separate version.
-Nobody's re-explaining context to anyone, or to the AI.
-And to be really clear — your personal memories still stay yours, and private.
-It's only the shared stuff that becomes this one brain the whole team, and every AI, can think inside.`,
+  "42": `So here's what that actually looks like.
+Everyone has their own private web of memories — Maya's, Tom's, everyone's — and those stay personal to them.
+But each of those webs plugs into one shared brain in the middle.
+So the knowledge the team's meant to share lives in that brain, and anyone — or any AI — can think inside it.
+To be really clear though: your own memories stay yours. It's only what you choose to share that feeds the common brain.`,
   "15": `So everything I've shown so far is real — this is the actual product today, nothing mocked up.
 You've got the live memory graph, the dashboard, and all your memories in one place.
 So this is genuinely what you'd be using day to day.
@@ -267,8 +267,7 @@ Tomorrow — who knows.
 The model you're using is going to keep changing.
 But your memory — everything you've built up — that shouldn't have to change with it.`,
   "12": `So yeah — that's vmem.
-It's live today, and honestly it's only just getting started.
-Have a play with it yourself at vmem.app.
+The foundation's all there — connected memory, recall you can trust, Dream Mode, workspaces, the first connectors — and honestly it's only just getting started.
 Thanks for coming, appreciate you listening.`,
   "14": `Right, that's me.
 What questions have you got?`,

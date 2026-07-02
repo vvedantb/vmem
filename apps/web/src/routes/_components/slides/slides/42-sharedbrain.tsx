@@ -10,20 +10,24 @@ import {
 } from "../_components/SlideShell";
 
 /**
- * Makes the "company brain" (previous slide) concrete: mock teammates each
- * connect to the SHARED knowledge they touch — an account, a roadmap, a
- * decision, the wiki — and those in turn feed one central brain. Deliberately
- * shows *shared* knowledge, not private personal memories, to stay true to the
- * "personal memories stay private" promise. All mock data.
+ * Makes the "company brain" (previous slide) concrete — and, importantly, gets
+ * the model right: each person has their OWN private web of memories, and those
+ * webs plug into one shared brain. Memories are never shared person-to-person;
+ * only the central brain is shared. This keeps faith with the "personal
+ * memories stay private" promise. All mock data.
  *
  * Build steps (auto-played by the deck):
- *   step 1 — people appear around the ring, plus the central brain
- *   step 2 — the shared-knowledge nodes appear and link into the brain
- *   step 3 — each person links to the shared knowledge they touch; overlaps
- *            (two people on one node) make the "shared" point land
+ *   step 1 — each person appears with their own little web of private memories
+ *   step 2 — the shared brain appears in the middle
+ *   step 3 — every person's web connects into that shared brain
  */
 
 const HUB = { l: 50, t: 51 };
+
+interface Dot {
+  l: number;
+  t: number;
+}
 
 interface Person {
   l: number;
@@ -31,34 +35,60 @@ interface Person {
   name: string;
   role: string;
   initial: string;
+  /** This person's own private memories — a small cluster beside them. */
+  dots: [Dot, Dot, Dot];
 }
 
 const PEOPLE: Person[] = [
-  { l: 17, t: 20, name: "Maya", role: "Sales", initial: "M" },
-  { l: 83, t: 20, name: "Sofia", role: "Product", initial: "S" },
-  { l: 17, t: 82, name: "Tom", role: "Support", initial: "T" },
-  { l: 83, t: 82, name: "Ravi", role: "Engineering", initial: "R" },
+  {
+    l: 18,
+    t: 24,
+    name: "Maya",
+    role: "Sales",
+    initial: "M",
+    dots: [
+      { l: 6, t: 13 },
+      { l: 26, t: 9 },
+      { l: 5, t: 37 },
+    ],
+  },
+  {
+    l: 82,
+    t: 24,
+    name: "Sofia",
+    role: "Product",
+    initial: "S",
+    dots: [
+      { l: 94, t: 13 },
+      { l: 74, t: 9 },
+      { l: 95, t: 37 },
+    ],
+  },
+  {
+    l: 18,
+    t: 80,
+    name: "Tom",
+    role: "Support",
+    initial: "T",
+    dots: [
+      { l: 6, t: 91 },
+      { l: 26, t: 95 },
+      { l: 5, t: 67 },
+    ],
+  },
+  {
+    l: 82,
+    t: 80,
+    name: "Ravi",
+    role: "Engineering",
+    initial: "R",
+    dots: [
+      { l: 94, t: 91 },
+      { l: 74, t: 95 },
+      { l: 95, t: 67 },
+    ],
+  },
 ];
-
-interface Shared {
-  l: number;
-  t: number;
-  label: string;
-  /** Indices into PEOPLE that both touch this piece of shared knowledge. */
-  people: [number, number];
-}
-
-const SHARED: Shared[] = [
-  { l: 50, t: 22, label: "Acme account", people: [0, 1] },
-  { l: 79, t: 51, label: "Q3 roadmap", people: [1, 3] },
-  { l: 50, t: 80, label: "Pricing decision", people: [2, 3] },
-  { l: 21, t: 51, label: "Onboarding wiki", people: [0, 2] },
-];
-
-// Flatten the person -> shared-knowledge links for the edge layer.
-const PERSON_LINKS = SHARED.flatMap((s, si) =>
-  s.people.map((pi) => ({ pi, si })),
-);
 
 /** Absolutely positioned at a percentage point, centred on it. */
 function At({ l, t, children }: { l: number; t: number; children: ReactNode }) {
@@ -75,8 +105,8 @@ function At({ l, t, children }: { l: number; t: number; children: ReactNode }) {
 export function Slide42SharedBrain() {
   const step = useContext(SlideStepContext);
   const peopleVisible = step >= 1;
-  const sharedVisible = step >= 2;
-  const linksVisible = step >= 3;
+  const hubVisible = step >= 2;
+  const linkedVisible = step >= 3;
 
   return (
     <SlideShell>
@@ -97,56 +127,76 @@ export function Slide42SharedBrain() {
           fill="none"
           aria-hidden
         >
-          {/* Shared knowledge -> central brain */}
-          {SHARED.map((s) => (
+          {/* Each person's own private web — person to their own memories */}
+          {PEOPLE.map((p) =>
+            p.dots.map((d, di) => (
+              <motion.line
+                key={`web-${p.name}-${di}`}
+                x1={p.l}
+                y1={p.t}
+                stroke="currentColor"
+                strokeWidth={1.1}
+                vectorEffect="non-scaling-stroke"
+                initial={false}
+                animate={{
+                  x2: peopleVisible ? d.l : p.l,
+                  y2: peopleVisible ? d.t : p.t,
+                  opacity: peopleVisible ? 1 : 0,
+                }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              />
+            )),
+          )}
+
+          {/* Each person's web plugs into the shared brain */}
+          {PEOPLE.map((p) => (
             <motion.line
-              key={`hub-${s.label}`}
-              x1={s.l}
-              y1={s.t}
+              key={`hub-${p.name}`}
+              x1={p.l}
+              y1={p.t}
               stroke="currentColor"
-              strokeWidth={1.25}
+              strokeWidth={1.4}
               vectorEffect="non-scaling-stroke"
               initial={false}
               animate={{
-                x2: sharedVisible ? HUB.l : s.l,
-                y2: sharedVisible ? HUB.t : s.t,
-                opacity: sharedVisible ? 1 : 0,
+                x2: linkedVisible ? HUB.l : p.l,
+                y2: linkedVisible ? HUB.t : p.t,
+                opacity: linkedVisible ? 0.6 : 0,
               }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             />
           ))}
-
-          {/* People -> the shared knowledge they touch */}
-          {PERSON_LINKS.map(({ pi, si }) => {
-            const p = PEOPLE[pi];
-            const s = SHARED[si];
-            return (
-              <motion.line
-                key={`link-${pi}-${si}`}
-                x1={p.l}
-                y1={p.t}
-                stroke="currentColor"
-                strokeWidth={1.25}
-                vectorEffect="non-scaling-stroke"
-                initial={false}
-                animate={{
-                  x2: linksVisible ? s.l : p.l,
-                  y2: linksVisible ? s.t : p.t,
-                  opacity: linksVisible ? 1 : 0,
-                }}
-                transition={{ duration: 0.55, ease: "easeOut" }}
-              />
-            );
-          })}
         </svg>
 
-        {/* Central brain — appears with the people as the anchor. */}
+        {/* Private memory dots — each belongs to one person */}
+        {PEOPLE.map((p) =>
+          p.dots.map((d, di) => (
+            <At key={`dot-${p.name}-${di}`} l={d.l} t={d.t}>
+              <motion.span
+                className="block rounded-full bg-foreground"
+                style={{ width: 8, height: 8 }}
+                initial={false}
+                animate={{
+                  opacity: peopleVisible ? 0.45 : 0,
+                  scale: peopleVisible ? 1 : 0.4,
+                }}
+                transition={{
+                  duration: 0.4,
+                  delay: peopleVisible ? 0.15 + di * 0.05 : 0,
+                  ease: "easeOut",
+                }}
+              />
+            </At>
+          )),
+        )}
+
+        {/* Central shared brain */}
         <At l={HUB.l} t={HUB.t}>
           <motion.div
             initial={false}
             animate={{
-              opacity: peopleVisible ? 1 : 0,
-              scale: peopleVisible ? 1 : 0.6,
+              opacity: hubVisible ? 1 : 0,
+              scale: hubVisible ? 1 : 0.6,
             }}
             transition={{ duration: 0.5, ease: "easeOut" }}
             className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-foreground px-4 py-2 text-background"
@@ -155,24 +205,6 @@ export function Slide42SharedBrain() {
             <span className="text-base font-medium">One shared brain</span>
           </motion.div>
         </At>
-
-        {/* Shared-knowledge nodes */}
-        {SHARED.map((s) => (
-          <At key={`node-${s.label}`} l={s.l} t={s.t}>
-            <motion.div
-              initial={false}
-              animate={{
-                opacity: sharedVisible ? 1 : 0,
-                scale: sharedVisible ? 1 : 0.5,
-              }}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-              className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-surface px-3 py-1.5"
-            >
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/60" />
-              <span className="text-sm text-foreground">{s.label}</span>
-            </motion.div>
-          </At>
-        ))}
 
         {/* People */}
         {PEOPLE.map((p) => (
@@ -202,9 +234,10 @@ export function Slide42SharedBrain() {
 
       <SlideReveal step={3} className="mt-2 max-w-3xl">
         <p className="text-sm leading-relaxed text-muted">
-          Personal memories stay private. What&rsquo;s{" "}
-          <span className="font-medium text-foreground">shared</span> becomes
-          one brain the whole team — and every AI — can think inside.
+          Your own memories stay{" "}
+          <span className="font-medium text-foreground">private</span> —
+          it&rsquo;s only what you share that feeds the one brain the whole
+          team, and every AI, can think inside.
         </p>
       </SlideReveal>
     </SlideShell>

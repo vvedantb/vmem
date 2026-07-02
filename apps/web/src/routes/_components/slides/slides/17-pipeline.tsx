@@ -3,7 +3,12 @@ import { IconCheck } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { motionDuration, motionEase } from "@vmem/ui";
 import ClaudeLogo from "@/components/settings/ClaudeLogo";
-import { EvaIcon, LinearIcon, SharePointIcon } from "@/components/brand-icons";
+import {
+  LinearIcon,
+  NotionIcon,
+  OneDriveIcon,
+  SharePointIcon,
+} from "@/components/brand-icons";
 import { VmemDrawInIcon } from "@/components/svg-animations";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
@@ -333,9 +338,14 @@ function AfterThread() {
               SharePoint
               <span style={{ color: CLAUDE.muted, opacity: 0.5 }}>·</span>
               <ResultLogo>
-                <EvaIcon size={14} className="rounded-[3px]" />
+                <OneDriveIcon size={14} />
               </ResultLogo>
-              Eva — one graph, already connected
+              OneDrive
+              <span style={{ color: CLAUDE.muted, opacity: 0.5 }}>·</span>
+              <ResultLogo>
+                <NotionIcon size={14} />
+              </ResultLogo>
+              Notion — one graph, already connected
             </span>
           }
         />
@@ -359,7 +369,7 @@ export function Slide17Pipeline() {
       <SlideReveal delay={0}>
         <SlideKicker>Why it matters</SlideKicker>
       </SlideReveal>
-      <BlurWordsTitle lines={["One call, not five."]} size="xl" />
+      <BlurWordsTitle lines={["One call, not four."]} size="xl" />
 
       <div className="mt-5 grid grid-cols-2 gap-6">
         {/* BEFORE — three tools, re-fetched and re-reasoned every prompt */}
@@ -368,7 +378,7 @@ export function Slide17Pipeline() {
             label="Before — without vmem"
             body="Claude pieces the data together and reasons over it again on every single prompt."
           />
-          <ClaudeChatWindow revealStep={0} itemCount={7}>
+          <ClaudeChatWindow revealStep={0} itemCount={9}>
             <PipelineMountStagger>
               <PipelineStaggerItem isFirst>
                 <ToolCallCard
@@ -394,10 +404,21 @@ export function Slide17Pipeline() {
               </PipelineStaggerItem>
               <PipelineStaggerItem>
                 <ToolCallCard
-                  icon={<EvaIcon size={16} className="rounded" />}
-                  serviceName="Eva"
-                  call={"checking past tenders"}
-                  result="6 records found"
+                  icon={<OneDriveIcon size={16} />}
+                  serviceName="OneDrive"
+                  call={"pulling the budget sheet"}
+                  result="1 file found"
+                />
+              </PipelineStaggerItem>
+              <PipelineStaggerItem>
+                <ReasoningRow />
+              </PipelineStaggerItem>
+              <PipelineStaggerItem>
+                <ToolCallCard
+                  icon={<NotionIcon size={16} />}
+                  serviceName="Notion"
+                  call={"reading the project notes"}
+                  result="3 pages found"
                 />
               </PipelineStaggerItem>
               <PipelineStaggerItem>
@@ -405,7 +426,7 @@ export function Slide17Pipeline() {
               </PipelineStaggerItem>
               <PipelineStaggerItem>
                 <AssistantAnswer>
-                  Here&rsquo;s the Q3 status — rebuilt from scratch across three
+                  Here&rsquo;s the Q3 status — rebuilt from scratch across four
                   sources.
                 </AssistantAnswer>
               </PipelineStaggerItem>
@@ -417,7 +438,7 @@ export function Slide17Pipeline() {
         <div>
           <ColumnHeader
             label="After — with vmem"
-            body="One call to memory returns the Linear, SharePoint, and Eva data already connected and already reasoned over."
+            body="One call to memory returns the Linear, SharePoint, OneDrive and Notion data already connected and already reasoned over."
           />
           <ClaudeChatWindow revealStep={1} itemCount={3}>
             <AfterThread />

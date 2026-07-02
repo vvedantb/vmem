@@ -84,6 +84,10 @@ export function Slide30Weaknesses() {
             label: "Self-improving memory · Perplexity",
             href: "https://www.perplexity.ai/hub/blog/self-improving-memory-for-agents",
           },
+          {
+            label: "Agent dreams · Claude",
+            href: "https://platform.claude.com/docs/en/managed-agents/dreams",
+          },
         ]}
       />
     </SlideShell>

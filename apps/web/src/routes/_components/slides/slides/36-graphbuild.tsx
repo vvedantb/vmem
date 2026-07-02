@@ -39,68 +39,86 @@ const SATELLITES: Satellite[] = [
   { l: 79, t: 75, label: "Prefers a window seat", relation: "noted" },
 ];
 
-// Far-field nodes (no labels/edges) that fade in once the cluster zooms out —
-// they surround the shrunken cluster so it reads as part of a much bigger
-// graph. `s` = dot size (px), `o` = resting opacity; both varied for depth.
-const OUTER_NODES = [
-  // top edge
-  { l: 10, t: 10, s: 10, o: 0.5 },
-  { l: 24, t: 6, s: 6, o: 0.28 },
-  { l: 38, t: 9, s: 5, o: 0.2 },
-  { l: 50, t: 5, s: 11, o: 0.5 },
-  { l: 62, t: 8, s: 5, o: 0.2 },
-  { l: 76, t: 6, s: 7, o: 0.32 },
-  { l: 90, t: 11, s: 9, o: 0.45 },
-  // right edge
-  { l: 94, t: 24, s: 6, o: 0.28 },
-  { l: 96, t: 40, s: 9, o: 0.45 },
-  { l: 93, t: 56, s: 5, o: 0.2 },
-  { l: 95, t: 72, s: 8, o: 0.4 },
-  { l: 90, t: 88, s: 10, o: 0.5 },
-  // bottom edge
-  { l: 78, t: 93, s: 6, o: 0.28 },
-  { l: 64, t: 95, s: 5, o: 0.2 },
-  { l: 50, t: 96, s: 10, o: 0.48 },
-  { l: 36, t: 94, s: 6, o: 0.28 },
-  { l: 20, t: 95, s: 8, o: 0.4 },
-  // left edge
-  { l: 7, t: 30, s: 9, o: 0.45 },
-  { l: 5, t: 46, s: 5, o: 0.2 },
-  { l: 9, t: 62, s: 7, o: 0.34 },
-  { l: 6, t: 80, s: 9, o: 0.45 },
-] as const;
+// ── Far-field web ──────────────────────────────────────────────────────────
+// Once the cluster zooms out it should sit inside a dense, organic web of
+// other memories — dots scattered everywhere (not just the edges), each with
+// a couple of links so chains meander through the field, like a real memory
+// graph. Generated deterministically from a seeded PRNG at module level so
+// every render (and SSR) produces the identical layout.
+
+/** Tiny deterministic PRNG (mulberry32) — same field on every render. */
+function mulberry32(seed: number) {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+interface FieldNode {
+  l: number;
+  t: number;
+  s: number;
+  o: number;
+}
+
+/** The zoomed cluster (chips + labels) occupies the middle — keep it clear. */
+function inClearing(l: number, t: number): boolean {
+  return Math.abs(l - CENTER.l) < 27 && Math.abs(t - CENTER.t) < 23;
+}
+
+function generateFieldNodes(count: number, seed: number): FieldNode[] {
+  const rand = mulberry32(seed);
+  const nodes: FieldNode[] = [];
+  while (nodes.length < count) {
+    const l = 4 + rand() * 92;
+    const t = 4 + rand() * 92;
+    if (inClearing(l, t)) continue;
+    // Keep a little breathing room between dots so chains stay readable.
+    if (nodes.some((n) => (n.l - l) ** 2 + (n.t - t) ** 2 < 20)) continue;
+    nodes.push({
+      l,
+      t,
+      s: 5 + Math.round(rand() * 6),
+      o: 0.18 + rand() * 0.32,
+    });
+  }
+  return nodes;
+}
+
+const OUTER_NODES = generateFieldNodes(46, 7);
 
 /**
- * Link each far-field node to its nearest neighbour, deduped — a sparse,
- * deterministic mesh so the surrounding dots read as a connected graph rather
- * than a scatter. Pure module-level compute (no randomness).
+ * Web edges: every node links to its 2 nearest neighbours (deduped), so each
+ * dot has multiple connections and the field reads as meandering chains
+ * rather than isolated pairs.
  */
-function nearestNeighbourEdges(
+function kNearestEdges(
   nodes: ReadonlyArray<{ l: number; t: number }>,
+  k: number,
 ): [number, number][] {
   const seen = new Set<string>();
   const edges: [number, number][] = [];
   nodes.forEach((a, i) => {
-    let best = -1;
-    let bestDist = Infinity;
-    nodes.forEach((b, j) => {
-      if (i === j) return;
-      const d = (a.l - b.l) ** 2 + (a.t - b.t) ** 2;
-      if (d < bestDist) {
-        bestDist = d;
-        best = j;
-      }
+    const byDist = nodes
+      .map((b, j) => ({ j, d: (a.l - b.l) ** 2 + (a.t - b.t) ** 2 }))
+      .filter(({ j }) => j !== i)
+      .sort((x, y) => x.d - y.d)
+      .slice(0, k);
+    byDist.forEach(({ j }) => {
+      const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      edges.push([i, j]);
     });
-    if (best === -1) return;
-    const key = i < best ? `${i}-${best}` : `${best}-${i}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    edges.push([i, best]);
   });
   return edges;
 }
 
-const OUTER_EDGES = nearestNeighbourEdges(OUTER_NODES);
+const OUTER_EDGES = kNearestEdges(OUTER_NODES, 2);
 
 /** A point's position after the cluster zooms to ZOOM about the centre. */
 function zoomedPoint(l: number, t: number) {
@@ -111,20 +129,23 @@ function zoomedPoint(l: number, t: number) {
 }
 
 /**
- * Bridges tying the outer field into the inner web: each links an outer dot to
- * one of the example (satellite) nodes at its zoomed-out position, so the
- * surrounding graph visibly connects to the cluster. `sat` indexes SATELLITES.
+ * Bridges tying the field into the cluster: each example node (at its
+ * zoomed-out position) links to its two nearest field dots, so the cluster is
+ * woven into the surrounding web rather than floating inside it.
  */
-const BRIDGES: { outer: number; sat: number }[] = [
-  { outer: 0, sat: 0 },
-  { outer: 17, sat: 0 },
-  { outer: 6, sat: 1 },
-  { outer: 7, sat: 1 },
-  { outer: 20, sat: 2 },
-  { outer: 16, sat: 2 },
-  { outer: 11, sat: 3 },
-  { outer: 12, sat: 3 },
-];
+const BRIDGES: { outer: number; sat: number }[] = SATELLITES.flatMap(
+  (s, sat) => {
+    const p = zoomedPoint(s.l, s.t);
+    return OUTER_NODES.map((n, outer) => ({
+      outer,
+      sat,
+      d: (n.l - p.l) ** 2 + (n.t - p.t) ** 2,
+    }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 2)
+      .map(({ outer }) => ({ outer, sat }));
+  },
+);
 
 /** Absolutely positioned at a percentage point, centred on it. */
 function At({ l, t, children }: { l: number; t: number; children: ReactNode }) {
