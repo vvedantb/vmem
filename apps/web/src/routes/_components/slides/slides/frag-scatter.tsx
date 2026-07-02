@@ -13,8 +13,8 @@ import type { ToolKey } from "../_components/ToolLogos";
 /**
  * The scatter half of the fragmentation beat (paired with frag-collapse).
  *  step 0 — kicker + title
- *  step 1 — six tool cards stagger in, each holding a real fragment of "you"
- *           (deliberately disconnected — whitespace, no edges between them)
+ *  step 1 — six cards stagger in (work apps + AI tools), each holding a slice
+ *           of your data (deliberately disconnected — no edges between them)
  *  step 2 — the sting line that names the problem
  * The payoff (collapse into one vmem layer) is the next slide.
  */
@@ -27,9 +27,24 @@ interface Fragment {
 
 const FRAGMENTS: Fragment[] = [
   {
-    tool: "ChatGPT",
-    logo: "chatgpt",
-    knows: "the tone of voice it learned from your drafts",
+    tool: "SharePoint",
+    logo: "sharepoint",
+    knows: "every doc, spec and policy the team has ever filed",
+  },
+  {
+    tool: "Linear",
+    logo: "linear",
+    knows: "every ticket, every cycle, and who owns what",
+  },
+  {
+    tool: "Teams",
+    logo: "teams",
+    knows: "the decisions buried across chats and channels",
+  },
+  {
+    tool: "Notion",
+    logo: "notion",
+    knows: "the wiki, the specs, the meeting notes",
   },
   {
     tool: "Claude",
@@ -37,24 +52,9 @@ const FRAGMENTS: Fragment[] = [
     knows: "your codebase — and that you hate pointless comments",
   },
   {
-    tool: "Gemini / Workspace",
-    logo: "gemini",
-    knows: "every email, doc and meeting you've had",
-  },
-  {
-    tool: "Copilot",
-    logo: "copilot",
-    knows: "the exact file you're typing in right now",
-  },
-  {
-    tool: "Browser / Perplexity",
-    logo: "browser",
-    knows: "the 30 tabs you researched that vendor in",
-  },
-  {
-    tool: "Grok",
-    logo: "grok",
-    knows: "the half-formed ideas you bounced off it at midnight",
+    tool: "ChatGPT",
+    logo: "chatgpt",
+    knows: "the tone of voice it learned from your drafts",
   },
 ];
 
@@ -87,9 +87,10 @@ export function SlideFragmentScatter() {
       </SlideStagger>
       <SlideReveal step={2} className="mt-8">
         <SlideBody>
-          Each tool knows a slice of you. None of them know{" "}
-          <span className="text-foreground">you</span> — and the moment you
-          switch, that slice is gone.
+          Every one of these holds a piece of you — and the threads between them
+          live in <span className="text-foreground">your head</span>. An agent
+          can&rsquo;t see those threads; it stitches the picture back together
+          through connectors, bit by bit, every time.
         </SlideBody>
       </SlideReveal>
     </SlideShell>

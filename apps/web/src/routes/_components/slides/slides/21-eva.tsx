@@ -75,7 +75,7 @@ function VmemLockupIcon({ size }: { size: number }) {
   );
 }
 
-/** Eva | vmem partnership lockup — hero-sized, then shrinks into a header. */
+/** vmem | Eva partnership lockup — hero-sized, then shrinks into a header. */
 function PartnershipLockup({ settled }: { settled: boolean }) {
   return (
     <motion.div
@@ -100,9 +100,9 @@ function PartnershipLockup({ settled }: { settled: boolean }) {
           className="flex origin-center items-center gap-8"
         >
           <motion.div variants={lockupItem} className="flex items-center gap-4">
-            <EvaIcon size={LOCKUP_ICON_SIZE} className="rounded-full" />
+            <VmemLockupIcon size={LOCKUP_ICON_SIZE} />
             <span className="font-instrumentSerif text-7xl text-foreground">
-              Eva
+              v<span className="italic">mem</span>
             </span>
           </motion.div>
 
@@ -115,9 +115,9 @@ function PartnershipLockup({ settled }: { settled: boolean }) {
           </motion.span>
 
           <motion.div variants={lockupItem} className="flex items-center gap-4">
-            <VmemLockupIcon size={LOCKUP_ICON_SIZE} />
-            <span className="font-instrumentSerif text-7xl text-foreground">
-              v<span className="italic">mem</span>
+            <EvaIcon size={LOCKUP_ICON_SIZE} className="rounded-full" />
+            <span className="font-inter text-6xl font-medium tracking-tight text-foreground">
+              Eva
             </span>
           </motion.div>
         </motion.div>
@@ -143,7 +143,7 @@ export function Slide21Eva() {
               <SlideKicker>Using it ourselves</SlideKicker>
             </SlideReveal>
             <BlurWordsTitle
-              lines={["Eva can run on vmem."]}
+              lines={["vmem plugs into Eva."]}
               size="xl"
               step={1}
             />

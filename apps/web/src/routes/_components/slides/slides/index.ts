@@ -1,11 +1,14 @@
 import type { ComponentType } from "react";
 import { Slide00Black } from "./00-black";
 import { Slide01Title } from "./01-title";
-import { SlidePollModels } from "./poll-models";
-import { SlidePollSwitch } from "./poll-switch";
-import { SlidePollStickiness } from "./poll-stickiness";
-import { SlidePollPrivacy } from "./poll-privacy";
-import { SlidePollFragmentation } from "./poll-fragmentation";
+// Poll slides temporarily removed from the running order (deck is long); the
+// files and entries below are kept, just commented out, so they're easy to
+// re-add later.
+// import { SlidePollModels } from "./poll-models";
+// import { SlidePollSwitch } from "./poll-switch";
+// import { SlidePollStickiness } from "./poll-stickiness";
+// import { SlidePollPrivacy } from "./poll-privacy";
+// import { SlidePollFragmentation } from "./poll-fragmentation";
 import { SlideFragmentScatter } from "./frag-scatter";
 import { SlideFragmentCollapse } from "./frag-collapse";
 import { Slide03What } from "./03-what";
@@ -37,7 +40,7 @@ import { Slide28Gaps } from "./28-gaps";
 import { Slide29VmemSolves } from "./29-vmemsolves";
 import { Slide30Weaknesses } from "./30-weaknesses";
 import { Slide31Defensibility } from "./31-defensibility";
-import { Slide32Demo } from "./32-demo";
+// import { Slide32Demo } from "./32-demo"; // temporarily removed from the running order
 import { Slide33Questions } from "./33-questions";
 import { Slide34Surfaces } from "./34-surfaces";
 import { Slide35Sovereignty } from "./35-sovereignty";
@@ -90,7 +93,8 @@ export const SLIDES: SlideEntry[] = [
     steps: 2,
   },
 
-  // ── Act 2 · Hook polls (light) ───────────────────────────────────────
+  // ── Act 2 · Hook polls (light) — temporarily removed ─────────────────
+  /*
   {
     id: "poll-models",
     title: "Poll — AI models",
@@ -112,6 +116,7 @@ export const SLIDES: SlideEntry[] = [
     Component: SlidePollFragmentation,
     steps: 0,
   },
+  */
 
   // ── Act 3 · The problem, made visual (light) ─────────────────────────
   // poll → scatter → collapse into one vmem layer (replaces old "02 The problem")
@@ -290,6 +295,8 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide15Showcase,
     steps: 0,
   },
+  // Live demo temporarily removed from the running order
+  /*
   {
     id: "32",
     title: "Live demo",
@@ -297,6 +304,7 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide32Demo,
     steps: 0,
   },
+  */
   {
     id: "36",
     title: "Graph build-up",
@@ -328,7 +336,8 @@ export const SLIDES: SlideEntry[] = [
   },
 
   // ── Act 7 · Why it's defensible — the moat (dark) ─────────────────────
-  // poll-stickiness now lands right before its payoff (theme flipped to dark)
+  // poll-stickiness temporarily removed from the running order
+  /*
   {
     id: "poll-stickiness",
     title: "Poll — stickiness",
@@ -336,6 +345,7 @@ export const SLIDES: SlideEntry[] = [
     Component: SlidePollStickiness,
     steps: 0,
   },
+  */
   {
     id: "25",
     title: "Memory is the moat",
@@ -366,7 +376,8 @@ export const SLIDES: SlideEntry[] = [
   },
 
   // ── Act 8 · Privacy & sovereignty (dark) ─────────────────────────────
-  // poll-privacy now lands right before the local-models payoff (flipped dark)
+  // poll-privacy temporarily removed from the running order
+  /*
   {
     id: "poll-privacy",
     title: "Poll — personal data",
@@ -374,6 +385,7 @@ export const SLIDES: SlideEntry[] = [
     Component: SlidePollPrivacy,
     steps: 0,
   },
+  */
   {
     id: "18",
     title: "Local models",

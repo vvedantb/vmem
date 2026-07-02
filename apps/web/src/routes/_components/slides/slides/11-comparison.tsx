@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { IconCheck, IconX, IconMinus } from "@tabler/icons-react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
+import { ToolLogo } from "../_components/ToolLogos";
 import {
   SlideShell,
   SlideKicker,
@@ -16,58 +17,82 @@ interface ComparisonRow {
   vmem: CellValue;
   mem0: CellValue;
   supermemory: CellValue;
+  chatgpt: CellValue;
+  claude: CellValue;
 }
 
+// Competitor states based on public information, July 2026. ChatGPT and Claude
+// both ship background + self-improving memory now (conceded as "yes");
+// Supermemory added a shared team knowledge graph (team "yes", graph "partial")
+// but its automatic-background capture is recent, so left crossed.
 const rows: ComparisonRow[] = [
   {
     feature: "Memories that connect to each other",
     vmem: "yes",
-    mem0: "partial",
-    supermemory: "no",
+    mem0: "yes",
+    supermemory: "yes",
+    chatgpt: "no",
+    claude: "no",
   },
   {
     feature: "Shows why each memory matched",
     vmem: "yes",
     mem0: "no",
     supermemory: "no",
+    chatgpt: "no",
+    claude: "no",
   },
   {
     feature: "Asks before it overwrites",
     vmem: "yes",
     mem0: "no",
     supermemory: "no",
+    chatgpt: "no",
+    claude: "no",
   },
   {
     feature: "Pin, hide, or expire memories",
     vmem: "yes",
     mem0: "partial",
     supermemory: "no",
+    chatgpt: "partial",
+    claude: "partial",
   },
   {
     feature: "Works automatically in the background",
     vmem: "yes",
     mem0: "no",
     supermemory: "no",
+    chatgpt: "yes",
+    claude: "yes",
   },
   {
     feature: "Improves your memories on its own",
     vmem: "yes",
     mem0: "no",
     supermemory: "no",
+    chatgpt: "yes",
+    claude: "yes",
   },
   {
     feature: "Capture from browser and phone",
     vmem: "yes",
     mem0: "no",
     supermemory: "partial",
+    chatgpt: "partial",
+    claude: "partial",
   },
   {
     feature: "Shared team spaces",
     vmem: "yes",
     mem0: "partial",
-    supermemory: "partial",
+    supermemory: "yes",
+    chatgpt: "no",
+    claude: "no",
   },
 ];
+
+const GRID = "grid grid-cols-[minmax(0,1fr)_repeat(5,88px)]";
 
 /** Brand logo chip + name, stacked, for a comparison column header. */
 function BrandCol({
@@ -87,8 +112,8 @@ function BrandCol({
       <span
         className={
           emphasised
-            ? "text-xs font-medium text-foreground"
-            : "text-xs text-muted"
+            ? "whitespace-nowrap text-[11px] font-medium text-foreground"
+            : "whitespace-nowrap text-[11px] text-muted"
         }
       >
         {label}
@@ -131,7 +156,9 @@ export function Slide11Comparison() {
         step={1}
         className="mt-8 overflow-hidden rounded-2xl bg-surface-secondary/40"
       >
-        <div className="grid grid-cols-[1fr_80px_80px_100px] items-end border-b border-separator/30 px-5 py-3">
+        <div
+          className={`${GRID} items-end border-b border-separator/30 px-5 py-3`}
+        >
           <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
             Feature
           </span>
@@ -169,17 +196,31 @@ export function Slide11Comparison() {
               />
             }
           />
+          <BrandCol
+            label="ChatGPT"
+            logo={
+              <ToolLogo tool="chatgpt" className="h-4 w-4 text-foreground" />
+            }
+          />
+          <BrandCol
+            label="Claude"
+            logo={<ToolLogo tool="claude" className="h-4 w-4" />}
+          />
         </div>
         <SlideStagger delayChildren={0.12} staggerChildren={0.04} step={1}>
           {rows.map((row) => (
             <SlideItem key={row.feature}>
-              <div className="grid grid-cols-[1fr_80px_80px_100px] px-5 py-2.5 hover:bg-surface-secondary/60">
+              <div
+                className={`${GRID} px-5 py-2.5 hover:bg-surface-secondary/60`}
+              >
                 <span className="text-sm text-foreground/80">
                   {row.feature}
                 </span>
                 <Cell value={row.vmem} />
                 <Cell value={row.mem0} />
                 <Cell value={row.supermemory} />
+                <Cell value={row.chatgpt} />
+                <Cell value={row.claude} />
               </div>
             </SlideItem>
           ))}
@@ -188,7 +229,7 @@ export function Slide11Comparison() {
 
       <SlideReveal step={1} delay={0.1} className="mt-4">
         <p className="text-xs text-muted/60">
-          Partial = basic or limited. Based on public information.
+          Partial = basic or limited. Based on public information, July 2026.
         </p>
       </SlideReveal>
     </SlideShell>

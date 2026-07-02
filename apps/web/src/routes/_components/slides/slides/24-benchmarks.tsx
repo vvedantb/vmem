@@ -1,7 +1,6 @@
-import { IconQuote } from "@tabler/icons-react";
-import { motion } from "motion/react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
+  SlideBody,
   SlideItem,
   SlideKicker,
   SlideReveal,
@@ -9,30 +8,35 @@ import {
   SlideStagger,
 } from "../_components/SlideShell";
 
-const COMPETITORS = [
-  { name: "Supermemory", logo: "/slides/logo-supermemory.svg" },
-  { name: "Mem0", logo: "/slides/logo-mem0.svg" },
-] as const;
+/**
+ * Real Chapter 5 retrieval-benchmark results, told for a non-technical room:
+ * four intuitive headline numbers, then an honest scope/caveat line (controlled
+ * internal benchmark, not a public head-to-head with Mem0/Supermemory).
+ */
 
-/** Square logo chip, matching the comparison slide's brand columns. */
-function LogoChip({ src, alt }: { src: string; alt: string }) {
-  return (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface">
-      <img src={src} alt={alt} className="h-5 w-5" draggable={false} />
-    </span>
-  );
+interface Metric {
+  value: string;
+  label: string;
 }
 
-/** Pulsing "running" dot for the in-progress benchmark rows. */
-function RunningDot() {
-  return (
-    <motion.span
-      className="h-1.5 w-1.5 rounded-full bg-foreground/50"
-      animate={{ opacity: [0.3, 1, 0.3] }}
-      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-    />
-  );
-}
+const METRICS: Metric[] = [
+  {
+    value: "93%",
+    label: "of the time, the right memory was in the top 5 results",
+  },
+  {
+    value: "58×",
+    label: "less context sent to the model than dumping it all in",
+  },
+  {
+    value: "~0.2s",
+    label: "to find the right memories, typically",
+  },
+  {
+    value: "6/6",
+    label: "behaviour tests passed — dedup, pin, suppress, trace, update",
+  },
+];
 
 export function Slide24Benchmarks() {
   return (
@@ -40,57 +44,34 @@ export function Slide24Benchmarks() {
       <SlideReveal delay={0}>
         <SlideKicker>Benchmarks &amp; results</SlideKicker>
       </SlideReveal>
-      <BlurWordsTitle lines={["The numbers are coming."]} size="xl" />
+      <BlurWordsTitle lines={["The numbers are in."]} size="xl" />
 
-      {/* Step 1 — formal benchmarking, honestly in progress */}
       <SlideStagger
-        className="mt-8 grid grid-cols-2 gap-5"
+        className="mt-8 grid grid-cols-4 gap-4"
         delayChildren={0.06}
-        staggerChildren={0.14}
+        staggerChildren={0.12}
         step={1}
       >
-        {COMPETITORS.map(({ name, logo }) => (
-          <SlideItem key={name}>
-            <div className="flex items-center justify-between rounded-2xl bg-surface-secondary/60 px-5 py-4">
-              <div className="flex items-center gap-2.5">
-                {/* vmem icon is a filled square app icon — fill the chip. */}
-                <img
-                  src="/icon.png"
-                  alt="vmem"
-                  className="h-8 w-8 shrink-0 rounded-lg"
-                  draggable={false}
-                />
-                <span className="text-sm text-muted">vs</span>
-                <LogoChip src={logo} alt={name} />
-                <p className="text-lg font-medium text-foreground">{name}</p>
-              </div>
-              <span className="flex items-center gap-2 text-xs font-medium text-muted">
-                <RunningDot />
-                Benchmarking
-              </span>
+        {METRICS.map(({ value, label }) => (
+          <SlideItem key={value}>
+            <div className="flex h-full flex-col gap-2 rounded-2xl bg-surface-secondary/60 px-5 py-5">
+              <p className="font-instrumentSerif text-5xl leading-none text-foreground">
+                {value}
+              </p>
+              <p className="text-sm leading-snug text-muted">{label}</p>
             </div>
           </SlideItem>
         ))}
       </SlideStagger>
-      <SlideReveal step={1} delay={0.2} className="mt-3">
-        <p className="text-sm text-muted">
-          Formal results on answer quality, speed, and cost are in progress.
-        </p>
-      </SlideReveal>
 
-      {/* Step 2 — the real proof today: personal daily use */}
-      <SlideReveal step={2} className="mt-6">
-        <div className="flex gap-4 rounded-2xl bg-foreground px-6 py-5 text-background">
-          <IconQuote size={26} stroke={1.5} className="shrink-0 opacity-60" />
-          <div>
-            <p className="text-base leading-relaxed">
-              I&rsquo;ve been running vmem on my own Claude and ChatGPT
-              subscriptions for weeks. Having all my data accessible anywhere
-              has been genuinely amazing.
-            </p>
-            <p className="mt-2 text-sm opacity-60">From daily personal use</p>
-          </div>
-        </div>
+      <SlideReveal step={2} className="mt-7 max-w-3xl">
+        <SlideBody>
+          That&rsquo;s from a controlled test — 488 memories and 78 questions,
+          each with the right answer labelled by hand — where it also hit 95% in
+          the top ten and ranked the most useful memories near the top.
+          It&rsquo;s an honest internal benchmark, mind — not a public
+          head-to-head with Mem0 or Supermemory yet.
+        </SlideBody>
       </SlideReveal>
     </SlideShell>
   );

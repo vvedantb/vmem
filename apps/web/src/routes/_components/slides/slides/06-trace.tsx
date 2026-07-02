@@ -9,45 +9,61 @@ import {
 
 const traceRows = [
   {
-    label: "meaning",
+    label: "Meaning",
     score: "0.91",
-    reason: "Same project — different words, same topic",
+    reason: "Same idea — you said “budget”, the note says “spend”",
   },
   {
-    label: "name",
+    label: "Topic",
     score: "0.85",
-    reason: "Both mention the budget review from March",
+    reason: "Shared topics — Q3, budget, planning",
   },
   {
-    label: "conversation",
+    label: "Timing",
     score: "0.72",
-    reason: "Saved minutes after your planning note",
-  },
-  {
-    label: "topic",
-    score: "0.68",
-    reason: "Shared topics: planning, budget, Q3",
+    reason: "Saved just after your own planning note",
   },
 ];
+
+const traceMemory = {
+  text: "In the March planning call, we capped Q3 marketing spend at £40k.",
+  source: "From your planning-call notes · 12 Mar",
+};
 
 export function Slide06Trace() {
   return (
     <SlideShell>
-      <SlideReveal delay={0}>
-        <SlideKicker>Why this memory showed up</SlideKicker>
-      </SlideReveal>
-      <BlurWordsTitle lines={["Every recall explains itself."]} size="xl" />
-      <SlideReveal delay={0.08} className="mt-3 max-w-xl">
-        <SlideBody className="text-base text-foreground">
-          Other tools hand you memories with no explanation. vmem shows you why
-          each one matched.
-        </SlideBody>
-      </SlideReveal>
+      <div className="flex h-full items-center gap-14">
+        <div className="flex flex-1 flex-col justify-center">
+          <SlideReveal delay={0}>
+            <SlideKicker>Why this memory showed up</SlideKicker>
+          </SlideReveal>
+          <BlurWordsTitle
+            lines={["Every recall", "explains itself."]}
+            size="xl"
+          />
+          <SlideReveal delay={0.08} className="mt-5 max-w-md">
+            <SlideBody>
+              Other tools just hand you a memory with no explanation. vmem shows
+              you the actual reasons it picked this one.
+            </SlideBody>
+          </SlideReveal>
+          <SlideReveal step={2} className="mt-5 max-w-md">
+            <SlideBody className="text-foreground">
+              So you choose how much to trust each match — nothing's hidden
+              behind a black box.
+            </SlideBody>
+          </SlideReveal>
+        </div>
 
-      <TraceMatchPanel
-        rows={traceRows}
-        footer="You choose how much to trust each match. Nothing hidden behind a black box."
-      />
+        <SlideReveal delay={0.1} className="w-[440px] shrink-0">
+          <TraceMatchPanel
+            query="What did we decide on the Q3 budget?"
+            memory={traceMemory}
+            rows={traceRows}
+          />
+        </SlideReveal>
+      </div>
     </SlideShell>
   );
 }

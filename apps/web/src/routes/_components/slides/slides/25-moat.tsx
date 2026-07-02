@@ -5,8 +5,9 @@ import {
 } from "@tabler/icons-react";
 import type { ComponentType } from "react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
-import { PollCallback } from "../_components/PollCallback";
-import { POLL_STICKINESS } from "../_components/pollDefs";
+// Poll callback removed along with the poll slides:
+// import { PollCallback } from "../_components/PollCallback";
+// import { POLL_STICKINESS } from "../_components/pollDefs";
 import {
   SlideItem,
   SlideKicker,
@@ -82,9 +83,11 @@ export function Slide25Moat() {
         </p>
       </SlideReveal>
 
+      {/* Poll callback removed with the polls:
       <SlideReveal step={2} delay={0.15} className="mt-5">
         <PollCallback poll={POLL_STICKINESS} prefix="You just told me" />
       </SlideReveal>
+      */}
     </SlideShell>
   );
 }

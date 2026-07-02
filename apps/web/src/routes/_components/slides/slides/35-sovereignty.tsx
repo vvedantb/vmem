@@ -5,6 +5,7 @@ import {
   IconShieldCheck,
 } from "@tabler/icons-react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
+import { SlideReferences } from "../_components/SlideReferences";
 import {
   SlideItem,
   SlideKicker,
@@ -82,7 +83,7 @@ export function Slide35Sovereignty() {
         <p className="font-instrumentSerif text-2xl leading-snug text-foreground">
           “Switch out a <span className="italic">generalist</span> model without
           losing the <span className="italic">company veteran</span> expertise
-          built into your learning system.”
+          built into their learning system.”
         </p>
         <p className="mt-3 text-sm leading-relaxed text-muted">
           That is the key test of your control and sovereignty in the era ahead.
@@ -91,6 +92,16 @@ export function Slide35Sovereignty() {
           — Satya Nadella, CEO of Microsoft
         </p>
       </SlideReveal>
+
+      <SlideReferences
+        className="mt-auto pt-8"
+        items={[
+          {
+            label: "Satya Nadella · X (@satyanadella)",
+            href: "https://x.com/satyanadella/status/2066182223213293753",
+          },
+        ]}
+      />
     </SlideShell>
   );
 }

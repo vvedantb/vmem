@@ -9,7 +9,7 @@ import {
   previewEdges,
   previewNodes,
   type PreviewNodeId,
-} from "@/routes/_components/landing/landing-preview-data";
+} from "./slideMemoryPreviewData";
 
 const SNIPPET_TARGET = "memory.retrieve";
 const NODE_COUNT_TARGET = 128;
@@ -91,7 +91,7 @@ export function SlideMemoryPreview({ loop = true }: SlideMemoryPreviewProps) {
   const activeNode = previewNodes.find((node) => node.id === activeNodeId);
   const snippet =
     activeNode?.snippet ??
-    "Select a node to see what recall surfaces — connected context, not keywords.";
+    "Click any memory to see what it connects to — the whole picture, not just a keyword match.";
 
   return (
     <div

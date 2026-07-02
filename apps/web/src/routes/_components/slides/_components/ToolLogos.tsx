@@ -15,7 +15,11 @@ export type ToolKey =
   | "gemini"
   | "copilot"
   | "browser"
-  | "grok";
+  | "grok"
+  | "linear"
+  | "sharepoint"
+  | "teams"
+  | "notion";
 
 /** OpenAI / ChatGPT mark (monochrome — coloured via `currentColor`). */
 function OpenAiMark({ className }: { className?: string }) {
@@ -81,5 +85,41 @@ export function ToolLogo({ tool, className = "" }: ToolLogoProps) {
       );
     case "browser":
       return <IconWorld stroke={1.5} className={className} />;
+    case "linear":
+      return (
+        <img
+          src="/slides/logo-linear.svg"
+          alt=""
+          aria-hidden
+          className={className}
+        />
+      );
+    case "sharepoint":
+      return (
+        <img
+          src="/slides/logo-sharepoint.svg"
+          alt=""
+          aria-hidden
+          className={className}
+        />
+      );
+    case "teams":
+      return (
+        <img
+          src="/slides/logo-teams.svg"
+          alt=""
+          aria-hidden
+          className={className}
+        />
+      );
+    case "notion":
+      return (
+        <img
+          src="/slides/logo-notion.svg"
+          alt=""
+          aria-hidden
+          className={className}
+        />
+      );
   }
 }
