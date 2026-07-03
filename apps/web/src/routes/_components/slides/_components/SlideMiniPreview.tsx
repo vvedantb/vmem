@@ -52,7 +52,12 @@ export function SlideMiniPreview({
       {label ? <p className="text-xs font-medium text-muted">{label}</p> : null}
       <div
         ref={containerRef}
-        className={`relative aspect-video w-full overflow-hidden rounded-xl bg-background ${theme}`}
+        // `text-foreground` pins a themed colour baseline on this dark/light
+        // container. Some slides use `text-foreground/<alpha>`, which Tailwind
+        // drops to an invalid colour rule; without a baseline here those
+        // elements inherit colour from the light presenter chrome and render
+        // black on dark slides. Setting it means they inherit the right colour.
+        className={`relative aspect-video w-full overflow-hidden rounded-xl bg-background text-foreground ${theme}`}
       >
         <div
           className="pointer-events-none absolute left-0 top-0 origin-top-left"

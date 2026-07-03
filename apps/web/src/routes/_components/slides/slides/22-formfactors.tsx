@@ -99,6 +99,10 @@ export function Slide22FormFactors() {
             label: "Digital twin · BBC News",
             href: "https://www.bbc.co.uk/news/articles/c1d907lq6nyo",
           },
+          {
+            label: "New form factors · @AravSrinivas",
+            href: "https://x.com/AravSrinivas/status/2072727777179258986",
+          },
         ]}
       />
     </SlideShell>

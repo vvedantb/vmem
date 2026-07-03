@@ -7,6 +7,7 @@ import {
 } from "@tabler/icons-react";
 import type { ComponentType } from "react";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
+import { SlideReferences } from "../_components/SlideReferences";
 import {
   SlideItem,
   SlideKicker,
@@ -104,6 +105,24 @@ export function Slide18Local() {
           </p>
         </div>
       </SlideReveal>
+
+      <SlideReferences
+        className="mt-auto pt-6"
+        items={[
+          {
+            label: "@clairevo · X",
+            href: "https://x.com/clairevo/status/2069828122640548204",
+          },
+          {
+            label: "@cline · X",
+            href: "https://x.com/cline/status/2069171146994729078",
+          },
+          {
+            label: "@brian_armstrong · X",
+            href: "https://x.com/brian_armstrong/status/2070670644577280109",
+          },
+        ]}
+      />
     </SlideShell>
   );
 }

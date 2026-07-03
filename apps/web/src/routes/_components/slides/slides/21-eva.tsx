@@ -140,7 +140,7 @@ export function Slide21Eva() {
         {settled && (
           <>
             <SlideReveal step={1}>
-              <SlideKicker>Using it ourselves</SlideKicker>
+              <SlideKicker>The opportunity</SlideKicker>
             </SlideReveal>
             <BlurWordsTitle
               lines={["vmem plugs into Eva."]}
@@ -149,8 +149,8 @@ export function Slide21Eva() {
             />
             <SlideReveal step={1} delay={0.1} className="mt-4 max-w-2xl">
               <SlideBody>
-                Eva is our own internal agent. Connect vmem and she remembers
-                everything she has ever done.
+                Eva is our own internal agent. Connect vmem to her, and she
+                could remember everything she&rsquo;s ever done.
               </SlideBody>
             </SlideReveal>
 
@@ -178,7 +178,7 @@ export function Slide21Eva() {
               <div className="flex items-center gap-4 rounded-2xl bg-foreground px-6 py-5 text-background">
                 <EvaIcon size={28} className="shrink-0 rounded-md" />
                 <p className="text-base leading-relaxed">
-                  She keeps getting better as the data vmem holds grows —
+                  She&rsquo;d keep getting better as the data vmem holds grows —
                   improving with every task, learning from every mistake.
                 </p>
               </div>

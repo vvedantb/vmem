@@ -10,7 +10,6 @@ import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 // import { PollCallback } from "../_components/PollCallback";
 // import { POLL_PRIVACY } from "../_components/pollDefs";
 import {
-  SlideBody,
   SlideItem,
   SlideKicker,
   SlideReveal,
@@ -42,17 +41,17 @@ const BEATS: Beat[] = [
   {
     icon: IconLock,
     title: "The blocker",
-    body: "Banks, hospitals, law firms, government — privacy and compliance rules forbid sending customer, patient or case data to a third-party AI. Claude and ChatGPT are off the table.",
+    body: "Banks, hospitals, law firms, government — the rules forbid their data ever going to a third-party AI.",
   },
   {
     icon: IconServer,
     title: "The unlock",
-    body: "A local model runs on the company's own servers. Every prompt and answer stays inside their walls — nothing leaves, nothing trains anyone else's model.",
+    body: "A local model runs on their own servers. Nothing ever leaves the building.",
   },
   {
     icon: IconTrendingUp,
     title: "The trajectory",
-    body: "Open models keep closing the gap with the frontier labs. Soon that same power arrives — and it stays completely private.",
+    body: "Open models keep closing the gap — soon that power arrives, and stays private.",
   },
 ];
 
@@ -63,17 +62,10 @@ export function Slide40Privacy() {
         <SlideKicker>Why local matters</SlideKicker>
       </SlideReveal>
       <BlurWordsTitle lines={["Some data can never leave."]} size="xl" />
-      <SlideReveal delay={0.08} className="mt-4 max-w-3xl">
-        <SlideBody>
-          Many companies can&rsquo;t use Claude or ChatGPT at all — not by
-          choice, but because the rules forbid their data ever leaving their own
-          servers.
-        </SlideBody>
-      </SlideReveal>
 
       {/* Step 1 — blocker → unlock → trajectory */}
       <SlideStagger
-        className="mt-8 grid grid-cols-3 gap-5"
+        className="mt-10 grid grid-cols-3 gap-5"
         delayChildren={0.06}
         staggerChildren={0.12}
         step={1}

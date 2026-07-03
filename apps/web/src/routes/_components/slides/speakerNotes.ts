@@ -143,14 +143,15 @@ When everything's in one place like that, nothing's invisible to it any more.`,
   "19": `So this isn't just a personal thing — it matters in pretty much every team.
 Think about support: it'd remember a customer's whole history, so nobody's asking them to repeat themselves.
 Healthcare — the context carries over between visits, so care doesn't start from scratch each time.
-Finance — advice is grounded in the client's actual goals, not something generic.
+Finance — advice is grounded in the client's actual goal and investment strategy, not something generic.
 And sales — a new rep just picks up exactly where the last one left off.
-So it's the same core idea, wherever there's context worth not losing.`,
-  "21": `So we actually use this ourselves already, which is the best proof I can give you.
-Eva is our own internal assistant — she does bits of our work for us.
-And vmem plugs straight into her, so she remembers every action she's taken, every task, every decision.
-So she's not starting fresh each time — she builds on everything that came before.
-And the more we use her, the more she's got to draw on, so she just keeps getting better.`,
+So it's the same core idea everyone - wherever there's context not worth losing.`,
+  "21": `So a good example of where this could go is Eva.
+She does bits of our work for us, but right now she doesn't really have a memory of her own.
+The opportunity here is to plug vmem straight into her.
+If we did, she'd remember every action she's taken, every task, every decision — instead of starting fresh each time.
+So she'd build on everything that came before, and the more we used her, the sharper she'd get.
+And that's really the point — it's what vmem could unlock for any agent, not just Eva.`,
   "23": `So why should you actually trust this with your data?
 Three reasons.
 First, you own it — you can view everything it's stored, edit it, or delete it whenever you want.
@@ -158,18 +159,18 @@ Second, it's private by default, so nothing's shared unless you choose to.
 And third, it can run entirely on your own devices, so your data never even has to leave your machine.
 So it's your memory, on your terms — you're not handing it over to anyone.`,
 
-  "20": `So if you zoom right out, this becomes something bigger than a personal tool.
+  "20": `So if you zoom right out, this becomes something bigger than a personal memory layer.
 It becomes the company brain.
-One shared, living memory for the whole organisation — every decision that's been made, every reason behind it, every source.
-And any person, or any AI, can think inside that shared memory.
+One shared, living memory for the whole organisation — every decision that's been made, every reason behind it, every source should get stored inside vmem.
+And any person, or any AI agent, can think and access that shared memory.
 So instead of knowledge being locked in people's heads and scattered across apps, it all lives in one place the whole company can draw on.`,
   "42": `So here's what that actually looks like.
 Everyone has their own private web of memories — Maya's, Tom's, everyone's — and those stay personal to them.
 But each of those webs plugs into one shared brain in the middle.
-So the knowledge the team's meant to share lives in that brain, and anyone — or any AI — can think inside it.
-To be really clear though: your own memories stay yours. It's only what you choose to share that feeds the common brain.`,
-  "15": `So everything I've shown so far is real — this is the actual product today, nothing mocked up.
-You've got the live memory graph, the dashboard, and all your memories in one place.
+So the knowledge the team is meant to share lives in that brain, and anyone — or any AI — can think inside it.
+To be really clear though: your own memories stay yours. It's only what you choose to share that feeds the common brain, so there's separate spaces for personal and company knowledge.`,
+  "15": `So everything I've shown so far has been implemented — this is the actual product today, nothing mocked up.
+You've got the live memory graph to see the connections, the dashboard to view stats, and all your memories in one place.
 So this is genuinely what you'd be using day to day.
 Let me actually walk you through it.`,
   "32": `So let me show you this live.
@@ -178,7 +179,7 @@ Click on any of them, and you'll see everything that connects to it.
 So you can literally explore your own memory as a map.`,
   "36": `So watch what happens with a single memory here.
 Say you've got one about a trip to Japan.
-On its own it's just one dot — but it links out to the ryokan you booked, the ramen place you loved, the travel card you needed, and it keeps branching out from there.
+On its own it's just one dot — but it links out to the place you booked, the ramen place you loved, the travel card you needed, and it keeps branching out from there.
 Then when we zoom right out, you can see that whole cluster is just one little corner of a much bigger graph — everything vmem knows about you, all connected together.
 So one memory is never really alone; it's part of the whole web.`,
   "37": `So on the web app, you can click into any single memory and it opens up three tabs.
@@ -186,7 +187,7 @@ The first, details, shows you what the memory's actually about — the tags on i
 History shows you how it's changed over time — every edit that's ever been made to it, so nothing's hidden.
 And connections lists all the other memories that are linked to this one.
 So you get the full story of any single memory, all in one place.`,
-  "39": `So this is the payoff of everything I've talked about.
+  "39": `So this is a mockup of everything I've talked about.
 Here's the same question, asked to two completely different assistants — Claude and ChatGPT.
 Normally they'd each give you their own answer based on whatever they happen to know.
 But because they're both pulling from the same vmem memory, they give you the same answer, grounded in your actual stuff.
@@ -196,7 +197,7 @@ You can swap the model whenever you like and lose nothing.`,
 There are skills — basically reusable sets of instructions you can hand to any model, so you're not re-explaining how you want things done every time.
 There's a wiki, for shared team knowledge.
 And there are connectors, which pull your data in automatically from other places you already use.
-So it's not just a memory store — it's the whole toolkit, in one platform.`,
+So it's not just a memory store — it's the whole ecosystem for memory and context management, in one platform.`,
 
   "25": `So here's the big-picture thesis, and it's really the heart of why I think this matters.
 Every AI model eventually catches up to every other one — they all get good, they all copy each other's features.
@@ -209,10 +210,10 @@ So that's the bet, really: the model becomes a commodity, and the memory is the 
 The more you build everything up around one single model provider, the more locked in you get.
 And that lock-in is a real cost — it's what makes it painful to ever switch away.
 So anything you set up should be easy to move, not trapped.
-And that's exactly why vmem itself is open source — you can pick it up and run it anywhere, so you're never even stuck with us.`,
+And that's exactly why vmem itself is 100% open source, free, and self-hostable — you can pick it up and run it anywhere, so you're never stuck with it.`,
   "41": `So this isn't just me saying any of this.
 The big companies — the ones paying for AI by the token, at real scale — are all pulling back.
-Meta hit seventy-three trillion tokens a month, then scrapped the internal leaderboard that was pushing usage — their CTO literally said all motion is not progress.
+Meta hit 73 trillion tokens a month, then scrapped the internal leaderboard that was pushing usage — their CTO literally said all motion is not progress.
 Uber burnt through its whole year's AI budget in four months.
 Coinbase halved its spend just by routing the routine work to cheaper models.
 And Perplexity runs about twenty different models, always picking the cheapest one that can do the job.
@@ -225,10 +226,10 @@ And that whole approach only works if your memory travels with you, instead of b
 Sources: Meta — michaelparekh.substack.com/p/ai-meta-steps-back-from-ai-tokenmaxxing (15 Jun 2026); Uber — fortune.com/2026/05/26/uber-coo-ai-spending-tokens-claude-code (26 May 2026); Coinbase — finance.yahoo.com/markets/crypto/articles/coinbase-ceo-halved-ai-costs-130000536.html (27 Jun 2026); Perplexity — x.com/AravSrinivas/status/2070929445251400092.`,
 
   "35": `So this is the real test of whether you're actually in control — do you control the model, or does it control you?
-Here's the scenario: say Claude shut down tomorrow, or doubled its price, or changed its terms.
+Here's the scenario: say Claude shut down tomorrow, or doubled its price, or changed its terms like we have seen with Fable recently.
 If everything you've built is trapped inside it, you're stuck.
 But if your memory lives in vmem, you just swap in another model and carry on — all your built-up expertise comes with you.
-As Satya Nadella, the CEO of Microsoft, puts it — you should be able to swap out the general-purpose model without losing the "company veteran" expertise built into your own system.
+As the CEO of Microsoft recently put it — you should be able to swap out the general-purpose model without losing the "company veteran" expertise built into your own system.
 So that's the whole game: own the memory, and the model becomes something you can freely swap.`,
 
   "18": `So here's another shift that's happening — AI models are going local, meaning they run on your own device instead of in the cloud.
