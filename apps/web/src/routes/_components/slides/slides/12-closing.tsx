@@ -46,15 +46,6 @@ export function Slide12Closing() {
             <SlideBody>
               The foundation&rsquo;s already here — connected memory, recall you
               can trust, Dream Mode, workspaces, and the first connectors.
-              Smarter recall, more connectors, and finer access are what&rsquo;s
-              next.
-            </SlideBody>
-          </SlideReveal>
-          <SlideReveal step={1} delay={0.04} className="mt-4 max-w-lg">
-            <SlideBody>
-              The memory layer is at its earliest days — like when ChatGPT first
-              landed: rough, but improving fast. You can already see it: Claude
-              now references your past chats and memories.
             </SlideBody>
           </SlideReveal>
         </div>

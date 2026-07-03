@@ -238,14 +238,16 @@ Small ones already run on your phone.
 And there's a top-tier, Opus-level model that runs on a single machine today.
 So pretty soon, every laptop just ships with a capable model built in.
 Which matters for the next point.`,
-  "40": `So because models can run locally now, some of your data never has to leave your machine at all.
-For anything sensitive — the stuff you'd never want going up to someone else's cloud — vmem can run entirely on your own device.
-The memory stays with you, the model runs with you, nothing goes out.
-So it's private by design, not privacy bolted on as an afterthought.`,
+  "40": `So here's why local models matter beyond just cost.
+A lot of companies can't use Claude or ChatGPT at all — not by choice, but because the rules forbid it.
+Think banks, hospitals, law firms, government — they simply can't send customer, patient, or case data to a third-party AI. It's off the table for them.
+The unlock is a local model running on their own servers — every prompt and answer stays inside their walls, nothing leaves, and nothing trains anyone else's model.
+And open models keep closing the gap with the frontier labs, so soon that same power arrives, and it stays completely private.
+So you get frontier intelligence with zero data leaving the building — and vmem already runs on them, on-device.`,
 
   "30": `So let me be straight with you about where vmem falls short, cos nothing's perfect.
 Answers can be a bit slower, because it's following all those connections rather than just grabbing the first match.
-Simpler tools that only do quick lookups will beat it on raw speed.
+Basic memory layers that only do quick lookups will beat it on raw speed.
 And the big AI labs are improving their own memory features fast, so they'll close some of this gap.
 So I'm not going to oversell it — those are the real trade-offs.`,
   "31": `So given the labs are catching up, the fair question is — what actually keeps vmem ahead?
@@ -258,19 +260,23 @@ Whatever comes next — smart glasses, a watch, robots, a full digital twin of y
 You just connect it to vmem, and your whole self is already there, ready to go.
 So the memory outlives every device and every model — it's the one thing that carries forward.`,
   "13": `So this is everything vmem is, all on one board.
-The connectors that pull your data in, the different places you can use it, the whole toolkit in one view.
-I won't go through every box — but the point is it's not one narrow feature, it's a whole platform.
-So that's the full picture of what we've built.`,
+Down the left is how your data gets in: the MCP connector that plugs into any AI, the browser extension pulling your history and bookmarks, and connectors for the tools you already use — Google Drive, OneDrive, Dropbox, Gmail, Notion, Linear, GitHub.
+Then there's how you actually use it: the web app to browse and search your memory, the mobile app for private access on the go, a wiki for long-form docs, and codebases so it understands how your code fits together.
+And the capabilities on top: skills you define once and use everywhere, files that act as a proper file system for your agents, profiles to keep personal and work separate, and a developer SDK to drop memory into your own agents.
+So the point is this isn't one narrow feature — it's a whole platform, everything you need for memory in one place.`,
   "16": `So one last thought to leave you with.
-Last year the model everyone loved was Perplexity.
-Yesterday it was ChatGPT.
-Today it's Claude.
+Last year the model everyone used for web search was Perplexity.
+Yesterday it was ChatGPT after they implemented their own web search.
+Today it's Claude for its agentic capabilities.
 Tomorrow — who knows.
 The model you're using is going to keep changing.
 But your memory — everything you've built up — that shouldn't have to change with it.`,
-  "12": `So yeah — that's vmem.
-The foundation's all there — connected memory, recall you can trust, Dream Mode, workspaces, the first connectors — and honestly it's only just getting started.
-Thanks for coming, appreciate you listening.`,
+  "12": `So that brings us to what's next — and honestly, this is just the start.
+The foundation's all there already: connected memory, recall you can trust, Dream Mode, workspaces, and the first connectors.
+What's coming is on the right — more connectors to pull from even more of your tools, smarter recall that follows deeper links and lets old context fade, and finer access control so each tool or teammate gets exactly what they need.
+And zooming out, the whole memory-layer space is at its earliest days — a bit like when ChatGPT first landed: rough, but improving fast.
+You can already see it happening — Claude now references your past chats and memories.
+So that's vmem — thanks for listening.`,
   "14": `Right, that's me.
 What questions have you got?`,
 };
