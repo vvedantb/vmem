@@ -19,7 +19,7 @@ import { Slide07Capture } from "./07-capture";
 import { Slide08Dream } from "./08-dream";
 import { Slide09Safe } from "./09-safe";
 import { Slide10Workspaces } from "./10-workspaces";
-import { Slide11Comparison } from "./11-comparison";
+// import { Slide11Comparison } from "./11-comparison"; // hidden from the running order
 import { Slide12Closing } from "./12-closing";
 import { Slide13Bento } from "./13-bento";
 import { Slide14Questions } from "./14-questions";
@@ -235,6 +235,10 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide29VmemSolves,
     steps: 2,
   },
+  // Comparison table hidden for the team talk — low value for an internal
+  // audience (more of a sales/investor artifact); the "vs others" story is
+  // still carried by 27/28/29. Kept here, commented, to re-add easily.
+  /*
   {
     id: "11",
     title: "vs the field",
@@ -242,6 +246,7 @@ export const SLIDES: SlideEntry[] = [
     Component: Slide11Comparison,
     steps: 1,
   },
+  */
   {
     id: "24",
     title: "Benchmarks",

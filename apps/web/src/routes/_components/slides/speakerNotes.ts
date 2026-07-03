@@ -16,7 +16,7 @@ And it's not just the AI — that context is scattered across every app you use,
 So that's the problem I've spent a while building something to fix.
 And that something is what I want to show you today.`,
   "01": `So this is it — vmem.
-It's my master's project, and the one-line version is this: it's a memory for your AI that actually remembers you.
+It's my uni project, and the one-line version is this: it's a memory and context layer or engine for your AI that actually remembers you.
 Everything you tell it, every document, every decision — it holds onto all of it.
 So you're never starting from zero again.
 Let me show you what that actually means.`,
@@ -48,11 +48,11 @@ Everything gets captured into that one place — and it's yours, it belongs to y
 So now any of those apps, and any AI model, can read from the exact same memory.
 Everything flows in, and then any model you like can draw on it.
 So it doesn't matter which AI you're using — they're all working from the same picture of you.`,
-  "33": `So these are the questions people keep asking me about all this.
+  "33": `So these are the questions people keep asking about this.
 Why are my chats all separate — why can't the AI just remember across them?
 Why does the memory it does have feel so limited?
 How do I move what I've built up in one AI over to another?
-Every one of these comes back to the same root problem — memory that's stuck and siloed.
+Every one of these questions comes back to the same root problem — memory that's stuck and isolated.
 And vmem is basically our answer to all of them at once.`,
 
   "03": `So what actually is vmem?
@@ -94,17 +94,18 @@ Inside Claude, it saves and reads things on its own as you chat, without you doi
 And any file you upload — a PDF, a doc — becomes searchable straight away.
 So you're not sitting there manually feeding it; wherever you are, it's all flowing into the same place.`,
   "08": `So here's a clever bit — vmem doesn't just sit there waiting for you.
-While you're away, it goes back over everything it's stored and tidies it up on its own.
+While you're away, overnight, it goes back over everything it's stored and tidies it up on its own.
 It spots contradictions — say you told it two things that don't line up — it notices duplicates and merges them, and it slowly builds a picture of how you actually work.
 But it never changes anything behind your back.
 Instead, it shows you what it found as suggestions, and you just approve or reject each one.
+And if approving each one gets tedious, you can set a confidence bar and let the high-confidence ones through automatically — still your rules, just less clicking.
 So it's quietly getting smarter overnight, but you're always the one in control of what sticks.`,
   "09": `So this is the control side of things, and it's important.
 Nothing ever gets changed or overwritten silently — every single change comes to you first to approve.
 You can pin the things that really matter so they always stick around, hide anything that's wrong, and set temporary stuff to expire on its own.
 And there's a full history of every change, so you can always see what happened and undo it.
-So the whole point is nothing happens to your memory that you didn't okay.`,
-  "10": `So a quick word on privacy, cos people always ask.
+So the whole point is nothing happens to your memory that you didn't approve yourself.`,
+  "10": `So a quick word on privacy, since this is a big one for everyone.
 By default, everything you capture is personal — it's yours, and nobody else sees it.
 But you can also have team spaces, where a group shares the same skills, a shared wiki, and shared files.
 So the stuff that's meant to be shared across the team is shared — but your personal memories always stay private to you.
@@ -120,7 +121,7 @@ Get the context right, and the answers are both more accurate and cheaper, every
 Their memories tend to just sit there on their own, with no links between them.
 There's no tie back to your real data — the documents and tools the memory actually came from.
 And nothing ever goes back over them to clean them up or improve them.
-So what you end up with is basically a flat pile of sticky notes — better than nothing, but it doesn't really understand you.`,
+So what you end up with is basically a flat pile of sticky notes — it's better than nothing, but it doesn't really understand you.`,
   "29": `So this is where vmem's genuinely different.
 It goes back over your memories overnight and improves them, like I showed with dream mode.
 It brings things back based on how they actually connect to each other — not just what happens to look similar on the surface.

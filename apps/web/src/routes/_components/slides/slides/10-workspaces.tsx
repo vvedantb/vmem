@@ -101,7 +101,7 @@ export function Slide10Workspaces() {
             {[
               "Shared memories for all members",
               "Team-wide skills and wiki",
-              "Shared file drive (10 GB)",
+              "Shared file drive",
               "Any member can create + edit",
             ].map((item) => (
               <li
