@@ -170,6 +170,7 @@ import type * as users from "../users.js";
 import type * as validators from "../validators.js";
 import type * as wiki from "../wiki.js";
 import type * as wikiVersions from "../wikiVersions.js";
+import type * as wiki_path from "../wiki/path.js";
 import type * as workflow from "../workflow.js";
 
 import type {
@@ -341,6 +342,7 @@ declare const fullApi: ApiFromModules<{
   validators: typeof validators;
   wiki: typeof wiki;
   wikiVersions: typeof wikiVersions;
+  "wiki/path": typeof wiki_path;
   workflow: typeof workflow;
 }>;
 

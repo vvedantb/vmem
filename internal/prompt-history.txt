@@ -1,3 +1,19 @@
+[] team exit memory ownership: keep "team retains, leaver loses access" default, add policy-gated "export my contributions" action instead of auto-copy on leave (plan: internal/plans/todo/team-exit-memory-ownership.md)
+
+
+
+[] add references to meta ai spending, uber ai budget fully spent in quarter 1, coinbase shifting to cheaper models, uber cto ai budget finished in q1. the future is using multiple models, not just one.
+https://fortune.com/2026/05/26/uber-coo-ai-spending-tokens-claude-code/
+https://finance.yahoo.com/markets/crypto/articles/coinbase-ceo-halved-ai-costs-130000536.html
+https://michaelparekh.substack.com/p/ai-meta-steps-back-from-ai-tokenmaxxing
+https://x.com/AravSrinivas/status/2070929445251400092
+
+Serious flaws in two popular AI Memory Benchmarks (LoCoMo/LoCoMo-Plus and LongMemEval-S)
+https://www.reddit.com/r/AIMemory/comments/1s1jlnd/serious_flaws_in_two_popular_ai_memory_benchmarks/
+
+
+[] add a slide after the company brain with everyones names, their memories, and it being connected like a shared brain
+
 add a share url button to the slides that basically viewers can use to view the link and follow the user (but also option to take control, and then sync with sharer as well, like in teams)
 
 GitHub wiki tab
