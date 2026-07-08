@@ -31,23 +31,25 @@ Recommended: **Publishing access** → require 2FA and disallow tokens.
 
 ## How releases run
 
-Two workflows run in sequence:
+**`.github/workflows/publish-vmem-sdk.yml`** (single workflow):
 
-1. **`.github/workflows/bump-sdk-version.yml`** — when SDK source changes merge to `main` (`packages/sdk/src/**`, `README.md`, `tsconfig.json`), bumps the **patch** version in `package.json` and pushes `chore(sdk): release x.y.z` to `main`.
-2. **`.github/workflows/publish-vmem-sdk.yml`** — when `packages/sdk/package.json` changes on `main` (including the bump commit), or via **workflow_dispatch**.
+1. On push to `main` when SDK source changes (`packages/sdk/src/**`, `README.md`, `tsconfig.json`): bump **patch** → build → `npm publish` → commit `chore(sdk): release x.y.z`.
+2. On **workflow_dispatch**: build + publish the current `package.json` version (no auto-bump).
 
 ```text
-Merge SDK code → bump patch → publish to npm
+Merge SDK code → bump patch → publish to npm → commit version
 ```
+
+The release commit does **not** re-trigger the workflow (paths exclude `package.json`).
 
 - **Auth:** `id-token: write` + npm CLI ≥ 11.5.1 + Node ≥ 22.14.
 - **Publish:** `npm publish` from `packages/sdk` (not `pnpm publish`).
 
-You do **not** need to bump `version` by hand for normal SDK changes. To ship without a release, include `[skip sdk release]` in the merge commit message. For a **minor** or **major** bump, edit `version` in a PR yourself (publish still runs on that `package.json` change; the bump workflow only auto-increments patch).
+You do **not** need to bump `version` by hand for normal SDK changes. To ship without a release, include `[skip sdk release]` in the merge commit message. For a **minor** or **major** bump, edit `version` in a PR yourself, then run **workflow_dispatch** (or merge a no-op under `packages/sdk/src/**` after the version edit).
 
 ### GitHub settings
 
-The bump workflow pushes to `main`. Ensure:
+The workflow pushes the version commit to `main`. Ensure:
 
 - **Settings → Actions → General → Workflow permissions** → *Read and write permissions*.
 - Branch protection on `main` allows **GitHub Actions** to push (or exempt the bot from “require PR” for release commits).
