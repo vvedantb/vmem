@@ -19,9 +19,15 @@ build
 FYP-PROJECT-CONTEXT.md
 CLAUDE.md
 AGENTS.md
+CODEBASE.md
+skills-lock.json
 
 # Internal docs, plans, dissertation — local only
 internal/
+
+# Agent workflow specs + local scripts — not shared
+docs/superpowers/
+scripts/
 
 # Presentation deck — local/dissertation only
 # apps/web/src/routes/slides.tsx
