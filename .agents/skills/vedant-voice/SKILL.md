@@ -1,0 +1,93 @@
+---
+name: vedant-voice
+description: Rewrite talk scripts, speaker notes, demo narration, and internal presentation copy in Vedant's spoken voice — casual, grounded, first-person, told as a before→now→why story. Use whenever writing or editing speaker notes, a presentation script, demo walkthrough narration, a team update, or any first-person delivery meant to be spoken aloud by Vedant, even if he doesn't say "in my voice".
+---
+
+# Vedant's presenting voice
+
+This captures how Vedant actually talks when he presents to his team. It's a **spoken** voice, not written prose — the goal is copy that sounds like him thinking out loud to colleagues, not a polished keynote. Use it for anything he'll say aloud: speaker notes, demo narration, internal updates.
+
+The single most important thing: he's talking **to teammates in a room**, casually, like he's showing them something he built. Not selling, not lecturing. When in doubt, read it back out loud — if it sounds like a marketing deck or a textbook, it's wrong.
+
+## The voice in one breath
+
+Casual, first-person, and honest. He opens thoughts with "So", chains clauses with commas and "and"/"but", uses contractions everywhere, and says "cos" not "because". He's confident about what works and equally plain about what doesn't. He grounds everything in concrete specifics — real numbers, real examples — and he anticipates the question you're about to ask and answers it.
+
+## Who you're talking to (assume zero knowledge)
+
+The single biggest thing to get right: the audience is seeing all of this **for the first time**, and they're often non-technical. Smart people, but new to it. So the notes have to actually **teach**, not just jog the memory of someone who already understands.
+
+That means:
+
+- **Explain every concept the first time it appears, in plain words.** Don't assume anyone knows what a "memory layer", a "graph", "context", "connectors", "Context Trace", or even "an agent" is. Describe what the thing _does_ for them, not what it's _called_.
+- **Lead with the normal, painful way it works today**, then what changes. The before→now contrast is what makes an unfamiliar idea click — "normally you'd have to X… with vmem it just Y."
+- **Say why it matters**, not just what it is. A feature they don't understand the point of is noise.
+- **The test:** could someone who's never heard of any of this follow the note on its own, with nothing assumed? If a sentence leans on an assumption, unpack it.
+
+## Signature moves
+
+These are the patterns that make it sound like _him_. Not every note needs all of them, but reach for them:
+
+- **Before → now → why.** His default structure. Frame the old way, then what changed, then why it matters. "Before, we'd fix issues one at a time… now Eva does it in the background… so the bottleneck's gone." Most points land better as a small story than a statement.
+- **Rhetorical question to tee up the point.** "Why are we spending time watching Claude fix the issue?" then answer it. Sets up the reveal instead of just asserting it.
+- **Anticipate the objection.** "Now I know clicking run for each task gets boring, which is why…" He names the pushback before the audience thinks it.
+- **Walk through a "say you're…" scenario.** He teaches features by dropping you into a concrete situation: "say you're testing eprocurement, you just click the extension and…", "if you've got 2pm to 3pm blocked out for testing, you can spin up a session and…". Grounding it in a real moment beats describing the feature in the abstract.
+- **Explain the reasoning behind a decision.** When something's a certain way, he says why, plainly: "The reason is Heroku still has thousands of old tables that aren't used — if we added it now it'd just waste context." The candour is the point.
+- **Concrete over abstract.** Real numbers and specifics do the persuading: "120+ issues in the past 2 weeks", "£2000 a month", "5 MCPs", "30% → 42% → 57%". Never a vague "significantly improved".
+- **Honest caveats, said plainly.** "Unfortunately I only got it ready 2 weeks ago." "The main limitation is our system prompt." "There isn't a solution for this yet, sadly." Naming the weak spots is what makes the strong claims believable — don't sand them off.
+- **Land it with a takeaway.** Close a beat with the payoff: "So that's the big productivity unlock" / "so the bottleneck's gone".
+
+## Register and vocabulary
+
+- **Contractions always** — it's, we're, I've, don't, can't, isn't, they're, you'll. Never the expanded form when speaking.
+- **"cos"** not "because". **"gonna"** / **"kinda"** where it flows naturally (don't force them into every line).
+- **Discourse openers**: "So…" (his most common), "Now…" to pivot topics, "And yeah" / "but yeah" / "So yeah" to wrap a thought.
+- **"just" as a minimizer** — one of his tells. He uses it constantly to make a step sound easy: "you just click connect", "just prompt it", "just something we need to do", "it just goes through how we built it". Reach for it when describing how simple an action is.
+- **Casual reassurance** about risk/safety, dropped in plainly: "so there's no risk of anything being modified", "it's completely isolated, it's your own thing".
+- **Closers**: "So yeah, that's pretty much it" / "so that's it for [X]" to end a section or the whole thing.
+- **"like"** as a soft approximator, **"literally"** for genuine emphasis — used sparingly, the way you would in speech.
+- **"I think" / "probably" / "hopefully" / "should be"** where he's genuinely unsure. He doesn't fake certainty.
+- Plain everyday words. Explain any acronym casually the first time; never jargon for its own sake.
+
+## What to avoid
+
+- **No marketing voice.** No "revolutionary", "seamless", "unlock the power of", "game-changing". If it sounds like a landing page, cut it.
+- **No exclamation marks.** The enthusiasm comes from the content, not punctuation.
+- **No stiff/formal phrasing.** "utilise", "in order to", "furthermore", "additionally" → "use", "to", "and", "also".
+- **Don't over-hedge.** He hedges where genuinely uncertain, but states what works with confidence. Not everything is "maybe".
+
+## How long (these teach — they're fuller than a reminder)
+
+These aren't one-line prompts. They're close to what he'd actually **say out loud** to teach a slide to someone who's never seen it. So a content slide usually wants a proper short paragraph — roughly **4–7 sentences**, carrying two or three real beats:
+
+1. the normal / painful way it works today (set the problem),
+2. what vmem does here, in plain terms,
+3. why that matters to them.
+
+Feature/demo slides with structure on screen (tabs, steps, options) should also walk the parts — name each and say what it does. Example, for a memory's detail tabs: "So on the web UI you can click any memory and it opens three tabs. Details shows what the memory's about — the tags, where it came from. History shows how it's changed over time, every edit that's been made. And connections lists the other memories linked to it. So you get the full story of any single memory in one place."
+
+**Punchline / reprise slides** (a thesis, a one-liner) can still be shorter — but even those must be self-explanatory, never cryptic. When unsure, err **fuller**: the failure mode we're correcting is notes that assume you already know the thing. If in doubt, add the sentence that explains _why_.
+
+## Examples
+
+Each shows a flat/stiff version rewritten in his voice.
+
+**Example 1 — a feature note**
+Flat: "vmem stores your context so you never have to start from zero again."
+Vedant: "So the short version — vmem remembers everything you tell your AI, so you're never starting from scratch again."
+
+**Example 2 — a comparison point (before→now)**
+Flat: "Unlike other tools, vmem connects memories to each other and shows why each one matched."
+Vedant: "Before, your memories just sat there in a flat list. Now they're all connected — and every time one comes back, vmem tells you exactly why it matched. No black box."
+
+**Example 3 — an honest/limitation note**
+Flat: "Formal benchmarks are currently in development and will be available soon."
+Vedant: "Formal benchmarks are still in progress — I'll be honest about that. But I've been running it on my own Claude and ChatGPT for weeks now, and having everything in one place has genuinely been brilliant."
+
+**Example 4 — a roadmap/close**
+Flat: "vmem represents the future of AI memory management."
+Vedant: "So yeah — vmem's live today, and it's honestly only just getting started."
+
+## How to apply
+
+When rewriting existing notes: keep what each note is _trying to say_, then say it the way he would — lead with "So" or a quick before/now, swap stiff words for plain ones, add contractions, keep one concrete detail if there is one, and end on the point. Read it back out loud as the final check.
