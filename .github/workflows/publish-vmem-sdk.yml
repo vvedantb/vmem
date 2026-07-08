@@ -1,5 +1,6 @@
-# Publishes @vmem/sdk via npm Trusted Publishing (OIDC).
-# Version bumps: bump-sdk-version.yml (patch on SDK src changes) → this workflow.
+# Bumps @vmem/sdk patch (on SDK source changes), builds, and publishes via
+# npm Trusted Publishing (OIDC). Filename must stay publish-vmem-sdk.yml —
+# npm trusted publisher is bound to it.
 # npm: @vmem/sdk → Trusted publishing → vedantb2/vmem, publish-vmem-sdk.yml
 name: Publish VMemory SDK
 
@@ -8,8 +9,9 @@ on:
         branches:
             - main
         paths:
-            - "packages/sdk/package.json"
-            - ".github/workflows/publish-vmem-sdk.yml"
+            - "packages/sdk/src/**"
+            - "packages/sdk/README.md"
+            - "packages/sdk/tsconfig.json"
     workflow_dispatch:
 
 concurrency:
@@ -18,13 +20,21 @@ concurrency:
 
 jobs:
     publish:
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            (
+              !contains(github.event.head_commit.message, '[skip sdk release]') &&
+              !startsWith(github.event.head_commit.message, 'chore(sdk): release')
+            )
         runs-on: ubuntu-latest
         permissions:
-            contents: read
+            contents: write
             id-token: write
         steps:
             - name: Checkout
               uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v6
@@ -35,6 +45,11 @@ jobs:
                   node-version: "24"
                   cache: pnpm
                   package-manager-cache: false
+
+            - name: Bump patch version
+              if: github.event_name == 'push'
+              working-directory: packages/sdk
+              run: npm version patch --no-git-tag-version
 
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
@@ -57,3 +72,14 @@ jobs:
                   npm config delete //registry.npmjs.org/:_authToken --location=user 2>/dev/null || true
                   npm config delete //registry.npmjs.org/:_authToken --location=project 2>/dev/null || true
                   npm publish --access public
+
+            - name: Commit version bump
+              if: github.event_name == 'push'
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add packages/sdk/package.json
+                  VERSION=$(node -p "require('./packages/sdk/package.json').version")
+                  git commit -m "chore(sdk): release ${VERSION}"
+                  git pull --rebase origin main
+                  git push

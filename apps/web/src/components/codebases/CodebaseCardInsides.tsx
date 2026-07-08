@@ -120,7 +120,7 @@ export function CodebaseCardInsides({
                 alt={codebase.repoOwner}
                 width={20}
                 height={20}
-                className="rounded-full mt-0.5 shrink-0 outline outline-1 -outline-offset-1 outline-foreground/10"
+                className="rounded-full mt-0.5 shrink-0 outline outline-1 -outline-offset-1 outline-separator"
               />
             )}
             <div className="min-w-0">

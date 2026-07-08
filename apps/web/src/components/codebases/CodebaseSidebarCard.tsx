@@ -57,7 +57,7 @@ export function CodebaseSidebarCard({
           alt={codebase.repoOwner}
           width={28}
           height={28}
-          className="size-7 shrink-0 rounded-full outline outline-1 -outline-offset-1 outline-foreground/10"
+          className="size-7 shrink-0 rounded-full outline outline-1 -outline-offset-1 outline-separator"
         />
       ) : (
         <span
