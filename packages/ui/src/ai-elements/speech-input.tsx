@@ -118,15 +118,11 @@ export function SpeechInput({
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let transcript = "";
+      // Interim results are ignored — only final transcripts are emitted.
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
-        if (result && result[0]) {
-          if (result.isFinal) {
-            onTranscriptionChange?.(result[0].transcript);
-          } else {
-            transcript += result[0].transcript;
-          }
+        if (result?.isFinal && result[0]) {
+          onTranscriptionChange?.(result[0].transcript);
         }
       }
     };

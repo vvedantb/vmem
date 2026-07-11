@@ -63,9 +63,10 @@ function extractBlockText(block: BlockObjectResponse): string {
       return extractTextFromRichText(block.toggle.rich_text);
     case "callout":
       return extractTextFromRichText(block.callout.rich_text);
-    case "to_do":
+    case "to_do": {
       const checked = block.to_do.checked ? "[x]" : "[ ]";
       return `${checked} ${extractTextFromRichText(block.to_do.rich_text)}`;
+    }
     default:
       return "";
   }

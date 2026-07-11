@@ -41,7 +41,7 @@ const httpJson = async (p) => (await fetch(`http://127.0.0.1:${PORT}${p}`, { sig
 const isOurSw = (t) => t.type === "service_worker" && /background\.js/.test(t.url);
 
 class CDP {
-  constructor(wsUrl) { this.ws = new WebSocket(wsUrl); this.id = 0; this.p = new Map(); this.open = new Promise((res, rej) => { this.ws.on("open", res); this.ws.on("error", rej); }); this.ws.on("message", (d) => { const m = JSON.parse(d.toString()); if (m.id && this.p.has(m.id)) { const { resolve, reject } = this.p.get(m.id); this.p.delete(m.id); m.error ? reject(new Error(JSON.stringify(m.error))) : resolve(m.result); } }); }
+  constructor(wsUrl) { this.ws = new WebSocket(wsUrl); this.id = 0; this.p = new Map(); this.open = new Promise((res, rej) => { this.ws.on("open", res); this.ws.on("error", rej); }); this.ws.on("message", (d) => { const m = JSON.parse(d.toString()); if (m.id && this.p.has(m.id)) { const { resolve, reject } = this.p.get(m.id); this.p.delete(m.id); if (m.error) { reject(new Error(JSON.stringify(m.error))); } else { resolve(m.result); } } }); }
   // 30s cap per CDP call: an evaluate whose promise never settles (e.g. a
   // sendMessage the SW never answers) must fail the run, not hang it forever.
   send(method, params = {}) { const id = ++this.id; return new Promise((resolve, reject) => { this.p.set(id, { resolve, reject }); this.ws.send(JSON.stringify({ id, method, params })); setTimeout(() => { if (this.p.has(id)) { this.p.delete(id); reject(new Error(`CDP timeout: ${method}`)); } }, 30_000); }); }

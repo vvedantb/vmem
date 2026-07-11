@@ -21,7 +21,6 @@ export function NavLink({
   pathname,
   profileId,
   isIconOnly,
-  isMobile,
   unreadCount,
   proposalsCount,
   onNavigate,
@@ -31,7 +30,6 @@ export function NavLink({
   /** Active workspace id; workspace hrefs fall back to /home without one. */
   profileId: string | undefined;
   isIconOnly: boolean;
-  isMobile: boolean;
   unreadCount: number;
   proposalsCount: number;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;

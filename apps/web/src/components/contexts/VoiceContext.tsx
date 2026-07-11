@@ -200,7 +200,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     // Sync with engine state (in case engines were loaded before mount)
     if (sttModule?.isSTTReady()) setSttState("ready");
     if (ttsModule?.isTTSReady()) setTtsState("ready");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only validate on mount
 
   /* -- STT actions -------------------------------------------------- */

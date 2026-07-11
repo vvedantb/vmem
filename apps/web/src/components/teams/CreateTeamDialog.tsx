@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "@vmem/backend";
-import type { Id } from "@vmem/backend";
 import {
   Button,
   Dialog,

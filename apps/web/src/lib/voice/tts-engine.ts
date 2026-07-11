@@ -112,19 +112,19 @@ export async function loadTTS(
     // speaker ids; the wrapper bridges that so VoiceContext can pass
     // any string from localStorage. kokoro-js validates at runtime.
     const voices = tts.voices;
+    type VoiceId = NonNullable<
+      NonNullable<Parameters<typeof tts.generate>[1]>["voice"]
+    >;
+    // kokoro-js types `voice` as a strict union of known speaker ids, while
+    // callers pass whatever string is in localStorage. `tts.voices` is the
+    // runtime source of truth for that union, so membership in it narrows.
+    const isVoiceId = (value: string): value is VoiceId => value in voices;
+
     generateFn = async (text: string, voice?: string) => {
-      // Call generate without voice option first, then conditionally
-      // with voice if it's a known speaker. This avoids fighting
-      // the strict `keyof typeof VOICES` union in kokoro-js types.
-      let audio: Awaited<ReturnType<typeof tts.generate>>;
-      if (voice && voice in voices) {
-        // Voice is validated against the known voices object,
-        // so the runtime accepts it even though TS can't narrow string → union.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        audio = await (tts.generate as Function)(text, { voice });
-      } else {
-        audio = await tts.generate(text);
-      }
+      const audio =
+        voice && isVoiceId(voice)
+          ? await tts.generate(text, { voice })
+          : await tts.generate(text);
       // RawAudio.audio is Float32Array | Float32Array[]. The .data getter
       // merges chunks, but TS doesn't see it. Access .audio and merge manually.
       const pcm = Array.isArray(audio.audio)

@@ -54,7 +54,9 @@ globalThis.chrome = {
   },
   storage: {
     local: {
-      async get(defaults: Record<string, unknown>): Promise<Record<string, unknown>> {
+      async get(
+        defaults: Record<string, unknown>,
+      ): Promise<Record<string, unknown>> {
         return { ...defaults, ...local };
       },
       async set(obj: Record<string, unknown>): Promise<void> {
@@ -62,7 +64,9 @@ globalThis.chrome = {
       },
     },
     session: {
-      async get(defaults: Record<string, unknown>): Promise<Record<string, unknown>> {
+      async get(
+        defaults: Record<string, unknown>,
+      ): Promise<Record<string, unknown>> {
         return { ...defaults, ...session };
       },
       async set(obj: Record<string, unknown>): Promise<void> {
@@ -97,7 +101,6 @@ const {
   stopAutoSync,
   rescheduleHistorySync,
   ensureSettingsMirrorAlarm,
-  catchUpHistorySyncIfOverdue,
   dispatchAlarm,
 } = await import("../src/background/sync-scheduler.ts");
 
@@ -137,7 +140,10 @@ test("Chrome drops the history alarm → heartbeat heals it within one tick", as
   assert.ok(!alarms.has(HISTORY_ALARM_NAME), "history alarm dropped");
   // The 5-min heartbeat fires.
   await dispatchAlarm(SETTINGS_MIRROR_ALARM_NAME);
-  assert.ok(alarms.has(HISTORY_ALARM_NAME), "heartbeat recreated the history alarm");
+  assert.ok(
+    alarms.has(HISTORY_ALARM_NAME),
+    "heartbeat recreated the history alarm",
+  );
 });
 
 test("Chrome drops the heartbeat alarm → a history-alarm fire heals it (mutual watchdog)", async () => {
@@ -159,7 +165,8 @@ test("no silent gaps: every attempt records lastSyncAttemptAt + skip reason", as
   await startAutoSync();
   await dispatchAlarm(HISTORY_ALARM_NAME); // no session in test
   assert.ok(
-    typeof local.lastSyncAttemptAt === "number" && local.lastSyncAttemptAt >= NOW,
+    typeof local.lastSyncAttemptAt === "number" &&
+      local.lastSyncAttemptAt >= NOW,
     "lastSyncAttemptAt advanced",
   );
   assert.equal(
@@ -186,10 +193,7 @@ test("overdue sync keeps retrying (does not advance lastHistorySync while blocke
 test("auto-sync disabled: history alarm not created, heartbeat still present", async () => {
   resetState({ autoSyncEnabled: false, lastHistorySync: FRESH });
   await bootstrapSyncSchedulers();
-  assert.ok(
-    !alarms.has(HISTORY_ALARM_NAME),
-    "no history alarm while disabled",
-  );
+  assert.ok(!alarms.has(HISTORY_ALARM_NAME), "no history alarm while disabled");
   assert.ok(
     alarms.has(SETTINGS_MIRROR_ALARM_NAME),
     "heartbeat alarm always present (drives settings mirror + watchdog)",
@@ -217,7 +221,11 @@ test("badge shows minutes until the next history sync", async () => {
   resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
   await startAutoSync();
   assert.ok(alarms.has(BADGE_TICK_ALARM_NAME), "badge tick alarm created");
-  assert.equal(badgeTexts.at(-1), "30m", "badge shows full interval after scheduling");
+  assert.equal(
+    badgeTexts.at(-1),
+    "30m",
+    "badge shows full interval after scheduling",
+  );
 });
 
 test("badge tick heals a dropped history alarm within one minute", async () => {
@@ -225,7 +233,10 @@ test("badge tick heals a dropped history alarm within one minute", async () => {
   await startAutoSync();
   alarms.delete(HISTORY_ALARM_NAME);
   await dispatchAlarm(BADGE_TICK_ALARM_NAME);
-  assert.ok(alarms.has(HISTORY_ALARM_NAME), "badge tick recreated the history alarm");
+  assert.ok(
+    alarms.has(HISTORY_ALARM_NAME),
+    "badge tick recreated the history alarm",
+  );
   assert.equal(badgeTexts.at(-1), "30m", "badge reflects the recreated alarm");
 });
 

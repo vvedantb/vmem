@@ -28,7 +28,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const httpJson = async (p) => (await fetch(`http://127.0.0.1:${PORT}${p}`)).json();
 
 class CDP {
-  constructor(wsUrl) { this.ws = new WebSocket(wsUrl); this.id = 0; this.p = new Map(); this.events = []; this.open = new Promise((res, rej) => { this.ws.on("open", res); this.ws.on("error", rej); }); this.ws.on("message", (d) => { const m = JSON.parse(d.toString()); if (m.id && this.p.has(m.id)) { const { resolve, reject } = this.p.get(m.id); this.p.delete(m.id); m.error ? reject(new Error(JSON.stringify(m.error))) : resolve(m.result); } else if (m.method) { this.events.push(m); } }); }
+  constructor(wsUrl) { this.ws = new WebSocket(wsUrl); this.id = 0; this.p = new Map(); this.events = []; this.open = new Promise((res, rej) => { this.ws.on("open", res); this.ws.on("error", rej); }); this.ws.on("message", (d) => { const m = JSON.parse(d.toString()); if (m.id && this.p.has(m.id)) { const { resolve, reject } = this.p.get(m.id); this.p.delete(m.id); if (m.error) { reject(new Error(JSON.stringify(m.error))); } else { resolve(m.result); } } else if (m.method) { this.events.push(m); } }); }
   send(method, params = {}) { const id = ++this.id; return new Promise((resolve, reject) => { this.p.set(id, { resolve, reject }); this.ws.send(JSON.stringify({ id, method, params })); }); }
   async evaluate(expression, contextId) { const params = { expression, awaitPromise: true, returnByValue: true }; if (contextId) params.contextId = contextId; const r = await this.send("Runtime.evaluate", params); if (r.exceptionDetails) throw new Error("eval: " + JSON.stringify(r.exceptionDetails.exception?.description || r.exceptionDetails)); return r.result.value; }
   close() { try { this.ws.close(); } catch {} }

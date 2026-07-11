@@ -100,7 +100,6 @@ export function LocalLLMProvider({ children }: { children: ReactNode }) {
     ) {
       removeActiveModelId();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only validate on mount
 
   const handleSetActiveModelId = useCallback(

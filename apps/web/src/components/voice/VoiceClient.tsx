@@ -114,7 +114,7 @@ export default function VoiceClient() {
       if (!model) throw new Error("Local LLM not loaded");
 
       let memoryRefs: ChatMemoryRef[] = [];
-      let systemPrompt = VMEM_VOICE_CORE;
+      let systemPrompt: string;
 
       try {
         const retrieved = await retrieveMemories({

@@ -96,7 +96,6 @@ export default function BrowseConnectorsModal({
             {availableConnectors.map((connector) => {
               const Icon = iconMap[connector.icon] || GoogleDriveIcon;
               const isGitHub = connector.name === "GitHub";
-              const hasProvider = isGitHub || !!connector.provider;
 
               return (
                 <div

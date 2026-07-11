@@ -24,7 +24,6 @@ import {
   skillsDeleteSchema,
   skillsGetSchema,
   skillsUpdateSchema,
-  contextPromptGetSchema,
   wikiCreateSchema,
   wikiDeleteSchema,
   wikiGetSchema,

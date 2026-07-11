@@ -47,7 +47,7 @@ function CodeBlock({
   );
 }
 
-interface CodeBlockCopyButtonProps extends HTMLAttributes<HTMLButtonElement> {}
+type CodeBlockCopyButtonProps = HTMLAttributes<HTMLButtonElement>;
 
 function CodeBlockCopyButton({
   className,

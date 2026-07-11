@@ -19,7 +19,7 @@ export function sanitizeTag(tag: string): string {
   return tag
     .toLowerCase()
     .replace(/[\s_]+/g, "-")
-    .replace(/[^a-z0-9\-]/g, "")
+    .replace(/[^a-z0-9-]/g, "")
     .replace(/-{2,}/g, "-")
     .slice(0, 50)
     .replace(/^-+|-+$/g, "");

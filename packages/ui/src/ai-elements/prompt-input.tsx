@@ -145,7 +145,7 @@ function PromptInputTextarea({
   );
 }
 
-interface PromptInputHeaderProps extends HTMLAttributes<HTMLDivElement> {}
+type PromptInputHeaderProps = HTMLAttributes<HTMLDivElement>;
 
 function PromptInputHeader({ className, ...props }: PromptInputHeaderProps) {
   return (
@@ -153,7 +153,7 @@ function PromptInputHeader({ className, ...props }: PromptInputHeaderProps) {
   );
 }
 
-interface PromptInputFooterProps extends HTMLAttributes<HTMLDivElement> {}
+type PromptInputFooterProps = HTMLAttributes<HTMLDivElement>;
 
 function PromptInputFooter({ className, ...props }: PromptInputFooterProps) {
   return (
@@ -165,7 +165,7 @@ function PromptInputFooter({ className, ...props }: PromptInputFooterProps) {
   );
 }
 
-interface PromptInputToolsProps extends HTMLAttributes<HTMLDivElement> {}
+type PromptInputToolsProps = HTMLAttributes<HTMLDivElement>;
 
 function PromptInputTools({ className, ...props }: PromptInputToolsProps) {
   return (

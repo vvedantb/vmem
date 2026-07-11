@@ -34,7 +34,7 @@ function Message({ from, className, ...props }: MessageProps) {
   );
 }
 
-interface MessageContentProps extends HTMLAttributes<HTMLDivElement> {}
+type MessageContentProps = HTMLAttributes<HTMLDivElement>;
 
 function MessageContent({ className, ...props }: MessageContentProps) {
   return (
@@ -50,7 +50,7 @@ function MessageContent({ className, ...props }: MessageContentProps) {
   );
 }
 
-interface MessageActionsProps extends ComponentProps<"div"> {}
+type MessageActionsProps = ComponentProps<"div">;
 
 function MessageActions({ className, ...props }: MessageActionsProps) {
   return (
@@ -117,7 +117,7 @@ const MessageResponse = memo(function MessageResponse({
   );
 });
 
-interface MessageToolbarProps extends HTMLAttributes<HTMLDivElement> {}
+type MessageToolbarProps = HTMLAttributes<HTMLDivElement>;
 
 function MessageToolbar({ className, ...props }: MessageToolbarProps) {
   return (
