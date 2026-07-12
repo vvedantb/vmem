@@ -42,6 +42,12 @@ interface MemorySnippet {
   content: string;
 }
 
+function toSnippets(
+  memories: { title: string; content: string }[],
+): MemorySnippet[] {
+  return memories.map((m) => ({ title: m.title, content: m.content }));
+}
+
 function formatPinnedSection(pinned: MemorySnippet[]): string {
   if (pinned.length === 0) return "_No pinned memories._";
   return pinned
@@ -147,14 +153,8 @@ export const regenerateContextPromptInternal = internalAction({
       offset: 0,
     });
 
-    const pinnedSnippets: MemorySnippet[] = pinnedPage.memories.map((m) => ({
-      title: m.title,
-      content: m.content,
-    }));
-    const recentSnippets: MemorySnippet[] = recentPage.memories.map((m) => ({
-      title: m.title,
-      content: m.content,
-    }));
+    const pinnedSnippets = toSnippets(pinnedPage.memories);
+    const recentSnippets = toSnippets(recentPage.memories);
 
     // Profile summary is best-effort. Without an OpenRouter key we still
     // produce a useful prompt (about/preferences/pinned).
