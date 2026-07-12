@@ -55,7 +55,7 @@ export const getById = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
     // Convex normalizes string → Id at runtime via ctx.db.get
-    const codebase = await ctx.db.normalizeId("codebases", args.id);
+    const codebase = ctx.db.normalizeId("codebases", args.id);
     if (!codebase) return null;
     const doc = await ctx.db.get(codebase);
     if (!doc || doc.userId !== ctx.userId) return null;

@@ -24,7 +24,7 @@ import {
   type Session,
 } from "neo4j-driver";
 import { z } from "zod";
-import { neo4jGet, parseNeo4jNodeProps } from "../record";
+import { neo4jGet, neo4jString, parseNeo4jNodeProps } from "../record";
 import { computeContentHash, toMemoryWithTags, toSnapshot } from "./mappers";
 import { logEvent, withSession } from "./shared";
 import { type ProposedUpdateKind, type ProposedUpdateNode } from "./types";
@@ -444,7 +444,7 @@ async function applyUpdateApproval(
   );
 
   return {
-    status: String(neo4jGet(firstRecord, "status") ?? ""),
+    status: neo4jString(firstRecord, "status"),
     memoryId: memory.id,
     kind: "update",
   };

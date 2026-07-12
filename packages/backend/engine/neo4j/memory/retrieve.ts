@@ -10,7 +10,7 @@
 
 import neo4j, { type Driver, type Record, type Session } from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
-import { neo4jGet, parseNeo4jInt } from "../record";
+import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
 import { recencyFromAgeDays, rrfScore, toMemoryWithTags } from "./mappers";
 import { profileFilter, visibleStatusClause, withSession } from "./shared";
 import {
@@ -433,9 +433,9 @@ export async function expandViaGraph(
     >();
 
     for (const record of result.records) {
-      const id = String(neo4jGet(record, "id") ?? "");
+      const id = neo4jString(record, "id");
       const hops = parseNeo4jInt(neo4jGet(record, "hops"));
-      const seedId = String(neo4jGet(record, "seedId") ?? "");
+      const seedId = neo4jString(record, "seedId");
       const bridgingRaw = neo4jGet(record, "bridgingEntity");
       const bridgingEntity =
         typeof bridgingRaw === "string" && bridgingRaw.length > 0
@@ -672,7 +672,7 @@ function mergeChunks(merged: Map<string, MergedEntry>, ranked: RankedRecord[]) {
     existing.chunkScore = Number(neo4jGet(item.record, "chunkScore"));
     existing.chunkRank = item.rank;
     existing.matchedChunk ??= {
-      content: String(neo4jGet(item.record, "chunkContent") ?? ""),
+      content: neo4jString(item.record, "chunkContent"),
       position: parseNeo4jInt(neo4jGet(item.record, "chunkPosition")),
     };
     merged.set(memory.id, existing);

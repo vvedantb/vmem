@@ -219,7 +219,7 @@ export const startOAuth = authAction({
     }
 
     if (!isConnectorOAuthProvider(connector.provider)) {
-      throw new Error(`Unsupported provider: ${connector.provider}`);
+      throw new Error(`Unsupported provider: ${String(connector.provider)}`);
     }
     const provider: Provider = connector.provider;
 

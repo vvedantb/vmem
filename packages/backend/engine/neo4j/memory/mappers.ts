@@ -7,7 +7,12 @@
 import crypto from "node:crypto";
 import { type Record as NeoRecord } from "neo4j-driver";
 import { z } from "zod";
-import { neo4jGet, parseNeo4jInt, parseNeo4jNodeProps } from "../record";
+import {
+  neo4jGet,
+  neo4jString,
+  parseNeo4jInt,
+  parseNeo4jNodeProps,
+} from "../record";
 import {
   type MemoryEvent,
   type MemoryType,
@@ -208,8 +213,8 @@ export function toTimelineEvent(record: NeoRecord): TimelineEvent {
       snapshot: eventProps.snapshot ?? null,
       details: eventProps.details ?? null,
     }),
-    memoryId: String(neo4jGet(record, "memoryId") ?? ""),
-    memoryTitle: String(neo4jGet(record, "memoryTitle") ?? ""),
+    memoryId: neo4jString(record, "memoryId"),
+    memoryTitle: neo4jString(record, "memoryTitle"),
   };
 }
 
@@ -228,8 +233,8 @@ export function toTagEdge(record: NeoRecord): TagEdge {
     ? rawShared.filter(Boolean).map(String)
     : [];
   return {
-    source: String(neo4jGet(record, "source") ?? ""),
-    target: String(neo4jGet(record, "target") ?? ""),
+    source: neo4jString(record, "source"),
+    target: neo4jString(record, "target"),
     weight: parseNeo4jInt(neo4jGet(record, "weight")),
     sharedTags,
   };

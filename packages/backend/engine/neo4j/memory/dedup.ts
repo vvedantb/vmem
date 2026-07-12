@@ -14,7 +14,7 @@ import {
   type Record as NeoRecord,
   type Session,
 } from "neo4j-driver";
-import { neo4jGet, parseNeo4jInt } from "../record";
+import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
 
 interface DuplicateGroup {
@@ -33,7 +33,7 @@ interface DuplicateGroup {
 function parseDuplicateGroup(record: NeoRecord): DuplicateGroup {
   const rawIds = neo4jGet(record, "duplicateIds");
   return {
-    survivorId: String(neo4jGet(record, "survivorId") ?? ""),
+    survivorId: neo4jString(record, "survivorId"),
     duplicateIds: Array.isArray(rawIds) ? rawIds.map(String) : [],
     extraVisits: parseNeo4jInt(neo4jGet(record, "extraVisits")),
   };
@@ -232,7 +232,7 @@ export async function diagnoseDuplicates(
         id: String(neo4jGet(r, "id")),
         title: String(neo4jGet(r, "title")),
         contentPreview: String(neo4jGet(r, "contentPreview")),
-        contentHash: rawHash ? String(rawHash) : null,
+        contentHash: typeof rawHash === "string" ? rawHash : null,
         createdAt: String(neo4jGet(r, "createdAt")),
       };
     });

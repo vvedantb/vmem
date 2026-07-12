@@ -24,7 +24,8 @@ function optionalProfileId(raw: unknown): string | null {
 }
 
 function stringField(record: NeoRecord, key: string): string {
-  return String(neo4jGet(record, key) ?? "");
+  const value = neo4jGet(record, key);
+  return typeof value === "string" ? value : "";
 }
 
 /** Shared core for the `mark*` resume-marker stamps: UNWIND ids, SET one

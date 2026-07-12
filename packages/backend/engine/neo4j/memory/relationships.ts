@@ -23,7 +23,8 @@ const SEMANTIC_EDGE_THRESHOLD = 0.78;
 const SEMANTIC_EDGE_LIMIT = 5;
 
 function stringField(record: NeoRecord, key: string): string {
-  return String(neo4jGet(record, key) ?? "");
+  const value = neo4jGet(record, key);
+  return typeof value === "string" ? value : "";
 }
 
 /**

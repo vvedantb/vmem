@@ -70,7 +70,7 @@ export async function handleMessage(
       try {
         const memories = await retrieveMemories(message.query);
         return { type: "RETRIEVE_RESULT", memories };
-      } catch (err) {
+      } catch {
         return { type: "RETRIEVE_RESULT", memories: [] };
       }
     }

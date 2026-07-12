@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconChevronRight, IconUsers } from "@tabler/icons-react";
 import { IconTeams, IconSettings } from "../sidebar-icons";
-import type { NavGroup, NavIcon, NavItem } from "./types";
+import type { NavGroup, NavItem } from "./types";
 import { navGroups, navHrefToPath, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
@@ -86,7 +86,7 @@ function SubSidebarNavButton({
   isIconOnly: boolean;
   onClick: () => void;
 }) {
-  const Icon = item.icon as NavIcon;
+  const Icon = item.icon;
 
   return (
     <SidebarIconTooltip label={item.label} enabled={isIconOnly}>
@@ -275,7 +275,7 @@ function SettingsNav({
             {group.items.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(item.href + "/");
-              const Icon = item.icon as NavIcon;
+              const Icon = item.icon;
               return (
                 <SharedLayoutBackground.Item key={item.href} id={item.href}>
                   <SidebarIconTooltip label={item.label} enabled={isIconOnly}>

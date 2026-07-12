@@ -33,7 +33,7 @@ function truncateForEmbedding(text: string): string {
 
 function syntheticEmbed(text: string): number[] {
   const normalized = text.toLowerCase();
-  const vec = new Array<number>(EMBEDDING_DIMENSIONS).fill(0);
+  const vec = Array.from({ length: EMBEDDING_DIMENSIONS }, () => 0);
   const tokens = normalized.match(/[a-z0-9]+/g) ?? [];
 
   for (const token of tokens) {

@@ -97,11 +97,7 @@ export function withApiKeyAuth<T>(
   endpoint: string,
   method: string,
   schema: z.ZodType<T>,
-  run: (
-    ctx: ActionCtx,
-    auth: ApiKeyAuth,
-    body: T,
-  ) => Promise<unknown | Response>,
+  run: (ctx: ActionCtx, auth: ApiKeyAuth, body: T) => Promise<unknown>,
 ) {
   return httpAction(async (ctx, req) => {
     const startedAt = Date.now();

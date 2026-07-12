@@ -17,6 +17,16 @@ export function neo4jGet(record: NeoRecord, key: string): unknown {
   return record.get(key);
 }
 
+/**
+ * Read a Neo4j field expected to hold a string, falling back to `""` when it
+ * is absent or not a string. For scalar string columns projected by a Cypher
+ * `RETURN`; parse node property bags with `neo4jField` + a schema instead.
+ */
+export function neo4jString(record: NeoRecord, key: string): string {
+  const value = neo4jGet(record, key);
+  return typeof value === "string" ? value : "";
+}
+
 /** Parse a Neo4j field with a zod schema. Throws on mismatch. */
 export function neo4jField<T>(
   record: NeoRecord,

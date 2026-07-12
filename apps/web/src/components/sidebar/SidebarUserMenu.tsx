@@ -120,7 +120,7 @@ export function SidebarUserMenu({ collapsed }: SidebarUserMenuProps) {
               : "w-[var(--radix-dropdown-menu-trigger-width)] min-w-56",
           )}
         >
-          <DropdownMenuItem onSelect={() => void openUserProfile()}>
+          <DropdownMenuItem onSelect={() => openUserProfile()}>
             <IconUserCog />
             Manage account
           </DropdownMenuItem>

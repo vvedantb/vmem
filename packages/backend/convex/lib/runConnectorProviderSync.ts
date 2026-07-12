@@ -109,6 +109,6 @@ export async function runConnectorProviderSync(
     }
 
     default:
-      throw new Error(`Unsupported provider: ${provider}`);
+      throw new Error(`Unsupported provider: ${String(provider)}`);
   }
 }

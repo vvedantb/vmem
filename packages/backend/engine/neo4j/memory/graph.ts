@@ -31,12 +31,14 @@ const graphNodeRowSchema = z.object({
     .unknown()
     .transform((v) => (Array.isArray(v) ? v.filter(Boolean).map(String) : [])),
   createdAt: z.unknown().transform(String),
-  source: z
-    .unknown()
-    .transform((v) => (v === null || v === undefined ? undefined : String(v))),
-  sourceType: z
-    .unknown()
-    .transform((v) => (v === null || v === undefined ? null : String(v))),
+  source: z.coerce
+    .string()
+    .nullish()
+    .transform((v) => v ?? undefined),
+  sourceType: z.coerce
+    .string()
+    .nullish()
+    .transform((v) => v ?? null),
   type: z
     .unknown()
     .transform((v) =>
@@ -47,9 +49,10 @@ const graphNodeRowSchema = z.object({
 const relatesToEdgeRowSchema = z.object({
   source: z.unknown().transform(String),
   target: z.unknown().transform(String),
-  reason: z
-    .unknown()
-    .transform((v) => (v === null || v === undefined ? "" : String(v))),
+  reason: z.coerce
+    .string()
+    .nullish()
+    .transform((v) => v ?? ""),
   score: z
     .unknown()
     .transform((v) => (v === null || v === undefined ? undefined : Number(v))),

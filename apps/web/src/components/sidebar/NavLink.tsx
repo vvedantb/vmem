@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { MouseEventHandler } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
-import type { NavItem, NavIcon } from "./types";
+import type { NavItem } from "./types";
 import { navHrefToPath } from "./nav-config";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
 import { sidebarNavRowClass, sidebarNavLinkTextClass } from "./sidebar-nav-row";
@@ -37,7 +37,7 @@ export function NavLink({
   const resolvedPath = navHrefToPath(item.href, profileId);
   const isActive =
     pathname === resolvedPath || pathname.startsWith(resolvedPath + "/");
-  const Icon = item.icon as NavIcon;
+  const Icon = item.icon;
 
   // Resolve the badge count for this route. Adding a new badge route =
   // new branch here + corresponding prop on this component.

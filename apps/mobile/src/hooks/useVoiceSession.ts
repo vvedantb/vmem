@@ -152,15 +152,16 @@ export function useVoiceSession({ threadId, messages }: VoiceSessionArgs) {
       chunks.forEach((chunk, index) => {
         const isLast = index === chunks.length - 1;
         // expo-speech queues sequential speak() calls natively.
-        Speech.speak(chunk, {
-          ...(isLast
+        Speech.speak(
+          chunk,
+          isLast
             ? {
                 onDone: () => updatePhase("idle"),
                 onStopped: () => updatePhase("idle"),
                 onError: () => updatePhase("idle"),
               }
-            : {}),
-        });
+            : {},
+        );
       });
     },
     [updatePhase],
