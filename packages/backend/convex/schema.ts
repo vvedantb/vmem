@@ -18,6 +18,7 @@ import {
   dreamTriggerStateFields,
   presentationSessionFields,
   presentationVoteFields,
+  notificationFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -160,19 +161,7 @@ const schema = defineSchema({
     .index("by_team_user", ["teamId", "userId"])
     .index("by_user_team", ["userId", "teamId"]),
 
-  notifications: defineTable({
-    userId: v.id("users"),
-    title: v.string(),
-    description: v.string(),
-    type: v.union(
-      v.literal("success"),
-      v.literal("warning"),
-      v.literal("error"),
-      v.literal("info"),
-    ),
-    read: v.boolean(),
-    createdAt: v.number(),
-  })
+  notifications: defineTable(notificationFields)
     .index("by_user", ["userId"])
     .index("by_user_read", ["userId", "read"]),
 

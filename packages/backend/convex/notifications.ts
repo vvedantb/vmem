@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
+import { notificationFields, notificationTypeValidator } from "./validators";
 
 export const listMy = authQuery({
   args: {},
@@ -8,17 +9,7 @@ export const listMy = authQuery({
     v.object({
       _id: v.id("notifications"),
       _creationTime: v.number(),
-      userId: v.id("users"),
-      title: v.string(),
-      description: v.string(),
-      type: v.union(
-        v.literal("success"),
-        v.literal("warning"),
-        v.literal("error"),
-        v.literal("info"),
-      ),
-      read: v.boolean(),
-      createdAt: v.number(),
+      ...notificationFields,
     }),
   ),
   handler: async (ctx) => {
@@ -99,12 +90,7 @@ export const pushForClerkIdInternal = internalMutation({
     clerkId: v.string(),
     title: v.string(),
     description: v.string(),
-    type: v.union(
-      v.literal("success"),
-      v.literal("warning"),
-      v.literal("error"),
-      v.literal("info"),
-    ),
+    type: notificationTypeValidator,
   },
   returns: v.null(),
   handler: async (ctx, args) => {

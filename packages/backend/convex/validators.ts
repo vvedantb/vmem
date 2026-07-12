@@ -86,6 +86,30 @@ export const dreamTriggerStateFields = {
 };
 
 /**
+ * Notification severity — reused by the table fields, the `listMy` return
+ * validator, and the `pushForClerkIdInternal` args so all three stay in lockstep.
+ */
+export const notificationTypeValidator = v.union(
+  v.literal("success"),
+  v.literal("warning"),
+  v.literal("error"),
+  v.literal("info"),
+);
+
+/**
+ * Single source of truth for notifications table fields.
+ * One row per user-facing bell notification.
+ */
+export const notificationFields = {
+  userId: v.id("users"),
+  title: v.string(),
+  description: v.string(),
+  type: notificationTypeValidator,
+  read: v.boolean(),
+  createdAt: v.number(),
+};
+
+/**
  * Single source of truth for teams table fields.
  * A team is a group of users sharing a single profile.
  */
