@@ -7,8 +7,11 @@ import {
 import {
   ChromeIcon,
   CursorIcon,
+  GmailIcon,
   GoogleDriveIcon,
+  LinearIcon,
   NotionIcon,
+  OneDriveIcon,
 } from "@/components/brand-icons";
 
 type MemorySourceIconProps = {
@@ -25,8 +28,15 @@ export function MemorySourceIcon({
   switch (source) {
     case "google_drive":
       return <GoogleDriveIcon size={size} className={className} />;
+    case "gmail":
+      return <GmailIcon size={size} className={className} />;
     case "notion":
       return <NotionIcon size={size} className={className} />;
+    case "onedrive":
+      return <OneDriveIcon size={size} className={className} />;
+    case "linear":
+    case "linear_project":
+      return <LinearIcon size={size} className={className} />;
     case "browser-extension":
       return <ChromeIcon size={size} className={className} />;
     case "youtube":

@@ -18,7 +18,7 @@ type MemoryType = "profile" | "episodic" | "knowledge";
  * filter UI treats them as memory-scoped filters (non-memory nodes pass
  * through when a source/type filter is active).
  *
- * `sourceType` is the connector provenance (google_drive / notion) on
+ * `sourceType` is the connector provenance (gmail / google_drive / notion) on
  * memories that came in through a connector sync. null for MCP / manual / web
  * captures and for non-memory kinds. The renderer uses it to overlay a brand
  * logo inside the node so users can see where the memory came from.

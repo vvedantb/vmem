@@ -1,8 +1,8 @@
 /**
  * Connector-logo registry + loader for the graph renderer.
  *
- * Memories that arrive through a connector sync carry a `sourceType`
- * (google_drive, notion). The renderer stamps the connector's brand logo inside
+ * Memories that arrive through a connector sync carry a `sourceType` (gmail,
+ * google_drive, notion). The renderer stamps the connector's brand logo inside
  * the memory's coloured circle so provenance reads at a glance, while the
  * tag-hash fill keeps encoding topic.
  *
@@ -12,13 +12,14 @@
  * never breaks the whole graph.
  */
 
-const CONNECTOR_SOURCE_TYPES = ["google_drive", "notion"] as const;
+const CONNECTOR_SOURCE_TYPES = ["gmail", "google_drive", "notion"] as const;
 
 type ConnectorSourceType = (typeof CONNECTOR_SOURCE_TYPES)[number];
 
 export type ConnectorLogoMap = Map<ConnectorSourceType, HTMLImageElement>;
 
 const LOGO_PATHS: Record<ConnectorSourceType, string> = {
+  gmail: "/connector-logos/gmail.svg",
   google_drive: "/connector-logos/google_drive.svg",
   notion: "/connector-logos/notion.svg",
 };

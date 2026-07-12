@@ -357,6 +357,9 @@ export async function createMemory(
       "bookmarks",
       "google_drive",
       "notion",
+      "onedrive",
+      "linear",
+      "gmail",
     ]);
 
     if (!BATCH_SOURCES.has(params.source)) {

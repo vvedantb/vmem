@@ -54,7 +54,13 @@ const schema = defineSchema({
     description: v.string(),
     icon: v.string(),
     provider: v.optional(
-      v.union(v.literal("google_drive"), v.literal("notion")),
+      v.union(
+        v.literal("google_drive"),
+        v.literal("notion"),
+        v.literal("gmail"),
+        v.literal("onedrive"),
+        v.literal("linear"),
+      ),
     ),
     connectionStatus: v.union(
       v.literal("connected"),

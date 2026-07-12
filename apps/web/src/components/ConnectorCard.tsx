@@ -11,7 +11,16 @@ import { GitHubConnectorControls } from "./settings/GitHubConnectorControls";
 import DeleteConnectorDataDialog from "./settings/DeleteConnectorDataDialog";
 import DisconnectConnectorDialog from "./settings/DisconnectConnectorDialog";
 import ConnectorActionsMenu from "./settings/ConnectorActionsMenu";
-import { GoogleDriveIcon, NotionIcon, GitHubIcon } from "./brand-icons";
+import {
+  GoogleDriveIcon,
+  GmailIcon,
+  OneDriveIcon,
+  DropboxIcon,
+  NotionIcon,
+  SlackIcon,
+  GitHubIcon,
+  LinearIcon,
+} from "./brand-icons";
 import { formatRelativeTime } from "@/lib/formatters";
 
 const iconMap: Record<
@@ -19,8 +28,13 @@ const iconMap: Record<
   React.ComponentType<{ size?: number; className?: string }>
 > = {
   IconBrandGoogleDrive: GoogleDriveIcon,
+  IconBrandGmail: GmailIcon,
+  IconBrandOnedrive: OneDriveIcon,
+  IconBrandDropbox: DropboxIcon,
   IconBrandNotion: NotionIcon,
+  IconBrandSlack: SlackIcon,
   IconBrandGithub: GitHubIcon,
+  IconBrandLinear: LinearIcon,
 };
 
 interface ConnectorCardProps {
@@ -46,6 +60,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
     : connector.connectionStatus === "connected";
   const isSyncing = !isGitHub && connector.syncStatus === "syncing";
   const hasProvider = isGitHub || !!connector.provider;
+  const isLinear = connector.provider === "linear";
   const canDeleteImportedData =
     hasProvider &&
     !isGitHub &&
@@ -57,10 +72,14 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
     toast.success(`Successfully connected to ${connector.name}`);
   };
 
-  const handleSync = async () => {
+  const handleSync = async (fullHistory = false) => {
     try {
-      await startSyncAction({ connectorId: connector._id });
-      toast(`Syncing ${connector.name}...`);
+      await startSyncAction({ connectorId: connector._id, fullHistory });
+      toast(
+        fullHistory
+          ? `Syncing all ${connector.name} history...`
+          : `Syncing ${connector.name}...`,
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start sync");
     }
@@ -145,6 +164,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
             ) : isConnected ? (
               <ConnectorActionsMenu
                 connectorName={connector.name}
+                isLinear={isLinear}
                 isSyncing={isSyncing}
                 isBusy={isSyncing}
                 showSyncActions
@@ -159,6 +179,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                 {canDeleteImportedData ? (
                   <ConnectorActionsMenu
                     connectorName={connector.name}
+                    isLinear={isLinear}
                     isSyncing={false}
                     isBusy={false}
                     showSyncActions={false}

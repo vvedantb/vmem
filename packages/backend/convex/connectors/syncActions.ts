@@ -16,7 +16,7 @@ type SyncOneResult = { ok: true } | { ok: false; message: string };
 
 /**
  * Internal sync entry point for manual MCP hooks and the daily workflow.
- * Always runs a full provider sync.
+ * Always runs a full provider sync (Linear uses fullHistory when requested).
  */
 export const syncOneConnectorInternal = internalAction({
   args: {

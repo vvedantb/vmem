@@ -15,6 +15,7 @@ interface GraphLegendProps {
  * `CONNECTOR_SOURCE_TYPES` in `canvas/connector-logos.ts`.
  */
 const CONNECTOR_LEGEND: { src: string; label: string }[] = [
+  { src: "/connector-logos/gmail.svg", label: "Gmail" },
   { src: "/connector-logos/google_drive.svg", label: "Google Drive" },
   { src: "/connector-logos/notion.svg", label: "Notion" },
 ];

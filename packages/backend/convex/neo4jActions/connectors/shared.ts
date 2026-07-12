@@ -3,7 +3,7 @@
 /**
  * Shared mechanics for connector sync runs.
  *
- * Every connector (Google Drive, Notion) follows the
+ * Every connector (Google Drive, OneDrive, Linear, Notion) follows the
  * same lifecycle: resolve profile + auth, paginate through items, embed
  * + upsert each item, report progress every 10 items, mark complete or
  * error at the end. This file owns the framing; the per-connector files

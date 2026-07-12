@@ -11,7 +11,8 @@ import { runConnectorProviderSync } from "../lib/runConnectorProviderSync";
 export const startSync = authAction({
   args: {
     connectorId: v.id("connectors"),
-    // Kept for API compatibility; unused after Linear was archived.
+    // Linear-only: if true, pull full history instead of the default 30-day window.
+    // Ignored for all other providers.
     fullHistory: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
