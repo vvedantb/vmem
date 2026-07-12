@@ -118,6 +118,25 @@ async function totalBytesForScope(
   );
 }
 
+/**
+ * Find a personal (non-team) direct child of `parentId` by exact name.
+ * Used by MCP path resolution, which is personal-scope only.
+ */
+async function findPersonalSibling(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  parentId: Id<"fileNodes"> | undefined,
+  name: string,
+): Promise<Doc<"fileNodes"> | undefined> {
+  const siblings = await ctx.db
+    .query("fileNodes")
+    .withIndex("by_user_parent", (q) =>
+      q.eq("userId", userId).eq("parentId", parentId),
+    )
+    .collect();
+  return siblings.find((s) => s.teamId === undefined && s.name === name);
+}
+
 /** Validate that `parentId` (when set) is a folder in the same scope. */
 async function assertParentFolder(
   ctx: QueryCtx | MutationCtx,
@@ -404,15 +423,7 @@ export const upsertFileByPathInternal = internalMutation({
     let parentId: Id<"fileNodes"> | undefined;
     for (let i = 0; i < args.segments.length - 1; i++) {
       const name = args.segments[i];
-      const siblings = (
-        await ctx.db
-          .query("fileNodes")
-          .withIndex("by_user_parent", (q) =>
-            q.eq("userId", userId).eq("parentId", parentId),
-          )
-          .collect()
-      ).filter((s) => s.teamId === undefined);
-      const existing = siblings.find((s) => s.name === name);
+      const existing = await findPersonalSibling(ctx, userId, parentId, name);
       if (existing) {
         if (existing.kind !== "folder") {
           throw new Error(`Path segment "${name}" is a file, not a folder`);
@@ -431,15 +442,7 @@ export const upsertFileByPathInternal = internalMutation({
     }
 
     const fileName = args.segments[args.segments.length - 1];
-    const siblings = (
-      await ctx.db
-        .query("fileNodes")
-        .withIndex("by_user_parent", (q) =>
-          q.eq("userId", userId).eq("parentId", parentId),
-        )
-        .collect()
-    ).filter((s) => s.teamId === undefined);
-    const existing = siblings.find((s) => s.name === fileName);
+    const existing = await findPersonalSibling(ctx, userId, parentId, fileName);
 
     const indexable = detectFileKind(fileName, args.mimeType) !== null;
 
