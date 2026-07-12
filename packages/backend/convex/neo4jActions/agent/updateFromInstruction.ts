@@ -3,19 +3,15 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { getMemory } from "../../../engine/neo4j/memory/crud";
-import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
-import { generateEmbedding } from "../../lib/openRouter";
 import { runCreateMemory } from "../_memories/create";
 import { resolveProfileIdForClerkId } from "../_memories/shared";
+import { runFactDecisionLoop } from "./factDecisionLoop";
 import {
-  decideFactUpdate,
   extractFactsFromInstruction,
   computeSdkFactExternalId,
   requireOpenRouterAuth,
-  RETRIEVAL_TOP_K,
-  toDecisionCandidates,
   type OpenRouterRequired,
 } from "./shared";
 
@@ -74,122 +70,91 @@ export async function runUpdateFromInstruction(
   const applied: MemoryWithTags[] = [];
   const proposals: AgentProposal[] = [];
 
-  for (let index = 0; index < extracted.facts.length; index++) {
-    const fact = extracted.facts[index];
-    if (!fact) {
-      continue;
-    }
-
-    let factEmbedding: number[] | null = null;
-    try {
-      factEmbedding = await generateEmbedding({
-        ctx,
-        apiKey: auth.apiKey,
-        userId: auth.userId,
-        profileId,
-        feature: "fact-extraction",
-        text: fact.text,
-      });
-    } catch (error) {
-      console.warn(
-        `[agent] Fact embedding failed for "${fact.text.slice(0, 40)}..."`,
-        error,
-      );
-    }
-
-    const retrieved = await retrieveMemories(driver, {
-      userId: args.clerkId,
-      profileId,
-      query: fact.text,
-      queryEmbedding: factEmbedding,
-      limit: RETRIEVAL_TOP_K,
-    });
-
-    const decision = await decideFactUpdate(
+  await runFactDecisionLoop(
+    {
       ctx,
       auth,
+      clerkId: args.clerkId,
       profileId,
-      fact.text,
-      toDecisionCandidates(retrieved),
-    );
-
-    if (!decision) {
-      continue;
-    }
-
-    if (decision.event === "ADD" && decision.text) {
-      const memory = await runCreateMemory(ctx, {
-        clerkId: args.clerkId,
-        profileId,
-        title: decision.text.slice(0, 80),
-        content: decision.text,
-        type: "knowledge",
-        source: "sdk-api",
-        tags: ["sdk-extracted"],
-        confidence: 0.9,
-        externalId: computeSdkFactExternalId(
-          args.clerkId,
-          args.instruction,
-          index,
-          decision.text,
-        ),
-        sourceType: "sdk-extracted",
-      });
-      applied.push(memory);
-      continue;
-    }
-
-    if (decision.event === "UPDATE" && decision.id && decision.text) {
-      const target = await getMemory(driver, args.clerkId, decision.id);
-      if (!target) {
-        continue;
+      retrieveWithProfileId: true,
+      logPrefix: "[agent]",
+    },
+    extracted.facts,
+    async ({ factIndex: index, factText, decision }) => {
+      if (decision.event === "ADD" && decision.text) {
+        const memory = await runCreateMemory(ctx, {
+          clerkId: args.clerkId,
+          profileId,
+          title: decision.text.slice(0, 80),
+          content: decision.text,
+          type: "knowledge",
+          source: "sdk-api",
+          tags: ["sdk-extracted"],
+          confidence: 0.9,
+          externalId: computeSdkFactExternalId(
+            args.clerkId,
+            args.instruction,
+            index,
+            decision.text,
+          ),
+          sourceType: "sdk-extracted",
+        });
+        applied.push(memory);
+        return;
       }
-      const reason =
-        `Instruction: "${args.instruction}"` +
-        `\nNew fact: "${fact.text}"` +
-        (decision.oldMemory ? `\nOld memory: "${decision.oldMemory}"` : "");
-      const proposal = await ctx.runAction(
-        internal.neo4jActions.proposedUpdates.createProposedUpdateInternal,
-        {
-          memoryId: decision.id,
-          proposedContent: decision.text,
-          reason,
-        },
-      );
-      proposals.push({
-        id: proposal.id,
-        memoryId: proposal.memoryId,
-        proposedContent: proposal.proposedContent,
-        reason: proposal.reason,
-        kind: proposal.kind,
-        status: proposal.status,
-      });
-      continue;
-    }
 
-    if (decision.event === "DELETE" && decision.id) {
-      const target = await getMemory(driver, args.clerkId, decision.id);
-      if (!target) {
-        continue;
+      if (decision.event === "UPDATE" && decision.id && decision.text) {
+        const target = await getMemory(driver, args.clerkId, decision.id);
+        if (!target) {
+          return;
+        }
+        const reason =
+          `Instruction: "${args.instruction}"` +
+          `\nNew fact: "${factText}"` +
+          (decision.oldMemory ? `\nOld memory: "${decision.oldMemory}"` : "");
+        const proposal = await ctx.runAction(
+          internal.neo4jActions.proposedUpdates.createProposedUpdateInternal,
+          {
+            memoryId: decision.id,
+            proposedContent: decision.text,
+            reason,
+          },
+        );
+        proposals.push({
+          id: proposal.id,
+          memoryId: proposal.memoryId,
+          proposedContent: proposal.proposedContent,
+          reason: proposal.reason,
+          kind: proposal.kind,
+          status: proposal.status,
+        });
+        return;
       }
-      const reason = `Instruction: "${args.instruction}" contradicts: "${fact.text}"`;
-      const proposal = await ctx.runAction(
-        internal.neo4jActions.proposedUpdates.createProposedDeleteInternal,
-        {
-          memoryId: decision.id,
-          reason,
-        },
-      );
-      proposals.push({
-        id: proposal.id,
-        memoryId: proposal.memoryId,
-        proposedContent: proposal.proposedContent,
-        reason: proposal.reason,
-        kind: proposal.kind,
-        status: proposal.status,
-      });
-    }
-  }
+
+      if (decision.event === "DELETE" && decision.id) {
+        const target = await getMemory(driver, args.clerkId, decision.id);
+        if (!target) {
+          return;
+        }
+        const reason = `Instruction: "${args.instruction}" contradicts: "${factText}"`;
+        const proposal = await ctx.runAction(
+          internal.neo4jActions.proposedUpdates.createProposedDeleteInternal,
+          {
+            memoryId: decision.id,
+            reason,
+          },
+        );
+        proposals.push({
+          id: proposal.id,
+          memoryId: proposal.memoryId,
+          proposedContent: proposal.proposedContent,
+          reason: proposal.reason,
+          kind: proposal.kind,
+          status: proposal.status,
+        });
+      }
+    },
+  );
 
   return {
     applied,

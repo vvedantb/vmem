@@ -5,15 +5,11 @@ import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { getMemory } from "../../engine/neo4j/memory/crud";
-import { retrieveMemories } from "../../engine/neo4j/memory/retrieve";
 import { getDriver } from "../../engine/neo4j/driver";
-import { generateEmbedding } from "../lib/openRouter";
+import { runFactDecisionLoop } from "./agent/factDecisionLoop";
 import {
-  RETRIEVAL_TOP_K,
-  decideFactUpdate,
   extractFactsFromInstruction,
   requireOpenRouterAuth,
-  toDecisionCandidates,
 } from "./agent/shared";
 
 /**
@@ -86,54 +82,23 @@ export const extractFactsAndDecideInternal = internalAction({
     let proposalCount = 0;
 
     // Stage B: per-fact decision (sequential to avoid OpenRouter rate limits)
-    for (let i = 0; i < extracted.facts.length; i++) {
-      const fact = extracted.facts[i];
-      if (!fact) continue;
-
-      try {
-        let factEmbedding: number[] | null = null;
-        try {
-          factEmbedding = await generateEmbedding({
-            ctx,
-            apiKey: auth.apiKey,
-            userId: auth.userId,
-            profileId: args.profileId,
-            feature: "fact-extraction",
-            text: fact.text,
-          });
-        } catch (e) {
-          console.warn(
-            `[v2] Fact embedding failed for "${fact.text.slice(0, 40)}..."`,
-            e,
-          );
-        }
-
-        const retrieved = await retrieveMemories(driver, {
-          userId: args.clerkId,
-          query: fact.text,
-          queryEmbedding: factEmbedding,
-          limit: RETRIEVAL_TOP_K,
-        });
-
-        // Exclude the source memory itself from the candidate pool
-        const filtered = retrieved.filter((m) => m.id !== args.sourceMemoryId);
-
-        const decision = await decideFactUpdate(
-          ctx,
-          auth,
-          args.profileId,
-          fact.text,
-          toDecisionCandidates(filtered),
-        );
-        if (!decision) {
-          console.warn(`[v2] Invalid decision response for fact ${String(i)}`);
-          continue;
-        }
-
+    await runFactDecisionLoop(
+      {
+        ctx,
+        auth,
+        clerkId: args.clerkId,
+        profileId: args.profileId,
+        retrieveWithProfileId: false,
+        excludeMemoryIds: [args.sourceMemoryId],
+        logPrefix: "[v2]",
+        bestEffortPerFact: true,
+      },
+      extracted.facts,
+      async ({ factIndex, factText, decision }) => {
         if (decision.event === "ADD" && decision.text) {
           const externalId = computeFactExternalId(
             args.sourceMemoryId,
-            i,
+            factIndex,
             decision.text,
           );
           await ctx.runAction(
@@ -162,10 +127,10 @@ export const extractFactsAndDecideInternal = internalAction({
             console.warn(
               `[v2] UPDATE target ${decision.id} not found, skipping`,
             );
-            continue;
+            return;
           }
           const reason =
-            `New fact: "${fact.text}"` +
+            `New fact: "${factText}"` +
             (decision.oldMemory ? `\nOld memory: "${decision.oldMemory}"` : "");
           await ctx.runAction(
             internal.neo4jActions.proposedUpdates.createProposedUpdateInternal,
@@ -182,9 +147,9 @@ export const extractFactsAndDecideInternal = internalAction({
             console.warn(
               `[v2] DELETE target ${decision.id} not found, skipping`,
             );
-            continue;
+            return;
           }
-          const reason = `New fact contradicts: "${fact.text}"`;
+          const reason = `New fact contradicts: "${factText}"`;
           await ctx.runAction(
             internal.neo4jActions.proposedUpdates.createProposedDeleteInternal,
             {
@@ -194,10 +159,8 @@ export const extractFactsAndDecideInternal = internalAction({
           );
           proposalCount += 1;
         }
-      } catch (err) {
-        console.error(`[v2] Fact ${String(i)} pipeline failed:`, err);
-      }
-    }
+      },
+    );
 
     if (proposalCount > 0) {
       await ctx.runMutation(internal.notifications.pushForClerkIdInternal, {
