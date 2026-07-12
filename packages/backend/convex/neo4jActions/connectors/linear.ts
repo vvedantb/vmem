@@ -320,7 +320,6 @@ export async function runLinearSync(
       totalFound,
     });
     totalSynced = projectsResult.totalSynced;
-    totalFound = projectsResult.totalFound;
 
     await markSyncComplete(ctx, {
       connectorId: args.connectorId,

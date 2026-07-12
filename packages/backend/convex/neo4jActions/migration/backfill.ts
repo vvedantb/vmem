@@ -38,8 +38,7 @@ type BackfillRef = FunctionReference<
   "action",
   "internal",
   { batchSize?: number },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  any
+  { done: boolean; processed: number }
 >;
 
 async function runReschedulingBackfill<Row>(

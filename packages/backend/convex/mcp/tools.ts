@@ -52,8 +52,12 @@ function toMcpContent(
 }
 
 /** JSON for a get-file result with the (large) base64 payload removed. */
-function fileMetadataText(data: object): string {
-  const clone: Record<string, unknown> = { ...data };
+function fileMetadataText(data: unknown): string {
+  const parsed = z.record(z.unknown()).safeParse(data);
+  if (!parsed.success) {
+    return JSON.stringify(data, null, 2);
+  }
+  const clone: Record<string, unknown> = { ...parsed.data };
   delete clone.contentBase64;
   return JSON.stringify(clone, null, 2);
 }
@@ -81,7 +85,7 @@ function filesGetContent(result: ToolHandlerResult): McpToolContent {
           data: inlineImage.data.contentBase64,
           mimeType: inlineImage.data.mimeType,
         },
-        { type: "text", text: fileMetadataText(data as object) },
+        { type: "text", text: fileMetadataText(data) },
       ],
     };
   }
@@ -270,15 +274,91 @@ const mcpPresentation: Record<keyof typeof toolSpecs, McpToolPresentation> = {
 };
 
 /** Registration order mirrors insertion order of `toolSpecs` (toolCatalog.ts). */
-const bindableToolSpecs: Record<keyof typeof toolSpecs, McpBindableTool> =
-  Object.fromEntries(
-    Object.entries(toolSpecs).map(([key, spec]) => [
-      key,
-      // Catalog union loses per-tool Shape in a loop; runtime is safe via schema.parse.
-      // @ts-expect-error TS2345 — union ToolSpec in keyed loop
-      bindToolSpec(spec),
-    ]),
-  ) as Record<keyof typeof toolSpecs, McpBindableTool>;
+const bindableToolSpecs = {
+  ping: bindToolSpec(toolSpecs.ping),
+  whoami: bindToolSpec(toolSpecs.whoami),
+  list_profiles: bindToolSpec(toolSpecs.list_profiles),
+  set_active_profile: bindToolSpec(toolSpecs.set_active_profile),
+  context_prompt_get: bindToolSpec(toolSpecs.context_prompt_get),
+  memory_search: bindToolSpec(toolSpecs.memory_search),
+  memory_retrieve: bindToolSpec(toolSpecs.memory_retrieve),
+  memory_add: bindToolSpec(toolSpecs.memory_add),
+  memory_add_instruction: bindToolSpec(toolSpecs.memory_add_instruction),
+  memory_update: bindToolSpec(toolSpecs.memory_update),
+  memory_delete: bindToolSpec(toolSpecs.memory_delete),
+  memory_related: bindToolSpec(toolSpecs.memory_related),
+  skills_list: bindToolSpec(toolSpecs.skills_list),
+  skills_get: bindToolSpec(toolSpecs.skills_get),
+  skills_create: bindToolSpec(toolSpecs.skills_create),
+  skills_update: bindToolSpec(toolSpecs.skills_update),
+  skills_delete: bindToolSpec(toolSpecs.skills_delete),
+  wiki_list: bindToolSpec(toolSpecs.wiki_list),
+  wiki_get: bindToolSpec(toolSpecs.wiki_get),
+  wiki_search: bindToolSpec(toolSpecs.wiki_search),
+  wiki_create: bindToolSpec(toolSpecs.wiki_create),
+  wiki_update: bindToolSpec(toolSpecs.wiki_update),
+  wiki_delete: bindToolSpec(toolSpecs.wiki_delete),
+  files_list: bindToolSpec(toolSpecs.files_list),
+  files_get: bindToolSpec(toolSpecs.files_get),
+  files_upload: bindToolSpec(toolSpecs.files_upload),
+  files_delete: bindToolSpec(toolSpecs.files_delete),
+  codebases_list: bindToolSpec(toolSpecs.codebases_list),
+  codebase_overview: bindToolSpec(toolSpecs.codebase_overview),
+  codebase_search: bindToolSpec(toolSpecs.codebase_search),
+  codebase_context: bindToolSpec(toolSpecs.codebase_context),
+  codebase_impact: bindToolSpec(toolSpecs.codebase_impact),
+  codebase_graph: bindToolSpec(toolSpecs.codebase_graph),
+} satisfies Record<keyof typeof toolSpecs, McpBindableTool>;
+
+const mcpToolKeys: Array<keyof typeof toolSpecs> = [
+  "ping",
+  "whoami",
+  "list_profiles",
+  "set_active_profile",
+  "context_prompt_get",
+  "memory_search",
+  "memory_retrieve",
+  "memory_add",
+  "memory_add_instruction",
+  "memory_update",
+  "memory_delete",
+  "memory_related",
+  "skills_list",
+  "skills_get",
+  "skills_create",
+  "skills_update",
+  "skills_delete",
+  "wiki_list",
+  "wiki_get",
+  "wiki_search",
+  "wiki_create",
+  "wiki_update",
+  "wiki_delete",
+  "files_list",
+  "files_get",
+  "files_upload",
+  "files_delete",
+  "codebases_list",
+  "codebase_overview",
+  "codebase_search",
+  "codebase_context",
+  "codebase_impact",
+  "codebase_graph",
+];
+
+function assertCatalogExhaustive(): void {
+  for (const key of Object.keys(toolSpecs)) {
+    if (!(key in bindableToolSpecs)) {
+      throw new Error(`MCP bindableToolSpecs missing catalog tool: ${key}`);
+    }
+  }
+  for (const key of Object.keys(mcpPresentation)) {
+    if (!(key in bindableToolSpecs)) {
+      throw new Error(`MCP mcpPresentation missing catalog tool: ${key}`);
+    }
+  }
+}
+assertCatalogExhaustive();
 
 function registerMcpTool(
   server: McpServer,
@@ -317,7 +397,7 @@ export function registerTools(
   const scopeLabel = scope === "team" ? "team" : "personal";
   const h = handlerContext(clerkUserId, ctx, scope);
 
-  for (const key of Object.keys(toolSpecs) as Array<keyof typeof toolSpecs>) {
+  for (const key of mcpToolKeys) {
     registerMcpTool(
       server,
       bindableToolSpecs[key],

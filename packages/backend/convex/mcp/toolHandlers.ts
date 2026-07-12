@@ -3,10 +3,7 @@ import { internal } from "../_generated/api";
 import { toSkillIndexEntry } from "../skills";
 import type { McpScope } from "../profiles/mcpAccess";
 import type { z } from "zod";
-import {
-  isOpenRouterRequired,
-  type StoreFromInstructionActionResult,
-} from "../http/v1Memories/types";
+import { isOpenRouterRequired } from "../http/v1Memories/types";
 import {
   codebaseContextSchema,
   codebaseGraphSchema,
@@ -201,7 +198,7 @@ export async function runMemoryAddInstruction(
   );
   if (!result.ok) return result;
 
-  if (isOpenRouterRequired(result.data as StoreFromInstructionActionResult)) {
+  if (isOpenRouterRequired(result.data)) {
     return {
       ok: false,
       error:

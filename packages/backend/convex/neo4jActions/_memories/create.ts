@@ -82,13 +82,10 @@ export async function runCreateMemory(
   }
 
   if (args.externalId && args.sourceType) {
+    const sourceType = args.sourceType;
+    const externalId = args.externalId;
     const hit = await checkDuplicate(() =>
-      findMemoryByExternalId(
-        driver,
-        args.clerkId,
-        args.sourceType!,
-        args.externalId!,
-      ),
+      findMemoryByExternalId(driver, args.clerkId, sourceType, externalId),
     );
     if (hit) return hit;
   }

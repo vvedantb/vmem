@@ -236,13 +236,6 @@ export function parseFactExtractionResponse(
   }
 }
 
-const VALID_EVENTS: ReadonlySet<string> = new Set([
-  "ADD",
-  "UPDATE",
-  "DELETE",
-  "NONE",
-]);
-
 const updateDecisionResponseSchema = z.object({
   event: z.string(),
   id: z.string().optional(),
@@ -250,10 +243,11 @@ const updateDecisionResponseSchema = z.object({
   old_memory: z.string().optional(),
 });
 
+const updateDecisionEventSchema = z.enum(["ADD", "UPDATE", "DELETE", "NONE"]);
+
 function toEvent(v: string): UpdateDecisionEvent | null {
-  const upper = v.trim().toUpperCase();
-  // Set membership above narrows to one of the four literals.
-  return VALID_EVENTS.has(upper) ? (upper as UpdateDecisionEvent) : null;
+  const parsed = updateDecisionEventSchema.safeParse(v.trim().toUpperCase());
+  return parsed.success ? parsed.data : null;
 }
 
 function optionalNonEmptyString(value: string | undefined): string | undefined {

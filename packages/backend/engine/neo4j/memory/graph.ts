@@ -85,14 +85,15 @@ function parseEntityRow(raw: unknown): GraphData["entities"][number] | null {
  *  column name — the `getLocalGraph` queries return scalar columns rather
  *  than pre-shaped maps, so each row needs re-assembling before it can be
  *  handed to the shared `parse*Row` schemas above. */
-function rowFromRecord<K extends string>(
+function rowFromRecord(
   r: NeoRecord,
-  keys: readonly K[],
-): Record<K, unknown> {
-  return Object.fromEntries(keys.map((k) => [k, neo4jGet(r, k)])) as Record<
-    K,
-    unknown
-  >;
+  keys: readonly string[],
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of keys) {
+    out[k] = neo4jGet(r, k);
+  }
+  return out;
 }
 
 /**
