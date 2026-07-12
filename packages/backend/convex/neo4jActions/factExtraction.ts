@@ -4,8 +4,8 @@ import crypto from "node:crypto";
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import { getMemory } from "../../engine/neo4j/memory/crud";
 import { getDriver } from "../../engine/neo4j/driver";
+import { applyFactUpdateOrDelete } from "./agent/applyFactDecision";
 import { runFactDecisionLoop } from "./agent/factDecisionLoop";
 import {
   extractFactsFromInstruction,
@@ -117,47 +117,21 @@ export const extractFactsAndDecideInternal = internalAction({
             },
           );
           appliedCount += 1;
-        } else if (
-          decision.event === "UPDATE" &&
-          decision.id &&
-          decision.text
-        ) {
-          const target = await getMemory(driver, args.clerkId, decision.id);
-          if (!target) {
-            console.warn(
-              `[v2] UPDATE target ${decision.id} not found, skipping`,
-            );
-            return;
+        } else {
+          const outcome = await applyFactUpdateOrDelete(ctx, driver, {
+            clerkId: args.clerkId,
+            factText,
+            decision,
+            logPrefix: "[v2]",
+            buildUpdateReason: ({ factText: ft, decision: d }) =>
+              `New fact: "${ft}"` +
+              (d.oldMemory ? `\nOld memory: "${d.oldMemory}"` : ""),
+            buildDeleteReason: ({ factText: ft }) =>
+              `New fact contradicts: "${ft}"`,
+          });
+          if (outcome === "update" || outcome === "delete") {
+            proposalCount += 1;
           }
-          const reason =
-            `New fact: "${factText}"` +
-            (decision.oldMemory ? `\nOld memory: "${decision.oldMemory}"` : "");
-          await ctx.runAction(
-            internal.neo4jActions.proposedUpdates.createProposedUpdateInternal,
-            {
-              memoryId: decision.id,
-              proposedContent: decision.text,
-              reason,
-            },
-          );
-          proposalCount += 1;
-        } else if (decision.event === "DELETE" && decision.id) {
-          const target = await getMemory(driver, args.clerkId, decision.id);
-          if (!target) {
-            console.warn(
-              `[v2] DELETE target ${decision.id} not found, skipping`,
-            );
-            return;
-          }
-          const reason = `New fact contradicts: "${factText}"`;
-          await ctx.runAction(
-            internal.neo4jActions.proposedUpdates.createProposedDeleteInternal,
-            {
-              memoryId: decision.id,
-              reason,
-            },
-          );
-          proposalCount += 1;
         }
       },
     );
