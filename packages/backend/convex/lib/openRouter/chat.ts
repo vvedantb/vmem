@@ -10,11 +10,11 @@
 import type { ChatResult as SdkChatResult } from "@openrouter/sdk/models";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { createOpenRouterClient, readOpenRouterError } from "./client";
+import { createOpenRouterClient } from "./client";
 import {
   COMPLETION_PREVIEW_BYTES,
   PROMPT_PREVIEW_BYTES,
-  classifyHttpStatus,
+  classifyOpenRouterFailure,
   numberOrUndef,
   previewsEnabled,
   scheduleLog,
@@ -123,11 +123,7 @@ export async function callOpenRouterChat(
     }
   } catch (e) {
     ok = false;
-    const err = readOpenRouterError(e);
-    status = err.status;
-    errorMessage = err.message;
-    errorClass =
-      status > 0 ? (classifyHttpStatus(status) ?? "network") : "network";
+    ({ status, errorMessage, errorClass } = classifyOpenRouterFailure(e));
   }
 
   const latencyMs = Math.round(performance.now() - start);
