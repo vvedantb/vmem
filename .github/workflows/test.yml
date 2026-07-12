@@ -4,7 +4,6 @@ on:
   push:
     branches: [main, staging]
   pull_request:
-    branches: [main, staging]
 
 concurrency:
   group: ci-unit-tests-${{ github.ref }}
@@ -29,6 +28,9 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
 
       - name: Typecheck web
         run: pnpm typecheck

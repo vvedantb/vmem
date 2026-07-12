@@ -1,15 +1,9 @@
 import path from "node:path";
 import { assertInvalid, assertValid, repoRoot } from "./harness.mjs";
 
-assertInvalid(
-  "no-double-cast",
-  `const x = value as unknown as string;\n`,
-);
+assertInvalid("no-double-cast", `const x = value as unknown as string;\n`);
 
-assertValid(
-  "no-double-cast",
-  `const x = value as string;\n`,
-);
+assertValid("no-double-cast", `const x = value as string;\n`);
 
 assertInvalid(
   "no-inline-object-type-assertion",
@@ -31,20 +25,11 @@ assertValid(
   `import { api } from "@vmem/backend";\n`,
 );
 
-assertValid(
-  "no-deep-package-imports",
-  `import { cn } from "@vmem/ui/cn";\n`,
-);
+assertValid("no-deep-package-imports", `import { cn } from "@vmem/ui/cn";\n`);
 
-assertInvalid(
-  "no-ts-nocheck",
-  `// @ts-nocheck\nexport const x = 1;\n`,
-);
+assertInvalid("no-ts-nocheck", `// @ts-nocheck\nexport const x = 1;\n`);
 
-assertValid(
-  "no-ts-nocheck",
-  `export const x = 1;\n`,
-);
+assertValid("no-ts-nocheck", `export const x = 1;\n`);
 
 assertInvalid(
   "prefer-schema-inferred-types",
@@ -88,36 +73,21 @@ test("x", () => {
   "example.test.ts",
 );
 
-assertInvalid(
-  "no-json-parse",
-  `const data = JSON.parse(raw);\n`,
-);
+assertInvalid("no-json-parse", `const data = JSON.parse(raw);\n`);
 
 // Cast to anything other than `unknown` does not count as narrowing.
-assertInvalid(
-  "no-json-parse",
-  `const data = JSON.parse(raw) as MyType;\n`,
-);
+assertInvalid("no-json-parse", `const data = JSON.parse(raw) as MyType;\n`);
 
 assertValid(
   "no-json-parse",
   `const data = schema.safeParse(JSON.parse(raw));\n`,
 );
 
-assertValid(
-  "no-json-parse",
-  `const data = schema.parse(JSON.parse(raw));\n`,
-);
+assertValid("no-json-parse", `const data = schema.parse(JSON.parse(raw));\n`);
 
-assertValid(
-  "no-json-parse",
-  `const data: unknown = JSON.parse(raw);\n`,
-);
+assertValid("no-json-parse", `const data: unknown = JSON.parse(raw);\n`);
 
-assertValid(
-  "no-json-parse",
-  `const data = JSON.parse(raw) as unknown;\n`,
-);
+assertValid("no-json-parse", `const data = JSON.parse(raw) as unknown;\n`);
 
 assertInvalid(
   "no-unknown-shape-probing",
@@ -131,10 +101,7 @@ assertInvalid(
 
 // The rule deliberately allows `in` — it stays the sanctioned way to narrow
 // discriminated unions and typed SDK unions in this codebase.
-assertValid(
-  "no-unknown-shape-probing",
-  `const has = "key" in obj;\n`,
-);
+assertValid("no-unknown-shape-probing", `const has = "key" in obj;\n`);
 
 assertValid(
   "no-unknown-shape-probing",

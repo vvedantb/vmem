@@ -22,14 +22,14 @@ New memory extracted: "User prefers TypeScript"
 
 ## Proposal Kinds
 
-| Kind | Description |
-| --- | --- |
-| `update` | Replace memory content with proposed content on approve |
-| `delete` | Delete the target memory on approve |
-| `insight` | Synthesize a new memory from connected sources (Dream Mode) |
-| `connection` | Link related memories with a new relationship |
-| `contradiction` | Flag conflicting information for review |
-| `anomaly` | Surface unusual patterns in memory data |
+| Kind            | Description                                                 |
+| --------------- | ----------------------------------------------------------- |
+| `update`        | Replace memory content with proposed content on approve     |
+| `delete`        | Delete the target memory on approve                         |
+| `insight`       | Synthesize a new memory from connected sources (Dream Mode) |
+| `connection`    | Link related memories with a new relationship               |
+| `contradiction` | Flag conflicting information for review                     |
+| `anomaly`       | Surface unusual patterns in memory data                     |
 
 Legacy kinds (`update`, `delete`) come from fact extraction. Synthesis kinds (`insight`, `connection`, `contradiction`, `anomaly`) are produced by Dream Mode V2.
 
@@ -56,7 +56,10 @@ Go to **Inbox → Proposals** (`/inbox/proposals`). Each card shows the target m
 
 ```typescript
 // List pending proposals
-const proposals = await convex.action(api.proposedUpdateApi.listProposedUpdates, {});
+const proposals = await convex.action(
+  api.proposedUpdateApi.listProposedUpdates,
+  {},
+);
 
 // Approve or reject
 await convex.action(api.proposedUpdateApi.resolveProposal, {

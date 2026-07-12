@@ -9,13 +9,13 @@ The SDK is published with [npm Trusted Publishing](https://docs.npmjs.com/truste
 
 On [@vmem/sdk → Settings → Trusted publishing](https://www.npmjs.com/package/@vmem/sdk):
 
-| Field | Value |
-| --- | --- |
-| Publisher | GitHub Actions |
-| Repository | `vedantb2/vmem` |
+| Field             | Value                  |
+| ----------------- | ---------------------- |
+| Publisher         | GitHub Actions         |
+| Repository        | `vedantb2/vmem`        |
 | Workflow filename | `publish-vmem-sdk.yml` |
-| Environment | *(leave empty)* |
-| Allowed actions | `npm publish` |
+| Environment       | _(leave empty)_        |
+| Allowed actions   | `npm publish`          |
 
 `packages/sdk/package.json` must include:
 
@@ -51,7 +51,7 @@ You do **not** need to bump `version` by hand for normal SDK changes. To ship wi
 
 The workflow pushes the version commit to `main`. Ensure:
 
-- **Settings → Actions → General → Workflow permissions** → *Read and write permissions*.
+- **Settings → Actions → General → Workflow permissions** → _Read and write permissions_.
 - Branch protection on `main` allows **GitHub Actions** to push (or exempt the bot from “require PR” for release commits).
 
 ## First publish (manual, already done)
@@ -67,9 +67,9 @@ npm publish --access public
 
 ## Troubleshooting
 
-| Error | Fix |
-| --- | --- |
-| `404` on publish | Package missing on npm, or trusted publisher repo/workflow mismatch. |
-| `ENEEDAUTH` | Trusted publisher not configured; or empty `_authToken` in `.npmrc` blocking OIDC (workflow clears this). |
-| `EOTP` / bypass 2FA | Do not use `NPM_TOKEN` without bypass 2FA; use trusted publishing instead. |
-| Version already exists | Bump `version` in `packages/sdk/package.json`. |
+| Error                  | Fix                                                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| `404` on publish       | Package missing on npm, or trusted publisher repo/workflow mismatch.                                      |
+| `ENEEDAUTH`            | Trusted publisher not configured; or empty `_authToken` in `.npmrc` blocking OIDC (workflow clears this). |
+| `EOTP` / bypass 2FA    | Do not use `NPM_TOKEN` without bypass 2FA; use trusted publishing instead.                                |
+| Version already exists | Bump `version` in `packages/sdk/package.json`.                                                            |

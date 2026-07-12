@@ -55,14 +55,14 @@ const vmem = new VMemory({
 
 ## Methods
 
-| Method | HTTP | Description |
-| --- | --- | --- |
-| `store(instruction)` | `POST /api/v1/memories` | Extract facts and create memories |
-| `update(instruction)` | `PATCH /api/v1/memories` | Reconcile instruction against existing memories (proposals for conflicts) |
-| `retrieve(query)` | `POST /api/v1/memories/retrieve` | Hybrid semantic search |
-| `createMemory(body)` | `POST /api/v1/memories` | Structured create (escape hatch) |
-| `patchMemory(body)` | `PATCH /api/v1/memories` | Structured update by `memoryId` |
-| `searchMemories(body)` | `POST /api/v1/memories/retrieve` | Structured retrieve |
+| Method                 | HTTP                             | Description                                                               |
+| ---------------------- | -------------------------------- | ------------------------------------------------------------------------- |
+| `store(instruction)`   | `POST /api/v1/memories`          | Extract facts and create memories                                         |
+| `update(instruction)`  | `PATCH /api/v1/memories`         | Reconcile instruction against existing memories (proposals for conflicts) |
+| `retrieve(query)`      | `POST /api/v1/memories/retrieve` | Hybrid semantic search                                                    |
+| `createMemory(body)`   | `POST /api/v1/memories`          | Structured create (escape hatch)                                          |
+| `patchMemory(body)`    | `PATCH /api/v1/memories`         | Structured update by `memoryId`                                           |
+| `searchMemories(body)` | `POST /api/v1/memories/retrieve` | Structured retrieve                                                       |
 
 ## Retrieve options
 

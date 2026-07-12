@@ -11,7 +11,13 @@ export const repoRoot = path.resolve(
   "../..",
 );
 
-const oxlintBin = path.join(repoRoot, "node_modules", "oxlint", "bin", "oxlint");
+const oxlintBin = path.join(
+  repoRoot,
+  "node_modules",
+  "oxlint",
+  "bin",
+  "oxlint",
+);
 
 /**
  * Run oxlint on a single in-memory source string for one vmem rule.
@@ -33,8 +39,11 @@ const oxlintBin = path.join(repoRoot, "node_modules", "oxlint", "bin", "oxlint")
  * Returns combined stdout+stderr and the exit code.
  */
 export function runOxlintRule(ruleName, source, options = {}) {
-  const { filename = "fixture.ts", extraFiles = {}, baseDir = os.tmpdir() } =
-    typeof options === "string" ? { filename: options } : options;
+  const {
+    filename = "fixture.ts",
+    extraFiles = {},
+    baseDir = os.tmpdir(),
+  } = typeof options === "string" ? { filename: options } : options;
 
   fs.mkdirSync(baseDir, { recursive: true });
   const dir = fs.mkdtempSync(path.join(baseDir, "vmem-oxlint-"));

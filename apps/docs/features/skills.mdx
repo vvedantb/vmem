@@ -22,12 +22,12 @@ Skills are stored in Convex and associated with your user account.
 
 Skills appear in the **Available Skills** section of the `vmem://context_prompt` MCP resource (refreshed when skills change). MCP clients also have:
 
-| Tool | Description |
-| --- | --- |
-| `skills_list` | List enabled skills (name + description only) |
-| `skills_get` | Fetch a single skill by exact name, including full markdown instructions |
+| Tool            | Description                                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `skills_list`   | List enabled skills (name + description only)                                                                       |
+| `skills_get`    | Fetch a single skill by exact name, including full markdown instructions                                            |
 | `skills_create` | Create a skill when a repeatable problem or automatable workflow was identified and no existing skill covers it yet |
-| `skills_update` | Update an existing skill when its playbook should change (refinement, rename, disable) |
+| `skills_update` | Update an existing skill when its playbook should change (refinement, rename, disable)                              |
 
 When a task matches a skill's description, call `skills_get` to load full instructions before following them. Use `skills_create` only after checking the index — not when a matching skill already exists. Use `skills_update` when a skill exists but needs better instructions.
 
