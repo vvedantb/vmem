@@ -74,9 +74,9 @@ const config: KnipConfig = {
       project: ["src/**/*.{ts,tsx}"],
     },
   },
-  ignore: ["apps/docs/**", "internal/**"],
+  ignore: ["internal/**"],
   ignoreDependencies: ["oxlint-tsgolint", "baseline-browser-mapping"],
-  ignoreBinaries: ["convex", "mint"],
+  ignoreBinaries: ["convex"],
 };
 
 export default config;

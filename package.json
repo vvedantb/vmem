@@ -9,7 +9,6 @@
     "start": "pnpm --filter web start",
     "ext:dev": "pnpm --filter @vmem/chrome-extension dev",
     "ext:build": "pnpm --filter @vmem/chrome-extension build",
-    "docs:dev": "pnpm --filter docs exec mint dev --port 3001",
     "lint": "oxlint --type-aware --deny-warnings && eslint . --max-warnings 0",
     "lint:oxlint": "oxlint --type-aware",
     "lint:eslint": "eslint .",

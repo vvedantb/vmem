@@ -89,7 +89,6 @@ pnpm workspace (`pnpm@10.15.1`). Requires Node 20+.
 | ----------------------- | ------------------------ | ------------------------------------------------------------ |
 | `apps/web`              | `web`                    | Vite + React 19 + TanStack Router dashboard                  |
 | `apps/chrome-extension` | `@vmem/chrome-extension` | Save pages, export chats, inject context into ChatGPT/Claude |
-| `apps/docs`             | `docs`                   | Mintlify documentation site                                  |
 | `packages/backend`      | `@vmem/backend`          | Convex functions, Neo4j actions, MCP HTTP server             |
 | `packages/shared`       | `@vmem/shared`           | Cross-app constants and client-safe prompt helpers           |
 | `packages/ui`           | `@vmem/ui`               | Shared shadcn/Radix component library                        |
@@ -147,7 +146,6 @@ pnpm dev      # Web app — http://localhost:5173
 
 ```bash
 pnpm ext:dev         # Chrome extension watch build
-pnpm docs:dev        # Mintlify docs — http://localhost:3001
 pnpm typecheck:all   # web + backend + extension + packages
 pnpm test            # backend + web unit tests
 pnpm db:seed         # seed Neo4j (needs packages/backend/.env.local)
@@ -183,14 +181,4 @@ Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key
 
 **Neo4j CLI scripts** (`db:seed`, `eval:retrieval`) — `packages/backend/.env.local` with `NEO4J_URI`, `NEO4J_PASSWORD`, and optionally `OPENROUTER_API_KEY`.
 
-Full variable reference: `apps/docs/environment.mdx` (preview with `pnpm docs:dev`).
-
-## Documentation
-
-User-facing docs live in `apps/docs/` (Mintlify). Preview locally:
-
-```bash
-pnpm docs:dev
-```
-
-Public docs: [vmem.vedantb.com](https://vmem.vedantb.com)
+Public docs (hosted separately): [vmem.vedantb.com](https://vmem.vedantb.com)
