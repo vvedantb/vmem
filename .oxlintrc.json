@@ -118,6 +118,85 @@
       "rules": {
         "no-console": "off"
       }
+    },
+    {
+      "files": ["apps/web/**", "apps/chrome-extension/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["useEffect"],
+                "message": "Avoid new useEffect. Prefer derived state inline, event handlers, or Convex reactive queries. For mount-only external sync, extract a named helper and keep the effect in a grandfathered file — do not grow the allowlist."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // legacy useEffect — shrink, never grow
+      "files": [
+        "apps/chrome-extension/src/popup/App.tsx",
+        "apps/chrome-extension/src/popup/_components/ImportPanel.tsx",
+        "apps/chrome-extension/src/popup/_components/QuickSave.tsx",
+        "apps/chrome-extension/src/popup/_components/SettingsForm.tsx",
+        "apps/chrome-extension/src/popup/_components/TokenSync.tsx",
+        "apps/chrome-extension/src/popup/useExtensionUserSettings.tsx",
+        "apps/chrome-extension/src/popup/useTheme.tsx",
+        "apps/web/src/components/ApiKeyModal.tsx",
+        "apps/web/src/components/CommandPalette.tsx",
+        "apps/web/src/components/Dashboard.tsx",
+        "apps/web/src/components/FileUploadModal.tsx",
+        "apps/web/src/components/MemorySearch.tsx",
+        "apps/web/src/components/OAuthModal.tsx",
+        "apps/web/src/components/PageContainer.tsx",
+        "apps/web/src/components/Sidebar.tsx",
+        "apps/web/src/components/_components/DetailsTab.tsx",
+        "apps/web/src/components/_components/GraphCanvas.tsx",
+        "apps/web/src/components/_components/RelatedMemories.tsx",
+        "apps/web/src/components/_components/TagMemoriesPanel.tsx",
+        "apps/web/src/components/api-keys/EditKeyDialog.tsx",
+        "apps/web/src/components/api-keys/useApiKeyActions.ts",
+        "apps/web/src/components/codebases/AddRepoModal.tsx",
+        "apps/web/src/components/contexts/ThemeContext.tsx",
+        "apps/web/src/components/files/InlineNewFolder.tsx",
+        "apps/web/src/components/providers/ClientProvider.tsx",
+        "apps/web/src/components/settings/DeleteConnectorDataDialog.tsx",
+        "apps/web/src/components/settings/PlaygroundClient.tsx",
+        "apps/web/src/components/settings/SelectImportRowsModal.tsx",
+        "apps/web/src/components/skills/EditSkillDialog.tsx",
+        "apps/web/src/components/skills/SkillHistoryPanel.tsx",
+        "apps/web/src/components/skills/SystemSkillFormDialog.tsx",
+        "apps/web/src/components/svg-animations/AnimatedCounter.tsx",
+        "apps/web/src/components/svg-animations/AnimatedProgress.tsx",
+        "apps/web/src/components/wiki/RenameDialog.tsx",
+        "apps/web/src/components/wiki/WikiEditor.tsx",
+        "apps/web/src/components/wiki/WikiHistoryPanel.tsx",
+        "apps/web/src/components/wiki/WikiOutline.tsx",
+        "apps/web/src/components/wiki/WikiWorkspace.tsx",
+        "apps/web/src/components/workspace/LegacyPathRedirect.tsx",
+        "apps/web/src/components/workspace/WorkspaceEntryRedirect.tsx",
+        "apps/web/src/hooks/useMemoryEvents.ts",
+        "apps/web/src/hooks/useTimelineEvents.ts",
+        "apps/web/src/hooks/useTrailData.ts",
+        "apps/web/src/routes/_main/$profileId/activity/-components/EventsPanel.tsx",
+        "apps/web/src/routes/_main/$profileId/codebases/index.tsx",
+        "apps/web/src/routes/_main/$profileId/route.tsx",
+        "apps/web/src/routes/_main/$profileId/skills/index.tsx",
+        "apps/web/src/routes/_main/$profileId/skills/route.tsx",
+        "apps/web/src/routes/_main/$profileId/team/route.tsx",
+        "apps/web/src/routes/_main/settings/connectors.tsx",
+        "apps/web/src/routes/_main/settings/data-controls/-components/DeleteAllMemoriesDialog.tsx",
+        "apps/web/src/routes/_main/settings/playground/callback.tsx",
+        "apps/web/src/routes/agent-callback.tsx",
+        "apps/web/src/routes/mcp/oauth/authorize.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
     }
   ]
 }
