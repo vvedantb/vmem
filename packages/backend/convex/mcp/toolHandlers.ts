@@ -4,6 +4,10 @@ import { toSkillIndexEntry } from "../skills";
 import type { McpScope } from "../profiles/mcpAccess";
 import type { z } from "zod";
 import {
+  isOpenRouterRequired,
+  type StoreFromInstructionActionResult,
+} from "../http/v1Memories/types";
+import {
   codebaseContextSchema,
   codebaseGraphSchema,
   codebaseImpactSchema,
@@ -197,12 +201,7 @@ export async function runMemoryAddInstruction(
   );
   if (!result.ok) return result;
 
-  if (
-    typeof result.data === "object" &&
-    result.data !== null &&
-    "error" in result.data &&
-    result.data.error === "openrouter_required"
-  ) {
+  if (isOpenRouterRequired(result.data as StoreFromInstructionActionResult)) {
     return {
       ok: false,
       error:
