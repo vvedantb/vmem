@@ -431,14 +431,22 @@ export async function searchSymbols(
       },
     );
 
-    const out: SearchSymbolsResult[] = [];
-    for (const rec of ftResult.records) {
-      const row = parseSearchSymbolRecord(rec, pickKind, "node");
-      if (!row) continue;
-      if (args.kind && row.kind !== args.kind) continue;
-      out.push(row);
-    }
-    if (out.length > 0) return out;
+    const collectRows = (
+      records: typeof ftResult.records,
+      nodeKey: "node" | "n",
+    ): SearchSymbolsResult[] => {
+      const rows: SearchSymbolsResult[] = [];
+      for (const rec of records) {
+        const row = parseSearchSymbolRecord(rec, pickKind, nodeKey);
+        if (!row) continue;
+        if (args.kind && row.kind !== args.kind) continue;
+        rows.push(row);
+      }
+      return rows;
+    };
+
+    const primary = collectRows(ftResult.records, "node");
+    if (primary.length > 0) return primary;
 
     // Fallback substring scan (name, qualifiedName, filePath).
     const fbResult = await session.run(
@@ -460,13 +468,7 @@ export async function searchSymbols(
         limit,
       },
     );
-    for (const rec of fbResult.records) {
-      const row = parseSearchSymbolRecord(rec, pickKind, "n");
-      if (!row) continue;
-      if (args.kind && row.kind !== args.kind) continue;
-      out.push(row);
-    }
-    return out;
+    return collectRows(fbResult.records, "n");
   } finally {
     await session.close();
   }
