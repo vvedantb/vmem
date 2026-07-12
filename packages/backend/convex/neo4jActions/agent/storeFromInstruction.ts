@@ -2,10 +2,9 @@
 
 import type { ActionCtx } from "../../_generated/server";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
-import { runCreateMemory } from "../_memories/create";
 import { resolveProfileIdForClerkId } from "../_memories/shared";
 import {
-  computeSdkFactExternalId,
+  createSdkExtractedMemory,
   extractFactsFromInstruction,
   requireOpenRouterAuth,
   type OpenRouterRequired,
@@ -59,22 +58,12 @@ export async function runStoreFromInstruction(
       continue;
     }
 
-    const memory = await runCreateMemory(ctx, {
+    const memory = await createSdkExtractedMemory(ctx, {
       clerkId: args.clerkId,
       profileId,
-      title: fact.text.slice(0, 80),
-      content: fact.text,
-      type: "knowledge",
-      source: "sdk-api",
-      tags: ["sdk-extracted"],
-      confidence: 0.9,
-      externalId: computeSdkFactExternalId(
-        args.clerkId,
-        args.instruction,
-        index,
-        fact.text,
-      ),
-      sourceType: "sdk-extracted",
+      instruction: args.instruction,
+      factIndex: index,
+      text: fact.text,
     });
     created.push(memory);
   }
