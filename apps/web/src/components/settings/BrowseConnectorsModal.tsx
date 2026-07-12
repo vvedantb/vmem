@@ -19,13 +19,8 @@ import OAuthModal from "@/components/OAuthModal";
 import { GitHubConnectorControls } from "./GitHubConnectorControls";
 import {
   GoogleDriveIcon,
-  GmailIcon,
-  OneDriveIcon,
-  DropboxIcon,
   NotionIcon,
-  SlackIcon,
   GitHubIcon,
-  LinearIcon,
 } from "@/components/brand-icons";
 
 const iconMap: Record<
@@ -33,13 +28,8 @@ const iconMap: Record<
   React.ComponentType<{ size?: number; className?: string }>
 > = {
   IconBrandGoogleDrive: GoogleDriveIcon,
-  IconBrandGmail: GmailIcon,
-  IconBrandOnedrive: OneDriveIcon,
-  IconBrandDropbox: DropboxIcon,
   IconBrandNotion: NotionIcon,
-  IconBrandSlack: SlackIcon,
   IconBrandGithub: GitHubIcon,
-  IconBrandLinear: LinearIcon,
 };
 
 interface BrowseConnectorsModalProps {

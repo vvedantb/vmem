@@ -32,7 +32,6 @@
     "@convex-dev/crons": "^0.2.0",
     "@convex-dev/workflow": "^0.4.2",
     "@googleapis/drive": "^20.0.0",
-    "@googleapis/gmail": "^17.0.0",
     "@modelcontextprotocol/ext-apps": "1.7.2",
     "@modelcontextprotocol/sdk": "catalog:",
     "@neo4j/cypher-builder": "^3.0.1",

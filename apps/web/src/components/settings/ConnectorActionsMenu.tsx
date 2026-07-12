@@ -18,20 +18,18 @@ import {
 
 interface ConnectorActionsMenuProps {
   connectorName: string;
-  isLinear: boolean;
   isSyncing: boolean;
   isBusy: boolean;
   showSyncActions: boolean;
   showDisconnect: boolean;
   showDeleteData: boolean;
-  onSync: (fullHistory: boolean) => void;
+  onSync: () => void;
   onDisconnect: () => void;
   onDeleteData: () => void;
 }
 
 export default function ConnectorActionsMenu({
   connectorName,
-  isLinear,
   isSyncing,
   isBusy,
   showSyncActions,
@@ -67,26 +65,10 @@ export default function ConnectorActionsMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {showSyncActions ? (
-          isLinear ? (
-            <>
-              <DropdownMenuItem
-                onSelect={() => onSync(false)}
-                disabled={isBusy}
-              >
-                <IconRefresh size={14} />
-                Sync recent (30d)
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onSync(true)} disabled={isBusy}>
-                <IconRefresh size={14} />
-                Sync all history
-              </DropdownMenuItem>
-            </>
-          ) : (
-            <DropdownMenuItem onSelect={() => onSync(false)} disabled={isBusy}>
-              <IconRefresh size={14} />
-              {isSyncing ? "Syncing…" : "Sync now"}
-            </DropdownMenuItem>
-          )
+          <DropdownMenuItem onSelect={onSync} disabled={isBusy}>
+            <IconRefresh size={14} />
+            {isSyncing ? "Syncing…" : "Sync now"}
+          </DropdownMenuItem>
         ) : null}
         {showSyncActions && hasDestructive ? <DropdownMenuSeparator /> : null}
         {showDisconnect ? (

@@ -15,12 +15,11 @@ import {
   GOOGLE_OAUTH_SCOPES,
   pickGoogleTokenConnectorId,
   scopeIncludesDrive,
-  scopeIncludesGmail,
 } from "../neo4jActions/connectors/googleShared";
 
 // --- Provider configurations ---
 
-type Provider = "google_drive" | "gmail" | "notion" | "onedrive" | "linear";
+type Provider = "google_drive" | "notion";
 
 interface ProviderConfig {
   authUrl: string;
@@ -67,18 +66,6 @@ const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
     includeScopeInTokenBody: false,
     tokenPolicy: expiringTokenPolicy,
   },
-  gmail: {
-    authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
-    tokenUrl: "https://oauth2.googleapis.com/token",
-    revokeUrl: "https://oauth2.googleapis.com/revoke",
-    scopes: [...GOOGLE_OAUTH_SCOPES],
-    clientIdEnv: "GOOGLE_CLIENT_ID",
-    clientSecretEnv: "GOOGLE_CLIENT_SECRET",
-    extraAuthParams: { access_type: "offline", prompt: "consent" },
-    tokenAuth: "body",
-    includeScopeInTokenBody: false,
-    tokenPolicy: expiringTokenPolicy,
-  },
   notion: {
     authUrl: "https://api.notion.com/v1/oauth/authorize",
     tokenUrl: "https://api.notion.com/v1/oauth/token",
@@ -88,30 +75,6 @@ const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
     clientSecretEnv: "NOTION_CLIENT_SECRET",
     extraAuthParams: { owner: "user" },
     tokenAuth: "basic",
-    includeScopeInTokenBody: false,
-    tokenPolicy: noExpiryTokenPolicy,
-  },
-  onedrive: {
-    authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-    tokenUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-    revokeUrl: null,
-    scopes: ["Files.Read.All", "offline_access"],
-    clientIdEnv: "MICROSOFT_CLIENT_ID",
-    clientSecretEnv: "MICROSOFT_CLIENT_SECRET",
-    extraAuthParams: { response_mode: "query", prompt: "consent" },
-    tokenAuth: "body",
-    includeScopeInTokenBody: true,
-    tokenPolicy: expiringTokenPolicy,
-  },
-  linear: {
-    authUrl: "https://linear.app/oauth/authorize",
-    tokenUrl: "https://api.linear.app/oauth/token",
-    revokeUrl: "https://api.linear.app/oauth/revoke",
-    scopes: ["read"],
-    clientIdEnv: "LINEAR_CLIENT_ID",
-    clientSecretEnv: "LINEAR_CLIENT_SECRET",
-    extraAuthParams: { prompt: "consent" },
-    tokenAuth: "body",
     includeScopeInTokenBody: false,
     tokenPolicy: noExpiryTokenPolicy,
   },
@@ -236,7 +199,7 @@ export const startOAuth = authAction({
     const config: ProviderConfig = PROVIDER_CONFIGS[provider];
     const convexSiteUrl = getEnvOrThrow("CONVEX_SITE_URL");
 
-    if (provider === "google_drive" || provider === "gmail") {
+    if (provider === "google_drive") {
       const googleRows = await ctx.runQuery(
         internal.connectors.crud.listGoogleConnectorsForUserInternal,
         { userId: ctx.userId },
@@ -247,12 +210,7 @@ export const startOAuth = authAction({
           internal.connectors.tokens.getEncryptedTokensInternal,
           { connectorId: tokenConnectorId },
         );
-        const hasRequiredScope =
-          tokens !== null &&
-          (provider === "gmail"
-            ? scopeIncludesGmail(tokens.scope)
-            : scopeIncludesDrive(tokens.scope));
-        if (hasRequiredScope) {
+        if (tokens !== null && scopeIncludesDrive(tokens.scope)) {
           await ctx.runMutation(
             internal.connectors.crud.markConnectedInternal,
             {
@@ -317,10 +275,7 @@ export const disconnect = authAction({
       { connectorId: args.connectorId },
     );
 
-    if (
-      tokens &&
-      (connector.provider === "google_drive" || connector.provider === "gmail")
-    ) {
+    if (tokens && connector.provider === "google_drive") {
       await revokeTokenBestEffort(async () => {
         const accessToken = await decryptToken(tokens.accessToken);
         await fetch(
@@ -329,19 +284,6 @@ export const disconnect = authAction({
         );
       });
     }
-
-    if (tokens && connector.provider === "linear") {
-      await revokeTokenBestEffort(async () => {
-        const accessToken = await decryptToken(tokens.accessToken);
-        await fetch("https://api.linear.app/oauth/revoke", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ access_token: accessToken }),
-        });
-      });
-    }
-
-    // OneDrive: no revoke endpoint for consumer accounts — token deletion only
 
     // 3. Delete tokens and mark disconnected
     await ctx.runMutation(internal.connectors.tokens.deleteTokensInternal, {

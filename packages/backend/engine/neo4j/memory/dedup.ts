@@ -181,7 +181,7 @@ export async function deleteJunkSessionEdges(
   return withSession(driver, async (session) => {
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId})-[r:RELATES_TO {reason: 'same session'}]->(m2:Memory)
-       WHERE m.source IN ['browsing-history', 'bookmarks', 'google_drive', 'notion', 'onedrive', 'linear', 'gmail']
+       WHERE m.source IN ['browsing-history', 'bookmarks', 'google_drive', 'notion']
        DELETE r
        RETURN count(r) AS deleted`,
       { userId },

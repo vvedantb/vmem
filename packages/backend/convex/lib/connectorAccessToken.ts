@@ -11,16 +11,12 @@ export type ConnectorAccessTokenResult =
 
 function isGoogleProvider(
   provider: Doc<"connectors">["provider"],
-): provider is "google_drive" | "gmail" {
-  return provider === "google_drive" || provider === "gmail";
+): provider is "google_drive" {
+  return provider === "google_drive";
 }
 
 function usesRefreshToken(provider: Doc<"connectors">["provider"]): boolean {
-  return (
-    provider === "google_drive" ||
-    provider === "gmail" ||
-    provider === "onedrive"
-  );
+  return provider === "google_drive";
 }
 
 export async function resolveConnectorAccessToken(
@@ -63,19 +59,9 @@ export async function resolveConnectorAccessToken(
     }
 
     const refreshToken = await decryptToken(tokens.refreshToken);
-
-    let refreshUrl: string;
-    let clientId: string;
-    let clientSecret: string;
-    if (isGoogleProvider(connector.provider)) {
-      refreshUrl = "https://oauth2.googleapis.com/token";
-      clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
-      clientSecret = getEnvOrThrow("GOOGLE_CLIENT_SECRET");
-    } else {
-      refreshUrl = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-      clientId = getEnvOrThrow("MICROSOFT_CLIENT_ID");
-      clientSecret = getEnvOrThrow("MICROSOFT_CLIENT_SECRET");
-    }
+    const refreshUrl = "https://oauth2.googleapis.com/token";
+    const clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
+    const clientSecret = getEnvOrThrow("GOOGLE_CLIENT_SECRET");
 
     const refreshRes = await fetch(refreshUrl, {
       method: "POST",

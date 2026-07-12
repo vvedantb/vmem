@@ -115,7 +115,7 @@ Apps import only `@vmem/backend` (Convex `api` + types) and `@vmem/shared`.
 
 - **Files** — Convex storage + web explorer; indexable uploads become memories
 - **Codebases** — GitHub OAuth, symbol parsing, dependency graph, daily sync
-- **Connectors** — Google Drive, Gmail, Notion, OneDrive, Linear (batch ingest → memories; daily cron at 04:00 UTC)
+- **Connectors** — Google Drive, Notion, GitHub (batch ingest → memories; daily cron at 04:00 UTC)
 - **Skills** — personal skills + system Skills Hub catalog
 - **Wiki** — folder tree with TipTap markdown docs and version history
 - **Import** — ChatGPT, Claude, Grok, DeepSeek export files
@@ -175,7 +175,7 @@ CONVEX_SITE_URL         # https://<deployment>.convex.site
 WEB_APP_URL             # http://localhost:5173 in dev
 ```
 
-Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key), connector OAuth vars (`GOOGLE_CLIENT_*`, `NOTION_CLIENT_*`, `MICROSOFT_CLIENT_*`, `LINEAR_CLIENT_*`, `GITHUB_CLIENT_*`).
+Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key), connector OAuth vars (`GOOGLE_CLIENT_*`, `NOTION_CLIENT_*`, `GITHUB_CLIENT_*`).
 
 **Chrome extension** — edit `apps/chrome-extension/src/lib/constants.ts` (Convex URL + Clerk keys) before `pnpm ext:build`.
 

@@ -9,12 +9,7 @@ import { authMutation, authQuery } from "../auth";
 import { auditLog, ResourceTypes } from "../auditLog";
 import { STALE_SYNCING_MS } from "../codebaseSyncConstants";
 
-type ConnectorProvider =
-  | "google_drive"
-  | "notion"
-  | "gmail"
-  | "onedrive"
-  | "linear";
+type ConnectorProvider = "google_drive" | "notion";
 
 interface DefaultConnector {
   name: string;
@@ -46,9 +41,6 @@ async function requireOwnedConnector(
 const CONNECTOR_NAME_TO_PROVIDER: Record<string, ConnectorProvider> = {
   "Google Drive": "google_drive",
   Notion: "notion",
-  OneDrive: "onedrive",
-  Linear: "linear",
-  Gmail: "gmail",
 };
 
 const DEFAULT_CONNECTORS: DefaultConnector[] = [
@@ -59,46 +51,16 @@ const DEFAULT_CONNECTORS: DefaultConnector[] = [
     provider: "google_drive",
   },
   {
-    name: "Gmail",
-    description: "Sync emails from your Gmail inbox into memories",
-    icon: "IconBrandGmail",
-    provider: "gmail",
-  },
-  {
-    name: "OneDrive",
-    description: "Connect your Microsoft OneDrive files and documents",
-    icon: "IconBrandOnedrive",
-    provider: "onedrive",
-  },
-  {
-    name: "Dropbox",
-    description: "Import files and folders from your Dropbox account",
-    icon: "IconBrandDropbox",
-    // No provider — Coming Soon stub
-  },
-  {
     name: "Notion",
     description: "Sync pages, databases, and wikis from Notion",
     icon: "IconBrandNotion",
     provider: "notion",
   },
   {
-    name: "Linear",
-    description: "Sync issues, comments, and projects from Linear",
-    icon: "IconBrandLinear",
-    provider: "linear",
-  },
-  {
-    name: "Slack",
-    description: "Index messages, files, and conversations from Slack",
-    icon: "IconBrandSlack",
-    // No provider — Coming Soon stub
-  },
-  {
     name: "GitHub",
     description: "Connect repositories, issues, and documentation from GitHub",
     icon: "IconBrandGithub",
-    // No provider — Coming Soon stub (use dedicated GitHub integration instead)
+    // No provider — dedicated GitHub integration (githubConnections)
   },
 ];
 
@@ -220,10 +182,7 @@ export const getByIdInternal = internalQuery({
 
 const DAILY_SYNC_PROVIDERS = new Set<ConnectorProvider>([
   "google_drive",
-  "gmail",
   "notion",
-  "onedrive",
-  "linear",
 ]);
 
 /**
@@ -256,7 +215,7 @@ export const listForDailyConnectorSyncInternal = internalQuery({
 
 const googleConnectorRowValidator = v.object({
   _id: v.id("connectors"),
-  provider: v.union(v.literal("google_drive"), v.literal("gmail")),
+  provider: v.literal("google_drive"),
   connectionStatus: v.union(v.literal("connected"), v.literal("disconnected")),
 });
 
@@ -271,12 +230,12 @@ export const listGoogleConnectorsForUserInternal = internalQuery({
 
     const googleRows: Array<{
       _id: Id<"connectors">;
-      provider: "google_drive" | "gmail";
+      provider: "google_drive";
       connectionStatus: "connected" | "disconnected";
     }> = [];
 
     for (const row of rows) {
-      if (row.provider !== "google_drive" && row.provider !== "gmail") {
+      if (row.provider !== "google_drive") {
         continue;
       }
       googleRows.push({
