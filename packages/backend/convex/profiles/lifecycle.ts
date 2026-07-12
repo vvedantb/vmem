@@ -169,6 +169,15 @@ export async function runRemoveInternalMutation(
  * any client surface (web, browser extension), drop the pointer so the
  * UI falls back to "no default" instead of dangling at a tombstone id.
  */
+type DefaultProfileKeys = "web" | "extension" | "mcp" | "mcpTeam";
+
+const DEFAULT_PROFILE_KEYS: readonly DefaultProfileKeys[] = [
+  "web",
+  "extension",
+  "mcp",
+  "mcpTeam",
+];
+
 async function clearSourceDefaultsForDeletedProfile(
   ctx: MutationCtx,
   userId: Id<"users">,
@@ -180,35 +189,21 @@ async function clearSourceDefaultsForDeletedProfile(
     .first();
   if (!settings?.defaultProfiles) return;
 
-  const currentDefaults = settings.defaultProfiles;
-  const updatedDefaults: {
-    web?: Id<"profiles">;
-    extension?: Id<"profiles">;
-    mcp?: Id<"profiles">;
-    mcpTeam?: Id<"profiles">;
-  } = {};
+  const current = settings.defaultProfiles;
+  const updated: Partial<Record<DefaultProfileKeys, Id<"profiles">>> = {};
+  let changed = false;
 
-  if (currentDefaults.web && currentDefaults.web !== deletedProfileId) {
-    updatedDefaults.web = currentDefaults.web;
-  }
-  if (
-    currentDefaults.extension &&
-    currentDefaults.extension !== deletedProfileId
-  ) {
-    updatedDefaults.extension = currentDefaults.extension;
-  }
-  if (currentDefaults.mcp && currentDefaults.mcp !== deletedProfileId) {
-    updatedDefaults.mcp = currentDefaults.mcp;
-  }
-  if (currentDefaults.mcpTeam && currentDefaults.mcpTeam !== deletedProfileId) {
-    updatedDefaults.mcpTeam = currentDefaults.mcpTeam;
+  for (const key of DEFAULT_PROFILE_KEYS) {
+    const value = current[key];
+    if (value === undefined) continue;
+    if (value === deletedProfileId) {
+      changed = true;
+      continue;
+    }
+    updated[key] = value;
   }
 
-  const webChanged = currentDefaults.web === deletedProfileId;
-  const extensionChanged = currentDefaults.extension === deletedProfileId;
-  const mcpChanged = currentDefaults.mcp === deletedProfileId;
-  const mcpTeamChanged = currentDefaults.mcpTeam === deletedProfileId;
-  if (webChanged || extensionChanged || mcpChanged || mcpTeamChanged) {
-    await ctx.db.patch(settings._id, { defaultProfiles: updatedDefaults });
+  if (changed) {
+    await ctx.db.patch(settings._id, { defaultProfiles: updated });
   }
 }

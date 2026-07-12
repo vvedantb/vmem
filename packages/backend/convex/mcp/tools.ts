@@ -8,13 +8,21 @@ import {
   type ToolHandlerResult,
 } from "./toolHandlers";
 
-function textContent(text: string) {
-  return { content: [{ type: "text" as const, text }] };
+type McpToolContent = {
+  content: Array<
+    | { type: "text"; text: string }
+    | { type: "image"; data: string; mimeType: string }
+  >;
+  isError?: boolean;
+};
+
+function textContent(text: string): McpToolContent {
+  return { content: [{ type: "text", text }] };
 }
 
-function errorContent(message: string) {
+function errorContent(message: string): McpToolContent {
   return {
-    content: [{ type: "text" as const, text: message }],
+    content: [{ type: "text", text: message }],
     isError: true,
   };
 }
@@ -27,14 +35,6 @@ function handlerContext(
   return { ctx, clerkUserId, scope };
 }
 
-type McpToolContent = {
-  content: Array<
-    | { type: "text"; text: string }
-    | { type: "image"; data: string; mimeType: string }
-  >;
-  isError?: boolean;
-};
-
 /**
  * The MCP-surface mechanic: map a structured handler result to MCP tool
  * content — `isError` + a `<label> failed: …` message on failure, otherwise
@@ -42,7 +42,10 @@ type McpToolContent = {
  * schema-inference generics; `registerMcpTool` below keeps each tool's
  * concrete schema type from the catalog.
  */
-function toMcpContent(result: ToolHandlerResult, errorLabel: string) {
+function toMcpContent(
+  result: ToolHandlerResult,
+  errorLabel: string,
+): McpToolContent {
   if (!result.ok) return errorContent(`${errorLabel}: ${result.error}`);
   return textContent(formatToolResult(result));
 }
@@ -75,11 +78,11 @@ function filesGetContent(result: ToolHandlerResult): McpToolContent {
     return {
       content: [
         {
-          type: "image" as const,
+          type: "image",
           data: data.contentBase64,
           mimeType: data.mimeType,
         },
-        { type: "text" as const, text: fileMetadataText(data) },
+        { type: "text", text: fileMetadataText(data) },
       ],
     };
   }

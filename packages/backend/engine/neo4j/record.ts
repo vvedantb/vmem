@@ -53,13 +53,8 @@ export function parseNeo4jNodeProps<T>(
     throw new Error("Expected Neo4j node with properties");
   }
   const desc = Object.getOwnPropertyDescriptor(value, "properties");
-  let properties: unknown;
-  if (!desc) {
-    properties = undefined;
-  } else {
-    // oxlint-disable-next-line typescript/no-unsafe-assignment -- PropertyDescriptor.value is `any`
-    properties = desc.value;
-  }
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- PropertyDescriptor.value is `any`
+  const properties: unknown = desc?.value;
   const parsed = propsSchema.safeParse(properties);
   if (!parsed.success) {
     throw new Error(

@@ -44,6 +44,16 @@ function toStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter(Boolean).map(String) : [];
 }
 
+function optionalString(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  return String(value);
+}
+
+function nullableString(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  return String(value);
+}
+
 function parseGraphNodeRow(n: unknown): GraphNode | null {
   const parsed = graphNodeRowSchema.safeParse(n);
   if (!parsed.success) return null;
@@ -54,14 +64,8 @@ function parseGraphNodeRow(n: unknown): GraphNode | null {
     title: String(p.title),
     tags: toStringArray(p.tags),
     createdAt: String(p.createdAt),
-    source:
-      p.source !== null && p.source !== undefined
-        ? String(p.source)
-        : undefined,
-    sourceType:
-      p.sourceType !== null && p.sourceType !== undefined
-        ? String(p.sourceType)
-        : null,
+    source: optionalString(p.source),
+    sourceType: nullableString(p.sourceType),
     type: toMemoryTypeOrUndefined(typeof rawType === "string" ? rawType : null),
   };
 }
@@ -456,28 +460,17 @@ export async function getLocalGraph(
       ? String(neo4jGet(firstRecord, "focusId"))
       : undefined;
 
-    nodes = nodesResult.records.map((r) => {
-      const rawTags = neo4jGet(r, "tags");
-      const rawSource = neo4jGet(r, "source");
-      const rawSourceType = neo4jGet(r, "sourceType");
-      const rawType = neo4jGet(r, "type");
-      return {
-        id: String(neo4jGet(r, "id")),
-        title: String(neo4jGet(r, "title")),
-        tags: toStringArray(rawTags),
-        createdAt: String(neo4jGet(r, "createdAt")),
-        source:
-          rawSource !== null && rawSource !== undefined
-            ? String(rawSource)
-            : undefined,
-        sourceType:
-          rawSourceType !== null && rawSourceType !== undefined
-            ? String(rawSourceType)
-            : null,
-        type: toMemoryTypeOrUndefined(
-          typeof rawType === "string" ? rawType : null,
-        ),
-      };
+    nodes = nodesResult.records.flatMap((r) => {
+      const node = parseGraphNodeRow({
+        id: neo4jGet(r, "id"),
+        title: neo4jGet(r, "title"),
+        tags: neo4jGet(r, "tags"),
+        createdAt: neo4jGet(r, "createdAt"),
+        source: neo4jGet(r, "source"),
+        type: neo4jGet(r, "type"),
+        sourceType: neo4jGet(r, "sourceType"),
+      });
+      return node === null ? [] : [node];
     });
     nodeIds = nodes.map((n) => n.id);
   } finally {

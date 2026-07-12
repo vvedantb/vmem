@@ -7,6 +7,23 @@ import { getMemory } from "../../../engine/neo4j/memory/crud";
 import type { ProposedUpdateNode } from "../../../engine/neo4j/memory/types";
 import type { UpdateDecision } from "../../prompts/v2Prompt";
 
+async function memoryExists(
+  driver: Driver,
+  clerkId: string,
+  memoryId: string,
+  eventLabel: "UPDATE" | "DELETE",
+  logPrefix?: string,
+): Promise<boolean> {
+  const target = await getMemory(driver, clerkId, memoryId);
+  if (target) return true;
+  if (logPrefix) {
+    console.warn(
+      `${logPrefix} ${eventLabel} target ${memoryId} not found, skipping`,
+    );
+  }
+  return false;
+}
+
 export async function applyFactUpdateOrDelete(
   ctx: ActionCtx,
   driver: Driver,
@@ -36,45 +53,40 @@ export async function applyFactUpdateOrDelete(
     onProposal,
   } = params;
 
-  if (decision.event === "UPDATE" && decision.id && decision.text) {
-    const target = await getMemory(driver, clerkId, decision.id);
-    if (!target) {
-      if (logPrefix) {
-        console.warn(
-          `${logPrefix} UPDATE target ${decision.id} not found, skipping`,
-        );
-      }
+  if (decision.event === "UPDATE") {
+    const memoryId = decision.id;
+    const proposedContent = decision.text;
+    if (!memoryId || !proposedContent) return "none";
+
+    if (!(await memoryExists(driver, clerkId, memoryId, "UPDATE", logPrefix))) {
       return "missing-target";
     }
-    const reason = buildUpdateReason({ factText, decision });
+
     const proposal = await ctx.runAction(
       internal.neo4jActions.proposedUpdates.createProposedUpdateInternal,
       {
-        memoryId: decision.id,
-        proposedContent: decision.text,
-        reason,
+        memoryId,
+        proposedContent,
+        reason: buildUpdateReason({ factText, decision }),
       },
     );
     onProposal?.(proposal);
     return "update";
   }
 
-  if (decision.event === "DELETE" && decision.id) {
-    const target = await getMemory(driver, clerkId, decision.id);
-    if (!target) {
-      if (logPrefix) {
-        console.warn(
-          `${logPrefix} DELETE target ${decision.id} not found, skipping`,
-        );
-      }
+  if (decision.event === "DELETE") {
+    const memoryId = decision.id;
+    if (!memoryId) return "none";
+
+    if (!(await memoryExists(driver, clerkId, memoryId, "DELETE", logPrefix))) {
       return "missing-target";
     }
-    const reason = buildDeleteReason({ factText, decision });
+
     const proposal = await ctx.runAction(
       internal.neo4jActions.proposedUpdates.createProposedDeleteInternal,
       {
-        memoryId: decision.id,
-        reason,
+        memoryId,
+        reason: buildDeleteReason({ factText, decision }),
       },
     );
     onProposal?.(proposal);

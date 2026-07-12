@@ -199,8 +199,8 @@ export async function upsertSyncedDocs(
 
     for (let i = 0; i < chunk.length; i++) {
       const item = chunk[i];
-      const embedding = embeddings[i] ?? null;
       if (!item) continue;
+      const embedding = embeddings[i] ?? null;
 
       await upsertFromSource(params.setup.driver, {
         userId: params.clerkId,

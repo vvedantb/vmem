@@ -7,17 +7,14 @@ export const getMe = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity?.subject) return null;
-
-    return await getUserByClerkId(ctx, identity.subject);
+    return getUserByClerkId(ctx, identity.subject);
   },
 });
 
-/** Get user by Clerk ID (internal, for MCP profile resolution) */
+/** Get user by Clerk ID (internal, for MCP profile resolution). */
 export const getByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    return await getUserByClerkId(ctx, args.clerkId);
-  },
+  handler: async (ctx, args) => getUserByClerkId(ctx, args.clerkId),
 });
 
 /**

@@ -37,22 +37,29 @@ export async function loadEnrichmentVocabulary(
   opts?: { excludeMemoryId?: string; includeEntities?: boolean },
 ): Promise<EnrichmentVocabulary> {
   const excludeMemoryId = opts?.excludeMemoryId ?? "";
-  const includeEntities = opts?.includeEntities ?? false;
+  const includeEntities = opts?.includeEntities === true;
 
-  if (includeEntities) {
-    const [recentTitles, topTags, topEntities] = await Promise.all([
-      getRecentMemoryTitles(driver, clerkId, excludeMemoryId),
-      getTopTags(driver, clerkId, 50),
-      getTopEntities(driver, clerkId, 150),
+  const recentTitlesPromise = getRecentMemoryTitles(
+    driver,
+    clerkId,
+    excludeMemoryId,
+  );
+  const topTagsPromise = getTopTags(driver, clerkId, 50);
+
+  if (!includeEntities) {
+    const [recentTitles, topTags] = await Promise.all([
+      recentTitlesPromise,
+      topTagsPromise,
     ]);
-    return { recentTitles, topTags, topEntities };
+    return { recentTitles, topTags };
   }
 
-  const [recentTitles, topTags] = await Promise.all([
-    getRecentMemoryTitles(driver, clerkId, excludeMemoryId),
-    getTopTags(driver, clerkId, 50),
+  const [recentTitles, topTags, topEntities] = await Promise.all([
+    recentTitlesPromise,
+    topTagsPromise,
+    getTopEntities(driver, clerkId, 150),
   ]);
-  return { recentTitles, topTags };
+  return { recentTitles, topTags, topEntities };
 }
 
 export async function callFullEnrichmentLlm(

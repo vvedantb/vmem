@@ -66,12 +66,12 @@ export async function runFactDecisionLoop(
         limit: RETRIEVAL_TOP_K,
       };
 
-      const retrieved = await retrieveMemories(
-        driver,
+      const retrieveOpts =
         opts.retrieveWithProfileId && opts.profileId !== undefined
           ? { ...retrieveBase, profileId: opts.profileId }
-          : retrieveBase,
-      );
+          : retrieveBase;
+
+      const retrieved = await retrieveMemories(driver, retrieveOpts);
 
       let filtered = retrieved;
       if (opts.excludeMemoryIds && opts.excludeMemoryIds.length > 0) {

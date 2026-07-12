@@ -117,19 +117,13 @@ function computeRrf(entry: MergedEntry): number {
   );
 }
 
-function toEmbedding(val: readonly number[] | null): number[] | null {
-  if (!Array.isArray(val)) return null;
-  const numbers = val.filter((item) => typeof item === "number");
-  return numbers.length === val.length ? numbers : null;
-}
-
 function embeddingFromRecord(record: Record): number[] | null {
   const raw = neo4jGet(record, "embedding");
   if (!Array.isArray(raw)) return null;
-  const numbers = raw.filter(
-    (item): item is number => typeof item === "number",
-  );
-  return toEmbedding(numbers);
+  if (!raw.every((item): item is number => typeof item === "number")) {
+    return null;
+  }
+  return raw;
 }
 
 function createMergedEntry(
@@ -570,22 +564,13 @@ const VECTOR_SIGNAL_THRESHOLD = 0.72;
 const CHUNK_SIGNAL_THRESHOLD = 0.5;
 
 function hasStrongDirectMatch(entry: MergedEntry): boolean {
-  if (
-    entry.ftRank !== null &&
-    entry.fulltextScore > FULLTEXT_SIGNAL_THRESHOLD
-  ) {
-    return true;
-  }
-  if (entry.vecRank !== null && entry.vectorScore > VECTOR_SIGNAL_THRESHOLD) {
-    return true;
-  }
-  if (entry.chunkRank !== null && entry.chunkScore > CHUNK_SIGNAL_THRESHOLD) {
-    return true;
-  }
-  if (entry.entityRank !== null && entry.entityScore > 0) {
-    return true;
-  }
-  return false;
+  return (
+    (entry.ftRank !== null &&
+      entry.fulltextScore > FULLTEXT_SIGNAL_THRESHOLD) ||
+    (entry.vecRank !== null && entry.vectorScore > VECTOR_SIGNAL_THRESHOLD) ||
+    (entry.chunkRank !== null && entry.chunkScore > CHUNK_SIGNAL_THRESHOLD) ||
+    (entry.entityRank !== null && entry.entityScore > 0)
+  );
 }
 
 function scoreEntry(

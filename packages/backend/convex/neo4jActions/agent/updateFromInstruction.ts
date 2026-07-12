@@ -102,7 +102,7 @@ export async function runUpdateFromInstruction(
         return;
       }
 
-      const outcome = await applyFactUpdateOrDelete(ctx, driver, {
+      await applyFactUpdateOrDelete(ctx, driver, {
         clerkId: args.clerkId,
         factText,
         decision,
@@ -123,9 +123,6 @@ export async function runUpdateFromInstruction(
           });
         },
       });
-      if (outcome === "update" || outcome === "delete") {
-        return;
-      }
     },
   );
 

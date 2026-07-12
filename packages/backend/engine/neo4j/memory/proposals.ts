@@ -73,6 +73,10 @@ function parseStringArray(value: unknown): string[] {
   return parsed.success ? parsed.data : [];
 }
 
+function nonEmptyString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.length > 0 ? value : fallback;
+}
+
 function toProposedUpdateNodeFromProps(
   props: ProposedUpdateProps,
   options: {
@@ -132,12 +136,13 @@ function parseListedProposedUpdate(record: NeoRecord): ProposedUpdateNode {
   });
 }
 
-export async function createProposedUpdate(
+async function createV2Proposal(
   driver: Driver,
   params: {
     memoryId: string;
     proposedContent: string;
     reason: string;
+    kind: "update" | "delete";
   },
 ): Promise<ProposedUpdateNode> {
   return withSession(driver, async (session) => {
@@ -152,7 +157,7 @@ export async function createProposedUpdate(
          proposedContent: $proposedContent,
          proposedTitle: null,
          reason: $reason,
-         kind: 'update',
+         kind: $kind,
          status: 'pending',
          createdAt: $now,
          resolvedAt: null,
@@ -167,14 +172,28 @@ export async function createProposedUpdate(
         memoryId: params.memoryId,
         proposedContent: params.proposedContent,
         reason: params.reason,
+        kind: params.kind,
         now,
       },
     );
 
     const firstRecord = result.records[0];
-    if (!firstRecord) throw new Error("Failed to create proposed update");
+    if (!firstRecord) {
+      throw new Error(`Failed to create proposed ${params.kind}`);
+    }
     return parseProposedUpdateNode(firstRecord);
   });
+}
+
+export async function createProposedUpdate(
+  driver: Driver,
+  params: {
+    memoryId: string;
+    proposedContent: string;
+    reason: string;
+  },
+): Promise<ProposedUpdateNode> {
+  return createV2Proposal(driver, { ...params, kind: "update" });
 }
 
 /**
@@ -188,39 +207,11 @@ export async function createProposedDelete(
   driver: Driver,
   params: { memoryId: string; reason: string },
 ): Promise<ProposedUpdateNode> {
-  return withSession(driver, async (session) => {
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-
-    const result = await session.run(
-      `MATCH (m:Memory {id: $memoryId})
-       CREATE (p:ProposedUpdate {
-         id: $id,
-         memoryId: $memoryId,
-         proposedContent: '',
-         proposedTitle: null,
-         reason: $reason,
-         kind: 'delete',
-         status: 'pending',
-         createdAt: $now,
-         resolvedAt: null,
-         sourceMemoryIds: [],
-         confidence: null,
-         source: 'v2-extraction'
-       })
-       CREATE (p)-[:UPDATE_FOR]->(m)
-       RETURN p`,
-      {
-        id,
-        memoryId: params.memoryId,
-        reason: params.reason,
-        now,
-      },
-    );
-
-    const firstRecord = result.records[0];
-    if (!firstRecord) throw new Error("Failed to create proposed delete");
-    return parseProposedUpdateNode(firstRecord);
+  return createV2Proposal(driver, {
+    memoryId: params.memoryId,
+    proposedContent: "",
+    reason: params.reason,
+    kind: "delete",
   });
 }
 
@@ -322,16 +313,13 @@ async function lookupProposalContext(
   );
   const firstSourceId = sourceMemoryIds[0] ?? "";
 
-  const memoryId =
-    typeof targetIdRaw === "string" && targetIdRaw.length > 0
-      ? targetIdRaw
-      : firstSourceId;
-  const userId =
-    typeof targetUserIdRaw === "string" && targetUserIdRaw.length > 0
-      ? targetUserIdRaw
-      : typeof sourceUserIdRaw === "string"
-        ? sourceUserIdRaw
-        : "";
+  const memoryId = nonEmptyString(targetIdRaw, firstSourceId);
+  let userId = "";
+  if (typeof targetUserIdRaw === "string" && targetUserIdRaw.length > 0) {
+    userId = targetUserIdRaw;
+  } else if (typeof sourceUserIdRaw === "string") {
+    userId = sourceUserIdRaw;
+  }
 
   const proposedTitleRaw = neo4jGet(lookupRecord, "proposedTitle");
   const proposedContentRaw = neo4jGet(lookupRecord, "proposedContent");
@@ -339,10 +327,7 @@ async function lookupProposalContext(
 
   return {
     kind,
-    proposedTitle:
-      typeof proposedTitleRaw === "string" && proposedTitleRaw.length > 0
-        ? proposedTitleRaw
-        : "Untitled synthesis",
+    proposedTitle: nonEmptyString(proposedTitleRaw, "Untitled synthesis"),
     proposedContent:
       typeof proposedContentRaw === "string" ? proposedContentRaw : "",
     sourceMemoryIds,

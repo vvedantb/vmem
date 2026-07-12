@@ -7,10 +7,6 @@
  * materialises the LLM's synthesis as a new :Memory with :DERIVED_FROM
  * edges. The other path — surfacing a synthesis :ProposedUpdate through
  * the /proposals queue — lives in `proposals.ts`.
- *
- * `unknown` casts here mirror the original implementation. They live at
- * the Neo4j boundary where record values arrive untyped. Refactor target,
- * not refactor scope.
  */
 
 import crypto from "node:crypto";
@@ -36,6 +32,14 @@ function tryParseMemoryNode(
   } catch {
     return null;
   }
+}
+
+function asNumberArray(value: unknown): number[] | null {
+  if (!Array.isArray(value)) return null;
+  const numbers = value.filter(
+    (x: unknown): x is number => typeof x === "number",
+  );
+  return numbers.length > 0 ? numbers : null;
 }
 
 export async function findRecentMemoriesForDream(
@@ -74,12 +78,8 @@ export async function findRecentMemoriesForDream(
       },
     );
     return result.records.flatMap((r) => {
-      const rawEmbedding: unknown = r.get("embedding");
-      if (!Array.isArray(rawEmbedding)) return [];
-      const embedding: number[] = rawEmbedding.filter(
-        (x: unknown): x is number => typeof x === "number",
-      );
-      if (embedding.length === 0) return [];
+      const embedding = asNumberArray(r.get("embedding"));
+      if (embedding === null) return [];
       return [
         {
           id: String(r.get("id")),
@@ -94,11 +94,8 @@ export async function findRecentMemoriesForDream(
 }
 
 function surprisalFromNeighborScores(rawScores: unknown): number | null {
-  if (!Array.isArray(rawScores) || rawScores.length < 2) return null;
-  const scores: number[] = rawScores.filter(
-    (x: unknown): x is number => typeof x === "number",
-  );
-  if (scores.length < 2) return null;
+  const scores = asNumberArray(rawScores);
+  if (scores === null || scores.length < 2) return null;
   const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
   return 1 - mean;
 }
@@ -123,8 +120,7 @@ export async function computeSurprisalScores(
     }> = [];
     for (const memory of params.memories) {
       const embedding = memory.embedding;
-      if (embedding === null || embedding === undefined) continue;
-      if (embedding.length === 0) continue;
+      if (embedding == null || embedding.length === 0) continue;
 
       const result = await session.run(
         `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
@@ -260,7 +256,7 @@ export async function fetchAnomalyCluster(
       },
     ];
 
-    const seen = new Set<string>([cluster[0]?.id ?? ""]);
+    const seen = new Set<string>([aProps.id]);
     const append = (
       nodes: unknown,
       relation: "related" | "shared-entity",
@@ -270,10 +266,15 @@ export async function fetchAnomalyCluster(
         if (cluster.length >= params.maxClusterSize) return;
         const props = tryParseMemoryNode(n);
         if (props === null) continue;
-        const { id, title, content } = props;
-        if (seen.has(id)) continue;
-        seen.add(id);
-        cluster.push({ id, title, content, tags: [], relation });
+        if (seen.has(props.id)) continue;
+        seen.add(props.id);
+        cluster.push({
+          id: props.id,
+          title: props.title,
+          content: props.content,
+          tags: [],
+          relation,
+        });
       }
     };
 

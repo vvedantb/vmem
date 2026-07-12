@@ -25,12 +25,9 @@ export function formatSyncError(err: unknown): string {
   }
   const parsed = errorLikeSchema.safeParse(err);
   if (parsed.success) {
-    if (parsed.data.message && parsed.data.message.length > 0) {
-      return parsed.data.message;
-    }
-    if (parsed.data.data && parsed.data.data.length > 0) {
-      return parsed.data.data;
-    }
+    const { message, data } = parsed.data;
+    if (message && message.length > 0) return message;
+    if (data && data.length > 0) return data;
   }
   return "Codebase sync failed";
 }

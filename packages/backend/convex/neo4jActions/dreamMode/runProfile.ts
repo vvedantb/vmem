@@ -17,6 +17,7 @@ import {
 import {
   buildPortraitUpdatePrompt,
   parsePortraitResponse,
+  type ParsedPortrait,
 } from "../../../engine/neo4j/portraitPrompt";
 import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
 import {
@@ -231,12 +232,14 @@ export const runDreamForProfileInternal = internalAction({
       console.warn(`[dream] profile ${args.profileId} not found`);
       return result;
     }
-    const autoAccept =
-      args.forceProposals === true
-        ? false
-        : args.autoAcceptOverride !== undefined
-          ? args.autoAcceptOverride
-          : profile.dreamModeAutoAccept === true;
+    let autoAccept: boolean;
+    if (args.forceProposals === true) {
+      autoAccept = false;
+    } else if (args.autoAcceptOverride !== undefined) {
+      autoAccept = args.autoAcceptOverride;
+    } else {
+      autoAccept = profile.dreamModeAutoAccept === true;
+    }
     const depthParams = DEPTH_PARAMS[args.depth ?? "standard"];
 
     const driver = getDriver();
@@ -501,13 +504,13 @@ export const runDreamForProfileInternal = internalAction({
             ),
             temperature: 0.2,
           });
-          const portrait =
-            rawText === null
-              ? null
-              : parsePortraitResponse(
-                  rawText,
-                  evidence.map((m) => m.id),
-                );
+          let portrait: ParsedPortrait | null = null;
+          if (rawText !== null) {
+            portrait = parsePortraitResponse(
+              rawText,
+              evidence.map((m) => m.id),
+            );
+          }
           if (portrait) {
             await ctx.runMutation(internal.profiles.setDreamPortraitInternal, {
               profileId: args.profileId,

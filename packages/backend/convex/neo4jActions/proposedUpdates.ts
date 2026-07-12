@@ -49,12 +49,7 @@ export const resolveProposalInternal = internalAction({
     // searchable, tagged, and linked via RELATES_TO like a regular
     // memory. Without this the materialized memory was a dead-end node
     // with only DERIVED_FROM edges — useless in graph view.
-    if (
-      result &&
-      result.status === "approved" &&
-      result.materializedMemoryId &&
-      action === "approve"
-    ) {
+    if (result && result.status === "approved" && result.materializedMemoryId) {
       const materializedMemoryId = result.materializedMemoryId;
       try {
         const detail = await getMemory(

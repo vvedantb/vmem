@@ -61,7 +61,6 @@ export const enrichMemoryInternal = internalAction({
         return { enriched: false };
       }
 
-      // Sanitize tags
       const sanitizedTags = parsed.tags
         .map(sanitizeTag)
         .filter((t) => t.length > 0)
@@ -71,13 +70,11 @@ export const enrichMemoryInternal = internalAction({
         return { enriched: false };
       }
 
-      // Validate related memory IDs against actual user memories
       const validIds = new Set(vocabulary.recentTitles.map((m) => m.id));
       const relatedIds = (parsed.relatedMemoryIds ?? []).filter((id) =>
         validIds.has(id),
       );
 
-      // Apply enrichment to Neo4j
       await applyEnrichment(
         driver,
         args.memoryId,
@@ -87,7 +84,6 @@ export const enrichMemoryInternal = internalAction({
         parsed.entities ?? [],
       );
 
-      // Log enrichment event
       await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
         clerkId: args.clerkId,
         eventType: "memory_updated",

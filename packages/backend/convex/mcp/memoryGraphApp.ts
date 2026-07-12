@@ -123,7 +123,7 @@ export function registerMemoryGraphApp(
         return {
           content: [
             {
-              type: "text" as const,
+              type: "text",
               text: `Memory graph failed: ${message}`,
             },
           ],
@@ -134,7 +134,7 @@ export function registerMemoryGraphApp(
       return {
         content: [
           {
-            type: "text" as const,
+            type: "text",
             text: buildSummaryText(graph, params.profileId),
           },
         ],

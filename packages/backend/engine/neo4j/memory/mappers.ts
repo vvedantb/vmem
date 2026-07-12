@@ -126,11 +126,6 @@ export function toMemoryTypeOrUndefined(
   return undefined;
 }
 
-export function toNeoInt(val: number | { toNumber(): number }): number {
-  if (typeof val === "number") return val;
-  return val.toNumber();
-}
-
 export function toSnapshot(
   m: Pick<
     MemoryWithTags,

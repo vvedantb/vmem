@@ -90,12 +90,7 @@ export const pushEventInternal = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await recordMemoryEvent(ctx, {
-      clerkId: args.clerkId,
-      eventType: args.eventType,
-      memoryId: args.memoryId,
-      payload: args.payload,
-    });
+    await recordMemoryEvent(ctx, args);
     return null;
   },
 });

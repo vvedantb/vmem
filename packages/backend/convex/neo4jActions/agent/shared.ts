@@ -10,6 +10,7 @@ import {
   parseUpdateDecisionResponse,
   buildFactExtractionPrompt,
   buildUpdateDecisionPrompt,
+  type ExtractedFactsResponse,
   type RetrievedCandidate,
   type UpdateDecision,
 } from "../../prompts/v2Prompt";
@@ -59,7 +60,7 @@ export async function extractFactsFromInstruction(
   auth: AgentAuth,
   instruction: string,
   profileId: string | undefined,
-) {
+): Promise<ExtractedFactsResponse | null> {
   const observationDate = new Date().toISOString();
   const extractionPrompt = buildFactExtractionPrompt(
     instruction,

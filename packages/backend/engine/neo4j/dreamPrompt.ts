@@ -86,6 +86,21 @@ function truncateAtWord(text: string, maxLen: number): string {
   return text.slice(0, cut > 0 ? cut : maxLen);
 }
 
+/** Keep only ids that appear in `validIds`, preserving order and uniqueness. */
+function filterValidIds(
+  ids: readonly string[] | undefined,
+  validIds: ReadonlySet<string>,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of ids ?? []) {
+    if (!validIds.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
 /**
  * Build the user prompt for one cluster. Cluster size cap is enforced by
  * the caller (`fetchAnomalyCluster.maxClusterSize`); this just renders.
@@ -269,13 +284,7 @@ export function parseDreamSynthesisResponse(
     }
 
     // Validate source ids: must come from the cluster (model may not invent ids).
-    const seen = new Set<string>();
-    let sourceMemoryIds: string[] = [];
-    for (const id of data.sourceMemoryIds ?? []) {
-      if (!validIds.has(id) || seen.has(id)) continue;
-      seen.add(id);
-      sourceMemoryIds.push(id);
-    }
+    let sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
 
     // Non-skip kinds need at least one source and non-empty title/content.
     if (sourceMemoryIds.length === 0) return null;
@@ -406,13 +415,7 @@ export function parseMergeSynthesisResponse(
     if (title.trim().length === 0 || content.trim().length === 0) return null;
 
     const validIds = new Set<string>(clusterIds);
-    const seen = new Set<string>();
-    const sourceMemoryIds: string[] = [];
-    for (const id of data.sourceMemoryIds ?? []) {
-      if (!validIds.has(id) || seen.has(id)) continue;
-      seen.add(id);
-      sourceMemoryIds.push(id);
-    }
+    const sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
     if (sourceMemoryIds.length < 2) return null;
 
     const confidence =

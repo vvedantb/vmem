@@ -76,12 +76,12 @@ export const listCatalog = authQuery({
       .query("userSystemSkills")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .collect();
-    const installByskill = new Map(installs.map((i) => [i.systemSkillId, i]));
+    const installBySkill = new Map(installs.map((i) => [i.systemSkillId, i]));
 
     return visible
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((s) => {
-        const install = installByskill.get(s._id);
+        const install = installBySkill.get(s._id);
         return {
           _id: s._id,
           name: s.name,

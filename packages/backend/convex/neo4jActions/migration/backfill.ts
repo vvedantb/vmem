@@ -23,6 +23,7 @@ import {
   callFullEnrichmentLlm,
   loadEnrichmentVocabulary,
 } from "../enrichment/llm";
+
 export const backfillEmbeddingsInternal = internalAction({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {
@@ -355,13 +356,10 @@ export const backfillContentHashInternal = internalAction({
       return { done: true, processed: 0 };
     }
 
-    const updates: Array<{ id: string; contentHash: string }> = [];
-    for (const row of rows) {
-      updates.push({
-        id: row.id,
-        contentHash: computeContentHash(row.title, row.content),
-      });
-    }
+    const updates = rows.map((row) => ({
+      id: row.id,
+      contentHash: computeContentHash(row.title, row.content),
+    }));
 
     await setContentHashes(driver, updates);
 

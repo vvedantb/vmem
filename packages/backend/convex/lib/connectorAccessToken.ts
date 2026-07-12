@@ -9,6 +9,20 @@ export type ConnectorAccessTokenResult =
   | { ok: true; accessToken: string; tokenConnectorId: Id<"connectors"> }
   | { ok: false; message: string };
 
+function isGoogleProvider(
+  provider: Doc<"connectors">["provider"],
+): provider is "google_drive" | "gmail" {
+  return provider === "google_drive" || provider === "gmail";
+}
+
+function usesRefreshToken(provider: Doc<"connectors">["provider"]): boolean {
+  return (
+    provider === "google_drive" ||
+    provider === "gmail" ||
+    provider === "onedrive"
+  );
+}
+
 export async function resolveConnectorAccessToken(
   ctx: ActionCtx,
   connector: Doc<"connectors">,
@@ -18,7 +32,7 @@ export async function resolveConnectorAccessToken(
   }
 
   let tokenConnectorId = connector._id;
-  if (connector.provider === "google_drive" || connector.provider === "gmail") {
+  if (isGoogleProvider(connector.provider)) {
     const googleRows = await ctx.runQuery(
       internal.connectors.crud.listGoogleConnectorsForUserInternal,
       { userId: connector.userId },
@@ -40,12 +54,7 @@ export async function resolveConnectorAccessToken(
 
   let accessToken = await decryptToken(tokens.accessToken);
 
-  const usesRefresh =
-    connector.provider === "google_drive" ||
-    connector.provider === "gmail" ||
-    connector.provider === "onedrive";
-
-  if (usesRefresh && tokens.expiresAt < Date.now()) {
+  if (usesRefreshToken(connector.provider) && tokens.expiresAt < Date.now()) {
     if (!tokens.refreshToken) {
       return {
         ok: false,
@@ -58,10 +67,7 @@ export async function resolveConnectorAccessToken(
     let refreshUrl: string;
     let clientId: string;
     let clientSecret: string;
-    if (
-      connector.provider === "google_drive" ||
-      connector.provider === "gmail"
-    ) {
+    if (isGoogleProvider(connector.provider)) {
       refreshUrl = "https://oauth2.googleapis.com/token";
       clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
       clientSecret = getEnvOrThrow("GOOGLE_CLIENT_SECRET");

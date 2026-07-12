@@ -12,6 +12,19 @@ import { getOrCreateDefaultProfile } from "./helpers";
 type AuthQueryCtx = QueryCtx & { userId: Id<"users"> };
 type AuthMutationCtx = MutationCtx & { userId: Id<"users"> };
 
+async function getTeamMembership(
+  ctx: QueryCtx | MutationCtx,
+  teamId: Id<"teams">,
+  userId: Id<"users">,
+): Promise<Doc<"teamMembers"> | null> {
+  return await ctx.db
+    .query("teamMembers")
+    .withIndex("by_team_user", (q) =>
+      q.eq("teamId", teamId).eq("userId", userId),
+    )
+    .first();
+}
+
 /**
  * List profiles visible to the caller:
  *  - personal profiles they own (`teamId` undefined)
@@ -57,12 +70,7 @@ export async function runGet(
   }
 
   const teamId = profile.teamId;
-  const membership = await ctx.db
-    .query("teamMembers")
-    .withIndex("by_team_user", (q) =>
-      q.eq("teamId", teamId).eq("userId", ctx.userId),
-    )
-    .first();
+  const membership = await getTeamMembership(ctx, teamId, ctx.userId);
   return membership ? profile : null;
 }
 
@@ -130,13 +138,7 @@ export async function runUpdate(
   if (!profile) throw new Error("Profile not found");
 
   if (profile.teamId) {
-    const teamId = profile.teamId;
-    const membership = await ctx.db
-      .query("teamMembers")
-      .withIndex("by_team_user", (q) =>
-        q.eq("teamId", teamId).eq("userId", ctx.userId),
-      )
-      .first();
+    const membership = await getTeamMembership(ctx, profile.teamId, ctx.userId);
     if (!membership || membership.role !== "owner") {
       throw new Error("Only team owners can edit a team profile");
     }

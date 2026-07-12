@@ -226,12 +226,15 @@ export async function diagnoseDuplicates(
        ORDER BY m.createdAt ASC`,
       { userId, title },
     );
-    return result.records.map((r) => ({
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      contentPreview: String(r.get("contentPreview")),
-      contentHash: r.get("contentHash") ? String(r.get("contentHash")) : null,
-      createdAt: String(r.get("createdAt")),
-    }));
+    return result.records.map((r) => {
+      const rawHash = neo4jGet(r, "contentHash");
+      return {
+        id: String(neo4jGet(r, "id")),
+        title: String(neo4jGet(r, "title")),
+        contentPreview: String(neo4jGet(r, "contentPreview")),
+        contentHash: rawHash ? String(rawHash) : null,
+        createdAt: String(neo4jGet(r, "createdAt")),
+      };
+    });
   });
 }

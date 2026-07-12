@@ -83,42 +83,41 @@ function legacyNodeText(node: LegacyWikiNode): string {
 function legacyDocToMarkdown(doc: LegacyWikiDoc): string {
   const parts: string[] = [];
   for (const block of doc.content) {
-    if (block.type === "heading") {
-      const level =
-        typeof block.attrs?.level === "number" ? block.attrs.level : 1;
-      const hashes = "#".repeat(Math.min(Math.max(level, 1), 6));
-      parts.push(`${hashes} ${legacyNodeText(block).trim()}`);
-      continue;
-    }
-    if (block.type === "paragraph") {
-      const text = legacyNodeText(block).trim();
-      if (text.length > 0) {
-        parts.push(text);
+    switch (block.type) {
+      case "heading": {
+        const level =
+          typeof block.attrs?.level === "number" ? block.attrs.level : 1;
+        const hashes = "#".repeat(Math.min(Math.max(level, 1), 6));
+        parts.push(`${hashes} ${legacyNodeText(block).trim()}`);
+        break;
       }
-      continue;
-    }
-    if (block.type === "bulletList") {
-      const items: string[] = [];
-      for (const item of block.content ?? []) {
-        if (item.type === "listItem") {
-          items.push(`- ${legacyNodeText(item).trim()}`);
+      case "paragraph": {
+        const text = legacyNodeText(block).trim();
+        if (text.length > 0) parts.push(text);
+        break;
+      }
+      case "bulletList": {
+        const items: string[] = [];
+        for (const item of block.content ?? []) {
+          if (item.type === "listItem") {
+            items.push(`- ${legacyNodeText(item).trim()}`);
+          }
         }
+        if (items.length > 0) parts.push(items.join("\n"));
+        break;
       }
-      if (items.length > 0) {
-        parts.push(items.join("\n"));
+      case "codeBlock": {
+        const language =
+          typeof block.attrs?.language === "string" ? block.attrs.language : "";
+        const code = legacyNodeText(block);
+        parts.push(`\`\`\`${language}\n${code}\n\`\`\``);
+        break;
       }
-      continue;
-    }
-    if (block.type === "codeBlock") {
-      const language =
-        typeof block.attrs?.language === "string" ? block.attrs.language : "";
-      const code = legacyNodeText(block);
-      parts.push(`\`\`\`${language}\n${code}\n\`\`\``);
-      continue;
-    }
-    const fallback = legacyNodeText(block).trim();
-    if (fallback.length > 0) {
-      parts.push(fallback);
+      default: {
+        const fallback = legacyNodeText(block).trim();
+        if (fallback.length > 0) parts.push(fallback);
+        break;
+      }
     }
   }
   return parts.join("\n\n").trim();

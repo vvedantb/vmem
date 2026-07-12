@@ -67,11 +67,12 @@ export async function listMemoriesForTeam(
 
     const where = whereClauses.join(" AND ");
 
-    const hasTagFilter = !!params.tags && params.tags.length > 0;
-    if (hasTagFilter && params.tags) {
-      queryParams.filterTags = params.tags;
+    const filterTags = params.tags ?? [];
+    const hasTagFilter = filterTags.length > 0;
+    if (hasTagFilter) {
+      queryParams.filterTags = filterTags;
     }
-    const filterTagsCount = params.tags?.length ?? 0;
+    const filterTagsCount = filterTags.length;
 
     const luceneSearchQuery = toMemoryContentFulltextQuery(
       params.searchQuery ?? "",

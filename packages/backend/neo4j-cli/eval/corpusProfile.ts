@@ -5,12 +5,7 @@ const EVAL_EXPECTED_TITLES = new Set(
   RETRIEVAL_EVAL_QUERIES.flatMap((item) => item.expectedTitles),
 );
 
-function recentDate(maxDaysAgo: number): string {
-  const offset = Math.random() * maxDaysAgo * 86400000;
-  return new Date(Date.now() - offset).toISOString();
-}
-
-function randomDate(maxDaysAgo: number): string {
+function randomPastDate(maxDaysAgo: number): string {
   const offset = Math.random() * maxDaysAgo * 86400000;
   return new Date(Date.now() - offset).toISOString();
 }
@@ -18,7 +13,7 @@ function randomDate(maxDaysAgo: number): string {
 /** Boost expected benchmark memories and demote the rest for eval seed runs. */
 export function applyEvalCorpusProfile<T extends SeedMemory>(memory: T): T {
   if (EVAL_EXPECTED_TITLES.has(memory.title)) {
-    const createdAt = recentDate(1);
+    const createdAt = randomPastDate(1);
     return {
       ...memory,
       createdAt,
@@ -29,8 +24,8 @@ export function applyEvalCorpusProfile<T extends SeedMemory>(memory: T): T {
 
   return {
     ...memory,
-    createdAt: randomDate(540),
-    updatedAt: randomDate(365),
+    createdAt: randomPastDate(540),
+    updatedAt: randomPastDate(365),
     confidence: 0.35,
   };
 }

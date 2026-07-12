@@ -81,7 +81,9 @@ export function resolveByPath(
   let parentId: Id<"fileNodes"> | undefined;
   let current: Doc<"fileNodes"> | null = null;
   for (let i = 0; i < segments.length; i++) {
-    const child = findChild(byParent, parentId, segments[i]);
+    const segment = segments[i];
+    if (segment === undefined) return null;
+    const child = findChild(byParent, parentId, segment);
     if (!child) return null;
     const isLast = i === segments.length - 1;
     if (!isLast && child.kind !== "folder") return null;

@@ -304,14 +304,16 @@ function projectCluster(i: number): Scenario {
         type: "knowledge",
         tags: ["project", c.toLowerCase()],
       },
-      ...facts.map((f, idx) => ({
-        key: f.key,
-        title: f.title,
-        content: f.content,
-        type: "knowledge" as SeedMemoryType,
-        tags: ["project-detail"],
-        ageDays: 40 + idx,
-      })),
+      ...facts.map(
+        (f, idx): MemSpec => ({
+          key: f.key,
+          title: f.title,
+          content: f.content,
+          type: "knowledge",
+          tags: ["project-detail"],
+          ageDays: 40 + idx,
+        }),
+      ),
     ],
     relationships: facts.map((f) => ({
       from: `pj${String(i)}_anchor`,
@@ -640,13 +642,15 @@ const ERROR_CODES: Array<{ code: string; meaning: string }> = [
 
 function exactMatchScenario(): Scenario {
   return {
-    memories: ERROR_CODES.map((e) => ({
-      key: `ex_${e.code}`,
-      title: `Error ${e.code} means ${e.meaning}`,
-      content: `When the service returns ${e.code}, it indicates that ${e.meaning}.`,
-      type: "knowledge" as SeedMemoryType,
-      tags: ["error-code"],
-    })),
+    memories: ERROR_CODES.map(
+      (e): MemSpec => ({
+        key: `ex_${e.code}`,
+        title: `Error ${e.code} means ${e.meaning}`,
+        content: `When the service returns ${e.code}, it indicates that ${e.meaning}.`,
+        type: "knowledge",
+        tags: ["error-code"],
+      }),
+    ),
     queries: ERROR_CODES.map((e) => ({
       query: `what does error ${e.code} mean`,
       type: "exact-match",

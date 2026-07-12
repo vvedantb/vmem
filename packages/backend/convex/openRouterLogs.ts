@@ -82,10 +82,16 @@ const logRowValidator = v.object({
 
 function rangeCutoff(range: "today" | "7d" | "30d" | "all"): number | null {
   const now = Date.now();
-  if (range === "today") return now - 24 * 60 * 60 * 1000;
-  if (range === "7d") return now - 7 * 24 * 60 * 60 * 1000;
-  if (range === "30d") return now - 30 * 24 * 60 * 60 * 1000;
-  return null;
+  switch (range) {
+    case "today":
+      return now - 24 * 60 * 60 * 1000;
+    case "7d":
+      return now - 7 * 24 * 60 * 60 * 1000;
+    case "30d":
+      return now - 30 * 24 * 60 * 60 * 1000;
+    case "all":
+      return null;
+  }
 }
 
 /**

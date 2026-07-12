@@ -28,7 +28,7 @@ export function collectSubtreeIds<T extends { _id: string; parentId?: string }>(
   const seen = new Set<string>();
   while (stack.length > 0) {
     const current = stack.pop();
-    if (!current || seen.has(current)) continue;
+    if (current === undefined || seen.has(current)) continue;
     seen.add(current);
     ids.push(current);
     for (const child of byParent.get(current) ?? []) {

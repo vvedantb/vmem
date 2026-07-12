@@ -40,10 +40,12 @@ export async function encryptToken(token: string): Promise<string> {
 
 export async function decryptToken(encryptedToken: string): Promise<string> {
   const parts = encryptedToken.split(":");
-  if (parts.length !== 3 || parts[0] !== "v1") {
+  const version = parts[0];
+  const ivB64 = parts[1];
+  const encB64 = parts[2];
+  if (parts.length !== 3 || version !== "v1" || !ivB64 || !encB64) {
     throw new Error("Invalid encrypted token format");
   }
-  const [, ivB64, encB64] = parts;
   const key = await getEncryptionKey();
   const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0));
   const enc = Uint8Array.from(atob(encB64), (c) => c.charCodeAt(0));

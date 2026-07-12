@@ -175,7 +175,7 @@ export const saveCloudMessageMemoryRefs = internalMutation({
     memoryRefs: v.array(memoryRefValidator),
   },
   handler: async (ctx, args) => {
-    const bubbleKey = `${args.threadId}-${String(args.assistantOrder)}-${String(args.assistantStepOrder)}`;
+    const bubbleKey = `${args.threadId}-${args.assistantOrder}-${args.assistantStepOrder}`;
     await upsertChatMemoryRefs(ctx, {
       userId: args.userId,
       threadId: args.threadId,

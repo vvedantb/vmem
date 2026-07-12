@@ -71,15 +71,13 @@ export async function getStats(
     let memoriesAddedToday = 0;
     let totalTags = 0;
 
-    if (result.records.length > 0) {
-      const record = result.records[0];
-      if (record) {
-        totalMemories = parseNeo4jInt(neo4jGet(record, "total"));
-        memoriesThisWeek = parseNeo4jInt(neo4jGet(record, "thisWeek"));
-        memoriesThisMonth = parseNeo4jInt(neo4jGet(record, "thisMonth"));
-        memoriesAddedToday = parseNeo4jInt(neo4jGet(record, "today"));
-        totalTags = parseNeo4jInt(neo4jGet(record, "tagCount"));
-      }
+    const record = result.records[0];
+    if (record) {
+      totalMemories = parseNeo4jInt(neo4jGet(record, "total"));
+      memoriesThisWeek = parseNeo4jInt(neo4jGet(record, "thisWeek"));
+      memoriesThisMonth = parseNeo4jInt(neo4jGet(record, "thisMonth"));
+      memoriesAddedToday = parseNeo4jInt(neo4jGet(record, "today"));
+      totalTags = parseNeo4jInt(neo4jGet(record, "tagCount"));
     }
 
     // Growth data: old implementation ran OPTIONAL MATCH twice per day in a

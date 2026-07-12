@@ -70,6 +70,12 @@ export async function runCreateMemory(
     ? (normalizeUrl(args.url) ?? undefined)
     : undefined;
 
+  async function returnIfDuplicate(
+    ref: { id: string; title: string; updatedAt: string } | null,
+  ): Promise<MemoryWithTags | null> {
+    return shortCircuitOnDedupMatch(driver, args.clerkId, ref);
+  }
+
   if (args.externalId && args.sourceType) {
     const existing = await findMemoryByExternalId(
       driver,
@@ -77,22 +83,14 @@ export async function runCreateMemory(
       args.sourceType,
       args.externalId,
     );
-    const shortCircuited = await shortCircuitOnDedupMatch(
-      driver,
-      args.clerkId,
-      existing,
-    );
-    if (shortCircuited) return shortCircuited;
+    const hit = await returnIfDuplicate(existing);
+    if (hit) return hit;
   }
 
   if (normalizedUrl) {
     const existing = await findMemoryByUrl(driver, args.clerkId, normalizedUrl);
-    const shortCircuited = await shortCircuitOnDedupMatch(
-      driver,
-      args.clerkId,
-      existing,
-    );
-    if (shortCircuited) return shortCircuited;
+    const hit = await returnIfDuplicate(existing);
+    if (hit) return hit;
   }
 
   if (normalizedUrl && BROWSER_SOURCES.has(args.source)) {
@@ -104,12 +102,8 @@ export async function runCreateMemory(
         args.title,
         origin,
       );
-      const shortCircuited = await shortCircuitOnDedupMatch(
-        driver,
-        args.clerkId,
-        titleMatch,
-      );
-      if (shortCircuited) return shortCircuited;
+      const hit = await returnIfDuplicate(titleMatch);
+      if (hit) return hit;
     } catch {
       // Invalid URL, skip this check
     }
@@ -121,12 +115,8 @@ export async function runCreateMemory(
     args.clerkId,
     contentHash,
   );
-  const hashShortCircuited = await shortCircuitOnDedupMatch(
-    driver,
-    args.clerkId,
-    hashMatch,
-  );
-  if (hashShortCircuited) return hashShortCircuited;
+  const hashHit = await returnIfDuplicate(hashMatch);
+  if (hashHit) return hashHit;
 
   const embedding = await tryEmbedOne(ctx, {
     clerkId: args.clerkId,
@@ -148,12 +138,8 @@ export async function runCreateMemory(
         `[dedup] semantic near-duplicate (similarity=${semanticMatch.similarity.toFixed(3)}) → ${semanticMatch.id}`,
       );
     }
-    const semanticShortCircuited = await shortCircuitOnDedupMatch(
-      driver,
-      args.clerkId,
-      semanticMatch,
-    );
-    if (semanticShortCircuited) return semanticShortCircuited;
+    const semanticHit = await returnIfDuplicate(semanticMatch);
+    if (semanticHit) return semanticHit;
   }
 
   const result = await createMemory(driver, {

@@ -60,7 +60,7 @@ async function lookupUserIdByClerkId(
   const user = await ctx.runQuery(internal.users.getByClerkIdInternal, {
     clerkId,
   });
-  return user ? user._id : null;
+  return user?._id ?? null;
 }
 
 /**

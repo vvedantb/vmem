@@ -77,6 +77,20 @@ interface ScopedContentDoc {
   teamId?: Id<"teams">;
 }
 
+/** Personal scope: only the owner. Team scope: any current member. */
+async function assertPersonalOwnerOrTeamMember(
+  ctx: QueryCtx | MutationCtx,
+  doc: ScopedContentDoc,
+  userId: Id<"users">,
+): Promise<void> {
+  if (doc.teamId === undefined) {
+    if (doc.userId !== userId) throw new Error("Not found");
+    return;
+  }
+  const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
+  if (!membership) throw new Error("Not found");
+}
+
 /** List/create gate: membership when a teamId scope is requested. */
 export async function requireContentScopeAccess(
   ctx: QueryCtx | MutationCtx,
@@ -105,12 +119,7 @@ export async function assertContentEditable(
   doc: ScopedContentDoc,
   userId: Id<"users">,
 ): Promise<void> {
-  if (doc.teamId === undefined) {
-    if (doc.userId !== userId) throw new Error("Not found");
-    return;
-  }
-  const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
-  if (!membership) throw new Error("Not found");
+  await assertPersonalOwnerOrTeamMember(ctx, doc, userId);
 }
 
 /** Delete gate: personal → owner; team → creator or team owner. */
@@ -120,7 +129,7 @@ export async function assertContentDeletable(
   userId: Id<"users">,
 ): Promise<void> {
   if (doc.teamId === undefined) {
-    if (doc.userId !== userId) throw new Error("Not found");
+    await assertPersonalOwnerOrTeamMember(ctx, doc, userId);
     return;
   }
   if (doc.userId === userId) {

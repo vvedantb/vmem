@@ -21,12 +21,7 @@ function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function randomDate(maxDaysAgo: number): string {
-  const offset = Math.random() * maxDaysAgo * 86400000;
-  return new Date(Date.now() - offset).toISOString();
-}
-
-function recentDate(maxDaysAgo: number): string {
+function randomPastDate(maxDaysAgo: number): string {
   const offset = Math.random() * maxDaysAgo * 86400000;
   return new Date(Date.now() - offset).toISOString();
 }
@@ -44,17 +39,17 @@ function mem(
 
   let createdAt: string;
   if (idx < 50) {
-    createdAt = recentDate(7);
+    createdAt = randomPastDate(7);
   } else if (idx < 300) {
-    createdAt = recentDate(30);
+    createdAt = randomPastDate(30);
   } else if (idx < 1500) {
-    createdAt = randomDate(90);
+    createdAt = randomPastDate(90);
   } else if (idx < 4000) {
-    createdAt = randomDate(180);
+    createdAt = randomPastDate(180);
   } else if (idx < 7500) {
-    createdAt = randomDate(365);
+    createdAt = randomPastDate(365);
   } else {
-    createdAt = randomDate(730);
+    createdAt = randomPastDate(730);
   }
 
   const updatedAt = new Date(

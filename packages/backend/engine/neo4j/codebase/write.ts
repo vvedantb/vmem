@@ -301,12 +301,9 @@ async function upsertProcesses(
     processes.map((p) => ({ fromId: p.entryPointId, toId: p.id })),
   );
 
-  const includes: Array<{ fromId: string; toId: string }> = [];
-  for (const p of processes) {
-    for (const memberId of p.members) {
-      includes.push({ fromId: p.id, toId: memberId });
-    }
-  }
+  const includes = processes.flatMap((p) =>
+    p.members.map((memberId) => ({ fromId: p.id, toId: memberId })),
+  );
   await upsertLabeledEdges(driver, "INCLUDES", "Process", "Function", includes);
 }
 

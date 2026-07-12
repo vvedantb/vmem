@@ -15,6 +15,7 @@ import neo4j, {
   type Driver,
   type Integer,
   type QueryResult,
+  type Session,
 } from "neo4j-driver";
 import { buildAndRun } from "../cypherHelpers";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
@@ -41,9 +42,9 @@ function firstMemoryRef(result: QueryResult): MemoryRef | null {
   const r = result.records[0];
   if (!r) return null;
   return {
-    id: String(r.get("id")),
-    title: String(r.get("title")),
-    updatedAt: String(r.get("updatedAt")),
+    id: String(neo4jGet(r, "id")),
+    title: String(neo4jGet(r, "title")),
+    updatedAt: String(neo4jGet(r, "updatedAt")),
   };
 }
 
@@ -232,7 +233,6 @@ export async function getMemory(
       { memoryId, userId },
     );
 
-    if (result.records.length === 0) return null;
     const firstRecord = result.records[0];
     if (!firstRecord) return null;
     return toMemoryWithTags(firstRecord);
@@ -300,11 +300,12 @@ export async function listMemories(
 
     const where = whereClauses.join(" AND ");
 
-    const hasTagFilter = !!params.tags && params.tags.length > 0;
-    if (hasTagFilter && params.tags) {
-      queryParams.filterTags = params.tags;
+    const filterTags = params.tags ?? [];
+    const hasTagFilter = filterTags.length > 0;
+    if (hasTagFilter) {
+      queryParams.filterTags = filterTags;
     }
-    const filterTagsCount = params.tags?.length ?? 0;
+    const filterTagsCount = filterTags.length;
 
     const luceneSearchQuery = toMemoryContentFulltextQuery(
       params.searchQuery ?? "",
@@ -445,8 +446,6 @@ MERGE (m)-[:TAGGED_WITH]->(tag)`,
     const query = Cypher.utils.concat(matchWithSet, tagUpdate, returnPart);
     const result = await buildAndRun(session, query);
 
-    if (result.records.length === 0) return null;
-
     const firstRecord = result.records[0];
     if (!firstRecord) return null;
     const updated = toMemoryWithTags(firstRecord);
@@ -487,6 +486,20 @@ export async function deleteMemory(
     if (!firstRecord) return false;
     return parseNeo4jInt(neo4jGet(firstRecord, "deleted")) > 0;
   });
+}
+
+/** Prune Tag/Source nodes no memory still references (global UNIQUE names). */
+async function deleteOrphanTagsAndSources(session: Session): Promise<void> {
+  await session.run(
+    `MATCH (t:Tag)
+     WHERE NOT EXISTS { MATCH (:Memory)-[:TAGGED_WITH]->(t) }
+     DELETE t`,
+  );
+  await session.run(
+    `MATCH (s:Source)
+     WHERE NOT EXISTS { MATCH (:Memory)-[:FROM_SOURCE]->(s) }
+     DELETE s`,
+  );
 }
 
 /**
@@ -532,16 +545,7 @@ export async function deleteMemoriesBySourceTypes(
        RETURN count(m) AS deleted`,
       { userId, sourceTypes },
     );
-    await session.run(
-      `MATCH (t:Tag)
-       WHERE NOT EXISTS { MATCH (:Memory)-[:TAGGED_WITH]->(t) }
-       DELETE t`,
-    );
-    await session.run(
-      `MATCH (s:Source)
-       WHERE NOT EXISTS { MATCH (:Memory)-[:FROM_SOURCE]->(s) }
-       DELETE s`,
-    );
+    await deleteOrphanTagsAndSources(session);
     const firstRecord = result.records[0];
     if (!firstRecord) return 0;
     return parseNeo4jInt(neo4jGet(firstRecord, "deleted"));
@@ -589,16 +593,7 @@ export async function deleteAllMemoriesForUser(
        RETURN count(m) AS deleted`,
       { userId },
     );
-    await session.run(
-      `MATCH (t:Tag)
-       WHERE NOT EXISTS { MATCH (:Memory)-[:TAGGED_WITH]->(t) }
-       DELETE t`,
-    );
-    await session.run(
-      `MATCH (s:Source)
-       WHERE NOT EXISTS { MATCH (:Memory)-[:FROM_SOURCE]->(s) }
-       DELETE s`,
-    );
+    await deleteOrphanTagsAndSources(session);
     const firstRecord = result.records[0];
     if (!firstRecord) return 0;
     return parseNeo4jInt(neo4jGet(firstRecord, "deleted"));
@@ -647,7 +642,7 @@ export async function incrementVisitCount(
     }
     return {
       visitCount: parseNeo4jInt(neo4jGet(r, "visitCount")),
-      lastVisitAt: String(r.get("lastVisitAt")),
+      lastVisitAt: String(neo4jGet(r, "lastVisitAt")),
     };
   });
 }
@@ -780,14 +775,13 @@ export async function findMemoryBySimilarity(
         threshold,
       },
     );
-    if (result.records.length === 0) return null;
     const r = result.records[0];
     if (!r) return null;
     return {
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      updatedAt: String(r.get("updatedAt")),
-      similarity: Number(r.get("similarity")),
+      id: String(neo4jGet(r, "id")),
+      title: String(neo4jGet(r, "title")),
+      updatedAt: String(neo4jGet(r, "updatedAt")),
+      similarity: Number(neo4jGet(r, "similarity")),
     };
   });
 }

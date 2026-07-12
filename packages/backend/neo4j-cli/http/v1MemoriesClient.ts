@@ -17,8 +17,6 @@ const memorySchema = z
   })
   .passthrough();
 
-const storeDataSchema = memorySchema;
-
 const retrieveMemoriesSchema = z.array(
   z
     .object({
@@ -74,6 +72,17 @@ async function readJson(response: Response): Promise<object | null> {
   }
 }
 
+function errorResultFromBody(
+  status: number,
+  body: object,
+): { ok: false; status: number; error: string } {
+  const error = errorBodySchema.safeParse(body);
+  if (error.success) {
+    return { ok: false, status, error: error.data.error };
+  }
+  return { ok: false, status, error: "unexpected_response" };
+}
+
 function parseDirect<T>(
   status: number,
   body: object | null,
@@ -88,12 +97,7 @@ function parseDirect<T>(
     return { ok: true, status, data: parsed.data };
   }
 
-  const error = errorBodySchema.safeParse(body);
-  if (error.success) {
-    return { ok: false, status, error: error.data.error };
-  }
-
-  return { ok: false, status, error: "unexpected_response" };
+  return errorResultFromBody(status, body);
 }
 
 function parseEnvelope<T>(
@@ -114,12 +118,7 @@ function parseEnvelope<T>(
     }
   }
 
-  const error = errorBodySchema.safeParse(body);
-  if (error.success) {
-    return { ok: false, status, error: error.data.error };
-  }
-
-  return { ok: false, status, error: "unexpected_response" };
+  return errorResultFromBody(status, body);
 }
 
 export function createHttpMemoriesClient(config: HttpClientConfig) {
@@ -173,7 +172,7 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
       externalId?: string;
       sourceType?: string;
     }) {
-      return request("/api/v1/memories", storeDataSchema, {
+      return request("/api/v1/memories", memorySchema, {
         method: "POST",
         body: JSON.stringify(body),
       });
@@ -191,7 +190,7 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
       title?: string;
       content?: string;
     }) {
-      return request("/api/v1/memories", storeDataSchema, {
+      return request("/api/v1/memories", memorySchema, {
         method: "PATCH",
         body: JSON.stringify(body),
       });
@@ -207,7 +206,7 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
     storeWithoutAuth() {
       return request(
         "/api/v1/memories",
-        storeDataSchema,
+        memorySchema,
         {
           method: "POST",
           body: JSON.stringify({
@@ -226,7 +225,7 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
     storeWithBadKey() {
       return request(
         "/api/v1/memories",
-        storeDataSchema,
+        memorySchema,
         {
           method: "POST",
           body: JSON.stringify({
@@ -243,7 +242,7 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
     },
 
     storeInvalidBody() {
-      return request("/api/v1/memories", storeDataSchema, {
+      return request("/api/v1/memories", memorySchema, {
         method: "POST",
         body: JSON.stringify({ title: "missing required fields" }),
       });
