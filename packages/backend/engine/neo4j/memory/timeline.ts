@@ -10,21 +10,35 @@ import { toTimelineEvent } from "./mappers";
 import { withSession } from "./shared";
 import { type ConnectionType, type TimelineEvent } from "./types";
 
+/**
+ * Run a Cypher query and map every record with `toTimelineEvent`. Shared by
+ * the two timeline reads whose result shape needs no per-row extras
+ * (`getTopicTimeline` also tags each row with a `connectionType`, so it
+ * stays out of this helper).
+ */
+async function runTimelineQuery(
+  driver: Driver,
+  cypher: string,
+  params: Record<string, unknown>,
+): Promise<TimelineEvent[]> {
+  return withSession(driver, async (session) => {
+    const result = await session.run(cypher, params);
+    return result.records.map(toTimelineEvent);
+  });
+}
+
 export async function getMemoryTimeline(
   driver: Driver,
   userId: string,
   memoryId: string,
 ): Promise<TimelineEvent[]> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {id: $memoryId, userId: $userId})
-       RETURN e, m.id AS memoryId, m.title AS memoryTitle
-       ORDER BY e.createdAt ASC`,
-      { memoryId, userId },
-    );
-
-    return result.records.map(toTimelineEvent);
-  });
+  return runTimelineQuery(
+    driver,
+    `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {id: $memoryId, userId: $userId})
+     RETURN e, m.id AS memoryId, m.title AS memoryTitle
+     ORDER BY e.createdAt ASC`,
+    { memoryId, userId },
+  );
 }
 
 export async function getTopicTimeline(
@@ -79,23 +93,20 @@ export async function getSearchTimeline(
     return [];
   }
 
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `CALL db.index.fulltext.queryNodes('memory_content', $query)
-       YIELD node AS m, score
-       WHERE m.userId = $userId
-       MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m)
-       RETURN e, m.id AS memoryId, m.title AS memoryTitle
-       ORDER BY e.createdAt ASC
-       SKIP $offset LIMIT $limit`,
-      {
-        query: luceneQuery,
-        userId,
-        offset: neo4j.int(offset),
-        limit: neo4j.int(limit),
-      },
-    );
-
-    return result.records.map(toTimelineEvent);
-  });
+  return runTimelineQuery(
+    driver,
+    `CALL db.index.fulltext.queryNodes('memory_content', $query)
+     YIELD node AS m, score
+     WHERE m.userId = $userId
+     MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m)
+     RETURN e, m.id AS memoryId, m.title AS memoryTitle
+     ORDER BY e.createdAt ASC
+     SKIP $offset LIMIT $limit`,
+    {
+      query: luceneQuery,
+      userId,
+      offset: neo4j.int(offset),
+      limit: neo4j.int(limit),
+    },
+  );
 }
