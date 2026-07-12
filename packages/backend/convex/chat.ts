@@ -84,6 +84,15 @@ type MemoryRef = {
   };
 };
 
+/** Bubble key shared by chat message memory refs and usage lookups. */
+function bubbleKeyFor(
+  threadId: string,
+  order: number | string,
+  stepOrder: number | string,
+): string {
+  return `${threadId}-${order}-${stepOrder}`;
+}
+
 /** Replace any existing bubble refs, then insert the latest set. */
 async function upsertChatMemoryRefs(
   ctx: MutationCtx,
@@ -175,7 +184,11 @@ export const saveCloudMessageMemoryRefs = internalMutation({
     memoryRefs: v.array(memoryRefValidator),
   },
   handler: async (ctx, args) => {
-    const bubbleKey = `${args.threadId}-${args.assistantOrder}-${args.assistantStepOrder}`;
+    const bubbleKey = bubbleKeyFor(
+      args.threadId,
+      args.assistantOrder,
+      args.assistantStepOrder,
+    );
     await upsertChatMemoryRefs(ctx, {
       userId: args.userId,
       threadId: args.threadId,
@@ -380,7 +393,11 @@ export const saveLocalMessages = authMutation({
           "assistantOrder and assistantStepOrder are required when memoryRefs is non-empty",
         );
       }
-      const bubbleKey = `${threadId}-${String(assistantOrder)}-${String(assistantStepOrder)}`;
+      const bubbleKey = bubbleKeyFor(
+        threadId,
+        assistantOrder,
+        assistantStepOrder,
+      );
       await upsertChatMemoryRefs(ctx, {
         userId: ctx.userId,
         threadId,
@@ -481,7 +498,7 @@ export const getThreadMessageUsage = authQuery({
 
     for (const [orderKey, entry] of Object.entries(byOrder)) {
       if (entry.totalTokens === 0) continue;
-      const bubbleKey = `${threadId}-${orderKey}-${entry.firstStepOrder}`;
+      const bubbleKey = bubbleKeyFor(threadId, orderKey, entry.firstStepOrder);
       byBubbleKey[bubbleKey] = {
         inputTokens: entry.inputTokens,
         outputTokens: entry.outputTokens,
