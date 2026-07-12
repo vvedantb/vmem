@@ -15,6 +15,8 @@ import {
   setupSync,
   upsertSyncedDoc,
   withConnectorSyncError,
+  type SyncedDoc,
+  type SyncSetup,
 } from "./shared";
 import { parseResponseJson } from "../../lib/jsonBoundary";
 import { z } from "zod";
@@ -156,6 +158,61 @@ const LINEAR_PROJECTS_QUERY = `
   }
 `;
 
+/**
+ * Page through a Linear GraphQL connection (issues or projects), upserting
+ * each node as it's fetched. Shared by both loops in `runLinearSync` — they
+ * differ only in the query/schema/doc shape, not in the pagination or
+ * per-item error handling.
+ */
+async function syncLinearNodes<TNode>(
+  ctx: ActionCtx,
+  params: {
+    setup: SyncSetup;
+    clerkId: string;
+    connectorId: Id<"connectors">;
+    fetchPage: (after: string | null) => Promise<{
+      nodes: TNode[];
+      hasNextPage: boolean;
+      endCursor: string | null;
+    }>;
+    toDoc: (node: TNode) => SyncedDoc;
+    describe: (node: TNode) => string;
+    totalSynced: number;
+    totalFound: number;
+  },
+): Promise<{ totalSynced: number; totalFound: number }> {
+  let totalSynced = params.totalSynced;
+  let totalFound = params.totalFound;
+  let after: string | null = null;
+
+  do {
+    const page = await params.fetchPage(after);
+    totalFound += page.nodes.length;
+
+    for (const node of page.nodes) {
+      try {
+        totalSynced = await upsertSyncedDoc(ctx, {
+          setup: params.setup,
+          clerkId: params.clerkId,
+          totalSynced,
+          doc: params.toDoc(node),
+        });
+        await maybeReportProgress(ctx, {
+          connectorId: params.connectorId,
+          totalSynced,
+          totalFound,
+        });
+      } catch (err) {
+        console.error(`Failed to sync Linear ${params.describe(node)}:`, err);
+      }
+    }
+
+    after = page.hasNextPage ? page.endCursor : null;
+  } while (after);
+
+  return { totalSynced, totalFound };
+}
+
 export async function runLinearSync(
   ctx: ActionCtx,
   args: LinearSyncArgs,
@@ -177,116 +234,93 @@ export async function runLinearSync(
     let totalFound = 0;
 
     // --- Issues ---
-    let after: string | null = null;
-    do {
-      const data: LinearIssuesData = await linearGraphQL(
-        args.accessToken,
-        LINEAR_ISSUES_QUERY,
-        { after, filter: issueFilter },
-        linearIssuesDataSchema,
-      );
+    const issuesResult = await syncLinearNodes<
+      LinearIssuesData["issues"]["nodes"][number]
+    >(ctx, {
+      setup,
+      clerkId: args.clerkId,
+      connectorId: args.connectorId,
+      fetchPage: async (after) => {
+        const data: LinearIssuesData = await linearGraphQL(
+          args.accessToken,
+          LINEAR_ISSUES_QUERY,
+          { after, filter: issueFilter },
+          linearIssuesDataSchema,
+        );
+        return {
+          nodes: data.issues.nodes,
+          hasNextPage: data.issues.pageInfo.hasNextPage,
+          endCursor: data.issues.pageInfo.endCursor,
+        };
+      },
+      toDoc: (issue) => {
+        const title = `${issue.identifier} ${issue.title}`;
+        const description = issue.description ?? "";
+        const comments = issue.comments.nodes;
 
-      const issues = data.issues.nodes;
-      totalFound += issues.length;
-
-      for (const issue of issues) {
-        try {
-          const title = `${issue.identifier} ${issue.title}`;
-          const description = issue.description ?? "";
-          const comments = issue.comments.nodes;
-
-          let content = description;
-          if (comments.length > 0) {
-            const commentsBlock = comments
-              .map((c) => `[${c.user?.name ?? "Unknown"}] ${c.body}`)
-              .join("\n\n");
-            content = content
-              ? `${content}\n\n---\nComments:\n${commentsBlock}`
-              : `---\nComments:\n${commentsBlock}`;
-          }
-          // Empty-issue fallback: use title as content so the issue still
-          // shows up as a browseable memory.
-          if (!content.trim()) {
-            content = title;
-          }
-
-          totalSynced = await upsertSyncedDoc(ctx, {
-            setup,
-            clerkId: args.clerkId,
-            totalSynced,
-            doc: {
-              title,
-              content,
-              sourceType: "linear",
-              sourceId: issue.id,
-              sourceUrl: issue.url,
-            },
-          });
-          await maybeReportProgress(ctx, {
-            connectorId: args.connectorId,
-            totalSynced,
-            totalFound,
-          });
-        } catch (issueErr) {
-          console.error(
-            `Failed to sync Linear issue ${issue.identifier}:`,
-            issueErr,
-          );
+        let content = description;
+        if (comments.length > 0) {
+          const commentsBlock = comments
+            .map((c) => `[${c.user?.name ?? "Unknown"}] ${c.body}`)
+            .join("\n\n");
+          content = content
+            ? `${content}\n\n---\nComments:\n${commentsBlock}`
+            : `---\nComments:\n${commentsBlock}`;
         }
-      }
+        // Empty-issue fallback: use title as content so the issue still
+        // shows up as a browseable memory.
+        if (!content.trim()) {
+          content = title;
+        }
 
-      after = data.issues.pageInfo.hasNextPage
-        ? data.issues.pageInfo.endCursor
-        : null;
-    } while (after);
+        return {
+          title,
+          content,
+          sourceType: "linear",
+          sourceId: issue.id,
+          sourceUrl: issue.url,
+        };
+      },
+      describe: (issue) => `issue ${issue.identifier}`,
+      totalSynced,
+      totalFound,
+    });
+    totalSynced = issuesResult.totalSynced;
+    totalFound = issuesResult.totalFound;
 
     // --- Projects (separate sourceType so users can filter) ---
-    let projectAfter: string | null = null;
-    do {
-      const data: LinearProjectsData = await linearGraphQL(
-        args.accessToken,
-        LINEAR_PROJECTS_QUERY,
-        { after: projectAfter, filter: projectFilter },
-        linearProjectsDataSchema,
-      );
-
-      const projects = data.projects.nodes;
-      totalFound += projects.length;
-
-      for (const project of projects) {
-        try {
-          const title = `Project: ${project.name}`;
-          const description = project.description ?? "";
-          const content = `${description}\nState: ${project.state}`;
-          totalSynced = await upsertSyncedDoc(ctx, {
-            setup,
-            clerkId: args.clerkId,
-            totalSynced,
-            doc: {
-              title,
-              content,
-              sourceType: "linear_project",
-              sourceId: project.id,
-              sourceUrl: project.url,
-            },
-          });
-          await maybeReportProgress(ctx, {
-            connectorId: args.connectorId,
-            totalSynced,
-            totalFound,
-          });
-        } catch (projErr) {
-          console.error(
-            `Failed to sync Linear project ${project.name}:`,
-            projErr,
-          );
-        }
-      }
-
-      projectAfter = data.projects.pageInfo.hasNextPage
-        ? data.projects.pageInfo.endCursor
-        : null;
-    } while (projectAfter);
+    const projectsResult = await syncLinearNodes<
+      LinearProjectsData["projects"]["nodes"][number]
+    >(ctx, {
+      setup,
+      clerkId: args.clerkId,
+      connectorId: args.connectorId,
+      fetchPage: async (after) => {
+        const data: LinearProjectsData = await linearGraphQL(
+          args.accessToken,
+          LINEAR_PROJECTS_QUERY,
+          { after, filter: projectFilter },
+          linearProjectsDataSchema,
+        );
+        return {
+          nodes: data.projects.nodes,
+          hasNextPage: data.projects.pageInfo.hasNextPage,
+          endCursor: data.projects.pageInfo.endCursor,
+        };
+      },
+      toDoc: (project) => ({
+        title: `Project: ${project.name}`,
+        content: `${project.description ?? ""}\nState: ${project.state}`,
+        sourceType: "linear_project",
+        sourceId: project.id,
+        sourceUrl: project.url,
+      }),
+      describe: (project) => `project ${project.name}`,
+      totalSynced,
+      totalFound,
+    });
+    totalSynced = projectsResult.totalSynced;
+    totalFound = projectsResult.totalFound;
 
     await markSyncComplete(ctx, {
       connectorId: args.connectorId,
