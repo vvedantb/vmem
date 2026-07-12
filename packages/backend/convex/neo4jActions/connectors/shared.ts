@@ -62,8 +62,11 @@ export async function setupSync(
  *
  * Threads `userId` + `profileId` through so the resulting
  * `openRouterLogs` row attributes spend to the right workspace.
+ *
+ * Internal to this module — connectors now go through `upsertSyncedDoc`,
+ * which owns the embed → upsert sequence.
  */
-export async function embedSyncedDoc(
+async function embedSyncedDoc(
   ctx: ActionCtx,
   auth: SyncAuth | null,
   profileId: string,

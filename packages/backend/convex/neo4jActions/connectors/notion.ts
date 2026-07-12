@@ -14,13 +14,12 @@ import type {
 } from "@notionhq/client/build/src/api-endpoints";
 import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
 import {
-  embedSyncedDoc,
   markSyncComplete,
   markSyncError,
   maybeReportProgress,
   setupSync,
+  upsertSyncedDoc,
 } from "./shared";
 
 export interface NotionSyncArgs {
@@ -76,10 +75,7 @@ export async function runNotionSync(
   ctx: ActionCtx,
   args: NotionSyncArgs,
 ): Promise<{ synced: number }> {
-  const { driver, profileId, openRouterAuth } = await setupSync(
-    ctx,
-    args.clerkId,
-  );
+  const setup = await setupSync(ctx, args.clerkId);
 
   try {
     const notion = new NotionClient({ auth: args.accessToken });
@@ -140,26 +136,18 @@ export async function runNotionSync(
               ? page.url
               : `https://notion.so/${page.id.replace(/-/g, "")}`;
 
-          const embedding = await embedSyncedDoc(
-            ctx,
-            openRouterAuth,
-            profileId,
-            title,
-            content,
-          );
-
-          await upsertFromSource(driver, {
-            userId: args.clerkId,
-            profileId,
-            title,
-            content,
-            sourceType: "notion",
-            sourceId: page.id,
-            sourceUrl: pageUrl,
-            embedding,
+          totalSynced = await upsertSyncedDoc(ctx, {
+            setup,
+            clerkId: args.clerkId,
+            totalSynced,
+            doc: {
+              title,
+              content,
+              sourceType: "notion",
+              sourceId: page.id,
+              sourceUrl: pageUrl,
+            },
           });
-
-          totalSynced++;
           await maybeReportProgress(ctx, {
             connectorId: args.connectorId,
             totalSynced,
