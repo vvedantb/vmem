@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import type { ActionCtx } from "../_generated/server";
 import type { McpScope } from "../profiles/mcpAccess";
 import { bindToolSpec, toolSpecs, type McpBindableTool } from "./toolCatalog";
@@ -57,6 +58,11 @@ function fileMetadataText(data: object): string {
   return JSON.stringify(clone, null, 2);
 }
 
+const inlineImageFileSchema = z.object({
+  contentBase64: z.string(),
+  mimeType: z.string().refine((mime) => mime.startsWith("image/")),
+});
+
 /**
  * files_get returns an MCP image content block when the file is an inlined
  * image so hosts (Claude, ChatGPT) render it directly, plus a text block with
@@ -66,23 +72,16 @@ function fileMetadataText(data: object): string {
 function filesGetContent(result: ToolHandlerResult): McpToolContent {
   if (!result.ok) return errorContent(`Files get failed: ${result.error}`);
   const data = result.data;
-  if (
-    typeof data === "object" &&
-    data !== null &&
-    "contentBase64" in data &&
-    typeof data.contentBase64 === "string" &&
-    "mimeType" in data &&
-    typeof data.mimeType === "string" &&
-    data.mimeType.startsWith("image/")
-  ) {
+  const inlineImage = inlineImageFileSchema.safeParse(data);
+  if (inlineImage.success) {
     return {
       content: [
         {
           type: "image",
-          data: data.contentBase64,
-          mimeType: data.mimeType,
+          data: inlineImage.data.contentBase64,
+          mimeType: inlineImage.data.mimeType,
         },
-        { type: "text", text: fileMetadataText(data) },
+        { type: "text", text: fileMetadataText(data as object) },
       ],
     };
   }
