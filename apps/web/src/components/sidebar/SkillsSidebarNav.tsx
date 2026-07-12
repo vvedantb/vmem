@@ -146,11 +146,15 @@ export function SkillsSidebarNav({
           Installed system skills
         </p>
         <SharedLayoutBackground.Root
-          pinnedId={activeSystemSkillId ?? null}
+          layoutId="skills-system"
           className="gap-0.5"
         >
           {installedSystemSkills.map((entry) => (
-            <SharedLayoutBackground.Item key={entry._id} id={entry._id}>
+            <SharedLayoutBackground.Item
+              key={entry._id}
+              id={entry._id}
+              isActive={activeSystemSkillId === entry._id}
+            >
               <Button
                 type="button"
                 variant="ghost"
@@ -251,11 +255,15 @@ export function SkillsSidebarNav({
               ) : null
             ) : (
               <SharedLayoutBackground.Root
-                pinnedId={selectionMode ? null : (skillId ?? null)}
+                layoutId="skills-nav"
                 className="gap-0.5"
               >
                 {filteredSkills.map((skill) => (
-                  <SharedLayoutBackground.Item key={skill._id} id={skill._id}>
+                  <SharedLayoutBackground.Item
+                    key={skill._id}
+                    id={skill._id}
+                    isActive={!selectionMode && skillId === skill._id}
+                  >
                     <SkillCard
                       skill={skill}
                       selected={skillId === skill._id}

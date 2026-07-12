@@ -218,13 +218,14 @@ export function CodebasesSidebarNav({
             ) : (
               <>
                 <SharedLayoutBackground.Root
-                  pinnedId={codebaseId ?? null}
+                  layoutId="codebases-nav"
                   className="gap-0.5"
                 >
                   {activeCodebases.map((codebase) => (
                     <SharedLayoutBackground.Item
                       key={codebase._id}
                       id={codebase._id}
+                      isActive={codebaseId === codebase._id}
                     >
                       <CodebaseSidebarItem
                         codebase={codebase}
@@ -233,34 +234,26 @@ export function CodebasesSidebarNav({
                       />
                     </SharedLayoutBackground.Item>
                   ))}
-                </SharedLayoutBackground.Root>
 
-                {!isIconOnly && archivedCodebases.length > 0 ? (
-                  <Collapsible className="mt-2">
-                    <CollapsibleTrigger className="group flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-muted transition-[color] hover:text-foreground">
-                      <IconChevronRight
-                        size={14}
-                        className="shrink-0 transition-transform group-data-[state=open]:rotate-90"
-                      />
-                      <IconArchive size={14} className="shrink-0" />
-                      <span>Archived</span>
-                      <span className="ml-auto tabular-nums">
-                        {archivedCodebases.length}
-                      </span>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-0.5">
-                      <SharedLayoutBackground.Root
-                        pinnedId={
-                          archivedCodebases.some((cb) => cb._id === codebaseId)
-                            ? (codebaseId ?? null)
-                            : null
-                        }
-                        className="gap-0.5"
-                      >
+                  {!isIconOnly && archivedCodebases.length > 0 ? (
+                    <Collapsible className="mt-2">
+                      <CollapsibleTrigger className="group flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-muted transition-[color] hover:text-foreground">
+                        <IconChevronRight
+                          size={14}
+                          className="shrink-0 transition-transform group-data-[state=open]:rotate-90"
+                        />
+                        <IconArchive size={14} className="shrink-0" />
+                        <span>Archived</span>
+                        <span className="ml-auto tabular-nums">
+                          {archivedCodebases.length}
+                        </span>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-0.5 space-y-0.5">
                         {archivedCodebases.map((codebase) => (
                           <SharedLayoutBackground.Item
                             key={codebase._id}
                             id={codebase._id}
+                            isActive={codebaseId === codebase._id}
                           >
                             <CodebaseSidebarItem
                               codebase={codebase}
@@ -269,10 +262,10 @@ export function CodebasesSidebarNav({
                             />
                           </SharedLayoutBackground.Item>
                         ))}
-                      </SharedLayoutBackground.Root>
-                    </CollapsibleContent>
-                  </Collapsible>
-                ) : null}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ) : null}
+                </SharedLayoutBackground.Root>
               </>
             )}
           </>

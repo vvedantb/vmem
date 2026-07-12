@@ -12,11 +12,11 @@ import {
   IconLoader2,
 } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";
-import { formatMemorySourceLabel } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 import TagInputWithSuggestions from "./TagInputWithSuggestions";
 import MemoryProvenance from "./MemoryProvenance";
+import { MemorySourceLabel } from "./MemorySourceLabel";
 import { DetailSection } from "./detail-panel/DetailSection";
 
 interface DetailsTabProps {
@@ -184,7 +184,13 @@ export default function DetailsTab({
         <span className="text-muted">·</span>
         <span className="capitalize">{memory.type}</span>
         <span className="text-muted">·</span>
-        <span>{formatMemorySourceLabel(memory.source)}</span>
+        <span>
+          <MemorySourceLabel
+            source={memory.source}
+            size={14}
+            labelClassName="text-foreground"
+          />
+        </span>
       </div>
 
       <div className="flex items-center justify-between gap-3 pt-2">

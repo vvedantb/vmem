@@ -1,6 +1,6 @@
 "use client";
 
-import { Separator, Skeleton, cn } from "@vmem/ui";
+import { Skeleton, cn } from "@vmem/ui";
 import { IconChartBar } from "@tabler/icons-react";
 import { SidebarUserMenu } from "./SidebarUserMenu";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
@@ -28,6 +28,11 @@ export interface SidebarStats {
   total: number;
 }
 
+function todaySharePercent(addedToday: number, total: number): number {
+  if (total <= 0 || addedToday <= 0) return 0;
+  return Math.min(100, (addedToday / total) * 100);
+}
+
 function StatsCard({
   isIconOnly,
   stats,
@@ -35,14 +40,24 @@ function StatsCard({
   isIconOnly: boolean;
   stats: SidebarStats;
 }) {
+  const todayLabel = formatCompactNumber(stats.addedToday);
+  const totalLabel = formatCompactNumber(stats.total);
+  const sharePercent = todaySharePercent(stats.addedToday, stats.total);
+
   if (isIconOnly) {
-    const statsLabel = `${formatCompactNumber(stats.addedToday)} today · ${formatCompactNumber(stats.total)} total`;
+    const statsLabel = `${todayLabel} today · ${totalLabel} total`;
 
     return (
       <div className="flex justify-center">
         <SidebarIconTooltip label={statsLabel} enabled>
-          <div className="flex h-8 w-8 cursor-default items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground">
+          <div className="relative flex h-8 w-8 cursor-default items-center justify-center text-muted">
             <IconChartBar className="h-4 w-4" />
+            {stats.addedToday > 0 ? (
+              <span
+                aria-hidden
+                className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-foreground"
+              />
+            ) : null}
           </div>
         </SidebarIconTooltip>
       </div>
@@ -50,18 +65,36 @@ function StatsCard({
   }
 
   return (
-    <div className="mx-2 flex items-baseline justify-between px-2">
-      <div className="flex items-baseline gap-1.5">
-        <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
-          {formatCompactNumber(stats.addedToday)}
+    <div className="px-2">
+      <div
+        role="progressbar"
+        aria-label={`${todayLabel} memories added today out of ${totalLabel} total`}
+        aria-valuenow={sharePercent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        className="relative flex h-6 items-center justify-between overflow-hidden px-2 text-[10px] leading-none tabular-nums"
+      >
+        {sharePercent > 0 ? (
+          <div
+            aria-hidden
+            className="absolute inset-y-0 left-0 bg-foreground/10"
+            style={{ width: `${sharePercent}%` }}
+          />
+        ) : null}
+        <span className="relative z-10 text-muted">
+          <span
+            className={cn(
+              stats.addedToday > 0 ? "text-foreground" : "text-muted",
+            )}
+          >
+            {todayLabel}
+          </span>
+          <span> today</span>
         </span>
-        <span className="text-[11px] text-muted/70">today</span>
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <span className="text-2xl font-instrumentSerif tabular-nums text-foreground">
-          {formatCompactNumber(stats.total)}
+        <span className="relative z-10 text-muted">
+          <span className="text-foreground">{totalLabel}</span>
+          <span> total</span>
         </span>
-        <span className="text-[11px] text-muted/70">total</span>
       </div>
     </div>
   );
@@ -87,7 +120,6 @@ export function SidebarFooter({
   return (
     <div className={cn("space-y-4 pt-3")}>
       {showStats ? <StatsCard isIconOnly={isIconOnly} stats={stats} /> : null}
-      {showStats ? <Separator /> : null}
 
       <div className={cn(isMobile ? "pr-2" : "px-2")}>
         {isAuthLoading ? (

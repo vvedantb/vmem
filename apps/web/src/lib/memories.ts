@@ -41,6 +41,7 @@ const MEMORY_SOURCE_LABELS: Record<string, string> = {
   linear_project: "Linear project",
   notion: "Notion",
   mcp: "MCP",
+  cursor: "Cursor",
   "client-enrichment": "Enrichment",
 };
 

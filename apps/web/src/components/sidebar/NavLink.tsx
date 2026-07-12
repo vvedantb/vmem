@@ -52,7 +52,7 @@ export function NavLink({
         to={resolvedPath}
         onClick={onNavigate}
         className={cn(
-          "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.96]",
+          "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-colors duration-200 ease-smooth",
           sidebarNavRowClass(isIconOnly),
           sidebarNavLinkTextClass(isActive),
         )}

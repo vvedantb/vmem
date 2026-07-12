@@ -605,12 +605,13 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
               className={cn(
                 "min-w-0 min-h-0",
                 hasMemoryRoute
-                  ? "hidden sm:block lg:flex-[2] lg:min-w-0"
+                  ? "hidden sm:block lg:min-w-0 lg:flex-1"
                   : "flex-1",
               )}
             >
               <Virtuoso
                 data={displayItems}
+                className="scrollbar-thin"
                 context={{
                   memoryId,
                   trailMap,
@@ -628,7 +629,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
             </div>
 
             {hasMemoryRoute ? (
-              <div className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:flex-[3] lg:min-w-0">
+              <div className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:min-w-0 lg:flex-1">
                 {selectedMemory ? (
                   <MemoryDetailPanel
                     key={memoryId}

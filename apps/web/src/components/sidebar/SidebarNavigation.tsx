@@ -95,7 +95,7 @@ function SubSidebarNavButton({
         variant="ghost"
         onClick={onClick}
         className={cn(
-          "group relative h-auto w-full justify-start rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.96]",
+          "group relative h-auto w-full justify-start rounded-lg text-sm font-medium tracking-normal transition-colors duration-200 ease-smooth",
           sidebarNavRowClass(isIconOnly),
           sidebarNavLinkTextClass(isActive),
         )}
@@ -131,20 +131,6 @@ function SubSidebarNavButton({
       </Button>
     </SidebarIconTooltip>
   );
-}
-
-function pinnedNavId(
-  pathname: string,
-  profileId: string | undefined,
-  items: NavItem[],
-): string | null {
-  for (const item of items) {
-    const resolvedPath = navHrefToPath(item.href, profileId);
-    if (pathname === resolvedPath || pathname.startsWith(resolvedPath + "/")) {
-      return item.href;
-    }
-  }
-  return null;
 }
 
 function MainNav({
@@ -186,57 +172,65 @@ function MainNav({
       exit={{ opacity: 0, x: -12 }}
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
-      {groups.map((group) => (
-        <NavSection
-          key={group.title}
-          title={group.title}
-          isIconOnly={isIconOnly}
-        >
-          <SharedLayoutBackground.Root
-            pinnedId={pinnedNavId(pathname, profileId, group.items)}
-            className="gap-1"
+      <SharedLayoutBackground.Root layoutId="main-nav" className="space-y-4">
+        {groups.map((group) => (
+          <NavSection
+            key={group.title}
+            title={group.title}
+            isIconOnly={isIconOnly}
           >
-            {group.items.map((item) => {
-              if (isSubSidebarHref(item.href)) {
-                const isActive = pathname.startsWith(
-                  navHrefToPath(item.href, profileId),
-                );
-                const onClick =
-                  item.href === "/$profileId/skills"
-                    ? onSkillsClick
-                    : item.href === "/$profileId/wiki"
-                      ? onWikiClick
-                      : item.href === "/$profileId/codebases"
-                        ? onCodebasesClick
-                        : onSettingsClick;
-                return (
-                  <SharedLayoutBackground.Item key={item.href} id={item.href}>
-                    <SubSidebarNavButton
-                      item={item}
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const resolvedPath = navHrefToPath(item.href, profileId);
+                const isActive =
+                  pathname === resolvedPath ||
+                  pathname.startsWith(resolvedPath + "/");
+                if (isSubSidebarHref(item.href)) {
+                  const onClick =
+                    item.href === "/$profileId/skills"
+                      ? onSkillsClick
+                      : item.href === "/$profileId/wiki"
+                        ? onWikiClick
+                        : item.href === "/$profileId/codebases"
+                          ? onCodebasesClick
+                          : onSettingsClick;
+                  return (
+                    <SharedLayoutBackground.Item
+                      key={item.href}
+                      id={item.href}
                       isActive={isActive}
+                    >
+                      <SubSidebarNavButton
+                        item={item}
+                        isActive={isActive}
+                        isIconOnly={isIconOnly}
+                        onClick={onClick}
+                      />
+                    </SharedLayoutBackground.Item>
+                  );
+                }
+                return (
+                  <SharedLayoutBackground.Item
+                    key={item.href}
+                    id={item.href}
+                    isActive={isActive}
+                  >
+                    <NavLink
+                      item={item}
+                      pathname={pathname}
+                      profileId={profileId}
                       isIconOnly={isIconOnly}
-                      onClick={onClick}
+                      unreadCount={unreadCount}
+                      proposalsCount={proposalsCount}
+                      onNavigate={onNavigate}
                     />
                   </SharedLayoutBackground.Item>
                 );
-              }
-              return (
-                <SharedLayoutBackground.Item key={item.href} id={item.href}>
-                  <NavLink
-                    item={item}
-                    pathname={pathname}
-                    profileId={profileId}
-                    isIconOnly={isIconOnly}
-                    unreadCount={unreadCount}
-                    proposalsCount={proposalsCount}
-                    onNavigate={onNavigate}
-                  />
-                </SharedLayoutBackground.Item>
-              );
-            })}
-          </SharedLayoutBackground.Root>
-        </NavSection>
-      ))}
+              })}
+            </div>
+          </NavSection>
+        ))}
+      </SharedLayoutBackground.Root>
     </motion.nav>
   );
 }
@@ -263,60 +257,67 @@ function SettingsNav({
       exit={{ opacity: 0, x: 12 }}
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
-      {settingsNavGroups.map((group) => (
-        <NavSection
-          key={group.title}
-          title={group.title}
-          isIconOnly={isIconOnly}
-        >
-          <SharedLayoutBackground.Root
-            pinnedId={pinnedNavId(pathname, undefined, group.items)}
-            className="gap-1"
+      <SharedLayoutBackground.Root
+        layoutId="settings-nav"
+        className="space-y-4"
+      >
+        {settingsNavGroups.map((group) => (
+          <NavSection
+            key={group.title}
+            title={group.title}
+            isIconOnly={isIconOnly}
           >
-            {group.items.map((item) => {
-              const isActive =
-                pathname === item.href || pathname.startsWith(item.href + "/");
-              const Icon = item.icon;
-              return (
-                <SharedLayoutBackground.Item key={item.href} id={item.href}>
-                  <SidebarIconTooltip label={item.label} enabled={isIconOnly}>
-                    <Link
-                      to={item.href}
-                      onClick={onNavigate}
-                      className={cn(
-                        "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.96]",
-                        sidebarNavRowClass(isIconOnly),
-                        sidebarNavLinkTextClass(isActive),
-                      )}
-                    >
-                      <span className="flex h-5 w-5 items-center justify-center text-current">
-                        <Icon size={18} stroke={1.7} />
-                      </span>
-                      <AnimatePresence initial={false}>
-                        {!isIconOnly ? (
-                          <motion.span
-                            key={`${item.href}-label`}
-                            className="flex-1"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{
-                              duration: motionDuration.fast,
-                              ease: motionEase,
-                            }}
-                          >
-                            {item.label}
-                          </motion.span>
-                        ) : null}
-                      </AnimatePresence>
-                    </Link>
-                  </SidebarIconTooltip>
-                </SharedLayoutBackground.Item>
-              );
-            })}
-          </SharedLayoutBackground.Root>
-        </NavSection>
-      ))}
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const isActive =
+                  pathname === item.href ||
+                  pathname.startsWith(item.href + "/");
+                const Icon = item.icon;
+                return (
+                  <SharedLayoutBackground.Item
+                    key={item.href}
+                    id={item.href}
+                    isActive={isActive}
+                  >
+                    <SidebarIconTooltip label={item.label} enabled={isIconOnly}>
+                      <Link
+                        to={item.href}
+                        onClick={onNavigate}
+                        className={cn(
+                          "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-colors duration-200 ease-smooth",
+                          sidebarNavRowClass(isIconOnly),
+                          sidebarNavLinkTextClass(isActive),
+                        )}
+                      >
+                        <span className="flex h-5 w-5 items-center justify-center text-current">
+                          <Icon size={18} stroke={1.7} />
+                        </span>
+                        <AnimatePresence initial={false}>
+                          {!isIconOnly ? (
+                            <motion.span
+                              key={`${item.href}-label`}
+                              className="flex-1"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{
+                                duration: motionDuration.fast,
+                                ease: motionEase,
+                              }}
+                            >
+                              {item.label}
+                            </motion.span>
+                          ) : null}
+                        </AnimatePresence>
+                      </Link>
+                    </SidebarIconTooltip>
+                  </SharedLayoutBackground.Item>
+                );
+              })}
+            </div>
+          </NavSection>
+        ))}
+      </SharedLayoutBackground.Root>
     </motion.nav>
   );
 }

@@ -30,11 +30,12 @@ export default function HeaderSearchInput({
         className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-muted"
       />
       <Input
-        type="search"
+        type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         aria-label={label}
+        enterKeyHint="search"
         className={cn(
           "h-8 w-full min-w-0 border border-border bg-surface-secondary pl-8 text-xs shadow-none sm:w-44 md:w-52",
           "placeholder:text-muted/70",

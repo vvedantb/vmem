@@ -156,7 +156,7 @@ export function TagMemoriesPanel({
   }
 
   return (
-    <Card className="flex h-full min-h-0 flex-col shadow-none p-4 sm:p-5 lg:sticky lg:top-4">
+    <Card className="flex h-full min-h-0 flex-col shadow-none p-4 sm:p-5">
       <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-lg font-semibold leading-snug text-foreground text-balance">
@@ -190,6 +190,7 @@ export function TagMemoriesPanel({
         <div className="min-h-0 flex-1">
           <Virtuoso
             data={displayItems}
+            className="scrollbar-thin"
             context={{
               selectedMemoryId,
               trailMap,

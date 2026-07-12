@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { IconChevronDown } from "@tabler/icons-react";
-import { Button, cn } from "@vmem/ui";
+import { cn } from "@vmem/ui";
 import {
   sidebarSectionButtonClass,
   sidebarSectionChevronClass,
@@ -23,12 +23,11 @@ export function NavSection({ title, isIconOnly, children }: NavSectionProps) {
 
   return (
     <div>
-      <Button
+      <button
         type="button"
-        variant="ghost"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
-        className={cn(sidebarSectionButtonClass, "h-auto justify-start")}
+        className={sidebarSectionButtonClass}
       >
         <span>{title}</span>
         <IconChevronDown
@@ -36,7 +35,7 @@ export function NavSection({ title, isIconOnly, children }: NavSectionProps) {
           aria-hidden
           className={cn(sidebarSectionChevronClass, !open && "-rotate-90")}
         />
-      </Button>
+      </button>
       {open ? <div className="space-y-1 pl-2">{children}</div> : null}
     </div>
   );
