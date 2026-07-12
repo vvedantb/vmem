@@ -140,6 +140,8 @@ export interface MemoryListFilters {
   source?: string;
   tags?: string[];
   searchQuery?: string;
+  /** When false, skips the paginated list query (e.g. hybrid retrieve search). */
+  enabled?: boolean;
 }
 
 /**
@@ -180,7 +182,7 @@ function useMemoryListPage(filters: MemoryListFilters) {
 
   return useInfiniteQuery({
     queryKey: ["memories", normalizedFilters],
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && filters.enabled !== false,
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<ApiMemoryPage> => {
       return await listMemoriesAction({

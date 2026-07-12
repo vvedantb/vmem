@@ -33,8 +33,16 @@ import { useMemoryListFlat } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
 import type { TrailEntry } from "@/hooks/useTrailData";
+import {
+  relativeRelevanceScore,
+  type MemoryTrace,
+} from "./_components/memory-trace";
 
-type MemoryListEntry = { item: ListItem; score: number | null };
+type MemoryListEntry = {
+  item: ListItem;
+  score: number | null;
+  trace?: MemoryTrace;
+};
 
 interface MemoryListVirtuosoContext {
   memoryId: string | null;
@@ -58,6 +66,7 @@ function MemoryListVirtuosoRow({
       <ListItemRow
         item={entry.item}
         relevanceScore={entry.score}
+        trace={entry.trace}
         isSelected={context.memoryId === entry.item.id}
         trailEntry={context.trailMap.get(entry.item.id)}
         isDark={context.isDark}
@@ -114,10 +123,10 @@ interface MemorySearchProps {
 /**
  * The "list" view of /memories. Mirrors the graph view's node set by merging
  * memories (from Neo4j via Convex), wiki documents/folders, and skills into a
- * single scrollable list. Memory filters (profile, type, source, tags, search)
- * are pushed into Cypher via the paginated `useMemoryListFlat` hook — the list
- * page no longer fetches every memory upfront. Wiki and skills stay fully
- * loaded because they're small (single Convex queries already cached).
+ * single scrollable list. Browse mode uses paginated `useMemoryListFlat`.
+ * When `q` is set and memories are included in the kind filter, memory hits
+ * come from `retrieveMemories` with real Context Trace scores instead of
+ * listMemories fulltext ordering.
  *
  * Kind filter is the only cross-cutting filter; when the user excludes
  * memories via the kind filter the list simply hides them and Virtuoso
@@ -143,23 +152,70 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const kindIncludesMemory =
     params.kinds.length === 0 || params.kinds.includes("memory");
 
+  const isHybridSearch = normalizedQuery.length > 0 && kindIncludesMemory;
+
   const memoryPage = useMemoryListFlat({
     profileId: activeProfile._id,
     type: primaryType,
     source: primarySource,
     tags: params.tags,
-    searchQuery: normalizedQuery || undefined,
+    searchQuery: isHybridSearch ? undefined : normalizedQuery || undefined,
+    enabled: !isHybridSearch,
+  });
+
+  const retrieveMemoriesAction = useAction(api.memoryApi.retrieveMemories);
+
+  const retrieveQuery = useQuery({
+    queryKey: [
+      "retrieveMemories",
+      activeProfile._id,
+      normalizedQuery,
+      primaryType,
+      params.tags,
+    ],
+    enabled: isHybridSearch,
+    queryFn: async () => {
+      return retrieveMemoriesAction({
+        query: normalizedQuery,
+        profileId: activeProfile._id,
+        type: primaryType,
+        tags: params.tags.length > 0 ? params.tags : undefined,
+        limit: 25,
+      });
+    },
   });
 
   const {
-    memories: memoryResults,
-    isLoading: isMemoriesLoading,
-    isError: isMemoriesError,
-    refetch: refetchMemories,
+    isLoading: isBrowseMemoriesLoading,
+    isError: isBrowseMemoriesError,
+    refetch: refetchBrowseMemories,
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
   } = memoryPage;
+
+  const browseMemoryResults = memoryPage.memories;
+
+  const hybridMemoryResults = useMemo<Memory[]>(() => {
+    if (!retrieveQuery.data) return [];
+    return retrieveQuery.data.memories.map(apiMemoryToMemory);
+  }, [retrieveQuery.data]);
+
+  const memoryResults = isHybridSearch
+    ? hybridMemoryResults
+    : browseMemoryResults;
+
+  const isMemoriesLoading = isHybridSearch
+    ? retrieveQuery.isLoading
+    : isBrowseMemoriesLoading;
+
+  const isMemoriesError = isHybridSearch
+    ? retrieveQuery.isError
+    : isBrowseMemoriesError;
+
+  const refetchMemories = isHybridSearch
+    ? retrieveQuery.refetch
+    : refetchBrowseMemories;
 
   const wikiRows = useConvexQuery(api.wiki.listTree, {
     teamId: activeProfile.teamId,
@@ -206,14 +262,29 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     void setParams({ sources: [legacy.trim()] });
   }, [searchParams, params.sources.length, setParams]);
 
-  // Memory items come back already filtered + scored from the server. They
-  // only get the final kind filter applied here (the user may have excluded
-  // "memory" from the kind set; we still display in that case but the list
-  // section is hidden below).
+  // Memory items: browse from paginated list, or hybrid search from retrieve.
   const memoryItems = useMemo<ListItem[]>(
     () => memoryResults.map(memoryToListItem),
     [memoryResults],
   );
+
+  const traceByMemoryId = useMemo(() => {
+    const map = new Map<string, MemoryTrace>();
+    if (!isHybridSearch || !retrieveQuery.data) return map;
+    for (const candidate of retrieveQuery.data.memories) {
+      map.set(candidate.id, candidate.trace);
+    }
+    return map;
+  }, [isHybridSearch, retrieveQuery.data]);
+
+  const maxRetrieveScore = useMemo(() => {
+    if (!retrieveQuery.data?.memories.length) return 1;
+    let max = 0;
+    for (const candidate of retrieveQuery.data.memories) {
+      if (candidate.trace.score > max) max = candidate.trace.score;
+    }
+    return max > 0 ? max : 1;
+  }, [retrieveQuery.data]);
 
   // Wiki + skill items come fully loaded. They run through the regular
   // client filter chain: kind (restrictive) + tag/source/type/profile
@@ -273,41 +344,44 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     [memoryItemsAfterMultiFilter, params.kinds, kindIncludesMemory],
   );
 
-  // Client-side search only scores wiki/skills; memories already come back
-  // scored from Cypher's fulltext index, so they keep their server order.
+  // Client-side search scores wiki/skills; memory hits use retrieveMemories.
   const isShowingSearchResults = normalizedQuery.length > 0;
   const nonMemorySearchResults = useMemo<ListItemSearchResult[] | null>(() => {
     if (!isShowingSearchResults) return null;
     return searchListItems(filteredNonMemoryItems, normalizedQuery);
   }, [filteredNonMemoryItems, normalizedQuery, isShowingSearchResults]);
 
-  // Memories already arrive in score order from the server when searching
-  // and in createdAt-DESC order otherwise. Either way we render them first,
-  // followed by non-memory items.
-  const displayItems: Array<{ item: ListItem; score: number | null }> =
-    useMemo(() => {
-      const memoryEntries = memoryItemsAfterKind.map((item) => ({
-        item,
-        score: isShowingSearchResults ? 1 : null,
-      }));
-      if (nonMemorySearchResults !== null) {
-        const nonMemoryEntries = nonMemorySearchResults.map((r) => ({
-          item: r.item,
-          score: r.relevanceScore,
-        }));
-        return [...memoryEntries, ...nonMemoryEntries];
+  const displayItems: MemoryListEntry[] = useMemo(() => {
+    const memoryEntries = memoryItemsAfterKind.map((item) => {
+      const trace = traceByMemoryId.get(item.id);
+      if (trace) {
+        return {
+          item,
+          score: relativeRelevanceScore(trace.score, maxRetrieveScore),
+          trace,
+        };
       }
-      const nonMemoryEntries = filteredNonMemoryItems.map((item) => ({
-        item,
-        score: null,
+      return { item, score: null };
+    });
+    if (nonMemorySearchResults !== null) {
+      const nonMemoryEntries = nonMemorySearchResults.map((r) => ({
+        item: r.item,
+        score: r.relevanceScore,
       }));
       return [...memoryEntries, ...nonMemoryEntries];
-    }, [
-      memoryItemsAfterKind,
-      filteredNonMemoryItems,
-      nonMemorySearchResults,
-      isShowingSearchResults,
-    ]);
+    }
+    const nonMemoryEntries = filteredNonMemoryItems.map((item) => ({
+      item,
+      score: null,
+    }));
+    return [...memoryEntries, ...nonMemoryEntries];
+  }, [
+    memoryItemsAfterKind,
+    filteredNonMemoryItems,
+    nonMemorySearchResults,
+    traceByMemoryId,
+    maxRetrieveScore,
+  ]);
 
   const totalItems =
     memoryItemsAfterKind.length + filteredNonMemoryItems.length;
@@ -335,7 +409,11 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
 
   useEffect(() => {
     if (!memoryId) return;
-    if (isMemoriesLoading || isFetchingNextPage || hasNextPage) return;
+    if (isHybridSearch) {
+      if (retrieveQuery.isLoading) return;
+    } else if (isBrowseMemoriesLoading || isFetchingNextPage || hasNextPage) {
+      return;
+    }
     if (isFetchingMemory) return;
     const inList = memoryResults.some((memory) => memory.id === memoryId);
     const hasMemory = inList || fetchedMemory !== null;
@@ -350,7 +428,9 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     memoryId,
     memoryResults,
     fetchedMemory,
-    isMemoriesLoading,
+    isHybridSearch,
+    retrieveQuery.isLoading,
+    isBrowseMemoriesLoading,
     isFetchingNextPage,
     hasNextPage,
     isFetchingMemory,
@@ -425,19 +505,28 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   }, []);
 
   const handleEndReached = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage && !isMemoriesLoading) {
+    if (isHybridSearch) return;
+    if (hasNextPage && !isFetchingNextPage && !isBrowseMemoriesLoading) {
       void fetchNextPage();
     }
-  }, [hasNextPage, isFetchingNextPage, isMemoriesLoading, fetchNextPage]);
+  }, [
+    isHybridSearch,
+    hasNextPage,
+    isFetchingNextPage,
+    isBrowseMemoriesLoading,
+    fetchNextPage,
+  ]);
 
   const hasMemoryRoute = memoryId !== null;
   const isPanelLoading =
     hasMemoryRoute &&
     selectedMemory === null &&
-    (isFetchingMemory || isMemoriesLoading || isFetchingNextPage);
+    (isFetchingMemory ||
+      (isHybridSearch
+        ? retrieveQuery.isLoading
+        : isBrowseMemoriesLoading || isFetchingNextPage));
 
-  // Initial load: block render until we've heard back from the memory
-  // page query at least once. Subsequent page fetches render inline.
+  // Initial load: block render until memory data is ready.
   if (isMemoriesLoading && memoryResults.length === 0) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">

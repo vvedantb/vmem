@@ -17,12 +17,16 @@ import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
 import { formatMemorySourceLabel, timeAgo, type Memory } from "@/lib/memories";
 import type { ListItem } from "@/lib/list-items";
 import type { TrailEntry } from "@/hooks/useTrailData";
+import type { MemoryTrace } from "./memory-trace";
+import MemoryTraceHover from "./MemoryTraceHover";
 import { nodeColor } from "./graph-colors";
 import ShapeIndicator from "./ShapeIndicator";
 
 interface ListItemRowProps {
   item: ListItem;
   relevanceScore: number | null;
+  /** Context Trace for hybrid-search memory hits; enables score hover breakdown. */
+  trace?: MemoryTrace;
   isSelected: boolean;
   trailEntry?: TrailEntry;
   isDark: boolean;
@@ -48,6 +52,7 @@ interface ListItemRowProps {
 export default function ListItemRow({
   item,
   relevanceScore,
+  trace,
   isSelected,
   trailEntry,
   isDark,
@@ -134,11 +139,19 @@ export default function ListItemRow({
               {trailEntry.reason ?? "related"}
             </Badge>
           )}
-          {relevanceScore !== null && (
-            <span className="text-xs text-muted tabular-nums flex-shrink-0">
-              {Math.round(relevanceScore * 100)}%
-            </span>
-          )}
+          {relevanceScore !== null ? (
+            trace ? (
+              <MemoryTraceHover title={item.title} trace={trace}>
+                <span className="text-xs text-muted tabular-nums flex-shrink-0 underline decoration-dotted decoration-muted/40 underline-offset-2">
+                  {Math.round(relevanceScore * 100)}%
+                </span>
+              </MemoryTraceHover>
+            ) : (
+              <span className="text-xs text-muted tabular-nums flex-shrink-0">
+                {Math.round(relevanceScore * 100)}%
+              </span>
+            )
+          ) : null}
           <div className="flex items-center gap-1.5 shrink-0">
             {awaitingDream && (
               <Tooltip>
