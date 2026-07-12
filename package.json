@@ -14,7 +14,7 @@
     "android": "pnpm --filter mobile android",
     "prebuild:android": "pnpm --filter mobile prebuild:android",
     "docs:dev": "pnpm --filter docs exec mint dev --port 3001",
-    "lint": "oxlint --type-aware && eslint .",
+    "lint": "oxlint --type-aware --deny-warnings && eslint . --max-warnings 0",
     "lint:oxlint": "oxlint --type-aware",
     "lint:eslint": "eslint .",
     "knip": "knip --no-config-hints",
