@@ -11,6 +11,7 @@
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
+import { readOpenRouterError } from "./client";
 
 export type OpenRouterFeature =
   // Chat completions
@@ -112,6 +113,22 @@ export function classifyHttpStatus(status: number): ErrorClass | undefined {
   if (status >= 500 && status < 600) return "http_5xx";
   if (status >= 400 && status < 500) return "http_4xx";
   return undefined;
+}
+
+/**
+ * Shared catch-block handling for both `chat.ts` and `embedding.ts`: turn a
+ * thrown SDK/network error into the `{ status, errorMessage, errorClass }`
+ * triple each caller logs.
+ */
+export function classifyOpenRouterFailure(err: unknown): {
+  status: number;
+  errorMessage: string;
+  errorClass: ErrorClass;
+} {
+  const { status, message } = readOpenRouterError(err);
+  const errorClass =
+    status > 0 ? (classifyHttpStatus(status) ?? "network") : "network";
+  return { status, errorMessage: message, errorClass };
 }
 
 export function numberOrUndef(
