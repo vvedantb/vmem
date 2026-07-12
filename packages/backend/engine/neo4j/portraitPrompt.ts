@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { extractJsonString } from "../llm/extractJsonString";
+import { parseJsonString } from "../llm/extractJsonString";
+import { filterValidIds } from "./dreamPrompt";
 
 /**
  * Dream Mode V3 — evolving portrait prompt builder + parser.
@@ -110,28 +111,17 @@ export function parsePortraitResponse(
   raw: string,
   evidenceIds: string[],
 ): ParsedPortrait | null {
-  try {
-    const parsed = portraitResponseSchema.safeParse(
-      JSON.parse(extractJsonString(raw)),
-    );
-    if (!parsed.success) return null;
+  const data = parseJsonString(raw, portraitResponseSchema);
+  if (!data) return null;
 
-    const portrait = parsed.data.portrait.trim().slice(0, PORTRAIT_CHAR_CAP);
-    if (portrait.length === 0) return null;
+  const portrait = data.portrait.trim().slice(0, PORTRAIT_CHAR_CAP);
+  if (portrait.length === 0) return null;
 
-    const validIds = new Set<string>(evidenceIds);
-    const seen = new Set<string>();
-    const sourceMemoryIds: string[] = [];
-    for (const id of parsed.data.sourceMemoryIds ?? []) {
-      if (!validIds.has(id) || seen.has(id)) continue;
-      seen.add(id);
-      sourceMemoryIds.push(id);
-    }
-    if (sourceMemoryIds.length === 0) return null;
+  const sourceMemoryIds = filterValidIds(
+    data.sourceMemoryIds,
+    new Set(evidenceIds),
+  );
+  if (sourceMemoryIds.length === 0) return null;
 
-    return { portrait, sourceMemoryIds };
-  } catch {
-    console.error("[dream] Failed to parse LLM portrait response:", raw);
-    return null;
-  }
+  return { portrait, sourceMemoryIds };
 }

@@ -17,57 +17,64 @@ import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
 import { profileFilter, withSession } from "./shared";
 import { type MemoryType, type TagEdge } from "./types";
 
+// Each row schema coerces raw Neo4j driver values directly into the typed
+// shape callers need — `safeParse` yields the final object, no hand-rolled
+// String()/coercion pass afterward.
 const graphNodeRowSchema = z.object({
-  id: z.unknown(),
-  title: z.unknown(),
-  tags: z.unknown(),
-  createdAt: z.unknown(),
-  source: z.unknown(),
-  type: z.unknown(),
-  sourceType: z.unknown(),
+  id: z.unknown().transform(String),
+  title: z.unknown().transform(String),
+  tags: z
+    .unknown()
+    .transform((v) => (Array.isArray(v) ? v.filter(Boolean).map(String) : [])),
+  createdAt: z.unknown().transform(String),
+  source: z
+    .unknown()
+    .transform((v) => (v === null || v === undefined ? undefined : String(v))),
+  sourceType: z
+    .unknown()
+    .transform((v) => (v === null || v === undefined ? null : String(v))),
+  type: z
+    .unknown()
+    .transform((v) =>
+      toMemoryTypeOrUndefined(typeof v === "string" ? v : null),
+    ),
 });
 
 const relatesToEdgeRowSchema = z.object({
-  source: z.unknown(),
-  target: z.unknown(),
-  reason: z.unknown().optional(),
+  source: z.unknown().transform(String),
+  target: z.unknown().transform(String),
+  reason: z
+    .unknown()
+    .transform((v) => (v === null || v === undefined ? "" : String(v))),
+  score: z
+    .unknown()
+    .transform((v) => (v === null || v === undefined ? undefined : Number(v))),
 });
 
 const entityRowSchema = z.object({
-  normalizedName: z.unknown(),
-  name: z.unknown(),
-  type: z.unknown(),
-  memoryIds: z.unknown(),
+  normalizedName: z.unknown().transform(String),
+  name: z.unknown().transform(String),
+  type: z.unknown().transform(String),
+  memoryIds: z
+    .unknown()
+    .transform((v) => (Array.isArray(v) ? v.filter(Boolean).map(String) : [])),
 });
-
-function toStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter(Boolean).map(String) : [];
-}
-
-function optionalString(value: unknown): string | undefined {
-  if (value === null || value === undefined) return undefined;
-  return String(value);
-}
-
-function nullableString(value: unknown): string | null {
-  if (value === null || value === undefined) return null;
-  return String(value);
-}
 
 function parseGraphNodeRow(n: unknown): GraphNode | null {
   const parsed = graphNodeRowSchema.safeParse(n);
-  if (!parsed.success) return null;
-  const p = parsed.data;
-  const rawType = p.type;
-  return {
-    id: String(p.id),
-    title: String(p.title),
-    tags: toStringArray(p.tags),
-    createdAt: String(p.createdAt),
-    source: optionalString(p.source),
-    sourceType: nullableString(p.sourceType),
-    type: toMemoryTypeOrUndefined(typeof rawType === "string" ? rawType : null),
-  };
+  return parsed.success ? parsed.data : null;
+}
+
+/** Shared RELATES_TO edge parse — used by both the global and local graph. */
+function parseRelatesToEdgeRow(raw: unknown): RelatesToEdge | null {
+  const parsed = relatesToEdgeRowSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
+/** Shared MENTIONS-entity parse — used by both the global and local graph. */
+function parseEntityRow(raw: unknown): GraphData["entities"][number] | null {
+  const parsed = entityRowSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
 }
 
 /**
@@ -255,17 +262,15 @@ async function fetchGraphNodesAndEdges(
   const seenPairs = new Set<string>();
   for (const raw of [rawOutEdges, rawInEdges]) {
     for (const e of Array.isArray(raw) ? raw : []) {
-      const parsed = relatesToEdgeRowSchema.safeParse(e);
-      if (!parsed.success) continue;
-      const source = String(parsed.data.source);
-      const target = String(parsed.data.target);
-      const key = `${source}|${target}`;
+      const parsed = parseRelatesToEdgeRow(e);
+      if (!parsed) continue;
+      const key = `${parsed.source}|${parsed.target}`;
       if (seenPairs.has(key)) continue;
       seenPairs.add(key);
       relatesToEdges.push({
-        source,
-        target,
-        reason: String(parsed.data.reason ?? ""),
+        source: parsed.source,
+        target: parsed.target,
+        reason: parsed.reason,
       });
     }
   }
@@ -273,16 +278,8 @@ async function fetchGraphNodesAndEdges(
   const entities: GraphData["entities"] = (
     Array.isArray(rawEntities) ? rawEntities : []
   ).flatMap((e) => {
-    const parsed = entityRowSchema.safeParse(e);
-    if (!parsed.success) return [];
-    return [
-      {
-        normalizedName: String(parsed.data.normalizedName),
-        name: String(parsed.data.name),
-        type: String(parsed.data.type),
-        memoryIds: toStringArray(parsed.data.memoryIds),
-      },
-    ];
+    const parsed = parseEntityRow(e);
+    return parsed ? [parsed] : [];
   });
 
   // A full page means there may be more — hand back the keyset for the next.
@@ -525,25 +522,27 @@ export async function getLocalGraph(
       ),
     ]);
 
-    const relatesToEdges: RelatesToEdge[] = relatesToResult.records.map((r) => {
-      const rawScore = neo4jGet(r, "score");
-      return {
-        source: String(neo4jGet(r, "source")),
-        target: String(neo4jGet(r, "target")),
-        reason: String(neo4jGet(r, "reason") ?? ""),
-        score:
-          rawScore !== null && rawScore !== undefined
-            ? Number(rawScore)
-            : undefined,
-      };
-    });
+    const relatesToEdges: RelatesToEdge[] = relatesToResult.records.flatMap(
+      (r) => {
+        const parsed = parseRelatesToEdgeRow({
+          source: neo4jGet(r, "source"),
+          target: neo4jGet(r, "target"),
+          reason: neo4jGet(r, "reason"),
+          score: neo4jGet(r, "score"),
+        });
+        return parsed ? [parsed] : [];
+      },
+    );
 
-    const entities = entityResult.records.map((r) => ({
-      normalizedName: String(neo4jGet(r, "normalizedName")),
-      name: String(neo4jGet(r, "name")),
-      type: String(neo4jGet(r, "type")),
-      memoryIds: toStringArray(neo4jGet(r, "memoryIds")),
-    }));
+    const entities = entityResult.records.flatMap((r) => {
+      const parsed = parseEntityRow({
+        normalizedName: neo4jGet(r, "normalizedName"),
+        name: neo4jGet(r, "name"),
+        type: neo4jGet(r, "type"),
+        memoryIds: neo4jGet(r, "memoryIds"),
+      });
+      return parsed ? [parsed] : [];
+    });
 
     const tagEdges = tagEdgesResult.records.map(toTagEdge);
 

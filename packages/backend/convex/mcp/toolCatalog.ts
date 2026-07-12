@@ -119,6 +119,11 @@ export const toolSpecs = {
     schema: setActiveProfileSchema,
     run: runSetActiveProfile,
   }),
+  context_prompt_get: toolSpec({
+    name: "context_prompt_get",
+    schema: contextPromptGetSchema,
+    run: runContextPromptGet,
+  }),
   memory_search: toolSpec({
     name: "memory_search",
     schema: memorySearchSchema,
@@ -153,11 +158,6 @@ export const toolSpecs = {
     name: "memory_related",
     schema: memoryRelatedSchema,
     run: runMemoryRelated,
-  }),
-  context_prompt_get: toolSpec({
-    name: "context_prompt_get",
-    schema: contextPromptGetSchema,
-    run: runContextPromptGet,
   }),
   skills_list: toolSpec({
     name: "skills_list",

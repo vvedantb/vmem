@@ -27,12 +27,7 @@ import { z } from "zod";
 import { neo4jGet, parseNeo4jNodeProps } from "../record";
 import { computeContentHash, toMemoryWithTags, toSnapshot } from "./mappers";
 import { logEvent, withSession } from "./shared";
-import {
-  isProposedUpdateKind,
-  type ProposalSource,
-  type ProposedUpdateKind,
-  type ProposedUpdateNode,
-} from "./types";
+import { type ProposedUpdateKind, type ProposedUpdateNode } from "./types";
 
 const proposedUpdateStatusSchema = z.enum(["pending", "approved", "rejected"]);
 
@@ -59,23 +54,23 @@ const sourceMemorySnapshotSchema = z.object({
 
 type ProposedUpdateProps = z.infer<typeof proposedUpdateNodePropsSchema>;
 
-function parseProposedUpdateKindFromRaw(raw: unknown): ProposedUpdateKind {
-  const str = typeof raw === "string" ? raw : String(raw ?? "update");
-  return isProposedUpdateKind(str) ? str : "update";
-}
+const proposedUpdateKindSchema = z
+  .enum([
+    "update",
+    "delete",
+    "insight",
+    "connection",
+    "contradiction",
+    "anomaly",
+    "merge",
+  ])
+  .catch("update");
 
-function parseProposalSourceFromRaw(raw: unknown): ProposalSource {
-  return raw === "dream-mode" ? "dream-mode" : "v2-extraction";
-}
+const proposalSourceSchema = z
+  .enum(["v2-extraction", "dream-mode"])
+  .catch("v2-extraction");
 
-function parseStringArray(value: unknown): string[] {
-  const parsed = z.array(z.string()).safeParse(value);
-  return parsed.success ? parsed.data : [];
-}
-
-function nonEmptyString(value: unknown, fallback = ""): string {
-  return typeof value === "string" && value.length > 0 ? value : fallback;
-}
+const stringArraySchema = z.array(z.string()).catch([]);
 
 function toProposedUpdateNodeFromProps(
   props: ProposedUpdateProps,
@@ -90,13 +85,13 @@ function toProposedUpdateNodeFromProps(
     proposedContent: props.proposedContent ?? "",
     proposedTitle: props.proposedTitle ?? null,
     reason: props.reason ?? "",
-    kind: parseProposedUpdateKindFromRaw(props.kind),
+    kind: proposedUpdateKindSchema.parse(props.kind),
     status: props.status,
     createdAt: props.createdAt,
     resolvedAt: props.resolvedAt ?? null,
-    sourceMemoryIds: parseStringArray(props.sourceMemoryIds),
+    sourceMemoryIds: stringArraySchema.parse(props.sourceMemoryIds),
     confidence: typeof props.confidence === "number" ? props.confidence : null,
-    source: parseProposalSourceFromRaw(props.source),
+    source: proposalSourceSchema.parse(props.source),
     memorySnapshot: options.memorySnapshot ?? null,
     sourceMemorySnapshots: options.sourceMemorySnapshots ?? [],
   };
@@ -271,6 +266,31 @@ interface ResolveResult {
   materializedMemoryId?: string;
 }
 
+const proposalLookupRowSchema = z
+  .object({
+    kind: proposedUpdateKindSchema,
+    proposedTitle: z.string().nullish().catch(null),
+    proposedContent: z.string().nullish().catch(null),
+    sourceMemoryIds: stringArraySchema,
+    confidence: z.number().nullish().catch(null),
+    targetId: z.string().nullish().catch(null),
+    targetUserId: z.string().nullish().catch(null),
+    sourceUserId: z.string().nullish().catch(null),
+    sourceProfileId: z.string().nullish().catch(null),
+  })
+  .transform(
+    (r): ProposalLookup => ({
+      kind: r.kind,
+      proposedTitle: r.proposedTitle || "Untitled synthesis",
+      proposedContent: r.proposedContent ?? "",
+      sourceMemoryIds: r.sourceMemoryIds,
+      confidence: r.confidence ?? null,
+      sourceProfileId: r.sourceProfileId ?? null,
+      memoryId: r.targetId || r.sourceMemoryIds[0] || "",
+      userId: r.targetUserId || r.sourceUserId || "",
+    }),
+  );
+
 /**
  * Look up a proposal by id. For legacy update/delete kinds we expect a
  * UPDATE_FOR edge to the target memory; synthesis proposals have no
@@ -302,41 +322,18 @@ async function lookupProposalContext(
   const lookupRecord = lookup.records[0];
   if (!lookupRecord) return null;
 
-  const kind = parseProposedUpdateKindFromRaw(neo4jGet(lookupRecord, "kind"));
-
-  const targetIdRaw = neo4jGet(lookupRecord, "targetId");
-  const targetUserIdRaw = neo4jGet(lookupRecord, "targetUserId");
-  const sourceUserIdRaw = neo4jGet(lookupRecord, "sourceUserId");
-  const sourceProfileIdRaw = neo4jGet(lookupRecord, "sourceProfileId");
-  const sourceMemoryIds = parseStringArray(
-    neo4jGet(lookupRecord, "sourceMemoryIds"),
-  );
-  const firstSourceId = sourceMemoryIds[0] ?? "";
-
-  const memoryId = nonEmptyString(targetIdRaw, firstSourceId);
-  let userId = "";
-  if (typeof targetUserIdRaw === "string" && targetUserIdRaw.length > 0) {
-    userId = targetUserIdRaw;
-  } else if (typeof sourceUserIdRaw === "string") {
-    userId = sourceUserIdRaw;
-  }
-
-  const proposedTitleRaw = neo4jGet(lookupRecord, "proposedTitle");
-  const proposedContentRaw = neo4jGet(lookupRecord, "proposedContent");
-  const confidenceRaw = neo4jGet(lookupRecord, "confidence");
-
-  return {
-    kind,
-    proposedTitle: nonEmptyString(proposedTitleRaw, "Untitled synthesis"),
-    proposedContent:
-      typeof proposedContentRaw === "string" ? proposedContentRaw : "",
-    sourceMemoryIds,
-    confidence: typeof confidenceRaw === "number" ? confidenceRaw : null,
-    sourceProfileId:
-      typeof sourceProfileIdRaw === "string" ? sourceProfileIdRaw : null,
-    memoryId,
-    userId,
-  };
+  const parsed = proposalLookupRowSchema.safeParse({
+    kind: neo4jGet(lookupRecord, "kind"),
+    proposedTitle: neo4jGet(lookupRecord, "proposedTitle"),
+    proposedContent: neo4jGet(lookupRecord, "proposedContent"),
+    sourceMemoryIds: neo4jGet(lookupRecord, "sourceMemoryIds"),
+    confidence: neo4jGet(lookupRecord, "confidence"),
+    targetId: neo4jGet(lookupRecord, "targetId"),
+    targetUserId: neo4jGet(lookupRecord, "targetUserId"),
+    sourceUserId: neo4jGet(lookupRecord, "sourceUserId"),
+    sourceProfileId: neo4jGet(lookupRecord, "sourceProfileId"),
+  });
+  return parsed.success ? parsed.data : null;
 }
 
 async function applyRejection(
@@ -648,7 +645,7 @@ async function applyMergeApproval(
 
   const mergeRecord = result.records[0];
   const supersededIds = mergeRecord
-    ? parseStringArray(neo4jGet(mergeRecord, "supersededIds"))
+    ? stringArraySchema.parse(neo4jGet(mergeRecord, "supersededIds"))
     : [];
   for (const sid of supersededIds) {
     await logEvent(
@@ -716,7 +713,7 @@ async function applyContradictionResolution(
   );
   const suppressedRecord = suppressed.records[0];
   const suppressedIds = suppressedRecord
-    ? parseStringArray(neo4jGet(suppressedRecord, "suppressedIds"))
+    ? stringArraySchema.parse(neo4jGet(suppressedRecord, "suppressedIds"))
     : [];
   for (const lid of suppressedIds) {
     await logEvent(
@@ -912,7 +909,7 @@ export async function createSynthesisProposal(
       throw new Error("Failed to create synthesis proposal");
     }
 
-    return {
+    return toProposedUpdateNodeFromProps({
       id,
       memoryId: primaryMemoryId,
       proposedContent: params.proposedContent,
@@ -925,8 +922,6 @@ export async function createSynthesisProposal(
       sourceMemoryIds: params.sourceMemoryIds,
       confidence: params.confidence,
       source: "dream-mode",
-      memorySnapshot: null,
-      sourceMemorySnapshots: [],
-    };
+    });
   });
 }

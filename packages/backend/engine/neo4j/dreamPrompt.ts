@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { extractJsonString } from "../llm/extractJsonString";
+import { parseJsonString } from "../llm/extractJsonString";
 
 /**
  * Dream Mode V2 — synthesis prompt builder + parser.
@@ -24,20 +24,14 @@ import { extractJsonString } from "../llm/extractJsonString";
 
 const MAX_CONTENT_LENGTH = 1200;
 
-export type SynthesisType =
-  | "insight"
-  | "connection"
-  | "contradiction"
-  | "anomaly"
-  | "skip";
-
-const VALID_TYPES: readonly SynthesisType[] = [
+const synthesisTypeSchema = z.enum([
   "insight",
   "connection",
   "contradiction",
   "anomaly",
   "skip",
-];
+]);
+export type SynthesisType = z.infer<typeof synthesisTypeSchema>;
 
 export interface DreamClusterMember {
   id: string;
@@ -86,8 +80,13 @@ function truncateAtWord(text: string, maxLen: number): string {
   return text.slice(0, cut > 0 ? cut : maxLen);
 }
 
+/** Clamp an optional 0-1 confidence value, defaulting to 0 when absent. */
+function clamp01(value: number | undefined): number {
+  return value !== undefined ? Math.max(0, Math.min(1, value)) : 0;
+}
+
 /** Keep only ids that appear in `validIds`, preserving order and uniqueness. */
-function filterValidIds(
+export function filterValidIds(
   ids: readonly string[] | undefined,
   validIds: ReadonlySet<string>,
 ): string[] {
@@ -186,10 +185,6 @@ ${memoryBlock}
 Respond with ONLY the JSON object specified above.`;
 }
 
-function isSynthesisType(value: string): value is SynthesisType {
-  return (VALID_TYPES as readonly string[]).includes(value);
-}
-
 const adjustmentSchema = z.object({
   memoryId: z.string(),
   newConfidence: z.number().finite(),
@@ -197,7 +192,7 @@ const adjustmentSchema = z.object({
 });
 
 const synthesisResponseSchema = z.object({
-  type: z.string(),
+  type: synthesisTypeSchema,
   title: z.string().optional(),
   content: z.string().optional(),
   reason: z.string().optional(),
@@ -245,72 +240,59 @@ export function parseDreamSynthesisResponse(
   raw: string,
   clusterIds: string[],
 ): ParsedSynthesis | null {
-  try {
-    const parsed = synthesisResponseSchema.safeParse(
-      JSON.parse(extractJsonString(raw)),
-    );
-    if (!parsed.success) return null;
+  const data = parseJsonString(raw, synthesisResponseSchema);
+  if (!data) return null;
 
-    const data = parsed.data;
-    const type = data.type;
-    if (!isSynthesisType(type)) return null;
+  const type = data.type;
+  const title = (data.title ?? "").slice(0, 200);
+  const content = (data.content ?? "").slice(0, 800);
+  const reason = (data.reason ?? "").slice(0, 600);
+  const confidence = clamp01(data.confidence);
 
-    const title = (data.title ?? "").slice(0, 200);
-    const content = (data.content ?? "").slice(0, 800);
-    const reason = (data.reason ?? "").slice(0, 600);
-    const confidence =
-      data.confidence !== undefined
-        ? Math.max(0, Math.min(1, data.confidence))
-        : 0;
+  const validIds = new Set<string>(clusterIds);
+  const confidenceAdjustments = parseConfidenceAdjustments(
+    data.confidenceAdjustments,
+    validIds,
+  );
 
-    const validIds = new Set<string>(clusterIds);
-    const confidenceAdjustments = parseConfidenceAdjustments(
-      data.confidenceAdjustments,
-      validIds,
-    );
-
-    if (type === "skip") {
-      // Adjustments survive a skip — the prompt allows reweighting even
-      // when no synthesis is worth surfacing.
-      return {
-        type: "skip",
-        title: "",
-        content: "",
-        reason,
-        sourceMemoryIds: [],
-        confidence: 0,
-        confidenceAdjustments,
-      };
-    }
-
-    // Validate source ids: must come from the cluster (model may not invent ids).
-    let sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
-
-    // Non-skip kinds need at least one source and non-empty title/content.
-    if (sourceMemoryIds.length === 0) return null;
-    if (title.trim().length === 0 || content.trim().length === 0) return null;
-
-    // Connections describe links between exactly 2 memories — anything
-    // else is either an insight or a contradiction. We don't enforce the
-    // count strictly (the LLM might pick 3 sources and call it a
-    // connection), but we cap at the cluster size.
-    if (sourceMemoryIds.length > clusterIds.length) {
-      sourceMemoryIds = sourceMemoryIds.slice(0, clusterIds.length);
-    }
-
+  if (type === "skip") {
+    // Adjustments survive a skip — the prompt allows reweighting even
+    // when no synthesis is worth surfacing.
     return {
-      type,
-      title,
-      content,
+      type: "skip",
+      title: "",
+      content: "",
       reason,
-      sourceMemoryIds,
-      confidence,
+      sourceMemoryIds: [],
+      confidence: 0,
       confidenceAdjustments,
     };
-  } catch {
-    console.error("[dream] Failed to parse LLM synthesis response:", raw);
-    return null;
   }
+
+  // Validate source ids: must come from the cluster (model may not invent ids).
+  let sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
+
+  // Non-skip kinds need at least one source and non-empty title/content.
+  if (sourceMemoryIds.length === 0) return null;
+  if (title.trim().length === 0 || content.trim().length === 0) return null;
+
+  // Connections describe links between exactly 2 memories — anything
+  // else is either an insight or a contradiction. We don't enforce the
+  // count strictly (the LLM might pick 3 sources and call it a
+  // connection), but we cap at the cluster size.
+  if (sourceMemoryIds.length > clusterIds.length) {
+    sourceMemoryIds = sourceMemoryIds.slice(0, clusterIds.length);
+  }
+
+  return {
+    type,
+    title,
+    content,
+    reason,
+    sourceMemoryIds,
+    confidence,
+    confidenceAdjustments,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -401,31 +383,18 @@ export function parseMergeSynthesisResponse(
   raw: string,
   clusterIds: string[],
 ): ParsedMerge | null {
-  try {
-    const parsed = mergeResponseSchema.safeParse(
-      JSON.parse(extractJsonString(raw)),
-    );
-    if (!parsed.success) return null;
+  const data = parseJsonString(raw, mergeResponseSchema);
+  if (!data || data.type !== "merge") return null;
 
-    const data = parsed.data;
-    if (data.type !== "merge") return null;
+  const title = (data.title ?? "").slice(0, 200);
+  const content = (data.content ?? "").slice(0, 800);
+  if (title.trim().length === 0 || content.trim().length === 0) return null;
 
-    const title = (data.title ?? "").slice(0, 200);
-    const content = (data.content ?? "").slice(0, 800);
-    if (title.trim().length === 0 || content.trim().length === 0) return null;
+  const validIds = new Set<string>(clusterIds);
+  const sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
+  if (sourceMemoryIds.length < 2) return null;
 
-    const validIds = new Set<string>(clusterIds);
-    const sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
-    if (sourceMemoryIds.length < 2) return null;
+  const confidence = clamp01(data.confidence);
 
-    const confidence =
-      data.confidence !== undefined
-        ? Math.max(0, Math.min(1, data.confidence))
-        : 0;
-
-    return { title, content, sourceMemoryIds, confidence };
-  } catch {
-    console.error("[dream] Failed to parse LLM merge response:", raw);
-    return null;
-  }
+  return { title, content, sourceMemoryIds, confidence };
 }

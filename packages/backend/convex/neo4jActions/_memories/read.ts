@@ -5,6 +5,7 @@
  * and the search/retrieve pair (BM25 vs hybrid retrieve with embedding).
  */
 
+import { z } from "zod";
 import { type ActionCtx } from "../../_generated/server";
 import { getMemory, listMemories } from "../../../engine/neo4j/memory/crud";
 import { getMemoryEvents } from "../../../engine/neo4j/memory/events";
@@ -16,6 +17,7 @@ import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { callOpenRouterChat, LLM_MODEL } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
+import { parseJsonString } from "../../../engine/llm/extractJsonString";
 import {
   toMemoryStatus,
   toMemoryType,
@@ -23,71 +25,10 @@ import {
   tryEmbedOne,
 } from "./shared";
 
-function extractJsonArray(source: string): string | null {
-  const start = source.indexOf("[");
-  if (start === -1) return null;
-
-  let depth = 0;
-  for (let i = start; i < source.length; i++) {
-    const char = source[i];
-    if (char === "[") depth++;
-    if (char === "]") depth--;
-    if (depth === 0) return source.slice(start + 1, i);
-  }
-
-  return null;
-}
-
-function readJsonString(source: string, startIndex: number): string | null {
-  if (source[startIndex] !== '"') return null;
-  let out = "";
-
-  for (let i = startIndex + 1; i < source.length; i++) {
-    const char = source[i];
-    if (char === '"') return out;
-    if (char !== "\\") {
-      out += char;
-      continue;
-    }
-
-    const escaped = source[i + 1];
-    if (escaped === undefined) return null;
-    i++;
-
-    if (escaped === "n") out += "\n";
-    else if (escaped === "r") out += "\r";
-    else if (escaped === "t") out += "\t";
-    else if (escaped === "b") out += "\b";
-    else if (escaped === "f") out += "\f";
-    else if (escaped === "u") {
-      const code = source.slice(i + 1, i + 5);
-      if (!/^[0-9a-fA-F]{4}$/.test(code)) return null;
-      out += String.fromCharCode(Number.parseInt(code, 16));
-      i += 4;
-    } else {
-      out += escaped;
-    }
-  }
-
-  return null;
-}
-
 function parseStringArray(content: string): string[] {
-  const rawArray = extractJsonArray(content);
-  if (rawArray !== null) {
-    const values: string[] = [];
-    let index = 0;
-    while (index < rawArray.length) {
-      const quoteIndex = rawArray.indexOf('"', index);
-      if (quoteIndex === -1) break;
-      const value = readJsonString(rawArray, quoteIndex);
-      if (value === null) break;
-      const trimmed = value.trim();
-      if (trimmed) values.push(trimmed);
-      index = quoteIndex + value.length + 2;
-    }
-    if (values.length > 0) return values;
-  }
+  const values = parseJsonString(content, z.array(z.string()));
+  const trimmed = values?.map((v) => v.trim()).filter((v) => v.length > 0);
+  if (trimmed && trimmed.length > 0) return trimmed;
 
   return content
     .split(/\r?\n/)
@@ -100,13 +41,8 @@ function parseNumberArray(
   content: string,
   expectedCount: number,
 ): number[] | null {
-  const rawArray = extractJsonArray(content);
-  if (rawArray === null) return null;
-  const scores = rawArray
-    .split(",")
-    .map((value) => Number(value.trim()))
-    .filter((value) => Number.isFinite(value));
-  return scores.length === expectedCount ? scores : null;
+  const scores = parseJsonString(content, z.array(z.number()));
+  return scores && scores.length === expectedCount ? scores : null;
 }
 
 export async function runGetMemory(args: {

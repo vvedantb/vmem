@@ -24,6 +24,31 @@ interface ProviderConfig {
   tokenUrl: string;
   revokeUrl: string | null;
   scopes: string[];
+  clientIdEnv: string;
+  clientSecretEnv: string;
+  /** Extra params merged into the authorize URL, after `scope` and before `state`. */
+  extraAuthParams: Record<string, string>;
+  /** How the token endpoint expects client credentials. */
+  tokenAuth: "body" | "basic";
+  /** Whether the (body-auth) token exchange request also carries `scope`. */
+  includeScopeInTokenBody: boolean;
+  /** Derives the stored refresh token + expiry from the token response. */
+  tokenPolicy: (tokenData: OAuthAccessTokenData) => StoreOAuthTokensOptions;
+}
+
+/** access_token/refresh_token pair expires per the provider's expires_in. */
+function expiringTokenPolicy(
+  tokenData: OAuthAccessTokenData,
+): StoreOAuthTokensOptions {
+  return {
+    refreshToken: tokenData.refresh_token ?? "",
+    expiresAt: Date.now() + (tokenData.expires_in ?? 3600) * 1000,
+  };
+}
+
+/** Provider issues a long-lived/non-expiring token with no refresh token. */
+function noExpiryTokenPolicy(): StoreOAuthTokensOptions {
+  return { refreshToken: "", expiresAt: 0 };
 }
 
 const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
@@ -32,30 +57,60 @@ const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
     tokenUrl: "https://oauth2.googleapis.com/token",
     revokeUrl: "https://oauth2.googleapis.com/revoke",
     scopes: [...GOOGLE_OAUTH_SCOPES],
+    clientIdEnv: "GOOGLE_CLIENT_ID",
+    clientSecretEnv: "GOOGLE_CLIENT_SECRET",
+    extraAuthParams: { access_type: "offline", prompt: "consent" },
+    tokenAuth: "body",
+    includeScopeInTokenBody: false,
+    tokenPolicy: expiringTokenPolicy,
   },
   gmail: {
     authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
     tokenUrl: "https://oauth2.googleapis.com/token",
     revokeUrl: "https://oauth2.googleapis.com/revoke",
     scopes: [...GOOGLE_OAUTH_SCOPES],
+    clientIdEnv: "GOOGLE_CLIENT_ID",
+    clientSecretEnv: "GOOGLE_CLIENT_SECRET",
+    extraAuthParams: { access_type: "offline", prompt: "consent" },
+    tokenAuth: "body",
+    includeScopeInTokenBody: false,
+    tokenPolicy: expiringTokenPolicy,
   },
   notion: {
     authUrl: "https://api.notion.com/v1/oauth/authorize",
     tokenUrl: "https://api.notion.com/v1/oauth/token",
     revokeUrl: null,
     scopes: [],
+    clientIdEnv: "NOTION_CLIENT_ID",
+    clientSecretEnv: "NOTION_CLIENT_SECRET",
+    extraAuthParams: { owner: "user" },
+    tokenAuth: "basic",
+    includeScopeInTokenBody: false,
+    tokenPolicy: noExpiryTokenPolicy,
   },
   onedrive: {
     authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
     tokenUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
     revokeUrl: null,
     scopes: ["Files.Read.All", "offline_access"],
+    clientIdEnv: "MICROSOFT_CLIENT_ID",
+    clientSecretEnv: "MICROSOFT_CLIENT_SECRET",
+    extraAuthParams: { response_mode: "query", prompt: "consent" },
+    tokenAuth: "body",
+    includeScopeInTokenBody: true,
+    tokenPolicy: expiringTokenPolicy,
   },
   linear: {
     authUrl: "https://linear.app/oauth/authorize",
     tokenUrl: "https://api.linear.app/oauth/token",
     revokeUrl: "https://api.linear.app/oauth/revoke",
     scopes: ["read"],
+    clientIdEnv: "LINEAR_CLIENT_ID",
+    clientSecretEnv: "LINEAR_CLIENT_SECRET",
+    extraAuthParams: { prompt: "consent" },
+    tokenAuth: "body",
+    includeScopeInTokenBody: false,
+    tokenPolicy: noExpiryTokenPolicy,
   },
 };
 
@@ -212,67 +267,20 @@ export const startOAuth = authAction({
       provider,
     });
 
-    // 3. Build provider auth URL
+    // 3. Build provider auth URL from its config
     const redirectUri = `${convexSiteUrl}/api/auth/connector/callback`;
 
-    if (provider === "google_drive" || provider === "gmail") {
-      return {
-        authUrl: buildAuthorizeUrl(config.authUrl, {
-          client_id: getEnvOrThrow("GOOGLE_CLIENT_ID"),
-          redirect_uri: redirectUri,
-          response_type: "code",
-          scope: config.scopes.join(" "),
-          access_type: "offline",
-          prompt: "consent",
-          state,
-        }),
-        alreadyConnected: false,
-      };
-    }
-
-    if (provider === "notion") {
-      return {
-        authUrl: buildAuthorizeUrl(config.authUrl, {
-          client_id: getEnvOrThrow("NOTION_CLIENT_ID"),
-          redirect_uri: redirectUri,
-          response_type: "code",
-          owner: "user",
-          state,
-        }),
-        alreadyConnected: false,
-      };
-    }
-
-    if (provider === "onedrive") {
-      return {
-        authUrl: buildAuthorizeUrl(config.authUrl, {
-          client_id: getEnvOrThrow("MICROSOFT_CLIENT_ID"),
-          redirect_uri: redirectUri,
-          response_type: "code",
-          scope: config.scopes.join(" "),
-          response_mode: "query",
-          prompt: "consent",
-          state,
-        }),
-        alreadyConnected: false,
-      };
-    }
-
-    if (provider === "linear") {
-      return {
-        authUrl: buildAuthorizeUrl(config.authUrl, {
-          client_id: getEnvOrThrow("LINEAR_CLIENT_ID"),
-          redirect_uri: redirectUri,
-          response_type: "code",
-          scope: config.scopes.join(" "),
-          prompt: "consent",
-          state,
-        }),
-        alreadyConnected: false,
-      };
-    }
-
-    throw new Error(`Unsupported provider: ${provider}`);
+    return {
+      authUrl: buildAuthorizeUrl(config.authUrl, {
+        client_id: getEnvOrThrow(config.clientIdEnv),
+        redirect_uri: redirectUri,
+        response_type: "code",
+        ...(config.scopes.length > 0 ? { scope: config.scopes.join(" ") } : {}),
+        ...config.extraAuthParams,
+        state,
+      }),
+      alreadyConnected: false,
+    };
   },
 });
 
@@ -350,12 +358,6 @@ export const disconnect = authAction({
 
 // --- Internal action for handling OAuth callback ---
 
-const notionTokenResponseSchema = oauthAccessTokenSchema.extend({
-  bot_id: z.string().optional(),
-  workspace_id: z.string().optional(),
-  workspace_name: z.string().optional(),
-});
-
 type OAuthCallbackResult = {
   error: string | null;
   frontendUrl: string | null;
@@ -407,130 +409,49 @@ export const handleCallbackInternal = internalAction({
     const fail = (error: string): OAuthCallbackResult =>
       oauthCallbackError(error, stateEntry.returnUrl, connectorId);
 
-    // 2. Exchange code for tokens based on provider
-    if (provider === "google_drive" || provider === "gmail") {
-      const clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
-      const clientSecret = getEnvOrThrow("GOOGLE_CLIENT_SECRET");
+    // 2. Exchange code for tokens using the provider's configured auth style
+    const config = PROVIDER_CONFIGS[provider];
+    const clientId = getEnvOrThrow(config.clientIdEnv);
+    const clientSecret = getEnvOrThrow(config.clientSecretEnv);
 
-      const exchanged = await exchangeOAuthAccessToken(
-        "https://oauth2.googleapis.com/token",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            code: args.code,
-            client_id: clientId,
-            client_secret: clientSecret,
-            redirect_uri: redirectUri,
-            grant_type: "authorization_code",
-          }),
-        },
-      );
-      if (!exchanged.ok) {
-        return fail(exchanged.error);
-      }
-      await encryptAndStoreOAuthTokens(ctx, connectorId, exchanged.tokenData, {
-        refreshToken: exchanged.tokenData.refresh_token ?? "",
-        expiresAt: Date.now() + (exchanged.tokenData.expires_in ?? 3600) * 1000,
-      });
-    } else if (provider === "notion") {
-      const clientId = getEnvOrThrow("NOTION_CLIENT_ID");
-      const clientSecret = getEnvOrThrow("NOTION_CLIENT_SECRET");
-
-      // Notion uses Basic auth for token exchange
-      const basicAuth = btoa(`${clientId}:${clientSecret}`);
-
-      const tokenRes = await fetch("https://api.notion.com/v1/oauth/token", {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${basicAuth}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          grant_type: "authorization_code",
-          code: args.code,
-          redirect_uri: redirectUri,
-        }),
-      });
-
-      if (!tokenRes.ok) {
-        return fail("token_exchange_failed");
-      }
-
-      const tokenData = await parseResponseJson(
-        tokenRes,
-        notionTokenResponseSchema,
-      );
-      if (!tokenData.access_token) {
-        return fail(tokenData.error ?? "no_token");
-      }
-
-      // Notion tokens don't expire, no refresh token
-      const encryptedAccess = await encryptToken(tokenData.access_token);
-
-      await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
-        connectorId,
-        accessToken: encryptedAccess,
-        refreshToken: "", // Notion has no refresh token
-        expiresAt: 0, // Never expires
-        tokenType: tokenData.token_type ?? "Bearer",
-        scope: "",
-      });
-    } else if (provider === "onedrive") {
-      const clientId = getEnvOrThrow("MICROSOFT_CLIENT_ID");
-      const clientSecret = getEnvOrThrow("MICROSOFT_CLIENT_SECRET");
-
-      const exchanged = await exchangeOAuthAccessToken(
-        PROVIDER_CONFIGS.onedrive.tokenUrl,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            client_id: clientId,
-            client_secret: clientSecret,
-            code: args.code,
-            redirect_uri: redirectUri,
-            grant_type: "authorization_code",
-            scope: PROVIDER_CONFIGS.onedrive.scopes.join(" "),
-          }),
-        },
-      );
-      if (!exchanged.ok) {
-        return fail(exchanged.error);
-      }
-      await encryptAndStoreOAuthTokens(ctx, connectorId, exchanged.tokenData, {
-        refreshToken: exchanged.tokenData.refresh_token ?? "",
-        expiresAt: Date.now() + (exchanged.tokenData.expires_in ?? 3600) * 1000,
-      });
-    } else if (provider === "linear") {
-      const clientId = getEnvOrThrow("LINEAR_CLIENT_ID");
-      const clientSecret = getEnvOrThrow("LINEAR_CLIENT_SECRET");
-
-      const exchanged = await exchangeOAuthAccessToken(
-        PROVIDER_CONFIGS.linear.tokenUrl,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            client_id: clientId,
-            client_secret: clientSecret,
-            code: args.code,
-            redirect_uri: redirectUri,
-            grant_type: "authorization_code",
-          }),
-        },
-      );
-      if (!exchanged.ok) {
-        return fail(exchanged.error);
-      }
-      // Linear access tokens last ~10 years and have no refresh token.
-      await encryptAndStoreOAuthTokens(ctx, connectorId, exchanged.tokenData, {
-        refreshToken: "",
-        expiresAt: 0,
-      });
-    } else {
-      return fail(`unsupported_provider: ${provider}`);
+    const exchanged =
+      config.tokenAuth === "basic"
+        ? await exchangeOAuthAccessToken(config.tokenUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              grant_type: "authorization_code",
+              code: args.code,
+              redirect_uri: redirectUri,
+            }),
+          })
+        : await exchangeOAuthAccessToken(config.tokenUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              client_id: clientId,
+              client_secret: clientSecret,
+              code: args.code,
+              redirect_uri: redirectUri,
+              grant_type: "authorization_code",
+              ...(config.includeScopeInTokenBody
+                ? { scope: config.scopes.join(" ") }
+                : {}),
+            }),
+          });
+    if (!exchanged.ok) {
+      return fail(exchanged.error);
     }
+
+    await encryptAndStoreOAuthTokens(
+      ctx,
+      connectorId,
+      exchanged.tokenData,
+      config.tokenPolicy(exchanged.tokenData),
+    );
 
     // 4. Mark connector as connected
     await ctx.runMutation(internal.connectors.crud.markConnectedInternal, {

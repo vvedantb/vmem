@@ -270,77 +270,16 @@ const mcpPresentation: Record<keyof typeof toolSpecs, McpToolPresentation> = {
   },
 };
 
-/** Registration order mirrors the original explicit `server.tool` sequence. */
-const mcpToolOrder: Array<keyof typeof toolSpecs> = [
-  "ping",
-  "whoami",
-  "list_profiles",
-  "set_active_profile",
-  "context_prompt_get",
-  "memory_search",
-  "memory_retrieve",
-  "memory_add",
-  "memory_add_instruction",
-  "memory_update",
-  "memory_delete",
-  "memory_related",
-  "skills_list",
-  "skills_get",
-  "skills_create",
-  "skills_update",
-  "skills_delete",
-  "wiki_list",
-  "wiki_get",
-  "wiki_search",
-  "wiki_create",
-  "wiki_update",
-  "wiki_delete",
-  "files_list",
-  "files_get",
-  "files_upload",
-  "files_delete",
-  "codebases_list",
-  "codebase_overview",
-  "codebase_search",
-  "codebase_context",
-  "codebase_impact",
-  "codebase_graph",
-];
-
-const mcpToolOrderSet = new Set<string>(mcpToolOrder);
-
-for (const key in toolSpecs) {
-  if (!mcpToolOrderSet.has(key)) {
-    throw new Error(`mcpToolOrder missing tool catalog key: ${key}`);
-  }
-}
-
-function isCompleteBindableSpecs(
-  specs: Partial<Record<keyof typeof toolSpecs, McpBindableTool>>,
-): specs is Record<keyof typeof toolSpecs, McpBindableTool> {
-  for (const key of mcpToolOrder) {
-    if (specs[key] === undefined) return false;
-  }
-  return true;
-}
-
-function buildBindableToolSpecs(): Record<
-  keyof typeof toolSpecs,
-  McpBindableTool
-> {
-  const specs: Partial<Record<keyof typeof toolSpecs, McpBindableTool>> = {};
-  for (const key of mcpToolOrder) {
-    // Catalog union loses per-tool Shape in a loop; runtime is safe via schema.parse.
-    // @ts-expect-error TS2345 — union ToolSpec in keyed loop
-    specs[key] = bindToolSpec(toolSpecs[key]);
-  }
-  if (!isCompleteBindableSpecs(specs)) {
-    throw new Error("bindableToolSpecs incomplete");
-  }
-  return specs;
-}
-
-const bindableToolSpecs = buildBindableToolSpecs();
+/** Registration order mirrors insertion order of `toolSpecs` (toolCatalog.ts). */
+const bindableToolSpecs: Record<keyof typeof toolSpecs, McpBindableTool> =
+  Object.fromEntries(
+    Object.entries(toolSpecs).map(([key, spec]) => [
+      key,
+      // Catalog union loses per-tool Shape in a loop; runtime is safe via schema.parse.
+      // @ts-expect-error TS2345 — union ToolSpec in keyed loop
+      bindToolSpec(spec),
+    ]),
+  ) as Record<keyof typeof toolSpecs, McpBindableTool>;
 
 function registerMcpTool(
   server: McpServer,
@@ -379,7 +318,7 @@ export function registerTools(
   const scopeLabel = scope === "team" ? "team" : "personal";
   const h = handlerContext(clerkUserId, ctx, scope);
 
-  for (const key of mcpToolOrder) {
+  for (const key of Object.keys(toolSpecs) as Array<keyof typeof toolSpecs>) {
     registerMcpTool(
       server,
       bindableToolSpecs[key],

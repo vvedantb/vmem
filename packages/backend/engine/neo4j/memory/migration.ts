@@ -27,6 +27,100 @@ function stringField(record: NeoRecord, key: string): string {
   return String(neo4jGet(record, key) ?? "");
 }
 
+/** Shared core for the `mark*` resume-marker stamps: UNWIND ids, SET one
+ *  datetime() property on each matched Memory. All three markers are
+ *  otherwise byte-identical. */
+async function stampMarker(
+  driver: Driver,
+  ids: string[],
+  prop: string,
+): Promise<void> {
+  if (ids.length === 0) return;
+  await withSession(driver, async (session) => {
+    await session.run(
+      `UNWIND $ids AS memId
+       MATCH (m:Memory {id: memId})
+       SET m.${prop} = datetime()`,
+      { ids },
+    );
+  });
+}
+
+/** Shared core for the `set*` bulk backfill writers: one UNWIND round trip
+ *  that copies `r.<prop>` from each row onto its Memory node. */
+async function bulkSet(
+  driver: Driver,
+  rows: Array<Record<string, unknown>>,
+  prop: string,
+): Promise<void> {
+  if (rows.length === 0) return;
+  await withSession(driver, async (session) => {
+    await session.run(
+      `UNWIND $rows AS r
+       MATCH (m:Memory {id: r.id})
+       SET m.${prop} = r.${prop}`,
+      { rows },
+    );
+  });
+}
+
+/** Shared core for the `count*` helpers: MATCH by props, optional WHERE,
+ *  RETURN count(m) under the given alias. */
+async function countMemories(
+  driver: Driver,
+  matchProps: Record<string, string>,
+  whereClause: string | undefined,
+  key: string,
+): Promise<number> {
+  return withSession(driver, async (session) => {
+    const propsClause = Object.keys(matchProps)
+      .map((k) => `${k}: $${k}`)
+      .join(", ");
+    const result = await session.run(
+      `MATCH (m:Memory {${propsClause}})
+       ${whereClause ? `WHERE ${whereClause}` : ""}
+       RETURN count(m) AS ${key}`,
+      matchProps,
+    );
+    return firstCount(result, key);
+  });
+}
+
+/** Shared core for `listMissingEmbeddings`/`listMissingEntities`: identical
+ *  {id, userId, profileId, title, content} projection, newest-first, only
+ *  the WHERE clause differs. */
+async function listMissingCommonFields(
+  driver: Driver,
+  whereClause: string,
+  limit: number,
+): Promise<
+  Array<{
+    id: string;
+    userId: string;
+    profileId: string | null;
+    title: string;
+    content: string;
+  }>
+> {
+  return withSession(driver, async (session) => {
+    const result = await session.run(
+      `MATCH (m:Memory)
+       WHERE ${whereClause}
+       RETURN m.id AS id, m.userId AS userId, m.profileId AS profileId, m.title AS title, m.content AS content
+       ORDER BY m.createdAt DESC
+       LIMIT $limit`,
+      { limit: neo4j.int(limit) },
+    );
+    return result.records.map((r) => ({
+      id: stringField(r, "id"),
+      userId: stringField(r, "userId"),
+      profileId: optionalProfileId(neo4jGet(r, "profileId")),
+      title: stringField(r, "title"),
+      content: stringField(r, "content"),
+    }));
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Profile migration
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,15 +130,7 @@ export async function countMemoriesWithoutProfile(
   driver: Driver,
   userId: string,
 ): Promise<number> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId})
-       WHERE m.profileId IS NULL
-       RETURN count(m) AS count`,
-      { userId },
-    );
-    return firstCount(result, "count");
-  });
+  return countMemories(driver, { userId }, "m.profileId IS NULL", "count");
 }
 
 /** Count all memories for a profile. */
@@ -53,14 +139,7 @@ export async function countMemoriesByProfile(
   userId: string,
   profileId: string,
 ): Promise<number> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId, profileId: $profileId})
-       RETURN count(m) AS count`,
-      { userId, profileId },
-    );
-    return firstCount(result, "count");
-  });
+  return countMemories(driver, { userId, profileId }, undefined, "count");
 }
 
 /** Migrate all memories without profileId to a specific profile. */
@@ -143,23 +222,7 @@ export async function listMissingEmbeddings(
     content: string;
   }>
 > {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory)
-       WHERE m.embedding IS NULL
-       RETURN m.id AS id, m.userId AS userId, m.profileId AS profileId, m.title AS title, m.content AS content
-       ORDER BY m.createdAt DESC
-       LIMIT $limit`,
-      { limit: neo4j.int(limit) },
-    );
-    return result.records.map((r) => ({
-      id: stringField(r, "id"),
-      userId: stringField(r, "userId"),
-      profileId: optionalProfileId(neo4jGet(r, "profileId")),
-      title: stringField(r, "title"),
-      content: stringField(r, "content"),
-    }));
-  });
+  return listMissingCommonFields(driver, "m.embedding IS NULL", limit);
 }
 
 /**
@@ -170,15 +233,7 @@ export async function setEmbeddings(
   driver: Driver,
   rows: Array<{ id: string; embedding: number[] }>,
 ): Promise<void> {
-  if (rows.length === 0) return;
-  await withSession(driver, async (session) => {
-    await session.run(
-      `UNWIND $rows AS r
-       MATCH (m:Memory {id: r.id})
-       SET m.embedding = r.embedding`,
-      { rows },
-    );
-  });
+  return bulkSet(driver, rows, "embedding");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -219,15 +274,7 @@ export async function setContentHashes(
   driver: Driver,
   rows: Array<{ id: string; contentHash: string }>,
 ): Promise<void> {
-  if (rows.length === 0) return;
-  await withSession(driver, async (session) => {
-    await session.run(
-      `UNWIND $rows AS r
-       MATCH (m:Memory {id: r.id})
-       SET m.contentHash = r.contentHash`,
-      { rows },
-    );
-  });
+  return bulkSet(driver, rows, "contentHash");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -275,15 +322,7 @@ export async function markSemanticEdgesProcessed(
   driver: Driver,
   ids: string[],
 ): Promise<void> {
-  if (ids.length === 0) return;
-  await withSession(driver, async (session) => {
-    await session.run(
-      `UNWIND $ids AS memId
-       MATCH (m:Memory {id: memId})
-       SET m.semanticEdgesAt = datetime()`,
-      { ids },
-    );
-  });
+  return stampMarker(driver, ids, "semanticEdgesAt");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -303,24 +342,11 @@ export async function listMissingEntities(
     content: string;
   }>
 > {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory)
-       WHERE m.entityExtractedAt IS NULL
-         AND coalesce(m.status, 'active') IN ['active', 'pinned']
-       RETURN m.id AS id, m.userId AS userId, m.profileId AS profileId, m.title AS title, m.content AS content
-       ORDER BY m.createdAt DESC
-       LIMIT $limit`,
-      { limit: neo4j.int(limit) },
-    );
-    return result.records.map((r) => ({
-      id: stringField(r, "id"),
-      userId: stringField(r, "userId"),
-      profileId: optionalProfileId(neo4jGet(r, "profileId")),
-      title: stringField(r, "title"),
-      content: stringField(r, "content"),
-    }));
-  });
+  return listMissingCommonFields(
+    driver,
+    "m.entityExtractedAt IS NULL AND coalesce(m.status, 'active') IN ['active', 'pinned']",
+    limit,
+  );
 }
 
 /** Mark memories as processed for entity extraction. */
@@ -328,15 +354,7 @@ export async function markEntityExtracted(
   driver: Driver,
   ids: string[],
 ): Promise<void> {
-  if (ids.length === 0) return;
-  await withSession(driver, async (session) => {
-    await session.run(
-      `UNWIND $ids AS memId
-       MATCH (m:Memory {id: memId})
-       SET m.entityExtractedAt = datetime()`,
-      { ids },
-    );
-  });
+  return stampMarker(driver, ids, "entityExtractedAt");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -396,16 +414,12 @@ export async function countUnretagged(
   driver: Driver,
   userId: string,
 ): Promise<number> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId})
-       WHERE m.retaggedAt IS NULL
-         AND coalesce(m.status, 'active') IN ['active', 'pinned']
-       RETURN count(m) AS n`,
-      { userId },
-    );
-    return firstCount(result, "n");
-  });
+  return countMemories(
+    driver,
+    { userId },
+    "m.retaggedAt IS NULL AND coalesce(m.status, 'active') IN ['active', 'pinned']",
+    "n",
+  );
 }
 
 /** Replace a memory's TAGGED_WITH edges and stamp the resume marker in one
@@ -438,15 +452,7 @@ export async function markRetaggedOnly(
   driver: Driver,
   ids: string[],
 ): Promise<void> {
-  if (ids.length === 0) return;
-  await withSession(driver, async (session) => {
-    await session.run(
-      `UNWIND $ids AS memId
-       MATCH (m:Memory {id: memId})
-       SET m.retaggedAt = datetime()`,
-      { ids },
-    );
-  });
+  return stampMarker(driver, ids, "retaggedAt");
 }
 
 /** Delete Tag nodes no memory points at any more (post-re-tag sweep). */
