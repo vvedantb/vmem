@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import { getMemory, listMemories } from "../../../engine/neo4j/memory/crud";
 import { getMemoryEvents } from "../../../engine/neo4j/memory/events";
 import {

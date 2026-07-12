@@ -15,7 +15,7 @@ import MemoryDetailPanel from "./MemoryDetailPanel";
 import ListItemRow from "./_components/ListItemRow";
 import AnimatedSearchIcon from "./_components/AnimatedSearchIcon";
 import { VmemSpinner } from "@/components/svg-animations";
-import { type Memory, type MemoryType } from "@/lib/memories";
+import type { Memory, MemoryType } from "@/lib/memories";
 import {
   listItemMatchesKindFilter,
   listItemMatchesSourceFilter,

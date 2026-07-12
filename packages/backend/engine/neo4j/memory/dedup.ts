@@ -9,11 +9,7 @@
  * `mergeDuplicateGroup` so the two paths cannot drift.
  */
 
-import {
-  type Driver,
-  type Record as NeoRecord,
-  type Session,
-} from "neo4j-driver";
+import type { Driver, Record as NeoRecord, Session } from "neo4j-driver";
 import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
 

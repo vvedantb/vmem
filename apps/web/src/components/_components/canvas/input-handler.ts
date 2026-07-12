@@ -6,6 +6,7 @@ import type {
 } from "./types";
 import { screenToWorld, zoomAt } from "./viewport";
 import { getEdgeAt, getNodeAt } from "./hit-test";
+import type { createSpatialIndex } from "./hit-test";
 import type { SimulationController } from "./simulation";
 
 interface Callbacks {
@@ -28,7 +29,7 @@ export function attachInputHandlers(
   viewport: ViewportState,
   simRef: { current: SimulationController | null },
   spatialIndexRef: {
-    current: ReturnType<typeof import("./hit-test").createSpatialIndex>;
+    current: ReturnType<typeof createSpatialIndex>;
   },
   edgesRef: { current: ResolvedEdge[] },
   callbacks: Callbacks,

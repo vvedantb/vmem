@@ -1,4 +1,4 @@
-import { type MouseEventHandler } from "react";
+import type { MouseEventHandler } from "react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";

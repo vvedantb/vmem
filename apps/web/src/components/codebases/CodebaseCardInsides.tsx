@@ -1,4 +1,4 @@
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 import type { FunctionReturnType } from "convex/server";
 
 export const codebaseLanguageColors: Record<string, string> = {

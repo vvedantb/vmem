@@ -2,7 +2,7 @@
  * Neo4j record → typed codebase read shapes.
  */
 
-import { type Record as NeoRecord } from "neo4j-driver";
+import type { Record as NeoRecord } from "neo4j-driver";
 import { z } from "zod";
 import {
   neo4jField,

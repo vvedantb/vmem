@@ -13,13 +13,13 @@ import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
 import { recencyFromAgeDays, rrfScore, toMemoryWithTags } from "./mappers";
 import { profileFilter, visibleStatusClause, withSession } from "./shared";
-import {
-  type GraphExpansion,
-  type MemoryCandidate,
-  type MemoryType,
-  type MemoryWithTags,
-  type MergedEntry,
-  type ScoreBreakdown,
+import type {
+  GraphExpansion,
+  MemoryCandidate,
+  MemoryType,
+  MemoryWithTags,
+  MergedEntry,
+  ScoreBreakdown,
 } from "./types";
 
 const TOP_N_SEEDS = 5;

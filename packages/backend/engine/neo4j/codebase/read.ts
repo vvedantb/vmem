@@ -9,7 +9,7 @@
  * `searchSymbols` powers the search box.
  */
 
-import { type Driver } from "neo4j-driver";
+import type { Driver } from "neo4j-driver";
 import { clampNeo4jLimit } from "../intParams";
 import {
   parseOverviewEdge,

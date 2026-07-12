@@ -16,7 +16,7 @@ import neo4j, {
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryWithTags } from "./mappers";
 import { withSession } from "./shared";
-import { type MemoryWithTags } from "./types";
+import type { MemoryWithTags } from "./types";
 
 const SEMANTIC_EDGE_K = 20;
 const SEMANTIC_EDGE_THRESHOLD = 0.78;

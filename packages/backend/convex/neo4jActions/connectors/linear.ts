@@ -7,7 +7,7 @@
  * last 30 days; `true` walks the full history.
  */
 
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
   markSyncComplete,

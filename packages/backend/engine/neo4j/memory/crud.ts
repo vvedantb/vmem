@@ -24,11 +24,7 @@ import { toMemoryWithTags, toSnapshot } from "./mappers";
 import { createSemanticSimilarityEdges } from "./relationships";
 import { logEvent, withSession } from "./shared";
 import { normalizeTags } from "./tagNormalize";
-import {
-  type MemoryStatus,
-  type MemoryType,
-  type MemoryWithTags,
-} from "./types";
+import type { MemoryStatus, MemoryType, MemoryWithTags } from "./types";
 
 /** Lightweight memory reference returned by the dedup-lookup helpers. */
 export type MemoryRef = { id: string; title: string; updatedAt: string };

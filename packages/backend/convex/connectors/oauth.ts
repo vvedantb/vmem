@@ -6,7 +6,7 @@ import type { Id } from "../_generated/dataModel";
 import { authAction } from "../auth";
 import { encryptToken, decryptToken, getEnvOrThrow } from "../lib/crypto";
 import { oauthAccessTokenSchema, parseResponseJson } from "../lib/jsonBoundary";
-import { z } from "zod";
+import type { z } from "zod";
 import { auditLog, ResourceTypes } from "../auditLog";
 import {
   GOOGLE_OAUTH_SCOPES,

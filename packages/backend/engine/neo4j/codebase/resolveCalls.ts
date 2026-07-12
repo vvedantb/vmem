@@ -17,8 +17,8 @@
  */
 
 import {
-  Node,
   SyntaxKind,
+  type Node,
   type Project,
   type CallExpression,
   type SourceFile,

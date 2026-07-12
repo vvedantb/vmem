@@ -5,7 +5,7 @@
  */
 
 import crypto from "node:crypto";
-import { type Record as NeoRecord } from "neo4j-driver";
+import type { Record as NeoRecord } from "neo4j-driver";
 import { z } from "zod";
 import {
   neo4jGet,
@@ -13,12 +13,12 @@ import {
   parseNeo4jInt,
   parseNeo4jNodeProps,
 } from "../record";
-import {
-  type MemoryEvent,
-  type MemoryType,
-  type MemoryWithTags,
-  type TagEdge,
-  type TimelineEvent,
+import type {
+  MemoryEvent,
+  MemoryType,
+  MemoryWithTags,
+  TagEdge,
+  TimelineEvent,
 } from "./types";
 
 const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);

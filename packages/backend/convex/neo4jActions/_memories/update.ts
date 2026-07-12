@@ -6,7 +6,7 @@
  * the chunking threshold), and triggers context_prompt invalidation.
  */
 
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { updateMemory } from "../../../engine/neo4j/memory/crud";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";

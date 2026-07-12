@@ -11,7 +11,7 @@
 import neo4j, { type Driver } from "neo4j-driver";
 import { listMemories } from "./crud";
 import { withSession } from "./shared";
-import { type MemoryType, type MemoryWithTags } from "./types";
+import type { MemoryType, MemoryWithTags } from "./types";
 
 export async function searchMemories(
   driver: Driver,

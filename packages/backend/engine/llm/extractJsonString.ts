@@ -1,4 +1,4 @@
-import { type ZodType, z } from "zod";
+import type { ZodType, z } from "zod";
 
 /**
  * Strip thinking blocks and markdown fences from raw LLM output before JSON.parse.

@@ -7,7 +7,7 @@
  * `sourceType: "onedrive"`.
  */
 
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
   markSyncComplete,

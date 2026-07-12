@@ -17,7 +17,7 @@
  */
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { type Driver } from "neo4j-driver";
+import type { Driver } from "neo4j-driver";
 import { closeDriver, getDriver } from "../../engine/neo4j/driver";
 import { neo4jField, neo4jIntSchema } from "../../engine/neo4j/record";
 import { retrieveMemories } from "../../engine/neo4j/memory/retrieve";

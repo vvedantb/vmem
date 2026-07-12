@@ -2,7 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 import { Badge, Card, CardContent } from "@vmem/ui";
 
 type SystemSkillEntry = FunctionReturnType<

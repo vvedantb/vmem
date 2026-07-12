@@ -1,4 +1,4 @@
-import { type Driver } from "neo4j-driver";
+import type { Driver } from "neo4j-driver";
 import { neo4jGet, parseNeo4jInt } from "./record";
 
 /** Fulltext index created by setup — cheap sentinel for "has setup run?". */
