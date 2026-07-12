@@ -1,13 +1,14 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import {
-  assertProfileAccess,
+  guardProfileAccess,
   withApiKeyAuth,
   type ApiKeyAuth,
 } from "./apiKeyAuth";
 import { retrieveBodySchema, type RetrieveBody } from "./schemas";
 import {
   isOpenRouterRequired,
+  openRouterRequiredResponse,
   type RetrieveHttpResult,
   type RetrieveMemoriesActionResult,
   type SummarizeRetrieveActionResult,
@@ -19,15 +20,9 @@ async function runRetrieveHandler(
   auth: ApiKeyAuth,
   body: RetrieveBody,
 ): Promise<Response | RetrieveHttpResult> {
-  if (body.profileId) {
-    const forbidden = await assertProfileAccess(
-      ctx,
-      auth.userId,
-      body.profileId,
-    );
-    if (forbidden) {
-      return forbidden;
-    }
+  const forbidden = await guardProfileAccess(ctx, auth, body.profileId);
+  if (forbidden) {
+    return forbidden;
   }
 
   const memories: RetrieveMemoriesActionResult = await ctx.runAction(
@@ -68,7 +63,7 @@ async function runRetrieveHandler(
   );
 
   if (isOpenRouterRequired(summaryResult)) {
-    return Response.json({ error: "openrouter_required" }, { status: 422 });
+    return openRouterRequiredResponse();
   }
 
   return {
