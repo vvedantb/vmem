@@ -7,9 +7,41 @@
  * back: a memory either gets all its enrichment or none of it.
  */
 
-import { type Driver } from "neo4j-driver";
+import { type Driver, type Session, type Transaction } from "neo4j-driver";
 import { withSession } from "./shared";
 import { normalizeTags } from "./tagNormalize";
+
+type EntityInput = Array<{
+  name: string;
+  normalizedName: string;
+  type: string;
+}>;
+
+/**
+ * Replace a memory's MENTIONS edges with fresh ones for `entities`: delete
+ * the old edges, MERGE each entity node (per-user, keyed on normalizedName),
+ * re-point MENTIONS. Shared by `applyEnrichment` (inside its transaction)
+ * and `applyEntitiesOnly` (plain session run) since the query is identical.
+ */
+async function replaceMentionsEdges(
+  runner: Session | Transaction,
+  memoryId: string,
+  userId: string,
+  entities: EntityInput,
+): Promise<void> {
+  await runner.run(
+    `MATCH (m:Memory {id: $memoryId, userId: $userId})
+     OPTIONAL MATCH (m)-[r:MENTIONS]->(:Entity)
+     DELETE r
+     WITH m
+     FOREACH (ent IN $entities |
+       MERGE (e:Entity {userId: $userId, normalizedName: ent.normalizedName})
+       ON CREATE SET e.name = ent.name, e.type = ent.type, e.id = randomUUID(), e.createdAt = datetime()
+       MERGE (m)-[:MENTIONS]->(e)
+     )`,
+    { memoryId, userId, entities },
+  );
+}
 
 export async function applyEnrichment(
   driver: Driver,
@@ -17,11 +49,7 @@ export async function applyEnrichment(
   userId: string,
   tags: string[],
   relatedIds: string[],
-  entities: Array<{
-    name: string;
-    normalizedName: string;
-    type: string;
-  }> = [],
+  entities: EntityInput = [],
 ): Promise<void> {
   return withSession(driver, async (session) => {
     const tx = session.beginTransaction();
@@ -60,18 +88,7 @@ export async function applyEnrichment(
       // Entity extraction: delete old MENTIONS edges, MERGE entity nodes,
       // re-create MENTIONS edges. Same pattern as TAGGED_WITH above.
       if (entities.length > 0) {
-        await tx.run(
-          `MATCH (m:Memory {id: $memoryId, userId: $userId})
-           OPTIONAL MATCH (m)-[r:MENTIONS]->(:Entity)
-           DELETE r
-           WITH m
-           FOREACH (ent IN $entities |
-             MERGE (e:Entity {userId: $userId, normalizedName: ent.normalizedName})
-             ON CREATE SET e.name = ent.name, e.type = ent.type, e.id = randomUUID(), e.createdAt = datetime()
-             MERGE (m)-[:MENTIONS]->(e)
-           )`,
-          { memoryId, userId, entities },
-        );
+        await replaceMentionsEdges(tx, memoryId, userId, entities);
       }
 
       await tx.commit();
@@ -90,25 +107,10 @@ export async function applyEntitiesOnly(
   driver: Driver,
   memoryId: string,
   userId: string,
-  entities: Array<{
-    name: string;
-    normalizedName: string;
-    type: string;
-  }>,
+  entities: EntityInput,
 ): Promise<void> {
   if (entities.length === 0) return;
-  return withSession(driver, async (session) => {
-    await session.run(
-      `MATCH (m:Memory {id: $memoryId, userId: $userId})
-       OPTIONAL MATCH (m)-[r:MENTIONS]->(:Entity)
-       DELETE r
-       WITH m
-       FOREACH (ent IN $entities |
-         MERGE (e:Entity {userId: $userId, normalizedName: ent.normalizedName})
-         ON CREATE SET e.name = ent.name, e.type = ent.type, e.id = randomUUID(), e.createdAt = datetime()
-         MERGE (m)-[:MENTIONS]->(e)
-       )`,
-      { memoryId, userId, entities },
-    );
-  });
+  return withSession(driver, (session) =>
+    replaceMentionsEdges(session, memoryId, userId, entities),
+  );
 }
