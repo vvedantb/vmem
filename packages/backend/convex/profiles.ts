@@ -124,10 +124,6 @@ export const getByIdInternal = internalQuery({
 });
 
 /**
- * Get default profile by Clerk ID
- * @deprecated Use specific source defaults from userSettings instead
- */
-/**
  * Profile used for MCP memory tools when no profileId is passed.
  * Personal connector only — use getActiveProfileForMcpScopeInternal for team.
  */
@@ -162,23 +158,6 @@ export const resolveProfileIdForMcpScopeInternal = internalQuery({
   },
 });
 
-export const getActiveByClerkIdInternal = internalQuery({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    const user = await getUserByClerkId(ctx, args.clerkId);
-
-    if (!user) return null;
-
-    return await ctx.db
-      .query("profiles")
-      .withIndex("by_user_default", (q) =>
-        q.eq("userId", user._id).eq("isDefault", true),
-      )
-      .first();
-  },
-});
-
-/** Get or create default profile by Clerk ID (for MCP) */
 export const getOrCreateDefaultByClerkIdInternal = internalMutation({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -189,14 +168,6 @@ export const getOrCreateDefaultByClerkIdInternal = internalMutation({
     }
 
     return await getOrCreateDefaultProfile(ctx, user._id);
-  },
-});
-
-/** List personal profiles by Clerk ID (legacy MCP helper). */
-export const listByClerkIdInternal = internalQuery({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    return listProfilesByClerkIdAndScope(ctx, args.clerkId, "personal");
   },
 });
 

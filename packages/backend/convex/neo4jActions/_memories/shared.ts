@@ -10,12 +10,15 @@
 
 import { type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
+import type { Driver } from "neo4j-driver";
 import {
   bestEffortEmbedMany,
   bestEffortEmbedOne,
   type BestEffortEmbedParams,
 } from "../../lib/openRouter/bestEffortEmbed";
 import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
+import { shouldChunk } from "../../../engine/neo4j/chunking";
+import { deleteChunksForMemory } from "../../../engine/neo4j/memory/chunks";
 import type { McpScope } from "../../profiles/mcpAccess";
 
 export type MemoryType = "profile" | "episodic" | "knowledge";
@@ -103,4 +106,38 @@ export function tryEmbedMany(
   args: EmbedArgs & { texts: string[] },
 ): Promise<(number[] | null)[]> {
   return bestEffortEmbedMany({ ctx, ...args });
+}
+
+/**
+ * Keep Neo4j chunks in sync with memory body text.
+ * - Long content → schedule `chunkMemoryInternal`
+ * - Short content on update → delete existing chunks (create never deletes)
+ */
+export async function scheduleChunkSyncForContent(
+  ctx: ActionCtx,
+  driver: Driver,
+  opts: {
+    clerkId: string;
+    memoryId: string;
+    content: string;
+    profileId?: string;
+    mode: "create" | "update";
+  },
+): Promise<void> {
+  if (shouldChunk(opts.content)) {
+    await ctx.scheduler.runAfter(
+      0,
+      internal.neo4jActions.memories.chunkMemoryInternal,
+      {
+        clerkId: opts.clerkId,
+        memoryId: opts.memoryId,
+        content: opts.content,
+        profileId: opts.profileId,
+      },
+    );
+    return;
+  }
+  if (opts.mode === "update") {
+    await deleteChunksForMemory(driver, opts.clerkId, opts.memoryId);
+  }
 }

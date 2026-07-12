@@ -1,4 +1,4 @@
-import { authQuery, authMutation, getUserByClerkId } from "./auth";
+import { authQuery, authMutation } from "./auth";
 import { internalQuery, internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
@@ -302,22 +302,6 @@ export const setDefaultProfile = authMutation({
       userId: ctx.userId,
       defaultProfiles: updatedDefaults,
     });
-  },
-});
-
-export const getMcpDefaultProfileIdByClerkIdInternal = internalQuery({
-  args: { clerkId: v.string() },
-  returns: v.union(v.id("profiles"), v.null()),
-  handler: async (ctx, args) => {
-    const user = await getUserByClerkId(ctx, args.clerkId);
-    if (!user) return null;
-
-    const settings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
-
-    return settings?.defaultProfiles?.mcp ?? null;
   },
 });
 

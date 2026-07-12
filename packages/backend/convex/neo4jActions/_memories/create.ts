@@ -19,9 +19,9 @@ import {
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { normalizeUrl } from "../../../engine/neo4j/url";
-import { shouldChunk } from "../../../engine/neo4j/chunking";
 import {
   resolveProfileIdForClerkId,
+  scheduleChunkSyncForContent,
   scheduleContextPromptInvalidation,
   tryEmbedOne,
 } from "./shared";
@@ -217,18 +217,13 @@ async function schedulePostCreate(
     },
   );
 
-  if (shouldChunk(params.content)) {
-    await ctx.scheduler.runAfter(
-      0,
-      internal.neo4jActions.memories.chunkMemoryInternal,
-      {
-        clerkId: params.clerkId,
-        memoryId: params.memoryId,
-        content: params.content,
-        profileId: params.profileId,
-      },
-    );
-  }
+  await scheduleChunkSyncForContent(ctx, getDriver(), {
+    clerkId: params.clerkId,
+    memoryId: params.memoryId,
+    content: params.content,
+    profileId: params.profileId,
+    mode: "create",
+  });
 
   if (
     params.source === "prompt-capture" &&

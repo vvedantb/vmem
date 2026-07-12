@@ -60,6 +60,57 @@ const memoryRefValidator = v.object({
   ),
 });
 
+type MemoryRef = {
+  id: string;
+  title: string;
+  trace?: {
+    score: number;
+    scoreBreakdown: {
+      fulltext: number;
+      vector: number;
+      chunk?: number;
+      entity?: number;
+      rrf?: number;
+      recency: number;
+      confidence: number;
+      graphPath?: {
+        seedTitle: string;
+        bridgingEntity: string | null;
+        hops: number;
+      };
+      rerankerScore?: number;
+    };
+    reason: string;
+  };
+};
+
+/** Replace any existing bubble refs, then insert the latest set. */
+async function upsertChatMemoryRefs(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    threadId: string;
+    bubbleKey: string;
+    refs: MemoryRef[];
+  },
+): Promise<void> {
+  const existing = await ctx.db
+    .query("chatMessageMemoryRefs")
+    .withIndex("by_user_bubble", (q) =>
+      q.eq("userId", args.userId).eq("bubbleKey", args.bubbleKey),
+    )
+    .first();
+  if (existing) {
+    await ctx.db.delete(existing._id);
+  }
+  await ctx.db.insert("chatMessageMemoryRefs", {
+    userId: args.userId,
+    threadId: args.threadId,
+    bubbleKey: args.bubbleKey,
+    refs: args.refs,
+  });
+}
+
 export const initiateStreaming = authMutation({
   args: {
     prompt: v.string(),
@@ -125,16 +176,7 @@ export const saveCloudMessageMemoryRefs = internalMutation({
   },
   handler: async (ctx, args) => {
     const bubbleKey = `${args.threadId}-${String(args.assistantOrder)}-${String(args.assistantStepOrder)}`;
-    const existing = await ctx.db
-      .query("chatMessageMemoryRefs")
-      .withIndex("by_user_bubble", (q) =>
-        q.eq("userId", args.userId).eq("bubbleKey", bubbleKey),
-      )
-      .first();
-    if (existing) {
-      await ctx.db.delete(existing._id);
-    }
-    await ctx.db.insert("chatMessageMemoryRefs", {
+    await upsertChatMemoryRefs(ctx, {
       userId: args.userId,
       threadId: args.threadId,
       bubbleKey,
@@ -339,16 +381,7 @@ export const saveLocalMessages = authMutation({
         );
       }
       const bubbleKey = `${threadId}-${String(assistantOrder)}-${String(assistantStepOrder)}`;
-      const existing = await ctx.db
-        .query("chatMessageMemoryRefs")
-        .withIndex("by_user_bubble", (q) =>
-          q.eq("userId", ctx.userId).eq("bubbleKey", bubbleKey),
-        )
-        .first();
-      if (existing) {
-        await ctx.db.delete(existing._id);
-      }
-      await ctx.db.insert("chatMessageMemoryRefs", {
+      await upsertChatMemoryRefs(ctx, {
         userId: ctx.userId,
         threadId,
         bubbleKey,
