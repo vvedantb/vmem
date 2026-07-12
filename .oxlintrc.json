@@ -120,6 +120,38 @@
       }
     },
     {
+      "files": ["apps/web/**"],
+      "rules": {
+        "react/forbid-elements": [
+          "error",
+          {
+            "forbid": [
+              {
+                "element": "button",
+                "message": "Use Button from @vmem/ui"
+              },
+              {
+                "element": "input",
+                "message": "Use Input from @vmem/ui"
+              },
+              {
+                "element": "textarea",
+                "message": "Use Textarea from @vmem/ui"
+              },
+              {
+                "element": "select",
+                "message": "Use Select from @vmem/ui"
+              },
+              {
+                "element": "table",
+                "message": "Use Table from @vmem/ui"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["apps/web/**", "apps/chrome-extension/**"],
       "rules": {
         "no-restricted-imports": [

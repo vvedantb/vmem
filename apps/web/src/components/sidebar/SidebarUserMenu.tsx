@@ -75,21 +75,23 @@ export function SidebarUserMenu({ collapsed }: SidebarUserMenuProps) {
         <DropdownMenuTrigger asChild>
           {collapsed ? (
             <SidebarIconTooltip label={name} enabled>
-              <button
+              <Button
                 type="button"
-                className="mx-auto flex items-center justify-center rounded-lg p-1 transition-[background-color] hover:bg-surface-tertiary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                variant="ghost"
+                className="mx-auto h-auto rounded-lg p-1 hover:bg-surface-tertiary/50 active:scale-100"
               >
                 <img
                   src={user.imageUrl}
                   alt={name}
                   className="h-7 w-7 rounded-full object-cover outline outline-1 -outline-offset-1 outline-separator"
                 />
-              </button>
+              </Button>
             </SidebarIconTooltip>
           ) : (
-            <button
+            <Button
               type="button"
-              className="flex w-full items-center gap-2.5 rounded-lg bg-surface-secondary p-2 text-left transition-[background-color] hover:bg-surface-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              variant="ghost"
+              className="h-auto w-full justify-start gap-2.5 rounded-lg bg-surface-secondary p-2 text-left hover:bg-surface-tertiary active:scale-100"
             >
               <img
                 src={user.imageUrl}
@@ -107,7 +109,7 @@ export function SidebarUserMenu({ collapsed }: SidebarUserMenuProps) {
                 )}
               </div>
               <IconSelector className="h-4 w-4 shrink-0 text-muted" />
-            </button>
+            </Button>
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent

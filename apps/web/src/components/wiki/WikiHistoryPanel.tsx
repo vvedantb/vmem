@@ -8,6 +8,7 @@ import type { Id } from "@vmem/backend";
 import {
   Badge,
   Button,
+  cn,
   Dialog,
   DialogContent,
   DialogHeader,
@@ -112,15 +113,17 @@ export function WikiHistoryPanel({
               </div>
             ) : (
               versions.map((ver) => (
-                <button
+                <Button
                   key={ver._id}
                   type="button"
+                  variant="ghost"
                   onClick={() => setSelectedId(ver._id)}
-                  className={`flex flex-col items-start gap-1 rounded-md px-2.5 py-2 text-left transition-[background-color] ${
+                  className={cn(
+                    "flex h-auto w-full flex-col items-start justify-start gap-1 rounded-md px-2.5 py-2 text-left transition-[background-color] active:scale-100",
                     ver._id === selectedId
-                      ? "bg-surface-tertiary"
-                      : "hover:bg-surface-tertiary/50"
-                  }`}
+                      ? "bg-surface-tertiary hover:bg-surface-tertiary"
+                      : "hover:bg-surface-tertiary/50",
+                  )}
                 >
                   <span className="text-xs font-medium text-foreground">
                     {formatRelativeTime(ver.createdAt)}
@@ -131,7 +134,7 @@ export function WikiHistoryPanel({
                   >
                     {ver.authorLabel}
                   </Badge>
-                </button>
+                </Button>
               ))
             )}
           </div>

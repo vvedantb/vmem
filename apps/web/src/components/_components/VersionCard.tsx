@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, cn } from "@vmem/ui";
+import { Badge, Button, cn } from "@vmem/ui";
 import type { VersionEntry } from "@/lib/timeline";
 import DiffDisplay from "./DiffDisplay";
 
@@ -76,11 +76,12 @@ export default function VersionCard({
     previousVersion.snapshot.title !== version.snapshot.title;
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onSelect}
       className={cn(
-        "w-full min-w-0 overflow-hidden rounded-lg p-4 text-left transition-[background-color]",
+        "h-auto w-full min-w-0 overflow-hidden rounded-lg p-4 text-left",
         isSelected
           ? "bg-surface-tertiary"
           : "bg-surface-secondary hover:bg-surface-tertiary",
@@ -164,6 +165,6 @@ export default function VersionCard({
           {version.snapshot.content}
         </p>
       )}
-    </button>
+    </Button>
   );
 }

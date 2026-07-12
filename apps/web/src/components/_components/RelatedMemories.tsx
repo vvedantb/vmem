@@ -159,8 +159,9 @@ export default function RelatedMemories({
               key={entry.memory.id}
               className="flex items-start gap-2 rounded-lg bg-surface-secondary p-3 transition-[background-color] hover:bg-surface-tertiary"
             >
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() =>
                   onSelectRelated({
                     id: entry.memory.id,
@@ -174,7 +175,7 @@ export default function RelatedMemories({
                     createdAt: entry.memory.createdAt,
                   })
                 }
-                className="min-w-0 flex-1 text-left"
+                className="h-auto min-w-0 flex-1 justify-start p-0 text-left font-normal hover:bg-transparent active:scale-100"
               >
                 <p className="truncate text-sm font-medium text-foreground">
                   {entry.memory.title}
@@ -185,7 +186,7 @@ export default function RelatedMemories({
                 <Badge variant="secondary" className="mt-2 text-[10px]">
                   {entry.reason}
                 </Badge>
-              </button>
+              </Button>
               <Button
                 variant="ghost"
                 size="icon-sm"

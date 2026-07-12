@@ -285,19 +285,21 @@ export default function MemoryGraph({
           <div className="flex items-center gap-0.5 rounded-lg bg-surface-secondary/40 p-0.5">
             <span className="px-1.5 text-xs text-muted">Depth</span>
             {LOCAL_GRAPH_DEPTHS.map((d) => (
-              <button
+              <Button
                 key={d}
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => onDepthChange(d)}
                 className={cn(
-                  "rounded-md px-2 py-1 text-xs transition-[background-color]",
+                  "h-auto rounded-md px-2 py-1 text-xs",
                   d === depth
                     ? "bg-surface-tertiary text-foreground"
                     : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
                 )}
               >
                 {d}
-              </button>
+              </Button>
             ))}
           </div>
         </div>

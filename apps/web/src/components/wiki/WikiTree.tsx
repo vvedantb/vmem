@@ -31,6 +31,7 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import {
+  Button,
   Checkbox,
   ContextMenu,
   ContextMenuContent,
@@ -466,8 +467,9 @@ function TreeItem({
       >
         <ContextMenu>
           <ContextMenuTrigger asChild>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               ref={setDragRef}
               onClick={handleActivate}
               style={{
@@ -477,9 +479,9 @@ function TreeItem({
               {...attributes}
               {...listeners}
               className={cn(
-                "group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm transition-[background-color,color]",
+                "group h-auto w-full justify-start gap-1.5 rounded-md px-2 py-1.5 text-left text-sm font-normal transition-[background-color,color] active:scale-100",
                 highlighted
-                  ? "bg-surface-tertiary font-medium text-foreground"
+                  ? "bg-surface-tertiary font-medium text-foreground hover:bg-surface-tertiary"
                   : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
               )}
             >
@@ -522,7 +524,7 @@ function TreeItem({
                   <IconDatabase size={13} className="text-muted" />
                 </span>
               ) : null}
-            </button>
+            </Button>
           </ContextMenuTrigger>
           <ContextMenuContent>
             {isFolder && (

@@ -206,10 +206,11 @@ function LogRowCard({
   const latency = `${row.latencyMs.toLocaleString()}ms`;
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onClick}
-      className="block w-full rounded-lg px-4 py-3 text-left transition-[background-color] hover:bg-surface-tertiary/50 focus:bg-surface-tertiary/50 focus:outline-none"
+      className="block h-auto w-full justify-start rounded-lg px-4 py-3 text-left font-normal hover:bg-surface-tertiary/50 focus:bg-surface-tertiary/50 active:scale-100"
     >
       <div className="hidden md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px_80px_72px] md:items-center md:gap-3">
         <span className="text-xs tabular-nums text-muted">{time}</span>
@@ -251,7 +252,7 @@ function LogRowCard({
           </span>
         </div>
       </div>
-    </button>
+    </Button>
   );
 }
 

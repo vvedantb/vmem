@@ -3,7 +3,17 @@
 import { useCallback, useEffect, useReducer } from "react";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { Button, Card, CardContent } from "@vmem/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@vmem/ui";
 import {
   IconPlugConnected,
   IconPlugConnectedX,
@@ -440,20 +450,23 @@ export default function PlaygroundClient() {
                 <label className="text-sm font-medium text-foreground block mb-1.5">
                   Tool
                 </label>
-                <select
-                  value={state.selectedTool}
-                  onChange={(e) =>
-                    dispatch({ type: "SELECT_TOOL", name: e.target.value })
+                <Select
+                  value={state.selectedTool || undefined}
+                  onValueChange={(name) =>
+                    dispatch({ type: "SELECT_TOOL", name })
                   }
-                  className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
                 >
-                  <option value="">Select a tool...</option>
-                  {state.tools.map((tool) => (
-                    <option key={tool.name} value={tool.name}>
-                      {tool.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a tool..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {state.tools.map((tool) => (
+                      <SelectItem key={tool.name} value={tool.name}>
+                        {tool.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {selectedToolInfo && (
@@ -476,7 +489,7 @@ export default function PlaygroundClient() {
                         </p>
                       )}
                       {prop.type === "array" ? (
-                        <input
+                        <Input
                           type="text"
                           value={state.paramValues[key] ?? ""}
                           onChange={(e) =>
@@ -487,10 +500,9 @@ export default function PlaygroundClient() {
                             })
                           }
                           placeholder='["tag1", "tag2"] or tag1, tag2'
-                          className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
                         />
                       ) : (
-                        <input
+                        <Input
                           type={prop.type === "number" ? "number" : "text"}
                           value={state.paramValues[key] ?? ""}
                           onChange={(e) =>
@@ -500,7 +512,6 @@ export default function PlaygroundClient() {
                               value: e.target.value,
                             })
                           }
-                          className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
                         />
                       )}
                     </div>

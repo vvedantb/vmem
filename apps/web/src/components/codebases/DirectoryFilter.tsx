@@ -98,13 +98,15 @@ export function DirectoryFilter({
       </div>
 
       {hasMore && !expanded && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => setExpanded(true)}
-          className="text-[10px] text-muted hover:text-foreground mt-1 px-1"
+          className="mt-1 h-auto px-1 text-[10px] text-muted hover:text-foreground"
         >
           Show {directories.length - COLLAPSED_LIMIT} more...
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 import type { MouseEventHandler } from "react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
-import { cn, motionDuration, motionEase } from "@vmem/ui";
+import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconChevronRight, IconUsers } from "@tabler/icons-react";
 import { IconTeams, IconSettings } from "../sidebar-icons";
 import type { NavGroup, NavItem } from "./types";
@@ -90,11 +90,12 @@ function SubSidebarNavButton({
 
   return (
     <SidebarIconTooltip label={item.label} enabled={isIconOnly}>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={onClick}
         className={cn(
-          "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.96]",
+          "group relative h-auto w-full justify-start rounded-lg text-sm font-medium tracking-normal transition-[transform,color] duration-200 ease-smooth active:scale-[0.96]",
           sidebarNavRowClass(isIconOnly),
           sidebarNavLinkTextClass(isActive),
         )}
@@ -127,7 +128,7 @@ function SubSidebarNavButton({
             className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100"
           />
         ) : null}
-      </button>
+      </Button>
     </SidebarIconTooltip>
   );
 }

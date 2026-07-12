@@ -90,19 +90,20 @@ export default function TagsTab({
     >
       <div className="p-2 border-b border-separator">
         <div className="flex items-center justify-between">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => onTagsChange?.([])}
             className={cn(
-              "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
+              "h-auto justify-start gap-2 rounded-md px-2 py-1.5 text-xs transition-colors active:scale-100",
               selectedTags.length === 0
-                ? "bg-surface-secondary text-foreground font-medium"
+                ? "bg-surface-secondary font-medium text-foreground hover:bg-surface-secondary"
                 : "hover:bg-surface-tertiary",
             )}
           >
             All tags
             <span className="text-muted/50 tabular-nums">{totalCount}</span>
-          </button>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon-xs" className="text-muted">

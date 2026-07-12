@@ -10,6 +10,7 @@ import {
   DialogDescription,
   Input,
   Badge,
+  Button,
   cn,
 } from "@vmem/ui";
 import { IconLink, IconLoader2, IconSearch } from "@tabler/icons-react";
@@ -82,12 +83,13 @@ function LinkMemoryRow({
 }) {
   return (
     <div className="pb-2">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         disabled={isDisabled}
         onClick={() => onLink(memory.id)}
         className={cn(
-          "flex w-full min-w-0 flex-col gap-2 rounded-lg bg-surface-secondary p-3 text-left transition-[background-color]",
+          "flex h-auto w-full min-w-0 flex-col gap-2 rounded-lg bg-surface-secondary p-3 text-left transition-[background-color]",
           "hover:bg-surface-tertiary disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >
@@ -135,7 +137,7 @@ function LinkMemoryRow({
             </Badge>
           ) : null}
         </div>
-      </button>
+      </Button>
     </div>
   );
 }

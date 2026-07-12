@@ -74,13 +74,16 @@ export default function GraphDetailPanel({
                 {formatDate(nodeData.createdAt)}
               </p>
             </div>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={onClose}
-              className="ml-2 p-1 rounded-md text-muted hover:text-foreground hover:bg-surface-tertiary/50 transition-colors flex-shrink-0"
+              className="ml-2 shrink-0 text-muted hover:text-foreground"
+              aria-label="Close panel"
             >
               <IconX size={16} />
-            </button>
+            </Button>
           </div>
 
           {/* Content */}
@@ -170,11 +173,12 @@ export default function GraphDetailPanel({
                 </p>
                 <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                   {relatedNodes.map((neighbor) => (
-                    <button
+                    <Button
                       key={neighbor.id}
                       type="button"
+                      variant="ghost"
                       onClick={() => onNavigate(neighbor.id)}
-                      className="w-full p-2.5 rounded-lg bg-surface-secondary/50 hover:bg-surface-tertiary transition-colors text-left"
+                      className="h-auto w-full rounded-lg bg-surface-secondary/50 p-2.5 text-left hover:bg-surface-tertiary"
                     >
                       <p className="text-sm font-medium text-foreground truncate">
                         {neighbor.title}
@@ -183,7 +187,7 @@ export default function GraphDetailPanel({
                         {neighbor.weight} shared tag
                         {neighbor.weight > 1 ? "s" : ""}
                       </p>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>

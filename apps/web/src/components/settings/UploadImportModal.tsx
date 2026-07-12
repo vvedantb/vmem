@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  Input,
 } from "@vmem/ui";
 import type { AvailableProvider } from "./importProviders";
 
@@ -62,7 +63,7 @@ export default function UploadImportModal({
             Drop export file here
           </span>
           <span className="mt-1">or click to choose a file</span>
-          <input
+          <Input
             type="file"
             accept={cfg.accept}
             className="sr-only"

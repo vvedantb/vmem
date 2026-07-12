@@ -59,10 +59,11 @@ export default function MoveFolderDialog({
 
         <div className="py-2 max-h-64 overflow-y-auto space-y-1">
           {/* Root option */}
-          <button
+          <Button
             type="button"
+            variant="ghost"
             className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
+              "flex h-auto w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
               selectedTarget === null
                 ? "bg-accent/10 text-accent"
                 : "text-foreground hover:bg-surface-tertiary",
@@ -71,15 +72,16 @@ export default function MoveFolderDialog({
           >
             <IconHome size={18} stroke={1.5} />
             Files (root)
-          </button>
+          </Button>
 
           {/* Folder list */}
           {destinations.map((folder) => (
-            <button
+            <Button
               key={folder.id}
               type="button"
+              variant="ghost"
               className={cn(
-                "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
+                "flex h-auto w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
                 selectedTarget === folder.id
                   ? "bg-accent/10 text-accent"
                   : "text-foreground hover:bg-surface-tertiary",
@@ -88,7 +90,7 @@ export default function MoveFolderDialog({
             >
               <IconFolder size={18} stroke={1.5} />
               {folder.name}
-            </button>
+            </Button>
           ))}
 
           {destinations.length === 0 && (

@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogFooter,
   Button,
+  Input,
   Progress,
 } from "@vmem/ui";
 import { toast } from "sonner";
@@ -255,7 +256,7 @@ export default function FileUploadModal({
               }
             `}
           >
-            <input
+            <Input
               ref={fileInputRef}
               type="file"
               multiple

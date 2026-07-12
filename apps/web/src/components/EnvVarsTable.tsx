@@ -12,6 +12,12 @@ import {
   Textarea,
   Card,
   CardContent,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
 } from "@vmem/ui";
 import {
   IconCheck,
@@ -252,21 +258,25 @@ export function EnvVarsTable({
         </div>
       ) : (
         <Card className="shadow-none overflow-hidden">
-          <CardContent className="overflow-x-auto p-0">
-            <table className="w-full text-sm min-w-[360px]">
-              <thead>
-                <tr className="text-left text-muted">
-                  <th className="px-2.5 py-2.5 font-medium sm:px-4">Key</th>
-                  <th className="px-2.5 py-2.5 font-medium sm:px-4">Value</th>
-                  <th className="px-2.5 py-2.5 text-right font-medium sm:px-4">
+          <CardContent className="p-0">
+            <Table className="min-w-[360px]">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="px-2.5 py-2.5 font-medium sm:px-4">
+                    Key
+                  </TableHead>
+                  <TableHead className="px-2.5 py-2.5 font-medium sm:px-4">
+                    Value
+                  </TableHead>
+                  <TableHead className="px-2.5 py-2.5 text-right font-medium sm:px-4">
                     Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {adding && (
-                  <tr>
-                    <td className="px-2.5 py-2.5 sm:px-4">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell className="px-2.5 py-2.5 sm:px-4">
                       <Input
                         value={addKey}
                         onChange={(e) => setAddKey(e.target.value)}
@@ -278,8 +288,8 @@ export function EnvVarsTable({
                           if (e.key === "Escape") cancelAdd();
                         }}
                       />
-                    </td>
-                    <td className="px-2.5 py-2.5 sm:px-4">
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2.5 sm:px-4">
                       <Input
                         value={addValue}
                         onChange={(e) => setAddValue(e.target.value)}
@@ -290,8 +300,8 @@ export function EnvVarsTable({
                           if (e.key === "Escape") cancelAdd();
                         }}
                       />
-                    </td>
-                    <td className="px-2.5 py-2.5 text-right sm:px-4">
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2.5 text-right sm:px-4">
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           size="icon-sm"
@@ -314,14 +324,14 @@ export function EnvVarsTable({
                           <IconX size={14} />
                         </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
                 {sortedVars.map((entry) => {
                   const isEditing = editingKey === entry.key;
                   return (
-                    <tr key={entry.key}>
-                      <td className="px-2.5 py-2.5 font-mono text-xs sm:px-4">
+                    <TableRow key={entry.key} className="hover:bg-transparent">
+                      <TableCell className="px-2.5 py-2.5 font-mono text-xs sm:px-4">
                         {isEditing ? (
                           <Input
                             value={editKeyDraft}
@@ -337,8 +347,8 @@ export function EnvVarsTable({
                         ) : (
                           entry.key
                         )}
-                      </td>
-                      <td className="px-2.5 py-2.5 sm:px-4">
+                      </TableCell>
+                      <TableCell className="px-2.5 py-2.5 sm:px-4">
                         {isEditing ? (
                           <Input
                             value={editValueDraft}
@@ -355,8 +365,8 @@ export function EnvVarsTable({
                             {revealedValues[entry.key] ?? entry.value}
                           </span>
                         )}
-                      </td>
-                      <td className="px-2.5 py-2.5 text-right sm:px-4">
+                      </TableCell>
+                      <TableCell className="px-2.5 py-2.5 text-right sm:px-4">
                         {isEditing ? (
                           <div className="flex items-center justify-end gap-1">
                             <Button
@@ -432,12 +442,12 @@ export function EnvVarsTable({
                             </Button>
                           </div>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}

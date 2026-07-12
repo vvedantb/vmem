@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  Input,
 } from "@vmem/ui";
 import { IconLoader2, IconUpload } from "@tabler/icons-react";
 import { toast } from "sonner";
@@ -154,7 +155,7 @@ export function UploadSkillDialog({
             </p>
             <p className="text-xs text-muted">or click to choose a .md file</p>
           </div>
-          <input
+          <Input
             type="file"
             accept=".md,.markdown,text/markdown"
             className="sr-only"

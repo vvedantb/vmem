@@ -97,11 +97,12 @@ export function SkillHistoryPanel({
               </div>
             ) : (
               versions.map((ver) => (
-                <button
+                <Button
                   key={ver._id}
                   type="button"
+                  variant="ghost"
                   onClick={() => setSelectedId(ver._id)}
-                  className={`flex flex-col items-start gap-1 rounded-md px-2.5 py-2 text-left transition-[background-color] ${
+                  className={`flex h-auto w-full flex-col items-start gap-1 rounded-md px-2.5 py-2 text-left ${
                     ver._id === selectedId
                       ? "bg-surface-tertiary"
                       : "hover:bg-surface-tertiary/50"
@@ -116,7 +117,7 @@ export function SkillHistoryPanel({
                   >
                     {ver.authorLabel}
                   </Badge>
-                </button>
+                </Button>
               ))
             )}
           </div>

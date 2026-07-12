@@ -1,6 +1,6 @@
 "use client";
 
-import { Checkbox, cn, TabsPrimitive } from "@vmem/ui";
+import { Button, Checkbox, cn, TabsPrimitive } from "@vmem/ui";
 import { Virtuoso } from "react-virtuoso";
 import { formatMemorySourceLabel } from "@/lib/memories";
 import { isCheckedByDefault, toggleCheckedByDefault } from "./checkedByDefault";
@@ -65,13 +65,14 @@ export default function SourceTab({
       className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
     >
       <div className="p-2 border-b border-separator">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => onSourcesChange?.([])}
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
+            "h-auto w-full justify-start gap-2 rounded-md px-2 py-1.5 text-xs transition-colors active:scale-100",
             selectedSources.length === 0
-              ? "bg-surface-secondary text-foreground font-medium"
+              ? "bg-surface-secondary font-medium text-foreground hover:bg-surface-secondary"
               : "hover:bg-surface-tertiary",
           )}
         >
@@ -79,7 +80,7 @@ export default function SourceTab({
           <span className="ml-auto text-muted/50 tabular-nums">
             {totalCount}
           </span>
-        </button>
+        </Button>
       </div>
       {distinctSources.length === 0 ? (
         <div className="p-3 text-xs text-muted text-center">No sources yet</div>
