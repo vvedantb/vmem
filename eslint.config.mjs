@@ -13,7 +13,7 @@ import tseslint from "typescript-eslint";
  * This ESLint config stays syntax-only so the custom AST ban stays fast.
  */
 const isRecordMessage =
-  "`isRecord` is banned. If you are reaching for a `Record<string, unknown>` type guard, the real bug is that an `unknown` (or `any`) value exists at this point in the code at all — this codebase forbids `unknown`. Do NOT rename the function or suppress this rule. Fix the source first: type the data where it is produced, or parse external input at its boundary with a zod schema (`schema.safeParse(...)`) so downstream code is fully typed.";
+  "`isRecord` is banned. Do not rename the helper or suppress this rule. `unknown` is fine at parse/catch boundaries — narrow immediately with zod (`schema.safeParse(...)`). Do not invent `Reflect.get` / `objectField` / fetch-instanceof ceremonies to appease lint; parse external JSON with zod when shaping data.";
 
 const bannedIsRecord = [
   ":matches(FunctionDeclaration, TSDeclareFunction)[id.name='isRecord']",
