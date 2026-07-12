@@ -29,7 +29,7 @@ import {
 import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import AddMemoryModal from "@/components/AddMemoryModal";
-import SearchPopover from "./SearchPopover";
+import HeaderSearchInput from "./HeaderSearchInput";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
 import {
   CLEARED_MEMORY_VIEW_FILTERS,
@@ -102,7 +102,7 @@ export default function MemoryListHeaderControls() {
         view={params.view}
         onChange={(view) => setParams({ view })}
       />
-      <SearchPopover
+      <HeaderSearchInput
         value={params.q}
         onChange={(q) => setParams({ q: q.trim().length === 0 ? null : q })}
         placeholder={

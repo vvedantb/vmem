@@ -4,7 +4,7 @@
  * Codebase-graph header controls.
  *
  * Two buttons in the page header:
- *   - Search popover (separate per CLAUDE.md UI rules — search isn't a filter)
+ *   - Search field (separate per CLAUDE.md UI rules — search isn't a filter)
  *   - Filters popover with Kinds + Process + Directory sections (consolidated)
  *
  * The active-count badge on the Filters button counts each non-default field
@@ -34,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@vmem/ui";
-import SearchPopover from "@/components/_components/SearchPopover";
+import HeaderSearchInput from "@/components/_components/HeaderSearchInput";
 import { DirectoryFilter } from "./DirectoryFilter";
 import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 import type { CodeNode, CodeNodeKind } from "@/hooks/useCodebaseGraphData";
@@ -62,7 +62,7 @@ export default function CodebaseGraphHeaderControls({
 }: CodebaseGraphHeaderControlsProps) {
   return (
     <div className="flex items-center gap-1.5">
-      <SearchPopover
+      <HeaderSearchInput
         value={controller.search}
         onChange={controller.onSearchChange}
         placeholder="Search symbols..."

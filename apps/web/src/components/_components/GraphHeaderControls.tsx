@@ -31,7 +31,7 @@ import {
   Separator,
 } from "@vmem/ui";
 import AddMemoryModal from "@/components/AddMemoryModal";
-import SearchPopover from "./SearchPopover";
+import HeaderSearchInput from "./HeaderSearchInput";
 import GraphLegend from "./GraphLegend";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
@@ -89,7 +89,7 @@ export default function GraphHeaderControls({
 }: GraphHeaderControlsProps) {
   return (
     <div className="flex items-center gap-1.5">
-      <SearchPopover
+      <HeaderSearchInput
         value={controller.search}
         onChange={controller.onSearchChange}
         placeholder="Search nodes..."
