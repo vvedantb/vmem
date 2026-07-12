@@ -170,6 +170,10 @@
     },
     {
       // legacy useEffect — shrink, never grow
+      // WARNING: "off" below disables no-restricted-imports entirely for these
+      // files. Any new path added to the restricting override above (~154-170)
+      // must also be re-declared inside this override, or it will silently go
+      // unenforced here.
       "files": [
         "apps/chrome-extension/src/popup/App.tsx",
         "apps/chrome-extension/src/popup/_components/ImportPanel.tsx",

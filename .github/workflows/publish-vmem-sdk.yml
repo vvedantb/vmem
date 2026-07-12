@@ -12,6 +12,7 @@ on:
       - "packages/sdk/src/**"
       - "packages/sdk/README.md"
       - "packages/sdk/tsconfig.json"
+      - "tsconfig.base.json"
   workflow_dispatch:
 
 concurrency:
