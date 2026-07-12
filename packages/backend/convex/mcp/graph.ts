@@ -147,29 +147,17 @@ function slimRelatesEdgeForMcp(edge: RelatesToEdge): RelatesToEdge {
   };
 }
 
-function capEdgesForNodes(
-  edges: RelatesToEdge[],
+/** Filter edges to those spanning the kept node set, cap the count, and slim each. */
+function capEdges<T extends { source: string; target: string }>(
+  edges: T[],
   nodeIds: Set<string>,
   maxEdges: number,
-): RelatesToEdge[] {
-  const capped: RelatesToEdge[] = [];
+  slim: (edge: T) => T = (edge) => edge,
+): T[] {
+  const capped: T[] = [];
   for (const edge of edges) {
     if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) continue;
-    capped.push(slimRelatesEdgeForMcp(edge));
-    if (capped.length >= maxEdges) break;
-  }
-  return capped;
-}
-
-function capTagEdgesForNodes(
-  edges: McpTagEdge[],
-  nodeIds: Set<string>,
-  maxEdges: number,
-): McpTagEdge[] {
-  const capped: McpTagEdge[] = [];
-  for (const edge of edges) {
-    if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) continue;
-    capped.push(edge);
+    capped.push(slim(edge));
     if (capped.length >= maxEdges) break;
   }
   return capped;
@@ -193,12 +181,13 @@ function capMemoryGraph(
   const maxRelates = limit * MAX_RELATES_EDGES_PER_NODE;
   const maxTag = limit * MAX_TAG_EDGES_PER_NODE;
   const nodes = nodeSlice.map(slimNodeForMcp);
-  const relatesToEdges = capEdgesForNodes(
+  const relatesToEdges = capEdges(
     graph.relatesToEdges,
     nodeIds,
     maxRelates,
+    slimRelatesEdgeForMcp,
   );
-  const tagEdges = capTagEdgesForNodes(graph.tagEdges, nodeIds, maxTag);
+  const tagEdges = capEdges(graph.tagEdges, nodeIds, maxTag);
   const truncated =
     totalNodesBeforeCap > limit ||
     graph.relatesToEdges.length > relatesToEdges.length ||
