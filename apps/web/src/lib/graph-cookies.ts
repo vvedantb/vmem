@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
   DEFAULT_GRAPH_SETTINGS,
   type GraphSettings,
@@ -7,6 +8,13 @@ import type { ViewMode } from "@/components/_components/graph-view-themes";
 const COOKIE_KEY = "vmem-graph-settings";
 const VIEW_MODE_KEY = "vmem-graph-view-mode";
 const MAX_AGE = 60 * 60 * 24 * 365;
+
+const graphSettingsCookieSchema = z.object({
+  scalingRatio: z.number().finite().optional(),
+  gravity: z.number().finite().optional(),
+  showLabels: z.boolean().optional(),
+});
+
 function isViewMode(v: string): v is ViewMode {
   return (
     v === "default" ||
@@ -27,21 +35,15 @@ export function getGraphSettings(): GraphSettings {
   if (!match) return DEFAULT_GRAPH_SETTINGS;
 
   try {
-    const parsed = JSON.parse(decodeURIComponent(match.split("=")[1]));
-    const num = (v: unknown, fallback: number) => {
-      const n = Number(v);
-      return Number.isFinite(n) ? n : fallback;
-    };
+    const parsed = graphSettingsCookieSchema.safeParse(
+      JSON.parse(decodeURIComponent(match.split("=")[1])),
+    );
+    if (!parsed.success) return DEFAULT_GRAPH_SETTINGS;
     return {
-      scalingRatio: num(
-        parsed.scalingRatio,
-        DEFAULT_GRAPH_SETTINGS.scalingRatio,
-      ),
-      gravity: num(parsed.gravity, DEFAULT_GRAPH_SETTINGS.gravity),
-      showLabels:
-        typeof parsed.showLabels === "boolean"
-          ? parsed.showLabels
-          : DEFAULT_GRAPH_SETTINGS.showLabels,
+      scalingRatio:
+        parsed.data.scalingRatio ?? DEFAULT_GRAPH_SETTINGS.scalingRatio,
+      gravity: parsed.data.gravity ?? DEFAULT_GRAPH_SETTINGS.gravity,
+      showLabels: parsed.data.showLabels ?? DEFAULT_GRAPH_SETTINGS.showLabels,
     };
   } catch {
     return DEFAULT_GRAPH_SETTINGS;

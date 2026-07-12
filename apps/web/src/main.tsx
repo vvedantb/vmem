@@ -38,12 +38,12 @@ window.addEventListener("vite:preloadError", handleStaleDeployment);
 // Catch chunk loading failures that bypass Vite's preload detection
 // (e.g. dynamic imports triggered by route navigation or lazy components).
 window.addEventListener("error", (event) => {
-  if (isChunkLoadError(event.error)) {
+  if (event.error instanceof Error && isChunkLoadError(event.error)) {
     handleStaleDeployment(event);
   }
 });
 window.addEventListener("unhandledrejection", (event) => {
-  if (isChunkLoadError(event.reason)) {
+  if (event.reason instanceof Error && isChunkLoadError(event.reason)) {
     handleStaleDeployment(event);
   }
 });

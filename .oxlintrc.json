@@ -34,9 +34,6 @@
         "types": {
           "any": {
             "message": "`any` is banned. Type the data where it is produced, or parse external input at its boundary with a zod schema (`schema.safeParse(...)`) so downstream code is fully typed. Do NOT suppress this rule."
-          },
-          "unknown": {
-            "message": "`unknown` is banned outside catch/JSON parse boundaries. If you are reaching for `unknown`, parse with zod at the boundary (`schema.safeParse(...)`) so downstream code is fully typed. In `catch`, use `unknown` and parse immediately — do NOT suppress this rule."
           }
         }
       }

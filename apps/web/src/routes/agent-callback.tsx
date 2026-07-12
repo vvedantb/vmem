@@ -8,8 +8,8 @@ import { useEffect, useRef } from "react";
 
 export const Route = createFileRoute("/agent-callback")({
   component: AgentCallback,
-  validateSearch: (search: Record<string, unknown>) => ({
-    ticket: (search.ticket as string) ?? "",
+  validateSearch: (search: { ticket?: string }) => ({
+    ticket: typeof search.ticket === "string" ? search.ticket : "",
   }),
 });
 
@@ -32,8 +32,11 @@ function AgentCallback() {
           });
         }
       })
-      .catch((err: Error) => {
-        console.error("Agent sign-in failed:", err);
+      .catch((err: unknown) => {
+        console.error(
+          "Agent sign-in failed:",
+          err instanceof Error ? err.message : err,
+        );
       });
   }, [signIn, setActive, ticket, navigate]);
 

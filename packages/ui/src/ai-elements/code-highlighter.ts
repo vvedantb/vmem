@@ -198,8 +198,11 @@ export const code: CodeHighlighterPlugin = {
           pendingCallbacks.delete(key);
         }
       })
-      .catch((error) => {
-        console.error("[vmem code highlighter] failed to highlight:", error);
+      .catch((error: unknown) => {
+        console.error(
+          "[vmem code highlighter] failed to highlight:",
+          error instanceof Error ? error.message : error,
+        );
         pendingCallbacks.delete(key);
       });
 

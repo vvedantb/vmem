@@ -95,7 +95,12 @@ export default function FileToolbar({
 
   return (
     <div className="flex items-center gap-2">
-      <Tabs value={view} onValueChange={(v) => onViewChange(v as FileView)}>
+      <Tabs
+        value={view}
+        onValueChange={(v) => {
+          if (v === "grid" || v === "list") onViewChange(v);
+        }}
+      >
         <TabsList className="h-8">
           <TabsTrigger value="grid" className="h-6 px-2">
             <IconLayoutGrid size={15} />

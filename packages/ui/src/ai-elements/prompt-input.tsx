@@ -126,7 +126,8 @@ function PromptInputTextarea({
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      const form = (e.target as HTMLElement).closest("form");
+      // `currentTarget` is the textarea; avoid `as HTMLElement` on `target`.
+      const form = e.currentTarget.closest("form");
       if (form) form.requestSubmit();
     }
   }, []);
