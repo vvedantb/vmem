@@ -1,23 +1,32 @@
 import type { KnipConfig } from "knip";
 
 /**
- * Unresolved-import gate for CI.
+ * Dead-code/dependency gate for CI.
  *
- * Unused deps/exports stay off for now (noisy across apps). Promote
- * `dependencies` / `unlisted` to error after a dedicated cleanup PR.
+ * `nsExports` / `nsTypes` / `enumMembers` / `duplicates` / `binaries` /
+ * `unresolved` are errors and clean repo-wide. `nsExports` / `nsTypes` are
+ * opt-in issue types in knip — `include` turns them on; setting their
+ * `rules` entry alone would be a no-op.
+ *
+ * `dependencies` / `unlisted` / `exports` / `types` stay off: real findings
+ * remain (unused deps, an unlisted `vite/client`, dead exports) that can't
+ * be closed by config alone without deleting code — see DESIRES.md.
+ * `catalog` stays off because syncpack (not knip) owns dependency-version
+ * catalog membership.
  */
 const config: KnipConfig = {
+  include: ["nsExports", "nsTypes"],
   rules: {
     exports: "off",
     types: "off",
-    nsExports: "off",
-    nsTypes: "off",
-    enumMembers: "off",
+    nsExports: "error",
+    nsTypes: "error",
+    enumMembers: "error",
     catalog: "off",
-    duplicates: "off",
+    duplicates: "error",
     dependencies: "off",
     unlisted: "off",
-    binaries: "off",
+    binaries: "error",
     unresolved: "error",
   },
   workspaces: {
@@ -42,6 +51,9 @@ const config: KnipConfig = {
       entry: ["src/**/*.{ts,tsx}!"],
       project: ["src/**/*.{ts,tsx}"],
       vite: false,
+      // tailwindcss / tailwindcss-animate: used by globals.css `@import`/`@plugin`;
+      // invisible to knip because vite is off and build scripts are untracked (afe1d9b9).
+      ignoreDependencies: ["tailwindcss", "tailwindcss-animate"],
     },
     "packages/backend": {
       entry: [
@@ -50,12 +62,15 @@ const config: KnipConfig = {
         "neo4j-cli/**/*.ts!",
         "tests/**/*.ts!",
         "index.ts!",
+        // Build tooling invoked via `deploy` -> `build:mcp-graph-ui`; pulls in esbuild.
+        "scripts/**/*.mjs!",
       ],
       project: [
         "convex/**/*.ts",
         "engine/**/*.ts",
         "neo4j-cli/**/*.ts",
         "tests/**/*.ts",
+        "scripts/**/*.mjs",
       ],
       ignore: ["convex/_generated/**"],
     },
