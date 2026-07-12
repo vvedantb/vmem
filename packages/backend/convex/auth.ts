@@ -15,8 +15,23 @@ import {
 } from "convex-helpers/server/customFunctions";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { DEFAULT_PROFILE_COLOR } from "./profiles/helpers";
+
+/**
+ * Look up a user by their Clerk subject id. The canonical `by_clerk_id`
+ * lookup — every place that resolves a Clerk id to a Convex user row
+ * (auth, MCP internal functions, dream triggers) goes through here.
+ */
+export async function getUserByClerkId(
+  ctx: QueryCtx | MutationCtx,
+  clerkId: string,
+): Promise<Doc<"users"> | null> {
+  return await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+    .first();
+}
 
 export async function getCurrentUserId(
   ctx: QueryCtx | MutationCtx,
@@ -26,10 +41,7 @@ export async function getCurrentUserId(
   const clerkUserId = identity.subject;
   if (!clerkUserId) throw new Error("Not authenticated");
 
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkUserId))
-    .first();
+  const user = await getUserByClerkId(ctx, clerkUserId);
   if (!user) throw new Error("Not authenticated");
 
   return user._id;
@@ -122,10 +134,7 @@ export const ensureUserExists = mutation({
       throw new Error("Clerk user ID is required");
     }
 
-    const existingUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkUserId))
-      .first();
+    const existingUser = await getUserByClerkId(ctx, clerkUserId);
 
     if (existingUser) {
       return { userId: existingUser._id, wasCreated: false };

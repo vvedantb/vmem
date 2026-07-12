@@ -2,6 +2,7 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { getUserByClerkId } from "./auth";
 import { dayKeyForUtc, MIN_NEW_MEMORIES } from "./lib/dreamTriggerDecision";
 
 /**
@@ -14,16 +15,6 @@ import { dayKeyForUtc, MIN_NEW_MEMORIES } from "./lib/dreamTriggerDecision";
  * `decideDreamCheck`. Kept in the Convex query/mutation runtime so the
  * Node-only dream actions reach it via `ctx.runQuery`/`ctx.runMutation`.
  */
-
-async function getUserByClerkId(
-  ctx: QueryCtx,
-  clerkId: string,
-): Promise<Doc<"users"> | null> {
-  return await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
-    .first();
-}
 
 async function getStateRow(
   ctx: QueryCtx,

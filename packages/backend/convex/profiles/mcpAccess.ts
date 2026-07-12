@@ -6,6 +6,7 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { getUserByClerkId } from "../auth";
 
 export const mcpScopeValidator = v.union(
   v.literal("personal"),
@@ -13,16 +14,6 @@ export const mcpScopeValidator = v.union(
 );
 
 export type McpScope = "personal" | "team";
-
-async function getUserByClerkId(
-  ctx: QueryCtx,
-  clerkId: string,
-): Promise<Doc<"users"> | null> {
-  return await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
-    .first();
-}
 
 async function listPersonalProfiles(
   ctx: QueryCtx,

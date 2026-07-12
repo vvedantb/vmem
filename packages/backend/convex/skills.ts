@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { authQuery, authMutation } from "./auth";
+import { authQuery, authMutation, getUserByClerkId } from "./auth";
 import { scheduleContextPromptInvalidationForUser } from "./lib/contextPromptInvalidate";
 import {
   deleteVersionsForSkill,
@@ -157,6 +157,87 @@ async function invalidateContextPromptIfPersonal(
 }
 
 /**
+ * Reject a skill name already taken in the target scope. Team scopes compete
+ * only with that team's names; personal scopes also clash with the user's
+ * installed system skills (both resolve into one effective list). Shared by
+ * the web and MCP create paths.
+ */
+async function assertSkillNameAvailableInScope(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+  trimmedName: string,
+): Promise<void> {
+  const existing = await findSkillByNameInScope(
+    ctx,
+    userId,
+    teamId,
+    trimmedName,
+  );
+  if (existing) {
+    throw new Error("A skill with this name already exists");
+  }
+  if (
+    teamId === undefined &&
+    (await userHasInstalledSystemSkillNamed(ctx, userId, trimmedName))
+  ) {
+    throw new Error(
+      "A system skill with this name is installed. Uninstall it or choose another name.",
+    );
+  }
+}
+
+/** User-editable skill fields, all optional (a patch or an update request). */
+type SkillWritableFields = {
+  name?: string;
+  description?: string;
+  instructions?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Assemble the patch for a skill update from optionally-provided fields,
+ * applying the name trim + in-scope uniqueness check (only when the name
+ * actually changes, against the skill's own scope). Shared by the web
+ * `updateSkill` and MCP `updateByClerkIdInternal` so both validate identically.
+ */
+async function buildSkillUpdatePatch(
+  ctx: QueryCtx | MutationCtx,
+  skill: Doc<"skills">,
+  fields: SkillWritableFields,
+): Promise<SkillWritableFields & { updatedAt: number }> {
+  const patch: SkillWritableFields & { updatedAt: number } = {
+    updatedAt: Date.now(),
+  };
+
+  if (fields.name !== undefined) {
+    const trimmedName = fields.name.trim();
+    if (trimmedName.length === 0) {
+      throw new Error("Name is required");
+    }
+    if (trimmedName !== skill.name) {
+      const duplicate = await findSkillByNameInScope(
+        ctx,
+        skill.userId,
+        skill.teamId,
+        trimmedName,
+      );
+      if (duplicate) {
+        throw new Error("A skill with this name already exists");
+      }
+    }
+    patch.name = trimmedName;
+  }
+  if (fields.description !== undefined) patch.description = fields.description;
+  if (fields.instructions !== undefined) {
+    patch.instructions = fields.instructions;
+  }
+  if (fields.enabled !== undefined) patch.enabled = fields.enabled;
+
+  return patch;
+}
+
+/**
  * List skills in a scope, newest-first. No `teamId` = the user's personal
  * skills (shared across all personal workspaces); `teamId` = that team's
  * skills (members only).
@@ -211,25 +292,12 @@ export const createSkill = authMutation({
       throw new Error("Name is required");
     }
 
-    const existing = await findSkillByNameInScope(
+    await assertSkillNameAvailableInScope(
       ctx,
       ctx.userId,
       args.teamId,
       trimmedName,
     );
-    if (existing) {
-      throw new Error("A skill with this name already exists");
-    }
-    // Personal skills share a namespace with installed system skills (both
-    // resolve into the same effective list), so reject a clash there too.
-    if (
-      args.teamId === undefined &&
-      (await userHasInstalledSystemSkillNamed(ctx, ctx.userId, trimmedName))
-    ) {
-      throw new Error(
-        "A system skill with this name is installed. Uninstall it or choose another name.",
-      );
-    }
 
     const now = Date.now();
     const id = await ctx.db.insert("skills", {
@@ -266,36 +334,12 @@ export const updateSkill = authMutation({
     if (!skill) throw new Error("Skill not found");
     await assertContentEditable(ctx, skill, ctx.userId);
 
-    const patch: {
-      name?: string;
-      description?: string;
-      instructions?: string;
-      enabled?: boolean;
-      updatedAt: number;
-    } = { updatedAt: Date.now() };
-
-    if (args.name !== undefined) {
-      const trimmedName = args.name.trim();
-      if (trimmedName.length === 0) {
-        throw new Error("Name is required");
-      }
-      // If renaming, ensure no duplicate exists within the skill's scope.
-      if (trimmedName !== skill.name) {
-        const duplicate = await findSkillByNameInScope(
-          ctx,
-          skill.userId,
-          skill.teamId,
-          trimmedName,
-        );
-        if (duplicate) {
-          throw new Error("A skill with this name already exists");
-        }
-      }
-      patch.name = trimmedName;
-    }
-    if (args.description !== undefined) patch.description = args.description;
-    if (args.instructions !== undefined) patch.instructions = args.instructions;
-    if (args.enabled !== undefined) patch.enabled = args.enabled;
+    const patch = await buildSkillUpdatePatch(ctx, skill, {
+      name: args.name,
+      description: args.description,
+      instructions: args.instructions,
+      enabled: args.enabled,
+    });
 
     await maybeSnapshotSkillVersion(ctx, skill, {
       source: "web",
@@ -402,10 +446,7 @@ export const restoreVersion = authMutation({
 export const listEffectiveByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args): Promise<EffectiveSkill[]> => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
     if (!user) return [];
     return await resolveEffectiveSkills(ctx, user._id);
   },
@@ -419,10 +460,7 @@ export const listEffectiveByClerkIdInternal = internalQuery({
 export const getEffectiveByNameInternal = internalQuery({
   args: { clerkId: v.string(), name: v.string() },
   handler: async (ctx, args): Promise<EffectiveSkill | null> => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
     if (!user) return null;
     const lookup = args.name.trim().toLowerCase();
     const effective = await resolveEffectiveSkills(ctx, user._id);
@@ -436,10 +474,7 @@ export const getEffectiveByNameInternal = internalQuery({
 export const listByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
     if (!user) return [];
 
     const rows = await ctx.db
@@ -462,10 +497,7 @@ export const createByClerkIdInternal = internalMutation({
     instructions: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
     if (!user) {
       throw new Error("User not found");
     }
@@ -475,20 +507,12 @@ export const createByClerkIdInternal = internalMutation({
       throw new Error("Name is required");
     }
 
-    const existing = await findSkillByNameInScope(
+    await assertSkillNameAvailableInScope(
       ctx,
       user._id,
       undefined,
       trimmedName,
     );
-    if (existing) {
-      throw new Error("A skill with this name already exists");
-    }
-    if (await userHasInstalledSystemSkillNamed(ctx, user._id, trimmedName)) {
-      throw new Error(
-        "A system skill with this name is installed. Uninstall it or choose another name.",
-      );
-    }
 
     const now = Date.now();
     const id = await ctx.db.insert("skills", {
@@ -532,10 +556,7 @@ export const updateByClerkIdInternal = internalMutation({
       throw new Error("At least one field to update is required");
     }
 
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
     if (!user) {
       throw new Error("User not found");
     }
@@ -551,35 +572,12 @@ export const updateByClerkIdInternal = internalMutation({
       throw new Error("Skill not found");
     }
 
-    const patch: {
-      name?: string;
-      description?: string;
-      instructions?: string;
-      enabled?: boolean;
-      updatedAt: number;
-    } = { updatedAt: Date.now() };
-
-    if (args.newName !== undefined) {
-      const trimmedName = args.newName.trim();
-      if (trimmedName.length === 0) {
-        throw new Error("Name is required");
-      }
-      if (trimmedName !== skill.name) {
-        const duplicate = await findSkillByNameInScope(
-          ctx,
-          user._id,
-          undefined,
-          trimmedName,
-        );
-        if (duplicate) {
-          throw new Error("A skill with this name already exists");
-        }
-      }
-      patch.name = trimmedName;
-    }
-    if (args.description !== undefined) patch.description = args.description;
-    if (args.instructions !== undefined) patch.instructions = args.instructions;
-    if (args.enabled !== undefined) patch.enabled = args.enabled;
+    const patch = await buildSkillUpdatePatch(ctx, skill, {
+      name: args.newName,
+      description: args.description,
+      instructions: args.instructions,
+      enabled: args.enabled,
+    });
 
     // Agent (MCP) writes always checkpoint the pre-write state.
     await maybeSnapshotSkillVersion(ctx, skill, {
@@ -605,10 +603,7 @@ export const deleteByClerkIdInternal = internalMutation({
   args: { clerkId: v.string(), name: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
     if (!user) {
       throw new Error("User not found");
     }
