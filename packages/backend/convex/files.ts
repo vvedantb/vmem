@@ -1,9 +1,10 @@
 import { v } from "convex/values";
-import { authMutation, authQuery, getUserByClerkId } from "./auth";
+import { authMutation, authQuery } from "./auth";
 import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { getUserIdByClerkId } from "./lib/clerkUser";
 import {
   FILE_STORAGE_LIMIT_BYTES,
   collectSubtreeIds,
@@ -349,17 +350,6 @@ export const deleteNodes = authMutation({
 // ─────────────────────────────────────────────────────────────────────────────
 // Internal helpers for MCP file tools (after JWT verification, by clerkId).
 // ─────────────────────────────────────────────────────────────────────────────
-
-async function getUserIdByClerkId(
-  ctx: QueryCtx | MutationCtx,
-  clerkId: string,
-): Promise<Id<"users">> {
-  const user = await getUserByClerkId(ctx, clerkId);
-  if (!user) {
-    throw new Error("User not found");
-  }
-  return user._id;
-}
 
 /**
  * All PERSONAL file nodes for a user, by clerkId. MCP path resolution runs

@@ -1,4 +1,9 @@
 import type { Doc, Id } from "../_generated/dataModel";
+import {
+  buildChildrenByParent,
+  collectSubtreeIds,
+  parentKey,
+} from "../lib/scopedTree";
 
 /**
  * Pure tree/path helpers shared by the web-facing file functions (`files.ts`)
@@ -39,12 +44,7 @@ export function detectFileKind(
   return null;
 }
 
-const ROOT_KEY = "__root__";
-
-/** Map a node's parentId to the children-bucket key (root nodes share one key). */
-function parentKey(parentId: Id<"fileNodes"> | undefined): string {
-  return parentId ?? ROOT_KEY;
-}
+export { buildChildrenByParent, collectSubtreeIds };
 
 /**
  * Split a `/`-separated path into clean segments. Tolerates leading/trailing
@@ -56,20 +56,6 @@ export function normalizePathSegments(path: string): string[] {
     .split("/")
     .map((segment) => segment.trim())
     .filter((segment) => segment.length > 0);
-}
-
-/** Group nodes by parent for O(1) child lookups during tree walks. */
-export function buildChildrenByParent(
-  nodes: Array<Doc<"fileNodes">>,
-): Map<string, Array<Doc<"fileNodes">>> {
-  const byParent = new Map<string, Array<Doc<"fileNodes">>>();
-  for (const node of nodes) {
-    const key = parentKey(node.parentId);
-    const list = byParent.get(key) ?? [];
-    list.push(node);
-    byParent.set(key, list);
-  }
-  return byParent;
 }
 
 /** Find a direct child of `parentId` (root when undefined) by exact name. */
@@ -120,27 +106,6 @@ export function nodePath(
     cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
   }
   return parts.reverse().join("/");
-}
-
-/** Collect a node and all of its descendants (ids), depth-first. */
-export function collectSubtreeIds(
-  nodes: Array<Doc<"fileNodes">>,
-  rootId: Id<"fileNodes">,
-): Array<Id<"fileNodes">> {
-  const byParent = buildChildrenByParent(nodes);
-  const ids: Array<Id<"fileNodes">> = [];
-  const stack: Array<Id<"fileNodes">> = [rootId];
-  const seen = new Set<string>();
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (!current || seen.has(current)) continue;
-    seen.add(current);
-    ids.push(current);
-    for (const child of byParent.get(current) ?? []) {
-      stack.push(child._id);
-    }
-  }
-  return ids;
 }
 
 /** True if `candidateAncestorId` is `nodeId` or one of its ancestors. */
