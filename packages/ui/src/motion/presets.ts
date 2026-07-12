@@ -95,7 +95,11 @@ export function staggerContainer(
 }
 
 export const staggerItem: Variants = {
-  hidden: fadeUp.hidden,
-  show: fadeUp.show,
-  exit: fadeUp.exit,
+  hidden: fadeUp.hidden ?? { opacity: 0, y: motionDistance.pageY },
+  show: fadeUp.show ?? { opacity: 1, y: 0, transition: defaultTransition },
+  exit: fadeUp.exit ?? {
+    opacity: 0,
+    y: 6,
+    transition: { duration: motionDuration.fast, ease: motionEase },
+  },
 };

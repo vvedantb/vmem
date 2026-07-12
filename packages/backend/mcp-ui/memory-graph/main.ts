@@ -234,6 +234,7 @@ function simulateStep() {
     for (let j = i + 1; j < nodes.length; j++) {
       const a = nodes[i];
       const b = nodes[j];
+      if (a === undefined || b === undefined) continue;
       let dx = a.x - b.x;
       let dy = a.y - b.y;
       let dist = Math.hypot(dx, dy);
@@ -416,10 +417,12 @@ function draw() {
 
 function fitToView() {
   if (graphNodes.length === 0) return;
-  let minX = graphNodes[0].x;
-  let maxX = graphNodes[0].x;
-  let minY = graphNodes[0].y;
-  let maxY = graphNodes[0].y;
+  const first = graphNodes[0];
+  if (first === undefined) return;
+  let minX = first.x;
+  let maxX = first.x;
+  let minY = first.y;
+  let maxY = first.y;
   for (const n of graphNodes) {
     minX = Math.min(minX, n.x);
     maxX = Math.max(maxX, n.x);

@@ -13,7 +13,7 @@ function findActiveTab(list: HTMLElement): HTMLElement | null {
   if (tabs.length === 0) {
     return null;
   }
-  return tabs[0];
+  return tabs[0] ?? null;
 }
 
 function moveTabsPill(

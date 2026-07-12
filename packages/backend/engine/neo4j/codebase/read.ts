@@ -382,7 +382,9 @@ export async function getSymbolContext(
       },
     );
     if (result.records.length === 0) return null;
-    return parseSymbolContextRecord(result.records[0], pickKind);
+    const record = result.records[0];
+    if (!record) return null;
+    return parseSymbolContextRecord(record, pickKind);
   } finally {
     await session.close();
   }

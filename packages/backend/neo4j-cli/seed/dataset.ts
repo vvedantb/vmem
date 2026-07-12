@@ -18,7 +18,17 @@ const SOURCES = [
 ];
 
 function pick<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+  if (arr.length === 0) throw new Error("pick: empty array");
+  const item = arr[Math.floor(Math.random() * arr.length)];
+  if (item === undefined) throw new Error("pick: empty array");
+  return item;
+}
+
+function cycle<T>(arr: readonly T[], index: number): T {
+  if (arr.length === 0) throw new Error("cycle: empty array");
+  const item = arr[index % arr.length];
+  if (item === undefined) throw new Error("cycle: empty array");
+  return item;
 }
 
 function randomPastDate(maxDaysAgo: number): string {
@@ -3423,21 +3433,19 @@ function generateBulkMemories(count: number) {
     {
       weight: 25,
       generate: (i) => {
-        const subj = techSubjects[i % techSubjects.length];
-        const act =
-          techActions[
-            (i * 7 + ((i / techSubjects.length) | 0) * 3 + 3) %
-              techActions.length
-          ];
-        const det =
-          techDetails[
-            (i * 13 + ((i / techSubjects.length) | 0) * 5 + 7) %
-              techDetails.length
-          ];
-        const tags =
-          techTags[
-            (i * 11 + ((i / techSubjects.length) | 0) * 7) % techTags.length
-          ];
+        const subj = cycle(techSubjects, i);
+        const act = cycle(
+          techActions,
+          i * 7 + ((i / techSubjects.length) | 0) * 3 + 3,
+        );
+        const det = cycle(
+          techDetails,
+          i * 13 + ((i / techSubjects.length) | 0) * 5 + 7,
+        );
+        const tags = cycle(
+          techTags,
+          i * 11 + ((i / techSubjects.length) | 0) * 7,
+        );
         return {
           title: `${subj}: ${act}`,
           content: det,
@@ -3450,21 +3458,19 @@ function generateBulkMemories(count: number) {
     {
       weight: 16,
       generate: (i) => {
-        const ctx = workContexts[i % workContexts.length];
-        const topic =
-          workTopics[
-            (i * 11 + ((i / workContexts.length) | 0) * 7 + 2) %
-              workTopics.length
-          ];
-        const out =
-          workOutcomes[
-            (i * 7 + ((i / workContexts.length) | 0) * 3 + 4) %
-              workOutcomes.length
-          ];
-        const tags =
-          workTags[
-            (i * 5 + ((i / workContexts.length) | 0) * 11 + 2) % workTags.length
-          ];
+        const ctx = cycle(workContexts, i);
+        const topic = cycle(
+          workTopics,
+          i * 11 + ((i / workContexts.length) | 0) * 7 + 2,
+        );
+        const out = cycle(
+          workOutcomes,
+          i * 7 + ((i / workContexts.length) | 0) * 3 + 4,
+        );
+        const tags = cycle(
+          workTags,
+          i * 5 + ((i / workContexts.length) | 0) * 11 + 2,
+        );
         return {
           title: `${ctx}: ${topic}`,
           content: out,
@@ -3477,26 +3483,23 @@ function generateBulkMemories(count: number) {
     {
       weight: 12,
       generate: (i) => {
-        const name = personNames[i % personNames.length];
-        const ctx =
-          personContexts[
-            (i * 5 + ((i / personNames.length) | 0) * 3 + 1) %
-              personContexts.length
-          ];
-        const topic =
-          personTopics[
-            (i * 7 + ((i / personNames.length) | 0) * 11 + 3) %
-              personTopics.length
-          ];
-        const det =
-          personDetails[
-            (i * 11 + ((i / personNames.length) | 0) * 7 + 2) %
-              personDetails.length
-          ];
-        const tags =
-          peopleTags[
-            (i * 3 + ((i / personNames.length) | 0) * 5 + 1) % peopleTags.length
-          ];
+        const name = cycle(personNames, i);
+        const ctx = cycle(
+          personContexts,
+          i * 5 + ((i / personNames.length) | 0) * 3 + 1,
+        );
+        const topic = cycle(
+          personTopics,
+          i * 7 + ((i / personNames.length) | 0) * 11 + 3,
+        );
+        const det = cycle(
+          personDetails,
+          i * 11 + ((i / personNames.length) | 0) * 7 + 2,
+        );
+        const tags = cycle(
+          peopleTags,
+          i * 3 + ((i / personNames.length) | 0) * 5 + 1,
+        );
         return {
           title: `${name} ${ctx}`,
           content: `${topic}. ${det}`,
@@ -3509,21 +3512,19 @@ function generateBulkMemories(count: number) {
     {
       weight: 10,
       generate: (i) => {
-        const dom = prefDomains[i % prefDomains.length];
-        const desc =
-          prefDescriptions[
-            (i * 3 + ((i / prefDomains.length) | 0) * 7 + 1) %
-              prefDescriptions.length
-          ];
-        const det =
-          prefDetails[
-            (i * 7 + ((i / prefDomains.length) | 0) * 11 + 2) %
-              prefDetails.length
-          ];
-        const tags =
-          prefTags[
-            (i * 5 + ((i / prefDomains.length) | 0) * 3 + 1) % prefTags.length
-          ];
+        const dom = cycle(prefDomains, i);
+        const desc = cycle(
+          prefDescriptions,
+          i * 3 + ((i / prefDomains.length) | 0) * 7 + 1,
+        );
+        const det = cycle(
+          prefDetails,
+          i * 7 + ((i / prefDomains.length) | 0) * 11 + 2,
+        );
+        const tags = cycle(
+          prefTags,
+          i * 5 + ((i / prefDomains.length) | 0) * 3 + 1,
+        );
         return {
           title: `${dom}: ${desc}`,
           content: det,
@@ -3536,22 +3537,19 @@ function generateBulkMemories(count: number) {
     {
       weight: 8,
       generate: (i) => {
-        const act = healthActivities[i % healthActivities.length];
-        const topic =
-          healthTopics[
-            (i * 5 + ((i / healthActivities.length) | 0) * 7 + 2) %
-              healthTopics.length
-          ];
-        const note =
-          healthNotes[
-            (i * 7 + ((i / healthActivities.length) | 0) * 11 + 3) %
-              healthNotes.length
-          ];
-        const tags =
-          healthTags[
-            (i * 3 + ((i / healthActivities.length) | 0) * 5 + 1) %
-              healthTags.length
-          ];
+        const act = cycle(healthActivities, i);
+        const topic = cycle(
+          healthTopics,
+          i * 5 + ((i / healthActivities.length) | 0) * 7 + 2,
+        );
+        const note = cycle(
+          healthNotes,
+          i * 7 + ((i / healthActivities.length) | 0) * 11 + 3,
+        );
+        const tags = cycle(
+          healthTags,
+          i * 3 + ((i / healthActivities.length) | 0) * 5 + 1,
+        );
         const type: MemType = i % 3 === 0 ? "profile" : "episodic";
         return {
           title: `${act}: ${topic}`,
@@ -3565,19 +3563,16 @@ function generateBulkMemories(count: number) {
     {
       weight: 10,
       generate: (i) => {
-        const city = cities[i % cities.length];
-        const aspect =
-          travelAspects[
-            (i * 7 + ((i / cities.length) | 0) * 3 + 2) % travelAspects.length
-          ];
-        const note =
-          travelNotes[
-            (i * 11 + ((i / cities.length) | 0) * 7 + 3) % travelNotes.length
-          ];
-        const tags =
-          travelTags[
-            (i * 5 + ((i / cities.length) | 0) * 3) % travelTags.length
-          ];
+        const city = cycle(cities, i);
+        const aspect = cycle(
+          travelAspects,
+          i * 7 + ((i / cities.length) | 0) * 3 + 2,
+        );
+        const note = cycle(
+          travelNotes,
+          i * 11 + ((i / cities.length) | 0) * 7 + 3,
+        );
+        const tags = cycle(travelTags, i * 5 + ((i / cities.length) | 0) * 3);
         const type: MemType = i % 2 === 0 ? "episodic" : "knowledge";
         return {
           title: `${city}: ${aspect}`,
@@ -3591,22 +3586,19 @@ function generateBulkMemories(count: number) {
     {
       weight: 7,
       generate: (i) => {
-        const fmt = learningFormats[i % learningFormats.length];
-        const subj =
-          learningSubjects[
-            (i * 7 + ((i / learningFormats.length) | 0) * 5 + 3) %
-              learningSubjects.length
-          ];
-        const ins =
-          learningInsights[
-            (i * 11 + ((i / learningFormats.length) | 0) * 7 + 2) %
-              learningInsights.length
-          ];
-        const tags =
-          learningTags[
-            (i * 3 + ((i / learningFormats.length) | 0) * 11 + 1) %
-              learningTags.length
-          ];
+        const fmt = cycle(learningFormats, i);
+        const subj = cycle(
+          learningSubjects,
+          i * 7 + ((i / learningFormats.length) | 0) * 5 + 3,
+        );
+        const ins = cycle(
+          learningInsights,
+          i * 11 + ((i / learningFormats.length) | 0) * 7 + 2,
+        );
+        const tags = cycle(
+          learningTags,
+          i * 3 + ((i / learningFormats.length) | 0) * 11 + 1,
+        );
         return {
           title: `${fmt} ${subj}`,
           content: ins,
@@ -3619,17 +3611,15 @@ function generateBulkMemories(count: number) {
     {
       weight: 4,
       generate: (i) => {
-        const topic = financeTopics[i % financeTopics.length];
-        const note =
-          financeNotes[
-            (i * 7 + ((i / financeTopics.length) | 0) * 3 + 3) %
-              financeNotes.length
-          ];
-        const tags =
-          financeTags[
-            (i * 5 + ((i / financeTopics.length) | 0) * 7 + 1) %
-              financeTags.length
-          ];
+        const topic = cycle(financeTopics, i);
+        const note = cycle(
+          financeNotes,
+          i * 7 + ((i / financeTopics.length) | 0) * 3 + 3,
+        );
+        const tags = cycle(
+          financeTags,
+          i * 5 + ((i / financeTopics.length) | 0) * 7 + 1,
+        );
         return {
           title: topic,
           content: note,
@@ -3642,17 +3632,15 @@ function generateBulkMemories(count: number) {
     {
       weight: 4,
       generate: (i) => {
-        const dish = cookingItems[i % cookingItems.length];
-        const note =
-          cookingNotes[
-            (i * 7 + ((i / cookingItems.length) | 0) * 3 + 3) %
-              cookingNotes.length
-          ];
-        const tags =
-          cookingTags[
-            (i * 5 + ((i / cookingItems.length) | 0) * 7 + 1) %
-              cookingTags.length
-          ];
+        const dish = cycle(cookingItems, i);
+        const note = cycle(
+          cookingNotes,
+          i * 7 + ((i / cookingItems.length) | 0) * 3 + 3,
+        );
+        const tags = cycle(
+          cookingTags,
+          i * 5 + ((i / cookingItems.length) | 0) * 7 + 1,
+        );
         return {
           title: `${dish}: recipe notes`,
           content: note,
@@ -3665,17 +3653,16 @@ function generateBulkMemories(count: number) {
     {
       weight: 4,
       generate: (i) => {
-        const mtype = mediaTypes[(i * 3 + 1) % mediaTypes.length];
-        const item = mediaItems[i % mediaItems.length];
-        const note =
-          mediaNotes[
-            (i * 7 + ((i / mediaItems.length) | 0) * 3 + 3) % mediaNotes.length
-          ];
-        const tags =
-          entertainmentTags[
-            (i * 5 + ((i / mediaItems.length) | 0) * 7 + 1) %
-              entertainmentTags.length
-          ];
+        const mtype = cycle(mediaTypes, i * 3 + 1);
+        const item = cycle(mediaItems, i);
+        const note = cycle(
+          mediaNotes,
+          i * 7 + ((i / mediaItems.length) | 0) * 3 + 3,
+        );
+        const tags = cycle(
+          entertainmentTags,
+          i * 5 + ((i / mediaItems.length) | 0) * 7 + 1,
+        );
         const type: MemType = i % 3 === 0 ? "profile" : "episodic";
         return {
           title: `${mtype}: ${item}`,
@@ -3730,9 +3717,14 @@ function generateBulkMemories(count: number) {
 }
 
 function rel(sourceIdx: number, targetIdx: number, reason: string) {
+  const source = memories[sourceIdx];
+  const target = memories[targetIdx];
+  if (source === undefined || target === undefined) {
+    throw new Error(`rel: invalid memory index ${sourceIdx} or ${targetIdx}`);
+  }
   return {
-    sourceId: memories[sourceIdx].id,
-    targetId: memories[targetIdx].id,
+    sourceId: source.id,
+    targetId: target.id,
     reason,
   };
 }
@@ -4028,7 +4020,7 @@ function generateBulkRelationships() {
       result.push({
         sourceId: source.id,
         targetId: target.id,
-        reason: reasons[Math.floor(rng() * reasons.length)],
+        reason: pick(reasons),
       });
     }
   }

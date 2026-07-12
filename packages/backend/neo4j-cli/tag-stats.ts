@@ -49,6 +49,7 @@ async function main() {
       { userId: heaviest },
     );
     const h = hist.records[0];
+    if (h === undefined) return;
     console.log(`\n== tag usage histogram (${heaviest}) ==`);
     for (const k of [
       "once",

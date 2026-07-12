@@ -75,6 +75,7 @@ async function main() {
         { userId },
       );
       const d = dist.records[0];
+      if (d === undefined) continue;
       console.log(
         `account RELATES_TO degree: max=${String(d.get("maxDeg"))} avg=${Number(d.get("avgDeg")).toFixed(1)} p95=${String(d.get("p95"))} nodes≥50=${String(d.get("over50"))}`,
       );

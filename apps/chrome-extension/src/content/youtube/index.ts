@@ -130,7 +130,10 @@ async function getTranscript(): Promise<string | null> {
       return null;
     }
     const transcript = segments.map(segmentText).filter(Boolean).join(" ");
-    closeTranscriptPanel(segments[0]);
+    const firstSegment = segments.at(0);
+    if (firstSegment) {
+      closeTranscriptPanel(firstSegment);
+    }
     return transcript || null;
   } catch (err) {
     console.error("[vmem] Failed to extract transcript:", err);

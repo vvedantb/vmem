@@ -9,6 +9,7 @@
     "esModuleInterop": true,
     "jsx": "react-jsx",
     "resolveJsonModule": true,
+    "noUncheckedIndexedAccess": true,
     "types": ["chrome"],
     "paths": {
       "@/*": ["./src/*"]

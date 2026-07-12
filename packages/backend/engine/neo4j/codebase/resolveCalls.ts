@@ -296,16 +296,22 @@ function patchHeritage(edges: RelationEdge[], index: SymbolIndex): void {
       }
     }
     if (filtered.length === 1) {
-      edge.toId = filtered[0];
-      edge.confidence = CONFIDENCE_BY_TIER.INFERRED;
-      edge.tier = "INFERRED";
+      const single = filtered.at(0);
+      if (single !== undefined) {
+        edge.toId = single;
+        edge.confidence = CONFIDENCE_BY_TIER.INFERRED;
+        edge.tier = "INFERRED";
+      }
     } else if (filtered.length === 0) {
       edge.toId = "";
     } else {
       // Pick first; mark ambiguous. Phase 1 won't render tiers anyway.
-      edge.toId = filtered[0];
-      edge.confidence = CONFIDENCE_BY_TIER.AMBIGUOUS;
-      edge.tier = "AMBIGUOUS";
+      const first = filtered.at(0);
+      if (first !== undefined) {
+        edge.toId = first;
+        edge.confidence = CONFIDENCE_BY_TIER.AMBIGUOUS;
+        edge.tier = "AMBIGUOUS";
+      }
     }
   }
 }

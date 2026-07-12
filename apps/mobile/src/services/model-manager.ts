@@ -101,5 +101,7 @@ export async function setActiveModelId(modelId: string): Promise<void> {
 export async function getActiveModelIdOrDefault(): Promise<string> {
   const stored = await getActiveModelId();
   if (stored) return stored;
-  return MODELS[1].id;
+  const defaultModel = MODELS.at(1) ?? MODELS.at(0);
+  if (!defaultModel) throw new Error("No models configured");
+  return defaultModel.id;
 }

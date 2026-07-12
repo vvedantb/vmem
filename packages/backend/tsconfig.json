@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
     "allowJs": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
