@@ -26,7 +26,7 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-export interface SettingsNavItem {
+interface SettingsNavItem {
   href: NavHref;
   label: string;
   icon: NavIcon;

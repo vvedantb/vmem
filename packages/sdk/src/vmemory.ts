@@ -153,17 +153,3 @@ export class VMemory {
 }
 
 export { VMemoryError, isVMemoryError } from "./errors";
-export type {
-  AgentProposal,
-  MemoryCandidate,
-  MemoryWithTags,
-  RetrieveResult,
-  StoreInstructionResult,
-  StructuredCreateMemoryInput,
-  StructuredPatchMemoryInput,
-  StructuredRetrieveInput,
-  UpdateInstructionResult,
-  UserContext,
-  VMemoryOptions,
-  VMemoryRequestOptions,
-} from "./types";

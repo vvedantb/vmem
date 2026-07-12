@@ -125,19 +125,6 @@ export function fitToNodes(
   vp.velocityY = 0;
 }
 
-export function worldToScreen(
-  vp: ViewportState,
-  worldX: number,
-  worldY: number,
-  canvasW: number,
-  canvasH: number,
-): { x: number; y: number } {
-  return {
-    x: worldX * vp.scale + vp.offsetX + canvasW / 2,
-    y: worldY * vp.scale + vp.offsetY + canvasH / 2,
-  };
-}
-
 export function screenToWorld(
   vp: ViewportState,
   screenX: number,

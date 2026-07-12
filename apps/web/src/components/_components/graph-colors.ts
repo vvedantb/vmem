@@ -12,7 +12,7 @@ function themeColor(token: string, fallback: string): string {
   return value.length > 0 ? value : fallback;
 }
 
-export function tagToHue(tag: string): number {
+function tagToHue(tag: string): number {
   let hash = 0;
   for (let i = 0; i < tag.length; i++) {
     hash = tag.charCodeAt(i) + ((hash << 5) - hash);
