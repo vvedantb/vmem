@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { authQuery, authMutation } from "./auth";
+import { authQuery, authMutation, getUserByClerkId } from "./auth";
 import { scheduleContextPromptInvalidationForUser } from "./lib/contextPromptInvalidate";
 import { SYSTEM_SKILL_SEEDS } from "./prompts/systemSkillSeeds";
 
@@ -347,10 +347,7 @@ export const seedSystemSkillsInternal = internalMutation({
 export const setAdminByClerkIdInternal = internalMutation({
   args: { clerkId: v.string(), isAdmin: v.boolean() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
     if (!user) throw new Error("User not found");
     await ctx.db.patch(user._id, { isAdmin: args.isAdmin });
     return { ok: true };

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { authMutation, authQuery } from "./auth";
+import { authMutation, authQuery, getUserByClerkId } from "./auth";
 import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -408,10 +408,7 @@ async function getUserIdByClerkId(
   ctx: QueryCtx | MutationCtx,
   clerkId: string,
 ): Promise<Id<"users">> {
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
-    .first();
+  const user = await getUserByClerkId(ctx, clerkId);
   if (!user) {
     throw new Error("User not found");
   }

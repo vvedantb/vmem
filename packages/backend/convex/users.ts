@@ -1,5 +1,5 @@
 import { query, internalQuery } from "./_generated/server";
-import { authQuery } from "./auth";
+import { authQuery, getUserByClerkId } from "./auth";
 import { v } from "convex/values";
 
 export const getMe = query({
@@ -8,10 +8,7 @@ export const getMe = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity?.subject) return null;
 
-    return await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .first();
+    return await getUserByClerkId(ctx, identity.subject);
   },
 });
 
@@ -19,10 +16,7 @@ export const getMe = query({
 export const getByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    return await getUserByClerkId(ctx, args.clerkId);
   },
 });
 
@@ -45,10 +39,7 @@ export const getByClerkIds = authQuery({
       }
     > = {};
     for (const clerkId of unique) {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
-        .first();
+      const user = await getUserByClerkId(ctx, clerkId);
       if (!user) continue;
       result[clerkId] = {
         firstName: user.firstName ?? null,

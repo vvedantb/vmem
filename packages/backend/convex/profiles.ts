@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { authQuery, authMutation, authAction } from "./auth";
+import { authQuery, authMutation, authAction, getUserByClerkId } from "./auth";
 import { internalQuery, internalMutation } from "./_generated/server";
 import { getOrCreateDefaultProfile } from "./profiles/helpers";
 import {
@@ -165,10 +165,7 @@ export const resolveProfileIdForMcpScopeInternal = internalQuery({
 export const getActiveByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
 
     if (!user) return null;
 
@@ -185,10 +182,7 @@ export const getActiveByClerkIdInternal = internalQuery({
 export const getOrCreateDefaultByClerkIdInternal = internalMutation({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
 
     if (!user) {
       throw new Error("User not found");

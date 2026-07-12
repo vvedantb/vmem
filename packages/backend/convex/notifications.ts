@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
-import { authMutation, authQuery } from "./auth";
+import { authMutation, authQuery, getUserByClerkId } from "./auth";
 import { notificationFields, notificationTypeValidator } from "./validators";
 
 export const listMy = authQuery({
@@ -94,10 +94,7 @@ export const pushForClerkIdInternal = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
     if (!user) return null;
 
     await ctx.db.insert("notifications", {
