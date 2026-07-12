@@ -3,13 +3,12 @@
 import type { ActionCtx } from "../../_generated/server";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
-import { runCreateMemory } from "../_memories/create";
 import { resolveProfileIdForClerkId } from "../_memories/shared";
 import { applyFactUpdateOrDelete } from "./applyFactDecision";
 import { runFactDecisionLoop } from "./factDecisionLoop";
 import {
   extractFactsFromInstruction,
-  computeSdkFactExternalId,
+  createSdkExtractedMemory,
   requireOpenRouterAuth,
   type OpenRouterRequired,
 } from "./shared";
@@ -81,22 +80,12 @@ export async function runUpdateFromInstruction(
     extracted.facts,
     async ({ factIndex: index, factText, decision }) => {
       if (decision.event === "ADD" && decision.text) {
-        const memory = await runCreateMemory(ctx, {
+        const memory = await createSdkExtractedMemory(ctx, {
           clerkId: args.clerkId,
           profileId,
-          title: decision.text.slice(0, 80),
-          content: decision.text,
-          type: "knowledge",
-          source: "sdk-api",
-          tags: ["sdk-extracted"],
-          confidence: 0.9,
-          externalId: computeSdkFactExternalId(
-            args.clerkId,
-            args.instruction,
-            index,
-            decision.text,
-          ),
-          sourceType: "sdk-extracted",
+          instruction: args.instruction,
+          factIndex: index,
+          text: decision.text,
         });
         applied.push(memory);
         return;
