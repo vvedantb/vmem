@@ -7,7 +7,7 @@
  * five nodes for one model). getTopEntities feeds the established names back
  * into the enrichment prompt; mergeEntityGroup collapses variant nodes.
  */
-import type { Driver } from "neo4j-driver";
+import type { Driver, Record as Neo4jRecord } from "neo4j-driver";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
 
@@ -15,6 +15,15 @@ export interface EntityUsage {
   name: string;
   type: string;
   mentions: number;
+}
+
+/** Shared `{name, type, mentions}` projection used by both entity-listing queries below. */
+function entityUsageFromRecord(r: Neo4jRecord): EntityUsage {
+  return {
+    name: String(neo4jGet(r, "name") ?? ""),
+    type: String(neo4jGet(r, "type") ?? ""),
+    mentions: parseNeo4jInt(neo4jGet(r, "mentions")),
+  };
 }
 
 /**
@@ -37,11 +46,7 @@ export async function getTopEntities(
        LIMIT toInteger($limit)`,
       { userId, limit: Math.trunc(limit) },
     );
-    return result.records.map((r) => ({
-      name: String(neo4jGet(r, "name") ?? ""),
-      type: String(neo4jGet(r, "type") ?? ""),
-      mentions: parseNeo4jInt(neo4jGet(r, "mentions")),
-    }));
+    return result.records.map(entityUsageFromRecord);
   });
 }
 
@@ -69,10 +74,8 @@ export async function listEntitiesWithMentions(
     );
     return result.records.map((r) => ({
       id: String(neo4jGet(r, "id") ?? ""),
-      name: String(neo4jGet(r, "name") ?? ""),
       normalizedName: String(neo4jGet(r, "normalizedName") ?? ""),
-      type: String(neo4jGet(r, "type") ?? ""),
-      mentions: parseNeo4jInt(neo4jGet(r, "mentions")),
+      ...entityUsageFromRecord(r),
     }));
   });
 }
