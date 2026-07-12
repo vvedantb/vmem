@@ -237,6 +237,18 @@ async function buildSkillUpdatePatch(
   return patch;
 }
 
+/** Normalize a skill id string and fetch the row, throwing if either fails. */
+async function resolveSkillOrThrow(
+  ctx: QueryCtx | MutationCtx,
+  rawId: string,
+): Promise<Doc<"skills">> {
+  const normalizedId = ctx.db.normalizeId("skills", rawId);
+  if (!normalizedId) throw new Error("Invalid skill id");
+  const skill = await ctx.db.get(normalizedId);
+  if (!skill) throw new Error("Skill not found");
+  return skill;
+}
+
 /**
  * List skills in a scope, newest-first. No `teamId` = the user's personal
  * skills (shared across all personal workspaces); `teamId` = that team's
@@ -328,10 +340,7 @@ export const updateSkill = authMutation({
     enabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const normalizedId = ctx.db.normalizeId("skills", args.id);
-    if (!normalizedId) throw new Error("Invalid skill id");
-    const skill = await ctx.db.get(normalizedId);
-    if (!skill) throw new Error("Skill not found");
+    const skill = await resolveSkillOrThrow(ctx, args.id);
     await assertContentEditable(ctx, skill, ctx.userId);
 
     const patch = await buildSkillUpdatePatch(ctx, skill, {
@@ -345,7 +354,7 @@ export const updateSkill = authMutation({
       source: "web",
       authorUserId: ctx.userId,
     });
-    await ctx.db.patch(normalizedId, patch);
+    await ctx.db.patch(skill._id, patch);
     await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
   },
 });
@@ -356,13 +365,10 @@ export const updateSkill = authMutation({
 export const deleteSkill = authMutation({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const normalizedId = ctx.db.normalizeId("skills", args.id);
-    if (!normalizedId) throw new Error("Invalid skill id");
-    const skill = await ctx.db.get(normalizedId);
-    if (!skill) throw new Error("Skill not found");
+    const skill = await resolveSkillOrThrow(ctx, args.id);
     await assertContentDeletable(ctx, skill, ctx.userId);
-    await deleteVersionsForSkill(ctx, normalizedId);
-    await ctx.db.delete(normalizedId);
+    await deleteVersionsForSkill(ctx, skill._id);
+    await ctx.db.delete(skill._id);
     await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
   },
 });
