@@ -32,8 +32,8 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
-      - name: Typecheck web
-        run: pnpm typecheck
+      - name: Typecheck (all workspaces)
+        run: pnpm typecheck:all
 
       - name: Knip (dead exports / deps)
         run: pnpm knip

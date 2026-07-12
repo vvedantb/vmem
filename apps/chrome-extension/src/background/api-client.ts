@@ -16,7 +16,9 @@ export type UserSettingsUpdateArgs = FunctionArgs<
 >;
 
 const uploadResponseSchema = z.object({
-  storageId: z.string().min(1),
+  storageId: z.custom<Id<"_storage">>(
+    (v) => typeof v === "string" && v.length > 0,
+  ),
 });
 
 async function getAuthenticatedClient() {
