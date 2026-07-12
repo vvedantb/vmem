@@ -64,6 +64,21 @@ async function lookupUserIdByClerkId(
 }
 
 /**
+ * Resolves clerkId → userId and loads that user's decrypted env vars in
+ * one shot. Returns null when no user record exists. Shared by the two
+ * soft-fail lookups below.
+ */
+async function resolveUserIdAndEnvVars(
+  ctx: ActionCtx,
+  clerkId: string,
+): Promise<{ userId: Id<"users">; all: Record<string, string> } | null> {
+  const userId = await lookupUserIdByClerkId(ctx, clerkId);
+  if (!userId) return null;
+  const all = await resolveUserEnvVars(ctx, userId);
+  return { userId, all };
+}
+
+/**
  * Throws if either the user record or the requested env var is missing.
  * Use this for features that cannot meaningfully degrade without the key.
  */
@@ -91,10 +106,8 @@ export async function tryUserEnvVarByClerkId(
   clerkId: string,
   key: string,
 ): Promise<string | null> {
-  const userId = await lookupUserIdByClerkId(ctx, clerkId);
-  if (!userId) return null;
-  const all = await resolveUserEnvVars(ctx, userId);
-  return all[key] ?? null;
+  const resolved = await resolveUserIdAndEnvVars(ctx, clerkId);
+  return resolved?.all[key] ?? null;
 }
 
 /**
@@ -114,10 +127,8 @@ export async function tryUserAndApiKeyByClerkId(
   clerkId: string,
   key: string,
 ): Promise<{ userId: Id<"users">; apiKey: string } | null> {
-  const userId = await lookupUserIdByClerkId(ctx, clerkId);
-  if (!userId) return null;
-  const all = await resolveUserEnvVars(ctx, userId);
-  const apiKey = all[key];
-  if (!apiKey) return null;
-  return { userId, apiKey };
+  const resolved = await resolveUserIdAndEnvVars(ctx, clerkId);
+  const apiKey = resolved?.all[key];
+  if (!resolved || !apiKey) return null;
+  return { userId: resolved.userId, apiKey };
 }
