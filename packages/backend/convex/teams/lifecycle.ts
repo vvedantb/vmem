@@ -13,7 +13,11 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
-import { getMembershipOrNull, requireTeamRole } from "./auth";
+import {
+  getMembershipOrNull,
+  getTeamMemberClerkIds,
+  requireTeamRole,
+} from "./auth";
 
 type AuthMutationCtx = MutationCtx & { userId: Id<"users"> };
 type AuthActionCtx = ActionCtx & { userId: Id<"users"> };
@@ -203,14 +207,5 @@ export async function runGetTeamMemberClerkIdsInternal(
   const teamId = ctx.db.normalizeId("teams", args.teamId);
   if (!teamId) return [];
 
-  const members = await ctx.db
-    .query("teamMembers")
-    .withIndex("by_team", (q) => q.eq("teamId", teamId))
-    .collect();
-  const clerkIds: string[] = [];
-  for (const m of members) {
-    const u = await ctx.db.get(m.userId);
-    if (u?.clerkId) clerkIds.push(u.clerkId);
-  }
-  return clerkIds;
+  return getTeamMemberClerkIds(ctx, teamId);
 }

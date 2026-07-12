@@ -46,6 +46,23 @@ export async function requireTeamRole(
   return membership;
 }
 
+/** Clerk ids of every member of a team (members without a clerkId skipped). */
+export async function getTeamMemberClerkIds(
+  ctx: QueryCtx | MutationCtx,
+  teamId: Id<"teams">,
+): Promise<string[]> {
+  const members = await ctx.db
+    .query("teamMembers")
+    .withIndex("by_team", (q) => q.eq("teamId", teamId))
+    .collect();
+  const clerkIds: string[] = [];
+  for (const m of members) {
+    const u = await ctx.db.get(m.userId);
+    if (u?.clerkId) clerkIds.push(u.clerkId);
+  }
+  return clerkIds;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Content scoping (skills / wikiNodes / fileNodes) — "user-wide + team".
 //
@@ -175,15 +192,7 @@ export async function runResolveMemoryScopeInternal(
     const membership = await getMembershipOrNull(ctx, teamId, args.userId);
     if (!membership) throw new Error("Not a member of this team");
 
-    const members = await ctx.db
-      .query("teamMembers")
-      .withIndex("by_team", (q) => q.eq("teamId", teamId))
-      .collect();
-    const allowedClerkIds: string[] = [];
-    for (const m of members) {
-      const u = await ctx.db.get(m.userId);
-      if (u?.clerkId) allowedClerkIds.push(u.clerkId);
-    }
+    const allowedClerkIds = await getTeamMemberClerkIds(ctx, teamId);
     return {
       kind: "team",
       allowedClerkIds,
