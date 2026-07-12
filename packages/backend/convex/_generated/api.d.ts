@@ -139,7 +139,6 @@ import type * as notifications from "../notifications.js";
 import type * as oauthState from "../oauthState.js";
 import type * as openRouterLogs from "../openRouterLogs.js";
 import type * as openRouterModels from "../openRouterModels.js";
-import type * as presentations from "../presentations.js";
 import type * as profiles from "../profiles.js";
 import type * as profiles_dream from "../profiles/dream.js";
 import type * as profiles_handlers from "../profiles/handlers.js";
@@ -310,7 +309,6 @@ declare const fullApi: ApiFromModules<{
   oauthState: typeof oauthState;
   openRouterLogs: typeof openRouterLogs;
   openRouterModels: typeof openRouterModels;
-  presentations: typeof presentations;
   profiles: typeof profiles;
   "profiles/dream": typeof profiles_dream;
   "profiles/handlers": typeof profiles_handlers;

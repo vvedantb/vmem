@@ -28,13 +28,4 @@ crons.interval(
   {},
 );
 
-// 05:00 UTC daily — drop ended / long-idle live slide-share sessions and
-// their presence rows so the presentation tables stay small.
-crons.cron(
-  "prune presentation sessions",
-  "0 5 * * *",
-  internal.presentations.pruneStaleInternal,
-  {},
-);
-
 export default crons;
