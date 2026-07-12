@@ -16,8 +16,6 @@ import {
   codebaseFields,
   openRouterLogFields,
   dreamTriggerStateFields,
-  presentationSessionFields,
-  presentationVoteFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -363,30 +361,6 @@ const schema = defineSchema({
     redirectUris: v.array(v.string()),
     registeredAt: v.number(),
   }).index("by_clientId", ["clientId"]),
-
-  /**
-   * Live "share" sessions for the `/slides` deck (see
-   * `presentationSessionFields`). Looked up by the public share `code`.
-   */
-  presentationSessions: defineTable(presentationSessionFields).index(
-    "by_code",
-    ["code"],
-  ),
-
-  /**
-   * Anonymous votes for curated poll slides (see `presentationVoteFields`).
-   * `by_code_poll` tallies a poll (and, by `code` prefix, finds a session's
-   * votes for cleanup); `by_code_poll_participant` is the one-vote upsert key.
-   */
-  presentationVotes: defineTable(presentationVoteFields)
-    .index("by_code_poll", ["code", "pollId"])
-    .index("by_code_poll_participant", ["code", "pollId", "participantKey"])
-    .index("by_code_poll_participant_option", [
-      "code",
-      "pollId",
-      "participantKey",
-      "optionId",
-    ]),
 });
 
 export default schema;
