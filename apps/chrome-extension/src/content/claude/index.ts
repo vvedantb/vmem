@@ -8,9 +8,11 @@ import { SELECTORS } from "./selectors";
 
 async function injectButtons(): Promise<void> {
   removeExistingVmemButtons();
-  await injectExportButton();
-  await injectCopyPromptButton();
-  await injectUseVmemButton();
+  await Promise.all([
+    injectExportButton(),
+    injectCopyPromptButton(),
+    injectUseVmemButton(),
+  ]);
 }
 
 void injectButtons();

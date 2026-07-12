@@ -31,7 +31,7 @@ export default function ModelsScreen() {
           nextStates[model.id] = await checkModelStatus(model.id);
         }),
       );
-      setStates(nextStates);
+      setStates((prev) => ({ ...nextStates, ...prev }));
     })();
   }, []);
 
