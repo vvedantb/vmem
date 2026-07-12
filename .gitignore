@@ -20,7 +20,5 @@ internal/bench/*
 !internal/bench/locomo-results.md
 internal/dissertation
 
-# Presentation deck — local/dissertation only
-# apps/web/src/routes/slides.tsx
-# apps/web/src/routes/_components/slides/
-# apps/web/public/slides/
+# Presentation deck is tracked on this branch (PR #105). Do not add ignore
+# rules for /slides here — mainline ignores them until this PR merges.
