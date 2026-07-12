@@ -252,12 +252,8 @@ const updateDecisionResponseSchema = z.object({
 
 function toEvent(v: string): UpdateDecisionEvent | null {
   const upper = v.trim().toUpperCase();
-  if (!VALID_EVENTS.has(upper)) return null;
-  // The set membership above narrows to one of the four literals.
-  if (upper === "ADD") return "ADD";
-  if (upper === "UPDATE") return "UPDATE";
-  if (upper === "DELETE") return "DELETE";
-  return "NONE";
+  // Set membership above narrows to one of the four literals.
+  return VALID_EVENTS.has(upper) ? (upper as UpdateDecisionEvent) : null;
 }
 
 function optionalNonEmptyString(value: string | undefined): string | undefined {
