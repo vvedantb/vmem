@@ -131,6 +131,17 @@ function mapProcessRefs(
   }));
 }
 
+/** Shared name/qualifiedName fallback chain used by symbol-shaped records. */
+function nameAndQualifiedName(props: OverviewNodeProps): {
+  name: string;
+  qualifiedName: string;
+} {
+  return {
+    name: props.name ?? props.qualifiedName ?? props.id,
+    qualifiedName: props.qualifiedName ?? props.name ?? props.id,
+  };
+}
+
 function parseOverviewPropsRecord(
   record: NeoRecord,
   pickKind: (labels: string[]) => OverviewNode["kind"] | null,
@@ -168,8 +179,7 @@ export function parseSymbolContextRecord(
   return {
     id: props.id,
     kind,
-    name: props.name ?? props.qualifiedName ?? props.id,
-    qualifiedName: props.qualifiedName ?? props.name ?? props.id,
+    ...nameAndQualifiedName(props),
     filePath: props.filePath ?? props.path ?? "",
     startLine: props.startLine,
     endLine: props.endLine,
@@ -193,8 +203,7 @@ export function parseSearchSymbolRecord(
   return {
     id: props.id,
     kind,
-    name: props.name ?? props.qualifiedName ?? props.id,
-    qualifiedName: props.qualifiedName ?? props.name ?? props.id,
+    ...nameAndQualifiedName(props),
     filePath: props.filePath ?? "",
   };
 }
