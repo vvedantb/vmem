@@ -339,10 +339,9 @@ export const updateStatusInternal = internalMutation({
     // Patch only the keys actually supplied so callers can update e.g.
     // just `parseStage` mid-sync without clobbering counts/stats.
     const { id, ...rest } = args;
-    const patch: Record<string, unknown> = {};
-    for (const [k, v2] of Object.entries(rest)) {
-      if (v2 !== undefined) patch[k] = v2;
-    }
+    const patch = Object.fromEntries(
+      Object.entries(rest).filter(([, value]) => value !== undefined),
+    );
     await ctx.db.patch(id, patch);
   },
 });

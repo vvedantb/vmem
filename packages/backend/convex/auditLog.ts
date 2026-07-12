@@ -112,30 +112,18 @@ export const listMyApiRequestEntries = authQuery({
     });
     if (!Array.isArray(rawEntries)) return [];
 
-    const result: {
-      _id: string;
-      endpoint: string;
-      status: number;
-      durationMs: number;
-      originalTimestamp: number;
-    }[] = [];
-
+    const result = [];
     for (const rawEntry of rawEntries) {
       const parsed = apiRequestEntrySchema.safeParse(rawEntry);
       if (!parsed.success) continue;
 
       const { _id, metadata, timestamp } = parsed.data;
-      const endpoint = metadata.endpoint ?? "";
-      const status = metadata.status ?? 0;
-      const durationMs = metadata.durationMs ?? 0;
-      const originalTimestamp = metadata.originalTimestamp ?? timestamp ?? 0;
-
       result.push({
         _id,
-        endpoint,
-        status,
-        durationMs,
-        originalTimestamp,
+        endpoint: metadata.endpoint ?? "",
+        status: metadata.status ?? 0,
+        durationMs: metadata.durationMs ?? 0,
+        originalTimestamp: metadata.originalTimestamp ?? timestamp ?? 0,
       });
     }
 

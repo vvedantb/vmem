@@ -55,6 +55,15 @@ const oneDriveListResponseSchema = z.object({
 
 type OneDriveListData = z.infer<typeof oneDriveListResponseSchema>;
 type OneDriveItem = NonNullable<OneDriveListData["value"]>[number];
+type OneDriveFileItem = OneDriveItem & { file: { mimeType: string } };
+
+function isAllowedOneDriveFile(item: OneDriveItem): item is OneDriveFileItem {
+  return (
+    item.file !== undefined &&
+    item.file.mimeType !== undefined &&
+    ONEDRIVE_ALLOWED_MIMETYPES.has(item.file.mimeType)
+  );
+}
 
 async function fetchOneDriveListPage(
   accessToken: string,
@@ -87,16 +96,7 @@ export async function runOneDriveSync(
     while (nextUrl) {
       const listData = await fetchOneDriveListPage(args.accessToken, nextUrl);
 
-      const items: OneDriveItem[] = (listData.value ?? []).filter(
-        (
-          item,
-        ): item is OneDriveItem & {
-          file: { mimeType: string };
-        } =>
-          item.file !== undefined &&
-          item.file.mimeType !== undefined &&
-          ONEDRIVE_ALLOWED_MIMETYPES.has(item.file.mimeType),
-      );
+      const items = (listData.value ?? []).filter(isAllowedOneDriveFile);
       totalFound += items.length;
 
       for (const item of items) {

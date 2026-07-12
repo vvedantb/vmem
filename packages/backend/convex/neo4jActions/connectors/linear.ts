@@ -113,8 +113,7 @@ async function linearGraphQL<T>(
       `Linear GraphQL data validation failed: ${dataParsed.error.message}`,
     );
   }
-  const data: T = dataParsed.data;
-  return data;
+  return dataParsed.data;
 }
 
 const LINEAR_ISSUES_QUERY = `

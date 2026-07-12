@@ -177,6 +177,9 @@ export const getGraphData = authAction({
         ? args.mode === "local"
         : args.focus !== undefined;
     const isFirstPage = args.cursorCreatedAt === undefined;
+    // Wiki + skills are whole-account atoms: only on the global graph's
+    // first page (later pages would duplicate the same rows).
+    const includeAccountAtoms = !isLocal && isFirstPage;
 
     const memoryGraph: MemoryGraph = await ctx.runAction(
       internal.neo4jActions.graph.getGraphDataInternal,
@@ -195,14 +198,11 @@ export const getGraphData = authAction({
     // Wiki nodes are only included for the global graph. When the user focuses
     // a specific memory we show its local Neo4j neighbourhood — wiki docs are
     // orthogonal to memories today and have no edges reaching a memory node.
-    // They're whole-account data, so only the FIRST page carries them — later
-    // pages would just duplicate the same rows.
-    const wikiRows =
-      isLocal || !isFirstPage
-        ? []
-        : await ctx.runQuery(internal.wiki.listForUserInternal, {
-            userId: ctx.userId,
-          });
+    const wikiRows = includeAccountAtoms
+      ? await ctx.runQuery(internal.wiki.listForUserInternal, {
+          userId: ctx.userId,
+        })
+      : [];
 
     const wikiNodes: GraphNodeEntry[] = wikiRows.map((w: Doc<"wikiNodes">) => ({
       id: `${WIKI_PREFIX}${w._id}`,
@@ -224,15 +224,14 @@ export const getGraphData = authAction({
       }
     }
 
-    // Skills — same visibility rule as wiki: only in the global graph's first
-    // page. Skills are user-level atoms (tools) with no edges into the memory
-    // graph today, so they render as isolated hexagons.
-    const skillRows =
-      isLocal || !isFirstPage
-        ? []
-        : await ctx.runQuery(internal.skills.listByClerkIdInternal, {
-            clerkId,
-          });
+    // Skills — same visibility rule as wiki. Skills are user-level atoms
+    // with no edges into the memory graph today, so they render as
+    // isolated hexagons.
+    const skillRows = includeAccountAtoms
+      ? await ctx.runQuery(internal.skills.listByClerkIdInternal, {
+          clerkId,
+        })
+      : [];
 
     const skillNodes: GraphNodeEntry[] = skillRows
       .filter((s: Doc<"skills">) => s.enabled !== false)

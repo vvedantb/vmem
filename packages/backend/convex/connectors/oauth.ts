@@ -63,6 +63,23 @@ function isConnectorOAuthProvider(value: string): value is Provider {
   return value in PROVIDER_CONFIGS;
 }
 
+function buildAuthorizeUrl(
+  authUrl: string,
+  params: Record<string, string>,
+): string {
+  return `${authUrl}?${new URLSearchParams(params).toString()}`;
+}
+
+async function revokeTokenBestEffort(
+  revoke: () => Promise<unknown>,
+): Promise<void> {
+  try {
+    await revoke();
+  } catch {
+    // Best effort — continue even if revocation fails
+  }
+}
+
 type OAuthAccessTokenData = z.infer<typeof oauthAccessTokenSchema>;
 
 type OAuthTokenExchangeResult =
@@ -165,11 +182,12 @@ export const startOAuth = authAction({
           internal.connectors.tokens.getEncryptedTokensInternal,
           { connectorId: tokenConnectorId },
         );
-        const scopeOk =
-          provider === "gmail"
-            ? tokens !== null && scopeIncludesGmail(tokens.scope)
-            : tokens !== null && scopeIncludesDrive(tokens.scope);
-        if (scopeOk) {
+        const hasRequiredScope =
+          tokens !== null &&
+          (provider === "gmail"
+            ? scopeIncludesGmail(tokens.scope)
+            : scopeIncludesDrive(tokens.scope));
+        if (hasRequiredScope) {
           await ctx.runMutation(
             internal.connectors.crud.markConnectedInternal,
             {
@@ -198,66 +216,58 @@ export const startOAuth = authAction({
     const redirectUri = `${convexSiteUrl}/api/auth/connector/callback`;
 
     if (provider === "google_drive" || provider === "gmail") {
-      const clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: "code",
-        scope: config.scopes.join(" "),
-        access_type: "offline",
-        prompt: "consent",
-        state,
-      });
       return {
-        authUrl: `${config.authUrl}?${params.toString()}`,
+        authUrl: buildAuthorizeUrl(config.authUrl, {
+          client_id: getEnvOrThrow("GOOGLE_CLIENT_ID"),
+          redirect_uri: redirectUri,
+          response_type: "code",
+          scope: config.scopes.join(" "),
+          access_type: "offline",
+          prompt: "consent",
+          state,
+        }),
         alreadyConnected: false,
       };
     }
 
     if (provider === "notion") {
-      const clientId = getEnvOrThrow("NOTION_CLIENT_ID");
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: "code",
-        owner: "user",
-        state,
-      });
       return {
-        authUrl: `${config.authUrl}?${params.toString()}`,
+        authUrl: buildAuthorizeUrl(config.authUrl, {
+          client_id: getEnvOrThrow("NOTION_CLIENT_ID"),
+          redirect_uri: redirectUri,
+          response_type: "code",
+          owner: "user",
+          state,
+        }),
         alreadyConnected: false,
       };
     }
 
     if (provider === "onedrive") {
-      const clientId = getEnvOrThrow("MICROSOFT_CLIENT_ID");
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: "code",
-        scope: config.scopes.join(" "),
-        response_mode: "query",
-        prompt: "consent",
-        state,
-      });
       return {
-        authUrl: `${config.authUrl}?${params.toString()}`,
+        authUrl: buildAuthorizeUrl(config.authUrl, {
+          client_id: getEnvOrThrow("MICROSOFT_CLIENT_ID"),
+          redirect_uri: redirectUri,
+          response_type: "code",
+          scope: config.scopes.join(" "),
+          response_mode: "query",
+          prompt: "consent",
+          state,
+        }),
         alreadyConnected: false,
       };
     }
 
     if (provider === "linear") {
-      const clientId = getEnvOrThrow("LINEAR_CLIENT_ID");
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: "code",
-        scope: config.scopes.join(" "),
-        prompt: "consent",
-        state,
-      });
       return {
-        authUrl: `${config.authUrl}?${params.toString()}`,
+        authUrl: buildAuthorizeUrl(config.authUrl, {
+          client_id: getEnvOrThrow("LINEAR_CLIENT_ID"),
+          redirect_uri: redirectUri,
+          response_type: "code",
+          scope: config.scopes.join(" "),
+          prompt: "consent",
+          state,
+        }),
         alreadyConnected: false,
       };
     }
@@ -293,30 +303,24 @@ export const disconnect = authAction({
       tokens &&
       (connector.provider === "google_drive" || connector.provider === "gmail")
     ) {
-      try {
+      await revokeTokenBestEffort(async () => {
         const accessToken = await decryptToken(tokens.accessToken);
-        // Revoke with Google API
         await fetch(
           `https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(accessToken)}`,
           { method: "POST" },
         );
-      } catch {
-        // Best effort — continue even if revocation fails
-      }
+      });
     }
 
     if (tokens && connector.provider === "linear") {
-      try {
+      await revokeTokenBestEffort(async () => {
         const accessToken = await decryptToken(tokens.accessToken);
-        // Revoke with Linear API (best-effort)
         await fetch("https://api.linear.app/oauth/revoke", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ access_token: accessToken }),
         });
-      } catch {
-        // Best effort — continue even if revocation fails
-      }
+      });
     }
 
     // OneDrive: no revoke endpoint for consumer accounts — token deletion only
@@ -358,6 +362,14 @@ type OAuthCallbackResult = {
   connectorId: string | null;
 };
 
+function oauthCallbackError(
+  error: string,
+  frontendUrl: string | null,
+  connectorId: string | null,
+): OAuthCallbackResult {
+  return { error, frontendUrl, connectorId };
+}
+
 export const handleCallbackInternal = internalAction({
   args: { code: v.string(), state: v.string() },
   handler: async (ctx, args): Promise<OAuthCallbackResult> => {
@@ -367,34 +379,33 @@ export const handleCallbackInternal = internalAction({
       { state: args.state },
     );
     if (!stateEntry) {
-      return { error: "invalid_state", frontendUrl: null, connectorId: null };
+      return oauthCallbackError("invalid_state", null, null);
     }
     if (stateEntry.expiresAt < Date.now()) {
-      return {
-        error: "expired_state",
-        frontendUrl: stateEntry.returnUrl,
-        connectorId: stateEntry.connectorId ?? null,
-      };
+      return oauthCallbackError(
+        "expired_state",
+        stateEntry.returnUrl,
+        stateEntry.connectorId ?? null,
+      );
     }
     if (!stateEntry.connectorId || !stateEntry.provider) {
-      return {
-        error: "invalid_state",
-        frontendUrl: stateEntry.returnUrl,
-        connectorId: null,
-      };
+      return oauthCallbackError("invalid_state", stateEntry.returnUrl, null);
     }
 
     if (!isConnectorOAuthProvider(stateEntry.provider)) {
-      return {
-        error: "invalid_state",
-        frontendUrl: stateEntry.returnUrl,
-        connectorId: stateEntry.connectorId,
-      };
+      return oauthCallbackError(
+        "invalid_state",
+        stateEntry.returnUrl,
+        stateEntry.connectorId,
+      );
     }
 
     const provider = stateEntry.provider;
+    const connectorId = stateEntry.connectorId;
     const convexSiteUrl = getEnvOrThrow("CONVEX_SITE_URL");
     const redirectUri = `${convexSiteUrl}/api/auth/connector/callback`;
+    const fail = (error: string): OAuthCallbackResult =>
+      oauthCallbackError(error, stateEntry.returnUrl, connectorId);
 
     // 2. Exchange code for tokens based on provider
     if (provider === "google_drive" || provider === "gmail") {
@@ -416,22 +427,12 @@ export const handleCallbackInternal = internalAction({
         },
       );
       if (!exchanged.ok) {
-        return {
-          error: exchanged.error,
-          frontendUrl: stateEntry.returnUrl,
-          connectorId: stateEntry.connectorId,
-        };
+        return fail(exchanged.error);
       }
-      await encryptAndStoreOAuthTokens(
-        ctx,
-        stateEntry.connectorId,
-        exchanged.tokenData,
-        {
-          refreshToken: exchanged.tokenData.refresh_token ?? "",
-          expiresAt:
-            Date.now() + (exchanged.tokenData.expires_in ?? 3600) * 1000,
-        },
-      );
+      await encryptAndStoreOAuthTokens(ctx, connectorId, exchanged.tokenData, {
+        refreshToken: exchanged.tokenData.refresh_token ?? "",
+        expiresAt: Date.now() + (exchanged.tokenData.expires_in ?? 3600) * 1000,
+      });
     } else if (provider === "notion") {
       const clientId = getEnvOrThrow("NOTION_CLIENT_ID");
       const clientSecret = getEnvOrThrow("NOTION_CLIENT_SECRET");
@@ -453,11 +454,7 @@ export const handleCallbackInternal = internalAction({
       });
 
       if (!tokenRes.ok) {
-        return {
-          error: "token_exchange_failed",
-          frontendUrl: stateEntry.returnUrl,
-          connectorId: stateEntry.connectorId,
-        };
+        return fail("token_exchange_failed");
       }
 
       const tokenData = await parseResponseJson(
@@ -465,18 +462,14 @@ export const handleCallbackInternal = internalAction({
         notionTokenResponseSchema,
       );
       if (!tokenData.access_token) {
-        return {
-          error: tokenData.error ?? "no_token",
-          frontendUrl: stateEntry.returnUrl,
-          connectorId: stateEntry.connectorId,
-        };
+        return fail(tokenData.error ?? "no_token");
       }
 
       // Notion tokens don't expire, no refresh token
       const encryptedAccess = await encryptToken(tokenData.access_token);
 
       await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
-        connectorId: stateEntry.connectorId,
+        connectorId,
         accessToken: encryptedAccess,
         refreshToken: "", // Notion has no refresh token
         expiresAt: 0, // Never expires
@@ -503,22 +496,12 @@ export const handleCallbackInternal = internalAction({
         },
       );
       if (!exchanged.ok) {
-        return {
-          error: exchanged.error,
-          frontendUrl: stateEntry.returnUrl,
-          connectorId: stateEntry.connectorId,
-        };
+        return fail(exchanged.error);
       }
-      await encryptAndStoreOAuthTokens(
-        ctx,
-        stateEntry.connectorId,
-        exchanged.tokenData,
-        {
-          refreshToken: exchanged.tokenData.refresh_token ?? "",
-          expiresAt:
-            Date.now() + (exchanged.tokenData.expires_in ?? 3600) * 1000,
-        },
-      );
+      await encryptAndStoreOAuthTokens(ctx, connectorId, exchanged.tokenData, {
+        refreshToken: exchanged.tokenData.refresh_token ?? "",
+        expiresAt: Date.now() + (exchanged.tokenData.expires_in ?? 3600) * 1000,
+      });
     } else if (provider === "linear") {
       const clientId = getEnvOrThrow("LINEAR_CLIENT_ID");
       const clientSecret = getEnvOrThrow("LINEAR_CLIENT_SECRET");
@@ -538,40 +521,27 @@ export const handleCallbackInternal = internalAction({
         },
       );
       if (!exchanged.ok) {
-        return {
-          error: exchanged.error,
-          frontendUrl: stateEntry.returnUrl,
-          connectorId: stateEntry.connectorId,
-        };
+        return fail(exchanged.error);
       }
       // Linear access tokens last ~10 years and have no refresh token.
-      await encryptAndStoreOAuthTokens(
-        ctx,
-        stateEntry.connectorId,
-        exchanged.tokenData,
-        {
-          refreshToken: "",
-          expiresAt: 0,
-        },
-      );
+      await encryptAndStoreOAuthTokens(ctx, connectorId, exchanged.tokenData, {
+        refreshToken: "",
+        expiresAt: 0,
+      });
     } else {
-      return {
-        error: `unsupported_provider: ${provider}`,
-        frontendUrl: stateEntry.returnUrl,
-        connectorId: stateEntry.connectorId,
-      };
+      return fail(`unsupported_provider: ${provider}`);
     }
 
     // 4. Mark connector as connected
     await ctx.runMutation(internal.connectors.crud.markConnectedInternal, {
-      id: stateEntry.connectorId,
+      id: connectorId,
     });
 
     await auditLog.log(ctx, {
       action: "connector.connected",
       actorId: stateEntry.userId,
       resourceType: ResourceTypes.CONNECTOR,
-      resourceId: stateEntry.connectorId,
+      resourceId: connectorId,
       metadata: { provider, via: "oauth_callback" },
       severity: "info",
     });
@@ -579,7 +549,7 @@ export const handleCallbackInternal = internalAction({
     return {
       error: null,
       frontendUrl: stateEntry.returnUrl,
-      connectorId: stateEntry.connectorId,
+      connectorId,
     };
   },
 });

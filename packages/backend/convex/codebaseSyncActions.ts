@@ -61,22 +61,27 @@ export const syncOneCodebaseInternal = internalAction({
         (codebase.parseStage === "fetching" ||
           codebase.parseStage === undefined);
 
-      if (
+      const syncAgeMs =
+        codebase.syncStartedAt !== undefined
+          ? Date.now() - codebase.syncStartedAt
+          : undefined;
+      const isActivelySyncing =
         codebase.status === "syncing" &&
-        codebase.syncStartedAt !== undefined &&
-        Date.now() - codebase.syncStartedAt < STALE_SYNCING_MS &&
-        !fetchNotStarted
-      ) {
+        syncAgeMs !== undefined &&
+        syncAgeMs < STALE_SYNCING_MS &&
+        !fetchNotStarted;
+
+      if (isActivelySyncing) {
         return { ok: false, message: "Sync already in progress" };
       }
 
-      const syncStartedStale =
+      const shouldClearStaleSync =
         codebase.status === "syncing" &&
-        (codebase.syncStartedAt === undefined ||
-          Date.now() - codebase.syncStartedAt >= STALE_SYNCING_MS ||
+        (syncAgeMs === undefined ||
+          syncAgeMs >= STALE_SYNCING_MS ||
           fetchNotStarted);
 
-      if (syncStartedStale) {
+      if (shouldClearStaleSync) {
         await ctx.runMutation(internal.codebases.updateStatusInternal, {
           id: normalizedId,
           status: "error",

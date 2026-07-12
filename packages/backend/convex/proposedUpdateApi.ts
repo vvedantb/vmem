@@ -88,12 +88,14 @@ export const resolveProposal = authAction({
     // was already gone / wasn't owned by this user, which isn't audit-worthy.
     if (result) {
       const normalized = args.action.toLowerCase();
-      const auditAction =
-        normalized === "approve" || normalized === "approved"
-          ? "proposed_update.approved"
-          : normalized === "reject" || normalized === "rejected"
-            ? "proposed_update.rejected"
-            : `proposed_update.${normalized}`;
+      let auditAction: string;
+      if (normalized === "approve" || normalized === "approved") {
+        auditAction = "proposed_update.approved";
+      } else if (normalized === "reject" || normalized === "rejected") {
+        auditAction = "proposed_update.rejected";
+      } else {
+        auditAction = `proposed_update.${normalized}`;
+      }
 
       await auditLog.log(ctx, {
         action: auditAction,
