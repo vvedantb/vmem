@@ -125,7 +125,7 @@ export default function SignUpScreen() {
         await setActive({ session: createdSessionId });
         router.replace("/(main)");
       } else {
-        console.log("Additional verification required");
+        console.info("Additional verification required");
       }
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
