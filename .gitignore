@@ -9,16 +9,32 @@ build
 .eslintcache
 *.tsbuildinfo
 .tanstack
-internal/bench/*
-# Internal eval (primary) + retained markdown history of the external-benchmark
-# investigation. The external-benchmark *code* was removed; these docs stay.
-!internal/bench/vmem-internal-eval.md
-!internal/bench/external-benchmarks-investigation.md
-!internal/bench/evaluation-protocol.md
-!internal/bench/comparator-claims.md
-!internal/bench/beam-results.md
-!internal/bench/locomo-results.md
-internal/dissertation
 
-# Presentation deck is tracked on this branch (PR #105). Do not add ignore
-# rules for /slides here — mainline ignores them until this PR merges.
+# Local agent / IDE config (not shared)
+.claude/
+.cursor/
+.agents/
+
+# Local project context (not shared)
+FYP-PROJECT-CONTEXT.md
+CLAUDE.md
+AGENTS.md
+CODEBASE.md
+skills-lock.json
+skills-lock.json.bak
+
+# Internal docs, plans, dissertation — local only
+internal/
+
+# Agent workflow specs + local scripts — not shared
+docs/superpowers/
+scripts/
+
+# Presentation deck is tracked on this branch (PR #105). Do not ignore
+# /slides paths here — mainline ignores them until this PR merges.
+
+# Chrome extension build + live-verification scripts — local only
+apps/chrome-extension/scripts/
+
+# Oxlint report — local only
+oxlint-report.json

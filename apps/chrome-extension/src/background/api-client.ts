@@ -143,7 +143,7 @@ export async function saveScreenshot(params: {
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`generateMemoryUploadUrl failed: ${msg}`);
+    throw new Error(`generateMemoryUploadUrl failed: ${msg}`, { cause: err });
   }
 
   const uploadRes = await fetch(uploadUrl, {
@@ -175,7 +175,7 @@ export async function saveScreenshot(params: {
     // Most common failure mode here: the action hasn't been deployed to
     // Convex yet. After editing fileImport.ts, run `npx convex dev` in
     // packages/backend (or `npx convex deploy` for prod).
-    throw new Error(`importImageMemory action failed: ${msg}`);
+    throw new Error(`importImageMemory action failed: ${msg}`, { cause: err });
   }
 }
 

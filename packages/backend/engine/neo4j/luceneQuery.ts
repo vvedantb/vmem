@@ -4,7 +4,7 @@
  * when passed through unchanged.
  */
 
-const LUCENE_SPECIAL_CHARS = /[+\-!(){}[\]^"~*?:\\\/]/g;
+const LUCENE_SPECIAL_CHARS = /[+\-!(){}[\]^"~*?:\\/]/g;
 
 export function escapeLuceneQuery(text: string): string {
   return text.replace(LUCENE_SPECIAL_CHARS, "\\$&");

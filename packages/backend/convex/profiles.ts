@@ -20,7 +20,6 @@ import {
   listProfilesByClerkIdAndScope,
   mcpScopeValidator,
   resolveProfileIdForMcpScope,
-  setMcpDefaultProfileForScope,
 } from "./profiles/mcpAccess";
 
 export { PROFILE_COLORS, PROFILE_ICONS } from "./profiles/helpers";

@@ -39,7 +39,6 @@ const Breadcrumb = React.forwardRef<
       {...props}
     >
       {items.map((item, index) => (
-        // eslint-disable-next-line react/no-array-index-key
         <React.Fragment key={index}>
           {item}
           {index < items.length - 1 && <BreadcrumbSeparator />}
