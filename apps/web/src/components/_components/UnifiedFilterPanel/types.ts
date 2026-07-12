@@ -1,7 +1,7 @@
 import type { Memory, MemoryType, TagSortMode, TagStats } from "@/lib/memories";
 import type { ListItem, ListItemKind } from "@/lib/list-items";
 
-export type FilterTab = "kind" | "tags" | "source" | "type";
+type FilterTab = "kind" | "tags" | "source" | "type";
 
 export const TAG_SORT_LABELS: Record<TagSortMode, string> = {
   "a-z": "A–Z",

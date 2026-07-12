@@ -20,8 +20,6 @@ export interface TimelineEvent {
   reason?: string;
 }
 
-export type TimelineMode = "history" | "trail";
-
 export interface ChangeSummary {
   addedChars: number;
   removedChars: number;

@@ -12,27 +12,15 @@
  * mirrors the list above).
  */
 
-import {
-  type EntryPoint,
-  type RelationEdge,
-  type SymbolNode,
-  type FunctionNode,
+import type {
+  EntryPoint,
+  RelationEdge,
+  SymbolNode,
+  FunctionNode,
 } from "./types";
-import { Project, SyntaxKind } from "ts-morph";
-
-const CONVEX_KIND_BY_BUILDER: Record<string, EntryPoint["kind"]> = {
-  query: "convex_query",
-  mutation: "convex_mutation",
-  action: "convex_action",
-  internalQuery: "convex_internal",
-  internalMutation: "convex_internal",
-  internalAction: "convex_internal",
-  authInternalAction: "convex_internal",
-  httpAction: "convex_http",
-  authQuery: "convex_query",
-  authMutation: "convex_mutation",
-  authAction: "convex_action",
-};
+import { convexEntryKind } from "./convexBuilders";
+import type { Project } from "ts-morph";
+import { SyntaxKind } from "ts-morph";
 
 const HEURISTIC_NAMES = new Set(["main", "handler", "start"]);
 
@@ -54,6 +42,11 @@ function detectFromSource(
     fnByPathName.set(`${s.filePath}::${s.name}`, s);
   }
 
+  function addEntry(fn: FunctionNode, kind: EntryPoint["kind"]): void {
+    entries.push({ functionId: fn.id, kind, name: entryName(fn) });
+    seenIds.add(fn.id);
+  }
+
   for (const sourceFile of project.getSourceFiles()) {
     const filePath = sourceFile.getFilePath().toString();
     for (const v of sourceFile.getVariableDeclarations()) {
@@ -65,14 +58,9 @@ function detectFromSource(
       if (!fnNode) continue;
 
       // Convex builders.
-      const convexKind = CONVEX_KIND_BY_BUILDER[calleeText];
+      const convexKind = convexEntryKind(calleeText);
       if (convexKind) {
-        entries.push({
-          functionId: fnNode.id,
-          kind: convexKind,
-          name: entryName(fnNode),
-        });
-        seenIds.add(fnNode.id);
+        addEntry(fnNode, convexKind);
         continue;
       }
 
@@ -80,12 +68,7 @@ function detectFromSource(
       // The outer call is an immediately-invoked builder; the inner CE
       // has callee `createFileRoute` (or `createRootRoute`).
       if (calleeText.startsWith("createFileRoute")) {
-        entries.push({
-          functionId: fnNode.id,
-          kind: "tanstack_route",
-          name: entryName(fnNode),
-        });
-        seenIds.add(fnNode.id);
+        addEntry(fnNode, "tanstack_route");
         continue;
       }
     }
@@ -97,12 +80,10 @@ function detectFromSource(
     if (seenIds.has(s.id)) continue;
     if (s.parentClass) continue;
     if (HEURISTIC_NAMES.has(s.name) || s.name.startsWith("on")) {
-      entries.push({
-        functionId: s.id,
-        kind: HEURISTIC_NAMES.has(s.name) ? "heuristic_main" : "event_handler",
-        name: entryName(s),
-      });
-      seenIds.add(s.id);
+      addEntry(
+        s,
+        HEURISTIC_NAMES.has(s.name) ? "heuristic_main" : "event_handler",
+      );
     }
   }
 

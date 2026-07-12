@@ -1,7 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { useConvexAuth } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import {
   cn,
   Select,

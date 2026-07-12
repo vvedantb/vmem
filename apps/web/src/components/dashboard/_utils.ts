@@ -26,6 +26,7 @@ export function getActivityIcon(type: string): TablerIcon {
 /** Pull the memory title out of descriptions like `Created "My title"`. */
 export function getActivityLabel(description: string): string {
   const quoted = /"([^"]+)"/.exec(description);
-  if (quoted) return quoted[1];
+  const title = quoted?.at(1);
+  if (title !== undefined) return title;
   return description;
 }

@@ -46,6 +46,23 @@ export async function requireTeamRole(
   return membership;
 }
 
+/** Clerk ids of every member of a team (members without a clerkId skipped). */
+export async function getTeamMemberClerkIds(
+  ctx: QueryCtx | MutationCtx,
+  teamId: Id<"teams">,
+): Promise<string[]> {
+  const members = await ctx.db
+    .query("teamMembers")
+    .withIndex("by_team", (q) => q.eq("teamId", teamId))
+    .collect();
+  const clerkIds: string[] = [];
+  for (const m of members) {
+    const u = await ctx.db.get(m.userId);
+    if (u?.clerkId) clerkIds.push(u.clerkId);
+  }
+  return clerkIds;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Content scoping (skills / wikiNodes / fileNodes) — "user-wide + team".
 //
@@ -58,6 +75,20 @@ export async function requireTeamRole(
 interface ScopedContentDoc {
   userId: Id<"users">;
   teamId?: Id<"teams">;
+}
+
+/** Personal scope: only the owner. Team scope: any current member. */
+async function assertPersonalOwnerOrTeamMember(
+  ctx: QueryCtx | MutationCtx,
+  doc: ScopedContentDoc,
+  userId: Id<"users">,
+): Promise<void> {
+  if (doc.teamId === undefined) {
+    if (doc.userId !== userId) throw new Error("Not found");
+    return;
+  }
+  const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
+  if (!membership) throw new Error("Not found");
 }
 
 /** List/create gate: membership when a teamId scope is requested. */
@@ -88,12 +119,7 @@ export async function assertContentEditable(
   doc: ScopedContentDoc,
   userId: Id<"users">,
 ): Promise<void> {
-  if (doc.teamId === undefined) {
-    if (doc.userId !== userId) throw new Error("Not found");
-    return;
-  }
-  const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
-  if (!membership) throw new Error("Not found");
+  await assertPersonalOwnerOrTeamMember(ctx, doc, userId);
 }
 
 /** Delete gate: personal → owner; team → creator or team owner. */
@@ -103,7 +129,7 @@ export async function assertContentDeletable(
   userId: Id<"users">,
 ): Promise<void> {
   if (doc.teamId === undefined) {
-    if (doc.userId !== userId) throw new Error("Not found");
+    await assertPersonalOwnerOrTeamMember(ctx, doc, userId);
     return;
   }
   if (doc.userId === userId) {
@@ -175,15 +201,7 @@ export async function runResolveMemoryScopeInternal(
     const membership = await getMembershipOrNull(ctx, teamId, args.userId);
     if (!membership) throw new Error("Not a member of this team");
 
-    const members = await ctx.db
-      .query("teamMembers")
-      .withIndex("by_team", (q) => q.eq("teamId", teamId))
-      .collect();
-    const allowedClerkIds: string[] = [];
-    for (const m of members) {
-      const u = await ctx.db.get(m.userId);
-      if (u?.clerkId) allowedClerkIds.push(u.clerkId);
-    }
+    const allowedClerkIds = await getTeamMemberClerkIds(ctx, teamId);
     return {
       kind: "team",
       allowedClerkIds,

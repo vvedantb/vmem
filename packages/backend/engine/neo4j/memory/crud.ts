@@ -11,17 +11,225 @@
 
 import Cypher from "@neo4j/cypher-builder";
 import crypto from "node:crypto";
-import neo4j, { type Driver, type Integer } from "neo4j-driver";
+import neo4j, {
+  type Driver,
+  type Integer,
+  type QueryResult,
+  type Session,
+} from "neo4j-driver";
 import { buildAndRun } from "../cypherHelpers";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
-import { toMemoryWithTags, toNeoInt, toSnapshot } from "./mappers";
+import { neo4jGet, parseNeo4jInt } from "../record";
+import { toMemoryWithTags, toSnapshot } from "./mappers";
+import { createSemanticSimilarityEdges } from "./relationships";
 import { logEvent, withSession } from "./shared";
 import { normalizeTags } from "./tagNormalize";
-import {
-  type MemoryStatus,
-  type MemoryType,
-  type MemoryWithTags,
-} from "./types";
+import type { MemoryStatus, MemoryType, MemoryWithTags } from "./types";
+
+/** Lightweight memory reference returned by the dedup-lookup helpers. */
+export type MemoryRef = { id: string; title: string; updatedAt: string };
+
+/**
+ * Extract the `{id, title, updatedAt}` shape from a query's first record, or
+ * null when the query matched nothing. Shared by every `findMemoryBy*` dedup
+ * lookup — they all run a single-row MATCH and return this same projection.
+ */
+function firstMemoryRef(result: QueryResult): MemoryRef | null {
+  const r = result.records[0];
+  if (!r) return null;
+  return {
+    id: String(neo4jGet(r, "id")),
+    title: String(neo4jGet(r, "title")),
+    updatedAt: String(neo4jGet(r, "updatedAt")),
+  };
+}
+
+/** Render a `{k: $k, ...}` node-pattern property list from a params object. */
+function propsClause(props: Record<string, unknown>): string {
+  return Object.keys(props)
+    .map((k) => `${k}: $${k}`)
+    .join(", ");
+}
+
+/**
+ * Shared core for `getMemory`/`getMemoryForTeam`: a single-node match by
+ * arbitrary properties (id + userId, or id + profileId) plus its tags.
+ */
+export async function fetchMemoryWithTags(
+  driver: Driver,
+  matchProps: Record<string, string>,
+): Promise<MemoryWithTags | null> {
+  return withSession(driver, async (session) => {
+    const result = await session.run(
+      `MATCH (m:Memory {${propsClause(matchProps)}})
+       OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+       RETURN m, collect(t.name) AS tags`,
+      matchProps,
+    );
+    const firstRecord = result.records[0];
+    if (!firstRecord) return null;
+    return toMemoryWithTags(firstRecord);
+  });
+}
+
+/**
+ * Shared core for `deleteMemory`/`deleteTeamMemoryAsOwner`: match a single
+ * Memory node by arbitrary properties, DETACH DELETE it, report whether a
+ * node was actually removed. Runs on a caller-supplied session so
+ * `deleteMemory` can share one session with its chunk cleanup.
+ */
+export async function detachDeleteCount(
+  session: Session,
+  matchProps: Record<string, string>,
+): Promise<boolean> {
+  const result = await session.run(
+    `MATCH (m:Memory {${propsClause(matchProps)}})
+     DETACH DELETE m
+     RETURN count(m) AS deleted`,
+    matchProps,
+  );
+  const firstRecord = result.records[0];
+  if (!firstRecord) return false;
+  return parseNeo4jInt(neo4jGet(firstRecord, "deleted")) > 0;
+}
+
+/**
+ * Shared core for the `findMemoryBy*` dedup lookups: single-row MATCH on
+ * arbitrary properties, optional extra WHERE/ORDER BY, same projection.
+ */
+async function findMemoryRef(
+  driver: Driver,
+  matchProps: Record<string, string>,
+  opts?: {
+    extraWhere?: string;
+    orderBy?: string;
+    extraParams?: Record<string, string>;
+  },
+): Promise<MemoryRef | null> {
+  return withSession(driver, async (session) => {
+    const result = await session.run(
+      `MATCH (m:Memory {${propsClause(matchProps)}})
+       WHERE m.status IN ['active', 'pinned']${opts?.extraWhere ? ` AND ${opts.extraWhere}` : ""}
+       RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
+       ${opts?.orderBy ? `ORDER BY ${opts.orderBy}` : ""}
+       LIMIT 1`,
+      { ...matchProps, ...opts?.extraParams },
+    );
+    return firstMemoryRef(result);
+  });
+}
+
+/**
+ * Shared core for `listMemories`/`listMemoriesForTeam`: everything past the
+ * base scope filter (profile vs userId ownership) is identical — type,
+ * status, source, tag, and fulltext-search filters, plus the two-pass
+ * count+page run. `baseWhere` supplies the scope clause (e.g.
+ * `m.userId = $userId`) and `baseParams` its bound values.
+ */
+export async function runMemoryList(
+  session: Session,
+  baseWhere: string,
+  baseParams: Record<string, string | number | Integer | string[] | null>,
+  params: {
+    type?: MemoryType;
+    status?: MemoryStatus;
+    source?: string;
+    tags?: string[];
+    searchQuery?: string;
+    limit: number;
+    offset: number;
+  },
+): Promise<{ memories: MemoryWithTags[]; total: number }> {
+  // Count + page are still two sequential session.run() calls because a
+  // combined CALL{} pattern that joins them drops the count row whenever
+  // the page query returns zero rows (e.g. user scrolls past the end).
+  // That bug used to silently break pagination UIs, so the guard stays.
+  const queryParams: Record<
+    string,
+    string | number | Integer | string[] | null
+  > = {
+    ...baseParams,
+    limit: neo4j.int(params.limit),
+    offset: neo4j.int(params.offset),
+  };
+
+  const whereClauses: string[] = [baseWhere];
+  if (params.type) {
+    whereClauses.push("m.type = $type");
+    queryParams.type = params.type;
+  }
+  if (params.status) {
+    whereClauses.push("m.status = $status");
+    queryParams.status = params.status;
+  } else {
+    // Default: hide suppressed/expired. Matches the graph view and
+    // closes a latent bug where the search path ignored status entirely.
+    whereClauses.push("coalesce(m.status, 'active') IN ['active', 'pinned']");
+  }
+  if (params.source) {
+    whereClauses.push("m.source = $source");
+    queryParams.source = params.source;
+  }
+
+  const where = whereClauses.join(" AND ");
+
+  const filterTags = params.tags ?? [];
+  const hasTagFilter = filterTags.length > 0;
+  if (hasTagFilter) {
+    queryParams.filterTags = filterTags;
+  }
+  const filterTagsCount = filterTags.length;
+
+  const luceneSearchQuery = toMemoryContentFulltextQuery(
+    params.searchQuery ?? "",
+  );
+  const hasSearchQuery = luceneSearchQuery !== null;
+  if (hasSearchQuery) {
+    queryParams.searchQuery = luceneSearchQuery;
+  }
+
+  // Index-joined tag filter: match the Tag node directly (hits the
+  // Tag(name) unique-constraint index) and require matched-tag count to
+  // equal the number of filter tags. Avoids scanning every TAGGED_WITH
+  // edge per memory. Forwards `score` alongside `m` when the search path
+  // is active so the subsequent ORDER BY can still see it.
+  const tagMatchClause = hasTagFilter
+    ? `MATCH (m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags
+       WITH m${hasSearchQuery ? ", score" : ""}, count(DISTINCT ft) AS matchedTags
+       WHERE matchedTags = ${filterTagsCount}`
+    : "";
+
+  // The matchPrefix picks the query anchor: fulltext index when the user
+  // is searching, Memory(userId,status,createdAt) composite index
+  // otherwise. The orderClause decides how the page is sorted.
+  const matchPrefix = hasSearchQuery
+    ? `CALL db.index.fulltext.queryNodes('memory_content', $searchQuery) YIELD node AS m, score
+       WHERE ${where}`
+    : `MATCH (m:Memory) WHERE ${where}`;
+  const orderClause = hasSearchQuery
+    ? "WITH m, score ORDER BY score DESC"
+    : "WITH m ORDER BY m.createdAt DESC";
+
+  const countResult = await session.run(
+    `${matchPrefix}
+     ${tagMatchClause}
+     RETURN count(m) AS total`,
+    queryParams,
+  );
+  const countRecord = countResult.records[0];
+  const total = countRecord ? parseNeo4jInt(neo4jGet(countRecord, "total")) : 0;
+
+  const result = await session.run(
+    `${matchPrefix}
+     ${tagMatchClause}
+     ${orderClause} SKIP $offset LIMIT $limit
+     OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+     RETURN m, collect(t.name) AS tags`,
+    queryParams,
+  );
+  const memories = result.records.map(toMemoryWithTags);
+  return { memories, total };
+}
 
 export async function createMemory(
   driver: Driver,
@@ -179,31 +387,13 @@ export async function createMemory(
     // 578 edges). Genuinely related pages are covered by the two similarity
     // paths below; browsing bursts by the same-session edge above.
 
-    // Semantic similarity edges — find top-5 most similar existing memories
-    // using the vector index and create RELATES_TO edges above the threshold.
-    // MERGE avoids duplicating edges that already exist from same-session;
-    // ON CREATE SET ensures score is only written on new edges.
+    // Semantic similarity edges — see createSemanticSimilarityEdges in relationships.ts.
     if (params.embedding !== null) {
-      await session.run(
-        `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
-         YIELD node AS candidate, score AS similarity
-         WHERE candidate.userId = $userId
-           AND candidate.id <> $id
-           AND similarity >= $threshold
-         WITH candidate, similarity
-         ORDER BY similarity DESC
-         LIMIT $limit
-         MATCH (m:Memory {id: $id})
-         MERGE (m)-[r:RELATES_TO]->(candidate)
-         ON CREATE SET r.reason = 'semantic similarity', r.score = similarity`,
-        {
-          k: neo4j.int(20),
-          embedding: params.embedding,
-          userId: params.userId,
-          id,
-          threshold: 0.78,
-          limit: neo4j.int(5),
-        },
+      await createSemanticSimilarityEdges(
+        session,
+        id,
+        params.userId,
+        params.embedding,
       );
     }
 
@@ -218,19 +408,7 @@ export async function getMemory(
   userId: string,
   memoryId: string,
 ): Promise<MemoryWithTags | null> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {id: $memoryId, userId: $userId})
-       OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-       RETURN m, collect(t.name) AS tags`,
-      { memoryId, userId },
-    );
-
-    if (result.records.length === 0) return null;
-    const firstRecord = result.records[0];
-    if (!firstRecord) return null;
-    return toMemoryWithTags(firstRecord);
-  });
+  return fetchMemoryWithTags(driver, { id: memoryId, userId });
 }
 
 export async function listMemories(
@@ -247,108 +425,21 @@ export async function listMemories(
     offset: number;
   },
 ): Promise<{ memories: MemoryWithTags[]; total: number }> {
+  // Unified list + search path — see `runMemoryList` for the shared
+  // filter/search/pagination core. Scope: owned memories, plus (when a
+  // profile is given) memories tagged with that profile or unmigrated
+  // (legacy, no profileId yet).
   return withSession(driver, async (session) => {
-    // Unified list + search path. All filters (profile, type, status,
-    // source, tags, search) are pushed into Cypher so the frontend can
-    // paginate a filtered subset in constant time rather than fetch every
-    // memory and filter in JS.
-    //
-    // When `searchQuery` is present, the MATCH starts from the fulltext
-    // index hit; otherwise it scans the memory_user_status_created
-    // composite index (most recent active memories first).
-    //
-    // Count + page are still two sequential session.run() calls because a
-    // combined CALL{} pattern that joins them drops the count row whenever
-    // the page query returns zero rows (e.g. user scrolls past the end).
-    // That bug used to silently break pagination UIs, so the guard stays.
-    const queryParams: Record<
+    const baseParams: Record<
       string,
       string | number | Integer | string[] | null
-    > = {
-      userId: params.userId,
-      limit: neo4j.int(params.limit),
-      offset: neo4j.int(params.offset),
-    };
-
-    const whereClauses: string[] = ["m.userId = $userId"];
+    > = { userId: params.userId };
+    let baseWhere = "m.userId = $userId";
     if (params.profileId !== undefined && params.profileId !== null) {
-      whereClauses.push("(m.profileId = $profileId OR m.profileId IS NULL)");
-      queryParams.profileId = params.profileId;
+      baseWhere += " AND (m.profileId = $profileId OR m.profileId IS NULL)";
+      baseParams.profileId = params.profileId;
     }
-    if (params.type) {
-      whereClauses.push("m.type = $type");
-      queryParams.type = params.type;
-    }
-    if (params.status) {
-      whereClauses.push("m.status = $status");
-      queryParams.status = params.status;
-    } else {
-      // Default: hide suppressed/expired. Matches the graph view and
-      // closes a latent bug where the search path ignored status entirely.
-      whereClauses.push("coalesce(m.status, 'active') IN ['active', 'pinned']");
-    }
-    if (params.source) {
-      whereClauses.push("m.source = $source");
-      queryParams.source = params.source;
-    }
-
-    const where = whereClauses.join(" AND ");
-
-    const hasTagFilter = !!params.tags && params.tags.length > 0;
-    if (hasTagFilter && params.tags) {
-      queryParams.filterTags = params.tags;
-    }
-    const filterTagsCount = params.tags?.length ?? 0;
-
-    const luceneSearchQuery = toMemoryContentFulltextQuery(
-      params.searchQuery ?? "",
-    );
-    const hasSearchQuery = luceneSearchQuery !== null;
-    if (hasSearchQuery) {
-      queryParams.searchQuery = luceneSearchQuery;
-    }
-
-    // Index-joined tag filter: match the Tag node directly (hits the
-    // Tag(name) unique-constraint index) and require matched-tag count to
-    // equal the number of filter tags. Avoids scanning every TAGGED_WITH
-    // edge per memory. Forwards `score` alongside `m` when the search path
-    // is active so the subsequent ORDER BY can still see it.
-    const tagMatchClause = hasTagFilter
-      ? `MATCH (m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags
-         WITH m${hasSearchQuery ? ", score" : ""}, count(DISTINCT ft) AS matchedTags
-         WHERE matchedTags = ${filterTagsCount}`
-      : "";
-
-    // The matchPrefix picks the query anchor: fulltext index when the user
-    // is searching, Memory(userId,status,createdAt) composite index
-    // otherwise. The orderClause decides how the page is sorted.
-    const matchPrefix = hasSearchQuery
-      ? `CALL db.index.fulltext.queryNodes('memory_content', $searchQuery) YIELD node AS m, score
-         WHERE ${where}`
-      : `MATCH (m:Memory) WHERE ${where}`;
-    const orderClause = hasSearchQuery
-      ? "WITH m, score ORDER BY score DESC"
-      : "WITH m ORDER BY m.createdAt DESC";
-
-    const countResult = await session.run(
-      `${matchPrefix}
-       ${tagMatchClause}
-       RETURN count(m) AS total`,
-      queryParams,
-    );
-    const countRecord = countResult.records[0];
-    const total = countRecord ? toNeoInt(countRecord.get("total")) : 0;
-
-    const result = await session.run(
-      `${matchPrefix}
-       ${tagMatchClause}
-       ${orderClause} SKIP $offset LIMIT $limit
-       OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-       RETURN m, collect(t.name) AS tags`,
-      queryParams,
-    );
-    const memories = result.records.map(toMemoryWithTags);
-    return { memories, total };
+    return runMemoryList(session, baseWhere, baseParams, params);
   });
 }
 
@@ -437,8 +528,6 @@ MERGE (m)-[:TAGGED_WITH]->(tag)`,
     const query = Cypher.utils.concat(matchWithSet, tagUpdate, returnPart);
     const result = await buildAndRun(session, query);
 
-    if (result.records.length === 0) return null;
-
     const firstRecord = result.records[0];
     if (!firstRecord) return null;
     const updated = toMemoryWithTags(firstRecord);
@@ -469,28 +558,24 @@ export async function deleteMemory(
        DETACH DELETE c`,
       { memoryId, userId },
     );
-    const result = await session.run(
-      `MATCH (m:Memory {id: $memoryId, userId: $userId})
-       DETACH DELETE m
-       RETURN count(m) AS deleted`,
-      { memoryId, userId },
-    );
-    const firstRecord = result.records[0];
-    if (!firstRecord) return false;
-    return toNeoInt(firstRecord.get("deleted")) > 0;
+    return detachDeleteCount(session, { id: memoryId, userId });
   });
 }
 
-/**
- * Wipe every memory the user owns and every node that exists only to
- * support those memories: chunks, memory events, proposed updates, and
- * per-user entities. Tags and sources are global (`UNIQUE` on name) so
- * we only prune the orphans — names other users still reference stay.
- *
- * Mirrors `unseed.ts`'s ordering: child rows first, then memories, then
- * orphan cleanup, so DETACH DELETE never has to walk into a child it
- * was supposed to remove on its own.
- */
+/** Prune Tag/Source nodes no memory still references (global UNIQUE names). */
+async function deleteOrphanTagsAndSources(session: Session): Promise<void> {
+  await session.run(
+    `MATCH (t:Tag)
+     WHERE NOT EXISTS { MATCH (:Memory)-[:TAGGED_WITH]->(t) }
+     DELETE t`,
+  );
+  await session.run(
+    `MATCH (s:Source)
+     WHERE NOT EXISTS { MATCH (:Memory)-[:FROM_SOURCE]->(s) }
+     DELETE s`,
+  );
+}
+
 /**
  * Remove every memory imported from the given connector source types, plus
  * their chunks, events, and proposed updates. Does not disconnect OAuth or
@@ -534,22 +619,23 @@ export async function deleteMemoriesBySourceTypes(
        RETURN count(m) AS deleted`,
       { userId, sourceTypes },
     );
-    await session.run(
-      `MATCH (t:Tag)
-       WHERE NOT EXISTS { MATCH (:Memory)-[:TAGGED_WITH]->(t) }
-       DELETE t`,
-    );
-    await session.run(
-      `MATCH (s:Source)
-       WHERE NOT EXISTS { MATCH (:Memory)-[:FROM_SOURCE]->(s) }
-       DELETE s`,
-    );
+    await deleteOrphanTagsAndSources(session);
     const firstRecord = result.records[0];
     if (!firstRecord) return 0;
-    return toNeoInt(firstRecord.get("deleted"));
+    return parseNeo4jInt(neo4jGet(firstRecord, "deleted"));
   });
 }
 
+/**
+ * Wipe every memory the user owns and every node that exists only to
+ * support those memories: chunks, memory events, proposed updates, and
+ * per-user entities. Tags and sources are global (`UNIQUE` on name) so
+ * we only prune the orphans — names other users still reference stay.
+ *
+ * Mirrors `unseed.ts`'s ordering: child rows first, then memories, then
+ * orphan cleanup, so DETACH DELETE never has to walk into a child it
+ * was supposed to remove on its own.
+ */
 export async function deleteAllMemoriesForUser(
   driver: Driver,
   userId: string,
@@ -581,19 +667,10 @@ export async function deleteAllMemoriesForUser(
        RETURN count(m) AS deleted`,
       { userId },
     );
-    await session.run(
-      `MATCH (t:Tag)
-       WHERE NOT EXISTS { MATCH (:Memory)-[:TAGGED_WITH]->(t) }
-       DELETE t`,
-    );
-    await session.run(
-      `MATCH (s:Source)
-       WHERE NOT EXISTS { MATCH (:Memory)-[:FROM_SOURCE]->(s) }
-       DELETE s`,
-    );
+    await deleteOrphanTagsAndSources(session);
     const firstRecord = result.records[0];
     if (!firstRecord) return 0;
-    return toNeoInt(firstRecord.get("deleted"));
+    return parseNeo4jInt(neo4jGet(firstRecord, "deleted"));
   });
 }
 
@@ -601,24 +678,8 @@ export async function findMemoryByUrl(
   driver: Driver,
   userId: string,
   url: string,
-): Promise<{ id: string; title: string; updatedAt: string } | null> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId, url: $url})
-       WHERE m.status IN ['active', 'pinned']
-       RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
-       LIMIT 1`,
-      { userId, url },
-    );
-    if (result.records.length === 0) return null;
-    const r = result.records[0];
-    if (!r) return null;
-    return {
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      updatedAt: String(r.get("updatedAt")),
-    };
-  });
+): Promise<MemoryRef | null> {
+  return findMemoryRef(driver, { userId, url });
 }
 
 /**
@@ -645,8 +706,8 @@ export async function incrementVisitCount(
       return { visitCount: 1, lastVisitAt: now };
     }
     return {
-      visitCount: toNeoInt(r.get("visitCount")),
-      lastVisitAt: String(r.get("lastVisitAt")),
+      visitCount: parseNeo4jInt(neo4jGet(r, "visitCount")),
+      lastVisitAt: String(neo4jGet(r, "lastVisitAt")),
     };
   });
 }
@@ -664,6 +725,16 @@ export async function finalizeDedupHit(
   return getMemory(driver, userId, memoryId);
 }
 
+/** Bump visit count and return the full row when a dedup lookup matched. */
+export async function shortCircuitOnDedupMatch(
+  driver: Driver,
+  userId: string,
+  ref: MemoryRef | null,
+): Promise<MemoryWithTags | null> {
+  if (!ref) return null;
+  return finalizeDedupHit(driver, userId, ref.id);
+}
+
 /**
  * Find an existing browsing-history/bookmarks memory with the same title
  * from the same origin (protocol+host). Catches the "every page on my app
@@ -674,27 +745,17 @@ export async function findMemoryByTitleAndOrigin(
   userId: string,
   title: string,
   origin: string,
-): Promise<{ id: string; title: string; updatedAt: string } | null> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId, title: $title})
-       WHERE m.status IN ['active', 'pinned']
-         AND m.source IN ['browsing-history', 'bookmarks']
-         AND m.url STARTS WITH $origin
-       RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
-       ORDER BY m.visitCount DESC, m.createdAt ASC
-       LIMIT 1`,
-      { userId, title, origin },
-    );
-    if (result.records.length === 0) return null;
-    const r = result.records[0];
-    if (!r) return null;
-    return {
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      updatedAt: String(r.get("updatedAt")),
-    };
-  });
+): Promise<MemoryRef | null> {
+  return findMemoryRef(
+    driver,
+    { userId, title },
+    {
+      extraWhere:
+        "m.source IN ['browsing-history', 'bookmarks'] AND m.url STARTS WITH $origin",
+      orderBy: "m.visitCount DESC, m.createdAt ASC",
+      extraParams: { origin },
+    },
+  );
 }
 
 /**
@@ -705,24 +766,8 @@ export async function findMemoryByContentHash(
   driver: Driver,
   userId: string,
   contentHash: string,
-): Promise<{ id: string; title: string; updatedAt: string } | null> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId, contentHash: $contentHash})
-       WHERE m.status IN ['active', 'pinned']
-       RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
-       LIMIT 1`,
-      { userId, contentHash },
-    );
-    if (result.records.length === 0) return null;
-    const r = result.records[0];
-    if (!r) return null;
-    return {
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      updatedAt: String(r.get("updatedAt")),
-    };
-  });
+): Promise<MemoryRef | null> {
+  return findMemoryRef(driver, { userId, contentHash });
 }
 
 /**
@@ -737,24 +782,8 @@ export async function findMemoryByExternalId(
   userId: string,
   sourceType: string,
   sourceId: string,
-): Promise<{ id: string; title: string; updatedAt: string } | null> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId, sourceType: $sourceType, sourceId: $sourceId})
-       WHERE m.status IN ['active', 'pinned']
-       RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
-       LIMIT 1`,
-      { userId, sourceType, sourceId },
-    );
-    if (result.records.length === 0) return null;
-    const r = result.records[0];
-    if (!r) return null;
-    return {
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      updatedAt: String(r.get("updatedAt")),
-    };
-  });
+): Promise<MemoryRef | null> {
+  return findMemoryRef(driver, { userId, sourceType, sourceId });
 }
 
 /**
@@ -790,14 +819,13 @@ export async function findMemoryBySimilarity(
         threshold,
       },
     );
-    if (result.records.length === 0) return null;
     const r = result.records[0];
     if (!r) return null;
     return {
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      updatedAt: String(r.get("updatedAt")),
-      similarity: Number(r.get("similarity")),
+      id: String(neo4jGet(r, "id")),
+      title: String(neo4jGet(r, "title")),
+      updatedAt: String(neo4jGet(r, "updatedAt")),
+      similarity: Number(neo4jGet(r, "similarity")),
     };
   });
 }

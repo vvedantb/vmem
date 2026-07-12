@@ -1,23 +1,5 @@
 import type { GraphEdgeType } from "./canvas/types";
 
-export interface NodeAttributes {
-  label: string;
-  content: string;
-  tags: string[];
-  createdAt: string;
-  color: string;
-  size: number;
-  x: number;
-  y: number;
-}
-
-export interface EdgeAttributes {
-  weight: number;
-  edgeType: "tag" | "relates_to" | "mentions";
-  reason?: string;
-  score?: number;
-}
-
 export interface HoveredNodeInfo {
   id: string;
   title: string;

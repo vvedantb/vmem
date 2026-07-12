@@ -28,6 +28,7 @@
 
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { safeSendMessage } from "@/lib/safe-message";
+import { z } from "zod";
 import { mountVmemLogo } from "@/content/shared/icons";
 import { CHECK_ICON, ERROR_ICON } from "./icons";
 import type { Mode, SelectionRect } from "./types";
@@ -44,6 +45,10 @@ import {
   scrim,
   thumb,
 } from "./dom";
+
+const startScreenshotMessageSchema = z.object({
+  type: z.literal("START_SCREENSHOT"),
+});
 
 // ── Mode + state ──────────────────────────────────────────────────────────────
 
@@ -337,16 +342,11 @@ document.addEventListener(
 // Listen for the start trigger from the background SW.
 chrome.runtime.onMessage.addListener(
   (message: unknown, _sender, sendResponse) => {
-    if (
-      typeof message === "object" &&
-      message !== null &&
-      Reflect.get(message, "type") === "START_SCREENSHOT"
-    ) {
-      startSelection();
-      sendResponse({ ok: true });
-      return true;
-    }
-    return false;
+    const parsed = startScreenshotMessageSchema.safeParse(message);
+    if (!parsed.success) return false;
+    startSelection();
+    sendResponse({ ok: true });
+    return true;
   },
 );
 

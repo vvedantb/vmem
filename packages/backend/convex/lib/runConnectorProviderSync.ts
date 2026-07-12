@@ -21,6 +21,23 @@ import { retrier } from "../retrier";
 export type SyncExecution = "retrier" | "direct";
 
 /**
+ * Run via retrier or direct `runAction`. Callers pass concrete thunks so
+ * each path keeps a fully-typed Convex function reference — a shared
+ * generic `dispatchSync(ref, args)` hits OptionalRestArgs because
+ * `Args extends EmptyObject` stays unresolved on type parameters.
+ */
+async function dispatchSync(
+  execution: SyncExecution,
+  paths: {
+    retrier: () => Promise<unknown>;
+    direct: () => Promise<unknown>;
+  },
+): Promise<void> {
+  if (execution === "retrier") await paths.retrier();
+  else await paths.direct();
+}
+
+/**
  * Single source of truth for which providers support sync and how each
  * one is dispatched. Both execution strategies share this one switch, so
  * adding a provider is a single `case` — no second dispatch table to keep
@@ -51,42 +68,47 @@ export async function runConnectorProviderSync(
   switch (provider) {
     case "google_drive": {
       const ref = internal.neo4jActions.connectorSync.syncGoogleDriveInternal;
-      if (execution === "retrier") await retrier.run(ctx, ref, syncArgs);
-      else await ctx.runAction(ref, syncArgs);
-      return;
+      return dispatchSync(execution, {
+        retrier: () => retrier.run(ctx, ref, syncArgs),
+        direct: () => ctx.runAction(ref, syncArgs),
+      });
     }
 
     case "gmail": {
       const ref = internal.neo4jActions.connectorSync.syncGmailInternal;
-      if (execution === "retrier") await retrier.run(ctx, ref, syncArgs);
-      else await ctx.runAction(ref, syncArgs);
-      return;
+      return dispatchSync(execution, {
+        retrier: () => retrier.run(ctx, ref, syncArgs),
+        direct: () => ctx.runAction(ref, syncArgs),
+      });
     }
 
     case "notion": {
       const ref = internal.neo4jActions.connectorSync.syncNotionInternal;
-      if (execution === "retrier") await retrier.run(ctx, ref, syncArgs);
-      else await ctx.runAction(ref, syncArgs);
-      return;
+      return dispatchSync(execution, {
+        retrier: () => retrier.run(ctx, ref, syncArgs),
+        direct: () => ctx.runAction(ref, syncArgs),
+      });
     }
 
     case "onedrive": {
       const ref = internal.neo4jActions.connectorSync.syncOneDriveInternal;
-      if (execution === "retrier") await retrier.run(ctx, ref, syncArgs);
-      else await ctx.runAction(ref, syncArgs);
-      return;
+      return dispatchSync(execution, {
+        retrier: () => retrier.run(ctx, ref, syncArgs),
+        direct: () => ctx.runAction(ref, syncArgs),
+      });
     }
 
     case "linear": {
       // Linear is the only provider with a window toggle (30-day vs full).
       const ref = internal.neo4jActions.connectorSync.syncLinearInternal;
-      const linearArgs = { ...syncArgs, fullHistory: params.fullHistory };
-      if (execution === "retrier") await retrier.run(ctx, ref, linearArgs);
-      else await ctx.runAction(ref, linearArgs);
-      return;
+      const args = { ...syncArgs, fullHistory: params.fullHistory };
+      return dispatchSync(execution, {
+        retrier: () => retrier.run(ctx, ref, args),
+        direct: () => ctx.runAction(ref, args),
+      });
     }
 
     default:
-      throw new Error(`Unsupported provider: ${provider}`);
+      throw new Error(`Unsupported provider: ${String(provider)}`);
   }
 }

@@ -1,10 +1,8 @@
 "use node";
 
 import { internalAction } from "../_generated/server";
-import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { getMemory } from "../../engine/neo4j/memory/crud";
-import { setEmbeddings } from "../../engine/neo4j/memory/migration";
 import {
   createProposedDelete,
   createProposedUpdate,
@@ -12,8 +10,7 @@ import {
   resolveProposal,
 } from "../../engine/neo4j/memory/proposals";
 import { getDriver } from "../../engine/neo4j/driver";
-import { generateEmbedding } from "../lib/openRouter";
-import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
+import { postMaterializeEmbedAndEnrich } from "./_memories/postMaterialize";
 
 export const listProposedUpdatesInternal = internalAction({
   args: { clerkId: v.string() },
@@ -51,12 +48,7 @@ export const resolveProposalInternal = internalAction({
     // searchable, tagged, and linked via RELATES_TO like a regular
     // memory. Without this the materialized memory was a dead-end node
     // with only DERIVED_FROM edges — useless in graph view.
-    if (
-      result &&
-      result.status === "approved" &&
-      result.materializedMemoryId &&
-      action === "approve"
-    ) {
+    if (result && result.status === "approved" && result.materializedMemoryId) {
       const materializedMemoryId = result.materializedMemoryId;
       try {
         const detail = await getMemory(
@@ -65,49 +57,15 @@ export const resolveProposalInternal = internalAction({
           materializedMemoryId,
         );
         if (detail) {
-          const auth = await tryUserAndApiKeyByClerkId(
-            ctx,
-            args.clerkId,
-            "OPENROUTER_API_KEY",
-          );
-          if (auth) {
-            // Embed the materialized memory so it shows up in vector
-            // search. Best-effort — leave null on failure; backfill can
-            // pick it up later.
-            try {
-              const embedding = await generateEmbedding({
-                ctx,
-                apiKey: auth.apiKey,
-                userId: auth.userId,
-                profileId: detail.profileId ?? undefined,
-                feature: "proposal-accept",
-                text: `${detail.title}\n\n${detail.content}`,
-              });
-              await setEmbeddings(driver, [
-                { id: materializedMemoryId, embedding },
-              ]);
-            } catch (e) {
-              console.error(
-                `[proposedUpdates] embedding for materialized memory ${materializedMemoryId} failed`,
-                e,
-              );
-            }
-
-            // Run the same enrichment pipeline regular memories get —
-            // tags, entities, RELATES_TO edges. Scheduled async; the
-            // approve mutation returns immediately.
-            await ctx.scheduler.runAfter(
-              0,
-              internal.neo4jActions.enrichment.enrichMemoryInternal,
-              {
-                clerkId: args.clerkId,
-                memoryId: materializedMemoryId,
-                title: detail.title,
-                content: detail.content,
-                profileId: detail.profileId ?? undefined,
-              },
-            );
-          }
+          await postMaterializeEmbedAndEnrich(ctx, driver, {
+            clerkId: args.clerkId,
+            memoryId: materializedMemoryId,
+            title: detail.title,
+            content: detail.content,
+            profileId: detail.profileId ?? undefined,
+            feature: "proposal-accept",
+            failureLog: `[proposedUpdates] embedding for materialized memory ${materializedMemoryId} failed`,
+          });
         }
       } catch (e) {
         console.error(

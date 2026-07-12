@@ -14,7 +14,7 @@
  */
 
 import crypto from "node:crypto";
-import { type Driver, type Session } from "neo4j-driver";
+import type { Driver, Session } from "neo4j-driver";
 
 export async function withSession<T>(
   driver: Driver,

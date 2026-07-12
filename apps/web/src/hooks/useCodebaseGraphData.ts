@@ -3,9 +3,6 @@
 /**
  * Hooks for fetching the Phase-1 codebase graph payload.
  *
- * Two queries:
- *   - `useCodebaseOverview`: lightweight stats only (drives the header
- *     `<files>/<fns>/<classes>/<processes>` line). Cached aggressively.
  *   - `useCodebaseGraphData`: full nodes+edges payload, takes filter
  *     args. Re-fetches when filters change so the canvas matches what
  *     the user picked.
@@ -67,16 +64,6 @@ const graphResponseSchema = z.object({
   truncated: z.boolean(),
 });
 
-const overviewSchema = z.object({
-  fileCount: z.number(),
-  functionCount: z.number(),
-  classCount: z.number(),
-  interfaceCount: z.number(),
-  processCount: z.number(),
-  callEdgeCount: z.number(),
-  importEdgeCount: z.number(),
-});
-
 const symbolNeighbourSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -107,8 +94,7 @@ const symbolContextSchema = z.object({
 export type CodeNode = z.infer<typeof codeNodeSchema>;
 export type CodeEdge = z.infer<typeof codeEdgeSchema>;
 export type CodeNodeKind = z.infer<typeof symbolKindSchema>;
-export type CodebaseOverviewStats = z.infer<typeof overviewSchema>;
-export type CodeSymbolContext = z.infer<typeof symbolContextSchema>;
+type CodeSymbolContext = z.infer<typeof symbolContextSchema>;
 
 export interface UseCodebaseGraphDataReturn {
   nodes: CodeNode[];
@@ -121,41 +107,12 @@ export interface UseCodebaseGraphDataReturn {
   error: Error | null;
 }
 
-export interface UseCodebaseOverviewReturn {
-  stats: CodebaseOverviewStats | null;
-  isLoading: boolean;
-  isError: boolean;
-}
-
 export interface CodebaseGraphFilters {
   kinds?: CodeNodeKind[];
   processId?: string | null;
   blastRadiusOf?: string | null;
   blastDirection?: "upstream" | "downstream";
   blastDepth?: number;
-}
-
-/** Stats-only hook used by the header stat line + dashboard cards. */
-export function useCodebaseOverview(
-  codebaseId: string | null,
-): UseCodebaseOverviewReturn {
-  const { isAuthenticated } = useConvexAuth();
-  const getOverview = useAction(api.codebaseSymbols.getOverview);
-  const overviewQuery = useTanstackQuery({
-    queryKey: ["codebase-overview", codebaseId],
-    queryFn: async (): Promise<CodebaseOverviewStats> => {
-      if (!codebaseId) throw new Error("No codebase ID");
-      const result = await getOverview({ codebaseId });
-      return overviewSchema.parse(result);
-    },
-    enabled: isAuthenticated && !!codebaseId,
-    staleTime: 30_000,
-  });
-  return {
-    stats: overviewQuery.data ?? null,
-    isLoading: overviewQuery.isLoading,
-    isError: overviewQuery.isError,
-  };
 }
 
 /** Filter-driven full-payload hook used by the canvas. */

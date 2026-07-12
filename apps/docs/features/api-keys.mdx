@@ -29,14 +29,14 @@ Keys are hashed for lookup and AES-GCM encrypted at rest (`v1:` format). Require
 
 ## Dashboard Operations
 
-| Function | Description |
-| --- | --- |
-| `apiKeys.createMy` | Create a new key (returns plaintext once) |
-| `apiKeys.listMy` | List keys (masked) |
-| `apiKeys.revokeMy` | Revoke an active key (status → revoked) |
-| `apiKeys.renameMy` | Rename a key (active or revoked) |
+| Function           | Description                                  |
+| ------------------ | -------------------------------------------- |
+| `apiKeys.createMy` | Create a new key (returns plaintext once)    |
+| `apiKeys.listMy`   | List keys (masked)                           |
+| `apiKeys.revokeMy` | Revoke an active key (status → revoked)      |
+| `apiKeys.renameMy` | Rename a key (active or revoked)             |
 | `apiKeys.deleteMy` | Permanently delete a key (active or revoked) |
-| `apiKeys.revealMy` | Decrypt and reveal a key |
+| `apiKeys.revealMy` | Decrypt and reveal a key                     |
 
 ## HTTP API
 
@@ -48,12 +48,12 @@ Authorization: Bearer vmem_sk_...
 
 Base URL: `https://<your-deployment>.convex.site`
 
-| Endpoint | Method | Description |
-| --- | --- | --- |
-| `/api/v1/memories` | `POST` | Store (create) a memory |
-| `/api/v1/memories/retrieve` | `POST` | Semantic retrieve |
-| `/api/v1/memories` | `PATCH` | Update a memory |
-| `/api/v1/memories` | `DELETE` | Delete a memory |
+| Endpoint                    | Method   | Description             |
+| --------------------------- | -------- | ----------------------- |
+| `/api/v1/memories`          | `POST`   | Store (create) a memory |
+| `/api/v1/memories/retrieve` | `POST`   | Semantic retrieve       |
+| `/api/v1/memories`          | `PATCH`  | Update a memory         |
+| `/api/v1/memories`          | `DELETE` | Delete a memory         |
 
 Example:
 

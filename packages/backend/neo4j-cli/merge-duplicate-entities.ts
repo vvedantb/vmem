@@ -7,6 +7,16 @@
  * the uniqueness constraint to (userId, normalizedName).
  */
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
+import { z } from "zod";
+
+const duplicateEntityNodeSchema = z.object({
+  id: z.coerce.string(),
+  name: z.coerce.string(),
+  mentions: z.coerce.number(),
+  createdAt: z.coerce.string(),
+});
+
+const duplicateEntityNodesSchema = z.array(duplicateEntityNodeSchema);
 
 async function main() {
   const driver = getDriver();
@@ -26,19 +36,14 @@ async function main() {
     let merged = 0;
     for (const rec of groups.records) {
       const norm = String(rec.get("norm"));
-      const rawNodes: unknown = rec.get("nodes");
-      if (!Array.isArray(rawNodes)) continue;
-      const nodes = rawNodes
-        .map((n) => ({
-          id: String(Reflect.get(Object(n), "id")),
-          name: String(Reflect.get(Object(n), "name")),
-          mentions: Number(String(Reflect.get(Object(n), "mentions"))),
-          createdAt: String(Reflect.get(Object(n), "createdAt")),
-        }))
-        .sort(
-          (a, b) =>
-            b.mentions - a.mentions || a.createdAt.localeCompare(b.createdAt),
-        );
+      const nodesParsed = duplicateEntityNodesSchema.safeParse(
+        rec.get("nodes"),
+      );
+      if (!nodesParsed.success) continue;
+      const nodes = nodesParsed.data.sort(
+        (a, b) =>
+          b.mentions - a.mentions || a.createdAt.localeCompare(b.createdAt),
+      );
       const survivor = nodes[0];
       const dups = nodes.slice(1);
       if (!survivor || dups.length === 0) continue;

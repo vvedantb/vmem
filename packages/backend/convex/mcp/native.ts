@@ -2,21 +2,32 @@ import { httpAction } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
-import { getMcpResourceDocumentationUrl, getWebAppUrl } from "./webAppUrl";
 import { z } from "zod";
+
+function getWebAppUrl(): string {
+  const url = process.env.WEB_APP_URL;
+  if (!url) {
+    throw new Error("WEB_APP_URL is not set in Convex env");
+  }
+  return url.replace(/\/$/, "");
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OAuth Metadata
 // ─────────────────────────────────────────────────────────────────────────────
 
+function requestOrigin(request: Request): string {
+  return new URL(request.url).origin;
+}
+
 export const oauthMetadata = httpAction(async (_ctx, request) => {
-  const baseUrl = new URL(request.url).origin;
+  const baseUrl = requestOrigin(request);
   return Response.json({
     issuer: baseUrl,
     authorization_endpoint: `${baseUrl}/mcp/oauth/authorize`,
     token_endpoint: `${baseUrl}/mcp/oauth/token`,
     registration_endpoint: `${baseUrl}/mcp/oauth/register`,
-    service_documentation: getMcpResourceDocumentationUrl(),
+    service_documentation: getWebAppUrl(),
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code", "refresh_token"],
     code_challenge_methods_supported: ["S256"],
@@ -24,45 +35,70 @@ export const oauthMetadata = httpAction(async (_ctx, request) => {
   });
 });
 
-export const protectedResourceMetadata = httpAction(async (_ctx, request) => {
-  const baseUrl = new URL(request.url).origin;
-  return Response.json({
-    resource: `${baseUrl}/mcp`,
-    authorization_servers: [baseUrl],
-    bearer_methods_supported: ["header"],
-    resource_documentation: getMcpResourceDocumentationUrl(),
+function createProtectedResourceMetadataAction(
+  resourcePath: "/mcp" | "/mcp/team",
+) {
+  return httpAction(async (_ctx, request) => {
+    const baseUrl = requestOrigin(request);
+    return Response.json({
+      resource: `${baseUrl}${resourcePath}`,
+      authorization_servers: [baseUrl],
+      bearer_methods_supported: ["header"],
+      resource_documentation: getWebAppUrl(),
+    });
   });
-});
+}
+
+export const protectedResourceMetadata =
+  createProtectedResourceMetadataAction("/mcp");
+export const protectedResourceMetadataTeam =
+  createProtectedResourceMetadataAction("/mcp/team");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OAuth Client Registration
 // ─────────────────────────────────────────────────────────────────────────────
 
+function parseRedirectUris(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const redirectUris: string[] = [];
+  for (const uri of raw) {
+    if (typeof uri !== "string") continue;
+    try {
+      const parsed = new URL(uri);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        redirectUris.push(uri);
+      }
+    } catch {
+      // Skip invalid URIs
+    }
+  }
+  return redirectUris;
+}
+
+const registerBodySchema = z
+  .object({
+    redirect_uris: z
+      .preprocess(parseRedirectUris, z.array(z.string()))
+      .default([]),
+    grant_types: z.array(z.string()).default(["authorization_code"]),
+    response_types: z.array(z.string()).default(["code"]),
+    token_endpoint_auth_method: z.string().default("none"),
+  })
+  .passthrough();
+
 export const register = httpAction(async (ctx, request) => {
   try {
-    const body = (await request.json()) as Record<string, unknown>;
-    const clientId = crypto.randomUUID();
-
-    const rawUris = body.redirect_uris;
-    const redirectUris: string[] = [];
-    if (Array.isArray(rawUris)) {
-      for (const uri of rawUris) {
-        if (typeof uri === "string") {
-          try {
-            const parsed = new URL(uri);
-            if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-              redirectUris.push(uri);
-            }
-          } catch {
-            // Skip invalid URIs
-          }
-        }
-      }
+    const raw: unknown = await request.json();
+    const bodyParse = registerBodySchema.safeParse(raw);
+    if (!bodyParse.success) {
+      return Response.json({ error: "invalid_request" }, { status: 400 });
     }
+    const body = bodyParse.data;
+    const clientId = crypto.randomUUID();
 
     await ctx.runMutation(internal.mcp.oauth.registerClient, {
       clientId,
-      redirectUris,
+      redirectUris: body.redirect_uris,
     });
 
     return Response.json(
@@ -70,9 +106,6 @@ export const register = httpAction(async (ctx, request) => {
         ...body,
         client_id: clientId,
         client_id_issued_at: Math.floor(Date.now() / 1000),
-        grant_types: body.grant_types ?? ["authorization_code"],
-        response_types: body.response_types ?? ["code"],
-        token_endpoint_auth_method: body.token_endpoint_auth_method ?? "none",
       },
       { status: 201 },
     );
@@ -168,8 +201,11 @@ export const token = httpAction(async (ctx, request) => {
     });
   } else {
     try {
-      const raw: object | null = await request.json();
-      for (const [key, value] of Object.entries(raw ?? {})) {
+      const raw: unknown = await request.json();
+      if (typeof raw !== "object" || raw === null) {
+        throw new Error("Invalid JSON body");
+      }
+      for (const [key, value] of Object.entries(raw)) {
         if (typeof value === "string") {
           body[key] = value;
         }
@@ -280,24 +316,22 @@ export const token = httpAction(async (ctx, request) => {
 // MCP Endpoint
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const protectedResourceMetadataTeam = httpAction(
-  async (_ctx, request) => {
-    const baseUrl = new URL(request.url).origin;
-    return Response.json({
-      resource: `${baseUrl}/mcp/team`,
-      authorization_servers: [baseUrl],
-      bearer_methods_supported: ["header"],
-      resource_documentation: getMcpResourceDocumentationUrl(),
-    });
-  },
-);
+function unauthorized(message: string, resourceMetadataUrl: string): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status: 401,
+    headers: {
+      "Content-Type": "application/json",
+      "WWW-Authenticate": `Bearer resource_metadata="${resourceMetadataUrl}"`,
+    },
+  });
+}
 
 async function runMcpEndpoint(
   ctx: ActionCtx,
   request: Request,
   scope: "personal" | "team",
 ): Promise<Response> {
-  const baseUrl = new URL(request.url).origin;
+  const baseUrl = requestOrigin(request);
   const resourceMetadataUrl =
     scope === "team"
       ? `${baseUrl}/.well-known/oauth-protected-resource/mcp/team`
@@ -305,16 +339,7 @@ async function runMcpEndpoint(
 
   const token = extractBearerToken(request.headers.get("Authorization"));
   if (!token) {
-    return new Response(
-      JSON.stringify({ error: "Missing Authorization header" }),
-      {
-        status: 401,
-        headers: {
-          "Content-Type": "application/json",
-          "WWW-Authenticate": `Bearer resource_metadata="${resourceMetadataUrl}"`,
-        },
-      },
-    );
+    return unauthorized("Missing Authorization header", resourceMetadataUrl);
   }
 
   const credentials: { clerkUserId: string } | null = await ctx.runAction(
@@ -324,13 +349,7 @@ async function runMcpEndpoint(
 
   if (!credentials) {
     console.error("[MCP][mcpHandler] token verification failed");
-    return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
-      status: 401,
-      headers: {
-        "Content-Type": "application/json",
-        "WWW-Authenticate": `Bearer resource_metadata="${resourceMetadataUrl}"`,
-      },
-    });
+    return unauthorized("Invalid or expired token", resourceMetadataUrl);
   }
 
   if (request.method === "GET" || request.method === "DELETE") {

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { CLERK_PUBLISHABLE_KEY, CLERK_SYNC_HOST } from "@/lib/constants";
 
 const DEV_SESSION_COOKIE = "__clerk_db_jwt";
@@ -39,14 +40,26 @@ async function recordAuthDebug(debug: Omit<AuthDebug, "at">): Promise<void> {
   await chrome.storage.local.set({ lastAuthDebug: entry }).catch(() => {});
 }
 
-type FapiSession = { id: string; status: string };
-type FapiClientResponse = {
-  response?: {
-    sessions?: FapiSession[];
-    last_active_session_id?: string | null;
-  } | null;
-};
-type FapiTokenResponse = { jwt?: string | null };
+const fapiClientResponseSchema = z.object({
+  response: z
+    .object({
+      sessions: z
+        .array(
+          z.object({
+            id: z.string(),
+            status: z.string(),
+          }),
+        )
+        .optional(),
+      last_active_session_id: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+});
+
+const fapiTokenResponseSchema = z.object({
+  jwt: z.string().nullable().optional(),
+});
 
 /**
  * Mint a Convex JWT against Clerk's Frontend API directly, using the
@@ -108,7 +121,13 @@ export async function refreshConvexTokenFromClerk(): Promise<string | null> {
       });
       return null;
     }
-    const clientJson: FapiClientResponse = await clientRes.json();
+    const clientRaw: unknown = await clientRes.json();
+    const clientParsed = fapiClientResponseSchema.safeParse(clientRaw);
+    if (!clientParsed.success) {
+      await recordAuthDebug({ stage: "client-fetch-failed", cookieLen });
+      return null;
+    }
+    const clientJson = clientParsed.data;
     const sessions = clientJson.response?.sessions ?? [];
     const lastActiveId = clientJson.response?.last_active_session_id;
     const session =
@@ -131,7 +150,17 @@ export async function refreshConvexTokenFromClerk(): Promise<string | null> {
       });
       return null;
     }
-    const tokenJson: FapiTokenResponse = await tokenRes.json();
+    const tokenRaw: unknown = await tokenRes.json();
+    const tokenParsed = fapiTokenResponseSchema.safeParse(tokenRaw);
+    if (!tokenParsed.success) {
+      await recordAuthDebug({
+        stage: "token-fetch-failed",
+        cookieLen,
+        httpStatus: tokenRes.status,
+      });
+      return null;
+    }
+    const tokenJson = tokenParsed.data;
     const token = tokenJson.jwt ?? null;
     await recordAuthDebug({
       stage: token ? "ok" : "token-fetch-failed",

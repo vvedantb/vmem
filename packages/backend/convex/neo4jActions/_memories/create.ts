@@ -4,7 +4,7 @@
  * Memory create handler — Convex-local orchestration over Neo4j CRUD + post-create schedules.
  */
 
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
 import {
@@ -13,18 +13,19 @@ import {
   findMemoryByExternalId,
   findMemoryBySimilarity,
   findMemoryByTitleAndOrigin,
-  finalizeDedupHit,
+  shortCircuitOnDedupMatch,
   findMemoryByUrl,
 } from "../../../engine/neo4j/memory/crud";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { normalizeUrl } from "../../../engine/neo4j/url";
-import { shouldChunk } from "../../../engine/neo4j/chunking";
 import {
   resolveProfileIdForClerkId,
+  scheduleChunkSyncForContent,
   scheduleContextPromptInvalidation,
   tryEmbedOne,
 } from "./shared";
+import { scheduleMemoryEnrichment } from "./postMaterialize";
 import { scheduleDreamTriggerCheck } from "../../lib/dreamTriggerInvalidate";
 
 export interface CreateMemoryArgs {
@@ -69,59 +70,50 @@ export async function runCreateMemory(
     ? (normalizeUrl(args.url) ?? undefined)
     : undefined;
 
+  async function checkDuplicate(
+    finder: () => Promise<{
+      id: string;
+      title: string;
+      updatedAt: string;
+    } | null>,
+  ): Promise<MemoryWithTags | null> {
+    const ref = await finder();
+    return shortCircuitOnDedupMatch(driver, args.clerkId, ref);
+  }
+
   if (args.externalId && args.sourceType) {
-    const existing = await findMemoryByExternalId(
-      driver,
-      args.clerkId,
-      args.sourceType,
-      args.externalId,
+    const sourceType = args.sourceType;
+    const externalId = args.externalId;
+    const hit = await checkDuplicate(() =>
+      findMemoryByExternalId(driver, args.clerkId, sourceType, externalId),
     );
-    if (existing) {
-      const full = await finalizeDedupHit(driver, args.clerkId, existing.id);
-      if (full) return full;
-    }
+    if (hit) return hit;
   }
 
   if (normalizedUrl) {
-    const existing = await findMemoryByUrl(driver, args.clerkId, normalizedUrl);
-    if (existing) {
-      const full = await finalizeDedupHit(driver, args.clerkId, existing.id);
-      if (full) return full;
-    }
+    const hit = await checkDuplicate(() =>
+      findMemoryByUrl(driver, args.clerkId, normalizedUrl),
+    );
+    if (hit) return hit;
   }
 
   if (normalizedUrl && BROWSER_SOURCES.has(args.source)) {
     try {
       const origin = new URL(normalizedUrl).origin;
-      const titleMatch = await findMemoryByTitleAndOrigin(
-        driver,
-        args.clerkId,
-        args.title,
-        origin,
+      const hit = await checkDuplicate(() =>
+        findMemoryByTitleAndOrigin(driver, args.clerkId, args.title, origin),
       );
-      if (titleMatch) {
-        const full = await finalizeDedupHit(
-          driver,
-          args.clerkId,
-          titleMatch.id,
-        );
-        if (full) return full;
-      }
+      if (hit) return hit;
     } catch {
       // Invalid URL, skip this check
     }
   }
 
   const contentHash = computeContentHash(args.title, args.content);
-  const hashMatch = await findMemoryByContentHash(
-    driver,
-    args.clerkId,
-    contentHash,
+  const hashHit = await checkDuplicate(() =>
+    findMemoryByContentHash(driver, args.clerkId, contentHash),
   );
-  if (hashMatch) {
-    const full = await finalizeDedupHit(driver, args.clerkId, hashMatch.id);
-    if (full) return full;
-  }
+  if (hashHit) return hashHit;
 
   const embedding = await tryEmbedOne(ctx, {
     clerkId: args.clerkId,
@@ -142,13 +134,13 @@ export async function runCreateMemory(
       console.log(
         `[dedup] semantic near-duplicate (similarity=${semanticMatch.similarity.toFixed(3)}) → ${semanticMatch.id}`,
       );
-      const full = await finalizeDedupHit(
-        driver,
-        args.clerkId,
-        semanticMatch.id,
-      );
-      if (full) return full;
     }
+    const semanticHit = await shortCircuitOnDedupMatch(
+      driver,
+      args.clerkId,
+      semanticMatch,
+    );
+    if (semanticHit) return semanticHit;
   }
 
   const result = await createMemory(driver, {
@@ -205,30 +197,21 @@ async function schedulePostCreate(
     payload: JSON.stringify({ title: params.title }),
   });
 
-  await ctx.scheduler.runAfter(
-    0,
-    internal.neo4jActions.enrichment.enrichMemoryInternal,
-    {
-      clerkId: params.clerkId,
-      memoryId: params.memoryId,
-      title: params.title,
-      content: params.content,
-      profileId: params.profileId,
-    },
-  );
+  await scheduleMemoryEnrichment(ctx, {
+    clerkId: params.clerkId,
+    memoryId: params.memoryId,
+    title: params.title,
+    content: params.content,
+    profileId: params.profileId,
+  });
 
-  if (shouldChunk(params.content)) {
-    await ctx.scheduler.runAfter(
-      0,
-      internal.neo4jActions.memories.chunkMemoryInternal,
-      {
-        clerkId: params.clerkId,
-        memoryId: params.memoryId,
-        content: params.content,
-        profileId: params.profileId,
-      },
-    );
-  }
+  await scheduleChunkSyncForContent(ctx, getDriver(), {
+    clerkId: params.clerkId,
+    memoryId: params.memoryId,
+    content: params.content,
+    profileId: params.profileId,
+    mode: "create",
+  });
 
   if (
     params.source === "prompt-capture" &&

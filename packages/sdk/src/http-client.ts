@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { VMemoryError } from "./errors";
 import type { ApiErrorBody } from "./types";
 
@@ -5,22 +6,30 @@ function trimTrailingSlash(baseUrl: string): string {
   return baseUrl.replace(/\/$/, "");
 }
 
+const apiIssueSchema = z.object({
+  path: z.array(z.union([z.string(), z.number()])),
+  message: z.string(),
+});
+
+const apiErrorBodySchema = z.object({
+  error: z.string(),
+  issues: z.array(apiIssueSchema).optional(),
+});
+
+const apiSuccessEnvelopeSchema = z.object({
+  data: z.unknown(),
+});
+
+const errorOnlyBodySchema = z.object({ error: z.string() });
+
 function parseErrorBody(body: unknown): ApiErrorBody | null {
-  if (typeof body !== "object" || body === null) {
-    return null;
+  const parsed = apiErrorBodySchema.safeParse(body);
+  if (!parsed.success) {
+    // Accept `{ error }` even when `issues` is malformed.
+    const fallback = errorOnlyBodySchema.safeParse(body);
+    return fallback.success ? { error: fallback.data.error } : null;
   }
-  const errorField = Reflect.get(body, "error");
-  if (typeof errorField !== "string") {
-    return null;
-  }
-  const issuesField = Reflect.get(body, "issues");
-  if (issuesField === undefined) {
-    return { error: errorField };
-  }
-  if (!Array.isArray(issuesField)) {
-    return { error: errorField };
-  }
-  return { error: errorField, issues: issuesField };
+  return parsed.data;
 }
 
 function unwrapData(
@@ -29,23 +38,15 @@ function unwrapData(
   path: string,
   status: number,
 ): unknown {
-  if (typeof json !== "object" || json === null) {
+  const parsed = apiSuccessEnvelopeSchema.safeParse(json);
+  if (!parsed.success) {
     throw new VMemoryError(
       `VMemory API ${method} ${path} returned an invalid response`,
       status,
       "invalid_response",
     );
   }
-
-  if (!("data" in json)) {
-    throw new VMemoryError(
-      `VMemory API ${method} ${path} returned an invalid response`,
-      status,
-      "invalid_response",
-    );
-  }
-
-  return Reflect.get(json, "data");
+  return parsed.data.data;
 }
 
 export class HttpClient {

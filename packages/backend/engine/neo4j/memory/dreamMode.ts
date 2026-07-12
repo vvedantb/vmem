@@ -7,18 +7,40 @@
  * materialises the LLM's synthesis as a new :Memory with :DERIVED_FROM
  * edges. The other path — surfacing a synthesis :ProposedUpdate through
  * the /proposals queue — lives in `proposals.ts`.
- *
- * `unknown` casts here mirror the original implementation. They live at
- * the Neo4j boundary where record values arrive untyped. Refactor target,
- * not refactor scope.
  */
 
 import crypto from "node:crypto";
 import neo4j, { type Driver } from "neo4j-driver";
+import { z } from "zod";
 import type { ConfidenceAdjustment, MergeClusterMember } from "../dreamPrompt";
 import type { PortraitEvidenceMemory } from "../portraitPrompt";
+import { neo4jGet, parseNeo4jNodeProps } from "../record";
 import { toSnapshot } from "./mappers";
 import { logEvent, withSession } from "./shared";
+
+const dreamMemoryPropsSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+});
+
+function tryParseMemoryNode(
+  value: unknown,
+): z.infer<typeof dreamMemoryPropsSchema> | null {
+  try {
+    return parseNeo4jNodeProps(value, dreamMemoryPropsSchema);
+  } catch {
+    return null;
+  }
+}
+
+function asNumberArray(value: unknown): number[] | null {
+  if (!Array.isArray(value)) return null;
+  const numbers = value.filter(
+    (x: unknown): x is number => typeof x === "number",
+  );
+  return numbers.length > 0 ? numbers : null;
+}
 
 export async function findRecentMemoriesForDream(
   driver: Driver,
@@ -56,12 +78,8 @@ export async function findRecentMemoriesForDream(
       },
     );
     return result.records.flatMap((r) => {
-      const rawEmbedding: unknown = r.get("embedding");
-      if (!Array.isArray(rawEmbedding)) return [];
-      const embedding: number[] = rawEmbedding.filter(
-        (x: unknown): x is number => typeof x === "number",
-      );
-      if (embedding.length === 0) return [];
+      const embedding = asNumberArray(r.get("embedding"));
+      if (embedding === null) return [];
       return [
         {
           id: String(r.get("id")),
@@ -72,6 +90,64 @@ export async function findRecentMemoriesForDream(
         },
       ];
     });
+  });
+}
+
+function surprisalFromNeighborScores(rawScores: unknown): number | null {
+  const scores = asNumberArray(rawScores);
+  if (scores === null || scores.length < 2) return null;
+  const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  return 1 - mean;
+}
+
+/**
+ * Batch surprisal scoring in a single Neo4j session. Skips memories
+ * without embeddings (same null-skip semantics as the single-memory path).
+ */
+export async function computeSurprisalScores(
+  driver: Driver,
+  params: {
+    userId: string;
+    memories: Array<{ id: string; embedding: number[] | null | undefined }>;
+    k: number;
+  },
+): Promise<Array<{ id: string; surprisal: number; embedding: number[] }>> {
+  return withSession(driver, async (session) => {
+    const scored: Array<{
+      id: string;
+      surprisal: number;
+      embedding: number[];
+    }> = [];
+    for (const memory of params.memories) {
+      const embedding = memory.embedding;
+      if (embedding == null || embedding.length === 0) continue;
+
+      const result = await session.run(
+        `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
+         YIELD node, score
+         WHERE node.userId = $userId
+           AND node.id <> $memoryId
+           AND node.status IN ['active', 'pinned']
+         WITH score
+         ORDER BY score DESC
+         LIMIT $kInner
+         RETURN collect(score) AS scores`,
+        {
+          k: neo4j.int(params.k + 5),
+          kInner: neo4j.int(params.k),
+          embedding,
+          userId: params.userId,
+          memoryId: memory.id,
+        },
+      );
+      const firstRecord = result.records[0];
+      if (!firstRecord) continue;
+      const surprisal = surprisalFromNeighborScores(firstRecord.get("scores"));
+      if (surprisal !== null) {
+        scored.push({ id: memory.id, surprisal, embedding });
+      }
+    }
+    return scored;
   });
 }
 
@@ -93,36 +169,12 @@ export async function computeSurprisalScore(
     k: number;
   },
 ): Promise<number | null> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
-       YIELD node, score
-       WHERE node.userId = $userId
-         AND node.id <> $memoryId
-         AND node.status IN ['active', 'pinned']
-       WITH score
-       ORDER BY score DESC
-       LIMIT $kInner
-       RETURN collect(score) AS scores`,
-      {
-        k: neo4j.int(params.k + 5),
-        kInner: neo4j.int(params.k),
-        embedding: params.embedding,
-        userId: params.userId,
-        memoryId: params.memoryId,
-      },
-    );
-    const firstRecord = result.records[0];
-    if (!firstRecord) return null;
-    const rawScores: unknown = firstRecord.get("scores");
-    if (!Array.isArray(rawScores) || rawScores.length < 2) return null;
-    const scores: number[] = rawScores.filter(
-      (x: unknown): x is number => typeof x === "number",
-    );
-    if (scores.length < 2) return null;
-    const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
-    return 1 - mean;
+  const batch = await computeSurprisalScores(driver, {
+    userId: params.userId,
+    memories: [{ id: params.memoryId, embedding: params.embedding }],
+    k: params.k,
   });
+  return batch[0]?.surprisal ?? null;
 }
 
 /** Below this many graph members, the cluster is padded with vector
@@ -179,10 +231,13 @@ export async function fetchAnomalyCluster(
     const firstRecord = result.records[0];
     if (!firstRecord) return [];
 
-    const aNode = firstRecord.get("a");
-    const aTagsRaw: unknown = firstRecord.get("aTags");
+    const aProps = parseNeo4jNodeProps(
+      neo4jGet(firstRecord, "a"),
+      dreamMemoryPropsSchema,
+    );
+    const aTagsRaw = neo4jGet(firstRecord, "aTags");
     const aTags: string[] = Array.isArray(aTagsRaw)
-      ? aTagsRaw.filter((x: unknown): x is string => typeof x === "string")
+      ? aTagsRaw.filter((x): x is string => typeof x === "string")
       : [];
 
     const cluster: Array<{
@@ -193,15 +248,15 @@ export async function fetchAnomalyCluster(
       relation: "anomaly" | "related" | "shared-entity" | "semantic";
     }> = [
       {
-        id: String(aNode.properties.id),
-        title: String(aNode.properties.title),
-        content: String(aNode.properties.content),
+        id: aProps.id,
+        title: aProps.title,
+        content: aProps.content,
         tags: aTags,
         relation: "anomaly",
       },
     ];
 
-    const seen = new Set<string>([cluster[0]?.id ?? ""]);
+    const seen = new Set<string>([aProps.id]);
     const append = (
       nodes: unknown,
       relation: "related" | "shared-entity",
@@ -209,27 +264,22 @@ export async function fetchAnomalyCluster(
       if (!Array.isArray(nodes)) return;
       for (const n of nodes) {
         if (cluster.length >= params.maxClusterSize) return;
-        if (typeof n !== "object" || n === null) continue;
-        const props = Reflect.get(n, "properties");
-        if (typeof props !== "object" || props === null) continue;
-        const id = Reflect.get(props, "id");
-        const title = Reflect.get(props, "title");
-        const content = Reflect.get(props, "content");
-        if (
-          typeof id !== "string" ||
-          typeof title !== "string" ||
-          typeof content !== "string"
-        ) {
-          continue;
-        }
-        if (seen.has(id)) continue;
-        seen.add(id);
-        cluster.push({ id, title, content, tags: [], relation });
+        const props = tryParseMemoryNode(n);
+        if (props === null) continue;
+        if (seen.has(props.id)) continue;
+        seen.add(props.id);
+        cluster.push({
+          id: props.id,
+          title: props.title,
+          content: props.content,
+          tags: [],
+          relation,
+        });
       }
     };
 
-    append(firstRecord.get("relMems"), "related");
-    append(firstRecord.get("entityMems"), "shared-entity");
+    append(neo4jGet(firstRecord, "relMems"), "related");
+    append(neo4jGet(firstRecord, "entityMems"), "shared-entity");
 
     // Sparse graph neighbourhood → pad with vector neighbours so the
     // seed isn't dreamt on alone (or skipped outright).
@@ -261,13 +311,13 @@ export async function fetchAnomalyCluster(
       );
       for (const record of semantic.records) {
         if (cluster.length >= params.maxClusterSize) break;
-        const id = String(record.get("id"));
+        const id = String(neo4jGet(record, "id"));
         if (seen.has(id)) continue;
         seen.add(id);
         cluster.push({
           id,
-          title: String(record.get("title")),
-          content: String(record.get("content")),
+          title: String(neo4jGet(record, "title")),
+          content: String(neo4jGet(record, "content")),
           tags: [],
           relation: "semantic",
         });

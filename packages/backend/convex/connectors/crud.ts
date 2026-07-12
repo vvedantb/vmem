@@ -1,6 +1,10 @@
 import { v } from "convex/values";
-import type { Id } from "../_generated/dataModel";
-import { internalMutation, internalQuery } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import {
+  internalMutation,
+  internalQuery,
+  type MutationCtx,
+} from "../_generated/server";
 import { authMutation, authQuery } from "../auth";
 import { auditLog, ResourceTypes } from "../auditLog";
 import { STALE_SYNCING_MS } from "../codebaseSyncConstants";
@@ -18,6 +22,34 @@ interface DefaultConnector {
   icon: string;
   provider?: ConnectorProvider;
 }
+
+/** Shared reset applied whenever a connector is marked disconnected. */
+const DISCONNECTED_SYNC_RESET = {
+  syncStatus: "idle" as const,
+  syncProgress: 0,
+  itemsSynced: 0,
+  lastSyncAt: undefined,
+  errorMessage: undefined,
+};
+
+async function requireOwnedConnector(
+  ctx: MutationCtx & { userId: Id<"users"> },
+  id: Id<"connectors">,
+): Promise<Doc<"connectors">> {
+  const connector = await ctx.db.get(id);
+  if (!connector || connector.userId !== ctx.userId) {
+    throw new Error("Connector not found");
+  }
+  return connector;
+}
+
+const CONNECTOR_NAME_TO_PROVIDER: Record<string, ConnectorProvider> = {
+  "Google Drive": "google_drive",
+  Notion: "notion",
+  OneDrive: "onedrive",
+  Linear: "linear",
+  Gmail: "gmail",
+};
 
 const DEFAULT_CONNECTORS: DefaultConnector[] = [
   {
@@ -73,16 +105,10 @@ const DEFAULT_CONNECTORS: DefaultConnector[] = [
 export const listMy = authQuery({
   args: {},
   handler: async (ctx) => {
-    const connectors = await ctx.db
+    return await ctx.db
       .query("connectors")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .collect();
-
-    if (connectors.length > 0) {
-      return connectors;
-    }
-
-    return [];
   },
 });
 
@@ -127,10 +153,7 @@ export const seedDefaults = authMutation({
 export const connect = authMutation({
   args: { id: v.id("connectors") },
   handler: async (ctx, args) => {
-    const connector = await ctx.db.get(args.id);
-    if (!connector || connector.userId !== ctx.userId) {
-      throw new Error("Connector not found");
-    }
+    const connector = await requireOwnedConnector(ctx, args.id);
 
     await ctx.db.patch(args.id, {
       connectionStatus: "connected",
@@ -150,18 +173,11 @@ export const connect = authMutation({
 export const disconnect = authMutation({
   args: { id: v.id("connectors") },
   handler: async (ctx, args) => {
-    const connector = await ctx.db.get(args.id);
-    if (!connector || connector.userId !== ctx.userId) {
-      throw new Error("Connector not found");
-    }
+    const connector = await requireOwnedConnector(ctx, args.id);
 
     await ctx.db.patch(args.id, {
       connectionStatus: "disconnected",
-      syncStatus: "idle",
-      syncProgress: 0,
-      itemsSynced: 0,
-      lastSyncAt: undefined,
-      errorMessage: undefined,
+      ...DISCONNECTED_SYNC_RESET,
     });
 
     await auditLog.log(ctx, {
@@ -178,10 +194,7 @@ export const disconnect = authMutation({
 export const sync = authMutation({
   args: { id: v.id("connectors") },
   handler: async (ctx, args) => {
-    const connector = await ctx.db.get(args.id);
-    if (!connector || connector.userId !== ctx.userId) {
-      throw new Error("Connector not found");
-    }
+    const connector = await requireOwnedConnector(ctx, args.id);
 
     if (connector.connectionStatus !== "connected") {
       throw new Error("Connector is not connected");
@@ -291,11 +304,7 @@ export const markDisconnectedInternal = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, {
       connectionStatus: "disconnected",
-      syncStatus: "idle",
-      syncProgress: 0,
-      itemsSynced: 0,
-      lastSyncAt: undefined,
-      errorMessage: undefined,
+      ...DISCONNECTED_SYNC_RESET,
     });
   },
 });
@@ -328,14 +337,11 @@ export const updateSyncProgressInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    const filteredUpdates: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined) {
-        filteredUpdates[key] = value;
-      }
-    }
-    if (Object.keys(filteredUpdates).length > 0) {
-      await ctx.db.patch(id, filteredUpdates);
+    const patch = Object.fromEntries(
+      Object.entries(updates).filter(([, value]) => value !== undefined),
+    );
+    if (Object.keys(patch).length > 0) {
+      await ctx.db.patch(id, patch);
     }
   },
 });
@@ -348,22 +354,10 @@ export const migrateAddProviders = internalMutation({
     const connectors = await ctx.db.query("connectors").collect();
 
     for (const connector of connectors) {
-      if (connector.provider === undefined) {
-        let provider: ConnectorProvider | undefined;
-        if (connector.name === "Google Drive") {
-          provider = "google_drive";
-        } else if (connector.name === "Notion") {
-          provider = "notion";
-        } else if (connector.name === "OneDrive") {
-          provider = "onedrive";
-        } else if (connector.name === "Linear") {
-          provider = "linear";
-        } else if (connector.name === "Gmail") {
-          provider = "gmail";
-        }
-        if (provider) {
-          await ctx.db.patch(connector._id, { provider });
-        }
+      if (connector.provider !== undefined) continue;
+      const provider = CONNECTOR_NAME_TO_PROVIDER[connector.name];
+      if (provider) {
+        await ctx.db.patch(connector._id, { provider });
       }
     }
   },

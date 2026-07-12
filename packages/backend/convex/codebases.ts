@@ -7,19 +7,23 @@ import { isCodebaseSyncStalled } from "@vmem/shared";
 import type { Id } from "./_generated/dataModel";
 import { decryptToken } from "./lib/crypto";
 import { retrier } from "./retrier";
+import { parseResponseJson } from "./lib/jsonBoundary";
+import { z } from "zod";
 
 // --- GitHub API response shape for repos ---
 
-type GitHubRepo = {
-  id: number;
-  name: string;
-  full_name: string;
-  owner: { login: string };
-  default_branch: string;
-  language: string | null;
-  description: string | null;
-  private: boolean;
-};
+const githubRepoSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  full_name: z.string(),
+  owner: z.object({ login: z.string() }),
+  default_branch: z.string(),
+  language: z.string().nullable(),
+  description: z.string().nullable(),
+  private: z.boolean(),
+});
+
+const githubReposSchema = z.array(githubRepoSchema);
 
 // --- Public functions ---
 
@@ -51,7 +55,7 @@ export const getById = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
     // Convex normalizes string → Id at runtime via ctx.db.get
-    const codebase = await ctx.db.normalizeId("codebases", args.id);
+    const codebase = ctx.db.normalizeId("codebases", args.id);
     if (!codebase) return null;
     const doc = await ctx.db.get(codebase);
     if (!doc || doc.userId !== ctx.userId) return null;
@@ -86,9 +90,7 @@ export const listRepos = authAction({
       throw new Error(`GitHub API error: ${response.status} ${text}`);
     }
 
-    // response.json() returns Promise<any> in the standard lib.
-    // Annotating the variable directly avoids using `as`.
-    const repos: Array<GitHubRepo> = await response.json();
+    const repos = await parseResponseJson(response, githubReposSchema);
 
     return repos.map((repo) => ({
       id: repo.id,
@@ -337,10 +339,9 @@ export const updateStatusInternal = internalMutation({
     // Patch only the keys actually supplied so callers can update e.g.
     // just `parseStage` mid-sync without clobbering counts/stats.
     const { id, ...rest } = args;
-    const patch: Record<string, unknown> = {};
-    for (const [k, v2] of Object.entries(rest)) {
-      if (v2 !== undefined) patch[k] = v2;
-    }
+    const patch = Object.fromEntries(
+      Object.entries(rest).filter(([, value]) => value !== undefined),
+    );
     await ctx.db.patch(id, patch);
   },
 });

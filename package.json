@@ -14,9 +14,16 @@
     "android": "pnpm --filter mobile android",
     "prebuild:android": "pnpm --filter mobile prebuild:android",
     "docs:dev": "pnpm --filter docs exec mint dev --port 3001",
-    "lint": "eslint .",
+    "lint": "oxlint --type-aware --deny-warnings && eslint . --max-warnings 0",
+    "lint:oxlint": "oxlint --type-aware",
+    "lint:eslint": "eslint .",
+    "knip": "knip --no-config-hints",
+    "test:oxlint-plugin": "node --test oxlint-plugin-vmem/test/rules.test.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm lint && pnpm typecheck:all && pnpm knip && pnpm test:oxlint-plugin && pnpm test && pnpm format:check",
     "typecheck": "pnpm --filter web typecheck",
-    "typecheck:all": "pnpm --parallel --filter web --filter @vmem/backend --filter mobile typecheck",
+    "typecheck:all": "pnpm --parallel --filter web --filter @vmem/backend --filter mobile --filter @vmem/sdk --filter @vmem/shared --filter @vmem/ui --filter @vmem/chrome-extension typecheck",
     "convex": "pnpm --filter @vmem/backend dev",
     "convex:deploy": "pnpm --filter @vmem/backend run deploy",
     "prepare": "husky",
@@ -34,7 +41,7 @@
     "db:unseed": "pnpm --filter @vmem/backend db:unseed"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json,css,md}": "prettier --write"
+    "*.{ts,tsx,js,jsx,mjs,cjs,json,css,md,mdx,html,yml,yaml}": "prettier --write"
   },
   "pnpm": {
     "overrides": {
@@ -47,7 +54,10 @@
     "eslint": "^10.7.0",
     "globals": "^17.7.0",
     "husky": "^9.1.7",
+    "knip": "^6.26.0",
     "lint-staged": "^16.2.7",
+    "oxlint": "^1.73.0",
+    "oxlint-tsgolint": "^0.24.0",
     "prettier": "^3.8.1",
     "syncpack": "^14.3.0",
     "typescript": "^5.9.3",

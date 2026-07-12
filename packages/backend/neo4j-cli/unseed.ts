@@ -1,4 +1,6 @@
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
+import { neo4jField, neo4jIntSchema } from "../engine/neo4j/record";
+import type { QueryResult } from "neo4j-driver";
 
 // Same user IDs that were seeded
 const SEEDED_USER_IDS = [
@@ -6,6 +8,11 @@ const SEEDED_USER_IDS = [
   "user_3BmJ4t48rN2ZkglhnxOTUJSMpLC",
   "user_35juxUiA6A9h2JbW7TEDk39j3yo",
 ];
+
+function deletedCount(result: QueryResult): number {
+  const record = result.records[0];
+  return record ? neo4jField(record, "deleted", neo4jIntSchema) : 0;
+}
 
 async function unseed() {
   console.log("connecting to Neo4j...");
@@ -25,8 +32,7 @@ async function unseed() {
          RETURN count(e) AS deleted`,
         { userId },
       );
-      const eventsDeleted =
-        eventResult.records[0]?.get("deleted")?.toNumber() ?? 0;
+      const eventsDeleted = deletedCount(eventResult);
       console.log(`  deleted ${eventsDeleted} events`);
 
       // Delete ProposedUpdates linked to this user's memories
@@ -36,8 +42,7 @@ async function unseed() {
          RETURN count(p) AS deleted`,
         { userId },
       );
-      const proposalsDeleted =
-        proposalResult.records[0]?.get("deleted")?.toNumber() ?? 0;
+      const proposalsDeleted = deletedCount(proposalResult);
       console.log(`  deleted ${proposalsDeleted} proposals`);
 
       // Delete all memories for this user (detach removes TAGGED_WITH, FROM_SOURCE, RELATES_TO edges)
@@ -47,8 +52,7 @@ async function unseed() {
          RETURN count(m) AS deleted`,
         { userId },
       );
-      const memoriesDeleted =
-        memResult.records[0]?.get("deleted")?.toNumber() ?? 0;
+      const memoriesDeleted = deletedCount(memResult);
       console.log(`  deleted ${memoriesDeleted} memories`);
 
       totalDeleted += memoriesDeleted;
@@ -62,7 +66,7 @@ async function unseed() {
        DELETE t
        RETURN count(t) AS deleted`,
     );
-    const tagsDeleted = tagResult.records[0]?.get("deleted")?.toNumber() ?? 0;
+    const tagsDeleted = deletedCount(tagResult);
     console.log(`  deleted ${tagsDeleted} orphaned tags`);
 
     // Clean up orphaned Sources (sources with no memories pointing to them)
@@ -73,8 +77,7 @@ async function unseed() {
        DELETE s
        RETURN count(s) AS deleted`,
     );
-    const sourcesDeleted =
-      sourceResult.records[0]?.get("deleted")?.toNumber() ?? 0;
+    const sourcesDeleted = deletedCount(sourceResult);
     console.log(`  deleted ${sourcesDeleted} orphaned sources`);
 
     console.log("\nunseed complete!");
@@ -87,7 +90,7 @@ async function unseed() {
   }
 }
 
-unseed().catch((err) => {
+unseed().catch((err: unknown) => {
   console.error("unseed failed:", err);
   process.exit(1);
 });

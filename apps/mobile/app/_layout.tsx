@@ -1,5 +1,4 @@
 import "../src/global.css";
-import "react-native-gesture-handler";
 
 import { View, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -27,7 +26,7 @@ import { NAV_THEME } from "@/lib/theme";
 import { NetworkProvider } from "@/providers/NetworkProvider";
 
 WebBrowser.maybeCompleteAuthSession();
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync();
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -80,7 +79,7 @@ export default function RootLayout() {
   });
 
   if (fontsLoaded) {
-    SplashScreen.hideAsync();
+    void SplashScreen.hideAsync();
   }
 
   if (!fontsLoaded) {

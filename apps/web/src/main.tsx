@@ -24,7 +24,7 @@ saveMcpOauthParamsFromUrl();
 function handleStaleDeployment(event: Event) {
   event.preventDefault();
   try {
-    convex.close();
+    void convex.close();
   } catch {
     // WebSocket may already be closed
   }

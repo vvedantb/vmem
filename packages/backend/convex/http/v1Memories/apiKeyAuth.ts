@@ -63,6 +63,18 @@ export async function assertProfileAccess(
   }
 }
 
+/** Checks profile access only when a profileId is present; no-op otherwise. */
+export async function guardProfileAccess(
+  ctx: ActionCtx,
+  auth: ApiKeyAuth,
+  profileId: string | undefined,
+): Promise<Response | null> {
+  if (!profileId) {
+    return null;
+  }
+  return assertProfileAccess(ctx, auth.userId, profileId);
+}
+
 async function recordUsage(
   ctx: ActionCtx,
   auth: ApiKeyAuth,
@@ -85,11 +97,7 @@ export function withApiKeyAuth<T>(
   endpoint: string,
   method: string,
   schema: z.ZodType<T>,
-  run: (
-    ctx: ActionCtx,
-    auth: ApiKeyAuth,
-    body: T,
-  ) => Promise<unknown | Response>,
+  run: (ctx: ActionCtx, auth: ApiKeyAuth, body: T) => Promise<unknown>,
 ) {
   return httpAction(async (ctx, req) => {
     const startedAt = Date.now();

@@ -3,6 +3,8 @@ import { ActionCache } from "@convex-dev/action-cache";
 import { authAction } from "./auth";
 import { components, internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
+import { parseResponseJson } from "./lib/jsonBoundary";
+import { z } from "zod";
 
 const freeChatModelValidator = v.object({
   id: v.string(),
@@ -76,6 +78,26 @@ interface OpenRouterCatalogModel {
   output_modalities?: string[];
 }
 
+const catalogModelSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  context_length: z.number().optional(),
+  expiration_date: z.string().nullable().optional(),
+  pricing: z
+    .object({
+      prompt: z.string().optional(),
+      completion: z.string().optional(),
+    })
+    .optional(),
+  supported_parameters: z.array(z.string()).optional(),
+  output_modalities: z.array(z.string()).optional(),
+});
+
+const catalogResponseSchema = z.object({
+  data: z.array(catalogModelSchema).optional(),
+});
+
 function isFreePricing(pricing: OpenRouterCatalogModel["pricing"]): boolean {
   return pricing?.prompt === "0" && pricing?.completion === "0";
 }
@@ -132,8 +154,8 @@ export const fetchFreeChatModelsInternal = internalAction({
         return FALLBACK_FREE_CHAT_MODELS;
       }
 
-      const body: { data?: OpenRouterCatalogModel[] } = await response.json();
-      const models = body.data ?? [];
+      const body = await parseResponseJson(response, catalogResponseSchema);
+      const models: OpenRouterCatalogModel[] = body.data ?? [];
       const filtered = filterFreeToolModels(models);
       return filtered.length > 0 ? filtered : FALLBACK_FREE_CHAT_MODELS;
     } catch (error) {

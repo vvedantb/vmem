@@ -90,10 +90,12 @@ function goldenSpiralPosition(
 
 function seedNodePositions(nodes: GraphNode[]): void {
   for (let i = 0; i < nodes.length; i++) {
-    if (nodes[i].x === undefined || nodes[i].y === undefined) {
+    const node = nodes[i];
+    if (!node) continue;
+    if (node.x === undefined || node.y === undefined) {
       const spiral = goldenSpiralPosition(i, nodes.length);
-      nodes[i].x = spiral.x;
-      nodes[i].y = spiral.y;
+      node.x = spiral.x;
+      node.y = spiral.y;
     }
   }
 }
@@ -160,10 +162,12 @@ function createWorkerSimulation(
       currentAlpha = msg.alpha;
       positionsVersion++;
       for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        if (!node) continue;
         // Don't overwrite position of a node being dragged (main thread has authority)
-        if (nodes[i].fx !== undefined && nodes[i].fx !== null) continue;
-        nodes[i].x = buffer[i * 2];
-        nodes[i].y = buffer[i * 2 + 1];
+        if (node.fx !== undefined && node.fx !== null) continue;
+        node.x = buffer[i * 2];
+        node.y = buffer[i * 2 + 1];
       }
     }
   };

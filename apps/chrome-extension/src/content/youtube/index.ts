@@ -130,7 +130,10 @@ async function getTranscript(): Promise<string | null> {
       return null;
     }
     const transcript = segments.map(segmentText).filter(Boolean).join(" ");
-    closeTranscriptPanel(segments[0]);
+    const firstSegment = segments.at(0);
+    if (firstSegment) {
+      closeTranscriptPanel(firstSegment);
+    }
     return transcript || null;
   } catch (err) {
     console.error("[vmem] Failed to extract transcript:", err);
@@ -186,10 +189,9 @@ function createSaveButton(): HTMLButtonElement {
 }
 
 async function handleSaveClick(): Promise<void> {
-  const button = document.getElementById(
-    "vmem-youtube-save",
-  ) as HTMLButtonElement;
-  if (!button) return;
+  const buttonEl = document.getElementById("vmem-youtube-save");
+  if (!(buttonEl instanceof HTMLButtonElement)) return;
+  const button = buttonEl;
 
   const videoId = getVideoId();
   if (!videoId) {

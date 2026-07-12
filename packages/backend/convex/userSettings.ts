@@ -1,6 +1,6 @@
 import { authQuery, authMutation } from "./auth";
 import { internalQuery, internalMutation } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import {
   mcpScopeValidator,
@@ -60,6 +60,45 @@ const defaults: {
   lastDreamRunAt: null,
 };
 
+function resolveSettings(userId: Id<"users">, doc: Doc<"userSettings"> | null) {
+  return {
+    _id: doc?._id ?? null,
+    userId,
+    theme: doc?.theme ?? defaults.theme,
+    language: doc?.language ?? defaults.language,
+    memoryAutoTag: doc?.memoryAutoTag ?? defaults.memoryAutoTag,
+    notificationsEnabled:
+      doc?.notificationsEnabled ?? defaults.notificationsEnabled,
+    extensionAutoSyncEnabled:
+      doc?.extensionAutoSyncEnabled ?? defaults.extensionAutoSyncEnabled,
+    extensionAutoSyncIntervalMinutes:
+      doc?.extensionAutoSyncIntervalMinutes ??
+      defaults.extensionAutoSyncIntervalMinutes,
+    extensionSelectionPopupEnabled:
+      doc?.extensionSelectionPopupEnabled ??
+      defaults.extensionSelectionPopupEnabled,
+    memoryAutoExtract: doc?.memoryAutoExtract ?? defaults.memoryAutoExtract,
+    memoryConfidenceThreshold:
+      doc?.memoryConfidenceThreshold ?? defaults.memoryConfidenceThreshold,
+    notifyMemoryConflicts:
+      doc?.notifyMemoryConflicts ?? defaults.notifyMemoryConflicts,
+    notifyNewMemories: doc?.notifyNewMemories ?? defaults.notifyNewMemories,
+    notifyMemoriesExpiring:
+      doc?.notifyMemoriesExpiring ?? defaults.notifyMemoriesExpiring,
+    aboutMe: doc?.aboutMe ?? defaults.aboutMe,
+    preferences: doc?.preferences ?? defaults.preferences,
+    defaultProfiles: doc?.defaultProfiles ?? defaults.defaultProfiles,
+    dreamModeAutoAccept:
+      doc?.dreamModeAutoAccept ?? defaults.dreamModeAutoAccept,
+    dreamModeScheduleEnabled:
+      doc?.dreamModeScheduleEnabled ?? defaults.dreamModeScheduleEnabled,
+    dreamModeScheduleTime:
+      doc?.dreamModeScheduleTime ?? defaults.dreamModeScheduleTime,
+    dreamModeAutomatic: doc?.dreamModeAutomatic ?? defaults.dreamModeAutomatic,
+    lastDreamRunAt: doc?.lastDreamRunAt ?? defaults.lastDreamRunAt,
+  };
+}
+
 export const get = authQuery({
   args: {},
   handler: async (ctx) => {
@@ -68,43 +107,7 @@ export const get = authQuery({
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .first();
 
-    return {
-      _id: doc?._id ?? null,
-      userId: ctx.userId,
-      theme: doc?.theme ?? defaults.theme,
-      language: doc?.language ?? defaults.language,
-      memoryAutoTag: doc?.memoryAutoTag ?? defaults.memoryAutoTag,
-      notificationsEnabled:
-        doc?.notificationsEnabled ?? defaults.notificationsEnabled,
-      extensionAutoSyncEnabled:
-        doc?.extensionAutoSyncEnabled ?? defaults.extensionAutoSyncEnabled,
-      extensionAutoSyncIntervalMinutes:
-        doc?.extensionAutoSyncIntervalMinutes ??
-        defaults.extensionAutoSyncIntervalMinutes,
-      extensionSelectionPopupEnabled:
-        doc?.extensionSelectionPopupEnabled ??
-        defaults.extensionSelectionPopupEnabled,
-      memoryAutoExtract: doc?.memoryAutoExtract ?? defaults.memoryAutoExtract,
-      memoryConfidenceThreshold:
-        doc?.memoryConfidenceThreshold ?? defaults.memoryConfidenceThreshold,
-      notifyMemoryConflicts:
-        doc?.notifyMemoryConflicts ?? defaults.notifyMemoryConflicts,
-      notifyNewMemories: doc?.notifyNewMemories ?? defaults.notifyNewMemories,
-      notifyMemoriesExpiring:
-        doc?.notifyMemoriesExpiring ?? defaults.notifyMemoriesExpiring,
-      aboutMe: doc?.aboutMe ?? defaults.aboutMe,
-      preferences: doc?.preferences ?? defaults.preferences,
-      defaultProfiles: doc?.defaultProfiles ?? defaults.defaultProfiles,
-      dreamModeAutoAccept:
-        doc?.dreamModeAutoAccept ?? defaults.dreamModeAutoAccept,
-      dreamModeScheduleEnabled:
-        doc?.dreamModeScheduleEnabled ?? defaults.dreamModeScheduleEnabled,
-      dreamModeScheduleTime:
-        doc?.dreamModeScheduleTime ?? defaults.dreamModeScheduleTime,
-      dreamModeAutomatic:
-        doc?.dreamModeAutomatic ?? defaults.dreamModeAutomatic,
-      lastDreamRunAt: doc?.lastDreamRunAt ?? defaults.lastDreamRunAt,
-    };
+    return resolveSettings(ctx.userId, doc);
   },
 });
 
@@ -160,36 +163,31 @@ export const update = authMutation({
       .first();
 
     const fields: Record<string, string | boolean | number> = {};
-    if (args.theme !== undefined) fields.theme = args.theme;
-    if (args.language !== undefined) fields.language = args.language;
-    if (args.memoryAutoTag !== undefined)
-      fields.memoryAutoTag = args.memoryAutoTag;
-    if (args.notificationsEnabled !== undefined)
-      fields.notificationsEnabled = args.notificationsEnabled;
-    if (args.extensionAutoSyncEnabled !== undefined)
-      fields.extensionAutoSyncEnabled = args.extensionAutoSyncEnabled;
-    if (args.extensionAutoSyncIntervalMinutes !== undefined)
-      fields.extensionAutoSyncIntervalMinutes =
-        args.extensionAutoSyncIntervalMinutes;
-    if (args.extensionSelectionPopupEnabled !== undefined)
-      fields.extensionSelectionPopupEnabled =
-        args.extensionSelectionPopupEnabled;
-    if (args.memoryAutoExtract !== undefined)
-      fields.memoryAutoExtract = args.memoryAutoExtract;
-    if (args.memoryConfidenceThreshold !== undefined)
-      fields.memoryConfidenceThreshold = args.memoryConfidenceThreshold;
-    if (args.notifyMemoryConflicts !== undefined)
-      fields.notifyMemoryConflicts = args.notifyMemoryConflicts;
-    if (args.notifyNewMemories !== undefined)
-      fields.notifyNewMemories = args.notifyNewMemories;
-    if (args.notifyMemoriesExpiring !== undefined)
-      fields.notifyMemoriesExpiring = args.notifyMemoriesExpiring;
-    if (args.aboutMe !== undefined) fields.aboutMe = args.aboutMe;
-    if (args.preferences !== undefined) fields.preferences = args.preferences;
-    if (args.dreamModeAutoAccept !== undefined)
-      fields.dreamModeAutoAccept = args.dreamModeAutoAccept;
-    if (args.dreamModeAutomatic !== undefined)
-      fields.dreamModeAutomatic = args.dreamModeAutomatic;
+    const optionalKeys = [
+      "theme",
+      "language",
+      "memoryAutoTag",
+      "notificationsEnabled",
+      "extensionAutoSyncEnabled",
+      "extensionAutoSyncIntervalMinutes",
+      "extensionSelectionPopupEnabled",
+      "memoryAutoExtract",
+      "memoryConfidenceThreshold",
+      "notifyMemoryConflicts",
+      "notifyNewMemories",
+      "notifyMemoriesExpiring",
+      "aboutMe",
+      "preferences",
+      "dreamModeAutoAccept",
+      "dreamModeAutomatic",
+    ] as const;
+
+    for (const key of optionalKeys) {
+      const value = args[key];
+      if (value !== undefined) {
+        fields[key] = value;
+      }
+    }
 
     if (existing) {
       await ctx.db.patch(existing._id, fields);
@@ -302,25 +300,6 @@ export const setDefaultProfile = authMutation({
       userId: ctx.userId,
       defaultProfiles: updatedDefaults,
     });
-  },
-});
-
-export const getMcpDefaultProfileIdByClerkIdInternal = internalQuery({
-  args: { clerkId: v.string() },
-  returns: v.union(v.id("profiles"), v.null()),
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-    if (!user) return null;
-
-    const settings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
-
-    return settings?.defaultProfiles?.mcp ?? null;
   },
 });
 

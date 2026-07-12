@@ -11,14 +11,11 @@ import {
   replaceTagsAndMarkRetagged,
 } from "../../../engine/neo4j/memory/migration";
 import { normalizeTags } from "../../../engine/neo4j/memory/tagNormalize";
-import { getTopTags } from "../../../engine/neo4j/memory/tags";
-import { getRecentMemoryTitles } from "../../../engine/neo4j/memory/search";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
-import { callJsonChat } from "../../lib/openRouter";
 import {
-  buildFullEnrichmentPrompt,
-  parseFullEnrichmentResponse,
-} from "../../prompts/enrichmentPrompt";
+  callFullEnrichmentLlm,
+  loadEnrichmentVocabulary,
+} from "../enrichment/llm";
 
 /** Modest parallelism per batch: fast enough for a few thousand memories
  *  without tripping OpenRouter rate limits. */
@@ -72,10 +69,10 @@ export const retagMemoriesInternal = internalAction({
 
     // Per-batch context: vocabulary grows as re-tagging proceeds, so later
     // batches converge harder onto established themes.
-    const [existingMemories, existingTags] = await Promise.all([
-      getRecentMemoryTitles(driver, args.clerkId, ""),
-      getTopTags(driver, args.clerkId, 50),
-    ]);
+    const vocabulary = await loadEnrichmentVocabulary(driver, args.clerkId, {
+      excludeMemoryId: "",
+      includeEntities: false,
+    });
 
     let processed = 0;
     let failed = 0;
@@ -91,22 +88,13 @@ export const retagMemoriesInternal = internalAction({
       await Promise.all(
         chunk.map(async (row) => {
           try {
-            const prompt = buildFullEnrichmentPrompt(
-              row.title,
-              row.content,
-              existingMemories,
-              existingTags,
-            );
-            const rawText = await callJsonChat(ctx, {
-              apiKey: auth.apiKey,
-              userId: auth.userId,
+            const parsed = await callFullEnrichmentLlm(ctx, auth, {
+              title: row.title,
+              content: row.content,
               profileId: row.profileId ?? undefined,
               feature: "tag-consolidation",
-              role: "You are a memory tagging and entity extraction system.",
-              prompt,
+              vocabulary,
             });
-            const parsed =
-              rawText === null ? null : parseFullEnrichmentResponse(rawText);
             const newTags = normalizeTags(parsed?.tags ?? [], 4);
             if (newTags.length === 0) {
               failedIds.push(row.id);

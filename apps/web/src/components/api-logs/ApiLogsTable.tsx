@@ -4,7 +4,7 @@ import { IconChartBar } from "@tabler/icons-react";
 import { Card, CardContent, cn } from "@vmem/ui";
 import { formatRelativeTime, formatDuration } from "@/lib/formatters";
 
-export interface ApiLogItem {
+interface ApiLogItem {
   id: string;
   endpoint: string;
   status: number;

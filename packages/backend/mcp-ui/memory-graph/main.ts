@@ -127,7 +127,7 @@ const ctx2d = canvas.getContext("2d");
 if (!ctx2d) {
   throw new Error("2d context unavailable");
 }
-const ctx: CanvasRenderingContext2D = ctx2d;
+const ctx = ctx2d;
 
 /** Same hue hash as apps/web graph-colors.ts */
 function tagToHue(tag: string): number {
@@ -158,7 +158,8 @@ function tagToColor(tag: string, dark: boolean): string {
 }
 
 function nodeColor(tags: string[]): string {
-  if (tags.length > 0) return tagToColor(tags[0], isDark);
+  const first = tags[0];
+  if (first !== undefined) return tagToColor(first, isDark);
   return canvasTheme.nodeFallback;
 }
 
@@ -233,6 +234,7 @@ function simulateStep() {
     for (let j = i + 1; j < nodes.length; j++) {
       const a = nodes[i];
       const b = nodes[j];
+      if (a === undefined || b === undefined) continue;
       let dx = a.x - b.x;
       let dy = a.y - b.y;
       let dist = Math.hypot(dx, dy);
@@ -251,12 +253,12 @@ function simulateStep() {
     }
   }
 
-  const link = (
+  const link = function link(
     source: string,
     target: string,
     strength: number,
     distance: number,
-  ) => {
+  ): void {
     const a = byId.get(source);
     const b = byId.get(target);
     if (!a || !b) return;
@@ -353,6 +355,21 @@ function drawNodeGlow(n: SimNode, color: string, r: number) {
   ctx.fill();
 }
 
+function strokeEdge(
+  a: SimNode,
+  b: SimNode,
+  strokeStyle: string,
+  lineWidth: number,
+): void {
+  ctx.beginPath();
+  ctx.setLineDash([]);
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = strokeStyle;
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.stroke();
+}
+
 function draw() {
   const rect = canvas.getBoundingClientRect();
   const w = rect.width;
@@ -362,32 +379,20 @@ function draw() {
   ctx.translate(w / 2 + panX, h / 2 + panY);
   ctx.scale(zoom, zoom);
 
-  ctx.lineWidth = 0.8;
+  const byId = nodeById();
 
   for (const edge of tagEdges) {
-    const a = graphNodes.find((n) => n.id === edge.source);
-    const b = graphNodes.find((n) => n.id === edge.target);
+    const a = byId.get(edge.source);
+    const b = byId.get(edge.target);
     if (!a || !b) continue;
-    ctx.beginPath();
-    ctx.setLineDash([]);
-    ctx.strokeStyle = canvasTheme.edgeTag;
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
+    strokeEdge(a, b, canvasTheme.edgeTag, 0.8);
   }
 
   for (const edge of relatesEdges) {
-    const a = graphNodes.find((n) => n.id === edge.source);
-    const b = graphNodes.find((n) => n.id === edge.target);
+    const a = byId.get(edge.source);
+    const b = byId.get(edge.target);
     if (!a || !b) continue;
-    ctx.beginPath();
-    ctx.setLineDash([]);
-    ctx.lineWidth = 1.6;
-    ctx.strokeStyle = canvasTheme.edgeRelates;
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-    ctx.lineWidth = 0.8;
+    strokeEdge(a, b, canvasTheme.edgeRelates, 1.6);
   }
 
   const showGlow = graphNodes.length <= 120 && zoom >= 0.5;
@@ -412,10 +417,12 @@ function draw() {
 
 function fitToView() {
   if (graphNodes.length === 0) return;
-  let minX = graphNodes[0].x;
-  let maxX = graphNodes[0].x;
-  let minY = graphNodes[0].y;
-  let maxY = graphNodes[0].y;
+  const first = graphNodes[0];
+  if (first === undefined) return;
+  let minX = first.x;
+  let maxX = first.x;
+  let minY = first.y;
+  let maxY = first.y;
   for (const n of graphNodes) {
     minX = Math.min(minX, n.x);
     maxX = Math.max(maxX, n.x);
@@ -435,16 +442,18 @@ function fitToView() {
   panY = -cy * zoom;
 }
 
-function zoomBy(factor: number) {
-  const rect = canvas.getBoundingClientRect();
-  const mx = rect.width / 2;
-  const my = rect.height / 2;
+function zoomAtPoint(mx: number, my: number, factor: number): void {
   const before = screenToWorld(mx, my);
   zoom = Math.min(4, Math.max(0.15, zoom * factor));
   const after = screenToWorld(mx, my);
   panX += (after.x - before.x) * zoom;
   panY += (after.y - before.y) * zoom;
   draw();
+}
+
+function zoomBy(factor: number): void {
+  const rect = canvas.getBoundingClientRect();
+  zoomAtPoint(rect.width / 2, rect.height / 2, factor);
 }
 
 function runSimulation() {
@@ -522,14 +531,7 @@ canvas.addEventListener(
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.1 : 0.9;
     const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const before = screenToWorld(mx, my);
-    zoom = Math.min(4, Math.max(0.15, zoom * factor));
-    const after = screenToWorld(mx, my);
-    panX += (after.x - before.x) * zoom;
-    panY += (after.y - before.y) * zoom;
-    draw();
+    zoomAtPoint(e.clientX - rect.left, e.clientY - rect.top, factor);
   },
   { passive: false },
 );
@@ -551,15 +553,13 @@ canvas.addEventListener("pointermove", (e) => {
   draw();
 });
 
-canvas.addEventListener("pointerup", () => {
+function endPan(): void {
   isPanning = false;
   canvas.classList.remove("dragging");
-});
+}
 
-canvas.addEventListener("pointercancel", () => {
-  isPanning = false;
-  canvas.classList.remove("dragging");
-});
+canvas.addEventListener("pointerup", endPan);
+canvas.addEventListener("pointercancel", endPan);
 
 if (btnZoomIn instanceof HTMLButtonElement) {
   btnZoomIn.addEventListener("click", () => zoomBy(1.2));
@@ -633,7 +633,7 @@ prefersDark.addEventListener("change", (e) => {
   draw();
 });
 
-app.connect().then(() => {
+void app.connect().then(() => {
   const hostCtx = app.getHostContext();
   if (hostCtx) handleHostContext(hostCtx);
   requestTallViewport();

@@ -198,7 +198,7 @@ async function runConfig(
     const latencyMs = performance.now() - start;
     const titles = candidates.map((c) => c.title);
     outcomes.push({
-      type: query.type ?? "untyped",
+      type: benchQueryType(query),
       recall1: recallAtK(titles, query.expectedTitles, 1),
       recall3: recallAtK(titles, query.expectedTitles, 3),
       recall5: recallAtK(titles, query.expectedTitles, 5),
@@ -245,9 +245,13 @@ function mdTable(header: string[], rows: string[][]): string {
     .join("\n");
 }
 
+function benchQueryType(q: { type?: string }): string {
+  return q.type ?? "untyped";
+}
+
 /** Sorted unique types present in the answerable set, preferred order first. */
 function presentTypes(): string[] {
-  const seen = new Set(ANSWERABLE.map((q) => q.type ?? "untyped"));
+  const seen = new Set(ANSWERABLE.map((q) => benchQueryType(q)));
   const ordered = TYPE_ORDER.filter((t) => seen.has(t));
   const extra = [...seen].filter((t) => !TYPE_ORDER.includes(t)).sort();
   return [...ordered, ...extra];
@@ -261,7 +265,7 @@ function perTypeTable(
   const types = presentTypes();
   const header = ["type", "n", ...runs.map((r) => r.name)];
   const rows = types.map((type) => {
-    const n = ANSWERABLE.filter((q) => (q.type ?? "untyped") === type).length;
+    const n = ANSWERABLE.filter((q) => benchQueryType(q) === type).length;
     const cells = runs.map((r) =>
       metric(aggregate(r.outcomes.filter((o) => o.type === type))),
     );
@@ -397,7 +401,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 });

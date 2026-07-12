@@ -97,7 +97,11 @@ export default function MemoryDetailPanel({
         {/* Tabs */}
         <Tabs
           value={activeTab}
-          onValueChange={(v) => setActiveTab(v as PanelTab)}
+          onValueChange={(v) => {
+            if (v === "details" || v === "history" || v === "connections") {
+              setActiveTab(v);
+            }
+          }}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
           <TabsList className="mb-5 shrink-0 self-start">

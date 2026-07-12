@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const bestEffortEmbedOne = vi.fn();
-const bestEffortEmbedMany = vi.fn();
+const { bestEffortEmbedOne, bestEffortEmbedMany } = vi.hoisted(() => ({
+  bestEffortEmbedOne: vi.fn(),
+  bestEffortEmbedMany: vi.fn(),
+}));
 
 vi.mock("../../convex/lib/openRouter/bestEffortEmbed", () => ({
-  bestEffortEmbedOne: (...callArgs: unknown[]) =>
-    bestEffortEmbedOne(...callArgs),
-  bestEffortEmbedMany: (...callArgs: unknown[]) =>
-    bestEffortEmbedMany(...callArgs),
+  bestEffortEmbedOne,
+  bestEffortEmbedMany,
 }));
 
 import {

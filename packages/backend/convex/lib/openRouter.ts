@@ -26,6 +26,7 @@ export {
 } from "./openRouter/embedding";
 export {
   bestEffortEmbedMany,
+  bestEffortEmbedManyWithAuth,
   bestEffortEmbedOne,
   bestEffortEmbedOneWithAuth,
   resolveBestEffortEmbedAuth,

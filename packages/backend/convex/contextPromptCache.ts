@@ -1,6 +1,8 @@
 import { internalQuery, internalMutation } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
+import { getUserByClerkId } from "./auth";
 
 /**
  * CRUD primitives for the `contextPromptCache` table. Kept separate from
@@ -13,6 +15,22 @@ import type { Doc } from "./_generated/dataModel";
  * Convex ID through scheduling and HTTP boundaries.
  */
 
+async function getCacheRowByClerkId(
+  ctx: QueryCtx | MutationCtx,
+  clerkId: string,
+): Promise<{
+  user: Doc<"users">;
+  row: Doc<"contextPromptCache"> | null;
+} | null> {
+  const user = await getUserByClerkId(ctx, clerkId);
+  if (!user) return null;
+  const row = await ctx.db
+    .query("contextPromptCache")
+    .withIndex("by_user", (q) => q.eq("userId", user._id))
+    .first();
+  return { user, row };
+}
+
 /**
  * Resolve a clerkId to the internal Convex `users._id`. The regen
  * action needs this to call `userSettings.getUserContextInternal`,
@@ -23,10 +41,7 @@ export const resolveUserIdByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   returns: v.union(v.id("users"), v.null()),
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
     return user?._id ?? null;
   },
 });
@@ -48,16 +63,9 @@ export const getByClerkIdInternal = internalQuery({
     v.null(),
   ),
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-    if (!user) return null;
-    const row = await ctx.db
-      .query("contextPromptCache")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
-    if (!row) return null;
+    const found = await getCacheRowByClerkId(ctx, args.clerkId);
+    if (!found?.row) return null;
+    const { row } = found;
     return {
       content: row.content,
       generatedAt: row.generatedAt,
@@ -81,15 +89,9 @@ export const markPendingByClerkIdInternal = internalMutation({
   args: { clerkId: v.string() },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-    if (!user) return false;
-    const existing: Doc<"contextPromptCache"> | null = await ctx.db
-      .query("contextPromptCache")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
+    const found = await getCacheRowByClerkId(ctx, args.clerkId);
+    if (!found) return false;
+    const { user, row: existing } = found;
     if (!existing) {
       await ctx.db.insert("contextPromptCache", {
         userId: user._id,
@@ -121,15 +123,9 @@ export const upsertByClerkIdInternal = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-    if (!user) return null;
-    const existing = await ctx.db
-      .query("contextPromptCache")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
+    const found = await getCacheRowByClerkId(ctx, args.clerkId);
+    if (!found) return null;
+    const { user, row: existing } = found;
     const now = Date.now();
     if (!existing) {
       await ctx.db.insert("contextPromptCache", {

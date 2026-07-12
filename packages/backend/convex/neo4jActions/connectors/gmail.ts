@@ -9,15 +9,15 @@
 // root types pull in every Google API (~1M lines of .d.ts) and dominated typecheck time.
 import { gmail as gmailApi, auth as googleAuth } from "@googleapis/gmail";
 import type { gmail_v1 } from "@googleapis/gmail";
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
 import {
-  embedSyncedDoc,
+  EMBED_CONTENT_CAP,
   markSyncComplete,
-  markSyncError,
   maybeReportProgress,
   setupSync,
+  upsertSyncedDoc,
+  withConnectorSyncError,
 } from "./shared";
 
 export interface GmailSyncArgs {
@@ -27,7 +27,6 @@ export interface GmailSyncArgs {
 }
 
 const MAX_MESSAGES_PER_SYNC = 500;
-const MAX_BODY_CHARS = 50_000;
 
 function decodeBase64Url(data: string): string {
   const base64 = data.replace(/-/g, "+").replace(/_/g, "/");
@@ -76,19 +75,16 @@ function extractBodyFromPart(part: gmail_v1.Schema$MessagePart): string {
 
 function messageBody(payload: gmail_v1.Schema$MessagePart | undefined): string {
   if (!payload) return "";
-  return extractBodyFromPart(payload).slice(0, MAX_BODY_CHARS);
+  return extractBodyFromPart(payload).slice(0, EMBED_CONTENT_CAP);
 }
 
 export async function runGmailSync(
   ctx: ActionCtx,
   args: GmailSyncArgs,
 ): Promise<{ synced: number }> {
-  const { driver, profileId, openRouterAuth } = await setupSync(
-    ctx,
-    args.clerkId,
-  );
+  const setup = await setupSync(ctx, args.clerkId);
 
-  try {
+  return withConnectorSyncError(ctx, args.connectorId, "Gmail", async () => {
     const oauth = new googleAuth.OAuth2();
     oauth.setCredentials({ access_token: args.accessToken });
     const gmail = gmailApi({ version: "v1", auth: oauth });
@@ -126,26 +122,18 @@ export async function runGmailSync(
             extractHeader(payload?.headers, "Subject") || "(No subject)";
           const body = messageBody(payload);
           const content = body.length > 0 ? body : subject;
-          const embedding = await embedSyncedDoc(
-            ctx,
-            openRouterAuth,
-            profileId,
-            subject,
-            content,
-          );
-
-          await upsertFromSource(driver, {
-            userId: args.clerkId,
-            profileId,
-            title: subject,
-            content,
-            sourceType: "gmail",
-            sourceId: ref.id,
-            sourceUrl: `https://mail.google.com/mail/u/0/#inbox/${ref.id}`,
-            embedding,
+          totalSynced = await upsertSyncedDoc(ctx, {
+            setup,
+            clerkId: args.clerkId,
+            totalSynced,
+            doc: {
+              title: subject,
+              content,
+              sourceType: "gmail",
+              sourceId: ref.id,
+              sourceUrl: `https://mail.google.com/mail/u/0/#inbox/${ref.id}`,
+            },
           });
-
-          totalSynced++;
           await maybeReportProgress(ctx, {
             connectorId: args.connectorId,
             totalSynced,
@@ -167,14 +155,5 @@ export async function runGmailSync(
     });
 
     return { synced: totalSynced };
-  } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Gmail sync failed";
-    console.error("Gmail sync error:", err);
-    await markSyncError(ctx, {
-      connectorId: args.connectorId,
-      errorMessage,
-    });
-    throw err;
-  }
+  });
 }

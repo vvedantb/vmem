@@ -1,9 +1,10 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { internalMutation, type QueryCtx } from "./_generated/server";
 import { authQuery } from "./auth";
 import { openRouterLogFields, openRouterLogRecordFields } from "./validators";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
+import { getMembershipOrNull } from "./teams/auth";
 
 /**
  * OpenRouter call logs — backing table for the `/openrouter-logs`
@@ -81,10 +82,61 @@ const logRowValidator = v.object({
 
 function rangeCutoff(range: "today" | "7d" | "30d" | "all"): number | null {
   const now = Date.now();
-  if (range === "today") return now - 24 * 60 * 60 * 1000;
-  if (range === "7d") return now - 7 * 24 * 60 * 60 * 1000;
-  if (range === "30d") return now - 30 * 24 * 60 * 60 * 1000;
-  return null;
+  switch (range) {
+    case "today":
+      return now - 24 * 60 * 60 * 1000;
+    case "7d":
+      return now - 7 * 24 * 60 * 60 * 1000;
+    case "30d":
+      return now - 30 * 24 * 60 * 60 * 1000;
+    case "all":
+      return null;
+  }
+}
+
+/**
+ * Shared personal/team index selection + membership gate for OpenRouter
+ * log reads. Returns null when `onDenied: "empty"` and auth fails.
+ */
+async function scopedOpenRouterLogsQuery(
+  ctx: QueryCtx,
+  opts: {
+    userId: Id<"users">;
+    scope: "personal" | "team";
+    teamId?: Id<"teams">;
+    cutoff: number | null;
+    onDenied: "throw" | "empty";
+  },
+) {
+  if (opts.scope === "team") {
+    const teamId = opts.teamId;
+    if (!teamId) {
+      if (opts.onDenied === "empty") return null;
+      throw new Error("Team scope requires teamId");
+    }
+    const membership = await getMembershipOrNull(ctx, teamId, opts.userId);
+    if (!membership) {
+      if (opts.onDenied === "empty") return null;
+      throw new Error("Not authorized for this team");
+    }
+    return ctx.db
+      .query("openRouterLogs")
+      .withIndex("by_team_createdAt", (idx) =>
+        opts.cutoff !== null
+          ? idx.eq("teamId", teamId).gte("createdAt", opts.cutoff)
+          : idx.eq("teamId", teamId),
+      )
+      .order("desc");
+  }
+
+  return ctx.db
+    .query("openRouterLogs")
+    .withIndex("by_user_createdAt", (idx) =>
+      opts.cutoff !== null
+        ? idx.eq("userId", opts.userId).gte("createdAt", opts.cutoff)
+        : idx.eq("userId", opts.userId),
+    )
+    .order("desc");
 }
 
 /**
@@ -130,40 +182,15 @@ export const listMine = authQuery({
     const range = args.range ?? "all";
     const cutoff = rangeCutoff(range);
 
-    // Build the base query keyed by the right index for the scope.
-    let q;
-    if (scope === "team") {
-      const teamId = args.teamId;
-      if (!teamId) {
-        throw new Error("Team scope requires teamId");
-      }
-      // Auth: caller must be a member of this team.
-      const membership = await ctx.db
-        .query("teamMembers")
-        .withIndex("by_team_user", (m) =>
-          m.eq("teamId", teamId).eq("userId", ctx.userId),
-        )
-        .first();
-      if (!membership) {
-        throw new Error("Not authorized for this team");
-      }
-      q = ctx.db
-        .query("openRouterLogs")
-        .withIndex("by_team_createdAt", (idx) =>
-          cutoff !== null
-            ? idx.eq("teamId", teamId).gte("createdAt", cutoff)
-            : idx.eq("teamId", teamId),
-        )
-        .order("desc");
-    } else {
-      q = ctx.db
-        .query("openRouterLogs")
-        .withIndex("by_user_createdAt", (idx) =>
-          cutoff !== null
-            ? idx.eq("userId", ctx.userId).gte("createdAt", cutoff)
-            : idx.eq("userId", ctx.userId),
-        )
-        .order("desc");
+    let q = await scopedOpenRouterLogsQuery(ctx, {
+      userId: ctx.userId,
+      scope,
+      teamId: args.teamId,
+      cutoff,
+      onDenied: "throw",
+    });
+    if (!q) {
+      throw new Error("Not authorized for this team");
     }
 
     // Optional profile filter — works for both scopes.
@@ -232,41 +259,17 @@ export const summaryMine = authQuery({
     const range = args.range ?? "today";
     const cutoff = rangeCutoff(range);
 
-    let rows: Doc<"openRouterLogs">[];
-    if (scope === "team") {
-      const teamId = args.teamId;
-      if (!teamId) {
-        throw new Error("Team scope requires teamId");
-      }
-      const membership = await ctx.db
-        .query("teamMembers")
-        .withIndex("by_team_user", (m) =>
-          m.eq("teamId", teamId).eq("userId", ctx.userId),
-        )
-        .first();
-      if (!membership) {
-        throw new Error("Not authorized for this team");
-      }
-      rows = await ctx.db
-        .query("openRouterLogs")
-        .withIndex("by_team_createdAt", (idx) =>
-          cutoff !== null
-            ? idx.eq("teamId", teamId).gte("createdAt", cutoff)
-            : idx.eq("teamId", teamId),
-        )
-        .order("desc")
-        .take(SCAN_CAP);
-    } else {
-      rows = await ctx.db
-        .query("openRouterLogs")
-        .withIndex("by_user_createdAt", (idx) =>
-          cutoff !== null
-            ? idx.eq("userId", ctx.userId).gte("createdAt", cutoff)
-            : idx.eq("userId", ctx.userId),
-        )
-        .order("desc")
-        .take(SCAN_CAP);
+    const q = await scopedOpenRouterLogsQuery(ctx, {
+      userId: ctx.userId,
+      scope,
+      teamId: args.teamId,
+      cutoff,
+      onDenied: "throw",
+    });
+    if (!q) {
+      throw new Error("Not authorized for this team");
     }
+    const rows = await q.take(SCAN_CAP);
 
     let totalCostUsd = 0;
     let totalTokens = 0;
@@ -312,29 +315,15 @@ export const distinctModelsMine = authQuery({
   handler: async (ctx, args) => {
     const scope = args.scope ?? "personal";
 
-    let rows: Doc<"openRouterLogs">[];
-    if (scope === "team") {
-      const teamId = args.teamId;
-      if (!teamId) return [];
-      const membership = await ctx.db
-        .query("teamMembers")
-        .withIndex("by_team_user", (m) =>
-          m.eq("teamId", teamId).eq("userId", ctx.userId),
-        )
-        .first();
-      if (!membership) return [];
-      rows = await ctx.db
-        .query("openRouterLogs")
-        .withIndex("by_team_createdAt", (idx) => idx.eq("teamId", teamId))
-        .order("desc")
-        .take(1000);
-    } else {
-      rows = await ctx.db
-        .query("openRouterLogs")
-        .withIndex("by_user_createdAt", (idx) => idx.eq("userId", ctx.userId))
-        .order("desc")
-        .take(1000);
-    }
+    const q = await scopedOpenRouterLogsQuery(ctx, {
+      userId: ctx.userId,
+      scope,
+      teamId: args.teamId,
+      cutoff: null,
+      onDenied: "empty",
+    });
+    if (!q) return [];
+    const rows = await q.take(1000);
 
     const seen = new Set<string>();
     for (const row of rows) seen.add(row.model);

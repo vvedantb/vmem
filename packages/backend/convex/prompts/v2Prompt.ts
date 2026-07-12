@@ -23,6 +23,7 @@
  * fact / skip this memory).
  */
 
+import { z } from "zod";
 import { extractJsonString } from "../../engine/llm/extractJsonString";
 
 export interface ExtractedFact {
@@ -202,34 +203,30 @@ ${candidatesBlock}
 // Parsers
 // ──────────────────────────────────────────────────────────────────────
 
-function isStringValue(v: unknown): v is string {
-  return typeof v === "string";
-}
+const factItemSchema = z.object({
+  id: z.number().optional().catch(undefined),
+  text: z.string(),
+});
 
-function isNumberValue(v: unknown): v is number {
-  return typeof v === "number";
-}
+const factExtractionResponseSchema = z.object({
+  facts: z.array(z.unknown()),
+});
 
 export function parseFactExtractionResponse(
   raw: string,
 ): ExtractedFactsResponse | null {
   try {
     const jsonStr = extractJsonString(raw);
-    const parsed: unknown = JSON.parse(jsonStr);
-    if (typeof parsed !== "object" || parsed === null) return null;
-
-    const factsRaw = Reflect.get(parsed, "facts");
-    if (!Array.isArray(factsRaw)) return null;
+    const parsed = factExtractionResponseSchema.safeParse(JSON.parse(jsonStr));
+    if (!parsed.success) return null;
 
     const facts: ExtractedFact[] = [];
-    for (const item of factsRaw) {
-      if (typeof item !== "object" || item === null) continue;
-      const idRaw = Reflect.get(item, "id");
-      const textRaw = Reflect.get(item, "text");
-      if (!isStringValue(textRaw)) continue;
-      const text = textRaw.trim();
+    for (const item of parsed.data.facts) {
+      const fact = factItemSchema.safeParse(item);
+      if (!fact.success) continue;
+      const text = fact.data.text.trim();
       if (text.length === 0) continue;
-      const id = isNumberValue(idRaw) ? idRaw : facts.length;
+      const id = fact.data.id ?? facts.length;
       facts.push({ id, text });
     }
     return { facts };
@@ -239,22 +236,24 @@ export function parseFactExtractionResponse(
   }
 }
 
-const VALID_EVENTS: ReadonlySet<string> = new Set([
-  "ADD",
-  "UPDATE",
-  "DELETE",
-  "NONE",
-]);
+const updateDecisionResponseSchema = z.object({
+  event: z.string(),
+  id: z.string().optional().catch(undefined),
+  text: z.string().optional().catch(undefined),
+  old_memory: z.string().optional().catch(undefined),
+});
 
-function toEvent(v: unknown): UpdateDecisionEvent | null {
-  if (!isStringValue(v)) return null;
-  const upper = v.trim().toUpperCase();
-  if (!VALID_EVENTS.has(upper)) return null;
-  // The set membership above narrows to one of the four literals.
-  if (upper === "ADD") return "ADD";
-  if (upper === "UPDATE") return "UPDATE";
-  if (upper === "DELETE") return "DELETE";
-  return "NONE";
+const updateDecisionEventSchema = z.enum(["ADD", "UPDATE", "DELETE", "NONE"]);
+
+function toEvent(v: string): UpdateDecisionEvent | null {
+  const parsed = updateDecisionEventSchema.safeParse(v.trim().toUpperCase());
+  return parsed.success ? parsed.data : null;
+}
+
+function optionalNonEmptyString(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 export function parseUpdateDecisionResponse(
@@ -262,24 +261,15 @@ export function parseUpdateDecisionResponse(
 ): UpdateDecision | null {
   try {
     const jsonStr = extractJsonString(raw);
-    const parsed: unknown = JSON.parse(jsonStr);
-    if (typeof parsed !== "object" || parsed === null) return null;
+    const parsed = updateDecisionResponseSchema.safeParse(JSON.parse(jsonStr));
+    if (!parsed.success) return null;
 
-    const event = toEvent(Reflect.get(parsed, "event"));
+    const event = toEvent(parsed.data.event);
     if (!event) return null;
 
-    const idRaw = Reflect.get(parsed, "id");
-    const textRaw = Reflect.get(parsed, "text");
-    const oldMemoryRaw = Reflect.get(parsed, "old_memory");
-
-    const id =
-      isStringValue(idRaw) && idRaw.trim().length > 0 ? idRaw : undefined;
-    const text =
-      isStringValue(textRaw) && textRaw.trim().length > 0 ? textRaw : undefined;
-    const oldMemory =
-      isStringValue(oldMemoryRaw) && oldMemoryRaw.trim().length > 0
-        ? oldMemoryRaw
-        : undefined;
+    const id = optionalNonEmptyString(parsed.data.id);
+    const text = optionalNonEmptyString(parsed.data.text);
+    const oldMemory = optionalNonEmptyString(parsed.data.old_memory);
 
     // Per-event validation. Reject malformed responses so the caller can
     // skip cleanly instead of writing a corrupt proposal.

@@ -20,7 +20,7 @@ runSeed({
   templateRelationships: handcraftedRelationships,
   embedAfterInsert: true,
   logLabel: `eval seed: ${String(HANDCRAFTED_MEMORY_COUNT)} handcrafted memories for ${evalUserId}`,
-}).catch((err) => {
+}).catch((err: unknown) => {
   console.error("eval seed failed:", err);
   process.exit(1);
 });

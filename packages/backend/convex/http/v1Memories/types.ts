@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type {
   MemoryCandidate,
   MemoryWithTags,
@@ -36,16 +37,16 @@ export interface RetrieveHttpResult {
   summary?: string;
 }
 
+const openRouterRequiredSchema = z.object({
+  error: z.literal("openrouter_required"),
+});
+
 export function isOpenRouterRequired(
-  value:
-    | StoreFromInstructionActionResult
-    | UpdateFromInstructionActionResult
-    | SummarizeRetrieveActionResult,
+  value: unknown,
 ): value is OpenRouterRequired {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "error" in value &&
-    value.error === "openrouter_required"
-  );
+  return openRouterRequiredSchema.safeParse(value).success;
+}
+
+export function openRouterRequiredResponse(): Response {
+  return Response.json({ error: "openrouter_required" }, { status: 422 });
 }

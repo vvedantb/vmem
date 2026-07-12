@@ -12,7 +12,7 @@ import {
   IconBan,
   IconTrash,
 } from "@tabler/icons-react";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 import { formatRelativeTime, formatDate, formatNumber } from "@/lib/formatters";
 
 type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];

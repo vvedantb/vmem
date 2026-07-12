@@ -22,7 +22,8 @@ import {
   useInfiniteQuery,
 } from "@tanstack/react-query";
 import type { Memory } from "@/lib/memories";
-import { api, type Id } from "@vmem/backend";
+import { api } from "@vmem/backend";
+import { parseConvexStorageUpload } from "@/lib/schemas";
 
 interface CreateMemoryInput {
   title: string;
@@ -95,13 +96,24 @@ const CONTEXT_MEMORY_LIMIT = 1000;
  * Cypher overhead per request (the count CALL and the page CALL share the
  * same session, so fewer big pages beats many small ones).
  */
-export const MEMORY_LIST_PAGE_SIZE = 100;
+const MEMORY_LIST_PAGE_SIZE = 100;
 
 function isMemoryType(value: string): value is Memory["type"] {
   return value === "profile" || value === "episodic" || value === "knowledge";
 }
 
-function apiToMemory(m: ApiMemory): Memory {
+function apiToMemory(m: {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  source: string;
+  tags: string[];
+  createdAt: string;
+  sourceUrl?: string | null;
+  sourceSyncedAt?: string | null;
+  profileId?: string | null;
+}): Memory {
   return {
     id: m.id,
     title: m.title,
@@ -112,7 +124,7 @@ function apiToMemory(m: ApiMemory): Memory {
     sourceSyncedAt: m.sourceSyncedAt ?? null,
     tags: m.tags,
     createdAt: m.createdAt,
-    profileId: m.profileId,
+    profileId: m.profileId ?? undefined,
   };
 }
 
@@ -137,7 +149,7 @@ export interface MemoryListFilters {
  * mutations (create/update/delete in this file) invalidate the root
  * ["memories"] key so every filter combination refetches.
  */
-export function useMemoryListPage(filters: MemoryListFilters) {
+function useMemoryListPage(filters: MemoryListFilters) {
   const { isAuthenticated } = useConvexAuth();
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
@@ -254,7 +266,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   // by queryKey prefix, so ["memories"] covers both ["memories", "recent"]
   // and ["memories", { ...filters }].
   const invalidateMemories = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["memories"] });
+    void queryClient.invalidateQueries({ queryKey: ["memories"] });
   }, [queryClient]);
 
   const createMutation = useMutation({
@@ -268,23 +280,9 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         confidence: 1.0,
         profileId: input.profileId,
       });
-      const memory = apiToMemory({
-        id: created.id,
-        userId: created.userId,
-        title: created.title,
-        content: created.content,
-        type: created.type,
-        source: created.source,
-        confidence: created.confidence,
-        status: created.status,
-        tags: created.tags,
-        createdAt: created.createdAt,
-        updatedAt: created.updatedAt,
-        expiresAt: created.expiresAt,
-      });
-      // Enrichment (tags, relations, entities) now runs server-side
-      // automatically after memory creation via ctx.scheduler.runAfter
-      return memory;
+      // Pass the action result as a variable (not a fresh literal) so
+      // extra MemoryWithTags fields don't trip excess-property checks.
+      return apiToMemory(created);
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: ["memories", "recent"] });
@@ -326,7 +324,10 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         content: input.content,
         tags: input.tags,
       });
-      return { memory: apiToMemory(apiMemory as ApiMemory), id: input.id };
+      if (apiMemory === null) {
+        throw new Error("Memory not found");
+      }
+      return { memory: apiToMemory(apiMemory), id: input.id };
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: ["memories", "recent"] });
@@ -379,36 +380,23 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       if (!uploadResponse.ok) {
         throw new Error(`File upload failed: ${uploadResponse.statusText}`);
       }
-      // Convex's signed-upload endpoint returns the storage ID as a JSON
-      // string. The runtime value is just a string — `Id<"_storage">` is a
-      // compile-time brand. We annotate the parse result here so the typed
-      // ID flows into `importFromFile` without an `as` cast.
-      const uploadJson: { storageId: Id<"_storage"> } =
-        await uploadResponse.json();
+      // Convex's signed-upload endpoint returns `{ storageId }`. Parse at the
+      // boundary so the branded ID flows into `importFromFile` without `as`.
+      const storageId = parseConvexStorageUpload(await uploadResponse.json());
+      if (!storageId) {
+        throw new Error("Invalid upload response from storage");
+      }
 
       // 3. Hand the storageId to the server action which extracts text,
       //    hashes it, and calls createMemoryInternal (with chunking
       //    automatically scheduled for long PDFs).
       const created = await importFromFile({
-        storageId: uploadJson.storageId,
+        storageId,
         filename: input.file.name,
         mimeType: input.file.type,
         profileId: input.profileId,
       });
-      return apiToMemory({
-        id: created.id,
-        userId: created.userId,
-        title: created.title,
-        content: created.content,
-        type: created.type,
-        source: created.source,
-        confidence: created.confidence,
-        status: created.status,
-        tags: created.tags,
-        createdAt: created.createdAt,
-        updatedAt: created.updatedAt,
-        expiresAt: created.expiresAt,
-      });
+      return apiToMemory(created);
     },
     onSettled: invalidateMemories,
   });

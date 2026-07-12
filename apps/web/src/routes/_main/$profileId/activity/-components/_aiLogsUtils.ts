@@ -49,7 +49,8 @@ export function computeAiLogsTrends(
     );
     if (bucketIndex < 0) continue;
 
-    const bucket = buckets[bucketIndex];
+    const bucket = buckets.at(bucketIndex);
+    if (bucket === undefined) continue;
     bucket.calls += 1;
     if (typeof row.costUsd === "number") bucket.costUsd += row.costUsd;
     if (typeof row.totalTokens === "number") bucket.tokens += row.totalTokens;

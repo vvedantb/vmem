@@ -33,7 +33,7 @@ function truncateForEmbedding(text: string): string {
 
 function syntheticEmbed(text: string): number[] {
   const normalized = text.toLowerCase();
-  const vec = new Array<number>(EMBEDDING_DIMENSIONS).fill(0);
+  const vec = Array.from({ length: EMBEDDING_DIMENSIONS }, () => 0);
   const tokens = normalized.match(/[a-z0-9]+/g) ?? [];
 
   for (const token of tokens) {
@@ -44,10 +44,7 @@ function syntheticEmbed(text: string): number[] {
 
     for (let slot = 0; slot < 4; slot++) {
       const index = Math.abs((hash + slot * 9973) % EMBEDDING_DIMENSIONS);
-      const current = vec[index];
-      if (typeof current === "number") {
-        vec[index] = current + 1;
-      }
+      vec[index] = (vec[index] ?? 0) + 1;
     }
   }
 
@@ -59,10 +56,7 @@ function syntheticEmbed(text: string): number[] {
       hash = (hash * 37 + bigram.charCodeAt(j)) | 0;
     }
     const index = Math.abs(hash % EMBEDDING_DIMENSIONS);
-    const current = vec[index];
-    if (typeof current === "number") {
-      vec[index] = current + 0.5;
-    }
+    vec[index] = (vec[index] ?? 0) + 0.5;
   }
 
   let sumSquares = 0;
@@ -85,7 +79,9 @@ function validateEmbeddingItems(
     );
   }
 
-  const out: number[][] = new Array(expectedCount);
+  const slots: (number[] | undefined)[] = Array.from({
+    length: expectedCount,
+  });
   for (const item of data) {
     if (!Array.isArray(item.embedding)) {
       throw new Error("embedding response: item missing embedding array");
@@ -96,18 +92,26 @@ function validateEmbeddingItems(
         `embedding response: expected ${String(EMBEDDING_DIMENSIONS)} dims, got ${String(item.embedding.length)}`,
       );
     }
-    out[index] = item.embedding;
+    slots[index] = item.embedding;
   }
 
-  for (let i = 0; i < out.length; i++) {
-    if (!out[i]) {
-      throw new Error(
-        `embedding response: missing vector at index ${String(i)}`,
-      );
+  return requireFilledVectors(slots, "embedding response");
+}
+
+/** Narrow sparse slot array after every index has been validated present. */
+function requireFilledVectors(
+  slots: (number[] | undefined)[],
+  label: string,
+): number[][] {
+  const result: number[][] = [];
+  for (let i = 0; i < slots.length; i++) {
+    const vector = slots[i];
+    if (vector === undefined) {
+      throw new Error(`${label}: missing vector at index ${String(i)}`);
     }
+    result.push(vector);
   }
-
-  return out;
+  return result;
 }
 
 async function generateOpenRouterEmbeddings(
@@ -119,7 +123,9 @@ async function generateOpenRouterEmbeddings(
   }
 
   const client = createOpenRouterClient(apiKey);
-  const out: number[][] = new Array(texts.length);
+  const slots: (number[] | undefined)[] = Array.from({
+    length: texts.length,
+  });
   for (let offset = 0; offset < texts.length; offset += EMBEDDING_BATCH_SIZE) {
     const input = texts
       .slice(offset, offset + EMBEDDING_BATCH_SIZE)
@@ -128,11 +134,13 @@ async function generateOpenRouterEmbeddings(
     const vectors = await generateBatchWithRetry(client, input);
     for (let i = 0; i < vectors.length; i++) {
       const vector = vectors[i];
-      if (vector) out[offset + i] = vector;
+      if (vector !== undefined) {
+        slots[offset + i] = vector;
+      }
     }
   }
 
-  return out;
+  return requireFilledVectors(slots, "embedding generation");
 }
 
 async function generateBatchWithRetry(
@@ -170,10 +178,6 @@ async function generateBatchWithRetry(
   throw new Error(`openRouter embedding exhausted retries (${lastError})`);
 }
 
-function generateSyntheticEmbeddings(texts: string[]): number[][] {
-  return texts.map(syntheticEmbed);
-}
-
 let syntheticWarningShown = false;
 
 export function embeddingMode(): "openrouter" | "synthetic" {
@@ -196,7 +200,7 @@ export async function generateCliEmbeddings(
     syntheticWarningShown = true;
   }
 
-  return generateSyntheticEmbeddings(texts);
+  return texts.map(syntheticEmbed);
 }
 
 export async function generateCliEmbedding(text: string): Promise<number[]> {

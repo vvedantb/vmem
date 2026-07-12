@@ -16,23 +16,25 @@ import {
   Project,
   ScriptKind,
   SyntaxKind,
-  Node,
+  type Node,
   type SourceFile,
   type ClassDeclaration,
   type InterfaceDeclaration,
   type FunctionDeclaration,
   type MethodDeclaration,
   type VariableDeclaration,
+  type ExportableNode,
 } from "ts-morph";
-import {
-  type FileNode,
-  type FunctionNode,
-  type ClassNode,
-  type InterfaceNode,
-  type SymbolNode,
-  type RelationEdge,
-  type ParseResult,
+import type {
+  FileNode,
+  FunctionNode,
+  ClassNode,
+  InterfaceNode,
+  SymbolNode,
+  RelationEdge,
+  ParseResult,
 } from "./types";
+import { isConvexBuilderName } from "./convexBuilders";
 
 export interface SourceFileBlob {
   /** Repo-relative path with `/` separators. */
@@ -115,6 +117,11 @@ function symbolId(
 function isTestFile(path: string): boolean {
   const filename = getFilename(path);
   return /\.(test|spec)\.[mc]?[jt]sx?$/.test(filename);
+}
+
+/** True for a named export or a `export default`. */
+function isExportedNode(node: ExportableNode): boolean {
+  return node.isExported() || node.isDefaultExport();
 }
 
 /**
@@ -253,7 +260,7 @@ function pushFunction(
     qualifiedName: `${filePath}::${name}`,
     startLine: fn.getStartLineNumber(),
     endLine: fn.getEndLineNumber(),
-    isExported: fn.isExported() || fn.isDefaultExport(),
+    isExported: isExportedNode(fn),
     isAsync: fn.isAsync(),
     isTest: fileIsTest,
     paramCount: fn.getParameters().length,
@@ -286,13 +293,12 @@ function pushVariableFunction(
   const id = symbolId(codebaseId, filePath, name);
   // Async/paramCount only meaningful for actual fn nodes — Convex builder calls
   // get sensible defaults (false/0) so the symbol still records correctly.
-  const isArrowOrFnExpr = isFn;
-  const isAsync = isArrowOrFnExpr && hasModifier(init, "async");
-  const paramCount = isArrowOrFnExpr ? getParamCount(init) : 0;
+  const isAsync = isFn && isAsyncFunctionLike(init);
+  const paramCount = isFn ? getParamCount(init) : 0;
   const startLine = v.getStartLineNumber();
   const endLine = v.getEndLineNumber();
   const stmt = v.getVariableStatement();
-  const isExported = stmt ? stmt.isExported() || stmt.isDefaultExport() : false;
+  const isExported = stmt ? isExportedNode(stmt) : false;
   const node: FunctionNode = {
     kind: "function",
     id,
@@ -316,24 +322,11 @@ function looksLikeConvexBuilder(init: Node): boolean {
   const expr = init.asKindOrThrow(SyntaxKind.CallExpression).getExpression();
   const calleeName = expr.getText();
   // Match bare names — reasonable since these builders are the convention.
-  return CONVEX_BUILDER_NAMES.has(calleeName);
+  return isConvexBuilderName(calleeName);
 }
 
-const CONVEX_BUILDER_NAMES = new Set<string>([
-  "query",
-  "mutation",
-  "action",
-  "internalQuery",
-  "internalMutation",
-  "internalAction",
-  "httpAction",
-  "authQuery",
-  "authMutation",
-  "authAction",
-  "authInternalAction",
-]);
-
-function hasModifier(node: Node, name: "async"): boolean {
+/** Cheap `async` check for an arrow-fn / fn-expr node's own text. */
+function isAsyncFunctionLike(node: Node): boolean {
   if (
     node.getKind() === SyntaxKind.ArrowFunction ||
     node.getKind() === SyntaxKind.FunctionExpression
@@ -342,7 +335,7 @@ function hasModifier(node: Node, name: "async"): boolean {
     // Cheap match — async always appears at the very start of these forms.
     return text.startsWith("async ") || text.includes("async (");
   }
-  return name === "async" ? false : false;
+  return false;
 }
 
 function getParamCount(node: Node): number {
@@ -375,7 +368,7 @@ function pushClass(
     qualifiedName: `${filePath}::${name}`,
     startLine: cls.getStartLineNumber(),
     endLine: cls.getEndLineNumber(),
-    isExported: cls.isExported() || cls.isDefaultExport(),
+    isExported: isExportedNode(cls),
     isAbstract: cls.isAbstract(),
     extendsName,
   };
@@ -466,7 +459,7 @@ function pushInterface(
     qualifiedName: `${filePath}::${name}`,
     startLine: iface.getStartLineNumber(),
     endLine: iface.getEndLineNumber(),
-    isExported: iface.isExported() || iface.isDefaultExport(),
+    isExported: isExportedNode(iface),
   };
   symbols.push(node);
   relations.push({ kind: "CONTAINS", fromId: fileId, toId: id });

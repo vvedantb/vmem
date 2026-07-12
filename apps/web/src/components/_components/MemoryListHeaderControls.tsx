@@ -164,7 +164,9 @@ function ViewDropdown({
   view: ListViewMode;
   onChange: (next: ListViewMode) => void;
 }) {
-  const current = VIEW_OPTIONS.find((o) => o.value === view) ?? VIEW_OPTIONS[0];
+  const current =
+    VIEW_OPTIONS.find((o) => o.value === view) ?? VIEW_OPTIONS.at(0);
+  if (!current) return null;
   const CurrentIcon = current.Icon;
   return (
     <DropdownMenu>

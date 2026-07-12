@@ -48,7 +48,7 @@ export default function Dashboard() {
   }, [isAuthenticated, getStats, getRecentActivity, activeProfile._id]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, [fetchData]);
 
   if (isLoading) {

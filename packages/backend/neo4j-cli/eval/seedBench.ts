@@ -19,7 +19,7 @@ runSeed({
   templateRelationships: corpus.relationships,
   embedAfterInsert: true,
   logLabel: `bench corpus: ${String(corpus.memories.length)} memories, ${String(corpus.relationships.length)} relationships, ${String(corpus.queries.length)} queries`,
-}).catch((err) => {
+}).catch((err: unknown) => {
   console.error("bench seed failed:", err);
   process.exit(1);
 });

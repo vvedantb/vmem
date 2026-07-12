@@ -5,11 +5,14 @@ import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { callJsonChat } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
+import { runCreateMemory } from "../_memories/create";
+import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import {
   parseFactExtractionResponse,
   parseUpdateDecisionResponse,
   buildFactExtractionPrompt,
   buildUpdateDecisionPrompt,
+  type ExtractedFactsResponse,
   type RetrievedCandidate,
   type UpdateDecision,
 } from "../../prompts/v2Prompt";
@@ -59,7 +62,7 @@ export async function extractFactsFromInstruction(
   auth: AgentAuth,
   instruction: string,
   profileId: string | undefined,
-) {
+): Promise<ExtractedFactsResponse | null> {
   const observationDate = new Date().toISOString();
   const extractionPrompt = buildFactExtractionPrompt(
     instruction,
@@ -94,6 +97,36 @@ export function computeSdkFactExternalId(
   h.update("\0");
   h.update(factText);
   return h.digest("hex");
+}
+
+/** Create a memory from an SDK-extracted fact, tagged and keyed consistently. */
+export async function createSdkExtractedMemory(
+  ctx: ActionCtx,
+  args: {
+    clerkId: string;
+    profileId: string | undefined;
+    instruction: string;
+    factIndex: number;
+    text: string;
+  },
+): Promise<MemoryWithTags> {
+  return runCreateMemory(ctx, {
+    clerkId: args.clerkId,
+    profileId: args.profileId,
+    title: args.text.slice(0, 80),
+    content: args.text,
+    type: "knowledge",
+    source: "sdk-api",
+    tags: ["sdk-extracted"],
+    confidence: 0.9,
+    externalId: computeSdkFactExternalId(
+      args.clerkId,
+      args.instruction,
+      args.factIndex,
+      args.text,
+    ),
+    sourceType: "sdk-extracted",
+  });
 }
 
 export function toDecisionCandidates(

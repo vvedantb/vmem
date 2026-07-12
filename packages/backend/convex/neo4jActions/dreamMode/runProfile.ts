@@ -7,7 +7,7 @@ import { v } from "convex/values";
 import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
 import {
   applyConfidenceAdjustments,
-  computeSurprisalScore,
+  computeSurprisalScores,
   fetchAnomalyCluster,
   fetchPortraitEvidence,
   findMergeCandidates,
@@ -17,6 +17,7 @@ import {
 import {
   buildPortraitUpdatePrompt,
   parsePortraitResponse,
+  type ParsedPortrait,
 } from "../../../engine/neo4j/portraitPrompt";
 import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
 import {
@@ -25,6 +26,7 @@ import {
 } from "../../../engine/neo4j/memory/proposals";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { callJsonChat, generateEmbedding } from "../../lib/openRouter";
+import { postMaterializeEmbedAndEnrich } from "../_memories/postMaterialize";
 import {
   buildDreamSynthesisPrompt,
   buildMergeSynthesisPrompt,
@@ -120,6 +122,77 @@ async function callSynthesisLLM(
   );
 }
 
+type SynthesisProposalKind =
+  | "insight"
+  | "connection"
+  | "contradiction"
+  | "anomaly"
+  | "merge";
+
+/**
+ * Dedup guard shared by the anomaly propose-path and the merge pass: skip
+ * synthesis whose source memories overlap an already-pending proposal.
+ */
+async function isOverlappingPendingProposal(
+  driver: ReturnType<typeof getDriver>,
+  clerkId: string,
+  sourceMemoryIds: string[],
+  logLabel?: string,
+): Promise<boolean> {
+  const overlaps = await hasOverlappingPendingProposal(driver, {
+    userId: clerkId,
+    sourceMemoryIds,
+    overlapThreshold: DEDUP_OVERLAP_THRESHOLD,
+  });
+  if (overlaps && logLabel) {
+    console.log(
+      `[dream] dedup skip — overlapping pending proposal for ${logLabel}`,
+    );
+  }
+  return overlaps;
+}
+
+/**
+ * File a dream synthesis as a :ProposedUpdate and emit the matching
+ * activity event. Shared by the anomaly propose-path and the merge pass.
+ */
+async function fileDreamProposal(
+  ctx: ActionCtx,
+  driver: ReturnType<typeof getDriver>,
+  clerkId: string,
+  result: DreamRunResult,
+  proposal: {
+    kind: SynthesisProposalKind;
+    title: string;
+    content: string;
+    reason: string;
+    sourceMemoryIds: string[];
+    confidence: number;
+  },
+): Promise<void> {
+  const created = await createSynthesisProposal(driver, {
+    userId: clerkId,
+    kind: proposal.kind,
+    proposedTitle: proposal.title,
+    proposedContent: proposal.content,
+    reason: proposal.reason,
+    sourceMemoryIds: proposal.sourceMemoryIds,
+    confidence: proposal.confidence,
+  });
+  result.proposalsCreated += 1;
+
+  await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+    clerkId,
+    eventType: "dream_synthesis_proposed",
+    memoryId: created.id,
+    payload: JSON.stringify({
+      kind: proposal.kind,
+      sourceMemoryIds: proposal.sourceMemoryIds,
+      confidence: proposal.confidence,
+    }),
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Per-profile orchestrator
 //
@@ -182,12 +255,14 @@ export const runDreamForProfileInternal = internalAction({
       console.warn(`[dream] profile ${args.profileId} not found`);
       return result;
     }
-    const autoAccept =
-      args.forceProposals === true
-        ? false
-        : args.autoAcceptOverride !== undefined
-          ? args.autoAcceptOverride
-          : profile.dreamModeAutoAccept === true;
+    let autoAccept: boolean;
+    if (args.forceProposals === true) {
+      autoAccept = false;
+    } else if (args.autoAcceptOverride !== undefined) {
+      autoAccept = args.autoAcceptOverride;
+    } else {
+      autoAccept = profile.dreamModeAutoAccept === true;
+    }
     const depthParams = DEPTH_PARAMS[args.depth ?? "standard"];
 
     const driver = getDriver();
@@ -218,23 +293,12 @@ export const runDreamForProfileInternal = internalAction({
       return result;
     }
 
-    // 2. Surprisal scoring — vector queries are cheap, do all of them.
-    const scored: Array<{
-      id: string;
-      surprisal: number;
-      embedding: number[];
-    }> = [];
-    for (const m of recent) {
-      const surprisal = await computeSurprisalScore(driver, {
-        userId: args.clerkId,
-        memoryId: m.id,
-        embedding: m.embedding,
-        k: SURPRISAL_NEIGHBORS,
-      });
-      if (surprisal !== null) {
-        scored.push({ id: m.id, surprisal, embedding: m.embedding });
-      }
-    }
+    // 2. Surprisal scoring — one Neo4j session for the whole pool.
+    const scored = await computeSurprisalScores(driver, {
+      userId: args.clerkId,
+      memories: recent,
+      k: SURPRISAL_NEIGHBORS,
+    });
     scored.sort((a, b) => b.surprisal - a.surprisal);
     const topAnomalies = scored.slice(0, depthParams.topAnomalies);
     console.log(
@@ -281,15 +345,14 @@ export const runDreamForProfileInternal = internalAction({
         if (synthesis.sourceMemoryIds.length === 0) continue;
 
         // Dedup against pending dream-mode proposals.
-        const overlaps = await hasOverlappingPendingProposal(driver, {
-          userId: args.clerkId,
-          sourceMemoryIds: synthesis.sourceMemoryIds,
-          overlapThreshold: DEDUP_OVERLAP_THRESHOLD,
-        });
-        if (overlaps) {
-          console.log(
-            `[dream] dedup skip — overlapping pending proposal for ${synthesis.title}`,
-          );
+        if (
+          await isOverlappingPendingProposal(
+            driver,
+            args.clerkId,
+            synthesis.sourceMemoryIds,
+            synthesis.title,
+          )
+        ) {
           continue;
         }
 
@@ -336,21 +399,17 @@ export const runDreamForProfileInternal = internalAction({
           );
           result.memoriesMaterialized += 1;
 
-          // Run the same enrichment pipeline regular memories get — tags,
-          // entities, RELATES_TO edges. Without this, materialized
-          // memories sit as orphan nodes with only DERIVED_FROM edges,
-          // which made them useless in graph view.
-          await ctx.scheduler.runAfter(
-            0,
-            internal.neo4jActions.enrichment.enrichMemoryInternal,
-            {
-              clerkId: args.clerkId,
-              memoryId: newMemoryId,
-              title: synthesis.title,
-              content: synthesis.content,
-              profileId: args.profileId,
-            },
-          );
+          await postMaterializeEmbedAndEnrich(ctx, driver, {
+            clerkId: args.clerkId,
+            memoryId: newMemoryId,
+            title: synthesis.title,
+            content: synthesis.content,
+            profileId: args.profileId,
+            feature: "dream-materialize",
+            failureLog:
+              "[dream] embedding failed for materialized memory, continuing without",
+            embeddingAtCreate: embedding,
+          });
 
           await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
             clerkId: args.clerkId,
@@ -364,26 +423,13 @@ export const runDreamForProfileInternal = internalAction({
           });
         } else {
           // Default path: file a synthesis :ProposedUpdate.
-          const proposal = await createSynthesisProposal(driver, {
-            userId: args.clerkId,
+          await fileDreamProposal(ctx, driver, args.clerkId, result, {
             kind: synthesis.type,
-            proposedTitle: synthesis.title,
-            proposedContent: synthesis.content,
+            title: synthesis.title,
+            content: synthesis.content,
             reason: synthesis.reason,
             sourceMemoryIds: synthesis.sourceMemoryIds,
             confidence: synthesis.confidence,
-          });
-          result.proposalsCreated += 1;
-
-          await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
-            clerkId: args.clerkId,
-            eventType: "dream_synthesis_proposed",
-            memoryId: proposal.id,
-            payload: JSON.stringify({
-              kind: synthesis.type,
-              sourceMemoryIds: synthesis.sourceMemoryIds,
-              confidence: synthesis.confidence,
-            }),
           });
         }
       } catch (e) {
@@ -424,34 +470,24 @@ export const runDreamForProfileInternal = internalAction({
         if (!merge) continue;
         if (merge.confidence < CONFIDENCE_FLOOR) continue;
 
-        const overlaps = await hasOverlappingPendingProposal(driver, {
-          userId: args.clerkId,
-          sourceMemoryIds: merge.sourceMemoryIds,
-          overlapThreshold: DEDUP_OVERLAP_THRESHOLD,
-        });
-        if (overlaps) continue;
+        if (
+          await isOverlappingPendingProposal(
+            driver,
+            args.clerkId,
+            merge.sourceMemoryIds,
+          )
+        ) {
+          continue;
+        }
 
-        const proposal = await createSynthesisProposal(driver, {
-          userId: args.clerkId,
+        await fileDreamProposal(ctx, driver, args.clerkId, result, {
           kind: "merge",
-          proposedTitle: merge.title,
-          proposedContent: merge.content,
+          title: merge.title,
+          content: merge.content,
           reason:
             "These memories are near-duplicate records of the same information; approving replaces them with this consolidation.",
           sourceMemoryIds: merge.sourceMemoryIds,
           confidence: merge.confidence,
-        });
-        result.proposalsCreated += 1;
-
-        await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
-          clerkId: args.clerkId,
-          eventType: "dream_synthesis_proposed",
-          memoryId: proposal.id,
-          payload: JSON.stringify({
-            kind: "merge",
-            sourceMemoryIds: merge.sourceMemoryIds,
-            confidence: merge.confidence,
-          }),
         });
       }
     } catch (e) {
@@ -493,13 +529,13 @@ export const runDreamForProfileInternal = internalAction({
             ),
             temperature: 0.2,
           });
-          const portrait =
-            rawText === null
-              ? null
-              : parsePortraitResponse(
-                  rawText,
-                  evidence.map((m) => m.id),
-                );
+          let portrait: ParsedPortrait | null = null;
+          if (rawText !== null) {
+            portrait = parsePortraitResponse(
+              rawText,
+              evidence.map((m) => m.id),
+            );
+          }
           if (portrait) {
             await ctx.runMutation(internal.profiles.setDreamPortraitInternal, {
               profileId: args.profileId,

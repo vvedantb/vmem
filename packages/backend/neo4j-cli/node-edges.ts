@@ -2,7 +2,11 @@
  * One-off read-only diagnostic: edge breakdown for a single memory matched by
  * title substring. Aggregates + titles only.
  */
+import { z } from "zod";
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
+import { neo4jField } from "../engine/neo4j/record";
+
+const coerceStringArraySchema = z.array(z.coerce.string());
 
 const TITLE_PART = process.argv[2] ?? "modern-cpp-features";
 
@@ -36,7 +40,8 @@ async function main() {
         { id },
       );
       const c = counts.records[0];
-      const tags: string[] = c.get("tags").map(String);
+      if (!c) continue;
+      const tags = neo4jField(c, "tags", coerceStringArraySchema);
       console.log(`tags (${String(tags.length)}): ${tags.join(", ")}`);
       console.log(
         `RELATES_TO neighbours: ${String(c.get("relatesCount"))}  reasons: ${JSON.stringify(c.get("reasons"))}`,
@@ -70,6 +75,7 @@ async function main() {
         { userId },
       );
       const d = dist.records[0];
+      if (d === undefined) continue;
       console.log(
         `account RELATES_TO degree: max=${String(d.get("maxDeg"))} avg=${Number(d.get("avgDeg")).toFixed(1)} p95=${String(d.get("p95"))} nodes≥50=${String(d.get("over50"))}`,
       );

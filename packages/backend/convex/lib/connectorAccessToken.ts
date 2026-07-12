@@ -3,16 +3,25 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { decryptToken, encryptToken, getEnvOrThrow } from "./crypto";
 import { pickGoogleTokenConnectorId } from "../neo4jActions/connectors/googleShared";
-
-interface RefreshResponse {
-  access_token?: string;
-  expires_in?: number;
-  refresh_token?: string;
-}
+import { oauthAccessTokenSchema, safeParseResponseJson } from "./jsonBoundary";
 
 export type ConnectorAccessTokenResult =
   | { ok: true; accessToken: string; tokenConnectorId: Id<"connectors"> }
   | { ok: false; message: string };
+
+function isGoogleProvider(
+  provider: Doc<"connectors">["provider"],
+): provider is "google_drive" | "gmail" {
+  return provider === "google_drive" || provider === "gmail";
+}
+
+function usesRefreshToken(provider: Doc<"connectors">["provider"]): boolean {
+  return (
+    provider === "google_drive" ||
+    provider === "gmail" ||
+    provider === "onedrive"
+  );
+}
 
 export async function resolveConnectorAccessToken(
   ctx: ActionCtx,
@@ -23,7 +32,7 @@ export async function resolveConnectorAccessToken(
   }
 
   let tokenConnectorId = connector._id;
-  if (connector.provider === "google_drive" || connector.provider === "gmail") {
+  if (isGoogleProvider(connector.provider)) {
     const googleRows = await ctx.runQuery(
       internal.connectors.crud.listGoogleConnectorsForUserInternal,
       { userId: connector.userId },
@@ -45,12 +54,7 @@ export async function resolveConnectorAccessToken(
 
   let accessToken = await decryptToken(tokens.accessToken);
 
-  const usesRefresh =
-    connector.provider === "google_drive" ||
-    connector.provider === "gmail" ||
-    connector.provider === "onedrive";
-
-  if (usesRefresh && tokens.expiresAt < Date.now()) {
+  if (usesRefreshToken(connector.provider) && tokens.expiresAt < Date.now()) {
     if (!tokens.refreshToken) {
       return {
         ok: false,
@@ -63,10 +67,7 @@ export async function resolveConnectorAccessToken(
     let refreshUrl: string;
     let clientId: string;
     let clientSecret: string;
-    if (
-      connector.provider === "google_drive" ||
-      connector.provider === "gmail"
-    ) {
+    if (isGoogleProvider(connector.provider)) {
       refreshUrl = "https://oauth2.googleapis.com/token";
       clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
       clientSecret = getEnvOrThrow("GOOGLE_CLIENT_SECRET");
@@ -97,8 +98,12 @@ export async function resolveConnectorAccessToken(
       return { ok: false, message: "Token refresh failed — please reconnect" };
     }
 
-    const refreshData: RefreshResponse = await refreshRes.json();
-    if (!refreshData.access_token) {
+    const refreshData = await safeParseResponseJson(
+      refreshRes,
+      oauthAccessTokenSchema,
+    );
+    if (!refreshData || !refreshData.access_token) {
+      console.error("Token refresh returned an unparseable response");
       return { ok: false, message: "Token refresh failed — please reconnect" };
     }
 

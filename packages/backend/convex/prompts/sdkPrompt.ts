@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { extractJsonString } from "../../engine/llm/extractJsonString";
 
 export interface RetrieveSummaryMemory {
@@ -44,20 +45,16 @@ ${memoryLines}
 # Your output (JSON only)`;
 }
 
-function readJsonString(value: unknown, key: string): string | null {
-  if (typeof value !== "object" || value === null) {
-    return null;
-  }
-  const field = Reflect.get(value, key);
-  return typeof field === "string" && field.trim().length > 0
-    ? field.trim()
-    : null;
-}
+const retrieveSummaryResponseSchema = z.object({
+  summary: z.string().trim().min(1),
+});
 
 export function parseRetrieveSummaryResponse(raw: string): string | null {
   try {
-    const parsed: unknown = JSON.parse(extractJsonString(raw));
-    return readJsonString(parsed, "summary");
+    const parsed = retrieveSummaryResponseSchema.safeParse(
+      JSON.parse(extractJsonString(raw)),
+    );
+    return parsed.success ? parsed.data.summary : null;
   } catch {
     return null;
   }

@@ -20,6 +20,51 @@ type ProfileLite = {
   color?: string | null | undefined;
 };
 
+interface LogsVirtuosoContext {
+  hasMore: boolean;
+  isLoading: boolean;
+  profilesById: ReadonlyMap<string, ProfileLite>;
+  onSelectRow: (row: LogRow) => void;
+}
+
+function LogsTableFooter({ context }: { context?: LogsVirtuosoContext }) {
+  if (!context?.hasMore && !context?.isLoading) return null;
+  return (
+    <div className="py-4 text-center text-xs text-muted">
+      {context?.isLoading ? "Loading…" : "Scroll for more"}
+    </div>
+  );
+}
+
+function LogsVirtuosoRow({
+  row,
+  context,
+}: {
+  row: LogRow;
+  context?: LogsVirtuosoContext;
+}) {
+  const profile = row.profileId
+    ? context?.profilesById.get(row.profileId)
+    : undefined;
+  return (
+    <div className="pb-1">
+      <LogRowCard
+        row={row}
+        profile={profile}
+        onClick={() => context?.onSelectRow(row)}
+      />
+    </div>
+  );
+}
+
+function renderLogsVirtuosoRow(
+  _index: number,
+  row: LogRow,
+  context?: LogsVirtuosoContext,
+) {
+  return <LogsVirtuosoRow row={row} context={context} />;
+}
+
 interface LogsTableProps {
   rows: readonly LogRow[];
   isLoading: boolean;
@@ -91,32 +136,19 @@ export function LogsTable({
                 data={items}
                 className="scrollbar-thin"
                 style={{ height: "100%" }}
+                context={{
+                  hasMore,
+                  isLoading,
+                  profilesById,
+                  onSelectRow: setSelected,
+                }}
                 computeItemKey={(_index, row) => row._id}
                 defaultItemHeight={56}
                 endReached={() => {
                   if (hasMore && !isLoading) onLoadMore();
                 }}
-                components={{
-                  Footer: () =>
-                    hasMore || isLoading ? (
-                      <div className="py-4 text-center text-xs text-muted">
-                        {isLoading ? "Loading…" : "Scroll for more"}
-                      </div>
-                    ) : null,
-                }}
-                itemContent={(_index, row) => (
-                  <div className="pb-1">
-                    <LogRowCard
-                      row={row}
-                      profile={
-                        row.profileId
-                          ? profilesById.get(row.profileId)
-                          : undefined
-                      }
-                      onClick={() => setSelected(row)}
-                    />
-                  </div>
-                )}
+                components={{ Footer: LogsTableFooter }}
+                itemContent={renderLogsVirtuosoRow}
               />
             </div>
           </CardContent>
@@ -174,10 +206,11 @@ function LogRowCard({
   const latency = `${row.latencyMs.toLocaleString()}ms`;
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onClick}
-      className="block w-full rounded-lg px-4 py-3 text-left transition-[background-color] hover:bg-surface-tertiary/50 focus:bg-surface-tertiary/50 focus:outline-none"
+      className="block h-auto w-full justify-start rounded-lg px-4 py-3 text-left font-normal hover:bg-surface-tertiary/50 focus:bg-surface-tertiary/50 active:scale-100"
     >
       <div className="hidden md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px_80px_72px] md:items-center md:gap-3">
         <span className="text-xs tabular-nums text-muted">{time}</span>
@@ -219,7 +252,7 @@ function LogRowCard({
           </span>
         </div>
       </div>
-    </button>
+    </Button>
   );
 }
 

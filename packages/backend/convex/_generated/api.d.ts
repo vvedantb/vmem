@@ -61,6 +61,7 @@ import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_dreamTriggerDecision from "../lib/dreamTriggerDecision.js";
 import type * as lib_dreamTriggerInvalidate from "../lib/dreamTriggerInvalidate.js";
 import type * as lib_envVars from "../lib/envVars.js";
+import type * as lib_jsonBoundary from "../lib/jsonBoundary.js";
 import type * as lib_openRouter from "../lib/openRouter.js";
 import type * as lib_openRouter_bestEffortEmbed from "../lib/openRouter/bestEffortEmbed.js";
 import type * as lib_openRouter_chat from "../lib/openRouter/chat.js";
@@ -82,11 +83,9 @@ import type * as mcp_oauth from "../mcp/oauth.js";
 import type * as mcp_profiles from "../mcp/profiles.js";
 import type * as mcp_resources from "../mcp/resources.js";
 import type * as mcp_schemas from "../mcp/schemas.js";
-import type * as mcp_skills from "../mcp/skills.js";
 import type * as mcp_toolCatalog from "../mcp/toolCatalog.js";
 import type * as mcp_toolHandlers from "../mcp/toolHandlers.js";
 import type * as mcp_tools from "../mcp/tools.js";
-import type * as mcp_webAppUrl from "../mcp/webAppUrl.js";
 import type * as mcp_wiki from "../mcp/wiki.js";
 import type * as memoryApi from "../memoryApi.js";
 import type * as memoryApi_auth from "../memoryApi/auth.js";
@@ -169,6 +168,7 @@ import type * as users from "../users.js";
 import type * as validators from "../validators.js";
 import type * as wiki from "../wiki.js";
 import type * as wikiVersions from "../wikiVersions.js";
+import type * as wiki_path from "../wiki/path.js";
 import type * as workflow from "../workflow.js";
 
 import type {
@@ -231,6 +231,7 @@ declare const fullApi: ApiFromModules<{
   "lib/dreamTriggerDecision": typeof lib_dreamTriggerDecision;
   "lib/dreamTriggerInvalidate": typeof lib_dreamTriggerInvalidate;
   "lib/envVars": typeof lib_envVars;
+  "lib/jsonBoundary": typeof lib_jsonBoundary;
   "lib/openRouter": typeof lib_openRouter;
   "lib/openRouter/bestEffortEmbed": typeof lib_openRouter_bestEffortEmbed;
   "lib/openRouter/chat": typeof lib_openRouter_chat;
@@ -252,11 +253,9 @@ declare const fullApi: ApiFromModules<{
   "mcp/profiles": typeof mcp_profiles;
   "mcp/resources": typeof mcp_resources;
   "mcp/schemas": typeof mcp_schemas;
-  "mcp/skills": typeof mcp_skills;
   "mcp/toolCatalog": typeof mcp_toolCatalog;
   "mcp/toolHandlers": typeof mcp_toolHandlers;
   "mcp/tools": typeof mcp_tools;
-  "mcp/webAppUrl": typeof mcp_webAppUrl;
   "mcp/wiki": typeof mcp_wiki;
   memoryApi: typeof memoryApi;
   "memoryApi/auth": typeof memoryApi_auth;
@@ -339,6 +338,7 @@ declare const fullApi: ApiFromModules<{
   validators: typeof validators;
   wiki: typeof wiki;
   wikiVersions: typeof wikiVersions;
+  "wiki/path": typeof wiki_path;
   workflow: typeof workflow;
 }>;
 

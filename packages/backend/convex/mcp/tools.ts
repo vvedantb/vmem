@@ -1,20 +1,29 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import type { ActionCtx } from "../_generated/server";
 import type { McpScope } from "../profiles/mcpAccess";
-import { toolSpecs } from "./toolCatalog";
+import { bindToolSpec, toolSpecs, type McpBindableTool } from "./toolCatalog";
 import {
   formatToolResult,
   type ToolHandlerContext,
   type ToolHandlerResult,
 } from "./toolHandlers";
 
-function textContent(text: string) {
-  return { content: [{ type: "text" as const, text }] };
+type McpToolContent = {
+  content: Array<
+    | { type: "text"; text: string }
+    | { type: "image"; data: string; mimeType: string }
+  >;
+  isError?: boolean;
+};
+
+function textContent(text: string): McpToolContent {
+  return { content: [{ type: "text", text }] };
 }
 
-function errorContent(message: string) {
+function errorContent(message: string): McpToolContent {
   return {
-    content: [{ type: "text" as const, text: message }],
+    content: [{ type: "text", text: message }],
     isError: true,
   };
 }
@@ -31,20 +40,34 @@ function handlerContext(
  * The MCP-surface mechanic: map a structured handler result to MCP tool
  * content — `isError` + a `<label> failed: …` message on failure, otherwise
  * the JSON-formatted data. Kept non-generic so it stays clear of the MCP SDK's
- * schema-inference generics; each `server.tool` registration below keeps its
+ * schema-inference generics; `registerMcpTool` below keeps each tool's
  * concrete schema type from the catalog.
  */
-function toMcpContent(result: ToolHandlerResult, errorLabel: string) {
+function toMcpContent(
+  result: ToolHandlerResult,
+  errorLabel: string,
+): McpToolContent {
   if (!result.ok) return errorContent(`${errorLabel}: ${result.error}`);
   return textContent(formatToolResult(result));
 }
 
 /** JSON for a get-file result with the (large) base64 payload removed. */
-function fileMetadataText(data: object): string {
-  const clone: Record<string, unknown> = { ...data };
+const unknownRecordSchema = z.record(z.unknown());
+
+function fileMetadataText(data: unknown): string {
+  const parsed = unknownRecordSchema.safeParse(data);
+  if (!parsed.success) {
+    return JSON.stringify(data, null, 2);
+  }
+  const clone: Record<string, unknown> = { ...parsed.data };
   delete clone.contentBase64;
   return JSON.stringify(clone, null, 2);
 }
+
+const inlineImageFileSchema = z.object({
+  contentBase64: z.string(),
+  mimeType: z.string().refine((mime) => mime.startsWith("image/")),
+});
 
 /**
  * files_get returns an MCP image content block when the file is an inlined
@@ -52,30 +75,313 @@ function fileMetadataText(data: object): string {
  * the remaining metadata (path, size, downloadUrl). Other files fall back to
  * the standard JSON text content.
  */
-function filesGetContent(result: ToolHandlerResult) {
+function filesGetContent(result: ToolHandlerResult): McpToolContent {
   if (!result.ok) return errorContent(`Files get failed: ${result.error}`);
   const data = result.data;
-  if (
-    typeof data === "object" &&
-    data !== null &&
-    "contentBase64" in data &&
-    typeof data.contentBase64 === "string" &&
-    "mimeType" in data &&
-    typeof data.mimeType === "string" &&
-    data.mimeType.startsWith("image/")
-  ) {
+  const inlineImage = inlineImageFileSchema.safeParse(data);
+  if (inlineImage.success) {
     return {
       content: [
         {
-          type: "image" as const,
-          data: data.contentBase64,
-          mimeType: data.mimeType,
+          type: "image",
+          data: inlineImage.data.contentBase64,
+          mimeType: inlineImage.data.mimeType,
         },
-        { type: "text" as const, text: fileMetadataText(data) },
+        { type: "text", text: fileMetadataText(data) },
       ],
     };
   }
   return textContent(formatToolResult(result));
+}
+
+type McpToolPresentation = {
+  description: string | ((scopeLabel: string) => string);
+  errorLabel: string;
+  /** Omit to register on every MCP scope. */
+  scopes?: readonly McpScope[];
+  toContent?: (result: ToolHandlerResult) => McpToolContent;
+};
+
+/**
+ * MCP presentation metadata per catalog tool — descriptions, error labels,
+ * scope gating, and optional custom content mappers. Operational wiring
+ * (name, schema, handler) stays in `toolCatalog.ts`.
+ */
+const mcpPresentation: Record<keyof typeof toolSpecs, McpToolPresentation> = {
+  ping: {
+    description: "Health check tool for connector validation.",
+    errorLabel: "Ping failed",
+  },
+  whoami: {
+    description: (scopeLabel) =>
+      `Returns the authenticated user, active ${scopeLabel} profile, and profiles visible on this ${scopeLabel} MCP connector.`,
+    errorLabel: "Whoami failed",
+  },
+  list_profiles: {
+    description: (scopeLabel) =>
+      `List ${scopeLabel} profiles available on this MCP connector. Returns profile IDs, names, colors, and icons. Use set_active_profile to choose the default profile for memory tools, or pass profileId on memory_add / memory_search / memory_retrieve.`,
+    errorLabel: "List profiles failed",
+  },
+  set_active_profile: {
+    description: (scopeLabel) =>
+      `Set the default ${scopeLabel} profile for MCP memory tools (memory_add, memory_search, memory_retrieve when profileId is omitted). Call list_profiles first to get valid profile IDs.`,
+    errorLabel: "Set active profile failed",
+  },
+  context_prompt_get: {
+    description:
+      "Returns the full vmem user profile markdown (same as MCP resource vmem://context_prompt): About, Preferences, pinned memories, profile summary, and Available Skills (name + description). Call at session start or when a skill might apply — claude.ai cannot re-read the resource mid-chat. Then call skills_get with the exact skill name to load the playbook.",
+    errorLabel: "Context prompt get failed",
+    scopes: ["personal"],
+  },
+  memory_search: {
+    description:
+      "Search your memories by query text, type, tags, or source. Returns matching memories with metadata. Defaults to the active profile unless profileId is specified.",
+    errorLabel: "Search failed",
+  },
+  memory_retrieve: {
+    description:
+      "Retrieve the most relevant memories for a natural language query. Returns scored results with Context Trace explaining WHY each memory matched (score breakdown: fulltext, recency, confidence). Defaults to the active profile unless profileId is specified.",
+    errorLabel: "Retrieve failed",
+  },
+  memory_add: {
+    description:
+      "Store a new memory. Use type 'profile' for stable user facts, 'episodic' for past events/interactions, 'knowledge' for durable extracted knowledge. Adds to the active profile unless profileId is specified.",
+    errorLabel: "Add memory failed",
+  },
+  memory_add_instruction: {
+    description:
+      "Store memories from a natural-language instruction. The server extracts atomic facts with an LLM and creates one memory per fact (requires OpenRouter). Use when the agent should remember a conversation summary without drafting title/content itself. Prefer memory_add when you already have a single clear fact with title and type.",
+    errorLabel: "Add from instruction failed",
+  },
+  memory_update: {
+    description:
+      "Update an existing memory by ID. Only include fields you want to change.",
+    errorLabel: "Update failed",
+  },
+  memory_delete: {
+    description: "Delete a memory by ID. This is permanent.",
+    errorLabel: "Delete failed",
+  },
+  memory_related: {
+    description:
+      "List memories explicitly linked to a given memory via RELATES_TO edges (1-hop). Returns full memory bodies plus linkReason for each edge. Use after memory_retrieve when you need all structural neighbors of one memory, not query-ranked top-k.",
+    errorLabel: "Related memories failed",
+  },
+  skills_list: {
+    description:
+      "List enabled skills (name + description only). Same data as the Available Skills section in context_prompt_get / vmem://context_prompt. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them.",
+    errorLabel: "List skills failed",
+  },
+  skills_get: {
+    description:
+      "Fetch a single enabled skill by exact name, including full markdown instructions. Call after identifying a matching skill from context_prompt_get, skills_list, or the Available Skills section in vmem://context_prompt.",
+    errorLabel: "Get skill failed",
+  },
+  skills_create: {
+    description:
+      "Create a new enabled skill when you have identified a repeatable problem or a workflow that could be automated with a skill, and no existing skill already covers it (check Available Skills in vmem://context_prompt or call skills_list first). Write markdown instructions so future sessions can follow the same fix or automation. Do not create duplicates — if a similar skill exists, use skills_get and skills_update instead. Names must be unique per user (trimmed).",
+    errorLabel: "Create skill failed",
+  },
+  skills_update: {
+    description:
+      "Update an existing skill when its playbook should change — e.g. after fixing a repeatable problem, refining steps, or improving an automation. Call skills_get first to read the current skill. Provide the skill's current exact name (case sensitive) plus at least one field to change. Use newName to rename; use enabled false to disable without deleting.",
+    errorLabel: "Update skill failed",
+  },
+  skills_delete: {
+    description:
+      "Permanently delete a skill by exact name (case sensitive). Call skills_get first if unsure of the name. Prefer skills_update with enabled false to hide a skill without deleting it.",
+    errorLabel: "Delete skill failed",
+  },
+  wiki_list: {
+    description:
+      "List all wiki folders and documents (flat index, no body). Use returned ids with wiki_get. Call this before wiki_get or wiki_update when you do not already have a node id.",
+    errorLabel: "Wiki list failed",
+  },
+  wiki_get: {
+    description:
+      "Fetch a single wiki node by id. Returns metadata and contentMarkdown for documents. Call wiki_list first if you do not have the id.",
+    errorLabel: "Wiki get failed",
+  },
+  wiki_search: {
+    description:
+      "Full-text search wiki titles and document bodies. Returns id, title, kind, and excerpt.",
+    errorLabel: "Wiki search failed",
+  },
+  wiki_create: {
+    description:
+      "Create a wiki folder or document. Documents accept contentMarkdown stored as canonical markdown (same as the web editor). Optional parentId must be a folder id from wiki_list.",
+    errorLabel: "Wiki create failed",
+  },
+  wiki_update: {
+    description:
+      "Update a wiki node by id. Optional title and/or contentMarkdown. contentMode append concatenates new markdown after existing body; replace (default) overwrites the body.",
+    errorLabel: "Wiki update failed",
+  },
+  wiki_delete: {
+    description:
+      "Permanently delete a wiki folder or document by id. Deleting a folder removes all descendants. Call wiki_list or wiki_get first to confirm the id.",
+    errorLabel: "Wiki delete failed",
+  },
+  files_list: {
+    description:
+      "List files and folders in the shared filesystem. Paths are '/'-separated (e.g. 'ai-images/cat.png'). Omit path to list the entire tree; pass a folder path to list its direct children. Files are user-wide and shared across all your AI clients.",
+    errorLabel: "Files list failed",
+  },
+  files_get: {
+    description:
+      "Read a file by path. Images up to 4 MB are returned as an inline image block (rendered directly); text files up to 100 KB are returned inline. A downloadUrl is always included for larger files. Call files_list first if you don't know the path.",
+    errorLabel: "Files get failed",
+    toContent: filesGetContent,
+  },
+  files_upload: {
+    description:
+      "Save a file to the shared filesystem at the given path. Provide either contentBase64 (inline bytes, data: URL allowed) or sourceUrl (the server fetches and stores it — best for generated images). Missing parent folders are auto-created; an existing file at the path is overwritten. Max 10 MB. PDF and text-like files are automatically indexed into the memory graph and appear in memory_search/memory_retrieve.",
+    errorLabel: "Files upload failed",
+  },
+  files_delete: {
+    description:
+      "Delete a file or folder by path. Folders are deleted recursively along with their stored contents. This is permanent.",
+    errorLabel: "Files delete failed",
+  },
+  codebases_list: {
+    description:
+      "List GitHub repositories connected to vmem. Returns codebase IDs, repo names, sync status, and parser stats. Call this first to discover codebaseId values for the other codebase_* tools. Only repos with status 'synced' have graph data in Neo4j.",
+    errorLabel: "List codebases failed",
+  },
+  codebase_overview: {
+    description:
+      "Get aggregate stats for a synced codebase: file, function, class, interface, and process counts plus CALLS and IMPORTS edge counts.",
+    errorLabel: "Codebase overview failed",
+  },
+  codebase_search: {
+    description:
+      "Search symbols (files, functions, classes, interfaces, processes) inside a synced codebase. Use the returned symbol id with codebase_context or codebase_impact.",
+    errorLabel: "Codebase search failed",
+  },
+  codebase_context: {
+    description:
+      "Get a symbol's metadata plus its direct CALLS relationships (callers and callees) and linked processes.",
+    errorLabel: "Codebase context failed",
+  },
+  codebase_impact: {
+    description:
+      "Traverse CALLS edges upstream (callers) or downstream (callees) from a symbol to estimate blast radius.",
+    errorLabel: "Codebase impact failed",
+  },
+  codebase_graph: {
+    description:
+      "Fetch a filtered subgraph of a synced codebase: nodes plus relationship edges (imports, calls, contains, extends, implements, process links). Response may be truncated on large repos — use kinds, processId, or blastRadiusOf to narrow scope.",
+    errorLabel: "Codebase graph failed",
+  },
+};
+
+/** Registration order mirrors insertion order of `toolSpecs` (toolCatalog.ts). */
+const bindableToolSpecs = {
+  ping: bindToolSpec(toolSpecs.ping),
+  whoami: bindToolSpec(toolSpecs.whoami),
+  list_profiles: bindToolSpec(toolSpecs.list_profiles),
+  set_active_profile: bindToolSpec(toolSpecs.set_active_profile),
+  context_prompt_get: bindToolSpec(toolSpecs.context_prompt_get),
+  memory_search: bindToolSpec(toolSpecs.memory_search),
+  memory_retrieve: bindToolSpec(toolSpecs.memory_retrieve),
+  memory_add: bindToolSpec(toolSpecs.memory_add),
+  memory_add_instruction: bindToolSpec(toolSpecs.memory_add_instruction),
+  memory_update: bindToolSpec(toolSpecs.memory_update),
+  memory_delete: bindToolSpec(toolSpecs.memory_delete),
+  memory_related: bindToolSpec(toolSpecs.memory_related),
+  skills_list: bindToolSpec(toolSpecs.skills_list),
+  skills_get: bindToolSpec(toolSpecs.skills_get),
+  skills_create: bindToolSpec(toolSpecs.skills_create),
+  skills_update: bindToolSpec(toolSpecs.skills_update),
+  skills_delete: bindToolSpec(toolSpecs.skills_delete),
+  wiki_list: bindToolSpec(toolSpecs.wiki_list),
+  wiki_get: bindToolSpec(toolSpecs.wiki_get),
+  wiki_search: bindToolSpec(toolSpecs.wiki_search),
+  wiki_create: bindToolSpec(toolSpecs.wiki_create),
+  wiki_update: bindToolSpec(toolSpecs.wiki_update),
+  wiki_delete: bindToolSpec(toolSpecs.wiki_delete),
+  files_list: bindToolSpec(toolSpecs.files_list),
+  files_get: bindToolSpec(toolSpecs.files_get),
+  files_upload: bindToolSpec(toolSpecs.files_upload),
+  files_delete: bindToolSpec(toolSpecs.files_delete),
+  codebases_list: bindToolSpec(toolSpecs.codebases_list),
+  codebase_overview: bindToolSpec(toolSpecs.codebase_overview),
+  codebase_search: bindToolSpec(toolSpecs.codebase_search),
+  codebase_context: bindToolSpec(toolSpecs.codebase_context),
+  codebase_impact: bindToolSpec(toolSpecs.codebase_impact),
+  codebase_graph: bindToolSpec(toolSpecs.codebase_graph),
+} satisfies Record<keyof typeof toolSpecs, McpBindableTool>;
+
+const mcpToolKeys: Array<keyof typeof toolSpecs> = [
+  "ping",
+  "whoami",
+  "list_profiles",
+  "set_active_profile",
+  "context_prompt_get",
+  "memory_search",
+  "memory_retrieve",
+  "memory_add",
+  "memory_add_instruction",
+  "memory_update",
+  "memory_delete",
+  "memory_related",
+  "skills_list",
+  "skills_get",
+  "skills_create",
+  "skills_update",
+  "skills_delete",
+  "wiki_list",
+  "wiki_get",
+  "wiki_search",
+  "wiki_create",
+  "wiki_update",
+  "wiki_delete",
+  "files_list",
+  "files_get",
+  "files_upload",
+  "files_delete",
+  "codebases_list",
+  "codebase_overview",
+  "codebase_search",
+  "codebase_context",
+  "codebase_impact",
+  "codebase_graph",
+];
+
+function assertCatalogExhaustive(): void {
+  for (const key of Object.keys(toolSpecs)) {
+    if (!(key in bindableToolSpecs)) {
+      throw new Error(`MCP bindableToolSpecs missing catalog tool: ${key}`);
+    }
+  }
+  for (const key of Object.keys(mcpPresentation)) {
+    if (!(key in bindableToolSpecs)) {
+      throw new Error(`MCP mcpPresentation missing catalog tool: ${key}`);
+    }
+  }
+}
+assertCatalogExhaustive();
+
+function registerMcpTool(
+  server: McpServer,
+  spec: McpBindableTool,
+  meta: McpToolPresentation,
+  scopeLabel: string,
+  scope: McpScope,
+  h: ToolHandlerContext,
+): void {
+  if (meta.scopes && !meta.scopes.includes(scope)) return;
+
+  const description =
+    typeof meta.description === "function"
+      ? meta.description(scopeLabel)
+      : meta.description;
+  const toContent: (result: ToolHandlerResult) => McpToolContent =
+    meta.toContent ?? ((result) => toMcpContent(result, meta.errorLabel));
+
+  server.tool(spec.name, description, spec.schema.shape, async (params) =>
+    toContent(await spec.run(h, params)),
+  );
 }
 
 /**
@@ -93,355 +399,14 @@ export function registerTools(
   const scopeLabel = scope === "team" ? "team" : "personal";
   const h = handlerContext(clerkUserId, ctx, scope);
 
-  server.tool(
-    toolSpecs.ping.name,
-    "Health check tool for connector validation.",
-    toolSpecs.ping.schema.shape,
-    async (params) =>
-      toMcpContent(await toolSpecs.ping.run(h, params), "Ping failed"),
-  );
-
-  server.tool(
-    toolSpecs.whoami.name,
-    `Returns the authenticated user, active ${scopeLabel} profile, and profiles visible on this ${scopeLabel} MCP connector.`,
-    toolSpecs.whoami.schema.shape,
-    async (params) =>
-      toMcpContent(await toolSpecs.whoami.run(h, params), "Whoami failed"),
-  );
-
-  server.tool(
-    toolSpecs.list_profiles.name,
-    `List ${scopeLabel} profiles available on this MCP connector. Returns profile IDs, names, colors, and icons. Use set_active_profile to choose the default profile for memory tools, or pass profileId on memory_add / memory_search / memory_retrieve.`,
-    toolSpecs.list_profiles.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.list_profiles.run(h, params),
-        "List profiles failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.set_active_profile.name,
-    `Set the default ${scopeLabel} profile for MCP memory tools (memory_add, memory_search, memory_retrieve when profileId is omitted). Call list_profiles first to get valid profile IDs.`,
-    toolSpecs.set_active_profile.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.set_active_profile.run(h, params),
-        "Set active profile failed",
-      ),
-  );
-
-  if (scope === "personal") {
-    server.tool(
-      toolSpecs.context_prompt_get.name,
-      "Returns the full vmem user profile markdown (same as MCP resource vmem://context_prompt): About, Preferences, pinned memories, profile summary, and Available Skills (name + description). Call at session start or when a skill might apply — claude.ai cannot re-read the resource mid-chat. Then call skills_get with the exact skill name to load the playbook.",
-      toolSpecs.context_prompt_get.schema.shape,
-      async (params) =>
-        toMcpContent(
-          await toolSpecs.context_prompt_get.run(h, params),
-          "Context prompt get failed",
-        ),
+  for (const key of mcpToolKeys) {
+    registerMcpTool(
+      server,
+      bindableToolSpecs[key],
+      mcpPresentation[key],
+      scopeLabel,
+      scope,
+      h,
     );
   }
-
-  server.tool(
-    toolSpecs.memory_search.name,
-    "Search your memories by query text, type, tags, or source. Returns matching memories with metadata. Defaults to the active profile unless profileId is specified.",
-    toolSpecs.memory_search.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.memory_search.run(h, params),
-        "Search failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.memory_retrieve.name,
-    "Retrieve the most relevant memories for a natural language query. Returns scored results with Context Trace explaining WHY each memory matched (score breakdown: fulltext, recency, confidence). Defaults to the active profile unless profileId is specified.",
-    toolSpecs.memory_retrieve.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.memory_retrieve.run(h, params),
-        "Retrieve failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.memory_add.name,
-    "Store a new memory. Use type 'profile' for stable user facts, 'episodic' for past events/interactions, 'knowledge' for durable extracted knowledge. Adds to the active profile unless profileId is specified.",
-    toolSpecs.memory_add.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.memory_add.run(h, params),
-        "Add memory failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.memory_add_instruction.name,
-    "Store memories from a natural-language instruction. The server extracts atomic facts with an LLM and creates one memory per fact (requires OpenRouter). Use when the agent should remember a conversation summary without drafting title/content itself. Prefer memory_add when you already have a single clear fact with title and type.",
-    toolSpecs.memory_add_instruction.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.memory_add_instruction.run(h, params),
-        "Add from instruction failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.memory_update.name,
-    "Update an existing memory by ID. Only include fields you want to change.",
-    toolSpecs.memory_update.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.memory_update.run(h, params),
-        "Update failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.memory_delete.name,
-    "Delete a memory by ID. This is permanent.",
-    toolSpecs.memory_delete.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.memory_delete.run(h, params),
-        "Delete failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.memory_related.name,
-    "List memories explicitly linked to a given memory via RELATES_TO edges (1-hop). Returns full memory bodies plus linkReason for each edge. Use after memory_retrieve when you need all structural neighbors of one memory, not query-ranked top-k.",
-    toolSpecs.memory_related.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.memory_related.run(h, params),
-        "Related memories failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.skills_list.name,
-    "List enabled skills (name + description only). Same data as the Available Skills section in context_prompt_get / vmem://context_prompt. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them.",
-    toolSpecs.skills_list.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.skills_list.run(h, params),
-        "List skills failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.skills_get.name,
-    "Fetch a single enabled skill by exact name, including full markdown instructions. Call after identifying a matching skill from context_prompt_get, skills_list, or the Available Skills section in vmem://context_prompt.",
-    toolSpecs.skills_get.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.skills_get.run(h, params),
-        "Get skill failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.skills_create.name,
-    "Create a new enabled skill when you have identified a repeatable problem or a workflow that could be automated with a skill, and no existing skill already covers it (check Available Skills in vmem://context_prompt or call skills_list first). Write markdown instructions so future sessions can follow the same fix or automation. Do not create duplicates — if a similar skill exists, use skills_get and skills_update instead. Names must be unique per user (trimmed).",
-    toolSpecs.skills_create.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.skills_create.run(h, params),
-        "Create skill failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.skills_update.name,
-    "Update an existing skill when its playbook should change — e.g. after fixing a repeatable problem, refining steps, or improving an automation. Call skills_get first to read the current skill. Provide the skill's current exact name (case sensitive) plus at least one field to change. Use newName to rename; use enabled false to disable without deleting.",
-    toolSpecs.skills_update.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.skills_update.run(h, params),
-        "Update skill failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.skills_delete.name,
-    "Permanently delete a skill by exact name (case sensitive). Call skills_get first if unsure of the name. Prefer skills_update with enabled false to hide a skill without deleting it.",
-    toolSpecs.skills_delete.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.skills_delete.run(h, params),
-        "Delete skill failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.wiki_list.name,
-    "List all wiki folders and documents (flat index, no body). Use returned ids with wiki_get. Call this before wiki_get or wiki_update when you do not already have a node id.",
-    toolSpecs.wiki_list.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.wiki_list.run(h, params),
-        "Wiki list failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.wiki_get.name,
-    "Fetch a single wiki node by id. Returns metadata and contentMarkdown for documents. Call wiki_list first if you do not have the id.",
-    toolSpecs.wiki_get.schema.shape,
-    async (params) =>
-      toMcpContent(await toolSpecs.wiki_get.run(h, params), "Wiki get failed"),
-  );
-
-  server.tool(
-    toolSpecs.wiki_search.name,
-    "Full-text search wiki titles and document bodies. Returns id, title, kind, and excerpt.",
-    toolSpecs.wiki_search.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.wiki_search.run(h, params),
-        "Wiki search failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.wiki_create.name,
-    "Create a wiki folder or document. Documents accept contentMarkdown stored as canonical markdown (same as the web editor). Optional parentId must be a folder id from wiki_list.",
-    toolSpecs.wiki_create.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.wiki_create.run(h, params),
-        "Wiki create failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.wiki_update.name,
-    "Update a wiki node by id. Optional title and/or contentMarkdown. contentMode append concatenates new markdown after existing body; replace (default) overwrites the body.",
-    toolSpecs.wiki_update.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.wiki_update.run(h, params),
-        "Wiki update failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.wiki_delete.name,
-    "Permanently delete a wiki folder or document by id. Deleting a folder removes all descendants. Call wiki_list or wiki_get first to confirm the id.",
-    toolSpecs.wiki_delete.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.wiki_delete.run(h, params),
-        "Wiki delete failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.files_list.name,
-    "List files and folders in the shared filesystem. Paths are '/'-separated (e.g. 'ai-images/cat.png'). Omit path to list the entire tree; pass a folder path to list its direct children. Files are user-wide and shared across all your AI clients.",
-    toolSpecs.files_list.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.files_list.run(h, params),
-        "Files list failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.files_get.name,
-    "Read a file by path. Images up to 4 MB are returned as an inline image block (rendered directly); text files up to 100 KB are returned inline. A downloadUrl is always included for larger files. Call files_list first if you don't know the path.",
-    toolSpecs.files_get.schema.shape,
-    async (params) => filesGetContent(await toolSpecs.files_get.run(h, params)),
-  );
-
-  server.tool(
-    toolSpecs.files_upload.name,
-    "Save a file to the shared filesystem at the given path. Provide either contentBase64 (inline bytes, data: URL allowed) or sourceUrl (the server fetches and stores it — best for generated images). Missing parent folders are auto-created; an existing file at the path is overwritten. Max 10 MB. PDF and text-like files are automatically indexed into the memory graph and appear in memory_search/memory_retrieve.",
-    toolSpecs.files_upload.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.files_upload.run(h, params),
-        "Files upload failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.files_delete.name,
-    "Delete a file or folder by path. Folders are deleted recursively along with their stored contents. This is permanent.",
-    toolSpecs.files_delete.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.files_delete.run(h, params),
-        "Files delete failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.codebases_list.name,
-    "List GitHub repositories connected to vmem. Returns codebase IDs, repo names, sync status, and parser stats. Call this first to discover codebaseId values for the other codebase_* tools. Only repos with status 'synced' have graph data in Neo4j.",
-    toolSpecs.codebases_list.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.codebases_list.run(h, params),
-        "List codebases failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.codebase_overview.name,
-    "Get aggregate stats for a synced codebase: file, function, class, interface, and process counts plus CALLS and IMPORTS edge counts.",
-    toolSpecs.codebase_overview.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.codebase_overview.run(h, params),
-        "Codebase overview failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.codebase_search.name,
-    "Search symbols (files, functions, classes, interfaces, processes) inside a synced codebase. Use the returned symbol id with codebase_context or codebase_impact.",
-    toolSpecs.codebase_search.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.codebase_search.run(h, params),
-        "Codebase search failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.codebase_context.name,
-    "Get a symbol's metadata plus its direct CALLS relationships (callers and callees) and linked processes.",
-    toolSpecs.codebase_context.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.codebase_context.run(h, params),
-        "Codebase context failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.codebase_impact.name,
-    "Traverse CALLS edges upstream (callers) or downstream (callees) from a symbol to estimate blast radius.",
-    toolSpecs.codebase_impact.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.codebase_impact.run(h, params),
-        "Codebase impact failed",
-      ),
-  );
-
-  server.tool(
-    toolSpecs.codebase_graph.name,
-    "Fetch a filtered subgraph of a synced codebase: nodes plus relationship edges (imports, calls, contains, extends, implements, process links). Response may be truncated on large repos — use kinds, processId, or blastRadiusOf to narrow scope.",
-    toolSpecs.codebase_graph.schema.shape,
-    async (params) =>
-      toMcpContent(
-        await toolSpecs.codebase_graph.run(h, params),
-        "Codebase graph failed",
-      ),
-  );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Breadcrumb, BreadcrumbPage } from "@vmem/ui";
+import { Breadcrumb, BreadcrumbPage, Input } from "@vmem/ui";
 
 interface SkillPageTitleProps {
   name: string;
@@ -16,7 +16,7 @@ export function SkillPageTitle({
   return (
     <Breadcrumb className="w-full min-w-0">
       <BreadcrumbPage className="min-w-0 flex-1">
-        <input
+        <Input
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           onBlur={onNameCommit}
@@ -28,7 +28,7 @@ export function SkillPageTitle({
           }}
           placeholder="Untitled skill"
           aria-label="Skill name"
-          className="w-full min-w-0 bg-transparent text-inherit outline-none placeholder:text-muted/50"
+          className="h-auto min-w-0 border-0 bg-transparent px-0 py-0 text-inherit shadow-none focus-visible:ring-0 placeholder:text-muted/50"
         />
       </BreadcrumbPage>
     </Breadcrumb>

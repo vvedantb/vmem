@@ -1,4 +1,5 @@
-import { extractJsonString } from "../llm/extractJsonString";
+import { z } from "zod";
+import { parseJsonString } from "../llm/extractJsonString";
 
 /**
  * Dream Mode V2 — synthesis prompt builder + parser.
@@ -23,20 +24,14 @@ import { extractJsonString } from "../llm/extractJsonString";
 
 const MAX_CONTENT_LENGTH = 1200;
 
-export type SynthesisType =
-  | "insight"
-  | "connection"
-  | "contradiction"
-  | "anomaly"
-  | "skip";
-
-const VALID_TYPES: readonly SynthesisType[] = [
+const synthesisTypeSchema = z.enum([
   "insight",
   "connection",
   "contradiction",
   "anomaly",
   "skip",
-];
+]);
+export type SynthesisType = z.infer<typeof synthesisTypeSchema>;
 
 export interface DreamClusterMember {
   id: string;
@@ -83,6 +78,32 @@ function truncateAtWord(text: string, maxLen: number): string {
   if (text.length <= maxLen) return text;
   const cut = text.lastIndexOf(" ", maxLen);
   return text.slice(0, cut > 0 ? cut : maxLen);
+}
+
+/** Clamp an optional 0-1 confidence value, defaulting to 0 when absent. */
+function clamp01(value: number | undefined): number {
+  return value !== undefined ? Math.max(0, Math.min(1, value)) : 0;
+}
+
+/**
+ * Keep only string ids that appear in `validIds`, preserving order and
+ * uniqueness. Entries are validated individually — a non-string entry is
+ * dropped rather than failing the whole array (best-effort side-channel,
+ * same treatment as `confidenceAdjustments`).
+ */
+export function filterValidIds(
+  ids: readonly unknown[] | undefined,
+  validIds: ReadonlySet<string>,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of ids ?? []) {
+    if (typeof id !== "string") continue;
+    if (!validIds.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
 }
 
 /**
@@ -170,9 +191,26 @@ ${memoryBlock}
 Respond with ONLY the JSON object specified above.`;
 }
 
-function isSynthesisType(value: string): value is SynthesisType {
-  return (VALID_TYPES as readonly string[]).includes(value);
-}
+const adjustmentSchema = z.object({
+  memoryId: z.string(),
+  newConfidence: z.number().finite(),
+  reason: z.string().optional(),
+});
+
+const synthesisResponseSchema = z.object({
+  type: synthesisTypeSchema,
+  title: z.string().optional(),
+  content: z.string().optional(),
+  reason: z.string().optional(),
+  // Array entries are validated individually (see filterValidIds) so a
+  // malformed entry is dropped rather than failing the whole array
+  // (best-effort side-channel, same treatment as confidenceAdjustments).
+  sourceMemoryIds: z.array(z.unknown()).optional(),
+  confidence: z.number().finite().optional(),
+  // Array entries are validated individually so malformed entries are dropped
+  // silently rather than failing the whole array (best-effort side-channel).
+  confidenceAdjustments: z.array(z.unknown()).optional(),
+});
 
 /**
  * Validate the optional `confidenceAdjustments` array: ids must come from
@@ -181,27 +219,22 @@ function isSynthesisType(value: string): value is SynthesisType {
  * is dropped silently — adjustments are a best-effort side-channel.
  */
 function parseConfidenceAdjustments(
-  raw: unknown,
+  raw: readonly unknown[] | undefined,
   validIds: ReadonlySet<string>,
 ): ConfidenceAdjustment[] {
-  if (!Array.isArray(raw)) return [];
+  if (!raw) return [];
   const seen = new Set<string>();
   const adjustments: ConfidenceAdjustment[] = [];
-  for (const entry of raw) {
-    if (typeof entry !== "object" || entry === null) continue;
-    const memoryId = Reflect.get(entry, "memoryId");
-    const newConfidence = Reflect.get(entry, "newConfidence");
-    const reason = Reflect.get(entry, "reason");
-    if (typeof memoryId !== "string" || !validIds.has(memoryId)) continue;
-    if (seen.has(memoryId)) continue;
-    if (typeof newConfidence !== "number" || !Number.isFinite(newConfidence)) {
-      continue;
-    }
-    seen.add(memoryId);
+  for (const item of raw) {
+    const entry = adjustmentSchema.safeParse(item);
+    if (!entry.success) continue;
+    if (!validIds.has(entry.data.memoryId)) continue;
+    if (seen.has(entry.data.memoryId)) continue;
+    seen.add(entry.data.memoryId);
     adjustments.push({
-      memoryId,
-      newConfidence: Math.max(0.05, Math.min(1, newConfidence)),
-      reason: typeof reason === "string" ? reason.slice(0, 300) : "",
+      memoryId: entry.data.memoryId,
+      newConfidence: Math.max(0.05, Math.min(1, entry.data.newConfidence)),
+      reason: entry.data.reason?.slice(0, 300) ?? "",
     });
   }
   return adjustments;
@@ -216,87 +249,62 @@ export function parseDreamSynthesisResponse(
   raw: string,
   clusterIds: string[],
 ): ParsedSynthesis | null {
-  try {
-    const jsonStr = extractJsonString(raw);
-    const parsed: unknown = JSON.parse(jsonStr);
-    if (typeof parsed !== "object" || parsed === null) return null;
-
-    const typeRaw = Reflect.get(parsed, "type");
-    const titleRaw = Reflect.get(parsed, "title");
-    const contentRaw = Reflect.get(parsed, "content");
-    const reasonRaw = Reflect.get(parsed, "reason");
-    const sourceIdsRaw = Reflect.get(parsed, "sourceMemoryIds");
-    const confidenceRaw = Reflect.get(parsed, "confidence");
-    const adjustmentsRaw = Reflect.get(parsed, "confidenceAdjustments");
-
-    if (typeof typeRaw !== "string" || !isSynthesisType(typeRaw)) return null;
-
-    const title = typeof titleRaw === "string" ? titleRaw.slice(0, 200) : "";
-    const content =
-      typeof contentRaw === "string" ? contentRaw.slice(0, 800) : "";
-    const reason = typeof reasonRaw === "string" ? reasonRaw.slice(0, 600) : "";
-
-    let confidence = 0;
-    if (typeof confidenceRaw === "number" && Number.isFinite(confidenceRaw)) {
-      confidence = Math.max(0, Math.min(1, confidenceRaw));
-    }
-
-    const validIds = new Set<string>(clusterIds);
-    const confidenceAdjustments = parseConfidenceAdjustments(
-      adjustmentsRaw,
-      validIds,
-    );
-    let sourceMemoryIds: string[] = [];
-    if (Array.isArray(sourceIdsRaw)) {
-      const seen = new Set<string>();
-      for (const id of sourceIdsRaw) {
-        if (typeof id !== "string") continue;
-        if (!validIds.has(id)) continue;
-        if (seen.has(id)) continue;
-        seen.add(id);
-        sourceMemoryIds.push(id);
-      }
-    }
-
-    if (typeRaw === "skip") {
-      // Adjustments survive a skip — the prompt allows reweighting even
-      // when no synthesis is worth surfacing.
-      return {
-        type: "skip",
-        title: "",
-        content: "",
-        reason,
-        sourceMemoryIds: [],
-        confidence: 0,
-        confidenceAdjustments,
-      };
-    }
-
-    // Non-skip kinds need at least one source and non-empty title/content.
-    if (sourceMemoryIds.length === 0) return null;
-    if (title.trim().length === 0 || content.trim().length === 0) return null;
-
-    // Connections describe links between exactly 2 memories — anything
-    // else is either an insight or a contradiction. We don't enforce the
-    // count strictly (the LLM might pick 3 sources and call it a
-    // connection), but we cap at the cluster size.
-    if (sourceMemoryIds.length > clusterIds.length) {
-      sourceMemoryIds = sourceMemoryIds.slice(0, clusterIds.length);
-    }
-
-    return {
-      type: typeRaw,
-      title,
-      content,
-      reason,
-      sourceMemoryIds,
-      confidence,
-      confidenceAdjustments,
-    };
-  } catch {
+  const data = parseJsonString(raw, synthesisResponseSchema);
+  if (!data) {
     console.error("[dream] Failed to parse LLM synthesis response:", raw);
     return null;
   }
+
+  const type = data.type;
+  const title = (data.title ?? "").slice(0, 200);
+  const content = (data.content ?? "").slice(0, 800);
+  const reason = (data.reason ?? "").slice(0, 600);
+  const confidence = clamp01(data.confidence);
+
+  const validIds = new Set<string>(clusterIds);
+  const confidenceAdjustments = parseConfidenceAdjustments(
+    data.confidenceAdjustments,
+    validIds,
+  );
+
+  if (type === "skip") {
+    // Adjustments survive a skip — the prompt allows reweighting even
+    // when no synthesis is worth surfacing.
+    return {
+      type: "skip",
+      title: "",
+      content: "",
+      reason,
+      sourceMemoryIds: [],
+      confidence: 0,
+      confidenceAdjustments,
+    };
+  }
+
+  // Validate source ids: must come from the cluster (model may not invent ids).
+  let sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
+
+  // Non-skip kinds need at least one source and non-empty title/content.
+  if (sourceMemoryIds.length === 0) return null;
+  if (title.trim().length === 0 || content.trim().length === 0) return null;
+
+  // Connections describe links between exactly 2 memories — anything
+  // else is either an insight or a contradiction. We don't enforce the
+  // count strictly (the LLM might pick 3 sources and call it a
+  // connection), but we cap at the cluster size.
+  if (sourceMemoryIds.length > clusterIds.length) {
+    sourceMemoryIds = sourceMemoryIds.slice(0, clusterIds.length);
+  }
+
+  return {
+    type,
+    title,
+    content,
+    reason,
+    sourceMemoryIds,
+    confidence,
+    confidenceAdjustments,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -370,6 +378,16 @@ ${memoryBlock}
 Respond with ONLY the JSON object specified above.`;
 }
 
+const mergeResponseSchema = z.object({
+  type: z.string(),
+  title: z.string().optional(),
+  content: z.string().optional(),
+  // Array entries are validated individually (see filterValidIds) so a
+  // malformed entry is dropped rather than failing the whole array.
+  sourceMemoryIds: z.array(z.unknown()).optional(),
+  confidence: z.number().finite().optional(),
+});
+
 /**
  * Parse the merge response. Returns null for skip, malformed JSON, or a
  * merge that names fewer than 2 valid cluster ids (a 1-source "merge" is
@@ -379,46 +397,22 @@ export function parseMergeSynthesisResponse(
   raw: string,
   clusterIds: string[],
 ): ParsedMerge | null {
-  try {
-    const jsonStr = extractJsonString(raw);
-    const parsed: unknown = JSON.parse(jsonStr);
-    if (typeof parsed !== "object" || parsed === null) return null;
-
-    const typeRaw = Reflect.get(parsed, "type");
-    if (typeRaw !== "merge") return null;
-
-    const titleRaw = Reflect.get(parsed, "title");
-    const contentRaw = Reflect.get(parsed, "content");
-    const sourceIdsRaw = Reflect.get(parsed, "sourceMemoryIds");
-    const confidenceRaw = Reflect.get(parsed, "confidence");
-
-    const title = typeof titleRaw === "string" ? titleRaw.slice(0, 200) : "";
-    const content =
-      typeof contentRaw === "string" ? contentRaw.slice(0, 800) : "";
-    if (title.trim().length === 0 || content.trim().length === 0) return null;
-
-    const validIds = new Set<string>(clusterIds);
-    const sourceMemoryIds: string[] = [];
-    if (Array.isArray(sourceIdsRaw)) {
-      const seen = new Set<string>();
-      for (const id of sourceIdsRaw) {
-        if (typeof id !== "string") continue;
-        if (!validIds.has(id)) continue;
-        if (seen.has(id)) continue;
-        seen.add(id);
-        sourceMemoryIds.push(id);
-      }
-    }
-    if (sourceMemoryIds.length < 2) return null;
-
-    let confidence = 0;
-    if (typeof confidenceRaw === "number" && Number.isFinite(confidenceRaw)) {
-      confidence = Math.max(0, Math.min(1, confidenceRaw));
-    }
-
-    return { title, content, sourceMemoryIds, confidence };
-  } catch {
+  const data = parseJsonString(raw, mergeResponseSchema);
+  if (!data) {
     console.error("[dream] Failed to parse LLM merge response:", raw);
     return null;
   }
+  if (data.type !== "merge") return null;
+
+  const title = (data.title ?? "").slice(0, 200);
+  const content = (data.content ?? "").slice(0, 800);
+  if (title.trim().length === 0 || content.trim().length === 0) return null;
+
+  const validIds = new Set<string>(clusterIds);
+  const sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
+  if (sourceMemoryIds.length < 2) return null;
+
+  const confidence = clamp01(data.confidence);
+
+  return { title, content, sourceMemoryIds, confidence };
 }

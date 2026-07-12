@@ -85,12 +85,14 @@ export function CreateEditProfileDialog({
             <Label>Color</Label>
             <div className="flex flex-wrap gap-2">
               {PROFILE_COLORS.map((c) => (
-                <button
+                <Button
                   key={c}
                   type="button"
+                  variant="ghost"
                   onClick={() => setColor(c)}
+                  aria-label={`Color ${c}`}
                   className={cn(
-                    "h-8 w-8 rounded-full transition-transform",
+                    "h-8 w-8 rounded-full p-0 transition-transform",
                     color === c &&
                       "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110",
                   )}
@@ -105,19 +107,22 @@ export function CreateEditProfileDialog({
               {PROFILE_ICON_OPTIONS.map((i) => {
                 const IconComponent = i.icon;
                 return (
-                  <button
+                  <Button
                     key={i.name}
                     type="button"
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => setIcon(i.name)}
+                    aria-label={i.name}
                     className={cn(
-                      "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
+                      "h-9 w-9 rounded-lg",
                       icon === i.name
                         ? "bg-segment text-foreground"
                         : "bg-surface-secondary hover:bg-surface-tertiary",
                     )}
                   >
                     <IconComponent className="h-4 w-4" />
-                  </button>
+                  </Button>
                 );
               })}
             </div>

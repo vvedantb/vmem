@@ -23,10 +23,11 @@ function CodebasesIndexPage() {
   const isConnected = connection !== undefined && connection !== null;
 
   useEffect(() => {
-    if (!codebases || codebases.length === 0) return;
+    const first = codebases?.at(0);
+    if (!first) return;
     void navigate({
       to: "/$profileId/codebases/$id",
-      params: { profileId, id: codebases[0]._id },
+      params: { profileId, id: first._id },
       replace: true,
     });
   }, [codebases, navigate, profileId]);

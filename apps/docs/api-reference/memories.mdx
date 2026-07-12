@@ -243,12 +243,12 @@ const url = await client.mutation(api.memoryApi.generateMemoryUploadUrl, {});
 
 Team memory operations require a `profileId` (the team's profile Convex ID):
 
-| Function | Description |
-| --- | --- |
-| `listTeamMemories` | List memories on a team profile |
-| `getTeamMemory` | Get a single team memory |
-| `searchTeamMemories` | Search team memories |
-| `updateTeamMemory` | Update (creator or team owner) |
-| `deleteTeamMemory` | Delete (creator or team owner) |
+| Function             | Description                     |
+| -------------------- | ------------------------------- |
+| `listTeamMemories`   | List memories on a team profile |
+| `getTeamMemory`      | Get a single team memory        |
+| `searchTeamMemories` | Search team memories            |
+| `updateTeamMemory`   | Update (creator or team owner)  |
+| `deleteTeamMemory`   | Delete (creator or team owner)  |
 
 All verify team membership before hitting Neo4j. See [Teams](/features/teams).

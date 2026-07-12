@@ -16,6 +16,17 @@ import { getMembershipOrNull, requireTeamRole } from "./auth";
 
 type AuthMutationCtx = MutationCtx & { userId: Id<"users"> };
 
+async function countTeamOwners(
+  ctx: MutationCtx,
+  teamId: Id<"teams">,
+): Promise<number> {
+  const members = await ctx.db
+    .query("teamMembers")
+    .withIndex("by_team", (q) => q.eq("teamId", teamId))
+    .collect();
+  return members.filter((m) => m.role === "owner").length;
+}
+
 export async function runAddMember(
   ctx: AuthMutationCtx,
   args: { teamId: string; email: string },
@@ -76,15 +87,8 @@ export async function runRemoveMember(
   const target = await getMembershipOrNull(ctx, teamId, targetUserId);
   if (!target) throw new Error("User is not a member");
 
-  if (target.role === "owner") {
-    const owners = await ctx.db
-      .query("teamMembers")
-      .withIndex("by_team", (q) => q.eq("teamId", teamId))
-      .collect();
-    const ownerCount = owners.filter((m) => m.role === "owner").length;
-    if (ownerCount <= 1) {
-      throw new Error("Cannot remove the last owner");
-    }
+  if (target.role === "owner" && (await countTeamOwners(ctx, teamId)) <= 1) {
+    throw new Error("Cannot remove the last owner");
   }
 
   await ctx.db.delete(target._id);
@@ -111,17 +115,13 @@ export async function runLeaveTeam(
   const membership = await getMembershipOrNull(ctx, teamId, ctx.userId);
   if (!membership) throw new Error("Not a member of this team");
 
-  if (membership.role === "owner") {
-    const members = await ctx.db
-      .query("teamMembers")
-      .withIndex("by_team", (q) => q.eq("teamId", teamId))
-      .collect();
-    const ownerCount = members.filter((m) => m.role === "owner").length;
-    if (ownerCount <= 1) {
-      throw new Error(
-        "You are the last owner. Transfer ownership before leaving.",
-      );
-    }
+  if (
+    membership.role === "owner" &&
+    (await countTeamOwners(ctx, teamId)) <= 1
+  ) {
+    throw new Error(
+      "You are the last owner. Transfer ownership before leaving.",
+    );
   }
 
   await ctx.db.delete(membership._id);

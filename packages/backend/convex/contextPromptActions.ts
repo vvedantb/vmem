@@ -7,6 +7,7 @@ import type { Id } from "./_generated/dataModel";
 import { listMemories } from "../engine/neo4j/memory/crud";
 import { getDriver } from "../engine/neo4j/driver";
 import { buildSkillsIndexAddition } from "@vmem/shared";
+import { toSkillIndexEntry } from "./skills";
 import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
 import { callOpenRouterChat, LLM_MODEL } from "./lib/openRouter";
 
@@ -39,6 +40,12 @@ const RECENT_CONTENT_CHAR_CAP = 400;
 interface MemorySnippet {
   title: string;
   content: string;
+}
+
+function toSnippets(
+  memories: { title: string; content: string }[],
+): MemorySnippet[] {
+  return memories.map((m) => ({ title: m.title, content: m.content }));
 }
 
 function formatPinnedSection(pinned: MemorySnippet[]): string {
@@ -146,14 +153,8 @@ export const regenerateContextPromptInternal = internalAction({
       offset: 0,
     });
 
-    const pinnedSnippets: MemorySnippet[] = pinnedPage.memories.map((m) => ({
-      title: m.title,
-      content: m.content,
-    }));
-    const recentSnippets: MemorySnippet[] = recentPage.memories.map((m) => ({
-      title: m.title,
-      content: m.content,
-    }));
+    const pinnedSnippets = toSnippets(pinnedPage.memories);
+    const recentSnippets = toSnippets(recentPage.memories);
 
     // Profile summary is best-effort. Without an OpenRouter key we still
     // produce a useful prompt (about/preferences/pinned).
@@ -204,10 +205,7 @@ export const regenerateContextPromptInternal = internalAction({
       { clerkId: args.clerkId },
     );
     const skillsIndex = buildSkillsIndexAddition(
-      skillRows.map((skill) => ({
-        name: skill.name,
-        description: skill.description,
-      })),
+      skillRows.map(toSkillIndexEntry),
       { mcpClient: true },
     );
     if (skillsIndex.length > 0) {

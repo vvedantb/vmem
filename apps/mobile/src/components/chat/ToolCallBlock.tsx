@@ -30,7 +30,7 @@ function formatPayload(payload: ToolPart["input"]): string {
   try {
     return JSON.stringify(payload, null, 2);
   } catch {
-    return String(payload);
+    return "[unserializable]";
   }
 }
 

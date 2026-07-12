@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { authQuery, authMutation, authAction } from "./auth";
+import { authQuery, authMutation, authAction, getUserByClerkId } from "./auth";
 import { internalQuery, internalMutation } from "./_generated/server";
 import { getOrCreateDefaultProfile } from "./profiles/helpers";
 import {
@@ -124,10 +124,6 @@ export const getByIdInternal = internalQuery({
 });
 
 /**
- * Get default profile by Clerk ID
- * @deprecated Use specific source defaults from userSettings instead
- */
-/**
  * Profile used for MCP memory tools when no profileId is passed.
  * Personal connector only — use getActiveProfileForMcpScopeInternal for team.
  */
@@ -162,47 +158,16 @@ export const resolveProfileIdForMcpScopeInternal = internalQuery({
   },
 });
 
-export const getActiveByClerkIdInternal = internalQuery({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-
-    if (!user) return null;
-
-    return await ctx.db
-      .query("profiles")
-      .withIndex("by_user_default", (q) =>
-        q.eq("userId", user._id).eq("isDefault", true),
-      )
-      .first();
-  },
-});
-
-/** Get or create default profile by Clerk ID (for MCP) */
 export const getOrCreateDefaultByClerkIdInternal = internalMutation({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
 
     if (!user) {
       throw new Error("User not found");
     }
 
     return await getOrCreateDefaultProfile(ctx, user._id);
-  },
-});
-
-/** List personal profiles by Clerk ID (legacy MCP helper). */
-export const listByClerkIdInternal = internalQuery({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    return listProfilesByClerkIdAndScope(ctx, args.clerkId, "personal");
   },
 });
 

@@ -1,7 +1,7 @@
 import { api } from "@vmem/backend";
 import { setStorage } from "@/lib/storage";
 import { createAuthenticatedConvexClient } from "./auth";
-import { startAutoSync, stopAutoSync } from "./sync-scheduler";
+import { startAutoSync, stopAutoSync } from "./history-sync-alarms";
 
 async function reconcileAutoSyncAlarm(enabled: boolean): Promise<void> {
   if (enabled) {

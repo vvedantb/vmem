@@ -4,17 +4,13 @@ import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { applyEnrichment } from "../../engine/neo4j/memory/enrichment";
-import { getRecentMemoryTitles } from "../../engine/neo4j/memory/search";
-import { getTopTags } from "../../engine/neo4j/memory/tags";
-import { getTopEntities } from "../../engine/neo4j/memory/entities";
 import { getDriver } from "../../engine/neo4j/driver";
-import {
-  sanitizeTag,
-  buildFullEnrichmentPrompt,
-  parseFullEnrichmentResponse,
-} from "../prompts/enrichmentPrompt";
+import { sanitizeTag } from "../prompts/enrichmentPrompt";
 import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
-import { callJsonChat } from "../lib/openRouter";
+import {
+  callFullEnrichmentLlm,
+  loadEnrichmentVocabulary,
+} from "./enrichment/llm";
 
 /**
  * Server-side enrichment: generates tags + related memory links via OpenRouter.
@@ -47,48 +43,24 @@ export const enrichMemoryInternal = internalAction({
 
       const driver = getDriver();
 
-      // Get recent memories for the LLM to find relationships, plus the
-      // user's established tag and entity vocabularies so recurring themes
-      // and known entities converge on one name instead of minting
-      // near-duplicates per memory.
-      const [existingMemories, existingTags, existingEntities] =
-        await Promise.all([
-          getRecentMemoryTitles(driver, args.clerkId, args.memoryId),
-          getTopTags(driver, args.clerkId, 50),
-          getTopEntities(driver, args.clerkId, 150),
-        ]);
-
-      const prompt = buildFullEnrichmentPrompt(
-        args.title,
-        args.content,
-        existingMemories,
-        existingTags,
-        existingEntities,
-      );
-
-      const rawText = await callJsonChat(ctx, {
-        apiKey: auth.apiKey,
-        userId: auth.userId,
-        profileId: args.profileId,
-        feature: "enrichment",
-        role: "You are a memory tagging and entity extraction system.",
-        prompt,
+      const vocabulary = await loadEnrichmentVocabulary(driver, args.clerkId, {
+        excludeMemoryId: args.memoryId,
+        includeEntities: true,
       });
 
-      if (rawText === null) {
-        console.error(
-          `[enrichment] No LLM content in response for ${args.memoryId}`,
-        );
-        return { enriched: false };
-      }
+      const parsed = await callFullEnrichmentLlm(ctx, auth, {
+        title: args.title,
+        content: args.content,
+        profileId: args.profileId,
+        feature: "enrichment",
+        vocabulary,
+      });
 
-      const parsed = parseFullEnrichmentResponse(rawText);
       if (!parsed || parsed.tags.length === 0) {
         console.log(`[enrichment] No valid tags parsed for ${args.memoryId}`);
         return { enriched: false };
       }
 
-      // Sanitize tags
       const sanitizedTags = parsed.tags
         .map(sanitizeTag)
         .filter((t) => t.length > 0)
@@ -98,13 +70,11 @@ export const enrichMemoryInternal = internalAction({
         return { enriched: false };
       }
 
-      // Validate related memory IDs against actual user memories
-      const validIds = new Set(existingMemories.map((m) => m.id));
+      const validIds = new Set(vocabulary.recentTitles.map((m) => m.id));
       const relatedIds = (parsed.relatedMemoryIds ?? []).filter((id) =>
         validIds.has(id),
       );
 
-      // Apply enrichment to Neo4j
       await applyEnrichment(
         driver,
         args.memoryId,
@@ -114,7 +84,6 @@ export const enrichMemoryInternal = internalAction({
         parsed.entities ?? [],
       );
 
-      // Log enrichment event
       await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
         clerkId: args.clerkId,
         eventType: "memory_updated",

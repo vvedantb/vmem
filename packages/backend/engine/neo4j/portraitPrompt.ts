@@ -1,4 +1,6 @@
-import { extractJsonString } from "../llm/extractJsonString";
+import { z } from "zod";
+import { parseJsonString } from "../llm/extractJsonString";
+import { filterValidIds } from "./dreamPrompt";
 
 /**
  * Dream Mode V3 — evolving portrait prompt builder + parser.
@@ -95,6 +97,11 @@ ${evidenceBlock}
 Respond with ONLY the JSON object specified above.`;
 }
 
+const portraitResponseSchema = z.object({
+  portrait: z.string(),
+  sourceMemoryIds: z.array(z.string()).optional(),
+});
+
 /**
  * Parse the portrait response. Returns null when the JSON is malformed,
  * the portrait is empty, or no valid source ids survive validation — a
@@ -104,37 +111,17 @@ export function parsePortraitResponse(
   raw: string,
   evidenceIds: string[],
 ): ParsedPortrait | null {
-  try {
-    const jsonStr = extractJsonString(raw);
-    const parsed: unknown = JSON.parse(jsonStr);
-    if (typeof parsed !== "object" || parsed === null) return null;
+  const data = parseJsonString(raw, portraitResponseSchema);
+  if (!data) return null;
 
-    const portraitRaw = Reflect.get(parsed, "portrait");
-    const sourceIdsRaw = Reflect.get(parsed, "sourceMemoryIds");
+  const portrait = data.portrait.trim().slice(0, PORTRAIT_CHAR_CAP);
+  if (portrait.length === 0) return null;
 
-    const portrait =
-      typeof portraitRaw === "string"
-        ? portraitRaw.trim().slice(0, PORTRAIT_CHAR_CAP)
-        : "";
-    if (portrait.length === 0) return null;
+  const sourceMemoryIds = filterValidIds(
+    data.sourceMemoryIds,
+    new Set(evidenceIds),
+  );
+  if (sourceMemoryIds.length === 0) return null;
 
-    const validIds = new Set<string>(evidenceIds);
-    const sourceMemoryIds: string[] = [];
-    if (Array.isArray(sourceIdsRaw)) {
-      const seen = new Set<string>();
-      for (const id of sourceIdsRaw) {
-        if (typeof id !== "string") continue;
-        if (!validIds.has(id)) continue;
-        if (seen.has(id)) continue;
-        seen.add(id);
-        sourceMemoryIds.push(id);
-      }
-    }
-    if (sourceMemoryIds.length === 0) return null;
-
-    return { portrait, sourceMemoryIds };
-  } catch {
-    console.error("[dream] Failed to parse LLM portrait response:", raw);
-    return null;
-  }
+  return { portrait, sourceMemoryIds };
 }

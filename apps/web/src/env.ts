@@ -10,7 +10,3 @@ export const env = createEnv({
   runtimeEnv: import.meta.env,
   emptyStringAsUndefined: true,
 });
-
-// Re-export Vite's built-in env vars for convenience
-export const DEV = import.meta.env.DEV;
-export const PROD = import.meta.env.PROD;

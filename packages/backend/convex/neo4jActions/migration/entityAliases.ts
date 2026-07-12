@@ -10,6 +10,7 @@ import {
 import { withSession } from "../../../engine/neo4j/memory/shared";
 import { extractJsonString } from "../../../engine/llm/extractJsonString";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
+import { z } from "zod";
 import { callJsonChat } from "../../lib/openRouter";
 import { normalizeEntityName } from "../../prompts/enrichmentPrompt";
 
@@ -117,10 +118,19 @@ Respond with ONLY this JSON (names copied EXACTLY; singleton clusters may be omi
 [{"group": 0, "clusters": [{"names": ["Fable 5", "Claude Fable 5", "Fable"], "canonical": "Claude Fable 5"}]}]`;
 }
 
-interface ClusterVerdict {
-  group: number;
-  clusters: Array<{ names: string[]; canonical?: string }>;
-}
+const clusterSchema = z.object({
+  names: z.array(z.string()),
+  canonical: z.string().optional(),
+});
+
+const clusterVerdictSchema = z.object({
+  group: z.number().int().min(0),
+  clusters: z.array(clusterSchema),
+});
+
+const unknownArraySchema = z.array(z.unknown());
+
+type ClusterVerdict = z.infer<typeof clusterVerdictSchema>;
 
 function parseClusterVerdicts(
   raw: string,
@@ -128,31 +138,14 @@ function parseClusterVerdicts(
 ): ClusterVerdict[] {
   try {
     const parsed: unknown = JSON.parse(extractJsonString(raw));
-    if (!Array.isArray(parsed)) return [];
+    const arr = unknownArraySchema.safeParse(parsed);
+    if (!arr.success) return [];
     const out: ClusterVerdict[] = [];
-    for (const item of parsed) {
-      if (typeof item !== "object" || item === null) continue;
-      const group = Reflect.get(item, "group");
-      const clustersRaw = Reflect.get(item, "clusters");
-      if (typeof group !== "number" || group < 0 || group >= groupCount)
-        continue;
-      if (!Array.isArray(clustersRaw)) continue;
-      const clusters: Array<{ names: string[]; canonical?: string }> = [];
-      for (const c of clustersRaw) {
-        if (typeof c !== "object" || c === null) continue;
-        const names = Reflect.get(c, "names");
-        const canonical = Reflect.get(c, "canonical");
-        if (
-          !Array.isArray(names) ||
-          !names.every((n): n is string => typeof n === "string")
-        )
-          continue;
-        clusters.push({
-          names,
-          canonical: typeof canonical === "string" ? canonical : undefined,
-        });
-      }
-      out.push({ group, clusters });
+    for (const item of arr.data) {
+      const verdict = clusterVerdictSchema.safeParse(item);
+      if (!verdict.success) continue;
+      if (verdict.data.group >= groupCount) continue;
+      out.push(verdict.data);
     }
     return out;
   } catch {

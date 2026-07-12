@@ -4,8 +4,7 @@ import { v } from "convex/values";
 import crypto from "node:crypto";
 import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
-import { extractPdfText } from "../engine/parsers/pdf";
-import { extractTextFromBlob } from "../engine/parsers/text";
+import { extractFileContent } from "../engine/parsers/extractFileContent";
 import { detectFileKind } from "./files/lib";
 import type { Id } from "./_generated/dataModel";
 
@@ -31,6 +30,34 @@ function chooseTitle(extractedText: string, filename: string): string {
   const trimmed = firstLine.trim().replace(/^#+\s*/, "");
   // Cap at 200 chars so we don't end up with a wall-of-text title.
   return trimmed.length > 200 ? trimmed.slice(0, 200) : trimmed;
+}
+
+/**
+ * Load an uploaded blob from storage, enforcing `MAX_UPLOAD_BYTES`. Deletes
+ * the stored object before throwing on an oversized file so we don't leak
+ * storage.
+ */
+async function loadUploadedBlob(
+  ctx: {
+    storage: {
+      get: (id: Id<"_storage">) => Promise<Blob | null>;
+      delete: (id: Id<"_storage">) => Promise<void>;
+    };
+  },
+  storageId: Id<"_storage">,
+  label: string,
+): Promise<Blob> {
+  const blob = await ctx.storage.get(storageId);
+  if (!blob) throw new Error(`Uploaded ${label} not found in storage`);
+
+  if (blob.size > MAX_UPLOAD_BYTES) {
+    await ctx.storage.delete(storageId);
+    throw new Error(
+      `${label.charAt(0).toUpperCase()}${label.slice(1)} too large: ${(blob.size / (1024 * 1024)).toFixed(1)} MB. Maximum is 25 MB.`,
+    );
+  }
+
+  return blob;
 }
 
 interface MemoryWithTags {
@@ -89,26 +116,9 @@ export const importMemoryFromFile = authAction({
     // Pull the blob from storage. Returns null if storageId is invalid or
     // the file was deleted before we got to it.
     const storageId: Id<"_storage"> = args.storageId;
-    const blob = await ctx.storage.get(storageId);
-    if (!blob) throw new Error("Uploaded file not found in storage");
+    const blob = await loadUploadedBlob(ctx, storageId, "file");
 
-    if (blob.size > MAX_UPLOAD_BYTES) {
-      // Clean up the over-large file so we don't leak storage.
-      await ctx.storage.delete(storageId);
-      throw new Error(
-        `File too large: ${(blob.size / (1024 * 1024)).toFixed(1)} MB. Maximum is 25 MB.`,
-      );
-    }
-
-    // Extract text. PDF goes through pdf-parse (Buffer-based); TXT/MD
-    // are decoded straight from the blob.
-    let content: string;
-    if (kind === "pdf") {
-      const arrayBuffer = await blob.arrayBuffer();
-      content = await extractPdfText(Buffer.from(arrayBuffer));
-    } else {
-      content = await extractTextFromBlob(blob);
-    }
+    const content = await extractFileContent(blob, kind);
 
     if (content.trim().length === 0) {
       throw new Error(
@@ -187,15 +197,7 @@ export const importImageMemory = authAction({
     }
 
     const storageId: Id<"_storage"> = args.storageId;
-    const blob = await ctx.storage.get(storageId);
-    if (!blob) throw new Error("Uploaded screenshot not found in storage");
-
-    if (blob.size > MAX_UPLOAD_BYTES) {
-      await ctx.storage.delete(storageId);
-      throw new Error(
-        `Screenshot too large: ${(blob.size / (1024 * 1024)).toFixed(1)} MB. Maximum is 25 MB.`,
-      );
-    }
+    await loadUploadedBlob(ctx, storageId, "screenshot");
 
     const caption = args.caption?.trim() ?? "";
     const hostname = args.pageUrl

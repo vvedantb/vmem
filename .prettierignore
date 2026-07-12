@@ -1,3 +1,12 @@
 # Generated files (the generator's header says to exclude them from formatters;
 # formatting them fights the generator and dirties the tree on every dev run)
 **/routeTree.gen.ts
+**/_generated/**
+**/dist/**
+**/build/**
+**/.next/**
+**/.expo/**
+**/.vercel/**
+**/android/**
+**/ios/**
+pnpm-lock.yaml

@@ -17,8 +17,8 @@ await client.action(api.contextPromptApi.getContextPrompt, {});
 
 ```typescript
 {
-  content: string;       // markdown profile
-  generatedAt: number;   // timestamp (0 if placeholder)
+  content: string; // markdown profile
+  generatedAt: number; // timestamp (0 if placeholder)
   isPlaceholder: boolean; // true on first call before regeneration
 }
 ```

@@ -10,6 +10,8 @@ import {
   isContentReadable,
   requireContentScopeAccess,
 } from "./teams/auth";
+import { getUserIdByClerkId } from "./lib/clerkUser";
+import { collectSubtreeIds } from "./lib/scopedTree";
 import {
   deleteVersionsForWikiNode,
   maybeSnapshotWikiVersion,
@@ -256,26 +258,7 @@ async function deleteWikiSubtree(
   await assertContentDeletable(ctx, root, actorUserId);
 
   const allNodes = await listScopeNodes(ctx, root.userId, root.teamId);
-
-  const childrenByParent = new Map<string, Array<Doc<"wikiNodes">>>();
-  for (const node of allNodes) {
-    const key = node.parentId ?? "__root__";
-    const list = childrenByParent.get(key) ?? [];
-    list.push(node);
-    childrenByParent.set(key, list);
-  }
-
-  const toDelete: Array<Id<"wikiNodes">> = [];
-  const stack: Array<Id<"wikiNodes">> = [root._id];
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (!current) break;
-    toDelete.push(current);
-    const children = childrenByParent.get(current) ?? [];
-    for (const child of children) {
-      stack.push(child._id);
-    }
-  }
+  const toDelete = collectSubtreeIds(allNodes, root._id);
 
   for (const id of toDelete) {
     await deleteVersionsForWikiNode(ctx, id);
@@ -403,20 +386,6 @@ export const search = authQuery({
 });
 
 // --- Internal helpers (MCP after JWT verification) ---
-
-async function getUserIdByClerkId(
-  ctx: QueryCtx | MutationCtx,
-  clerkId: string,
-): Promise<Id<"users">> {
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
-    .first();
-  if (!user) {
-    throw new Error("User not found");
-  }
-  return user._id;
-}
 
 /**
  * MCP stays personal-only for now: team nodes are invisible to (and

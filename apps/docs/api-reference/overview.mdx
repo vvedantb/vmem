@@ -35,7 +35,10 @@ For third-party integrations, use the [`@vmem/sdk`](/sdk/quickstart) package:
 ```typescript
 import { VMemory } from "@vmem/sdk";
 
-const vmem = new VMemory({ apiKey: "vmem_sk_...", baseUrl: "https://<deployment>.convex.site" });
+const vmem = new VMemory({
+  apiKey: "vmem_sk_...",
+  baseUrl: "https://<deployment>.convex.site",
+});
 await vmem.store("User prefers TypeScript");
 const result = await vmem.retrieve("What language does the user prefer?");
 ```
@@ -66,17 +69,17 @@ Returns server status with Neo4j connection info and timestamp.
 
 ## API Modules
 
-| Module | Description |
-| --- | --- |
-| [HTTP Memories](/api-reference/http-memories) | Store, retrieve, update via API key Bearer auth |
-| [Memories](/api-reference/memories) | CRUD, search, retrieval, events (Convex SDK) |
-| [Proposed Updates](/api-reference/proposed-updates) | Review and resolve conflicts |
-| [Dashboard](/api-reference/dashboard) | Statistics and activity |
-| [Profiles](/api-reference/profiles) | Profile management |
-| [Teams](/api-reference/teams) | Team management |
-| [Skills](/api-reference/skills) | Skill CRUD |
-| [File Import](/api-reference/file-import) | Upload and import files |
-| [Context Prompt](/api-reference/context-prompt) | Synthesized user profile |
+| Module                                              | Description                                     |
+| --------------------------------------------------- | ----------------------------------------------- |
+| [HTTP Memories](/api-reference/http-memories)       | Store, retrieve, update via API key Bearer auth |
+| [Memories](/api-reference/memories)                 | CRUD, search, retrieval, events (Convex SDK)    |
+| [Proposed Updates](/api-reference/proposed-updates) | Review and resolve conflicts                    |
+| [Dashboard](/api-reference/dashboard)               | Statistics and activity                         |
+| [Profiles](/api-reference/profiles)                 | Profile management                              |
+| [Teams](/api-reference/teams)                       | Team management                                 |
+| [Skills](/api-reference/skills)                     | Skill CRUD                                      |
+| [File Import](/api-reference/file-import)           | Upload and import files                         |
+| [Context Prompt](/api-reference/context-prompt)     | Synthesized user profile                        |
 
 ## Common Patterns
 

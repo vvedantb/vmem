@@ -6,6 +6,8 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { getUserByClerkId } from "../auth";
+import { getMembershipOrNull } from "../teams/auth";
 
 export const mcpScopeValidator = v.union(
   v.literal("personal"),
@@ -14,17 +16,7 @@ export const mcpScopeValidator = v.union(
 
 export type McpScope = "personal" | "team";
 
-async function getUserByClerkId(
-  ctx: QueryCtx,
-  clerkId: string,
-): Promise<Doc<"users"> | null> {
-  return await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
-    .first();
-}
-
-async function listPersonalProfiles(
+export async function listPersonalProfiles(
   ctx: QueryCtx,
   userId: Id<"users">,
 ): Promise<Doc<"profiles">[]> {
@@ -35,7 +27,7 @@ async function listPersonalProfiles(
   return owned.filter((profile) => profile.teamId === undefined);
 }
 
-async function listTeamProfiles(
+export async function listTeamProfiles(
   ctx: QueryCtx,
   userId: Id<"users">,
 ): Promise<Doc<"profiles">[]> {
@@ -85,13 +77,7 @@ export async function canAccessProfileForMcpScope(
     return false;
   }
 
-  const teamId = profile.teamId;
-  const membership = await ctx.db
-    .query("teamMembers")
-    .withIndex("by_team_user", (q) =>
-      q.eq("teamId", teamId).eq("userId", userId),
-    )
-    .first();
+  const membership = await getMembershipOrNull(ctx, profile.teamId, userId);
   return membership !== null;
 }
 
@@ -144,6 +130,31 @@ export async function getActiveProfileForMcpScope(
   return teamProfiles[0] ?? null;
 }
 
+/**
+ * Normalize a profile id string and verify it's accessible to `userId` at
+ * the given MCP scope. Throws "Invalid profile id" / "Profile not found"
+ * on failure — shared by every path that resolves an explicit profileId.
+ */
+async function requireAccessibleProfileId(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  profileId: string,
+  scope: McpScope,
+): Promise<Id<"profiles">> {
+  const normalizedProfileId = ctx.db.normalizeId("profiles", profileId);
+  if (!normalizedProfileId) {
+    throw new Error("Invalid profile id");
+  }
+  const profile = await ctx.db.get(normalizedProfileId);
+  if (
+    !profile ||
+    !(await canAccessProfileForMcpScope(ctx, userId, profile, scope))
+  ) {
+    throw new Error("Profile not found");
+  }
+  return normalizedProfileId;
+}
+
 export async function resolveProfileIdForMcpScope(
   ctx: QueryCtx,
   clerkId: string,
@@ -156,21 +167,12 @@ export async function resolveProfileIdForMcpScope(
   }
 
   if (explicitProfileId !== undefined) {
-    const normalizedProfileId = ctx.db.normalizeId(
-      "profiles",
+    return await requireAccessibleProfileId(
+      ctx,
+      user._id,
       explicitProfileId,
+      scope,
     );
-    if (!normalizedProfileId) {
-      throw new Error("Invalid profile id");
-    }
-    const profile = await ctx.db.get(normalizedProfileId);
-    if (
-      !profile ||
-      !(await canAccessProfileForMcpScope(ctx, user._id, profile, scope))
-    ) {
-      throw new Error("Profile not found");
-    }
-    return profile._id;
   }
 
   const activeProfile = await getActiveProfileForMcpScope(ctx, clerkId, scope);
@@ -195,18 +197,12 @@ export async function setMcpDefaultProfileForScope(
     throw new Error("User not found");
   }
 
-  const normalizedProfileId = ctx.db.normalizeId("profiles", profileId);
-  if (!normalizedProfileId) {
-    throw new Error("Invalid profile id");
-  }
-
-  const profile = await ctx.db.get(normalizedProfileId);
-  if (
-    !profile ||
-    !(await canAccessProfileForMcpScope(ctx, user._id, profile, scope))
-  ) {
-    throw new Error("Profile not found");
-  }
+  const normalizedProfileId = await requireAccessibleProfileId(
+    ctx,
+    user._id,
+    profileId,
+    scope,
+  );
 
   const existing = await ctx.db
     .query("userSettings")

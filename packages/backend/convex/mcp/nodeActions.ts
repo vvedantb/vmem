@@ -11,11 +11,14 @@ import { registerResources } from "./resources";
 import { registerMemoryGraphApp } from "./memoryGraphApp";
 import { mcpScopeValidator, type McpScope } from "../profiles/mcpAccess";
 
-function mcpServerInfo(scope: McpScope) {
+function mcpServerInfo(scope: McpScope): {
+  name: string;
+  version: string;
+} {
   return {
     name: scope === "team" ? "vmem-mcp-team" : "vmem-mcp",
     version: "1.0.0",
-  } as const;
+  };
 }
 
 // JWT TTLs match the legacy Railway server so existing Claude connectors
@@ -59,7 +62,7 @@ function signTokens(clerkUserId: string): {
   });
   return {
     access_token: accessToken,
-    token_type: "Bearer" as const,
+    token_type: "Bearer",
     expires_in: ACCESS_TTL_SECONDS,
     scope: "claudeai",
     refresh_token: refreshToken,
@@ -74,13 +77,21 @@ export const issueTokens = internalAction({
   },
 });
 
+type RefreshTokenResult =
+  | { success: true; tokens: ReturnType<typeof signTokens> }
+  | { success: false; error: string };
+
+function refreshFailure(error: string): RefreshTokenResult {
+  return { success: false, error };
+}
+
 export const refreshToken = internalAction({
   args: { refreshToken: v.string() },
   returns: v.union(
     v.object({ success: v.literal(true), tokens: tokensValidator }),
     v.object({ success: v.literal(false), error: v.string() }),
   ),
-  handler: async (_ctx, { refreshToken }) => {
+  handler: async (_ctx, { refreshToken }): Promise<RefreshTokenResult> => {
     try {
       const decoded = jwt.verify(refreshToken, getJwtSecret());
       if (
@@ -88,7 +99,7 @@ export const refreshToken = internalAction({
         decoded === null ||
         typeof decoded.sub !== "string"
       ) {
-        return { success: false as const, error: "Invalid refresh token" };
+        return refreshFailure("Invalid refresh token");
       }
       // Legacy refresh tokens (issued by Railway) didn't carry a `type`
       // claim — accept those too so the refresh flow still works during
@@ -98,14 +109,11 @@ export const refreshToken = internalAction({
           ? decoded.type
           : null;
       if (typeClaim !== null && typeClaim !== "refresh") {
-        return { success: false as const, error: "Invalid refresh token" };
+        return refreshFailure("Invalid refresh token");
       }
-      return { success: true as const, tokens: signTokens(decoded.sub) };
+      return { success: true, tokens: signTokens(decoded.sub) };
     } catch {
-      return {
-        success: false as const,
-        error: "Expired or invalid refresh token",
-      };
+      return refreshFailure("Expired or invalid refresh token");
     }
   },
 });
@@ -123,19 +131,15 @@ export const verifyAccessToken = internalAction({
     let clerkUserId: string | null = null;
     try {
       const decoded = jwt.verify(token, getJwtSecret());
-      if (
-        typeof decoded === "object" &&
-        decoded !== null &&
-        typeof decoded.sub === "string"
-      ) {
-        clerkUserId = decoded.sub;
-      } else if (
-        typeof decoded === "object" &&
-        decoded !== null &&
-        "clerkUserId" in decoded &&
-        typeof decoded.clerkUserId === "string"
-      ) {
-        clerkUserId = decoded.clerkUserId;
+      if (typeof decoded === "object" && decoded !== null) {
+        if (typeof decoded.sub === "string") {
+          clerkUserId = decoded.sub;
+        } else if (
+          "clerkUserId" in decoded &&
+          typeof decoded.clerkUserId === "string"
+        ) {
+          clerkUserId = decoded.clerkUserId;
+        }
       }
     } catch (err) {
       console.error(
@@ -177,7 +181,7 @@ export const handleMcpRequest = internalAction({
   }),
   handler: async (ctx, { clerkUserId, body, scope }) => {
     try {
-      const parsedBody = JSON.parse(body);
+      const parsedBody: unknown = JSON.parse(body);
 
       const server = new McpServer(mcpServerInfo(scope));
 

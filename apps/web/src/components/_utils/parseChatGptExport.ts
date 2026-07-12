@@ -155,10 +155,10 @@ function linearizeConversation(
     const seen = new Set<string>();
     while (nodeId && !seen.has(nodeId)) {
       seen.add(nodeId);
-      const node: MappingNode = mapping[nodeId];
-      if (!node) break;
-      if (node.message) ordered.push(node.message);
-      nodeId = node.parent ?? undefined;
+      const mappingNode: MappingNode | undefined = mapping[nodeId];
+      if (!mappingNode) break;
+      if (mappingNode.message) ordered.push(mappingNode.message);
+      nodeId = mappingNode.parent ?? undefined;
     }
     ordered.reverse();
   }

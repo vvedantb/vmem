@@ -28,6 +28,13 @@ export interface SummarizeRetrieveResult {
   summary: string;
 }
 
+function fallbackRetrieveSummary(memoryCount: number): string {
+  if (memoryCount === 0) {
+    return "No relevant memories found.";
+  }
+  return "Retrieved memories are available but could not be summarized.";
+}
+
 export async function runSummarizeRetrieve(
   ctx: ActionCtx,
   args: SummarizeRetrieveArgs,
@@ -49,10 +56,6 @@ export async function runSummarizeRetrieve(
   const summary = raw ? parseRetrieveSummaryResponse(raw) : null;
 
   return {
-    summary:
-      summary ??
-      (args.memories.length === 0
-        ? "No relevant memories found."
-        : "Retrieved memories are available but could not be summarized."),
+    summary: summary ?? fallbackRetrieveSummary(args.memories.length),
   };
 }

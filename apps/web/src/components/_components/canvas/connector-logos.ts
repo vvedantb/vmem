@@ -12,13 +12,9 @@
  * never breaks the whole graph.
  */
 
-export const CONNECTOR_SOURCE_TYPES = [
-  "gmail",
-  "google_drive",
-  "notion",
-] as const;
+const CONNECTOR_SOURCE_TYPES = ["gmail", "google_drive", "notion"] as const;
 
-export type ConnectorSourceType = (typeof CONNECTOR_SOURCE_TYPES)[number];
+type ConnectorSourceType = (typeof CONNECTOR_SOURCE_TYPES)[number];
 
 export type ConnectorLogoMap = Map<ConnectorSourceType, HTMLImageElement>;
 

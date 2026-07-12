@@ -106,14 +106,16 @@ export function CodebaseSymbolPanel({
                 )}
               </div>
             </div>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={onClose}
-              className="ml-2 p-1 rounded-md text-muted hover:text-foreground hover:bg-surface-tertiary/50 transition-colors flex-shrink-0"
+              className="ml-2 shrink-0 text-muted hover:text-foreground"
               aria-label="Close panel"
             >
               <IconX size={16} />
-            </button>
+            </Button>
           </div>
 
           {context ? (
@@ -255,16 +257,17 @@ export function CodebaseSymbolPanel({
                   </div>
                   <div className="space-y-1">
                     {context.processes.map((proc) => (
-                      <button
+                      <Button
                         key={proc.id}
                         type="button"
+                        variant="ghost"
                         onClick={() => handleNavigate(proc.id)}
-                        className="w-full p-2 rounded-md bg-surface-secondary/40 hover:bg-surface-tertiary transition-colors text-left"
+                        className="h-auto w-full rounded-md bg-surface-secondary/40 p-2 text-left hover:bg-surface-tertiary"
                       >
                         <p className="text-xs font-medium text-foreground truncate font-mono">
                           {proc.name}
                         </p>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -307,11 +310,12 @@ function NeighbourList({
   return (
     <div className="space-y-1 max-h-44 overflow-y-auto pr-1 scrollbar-thin">
       {items.map((item) => (
-        <button
+        <Button
           key={item.id}
           type="button"
+          variant="ghost"
           onClick={() => onNavigate(item.id)}
-          className="w-full p-2 rounded-md bg-surface-secondary/40 hover:bg-surface-tertiary transition-colors text-left"
+          className="h-auto w-full rounded-md bg-surface-secondary/40 p-2 text-left hover:bg-surface-tertiary"
         >
           <p className="text-xs font-medium text-foreground truncate font-mono">
             {item.name}
@@ -319,7 +323,7 @@ function NeighbourList({
           <p className="text-[10px] text-muted truncate mt-0.5 font-mono">
             {item.filePath}
           </p>
-        </button>
+        </Button>
       ))}
     </div>
   );

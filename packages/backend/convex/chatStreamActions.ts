@@ -9,6 +9,7 @@ import { scheduleLog } from "./lib/openRouter/shared";
 import type { CloudMemoryRef } from "./cloudLib/cloudMemoryRef";
 import { buildOpenRouterTools } from "./cloudLib/openRouterTools";
 import { buildCloudChatSystemPrompt, type SkillIndexEntry } from "@vmem/shared";
+import { toSkillIndexEntry } from "./skills";
 
 function addMemoryRefs(
   refsById: Map<string, CloudMemoryRef>,
@@ -40,25 +41,20 @@ export const streamAsync = internalAction({
     );
 
     // Skills index: the user's effective skills (personal + installed system
-    // skills — mcpListSkills resolves both); team workspaces additionally see
-    // the team's skills (merged).
-    const personalSkills: SkillIndexEntry[] = await ctx.runAction(
-      internal.mcp.skills.mcpListSkills,
-      { clerkId: args.clerkId },
-    );
+    // skills — listEffectiveByClerkIdInternal resolves both); team workspaces
+    // additionally see the team's skills (merged).
+    const personalSkills: SkillIndexEntry[] = (
+      await ctx.runQuery(internal.skills.listEffectiveByClerkIdInternal, {
+        clerkId: args.clerkId,
+      })
+    ).map(toSkillIndexEntry);
     let skills: SkillIndexEntry[] = personalSkills;
     if (args.teamId !== undefined) {
       const teamSkills = await ctx.runQuery(
         internal.skills.listTeamSkillsInternal,
         { teamId: args.teamId },
       );
-      skills = [
-        ...personalSkills,
-        ...teamSkills.map((s) => ({
-          name: s.name,
-          description: s.description,
-        })),
-      ];
+      skills = [...personalSkills, ...teamSkills.map(toSkillIndexEntry)];
     }
 
     const systemPrompt = buildCloudChatSystemPrompt({ skills });

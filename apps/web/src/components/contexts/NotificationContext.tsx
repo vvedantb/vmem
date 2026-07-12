@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useCallback, ReactNode } from "react";
+import type { ReactNode } from "react";
+import { createContext, useContext, useCallback } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";

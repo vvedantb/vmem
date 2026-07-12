@@ -2,25 +2,71 @@
 
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
-import { mcpScopeValidator, type McpScope } from "../profiles/mcpAccess";
+import { mcpScopeValidator } from "../profiles/mcpAccess";
 
-interface ProfileResponse {
-  id: string;
-  name: string;
-  color: string;
-  icon: string;
-  isDefault: boolean;
-  teamId: string | null;
-}
+const profileCoreFields = {
+  id: v.string(),
+  name: v.string(),
+  color: v.string(),
+  icon: v.string(),
+  teamId: v.union(v.string(), v.null()),
+};
 
-function mapProfile(profile: Doc<"profiles">): ProfileResponse {
+const profileListItemValidator = v.object({
+  ...profileCoreFields,
+  isDefault: v.boolean(),
+});
+
+type ProfileListItem = Infer<typeof profileListItemValidator>;
+
+const activeProfileResult = v.object(profileCoreFields);
+
+type ActiveProfileResult = Infer<typeof activeProfileResult>;
+
+const whoamiProfileListItemValidator = v.object({
+  id: v.string(),
+  name: v.string(),
+  isDefault: v.boolean(),
+  teamId: v.union(v.string(), v.null()),
+});
+
+type WhoamiProfileListItem = Infer<typeof whoamiProfileListItemValidator>;
+
+const whoamiResultValidator = v.object({
+  authenticated: v.boolean(),
+  clerkUserId: v.string(),
+  scope: mcpScopeValidator,
+  activeProfile: v.union(activeProfileResult, v.null()),
+  profiles: v.array(whoamiProfileListItemValidator),
+});
+
+type WhoamiResult = Infer<typeof whoamiResultValidator>;
+
+function mapActiveProfile(profile: Doc<"profiles">): ActiveProfileResult {
   return {
     id: profile._id,
     name: profile.name,
     color: profile.color,
     icon: profile.icon,
+    teamId: profile.teamId ?? null,
+  };
+}
+
+function mapProfileListItem(profile: Doc<"profiles">): ProfileListItem {
+  return {
+    ...mapActiveProfile(profile),
+    isDefault: profile.isDefault,
+  };
+}
+
+function mapWhoamiProfileListItem(
+  profile: Doc<"profiles">,
+): WhoamiProfileListItem {
+  return {
+    id: profile._id,
+    name: profile.name,
     isDefault: profile.isDefault,
     teamId: profile.teamId ?? null,
   };
@@ -29,71 +75,21 @@ function mapProfile(profile: Doc<"profiles">): ProfileResponse {
 /** List profiles visible in the current MCP connector scope. */
 export const mcpListProfiles = internalAction({
   args: { clerkId: v.string(), scope: mcpScopeValidator },
-  returns: v.array(
-    v.object({
-      id: v.string(),
-      name: v.string(),
-      color: v.string(),
-      icon: v.string(),
-      isDefault: v.boolean(),
-      teamId: v.union(v.string(), v.null()),
-    }),
-  ),
-  handler: async (ctx, args): Promise<ProfileResponse[]> => {
+  returns: v.array(profileListItemValidator),
+  handler: async (ctx, args): Promise<ProfileListItem[]> => {
     const profiles = await ctx.runQuery(
       internal.profiles.listByClerkIdAndScopeInternal,
       { clerkId: args.clerkId, scope: args.scope },
     );
-    return profiles.map(mapProfile);
+    return profiles.map(mapProfileListItem);
   },
 });
-
-interface WhoamiResponse {
-  authenticated: boolean;
-  clerkUserId: string;
-  scope: McpScope;
-  activeProfile: {
-    id: string;
-    name: string;
-    color: string;
-    icon: string;
-    teamId: string | null;
-  } | null;
-  profiles: Array<{
-    id: string;
-    name: string;
-    isDefault: boolean;
-    teamId: string | null;
-  }>;
-}
 
 /** Returns auth info, connector scope, and scoped profile list. */
 export const mcpWhoami = internalAction({
   args: { clerkId: v.string(), scope: mcpScopeValidator },
-  returns: v.object({
-    authenticated: v.boolean(),
-    clerkUserId: v.string(),
-    scope: mcpScopeValidator,
-    activeProfile: v.union(
-      v.object({
-        id: v.string(),
-        name: v.string(),
-        color: v.string(),
-        icon: v.string(),
-        teamId: v.union(v.string(), v.null()),
-      }),
-      v.null(),
-    ),
-    profiles: v.array(
-      v.object({
-        id: v.string(),
-        name: v.string(),
-        isDefault: v.boolean(),
-        teamId: v.union(v.string(), v.null()),
-      }),
-    ),
-  }),
-  handler: async (ctx, args): Promise<WhoamiResponse> => {
+  returns: whoamiResultValidator,
+  handler: async (ctx, args): Promise<WhoamiResult> => {
     const clerkId = args.clerkId;
     const scope = args.scope;
 
@@ -118,31 +114,10 @@ export const mcpWhoami = internalAction({
       authenticated: true,
       clerkUserId: clerkId,
       scope,
-      activeProfile: activeProfile
-        ? {
-            id: activeProfile._id,
-            name: activeProfile.name,
-            color: activeProfile.color,
-            icon: activeProfile.icon,
-            teamId: activeProfile.teamId ?? null,
-          }
-        : null,
-      profiles: profiles.map((profile: Doc<"profiles">) => ({
-        id: profile._id,
-        name: profile.name,
-        isDefault: profile.isDefault,
-        teamId: profile.teamId ?? null,
-      })),
+      activeProfile: activeProfile ? mapActiveProfile(activeProfile) : null,
+      profiles: profiles.map(mapWhoamiProfileListItem),
     };
   },
-});
-
-const activeProfileResult = v.object({
-  id: v.string(),
-  name: v.string(),
-  color: v.string(),
-  icon: v.string(),
-  teamId: v.union(v.string(), v.null()),
 });
 
 export const mcpSetActiveProfile = internalAction({
@@ -152,16 +127,7 @@ export const mcpSetActiveProfile = internalAction({
     scope: mcpScopeValidator,
   },
   returns: activeProfileResult,
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{
-    id: string;
-    name: string;
-    color: string;
-    icon: string;
-    teamId: string | null;
-  }> => {
+  handler: async (ctx, args): Promise<ActiveProfileResult> => {
     await ctx.runMutation(
       internal.userSettings.setMcpDefaultProfileByClerkIdInternal,
       {
@@ -179,12 +145,6 @@ export const mcpSetActiveProfile = internalAction({
       throw new Error("Failed to resolve active profile");
     }
 
-    return {
-      id: activeProfile._id,
-      name: activeProfile.name,
-      color: activeProfile.color,
-      icon: activeProfile.icon,
-      teamId: activeProfile.teamId ?? null,
-    };
+    return mapActiveProfile(activeProfile);
   },
 });

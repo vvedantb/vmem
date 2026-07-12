@@ -4,14 +4,76 @@
  * `getRelatedMemories` and `getAllRelationships` are read-only and feed
  * the detail panel + graph view respectively.
  *
- * Semantic-similarity edge auto-creation lives elsewhere
- * (`migration.createSemanticEdgesForMemory`, `connectors.upsertFromSource`).
+ * `createSemanticSimilarityEdges` auto-creates RELATES_TO edges from the
+ * vector index on memory create / connector upsert / backfill migration.
  */
 
-import neo4j, { type Driver } from "neo4j-driver";
+import neo4j, {
+  type Driver,
+  type Record as NeoRecord,
+  type Session,
+} from "neo4j-driver";
+import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryWithTags } from "./mappers";
 import { withSession } from "./shared";
-import { type MemoryWithTags } from "./types";
+import type { MemoryWithTags } from "./types";
+
+const SEMANTIC_EDGE_K = 20;
+const SEMANTIC_EDGE_THRESHOLD = 0.78;
+const SEMANTIC_EDGE_LIMIT = 5;
+
+function stringField(record: NeoRecord, key: string): string {
+  const value = neo4jGet(record, key);
+  return typeof value === "string" ? value : "";
+}
+
+/**
+ * Create semantic similarity edges for a single memory using the vector index.
+ * Accepts an active session so callers inside `withSession` share transaction scope.
+ */
+export async function createSemanticSimilarityEdges(
+  session: Session,
+  memoryId: string,
+  userId: string,
+  embedding: number[],
+): Promise<number> {
+  const result = await session.run(
+    `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
+     YIELD node AS candidate, score AS similarity
+     WHERE candidate.userId = $userId
+       AND candidate.id <> $id
+       AND similarity >= $threshold
+     WITH candidate, similarity
+     ORDER BY similarity DESC
+     LIMIT $limit
+     MATCH (m:Memory {id: $id})
+     MERGE (m)-[r:RELATES_TO]->(candidate)
+     ON CREATE SET r.reason = 'semantic similarity', r.score = similarity
+     RETURN count(r) AS created`,
+    {
+      k: neo4j.int(SEMANTIC_EDGE_K),
+      embedding,
+      userId,
+      id: memoryId,
+      threshold: SEMANTIC_EDGE_THRESHOLD,
+      limit: neo4j.int(SEMANTIC_EDGE_LIMIT),
+    },
+  );
+  const record = result.records[0];
+  return record ? parseNeo4jInt(neo4jGet(record, "created")) : 0;
+}
+
+/** Driver-level wrapper for backfill migration and other standalone callers. */
+export async function createSemanticEdgesForMemory(
+  driver: Driver,
+  memoryId: string,
+  userId: string,
+  embedding: number[],
+): Promise<number> {
+  return withSession(driver, async (session) =>
+    createSemanticSimilarityEdges(session, memoryId, userId, embedding),
+  );
+}
 
 export async function linkMemories(
   driver: Driver,
@@ -63,7 +125,7 @@ export async function getRelatedMemories(
     );
     return result.records.map((record) => ({
       memory: toMemoryWithTags(record),
-      reason: String(record.get("reason") ?? ""),
+      reason: stringField(record, "reason"),
     }));
   });
 }
@@ -82,9 +144,9 @@ export async function getAllRelationships(
     );
 
     return result.records.map((record) => ({
-      source: String(record.get("source") ?? ""),
-      target: String(record.get("target") ?? ""),
-      reason: String(record.get("reason") ?? ""),
+      source: stringField(record, "source"),
+      target: stringField(record, "target"),
+      reason: stringField(record, "reason"),
     }));
   });
 }

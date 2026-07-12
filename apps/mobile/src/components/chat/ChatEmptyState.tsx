@@ -1,6 +1,7 @@
 import { Image, Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { Text } from "@/components/ui/text";
+import iconSource from "../../../assets/icon.png";
 
 const ONLINE_SUGGESTIONS = [
   "What do I know about React?",
@@ -31,7 +32,7 @@ function VmemRoundel() {
   return (
     <View className="mb-3 h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-surface-secondary">
       <Image
-        source={require("../../../assets/icon.png")}
+        source={iconSource}
         style={{ width: 22, height: 22, borderRadius: 11 }}
       />
     </View>

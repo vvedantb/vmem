@@ -12,7 +12,7 @@ function themeColor(token: string, fallback: string): string {
   return value.length > 0 ? value : fallback;
 }
 
-export function tagToHue(tag: string): number {
+function tagToHue(tag: string): number {
   let hash = 0;
   for (let i = 0; i < tag.length; i++) {
     hash = tag.charCodeAt(i) + ((hash << 5) - hash);
@@ -100,6 +100,7 @@ export function nodeColor(
 ): string {
   if (nodeColorOverride) return nodeColorOverride;
   if (kind !== "memory") return kindColor(kind, isDarkCanvas);
-  if (tags.length > 0) return tagToColor(tags[0], isDarkCanvas);
+  const firstTag = tags.at(0);
+  if (firstTag !== undefined) return tagToColor(firstTag, isDarkCanvas);
   return themeColor("--muted", isDarkCanvas ? "#888888" : "#999999");
 }

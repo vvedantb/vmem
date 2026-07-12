@@ -11,7 +11,7 @@ export function TokenSync() {
     if (!isLoaded) return;
 
     if (!isSignedIn) {
-      setAuthToken("");
+      void setAuthToken("");
       return;
     }
 
@@ -21,11 +21,11 @@ export function TokenSync() {
       // Get token with "convex" template so Convex can verify it
       const token = await getToken({ template: "convex" });
       if (active) {
-        setAuthToken(token ?? "");
+        await setAuthToken(token ?? "");
       }
     }
 
-    sync();
+    void sync();
 
     const interval = setInterval(sync, 50_000);
     return () => {

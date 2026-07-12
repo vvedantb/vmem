@@ -48,27 +48,13 @@ async function getOrSchedule(
     { clerkId },
   );
 
-  if (!cache) {
-    // First-ever call for this user. Kick off a synchronous regen so
-    // the next call gets real content; in the meantime serve a
-    // placeholder so MCP clients always have valid markdown to render.
-    await ctx.scheduler.runAfter(
-      0,
-      internal.contextPromptActions.regenerateContextPromptInternal,
-      { clerkId },
-    );
-    return {
-      content: PLACEHOLDER,
-      generatedAt: 0,
-      isPlaceholder: true,
-    };
-  }
-
-  const age = Date.now() - cache.generatedAt;
-  const isStale = cache.generatedAt === 0 || age > MAX_AGE_MS;
+  // No cache row yet (first-ever call), or the cached content is older
+  // than MAX_AGE_MS: schedule a refresh but don't block on it. The next
+  // call (or the current MCP session's next read) gets the fresh content.
+  const generatedAt = cache?.generatedAt ?? 0;
+  const isStale =
+    !cache || generatedAt === 0 || Date.now() - generatedAt > MAX_AGE_MS;
   if (isStale) {
-    // Schedule a refresh but don't block on it. The next call (or the
-    // current MCP session's next read) gets the fresh content.
     await ctx.scheduler.runAfter(
       0,
       internal.contextPromptActions.regenerateContextPromptInternal,
@@ -76,7 +62,9 @@ async function getOrSchedule(
     );
   }
 
-  if (cache.generatedAt === 0) {
+  if (!cache || generatedAt === 0) {
+    // Either no cache yet, or the placeholder row — serve a placeholder
+    // so MCP clients always have valid markdown to render.
     return {
       content: PLACEHOLDER,
       generatedAt: 0,
@@ -86,7 +74,7 @@ async function getOrSchedule(
 
   return {
     content: cache.content,
-    generatedAt: cache.generatedAt,
+    generatedAt,
     isPlaceholder: false,
   };
 }

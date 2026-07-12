@@ -26,6 +26,15 @@ function OfflineBanner() {
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
+function MainDrawerContent(props: { navigation: { closeDrawer: () => void } }) {
+  return (
+    <>
+      <OfflineBanner />
+      <DrawerContent onClose={() => props.navigation.closeDrawer()} />
+    </>
+  );
+}
+
 export default function MainLayout() {
   const { isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const { user, isLoaded } = useUser();
@@ -51,7 +60,7 @@ export default function MainLayout() {
     }
 
     setIsUserReady(false);
-    void ensureUser().catch((error) => {
+    void ensureUser().catch((error: unknown) => {
       console.error("Failed to ensure user:", error);
     });
   }, [isLoaded, user, ensureUser]);
@@ -70,12 +79,7 @@ export default function MainLayout() {
 
   return (
     <Drawer
-      drawerContent={(props) => (
-        <>
-          <OfflineBanner />
-          <DrawerContent onClose={() => props.navigation.closeDrawer()} />
-        </>
-      )}
+      drawerContent={MainDrawerContent}
       screenOptions={{
         headerShown: false,
         drawerType: "front",

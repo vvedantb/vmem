@@ -48,7 +48,7 @@ export default function CloudModelSelectorSheet({
       .then((result) => {
         if (!cancelled) setLoadedModels(result);
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error("Failed to load free chat models:", error);
       })
       .finally(() => {
@@ -63,7 +63,9 @@ export default function CloudModelSelectorSheet({
   useEffect(() => {
     if (loadedModels.length === 0) return;
     if (modelId !== null) return;
-    onSelectModel(loadedModels[0].id);
+    const firstModel = loadedModels.at(0);
+    if (!firstModel) return;
+    onSelectModel(firstModel.id);
   }, [loadedModels, modelId, onSelectModel]);
 
   const selected =

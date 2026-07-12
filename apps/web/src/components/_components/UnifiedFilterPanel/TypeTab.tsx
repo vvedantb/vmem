@@ -1,6 +1,6 @@
 "use client";
 
-import { Checkbox, cn, TabsPrimitive } from "@vmem/ui";
+import { Button, Checkbox, cn, TabsPrimitive } from "@vmem/ui";
 import {
   formatMemoryTypeLabel,
   MEMORY_TYPES,
@@ -31,13 +31,14 @@ export default function TypeTab({
       className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
     >
       <div className="p-2 border-b border-separator">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => onTypesChange?.([])}
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
+            "h-auto w-full justify-start gap-2 rounded-md px-2 py-1.5 text-xs transition-colors active:scale-100",
             selectedTypes.length === 0
-              ? "bg-surface-secondary text-foreground font-medium"
+              ? "bg-surface-secondary font-medium text-foreground hover:bg-surface-secondary"
               : "hover:bg-surface-tertiary",
           )}
         >
@@ -45,7 +46,7 @@ export default function TypeTab({
           <span className="ml-auto text-muted/50 tabular-nums">
             {totalCount}
           </span>
-        </button>
+        </Button>
       </div>
       <div className="flex-1 overflow-y-auto">
         {MEMORY_TYPES.map((type) => {

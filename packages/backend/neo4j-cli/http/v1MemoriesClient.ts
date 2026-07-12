@@ -7,6 +7,8 @@ const errorBodySchema = z.object({
   error: z.string(),
 });
 
+const apiEnvelopeSchema = z.object({ data: z.unknown() });
+
 const memorySchema = z
   .object({
     id: z.string(),
@@ -16,8 +18,6 @@ const memorySchema = z
     tags: z.array(z.string()).optional(),
   })
   .passthrough();
-
-const storeDataSchema = memorySchema;
 
 const retrieveMemoriesSchema = z.array(
   z
@@ -45,9 +45,7 @@ const healthBodySchema = z.object({
   status: z.literal("ok"),
 });
 
-function envelopeSchema<S extends z.ZodTypeAny>(dataSchema: S) {
-  return z.object({ data: dataSchema });
-}
+const jsonObjectSchema = z.object({}).passthrough();
 
 export type HttpMemory = z.infer<typeof memorySchema>;
 export type HttpRetrieveResult = z.infer<typeof retrieveDataSchema>;
@@ -68,18 +66,30 @@ async function readJson(response: Response): Promise<object | null> {
   }
 
   try {
-    const parsed: object = JSON.parse(text);
-    return parsed;
+    const raw: unknown = JSON.parse(text);
+    const parsed = jsonObjectSchema.safeParse(raw);
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }
 }
 
-function parseDirect<S extends z.ZodTypeAny>(
+function errorResultFromBody(
+  status: number,
+  body: object,
+): { ok: false; status: number; error: string } {
+  const error = errorBodySchema.safeParse(body);
+  if (error.success) {
+    return { ok: false, status, error: error.data.error };
+  }
+  return { ok: false, status, error: "unexpected_response" };
+}
+
+function parseDirect<T>(
   status: number,
   body: object | null,
-  schema: S,
-): HttpJsonResult<z.output<S>> {
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+): HttpJsonResult<T> {
   if (body === null) {
     return { ok: false, status, error: "invalid_json" };
   }
@@ -89,55 +99,49 @@ function parseDirect<S extends z.ZodTypeAny>(
     return { ok: true, status, data: parsed.data };
   }
 
-  const error = errorBodySchema.safeParse(body);
-  if (error.success) {
-    return { ok: false, status, error: error.data.error };
-  }
-
-  return { ok: false, status, error: "unexpected_response" };
+  return errorResultFromBody(status, body);
 }
 
-function parseEnvelope<S extends z.ZodTypeAny>(
+function parseEnvelope<T>(
   status: number,
   body: object | null,
-  dataSchema: S,
-): HttpJsonResult<z.output<S>> {
+  dataSchema: z.ZodType<T, z.ZodTypeDef, unknown>,
+): HttpJsonResult<T> {
   if (body === null) {
     return { ok: false, status, error: "invalid_json" };
   }
 
-  const envelope = envelopeSchema(dataSchema).safeParse(body);
+  // Parse wrapper first, then data — avoids ZodType<T> making `.data` optional in z.object.
+  const envelope = apiEnvelopeSchema.safeParse(body);
   if (envelope.success) {
-    return { ok: true, status, data: envelope.data.data };
+    const data = dataSchema.safeParse(envelope.data.data);
+    if (data.success) {
+      return { ok: true, status, data: data.data };
+    }
   }
 
-  const error = errorBodySchema.safeParse(body);
-  if (error.success) {
-    return { ok: false, status, error: error.data.error };
-  }
-
-  return { ok: false, status, error: "unexpected_response" };
+  return errorResultFromBody(status, body);
 }
 
 export function createHttpMemoriesClient(config: HttpClientConfig) {
   const { baseUrl, apiKey } = config;
 
-  async function requestDirect<S extends z.ZodTypeAny>(
+  async function requestDirect<T>(
     path: string,
-    schema: S,
+    schema: z.ZodType<T, z.ZodTypeDef, unknown>,
     init: RequestInit,
-  ): Promise<HttpJsonResult<z.output<S>>> {
+  ): Promise<HttpJsonResult<T>> {
     const response = await fetch(`${baseUrl}${path}`, init);
     const body = await readJson(response);
     return parseDirect(response.status, body, schema);
   }
 
-  async function request<S extends z.ZodTypeAny>(
+  async function request<T>(
     path: string,
-    dataSchema: S,
+    dataSchema: z.ZodType<T, z.ZodTypeDef, unknown>,
     init: RequestInit,
     authToken: string | null = apiKey,
-  ): Promise<HttpJsonResult<z.output<S>>> {
+  ): Promise<HttpJsonResult<T>> {
     const headers = new Headers(init.headers);
     if (init.body !== undefined) {
       headers.set("Content-Type", "application/json");
@@ -170,7 +174,7 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
       externalId?: string;
       sourceType?: string;
     }) {
-      return request("/api/v1/memories", storeDataSchema, {
+      return request("/api/v1/memories", memorySchema, {
         method: "POST",
         body: JSON.stringify(body),
       });
@@ -188,7 +192,7 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
       title?: string;
       content?: string;
     }) {
-      return request("/api/v1/memories", storeDataSchema, {
+      return request("/api/v1/memories", memorySchema, {
         method: "PATCH",
         body: JSON.stringify(body),
       });
@@ -204,7 +208,7 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
     storeWithoutAuth() {
       return request(
         "/api/v1/memories",
-        storeDataSchema,
+        memorySchema,
         {
           method: "POST",
           body: JSON.stringify({
@@ -223,7 +227,7 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
     storeWithBadKey() {
       return request(
         "/api/v1/memories",
-        storeDataSchema,
+        memorySchema,
         {
           method: "POST",
           body: JSON.stringify({
@@ -240,7 +244,7 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
     },
 
     storeInvalidBody() {
-      return request("/api/v1/memories", storeDataSchema, {
+      return request("/api/v1/memories", memorySchema, {
         method: "POST",
         body: JSON.stringify({ title: "missing required fields" }),
       });

@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useAction } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 import type { TimelineEvent } from "@/lib/timeline";
+
+type TimelineActionResult = FunctionReturnType<
+  typeof api.timelineApi.getMemoryTimeline
+>;
 
 interface UseTimelineEventsOptions {
   memoryId?: string;
@@ -38,7 +43,7 @@ export function useTimelineEvents({
     let cancelled = false;
     setIsLoading(true);
 
-    let promise: Promise<unknown> | null = null;
+    let promise: Promise<TimelineActionResult> | null = null;
 
     if (memoryId) {
       promise = getMemoryTimeline({ memoryId });
@@ -57,7 +62,7 @@ export function useTimelineEvents({
     promise
       .then((data) => {
         if (cancelled) return;
-        setEvents(data as TimelineEvent[]);
+        setEvents(data);
       })
       .catch(() => {
         if (!cancelled) setEvents([]);

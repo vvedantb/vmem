@@ -11,7 +11,7 @@
  * state management here.
  */
 
-import { useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, useRef, useState } from "react";
 import { IconAlertTriangle, IconMoodEmpty } from "@tabler/icons-react";
 import GraphCanvas from "@/components/_components/GraphCanvas";
 import { VmemSpinner } from "@/components/svg-animations";
@@ -25,7 +25,6 @@ import {
   type HoveredEdgeInfo,
   type HoveredNodeInfo,
 } from "@/components/_components/graph-types";
-import { useState } from "react";
 import { CodebaseSymbolPanel } from "./CodebaseSymbolPanel";
 import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 

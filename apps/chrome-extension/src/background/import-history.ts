@@ -91,7 +91,7 @@ export async function importHistory(
         }
 
         if (!silent) {
-          chrome.runtime.sendMessage({
+          void chrome.runtime.sendMessage({
             type: "IMPORT_PROGRESS",
             current: processed,
             total: deduplicated.length,

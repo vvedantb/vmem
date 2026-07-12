@@ -5,8 +5,7 @@ import { internalAction } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { extractPdfText } from "../engine/parsers/pdf";
-import { extractTextFromBlob } from "../engine/parsers/text";
+import { extractFileContent } from "../engine/parsers/extractFileContent";
 import { getDriver } from "../engine/neo4j/driver";
 import { getMemory } from "../engine/neo4j/memory/crud";
 import { detectFileKind } from "./files/lib";
@@ -102,12 +101,7 @@ export const indexFileNodeInternal = internalAction({
 
     let content: string;
     try {
-      if (kind === "pdf") {
-        const arrayBuffer = await blob.arrayBuffer();
-        content = await extractPdfText(Buffer.from(arrayBuffer));
-      } else {
-        content = await extractTextFromBlob(blob);
-      }
+      content = await extractFileContent(blob, kind);
     } catch (err) {
       console.error(`[fileIndexing] extraction failed for ${node.name}`, err);
       // Old memory (if any) is untouched here — keep the reference.

@@ -43,6 +43,8 @@ export function AddRepoModal({
   ).withOptimisticUpdate((localStore, args) => {
     const list = localStore.getQuery(api.codebases.listMy, {});
     if (!list || list.length === 0) return;
+    const head = list.at(0);
+    if (!head) return;
     const connection = localStore.getQuery(api.github.getConnection, {});
     const now = Date.now();
     const tempId = optimisticId("codebases");
@@ -50,7 +52,7 @@ export function AddRepoModal({
       {
         _id: tempId,
         _creationTime: now,
-        userId: list[0].userId,
+        userId: head.userId,
         githubConnectionId: args.githubConnectionId,
         repoOwner: args.repoOwner,
         repoName: args.repoName,

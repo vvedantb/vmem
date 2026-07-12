@@ -1,4 +1,4 @@
-import { ExpoConfig, ConfigContext } from "expo/config";
+import type { ExpoConfig, ConfigContext } from "expo/config";
 
 export default (_context: ConfigContext): ExpoConfig => ({
   name: "vmem",

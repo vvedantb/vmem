@@ -91,7 +91,12 @@ function loopKeyframes(frames: number[], durationSec: number) {
       easing: Easing.inOut(Easing.ease),
     }),
   );
-  return withRepeat(withSequence(steps[0], ...steps.slice(1)), -1, false);
+  const firstStep = steps.at(0);
+  if (!firstStep) {
+    const value = frames.at(0) ?? 1;
+    return withTiming(value, { duration: durationSec * 1000 });
+  }
+  return withRepeat(withSequence(firstStep, ...steps.slice(1)), -1, false);
 }
 
 function RippleRing({

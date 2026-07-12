@@ -22,7 +22,13 @@ interface ProposedUpdateNode {
   proposedContent: string;
   proposedTitle: string | null;
   reason: string;
-  kind: "update" | "delete" | "insight" | "connection" | "contradiction" | "anomaly";
+  kind:
+    | "update"
+    | "delete"
+    | "insight"
+    | "connection"
+    | "contradiction"
+    | "anomaly";
   status: string;
   createdAt: string;
   resolvedAt: string | null;
@@ -67,13 +73,13 @@ await client.action(api.proposedUpdateApi.resolveProposal, {
 
 ### Behavior by Kind
 
-| Kind | Approve | Reject |
-| --- | --- | --- |
-| `update` | Replace memory content | Original preserved |
-| `delete` | Hard-delete memory | Original preserved |
-| `insight` | Materialize new memory | Proposal discarded |
-| `connection` | Create relationship edge | Proposal discarded |
-| `contradiction` | Flag for review | Proposal discarded |
-| `anomaly` | Surface anomaly | Proposal discarded |
+| Kind            | Approve                  | Reject             |
+| --------------- | ------------------------ | ------------------ |
+| `update`        | Replace memory content   | Original preserved |
+| `delete`        | Hard-delete memory       | Original preserved |
+| `insight`       | Materialize new memory   | Proposal discarded |
+| `connection`    | Create relationship edge | Proposal discarded |
+| `contradiction` | Flag for review          | Proposal discarded |
+| `anomaly`       | Surface anomaly          | Proposal discarded |
 
 See [Proposed Updates concept](/concepts/proposed-updates) for the full lifecycle.

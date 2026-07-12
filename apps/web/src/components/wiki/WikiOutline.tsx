@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { cn } from "@vmem/ui";
+import { Button, cn } from "@vmem/ui";
 import type { OutlineHeading } from "./_utils";
 
 interface WikiOutlineProps {
@@ -70,16 +70,17 @@ export default function WikiOutline({
                 className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-accent"
               />
             ) : null}
-            <button
+            <Button
               ref={isActive ? activeRef : undefined}
               type="button"
+              variant="ghost"
               onClick={() => onJump(heading.pos)}
               aria-current={isActive ? "location" : undefined}
               className={cn(
-                "block w-full rounded-md py-1 pr-2 text-left text-sm text-foreground transition-[background-color,color]",
+                "block h-auto w-full justify-start rounded-md py-1 pr-2 text-left text-sm font-normal text-foreground transition-[background-color,color] active:scale-100",
                 isMedium ? "font-medium" : "font-normal",
                 isActive
-                  ? "bg-surface-tertiary"
+                  ? "bg-surface-tertiary hover:bg-surface-tertiary"
                   : "hover:bg-surface-tertiary/50",
               )}
               style={{ paddingLeft: `${(heading.level - 1) * 12 + 10}px` }}
@@ -90,7 +91,7 @@ export default function WikiOutline({
               >
                 {heading.text}
               </span>
-            </button>
+            </Button>
           </li>
         );
       })}

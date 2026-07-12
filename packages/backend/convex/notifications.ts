@@ -1,6 +1,20 @@
 import { v } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 import { internalMutation } from "./_generated/server";
-import { authMutation, authQuery } from "./auth";
+import { authMutation, authQuery, getUserByClerkId } from "./auth";
+import { notificationFields, notificationTypeValidator } from "./validators";
+
+async function requireOwnedNotification(
+  ctx: MutationCtx & { userId: Id<"users"> },
+  id: Id<"notifications">,
+): Promise<Doc<"notifications">> {
+  const notification = await ctx.db.get(id);
+  if (!notification || notification.userId !== ctx.userId) {
+    throw new Error("Notification not found");
+  }
+  return notification;
+}
 
 export const listMy = authQuery({
   args: {},
@@ -8,17 +22,7 @@ export const listMy = authQuery({
     v.object({
       _id: v.id("notifications"),
       _creationTime: v.number(),
-      userId: v.id("users"),
-      title: v.string(),
-      description: v.string(),
-      type: v.union(
-        v.literal("success"),
-        v.literal("warning"),
-        v.literal("error"),
-        v.literal("info"),
-      ),
-      read: v.boolean(),
-      createdAt: v.number(),
+      ...notificationFields,
     }),
   ),
   handler: async (ctx) => {
@@ -48,10 +52,7 @@ export const markAsRead = authMutation({
   args: { id: v.id("notifications") },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const notification = await ctx.db.get(args.id);
-    if (!notification || notification.userId !== ctx.userId) {
-      throw new Error("Notification not found");
-    }
+    await requireOwnedNotification(ctx, args.id);
     await ctx.db.patch(args.id, { read: true });
     return null;
   },
@@ -61,10 +62,7 @@ export const markAsUnread = authMutation({
   args: { id: v.id("notifications") },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const notification = await ctx.db.get(args.id);
-    if (!notification || notification.userId !== ctx.userId) {
-      throw new Error("Notification not found");
-    }
+    await requireOwnedNotification(ctx, args.id);
     await ctx.db.patch(args.id, { read: false });
     return null;
   },
@@ -99,19 +97,11 @@ export const pushForClerkIdInternal = internalMutation({
     clerkId: v.string(),
     title: v.string(),
     description: v.string(),
-    type: v.union(
-      v.literal("success"),
-      v.literal("warning"),
-      v.literal("error"),
-      v.literal("info"),
-    ),
+    type: notificationTypeValidator,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await getUserByClerkId(ctx, args.clerkId);
     if (!user) return null;
 
     await ctx.db.insert("notifications", {
@@ -130,10 +120,7 @@ export const deleteNotification = authMutation({
   args: { id: v.id("notifications") },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const notification = await ctx.db.get(args.id);
-    if (!notification || notification.userId !== ctx.userId) {
-      throw new Error("Notification not found");
-    }
+    await requireOwnedNotification(ctx, args.id);
     await ctx.db.delete(args.id);
     return null;
   },

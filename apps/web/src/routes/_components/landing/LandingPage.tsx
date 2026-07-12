@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { IconBolt, IconBrain, IconTopologyStar3 } from "@tabler/icons-react";
 import { motion, useScroll, useTransform } from "motion/react";
-import { motionDuration, motionEase } from "@vmem/ui";
+import { Button, motionDuration, motionEase } from "@vmem/ui";
 import { VmemBrand } from "@/components/VmemBrand";
 import { LandingAmbientGraph } from "./LandingAmbientGraph";
 import { LandingHero } from "./LandingHero";
@@ -99,15 +99,16 @@ export function LandingPage() {
             Graph storage, vector recall, and MCP-ready integrations for any
             agent stack.
           </p>
-          <button
+          <Button
             type="button"
-            className="shrink-0 text-left text-sm text-muted underline-offset-4 transition-[color] hover:text-foreground hover:underline sm:text-right"
+            variant="link"
+            className="h-auto shrink-0 p-0 text-left text-sm text-muted hover:text-foreground sm:text-right active:scale-100"
             onClick={() => {
               window.location.href = "/api/auth/agent-login";
             }}
           >
             Continue without an account →
-          </button>
+          </Button>
         </motion.footer>
       </div>
     </div>
