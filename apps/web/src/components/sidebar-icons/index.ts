@@ -10,7 +10,6 @@
  */
 
 export { IconChat } from "./IconChat";
-export { IconVoice } from "./IconVoice";
 export { IconMemories } from "./IconMemories";
 export { IconTeams } from "./IconTeams";
 export { IconFiles } from "./IconFiles";

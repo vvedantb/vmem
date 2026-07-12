@@ -115,11 +115,6 @@ export default defineConfig({
   build: {
     outDir: "dist",
     chunkSizeWarningLimit: 1000,
-    // Skip the gzip-size computation pass over emitted chunks. With multi-MB
-    // lazy AI vendor bundles (webllm ~6MB, transformers/kokoro ~1.3MB each)
-    // recompressing every chunk just to print a size table costs build time
-    // for no runtime benefit. Drops the size report from `vite build` output.
-    reportCompressedSize: false,
     rolldownOptions: {
       output: {
         codeSplitting: {
@@ -144,27 +139,6 @@ export default defineConfig({
               name: "vendor-motion",
               test: /node_modules[\\/](motion|framer-motion)/,
               priority: 15,
-            },
-            // Heavy AI chunks - only loaded when user accesses voice/local LLM features
-            {
-              name: "vendor-webllm",
-              test: /node_modules[\\/]@mlc-ai[\\/]web-llm/,
-              priority: 20,
-            },
-            {
-              name: "vendor-transformers",
-              test: /node_modules[\\/]@huggingface[\\/]transformers/,
-              priority: 20,
-            },
-            {
-              name: "vendor-kokoro",
-              test: /node_modules[\\/]kokoro-js/,
-              priority: 20,
-            },
-            {
-              name: "vendor-onnx",
-              test: /node_modules[\\/]onnxruntime/,
-              priority: 20,
             },
           ],
         },
