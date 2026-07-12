@@ -56,6 +56,20 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
+/** Open a session, run one query, and always close it. */
+async function runQuery(
+  driver: Driver,
+  query: string,
+  params: Record<string, unknown>,
+): Promise<void> {
+  const session = driver.session();
+  try {
+    await session.run(query, params);
+  } finally {
+    await session.close();
+  }
+}
+
 /**
  * Delete any code-graph node scoped to (userId, codebaseId) whose id
  * isn't in the new keep-set. DETACH DELETE drops attached edges too.
@@ -66,20 +80,16 @@ async function deleteStale(
   codebaseId: string,
   keepIds: string[],
 ): Promise<void> {
-  const session = driver.session();
-  try {
-    await session.run(
-      `
-      MATCH (n { userId: $userId, codebaseId: $codebaseId })
-      WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
-        AND NOT n.id IN $keepIds
-      DETACH DELETE n
-      `,
-      { userId, codebaseId, keepIds },
-    );
-  } finally {
-    await session.close();
-  }
+  await runQuery(
+    driver,
+    `
+    MATCH (n { userId: $userId, codebaseId: $codebaseId })
+    WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
+      AND NOT n.id IN $keepIds
+    DETACH DELETE n
+    `,
+    { userId, codebaseId, keepIds },
+  );
 }
 
 async function upsertNodes(
@@ -93,38 +103,39 @@ async function upsertNodes(
   const now = Date.now();
   const updatedAtClause = touchUpdatedAt ? "SET n.updatedAt = $now" : "";
   for (const batch of chunk(rows, CHUNK_SIZE)) {
-    const session = driver.session();
-    try {
-      await session.run(
-        `
-        UNWIND $rows AS row
-        MERGE (n:${label} { id: row.id })
-        SET n += row.props
-        ${updatedAtClause}
-        SET n.createdAt = coalesce(n.createdAt, $now)
-        `,
-        { rows: batch, now },
-      );
-    } finally {
-      await session.close();
-    }
+    await runQuery(
+      driver,
+      `
+      UNWIND $rows AS row
+      MERGE (n:${label} { id: row.id })
+      SET n += row.props
+      ${updatedAtClause}
+      SET n.createdAt = coalesce(n.createdAt, $now)
+      `,
+      { rows: batch, now },
+    );
   }
 }
 
+/** Wrap a node id + userId/codebaseId scoping into the common upsert-row shape. */
+function makeRow(
+  id: string,
+  userId: string,
+  codebaseId: string,
+  fields: Record<string, Neo4jPropValue>,
+): UpsertRow {
+  return { id, props: { userId, codebaseId, ...fields } };
+}
+
 function fileRow(f: FileNode, userId: string, codebaseId: string): UpsertRow {
-  return {
-    id: f.id,
-    props: {
-      userId,
-      codebaseId,
-      path: f.path,
-      directory: f.directory,
-      filename: f.filename,
-      extension: f.extension,
-      sizeBytes: f.sizeBytes,
-      contentHash: f.contentHash,
-    },
-  };
+  return makeRow(f.id, userId, codebaseId, {
+    path: f.path,
+    directory: f.directory,
+    filename: f.filename,
+    extension: f.extension,
+    sizeBytes: f.sizeBytes,
+    contentHash: f.contentHash,
+  });
 }
 
 function functionRow(
@@ -132,41 +143,31 @@ function functionRow(
   userId: string,
   codebaseId: string,
 ): UpsertRow {
-  return {
-    id: f.id,
-    props: {
-      userId,
-      codebaseId,
-      filePath: f.filePath,
-      name: f.name,
-      qualifiedName: f.qualifiedName,
-      parentClass: f.parentClass ?? null,
-      startLine: f.startLine,
-      endLine: f.endLine,
-      isExported: f.isExported,
-      isAsync: f.isAsync,
-      isTest: f.isTest,
-      paramCount: f.paramCount,
-    },
-  };
+  return makeRow(f.id, userId, codebaseId, {
+    filePath: f.filePath,
+    name: f.name,
+    qualifiedName: f.qualifiedName,
+    parentClass: f.parentClass ?? null,
+    startLine: f.startLine,
+    endLine: f.endLine,
+    isExported: f.isExported,
+    isAsync: f.isAsync,
+    isTest: f.isTest,
+    paramCount: f.paramCount,
+  });
 }
 
 function classRow(c: ClassNode, userId: string, codebaseId: string): UpsertRow {
-  return {
-    id: c.id,
-    props: {
-      userId,
-      codebaseId,
-      filePath: c.filePath,
-      name: c.name,
-      qualifiedName: c.qualifiedName,
-      startLine: c.startLine,
-      endLine: c.endLine,
-      isExported: c.isExported,
-      isAbstract: c.isAbstract,
-      extendsName: c.extendsName ?? null,
-    },
-  };
+  return makeRow(c.id, userId, codebaseId, {
+    filePath: c.filePath,
+    name: c.name,
+    qualifiedName: c.qualifiedName,
+    startLine: c.startLine,
+    endLine: c.endLine,
+    isExported: c.isExported,
+    isAbstract: c.isAbstract,
+    extendsName: c.extendsName ?? null,
+  });
 }
 
 function interfaceRow(
@@ -174,19 +175,14 @@ function interfaceRow(
   userId: string,
   codebaseId: string,
 ): UpsertRow {
-  return {
-    id: i.id,
-    props: {
-      userId,
-      codebaseId,
-      filePath: i.filePath,
-      name: i.name,
-      qualifiedName: i.qualifiedName,
-      startLine: i.startLine,
-      endLine: i.endLine,
-      isExported: i.isExported,
-    },
-  };
+  return makeRow(i.id, userId, codebaseId, {
+    filePath: i.filePath,
+    name: i.name,
+    qualifiedName: i.qualifiedName,
+    startLine: i.startLine,
+    endLine: i.endLine,
+    isExported: i.isExported,
+  });
 }
 
 function processRow(
@@ -194,17 +190,12 @@ function processRow(
   userId: string,
   codebaseId: string,
 ): UpsertRow {
-  return {
-    id: p.id,
-    props: {
-      userId,
-      codebaseId,
-      name: p.name,
-      entryPointId: p.entryPointId,
-      entryKind: p.entryKind,
-      nodeCount: p.members.length,
-    },
-  };
+  return makeRow(p.id, userId, codebaseId, {
+    name: p.name,
+    entryPointId: p.entryPointId,
+    entryKind: p.entryKind,
+    nodeCount: p.members.length,
+  });
 }
 
 /**
@@ -218,27 +209,23 @@ async function upsertEdges(
 ): Promise<void> {
   if (edges.length === 0) return;
   for (const batch of chunk(edges, CHUNK_SIZE)) {
-    const session = driver.session();
-    try {
-      await session.run(
-        `
-        UNWIND $rows AS row
-        MATCH (a { id: row.fromId })
-        MATCH (b { id: row.toId })
-        MERGE (a)-[r:${type}]->(b)
-        SET r += row.props
-        `,
-        {
-          rows: batch.map((e) => ({
-            fromId: e.fromId,
-            toId: e.toId,
-            props: edgeProps(e),
-          })),
-        },
-      );
-    } finally {
-      await session.close();
-    }
+    await runQuery(
+      driver,
+      `
+      UNWIND $rows AS row
+      MATCH (a { id: row.fromId })
+      MATCH (b { id: row.toId })
+      MERGE (a)-[r:${type}]->(b)
+      SET r += row.props
+      `,
+      {
+        rows: batch.map((e) => ({
+          fromId: e.fromId,
+          toId: e.toId,
+          props: edgeProps(e),
+        })),
+      },
+    );
   }
 }
 
@@ -261,20 +248,16 @@ async function upsertLabeledEdges(
 ): Promise<void> {
   if (rows.length === 0) return;
   for (const batch of chunk(rows, CHUNK_SIZE)) {
-    const session = driver.session();
-    try {
-      await session.run(
-        `
-        UNWIND $rows AS row
-        MATCH (a:${fromLabel} { id: row.fromId })
-        MATCH (b:${toLabel} { id: row.toId })
-        MERGE (a)-[:${edgeType}]->(b)
-        `,
-        { rows: batch },
-      );
-    } finally {
-      await session.close();
-    }
+    await runQuery(
+      driver,
+      `
+      UNWIND $rows AS row
+      MATCH (a:${fromLabel} { id: row.fromId })
+      MATCH (b:${toLabel} { id: row.toId })
+      MERGE (a)-[:${edgeType}]->(b)
+      `,
+      { rows: batch },
+    );
   }
 }
 
@@ -376,19 +359,15 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
   await upsertProcesses(driver, userId, codebaseId, processes);
 
   // Mark every node with the parser version so re-sync detection works.
-  const versionSession = driver.session();
-  try {
-    await versionSession.run(
-      `
-      MATCH (n { userId: $userId, codebaseId: $codebaseId })
-      WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
-      SET n.parserVersion = $version
-      `,
-      { userId, codebaseId, version: PARSER_VERSION },
-    );
-  } finally {
-    await versionSession.close();
-  }
+  await runQuery(
+    driver,
+    `
+    MATCH (n { userId: $userId, codebaseId: $codebaseId })
+    WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
+    SET n.parserVersion = $version
+    `,
+    { userId, codebaseId, version: PARSER_VERSION },
+  );
 
   return {
     fileCount: files.length,
