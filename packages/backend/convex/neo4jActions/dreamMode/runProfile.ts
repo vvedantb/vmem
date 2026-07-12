@@ -7,7 +7,7 @@ import { v } from "convex/values";
 import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
 import {
   applyConfidenceAdjustments,
-  computeSurprisalScore,
+  computeSurprisalScores,
   fetchAnomalyCluster,
   fetchPortraitEvidence,
   findMergeCandidates,
@@ -267,23 +267,12 @@ export const runDreamForProfileInternal = internalAction({
       return result;
     }
 
-    // 2. Surprisal scoring — vector queries are cheap, do all of them.
-    const scored: Array<{
-      id: string;
-      surprisal: number;
-      embedding: number[];
-    }> = [];
-    for (const m of recent) {
-      const surprisal = await computeSurprisalScore(driver, {
-        userId: args.clerkId,
-        memoryId: m.id,
-        embedding: m.embedding,
-        k: SURPRISAL_NEIGHBORS,
-      });
-      if (surprisal !== null) {
-        scored.push({ id: m.id, surprisal, embedding: m.embedding });
-      }
-    }
+    // 2. Surprisal scoring — one Neo4j session for the whole pool.
+    const scored = await computeSurprisalScores(driver, {
+      userId: args.clerkId,
+      memories: recent,
+      k: SURPRISAL_NEIGHBORS,
+    });
     scored.sort((a, b) => b.surprisal - a.surprisal);
     const topAnomalies = scored.slice(0, depthParams.topAnomalies);
     console.log(

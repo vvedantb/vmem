@@ -40,13 +40,24 @@ export async function bestEffortEmbedOne(
 export async function bestEffortEmbedMany(
   params: BestEffortEmbedParams & { texts: string[] },
 ): Promise<(number[] | null)[]> {
+  const auth = await resolveBestEffortEmbedAuth(params.ctx, params.clerkId);
+  return bestEffortEmbedManyWithAuth({ ...params, auth });
+}
+
+export async function bestEffortEmbedManyWithAuth(params: {
+  ctx: ActionCtx;
+  auth: BestEffortEmbedAuth | null;
+  profileId?: string;
+  feature: OpenRouterFeature;
+  texts: string[];
+  failureLog: string;
+}): Promise<(number[] | null)[]> {
+  if (!params.auth) return params.texts.map(() => null);
   try {
-    const auth = await resolveBestEffortEmbedAuth(params.ctx, params.clerkId);
-    if (!auth) return params.texts.map(() => null);
     return await generateEmbeddings({
       ctx: params.ctx,
-      apiKey: auth.apiKey,
-      userId: auth.userId,
+      apiKey: params.auth.apiKey,
+      userId: params.auth.userId,
       profileId: params.profileId,
       feature: params.feature,
       texts: params.texts,

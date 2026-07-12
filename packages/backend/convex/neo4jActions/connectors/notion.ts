@@ -17,10 +17,10 @@ import type { Id } from "../../_generated/dataModel";
 import {
   EMBED_CONTENT_CAP,
   markSyncComplete,
-  maybeReportProgress,
   setupSync,
-  upsertSyncedDoc,
+  upsertSyncedDocs,
   withConnectorSyncError,
+  type SyncedDoc,
 } from "./shared";
 
 export interface NotionSyncArgs {
@@ -95,6 +95,7 @@ export async function runNotionSync(
       const pages = searchResponse.results;
       totalFound += pages.length;
 
+      const pageDocs: SyncedDoc[] = [];
       for (const page of pages) {
         if (page.object !== "page") continue;
 
@@ -137,28 +138,27 @@ export async function runNotionSync(
               ? page.url
               : `https://notion.so/${page.id.replace(/-/g, "")}`;
 
-          totalSynced = await upsertSyncedDoc(ctx, {
-            setup,
-            clerkId: args.clerkId,
-            totalSynced,
-            doc: {
-              title,
-              content,
-              sourceType: "notion",
-              sourceId: page.id,
-              sourceUrl: pageUrl,
-            },
-          });
-          await maybeReportProgress(ctx, {
-            connectorId: args.connectorId,
-            totalSynced,
-            totalFound,
+          pageDocs.push({
+            title,
+            content,
+            sourceType: "notion",
+            sourceId: page.id,
+            sourceUrl: pageUrl,
           });
         } catch (pageErr) {
           console.error(`Failed to sync page ${page.id}:`, pageErr);
           // Continue with other pages
         }
       }
+
+      totalSynced = await upsertSyncedDocs(ctx, {
+        setup,
+        clerkId: args.clerkId,
+        docs: pageDocs,
+        totalSynced,
+        connectorId: args.connectorId,
+        totalFound,
+      });
 
       startCursor = searchResponse.has_more
         ? (searchResponse.next_cursor ?? undefined)

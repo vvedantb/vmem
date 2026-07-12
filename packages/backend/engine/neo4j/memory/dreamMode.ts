@@ -93,6 +93,68 @@ export async function findRecentMemoriesForDream(
   });
 }
 
+function surprisalFromNeighborScores(rawScores: unknown): number | null {
+  if (!Array.isArray(rawScores) || rawScores.length < 2) return null;
+  const scores: number[] = rawScores.filter(
+    (x: unknown): x is number => typeof x === "number",
+  );
+  if (scores.length < 2) return null;
+  const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  return 1 - mean;
+}
+
+/**
+ * Batch surprisal scoring in a single Neo4j session. Skips memories
+ * without embeddings (same null-skip semantics as the single-memory path).
+ */
+export async function computeSurprisalScores(
+  driver: Driver,
+  params: {
+    userId: string;
+    memories: Array<{ id: string; embedding: number[] | null | undefined }>;
+    k: number;
+  },
+): Promise<Array<{ id: string; surprisal: number; embedding: number[] }>> {
+  return withSession(driver, async (session) => {
+    const scored: Array<{
+      id: string;
+      surprisal: number;
+      embedding: number[];
+    }> = [];
+    for (const memory of params.memories) {
+      const embedding = memory.embedding;
+      if (embedding === null || embedding === undefined) continue;
+      if (embedding.length === 0) continue;
+
+      const result = await session.run(
+        `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
+         YIELD node, score
+         WHERE node.userId = $userId
+           AND node.id <> $memoryId
+           AND node.status IN ['active', 'pinned']
+         WITH score
+         ORDER BY score DESC
+         LIMIT $kInner
+         RETURN collect(score) AS scores`,
+        {
+          k: neo4j.int(params.k + 5),
+          kInner: neo4j.int(params.k),
+          embedding,
+          userId: params.userId,
+          memoryId: memory.id,
+        },
+      );
+      const firstRecord = result.records[0];
+      if (!firstRecord) continue;
+      const surprisal = surprisalFromNeighborScores(firstRecord.get("scores"));
+      if (surprisal !== null) {
+        scored.push({ id: memory.id, surprisal, embedding });
+      }
+    }
+    return scored;
+  });
+}
+
 /**
  * Compute surprisal score for one memory against the user's full corpus.
  * surprisal = 1 - mean(cosineSimilarity to k nearest neighbours). Higher
@@ -111,36 +173,12 @@ export async function computeSurprisalScore(
     k: number;
   },
 ): Promise<number | null> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
-       YIELD node, score
-       WHERE node.userId = $userId
-         AND node.id <> $memoryId
-         AND node.status IN ['active', 'pinned']
-       WITH score
-       ORDER BY score DESC
-       LIMIT $kInner
-       RETURN collect(score) AS scores`,
-      {
-        k: neo4j.int(params.k + 5),
-        kInner: neo4j.int(params.k),
-        embedding: params.embedding,
-        userId: params.userId,
-        memoryId: params.memoryId,
-      },
-    );
-    const firstRecord = result.records[0];
-    if (!firstRecord) return null;
-    const rawScores: unknown = firstRecord.get("scores");
-    if (!Array.isArray(rawScores) || rawScores.length < 2) return null;
-    const scores: number[] = rawScores.filter(
-      (x: unknown): x is number => typeof x === "number",
-    );
-    if (scores.length < 2) return null;
-    const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
-    return 1 - mean;
+  const batch = await computeSurprisalScores(driver, {
+    userId: params.userId,
+    memories: [{ id: params.memoryId, embedding: params.embedding }],
+    k: params.k,
   });
+  return batch[0]?.surprisal ?? null;
 }
 
 /** Below this many graph members, the cluster is padded with vector

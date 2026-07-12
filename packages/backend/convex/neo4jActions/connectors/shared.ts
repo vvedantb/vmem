@@ -17,6 +17,7 @@ import type { Id } from "../../_generated/dataModel";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
 import {
+  bestEffortEmbedManyWithAuth,
   bestEffortEmbedOneWithAuth,
   resolveBestEffortEmbedAuth,
   type BestEffortEmbedAuth,
@@ -25,6 +26,9 @@ import { scheduleDreamTriggerCheck } from "../../lib/dreamTriggerInvalidate";
 
 /** Max chars of a synced document's body sent to the embedder / stored. */
 export const EMBED_CONTENT_CAP = 50_000;
+
+/** Embedding batch size — matches `openRouter/embedding.ts`. */
+const EMBEDDING_BATCH_SIZE = 20;
 
 /** Resolved auth pair carried through a sync — `null` if the user has no
  *  OPENROUTER_API_KEY configured. */
@@ -66,21 +70,43 @@ export async function setupSync(
  * Internal to this module — connectors now go through `upsertSyncedDoc`,
  * which owns the embed → upsert sequence.
  */
-async function embedSyncedDoc(
+function embedTextForSyncedDoc(title: string, content: string): string {
+  return `${title}\n\n${content}`;
+}
+
+/**
+ * Batch-embed a chunk of synced docs. When auth is present but the batch
+ * call returns all nulls, fall back to per-doc embeds for that chunk.
+ */
+async function embedSyncedDocChunk(
   ctx: ActionCtx,
   auth: SyncAuth | null,
   profileId: string,
-  title: string,
-  content: string,
-): Promise<number[] | null> {
-  return bestEffortEmbedOneWithAuth({
+  texts: string[],
+): Promise<(number[] | null)[]> {
+  let embeddings = await bestEffortEmbedManyWithAuth({
     ctx,
     auth,
     profileId,
     feature: "connector-sync",
-    text: `${title}\n\n${content}`,
+    texts,
     failureLog: "connector sync embedding failed",
   });
+  if (auth !== null && embeddings.every((e) => e === null)) {
+    embeddings = await Promise.all(
+      texts.map((text) =>
+        bestEffortEmbedOneWithAuth({
+          ctx,
+          auth,
+          profileId,
+          feature: "connector-sync",
+          text,
+          failureLog: "connector sync embedding failed",
+        }),
+      ),
+    );
+  }
+  return embeddings;
 }
 
 /** One synced document — the per-item data each connector produces. */
@@ -114,13 +140,14 @@ export async function upsertSyncedDoc(
   },
 ): Promise<number> {
   const content = params.doc.content.slice(0, EMBED_CONTENT_CAP);
-  const embedding = await embedSyncedDoc(
+  const embedding = await bestEffortEmbedOneWithAuth({
     ctx,
-    params.setup.openRouterAuth,
-    params.setup.profileId,
-    params.doc.title,
-    content,
-  );
+    auth: params.setup.openRouterAuth,
+    profileId: params.setup.profileId,
+    feature: "connector-sync",
+    text: embedTextForSyncedDoc(params.doc.title, content),
+    failureLog: "connector sync embedding failed",
+  });
   await upsertFromSource(params.setup.driver, {
     userId: params.clerkId,
     profileId: params.setup.profileId,
@@ -132,6 +159,69 @@ export async function upsertSyncedDoc(
     embedding,
   });
   return params.totalSynced + 1;
+}
+
+/**
+ * Embed + upsert many synced documents. Embeds in chunks of
+ * `EMBEDDING_BATCH_SIZE`, falling back to per-doc embeds when a batch
+ * returns all nulls despite auth being present. Upserts sequentially and
+ * reports progress every 10 items via `maybeReportProgress`.
+ */
+export async function upsertSyncedDocs(
+  ctx: ActionCtx,
+  params: {
+    setup: SyncSetup;
+    clerkId: string;
+    docs: SyncedDoc[];
+    totalSynced: number;
+    connectorId: Id<"connectors">;
+    totalFound: number;
+  },
+): Promise<number> {
+  let totalSynced = params.totalSynced;
+  const prepared = params.docs.map((doc) => {
+    const content = doc.content.slice(0, EMBED_CONTENT_CAP);
+    return { doc, content, text: embedTextForSyncedDoc(doc.title, content) };
+  });
+
+  for (
+    let offset = 0;
+    offset < prepared.length;
+    offset += EMBEDDING_BATCH_SIZE
+  ) {
+    const chunk = prepared.slice(offset, offset + EMBEDDING_BATCH_SIZE);
+    const embeddings = await embedSyncedDocChunk(
+      ctx,
+      params.setup.openRouterAuth,
+      params.setup.profileId,
+      chunk.map((item) => item.text),
+    );
+
+    for (let i = 0; i < chunk.length; i++) {
+      const item = chunk[i];
+      const embedding = embeddings[i] ?? null;
+      if (!item) continue;
+
+      await upsertFromSource(params.setup.driver, {
+        userId: params.clerkId,
+        profileId: params.setup.profileId,
+        title: item.doc.title,
+        content: item.content,
+        sourceType: item.doc.sourceType,
+        sourceId: item.doc.sourceId,
+        sourceUrl: item.doc.sourceUrl,
+        embedding,
+      });
+      totalSynced += 1;
+      await maybeReportProgress(ctx, {
+        connectorId: params.connectorId,
+        totalSynced,
+        totalFound: params.totalFound,
+      });
+    }
+  }
+
+  return totalSynced;
 }
 
 /**

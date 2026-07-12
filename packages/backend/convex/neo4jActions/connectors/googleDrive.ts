@@ -13,10 +13,10 @@ import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
   markSyncComplete,
-  maybeReportProgress,
   setupSync,
-  upsertSyncedDoc,
+  upsertSyncedDocs,
   withConnectorSyncError,
+  type SyncedDoc,
 } from "./shared";
 
 export interface GoogleDriveSyncArgs {
@@ -61,6 +61,7 @@ export async function runGoogleDriveSync(
         const files = listResponse.data.files ?? [];
         totalFound += files.length;
 
+        const pageDocs: SyncedDoc[] = [];
         for (const file of files) {
           if (!file.id || !file.name) continue;
 
@@ -75,30 +76,29 @@ export async function runGoogleDriveSync(
                 ? exportResponse.data
                 : String(exportResponse.data);
 
-            totalSynced = await upsertSyncedDoc(ctx, {
-              setup,
-              clerkId: args.clerkId,
-              totalSynced,
-              doc: {
-                title: file.name,
-                content,
-                sourceType: "google_drive",
-                sourceId: file.id,
-                sourceUrl:
-                  file.webViewLink ??
-                  `https://drive.google.com/file/d/${file.id}`,
-              },
-            });
-            await maybeReportProgress(ctx, {
-              connectorId: args.connectorId,
-              totalSynced,
-              totalFound,
+            pageDocs.push({
+              title: file.name,
+              content,
+              sourceType: "google_drive",
+              sourceId: file.id,
+              sourceUrl:
+                file.webViewLink ??
+                `https://drive.google.com/file/d/${file.id}`,
             });
           } catch (fileErr) {
             console.error(`Failed to sync file ${file.name}:`, fileErr);
             // Continue with other files
           }
         }
+
+        totalSynced = await upsertSyncedDocs(ctx, {
+          setup,
+          clerkId: args.clerkId,
+          docs: pageDocs,
+          totalSynced,
+          connectorId: args.connectorId,
+          totalFound,
+        });
 
         pageToken = listResponse.data.nextPageToken ?? undefined;
       } while (pageToken);
