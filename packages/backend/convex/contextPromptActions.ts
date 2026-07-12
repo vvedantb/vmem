@@ -7,6 +7,7 @@ import type { Id } from "./_generated/dataModel";
 import { listMemories } from "../engine/neo4j/memory/crud";
 import { getDriver } from "../engine/neo4j/driver";
 import { buildSkillsIndexAddition } from "@vmem/shared";
+import { toSkillIndexEntry } from "./skills";
 import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
 import { callOpenRouterChat, LLM_MODEL } from "./lib/openRouter";
 
@@ -204,10 +205,7 @@ export const regenerateContextPromptInternal = internalAction({
       { clerkId: args.clerkId },
     );
     const skillsIndex = buildSkillsIndexAddition(
-      skillRows.map((skill) => ({
-        name: skill.name,
-        description: skill.description,
-      })),
+      skillRows.map(toSkillIndexEntry),
       { mcpClient: true },
     );
     if (skillsIndex.length > 0) {

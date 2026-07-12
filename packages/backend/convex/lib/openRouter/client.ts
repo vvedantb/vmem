@@ -94,7 +94,7 @@ export function isTransientNetworkError(err: unknown): boolean {
       if (TRANSIENT_MESSAGE_FRAGMENTS.some((f) => message.includes(f))) {
         return true;
       }
-      current = current.cause;
+      current = "cause" in current ? current.cause : undefined;
     } else {
       break;
     }

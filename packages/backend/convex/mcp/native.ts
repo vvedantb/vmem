@@ -2,21 +2,32 @@ import { httpAction } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
-import { getMcpResourceDocumentationUrl, getWebAppUrl } from "./webAppUrl";
 import { z } from "zod";
+
+function getWebAppUrl(): string {
+  const url = process.env.WEB_APP_URL;
+  if (!url) {
+    throw new Error("WEB_APP_URL is not set in Convex env");
+  }
+  return url.replace(/\/$/, "");
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OAuth Metadata
 // ─────────────────────────────────────────────────────────────────────────────
 
+function requestOrigin(request: Request): string {
+  return new URL(request.url).origin;
+}
+
 export const oauthMetadata = httpAction(async (_ctx, request) => {
-  const baseUrl = new URL(request.url).origin;
+  const baseUrl = requestOrigin(request);
   return Response.json({
     issuer: baseUrl,
     authorization_endpoint: `${baseUrl}/mcp/oauth/authorize`,
     token_endpoint: `${baseUrl}/mcp/oauth/token`,
     registration_endpoint: `${baseUrl}/mcp/oauth/register`,
-    service_documentation: getMcpResourceDocumentationUrl(),
+    service_documentation: getWebAppUrl(),
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code", "refresh_token"],
     code_challenge_methods_supported: ["S256"],
@@ -24,15 +35,24 @@ export const oauthMetadata = httpAction(async (_ctx, request) => {
   });
 });
 
-export const protectedResourceMetadata = httpAction(async (_ctx, request) => {
-  const baseUrl = new URL(request.url).origin;
-  return Response.json({
-    resource: `${baseUrl}/mcp`,
-    authorization_servers: [baseUrl],
-    bearer_methods_supported: ["header"],
-    resource_documentation: getMcpResourceDocumentationUrl(),
+function createProtectedResourceMetadataAction(
+  resourcePath: "/mcp" | "/mcp/team",
+) {
+  return httpAction(async (_ctx, request) => {
+    const baseUrl = requestOrigin(request);
+    return Response.json({
+      resource: `${baseUrl}${resourcePath}`,
+      authorization_servers: [baseUrl],
+      bearer_methods_supported: ["header"],
+      resource_documentation: getWebAppUrl(),
+    });
   });
-});
+}
+
+export const protectedResourceMetadata =
+  createProtectedResourceMetadataAction("/mcp");
+export const protectedResourceMetadataTeam =
+  createProtectedResourceMetadataAction("/mcp/team");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OAuth Client Registration
@@ -296,24 +316,12 @@ export const token = httpAction(async (ctx, request) => {
 // MCP Endpoint
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const protectedResourceMetadataTeam = httpAction(
-  async (_ctx, request) => {
-    const baseUrl = new URL(request.url).origin;
-    return Response.json({
-      resource: `${baseUrl}/mcp/team`,
-      authorization_servers: [baseUrl],
-      bearer_methods_supported: ["header"],
-      resource_documentation: getMcpResourceDocumentationUrl(),
-    });
-  },
-);
-
 async function runMcpEndpoint(
   ctx: ActionCtx,
   request: Request,
   scope: "personal" | "team",
 ): Promise<Response> {
-  const baseUrl = new URL(request.url).origin;
+  const baseUrl = requestOrigin(request);
   const resourceMetadataUrl =
     scope === "team"
       ? `${baseUrl}/.well-known/oauth-protected-resource/mcp/team`

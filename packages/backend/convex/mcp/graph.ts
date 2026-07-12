@@ -2,7 +2,7 @@
 
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { resolveProfileIdForMcpScope } from "../neo4jActions/_memories/shared";
 import { mcpScopeValidator } from "../profiles/mcpAccess";
 
@@ -56,22 +56,11 @@ const MAX_TAG_EDGES_PER_NODE = 3;
 const MAX_EDGE_REASON_CHARS = 120;
 const MAX_TAGS_PER_NODE = 12;
 
-type MemoryGraphNode = {
-  id: string;
-  title: string;
-  tags: string[];
-  createdAt: string;
-  type?: "profile" | "episodic" | "knowledge";
-};
+type MemoryGraphNode = Infer<typeof memoryGraphNodeValidator>;
+type RelatesToEdge = Infer<typeof relatesToEdgeValidator>;
+type McpTagEdge = Infer<typeof tagEdgeValidator>;
 
-type RelatesToEdge = {
-  source: string;
-  target: string;
-  reason: string;
-  score?: number;
-};
-
-type McpTagEdge = {
+type RawTagEdge = {
   source: string;
   target: string;
   weight: number;
@@ -80,18 +69,16 @@ type McpTagEdge = {
 type RawGraph = {
   nodes: MemoryGraphNode[];
   relatesToEdges: RelatesToEdge[];
-  tagEdges: Array<McpTagEdge & { sharedTags: string[] }>;
-  /** Total active memories on the server (global fetches only). */
-  totalMemoryCount?: number;
+  tagEdges: RawTagEdge[];
+  totalMemoryCount: number;
 };
 
-type McpGraphSlice = {
-  nodes: MemoryGraphNode[];
-  relatesToEdges: RelatesToEdge[];
-  tagEdges: McpTagEdge[];
-};
+type McpGraphSlice = Pick<
+  Infer<typeof mcpMemoryGraphResultValidator>,
+  "nodes" | "relatesToEdges" | "tagEdges"
+>;
 
-function toMcpTagEdges(edges: RawGraph["tagEdges"]): McpTagEdge[] {
+function toMcpTagEdges(edges: RawTagEdge[]): McpTagEdge[] {
   return edges.map((e) => ({
     source: e.source,
     target: e.target,
@@ -104,8 +91,13 @@ function normalizeLimit(limit: number | undefined): number {
   return Math.min(Math.max(Math.floor(limit), 1), MAX_NODE_LIMIT);
 }
 
+type ExpandableGraphSlice = Pick<
+  RawGraph,
+  "nodes" | "relatesToEdges" | "tagEdges"
+>;
+
 function expandMemoryIdSeeds(
-  graph: RawGraph,
+  graph: ExpandableGraphSlice,
   memoryIds: string[],
 ): McpGraphSlice {
   const seeds = new Set(memoryIds);
@@ -249,7 +241,7 @@ export const mcpGetMemoryGraph = internalAction({
 
     const isPlainGlobal = focus === undefined && args.memoryIds === undefined;
 
-    const raw: RawGraph = await ctx.runAction(
+    const raw = await ctx.runAction(
       internal.neo4jActions.graph.getGraphDataInternal,
       {
         clerkId: args.clerkId,
@@ -269,13 +261,14 @@ export const mcpGetMemoryGraph = internalAction({
     };
 
     if (args.memoryIds !== undefined && args.memoryIds.length > 1) {
-      working = expandMemoryIdSeeds(raw, args.memoryIds);
-    } else if (
-      args.memoryIds !== undefined &&
-      args.memoryIds.length === 1 &&
-      focus === undefined
-    ) {
-      working = expandMemoryIdSeeds(raw, args.memoryIds);
+      working = expandMemoryIdSeeds(
+        {
+          nodes: raw.nodes,
+          relatesToEdges: raw.relatesToEdges,
+          tagEdges: raw.tagEdges,
+        },
+        args.memoryIds,
+      );
     }
 
     const capped = capMemoryGraph(

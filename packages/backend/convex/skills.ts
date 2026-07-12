@@ -37,6 +37,13 @@ export interface EffectiveSkill {
   systemSkillId?: Id<"systemSkills">;
 }
 
+export type SkillIndexSlice = Pick<EffectiveSkill, "name" | "description">;
+
+/** Name + description for skills index surfaces (MCP, context prompt, chat). */
+export function toSkillIndexEntry(skill: SkillIndexSlice): SkillIndexSlice {
+  return { name: skill.name, description: skill.description };
+}
+
 /**
  * Resolve a user's EFFECTIVE skills = their enabled personal skills + the
  * system skills they have installed-and-enabled (resolved LIVE from the

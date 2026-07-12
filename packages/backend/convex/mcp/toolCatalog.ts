@@ -265,3 +265,24 @@ export const toolSpecs = {
     run: runCodebaseGraph,
   }),
 };
+
+/** Erased bindable tool — shared return type for MCP registration loops. */
+export type McpBindableTool = {
+  readonly name: string;
+  readonly schema: z.ZodObject<z.ZodRawShape>;
+  readonly run: (
+    h: ToolHandlerContext,
+    params: z.infer<z.ZodObject<z.ZodRawShape>>,
+  ) => Promise<ToolHandlerResult>;
+};
+
+/** Type-erased runner for MCP registration loops. */
+export function bindToolSpec<Shape extends z.ZodRawShape>(
+  spec: ToolSpec<Shape>,
+): McpBindableTool {
+  return {
+    name: spec.name,
+    schema: spec.schema,
+    run: (h, params) => spec.run(h, spec.schema.parse(params)),
+  };
+}

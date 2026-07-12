@@ -8,12 +8,6 @@ import type { ActionCtx } from "../_generated/server";
 
 type CodebaseStatus = Doc<"codebases">["status"];
 
-/** MCP/JSON may deliver floats (e.g. 25.0); normalize before Neo4j hops. */
-function normalizeOptionalInt(value: number | undefined): number | undefined {
-  if (value === undefined) return undefined;
-  return Math.trunc(value);
-}
-
 interface McpCodebaseSummary {
   id: string;
   repoFullName: string;
@@ -119,6 +113,12 @@ interface SearchResult {
     qualifiedName: string;
     filePath: string;
   }>;
+}
+
+/** MCP/JSON may deliver floats (e.g. 25.0); normalize before Neo4j hops. */
+function normalizeOptionalInt(value: number | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  return Math.trunc(value);
 }
 
 const symbolKindValidator = v.union(
