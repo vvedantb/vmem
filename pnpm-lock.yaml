@@ -127,7 +127,7 @@ catalogs:
       specifier: 7.0.1-rc
       version: 7.0.1-rc
     zod:
-      specifier: 3.25.76
+      specifier: ^3.25.76
       version: 3.25.76
   node-types-20:
     '@types/node':
@@ -496,9 +496,6 @@ importers:
       '@tabler/icons-react':
         specifier: 'catalog:'
         version: 3.41.1(react@19.2.0)
-      '@tailwindcss/oxide-win32-x64-msvc':
-        specifier: ^4.3.2
-        version: 4.3.2
       '@tanstack/react-hotkeys':
         specifier: ^0.9.1
         version: 0.9.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -4226,12 +4223,6 @@ packages:
 
   '@tailwindcss/oxide-win32-x64-msvc@4.2.2':
     resolution: {integrity: sha512-1T/37VvI7WyH66b+vqHj/cLwnCxt7Qt3WFu5Q8hk65aOvlwAhs7rAp1VkulBJw/N4tMirXjVnylTR72uI0HGcA==}
-    engines: {node: '>= 20'}
-    cpu: [x64]
-    os: [win32]
-
-  '@tailwindcss/oxide-win32-x64-msvc@4.3.2':
-    resolution: {integrity: sha512-QI9BO7KlNZsp2GuO0jwAAj5jCDABOKXRkCk2XuKTSaNEFSdfzqswYVTtCHBNKHLsqyjFyFkqlDiwkNbTYSssMQ==}
     engines: {node: '>= 20'}
     cpu: [x64]
     os: [win32]
@@ -13469,8 +13460,6 @@ snapshots:
 
   '@tailwindcss/oxide-win32-x64-msvc@4.2.2':
     optional: true
-
-  '@tailwindcss/oxide-win32-x64-msvc@4.3.2': {}
 
   '@tailwindcss/oxide@4.2.2':
     optionalDependencies:
