@@ -1,0 +1,3 @@
+# Generated files (the generator's header says to exclude them from formatters;
+# formatting them fights the generator and dirties the tree on every dev run)
+**/routeTree.gen.ts
