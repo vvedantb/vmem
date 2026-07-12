@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { extractJsonString } from "../llm/extractJsonString";
 
 /**
@@ -95,6 +96,11 @@ ${evidenceBlock}
 Respond with ONLY the JSON object specified above.`;
 }
 
+const portraitResponseSchema = z.object({
+  portrait: z.string(),
+  sourceMemoryIds: z.array(z.string()).optional(),
+});
+
 /**
  * Parse the portrait response. Returns null when the JSON is malformed,
  * the portrait is empty, or no valid source ids survive validation — a
@@ -105,30 +111,21 @@ export function parsePortraitResponse(
   evidenceIds: string[],
 ): ParsedPortrait | null {
   try {
-    const jsonStr = extractJsonString(raw);
-    const parsed: unknown = JSON.parse(jsonStr);
-    if (typeof parsed !== "object" || parsed === null) return null;
+    const parsed = portraitResponseSchema.safeParse(
+      JSON.parse(extractJsonString(raw)),
+    );
+    if (!parsed.success) return null;
 
-    const portraitRaw = Reflect.get(parsed, "portrait");
-    const sourceIdsRaw = Reflect.get(parsed, "sourceMemoryIds");
-
-    const portrait =
-      typeof portraitRaw === "string"
-        ? portraitRaw.trim().slice(0, PORTRAIT_CHAR_CAP)
-        : "";
+    const portrait = parsed.data.portrait.trim().slice(0, PORTRAIT_CHAR_CAP);
     if (portrait.length === 0) return null;
 
     const validIds = new Set<string>(evidenceIds);
+    const seen = new Set<string>();
     const sourceMemoryIds: string[] = [];
-    if (Array.isArray(sourceIdsRaw)) {
-      const seen = new Set<string>();
-      for (const id of sourceIdsRaw) {
-        if (typeof id !== "string") continue;
-        if (!validIds.has(id)) continue;
-        if (seen.has(id)) continue;
-        seen.add(id);
-        sourceMemoryIds.push(id);
-      }
+    for (const id of parsed.data.sourceMemoryIds ?? []) {
+      if (!validIds.has(id) || seen.has(id)) continue;
+      seen.add(id);
+      sourceMemoryIds.push(id);
     }
     if (sourceMemoryIds.length === 0) return null;
 

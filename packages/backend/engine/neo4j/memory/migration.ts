@@ -244,11 +244,21 @@ export async function listMissingSemanticEdges(
        LIMIT $limit`,
       { limit: neo4j.int(limit) },
     );
-    return result.records.map((r) => ({
-      id: String(r.get("id")),
-      userId: String(r.get("userId")),
-      embedding: r.get("embedding") as number[],
-    }));
+    return result.records.flatMap((r) => {
+      const rawEmbedding: unknown = r.get("embedding");
+      if (!Array.isArray(rawEmbedding)) return [];
+      const embedding: number[] = rawEmbedding.filter(
+        (x): x is number => typeof x === "number",
+      );
+      if (embedding.length === 0) return [];
+      return [
+        {
+          id: String(r.get("id")),
+          userId: String(r.get("userId")),
+          embedding,
+        },
+      ];
+    });
   });
 }
 
