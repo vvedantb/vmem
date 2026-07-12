@@ -1,0 +1,211 @@
+---
+title: "HTTP Memories API"
+description: "Store, retrieve, and update memories via API key Bearer auth"
+---
+
+Programmatic memory access over HTTP. Authenticate with a dashboard API key (`vmem_sk_*`) — not Clerk or MCP OAuth.
+
+Use the [`@vmem/sdk`](/sdk/quickstart) package for the agentic interface (`store`, `update`, `retrieve`).
+
+**Base URL:** `https://<your-deployment>.convex.site`
+
+**Auth header:** `Authorization: Bearer vmem_sk_...`
+
+All successful responses use `{ "data": ... }`. Errors return `{ "error": "..." }` (validation errors include `issues`).
+
+Agentic modes (`instruction` body) require an **OpenRouter API key** in dashboard env vars. Missing key returns `422` with `{ "error": "openrouter_required" }`.
+
+---
+
+## Store (create)
+
+`POST /api/v1/memories`
+
+### Structured mode
+
+```bash
+curl -X POST "https://<deployment>.convex.site/api/v1/memories" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Preferred stack",
+    "content": "User prefers Next.js with Convex backend",
+    "type": "profile",
+    "source": "api",
+    "tags": ["tech"],
+    "confidence": 0.95
+  }'
+```
+
+| Field        | Type     | Required                                 |
+| ------------ | -------- | ---------------------------------------- |
+| `title`      | string   | yes                                      |
+| `content`    | string   | yes                                      |
+| `type`       | string   | yes (`profile`, `episodic`, `knowledge`) |
+| `source`     | string   | yes                                      |
+| `tags`       | string[] | yes                                      |
+| `confidence` | number   | yes                                      |
+| `expiresAt`  | string   | no (ISO 8601)                            |
+| `url`        | string   | no                                       |
+| `profileId`  | string   | no                                       |
+| `externalId` | string   | no                                       |
+| `sourceType` | string   | no                                       |
+
+**Returns:** `MemoryWithTags`
+
+### Instruction mode (SDK `store()`)
+
+```bash
+curl -X POST "https://<deployment>.convex.site/api/v1/memories" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instruction": "User switched from Neovim to Helix"
+  }'
+```
+
+| Field         | Type   | Required |
+| ------------- | ------ | -------- |
+| `instruction` | string | yes      |
+| `profileId`   | string | no       |
+
+**Returns:**
+
+```typescript
+{
+  created: MemoryWithTags[];
+  summary: string;
+}
+```
+
+---
+
+## Retrieve
+
+`POST /api/v1/memories/retrieve`
+
+Semantic search over the caller's memories (defaults to active profile when `profileId` is omitted).
+
+```bash
+curl -X POST "https://<deployment>.convex.site/api/v1/memories/retrieve" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What stack does the user prefer?",
+    "limit": 10
+  }'
+```
+
+| Field       | Type     | Required                               |
+| ----------- | -------- | -------------------------------------- |
+| `query`     | string   | yes                                    |
+| `limit`     | number   | no (default `10`)                      |
+| `type`      | string   | no                                     |
+| `tags`      | string[] | no                                     |
+| `profileId` | string   | no                                     |
+| `summarize` | boolean  | no — LLM summary (requires OpenRouter) |
+
+**Returns:**
+
+```typescript
+{
+  memories: MemoryCandidate[];
+  userContext: { aboutMe: string | null; preferences: string | null };
+  summary?: string; // when summarize: true
+}
+```
+
+---
+
+## Update
+
+`PATCH /api/v1/memories`
+
+### Structured mode
+
+```bash
+curl -X PATCH "https://<deployment>.convex.site/api/v1/memories" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "memoryId": "mem_abc",
+    "status": "pinned"
+  }'
+```
+
+| Field        | Type           | Required |
+| ------------ | -------------- | -------- |
+| `memoryId`   | string         | yes      |
+| `title`      | string         | no       |
+| `content`    | string         | no       |
+| `type`       | string         | no       |
+| `status`     | string         | no       |
+| `tags`       | string[]       | no       |
+| `confidence` | number         | no       |
+| `expiresAt`  | string \| null | no       |
+
+**Returns:** `MemoryWithTags` — `404` when memory not found
+
+### Instruction mode (SDK `update()`)
+
+```bash
+curl -X PATCH "https://<deployment>.convex.site/api/v1/memories" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instruction": "Actually the user uses Zed now, not Helix"
+  }'
+```
+
+| Field         | Type   | Required |
+| ------------- | ------ | -------- |
+| `instruction` | string | yes      |
+| `profileId`   | string | no       |
+
+**Returns:**
+
+```typescript
+{
+  applied: MemoryWithTags[];
+  proposals: ProposedUpdate[];
+  summary: string;
+}
+```
+
+Conflicting updates create **proposed updates** for inbox review — never silent overwrites.
+
+---
+
+## Delete
+
+`DELETE /api/v1/memories`
+
+Permanently delete a memory owned by the API key holder.
+
+```bash
+curl -X DELETE "https://<deployment>.convex.site/api/v1/memories" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "memoryId": "mem_abc" }'
+```
+
+| Field      | Type   | Required |
+| ---------- | ------ | -------- |
+| `memoryId` | string | yes      |
+
+**Returns:** `{ "deleted": true }` — `404` when memory not found
+
+---
+
+## Errors
+
+| Status | Meaning                                                 |
+| ------ | ------------------------------------------------------- |
+| `401`  | Missing/invalid Bearer token or revoked key             |
+| `400`  | Invalid JSON or request body                            |
+| `403`  | No access to the given `profileId`                      |
+| `404`  | Memory not found (structured PATCH)                     |
+| `422`  | OpenRouter key required for instruction/summarize modes |
+| `500`  | Server error (generic message, no stack trace)          |
+
+Usage is recorded per request (`requestCount`, `lastUsedAt` on the key). See [API Keys](/features/api-keys).

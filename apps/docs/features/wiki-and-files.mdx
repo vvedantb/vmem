@@ -1,0 +1,40 @@
+---
+title: "Wiki & Files"
+description: "Personal wiki and file storage"
+---
+
+## Wiki
+
+A personal wiki for long-form notes and documentation, separate from the memory graph.
+
+Route: `/{workspace}/wiki`
+
+### Features
+
+- Folder and document tree (`listTree` — full tree subscription)
+- Create, rename, move, and delete nodes
+- Markdown content editing
+- Full-text search across wiki documents
+
+Wiki nodes are stored in Convex (`wikiNodes` table) with `kind` distinguishing folders from documents.
+
+## Files
+
+A file manager for uploads, folders, and previews.
+
+Route: `/{workspace}/files`
+
+### Features
+
+- Folder hierarchy with breadcrumb navigation
+- Upload files via drag-and-drop
+- Inline preview for supported file types
+- Move, rename, and delete files and folders
+- Bulk actions
+- URL state for folder navigation via `nuqs`
+
+Files are stored in Convex file storage with metadata in Convex tables.
+
+## Relationship to Memories
+
+Wiki and Files are separate from the Neo4j memory graph. To make file content searchable via memory retrieval, import it as a memory using the file upload flow in the memory create form (`fileImport.importMemoryFromFile`).

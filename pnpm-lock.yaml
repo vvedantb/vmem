@@ -284,6 +284,8 @@ importers:
         specifier: ^6.0.0
         version: 6.4.2(@types/node@25.9.1)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0)
 
+  apps/docs: {}
+
   apps/web:
     dependencies:
       '@clerk/clerk-react':

@@ -1,0 +1,254 @@
+---
+title: "Memories"
+description: "Create, read, update, delete, search, and retrieve memories"
+---
+
+All functions are Convex `authAction`s in `memoryApi`. Call via `client.action(api.memoryApi.<name>, args)`.
+
+## Create Memory
+
+<ParamField body="title" type="string" required>
+  Short title for the memory
+</ParamField>
+<ParamField body="content" type="string" required>
+  The memory content
+</ParamField>
+<ParamField body="type" type="string" required>
+  One of: `profile`, `episodic`, `knowledge`
+</ParamField>
+<ParamField body="source" type="string" required>
+  Where the memory originated (e.g. `manual`, `mcp`, `chatgpt`)
+</ParamField>
+<ParamField body="tags" type="string[]" required>
+  Tags for categorisation
+</ParamField>
+<ParamField body="confidence" type="number" required>
+  Confidence score between 0 and 1
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to save to (defaults to active profile)
+</ParamField>
+<ParamField body="expiresAt" type="string">
+  ISO 8601 expiry date
+</ParamField>
+<ParamField body="externalId" type="string">
+  Stable upstream identifier for idempotent imports
+</ParamField>
+<ParamField body="sourceType" type="string">
+  Source type paired with `externalId` for deduplication
+</ParamField>
+
+```typescript
+await client.action(api.memoryApi.createMemory, {
+  title: "Preferred stack",
+  content: "User prefers Next.js with Convex backend",
+  type: "profile",
+  source: "manual",
+  tags: ["tech", "preferences"],
+  confidence: 0.95,
+});
+```
+
+**Returns:** `MemoryWithTags`
+
+---
+
+## List Memories
+
+<ParamField body="limit" type="number" required />
+<ParamField body="offset" type="number" required />
+<ParamField body="profileId" type="string">
+  Filter by profile
+</ParamField>
+<ParamField body="type" type="string">
+  Filter by memory type
+</ParamField>
+<ParamField body="status" type="string">
+  Filter by status
+</ParamField>
+<ParamField body="source" type="string">
+  Filter by source
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Filter by tags
+</ParamField>
+<ParamField body="searchQuery" type="string">
+  Inline text filter
+</ParamField>
+
+```typescript
+await client.action(api.memoryApi.listMemories, {
+  limit: 20,
+  offset: 0,
+  type: "profile",
+});
+```
+
+**Returns:** `{ memories: MemoryWithTags[], total: number }`
+
+---
+
+## Get Memory
+
+<ParamField body="memoryId" type="string" required />
+
+```typescript
+await client.action(api.memoryApi.getMemory, { memoryId: "mem_abc" });
+```
+
+**Returns:** `MemoryWithTags | null`
+
+---
+
+## Update Memory
+
+<ParamField body="memoryId" type="string" required />
+<ParamField body="title" type="string" />
+<ParamField body="content" type="string" />
+<ParamField body="type" type="string" />
+<ParamField body="status" type="string">
+  One of: `active`, `pinned`, `suppressed`, `expired`
+</ParamField>
+<ParamField body="tags" type="string[]" />
+<ParamField body="confidence" type="number" />
+<ParamField body="expiresAt" type="string | null" />
+
+```typescript
+await client.action(api.memoryApi.updateMemory, {
+  memoryId: "mem_abc",
+  status: "pinned",
+});
+```
+
+**Returns:** `MemoryWithTags | null`
+
+---
+
+## Delete Memory
+
+<ParamField body="memoryId" type="string" required />
+
+```typescript
+await client.action(api.memoryApi.deleteMemory, { memoryId: "mem_abc" });
+```
+
+**Returns:** `boolean`
+
+---
+
+## Delete All Memories
+
+Irreversible. Deletes every memory owned by the calling user plus all dependents (chunks, events, proposed updates, entities).
+
+```typescript
+await client.action(api.memoryApi.deleteAllMemories, {});
+```
+
+**Returns:** `number` (count of deleted memories)
+
+---
+
+## Search Memories
+
+Full-text search across memories.
+
+<ParamField body="limit" type="number" required />
+<ParamField body="offset" type="number" required />
+<ParamField body="query" type="string">
+  Search query text
+</ParamField>
+<ParamField body="type" type="string" />
+<ParamField body="tags" type="string[]" />
+<ParamField body="source" type="string" />
+
+```typescript
+await client.action(api.memoryApi.searchMemories, {
+  query: "TypeScript",
+  limit: 20,
+  offset: 0,
+});
+```
+
+**Returns:** `{ memories: MemoryWithTags[], total: number }`
+
+---
+
+## Retrieve Memories
+
+Semantic retrieval with context trace scoring. Also returns user settings context in parallel.
+
+<ParamField body="query" type="string" required>
+  Natural language query
+</ParamField>
+<ParamField body="limit" type="number" required>
+  Max results (typically 5–8)
+</ParamField>
+<ParamField body="type" type="string">
+  Filter by memory type
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Filter by tags
+</ParamField>
+
+```typescript
+await client.action(api.memoryApi.retrieveMemories, {
+  query: "What tech stack does the user prefer?",
+  limit: 8,
+});
+```
+
+**Returns:**
+
+```typescript
+{
+  memories: MemoryCandidate[];  // includes trace + optional matchedChunk
+  userContext: {
+    aboutMe: string | null;
+    preferences: string | null;
+  };
+}
+```
+
+See [Context Trace](/concepts/context-trace) for score breakdown details.
+
+---
+
+## Get Memory Events
+
+Audit trail for a specific memory.
+
+<ParamField body="memoryId" type="string" required />
+
+```typescript
+await client.action(api.memoryApi.getMemoryEvents, { memoryId: "mem_abc" });
+```
+
+**Returns:** `MemoryEvent[]`
+
+---
+
+## Generate Upload URL
+
+Returns a signed URL for uploading a file to Convex storage. Valid for ~1 hour.
+
+```typescript
+const url = await client.mutation(api.memoryApi.generateMemoryUploadUrl, {});
+```
+
+**Returns:** `string` (upload URL)
+
+---
+
+## Team-Scoped Memories
+
+Team memory operations require a `profileId` (the team's profile Convex ID):
+
+| Function             | Description                     |
+| -------------------- | ------------------------------- |
+| `listTeamMemories`   | List memories on a team profile |
+| `getTeamMemory`      | Get a single team memory        |
+| `searchTeamMemories` | Search team memories            |
+| `updateTeamMemory`   | Update (creator or team owner)  |
+| `deleteTeamMemory`   | Delete (creator or team owner)  |
+
+All verify team membership before hitting Neo4j. See [Teams](/features/teams).

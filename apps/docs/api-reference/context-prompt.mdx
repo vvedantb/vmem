@@ -1,0 +1,42 @@
+---
+title: "Context Prompt"
+description: "Synthesized user profile for implicit memory injection"
+---
+
+Convex `authAction` in `contextPromptApi`.
+
+## Get Context Prompt
+
+Returns the cached synthesized user profile as markdown. Used by the web dashboard and internally by the MCP resource handler.
+
+```typescript
+await client.action(api.contextPromptApi.getContextPrompt, {});
+```
+
+**Returns:**
+
+```typescript
+{
+  content: string; // markdown profile
+  generatedAt: number; // timestamp (0 if placeholder)
+  isPlaceholder: boolean; // true on first call before regeneration
+}
+```
+
+## Content Model
+
+The context prompt is built from:
+
+1. **User settings** — `aboutMe` and `preferences` from user settings
+2. **Pinned memories** — up to 20 verbatim pinned memory contents
+3. **Profile summary** — LLM-generated prose from recent memories (when OpenRouter is configured)
+
+## Caching
+
+- First call with no cache returns a placeholder and schedules background regeneration
+- Cache older than 24 hours triggers a refresh (returns stale content immediately)
+- Memory writes schedule regeneration with a 60-second debounce
+
+## MCP Resource
+
+The same content is served via the `vmem://context_prompt` MCP Resource. See [Implicit Memory](/mcp/implicit-memory).

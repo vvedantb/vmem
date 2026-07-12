@@ -1,0 +1,37 @@
+---
+title: "Enrichment"
+description: "Automatic semantic tagging, related-memory linking, and entity extraction"
+---
+
+## What is Enrichment?
+
+After a memory is created, vmem automatically adds semantic tags, links related memories, and extracts named entities. Enrichment runs **server-side** on Convex, using an LLM call through OpenRouter — it is not tied to any client and requires no local model.
+
+## What Enrichment Does
+
+1. **Semantic tags** — Generates relevant tags based on memory content
+2. **Related memories** — Finds and links to existing memories via `:RELATES_TO` edges in Neo4j
+3. **Entities** — Extracts people, organizations, places, and technologies and links them via `:MENTIONS` edges
+
+## When Enrichment Runs
+
+Enrichment is scheduled automatically after every memory create, regardless of source (web, MCP `memory_add`, import, Chrome extension). It runs once, immediately, as a background Convex action — there is no client-side queue or per-client trigger.
+
+## Pipeline
+
+```
+Memory created → schedule enrichMemoryInternal (Convex action)
+  → Gather recent memory titles + existing tag/entity vocabulary from Neo4j
+  → Build enrichment prompt (convex/prompts/enrichmentPrompt)
+  → Call OpenRouter (feature: enrichment)
+  → Parse tags, related memory IDs, and entities
+  → Apply to Neo4j (tags, RELATES_TO, MENTIONS)
+```
+
+## Requirements
+
+Enrichment requires an `OPENROUTER_API_KEY` to be configured for the user. If no key is configured, or the LLM call fails, enrichment is skipped silently — the memory itself is still saved.
+
+## API
+
+Enrichment runs internally as `neo4jActions.enrichment.enrichMemoryInternal`, scheduled by memory creation. It is not called directly by clients or third-party integrations.

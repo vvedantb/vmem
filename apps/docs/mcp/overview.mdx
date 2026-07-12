@@ -1,0 +1,89 @@
+---
+title: "MCP Overview"
+description: "Connect vmem to any MCP-compatible AI client"
+---
+
+## What is MCP?
+
+The Model Context Protocol (MCP) is a standard for connecting AI models to external data and tools. vmem uses MCP to provide memory capabilities to any compatible client — Claude, Cursor, Windsurf, and more.
+
+## How vmem Uses MCP
+
+vmem uses MCP primitives differently from most memory tools:
+
+| Primitive     | Standard Usage                       | vmem Usage                                                             |
+| ------------- | ------------------------------------ | ---------------------------------------------------------------------- |
+| **Resources** | Context injected before LLM responds | Synthesized user profile auto-loaded via `vmem://context_prompt`       |
+| **Tools**     | LLM explicitly calls them            | `memory_add`, `memory_search`, `memory_retrieve` — intentional actions |
+| **Prompts**   | System prompt templates              | Not used — context is delivered via the Resource                       |
+
+The key insight: **reading memories is implicit, writing is explicit.**
+
+## MCP Endpoint
+
+```
+POST https://<your-deployment>.convex.site/mcp
+```
+
+Authenticated via OAuth + Bearer JWT. See [MCP Setup](/mcp/setup) for configuration steps.
+
+## Quick Tool Reference
+
+| Tool                     | Description                                                                 |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `ping`                   | Health check                                                                |
+| `whoami`                 | Authenticated user ID and active profile                                    |
+| `list_profiles`          | List available profiles                                                     |
+| `set_active_profile`     | Set default profile for MCP memory tools                                    |
+| `memory_search`          | Search memories by query, type, tags                                        |
+| `memory_retrieve`        | Semantic retrieval with context trace                                       |
+| `memory_add`             | Store a new memory                                                          |
+| `memory_add_instruction` | Extract and store facts from natural language (OpenRouter)                  |
+| `memory_update`          | Update an existing memory                                                   |
+| `memory_delete`          | Delete a memory                                                             |
+| `memory_related`         | 1-hop linked memories for a memory id                                       |
+| `skills_list`            | List user's skills                                                          |
+| `skills_get`             | Fetch a skill by name                                                       |
+| `skills_create`          | Create a skill for a new repeatable workflow (when none exists yet)         |
+| `skills_update`          | Patch an existing skill's name, description, instructions, or enabled state |
+| `skills_delete`          | Permanently delete a skill by name                                          |
+| `wiki_list`              | Flat wiki index (folders + documents)                                       |
+| `wiki_get`               | Fetch wiki node by id with markdown body                                    |
+| `wiki_search`            | Full-text search wiki titles and bodies                                     |
+| `wiki_create`            | Create folder or document (markdown in)                                     |
+| `wiki_update`            | Rename or replace/append document body                                      |
+| `wiki_delete`            | Delete a wiki node and all descendants                                      |
+| `codebases_list`         | List connected GitHub repos                                                 |
+| `codebase_search`        | Search symbols in a synced codebase                                         |
+| `codebase_context`       | Symbol detail and call relationships                                        |
+| `codebase_impact`        | Upstream/downstream blast radius                                            |
+| `codebase_graph`         | Filtered code graph subgraph                                                |
+| `codebase_overview`      | Aggregate codebase stats                                                    |
+
+See [MCP Tools Reference](/mcp/tools) for full parameter details.
+
+## MCP Resource
+
+| URI                     | Description                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| `vmem://context_prompt` | Synthesized user profile (about, preferences, pinned memories, activity summary) |
+
+See [Implicit Memory](/mcp/implicit-memory) for how this works.
+
+## Testing
+
+Use the MCP Playground at `/settings/playground` in the web app to test tools and OAuth flow locally.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Setup" icon="wrench" href="/mcp/setup">
+    Configure Claude, Cursor, or other MCP clients
+  </Card>
+  <Card title="Implicit Memory" icon="brain" href="/mcp/implicit-memory">
+    How context injection works without tool calls
+  </Card>
+  <Card title="Tools Reference" icon="code" href="/mcp/tools">
+    Full tool parameter documentation
+  </Card>
+</CardGroup>

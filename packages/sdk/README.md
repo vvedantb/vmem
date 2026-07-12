@@ -76,8 +76,8 @@ try {
 
 ## Docs
 
-- [SDK quickstart](https://vmem.vedantb.com/sdk/quickstart)
-- [HTTP Memories API](https://vmem.vedantb.com/api-reference/http-memories)
+- [SDK quickstart](https://github.com/vedantb2/vmem/blob/main/apps/docs/sdk/quickstart.mdx)
+- [HTTP Memories API](https://github.com/vedantb2/vmem/blob/main/apps/docs/api-reference/http-memories.mdx)
 
 ## License
 

@@ -1,0 +1,47 @@
+---
+title: "Skills"
+description: "Reusable instruction modules for AI agents"
+---
+
+## Overview
+
+Skills are reusable instruction modules — a name, description, and markdown instructions that AI agents can consult during conversations.
+
+Route: `/{workspace}/skills`
+
+## Creating a Skill
+
+1. Go to **Skills** in the sidebar
+2. Click **Create skill**
+3. Enter name, description, and markdown instructions
+4. Save
+
+Skills are stored in Convex and associated with your user account.
+
+## MCP Integration
+
+Skills appear in the **Available Skills** section of the `vmem://context_prompt` MCP resource (refreshed when skills change). MCP clients also have:
+
+| Tool            | Description                                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `skills_list`   | List enabled skills (name + description only)                                                                       |
+| `skills_get`    | Fetch a single skill by exact name, including full markdown instructions                                            |
+| `skills_create` | Create a skill when a repeatable problem or automatable workflow was identified and no existing skill covers it yet |
+| `skills_update` | Update an existing skill when its playbook should change (refinement, rename, disable)                              |
+
+When a task matches a skill's description, call `skills_get` to load full instructions before following them. Use `skills_create` only after checking the index — not when a matching skill already exists. Use `skills_update` when a skill exists but needs better instructions.
+
+## Mobile Chat & Voice
+
+The skills index is injected into every mobile chat and voice system prompt. When your message mentions a skill by name, its full instructions are loaded for that turn automatically (no MCP tools in local mode).
+
+## API
+
+See [Skills API Reference](/api-reference/skills) for Convex function details.
+
+## Use Cases
+
+- Coding standards and style guides
+- Project-specific workflows
+- Personal assistant personas
+- Domain expertise modules

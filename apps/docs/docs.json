@@ -1,0 +1,107 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "vmem",
+  "logo": {
+    "light": "/logo/icon-light.svg",
+    "dark": "/logo/icon-dark.svg"
+  },
+  "favicon": "/favicon.ico",
+  "colors": {
+    "primary": "#171717",
+    "light": "#737373",
+    "dark": "#fafafa"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture",
+              "environment",
+              "sdk/quickstart",
+              "sdk/publishing"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/types-of-memory",
+              "concepts/profiles",
+              "concepts/context-trace",
+              "concepts/proposed-updates",
+              "concepts/enrichment"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/chrome-extension",
+              "features/mobile",
+              "features/import",
+              "features/teams",
+              "features/skills",
+              "features/codebases",
+              "features/wiki-and-files",
+              "features/connectors",
+              "features/api-keys"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["api-reference/overview"]
+          },
+          {
+            "group": "Memories",
+            "pages": [
+              "api-reference/http-memories",
+              "api-reference/memories",
+              "api-reference/proposed-updates",
+              "api-reference/file-import",
+              "api-reference/context-prompt"
+            ]
+          },
+          {
+            "group": "Dashboard",
+            "pages": ["api-reference/dashboard"]
+          },
+          {
+            "group": "Profiles & Teams",
+            "pages": ["api-reference/profiles", "api-reference/teams"]
+          },
+          {
+            "group": "Skills",
+            "pages": ["api-reference/skills"]
+          }
+        ]
+      },
+      {
+        "tab": "MCP",
+        "groups": [
+          {
+            "group": "MCP Integration",
+            "pages": [
+              "mcp/overview",
+              "mcp/setup",
+              "mcp/implicit-memory",
+              "mcp/tools"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footerSocials": {
+    "github": "https://github.com/vedantbhopatrao/vmem"
+  }
+}

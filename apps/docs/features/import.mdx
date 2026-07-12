@@ -1,0 +1,55 @@
+---
+title: "Import"
+description: "Bring memories in from ChatGPT, Claude, and other AI exports"
+---
+
+## Overview
+
+Import past conversations and data into vmem as episodic memories. Parsing runs entirely client-side — your export files never leave your browser until individual memories are created via Convex.
+
+Route: **Settings → Data Controls → Import** (`/settings/data-controls/import`)
+
+## Supported Providers
+
+| Provider   | Status      | Format                   |
+| ---------- | ----------- | ------------------------ |
+| ChatGPT    | Available   | Official export ZIP/JSON |
+| Claude     | Available   | Official export ZIP/JSON |
+| Grok       | Available   | Export file              |
+| DeepSeek   | Available   | Export file              |
+| Gemini     | Coming soon | —                        |
+| Perplexity | Coming soon | —                        |
+
+## How It Works
+
+1. Upload an export file (ZIP or JSON)
+2. Client parses conversations client-side (`fflate` for ZIP)
+3. Select which conversations to import
+4. Each conversation creates an episodic memory via `memoryApi.createMemory`
+5. Memories are tagged with `import` + provider name (e.g. `chatgpt`)
+6. Enrichment is queued for background processing
+
+## Import Other Data
+
+### Chrome Extension
+
+- **Bookmarks** — bulk import as knowledge memories
+- **History** — bulk import as episodic memories
+
+### File Upload
+
+Upload PDF or text files from the memory create form. Files are stored in Convex storage and processed via `fileImport.importMemoryFromFile`.
+
+## Idempotency
+
+Pass `externalId` and `sourceType` when creating memories programmatically. Re-importing the same source identifier returns the existing memory instead of creating a duplicate.
+
+## Data Controls
+
+Other data control routes:
+
+| Route                            | Description                           |
+| -------------------------------- | ------------------------------------- |
+| `/settings/data-controls/import` | Import from AI exports                |
+| `/settings/data-controls/export` | Export placeholder                    |
+| `/settings/data-controls/danger` | Delete all memories (type-to-confirm) |
