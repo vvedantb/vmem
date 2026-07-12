@@ -50,6 +50,20 @@ async function invalidateInstallers(
   }
 }
 
+/** Find a user's install link for a system skill, if any. */
+async function findInstall(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  systemSkillId: Id<"systemSkills">,
+) {
+  return await ctx.db
+    .query("userSystemSkills")
+    .withIndex("by_user_systemSkill", (q) =>
+      q.eq("userId", userId).eq("systemSkillId", systemSkillId),
+    )
+    .first();
+}
+
 // --- Read ---
 
 /** Whether the current user is a maintainer (gates Hub admin controls). */
@@ -109,12 +123,7 @@ export const install = authMutation({
       throw new Error("System skill not found");
     }
 
-    const existing = await ctx.db
-      .query("userSystemSkills")
-      .withIndex("by_user_systemSkill", (q) =>
-        q.eq("userId", ctx.userId).eq("systemSkillId", args.systemSkillId),
-      )
-      .first();
+    const existing = await findInstall(ctx, ctx.userId, args.systemSkillId);
     if (existing) return existing._id; // already installed — idempotent
 
     // Personal skills and installs share one effective namespace, so a
@@ -147,12 +156,7 @@ export const install = authMutation({
 export const uninstall = authMutation({
   args: { systemSkillId: v.id("systemSkills") },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("userSystemSkills")
-      .withIndex("by_user_systemSkill", (q) =>
-        q.eq("userId", ctx.userId).eq("systemSkillId", args.systemSkillId),
-      )
-      .first();
+    const existing = await findInstall(ctx, ctx.userId, args.systemSkillId);
     if (!existing) return;
     await ctx.db.delete(existing._id);
     await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
@@ -163,12 +167,7 @@ export const uninstall = authMutation({
 export const setInstalledEnabled = authMutation({
   args: { systemSkillId: v.id("systemSkills"), enabled: v.boolean() },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("userSystemSkills")
-      .withIndex("by_user_systemSkill", (q) =>
-        q.eq("userId", ctx.userId).eq("systemSkillId", args.systemSkillId),
-      )
-      .first();
+    const existing = await findInstall(ctx, ctx.userId, args.systemSkillId);
     if (!existing) throw new Error("Not installed");
     await ctx.db.patch(existing._id, { enabled: args.enabled });
     await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
