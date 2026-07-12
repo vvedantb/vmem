@@ -240,25 +240,32 @@ export async function getRecentActivity(
       // the feed can filter / icon them separately from manual creates.
       const isDreamMode = actor === "dream-mode";
 
-      const typeMap: Record<string, string> = {
-        created: isDreamMode ? "memory_dream_created" : "memory_created",
-        updated: "memory_updated",
-        deleted: "memory_deleted",
-      };
-
-      const descMap: Record<string, string> = {
+      const activityMeta: Record<
+        string,
+        { type: string; description: string }
+      > = {
         created: isDreamMode
-          ? `Dream Mode synthesized "${memoryTitle}"`
-          : `Created "${memoryTitle}"`,
-        updated: `Updated "${memoryTitle}"`,
-        deleted: `Deleted "${memoryTitle}"`,
+          ? {
+              type: "memory_dream_created",
+              description: `Dream Mode synthesized "${memoryTitle}"`,
+            }
+          : { type: "memory_created", description: `Created "${memoryTitle}"` },
+        updated: {
+          type: "memory_updated",
+          description: `Updated "${memoryTitle}"`,
+        },
+        deleted: {
+          type: "memory_deleted",
+          description: `Deleted "${memoryTitle}"`,
+        },
       };
+      const meta = activityMeta[action];
 
       return {
         id: props.id,
-        type: typeMap[action] ?? action,
+        type: meta?.type ?? action,
         title: "Memory",
-        description: descMap[action] ?? `${action} "${memoryTitle}"`,
+        description: meta?.description ?? `${action} "${memoryTitle}"`,
         timestamp: createdAt,
         relativeTime,
       };
