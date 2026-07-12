@@ -57,6 +57,17 @@ const cloudMemoryRefsSchema = z
 type ZodShape = z.ZodRawShape;
 
 /**
+ * Bridges the nominal gap between two structurally-identical JSON Schema types:
+ * `zod-to-json-schema` emits its own `JsonSchema7Type` family, while the AI SDK
+ * expects the `json-schema` package's `JSONSchema7` (re-exported from `ai`).
+ * The runtime value is a valid JSON Schema either way, so we re-validate it as a
+ * plain object at this boundary rather than assert across the type families.
+ */
+const providerJsonSchema = z.custom<JSONSchema7>(
+  (value) => typeof value === "object" && value !== null,
+);
+
+/**
  * Convert a catalog zod schema to the JSON schema sent to the provider.
  *
  * This deliberately avoids the AI SDK's `zodSchema()`: type-checking that call
@@ -67,7 +78,9 @@ type ZodShape = z.ZodRawShape;
  * `execute` re-parses its input with `spec.schema.parse`.
  */
 function toToolJsonSchema(schema: z.ZodTypeAny): JSONSchema7 {
-  return zodToJsonSchema(schema, { $refStrategy: "none" });
+  return providerJsonSchema.parse(
+    zodToJsonSchema(schema, { $refStrategy: "none" }),
+  );
 }
 
 /**

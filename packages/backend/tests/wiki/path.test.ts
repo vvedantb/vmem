@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import type { Id } from "../../convex/_generated/dataModel";
 import {
   buildWikiChildrenByParent,
@@ -8,8 +9,12 @@ import {
   type WikiPathNode,
 } from "../../convex/wiki/path";
 
+// Mint a branded wikiNodes id from a raw string for these pure-function tests
+// (no db context to normalize against). zod bridges the brand without `as`.
+const wikiIdSchema = z.custom<Id<"wikiNodes">>((v) => typeof v === "string");
+
 function wikiId(raw: string): Id<"wikiNodes"> {
-  return raw;
+  return wikiIdSchema.parse(raw);
 }
 
 function folder(
