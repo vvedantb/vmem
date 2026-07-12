@@ -63,6 +63,18 @@ export async function assertProfileAccess(
   }
 }
 
+/** Checks profile access only when a profileId is present; no-op otherwise. */
+export async function guardProfileAccess(
+  ctx: ActionCtx,
+  auth: ApiKeyAuth,
+  profileId: string | undefined,
+): Promise<Response | null> {
+  if (!profileId) {
+    return null;
+  }
+  return assertProfileAccess(ctx, auth.userId, profileId);
+}
+
 async function recordUsage(
   ctx: ActionCtx,
   auth: ApiKeyAuth,
