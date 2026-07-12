@@ -9,7 +9,11 @@
  * driver doesn't allow concurrent `.run()` on the same session, so the
  * Promise.all over per-leg sessions is the parallelism contract.
  */
-import { type Driver, type Session } from "neo4j-driver";
+import {
+  type Driver,
+  type Record as NeoRecord,
+  type Session,
+} from "neo4j-driver";
 import { z } from "zod";
 import { clampNeo4jLimit } from "../intParams";
 import { neo4jGet, parseNeo4jInt } from "../record";
@@ -75,6 +79,20 @@ function parseRelatesToEdgeRow(raw: unknown): RelatesToEdge | null {
 function parseEntityRow(raw: unknown): GraphData["entities"][number] | null {
   const parsed = entityRowSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
+}
+
+/** Projects the given fields off a Neo4j record into a plain object keyed by
+ *  column name — the `getLocalGraph` queries return scalar columns rather
+ *  than pre-shaped maps, so each row needs re-assembling before it can be
+ *  handed to the shared `parse*Row` schemas above. */
+function rowFromRecord<K extends string>(
+  r: NeoRecord,
+  keys: readonly K[],
+): Record<K, unknown> {
+  return Object.fromEntries(keys.map((k) => [k, neo4jGet(r, k)])) as Record<
+    K,
+    unknown
+  >;
 }
 
 /**
@@ -458,15 +476,17 @@ export async function getLocalGraph(
       : undefined;
 
     nodes = nodesResult.records.flatMap((r) => {
-      const node = parseGraphNodeRow({
-        id: neo4jGet(r, "id"),
-        title: neo4jGet(r, "title"),
-        tags: neo4jGet(r, "tags"),
-        createdAt: neo4jGet(r, "createdAt"),
-        source: neo4jGet(r, "source"),
-        type: neo4jGet(r, "type"),
-        sourceType: neo4jGet(r, "sourceType"),
-      });
+      const node = parseGraphNodeRow(
+        rowFromRecord(r, [
+          "id",
+          "title",
+          "tags",
+          "createdAt",
+          "source",
+          "type",
+          "sourceType",
+        ] as const),
+      );
       return node === null ? [] : [node];
     });
     nodeIds = nodes.map((n) => n.id);
@@ -524,23 +544,22 @@ export async function getLocalGraph(
 
     const relatesToEdges: RelatesToEdge[] = relatesToResult.records.flatMap(
       (r) => {
-        const parsed = parseRelatesToEdgeRow({
-          source: neo4jGet(r, "source"),
-          target: neo4jGet(r, "target"),
-          reason: neo4jGet(r, "reason"),
-          score: neo4jGet(r, "score"),
-        });
+        const parsed = parseRelatesToEdgeRow(
+          rowFromRecord(r, ["source", "target", "reason", "score"] as const),
+        );
         return parsed ? [parsed] : [];
       },
     );
 
     const entities = entityResult.records.flatMap((r) => {
-      const parsed = parseEntityRow({
-        normalizedName: neo4jGet(r, "normalizedName"),
-        name: neo4jGet(r, "name"),
-        type: neo4jGet(r, "type"),
-        memoryIds: neo4jGet(r, "memoryIds"),
-      });
+      const parsed = parseEntityRow(
+        rowFromRecord(r, [
+          "normalizedName",
+          "name",
+          "type",
+          "memoryIds",
+        ] as const),
+      );
       return parsed ? [parsed] : [];
     });
 
