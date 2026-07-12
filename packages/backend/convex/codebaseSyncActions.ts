@@ -136,13 +136,7 @@ export const syncOneCodebaseInternal = internalAction({
 
       return { ok: true };
     } catch (err) {
-      const narrowed =
-        typeof err === "string" || err instanceof Error
-          ? err
-          : typeof err === "object" && err !== null
-            ? err
-            : null;
-      const message = formatSyncError(narrowed);
+      const message = formatSyncError(err);
       console.error(
         "[codebase-sync]",
         normalizedId,
