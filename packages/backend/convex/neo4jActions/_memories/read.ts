@@ -17,7 +17,10 @@ import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { callOpenRouterChat, LLM_MODEL } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
-import { parseJsonString } from "../../../engine/llm/extractJsonString";
+import {
+  extractJsonString,
+  parseJsonString,
+} from "../../../engine/llm/extractJsonString";
 import {
   toMemoryStatus,
   toMemoryType,
@@ -28,8 +31,52 @@ import {
 const stringArraySchema = z.array(z.string());
 const numberArraySchema = z.array(z.number());
 
+/**
+ * Extract the first balanced top-level `[...]` substring from `source`.
+ * Recovers arrays embedded in prose (e.g. "Here are the queries: [...]")
+ * that `parseJsonString`'s whole-string parse rejects.
+ */
+function extractBalancedArray(source: string): string | null {
+  const start = source.indexOf("[");
+  if (start === -1) return null;
+
+  let depth = 0;
+  for (let i = start; i < source.length; i++) {
+    if (source[i] === "[") depth++;
+    else if (source[i] === "]") {
+      depth--;
+      if (depth === 0) return source.slice(start, i + 1);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Fallback for `parseJsonString` when the LLM wraps its JSON array in
+ * prose: strip fences/think blocks, pull out the first balanced `[...]`,
+ * then parse+validate just that substring.
+ */
+function parseEmbeddedJsonArray<T>(
+  content: string,
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+): T | null {
+  const stripped = extractJsonString(content);
+  const arrayStr = extractBalancedArray(stripped);
+  if (arrayStr === null) return null;
+
+  try {
+    const parsed = schema.safeParse(JSON.parse(arrayStr));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
 function parseStringArray(content: string): string[] {
-  const values = parseJsonString(content, stringArraySchema);
+  const values =
+    parseJsonString(content, stringArraySchema) ??
+    parseEmbeddedJsonArray(content, stringArraySchema);
   const trimmed = values?.map((v) => v.trim()).filter((v) => v.length > 0);
   if (trimmed && trimmed.length > 0) return trimmed;
 
@@ -44,7 +91,9 @@ function parseNumberArray(
   content: string,
   expectedCount: number,
 ): number[] | null {
-  const scores = parseJsonString(content, numberArraySchema);
+  const scores =
+    parseJsonString(content, numberArraySchema) ??
+    parseEmbeddedJsonArray(content, numberArraySchema);
   return scores && scores.length === expectedCount ? scores : null;
 }
 

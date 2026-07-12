@@ -204,7 +204,7 @@ ${candidatesBlock}
 // ──────────────────────────────────────────────────────────────────────
 
 const factItemSchema = z.object({
-  id: z.number().optional(),
+  id: z.number().optional().catch(undefined),
   text: z.string(),
 });
 
@@ -238,9 +238,9 @@ export function parseFactExtractionResponse(
 
 const updateDecisionResponseSchema = z.object({
   event: z.string(),
-  id: z.string().optional(),
-  text: z.string().optional(),
-  old_memory: z.string().optional(),
+  id: z.string().optional().catch(undefined),
+  text: z.string().optional().catch(undefined),
+  old_memory: z.string().optional().catch(undefined),
 });
 
 const updateDecisionEventSchema = z.enum(["ADD", "UPDATE", "DELETE", "NONE"]);

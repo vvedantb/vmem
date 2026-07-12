@@ -85,14 +85,20 @@ function clamp01(value: number | undefined): number {
   return value !== undefined ? Math.max(0, Math.min(1, value)) : 0;
 }
 
-/** Keep only ids that appear in `validIds`, preserving order and uniqueness. */
+/**
+ * Keep only string ids that appear in `validIds`, preserving order and
+ * uniqueness. Entries are validated individually — a non-string entry is
+ * dropped rather than failing the whole array (best-effort side-channel,
+ * same treatment as `confidenceAdjustments`).
+ */
 export function filterValidIds(
-  ids: readonly string[] | undefined,
+  ids: readonly unknown[] | undefined,
   validIds: ReadonlySet<string>,
 ): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const id of ids ?? []) {
+    if (typeof id !== "string") continue;
     if (!validIds.has(id) || seen.has(id)) continue;
     seen.add(id);
     out.push(id);
@@ -196,7 +202,10 @@ const synthesisResponseSchema = z.object({
   title: z.string().optional(),
   content: z.string().optional(),
   reason: z.string().optional(),
-  sourceMemoryIds: z.array(z.string()).optional(),
+  // Array entries are validated individually (see filterValidIds) so a
+  // malformed entry is dropped rather than failing the whole array
+  // (best-effort side-channel, same treatment as confidenceAdjustments).
+  sourceMemoryIds: z.array(z.unknown()).optional(),
   confidence: z.number().finite().optional(),
   // Array entries are validated individually so malformed entries are dropped
   // silently rather than failing the whole array (best-effort side-channel).
@@ -241,7 +250,10 @@ export function parseDreamSynthesisResponse(
   clusterIds: string[],
 ): ParsedSynthesis | null {
   const data = parseJsonString(raw, synthesisResponseSchema);
-  if (!data) return null;
+  if (!data) {
+    console.error("[dream] Failed to parse LLM synthesis response:", raw);
+    return null;
+  }
 
   const type = data.type;
   const title = (data.title ?? "").slice(0, 200);
@@ -370,7 +382,9 @@ const mergeResponseSchema = z.object({
   type: z.string(),
   title: z.string().optional(),
   content: z.string().optional(),
-  sourceMemoryIds: z.array(z.string()).optional(),
+  // Array entries are validated individually (see filterValidIds) so a
+  // malformed entry is dropped rather than failing the whole array.
+  sourceMemoryIds: z.array(z.unknown()).optional(),
   confidence: z.number().finite().optional(),
 });
 
@@ -384,7 +398,11 @@ export function parseMergeSynthesisResponse(
   clusterIds: string[],
 ): ParsedMerge | null {
   const data = parseJsonString(raw, mergeResponseSchema);
-  if (!data || data.type !== "merge") return null;
+  if (!data) {
+    console.error("[dream] Failed to parse LLM merge response:", raw);
+    return null;
+  }
+  if (data.type !== "merge") return null;
 
   const title = (data.title ?? "").slice(0, 200);
   const content = (data.content ?? "").slice(0, 800);
