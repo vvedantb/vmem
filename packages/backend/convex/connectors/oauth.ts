@@ -5,7 +5,10 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { authAction } from "../auth";
 import { encryptToken, decryptToken, getEnvOrThrow } from "../lib/crypto";
-import { oauthAccessTokenSchema, parseResponseJson } from "../lib/jsonBoundary";
+import {
+  oauthAccessTokenSchema,
+  safeParseResponseJson,
+} from "../lib/jsonBoundary";
 import type { z } from "zod";
 import { auditLog, ResourceTypes } from "../auditLog";
 import {
@@ -150,7 +153,14 @@ async function exchangeOAuthAccessToken(
   if (!tokenRes.ok) {
     return { ok: false, error: "token_exchange_failed" };
   }
-  const tokenData = await parseResponseJson(tokenRes, oauthAccessTokenSchema);
+  const tokenData = await safeParseResponseJson(
+    tokenRes,
+    oauthAccessTokenSchema,
+  );
+  if (!tokenData) {
+    console.error("OAuth token exchange returned an unparseable response");
+    return { ok: false, error: "token_exchange_failed" };
+  }
   const accessToken = tokenData.access_token;
   if (!accessToken) {
     return { ok: false, error: tokenData.error ?? "no_token" };

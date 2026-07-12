@@ -202,16 +202,24 @@ export async function upsertSyncedDocs(
       if (!item) continue;
       const embedding = embeddings[i] ?? null;
 
-      await upsertFromSource(params.setup.driver, {
-        userId: params.clerkId,
-        profileId: params.setup.profileId,
-        title: item.doc.title,
-        content: item.content,
-        sourceType: item.doc.sourceType,
-        sourceId: item.doc.sourceId,
-        sourceUrl: item.doc.sourceUrl,
-        embedding,
-      });
+      try {
+        await upsertFromSource(params.setup.driver, {
+          userId: params.clerkId,
+          profileId: params.setup.profileId,
+          title: item.doc.title,
+          content: item.content,
+          sourceType: item.doc.sourceType,
+          sourceId: item.doc.sourceId,
+          sourceUrl: item.doc.sourceUrl,
+          embedding,
+        });
+      } catch (err) {
+        console.error(
+          `Failed to sync ${item.doc.sourceType} doc ${item.doc.sourceId} (${item.doc.title}). Continue with other docs.`,
+          err,
+        );
+        continue;
+      }
       totalSynced += 1;
       await maybeReportProgress(ctx, {
         connectorId: params.connectorId,

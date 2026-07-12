@@ -13,6 +13,25 @@ export async function parseResponseJson<T>(
   return parsed.data;
 }
 
+/**
+ * Parse a fetch Response body with zod. Returns `null` on a JSON parse
+ * failure or a schema mismatch instead of throwing, so callers can fall
+ * back to their own graceful error path (e.g. "please reconnect").
+ */
+export async function safeParseResponseJson<T>(
+  response: Response,
+  schema: ZodType<T, z.ZodTypeDef, unknown>,
+): Promise<T | null> {
+  let raw: unknown;
+  try {
+    raw = await response.json();
+  } catch {
+    return null;
+  }
+  const parsed = schema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
 /** OAuth access-token payload shared by provider token endpoints. */
 export const oauthAccessTokenSchema = z.object({
   access_token: z.string().optional(),

@@ -3,7 +3,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { decryptToken, encryptToken, getEnvOrThrow } from "./crypto";
 import { pickGoogleTokenConnectorId } from "../neo4jActions/connectors/googleShared";
-import { oauthAccessTokenSchema, parseResponseJson } from "./jsonBoundary";
+import { oauthAccessTokenSchema, safeParseResponseJson } from "./jsonBoundary";
 
 export type ConnectorAccessTokenResult =
   | { ok: true; accessToken: string; tokenConnectorId: Id<"connectors"> }
@@ -98,11 +98,12 @@ export async function resolveConnectorAccessToken(
       return { ok: false, message: "Token refresh failed — please reconnect" };
     }
 
-    const refreshData = await parseResponseJson(
+    const refreshData = await safeParseResponseJson(
       refreshRes,
       oauthAccessTokenSchema,
     );
-    if (!refreshData.access_token) {
+    if (!refreshData || !refreshData.access_token) {
+      console.error("Token refresh returned an unparseable response");
       return { ok: false, message: "Token refresh failed — please reconnect" };
     }
 

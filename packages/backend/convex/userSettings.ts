@@ -1,6 +1,6 @@
 import { authQuery, authMutation } from "./auth";
 import { internalQuery, internalMutation } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import {
   mcpScopeValidator,
@@ -60,31 +60,7 @@ const defaults: {
   lastDreamRunAt: null,
 };
 
-type SettingsDoc = {
-  _id?: Id<"userSettings">;
-  theme?: ThemeValue;
-  language?: string;
-  memoryAutoTag?: boolean;
-  notificationsEnabled?: boolean;
-  extensionAutoSyncEnabled?: boolean;
-  extensionAutoSyncIntervalMinutes?: number;
-  extensionSelectionPopupEnabled?: boolean;
-  memoryAutoExtract?: boolean;
-  memoryConfidenceThreshold?: number;
-  notifyMemoryConflicts?: boolean;
-  notifyNewMemories?: boolean;
-  notifyMemoriesExpiring?: boolean;
-  aboutMe?: string;
-  preferences?: string;
-  defaultProfiles?: DefaultProfilesValue;
-  dreamModeAutoAccept?: boolean;
-  dreamModeScheduleEnabled?: boolean;
-  dreamModeScheduleTime?: string | null;
-  dreamModeAutomatic?: boolean;
-  lastDreamRunAt?: number | null;
-};
-
-function resolveSettings(userId: Id<"users">, doc: SettingsDoc | null) {
+function resolveSettings(userId: Id<"users">, doc: Doc<"userSettings"> | null) {
   return {
     _id: doc?._id ?? null,
     userId,

@@ -20,12 +20,14 @@ import type {
 } from "./types";
 
 const nodeProcessSchema = z.object({
-  env: z.record(z.string()),
+  env: z.record(z.unknown()),
 });
 
 const globalWithProcessSchema = z.object({
   process: nodeProcessSchema.optional(),
 });
+
+const nonEmptyStringSchema = z.string().min(1);
 
 function readEnv(name: string): string | undefined {
   const parsed = globalWithProcessSchema.safeParse(globalThis);
@@ -33,10 +35,8 @@ function readEnv(name: string): string | undefined {
     return undefined;
   }
   const value = parsed.data.process?.env[name];
-  if (typeof value === "string" && value.length > 0) {
-    return value;
-  }
-  return undefined;
+  const valueParsed = nonEmptyStringSchema.safeParse(value);
+  return valueParsed.success ? valueParsed.data : undefined;
 }
 
 function resolveRequiredOption(
