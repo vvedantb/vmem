@@ -130,6 +130,29 @@ type SynthesisProposalKind =
   | "merge";
 
 /**
+ * Dedup guard shared by the anomaly propose-path and the merge pass: skip
+ * synthesis whose source memories overlap an already-pending proposal.
+ */
+async function isOverlappingPendingProposal(
+  driver: ReturnType<typeof getDriver>,
+  clerkId: string,
+  sourceMemoryIds: string[],
+  logLabel?: string,
+): Promise<boolean> {
+  const overlaps = await hasOverlappingPendingProposal(driver, {
+    userId: clerkId,
+    sourceMemoryIds,
+    overlapThreshold: DEDUP_OVERLAP_THRESHOLD,
+  });
+  if (overlaps && logLabel) {
+    console.log(
+      `[dream] dedup skip — overlapping pending proposal for ${logLabel}`,
+    );
+  }
+  return overlaps;
+}
+
+/**
  * File a dream synthesis as a :ProposedUpdate and emit the matching
  * activity event. Shared by the anomaly propose-path and the merge pass.
  */
@@ -322,15 +345,14 @@ export const runDreamForProfileInternal = internalAction({
         if (synthesis.sourceMemoryIds.length === 0) continue;
 
         // Dedup against pending dream-mode proposals.
-        const overlaps = await hasOverlappingPendingProposal(driver, {
-          userId: args.clerkId,
-          sourceMemoryIds: synthesis.sourceMemoryIds,
-          overlapThreshold: DEDUP_OVERLAP_THRESHOLD,
-        });
-        if (overlaps) {
-          console.log(
-            `[dream] dedup skip — overlapping pending proposal for ${synthesis.title}`,
-          );
+        if (
+          await isOverlappingPendingProposal(
+            driver,
+            args.clerkId,
+            synthesis.sourceMemoryIds,
+            synthesis.title,
+          )
+        ) {
           continue;
         }
 
@@ -448,12 +470,15 @@ export const runDreamForProfileInternal = internalAction({
         if (!merge) continue;
         if (merge.confidence < CONFIDENCE_FLOOR) continue;
 
-        const overlaps = await hasOverlappingPendingProposal(driver, {
-          userId: args.clerkId,
-          sourceMemoryIds: merge.sourceMemoryIds,
-          overlapThreshold: DEDUP_OVERLAP_THRESHOLD,
-        });
-        if (overlaps) continue;
+        if (
+          await isOverlappingPendingProposal(
+            driver,
+            args.clerkId,
+            merge.sourceMemoryIds,
+          )
+        ) {
+          continue;
+        }
 
         await fileDreamProposal(ctx, driver, args.clerkId, result, {
           kind: "merge",
