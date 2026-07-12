@@ -118,7 +118,7 @@ Apps import only `@vmem/backend` (Convex `api` + types) and `@vmem/shared`.
 - **Connectors** — Google Drive, Notion, GitHub (batch ingest → memories; daily cron at 04:00 UTC)
 - **Skills** — personal skills + system Skills Hub catalog
 - **Wiki** — folder tree with TipTap markdown docs and version history
-- **Import** — ChatGPT, Claude, Grok, DeepSeek export files
+- **Import** — ChatGPT, Claude export files
 
 ### Chrome extension
 

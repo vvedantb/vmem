@@ -4,8 +4,8 @@ import type { ExportImportRow } from "./importRows";
 
 /**
  * Shared parser for the "conversation objects holding a messages array" export
- * shape, which Claude, Grok and DeepSeek all use (only the key names each
- * vendor happens to emit differ, so the schemas below accept the union of them).
+ * shape used by Claude (only the key names the vendor emits differ, so the
+ * schemas below accept a small union of aliases).
  *
  * ChatGPT is NOT parsed here — its export is a mapping graph, see
  * `parseChatGptExport.ts`.
@@ -17,7 +17,7 @@ import type { ExportImportRow } from "./importRows";
  * a huge multi-year export expects.
  */
 
-export type ChatExportVendor = "claude" | "grok" | "deepseek";
+export type ChatExportVendor = "claude";
 
 export type ParseExportResult =
   | { ok: true; rows: ExportImportRow[] }
@@ -40,7 +40,7 @@ const contentSchema = z
     z.string(),
     z.object({
       text: z.string().optional().catch(undefined),
-      // Claude nests blocks under `content`, Grok/DeepSeek under `parts`.
+      // Claude nests blocks under `content`; other vendors may use `parts`.
       content: blocksSchema.optional().catch(undefined),
       parts: blocksSchema.optional().catch(undefined),
     }),
@@ -152,8 +152,6 @@ function normalizeRole(raw: string): string {
   if (
     role === "assistant" ||
     role === "claude" ||
-    role === "grok" ||
-    role === "deepseek" ||
     role === "ai" ||
     role === "bot"
   ) {
