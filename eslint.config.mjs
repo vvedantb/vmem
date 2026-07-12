@@ -74,10 +74,4 @@ export default tseslint.config(
     files: ["apps/chrome-extension/scripts/**"],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
-  {
-    // React Native resolves bundled assets through `require()` — there is no
-    // import form for `<Image source={require("…png")} />`.
-    files: ["apps/mobile/**"],
-    rules: { "@typescript-eslint/no-require-imports": "off" },
-  },
 );

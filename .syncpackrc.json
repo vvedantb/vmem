@@ -2,21 +2,6 @@
   "$schema": "https://unpkg.com/syncpack/dist/schema.json",
   "versionGroups": [
     {
-      "label": "Expo-pinned packages — managed by expo install, not syncpack",
-      "dependencies": [
-        "expo",
-        "expo-*",
-        "nativewind",
-        "react-native",
-        "react-native-*",
-        "@react-native-*",
-        "@react-native-community/*",
-        "@babel/core"
-      ],
-      "packages": ["mobile"],
-      "isIgnored": true
-    },
-    {
       "label": "@types/node varies by runtime target",
       "dependencies": ["@types/node"],
       "isIgnored": true
@@ -28,9 +13,9 @@
       "pinVersion": "catalog:tailwind4"
     },
     {
-      "label": "Tailwind 3 in web and mobile",
+      "label": "Tailwind 3 in web",
       "dependencies": ["tailwindcss"],
-      "packages": ["web", "mobile"],
+      "packages": ["web"],
       "pinVersion": "catalog:tailwind3"
     },
     {

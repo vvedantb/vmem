@@ -10,7 +10,7 @@ LLMs forget between sessions. Users repeat themselves, lose personalization when
 
 ## What vmem does
 
-vmem centralizes user knowledge in a **Neo4j memory graph** with hybrid retrieval (fulltext + vectors + chunks + entities + graph expansion). Any client — web dashboard, mobile app, Chrome extension, MCP host, or HTTP client — can read and write through **Convex**.
+vmem centralizes user knowledge in a **Neo4j memory graph** with hybrid retrieval (fulltext + vectors + chunks + entities + graph expansion). Any client — web dashboard, Chrome extension, MCP host, or HTTP client — can read and write through **Convex**.
 
 **Differentiators:**
 
@@ -24,7 +24,7 @@ vmem centralizes user knowledge in a **Neo4j memory graph** with hybrid retrieva
 
 ```
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│  Web / Mobile│  │   Chrome     │  │  MCP hosts   │  │ HTTP / SDK   │
+│  Web         │  │   Chrome     │  │  MCP hosts   │  │ HTTP / SDK   │
 │  dashboard   │  │  extension   │  │ Claude, etc. │  │  scripts     │
 └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
        │                 │                 │                 │
@@ -88,7 +88,6 @@ pnpm workspace (`pnpm@10.15.1`). Requires Node 20+.
 | Path                    | Package                  | Purpose                                                      |
 | ----------------------- | ------------------------ | ------------------------------------------------------------ |
 | `apps/web`              | `web`                    | Vite + React 19 + TanStack Router dashboard                  |
-| `apps/mobile`           | `mobile`                 | Expo app — local + cloud chat, voice, memory retrieval       |
 | `apps/chrome-extension` | `@vmem/chrome-extension` | Save pages, export chats, inject context into ChatGPT/Claude |
 | `apps/docs`             | `docs`                   | Mintlify documentation site                                  |
 | `packages/backend`      | `@vmem/backend`          | Convex functions, Neo4j actions, MCP HTTP server             |
@@ -122,12 +121,6 @@ Apps import only `@vmem/backend` (Convex `api` + types) and `@vmem/shared`.
 - **Wiki** — folder tree with TipTap markdown docs and version history
 - **Import** — ChatGPT, Claude, Grok, DeepSeek export files
 
-### Chat & voice
-
-- Web: local LLM (WebLLM) or cloud (OpenRouter + MCP tools), grounded on live memories
-- Mobile: on-device Llama + cloud chat, voice mode (STT → grounded LLM → TTS)
-- Dream Mode portraits injected into MCP context
-
 ### Chrome extension
 
 - Export ChatGPT/Claude conversations, save pages/screenshots/YouTube transcripts
@@ -153,10 +146,9 @@ pnpm dev      # Web app — http://localhost:5173
 **Other commands:**
 
 ```bash
-pnpm mobile          # Expo dev server
 pnpm ext:dev         # Chrome extension watch build
 pnpm docs:dev        # Mintlify docs — http://localhost:3001
-pnpm typecheck:all   # web + backend + mobile
+pnpm typecheck:all   # web + backend + extension + packages
 pnpm test            # backend + web unit tests
 pnpm db:seed         # seed Neo4j (needs packages/backend/.env.local)
 ```
@@ -186,8 +178,6 @@ WEB_APP_URL             # http://localhost:5173 in dev
 ```
 
 Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key), connector OAuth vars (`GOOGLE_CLIENT_*`, `NOTION_CLIENT_*`, `MICROSOFT_CLIENT_*`, `LINEAR_CLIENT_*`, `GITHUB_CLIENT_*`).
-
-**Mobile** — copy `apps/mobile/.env.example` to `apps/mobile/.env`.
 
 **Chrome extension** — edit `apps/chrome-extension/src/lib/constants.ts` (Convex URL + Clerk keys) before `pnpm ext:build`.
 

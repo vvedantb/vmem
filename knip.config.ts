@@ -34,26 +34,6 @@ const config: KnipConfig = {
       entry: ["src/main.tsx!", "src/routes/**/*.tsx!", "vite.config.ts!"],
       project: ["src/**/*.{ts,tsx}"],
     },
-    "apps/mobile": {
-      entry: ["app/**/*.{ts,tsx}!", "src/**/*.{ts,tsx}!", "app.config.ts!"],
-      project: ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"],
-      ignoreFiles: ["metro.config.js", "babel.config.js"],
-      ignoreUnresolved: ["babel-preset-expo"],
-      // Indirect Expo deps invisible to knip because `expo: false` hides
-      // app.config.ts plugin strings and Expo build/dev tooling:
-      //   expo-font / expo-status-bar — plugin-string entries in `plugins`
-      //   expo-system-ui — build-time userInterfaceStyle / backgroundColor from app.config.ts
-      //   expo-dev-client — dev-client build tooling for `expo run` / prebuild (no import)
-      ignoreDependencies: [
-        "expo-font",
-        "expo-status-bar",
-        "expo-system-ui",
-        "expo-dev-client",
-      ],
-      // NativeWind metro config expects a root tailwind.config knip can't resolve.
-      expo: false,
-      metro: false,
-    },
     "apps/chrome-extension": {
       entry: ["src/**/*.{ts,tsx}!"],
       project: ["src/**/*.{ts,tsx}"],
@@ -95,7 +75,6 @@ const config: KnipConfig = {
     },
   },
   ignore: ["apps/docs/**", "internal/**"],
-  ignoreFiles: ["apps/mobile/metro.config.js", "apps/mobile/babel.config.js"],
   ignoreDependencies: ["oxlint-tsgolint", "baseline-browser-mapping"],
   ignoreBinaries: ["convex", "mint"],
 };

@@ -7,7 +7,7 @@ Orientation page for the backend. For _why_ vmem exists see the root `README.md`
 A request never skips a layer. It flows down and the result flows back up.
 
 ```
-client (web / mobile / extension / MCP host / HTTP)
+client (web / extension / MCP host / HTTP)
    │
    ▼
 convex/http/            HTTP + MCP entry points (routes, auth, request parsing)
