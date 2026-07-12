@@ -25,6 +25,13 @@ const directionValidator = v.union(
   v.literal("downstream"),
 );
 
+type SymbolKind =
+  | "code-file"
+  | "code-function"
+  | "code-class"
+  | "code-interface"
+  | "code-process";
+
 interface OverviewStatsResult {
   fileCount: number;
   functionCount: number;
@@ -50,12 +57,7 @@ export const getOverview = authAction({
 interface GraphResult {
   nodes: Array<{
     id: string;
-    kind:
-      | "code-file"
-      | "code-function"
-      | "code-class"
-      | "code-interface"
-      | "code-process";
+    kind: SymbolKind;
     name: string;
     path: string;
     directory: string;
@@ -112,12 +114,7 @@ export const getGraph = authAction({
 
 interface SymbolContextResult {
   id: string;
-  kind:
-    | "code-file"
-    | "code-function"
-    | "code-class"
-    | "code-interface"
-    | "code-process";
+  kind: SymbolKind;
   name: string;
   qualifiedName: string;
   filePath: string;
@@ -177,12 +174,7 @@ export const getImpact = authAction({
 interface SearchResult {
   results: Array<{
     id: string;
-    kind:
-      | "code-file"
-      | "code-function"
-      | "code-class"
-      | "code-interface"
-      | "code-process";
+    kind: SymbolKind;
     name: string;
     qualifiedName: string;
     filePath: string;
