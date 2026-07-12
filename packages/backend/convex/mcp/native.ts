@@ -316,6 +316,16 @@ export const token = httpAction(async (ctx, request) => {
 // MCP Endpoint
 // ─────────────────────────────────────────────────────────────────────────────
 
+function unauthorized(message: string, resourceMetadataUrl: string): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status: 401,
+    headers: {
+      "Content-Type": "application/json",
+      "WWW-Authenticate": `Bearer resource_metadata="${resourceMetadataUrl}"`,
+    },
+  });
+}
+
 async function runMcpEndpoint(
   ctx: ActionCtx,
   request: Request,
@@ -329,16 +339,7 @@ async function runMcpEndpoint(
 
   const token = extractBearerToken(request.headers.get("Authorization"));
   if (!token) {
-    return new Response(
-      JSON.stringify({ error: "Missing Authorization header" }),
-      {
-        status: 401,
-        headers: {
-          "Content-Type": "application/json",
-          "WWW-Authenticate": `Bearer resource_metadata="${resourceMetadataUrl}"`,
-        },
-      },
-    );
+    return unauthorized("Missing Authorization header", resourceMetadataUrl);
   }
 
   const credentials: { clerkUserId: string } | null = await ctx.runAction(
@@ -348,13 +349,7 @@ async function runMcpEndpoint(
 
   if (!credentials) {
     console.error("[MCP][mcpHandler] token verification failed");
-    return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
-      status: 401,
-      headers: {
-        "Content-Type": "application/json",
-        "WWW-Authenticate": `Bearer resource_metadata="${resourceMetadataUrl}"`,
-      },
-    });
+    return unauthorized("Invalid or expired token", resourceMetadataUrl);
   }
 
   if (request.method === "GET" || request.method === "DELETE") {
