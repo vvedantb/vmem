@@ -7,23 +7,12 @@
 import type { Id, Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { auditLog, ResourceTypes } from "../auditLog";
+import { getMembershipOrNull } from "../teams/auth";
 import { getOrCreateDefaultProfile } from "./helpers";
+import { listPersonalProfiles, listTeamProfiles } from "./mcpAccess";
 
 type AuthQueryCtx = QueryCtx & { userId: Id<"users"> };
 type AuthMutationCtx = MutationCtx & { userId: Id<"users"> };
-
-async function getTeamMembership(
-  ctx: QueryCtx | MutationCtx,
-  teamId: Id<"teams">,
-  userId: Id<"users">,
-): Promise<Doc<"teamMembers"> | null> {
-  return await ctx.db
-    .query("teamMembers")
-    .withIndex("by_team_user", (q) =>
-      q.eq("teamId", teamId).eq("userId", userId),
-    )
-    .first();
-}
 
 /**
  * List profiles visible to the caller:
@@ -35,26 +24,10 @@ async function getTeamMembership(
  * single team profile.
  */
 export async function runList(ctx: AuthQueryCtx): Promise<Doc<"profiles">[]> {
-  const personal = (
-    await ctx.db
-      .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .collect()
-  ).filter((p) => p.teamId === undefined);
-
-  const memberships = await ctx.db
-    .query("teamMembers")
-    .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-    .collect();
-  const teamProfiles: Doc<"profiles">[] = [];
-  for (const m of memberships) {
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_team", (q) => q.eq("teamId", m.teamId))
-      .first();
-    if (profile) teamProfiles.push(profile);
-  }
-
+  const [personal, teamProfiles] = await Promise.all([
+    listPersonalProfiles(ctx, ctx.userId),
+    listTeamProfiles(ctx, ctx.userId),
+  ]);
   return [...personal, ...teamProfiles];
 }
 
@@ -70,7 +43,7 @@ export async function runGet(
   }
 
   const teamId = profile.teamId;
-  const membership = await getTeamMembership(ctx, teamId, ctx.userId);
+  const membership = await getMembershipOrNull(ctx, teamId, ctx.userId);
   return membership ? profile : null;
 }
 
@@ -138,7 +111,11 @@ export async function runUpdate(
   if (!profile) throw new Error("Profile not found");
 
   if (profile.teamId) {
-    const membership = await getTeamMembership(ctx, profile.teamId, ctx.userId);
+    const membership = await getMembershipOrNull(
+      ctx,
+      profile.teamId,
+      ctx.userId,
+    );
     if (!membership || membership.role !== "owner") {
       throw new Error("Only team owners can edit a team profile");
     }
