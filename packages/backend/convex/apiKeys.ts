@@ -73,6 +73,20 @@ function toApiKeyResponse(apiKey: Doc<"apiKeys">) {
   };
 }
 
+// --- Access guard ---
+
+async function getOwnedApiKey(
+  ctx: { db: { get: (id: Id<"apiKeys">) => Promise<Doc<"apiKeys"> | null> } },
+  id: Id<"apiKeys">,
+  userId: Id<"users">,
+): Promise<Doc<"apiKeys"> | null> {
+  const apiKey = await ctx.db.get(id);
+  if (!apiKey || apiKey.userId !== userId) {
+    return null;
+  }
+  return apiKey;
+}
+
 // --- Public functions ---
 
 export const listMy = authQuery({
@@ -117,11 +131,8 @@ export const createMy = authAction({
 export const revokeMy = authMutation({
   args: { id: v.id("apiKeys") },
   handler: async (ctx, args) => {
-    const apiKey = await ctx.db.get(args.id);
-    if (!apiKey || apiKey.userId !== ctx.userId) {
-      return false;
-    }
-    if (apiKey.status !== "active") {
+    const apiKey = await getOwnedApiKey(ctx, args.id, ctx.userId);
+    if (!apiKey || apiKey.status !== "active") {
       return false;
     }
 
@@ -147,8 +158,8 @@ export const revokeMy = authMutation({
 export const deleteMy = authMutation({
   args: { id: v.id("apiKeys") },
   handler: async (ctx, args) => {
-    const apiKey = await ctx.db.get(args.id);
-    if (!apiKey || apiKey.userId !== ctx.userId) {
+    const apiKey = await getOwnedApiKey(ctx, args.id, ctx.userId);
+    if (!apiKey) {
       return false;
     }
 
@@ -176,8 +187,8 @@ export const renameMy = authMutation({
   handler: async (ctx, args) => {
     const name = normalizeApiKeyName(args.name);
 
-    const apiKey = await ctx.db.get(args.id);
-    if (!apiKey || apiKey.userId !== ctx.userId) {
+    const apiKey = await getOwnedApiKey(ctx, args.id, ctx.userId);
+    if (!apiKey) {
       return false;
     }
 
