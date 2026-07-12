@@ -25,6 +25,7 @@ import {
   scheduleContextPromptInvalidation,
   tryEmbedOne,
 } from "./shared";
+import { scheduleMemoryEnrichment } from "./postMaterialize";
 import { scheduleDreamTriggerCheck } from "../../lib/dreamTriggerInvalidate";
 
 export interface CreateMemoryArgs {
@@ -205,17 +206,13 @@ async function schedulePostCreate(
     payload: JSON.stringify({ title: params.title }),
   });
 
-  await ctx.scheduler.runAfter(
-    0,
-    internal.neo4jActions.enrichment.enrichMemoryInternal,
-    {
-      clerkId: params.clerkId,
-      memoryId: params.memoryId,
-      title: params.title,
-      content: params.content,
-      profileId: params.profileId,
-    },
-  );
+  await scheduleMemoryEnrichment(ctx, {
+    clerkId: params.clerkId,
+    memoryId: params.memoryId,
+    title: params.title,
+    content: params.content,
+    profileId: params.profileId,
+  });
 
   await scheduleChunkSyncForContent(ctx, getDriver(), {
     clerkId: params.clerkId,

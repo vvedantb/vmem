@@ -25,6 +25,7 @@ import {
 } from "../../../engine/neo4j/memory/proposals";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { callJsonChat, generateEmbedding } from "../../lib/openRouter";
+import { postMaterializeEmbedAndEnrich } from "../_memories/postMaterialize";
 import {
   buildDreamSynthesisPrompt,
   buildMergeSynthesisPrompt,
@@ -384,21 +385,17 @@ export const runDreamForProfileInternal = internalAction({
           );
           result.memoriesMaterialized += 1;
 
-          // Run the same enrichment pipeline regular memories get — tags,
-          // entities, RELATES_TO edges. Without this, materialized
-          // memories sit as orphan nodes with only DERIVED_FROM edges,
-          // which made them useless in graph view.
-          await ctx.scheduler.runAfter(
-            0,
-            internal.neo4jActions.enrichment.enrichMemoryInternal,
-            {
-              clerkId: args.clerkId,
-              memoryId: newMemoryId,
-              title: synthesis.title,
-              content: synthesis.content,
-              profileId: args.profileId,
-            },
-          );
+          await postMaterializeEmbedAndEnrich(ctx, driver, {
+            clerkId: args.clerkId,
+            memoryId: newMemoryId,
+            title: synthesis.title,
+            content: synthesis.content,
+            profileId: args.profileId,
+            feature: "dream-materialize",
+            failureLog:
+              "[dream] embedding failed for materialized memory, continuing without",
+            embeddingAtCreate: embedding,
+          });
 
           await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
             clerkId: args.clerkId,
