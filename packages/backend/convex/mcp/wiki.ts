@@ -120,6 +120,23 @@ async function ensureWikiFolderPath(
   return currentParent;
 }
 
+/** Reload a wiki node after a mutation and map it to the API result shape. */
+async function reloadWikiNode(
+  ctx: ActionCtx,
+  clerkId: string,
+  id: string,
+  notFoundMessage: string,
+): Promise<WikiGetResult> {
+  const node: Doc<"wikiNodes"> | null = await ctx.runQuery(
+    internal.wiki.getByIdInternal,
+    { clerkId, id },
+  );
+  if (!node) {
+    throw new Error(notFoundMessage);
+  }
+  return toGetResult(node);
+}
+
 function toSearchItem(node: Doc<"wikiNodes">): WikiSearchItem {
   const body = node.kind === "document" ? documentMarkdown(node) : "";
   return {
@@ -220,14 +237,12 @@ export const mcpCreateWiki = internalAction({
       },
     );
 
-    const node: Doc<"wikiNodes"> | null = await ctx.runQuery(
-      internal.wiki.getByIdInternal,
-      { clerkId: args.clerkId, id },
+    return reloadWikiNode(
+      ctx,
+      args.clerkId,
+      id,
+      "Failed to load created wiki node",
     );
-    if (!node) {
-      throw new Error("Failed to load created wiki node");
-    }
-    return toGetResult(node);
   },
 });
 
@@ -272,14 +287,12 @@ export const mcpUpdateWiki = internalAction({
       contentText,
     });
 
-    const node: Doc<"wikiNodes"> | null = await ctx.runQuery(
-      internal.wiki.getByIdInternal,
-      { clerkId: args.clerkId, id: args.id },
+    return reloadWikiNode(
+      ctx,
+      args.clerkId,
+      args.id,
+      "Failed to load updated wiki node",
     );
-    if (!node) {
-      throw new Error("Failed to load updated wiki node");
-    }
-    return toGetResult(node);
   },
 });
 
