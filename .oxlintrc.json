@@ -1,0 +1,45 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "options": {
+    "typeAware": true
+  },
+  "plugins": ["typescript"],
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/_generated/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**",
+    "**/.expo/**",
+    "**/.vercel/**",
+    "**/android/**",
+    "**/ios/**",
+    "**/routeTree.gen.ts",
+    "**/*.d.ts",
+    "eslint-report.json"
+  ],
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-unsafe-type-assertion": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
+    "typescript/no-restricted-types": [
+      "error",
+      {
+        "types": {
+          "any": {
+            "message": "`any` is banned. Type the data where it is produced, or parse external input at its boundary with a zod schema (`schema.safeParse(...)`) so downstream code is fully typed. Do NOT suppress this rule."
+          },
+          "unknown": {
+            "message": "`unknown` is banned outside catch/JSON parse boundaries. If you are reaching for `unknown`, parse with zod at the boundary (`schema.safeParse(...)`) so downstream code is fully typed. In `catch`, use `unknown` and parse immediately — do NOT suppress this rule."
+          }
+        }
+      }
+    ]
+  }
+}
