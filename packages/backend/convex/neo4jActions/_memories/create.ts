@@ -70,39 +70,42 @@ export async function runCreateMemory(
     ? (normalizeUrl(args.url) ?? undefined)
     : undefined;
 
-  async function returnIfDuplicate(
-    ref: { id: string; title: string; updatedAt: string } | null,
+  async function checkDuplicate(
+    finder: () => Promise<{
+      id: string;
+      title: string;
+      updatedAt: string;
+    } | null>,
   ): Promise<MemoryWithTags | null> {
+    const ref = await finder();
     return shortCircuitOnDedupMatch(driver, args.clerkId, ref);
   }
 
   if (args.externalId && args.sourceType) {
-    const existing = await findMemoryByExternalId(
-      driver,
-      args.clerkId,
-      args.sourceType,
-      args.externalId,
+    const hit = await checkDuplicate(() =>
+      findMemoryByExternalId(
+        driver,
+        args.clerkId,
+        args.sourceType!,
+        args.externalId!,
+      ),
     );
-    const hit = await returnIfDuplicate(existing);
     if (hit) return hit;
   }
 
   if (normalizedUrl) {
-    const existing = await findMemoryByUrl(driver, args.clerkId, normalizedUrl);
-    const hit = await returnIfDuplicate(existing);
+    const hit = await checkDuplicate(() =>
+      findMemoryByUrl(driver, args.clerkId, normalizedUrl),
+    );
     if (hit) return hit;
   }
 
   if (normalizedUrl && BROWSER_SOURCES.has(args.source)) {
     try {
       const origin = new URL(normalizedUrl).origin;
-      const titleMatch = await findMemoryByTitleAndOrigin(
-        driver,
-        args.clerkId,
-        args.title,
-        origin,
+      const hit = await checkDuplicate(() =>
+        findMemoryByTitleAndOrigin(driver, args.clerkId, args.title, origin),
       );
-      const hit = await returnIfDuplicate(titleMatch);
       if (hit) return hit;
     } catch {
       // Invalid URL, skip this check
@@ -110,12 +113,9 @@ export async function runCreateMemory(
   }
 
   const contentHash = computeContentHash(args.title, args.content);
-  const hashMatch = await findMemoryByContentHash(
-    driver,
-    args.clerkId,
-    contentHash,
+  const hashHit = await checkDuplicate(() =>
+    findMemoryByContentHash(driver, args.clerkId, contentHash),
   );
-  const hashHit = await returnIfDuplicate(hashMatch);
   if (hashHit) return hashHit;
 
   const embedding = await tryEmbedOne(ctx, {
@@ -138,7 +138,11 @@ export async function runCreateMemory(
         `[dedup] semantic near-duplicate (similarity=${semanticMatch.similarity.toFixed(3)}) → ${semanticMatch.id}`,
       );
     }
-    const semanticHit = await returnIfDuplicate(semanticMatch);
+    const semanticHit = await shortCircuitOnDedupMatch(
+      driver,
+      args.clerkId,
+      semanticMatch,
+    );
     if (semanticHit) return semanticHit;
   }
 
