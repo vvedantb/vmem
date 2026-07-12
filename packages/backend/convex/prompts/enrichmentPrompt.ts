@@ -213,12 +213,15 @@ const fullEnrichmentResponseSchema = z.object({
   entities: z.unknown().optional(),
 });
 
+const unknownArraySchema = z.array(z.unknown());
+const relatedMemoryIdsSchema = z.array(z.string());
+
 /**
  * Parse entities from LLM response. Gracefully returns [] when the field is
  * missing or malformed — backward compatible with models that don't emit it.
  */
 function parseEntities(raw: unknown): ExtractedEntity[] {
-  const arrayResult = z.array(z.unknown()).safeParse(raw);
+  const arrayResult = unknownArraySchema.safeParse(raw);
   if (!arrayResult.success) return [];
   const seen = new Set<string>();
   const result: ExtractedEntity[] = [];
@@ -239,7 +242,7 @@ function parseEntities(raw: unknown): ExtractedEntity[] {
 
 function parseRelatedMemoryIds(raw: unknown): string[] {
   if (raw === undefined) return [];
-  const related = z.array(z.string()).safeParse(raw);
+  const related = relatedMemoryIdsSchema.safeParse(raw);
   if (!related.success) return [];
   return related.data.filter((id) => id.length > 0);
 }

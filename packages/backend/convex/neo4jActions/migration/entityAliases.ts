@@ -128,6 +128,8 @@ const clusterVerdictSchema = z.object({
   clusters: z.array(clusterSchema),
 });
 
+const unknownArraySchema = z.array(z.unknown());
+
 type ClusterVerdict = z.infer<typeof clusterVerdictSchema>;
 
 function parseClusterVerdicts(
@@ -136,7 +138,7 @@ function parseClusterVerdicts(
 ): ClusterVerdict[] {
   try {
     const parsed: unknown = JSON.parse(extractJsonString(raw));
-    const arr = z.array(z.unknown()).safeParse(parsed);
+    const arr = unknownArraySchema.safeParse(parsed);
     if (!arr.success) return [];
     const out: ClusterVerdict[] = [];
     for (const item of arr.data) {

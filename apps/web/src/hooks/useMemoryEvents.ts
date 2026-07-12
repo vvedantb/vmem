@@ -27,6 +27,12 @@ const EVENT_FOR_ACTION: Record<string, MemoryEventType> = {
   "memory.relationship.deleted": "relationship_deleted",
 };
 
+const relationshipPayloadSchema = z.object({
+  source: z.string(),
+  target: z.string(),
+  reason: z.string().optional(),
+});
+
 interface RelationshipEvent {
   eventType: "relationship_created" | "relationship_deleted";
   source: string;
@@ -88,15 +94,10 @@ export function useMemoryEvents(
         event.eventType === "relationship_deleted"
       ) {
         if (onRelationshipEvent) {
-          const payloadSchema = z.object({
-            source: z.string(),
-            target: z.string(),
-            reason: z.string().optional(),
-          });
           try {
             // oxlint-disable-next-line typescript/no-unsafe-assignment -- JSON.parse
             const raw: unknown = JSON.parse(event.payload);
-            const parsed = payloadSchema.safeParse(raw);
+            const parsed = relationshipPayloadSchema.safeParse(raw);
             if (!parsed.success) return;
             onRelationshipEvent({
               eventType: event.eventType,

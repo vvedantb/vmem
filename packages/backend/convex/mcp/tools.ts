@@ -52,8 +52,10 @@ function toMcpContent(
 }
 
 /** JSON for a get-file result with the (large) base64 payload removed. */
+const unknownRecordSchema = z.record(z.unknown());
+
 function fileMetadataText(data: unknown): string {
-  const parsed = z.record(z.unknown()).safeParse(data);
+  const parsed = unknownRecordSchema.safeParse(data);
   if (!parsed.success) {
     return JSON.stringify(data, null, 2);
   }

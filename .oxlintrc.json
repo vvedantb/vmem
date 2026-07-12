@@ -73,6 +73,7 @@
     "vmem/no-inline-object-type-assertion": "error",
     "vmem/prefer-schema-inferred-types": "error",
     "vmem/no-conditional-tests": "error",
+    "vmem/no-inline-zod-schema": "error",
     "no-unneeded-ternary": "error",
     "no-useless-concat": "error",
     "no-var": "error",

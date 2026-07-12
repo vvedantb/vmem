@@ -187,3 +187,51 @@ assertValid(
   "no-cross-package-relative-imports",
   `import { other } from "@acme/other-package";\n`,
 );
+
+assertInvalid(
+  "no-inline-zod-schema",
+  `
+import { z } from "zod";
+function parse() {
+  const schema = z.object({ id: z.string() });
+  return schema;
+}
+`,
+);
+
+assertValid(
+  "no-inline-zod-schema",
+  `
+import { z } from "zod";
+const userSchema = z.object({ id: z.string() });
+`,
+);
+
+assertValid(
+  "no-inline-zod-schema",
+  `
+import { z } from "zod";
+const lazySchema = z.lazy(() => z.object({ id: z.string() }));
+`,
+);
+
+assertValid(
+  "no-inline-zod-schema",
+  `
+import { z } from "zod";
+const refined = z.string().superRefine((val, ctx) => {
+  const inner = z.number().safeParse(val);
+  if (!inner.success) ctx.addIssue({ code: "custom", message: "bad" });
+});
+`,
+);
+
+assertInvalid(
+  "no-inline-zod-schema",
+  `
+import { z } from "zod";
+export function parse(body: unknown) {
+  return z.object({ error: z.string() }).safeParse(body);
+}
+`,
+);

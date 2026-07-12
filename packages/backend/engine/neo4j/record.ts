@@ -51,6 +51,8 @@ export function parseNeo4jInt(value: unknown): number {
 
 export const neo4jIntSchema = z.unknown().transform(parseNeo4jInt);
 
+export const stringSchema = z.string();
+
 /**
  * Read `PropertyDescriptor.value` as `unknown`.
  * Descriptors are typed `any` in lib.es5 — inlined at the one call site.

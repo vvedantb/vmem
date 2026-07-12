@@ -48,6 +48,8 @@ const sourceMemorySnapshotSchema = z.object({
   content: z.string(),
 });
 
+const sourceMemorySnapshotsSchema = z.array(sourceMemorySnapshotSchema);
+
 type ProposedUpdateProps = z.infer<typeof proposedUpdateNodePropsSchema>;
 
 const proposedUpdateKindSchema = z
@@ -114,9 +116,9 @@ function parseListedProposedUpdate(record: NeoRecord): ProposedUpdateNode {
       ? { title: titleRaw, content: contentRaw }
       : null;
 
-  const sourceSnapsParsed = z
-    .array(sourceMemorySnapshotSchema)
-    .safeParse(neo4jGet(record, "sourceSnaps"));
+  const sourceSnapsParsed = sourceMemorySnapshotsSchema.safeParse(
+    neo4jGet(record, "sourceSnaps"),
+  );
   const sourceMemorySnapshots = sourceSnapsParsed.success
     ? sourceSnapsParsed.data
     : [];

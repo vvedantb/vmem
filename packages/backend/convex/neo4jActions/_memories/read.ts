@@ -25,8 +25,11 @@ import {
   tryEmbedOne,
 } from "./shared";
 
+const stringArraySchema = z.array(z.string());
+const numberArraySchema = z.array(z.number());
+
 function parseStringArray(content: string): string[] {
-  const values = parseJsonString(content, z.array(z.string()));
+  const values = parseJsonString(content, stringArraySchema);
   const trimmed = values?.map((v) => v.trim()).filter((v) => v.length > 0);
   if (trimmed && trimmed.length > 0) return trimmed;
 
@@ -41,7 +44,7 @@ function parseNumberArray(
   content: string,
   expectedCount: number,
 ): number[] | null {
-  const scores = parseJsonString(content, z.array(z.number()));
+  const scores = parseJsonString(content, numberArraySchema);
   return scores && scores.length === expectedCount ? scores : null;
 }
 

@@ -8,9 +8,8 @@
  * themes (2026-06 audit: 3,623 of 4,962 tags were single-use — fixed by
  * vocabulary-aware enrichment + normalizeTags chokepoint).
  */
-import { z } from "zod";
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
-import { neo4jField } from "../engine/neo4j/record";
+import { neo4jField, stringSchema } from "../engine/neo4j/record";
 
 async function main() {
   const driver = getDriver();
@@ -34,7 +33,7 @@ async function main() {
 
     const firstUser = users.records[0];
     if (!firstUser) return;
-    const heaviest = neo4jField(firstUser, "userId", z.string());
+    const heaviest = neo4jField(firstUser, "userId", stringSchema);
 
     // Usage histogram: how many tags are used 1x, 2x, 3-5x, 6-20x, >20x
     const hist = await session.run(

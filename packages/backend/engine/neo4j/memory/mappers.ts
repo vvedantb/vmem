@@ -66,6 +66,8 @@ const memorySnapshotSchema = z.object({
   tags: z.array(z.string()),
 });
 
+const tagsArraySchema = z.array(z.string());
+
 const detailsRecordSchema = z.record(z.string(), z.string());
 
 function parseJsonField<T>(
@@ -177,7 +179,7 @@ export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
     neo4jGet(record, "m"),
     memoryNodePropsSchema,
   );
-  const tagsParsed = z.array(z.string()).safeParse(neo4jGet(record, "tags"));
+  const tagsParsed = tagsArraySchema.safeParse(neo4jGet(record, "tags"));
   return {
     id: props.id,
     userId: props.userId,

@@ -23,10 +23,12 @@ const nodeProcessSchema = z.object({
   env: z.record(z.string()),
 });
 
+const globalWithProcessSchema = z.object({
+  process: nodeProcessSchema.optional(),
+});
+
 function readEnv(name: string): string | undefined {
-  const parsed = z
-    .object({ process: nodeProcessSchema.optional() })
-    .safeParse(globalThis);
+  const parsed = globalWithProcessSchema.safeParse(globalThis);
   if (!parsed.success) {
     return undefined;
   }

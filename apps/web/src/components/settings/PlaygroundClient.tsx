@@ -40,6 +40,8 @@ const oauthTokenResponseSchema = z.object({
   access_token: z.string(),
 });
 
+const unknownArraySchema = z.array(z.unknown());
+
 interface JsonSchemaProperty {
   type?: string;
   description?: string;
@@ -342,7 +344,7 @@ export default function PlaygroundClient() {
         } else if (propDef?.type === "array") {
           try {
             const parsed: unknown = JSON.parse(value);
-            const arrayParsed = z.array(z.unknown()).safeParse(parsed);
+            const arrayParsed = unknownArraySchema.safeParse(parsed);
             args[key] = arrayParsed.success
               ? arrayParsed.data
               : value.split(",").map((s) => s.trim());
