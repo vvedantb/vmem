@@ -102,7 +102,7 @@ function FilterOptionContent({
 }
 
 function isEventType(type: string): type is EventType {
-  return Object.hasOwn(EVENT_TYPE_ICONS, type);
+  return Object.prototype.hasOwnProperty.call(EVENT_TYPE_ICONS, type);
 }
 
 function getActivityIcon(type: string) {

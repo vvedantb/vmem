@@ -45,11 +45,11 @@ interface JsonSchemaProperty {
   description?: string;
 }
 
+const unknownRecordSchema = z.record(z.string(), z.unknown());
+
 function recordFromUnknown(value: unknown): Record<string, unknown> {
-  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-    return value;
-  }
-  return {};
+  const parsed = unknownRecordSchema.safeParse(value);
+  return parsed.success ? parsed.data : {};
 }
 
 function schemaProperties(

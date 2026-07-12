@@ -20,7 +20,10 @@ export const CONVEX_BUILDER_KIND_BY_NAME: Record<string, EntryPoint["kind"]> = {
 };
 
 export function isConvexBuilderName(name: string): boolean {
-  return Object.hasOwn(CONVEX_BUILDER_KIND_BY_NAME, name);
+  return Object.prototype.hasOwnProperty.call(
+    CONVEX_BUILDER_KIND_BY_NAME,
+    name,
+  );
 }
 
 export function convexEntryKind(name: string): EntryPoint["kind"] | undefined {

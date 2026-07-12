@@ -152,8 +152,8 @@ export function toEventFromNode(props: {
   action: string;
   actor: string;
   createdAt: string;
-  snapshot: string | null;
-  details: string | null;
+  snapshot?: string | null;
+  details?: string | null;
 }): MemoryEvent {
   return {
     id: props.id,

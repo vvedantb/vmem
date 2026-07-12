@@ -112,7 +112,7 @@ function apiToMemory(m: {
   createdAt: string;
   sourceUrl?: string | null;
   sourceSyncedAt?: string | null;
-  profileId?: string;
+  profileId?: string | null;
 }): Memory {
   return {
     id: m.id,
@@ -124,7 +124,7 @@ function apiToMemory(m: {
     sourceSyncedAt: m.sourceSyncedAt ?? null,
     tags: m.tags,
     createdAt: m.createdAt,
-    profileId: m.profileId,
+    profileId: m.profileId ?? undefined,
   };
 }
 
@@ -280,23 +280,9 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         confidence: 1.0,
         profileId: input.profileId,
       });
-      const memory = apiToMemory({
-        id: created.id,
-        userId: created.userId,
-        title: created.title,
-        content: created.content,
-        type: created.type,
-        source: created.source,
-        confidence: created.confidence,
-        status: created.status,
-        tags: created.tags,
-        createdAt: created.createdAt,
-        updatedAt: created.updatedAt,
-        expiresAt: created.expiresAt,
-      });
-      // Enrichment (tags, relations, entities) now runs server-side
-      // automatically after memory creation via ctx.scheduler.runAfter
-      return memory;
+      // Pass the action result as a variable (not a fresh literal) so
+      // extra MemoryWithTags fields don't trip excess-property checks.
+      return apiToMemory(created);
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: ["memories", "recent"] });
@@ -338,6 +324,9 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         content: input.content,
         tags: input.tags,
       });
+      if (apiMemory === null) {
+        throw new Error("Memory not found");
+      }
       return { memory: apiToMemory(apiMemory), id: input.id };
     },
     onMutate: async (input) => {
@@ -407,20 +396,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         mimeType: input.file.type,
         profileId: input.profileId,
       });
-      return apiToMemory({
-        id: created.id,
-        userId: created.userId,
-        title: created.title,
-        content: created.content,
-        type: created.type,
-        source: created.source,
-        confidence: created.confidence,
-        status: created.status,
-        tags: created.tags,
-        createdAt: created.createdAt,
-        updatedAt: created.updatedAt,
-        expiresAt: created.expiresAt,
-      });
+      return apiToMemory(created);
     },
     onSettled: invalidateMemories,
   });
