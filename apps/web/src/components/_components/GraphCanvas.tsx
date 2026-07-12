@@ -244,6 +244,10 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               return;
             }
             const edge = edgeList[idx];
+            if (!edge) {
+              callbacksRef.current.onHoverEdge?.(null);
+              return;
+            }
             const vp = viewportRef.current;
             const mx = ((edge.source.x ?? 0) + (edge.target.x ?? 0)) / 2;
             const my = ((edge.source.y ?? 0) + (edge.target.y ?? 0)) / 2;
@@ -542,8 +546,10 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           hoveredEdgeIndex < resolvedEdgesCache.length
         ) {
           const hoveredEdge = resolvedEdgesCache[hoveredEdgeIndex];
-          neighborSet.add(hoveredEdge.source.id);
-          neighborSet.add(hoveredEdge.target.id);
+          if (hoveredEdge) {
+            neighborSet.add(hoveredEdge.source.id);
+            neighborSet.add(hoveredEdge.target.id);
+          }
         }
 
         render(

@@ -178,10 +178,10 @@ export default function FileUploadModal({
 
     let successCount = 0;
     for (let i = 0; i < queuedFiles.length; i++) {
-      if (queuedFiles[i].status === "pending") {
-        const success = await uploadFile(queuedFiles[i], i);
-        if (success) successCount++;
-      }
+      const queued = queuedFiles.at(i);
+      if (queued?.status !== "pending") continue;
+      const success = await uploadFile(queued, i);
+      if (success) successCount++;
     }
 
     setIsUploading(false);

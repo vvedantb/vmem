@@ -271,8 +271,10 @@ function postPositions(): void {
   // sub-pixel precision loss is irrelevant for canvas drawing.
   const buffer = new Float32Array(nodes.length * 2);
   for (let i = 0; i < nodes.length; i++) {
-    buffer[i * 2] = nodes[i].x ?? 0;
-    buffer[i * 2 + 1] = nodes[i].y ?? 0;
+    const node = nodes[i];
+    if (!node) continue;
+    buffer[i * 2] = node.x ?? 0;
+    buffer[i * 2 + 1] = node.y ?? 0;
   }
 
   const alpha = sim.alpha();

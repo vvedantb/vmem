@@ -170,7 +170,8 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const { theme } = useThemeContext();
   const isDark = theme === "dark";
 
-  const trailTag = params.tags.length === 1 ? params.tags[0] : null;
+  const trailTag =
+    params.tags.length === 1 ? (params.tags.at(0) ?? null) : null;
   const { trailMap } = useTrailData({ tag: trailTag });
 
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(

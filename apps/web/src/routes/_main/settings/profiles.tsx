@@ -338,7 +338,9 @@ function ProfilesPage() {
   const createProfile = useMutation(api.profiles.create).withOptimisticUpdate(
     (localStore, args) => {
       const list = localStore.getQuery(api.profiles.list, {});
-      if (!list || list.length === 0) return;
+      if (!list) return;
+      const first = list.at(0);
+      if (!first) return;
       const now = Date.now();
       const tempId = optimisticId("profiles");
       localStore.setQuery(api.profiles.list, {}, [
@@ -346,7 +348,7 @@ function ProfilesPage() {
         {
           _id: tempId,
           _creationTime: now,
-          userId: list[0].userId,
+          userId: first.userId,
           name: args.name,
           color: args.color,
           icon: args.icon,

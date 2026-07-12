@@ -55,12 +55,14 @@ export function UploadSkillDialog({
     (localStore, args) => {
       const current = localStore.getQuery(api.skills.listMy, { teamId });
       if (!current || current.length === 0) return;
+      const head = current.at(0);
+      if (!head) return;
       const now = Date.now();
       const tempId = optimisticId("skills");
       const row: Doc<"skills"> = {
         _id: tempId,
         _creationTime: now,
-        userId: current[0].userId,
+        userId: head.userId,
         teamId,
         name: args.name.trim(),
         description: args.description,

@@ -35,8 +35,10 @@ export function getGraphSettings(): GraphSettings {
   if (!match) return DEFAULT_GRAPH_SETTINGS;
 
   try {
+    const raw = match.split("=").slice(1).join("=");
+    if (raw.length === 0) return DEFAULT_GRAPH_SETTINGS;
     const parsed = graphSettingsCookieSchema.safeParse(
-      JSON.parse(decodeURIComponent(match.split("=")[1])),
+      JSON.parse(decodeURIComponent(raw)),
     );
     if (!parsed.success) return DEFAULT_GRAPH_SETTINGS;
     return {
@@ -64,7 +66,9 @@ export function getGraphViewMode(): ViewMode {
 
   if (!match) return "default";
 
-  const value = decodeURIComponent(match.split("=")[1]);
+  const raw = match.split("=").slice(1).join("=");
+  if (raw.length === 0) return "default";
+  const value = decodeURIComponent(raw);
   return isViewMode(value) ? value : "default";
 }
 

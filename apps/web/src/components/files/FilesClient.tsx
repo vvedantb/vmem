@@ -80,8 +80,9 @@ export default function FilesClient() {
 
     // Reverse non-root crumbs to get root→leaf order
     if (crumbs.length > 1) {
-      const [root, ...rest] = crumbs;
-      return [root, ...rest.reverse()];
+      const root = crumbs.at(0);
+      if (root === undefined) return crumbs;
+      return [root, ...crumbs.slice(1).reverse()];
     }
     return crumbs;
   }, [allFiles, params.folderId]);

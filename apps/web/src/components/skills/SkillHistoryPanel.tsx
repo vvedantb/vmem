@@ -55,7 +55,8 @@ export function SkillHistoryPanel({
     }
     if (!versions || versions.length === 0) return;
     if (selectedId && versions.some((v) => v._id === selectedId)) return;
-    setSelectedId(versions[0]._id);
+    const newest = versions.at(0);
+    if (newest) setSelectedId(newest._id);
   }, [open, versions, selectedId]);
 
   const handleRestore = async () => {

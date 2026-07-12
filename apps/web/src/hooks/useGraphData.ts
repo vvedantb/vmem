@@ -132,7 +132,18 @@ interface MergedGraph {
  *  - tag edges, wiki nodes/edges, focus, and total only exist on page one
  */
 function mergePages(pages: GraphResponse[]): MergedGraph {
-  const first = pages[0];
+  const first = pages.at(0);
+  if (first === undefined) {
+    return {
+      nodes: EMPTY_NODES,
+      tagEdges: EMPTY_TAG_EDGES,
+      relatesToEdges: [],
+      wikiParentEdges: EMPTY_WIKI_PARENT_EDGES,
+      mentionsEdges: EMPTY_MENTIONS_EDGES,
+      focusNodeId: null,
+      totalMemoryCount: null,
+    };
+  }
   if (pages.length === 1) {
     return {
       nodes: first.nodes,

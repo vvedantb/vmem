@@ -74,9 +74,9 @@ describe("buildTree", () => {
       wikiNode(testWikiId("c1"), "mango", "folder", parent),
       wikiNode(testWikiId("c3"), "apple", "document", parent),
     ];
-    const childTitles = buildTree(nodes)[0].children.map(
-      (item) => item.node.title,
-    );
+    const root = buildTree(nodes).at(0);
+    expect(root).toBeDefined();
+    const childTitles = (root?.children ?? []).map((item) => item.node.title);
     expect(childTitles).toEqual(["mango", "apple", "zebra"]);
   });
 });
