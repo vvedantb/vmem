@@ -87,6 +87,15 @@ function buildIndex(symbols: SymbolNode[]): SymbolIndex {
   };
 }
 
+/** Look up a possibly-undefined name in the per-file symbol map. */
+function lookupByName(
+  perFile: Map<string, string>,
+  name: string | undefined,
+): string | null {
+  if (!name) return null;
+  return perFile.get(name) ?? null;
+}
+
 /** Identify the function that contains a given call expression. */
 function findEnclosingFunctionId(
   call: CallExpression,
@@ -97,34 +106,26 @@ function findEnclosingFunctionId(
     const k = ancestor.getKind();
     if (k === SyntaxKind.FunctionDeclaration) {
       const fd = ancestor.asKind(SyntaxKind.FunctionDeclaration);
-      const name = fd?.getName();
-      if (name) {
-        const id = perFile.get(name);
-        if (id) return id;
-      }
+      const id = lookupByName(perFile, fd?.getName());
+      if (id) return id;
     } else if (k === SyntaxKind.MethodDeclaration) {
       const md = ancestor.asKind(SyntaxKind.MethodDeclaration);
       const methodName = md?.getName();
       // Walk further up to the class to disambiguate Class.method.
       const cls = md?.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);
       const className = cls?.getName();
-      if (methodName && className) {
-        const id = perFile.get(`${className}.${methodName}`);
-        if (id) return id;
-      }
+      const id =
+        methodName && className
+          ? lookupByName(perFile, `${className}.${methodName}`)
+          : null;
+      if (id) return id;
     } else if (k === SyntaxKind.VariableDeclaration) {
       const vd = ancestor.asKind(SyntaxKind.VariableDeclaration);
-      const name = vd?.getName();
-      if (name) {
-        const id = perFile.get(name);
-        if (id) return id;
-      }
-    } else if (
-      k === SyntaxKind.ArrowFunction ||
-      k === SyntaxKind.FunctionExpression
-    ) {
-      // Anonymous nested fn — keep walking up.
+      const id = lookupByName(perFile, vd?.getName());
+      if (id) return id;
     }
+    // ArrowFunction / FunctionExpression (anonymous nested fn) and any
+    // other node kind: keep walking up.
     ancestor = ancestor.getParent();
   }
   return null;
