@@ -18,6 +18,11 @@ build
 # Local project context (not shared)
 FYP-PROJECT-CONTEXT.md
 CODEBASE.md
+AGENTS.md
+CLAUDE.md
+DESIRES.md
+LEARNINGS.md
+MISTAKES.md
 skills-lock.json
 skills-lock.json.bak
 
