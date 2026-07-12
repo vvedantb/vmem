@@ -479,6 +479,51 @@ async function applyDismissOnlyApproval(
 }
 
 /**
+ * Shared Cypher for materialising a dream-mode synthesis as a new
+ * knowledge :Memory with :DERIVED_FROM edges to its sources. Used verbatim
+ * by `applySynthesisApproval`; `applyMergeApproval` appends a suppression
+ * suffix. Kept as one string so the two approval paths can never drift on
+ * the memory shape. Expects params: proposalId, now, newMemoryId, userId,
+ * profileId, title, content, confidence, contentHash, sourceMemoryIds.
+ */
+const MATERIALISE_DERIVED_MEMORY_CYPHER = `
+  MATCH (p:ProposedUpdate {id: $proposalId})
+  SET p.status = 'approved', p.resolvedAt = $now
+  WITH p
+  CREATE (m:Memory {
+    id: $newMemoryId,
+    userId: $userId,
+    profileId: $profileId,
+    title: $title,
+    content: $content,
+    type: 'knowledge',
+    source: 'dream-mode',
+    confidence: $confidence,
+    status: 'active',
+    createdAt: $now,
+    updatedAt: $now,
+    expiresAt: null,
+    url: null,
+    embedding: null,
+    contentHash: $contentHash,
+    sourceType: null,
+    sourceId: null,
+    storageId: null,
+    mimeType: null,
+    originalFilename: null,
+    visitCount: 1,
+    firstVisitAt: $now,
+    lastVisitAt: $now
+  })
+  WITH m
+  MERGE (s:Source {name: 'dream-mode'})
+  CREATE (m)-[:FROM_SOURCE]->(s)
+  WITH m
+  UNWIND $sourceMemoryIds AS sid
+  MATCH (src:Memory {id: sid, userId: $userId})
+  MERGE (m)-[:DERIVED_FROM]->(src)`;
+
+/**
  * Materialise a synthesis (insight/connection) proposal as a NEW
  * :Memory(type='knowledge', source='dream-mode') with :DERIVED_FROM
  * edges to each source. The new memory's id is returned so callers can
@@ -511,55 +556,18 @@ async function applySynthesisApproval(
     lookup.proposedContent,
   );
 
-  await session.run(
-    `MATCH (p:ProposedUpdate {id: $proposalId})
-     SET p.status = 'approved', p.resolvedAt = $now
-     WITH p
-     CREATE (m:Memory {
-       id: $newMemoryId,
-       userId: $userId,
-       profileId: $profileId,
-       title: $title,
-       content: $content,
-       type: 'knowledge',
-       source: 'dream-mode',
-       confidence: $confidence,
-       status: 'active',
-       createdAt: $now,
-       updatedAt: $now,
-       expiresAt: null,
-       url: null,
-       embedding: null,
-       contentHash: $contentHash,
-       sourceType: null,
-       sourceId: null,
-       storageId: null,
-       mimeType: null,
-       originalFilename: null,
-       visitCount: 1,
-       firstVisitAt: $now,
-       lastVisitAt: $now
-     })
-     WITH m
-     MERGE (s:Source {name: 'dream-mode'})
-     CREATE (m)-[:FROM_SOURCE]->(s)
-     WITH m
-     UNWIND $sourceMemoryIds AS sid
-     MATCH (src:Memory {id: sid, userId: $userId})
-     MERGE (m)-[:DERIVED_FROM]->(src)`,
-    {
-      proposalId,
-      now,
-      newMemoryId,
-      userId: lookup.userId,
-      profileId: lookup.sourceProfileId,
-      title: lookup.proposedTitle,
-      content: lookup.proposedContent,
-      confidence: lookup.confidence,
-      contentHash,
-      sourceMemoryIds: lookup.sourceMemoryIds,
-    },
-  );
+  await session.run(MATERIALISE_DERIVED_MEMORY_CYPHER, {
+    proposalId,
+    now,
+    newMemoryId,
+    userId: lookup.userId,
+    profileId: lookup.sourceProfileId,
+    title: lookup.proposedTitle,
+    content: lookup.proposedContent,
+    confidence: lookup.confidence,
+    contentHash,
+    sourceMemoryIds: lookup.sourceMemoryIds,
+  });
 
   await logEvent(
     session,
@@ -618,41 +626,7 @@ async function applyMergeApproval(
   );
 
   const result = await session.run(
-    `MATCH (p:ProposedUpdate {id: $proposalId})
-     SET p.status = 'approved', p.resolvedAt = $now
-     WITH p
-     CREATE (m:Memory {
-       id: $newMemoryId,
-       userId: $userId,
-       profileId: $profileId,
-       title: $title,
-       content: $content,
-       type: 'knowledge',
-       source: 'dream-mode',
-       confidence: $confidence,
-       status: 'active',
-       createdAt: $now,
-       updatedAt: $now,
-       expiresAt: null,
-       url: null,
-       embedding: null,
-       contentHash: $contentHash,
-       sourceType: null,
-       sourceId: null,
-       storageId: null,
-       mimeType: null,
-       originalFilename: null,
-       visitCount: 1,
-       firstVisitAt: $now,
-       lastVisitAt: $now
-     })
-     WITH m
-     MERGE (s:Source {name: 'dream-mode'})
-     CREATE (m)-[:FROM_SOURCE]->(s)
-     WITH m
-     UNWIND $sourceMemoryIds AS sid
-     MATCH (src:Memory {id: sid, userId: $userId})
-     MERGE (m)-[:DERIVED_FROM]->(src)
+    `${MATERIALISE_DERIVED_MEMORY_CYPHER}
      WITH m, src
      WHERE src.status = 'active'
      SET src.status = 'suppressed', src.updatedAt = $now

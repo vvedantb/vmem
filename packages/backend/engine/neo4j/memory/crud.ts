@@ -11,7 +11,11 @@
 
 import Cypher from "@neo4j/cypher-builder";
 import crypto from "node:crypto";
-import neo4j, { type Driver, type Integer } from "neo4j-driver";
+import neo4j, {
+  type Driver,
+  type Integer,
+  type QueryResult,
+} from "neo4j-driver";
 import { buildAndRun } from "../cypherHelpers";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { toMemoryWithTags, toNeoInt, toSnapshot } from "./mappers";
@@ -22,6 +26,24 @@ import {
   type MemoryType,
   type MemoryWithTags,
 } from "./types";
+
+/** Lightweight memory reference returned by the dedup-lookup helpers. */
+type MemoryRef = { id: string; title: string; updatedAt: string };
+
+/**
+ * Extract the `{id, title, updatedAt}` shape from a query's first record, or
+ * null when the query matched nothing. Shared by every `findMemoryBy*` dedup
+ * lookup — they all run a single-row MATCH and return this same projection.
+ */
+function firstMemoryRef(result: QueryResult): MemoryRef | null {
+  const r = result.records[0];
+  if (!r) return null;
+  return {
+    id: String(r.get("id")),
+    title: String(r.get("title")),
+    updatedAt: String(r.get("updatedAt")),
+  };
+}
 
 export async function createMemory(
   driver: Driver,
@@ -482,16 +504,6 @@ export async function deleteMemory(
 }
 
 /**
- * Wipe every memory the user owns and every node that exists only to
- * support those memories: chunks, memory events, proposed updates, and
- * per-user entities. Tags and sources are global (`UNIQUE` on name) so
- * we only prune the orphans — names other users still reference stay.
- *
- * Mirrors `unseed.ts`'s ordering: child rows first, then memories, then
- * orphan cleanup, so DETACH DELETE never has to walk into a child it
- * was supposed to remove on its own.
- */
-/**
  * Remove every memory imported from the given connector source types, plus
  * their chunks, events, and proposed updates. Does not disconnect OAuth or
  * wipe unrelated memories.
@@ -550,6 +562,16 @@ export async function deleteMemoriesBySourceTypes(
   });
 }
 
+/**
+ * Wipe every memory the user owns and every node that exists only to
+ * support those memories: chunks, memory events, proposed updates, and
+ * per-user entities. Tags and sources are global (`UNIQUE` on name) so
+ * we only prune the orphans — names other users still reference stay.
+ *
+ * Mirrors `unseed.ts`'s ordering: child rows first, then memories, then
+ * orphan cleanup, so DETACH DELETE never has to walk into a child it
+ * was supposed to remove on its own.
+ */
 export async function deleteAllMemoriesForUser(
   driver: Driver,
   userId: string,
@@ -601,7 +623,7 @@ export async function findMemoryByUrl(
   driver: Driver,
   userId: string,
   url: string,
-): Promise<{ id: string; title: string; updatedAt: string } | null> {
+): Promise<MemoryRef | null> {
   return withSession(driver, async (session) => {
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId, url: $url})
@@ -610,14 +632,7 @@ export async function findMemoryByUrl(
        LIMIT 1`,
       { userId, url },
     );
-    if (result.records.length === 0) return null;
-    const r = result.records[0];
-    if (!r) return null;
-    return {
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      updatedAt: String(r.get("updatedAt")),
-    };
+    return firstMemoryRef(result);
   });
 }
 
@@ -674,7 +689,7 @@ export async function findMemoryByTitleAndOrigin(
   userId: string,
   title: string,
   origin: string,
-): Promise<{ id: string; title: string; updatedAt: string } | null> {
+): Promise<MemoryRef | null> {
   return withSession(driver, async (session) => {
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId, title: $title})
@@ -686,14 +701,7 @@ export async function findMemoryByTitleAndOrigin(
        LIMIT 1`,
       { userId, title, origin },
     );
-    if (result.records.length === 0) return null;
-    const r = result.records[0];
-    if (!r) return null;
-    return {
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      updatedAt: String(r.get("updatedAt")),
-    };
+    return firstMemoryRef(result);
   });
 }
 
@@ -705,7 +713,7 @@ export async function findMemoryByContentHash(
   driver: Driver,
   userId: string,
   contentHash: string,
-): Promise<{ id: string; title: string; updatedAt: string } | null> {
+): Promise<MemoryRef | null> {
   return withSession(driver, async (session) => {
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId, contentHash: $contentHash})
@@ -714,14 +722,7 @@ export async function findMemoryByContentHash(
        LIMIT 1`,
       { userId, contentHash },
     );
-    if (result.records.length === 0) return null;
-    const r = result.records[0];
-    if (!r) return null;
-    return {
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      updatedAt: String(r.get("updatedAt")),
-    };
+    return firstMemoryRef(result);
   });
 }
 
@@ -737,7 +738,7 @@ export async function findMemoryByExternalId(
   userId: string,
   sourceType: string,
   sourceId: string,
-): Promise<{ id: string; title: string; updatedAt: string } | null> {
+): Promise<MemoryRef | null> {
   return withSession(driver, async (session) => {
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId, sourceType: $sourceType, sourceId: $sourceId})
@@ -746,14 +747,7 @@ export async function findMemoryByExternalId(
        LIMIT 1`,
       { userId, sourceType, sourceId },
     );
-    if (result.records.length === 0) return null;
-    const r = result.records[0];
-    if (!r) return null;
-    return {
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      updatedAt: String(r.get("updatedAt")),
-    };
+    return firstMemoryRef(result);
   });
 }
 
